@@ -7,9 +7,16 @@ import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
 
-public class AddItemCommand implements CommandExecutor {
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+
+import me.nakilex.levelplugin.utils.CommandUtil;
+
+public class AddItemCommand implements TabExecutor {
 
     @Override
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
@@ -80,5 +87,27 @@ public class AddItemCommand implements CommandExecutor {
             + "! (ID:" + itemId + ")");
 
         return true;
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        if (args.length == 1) {
+            ItemManager manager = ItemManager.getInstance();
+            if (manager == null) {
+                return Collections.emptyList();
+            }
+            Collection<String> ids = manager.getAllTemplates().keySet().stream()
+                    .map(String::valueOf)
+                    .sorted()
+                    .toList();
+            return CommandUtil.filterStartingWith(ids, args[0]);
+        }
+        if (args.length == 2) {
+            return CommandUtil.onlinePlayerNames(args[1]);
+        }
+        if (args.length == 3) {
+            return CommandUtil.numberOptions(args[2], 1, 5, 10, 16, 32, 64);
+        }
+        return Collections.emptyList();
     }
 }

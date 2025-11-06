@@ -4,13 +4,20 @@ import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
+import me.nakilex.levelplugin.utils.CommandUtil;
 
-public class AuctionCommand implements CommandExecutor {
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.stream.IntStream;
+
+public class AuctionCommand implements TabExecutor {
 
     private final AuctionHouseManager manager;
     private final AuctionHouseGUI gui;
@@ -93,5 +100,38 @@ public class AuctionCommand implements CommandExecutor {
 
         ChatMessageUtil.send(player, MessageType.ERROR, "Usage: /auctionhouse [open|sell|bid]");
         return true;
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        if (args.length == 1) {
+            return CommandUtil.simpleSuggestions(args[0], "open", "sell", "bid");
+        }
+        if (args.length == 2) {
+            String sub = args[0].toLowerCase(Locale.ROOT);
+            if ("sell".equals(sub)) {
+                return CommandUtil.numberOptions(args[1], 10, 25, 50, 100, 250, 500, 1000);
+            }
+            if ("bid".equals(sub)) {
+                List<String> indices = IntStream.range(0, manager.getAuctions().size())
+                        .mapToObj(Integer::toString)
+                        .toList();
+                return CommandUtil.filterStartingWith(indices, args[1]);
+            }
+        }
+        if (args.length == 3) {
+            String sub = args[0].toLowerCase(Locale.ROOT);
+            if ("sell".equals(sub)) {
+                return CommandUtil.numberOptions(args[2], 0, 50, 100, 250, 500, 1000);
+            }
+            if ("bid".equals(sub)) {
+                return CommandUtil.numberOptions(args[2], 10, 25, 50, 100, 250, 500, 1000);
+            }
+        }
+        if (args.length == 4 && "sell".equalsIgnoreCase(args[0])) {
+            int max = (int) AuctionHouseManager.MAX_DURATION_HOURS;
+            return CommandUtil.numberRange(args[3], 1, max);
+        }
+        return Collections.emptyList();
     }
 }

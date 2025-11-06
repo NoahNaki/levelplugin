@@ -137,13 +137,28 @@ public class CommandRegistry {
                                         ChatGameManager chatGameManager) {
 
 
-        plugin.getCommand("addpoints").setExecutor(new AddPointsCommand());
-        plugin.getCommand("addxp").setExecutor(new AddXPCommand(levelManager));
-        plugin.getCommand("addminingxp").setExecutor(new AddMiningXPCommand(miningManager));
+        AddPointsCommand addPointsCmd = new AddPointsCommand();
+        plugin.getCommand("addpoints").setExecutor(addPointsCmd);
+        plugin.getCommand("addpoints").setTabCompleter(addPointsCmd);
+
+        AddXPCommand addXpCmd = new AddXPCommand(levelManager);
+        plugin.getCommand("addxp").setExecutor(addXpCmd);
+        plugin.getCommand("addxp").setTabCompleter(addXpCmd);
+
+        AddMiningXPCommand addMiningXpCmd = new AddMiningXPCommand(miningManager);
+        plugin.getCommand("addminingxp").setExecutor(addMiningXpCmd);
+        plugin.getCommand("addminingxp").setTabCompleter(addMiningXpCmd);
+
         plugin.getCommand("mininglevel").setExecutor(new MiningLevelCommand(miningManager));
-        plugin.getCommand("setmininglevel").setExecutor(new me.nakilex.levelplugin.player.mining.commands.SetMiningLevelCommand(miningManager));
+
+        me.nakilex.levelplugin.player.mining.commands.SetMiningLevelCommand setMiningLevelCmd =
+                new me.nakilex.levelplugin.player.mining.commands.SetMiningLevelCommand(miningManager);
+        plugin.getCommand("setmininglevel").setExecutor(setMiningLevelCmd);
+        plugin.getCommand("setmininglevel").setTabCompleter(setMiningLevelCmd);
         plugin.getCommand("stats").setExecutor(new StatsCommand());
-        plugin.getCommand("additem").setExecutor(new AddItemCommand());
+        AddItemCommand addItemCmd = new AddItemCommand();
+        plugin.getCommand("additem").setExecutor(addItemCmd);
+        plugin.getCommand("additem").setTabCompleter(addItemCmd);
         plugin.getCommand("opsword").setExecutor(new OpSwordCommand());
         me.nakilex.levelplugin.items.commands.GenerateItemCommand genItemCmd = new me.nakilex.levelplugin.items.commands.GenerateItemCommand();
         plugin.getCommand("genitem").setExecutor(genItemCmd);
@@ -158,7 +173,9 @@ public class CommandRegistry {
         SealingCharmCommand sealingCharmCmd = new SealingCharmCommand();
         plugin.getCommand("sealingcharm").setExecutor(sealingCharmCmd);
         plugin.getCommand("sealingcharm").setTabCompleter(sealingCharmCmd);
-        plugin.getCommand("setlevel").setExecutor(new SetLevelCommand(plugin));
+        SetLevelCommand setLevelCmd = new SetLevelCommand(plugin);
+        plugin.getCommand("setlevel").setExecutor(setLevelCmd);
+        plugin.getCommand("setlevel").setTabCompleter(setLevelCmd);
         ClassCommand classCmd = new ClassCommand();
         plugin.getCommand("class").setExecutor(classCmd);
         plugin.getCommand("class").setTabCompleter(classCmd);
@@ -168,7 +185,9 @@ public class CommandRegistry {
         plugin.getCommand("addcoins").setExecutor(addCoinsCmd);
         plugin.getCommand("addcoins").setTabCompleter(addCoinsCmd);
         plugin.getCommand("blacksmith").setExecutor(new BlacksmithCommand(blacksmithGUI));
-        plugin.getCommand("horse").setExecutor(new HorseCommand(horseManager, horseGUI));
+        HorseCommand horseCommand = new HorseCommand(horseManager, horseGUI);
+        plugin.getCommand("horse").setExecutor(horseCommand);
+        plugin.getCommand("horse").setTabCompleter(horseCommand);
         plugin.getCommand("party").setExecutor(new PartyCommands(partyManager));
         me.nakilex.levelplugin.guild.GuildCommand guildCmd = new me.nakilex.levelplugin.guild.GuildCommand(guildManager, guildGui, guildMemberGui);
         plugin.getCommand("guild").setExecutor(guildCmd);
@@ -186,13 +205,17 @@ public class CommandRegistry {
         plugin.getCommand("addpotion").setExecutor(addPotionCmd);
         plugin.getCommand("addpotion").setTabCompleter(addPotionCmd);
         plugin.getCommand("lootchest").setExecutor(new LootChestCommand(configManager, lootChestManager));
-        plugin.getCommand("trade").setExecutor(new TradeCommand());
+        TradeCommand tradeCmd = new TradeCommand();
+        plugin.getCommand("trade").setExecutor(tradeCmd);
+        plugin.getCommand("trade").setTabCompleter(tradeCmd);
         plugin.getCommand("duel").setExecutor(new DuelCommand());
         ArenaCommand arenaCmd = new ArenaCommand(plugin.getArenaQueueGUI(), plugin.getArenaQueueManager());
         plugin.getCommand("arena").setExecutor(arenaCmd);
         plugin.getCommand("arena").setTabCompleter(arenaCmd);
         plugin.getCommand("ps").setExecutor(new StorageCommand(storageManager));
-        plugin.getCommand("merchant").setExecutor(new MerchantCommand(plugin));
+        MerchantCommand merchantCommand = new MerchantCommand(plugin);
+        plugin.getCommand("merchant").setExecutor(merchantCommand);
+        plugin.getCommand("merchant").setTabCompleter(merchantCommand);
         plugin.getCommand("salvage").setExecutor(new SalvageCommand(plugin));
         plugin.getCommand("enchant").setExecutor(new me.nakilex.levelplugin.enchanting.commands.EnchantCommand(enchantGUI));
         plugin.getCommand("spells").setExecutor(new SpellCommand());
@@ -218,7 +241,9 @@ public class CommandRegistry {
         plugin.getCommand("toggle").setExecutor(toggleCmd);
         plugin.getCommand("toggle").setTabCompleter(toggleCmd);
         plugin.getCommand("skipsong").setExecutor(new SkipSongCommand(plugin));
-        plugin.getCommand("auctionhouse").setExecutor(new AuctionCommand(auctionMgr, auctionGui));
+        AuctionCommand auctionCmd = new AuctionCommand(auctionMgr, auctionGui);
+        plugin.getCommand("auctionhouse").setExecutor(auctionCmd);
+        plugin.getCommand("auctionhouse").setTabCompleter(auctionCmd);
         QuestCommand questCmd = new QuestCommand(questManager);
         plugin.getCommand("quest").setExecutor(questCmd);
         plugin.getCommand("quest").setTabCompleter(questCmd);
@@ -268,11 +293,16 @@ public class CommandRegistry {
         plugin.getCommand("wm").setExecutor(new WanderingMerchantCommand(wmManager));
 
         plugin.getCommand("cutscene").setExecutor(new me.nakilex.levelplugin.cutscene.commands.CutsceneCommand(plugin.getCutsceneManager()));
-        plugin.getCommand("dungeon").setExecutor(new me.nakilex.levelplugin.dungeon.DungeonCommand(plugin));
+        me.nakilex.levelplugin.dungeon.DungeonCommand dungeonCmd =
+                new me.nakilex.levelplugin.dungeon.DungeonCommand(plugin);
+        plugin.getCommand("dungeon").setExecutor(dungeonCmd);
+        plugin.getCommand("dungeon").setTabCompleter(dungeonCmd);
         plugin.getCommand("world").setExecutor(new me.nakilex.levelplugin.world.WorldCommand(plugin.getWorldManager()));
         plugin.getCommand("centertooltip").setExecutor(new CenterTooltipCommand());
         plugin.getCommand("centergui").setExecutor(new CenterGuiCommand());
-        plugin.getCommand("addlore").setExecutor(new AddLoreCommand());
+        AddLoreCommand addLoreCmd = new AddLoreCommand();
+        plugin.getCommand("addlore").setExecutor(addLoreCmd);
+        plugin.getCommand("addlore").setTabCompleter(addLoreCmd);
         PathfindingCommand pfCmd = new PathfindingCommand(pathManager);
         plugin.getCommand("pathfinding").setExecutor(pfCmd);
         plugin.getCommand("pathfinding").setTabCompleter(pfCmd);

@@ -5,17 +5,23 @@ import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabExecutor;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
+
+import java.util.Collections;
+import java.util.List;
+
+import me.nakilex.levelplugin.utils.CommandUtil;
 
 import java.io.File;
 
 import static me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
 import static me.nakilex.levelplugin.utils.ChatMessageUtil.send;
 
-public class MerchantCommand implements CommandExecutor {
+public class MerchantCommand implements TabExecutor {
     private final Plugin plugin;
     private final FileConfiguration merchantConfig;
 
@@ -48,5 +54,17 @@ public class MerchantCommand implements CommandExecutor {
         MerchantGUI merchantGUI = new MerchantGUI(plugin, merchantConfig, merchantName);
         ((Player) sender).openInventory(merchantGUI.getInventory());
         return true;
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        if (args.length == 1) {
+            var section = merchantConfig.getConfigurationSection("merchants");
+            if (section == null) {
+                return Collections.emptyList();
+            }
+            return CommandUtil.filterStartingWith(section.getKeys(false), args[0]);
+        }
+        return Collections.emptyList();
     }
 }

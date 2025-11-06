@@ -8,11 +8,20 @@ import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+
+import me.nakilex.levelplugin.items.data.ItemRarity;
+import me.nakilex.levelplugin.utils.CommandUtil;
 
 /**
  * /addlore [index] [text]
@@ -21,7 +30,7 @@ import java.util.Arrays;
  * of lore into the held item at the specified index. Use the {@code style}
  * subcommand to change the item's tooltip border.
  */
-public class AddLoreCommand implements CommandExecutor {
+public class AddLoreCommand implements TabExecutor {
 
     @Override
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
@@ -68,5 +77,25 @@ public class AddLoreCommand implements CommandExecutor {
         player.getInventory().setItemInMainHand(stack);
         player.sendMessage(ChatColor.GREEN + "Lore line added.");
         return true;
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        if (args.length == 1) {
+            List<String> options = new ArrayList<>();
+            options.add("style");
+            options.addAll(CommandUtil.numberRange("", 0, 10));
+            return CommandUtil.filterStartingWith(options, args[0]);
+        }
+        if (args.length == 2 && args[0].equalsIgnoreCase("style")) {
+            Set<String> styles = new LinkedHashSet<>();
+            for (ItemRarity rarity : ItemRarity.values()) {
+                String style = rarity.getTooltipStyle();
+                styles.add(style);
+                styles.add("minecraft:" + style);
+            }
+            return CommandUtil.filterStartingWith(styles, args[1]);
+        }
+        return Collections.emptyList();
     }
 }

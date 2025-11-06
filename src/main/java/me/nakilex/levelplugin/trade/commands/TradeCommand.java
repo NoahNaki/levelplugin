@@ -10,10 +10,19 @@ import org.bukkit.Location;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
-public class TradeCommand implements CommandExecutor {
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+
+import me.nakilex.levelplugin.utils.CommandUtil;
+
+public class TradeCommand implements TabExecutor {
     private static final double MAX_DISTANCE = 10.0;
 
     @Override
@@ -204,5 +213,22 @@ public class TradeCommand implements CommandExecutor {
         Location locA = a.getLocation();
         Location locB = b.getLocation();
         return locA.distance(locB) <= maxDistance;
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        List<String> subcommands = List.of("accept", "cancel", "deny", "reload", "author", "version", "download", "toggle", "block", "unblock");
+        if (args.length == 1) {
+            Set<String> suggestions = new LinkedHashSet<>(CommandUtil.filterStartingWith(subcommands, args[0]));
+            suggestions.addAll(CommandUtil.onlinePlayerNames(args[0]));
+            return new ArrayList<>(suggestions);
+        }
+        if (args.length == 2) {
+            String sub = args[0].toLowerCase();
+            if (sub.equals("accept") || sub.equals("deny") || sub.equals("block") || sub.equals("unblock")) {
+                return CommandUtil.onlinePlayerNames(args[1]);
+            }
+        }
+        return Collections.emptyList();
     }
 }
