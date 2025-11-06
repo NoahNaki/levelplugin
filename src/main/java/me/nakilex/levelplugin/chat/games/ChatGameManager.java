@@ -234,11 +234,6 @@ public class ChatGameManager {
         if (reward.intellect() > 0) {
             statsManager.addBaseStat(winnerId, StatType.INT, reward.intellect());
         }
-        Player winner = Bukkit.getPlayer(winnerId);
-        if (winner != null) {
-            ChatMessageUtil.send(winner, MessageType.REWARD,
-                    ChatColor.GRAY + "Rewards: " + formatReward(reward));
-        }
     }
 
     private void announceWinner(ChatGame game, ChatGameResult result, long durationMillis) {
@@ -263,12 +258,6 @@ public class ChatGameManager {
         if (result.solution() != null) {
             ChatMessageUtil.broadcast(MessageType.INFO,
                     ChatColor.GRAY + "Answer: " + ChatColor.AQUA + result.solution());
-        }
-        if (rotationIntervalMinutes > 0) {
-            String unit = rotationIntervalMinutes == 1 ? "minute" : "minutes";
-            ChatMessageUtil.broadcast(MessageType.INFO,
-                    ChatColor.GRAY + "Next chat game begins in "
-                            + ChatColor.AQUA + rotationIntervalMinutes + ChatColor.GRAY + " " + unit + ".");
         }
     }
 
