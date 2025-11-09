@@ -39,6 +39,8 @@ public class WorldManager {
     }
 
     private void load() {
+        spawns.clear();
+        persistentWorlds.clear();
         file = new File(plugin.getDataFolder(), "worlds.yml");
         if (!file.exists()) {
             try { file.createNewFile(); } catch (IOException e) { e.printStackTrace(); }
@@ -64,6 +66,10 @@ public class WorldManager {
                 importWorld(w);
             }
         }
+    }
+
+    public synchronized void reload() {
+        load();
     }
 
     private void save() {

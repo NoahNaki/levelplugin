@@ -13,8 +13,8 @@ import java.util.*;
 
 public class CodexManager {
     private final PlayerConfig playerConfig;
-    private final Set<String> mobKeys;
-    private final Set<String> bossKeys;
+    private final Set<String> mobKeys = new HashSet<>();
+    private final Set<String> bossKeys = new HashSet<>();
     // No predefined sets for NPCs or locations; they are tracked dynamically
 
     /** Kill milestones used for per-mob codex levels. */
@@ -27,12 +27,19 @@ public class CodexManager {
                         MobRewardsConfig mobCfg,
                         FileConfiguration bossCfg) {
         this.playerConfig = playerConfig;
-        this.mobKeys = mobCfg.getConfig().isConfigurationSection("mobs")
-                ? mobCfg.getConfig().getConfigurationSection("mobs").getKeys(false)
-                : Collections.emptySet();
-        this.bossKeys = bossCfg.isConfigurationSection("mobs")
-                ? bossCfg.getConfigurationSection("mobs").getKeys(false)
-                : Collections.emptySet();
+        reload(mobCfg, bossCfg);
+    }
+
+    public synchronized void reload(MobRewardsConfig mobCfg, FileConfiguration bossCfg) {
+        mobKeys.clear();
+        bossKeys.clear();
+
+        if (mobCfg != null && mobCfg.getConfig().isConfigurationSection("mobs")) {
+            mobKeys.addAll(mobCfg.getConfig().getConfigurationSection("mobs").getKeys(false));
+        }
+        if (bossCfg != null && bossCfg.isConfigurationSection("mobs")) {
+            bossKeys.addAll(bossCfg.getConfigurationSection("mobs").getKeys(false));
+        }
     }
 
     public void recordKill(Player player, String key) {

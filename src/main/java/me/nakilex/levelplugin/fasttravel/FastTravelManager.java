@@ -27,6 +27,7 @@ public class FastTravelManager {
     }
 
     private void load() {
+        points.clear();
         file = new File(plugin.getDataFolder(), "regions.yml");
         if (!file.exists()) {
             File legacy = new File(plugin.getDataFolder(), "fasttravel.yml");
@@ -76,6 +77,10 @@ public class FastTravelManager {
             config.set("players", null);
             try { config.save(file); } catch (IOException e) { e.printStackTrace(); }
         }
+    }
+
+    public synchronized void reload() {
+        load();
     }
 
     private void save() {

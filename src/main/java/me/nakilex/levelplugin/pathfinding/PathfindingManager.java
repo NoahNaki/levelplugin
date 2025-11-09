@@ -31,7 +31,7 @@ public class PathfindingManager {
     private final Map<Integer, Location> editingPoints = new HashMap<>();
     private final Map<String, List<Location>> paths = new HashMap<>();
     private final File file;
-    private final FileConfiguration config;
+    private FileConfiguration config;
 
     public PathfindingManager(Plugin plugin) {
         this.plugin = plugin;
@@ -42,6 +42,7 @@ public class PathfindingManager {
     }
 
     private void loadPaths() {
+        paths.clear();
         if (!config.isConfigurationSection("paths")) {
             return;
         }
@@ -51,6 +52,11 @@ public class PathfindingManager {
                 paths.put(name.toLowerCase(Locale.ROOT), list);
             }
         }
+    }
+
+    public synchronized void reload() {
+        this.config = YamlConfiguration.loadConfiguration(file);
+        loadPaths();
     }
 
     private void savePath(String name, List<Location> list) {

@@ -679,6 +679,52 @@ public class PluginBootstrap {
         plugin.reloadConfig();
         createCustomConfig();
         configValues = new ConfigValues(this.customConfigFile);
+        if (messageStrings != null) {
+            messageStrings.reloadConfig();
+        }
+        me.nakilex.levelplugin.storage.data.StorageConfig storageConfig = me.nakilex.levelplugin.storage.data.StorageConfig.getInstance();
+        if (storageConfig != null) {
+            storageConfig.reloadConfig();
+        }
+        if (mobRewardsConfig != null) {
+            mobRewardsConfig.reloadConfig();
+            GuildQuestManager.getInstance().reloadMobCategories();
+        }
+        if (bossConfigFile != null && bossConfigFile.exists()) {
+            bossConfig = YamlConfiguration.loadConfiguration(bossConfigFile);
+        }
+        if (codexManager != null && mobRewardsConfig != null) {
+            codexManager.reload(mobRewardsConfig, bossConfig);
+        }
+        File potionsFile = new File(plugin.getDataFolder(), "potions.yml");
+        if (potionManager != null && potionsFile.exists()) {
+            FileConfiguration potionCfg = YamlConfiguration.loadConfiguration(potionsFile);
+            potionManager.reload(potionCfg);
+        }
+        if (miningRewardsConfig != null) {
+            miningRewardsConfig.reloadConfig();
+        }
+        if (configManager != null) {
+            configManager.reloadLootChestsConfig();
+        }
+        if (cooldownManager != null) {
+            cooldownManager.reloadSettings();
+        }
+        if (lootChestManager != null) {
+            lootChestManager.reloadFromConfig();
+        }
+        if (economyManager != null) {
+            economyManager.loadBalances();
+        }
+        if (fastTravelManager != null) {
+            fastTravelManager.reload();
+        }
+        if (worldManager != null) {
+            worldManager.reload();
+        }
+        if (pathfindingManager != null) {
+            pathfindingManager.reload();
+        }
         if (broadcastMgr != null) {
             broadcastMgr.start();
         }

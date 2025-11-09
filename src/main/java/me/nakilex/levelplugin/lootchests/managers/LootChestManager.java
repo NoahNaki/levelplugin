@@ -66,9 +66,7 @@ public class LootChestManager {
 
         // Delay spawning chests until the server has fully started. This gives
         // the Nexo plugin time to finish registering furniture IDs.
-        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-            spawnAllChestsOnStartup();
-        }, 20L); // ~1 second after startup
+        plugin.getServer().getScheduler().runTaskLater(plugin, this::spawnAllChests, 20L); // ~1 second after startup
     }
 
     public void setCooldownManager(CooldownManager manager) {
@@ -77,6 +75,7 @@ public class LootChestManager {
 
     // 1) Load from lootchests.yml
     private void loadChestDataFromConfig() {
+        chestDataList.clear();
         ConfigurationSection root = configManager.getLootChestsConfig().getConfigurationSection("loot_chests");
         if (root == null) {
             plugin.getLogger().warning("No 'loot_chests' section found!");
@@ -103,7 +102,7 @@ public class LootChestManager {
     }
 
     // 2) Spawn all on startup
-    private void spawnAllChestsOnStartup() {
+    private void spawnAllChests() {
         for (ChestData data : chestDataList) {
             spawnChest(data);
         }
@@ -504,6 +503,16 @@ public class LootChestManager {
         for (int chestId : ids) {
             removeChest(chestId);
         }
+    }
+
+    public synchronized void reloadFromConfig() {
+        removeAllChests();
+        chestParticleTasks.values().forEach(BukkitTask::cancel);
+        chestParticleTasks.clear();
+        spawnedChests.clear();
+        openChestByPlayer.clear();
+        loadChestDataFromConfig();
+        spawnAllChests();
     }
 
     // NEW: call this when a player opens a chest GUI. Returns true if this is the first open.
