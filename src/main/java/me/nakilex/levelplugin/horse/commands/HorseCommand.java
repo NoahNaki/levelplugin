@@ -5,12 +5,18 @@ import me.nakilex.levelplugin.horse.gui.HorseGUI;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
+
+import java.util.Collections;
+import java.util.List;
+
+import me.nakilex.levelplugin.utils.CommandUtil;
 
 import static me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
 import static me.nakilex.levelplugin.utils.ChatMessageUtil.send;
 
-public class HorseCommand implements CommandExecutor {
+public class HorseCommand implements TabExecutor {
 
     private final HorseManager horseManager;
     private final HorseGUI horseGUI;
@@ -51,5 +57,13 @@ public class HorseCommand implements CommandExecutor {
 
         send(player, MessageType.INFO, "Usage: /horse [spawn|reroll]");
         return true;
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        if (args.length == 1) {
+            return CommandUtil.simpleSuggestions(args[0], "spawn", "reroll");
+        }
+        return Collections.emptyList();
     }
 }

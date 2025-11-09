@@ -7,6 +7,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.blacksmith.gui.BlacksmithGUI;
 import me.nakilex.levelplugin.blacksmith.managers.ItemRepairManager;
 import me.nakilex.levelplugin.blacksmith.managers.ItemUpgradeManager;
+import me.nakilex.levelplugin.chat.games.ChatGameManager;
 import me.nakilex.levelplugin.economy.gui.GemExchangeGUI;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.economy.managers.GemsManager;
@@ -154,6 +155,7 @@ public class PluginBootstrap {
     private me.nakilex.levelplugin.enchanting.gui.EnchantGUI enchantGUI;
     private TipsConfigManager tipsCfg;
     private BroadcastManager broadcastMgr;
+    private me.nakilex.levelplugin.chat.games.ChatGameManager chatGameManager;
     private me.nakilex.levelplugin.quests.managers.QuestManager questManager;
     private BattlePassManager battlePassManager;
     private BattlePassGUI battlePassGUI;
@@ -361,6 +363,7 @@ public class PluginBootstrap {
         enchantManager = new me.nakilex.levelplugin.enchanting.managers.EnchantManager();
         enchantGUI = new me.nakilex.levelplugin.enchanting.gui.EnchantGUI(enchantManager, economyManager);
         StatsManager.getInstance().setLevelManager(levelManager);
+        chatGameManager = new ChatGameManager(plugin, economyManager, levelManager, StatsManager.getInstance());
         modelSetManager = new me.nakilex.levelplugin.mob.config.ModelSetManager(plugin);
         transmogManager = new me.nakilex.levelplugin.transmog.TransmogManager(plugin, modelSetManager);
         cutsceneManager = new me.nakilex.levelplugin.cutscene.CutsceneManager(plugin);
@@ -382,7 +385,7 @@ public class PluginBootstrap {
         horseManager = new HorseManager(horseConfigManager);
         HorseGUI horseGUI = new HorseGUI(horseManager, economyManager);
         settingsGUI = new SettingsGUI(settingsManager);
-        debugGUI = new me.nakilex.levelplugin.debug.gui.DebugGUI(mobDebugToggleManager, scoreboardManager);
+        debugGUI = new me.nakilex.levelplugin.debug.gui.DebugGUI(mobDebugToggleManager, scoreboardManager, chatGameManager);
         this.storageManager = new StorageManager();
         this.guildVaultManager = new me.nakilex.levelplugin.guild.GuildVaultManager(storageEvents, guildMemberGUI);
         CommandRegistry.registerCommands(
@@ -420,7 +423,8 @@ public class PluginBootstrap {
             wanderingMerchantManager,
             pathfindingManager,
             mercenaryManager,
-            battlePassManager
+            battlePassManager,
+            chatGameManager
         );
         me.nakilex.levelplugin.maintenance.MaintenanceCommand maintenanceCmd =
                 new me.nakilex.levelplugin.maintenance.MaintenanceCommand(maintenanceManager);
@@ -467,7 +471,8 @@ public class PluginBootstrap {
             wanderingMerchantManager,
             arenaQueueGUI,
             arenaMatchManager,
-            arenaTeamMatchManager
+            arenaTeamMatchManager,
+            chatGameManager
         );
         plugin.getServer().getPluginManager().registerEvents(battlePassGUI, plugin);
         plugin.getServer().getPluginManager().registerEvents(
@@ -477,6 +482,9 @@ public class PluginBootstrap {
                 new me.nakilex.levelplugin.guild.GuildMembershipListener(),
                 plugin);
         plugin.getServer().getPluginManager().registerEvents(beaconManager, plugin);
+        if (chatGameManager != null) {
+            chatGameManager.start();
+        }
         TaskRegistry.startTasks(plugin, horseConfigManager, horseManager, wanderingMerchantManager);
     }
 
@@ -512,6 +520,7 @@ public class PluginBootstrap {
 
     public void disable() {
         TaskRegistry.stopTasks();
+        if (chatGameManager != null) chatGameManager.stop();
         if (mercenaryManager != null) mercenaryManager.unbindAll();
         if (economyManager != null) economyManager.saveBalances();
         if (dealMaker != null) dealMaker.closeAllTrades();
@@ -613,6 +622,7 @@ public class PluginBootstrap {
     public me.nakilex.levelplugin.guild.GuildVaultManager getGuildVaultManager() { return guildVaultManager; }
     public ItemConfig getItemConfig() { return itemConfig; }
     public PlayerConfig getPlayerConfig() { return playerConfig; }
+    public ChatGameManager getChatGameManager() { return chatGameManager; }
     public PlayerToggleManager getDmgNumberToggleManager() { return dmgNumberToggleManager; }
     public PlayerToggleManager getMobDebugToggleManager() { return mobDebugToggleManager; }
     public ManaCostTracker getManaTracker() { return manaTracker; }
@@ -665,6 +675,18 @@ public class PluginBootstrap {
     public MercenaryManager getMercenaryManager() { return mercenaryManager; }
     public me.nakilex.levelplugin.transmog.TransmogManager getTransmogManager() { return transmogManager; }
 
+    public void reloadPluginConfig() {
+        plugin.reloadConfig();
+        createCustomConfig();
+        configValues = new ConfigValues(this.customConfigFile);
+        if (broadcastMgr != null) {
+            broadcastMgr.start();
+        }
+        if (chatGameManager != null) {
+            chatGameManager.reload();
+        }
+    }
+
     private void createCustomConfig() {
         customConfigFile = new File(plugin.getDataFolder(), "config.yml");
         if (!customConfigFile.exists()) {
@@ -693,6 +715,9 @@ public class PluginBootstrap {
         }
         if (!customConfig.contains("debug.mythic-skill-damage")) {
             customConfig.set("debug.mythic-skill-damage", false);
+        }
+        if (!customConfig.contains("chat-games.interval-minutes")) {
+            customConfig.set("chat-games.interval-minutes", 15);
         }
         if (!customConfig.contains("tips.delay")) {
             customConfig.set("tips.delay", 120);

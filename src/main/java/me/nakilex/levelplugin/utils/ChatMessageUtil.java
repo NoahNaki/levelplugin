@@ -1,5 +1,6 @@
 package me.nakilex.levelplugin.utils;
 
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -66,5 +67,13 @@ public final class ChatMessageUtil {
      */
     public static void send(CommandSender sender, MessageType type, String message) {
         sender.sendMessage(format(type, message));
+    }
+
+    /** Broadcast a formatted message to all online players. */
+    public static void broadcast(MessageType type, String message) {
+        if (message == null) return;
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            send(player, type, message);
+        }
     }
 }

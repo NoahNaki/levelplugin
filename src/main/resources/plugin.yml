@@ -231,6 +231,10 @@ commands:
   debug:
     description: Developer debug tools
     usage: /debug [mobinfo|tps|siege|autocast|tec|hand]
+  levelplugin:
+    description: LevelPlugin administration command
+    usage: /<command> reload
+    permission: levelplugin.admin
   motd:
     description: Reload or preview the server MOTD
     usage: /motd <reload|preview>

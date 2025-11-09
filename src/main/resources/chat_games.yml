@@ -1,0 +1,51 @@
+word-scramble:
+  words:
+    - arcane
+    - crystal
+    - ember
+    - horizon
+    - mystic
+    - runeblade
+    - sanctuary
+    - whisper
+    - lantern
+    - meadow
+    - citadel
+    - voyage
+    - starlight
+    - guardian
+    - fortress
+    - relic
+    - tempest
+    - quartz
+    - blossom
+    - canyon
+    - skyward
+    - alchemy
+    - grove
+    - twilight
+    - valley
+    - compass
+    - monolith
+    - riverstone
+    - glimmer
+    - sentinel
+type-racer:
+  phrases:
+    - "The dragon sleeps beneath the mountain."
+    - "Legends whisper of treasure beyond the veil."
+    - "Heroes rise when the world needs them most."
+    - "Sparks of magic dance across the twilight sky."
+    - "The caravan rattled along the cobblestone road."
+    - "Mysteries linger in the ruins of the old kingdom."
+    - "Courage blooms in the hearts of unlikely allies."
+    - "Lantern light flickered across the silent harbor."
+    - "Every journey begins with a single determined step."
+    - "The citadel bells rang out at the break of dawn."
+math-challenge:
+  min: 12
+  max: 98
+  operations:
+    - ADD
+    - SUBTRACT
+    - MULTIPLY

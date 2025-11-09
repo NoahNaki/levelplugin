@@ -8,6 +8,10 @@ debug:
   chunk-loading: false
   mythic-skill-damage: false
 
+# Chat game rotation interval in minutes
+chat-games:
+  interval-minutes: 15
+
 # Tips configuration
 tips:
   delay: 120

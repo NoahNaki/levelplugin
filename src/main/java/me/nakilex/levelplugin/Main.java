@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin;
 
 import io.lumine.mythic.bukkit.BukkitAPIHelper;
+import me.nakilex.levelplugin.chat.games.ChatGameManager;
 import me.nakilex.levelplugin.core.PluginBootstrap;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.items.config.ItemConfig;
@@ -77,7 +78,11 @@ public class Main extends JavaPlugin {
     public ItemConfig getItemConfig() { return bootstrap.getItemConfig(); }
     public MessageStrings getMessageStrings() { return bootstrap.getMessageStrings(); }
     public me.nakilex.levelplugin.spells.managers.ManaCostTracker getManaTracker() { return bootstrap.getManaTracker(); }
-    public void reloadConfigValues() { }
+    public void reloadConfigValues() {
+        if (bootstrap != null) {
+            bootstrap.reloadPluginConfig();
+        }
+    }
     public LevelManager getLevelManager() { return bootstrap.getLevelManager(); }
     public me.nakilex.levelplugin.player.mining.managers.MiningManager getMiningManager() { return bootstrap.getMiningManager(); }
     public me.nakilex.levelplugin.items.tools.ToolManager getToolManager() { return bootstrap.getToolManager(); }
@@ -137,4 +142,5 @@ public class Main extends JavaPlugin {
     public me.nakilex.levelplugin.guild.siege.GuildSiegeManager getGuildSiegeManager() { return bootstrap.getGuildSiegeManager(); }
     public PathfindingManager getPathfindingManager() { return bootstrap.getPathfindingManager(); }
     public me.nakilex.levelplugin.transmog.TransmogManager getTransmogManager() { return bootstrap.getTransmogManager(); }
+    public ChatGameManager getChatGameManager() { return bootstrap.getChatGameManager(); }
 }

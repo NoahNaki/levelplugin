@@ -5,10 +5,15 @@ import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabExecutor;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 
-public class AddPointsCommand implements CommandExecutor {
+import me.nakilex.levelplugin.utils.CommandUtil;
+
+public class AddPointsCommand implements TabExecutor {
 
     @Override
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
@@ -50,5 +55,16 @@ public class AddPointsCommand implements CommandExecutor {
         }
 
         return true;
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        if (args.length == 1) {
+            return CommandUtil.onlinePlayerNames(args[0]);
+        }
+        if (args.length == 2) {
+            return CommandUtil.numberOptions(args[1], 1, 5, 10, 25, 50, 100);
+        }
+        return Collections.emptyList();
     }
 }
