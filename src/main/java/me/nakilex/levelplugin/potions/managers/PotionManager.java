@@ -25,6 +25,11 @@ public class PotionManager {
         loadPotions(config);
     }
 
+    public synchronized void reload(FileConfiguration config) {
+        templates.clear();
+        loadPotions(config);
+    }
+
     private void loadPotions(FileConfiguration config) {
         if (!config.contains("potions")) {
             Bukkit.getLogger().severe("No potions found in potions.yml!");

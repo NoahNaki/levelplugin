@@ -13,7 +13,7 @@ public class CooldownManager {
     private final ConfigManager configManager;
     private LootChestManager lootChestManager;
 
-    private final int defaultCooldownSeconds;
+    private int defaultCooldownSeconds;
     private final Map<Integer, Long> chestExpiration = new HashMap<>();
 
     public CooldownManager(JavaPlugin plugin, ConfigManager configManager, LootChestManager lootChestManager) {
@@ -21,6 +21,10 @@ public class CooldownManager {
         this.configManager = configManager;
         this.lootChestManager = lootChestManager;
 
+        reloadSettings();
+    }
+
+    public void reloadSettings() {
         this.defaultCooldownSeconds = configManager.getLootChestsConfig().getInt("cooldowns.default", 5);
     }
 
