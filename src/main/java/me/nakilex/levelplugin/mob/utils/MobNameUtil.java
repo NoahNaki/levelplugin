@@ -41,7 +41,7 @@ public final class MobNameUtil {
         if (mobId == null || mobId.isEmpty()) {
             return mobId;
         }
-        Optional<MythicMob> opt = MythicBukkit.inst().getMobManager().getMythicMob(mobId);
+        Optional<MythicMob> opt = resolveMythicMob(mobId);
         if (opt.isPresent()) {
             PlaceholderString name = opt.get().getDisplayName();
             if (name != null) {
@@ -52,6 +52,47 @@ public final class MobNameUtil {
             }
         }
         return toPrettyName(mobId);
+    }
+
+    /**
+     * Attempt to locate a MythicMob definition regardless of how the ID is cased or formatted.
+     * Mythic mob IDs are traditionally upper-case and use underscores, while our configuration
+     * files often use lower-case keys copied straight from Mythic. This helper keeps the lookup
+     * tolerant so we can still resolve the correct display name even when the cases differ.
+     */
+    private static Optional<MythicMob> resolveMythicMob(String mobId) {
+        if (mobId == null || mobId.isEmpty()) {
+            return Optional.empty();
+        }
+
+        MythicBukkit mythic = MythicBukkit.inst();
+        if (mythic == null || mythic.getMobManager() == null) {
+            return Optional.empty();
+        }
+
+        var manager = mythic.getMobManager();
+        String normalized = mobId.replace(' ', '_');
+        String[] candidates = new String[] {
+                mobId,
+                normalized,
+                mobId.toUpperCase(),
+                normalized.toUpperCase(),
+                mobId.toLowerCase(),
+                normalized.toLowerCase()
+        };
+
+        java.util.Set<String> tried = new java.util.LinkedHashSet<>();
+        for (String candidate : candidates) {
+            if (candidate == null || candidate.isEmpty() || !tried.add(candidate)) {
+                continue;
+            }
+            Optional<MythicMob> found = manager.getMythicMob(candidate);
+            if (found.isPresent()) {
+                return found;
+            }
+        }
+
+        return Optional.empty();
     }
 
     /**

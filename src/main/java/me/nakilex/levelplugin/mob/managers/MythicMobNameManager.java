@@ -159,7 +159,7 @@ public class MythicMobNameManager implements Listener {
         double maxHP     = entity.getMaxHealth();
 
         String rawType    = mob.getMobType();        // e.g. "KING_SLIME"
-        String prettyType = MobNameUtil.toPrettyName(rawType);  // → "King Slime"
+        String prettyType = MobNameUtil.getPlainDisplayName(rawType);  // → Mythic display name
 
         // ─── normalize for lookup using the raw mob ID
         String lookupKey = rawType.toUpperCase();
