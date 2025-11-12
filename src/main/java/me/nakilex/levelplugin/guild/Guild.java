@@ -5,6 +5,8 @@ import org.bukkit.OfflinePlayer;
 import me.nakilex.levelplugin.guild.quests.GuildQuest;
 
 import java.util.*;
+import org.bukkit.configuration.MemoryConfiguration;
+import org.bukkit.configuration.ConfigurationSection;
 
 public class Guild {
     private final String name;
@@ -28,6 +30,8 @@ public class Guild {
     private final java.util.EnumSet<TownPerk> townPerks = java.util.EnumSet.noneOf(TownPerk.class);
     /** Active guild quests keyed by slot index. */
     private final java.util.Map<String, GuildQuest> quests = new java.util.LinkedHashMap<>();
+    /** Arbitrary progression data consumed by advanced systems. */
+    private final MemoryConfiguration progression = new MemoryConfiguration();
 
     public Guild(String name, UUID leader) {
         this.name = name;
@@ -115,6 +119,14 @@ public class Guild {
     /** Access guild quests for display or progress tracking. */
     public java.util.Map<String, GuildQuest> getQuests() {
         return quests;
+    }
+
+    /**
+     * Mutable configuration section used by stage-based systems to persist
+     * guild-specific state without each manager reimplementing serialization.
+     */
+    public ConfigurationSection getProgressionData() {
+        return progression;
     }
 
     public boolean hasPerk(TownPerk perk) {

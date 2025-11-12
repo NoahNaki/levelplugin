@@ -190,6 +190,14 @@ public class GuildQuestManager {
         updateObjective(player, QuestObjectiveType.KILL, mobType, 1);
     }
 
+    /**
+     * Allow other systems to contribute toward a quest objective without
+     * exposing the internal data structures.
+     */
+    public void progressObjective(Player player, QuestObjectiveType type, String target, int amount) {
+        updateObjective(player, type, target, amount);
+    }
+
     private void updateObjective(Player player, QuestObjectiveType type, String target, int amount) {
         Guild guild = GuildManager.getInstance().getGuild(player.getUniqueId());
         if (guild == null) return;

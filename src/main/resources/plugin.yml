@@ -127,6 +127,18 @@ commands:
   merchant:
     description: Opens a merchant GUI.
     usage: /merchant <name>
+  rift:
+    description: Inspect and launch frontier rift expeditions
+    usage: /rift [start]
+  supplychain:
+    description: Manage guild supply chains
+    usage: /supplychain [deposit]
+  trial:
+    description: View and start arcane trials
+    usage: /trial [start <tier>|prestige]
+  expedition:
+    description: Manage guild expedition relics
+    usage: /expedition [invest|start|maintain]
   spells:
     description: Opens the Spells GUI
     usage: /spells

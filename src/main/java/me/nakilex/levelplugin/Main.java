@@ -139,6 +139,10 @@ public class Main extends JavaPlugin {
     public CodexManager getCodexManager() { return bootstrap.getCodexManager(); }
     public MercenaryManager getMercenaryManager() { return bootstrap.getMercenaryManager(); }
     public MercenaryDeploymentManager getMercenaryDeploymentManager() { return bootstrap.getMercenaryDeploymentManager(); }
+    public me.nakilex.levelplugin.dungeon.rift.FrontierRiftManager getFrontierRiftManager() { return bootstrap.getFrontierRiftManager(); }
+    public me.nakilex.levelplugin.environment.supply.SupplyChainManager getSupplyChainManager() { return bootstrap.getSupplyChainManager(); }
+    public me.nakilex.levelplugin.dungeon.trial.ArcaneTrialManager getArcaneTrialManager() { return bootstrap.getArcaneTrialManager(); }
+    public me.nakilex.levelplugin.guild.expedition.ExpeditionRelicManager getExpeditionRelicManager() { return bootstrap.getExpeditionRelicManager(); }
     public CodexMainGUI getCodexGUI() { return bootstrap.getCodexGUI(); }
     public me.nakilex.levelplugin.dungeon.gui.DungeonListGUI getDungeonListGUI() { return bootstrap.getDungeonListGUI(); }
     public me.nakilex.levelplugin.guild.siege.GuildSiegeManager getGuildSiegeManager() { return bootstrap.getGuildSiegeManager(); }

@@ -97,6 +97,14 @@ import me.nakilex.levelplugin.chat.RollCommand;
 import org.bukkit.command.PluginCommand;
 import me.nakilex.levelplugin.pathfinding.MercenaryManager;
 import me.nakilex.levelplugin.pathfinding.deployment.MercenaryDeploymentManager;
+import me.nakilex.levelplugin.dungeon.rift.FrontierRiftManager;
+import me.nakilex.levelplugin.dungeon.rift.FrontierRiftCommand;
+import me.nakilex.levelplugin.environment.supply.SupplyChainManager;
+import me.nakilex.levelplugin.environment.supply.SupplyChainCommand;
+import me.nakilex.levelplugin.dungeon.trial.ArcaneTrialManager;
+import me.nakilex.levelplugin.dungeon.trial.ArcaneTrialCommand;
+import me.nakilex.levelplugin.guild.expedition.ExpeditionRelicManager;
+import me.nakilex.levelplugin.guild.expedition.ExpeditionRelicCommand;
 
 public class CommandRegistry {
 
@@ -135,6 +143,10 @@ public class CommandRegistry {
                                         PathfindingManager pathManager,
                                         MercenaryManager mercManager,
                                         MercenaryDeploymentManager mercDeploymentManager,
+                                        FrontierRiftManager frontierRiftManager,
+                                        SupplyChainManager supplyChainManager,
+                                        ArcaneTrialManager arcaneTrialManager,
+                                        ExpeditionRelicManager expeditionRelicManager,
                                         BattlePassManager battlePassManager,
                                         ChatGameManager chatGameManager) {
 
@@ -218,6 +230,18 @@ public class CommandRegistry {
         MerchantCommand merchantCommand = new MerchantCommand(plugin);
         plugin.getCommand("merchant").setExecutor(merchantCommand);
         plugin.getCommand("merchant").setTabCompleter(merchantCommand);
+        FrontierRiftCommand riftCommand = new FrontierRiftCommand(frontierRiftManager);
+        plugin.getCommand("rift").setExecutor(riftCommand);
+        plugin.getCommand("rift").setTabCompleter(riftCommand);
+        SupplyChainCommand supplyCommand = new SupplyChainCommand(supplyChainManager);
+        plugin.getCommand("supplychain").setExecutor(supplyCommand);
+        plugin.getCommand("supplychain").setTabCompleter(supplyCommand);
+        ArcaneTrialCommand trialCommand = new ArcaneTrialCommand(arcaneTrialManager);
+        plugin.getCommand("trial").setExecutor(trialCommand);
+        plugin.getCommand("trial").setTabCompleter(trialCommand);
+        ExpeditionRelicCommand expeditionCommand = new ExpeditionRelicCommand(expeditionRelicManager);
+        plugin.getCommand("expedition").setExecutor(expeditionCommand);
+        plugin.getCommand("expedition").setTabCompleter(expeditionCommand);
         plugin.getCommand("salvage").setExecutor(new SalvageCommand(plugin));
         plugin.getCommand("enchant").setExecutor(new me.nakilex.levelplugin.enchanting.commands.EnchantCommand(enchantGUI));
         plugin.getCommand("spells").setExecutor(new SpellCommand());

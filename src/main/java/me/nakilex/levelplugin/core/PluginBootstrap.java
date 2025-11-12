@@ -201,6 +201,10 @@ public class PluginBootstrap {
     private PathfindingManager pathfindingManager;
     private MercenaryManager mercenaryManager;
     private MercenaryDeploymentManager mercenaryDeploymentManager;
+    private me.nakilex.levelplugin.dungeon.rift.FrontierRiftManager frontierRiftManager;
+    private me.nakilex.levelplugin.environment.supply.SupplyChainManager supplyChainManager;
+    private me.nakilex.levelplugin.dungeon.trial.ArcaneTrialManager arcaneTrialManager;
+    private me.nakilex.levelplugin.guild.expedition.ExpeditionRelicManager expeditionRelicManager;
     private me.nakilex.levelplugin.transmog.TransmogManager transmogManager;
 
     public PluginBootstrap(Main plugin) {
@@ -219,6 +223,30 @@ public class PluginBootstrap {
         storageEvents = new StorageEvents();
         plugin.getServer().getPluginManager().registerEvents(storageEvents, plugin);
         environmentManager = new me.nakilex.levelplugin.environment.EnvironmentManager(playerConfig, townStageManager, buildingStageManager);
+        supplyChainManager = new me.nakilex.levelplugin.environment.supply.SupplyChainManager(
+                plugin,
+                environmentManager,
+                guildManager,
+                battlePassManager,
+                me.nakilex.levelplugin.guild.quests.GuildQuestManager.getInstance()
+        );
+        arcaneTrialManager = new me.nakilex.levelplugin.dungeon.trial.ArcaneTrialManager(
+                plugin,
+                dungeonManager,
+                battlePassManager,
+                playerConfig,
+                environmentManager
+        );
+        expeditionRelicManager = new me.nakilex.levelplugin.guild.expedition.ExpeditionRelicManager(
+                plugin,
+                guildManager,
+                guildSiegeManager,
+                environmentManager,
+                dungeonManager,
+                battlePassManager,
+                me.nakilex.levelplugin.guild.quests.GuildQuestManager.getInstance(),
+                partyManager
+        );
         upgradeGUI = new me.nakilex.levelplugin.environment.UpgradeGUI(environmentManager);
         buildingUpgradeGUI = new me.nakilex.levelplugin.environment.BuildingUpgradeGUI(environmentManager);
         leaderboardManager = new me.nakilex.levelplugin.leaderboards.LeaderboardManager(
@@ -374,6 +402,15 @@ public class PluginBootstrap {
         pathfindingManager = new PathfindingManager(plugin);
         mercenaryManager = new MercenaryManager(plugin);
         mercenaryDeploymentManager = new MercenaryDeploymentManager(plugin, mercenaryManager);
+        frontierRiftManager = new me.nakilex.levelplugin.dungeon.rift.FrontierRiftManager(
+                plugin,
+                guildManager,
+                guildSiegeManager,
+                dungeonManager,
+                battlePassManager,
+                me.nakilex.levelplugin.guild.quests.GuildQuestManager.getInstance(),
+                partyManager
+        );
     }
 
     private void setupCustomConfig() {
@@ -427,6 +464,10 @@ public class PluginBootstrap {
             pathfindingManager,
             mercenaryManager,
             mercenaryDeploymentManager,
+            frontierRiftManager,
+            supplyChainManager,
+            arcaneTrialManager,
+            expeditionRelicManager,
             battlePassManager,
             chatGameManager
         );
@@ -526,6 +567,10 @@ public class PluginBootstrap {
         TaskRegistry.stopTasks();
         if (chatGameManager != null) chatGameManager.stop();
         if (mercenaryDeploymentManager != null) mercenaryDeploymentManager.shutdown();
+        if (frontierRiftManager != null) frontierRiftManager.shutdown();
+        if (supplyChainManager != null) supplyChainManager.shutdown();
+        if (arcaneTrialManager != null) arcaneTrialManager.shutdown();
+        if (expeditionRelicManager != null) expeditionRelicManager.shutdown();
         if (mercenaryManager != null) mercenaryManager.unbindAll();
         if (economyManager != null) economyManager.saveBalances();
         if (dealMaker != null) dealMaker.closeAllTrades();
@@ -679,6 +724,10 @@ public class PluginBootstrap {
     public PathfindingManager getPathfindingManager() { return pathfindingManager; }
     public MercenaryManager getMercenaryManager() { return mercenaryManager; }
     public MercenaryDeploymentManager getMercenaryDeploymentManager() { return mercenaryDeploymentManager; }
+    public me.nakilex.levelplugin.dungeon.rift.FrontierRiftManager getFrontierRiftManager() { return frontierRiftManager; }
+    public me.nakilex.levelplugin.environment.supply.SupplyChainManager getSupplyChainManager() { return supplyChainManager; }
+    public me.nakilex.levelplugin.dungeon.trial.ArcaneTrialManager getArcaneTrialManager() { return arcaneTrialManager; }
+    public me.nakilex.levelplugin.guild.expedition.ExpeditionRelicManager getExpeditionRelicManager() { return expeditionRelicManager; }
     public me.nakilex.levelplugin.transmog.TransmogManager getTransmogManager() { return transmogManager; }
 
     public void reloadPluginConfig() {

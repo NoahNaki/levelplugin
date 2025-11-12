@@ -85,6 +85,19 @@ public class CalendarManager implements Listener {
         if (deploymentManager != null) {
             deploymentManager.advanceDay();
         }
+        long epochDay = java.time.LocalDate.now(java.time.ZoneId.systemDefault()).toEpochDay();
+        var riftManager = plugin.getFrontierRiftManager();
+        if (riftManager != null) {
+            riftManager.rotateDaily(epochDay);
+        }
+        var supplyManager = plugin.getSupplyChainManager();
+        if (supplyManager != null) {
+            supplyManager.rotateDaily(epochDay);
+        }
+        var expeditionManager = plugin.getExpeditionRelicManager();
+        if (expeditionManager != null) {
+            expeditionManager.rotateDaily(epochDay);
+        }
     }
 
     /** Legacy numeric date for debugging */

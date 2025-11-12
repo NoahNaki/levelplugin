@@ -398,6 +398,14 @@ public class GuildManager {
 
                 GuildQuestManager.getInstance().ensureQuests(g);
 
+                ConfigurationSection progression = cfg.getConfigurationSection(base + "progression");
+                if (progression != null) {
+                    ConfigurationSection target = g.getProgressionData();
+                    for (String key : progression.getKeys(false)) {
+                        target.set(key, progression.get(key));
+                    }
+                }
+
                 guilds.put(name, g);
             } catch (IllegalArgumentException ignored) {
                 // Skip invalid UUIDs
@@ -464,6 +472,10 @@ public class GuildManager {
                         }
                     }
                 }
+            }
+            ConfigurationSection progression = g.getProgressionData();
+            if (progression != null && !progression.getKeys(false).isEmpty()) {
+                cfg.createSection(base + "progression", progression.getValues(true));
             }
         }
         try {

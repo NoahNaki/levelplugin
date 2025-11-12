@@ -79,6 +79,8 @@ public class DungeonManager {
     private final Map<World, Instance> instances = new HashMap<>();
     /** Players who recently completed a dungeon and can rate it. */
     private final java.util.Map<java.util.UUID, String> pendingRatings = new java.util.HashMap<>();
+    /** Registered listeners for dungeon run completions. */
+    private final java.util.List<DungeonRunObserver> runObservers = new java.util.ArrayList<>();
 
     /** Return true if the given world is an active dungeon instance. */
     public boolean isInstanceWorld(World world) {
@@ -93,6 +95,18 @@ public class DungeonManager {
         this.builder = new DungeonBuilder(this);
         Bukkit.getPluginManager().registerEvents(builder, plugin);
         Bukkit.getPluginManager().registerEvents(new InstanceListener(), plugin);
+    }
+
+    /** Register a listener that should be notified when dungeon runs finish. */
+    public void addRunObserver(DungeonRunObserver observer) {
+        if (observer != null) {
+            runObservers.add(observer);
+        }
+    }
+
+    /** Remove a previously registered run observer. */
+    public void removeRunObserver(DungeonRunObserver observer) {
+        runObservers.remove(observer);
     }
 
     public RoomTemplate getEntrance() { return entrance; }
@@ -718,11 +732,13 @@ public class DungeonManager {
                 if (mem != null && mem.isOnline()) {
                     participants.add(mem);
                     inst.returnLocations.put(id, mem.getLocation());
+                    inst.participants.add(id);
                 }
             }
         } else {
             participants.add(player);
             inst.returnLocations.put(player.getUniqueId(), player.getLocation());
+            inst.participants.add(player.getUniqueId());
         }
         instances.put(world, inst);
         world.setDifficulty(org.bukkit.Difficulty.PEACEFUL);
@@ -873,6 +889,10 @@ public class DungeonManager {
         final Map<java.util.UUID, Location> returnLocations = new HashMap<>();
         final java.util.List<Integer> chestIds = new java.util.ArrayList<>();
         org.bukkit.scheduler.BukkitTask removalTask;
+        final java.util.Set<java.util.UUID> participants = new java.util.HashSet<>();
+        final long startTime = System.currentTimeMillis();
+        boolean completed;
+        long completionTime;
         Instance(Dungeon d, String layout) { this.dungeon = d; this.layout = layout; }
     }
 
@@ -904,6 +924,11 @@ public class DungeonManager {
                     boolean completed = room != null && room.template == exit && inst.dungeon.isBossDefeated();
                     if (completed) {
                         sendCompleteMessage(player, getDisplayName(inst.layout));
+                        if (!inst.completed) {
+                            inst.completed = true;
+                            inst.completionTime = System.currentTimeMillis();
+                            notifyRunCompleted(inst);
+                        }
                     } else {
                         sendExitMessage(player, getDisplayName(inst.layout));
                     }
@@ -990,6 +1015,25 @@ public class DungeonManager {
         }
         Bukkit.unloadWorld(world, false);
         FileUtil.deleteDirectory(world.getWorldFolder());
+    }
+
+    private void notifyRunCompleted(Instance inst) {
+        if (runObservers.isEmpty()) return;
+        DungeonRunResult result = new DungeonRunResult(
+                inst.layout,
+                getDisplayName(inst.layout),
+                inst.participants,
+                inst.startTime,
+                inst.completionTime
+        );
+        java.util.List<DungeonRunObserver> copy = new java.util.ArrayList<>(runObservers);
+        for (DungeonRunObserver observer : copy) {
+            try {
+                observer.onDungeonCompleted(result);
+            } catch (Exception ex) {
+                plugin.getLogger().warning("[Dungeon] Failed to notify run observer: " + ex.getMessage());
+            }
+        }
     }
 
     private void scheduleRemoval(World world, Instance inst) {

@@ -308,6 +308,14 @@ public class PlayerConfig {
         config.set("players." + uuid + ".fasttravel", null);
     }
 
+    public org.bukkit.configuration.ConfigurationSection getArcaneTrialSection(UUID uuid) {
+        String path = "players." + uuid + ".arcane_trials";
+        if (!config.isConfigurationSection(path)) {
+            return config.createSection(path);
+        }
+        return config.getConfigurationSection(path);
+    }
+
     // ----- Global Town Ownership -----
 
     /** Get the UUID of the player who owns the specified global town. */
