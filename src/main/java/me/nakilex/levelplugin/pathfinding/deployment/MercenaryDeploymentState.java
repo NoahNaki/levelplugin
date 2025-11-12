@@ -9,7 +9,7 @@ import java.util.Map;
 /**
  * Per-player runtime state tracked by {@link MercenaryDeploymentManager}.
  */
-final class MercenaryDeploymentState {
+public final class MercenaryDeploymentState {
     private final Map<String, ActiveDeployment> active = new LinkedHashMap<>();
     private final List<CompletedDeployment> completed = new ArrayList<>();
 
@@ -46,7 +46,7 @@ final class MercenaryDeploymentState {
     }
 
     /** Active deployment data persisted to disk while the mission runs. */
-    static final class ActiveDeployment {
+    public static final class ActiveDeployment {
         private final String deploymentId;
         private final MercenarySpecialization specialization;
         private final long startedAt;
@@ -102,7 +102,7 @@ final class MercenaryDeploymentState {
     }
 
     /** Result of a deployment awaiting claim by the player. */
-    static final class CompletedDeployment {
+    public static final class CompletedDeployment {
         private final String deploymentId;
         private final MercenarySpecialization specialization;
         private final boolean success;
