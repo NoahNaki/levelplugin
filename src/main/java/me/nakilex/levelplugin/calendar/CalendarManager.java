@@ -81,6 +81,10 @@ public class CalendarManager implements Listener {
         chooseDailyWeather();
         plugin.getScoreboardManager().updateAll();
         plugin.getEnvironmentManager().grantDailyPayout("town");
+        var deploymentManager = plugin.getMercenaryDeploymentManager();
+        if (deploymentManager != null) {
+            deploymentManager.advanceDay();
+        }
     }
 
     /** Legacy numeric date for debugging */

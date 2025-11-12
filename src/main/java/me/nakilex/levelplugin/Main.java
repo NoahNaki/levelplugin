@@ -23,6 +23,7 @@ import me.nakilex.levelplugin.mob.config.MobRewardsConfig;
 import me.nakilex.levelplugin.storage.StorageManager;
 import me.nakilex.levelplugin.pathfinding.PathfindingManager;
 import me.nakilex.levelplugin.pathfinding.MercenaryManager;
+import me.nakilex.levelplugin.pathfinding.deployment.MercenaryDeploymentManager;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -137,6 +138,7 @@ public class Main extends JavaPlugin {
     public me.nakilex.levelplugin.cutscene.CutsceneManager getCutsceneManager() { return bootstrap.getCutsceneManager(); }
     public CodexManager getCodexManager() { return bootstrap.getCodexManager(); }
     public MercenaryManager getMercenaryManager() { return bootstrap.getMercenaryManager(); }
+    public MercenaryDeploymentManager getMercenaryDeploymentManager() { return bootstrap.getMercenaryDeploymentManager(); }
     public CodexMainGUI getCodexGUI() { return bootstrap.getCodexGUI(); }
     public me.nakilex.levelplugin.dungeon.gui.DungeonListGUI getDungeonListGUI() { return bootstrap.getDungeonListGUI(); }
     public me.nakilex.levelplugin.guild.siege.GuildSiegeManager getGuildSiegeManager() { return bootstrap.getGuildSiegeManager(); }

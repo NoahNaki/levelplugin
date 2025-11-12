@@ -96,6 +96,7 @@ import me.nakilex.levelplugin.chat.ChatCommand;
 import me.nakilex.levelplugin.chat.RollCommand;
 import org.bukkit.command.PluginCommand;
 import me.nakilex.levelplugin.pathfinding.MercenaryManager;
+import me.nakilex.levelplugin.pathfinding.deployment.MercenaryDeploymentManager;
 
 public class CommandRegistry {
 
@@ -133,6 +134,7 @@ public class CommandRegistry {
                                         WanderingMerchantManager wmManager,
                                         PathfindingManager pathManager,
                                         MercenaryManager mercManager,
+                                        MercenaryDeploymentManager mercDeploymentManager,
                                         BattlePassManager battlePassManager,
                                         ChatGameManager chatGameManager) {
 
@@ -307,7 +309,7 @@ public class CommandRegistry {
         plugin.getCommand("pathfinding").setExecutor(pfCmd);
         plugin.getCommand("pathfinding").setTabCompleter(pfCmd);
 
-        MercenaryCommand mercCmd = new MercenaryCommand(mercManager);
+        MercenaryCommand mercCmd = new MercenaryCommand(mercManager, mercDeploymentManager);
         plugin.getCommand("mercenary").setExecutor(mercCmd);
         plugin.getCommand("mercenary").setTabCompleter(mercCmd);
 

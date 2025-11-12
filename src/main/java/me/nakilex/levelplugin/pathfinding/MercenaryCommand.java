@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.pathfinding;
 
 import me.nakilex.levelplugin.pathfinding.MercenaryManager.Mode;
+import me.nakilex.levelplugin.pathfinding.deployment.MercenaryDeploymentManager;
 import me.nakilex.levelplugin.pathfinding.npc.ArcherMercenary;
 import me.nakilex.levelplugin.pathfinding.npc.RogueMercenary;
 import me.nakilex.levelplugin.pathfinding.npc.MageMercenary;
@@ -23,19 +24,33 @@ import java.util.stream.Collectors;
 /** Command to bind and control mercenary NPCs. */
 public class MercenaryCommand implements CommandExecutor, TabCompleter {
     private final MercenaryManager manager;
+    private final MercenaryDeploymentManager deploymentManager;
 
-    public MercenaryCommand(MercenaryManager manager) {
+    public MercenaryCommand(MercenaryManager manager, MercenaryDeploymentManager deploymentManager) {
         this.manager = manager;
+        this.deploymentManager = deploymentManager;
     }
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (args.length == 0) {
-              sender.sendMessage("Usage: /mercenary bind <id> <class> <player> | unbind <id> <player> | hostile | target");
+              sender.sendMessage("Usage: /mercenary missions | bind <id> <class> <player> | unbind <id> <player> | hostile | target");
             return true;
         }
         String sub = args[0].toLowerCase(Locale.ROOT);
         switch (sub) {
+              case "missions", "contracts", "board" -> {
+                  if (!(sender instanceof Player player)) {
+                      sender.sendMessage("Only players can view contracts");
+                      return true;
+                  }
+                  if (deploymentManager == null) {
+                      sender.sendMessage("Mercenary contracts are unavailable right now.");
+                      return true;
+                  }
+                  deploymentManager.openBoard(player);
+                  return true;
+              }
               case "bind" -> {
                   if (args.length < 4) {
                       sender.sendMessage("Usage: /mercenary bind <id> <class> <player>");
@@ -132,7 +147,7 @@ public class MercenaryCommand implements CommandExecutor, TabCompleter {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            return List.of("bind", "unbind", "hostile", "target").stream()
+            return List.of("missions", "bind", "unbind", "hostile", "target").stream()
                     .filter(s -> s.startsWith(args[0].toLowerCase(Locale.ROOT)))
                     .collect(Collectors.toList());
         }

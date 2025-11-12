@@ -99,6 +99,23 @@ public class MercenaryManager implements Listener {
         return bindings.containsKey(player.getUniqueId());
     }
 
+    /** Check whether the player currently has a mercenary with the given profile type bound. */
+    public boolean hasProfile(Player player, Class<? extends PathNpc> profileType) {
+        if (player == null || profileType == null) {
+            return false;
+        }
+        Map<Integer, MercenaryFollower> map = bindings.get(player.getUniqueId());
+        if (map == null) {
+            return false;
+        }
+        for (MercenaryFollower follower : map.values()) {
+            if (profileType.isInstance(follower.profile)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /** Unbind all mercenaries for a player. */
     public boolean unbindAll(Player player) {
         Map<Integer, MercenaryFollower> map = bindings.get(player.getUniqueId());

@@ -48,6 +48,7 @@ import me.nakilex.levelplugin.player.config.PlayerConfig;
 import me.nakilex.levelplugin.pathfinding.PathfindingManager;
 import me.nakilex.levelplugin.chat.ChatManager;
 import me.nakilex.levelplugin.pathfinding.MercenaryManager;
+import me.nakilex.levelplugin.pathfinding.deployment.MercenaryDeploymentManager;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.potions.managers.PotionManager;
 import me.nakilex.levelplugin.settings.gui.SettingsGUI;
@@ -199,6 +200,7 @@ public class PluginBootstrap {
     private me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager wanderingMerchantManager;
     private PathfindingManager pathfindingManager;
     private MercenaryManager mercenaryManager;
+    private MercenaryDeploymentManager mercenaryDeploymentManager;
     private me.nakilex.levelplugin.transmog.TransmogManager transmogManager;
 
     public PluginBootstrap(Main plugin) {
@@ -371,6 +373,7 @@ public class PluginBootstrap {
         wanderingMerchantManager = new me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager(plugin);
         pathfindingManager = new PathfindingManager(plugin);
         mercenaryManager = new MercenaryManager(plugin);
+        mercenaryDeploymentManager = new MercenaryDeploymentManager(plugin, mercenaryManager);
     }
 
     private void setupCustomConfig() {
@@ -423,6 +426,7 @@ public class PluginBootstrap {
             wanderingMerchantManager,
             pathfindingManager,
             mercenaryManager,
+            mercenaryDeploymentManager,
             battlePassManager,
             chatGameManager
         );
@@ -521,6 +525,7 @@ public class PluginBootstrap {
     public void disable() {
         TaskRegistry.stopTasks();
         if (chatGameManager != null) chatGameManager.stop();
+        if (mercenaryDeploymentManager != null) mercenaryDeploymentManager.shutdown();
         if (mercenaryManager != null) mercenaryManager.unbindAll();
         if (economyManager != null) economyManager.saveBalances();
         if (dealMaker != null) dealMaker.closeAllTrades();
@@ -673,6 +678,7 @@ public class PluginBootstrap {
     public me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager getWanderingMerchantManager() { return wanderingMerchantManager; }
     public PathfindingManager getPathfindingManager() { return pathfindingManager; }
     public MercenaryManager getMercenaryManager() { return mercenaryManager; }
+    public MercenaryDeploymentManager getMercenaryDeploymentManager() { return mercenaryDeploymentManager; }
     public me.nakilex.levelplugin.transmog.TransmogManager getTransmogManager() { return transmogManager; }
 
     public void reloadPluginConfig() {
