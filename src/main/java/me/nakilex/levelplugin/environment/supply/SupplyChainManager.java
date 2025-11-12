@@ -7,6 +7,7 @@ import me.nakilex.levelplugin.guild.GuildManager;
 import me.nakilex.levelplugin.guild.quests.GuildQuestManager;
 import me.nakilex.levelplugin.player.battlepass.BattlePassManager;
 import me.nakilex.levelplugin.quests.data.QuestObjectiveType;
+import me.nakilex.levelplugin.environment.supply.gui.SupplyChainBoard;
 import me.nakilex.levelplugin.utils.ChatFormatter;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -248,7 +249,7 @@ public final class SupplyChainManager {
         state.getContributorAmounts().clear();
         guild.addCoins(stage.getGuildCoins());
         guild.addExp(stage.getGuildExp());
-        ChatFormatter.broadcastGuildMessage(guild,
+        broadcast(guild,
                 ChatColor.GREEN + "Supply stage complete: " + stage.getName(),
                 ChatColor.YELLOW + "+" + stage.getGuildCoins() + " coins "
                         + ChatColor.AQUA + "+" + stage.getGuildExp() + " guild XP",
