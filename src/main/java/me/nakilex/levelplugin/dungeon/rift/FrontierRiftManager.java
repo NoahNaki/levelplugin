@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.dungeon.DungeonManager;
 import me.nakilex.levelplugin.dungeon.DungeonRunObserver;
 import me.nakilex.levelplugin.dungeon.DungeonRunResult;
+import me.nakilex.levelplugin.dungeon.rift.gui.FrontierRiftBoard;
 import me.nakilex.levelplugin.guild.Guild;
 import me.nakilex.levelplugin.guild.GuildManager;
 import me.nakilex.levelplugin.guild.quests.GuildQuestManager;
@@ -188,7 +189,9 @@ public final class FrontierRiftManager implements DungeonRunObserver {
             return;
         }
         FrontierRiftState state = stateFor(guild);
-        player.openInventory(buildBoard(player, guild, state));
+        FrontierRiftDefinition next = definitionForStage(state.getCurrentStage());
+        FrontierRiftMutator mutator = currentMutator(state.getMutatorId());
+        player.openInventory(FrontierRiftBoard.create(next, mutator, state));
     }
 
     /** Attempt to start the guild's next frontier stage. */

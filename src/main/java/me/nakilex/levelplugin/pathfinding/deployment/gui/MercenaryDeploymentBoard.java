@@ -132,14 +132,14 @@ public final class MercenaryDeploymentBoard {
         if (meta != null) {
             long now = System.currentTimeMillis();
             long remaining = active.remaining(now);
-            double progress = 1.0 - (double) remaining / Math.max(1.0, active.durationMillis());
+            double elapsed = active.durationMillis() - remaining;
             List<String> lore = new ArrayList<>();
             lore.add(ChatColor.GRAY + "Specialist: " + ChatColor.YELLOW + active.specialization().displayName());
             lore.add(ChatColor.GRAY + "Chance: " + ChatColor.YELLOW + percentage(active.successChance()));
             lore.add(ChatColor.GRAY + "Reward Mod: " + ChatColor.YELLOW + String.format("%.0f%%", active.rewardMultiplier() * 100));
             lore.add(" ");
             lore.add(ChatColor.GRAY + "Time Remaining: " + ChatColor.YELLOW + formatDuration(remaining));
-            lore.add(TooltipUtil.progressBar(progress, 20));
+            lore.add(TooltipUtil.progressBar(elapsed, active.durationMillis(), 20));
             lore.add(" ");
             lore.addAll(TooltipUtil.clickInstructions(null, "to recall (no reward)"));
             meta.setLore(lore);

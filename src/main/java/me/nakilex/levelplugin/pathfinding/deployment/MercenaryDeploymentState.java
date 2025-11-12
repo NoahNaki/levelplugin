@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.pathfinding.deployment;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,12 +14,12 @@ public final class MercenaryDeploymentState {
     private final Map<String, ActiveDeployment> active = new LinkedHashMap<>();
     private final List<CompletedDeployment> completed = new ArrayList<>();
 
-    Collection<ActiveDeployment> activeDeployments() {
-        return active.values();
+    public Collection<ActiveDeployment> activeDeployments() {
+        return Collections.unmodifiableCollection(active.values());
     }
 
-    List<CompletedDeployment> completedDeployments() {
-        return completed;
+    public List<CompletedDeployment> completedDeployments() {
+        return Collections.unmodifiableList(completed);
     }
 
     boolean isEmpty() {
