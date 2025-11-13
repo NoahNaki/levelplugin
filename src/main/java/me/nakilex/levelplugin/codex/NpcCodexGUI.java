@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.codex;
 
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.HeadUtil;
+import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import net.citizensnpcs.api.npc.NPC;
 import net.citizensnpcs.trait.SkinTrait;
@@ -30,7 +31,7 @@ import java.util.UUID;
 public class NpcCodexGUI implements Listener {
     private static final String TITLE = ChatColor.BLACK + "Codex - NPCs";
     private static final int SIZE = 54;
-    private static final int ITEMS_PER_PAGE = CodexGuiUtil.CONTENT_SLOTS.length;
+    private static final int ITEMS_PER_PAGE = GuiUtil.PAGED_SLOTS.length;
     private static final int PREV_SLOT = 45;
     private static final int NEXT_SLOT = 53;
     private static final int BACK_SLOT = 49;
@@ -68,7 +69,7 @@ public class NpcCodexGUI implements Listener {
         Set<String> discovered = new HashSet<>(manager.getDiscoveredNpcs(id));
         int start = page * ITEMS_PER_PAGE;
         for (int i = start, slot = 0; i < npcs.size() && slot < ITEMS_PER_PAGE; i++) {
-            inv.setItem(CodexGuiUtil.CONTENT_SLOTS[slot++],
+            inv.setItem(GuiUtil.PAGED_SLOTS[slot++],
                     createNpcIcon(id, discovered, npcs.get(i)));
         }
 
@@ -100,7 +101,7 @@ public class NpcCodexGUI implements Listener {
                 int total = manager.getTotalNpcCount();
                 double progress = total == 0 ? 0 : (double) discoveredCount / total;
                 List<String> lore = new ArrayList<>();
-                String bar = GuiUtil.createProgressBar(progress, 15);
+                String bar = TooltipUtil.progressBar(discoveredCount, total, 15);
                 lore.add(bar + " " + ChatColor.YELLOW + discoveredCount + ChatColor.GOLD + "/" + ChatColor.YELLOW + total
                         + ChatColor.GRAY + " (" + ChatColor.YELLOW + Math.round(progress * 100) + "%" + ChatColor.GRAY + ")");
                 meta.setLore(lore);

@@ -725,7 +725,7 @@ public class DungeonManager {
             inst.returnLocations.put(player.getUniqueId(), player.getLocation());
         }
         instances.put(world, inst);
-        world.setDifficulty(org.bukkit.Difficulty.PEACEFUL);
+        world.setDifficulty(org.bukkit.Difficulty.HARD);
         world.setGameRule(org.bukkit.GameRule.DO_MOB_SPAWNING, false);
 
         class State { boolean allowFlight; boolean flying; boolean invul; State(Player p){allowFlight=p.getAllowFlight();flying=p.isFlying();invul=p.isInvulnerable();}}
@@ -828,14 +828,38 @@ public class DungeonManager {
         return sec.getKeys(false);
     }
 
+    public Set<String> getAvailableMobs(java.util.UUID playerId) {
+        return filterUnlocked(getAvailableMobs(), playerId);
+    }
+
     public Set<String> getAvailableBosses() {
         var sec = plugin.getBossConfig().getConfigurationSection("mobs");
         if (sec == null) return Set.of();
         return sec.getKeys(false);
     }
 
+    public Set<String> getAvailableBosses(java.util.UUID playerId) {
+        return filterUnlocked(getAvailableBosses(), playerId);
+    }
+
     public Set<String> getLayoutNames() {
         return new java.util.HashSet<>(layoutDisplay.values());
+    }
+
+    private Set<String> filterUnlocked(Set<String> keys, java.util.UUID playerId) {
+        if (keys == null || keys.isEmpty()) return java.util.Collections.emptySet();
+        me.nakilex.levelplugin.codex.CodexManager codex = plugin.getCodexManager();
+        if (codex == null || playerId == null) {
+            return java.util.Collections.unmodifiableSet(new java.util.LinkedHashSet<>(keys));
+        }
+        java.util.LinkedHashSet<String> unlocked = new java.util.LinkedHashSet<>();
+        for (String key : keys) {
+            if (key == null || key.isBlank()) continue;
+            if (codex.hasDiscovered(playerId, key)) {
+                unlocked.add(key);
+            }
+        }
+        return java.util.Collections.unmodifiableSet(unlocked);
     }
 
     /** Store that the given player may rate the specified dungeon. */
