@@ -877,7 +877,7 @@ public class DungeonManager {
         java.util.LinkedHashSet<String> unlocked = new java.util.LinkedHashSet<>();
         for (String key : keys) {
             if (key == null || key.isBlank()) continue;
-            if (codex.hasDiscovered(playerId, key)) {
+            if (codex.hasDiscoveredIdentity(playerId, key)) {
                 unlocked.add(key);
             }
         }

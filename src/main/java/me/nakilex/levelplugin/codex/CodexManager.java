@@ -77,6 +77,40 @@ public class CodexManager {
         return playerConfig.getConfig().contains(path);
     }
 
+    /**
+     * Determine whether a player has discovered a mob that matches the canonical
+     * identity of the given key. This allows configuration files that reference
+     * the same MythicMob using different cases or word ordering (e.g. "Slime_King"
+     * vs. "KING_SLIME") to still count as discovered once the player records the
+     * entry in their codex.
+     */
+    public boolean hasDiscoveredIdentity(UUID id, String key) {
+        if (key == null || key.isBlank()) {
+            return false;
+        }
+        if (hasDiscovered(id, key)) {
+            return true;
+        }
+
+        String canonical = MobNameUtil.canonicalMobKey(key);
+        if (canonical.isEmpty()) {
+            return false;
+        }
+
+        String base = "players." + id + ".codex.mobs";
+        var section = playerConfig.getConfig().getConfigurationSection(base);
+        if (section == null) {
+            return false;
+        }
+
+        for (String discoveredKey : section.getKeys(false)) {
+            if (canonical.equals(MobNameUtil.canonicalMobKey(discoveredKey))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public int getKillCount(UUID id, String key) {
         String path = "players." + id + ".codex.mobs." + key.toLowerCase() + ".kills";
         return playerConfig.getConfig().getInt(path, 0);
