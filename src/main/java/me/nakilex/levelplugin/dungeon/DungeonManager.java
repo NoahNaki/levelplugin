@@ -21,6 +21,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.player.PlayerPortalEvent;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Loads room templates from the flatland world and allows generating
@@ -826,18 +827,27 @@ public class DungeonManager {
     public Set<String> getAvailableMobs() {
         var sec = plugin.getMobRewardsConfig().getConfig().getConfigurationSection("mobs");
         if (sec == null) return Set.of();
-        java.util.LinkedHashSet<String> keys = new java.util.LinkedHashSet<>(sec.getKeys(false));
-        var bossSec = plugin.getBossConfig().getConfigurationSection("mobs");
-        if (bossSec != null) {
-            java.util.Set<String> normalizedBosses = new java.util.HashSet<>();
-            for (String bossKey : bossSec.getKeys(false)) {
-                normalizedBosses.add(normalizeMobIdentity(bossKey));
-            }
-            if (!normalizedBosses.isEmpty()) {
-                keys.removeIf(key -> normalizedBosses.contains(normalizeMobIdentity(key)));
+        java.util.LinkedHashMap<String, String> uniqueByIdentity = new java.util.LinkedHashMap<>();
+        for (String key : sec.getKeys(false)) {
+            if (key == null || key.isBlank()) continue;
+            String identity = normalizeMobIdentity(key);
+            if (!identity.isEmpty()) {
+                uniqueByIdentity.putIfAbsent(identity, key);
+            } else {
+                uniqueByIdentity.put(UUID.randomUUID().toString(), key);
             }
         }
-        return java.util.Collections.unmodifiableSet(keys);
+        var bossSec = plugin.getBossConfig().getConfigurationSection("mobs");
+        if (bossSec != null) {
+            Set<String> normalizedBosses = bossSec.getKeys(false).stream()
+                    .map(this::normalizeMobIdentity)
+                    .filter(identity -> !identity.isEmpty())
+                    .collect(Collectors.toSet());
+            if (!normalizedBosses.isEmpty()) {
+                uniqueByIdentity.entrySet().removeIf(entry -> normalizedBosses.contains(entry.getKey()));
+            }
+        }
+        return java.util.Collections.unmodifiableSet(new java.util.LinkedHashSet<>(uniqueByIdentity.values()));
     }
 
     public Set<String> getAvailableMobs(java.util.UUID playerId) {
@@ -875,12 +885,7 @@ public class DungeonManager {
     }
 
     private String normalizeMobIdentity(String key) {
-        if (key == null) return "";
-        String plain = MobNameUtil.getPlainDisplayName(key);
-        if (plain == null || plain.isBlank()) {
-            plain = key;
-        }
-        return plain.toLowerCase(java.util.Locale.ROOT);
+        return MobNameUtil.canonicalMobKey(key);
     }
 
     /** Store that the given player may rate the specified dungeon. */
