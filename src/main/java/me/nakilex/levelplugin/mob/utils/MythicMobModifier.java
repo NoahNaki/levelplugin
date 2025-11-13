@@ -35,10 +35,15 @@ public static ActiveMob spawnModifiedMob(
         Double moveSpeed,
         Double attackSpeed
 ) {
-    if (MythicBukkit.inst().getMobManager().getMythicMob(mobName).isEmpty()) {
+    var mobOptional = MobNameUtil.resolveMythicMob(mobName);
+    if (mobOptional.isEmpty()) {
         return null;
     }
-    ActiveMob active = MythicBukkit.inst().getMobManager().spawnMob(mobName, loc, 1.0);
+    String internalName = mobOptional.get().getInternalName();
+    ActiveMob active = MythicBukkit.inst().getMobManager().spawnMob(internalName, loc, 1.0);
+    if (active == null) {
+        return null;
+    }
     LivingEntity entity = (LivingEntity) active.getEntity().getBukkitEntity();
 
     if (hp != null) {

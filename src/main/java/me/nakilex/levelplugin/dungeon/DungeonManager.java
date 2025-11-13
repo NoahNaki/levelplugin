@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.dungeon;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.dungeon.TemplateType;
+import me.nakilex.levelplugin.mob.utils.MobNameUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import me.nakilex.levelplugin.utils.FileUtil;
@@ -825,7 +826,18 @@ public class DungeonManager {
     public Set<String> getAvailableMobs() {
         var sec = plugin.getMobRewardsConfig().getConfig().getConfigurationSection("mobs");
         if (sec == null) return Set.of();
-        return sec.getKeys(false);
+        java.util.LinkedHashSet<String> keys = new java.util.LinkedHashSet<>(sec.getKeys(false));
+        var bossSec = plugin.getBossConfig().getConfigurationSection("mobs");
+        if (bossSec != null) {
+            java.util.Set<String> normalizedBosses = new java.util.HashSet<>();
+            for (String bossKey : bossSec.getKeys(false)) {
+                normalizedBosses.add(normalizeMobIdentity(bossKey));
+            }
+            if (!normalizedBosses.isEmpty()) {
+                keys.removeIf(key -> normalizedBosses.contains(normalizeMobIdentity(key)));
+            }
+        }
+        return java.util.Collections.unmodifiableSet(keys);
     }
 
     public Set<String> getAvailableMobs(java.util.UUID playerId) {
@@ -860,6 +872,15 @@ public class DungeonManager {
             }
         }
         return java.util.Collections.unmodifiableSet(unlocked);
+    }
+
+    private String normalizeMobIdentity(String key) {
+        if (key == null) return "";
+        String plain = MobNameUtil.getPlainDisplayName(key);
+        if (plain == null || plain.isBlank()) {
+            plain = key;
+        }
+        return plain.toLowerCase(java.util.Locale.ROOT);
     }
 
     /** Store that the given player may rate the specified dungeon. */

@@ -60,7 +60,7 @@ public final class MobNameUtil {
      * files often use lower-case keys copied straight from Mythic. This helper keeps the lookup
      * tolerant so we can still resolve the correct display name even when the cases differ.
      */
-    private static Optional<MythicMob> resolveMythicMob(String mobId) {
+    public static Optional<MythicMob> resolveMythicMob(String mobId) {
         if (mobId == null || mobId.isEmpty()) {
             return Optional.empty();
         }

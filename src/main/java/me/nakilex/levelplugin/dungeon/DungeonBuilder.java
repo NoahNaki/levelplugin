@@ -949,7 +949,7 @@ public class DungeonBuilder implements Listener {
             var codex = manager.getPlugin().getCodexManager();
             int idx = 0;
             for (String key : sorted) {
-                ItemStack is = new ItemStack(Material.PAPER);
+                ItemStack is = new ItemStack(Material.SKELETON_SKULL);
                 ItemMeta im = is.getItemMeta();
                 if (im != null) {
                     String display = MobNameUtil.getDisplayName(key);
