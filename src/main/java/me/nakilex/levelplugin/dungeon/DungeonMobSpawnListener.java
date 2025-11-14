@@ -2,7 +2,9 @@ package me.nakilex.levelplugin.dungeon;
 
 import io.lumine.mythic.bukkit.events.MythicMobDeathEvent;
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.mob.utils.MobNameUtil;
 import me.nakilex.levelplugin.mob.utils.MythicMobModifier;
+import me.nakilex.levelplugin.lootchests.utils.LocationUtils;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -14,6 +16,8 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Entity;
+
+import java.util.Optional;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -51,7 +55,7 @@ public class DungeonMobSpawnListener implements Listener {
                             "[DungeonSpawn] %s triggered boss '%s' at %s",
                             player.getName(),
                             room.mob,
-                            formatLocation(room.bossSpawn)));
+                            LocationUtils.blockLocationString(room.bossSpawn)));
                     spawnBoss(room);
                     triggered.add(room);
                 } else if (room.mob != null && room.contains(to)) {
@@ -59,7 +63,7 @@ public class DungeonMobSpawnListener implements Listener {
                             "[DungeonSpawn] %s triggered combat room '%s' at %s",
                             player.getName(),
                             room.mob,
-                            formatLocation(room.center)));
+                            LocationUtils.blockLocationString(room.center)));
                     spawnConfiguredMobs(room);
                     triggered.add(room);
                 }
@@ -85,12 +89,32 @@ public class DungeonMobSpawnListener implements Listener {
             atk = sec.contains("attack-speed") ? sec.getDouble("attack-speed") : null;
             key = sec.getString("mob", key);
         }
+        String canonical = MobNameUtil.canonicalMobKey(key);
+        Optional<io.lumine.mythic.api.mobs.MythicMob> resolved = MobNameUtil.resolveMythicMob(key);
+        String overrides = String.format("hp=%s dmg=%s move=%s atk=%s",
+                hp == null ? "-" : String.format("%.2f", hp),
+                dmg == null ? "-" : String.format("%.2f", dmg),
+                move == null ? "-" : String.format("%.2f", move),
+                atk == null ? "-" : String.format("%.2f", atk));
+
         plugin.getLogger().info(String.format(
-                "[DungeonSpawn] Preparing %d mob(s) for combat room at %s (selection='%s', spawning='%s')",
+                "[DungeonSpawn] Preparing %d mob(s) for combat room at %s (selection='%s', spawning='%s', canonical='%s', overrides=%s)",
                 count,
-                formatLocation(room.center),
+                LocationUtils.blockLocationString(room.center),
                 selection,
-                key));
+                key,
+                canonical,
+                overrides));
+
+        resolved.ifPresentOrElse(
+                mythicMob -> plugin.getLogger().info(String.format(
+                        "[DungeonSpawn] Resolved combat mob '%s' to Mythic internal '%s'",
+                        key,
+                        mythicMob.getInternalName())),
+                () -> plugin.getLogger().warning(String.format(
+                        "[DungeonSpawn] MythicMob definition for '%s' could not be resolved",
+                        key))
+        );
         int spawned = 0;
         for (int i = 0; i < count; i++) {
             double x = room.minX + 1 + Math.random() * (room.maxX - room.minX - 1);
@@ -101,7 +125,7 @@ public class DungeonMobSpawnListener implements Listener {
                 plugin.getLogger().warning(String.format(
                         "[DungeonSpawn] MythicMob '%s' failed to spawn at %s",
                         key,
-                        formatLocation(spawn)));
+                        LocationUtils.blockLocationString(spawn)));
             } else {
                 spawned++;
             }
@@ -110,7 +134,7 @@ public class DungeonMobSpawnListener implements Listener {
                 "[DungeonSpawn] Spawned %d/%d mobs for combat room at %s",
                 spawned,
                 count,
-                formatLocation(room.center)));
+                LocationUtils.blockLocationString(room.center)));
     }
 
     private void spawnBoss(Dungeon.RoomInstance room) {
@@ -119,29 +143,31 @@ public class DungeonMobSpawnListener implements Listener {
         room.bossSpawn.clone().add(0, -1, 0).getBlock().setType(Material.AIR, false);
 
         String mobId = room.mob;
-        Main.getInstance().getLogger().info("[DungeonBoss] Attempting to spawn '" + mobId + "'");
+        String canonical = MobNameUtil.canonicalMobKey(mobId);
+        Optional<io.lumine.mythic.api.mobs.MythicMob> resolved = MobNameUtil.resolveMythicMob(mobId);
+        Main.getInstance().getLogger().info(String.format(
+                "[DungeonBoss] Attempting to spawn '%s' (canonical='%s')",
+                mobId,
+                canonical));
+        resolved.ifPresentOrElse(
+                mythicMob -> Main.getInstance().getLogger().info(String.format(
+                        "[DungeonBoss] Resolved boss '%s' to Mythic internal '%s'",
+                        mobId,
+                        mythicMob.getInternalName())),
+                () -> Main.getInstance().getLogger().warning(String.format(
+                        "[DungeonBoss] MythicMob definition for '%s' could not be resolved",
+                        mobId))
+        );
         var mob = MythicMobModifier.spawnModifiedMob(mobId, room.bossSpawn, null, null, null, null);
         if (mob != null) {
             mob.getEntity().getBukkitEntity().addScoreboardTag("dungeon_boss");
             plugin.getLogger().info(String.format(
                     "[DungeonSpawn] Spawned boss '%s' at %s",
                     mobId,
-                    formatLocation(room.bossSpawn)));
+                    LocationUtils.blockLocationString(room.bossSpawn)));
         } else {
             Main.getInstance().getLogger().warning("[DungeonBoss] MythicMob '" + mobId + "' could not be spawned");
         }
-    }
-
-    private String formatLocation(Location loc) {
-        if (loc == null) {
-            return "unknown";
-        }
-        String world = loc.getWorld() != null ? loc.getWorld().getName() : "null";
-        return String.format("%s[%d,%d,%d]",
-                world,
-                loc.getBlockX(),
-                loc.getBlockY(),
-                loc.getBlockZ());
     }
 
     @EventHandler

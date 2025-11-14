@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.dungeon;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.dungeon.TemplateType;
 import me.nakilex.levelplugin.mob.utils.MobNameUtil;
+import me.nakilex.levelplugin.lootchests.utils.LocationUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import me.nakilex.levelplugin.utils.FileUtil;
@@ -21,7 +22,6 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.player.PlayerPortalEvent;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Loads room templates from the flatland world and allows generating
@@ -129,6 +129,8 @@ public class DungeonManager {
         if (world != null) {
             world.setKeepSpawnInMemory(false);
             world.setAutoSave(false);
+            world.setDifficulty(org.bukkit.Difficulty.PEACEFUL);
+            world.setGameRule(org.bukkit.GameRule.DO_MOB_SPAWNING, false);
         }
         return world;
     }
@@ -702,6 +704,18 @@ public class DungeonManager {
                 int diffZ = layout.getOffsetZ(x, y);
                 Location center = origin.clone().add(diffX, 0, diffZ);
                 String mob = layout.getMob(x, y);
+                TemplateType templateType = identifyTemplate(templ);
+                if (mob != null && !mob.isBlank()) {
+                    plugin.getLogger().info(String.format(
+                            "[DungeonSpawn] Queued mob '%s' (canonical='%s') for %s at %s (rotation=%d, cell=%d,%d)",
+                            mob,
+                            MobNameUtil.canonicalMobKey(mob),
+                            templateType != null ? templateType.name() : "UNKNOWN",
+                            LocationUtils.blockLocationString(center),
+                            rotation,
+                            x,
+                            y));
+                }
                 tasks.add(new BuildTask(templ, rotation, center, mob));
             }
         }
@@ -839,10 +853,22 @@ public class DungeonManager {
         }
         var bossSec = plugin.getBossConfig().getConfigurationSection("mobs");
         if (bossSec != null) {
-            Set<String> normalizedBosses = bossSec.getKeys(false).stream()
-                    .map(this::normalizeMobIdentity)
-                    .filter(identity -> !identity.isEmpty())
-                    .collect(Collectors.toSet());
+            Set<String> normalizedBosses = new java.util.LinkedHashSet<>();
+            for (String bossKey : bossSec.getKeys(false)) {
+                if (bossKey == null || bossKey.isBlank()) continue;
+                String identity = normalizeMobIdentity(bossKey);
+                if (!identity.isEmpty()) {
+                    normalizedBosses.add(identity);
+                }
+                org.bukkit.configuration.ConfigurationSection bossEntry = bossSec.getConfigurationSection(bossKey);
+                if (bossEntry != null) {
+                    String mobKey = bossEntry.getString("mob");
+                    String mobIdentity = normalizeMobIdentity(mobKey);
+                    if (!mobIdentity.isEmpty()) {
+                        normalizedBosses.add(mobIdentity);
+                    }
+                }
+            }
             if (!normalizedBosses.isEmpty()) {
                 uniqueByIdentity.entrySet().removeIf(entry -> normalizedBosses.contains(entry.getKey()));
             }

@@ -157,6 +157,8 @@ public final class MobNameUtil {
         }
         String cleaned = ChatColor.stripColor(input);
         cleaned = cleaned.replace('_', ' ').replace('-', ' ');
+        cleaned = cleaned.replaceAll("(?<=[A-Za-z])(?=[A-Z][a-z])", " ");
+        cleaned = cleaned.replaceAll("(?<=[a-z0-9])(?=[A-Z])", " ");
         cleaned = cleaned.replaceAll("[^A-Za-z0-9\\s]+", " ");
         cleaned = cleaned.trim();
         if (cleaned.isEmpty()) {
