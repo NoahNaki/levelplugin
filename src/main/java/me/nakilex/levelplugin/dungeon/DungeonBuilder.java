@@ -294,7 +294,7 @@ public class DungeonBuilder implements Listener {
                 s.connectors.put(info.interaction.getEntityId(), info);
                 added.add(info);
             }
-            s.history.addLast(new History(null, added, result.instance(), result.replaced()));
+            s.history.addLast(new History(added, result.instance(), result.replaced()));
         }
 
         for (int x = 0; x < DungeonLayout.WIDTH; x++) {
@@ -330,7 +330,7 @@ public class DungeonBuilder implements Listener {
                     s.connectors.put(info.interaction.getEntityId(), info);
                     added.add(info);
                 }
-                s.history.addLast(new History(null, added, result.instance(), result.replaced()));
+                s.history.addLast(new History(added, result.instance(), result.replaced()));
             }
         }
 
@@ -439,7 +439,7 @@ public class DungeonBuilder implements Listener {
             ChatMessageUtil.send(player, MessageType.ERROR, "Cannot place entrance here.");
             return;
         }
-        s.history.addLast(new History(null, spawnConnectors(s, result.instance(), null),
+        s.history.addLast(new History(spawnConnectors(s, result.instance(), null),
                 result.instance(), result.replaced()));
         s.placingEntrance = false;
         ChatMessageUtil.send(player, MessageType.SUCCESS, "Entrance placed. Use holograms to add rooms.");
@@ -815,7 +815,7 @@ public class DungeonBuilder implements Listener {
         }
         removeConnector(s, info);
         List<ConnectorInfo> added = spawnConnectors(s, result.instance(), info);
-        s.history.addLast(new History(info, added, result.instance(), result.replaced()));
+        s.history.addLast(new History(added, result.instance(), result.replaced()));
     }
 
     private List<ConnectorInfo> spawnConnectors(Session s, Dungeon.RoomInstance inst, ConnectorInfo used) {
@@ -834,6 +834,19 @@ public class DungeonBuilder implements Listener {
             list.add(info);
         }
         return list;
+    }
+
+    private ConnectorInfo spawnConnectorFacing(Session s, Dungeon.RoomInstance inst, Direction dir) {
+        RoomTemplate templ = inst.template;
+        for (RoomTemplate.Connector c : templ.getConnectors()) {
+            Direction facing = rotate(c.facing, inst.rotation);
+            if (facing != dir) continue;
+            int[] vec = RoomTemplate.rotate(c.x - (int) Math.round(templ.getCenterX()),
+                    c.z - (int) Math.round(templ.getCenterZ()), inst.rotation);
+            Location loc = inst.center.clone().add(vec[0], c.bottomY - templ.getConnectorMinY(), vec[1]);
+            return spawnConnector(s, loc, dir, inst);
+        }
+        return null;
     }
 
     private ConnectorInfo spawnConnector(Session s, Location loc, Direction dir, Dungeon.RoomInstance owner) {
@@ -857,6 +870,23 @@ public class DungeonBuilder implements Listener {
         info.interaction.remove();
         info.display.remove();
         s.connectors.remove(info.interaction.getEntityId());
+    }
+
+    private Direction directionBetween(Dungeon.RoomInstance from, Dungeon.RoomInstance to) {
+        if (from == null || to == null || from.center == null || to.center == null) return null;
+        int dx = to.center.getBlockX() - from.center.getBlockX();
+        int dz = to.center.getBlockZ() - from.center.getBlockZ();
+        int step = Math.max(1, manager.getStep());
+        int tolerance = Math.max(2, step / 6);
+        if (Math.abs(dx) > Math.abs(dz)) {
+            if (Math.abs(Math.abs(dx) - step) > tolerance) return null;
+            if (Math.abs(dz) > tolerance) return null;
+            return dx > 0 ? Direction.EAST : Direction.WEST;
+        } else {
+            if (Math.abs(Math.abs(dz) - step) > tolerance) return null;
+            if (Math.abs(dx) > tolerance) return null;
+            return dz > 0 ? Direction.SOUTH : Direction.NORTH;
+        }
     }
 
     private Inventory createRoomSelect(Session session) {
@@ -1129,13 +1159,11 @@ public class DungeonBuilder implements Listener {
     }
 
     private static class History {
-        final ConnectorInfo used;
         final List<ConnectorInfo> added;
         final Dungeon.RoomInstance instance;
         final Map<Location, BlockData> replaced;
-        History(ConnectorInfo used, List<ConnectorInfo> added,
+        History(List<ConnectorInfo> added,
                 Dungeon.RoomInstance inst, Map<Location, BlockData> replaced) {
-            this.used = used;
             this.added = added;
             this.instance = inst;
             this.replaced = replaced;
@@ -1201,11 +1229,8 @@ public class DungeonBuilder implements Listener {
                     }
                 }
             }
-            if (h.used != null) {
-                ConnectorInfo restored = DungeonBuilder.this.spawnConnector(this, h.used.location, h.used.facing, h.used.owner);
-                connectors.put(restored.interaction.getEntityId(), restored);
-            }
             dungeon.removeRoom(h.instance);
+            reopenAdjacentConnectors(h.instance);
         }
 
         void cancel() {
@@ -1296,6 +1321,28 @@ public class DungeonBuilder implements Listener {
                 layout.setOpenMask(cell.x, cell.y, mask);
             }
             return layout;
+        }
+
+        private void reopenAdjacentConnectors(Dungeon.RoomInstance removed) {
+            for (Dungeon.RoomInstance other : dungeon.getRooms()) {
+                if (other == removed) continue;
+                Direction dir = DungeonBuilder.this.directionBetween(other, removed);
+                if (dir == null) continue;
+                if (hasConnectorFacing(other, dir)) continue;
+                ConnectorInfo restored = DungeonBuilder.this.spawnConnectorFacing(this, other, dir);
+                if (restored != null) {
+                    connectors.put(restored.interaction.getEntityId(), restored);
+                }
+            }
+        }
+
+        private boolean hasConnectorFacing(Dungeon.RoomInstance owner, Direction dir) {
+            for (ConnectorInfo info : connectors.values()) {
+                if (info.owner == owner && info.facing == dir) {
+                    return true;
+                }
+            }
+            return false;
         }
     }
 
