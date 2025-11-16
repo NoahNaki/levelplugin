@@ -24,11 +24,13 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.HeadUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.mob.utils.MobNameUtil;
+import me.nakilex.levelplugin.codex.CodexGuiUtil;
 import me.nakilex.levelplugin.Main;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -39,6 +41,8 @@ import java.io.IOException;
 
 import java.util.*;
 import java.awt.Point;
+
+import static me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
 
 /**
  * Simplified in‑world dungeon builder using connector holograms. This is not a
@@ -193,7 +197,7 @@ public class DungeonBuilder implements Listener {
                 Player p = Bukkit.getPlayer(id);
                 if (p != null) {
                     restoreStoredInventory(p);
-                    p.sendMessage(ChatColor.RED + "Dungeon build cancelled.");
+                    ChatMessageUtil.send(p, MessageType.WARNING, "Dungeon build cancelled.");
                 }
             }
         }
@@ -224,7 +228,7 @@ public class DungeonBuilder implements Listener {
         String worldName = "dgn_edit_" + player.getUniqueId();
         World world = manager.createVoidWorld(worldName);
         if (world == null) {
-            player.sendMessage(ChatColor.RED + "Failed to create edit world.");
+            ChatMessageUtil.send(player, MessageType.ERROR, "Failed to create edit world.");
             return;
         }
         Session s = new Session(player, world, back, true);
@@ -235,7 +239,7 @@ public class DungeonBuilder implements Listener {
         player.teleport(new Location(world, 0, 64, 0));
         player.setAllowFlight(true);
         player.setFlying(true);
-        player.sendMessage(ChatColor.YELLOW + "Right-click to place the entrance at your feet.");
+        ChatMessageUtil.send(player, MessageType.INFO, "Right-click to place the entrance at your feet.");
     }
 
     public void edit(Player player, DungeonLayout layout) {
@@ -321,7 +325,7 @@ public class DungeonBuilder implements Listener {
 
         s.placingEntrance = (entranceX == -1);
         if (entranceX == -1) {
-            player.sendMessage(ChatColor.YELLOW + "Right-click to place the entrance at your feet.");
+            ChatMessageUtil.send(player, MessageType.INFO, "Right-click to place the entrance at your feet.");
         }
     }
 
@@ -382,7 +386,7 @@ public class DungeonBuilder implements Listener {
         if (name.equalsIgnoreCase("Save")) {
             event.setCancelled(true);
             s.awaitingName = true;
-            player.sendMessage(ChatColor.YELLOW + "Type dungeon name in chat or 'cancel'.");
+            ChatMessageUtil.send(player, MessageType.INFO, "Type dungeon name in chat or 'cancel'.");
             return;
         }
         if (name.equalsIgnoreCase("Cancel")) {
@@ -390,7 +394,7 @@ public class DungeonBuilder implements Listener {
             s.cancel();
             sessions.remove(player.getUniqueId());
             restoreStoredInventory(player);
-            player.sendMessage(ChatColor.RED + "Dungeon build cancelled.");
+            ChatMessageUtil.send(player, MessageType.WARNING, "Dungeon build cancelled.");
             return;
         }
         if (!name.equalsIgnoreCase("Place Entrance")) return;
@@ -405,11 +409,11 @@ public class DungeonBuilder implements Listener {
         Direction facing = Direction.fromYaw(player.getLocation().getYaw());
         RoomTemplate entrance = manager.getEntrance();
         if (entrance == null) {
-            player.sendMessage(ChatColor.RED + "Entrance template not loaded.");
+            ChatMessageUtil.send(player, MessageType.ERROR, "Entrance template not loaded.");
             return;
         }
         if (entrance.getConnectors().isEmpty()) {
-            player.sendMessage(ChatColor.RED + "Entrance template missing connectors.");
+            ChatMessageUtil.send(player, MessageType.ERROR, "Entrance template missing connectors.");
             return;
         }
         RoomTemplate.Connector conn = entrance.getConnectors().get(0);
@@ -418,15 +422,16 @@ public class DungeonBuilder implements Listener {
             if (rotate(conn.facing, r) == facing) { rot = r; break; }
         }
         DungeonManager.PasteResult result = manager.pasteRoom(s.dungeon, entrance, rot, loc, null, true);
-        player.sendMessage(ChatColor.GRAY + String.format("Overlap: %.1f%%", result.overlap() * 100));
+        ChatMessageUtil.send(player, MessageType.INFO,
+                ChatColor.GRAY + String.format("Overlap: %.1f%%", result.overlap() * 100));
         if (!result.success()) {
-            player.sendMessage(ChatColor.RED + "Cannot place entrance here.");
+            ChatMessageUtil.send(player, MessageType.ERROR, "Cannot place entrance here.");
             return;
         }
         s.history.addLast(new History(null, spawnConnectors(s, loc, entrance, rot, null),
                 result.instance(), result.replaced()));
         s.placingEntrance = false;
-        player.sendMessage(ChatColor.GREEN + "Entrance placed. Use holograms to add rooms.");
+        ChatMessageUtil.send(player, MessageType.SUCCESS, "Entrance placed. Use holograms to add rooms.");
     }
 
     @EventHandler
@@ -530,7 +535,12 @@ public class DungeonBuilder implements Listener {
                     player.openInventory(createCombatVariantSelect(s));
                     return;
                 }
-                s.selectedMob = (id != null && !id.isEmpty()) ? id : name;
+                if (id == null || id.isEmpty()) {
+                    ChatMessageUtil.send(player, MessageType.ERROR,
+                            "You must unlock this mob in the Codex before assigning it.");
+                    return;
+                }
+                s.selectedMob = id;
                 if (s.selectedTemplate != null) {
                     placeVariant(s, s.selectedTemplate);
                     player.closeInventory();
@@ -542,7 +552,12 @@ public class DungeonBuilder implements Listener {
                     player.openInventory(createRoomSelect(s));
                     return;
                 }
-                s.selectedMob = (id != null && !id.isEmpty()) ? id : name;
+                if (id == null || id.isEmpty()) {
+                    ChatMessageUtil.send(player, MessageType.ERROR,
+                            "You must unlock this boss in the Codex before assigning it.");
+                    return;
+                }
+                s.selectedMob = id;
                 if (s.selectedTemplate != null) {
                     placeVariant(s, s.selectedTemplate);
                     player.closeInventory();
@@ -560,13 +575,14 @@ public class DungeonBuilder implements Listener {
         String msg = event.getMessage().trim();
         if (msg.equalsIgnoreCase("cancel")) {
             s.awaitingName = false;
-            event.getPlayer().sendMessage(ChatColor.RED + "Save cancelled.");
+            ChatMessageUtil.send(event.getPlayer(), MessageType.WARNING, "Save cancelled.");
             return;
         }
         Bukkit.getScheduler().runTask(manager.getPlugin(), () -> {
             DungeonLayout layout = s.buildLayout();
             if (!layout.hasEntrance() || !layout.hasExit() || !layout.hasBoss()) {
-                event.getPlayer().sendMessage(ChatColor.RED + "Dungeon requires an entrance, exit and boss room.");
+                ChatMessageUtil.send(event.getPlayer(), MessageType.ERROR,
+                        "Dungeon requires an entrance, exit and boss room.");
                 s.awaitingName = false;
                 return;
             }
@@ -574,13 +590,15 @@ public class DungeonBuilder implements Listener {
             String display = msg;
             String key = DungeonManager.normalizeKey(display);
             if (manager.layoutExists(display)) {
-                event.getPlayer().sendMessage(ChatColor.RED + "A dungeon with that name already exists.");
+                ChatMessageUtil.send(event.getPlayer(), MessageType.ERROR,
+                        "A dungeon with that name already exists.");
                 s.awaitingName = false;
                 return;
             }
             manager.saveLayout(event.getPlayer(), key, display, layout);
             s.cancel();
-            event.getPlayer().sendMessage(ChatColor.GREEN + "Dungeon saved as '" + key + "'");
+            ChatMessageUtil.send(event.getPlayer(), MessageType.SUCCESS,
+                    "Dungeon saved as '" + ChatColor.YELLOW + key + ChatColor.GREEN + "'.");
             sessions.remove(event.getPlayer().getUniqueId());
         });
     }
@@ -624,14 +642,16 @@ public class DungeonBuilder implements Listener {
         int cost = baseCost > 0 && !unlocked ? baseCost : 0;
         me.nakilex.levelplugin.economy.managers.EconomyManager econ = Main.getInstance().getEconomyManager();
         if (cost > 0 && econ == null) {
-            s.player.sendMessage(ChatColor.RED + "Economy service unavailable. Please try again later.");
+            ChatMessageUtil.send(s.player, MessageType.ERROR,
+                    "Economy service unavailable. Please try again later.");
             return;
         }
         if (cost > 0 && econ != null) {
             int balance = econ.getBalance(s.player);
             if (balance < cost) {
-                s.player.sendMessage(ChatColor.RED + "You need " + ChatColor.GOLD + "<glyph:coins_icon> " + cost
-                        + ChatColor.RED + " to place this room.");
+                ChatMessageUtil.send(s.player, MessageType.ERROR,
+                        "You need " + ChatColor.GOLD + "<glyph:coins_icon> " + cost
+                                + ChatColor.RED + " to place this room.");
                 return;
             }
         }
@@ -734,9 +754,10 @@ public class DungeonBuilder implements Listener {
         Location center = base.clone().subtract(vec[0], match.bottomY - templ.getConnectorMinY(), vec[1]);
         String mob = (templ == manager.getCombatLeft() || templ == manager.getCombatRight() || templ == manager.getBoss()) ? s.selectedMob : null;
         DungeonManager.PasteResult result = manager.pasteRoom(s.dungeon, templ, rotation, center, mob, true);
-        s.player.sendMessage(ChatColor.GRAY + String.format("Overlap: %.1f%%", result.overlap() * 100));
+        ChatMessageUtil.send(s.player, MessageType.INFO,
+                ChatColor.GRAY + String.format("Overlap: %.1f%%", result.overlap() * 100));
         if (!result.success()) {
-            s.player.sendMessage(ChatColor.RED + "Room collides with existing blocks.");
+            ChatMessageUtil.send(s.player, MessageType.ERROR, "Room collides with existing blocks.");
             return;
         }
         if (cost > 0 && econ != null) {
@@ -745,11 +766,12 @@ public class DungeonBuilder implements Listener {
                 if (type != null) {
                     unlockTemplate(s.player.getUniqueId(), type);
                 }
-                s.player.sendMessage(ChatColor.GREEN + "Unlocked " + ChatColor.YELLOW + describeTemplate(templ)
-                        + ChatColor.GREEN + " for " + ChatColor.GOLD + "<glyph:coins_icon> " + cost
-                        + ChatColor.GREEN + ". Future placements are free.");
+                ChatMessageUtil.send(s.player, MessageType.SUCCESS,
+                        "Unlocked " + ChatColor.YELLOW + describeTemplate(templ)
+                                + ChatColor.GREEN + " for " + ChatColor.GOLD + "<glyph:coins_icon> " + cost
+                                + ChatColor.GREEN + ". Future placements are free.");
             } catch (IllegalArgumentException ex) {
-                s.player.sendMessage(ChatColor.RED + "Failed to deduct coins. Placement cancelled.");
+                ChatMessageUtil.send(s.player, MessageType.ERROR, "Failed to deduct coins. Placement cancelled.");
                 // restore replaced blocks
                 for (Map.Entry<Location, BlockData> entry : result.replaced().entrySet()) {
                     Location loc = entry.getKey();
@@ -773,10 +795,11 @@ public class DungeonBuilder implements Listener {
                 return;
             }
         } else if (baseCost <= 0 && type == TemplateType.EXIT) {
-            s.player.sendMessage(ChatColor.GREEN + "Placed the exit room for free.");
+            ChatMessageUtil.send(s.player, MessageType.SUCCESS, "Placed the exit room for free.");
         } else if (baseCost > 0 && unlocked) {
-            s.player.sendMessage(ChatColor.GREEN + "Placed your unlocked " + ChatColor.YELLOW + describeTemplate(templ)
-                    + ChatColor.GREEN + ".");
+            ChatMessageUtil.send(s.player, MessageType.SUCCESS,
+                    "Placed your unlocked " + ChatColor.YELLOW + describeTemplate(templ)
+                            + ChatColor.GREEN + ".");
         }
         removeConnector(s, info);
         List<ConnectorInfo> added = spawnConnectors(s, center, templ, rotation, info);
@@ -890,35 +913,78 @@ public class DungeonBuilder implements Listener {
     }
 
     private Inventory createMobSelect(Session session, Set<String> mobs, String title, RoomTemplate template) {
-        int size = ((mobs.size() - 1) / 9 + 1) * 9;
+        java.util.UUID playerId = session.player.getUniqueId();
+        List<String> sorted = new ArrayList<>();
+        if (mobs != null) {
+            sorted.addAll(mobs);
+        }
+        sorted.sort(Comparator.comparing(key -> {
+            String name = MobNameUtil.getDisplayName(key);
+            return ChatColor.stripColor(name == null ? key : name);
+        }, String.CASE_INSENSITIVE_ORDER));
+
+        int rows = Math.max(1, (int) Math.ceil(sorted.size() / 9.0));
+        int size = rows * 9;
         Inventory inv = GuiBuilder.create(size, ChatColor.DARK_GREEN + title)
                 .filler(Material.GRAY_STAINED_GLASS_PANE)
                 .build();
-        int idx = 0;
-        for (String m : mobs) {
-            ItemStack is = new ItemStack(Material.PAPER);
-            ItemMeta im = is.getItemMeta();
-            if (im != null) {
-                im.setDisplayName(ChatColor.WHITE + MobNameUtil.getDisplayName(m));
-                im.setLocalizedName(m);
+
+        if (sorted.isEmpty()) {
+            ItemStack barrier = new ItemStack(Material.BARRIER);
+            ItemMeta meta = barrier.getItemMeta();
+            if (meta != null) {
+                meta.setDisplayName(ChatColor.RED + "No discovered mobs");
                 List<String> lore = new ArrayList<>();
-                lore.add(formatCostLine(session, template));
-                lore.add(ChatColor.GRAY + "Select a mob to assign to this room.");
-                im.setLore(lore);
+                lore.add(ChatColor.GRAY + "Unlock entries in your Codex to use them here.");
+                lore.addAll(TooltipUtil.bulletList(
+                        "Defeat the mob at least once to record it.",
+                        "Return after unlocking new entries."
+                ));
+                meta.setLore(lore);
+                meta.setLocalizedName("");
             }
-            is.setItemMeta(im);
-            inv.setItem(idx++, is);
+            barrier.setItemMeta(meta);
+            inv.setItem(size / 2, barrier);
+        } else {
+            var codex = manager.getPlugin().getCodexManager();
+            int idx = 0;
+            for (String key : sorted) {
+                ItemStack is = new ItemStack(Material.SKELETON_SKULL);
+                ItemMeta im = is.getItemMeta();
+                if (im != null) {
+                    String display = MobNameUtil.getDisplayName(key);
+                    im.setDisplayName(ChatColor.WHITE + (display == null ? key : display));
+                    im.setLocalizedName(key);
+                    List<String> lore = new ArrayList<>();
+                    String costLine = formatCostLine(session, template);
+                    if (costLine != null && !costLine.isEmpty()) {
+                        lore.add(costLine);
+                    }
+                    List<String> progress = CodexGuiUtil.mobProgressLore(codex, playerId, key);
+                    if (!progress.isEmpty()) {
+                        lore.addAll(progress);
+                    }
+                    if (!lore.isEmpty()) {
+                        lore.add("");
+                    }
+                    lore.addAll(TooltipUtil.clickInstructions("to assign", null));
+                    im.setLore(lore);
+                }
+                is.setItemMeta(im);
+                inv.setItem(idx++, is);
+            }
         }
+
         inv.setItem(size - 1, GuiUtil.getNexoItem("arrow_left", ChatColor.YELLOW + "Back"));
         return inv;
     }
 
     private Inventory createBossSelect(Session session) {
-        return createMobSelect(session, manager.getAvailableBosses(), "Select Boss", manager.getBoss());
+        return createMobSelect(session, manager.getAvailableBosses(session.player.getUniqueId()), "Select Boss", manager.getBoss());
     }
 
     private Inventory createMobSelect(Session session, RoomTemplate template) {
-        return createMobSelect(session, manager.getAvailableMobs(), "Select Mob", template);
+        return createMobSelect(session, manager.getAvailableMobs(session.player.getUniqueId()), "Select Mob", template);
     }
 
     private ItemStack pricedItem(Session session, RoomTemplate template, Material mat, String name) {

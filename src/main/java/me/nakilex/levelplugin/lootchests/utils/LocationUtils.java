@@ -180,4 +180,26 @@ public class LocationUtils {
         }
         return new Location(world, x + 0.5, y, z + 0.5, location.getYaw(), location.getPitch());
     }
+
+    /**
+     * Format a location using block coordinates for concise debug logging.
+     * The output matches the style "world[x,y,z]" with null safety.
+     *
+     * @param location world position to format
+     * @return formatted string or "unknown" if the location is null
+     */
+    public static String blockLocationString(Location location) {
+        if (location == null) {
+            return "unknown";
+        }
+        World world = location.getWorld();
+        String worldName = world != null ? world.getName() : "null";
+        return String.format(
+                "%s[%d,%d,%d]",
+                worldName,
+                location.getBlockX(),
+                location.getBlockY(),
+                location.getBlockZ()
+        );
+    }
 }

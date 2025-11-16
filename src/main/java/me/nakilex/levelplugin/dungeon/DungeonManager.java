@@ -2,6 +2,8 @@ package me.nakilex.levelplugin.dungeon;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.dungeon.TemplateType;
+import me.nakilex.levelplugin.mob.utils.MobNameUtil;
+import me.nakilex.levelplugin.lootchests.utils.LocationUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import me.nakilex.levelplugin.utils.FileUtil;
@@ -127,6 +129,8 @@ public class DungeonManager {
         if (world != null) {
             world.setKeepSpawnInMemory(false);
             world.setAutoSave(false);
+            world.setDifficulty(org.bukkit.Difficulty.PEACEFUL);
+            world.setGameRule(org.bukkit.GameRule.DO_MOB_SPAWNING, false);
         }
         return world;
     }
@@ -700,6 +704,18 @@ public class DungeonManager {
                 int diffZ = layout.getOffsetZ(x, y);
                 Location center = origin.clone().add(diffX, 0, diffZ);
                 String mob = layout.getMob(x, y);
+                TemplateType templateType = identifyTemplate(templ);
+                if (mob != null && !mob.isBlank()) {
+                    plugin.getLogger().info(String.format(
+                            "[DungeonSpawn] Queued mob '%s' (canonical='%s') for %s at %s (rotation=%d, cell=%d,%d)",
+                            mob,
+                            MobNameUtil.canonicalMobKey(mob),
+                            templateType != null ? templateType.name() : "UNKNOWN",
+                            LocationUtils.blockLocationString(center),
+                            rotation,
+                            x,
+                            y));
+                }
                 tasks.add(new BuildTask(templ, rotation, center, mob));
             }
         }
@@ -725,7 +741,7 @@ public class DungeonManager {
             inst.returnLocations.put(player.getUniqueId(), player.getLocation());
         }
         instances.put(world, inst);
-        world.setDifficulty(org.bukkit.Difficulty.PEACEFUL);
+        world.setDifficulty(org.bukkit.Difficulty.HARD);
         world.setGameRule(org.bukkit.GameRule.DO_MOB_SPAWNING, false);
 
         class State { boolean allowFlight; boolean flying; boolean invul; State(Player p){allowFlight=p.getAllowFlight();flying=p.isFlying();invul=p.isInvulnerable();}}
@@ -825,7 +841,43 @@ public class DungeonManager {
     public Set<String> getAvailableMobs() {
         var sec = plugin.getMobRewardsConfig().getConfig().getConfigurationSection("mobs");
         if (sec == null) return Set.of();
-        return sec.getKeys(false);
+        java.util.LinkedHashMap<String, String> uniqueByIdentity = new java.util.LinkedHashMap<>();
+        for (String key : sec.getKeys(false)) {
+            if (key == null || key.isBlank()) continue;
+            String identity = normalizeMobIdentity(key);
+            if (!identity.isEmpty()) {
+                uniqueByIdentity.putIfAbsent(identity, key);
+            } else {
+                uniqueByIdentity.put(UUID.randomUUID().toString(), key);
+            }
+        }
+        var bossSec = plugin.getBossConfig().getConfigurationSection("mobs");
+        if (bossSec != null) {
+            Set<String> normalizedBosses = new java.util.LinkedHashSet<>();
+            for (String bossKey : bossSec.getKeys(false)) {
+                if (bossKey == null || bossKey.isBlank()) continue;
+                String identity = normalizeMobIdentity(bossKey);
+                if (!identity.isEmpty()) {
+                    normalizedBosses.add(identity);
+                }
+                org.bukkit.configuration.ConfigurationSection bossEntry = bossSec.getConfigurationSection(bossKey);
+                if (bossEntry != null) {
+                    String mobKey = bossEntry.getString("mob");
+                    String mobIdentity = normalizeMobIdentity(mobKey);
+                    if (!mobIdentity.isEmpty()) {
+                        normalizedBosses.add(mobIdentity);
+                    }
+                }
+            }
+            if (!normalizedBosses.isEmpty()) {
+                uniqueByIdentity.entrySet().removeIf(entry -> normalizedBosses.contains(entry.getKey()));
+            }
+        }
+        return java.util.Collections.unmodifiableSet(new java.util.LinkedHashSet<>(uniqueByIdentity.values()));
+    }
+
+    public Set<String> getAvailableMobs(java.util.UUID playerId) {
+        return filterUnlocked(getAvailableMobs(), playerId);
     }
 
     public Set<String> getAvailableBosses() {
@@ -834,8 +886,32 @@ public class DungeonManager {
         return sec.getKeys(false);
     }
 
+    public Set<String> getAvailableBosses(java.util.UUID playerId) {
+        return filterUnlocked(getAvailableBosses(), playerId);
+    }
+
     public Set<String> getLayoutNames() {
         return new java.util.HashSet<>(layoutDisplay.values());
+    }
+
+    private Set<String> filterUnlocked(Set<String> keys, java.util.UUID playerId) {
+        if (keys == null || keys.isEmpty()) return java.util.Collections.emptySet();
+        me.nakilex.levelplugin.codex.CodexManager codex = plugin.getCodexManager();
+        if (codex == null || playerId == null) {
+            return java.util.Collections.unmodifiableSet(new java.util.LinkedHashSet<>(keys));
+        }
+        java.util.LinkedHashSet<String> unlocked = new java.util.LinkedHashSet<>();
+        for (String key : keys) {
+            if (key == null || key.isBlank()) continue;
+            if (codex.hasDiscoveredIdentity(playerId, key)) {
+                unlocked.add(key);
+            }
+        }
+        return java.util.Collections.unmodifiableSet(unlocked);
+    }
+
+    private String normalizeMobIdentity(String key) {
+        return MobNameUtil.canonicalMobKey(key);
     }
 
     /** Store that the given player may rate the specified dungeon. */

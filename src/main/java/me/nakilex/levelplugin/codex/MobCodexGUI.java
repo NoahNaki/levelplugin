@@ -15,7 +15,6 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.meta.ItemMeta;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -28,7 +27,7 @@ public class MobCodexGUI implements Listener {
     private static final String TITLE = ChatColor.BLACK + "Codex - Mobs";
     private static final int SIZE = 54;
 
-    private static final int ITEMS_PER_PAGE = CodexGuiUtil.CONTENT_SLOTS.length;
+    private static final int ITEMS_PER_PAGE = GuiUtil.PAGED_SLOTS.length;
     private static final int PREV_SLOT = 45;
     private static final int NEXT_SLOT = 53;
     private static final int BACK_SLOT = 49;
@@ -64,7 +63,7 @@ public class MobCodexGUI implements Listener {
         int start = page * ITEMS_PER_PAGE;
         for (int i = start, slot = 0; i < mobs.size() && slot < ITEMS_PER_PAGE; i++) {
             String key = mobs.get(i);
-            inv.setItem(CodexGuiUtil.CONTENT_SLOTS[slot++], createMobIcon(player.getUniqueId(), key));
+            inv.setItem(GuiUtil.PAGED_SLOTS[slot++], createMobIcon(player.getUniqueId(), key));
         }
 
         if (page > 0) inv.setItem(PREV_SLOT, GuiUtil.getNexoItem("arrow_left", ChatColor.GREEN + "Previous"));
@@ -82,19 +81,7 @@ public class MobCodexGUI implements Listener {
             if (discovered) {
                 String name = MobNameUtil.getPlainDisplayName(key);
                 meta.setDisplayName(ChatColor.GREEN + name);
-                int level = manager.getMobLevel(id, key);
-                double progress = manager.getMobProgress(id, key);
-                List<String> lore = new ArrayList<>();
-                lore.add(ChatColor.GRAY + "Level: " + ChatColor.YELLOW + level);
-                String bar = GuiUtil.createProgressBar(progress, 15);
-                int kills = manager.getKillCount(id, key);
-                if (level >= manager.getMaxMobLevel()) {
-                    lore.add(bar + " " + ChatColor.YELLOW + kills + ChatColor.GOLD + "+");
-                } else {
-                    int next = manager.getKillsForLevel(level + 1);
-                    lore.add(bar + " " + ChatColor.YELLOW + kills + ChatColor.GOLD + "/" + ChatColor.YELLOW + next);
-                }
-                meta.setLore(lore);
+                meta.setLore(CodexGuiUtil.mobProgressLore(manager, id, key));
             } else {
                 meta.setDisplayName(ChatColor.DARK_GRAY + "???");
             }

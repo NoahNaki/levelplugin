@@ -1,5 +1,6 @@
 package me.nakilex.levelplugin.codex;
 
+import me.nakilex.levelplugin.utils.TooltipUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
@@ -9,18 +10,11 @@ import org.bukkit.inventory.ItemFlag;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 /** Utility helpers for codex GUIs. */
 public final class CodexGuiUtil {
     private CodexGuiUtil() {}
-
-    /** Slots used for content in paged codex inventories. */
-    public static final int[] CONTENT_SLOTS = {
-            10,11,12,13,14,15,16,
-            19,20,21,22,23,24,25,
-            28,29,30,31,32,33,34,
-            37,38,39,40,41,42,43
-    };
 
     /**
      * Create the info book summarising codex discoveries.
@@ -56,5 +50,34 @@ public final class CodexGuiUtil {
             book.setItemMeta(meta);
         }
         return book;
+    }
+
+    /**
+     * Build a standardised lore block describing the player's Codex progress for a given mob.
+     *
+     * @param manager  codex manager providing discovery data
+     * @param playerId player identifier to inspect
+     * @param key      mob identifier stored in the codex
+     * @return lore lines describing level, kills and progress towards the next level
+     */
+    public static List<String> mobProgressLore(CodexManager manager, UUID playerId, String key) {
+        List<String> lore = new ArrayList<>();
+        if (manager == null || playerId == null || key == null || key.isBlank()) {
+            return lore;
+        }
+
+        int level = manager.getMobLevel(playerId, key);
+        lore.add(ChatColor.GRAY + "Level: " + ChatColor.YELLOW + level);
+
+        int kills = manager.getKillCount(playerId, key);
+        if (level >= manager.getMaxMobLevel()) {
+            String bar = TooltipUtil.progressBar(1, 1, 15);
+            lore.add(bar + " " + ChatColor.YELLOW + kills + ChatColor.GOLD + "+");
+        } else {
+            int next = manager.getKillsForLevel(level + 1);
+            String bar = TooltipUtil.progressBar(kills, next, 15);
+            lore.add(bar + " " + ChatColor.YELLOW + kills + ChatColor.GOLD + "/" + ChatColor.YELLOW + next);
+        }
+        return lore;
     }
 }

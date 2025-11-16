@@ -6,6 +6,11 @@ import io.lumine.mythic.bukkit.MythicBukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.LivingEntity;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 
 /** Utility methods to convert between MythicMob internal IDs and human-friendly names. */
@@ -60,7 +65,7 @@ public final class MobNameUtil {
      * files often use lower-case keys copied straight from Mythic. This helper keeps the lookup
      * tolerant so we can still resolve the correct display name even when the cases differ.
      */
-    private static Optional<MythicMob> resolveMythicMob(String mobId) {
+    public static Optional<MythicMob> resolveMythicMob(String mobId) {
         if (mobId == null || mobId.isEmpty()) {
             return Optional.empty();
         }
@@ -72,18 +77,40 @@ public final class MobNameUtil {
 
         var manager = mythic.getMobManager();
         String normalized = mobId.replace(' ', '_');
-        String[] candidates = new String[] {
-                mobId,
-                normalized,
-                mobId.toUpperCase(),
-                normalized.toUpperCase(),
-                mobId.toLowerCase(),
-                normalized.toLowerCase()
-        };
+        LinkedHashSet<String> candidates = new LinkedHashSet<>();
+        candidates.add(mobId);
+        candidates.add(normalized);
+        candidates.add(mobId.toUpperCase(Locale.ROOT));
+        candidates.add(normalized.toUpperCase(Locale.ROOT));
+        candidates.add(mobId.toLowerCase(Locale.ROOT));
+        candidates.add(normalized.toLowerCase(Locale.ROOT));
 
-        java.util.Set<String> tried = new java.util.LinkedHashSet<>();
+        List<String> tokens = tokenize(mobId);
+        if (!tokens.isEmpty()) {
+            String joined = String.join("_", tokens);
+            candidates.add(joined);
+            candidates.add(joined.toUpperCase(Locale.ROOT));
+            candidates.add(joined.toLowerCase(Locale.ROOT));
+
+            if (tokens.size() > 1) {
+                List<String> sorted = new ArrayList<>(tokens);
+                sorted.sort(String.CASE_INSENSITIVE_ORDER);
+                String sortedJoin = String.join("_", sorted);
+                candidates.add(sortedJoin);
+                candidates.add(sortedJoin.toUpperCase(Locale.ROOT));
+                candidates.add(sortedJoin.toLowerCase(Locale.ROOT));
+
+                List<String> reversed = new ArrayList<>(tokens);
+                Collections.reverse(reversed);
+                String reversedJoin = String.join("_", reversed);
+                candidates.add(reversedJoin);
+                candidates.add(reversedJoin.toUpperCase(Locale.ROOT));
+                candidates.add(reversedJoin.toLowerCase(Locale.ROOT));
+            }
+        }
+
         for (String candidate : candidates) {
-            if (candidate == null || candidate.isEmpty() || !tried.add(candidate)) {
+            if (candidate == null || candidate.isEmpty()) {
                 continue;
             }
             Optional<MythicMob> found = manager.getMythicMob(candidate);
@@ -93,6 +120,66 @@ public final class MobNameUtil {
         }
 
         return Optional.empty();
+    }
+
+    /**
+     * Produce a canonical identity string for mob comparisons. The canonical form
+     * ignores ordering of words, punctuation, casing and color codes so entries
+     * like "KING_SLIME", "Slime King" and "King_Slime" all normalize to the
+     * same value.
+     *
+     * @param mobId MythicMob identifier or display alias
+     * @return canonical identity suitable for equality comparisons
+     */
+    public static String canonicalMobKey(String mobId) {
+        if (mobId == null || mobId.isEmpty()) {
+            return "";
+        }
+
+        String base = resolveMythicMob(mobId)
+                .map(MythicMob::getInternalName)
+                .orElse(null);
+        if (base == null || base.isBlank()) {
+            String plain = getPlainDisplayName(mobId);
+            base = (plain == null || plain.isBlank()) ? mobId : plain;
+        }
+        List<String> tokens = tokenize(base);
+        if (tokens.isEmpty()) {
+            return "";
+        }
+        tokens.sort(String.CASE_INSENSITIVE_ORDER);
+        StringBuilder builder = new StringBuilder();
+        for (String token : tokens) {
+            if (token.isBlank()) continue;
+            if (builder.length() > 0) {
+                builder.append('_');
+            }
+            builder.append(token.toLowerCase(Locale.ROOT));
+        }
+        return builder.toString();
+    }
+
+    private static List<String> tokenize(String input) {
+        if (input == null) {
+            return java.util.Collections.emptyList();
+        }
+        String cleaned = ChatColor.stripColor(input);
+        cleaned = cleaned.replace('_', ' ').replace('-', ' ');
+        cleaned = cleaned.replaceAll("(?<=[A-Za-z])(?=[A-Z][a-z])", " ");
+        cleaned = cleaned.replaceAll("(?<=[a-z0-9])(?=[A-Z])", " ");
+        cleaned = cleaned.replaceAll("[^A-Za-z0-9\\s]+", " ");
+        cleaned = cleaned.trim();
+        if (cleaned.isEmpty()) {
+            return java.util.Collections.emptyList();
+        }
+        String[] parts = cleaned.split("\\s+");
+        List<String> tokens = new ArrayList<>(parts.length);
+        for (String part : parts) {
+            if (!part.isEmpty()) {
+                tokens.add(part);
+            }
+        }
+        return tokens;
     }
 
     /**

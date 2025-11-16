@@ -2,6 +2,8 @@ package me.nakilex.levelplugin.mob.utils;
 
 import io.lumine.mythic.bukkit.MythicBukkit;
 import io.lumine.mythic.core.mobs.ActiveMob;
+import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.lootchests.utils.LocationUtils;
 import org.bukkit.Location;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Entity;
@@ -35,10 +37,25 @@ public static ActiveMob spawnModifiedMob(
         Double moveSpeed,
         Double attackSpeed
 ) {
-    if (MythicBukkit.inst().getMobManager().getMythicMob(mobName).isEmpty()) {
+    var mobOptional = MobNameUtil.resolveMythicMob(mobName);
+    String locationString = LocationUtils.blockLocationString(loc);
+    if (mobOptional.isEmpty()) {
+        Main.getInstance().getLogger().warning(String.format(
+                "[DungeonSpawn] MythicMob template '%s' could not be resolved (location=%s)",
+                mobName,
+                locationString));
         return null;
     }
-    ActiveMob active = MythicBukkit.inst().getMobManager().spawnMob(mobName, loc, 1.0);
+    String internalName = mobOptional.get().getInternalName();
+    ActiveMob active = MythicBukkit.inst().getMobManager().spawnMob(internalName, loc, 1.0);
+    if (active == null) {
+        Main.getInstance().getLogger().warning(String.format(
+                "[DungeonSpawn] MythicMob '%s' (internal='%s') failed to spawn at %s",
+                mobName,
+                internalName,
+                locationString));
+        return null;
+    }
     LivingEntity entity = (LivingEntity) active.getEntity().getBukkitEntity();
 
     if (hp != null) {
@@ -66,6 +83,18 @@ public static ActiveMob spawnModifiedMob(
             entity.getAttribute(attr).setBaseValue(attackSpeed);
         }
     }
+
+    String overrides = String.format("hp=%s dmg=%s move=%s atk=%s",
+            hp == null ? "-" : String.format("%.2f", hp),
+            damage == null ? "-" : String.format("%.2f", damage),
+            moveSpeed == null ? "-" : String.format("%.2f", moveSpeed),
+            attackSpeed == null ? "-" : String.format("%.2f", attackSpeed));
+    Main.getInstance().getLogger().info(String.format(
+            "[DungeonSpawn] MythicMob '%s' (internal='%s') spawned at %s with overrides %s",
+            mobName,
+            internalName,
+            locationString,
+            overrides));
 
     return active;
 }
