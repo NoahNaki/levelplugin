@@ -294,7 +294,7 @@ public class DungeonBuilder implements Listener {
                 s.connectors.put(info.interaction.getEntityId(), info);
                 added.add(info);
             }
-            s.history.addLast(new History(added, result.instance(), result.replaced()));
+            s.history.addLast(new History(added, result.instance(), result.replaced(), java.util.Collections.emptyList()));
         }
 
         for (int x = 0; x < DungeonLayout.WIDTH; x++) {
@@ -330,7 +330,7 @@ public class DungeonBuilder implements Listener {
                     s.connectors.put(info.interaction.getEntityId(), info);
                     added.add(info);
                 }
-                s.history.addLast(new History(added, result.instance(), result.replaced()));
+                s.history.addLast(new History(added, result.instance(), result.replaced(), java.util.Collections.emptyList()));
             }
         }
 
@@ -338,6 +338,7 @@ public class DungeonBuilder implements Listener {
         if (entranceX == -1) {
             ChatMessageUtil.send(player, MessageType.INFO, "Right-click to place the entrance at your feet.");
         }
+        s.history.clear();
     }
 
     @EventHandler
@@ -440,7 +441,7 @@ public class DungeonBuilder implements Listener {
             return;
         }
         s.history.addLast(new History(spawnConnectors(s, result.instance(), null),
-                result.instance(), result.replaced()));
+                result.instance(), result.replaced(), java.util.Collections.emptyList()));
         s.placingEntrance = false;
         ChatMessageUtil.send(player, MessageType.SUCCESS, "Entrance placed. Use holograms to add rooms.");
     }
@@ -648,6 +649,10 @@ public class DungeonBuilder implements Listener {
         s.pending = null;
         if (info == null) return;
         Location base = info.location;
+        List<ConnectorRestore> consumed = new ArrayList<>();
+        if (info.owner != null) {
+            consumed.add(new ConnectorRestore(info.owner, info.facing));
+        }
         TemplateType type = manager.identifyTemplate(templ);
         int baseCost = getBaseRoomCost(templ);
         boolean unlocked = type != null && isTemplateUnlocked(s.player.getUniqueId(), type);
@@ -815,7 +820,7 @@ public class DungeonBuilder implements Listener {
         }
         removeConnector(s, info);
         List<ConnectorInfo> added = spawnConnectors(s, result.instance(), info);
-        s.history.addLast(new History(added, result.instance(), result.replaced()));
+        s.history.addLast(new History(added, result.instance(), result.replaced(), consumed));
     }
 
     private List<ConnectorInfo> spawnConnectors(Session s, Dungeon.RoomInstance inst, ConnectorInfo used) {
@@ -1158,15 +1163,29 @@ public class DungeonBuilder implements Listener {
         }
     }
 
+    private static class ConnectorRestore {
+        final Dungeon.RoomInstance owner;
+        final Direction direction;
+
+        ConnectorRestore(Dungeon.RoomInstance owner, Direction direction) {
+            this.owner = owner;
+            this.direction = direction;
+        }
+    }
+
     private static class History {
         final List<ConnectorInfo> added;
         final Dungeon.RoomInstance instance;
         final Map<Location, BlockData> replaced;
+        final List<ConnectorRestore> consumed;
         History(List<ConnectorInfo> added,
-                Dungeon.RoomInstance inst, Map<Location, BlockData> replaced) {
+                Dungeon.RoomInstance inst,
+                Map<Location, BlockData> replaced,
+                List<ConnectorRestore> consumed) {
             this.added = added;
             this.instance = inst;
             this.replaced = replaced;
+            this.consumed = consumed == null ? java.util.List.of() : consumed;
         }
     }
 
@@ -1230,6 +1249,7 @@ public class DungeonBuilder implements Listener {
                 }
             }
             dungeon.removeRoom(h.instance);
+            restoreConsumedConnectors(h.consumed);
             reopenAdjacentConnectors(h.instance);
         }
 
@@ -1332,6 +1352,20 @@ public class DungeonBuilder implements Listener {
                 ConnectorInfo restored = DungeonBuilder.this.spawnConnectorFacing(this, other, dir);
                 if (restored != null) {
                     connectors.put(restored.interaction.getEntityId(), restored);
+                }
+            }
+        }
+
+        private void restoreConsumedConnectors(List<ConnectorRestore> consumed) {
+            if (consumed == null || consumed.isEmpty()) return;
+            for (ConnectorRestore restore : consumed) {
+                if (restore == null) continue;
+                if (restore.owner == null) continue;
+                if (!dungeon.getRooms().contains(restore.owner)) continue;
+                if (hasConnectorFacing(restore.owner, restore.direction)) continue;
+                ConnectorInfo recreated = DungeonBuilder.this.spawnConnectorFacing(this, restore.owner, restore.direction);
+                if (recreated != null) {
+                    connectors.put(recreated.interaction.getEntityId(), recreated);
                 }
             }
         }
