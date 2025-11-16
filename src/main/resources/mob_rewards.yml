@@ -28,6 +28,98 @@ mobs:
     tier_chance: 100.0
     model_set: default
 
+  gnollaxe:
+    exp: 3000
+    coins: "1500-2000"
+    tier: 2
+    tier_chance: 100.0
+    model_set: default
+
+  gnollspear:
+    exp: 3000
+    coins: "1500-2000"
+    tier: 2
+    tier_chance: 100.0
+    model_set: default
+
+  gnollarcher:
+    exp: 3000
+    coins: "1500-2000"
+    tier: 2
+    tier_chance: 100.0
+    model_set: default
+
+  ice_bruiser:
+    exp: 3000
+    coins: "1500-2000"
+    tier: 2
+    tier_chance: 100.0
+    model_set: default
+
+  ice_golem:
+    exp: 3000
+    coins: "1500-2000"
+    tier: 2
+    tier_chance: 100.0
+    model_set: default
+
+  ice_queen:
+    exp: 3000
+    coins: "1500-2000"
+    tier: 2
+    tier_chance: 100.0
+    model_set: default
+
+  lp_spider_ice:
+    exp: 3000
+    coins: "1500-2000"
+    tier: 2
+    tier_chance: 100.0
+    model_set: default
+
+  turtle:
+    exp: 3000
+    coins: "1500-2000"
+    tier: 2
+    tier_chance: 100.0
+    model_set: default
+
+  vp1_hermit_crab:
+    exp: 3000
+    coins: "1500-2000"
+    tier: 2
+    tier_chance: 100.0
+    model_set: default
+
+  vp1_ore_golem:
+    exp: 3000
+    coins: "1500-2000"
+    tier: 2
+    tier_chance: 100.0
+    model_set: default
+
+  vp1_scorpid:
+    exp: 3000
+    coins: "1500-2000"
+    tier: 2
+    tier_chance: 100.0
+    model_set: default
+
+  wild_rooster:
+    exp: 3000
+    coins: "1500-2000"
+    tier: 2
+    tier_chance: 100.0
+    model_set: default
+
+  vp1_rhino_beetle:
+    exp: 3000
+    coins: "1500-2000"
+    tier: 2
+    tier_chance: 100.0
+    model_set: default
+
+
 
 
 
