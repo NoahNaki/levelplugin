@@ -58,6 +58,22 @@ public class DungeonBuilder implements Listener {
     private final File sessionFile;
     private final FileConfiguration sessionConfig;
 
+    private void debug(String message, Object... args) {
+        if (manager == null || manager.getPlugin() == null) return;
+        try {
+            manager.getPlugin().getLogger().info("[DungeonBuilder] " + String.format(java.util.Locale.ROOT, message, args));
+        } catch (Exception ignored) {}
+    }
+
+    private void debug(Player player, String message, Object... args) {
+        String prefix = player != null ? player.getName() : "unknown";
+        debug(prefix + " :: " + String.format(java.util.Locale.ROOT, message, args));
+    }
+
+    private void debug(Session session, String message, Object... args) {
+        debug(session != null ? session.player : null, message, args);
+    }
+
     // custom head textures for room icons
     private static final String CHEST_DECOR_HEAD = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvN2UyZWI0NzUxZTNjNTBkNTBmZjE2MzUyNTc2NjYzZDhmZWRmZTNlMDRiMmYwYjhhMmFhODAzYjQxOTM2M2NhMSJ9fX0=";
     private static final String STONE_DECOR_HEAD = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMmQ0NDU0NDQ5NmVlMGFkMjc0MzE4ODQxZGZlMWViNjk0ZDA1NDA4MGQxMTJlMTMyYmVjOWU1ODM5YjJlNzYwMiJ9fX0=";
@@ -229,6 +245,7 @@ public class DungeonBuilder implements Listener {
         World world = manager.createVoidWorld(worldName);
         if (world == null) {
             ChatMessageUtil.send(player, MessageType.ERROR, "Failed to create edit world.");
+            debug(player, "Failed to create edit world %s", worldName);
             return;
         }
         Session s = new Session(player, world, back, true);
@@ -240,6 +257,7 @@ public class DungeonBuilder implements Listener {
         player.setAllowFlight(true);
         player.setFlying(true);
         ChatMessageUtil.send(player, MessageType.INFO, "Right-click to place the entrance at your feet.");
+        debug(player, "Started new dungeon build session in %s (return=%s)", world.getName(), formatLocation(back));
     }
 
     public void edit(Player player, DungeonLayout layout) {
@@ -248,6 +266,7 @@ public class DungeonBuilder implements Listener {
         World world = manager.createVoidWorld(worldName);
         if (world == null) {
             ChatMessageUtil.send(player, MessageType.ERROR, "Failed to create edit world.");
+            debug(player, "Failed to create edit world %s for edit", worldName);
             return;
         }
         Session s = new Session(player, world, back, true);
@@ -259,6 +278,10 @@ public class DungeonBuilder implements Listener {
         player.teleport(origin);
         player.setAllowFlight(true);
         player.setFlying(true);
+        debug(player, "Editing layout (owner=%s, step=%d, return=%s)",
+                layout.getOwner() != null ? layout.getOwner() : "unowned",
+                layout.getStep(),
+                formatLocation(back));
 
         int entranceX = -1, entranceZ = -1;
         for (int x = 0; x < DungeonLayout.WIDTH; x++) {
@@ -338,6 +361,7 @@ public class DungeonBuilder implements Listener {
         if (entranceX == -1) {
             ChatMessageUtil.send(player, MessageType.INFO, "Right-click to place the entrance at your feet.");
         }
+        debug(player, "Rebuilt layout with %d rooms and %d open connectors", s.dungeon.getRooms().size(), s.connectors.size());
         s.history.clear();
     }
 
@@ -375,7 +399,11 @@ public class DungeonBuilder implements Listener {
 
     public void undo(Player player) {
         Session s = sessions.get(player.getUniqueId());
-        if (s != null) s.undo();
+        if (s == null) {
+            debug(player, "Undo requested without active session");
+            return;
+        }
+        s.undo();
     }
 
     @EventHandler
@@ -443,6 +471,8 @@ public class DungeonBuilder implements Listener {
         s.history.addLast(new History(spawnConnectors(s, result.instance(), null),
                 result.instance(), result.replaced(), java.util.Collections.emptyList()));
         s.placingEntrance = false;
+        debug(s, "Entrance placed at %s (rotation=%d, connectors=%d, history=%d)",
+                formatLocation(loc), rot, s.connectors.size(), s.history.size());
         ChatMessageUtil.send(player, MessageType.SUCCESS, "Entrance placed. Use holograms to add rooms.");
     }
 
@@ -653,6 +683,9 @@ public class DungeonBuilder implements Listener {
         if (info.owner != null) {
             consumed.add(new ConnectorRestore(info.owner, info.facing));
         }
+        debug(s, "Attempting to place %s via connector %s at %s",
+                templ != null ? describeTemplate(templ) : "unknown",
+                describeConnector(info), formatLocation(base));
         TemplateType type = manager.identifyTemplate(templ);
         int baseCost = getBaseRoomCost(templ);
         boolean unlocked = type != null && isTemplateUnlocked(s.player.getUniqueId(), type);
@@ -661,6 +694,7 @@ public class DungeonBuilder implements Listener {
         if (cost > 0 && econ == null) {
             ChatMessageUtil.send(s.player, MessageType.ERROR,
                     "Economy service unavailable. Please try again later.");
+            debug(s, "Economy unavailable for placement costing %d", cost);
             return;
         }
         if (cost > 0 && econ != null) {
@@ -669,6 +703,7 @@ public class DungeonBuilder implements Listener {
                 ChatMessageUtil.send(s.player, MessageType.ERROR,
                         "You need " + ChatColor.GOLD + "<glyph:coins_icon> " + cost
                                 + ChatColor.RED + " to place this room.");
+                debug(s, "Insufficient funds for placement (need=%d, has=%d)", cost, balance);
                 return;
             }
         }
@@ -775,8 +810,12 @@ public class DungeonBuilder implements Listener {
                 ChatColor.GRAY + String.format("Overlap: %.1f%%", result.overlap() * 100));
         if (!result.success()) {
             ChatMessageUtil.send(s.player, MessageType.ERROR, "Room collides with existing blocks.");
+            debug(s, "Placement rejected for %s due to overlap %.3f at %s",
+                    describeTemplate(templ), result.overlap(), formatLocation(center));
             return;
         }
+        debug(s, "Placement accepted for %s (rotation=%d, connectors before=%d)",
+                describeTemplate(templ), rotation, s.connectors.size());
         if (cost > 0 && econ != null) {
             try {
                 econ.deductCoins(s.player, cost);
@@ -813,33 +852,38 @@ public class DungeonBuilder implements Listener {
             }
         } else if (baseCost <= 0 && type == TemplateType.EXIT) {
             ChatMessageUtil.send(s.player, MessageType.SUCCESS, "Placed the exit room for free.");
+            debug(s, "Placed exit room for free");
         } else if (baseCost > 0 && unlocked) {
             ChatMessageUtil.send(s.player, MessageType.SUCCESS,
                     "Placed your unlocked " + ChatColor.YELLOW + describeTemplate(templ)
                             + ChatColor.GREEN + ".");
+            debug(s, "Placed unlocked template %s", describeTemplate(templ));
         }
         removeConnector(s, info);
         List<ConnectorInfo> added = spawnConnectors(s, result.instance(), info);
         s.history.addLast(new History(added, result.instance(), result.replaced(), consumed));
+        debug(s, "History size is now %d after placing %s", history.size(), describeRoomInstance(result.instance()));
     }
 
-    private List<ConnectorInfo> spawnConnectors(Session s, Dungeon.RoomInstance inst, ConnectorInfo used) {
-        RoomTemplate templ = inst.template;
-        int rotation = inst.rotation;
-        Location center = inst.center;
-        List<ConnectorInfo> list = new ArrayList<>();
-        for (RoomTemplate.Connector c : templ.getConnectors()) {
-            Direction dir = rotate(c.facing, rotation);
-            if (used != null && dir == used.facing.opposite()) continue;
-            int[] vec = RoomTemplate.rotate(c.x - (int) Math.round(templ.getCenterX()),
-                    c.z - (int) Math.round(templ.getCenterZ()), rotation);
-            Location loc = center.clone().add(vec[0], c.bottomY - templ.getConnectorMinY(), vec[1]);
-            ConnectorInfo info = spawnConnector(s, loc, dir, inst);
-            s.connectors.put(info.interaction.getEntityId(), info);
-            list.add(info);
+        private List<ConnectorInfo> spawnConnectors(Session s, Dungeon.RoomInstance inst, ConnectorInfo used) {
+            RoomTemplate templ = inst.template;
+            int rotation = inst.rotation;
+            Location center = inst.center;
+            List<ConnectorInfo> list = new ArrayList<>();
+            for (RoomTemplate.Connector c : templ.getConnectors()) {
+                Direction dir = rotate(c.facing, rotation);
+                if (used != null && dir == used.facing.opposite()) continue;
+                int[] vec = RoomTemplate.rotate(c.x - (int) Math.round(templ.getCenterX()),
+                        c.z - (int) Math.round(templ.getCenterZ()), rotation);
+                Location loc = center.clone().add(vec[0], c.bottomY - templ.getConnectorMinY(), vec[1]);
+                ConnectorInfo info = spawnConnector(s, loc, dir, inst);
+                s.connectors.put(info.interaction.getEntityId(), info);
+                list.add(info);
+            }
+            debug(s, "Spawned %d connectors for %s (consumed=%s)", list.size(),
+                    describeRoomInstance(inst), used != null ? describeConnector(used) : "none");
+            return list;
         }
-        return list;
-    }
 
     private ConnectorInfo spawnConnectorFacing(Session s, Dungeon.RoomInstance inst, Direction dir) {
         RoomTemplate templ = inst.template;
@@ -868,10 +912,14 @@ public class DungeonBuilder implements Listener {
         display.setShadowRadius(0);
         display.setShadowStrength(0);
         display.addScoreboardTag("dungeon_hologram");
-        return new ConnectorInfo(loc, dir, s.player, inter, display, owner);
+        ConnectorInfo info = new ConnectorInfo(loc, dir, s.player, inter, display, owner);
+        debug(s, "Spawned connector %s (entity=%d)", describeConnector(info), inter.getEntityId());
+        return info;
     }
 
     private void removeConnector(Session s, ConnectorInfo info) {
+        if (info == null) return;
+        debug(s, "Removing connector %s (entity=%d)", describeConnector(info), info.interaction.getEntityId());
         info.interaction.remove();
         info.display.remove();
         s.connectors.remove(info.interaction.getEntityId());
@@ -892,6 +940,23 @@ public class DungeonBuilder implements Listener {
             if (Math.abs(dx) > tolerance) return null;
             return dz > 0 ? Direction.SOUTH : Direction.NORTH;
         }
+    }
+
+    private String describeRoomInstance(Dungeon.RoomInstance inst) {
+        if (inst == null) return "unknown-room";
+        return describeTemplate(inst.template) + "@" + formatLocation(inst.center);
+    }
+
+    private String describeConnector(ConnectorInfo info) {
+        if (info == null) return "unknown-connector";
+        String owner = info.owner != null ? describeTemplate(info.owner.template) : "none";
+        return owner + " " + info.facing + "@" + formatLocation(info.location);
+    }
+
+    private String formatLocation(Location loc) {
+        if (loc == null || loc.getWorld() == null) return "null";
+        return String.format(java.util.Locale.ROOT, "%s:(%d,%d,%d)",
+                loc.getWorld().getName(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
     }
 
     private Inventory createRoomSelect(Session session) {
@@ -1216,15 +1281,33 @@ public class DungeonBuilder implements Listener {
             player.setFlying(true);
         }
         void undo() {
-            History h = history.pollLast();
-            if (h == null) return;
+            History h = null;
+            while (!history.isEmpty()) {
+                History candidate = history.pollLast();
+                if (candidate == null) continue;
+                if (candidate.instance != null && dungeon.getRooms().contains(candidate.instance)) {
+                    h = candidate;
+                    break;
+                }
+                debug(this, "Skipped stale history entry while undoing (room=%s)", describeRoomInstance(candidate.instance));
+            }
+            if (h == null) {
+                debug(this, "Undo requested but no valid history entries remain (connectors=%d)", connectors.size());
+                ChatMessageUtil.send(player, MessageType.WARNING, "No placements left to undo.");
+                return;
+            }
+            debug(this, "Undoing %s (history remaining=%d)", describeRoomInstance(h.instance), history.size());
             World world = h.instance.center.getWorld();
             for (Map.Entry<Location, BlockData> e : h.replaced.entrySet()) {
                 world.getBlockAt(e.getKey()).setBlockData(e.getValue(), false);
             }
+            debug(this, "Restored %d blocks for %s", h.replaced.size(), describeRoomInstance(h.instance));
+            int removed = 0;
             for (ConnectorInfo c : h.added) {
+                removed++;
                 DungeonBuilder.this.removeConnector(this, c);
             }
+            debug(this, "Removed %d connectors spawned by %s", removed, describeRoomInstance(h.instance));
             // remove any stray holograms within connector locations
             for (RoomTemplate.Connector rc : h.instance.template.getConnectors()) {
                 int[] vec = RoomTemplate.rotate(rc.x - (int) Math.round(h.instance.template.getCenterX()),
@@ -1249,11 +1332,14 @@ public class DungeonBuilder implements Listener {
                 }
             }
             dungeon.removeRoom(h.instance);
-            restoreConsumedConnectors(h.consumed);
-            reopenAdjacentConnectors(h.instance);
+            int restored = restoreConsumedConnectors(h.consumed);
+            int reopened = reopenAdjacentConnectors(h.instance);
+            debug(this, "Undo completed (%d consumed connectors restored, %d connectors reopened via adjacency)", restored, reopened);
         }
 
         void cancel() {
+            debug(this, "Cancelling session (history=%d, connectors=%d, tempWorld=%s)",
+                    history.size(), connectors.size(), tempWorld);
             while (!history.isEmpty()) {
                 undo();
             }
@@ -1273,6 +1359,7 @@ public class DungeonBuilder implements Listener {
                 org.bukkit.Bukkit.getScheduler().runTaskLater(manager.getPlugin(),
                         () -> manager.getPlugin().getWorldManager().deleteWorld(dungeon.getWorld().getName()), 1L);
             }
+            debug(this, "Session cancelled");
         }
 
         DungeonLayout buildLayout() {
@@ -1343,7 +1430,8 @@ public class DungeonBuilder implements Listener {
             return layout;
         }
 
-        private void reopenAdjacentConnectors(Dungeon.RoomInstance removed) {
+        private int reopenAdjacentConnectors(Dungeon.RoomInstance removed) {
+            int reopened = 0;
             for (Dungeon.RoomInstance other : dungeon.getRooms()) {
                 if (other == removed) continue;
                 Direction dir = DungeonBuilder.this.directionBetween(other, removed);
@@ -1352,12 +1440,16 @@ public class DungeonBuilder implements Listener {
                 ConnectorInfo restored = DungeonBuilder.this.spawnConnectorFacing(this, other, dir);
                 if (restored != null) {
                     connectors.put(restored.interaction.getEntityId(), restored);
+                    reopened++;
+                    debug(this, "Reopened connector %s after removing %s", describeConnector(restored), describeRoomInstance(removed));
                 }
             }
+            return reopened;
         }
 
-        private void restoreConsumedConnectors(List<ConnectorRestore> consumed) {
-            if (consumed == null || consumed.isEmpty()) return;
+        private int restoreConsumedConnectors(List<ConnectorRestore> consumed) {
+            if (consumed == null || consumed.isEmpty()) return 0;
+            int restored = 0;
             for (ConnectorRestore restore : consumed) {
                 if (restore == null) continue;
                 if (restore.owner == null) continue;
@@ -1366,8 +1458,14 @@ public class DungeonBuilder implements Listener {
                 ConnectorInfo recreated = DungeonBuilder.this.spawnConnectorFacing(this, restore.owner, restore.direction);
                 if (recreated != null) {
                     connectors.put(recreated.interaction.getEntityId(), recreated);
+                    restored++;
+                    debug(this, "Restored consumed connector %s", describeConnector(recreated));
+                } else {
+                    debug(this, "Failed to restore consumed connector for %s facing %s",
+                            describeRoomInstance(restore.owner), restore.direction);
                 }
             }
+            return restored;
         }
 
         private boolean hasConnectorFacing(Dungeon.RoomInstance owner, Direction dir) {
