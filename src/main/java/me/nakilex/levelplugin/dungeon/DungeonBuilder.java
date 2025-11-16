@@ -862,7 +862,7 @@ public class DungeonBuilder implements Listener {
         removeConnector(s, info);
         List<ConnectorInfo> added = spawnConnectors(s, result.instance(), info);
         s.history.addLast(new History(added, result.instance(), result.replaced(), consumed));
-        debug(s, "History size is now %d after placing %s", history.size(), describeRoomInstance(result.instance()));
+        debug(s, "History size is now %d after placing %s", s.history.size(), describeRoomInstance(result.instance()));
     }
 
         private List<ConnectorInfo> spawnConnectors(Session s, Dungeon.RoomInstance inst, ConnectorInfo used) {
