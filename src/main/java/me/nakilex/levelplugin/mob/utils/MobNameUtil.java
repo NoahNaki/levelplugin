@@ -7,6 +7,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.entity.LivingEntity;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -98,6 +99,13 @@ public final class MobNameUtil {
                 candidates.add(sortedJoin);
                 candidates.add(sortedJoin.toUpperCase(Locale.ROOT));
                 candidates.add(sortedJoin.toLowerCase(Locale.ROOT));
+
+                List<String> reversed = new ArrayList<>(tokens);
+                Collections.reverse(reversed);
+                String reversedJoin = String.join("_", reversed);
+                candidates.add(reversedJoin);
+                candidates.add(reversedJoin.toUpperCase(Locale.ROOT));
+                candidates.add(reversedJoin.toLowerCase(Locale.ROOT));
             }
         }
 
