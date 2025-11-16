@@ -281,14 +281,16 @@ public class DungeonBuilder implements Listener {
             Location center = origin.clone();
             String mob = layout.getMob(entranceX, entranceZ);
             DungeonManager.PasteResult result = manager.pasteRoom(s.dungeon, templ, rotation, center, mob, true);
+            int openMask = layout.getOpenMask(entranceX, entranceZ);
             List<ConnectorInfo> added = new ArrayList<>();
             for (RoomTemplate.Connector c : templ.getConnectors()) {
                 Direction dir = rotate(c.facing, rotation);
                 if (dirs.contains(dir)) continue;
+                if (openMask >= 0 && (openMask & (1 << dir.ordinal())) == 0) continue;
                 int[] vec = RoomTemplate.rotate(c.x - (int)Math.round(templ.getCenterX()),
                         c.z - (int)Math.round(templ.getCenterZ()), rotation);
                 Location loc = center.clone().add(vec[0], c.bottomY - templ.getConnectorMinY(), vec[1]);
-                ConnectorInfo info = spawnConnector(s, loc, dir);
+                ConnectorInfo info = spawnConnector(s, loc, dir, result.instance());
                 s.connectors.put(info.interaction.getEntityId(), info);
                 added.add(info);
             }
@@ -315,15 +317,16 @@ public class DungeonBuilder implements Listener {
                 String mob = layout.getMob(x, z);
                 DungeonManager.PasteResult result = manager.pasteRoom(s.dungeon, templ, rotation, center, mob, true);
 
-                // spawn connectors only for open sides
+                int openMask = layout.getOpenMask(x, z);
                 List<ConnectorInfo> added = new ArrayList<>();
                 for (RoomTemplate.Connector c : templ.getConnectors()) {
                     Direction dir = rotate(c.facing, rotation);
                     if (dirs.contains(dir)) continue; // neighbour already present
+                    if (openMask >= 0 && (openMask & (1 << dir.ordinal())) == 0) continue;
                     int[] vec = RoomTemplate.rotate(c.x - (int)Math.round(templ.getCenterX()),
                             c.z - (int)Math.round(templ.getCenterZ()), rotation);
                     Location loc = center.clone().add(vec[0], c.bottomY - templ.getConnectorMinY(), vec[1]);
-                    ConnectorInfo info = spawnConnector(s, loc, dir);
+                    ConnectorInfo info = spawnConnector(s, loc, dir, result.instance());
                     s.connectors.put(info.interaction.getEntityId(), info);
                     added.add(info);
                 }
@@ -436,7 +439,7 @@ public class DungeonBuilder implements Listener {
             ChatMessageUtil.send(player, MessageType.ERROR, "Cannot place entrance here.");
             return;
         }
-        s.history.addLast(new History(null, spawnConnectors(s, loc, entrance, rot, null),
+        s.history.addLast(new History(null, spawnConnectors(s, result.instance(), null),
                 result.instance(), result.replaced()));
         s.placingEntrance = false;
         ChatMessageUtil.send(player, MessageType.SUCCESS, "Entrance placed. Use holograms to add rooms.");
@@ -811,11 +814,14 @@ public class DungeonBuilder implements Listener {
                             + ChatColor.GREEN + ".");
         }
         removeConnector(s, info);
-        List<ConnectorInfo> added = spawnConnectors(s, center, templ, rotation, info);
+        List<ConnectorInfo> added = spawnConnectors(s, result.instance(), info);
         s.history.addLast(new History(info, added, result.instance(), result.replaced()));
     }
 
-    private List<ConnectorInfo> spawnConnectors(Session s, Location center, RoomTemplate templ, int rotation, ConnectorInfo used) {
+    private List<ConnectorInfo> spawnConnectors(Session s, Dungeon.RoomInstance inst, ConnectorInfo used) {
+        RoomTemplate templ = inst.template;
+        int rotation = inst.rotation;
+        Location center = inst.center;
         List<ConnectorInfo> list = new ArrayList<>();
         for (RoomTemplate.Connector c : templ.getConnectors()) {
             Direction dir = rotate(c.facing, rotation);
@@ -823,14 +829,14 @@ public class DungeonBuilder implements Listener {
             int[] vec = RoomTemplate.rotate(c.x - (int) Math.round(templ.getCenterX()),
                     c.z - (int) Math.round(templ.getCenterZ()), rotation);
             Location loc = center.clone().add(vec[0], c.bottomY - templ.getConnectorMinY(), vec[1]);
-            ConnectorInfo info = spawnConnector(s, loc, dir);
+            ConnectorInfo info = spawnConnector(s, loc, dir, inst);
             s.connectors.put(info.interaction.getEntityId(), info);
             list.add(info);
         }
         return list;
     }
 
-    private ConnectorInfo spawnConnector(Session s, Location loc, Direction dir) {
+    private ConnectorInfo spawnConnector(Session s, Location loc, Direction dir, Dungeon.RoomInstance owner) {
         Interaction inter = loc.getWorld().spawn(loc, Interaction.class, i -> {
             i.setInvulnerable(true);
             i.setGravity(false);
@@ -844,7 +850,7 @@ public class DungeonBuilder implements Listener {
         display.setShadowRadius(0);
         display.setShadowStrength(0);
         display.addScoreboardTag("dungeon_hologram");
-        return new ConnectorInfo(loc, dir, s.player, inter, display);
+        return new ConnectorInfo(loc, dir, s.player, inter, display, owner);
     }
 
     private void removeConnector(Session s, ConnectorInfo info) {
@@ -1111,12 +1117,14 @@ public class DungeonBuilder implements Listener {
         final Player player;
         final Interaction interaction;
         final TextDisplay display;
-        ConnectorInfo(Location loc, Direction facing, Player player, Interaction i, TextDisplay d) {
+        final Dungeon.RoomInstance owner;
+        ConnectorInfo(Location loc, Direction facing, Player player, Interaction i, TextDisplay d, Dungeon.RoomInstance owner) {
             this.location = loc;
             this.facing = facing;
             this.player = player;
             this.interaction = i;
             this.display = d;
+            this.owner = owner;
         }
     }
 
@@ -1194,7 +1202,7 @@ public class DungeonBuilder implements Listener {
                 }
             }
             if (h.used != null) {
-                ConnectorInfo restored = DungeonBuilder.this.spawnConnector(this, h.used.location, h.used.facing);
+                ConnectorInfo restored = DungeonBuilder.this.spawnConnector(this, h.used.location, h.used.facing, h.used.owner);
                 connectors.put(restored.interaction.getEntityId(), restored);
             }
             dungeon.removeRoom(h.instance);
@@ -1235,6 +1243,7 @@ public class DungeonBuilder implements Listener {
             int offX = DungeonLayout.WIDTH / 2;
             int offZ = DungeonLayout.HEIGHT / 2;
             java.util.Set<java.awt.Point> used = new java.util.HashSet<>();
+            java.util.Map<Dungeon.RoomInstance, java.awt.Point> coords = new java.util.HashMap<>();
             for (int i = 0; i < dungeon.getRooms().size(); i++) {
                 Dungeon.RoomInstance r = dungeon.getRooms().get(i);
                 int diffX = r.center.getBlockX() - originX;
@@ -1268,8 +1277,24 @@ public class DungeonBuilder implements Listener {
                     layout.setThreat(lx, lz, threat);
                 }
                 layout.setOffset(lx, lz, diffX, diffZ);
+                coords.put(r, new java.awt.Point(lx, lz));
+                layout.clearOpenMask(lx, lz);
             }
             layout.setStep(step);
+
+            java.util.Map<java.awt.Point, Integer> masks = new java.util.HashMap<>();
+            for (ConnectorInfo info : connectors.values()) {
+                if (info.owner == null) continue;
+                java.awt.Point cell = coords.get(info.owner);
+                if (cell == null) continue;
+                int bit = 1 << info.facing.ordinal();
+                masks.merge(cell, bit, (a, b) -> a | b);
+            }
+            for (java.util.Map.Entry<Dungeon.RoomInstance, java.awt.Point> entry : coords.entrySet()) {
+                java.awt.Point cell = entry.getValue();
+                int mask = masks.getOrDefault(cell, 0);
+                layout.setOpenMask(cell.x, cell.y, mask);
+            }
             return layout;
         }
     }

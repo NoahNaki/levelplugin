@@ -619,6 +619,9 @@ public class DungeonManager {
                     int threat = cell.getInt("threat", 0);
                     layout.setThreat(x, y, threat);
                     layout.setOffset(x, y, offX, offZ);
+                    if (cell.contains("openMask")) {
+                        layout.setOpenMask(x, y, cell.getInt("openMask"));
+                    }
                 }
             }
             String key = normalizeKey(rawKey);
@@ -688,6 +691,10 @@ public class DungeonManager {
                     cell.set("threat", layout.getThreat(x, y));
                     cell.set("offsetX", offX);
                     cell.set("offsetZ", offZ);
+                    int openMask = layout.getOpenMask(x, y);
+                    if (openMask >= 0) {
+                        cell.set("openMask", openMask);
+                    }
                 }
             }
             layoutThreat.put(key, layout.getMaxThreat());

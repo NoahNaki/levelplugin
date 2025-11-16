@@ -15,6 +15,8 @@ public class DungeonLayout {
     private final int[][] threat = new int[WIDTH][HEIGHT];
     private final int[][] offsetX = new int[WIDTH][HEIGHT];
     private final int[][] offsetZ = new int[WIDTH][HEIGHT];
+    private final byte[][] openSides = new byte[WIDTH][HEIGHT];
+    private final boolean[][] openDefined = new boolean[WIDTH][HEIGHT];
     private int step = 0;
     private UUID owner;
 
@@ -28,6 +30,8 @@ public class DungeonLayout {
                 threat[x][y] = 0;
                 offsetX[x][y] = 0;
                 offsetZ[x][y] = 0;
+                openSides[x][y] = 0;
+                openDefined[x][y] = false;
             }
         }
     }
@@ -112,6 +116,32 @@ public class DungeonLayout {
 
     public void setOwner(UUID owner) {
         this.owner = owner;
+    }
+
+    /**
+     * Return a bitmask describing the open connector sides for the given cell.
+     * <p>
+     * Bits use the {@link Direction#ordinal()} ordering (N/E/S/W). A negative
+     * value indicates the layout predates the mask feature and should fall
+     * back to inferred neighbours.
+     */
+    public int getOpenMask(int x, int y) {
+        if (x < 0 || x >= WIDTH || y < 0 || y >= HEIGHT) return -1;
+        return openDefined[x][y] ? openSides[x][y] & 0xF : -1;
+    }
+
+    /** Store a connector bitmask for the given cell. */
+    public void setOpenMask(int x, int y, int mask) {
+        if (x < 0 || x >= WIDTH || y < 0 || y >= HEIGHT) return;
+        openDefined[x][y] = true;
+        openSides[x][y] = (byte) (mask & 0xF);
+    }
+
+    /** Remove an explicit connector bitmask from the given cell. */
+    public void clearOpenMask(int x, int y) {
+        if (x < 0 || x >= WIDTH || y < 0 || y >= HEIGHT) return;
+        openDefined[x][y] = false;
+        openSides[x][y] = 0;
     }
 
     /** Return the highest threat level among all cells. */
