@@ -90,7 +90,8 @@ public class DungeonMobSpawnListener implements Listener {
             key = sec.getString("mob", key);
         }
         String canonical = MobNameUtil.canonicalMobKey(key);
-        Optional<io.lumine.mythic.api.mobs.MythicMob> resolved = MobNameUtil.resolveMythicMob(key);
+        final String spawnKey = key;
+        Optional<io.lumine.mythic.api.mobs.MythicMob> resolved = MobNameUtil.resolveMythicMob(spawnKey);
         String overrides = String.format("hp=%s dmg=%s move=%s atk=%s",
                 hp == null ? "-" : String.format("%.2f", hp),
                 dmg == null ? "-" : String.format("%.2f", dmg),
@@ -109,18 +110,18 @@ public class DungeonMobSpawnListener implements Listener {
         resolved.ifPresentOrElse(
                 mythicMob -> plugin.getLogger().info(String.format(
                         "[DungeonSpawn] Resolved combat mob '%s' to Mythic internal '%s'",
-                        key,
+                        spawnKey,
                         mythicMob.getInternalName())),
                 () -> plugin.getLogger().warning(String.format(
                         "[DungeonSpawn] MythicMob definition for '%s' could not be resolved",
-                        key))
+                        spawnKey))
         );
         int spawned = 0;
         for (int i = 0; i < count; i++) {
             double x = room.minX + 1 + Math.random() * (room.maxX - room.minX - 1);
             double z = room.minZ + 1 + Math.random() * (room.maxZ - room.minZ - 1);
             Location spawn = new Location(room.center.getWorld(), x + 0.5, room.center.getY(), z + 0.5);
-            var mob = MythicMobModifier.spawnModifiedMob(key, spawn, hp, dmg, move, atk);
+            var mob = MythicMobModifier.spawnModifiedMob(spawnKey, spawn, hp, dmg, move, atk);
             if (mob == null) {
                 plugin.getLogger().warning(String.format(
                         "[DungeonSpawn] MythicMob '%s' failed to spawn at %s",
