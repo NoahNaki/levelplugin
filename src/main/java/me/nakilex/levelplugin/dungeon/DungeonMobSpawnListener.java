@@ -21,6 +21,7 @@ import java.util.Optional;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class DungeonMobSpawnListener implements Listener {
     private final DungeonManager manager;
@@ -74,14 +75,23 @@ public class DungeonMobSpawnListener implements Listener {
     private void spawnConfiguredMobs(Dungeon.RoomInstance room) {
         String selection = room.mob;
         String key = selection;
-        int count = 5;
+        int minCount = 6;
+        int maxCount = 8;
         Double hp = null;
         Double dmg = null;
         Double move = null;
         Double atk = null;
         if (config.isConfigurationSection("rooms." + key)) {
             ConfigurationSection sec = config.getConfigurationSection("rooms." + key);
-            count = sec.getInt("count", 5);
+            boolean hasRange = sec.contains("count-min") || sec.contains("count-max");
+            if (hasRange) {
+                minCount = Math.max(1, sec.getInt("count-min", minCount));
+                maxCount = Math.max(minCount, sec.getInt("count-max", maxCount));
+            } else if (sec.contains("count")) {
+                int configured = Math.max(1, sec.getInt("count", minCount));
+                minCount = configured;
+                maxCount = configured;
+            }
             hp = sec.getDouble("hp", Double.NaN);
             if (Double.isNaN(hp)) hp = null;
             dmg = sec.contains("damage") ? sec.getDouble("damage") : null;
@@ -89,6 +99,7 @@ public class DungeonMobSpawnListener implements Listener {
             atk = sec.contains("attack-speed") ? sec.getDouble("attack-speed") : null;
             key = sec.getString("mob", key);
         }
+        int count = ThreadLocalRandom.current().nextInt(minCount, maxCount + 1);
         String canonical = MobNameUtil.canonicalMobKey(key);
         final String spawnKey = key;
         Optional<io.lumine.mythic.api.mobs.MythicMob> resolved = MobNameUtil.resolveMythicMob(spawnKey);
@@ -99,13 +110,15 @@ public class DungeonMobSpawnListener implements Listener {
                 atk == null ? "-" : String.format("%.2f", atk));
 
         plugin.getLogger().info(String.format(
-                "[DungeonSpawn] Preparing %d mob(s) for combat room at %s (selection='%s', spawning='%s', canonical='%s', overrides=%s)",
+                "[DungeonSpawn] Preparing %d mob(s) for combat room at %s (selection='%s', spawning='%s', canonical='%s', overrides=%s, range=%d-%d)",
                 count,
                 LocationUtils.blockLocationString(room.center),
                 selection,
                 key,
                 canonical,
-                overrides));
+                overrides,
+                minCount,
+                maxCount));
 
         resolved.ifPresentOrElse(
                 mythicMob -> plugin.getLogger().info(String.format(

@@ -51,6 +51,10 @@ public class DungeonCommand implements CommandExecutor, TabCompleter {
                     player.sendMessage(ChatColor.RED + "Layout not found.");
                     return true;
                 }
+                if (!manager.canModifyLayout(player.getUniqueId(), name)) {
+                    player.sendMessage(ChatColor.RED + "You do not own this dungeon.");
+                    return true;
+                }
                 manager.getBuilder().edit(player, layout);
                 player.sendMessage(ChatColor.YELLOW + "Editing dungeon '" + name + "'.");
                 return true;
@@ -80,6 +84,10 @@ public class DungeonCommand implements CommandExecutor, TabCompleter {
                     return true;
                 }
                 String name = String.join(" ", java.util.Arrays.copyOfRange(args, 1, args.length));
+                if (!manager.canModifyLayout(player.getUniqueId(), name)) {
+                    player.sendMessage(ChatColor.RED + "You do not own this dungeon.");
+                    return true;
+                }
                 boolean ok = manager.deleteDungeon(name);
                 if (ok) player.sendMessage(ChatColor.GREEN + "Dungeon removed.");
                 else player.sendMessage(ChatColor.RED + "Dungeon not found.");

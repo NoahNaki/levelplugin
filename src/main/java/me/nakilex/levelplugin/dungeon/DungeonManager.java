@@ -33,6 +33,7 @@ public class DungeonManager {
     private final Map<String, DungeonLayout> layouts = new HashMap<>();
     private final Map<String, String> layoutDisplay = new HashMap<>();
     private final Map<String, Integer> layoutThreat = new HashMap<>();
+    private final Map<String, java.util.UUID> layoutOwners = new HashMap<>();
     private java.io.File layoutFile;
     private org.bukkit.configuration.file.FileConfiguration layoutConfig;
     /** Guard asynchronous layout saves. */
@@ -484,6 +485,7 @@ public class DungeonManager {
         }
         if (layouts.remove(key) != null) {
             layoutDisplay.remove(key);
+            layoutOwners.remove(key);
             saveLayouts();
             removed = true;
         }
@@ -508,6 +510,11 @@ public class DungeonManager {
         String lower = normalizeKey(key);
         layouts.put(lower, layout);
         layoutDisplay.put(lower, displayName);
+        if (layout.getOwner() != null) {
+            layoutOwners.put(lower, layout.getOwner());
+        } else {
+            layoutOwners.remove(lower);
+        }
 
         if (player == null) {
             saveLayouts();
@@ -551,6 +558,15 @@ public class DungeonManager {
         return layoutDisplay.getOrDefault(normalizeKey(key), key);
     }
 
+    public java.util.UUID getLayoutOwner(String name) {
+        return layoutOwners.get(normalizeKey(name));
+    }
+
+    public boolean canModifyLayout(java.util.UUID playerId, String name) {
+        java.util.UUID owner = getLayoutOwner(name);
+        return owner == null || owner.equals(playerId);
+    }
+
     public int getThreatLevel(String key) {
         return layoutThreat.getOrDefault(normalizeKey(key), 1);
     }
@@ -561,6 +577,7 @@ public class DungeonManager {
             try { layoutFile.createNewFile(); } catch (Exception ignored) {}
         }
         layoutConfig = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(layoutFile);
+        layoutOwners.clear();
         org.bukkit.configuration.ConfigurationSection root = layoutConfig.getConfigurationSection("layouts");
         if (root == null) return;
         for (String rawKey : root.getKeys(false)) {
@@ -570,6 +587,16 @@ public class DungeonManager {
             int stepVal = sec.getInt("step", 0);
             DungeonLayout layout = new DungeonLayout();
             layout.setStep(stepVal);
+            String ownerRaw = sec.getString("owner", null);
+            if (ownerRaw != null && !ownerRaw.isBlank()) {
+                try {
+                    java.util.UUID owner = java.util.UUID.fromString(ownerRaw);
+                    layout.setOwner(owner);
+                    layoutOwners.put(normalizeKey(rawKey), owner);
+                } catch (IllegalArgumentException ex) {
+                    plugin.getLogger().warning("[Dungeon] Invalid owner UUID for layout '" + rawKey + "'");
+                }
+            }
             org.bukkit.configuration.ConfigurationSection cells = sec.getConfigurationSection("cells");
             if (cells != null) {
                 for (String coord : cells.getKeys(false)) {
@@ -640,6 +667,9 @@ public class DungeonManager {
             org.bukkit.configuration.ConfigurationSection sec = root.createSection(key);
             sec.set("display", layoutDisplay.getOrDefault(key, key));
             sec.set("step", layout.getStep());
+            if (layout.getOwner() != null) {
+                sec.set("owner", layout.getOwner().toString());
+            }
             org.bukkit.configuration.ConfigurationSection cells = sec.createSection("cells");
             for (int x = 0; x < DungeonLayout.WIDTH; x++) {
                 for (int y = 0; y < DungeonLayout.HEIGHT; y++) {

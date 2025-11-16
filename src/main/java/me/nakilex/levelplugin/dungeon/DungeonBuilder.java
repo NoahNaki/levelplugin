@@ -243,14 +243,22 @@ public class DungeonBuilder implements Listener {
     }
 
     public void edit(Player player, DungeonLayout layout) {
-        Session s = new Session(player, player.getWorld(), player.getLocation(), false);
+        Location back = player.getLocation();
+        String worldName = "dgn_edit_" + player.getUniqueId();
+        World world = manager.createVoidWorld(worldName);
+        if (world == null) {
+            ChatMessageUtil.send(player, MessageType.ERROR, "Failed to create edit world.");
+            return;
+        }
+        Session s = new Session(player, world, back, true);
         sessions.put(player.getUniqueId(), s);
-        storedReturns.put(player.getUniqueId(), player.getLocation());
+        storedReturns.put(player.getUniqueId(), back);
         storeInventory(player);
         setupInventory(player);
-
-        // spawn existing rooms relative to the entrance
-        Location origin = player.getLocation().getBlock().getLocation();
+        Location origin = new Location(world, 0, 64, 0).getBlock().getLocation();
+        player.teleport(origin);
+        player.setAllowFlight(true);
+        player.setFlying(true);
 
         int entranceX = -1, entranceZ = -1;
         for (int x = 0; x < DungeonLayout.WIDTH; x++) {
@@ -580,6 +588,7 @@ public class DungeonBuilder implements Listener {
         }
         Bukkit.getScheduler().runTask(manager.getPlugin(), () -> {
             DungeonLayout layout = s.buildLayout();
+            layout.setOwner(event.getPlayer().getUniqueId());
             if (!layout.hasEntrance() || !layout.hasExit() || !layout.hasBoss()) {
                 ChatMessageUtil.send(event.getPlayer(), MessageType.ERROR,
                         "Dungeon requires an entrance, exit and boss room.");

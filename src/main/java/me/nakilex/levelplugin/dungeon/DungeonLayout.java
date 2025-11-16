@@ -1,5 +1,7 @@
 package me.nakilex.levelplugin.dungeon;
 
+import java.util.UUID;
+
 public class DungeonLayout {
     // Increased grid size to accommodate larger layouts and ensure
     // rooms far from the entrance (like the boss room) are persisted.
@@ -14,6 +16,7 @@ public class DungeonLayout {
     private final int[][] offsetX = new int[WIDTH][HEIGHT];
     private final int[][] offsetZ = new int[WIDTH][HEIGHT];
     private int step = 0;
+    private UUID owner;
 
     public DungeonLayout() {
         for (int x = 0; x < WIDTH; x++) {
@@ -101,6 +104,14 @@ public class DungeonLayout {
 
     public void setStep(int step) {
         this.step = step;
+    }
+
+    public UUID getOwner() {
+        return owner;
+    }
+
+    public void setOwner(UUID owner) {
+        this.owner = owner;
     }
 
     /** Return the highest threat level among all cells. */
