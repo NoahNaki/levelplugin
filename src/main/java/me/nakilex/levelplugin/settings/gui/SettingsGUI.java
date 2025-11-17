@@ -142,6 +142,15 @@ public class SettingsGUI implements Listener {
             ));
         }
 
+        // Full Inventory Title toggle
+        if (filter == Filter.ALL || filter == Filter.VISUAL) {
+            gui.setItem(25, GuiUtil.createToggleItem(
+                    playerSettings.isFullInventoryTitleEnabled(),
+                    "§bFull Inventory Title",
+                    "§eClick to toggle"
+            ));
+        }
+
         gui.setItem(FILTER_SLOT, createFilterItem(filter));
 
         // Filler border
@@ -302,6 +311,10 @@ public class SettingsGUI implements Listener {
             settings.toggleSkillPointReminder();
             updateSettingItem(event.getInventory(), 24,
                 settings.isSkillPointReminderEnabled(), "§bSkill Point Reminder", "");
+        } else if (slot == 25) {
+            settings.toggleFullInventoryTitle();
+            updateSettingItem(event.getInventory(), 25,
+                settings.isFullInventoryTitleEnabled(), "§bFull Inventory Title", "");
         }
     }
 }

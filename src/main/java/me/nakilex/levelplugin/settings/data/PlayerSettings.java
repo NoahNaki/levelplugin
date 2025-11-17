@@ -15,6 +15,7 @@ public class PlayerSettings {
     private boolean autoSkipCutscenes = false;
     private boolean autoSkipSongs = false;
     private boolean skillPointReminder = true;
+    private boolean fullInventoryTitle = true;
 
     public boolean isDmgChatEnabled() {
         return dmgChat;
@@ -107,6 +108,14 @@ public class PlayerSettings {
 
     public void toggleSkillPointReminder() {
         skillPointReminder = !skillPointReminder;
+    }
+
+    public boolean isFullInventoryTitleEnabled() {
+        return fullInventoryTitle;
+    }
+
+    public void toggleFullInventoryTitle() {
+        fullInventoryTitle = !fullInventoryTitle;
     }
 
 }

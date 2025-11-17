@@ -190,7 +190,7 @@ public class ListenerRegistry {
         pm.registerEvents(new FieldBossListener(plugin, plugin.getBossConfig(), plugin.getItemManager(), plugin.getGemsManager()), plugin);
         pm.registerEvents(new EquipOnJoinListener(), plugin);
         pm.registerEvents(new PlayerDeathListener(plugin), plugin);
-        pm.registerEvents(new FullInventoryListener(), plugin);
+        pm.registerEvents(new FullInventoryListener(plugin.getSettingsManager()), plugin);
         pm.registerEvents(enchantGUI, plugin);
         pm.registerEvents(new QuestKillListener(questManager), plugin);
         pm.registerEvents(new QuestCraftListener(questManager), plugin);

@@ -1,5 +1,6 @@
 package me.nakilex.levelplugin.utils;
 
+import me.nakilex.levelplugin.settings.managers.SettingsManager;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -17,6 +18,11 @@ public class FullInventoryListener implements Listener {
     // Title of the salvage GUI, stripped of color codes
     private static final String SALVAGE_TITLE = "Salvage Items";
     private final Map<UUID, Long> lastAlert = new HashMap<>();
+    private final SettingsManager settingsManager;
+
+    public FullInventoryListener(SettingsManager settingsManager) {
+        this.settingsManager = settingsManager;
+    }
 
     @EventHandler
     public void onEntityPickup(EntityPickupItemEvent event) {
@@ -61,6 +67,10 @@ public class FullInventoryListener implements Listener {
      * Sends a big red "Inventory full!" title to the player.
      */
     private void sendFullInventoryTitle(Player player) {
+        if (!isFullInventoryTitleEnabled(player)) {
+            return;
+        }
+
         long now = System.currentTimeMillis();
         UUID id = player.getUniqueId();
         Long last = lastAlert.get(id);
@@ -75,5 +85,12 @@ public class FullInventoryListener implements Listener {
         int fadeOut = 20;  // ticks (1s)
 
         player.sendTitle(title, subtitle, fadeIn, stay, fadeOut);
+    }
+
+    private boolean isFullInventoryTitleEnabled(Player player) {
+        if (settingsManager == null) {
+            return true;
+        }
+        return settingsManager.getSettings(player).isFullInventoryTitleEnabled();
     }
 }
