@@ -380,6 +380,16 @@ public class ArenaMatchManager implements Listener {
             scoreboardManager.updateBoard(playerTwo);
         }
 
+        me.nakilex.levelplugin.quests.managers.QuestManager questManager = plugin.getQuestManager();
+        if (questManager != null) {
+            if (playerOne != null) {
+                questManager.handleArenaMatchComplete(playerOne, ArenaMode.ONE_VS_ONE.name());
+            }
+            if (playerTwo != null) {
+                questManager.handleArenaMatchComplete(playerTwo, ArenaMode.ONE_VS_ONE.name());
+            }
+        }
+
         instanceManager.destroyInstance(match.getInstance());
     }
 
