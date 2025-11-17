@@ -69,7 +69,7 @@ public class FullInventoryListener implements Listener {
         }
         lastAlert.put(id, now);
         String title    = ChatColor.RED + "Inventory full!";
-        String subtitle = "";
+        String subtitle = "Visit a nearby salvager to scrap your items!";
         int fadeIn  = 10;  // ticks (0.5s)
         int stay    = 70;  // ticks (3.5s)
         int fadeOut = 20;  // ticks (1s)

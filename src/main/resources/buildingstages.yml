@@ -254,6 +254,7 @@ stages:
         y: 116
         z: -1145
       npcs: []
+        #- 658;58;8;85;-7.654175;88.799995
       schematic: city_center_1.schem
       holo:
         x: 91
@@ -274,8 +275,7 @@ stages:
         x: 4597
         y: 116
         z: -1145
-      npcs:
-        - 658;58;9;85;-7.654175;88.799995
+      npcs: []
       schematic: city_center_2.schem
       holo:
         x: 91

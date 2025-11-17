@@ -229,7 +229,7 @@ commands:
     description: Opens the enchanting GUI
     usage: /enchant
   debug:
-    description: Developer debug tools
+    descri ption: Developer debug tools
     usage: /debug [mobinfo|tps|siege|autocast|tec|hand]
   levelplugin:
     description: LevelPlugin administration command
