@@ -71,10 +71,20 @@ public class QuestManager {
         Quest seras = new me.nakilex.levelplugin.quests.def.SerasQuest();
         Quest hawie = new me.nakilex.levelplugin.quests.def.HawieQuest();
         Quest dungeonMaster = new me.nakilex.levelplugin.quests.def.DungeonMasterQuest();
+        Quest hawieCrabs = new me.nakilex.levelplugin.quests.def.HawieHermitCrabQuest();
+        Quest rahirScorpid = new me.nakilex.levelplugin.quests.def.RahirScorpidQuest();
+        Quest yasiyaArena = new me.nakilex.levelplugin.quests.def.YasiyaArenaQuest();
+        Quest skeggSpiders = new me.nakilex.levelplugin.quests.def.SkeggSpiderQuest();
+        Quest zoyaDungeon = new me.nakilex.levelplugin.quests.def.ZoyaDungeonQuest();
         registerQuest(nb);
         registerQuest(seras);
         registerQuest(hawie);
         registerQuest(dungeonMaster);
+        registerQuest(hawieCrabs);
+        registerQuest(rahirScorpid);
+        registerQuest(yasiyaArena);
+        registerQuest(skeggSpiders);
+        registerQuest(zoyaDungeon);
         plugin.getLogger().info("Registered " + quests.size() + " quests.");
     }
 
@@ -633,6 +643,34 @@ public class QuestManager {
         updateObjective(player, QuestObjectiveType.DUEL_LOSE, "ANY", 1);
     }
 
+    public void handleArenaMatchComplete(Player player, String matchType) {
+        if (player == null) {
+            return;
+        }
+        String target = matchType == null ? "ANY" : matchType;
+        if (debug) {
+            plugin.getLogger().info("[QuestDebug] " + player.getName() + " completed arena match " + target);
+        }
+        updateObjective(player, QuestObjectiveType.ARENA_MATCH, target, 1);
+        if (!"ANY".equalsIgnoreCase(target)) {
+            updateObjective(player, QuestObjectiveType.ARENA_MATCH, "ANY", 1);
+        }
+    }
+
+    public void handleDungeonCreate(Player player, String dungeonKey) {
+        if (player == null) {
+            return;
+        }
+        String target = (dungeonKey == null || dungeonKey.isEmpty()) ? "ANY" : dungeonKey;
+        if (debug) {
+            plugin.getLogger().info("[QuestDebug] " + player.getName() + " saved dungeon " + target);
+        }
+        updateObjective(player, QuestObjectiveType.DUNGEON_CREATE, target, 1);
+        if (!"ANY".equalsIgnoreCase(target)) {
+            updateObjective(player, QuestObjectiveType.DUNGEON_CREATE, "ANY", 1);
+        }
+    }
+
     private boolean requirementsMet(Player player, Quest quest) {
         return checkRequirements(player, quest, true);
     }
@@ -872,9 +910,25 @@ public class QuestManager {
                 return "Participate in a siege";
             case DUEL_WIN:
                 return "Win a duel";
+            case ARENA_MATCH:
+                return describeArenaObjective(obj.getTarget());
+            case DUNGEON_CREATE:
+                if (obj.getTarget() == null || obj.getTarget().equalsIgnoreCase("ANY")) {
+                    return "Create and save a dungeon";
+                }
+                return "Save the dungeon \"" + obj.getTarget() + "\"";
             default:
                 return obj.getTarget();
         }
+    }
+
+    private String describeArenaObjective(String target) {
+        String queueHint = " (/arena to queue)";
+        if (target == null || target.equalsIgnoreCase("ANY")) {
+            return "Complete an arena match" + queueHint;
+        }
+        String pretty = target.toLowerCase().replace('_', ' ');
+        return "Complete a " + pretty + " arena match" + queueHint;
     }
 
     /**
