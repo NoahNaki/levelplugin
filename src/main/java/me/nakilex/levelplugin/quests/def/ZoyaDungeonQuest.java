@@ -34,7 +34,8 @@ public class ZoyaDungeonQuest extends Quest implements QuestScript, QuestComplet
     private static final String QUEST_ID = "zoyadungeon";
     private static final int NPC_ID = 1113;
     private static final String PORTAL_WORLD = "world";
-    private static final int PORTAL_X = 643;
+    private static final int PORTAL_MIN_X = 643;
+    private static final int PORTAL_MAX_X = 643;
     private static final int PORTAL_MIN_Y = 40;
     private static final int PORTAL_MAX_Y = 46;
     private static final int PORTAL_MIN_Z = -233;
@@ -56,7 +57,8 @@ public class ZoyaDungeonQuest extends Quest implements QuestScript, QuestComplet
 
     private static List<QuestObjective> createObjectives() {
         World world = Bukkit.getWorld(PORTAL_WORLD);
-        Location beaconLoc = world == null ? null : new Location(world, PORTAL_X + 0.5, 43, PORTAL_MIN_Z + 2);
+        double beaconX = (PORTAL_MIN_X + PORTAL_MAX_X) / 2.0 + 0.5;
+        Location beaconLoc = world == null ? null : new Location(world, beaconX, 43, PORTAL_MIN_Z + 2);
         return List.of(
                 new QuestObjective(QuestObjectiveType.TALK, "npc" + NPC_ID, 1, BeaconTargets.npc(NPC_ID)),
                 new QuestObjective(QuestObjectiveType.DUNGEON_CREATE, "ANY", 1,
@@ -116,8 +118,6 @@ public class ZoyaDungeonQuest extends Quest implements QuestScript, QuestComplet
     private void registerPortalWatcher(Player player, Main plugin) {
         UUID playerId = player.getUniqueId();
         Listener listener = new Listener() {
-            private boolean wasInside = isInsidePortal(player.getLocation());
-
             @EventHandler
             public void onMove(PlayerMoveEvent event) {
                 if (!event.getPlayer().getUniqueId().equals(playerId)) {
@@ -127,11 +127,9 @@ public class ZoyaDungeonQuest extends Quest implements QuestScript, QuestComplet
                 if (!isCreatorObjectiveActive(mover, plugin)) {
                     return;
                 }
-                boolean inside = isInsidePortal(event.getTo());
-                if (inside && !wasInside) {
+                if (isInsidePortal(event.getTo())) {
                     openCreator(mover, plugin);
                 }
-                wasInside = inside;
             }
         };
         register(playerId, listener, plugin);
@@ -181,7 +179,11 @@ public class ZoyaDungeonQuest extends Quest implements QuestScript, QuestComplet
         if (returnLocation.getWorld() != null) {
             returnLocation.getWorld().getChunkAt(returnLocation).load();
         }
-        builder.start(player, returnLocation);
+        builder.setNextReturnLocation(player, returnLocation);
+        boolean executed = player.performCommand("dungeon create");
+        if (!executed) {
+            builder.start(player, returnLocation);
+        }
         player.sendMessage(ChatColor.AQUA + "Zoya's portal flares and /dungeon create opens before you.");
     }
 
@@ -195,7 +197,8 @@ public class ZoyaDungeonQuest extends Quest implements QuestScript, QuestComplet
         int x = location.getBlockX();
         int y = location.getBlockY();
         int z = location.getBlockZ();
-        return x == PORTAL_X && y >= PORTAL_MIN_Y && y <= PORTAL_MAX_Y
+        return x >= PORTAL_MIN_X && x <= PORTAL_MAX_X
+                && y >= PORTAL_MIN_Y && y <= PORTAL_MAX_Y
                 && z >= PORTAL_MIN_Z && z <= PORTAL_MAX_Z;
     }
 
@@ -204,7 +207,7 @@ public class ZoyaDungeonQuest extends Quest implements QuestScript, QuestComplet
         if (world == null) {
             return null;
         }
-        return new Location(world, 638.5, 40, -231.5);
+        return new Location(world, 638, 40, -231);
     }
 
     private void register(UUID playerId, Listener listener, Main plugin) {

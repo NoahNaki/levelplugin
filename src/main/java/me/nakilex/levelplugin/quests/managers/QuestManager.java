@@ -923,12 +923,12 @@ public class QuestManager {
     }
 
     private String describeArenaObjective(String target) {
-        String queueHint = " (/arena to queue)";
         if (target == null || target.equalsIgnoreCase("ANY")) {
-            return "Complete an arena match" + queueHint;
+            return "Complete an /arena match";
         }
+        String queueHint = " (/arena to queue)";
         String pretty = target.toLowerCase().replace('_', ' ');
-        return "Complete a " + pretty + " arena match" + queueHint;
+        return "Complete a " + pretty + " /arena match" + queueHint;
     }
 
     /**

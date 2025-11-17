@@ -255,6 +255,8 @@ public class NPCDialogManager implements Listener {
                 speaker = player.getName();
             }
         }
+        line = line.replaceAll("(?i)<player>", player.getName());
+
         if (session.index == 0) {
             ChatFormatter.constructDivider(player, " ", 45);
         }
