@@ -53,6 +53,7 @@ public class DungeonBuilder implements Listener {
     private final DungeonManager manager;
     private final Map<UUID, Session> sessions = new HashMap<>();
     private final Map<UUID, Location> storedReturns = new HashMap<>();
+    private final Map<UUID, Location> pendingReturnOverrides = new HashMap<>();
     private final Map<UUID, StoredInventory> storedInventories = new HashMap<>();
     private final Map<UUID, EnumSet<TemplateType>> unlockedRooms = new HashMap<>();
     private final File sessionFile;
@@ -224,7 +225,24 @@ public class DungeonBuilder implements Listener {
     }
 
     public void start(Player player) {
-        Location back = player.getLocation();
+        if (player == null) {
+            return;
+        }
+        Location override = pendingReturnOverrides.remove(player.getUniqueId());
+        start(player, override != null ? override : player.getLocation());
+    }
+
+    public void start(Player player, Location returnLocation) {
+        if (player == null) {
+            return;
+        }
+        Location override = pendingReturnOverrides.remove(player.getUniqueId());
+        Location back;
+        if (override != null) {
+            back = override.clone();
+        } else {
+            back = returnLocation == null ? player.getLocation() : returnLocation.clone();
+        }
         String worldName = "dgn_edit_" + player.getUniqueId();
         World world = manager.createVoidWorld(worldName);
         if (world == null) {
@@ -240,6 +258,24 @@ public class DungeonBuilder implements Listener {
         player.setAllowFlight(true);
         player.setFlying(true);
         ChatMessageUtil.send(player, MessageType.INFO, "Right-click to place the entrance at your feet.");
+    }
+
+    public void setNextReturnLocation(Player player, Location location) {
+        if (player == null) {
+            return;
+        }
+        setNextReturnLocation(player.getUniqueId(), location);
+    }
+
+    public void setNextReturnLocation(UUID playerId, Location location) {
+        if (playerId == null) {
+            return;
+        }
+        if (location == null) {
+            pendingReturnOverrides.remove(playerId);
+        } else {
+            pendingReturnOverrides.put(playerId, location.clone());
+        }
     }
 
     public void edit(Player player, DungeonLayout layout) {
@@ -327,6 +363,14 @@ public class DungeonBuilder implements Listener {
         if (entranceX == -1) {
             ChatMessageUtil.send(player, MessageType.INFO, "Right-click to place the entrance at your feet.");
         }
+    }
+
+    public boolean isBuilding(Player player) {
+        return player != null && isBuilding(player.getUniqueId());
+    }
+
+    public boolean isBuilding(java.util.UUID playerId) {
+        return sessions.containsKey(playerId);
     }
 
     @EventHandler
@@ -596,6 +640,8 @@ public class DungeonBuilder implements Listener {
                 return;
             }
             manager.saveLayout(event.getPlayer(), key, display, layout);
+            me.nakilex.levelplugin.Main.getInstance().getQuestManager()
+                    .handleDungeonCreate(event.getPlayer(), key);
             s.cancel();
             ChatMessageUtil.send(event.getPlayer(), MessageType.SUCCESS,
                     "Dungeon saved as '" + ChatColor.YELLOW + key + ChatColor.GREEN + "'.");

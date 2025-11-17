@@ -479,11 +479,15 @@ public class ArenaTeamMatchManager implements Listener {
 
         announceSummary(match, winners, draw);
 
+        me.nakilex.levelplugin.quests.managers.QuestManager questManager = plugin.getQuestManager();
         for (UUID id : match.allPlayers()) {
             Player player = Bukkit.getPlayer(id);
             if (player != null) {
                 resetPlayer(player);
                 scoreboardManager.updateBoard(player);
+                if (questManager != null) {
+                    questManager.handleArenaMatchComplete(player, ArenaMode.TWO_VS_TWO.name());
+                }
             }
         }
 

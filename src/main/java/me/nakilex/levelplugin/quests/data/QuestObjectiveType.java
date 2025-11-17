@@ -34,5 +34,7 @@ public enum QuestObjectiveType {
     DUEL_LOSE,
     LOOTCHEST_OPEN,
     SIEGE_PARTICIPATE,
-    DUEL_WIN
+    DUEL_WIN,
+    ARENA_MATCH,
+    DUNGEON_CREATE
 }
