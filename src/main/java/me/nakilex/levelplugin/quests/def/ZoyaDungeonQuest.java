@@ -13,18 +13,14 @@ import me.nakilex.levelplugin.quests.data.PlayerQuestProgress;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
-import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerMoveEvent;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.UUID;
 
 /**
  * Quest that has players design their first dungeon for Zoya.
@@ -34,17 +30,23 @@ public class ZoyaDungeonQuest extends Quest implements QuestScript, QuestComplet
     private static final String QUEST_ID = "zoyadungeon";
     private static final int NPC_ID = 1113;
     private static final String PORTAL_WORLD = "world";
-    private static final int PORTAL_MIN_X = 643;
+    private static final int PORTAL_MIN_X = 642;
     private static final int PORTAL_MAX_X = 643;
-    private static final int PORTAL_MIN_Y = 40;
+    private static final int PORTAL_MIN_Y = 41;
     private static final int PORTAL_MAX_Y = 46;
-    private static final int PORTAL_MIN_Z = -233;
-    private static final int PORTAL_MAX_Z = -229;
+    private static final int PORTAL_MIN_Z = -234;
+    private static final int PORTAL_MAX_Z = -228;
+    private static final int PORTAL_TRIGGER_X = 641;
+    private static final int PORTAL_TRIGGER_Y = 40;
+    private static final int PORTAL_TRIGGER_Z = -231;
+    private static final int PORTAL_TRIGGER_RADIUS = 10;
+
+    private static ZoyaDungeonQuest instance;
+    private static boolean portalWatcherRegistered;
 
     private static final List<String> REMINDER_DIALOG = List.of(
             "Zoya|That shimmering portal beside me links straight to the dungeon creator.",
-            "Zoya|Step inside between x=643 and z=-233 to -229 and I'll have /dungeon create ready for you.",
-            "Zoya|Sketch something bold, save it, and the portal will return you to me at the plaza." 
+            "Zoya|Sketch something bold, save it, and the portal will return you to me at the plaza."
     );
 
     private static final List<String> COMPLETION_DIALOG = List.of(
@@ -52,8 +54,6 @@ public class ZoyaDungeonQuest extends Quest implements QuestScript, QuestComplet
             "Zoya|As more challengers attempt it, you'll earn rewards based on its popularity.",
             "Zoya|I wish you the best of luck, my new colleague." 
     );
-
-    private final Map<UUID, List<Listener>> listeners = new HashMap<>();
 
     private static List<QuestObjective> createObjectives() {
         World world = Bukkit.getWorld(PORTAL_WORLD);
@@ -89,6 +89,8 @@ public class ZoyaDungeonQuest extends Quest implements QuestScript, QuestComplet
                 ),
                 false
         );
+        instance = this;
+        ensurePortalWatcher(Main.getInstance());
     }
 
     public static List<String> getReminderDialog() {
@@ -101,57 +103,62 @@ public class ZoyaDungeonQuest extends Quest implements QuestScript, QuestComplet
 
     @Override
     public void onStart(Player player, Main plugin) {
-        registerPortalWatcher(player, plugin);
+        ensurePortalWatcher(plugin);
         Bukkit.getScheduler().runTask(plugin, () -> tryOpenCreator(player, plugin));
     }
 
     @Override
     public void onComplete(Player player, Main plugin) {
-        cleanup(player);
+        // Portal access remains available even after completion.
     }
 
     @Override
     public void onReset(Player player, Main plugin) {
-        cleanup(player);
+        // Nothing additional.
     }
 
-    private void registerPortalWatcher(Player player, Main plugin) {
-        UUID playerId = player.getUniqueId();
+    private static void ensurePortalWatcher(Main plugin) {
+        if (portalWatcherRegistered || plugin == null) {
+            return;
+        }
         Listener listener = new Listener() {
             @EventHandler
             public void onMove(PlayerMoveEvent event) {
-                if (!event.getPlayer().getUniqueId().equals(playerId)) {
+                if (instance == null) {
                     return;
                 }
-                Player mover = event.getPlayer();
-                if (!isCreatorObjectiveActive(mover, plugin)) {
+                Player player = event.getPlayer();
+                if (!instance.canUseCreatorPortal(player, plugin)) {
                     return;
                 }
-                if (isInsidePortal(event.getTo())) {
-                    openCreator(mover, plugin);
+                if (instance.shouldTriggerPortal(event.getFrom(), event.getTo())) {
+                    instance.openCreator(player, plugin);
                 }
             }
         };
-        register(playerId, listener, plugin);
+        Bukkit.getPluginManager().registerEvents(listener, plugin);
+        portalWatcherRegistered = true;
     }
 
     private void tryOpenCreator(Player player, Main plugin) {
         if (!player.isOnline()) {
             return;
         }
-        if (isCreatorObjectiveActive(player, plugin) && isInsidePortal(player.getLocation())) {
+        if (canUseCreatorPortal(player, plugin)
+                && (isInsidePortal(player.getLocation()) || isNetherPortalTrigger(player.getLocation()))) {
             openCreator(player, plugin);
         }
     }
 
-    private boolean isCreatorObjectiveActive(Player player, Main plugin) {
+    private boolean canUseCreatorPortal(Player player, Main plugin) {
         PlayerQuestProgress progress = plugin.getQuestManager().getProgress(player.getUniqueId(), QUEST_ID);
-        if (progress == null) {
-            return false;
+        if (progress != null) {
+            boolean introDone = progress.getProgress(0) >= getObjectives().get(0).getAmount();
+            if (introDone) {
+                return true;
+            }
         }
-        boolean introDone = progress.getProgress(0) >= getObjectives().get(0).getAmount();
-        boolean dungeonSaved = progress.getProgress(1) >= getObjectives().get(1).getAmount();
-        return introDone && !dungeonSaved;
+        return plugin.getQuestManager().hasCompleted(player.getUniqueId(), QUEST_ID);
     }
 
     private void openCreator(Player player, Main plugin) {
@@ -202,25 +209,39 @@ public class ZoyaDungeonQuest extends Quest implements QuestScript, QuestComplet
                 && z >= PORTAL_MIN_Z && z <= PORTAL_MAX_Z;
     }
 
+    private boolean shouldTriggerPortal(Location from, Location to) {
+        if (to == null) {
+            return false;
+        }
+        boolean enteringCuboid = isInsidePortal(to) && !isInsidePortal(from);
+        boolean enteringPortalBlock = isNetherPortalTrigger(to) && !isNetherPortalTrigger(from);
+        return enteringCuboid || enteringPortalBlock;
+    }
+
+    private boolean isNetherPortalTrigger(Location location) {
+        if (location == null || location.getWorld() == null) {
+            return false;
+        }
+        if (!location.getWorld().getName().equalsIgnoreCase(PORTAL_WORLD)) {
+            return false;
+        }
+        if (location.getBlock().getType() != Material.NETHER_PORTAL) {
+            return false;
+        }
+        double centerX = location.getBlockX() + 0.5;
+        double centerY = location.getBlockY() + 0.5;
+        double centerZ = location.getBlockZ() + 0.5;
+        double dx = centerX - PORTAL_TRIGGER_X;
+        double dy = centerY - PORTAL_TRIGGER_Y;
+        double dz = centerZ - PORTAL_TRIGGER_Z;
+        return (dx * dx + dy * dy + dz * dz) <= PORTAL_TRIGGER_RADIUS * PORTAL_TRIGGER_RADIUS;
+    }
+
     private Location createReturnLocation() {
         World world = Bukkit.getWorld(PORTAL_WORLD);
         if (world == null) {
             return null;
         }
         return new Location(world, 638, 40, -231);
-    }
-
-    private void register(UUID playerId, Listener listener, Main plugin) {
-        Bukkit.getPluginManager().registerEvents(listener, plugin);
-        listeners.computeIfAbsent(playerId, k -> new ArrayList<>()).add(listener);
-    }
-
-    private void cleanup(Player player) {
-        List<Listener> regs = listeners.remove(player.getUniqueId());
-        if (regs != null) {
-            for (Listener listener : regs) {
-                HandlerList.unregisterAll(listener);
-            }
-        }
     }
 }

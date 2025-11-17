@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.regex.Matcher;
 
 /**
  * Handles simple dialog sequences with NPCs.
@@ -255,7 +256,7 @@ public class NPCDialogManager implements Listener {
                 speaker = player.getName();
             }
         }
-        line = line.replaceAll("(?i)<player>", player.getName());
+        line = line.replaceAll("(?i)<player>", Matcher.quoteReplacement(player.getName()));
 
         if (session.index == 0) {
             ChatFormatter.constructDivider(player, " ", 45);
