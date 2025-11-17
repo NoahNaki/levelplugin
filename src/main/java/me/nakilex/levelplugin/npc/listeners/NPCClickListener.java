@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.quests.data.Quest;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
+import me.nakilex.levelplugin.quests.def.ZoyaDungeonQuest;
 import me.nakilex.levelplugin.quests.gui.QuestState;
 import me.nakilex.levelplugin.quests.data.PlayerQuestProgress;
 import me.nakilex.levelplugin.quests.def.SerasQuest;
@@ -117,6 +118,31 @@ public class NPCClickListener implements Listener {
                         }
                         if (!killSlimesDone) {
                             player.sendMessage("§cComplete the quest first!");
+                            return;
+                        }
+                    }
+                }
+
+                if ("zoyadungeon".equals(quest.getId())) {
+                    PlayerQuestProgress progress = questManager.getProgress(player.getUniqueId(), quest.getId());
+                    if (progress != null) {
+                        boolean introDone = progress.getProgress(0) >= quest.getObjectives().get(0).getAmount();
+                        boolean dungeonSaved = progress.getProgress(1) >= quest.getObjectives().get(1).getAmount();
+                        boolean finaleDone = progress.getProgress(2) >= quest.getObjectives().get(2).getAmount();
+
+                        if (introDone && !dungeonSaved) {
+                            dialogManager.startDialog(player,
+                                    ZoyaDungeonQuest.getReminderDialog(),
+                                    npc,
+                                    null);
+                            return;
+                        }
+
+                        if (dungeonSaved && !finaleDone) {
+                            dialogManager.startDialog(player,
+                                    ZoyaDungeonQuest.getCompletionDialog(),
+                                    npc,
+                                    () -> questManager.handleTalk(player, "npc" + npc.getId() + "_return"));
                             return;
                         }
                     }

@@ -75,6 +75,7 @@ public class QuestManager {
         Quest rahirScorpid = new me.nakilex.levelplugin.quests.def.RahirScorpidQuest();
         Quest yasiyaArena = new me.nakilex.levelplugin.quests.def.YasiyaArenaQuest();
         Quest skeggSpiders = new me.nakilex.levelplugin.quests.def.SkeggSpiderQuest();
+        Quest zoyaDungeon = new me.nakilex.levelplugin.quests.def.ZoyaDungeonQuest();
         registerQuest(nb);
         registerQuest(seras);
         registerQuest(hawie);
@@ -83,6 +84,7 @@ public class QuestManager {
         registerQuest(rahirScorpid);
         registerQuest(yasiyaArena);
         registerQuest(skeggSpiders);
+        registerQuest(zoyaDungeon);
         plugin.getLogger().info("Registered " + quests.size() + " quests.");
     }
 
@@ -655,6 +657,20 @@ public class QuestManager {
         }
     }
 
+    public void handleDungeonCreate(Player player, String dungeonKey) {
+        if (player == null) {
+            return;
+        }
+        String target = (dungeonKey == null || dungeonKey.isEmpty()) ? "ANY" : dungeonKey;
+        if (debug) {
+            plugin.getLogger().info("[QuestDebug] " + player.getName() + " saved dungeon " + target);
+        }
+        updateObjective(player, QuestObjectiveType.DUNGEON_CREATE, target, 1);
+        if (!"ANY".equalsIgnoreCase(target)) {
+            updateObjective(player, QuestObjectiveType.DUNGEON_CREATE, "ANY", 1);
+        }
+    }
+
     private boolean requirementsMet(Player player, Quest quest) {
         return checkRequirements(player, quest, true);
     }
@@ -896,6 +912,11 @@ public class QuestManager {
                 return "Win a duel";
             case ARENA_MATCH:
                 return describeArenaObjective(obj.getTarget());
+            case DUNGEON_CREATE:
+                if (obj.getTarget() == null || obj.getTarget().equalsIgnoreCase("ANY")) {
+                    return "Create and save a dungeon";
+                }
+                return "Save the dungeon \"" + obj.getTarget() + "\"";
             default:
                 return obj.getTarget();
         }

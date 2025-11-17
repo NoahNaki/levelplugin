@@ -224,7 +224,11 @@ public class DungeonBuilder implements Listener {
     }
 
     public void start(Player player) {
-        Location back = player.getLocation();
+        start(player, player.getLocation());
+    }
+
+    public void start(Player player, Location returnLocation) {
+        Location back = returnLocation == null ? player.getLocation() : returnLocation.clone();
         String worldName = "dgn_edit_" + player.getUniqueId();
         World world = manager.createVoidWorld(worldName);
         if (world == null) {
@@ -327,6 +331,14 @@ public class DungeonBuilder implements Listener {
         if (entranceX == -1) {
             ChatMessageUtil.send(player, MessageType.INFO, "Right-click to place the entrance at your feet.");
         }
+    }
+
+    public boolean isBuilding(Player player) {
+        return player != null && isBuilding(player.getUniqueId());
+    }
+
+    public boolean isBuilding(java.util.UUID playerId) {
+        return sessions.containsKey(playerId);
     }
 
     @EventHandler
@@ -596,6 +608,8 @@ public class DungeonBuilder implements Listener {
                 return;
             }
             manager.saveLayout(event.getPlayer(), key, display, layout);
+            me.nakilex.levelplugin.Main.getInstance().getQuestManager()
+                    .handleDungeonCreate(event.getPlayer(), key);
             s.cancel();
             ChatMessageUtil.send(event.getPlayer(), MessageType.SUCCESS,
                     "Dungeon saved as '" + ChatColor.YELLOW + key + ChatColor.GREEN + "'.");
