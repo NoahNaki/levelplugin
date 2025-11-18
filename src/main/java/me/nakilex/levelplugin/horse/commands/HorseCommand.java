@@ -51,8 +51,6 @@ public class HorseCommand implements TabExecutor {
         // Handle 'reroll' command
         if (args[0].equalsIgnoreCase("reroll")) {
             if (!StableKeeperQuest.hasUnlockedHorseMenu(player.getUniqueId())) {
-                send(player, MessageType.ERROR,
-                        "Stable Keeper|Help him with the rooster problem to unlock the stables.");
                 return true;
             }
             // Dismount any existing horse before rerolling
