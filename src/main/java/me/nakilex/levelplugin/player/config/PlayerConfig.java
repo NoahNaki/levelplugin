@@ -16,6 +16,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.UUID;
 
 /**
@@ -41,6 +42,11 @@ public class PlayerConfig {
     }
     public FileConfiguration getConfig() {
         return config;
+    }
+
+    /** Stores the number of dungeon completions rewarded on a given day. */
+    public record DungeonRewardState(int count, long epochDay) {
+        public static final DungeonRewardState EMPTY = new DungeonRewardState(0, 0);
     }
 
 
@@ -447,6 +453,41 @@ public class PlayerConfig {
 
     public void setUnlockedProfiles(UUID uuid, int count) {
         config.set("players." + uuid + ".profiles.unlocked", count);
+    }
+
+    /** Retrieve the persisted dungeon reward counters for a player. */
+    public DungeonRewardState getDungeonRewardState(UUID uuid) {
+        String base = "players." + uuid + ".dungeons.daily";
+        int count = config.getInt(base + ".count", 0);
+        long epoch = config.getLong(base + ".epoch_day", 0L);
+        return new DungeonRewardState(count, epoch);
+    }
+
+    /** Persist the latest dungeon reward counters for a player. */
+    public void setDungeonRewardState(UUID uuid, DungeonRewardState state) {
+        String base = "players." + uuid + ".dungeons.daily";
+        config.set(base + ".count", state.count());
+        config.set(base + ".epoch_day", state.epochDay());
+        saveConfig();
+    }
+
+    /** Check if a fake gate has been permanently unlocked for this player. */
+    public boolean isGateUnlocked(UUID uuid, String gateId) {
+        if (gateId == null) {
+            return false;
+        }
+        String path = "players." + uuid + ".gates." + gateId.toLowerCase(Locale.ROOT);
+        return config.getBoolean(path, false);
+    }
+
+    /** Persist the unlocked state for a fake gate for this player. */
+    public void setGateUnlocked(UUID uuid, String gateId, boolean unlocked) {
+        if (gateId == null) {
+            return;
+        }
+        String path = "players." + uuid + ".gates." + gateId.toLowerCase(Locale.ROOT);
+        config.set(path, unlocked);
+        saveConfig();
     }
 
     /** Allows external classes to persist config changes. */

@@ -2,8 +2,15 @@ package me.nakilex.levelplugin.dungeon;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.dungeon.TemplateType;
+import me.nakilex.levelplugin.dungeon.reward.DungeonRewardCalculator;
+import me.nakilex.levelplugin.mob.utils.CombatPowerUtil;
 import me.nakilex.levelplugin.mob.utils.MobNameUtil;
 import me.nakilex.levelplugin.lootchests.utils.LocationUtils;
+import me.nakilex.levelplugin.player.config.PlayerConfig;
+import me.nakilex.levelplugin.utils.ChatMessageUtil;
+import me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
+import me.nakilex.levelplugin.utils.CurrencyMessageUtil;
+import me.nakilex.levelplugin.utils.CurrencyMessageUtil.Currency;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import me.nakilex.levelplugin.utils.FileUtil;
@@ -19,8 +26,12 @@ import org.bukkit.block.Skull;
 import org.bukkit.entity.TextDisplay;
 import com.destroystokyo.paper.profile.PlayerProfile;
 import org.bukkit.event.EventPriority;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.player.PlayerPortalEvent;
 
+import java.text.DecimalFormat;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.*;
 
 /**
@@ -39,6 +50,9 @@ public class DungeonManager {
     private final Object saveLock = new Object();
     private final DungeonBuilder builder;
     private final me.nakilex.levelplugin.lootchests.managers.LootChestManager lootChestManager;
+    private static final int DAILY_REWARD_LIMIT = 3;
+    private final ZoneId serverZone = ZoneId.systemDefault();
+    private final Map<String, Integer> mobPowerCache = new HashMap<>();
 
     /**
      * Normalize a dungeon name for storage/lookup.
@@ -85,6 +99,47 @@ public class DungeonManager {
     /** Return true if the given world is an active dungeon instance. */
     public boolean isInstanceWorld(World world) {
         return instances.containsKey(world);
+    }
+
+    public int getDailyRewardLimit() {
+        return DAILY_REWARD_LIMIT;
+    }
+
+    public int getDailyRewardsUsed(java.util.UUID playerId) {
+        return resolveDailyState(playerId).count();
+    }
+
+    public int getDailyRewardsRemaining(java.util.UUID playerId) {
+        return Math.max(0, DAILY_REWARD_LIMIT - getDailyRewardsUsed(playerId));
+    }
+
+    private PlayerConfig.DungeonRewardState resolveDailyState(java.util.UUID playerId) {
+        PlayerConfig cfg = plugin.getPlayerConfig();
+        if (cfg == null || playerId == null) {
+            return PlayerConfig.DungeonRewardState.EMPTY;
+        }
+        PlayerConfig.DungeonRewardState stored = cfg.getDungeonRewardState(playerId);
+        long today = LocalDate.now(serverZone).toEpochDay();
+        if (stored.epochDay() != today) {
+            PlayerConfig.DungeonRewardState reset = new PlayerConfig.DungeonRewardState(0, today);
+            cfg.setDungeonRewardState(playerId, reset);
+            return reset;
+        }
+        return stored;
+    }
+
+    private boolean hasDailyRewardRemaining(java.util.UUID playerId) {
+        return resolveDailyState(playerId).count() < DAILY_REWARD_LIMIT;
+    }
+
+    private void incrementDailyReward(java.util.UUID playerId) {
+        PlayerConfig cfg = plugin.getPlayerConfig();
+        if (cfg == null || playerId == null) {
+            return;
+        }
+        PlayerConfig.DungeonRewardState current = resolveDailyState(playerId);
+        int next = Math.min(DAILY_REWARD_LIMIT, current.count() + 1);
+        cfg.setDungeonRewardState(playerId, new PlayerConfig.DungeonRewardState(next, current.epochDay()));
     }
 
     public DungeonManager(Main plugin, me.nakilex.levelplugin.lootchests.managers.LootChestManager lootChestManager) {
@@ -691,6 +746,10 @@ public class DungeonManager {
                 + (System.currentTimeMillis() - debugStart) + "ms");
         Location origin = new Location(world, 0, 64, 0);
         Dungeon dungeon = new Dungeon(world, keyName);
+        int roomCount = countRooms(layout);
+        int mobPower = calculateMobPower(layout);
+        int threatLevel = layout.getMaxThreat();
+        long runStart = System.currentTimeMillis();
 
         long taskStart = System.currentTimeMillis();
         java.util.List<BuildTask> tasks = new java.util.ArrayList<>();
@@ -724,7 +783,7 @@ public class DungeonManager {
 
         long pasteStart = System.currentTimeMillis();
 
-        Instance inst = new Instance(dungeon, keyName);
+        Instance inst = new Instance(dungeon, keyName, runStart, roomCount, mobPower, threatLevel, player.getUniqueId());
         java.util.List<Player> participants = new java.util.ArrayList<>();
         me.nakilex.levelplugin.party.PartyManager pm = plugin.getPartyManager();
         me.nakilex.levelplugin.party.Party party = pm.getParty(player.getUniqueId());
@@ -740,6 +799,7 @@ public class DungeonManager {
             participants.add(player);
             inst.returnLocations.put(player.getUniqueId(), player.getLocation());
         }
+        inst.totalParticipants = participants.size();
         instances.put(world, inst);
         world.setDifficulty(org.bukkit.Difficulty.HARD);
         world.setGameRule(org.bukkit.GameRule.DO_MOB_SPAWNING, false);
@@ -781,6 +841,49 @@ public class DungeonManager {
                 pasteRoom(dungeon, t.template(), t.rotation(), t.center(), t.mob(), false);
             }
         }.runTaskTimer(plugin, 1L, 1L);
+    }
+
+    private int countRooms(DungeonLayout layout) {
+        if (layout == null) return 0;
+        int count = 0;
+        for (int x = 0; x < DungeonLayout.WIDTH; x++) {
+            for (int y = 0; y < DungeonLayout.HEIGHT; y++) {
+                if (layout.get(x, y) != RoomType.NONE) {
+                    count++;
+                }
+            }
+        }
+        return count;
+    }
+
+    private int calculateMobPower(DungeonLayout layout) {
+        if (layout == null) return 0;
+        int total = 0;
+        for (int x = 0; x < DungeonLayout.WIDTH; x++) {
+            for (int y = 0; y < DungeonLayout.HEIGHT; y++) {
+                String mob = layout.getMob(x, y);
+                if (mob == null || mob.isBlank()) continue;
+                total += estimateMobPower(mob);
+            }
+        }
+        return total;
+    }
+
+    private int estimateMobPower(String mob) {
+        if (mob == null || mob.isBlank()) return 0;
+        String key = MobNameUtil.canonicalMobKey(mob);
+        if (key.isEmpty()) {
+            key = mob.toLowerCase(java.util.Locale.ROOT);
+        }
+        final String cacheKey = key;
+        return mobPowerCache.computeIfAbsent(cacheKey, unused -> {
+            try {
+                return CombatPowerUtil.estimateCombatPower(mob);
+            } catch (Exception ex) {
+                plugin.getLogger().warning("[Dungeon] Failed to estimate combat power for '" + mob + "': " + ex.getMessage());
+                return 0;
+            }
+        });
     }
 
     public void cleanupInstances() {
@@ -948,8 +1051,28 @@ public class DungeonManager {
         final String layout;
         final Map<java.util.UUID, Location> returnLocations = new HashMap<>();
         final java.util.List<Integer> chestIds = new java.util.ArrayList<>();
+        final java.util.Map<java.util.UUID, Double> damageTaken = new HashMap<>();
+        final java.util.Set<java.util.UUID> rewardedPlayers = new java.util.HashSet<>();
+        final long startTime;
+        final int totalRooms;
+        final int mobCombatPower;
+        final int threatLevel;
+        final java.util.UUID hostId;
+        int totalParticipants;
+        double totalDamageTaken;
+        boolean masterRewardGranted;
         org.bukkit.scheduler.BukkitTask removalTask;
-        Instance(Dungeon d, String layout) { this.dungeon = d; this.layout = layout; }
+
+        Instance(Dungeon dungeon, String layout, long startTime, int rooms, int mobPower,
+                 int threatLevel, java.util.UUID hostId) {
+            this.dungeon = dungeon;
+            this.layout = layout;
+            this.startTime = startTime;
+            this.totalRooms = Math.max(1, rooms);
+            this.mobCombatPower = Math.max(0, mobPower);
+            this.threatLevel = Math.max(1, threatLevel);
+            this.hostId = hostId;
+        }
     }
 
         private class InstanceListener implements org.bukkit.event.Listener {
@@ -960,6 +1083,17 @@ public class DungeonManager {
                 if (inst == null) return;
                 e.setCancelled(true);
                 handleExit(e.getPlayer(), inst, e.getFrom().getWorld());
+            }
+
+            @org.bukkit.event.EventHandler(ignoreCancelled = true)
+            public void onDamage(EntityDamageEvent event) {
+                if (!(event.getEntity() instanceof Player player)) return;
+                Instance inst = instances.get(player.getWorld());
+                if (inst == null) return;
+                double dmg = event.getFinalDamage();
+                if (dmg <= 0) return;
+                inst.totalDamageTaken += dmg;
+                inst.damageTaken.merge(player.getUniqueId(), dmg, Double::sum);
             }
 
             @org.bukkit.event.EventHandler
@@ -980,6 +1114,7 @@ public class DungeonManager {
                     boolean completed = room != null && room.template == exit && inst.dungeon.isBossDefeated();
                     if (completed) {
                         sendCompleteMessage(player, getDisplayName(inst.layout));
+                        grantCompletionReward(inst, player);
                     } else {
                         sendExitMessage(player, getDisplayName(inst.layout));
                     }
@@ -1029,6 +1164,94 @@ public class DungeonManager {
             me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§c§lDUNGEON EXITED");
             me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§7You left the §5" + layout + "§7 dungeon.");
             me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§c§l-", 45);
+        }
+    }
+
+    private void grantCompletionReward(Instance inst, Player player) {
+        if (inst == null || player == null) return;
+        java.util.UUID playerId = player.getUniqueId();
+        if (inst.rewardedPlayers.contains(playerId)) return;
+
+        if (!hasDailyRewardRemaining(playerId)) {
+            ChatMessageUtil.send(player, MessageType.WARNING,
+                    ChatColor.GRAY + "You have already collected " + DAILY_REWARD_LIMIT
+                            + " dungeon rewards today. Check back tomorrow!");
+            inst.rewardedPlayers.add(playerId);
+            inst.damageTaken.remove(playerId);
+            return;
+        }
+
+        int completedPlayers = Math.max(1, inst.totalParticipants - inst.returnLocations.size());
+        DungeonRewardCalculator.Context ctx = new DungeonRewardCalculator.Context(
+                inst.threatLevel,
+                inst.totalRooms,
+                Math.max(1, inst.totalParticipants),
+                completedPlayers,
+                inst.mobCombatPower,
+                System.currentTimeMillis() - inst.startTime,
+                inst.totalDamageTaken,
+                inst.damageTaken.getOrDefault(playerId, 0.0)
+        );
+        DungeonRewardCalculator.RewardResult reward = DungeonRewardCalculator.calculate(ctx);
+
+        if (plugin.getLevelManager() != null) {
+            plugin.getLevelManager().addXP(player, reward.playerXp());
+        }
+        if (plugin.getEconomyManager() != null) {
+            plugin.getEconomyManager().addCoins(player, reward.playerCoins());
+        }
+        if (reward.playerGems() > 0 && plugin.getGemsManager() != null) {
+            plugin.getGemsManager().addUnits(player, reward.playerGems());
+        }
+
+        incrementDailyReward(playerId);
+        inst.rewardedPlayers.add(playerId);
+        inst.damageTaken.remove(playerId);
+
+        DecimalFormat df = new DecimalFormat("0.00");
+        String expLabel = me.nakilex.levelplugin.utils.ChatFormatter.experienceLabel();
+        String expColor = me.nakilex.levelplugin.utils.ChatFormatter.experienceColor();
+        ChatMessageUtil.send(player, MessageType.REWARD, ChatColor.GOLD + "Dungeon Rewards Earned");
+        ChatMessageUtil.send(player, MessageType.INFO,
+                ChatColor.GRAY + "• " + expColor + "+" + reward.playerXp()
+                        + " <glyph:experience_orb_icon> " + expLabel);
+        ChatMessageUtil.send(player, MessageType.INFO,
+                ChatColor.GRAY + "• " + CurrencyMessageUtil.formatAmount(Currency.COINS, reward.playerCoins()));
+        if (reward.playerGems() > 0) {
+            ChatMessageUtil.send(player, MessageType.INFO,
+                    ChatColor.GRAY + "• " + CurrencyMessageUtil.formatAmount(Currency.GEMS, reward.playerGems()));
+        }
+        ChatMessageUtil.send(player, MessageType.INFO,
+                ChatColor.GRAY + "Run modifier: " + ChatColor.YELLOW + df.format(reward.totalMultiplier()) + "x");
+        int remaining = getDailyRewardsRemaining(playerId);
+        ChatMessageUtil.send(player, MessageType.INFO,
+                ChatColor.GRAY + "Daily rewards remaining: " + ChatColor.GREEN + remaining
+                        + ChatColor.GRAY + "/" + DAILY_REWARD_LIMIT);
+
+        grantMasterReward(inst, reward);
+    }
+
+    private void grantMasterReward(Instance inst, DungeonRewardCalculator.RewardResult reward) {
+        if (inst.masterRewardGranted) return;
+        inst.masterRewardGranted = true;
+        java.util.UUID hostId = inst.hostId;
+        if (hostId == null) return;
+        if (plugin.getEconomyManager() != null && reward.masterCoins() > 0) {
+            plugin.getEconomyManager().addCoins(hostId, reward.masterCoins());
+        }
+        Player host = Bukkit.getPlayer(hostId);
+        if (host != null) {
+            if (reward.masterGems() > 0 && plugin.getGemsManager() != null) {
+                plugin.getGemsManager().addUnits(host, reward.masterGems());
+            }
+            ChatMessageUtil.send(host, MessageType.REWARD,
+                    ChatColor.GOLD + "Dungeon master payout received.");
+            ChatMessageUtil.send(host, MessageType.INFO,
+                    ChatColor.GRAY + "• " + CurrencyMessageUtil.formatAmount(Currency.COINS, reward.masterCoins()));
+            if (reward.masterGems() > 0) {
+                ChatMessageUtil.send(host, MessageType.INFO,
+                        ChatColor.GRAY + "• " + CurrencyMessageUtil.formatAmount(Currency.GEMS, reward.masterGems()));
+            }
         }
     }
 
