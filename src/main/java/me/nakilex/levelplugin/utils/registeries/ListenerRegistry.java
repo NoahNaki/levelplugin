@@ -145,7 +145,7 @@ public class ListenerRegistry {
         pm.registerEvents(new StaticItemListener(), plugin);
         pm.registerEvents(blacksmithGUI, plugin);
         pm.registerEvents(horseGUI, plugin);
-        pm.registerEvents(new NPCClickListener(economyManager, questManager, dialogManager), plugin);
+        pm.registerEvents(new NPCClickListener(economyManager, questManager, dialogManager, horseGUI), plugin);
         pm.registerEvents(new NPCCommandListener(), plugin);
         pm.registerEvents(new PlayerRightClicksPlayerListener(), plugin);
         pm.registerEvents(new TradingWindow(), plugin);

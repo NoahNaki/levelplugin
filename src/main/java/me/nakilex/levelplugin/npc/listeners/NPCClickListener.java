@@ -2,12 +2,14 @@ package me.nakilex.levelplugin.npc.listeners;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
+import me.nakilex.levelplugin.horse.gui.HorseGUI;
 import me.nakilex.levelplugin.quests.data.Quest;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.quests.def.ZoyaDungeonQuest;
 import me.nakilex.levelplugin.quests.gui.QuestState;
 import me.nakilex.levelplugin.quests.data.PlayerQuestProgress;
 import me.nakilex.levelplugin.quests.def.SerasQuest;
+import me.nakilex.levelplugin.quests.def.StableKeeperQuest;
 import me.nakilex.levelplugin.npc.dialog.NPCDialogManager;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
@@ -22,12 +24,15 @@ public class NPCClickListener implements Listener {
     private final EconomyManager economyManager;
     private final QuestManager questManager;
     private final NPCDialogManager dialogManager;
+    private final HorseGUI horseGUI;
 
     // Constructor to get the EconomyManager instance
-    public NPCClickListener(EconomyManager economyManager, QuestManager questManager, NPCDialogManager dialogManager) {
+    public NPCClickListener(EconomyManager economyManager, QuestManager questManager, NPCDialogManager dialogManager,
+                            HorseGUI horseGUI) {
         this.economyManager = economyManager;
         this.questManager = questManager;
         this.dialogManager = dialogManager;
+        this.horseGUI = horseGUI;
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -123,6 +128,12 @@ public class NPCClickListener implements Listener {
                     }
                 }
 
+                if (StableKeeperQuest.ID.equals(quest.getId())) {
+                    if (handleStableKeeper(player, npc, quest)) {
+                        return;
+                    }
+                }
+
                 if ("zoyadungeon".equals(quest.getId())) {
                     PlayerQuestProgress progress = questManager.getProgress(player.getUniqueId(), quest.getId());
                     if (progress != null) {
@@ -158,5 +169,61 @@ public class NPCClickListener implements Listener {
                 }
             }
         }
+    }
+
+    private boolean handleStableKeeper(Player player, NPC npc, Quest quest) {
+        java.util.UUID uuid = player.getUniqueId();
+        if (questManager.hasCompleted(uuid, StableKeeperQuest.ID)) {
+            horseGUI.openHorseMenu(player);
+            return true;
+        }
+
+        PlayerQuestProgress progress = questManager.getProgress(uuid, StableKeeperQuest.ID);
+        if (progress == null) {
+            return false;
+        }
+
+        boolean introDone = progress.getProgress(StableKeeperQuest.TALK_INTRO_INDEX) >= 1;
+        boolean roostersCleared = progress.getProgress(StableKeeperQuest.KILL_ROOSTERS_INDEX) >= 5;
+        boolean reportDone = progress.getProgress(StableKeeperQuest.TALK_REPORT_INDEX) >= 1;
+        boolean horseBought = progress.getProgress(StableKeeperQuest.BUY_HORSE_INDEX) >= 1;
+        boolean finaleDone = progress.getProgress(StableKeeperQuest.TALK_FINAL_INDEX) >= 1;
+
+        if (!introDone) {
+            dialogManager.startDialog(player,
+                    quest.getDialogLines(),
+                    npc,
+                    () -> questManager.handleTalk(player, StableKeeperQuest.NPC_TALK_TARGET));
+            return true;
+        }
+
+        if (!roostersCleared) {
+            player.sendMessage("§cThin out five wild roosters so the feed can grow back.");
+            return true;
+        }
+
+        if (roostersCleared && !reportDone) {
+            dialogManager.startDialog(player,
+                    StableKeeperQuest.getDialogForObjective(StableKeeperQuest.TALK_REPORT_INDEX),
+                    npc,
+                    () -> questManager.handleTalk(player, StableKeeperQuest.NPC_RETURN_TARGET));
+            return true;
+        }
+
+        if (reportDone && !horseBought) {
+            horseGUI.openHorseMenu(player);
+            player.sendMessage("§ePick a horse from the stable, then talk to the Stable Keeper again.");
+            return true;
+        }
+
+        if (horseBought && !finaleDone) {
+            dialogManager.startDialog(player,
+                    StableKeeperQuest.getDialogForObjective(StableKeeperQuest.TALK_FINAL_INDEX),
+                    npc,
+                    () -> questManager.handleTalk(player, StableKeeperQuest.NPC_FINAL_TARGET));
+            return true;
+        }
+
+        return false;
     }
 }

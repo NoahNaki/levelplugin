@@ -1,8 +1,10 @@
 package me.nakilex.levelplugin.horse.gui;
 
+import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.horse.data.HorseData;
 import me.nakilex.levelplugin.horse.managers.HorseManager;
+import me.nakilex.levelplugin.quests.def.StableKeeperQuest;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -50,6 +52,11 @@ public class HorseGUI implements Listener {
 
     // Open or refresh the horse GUI
     public void openHorseMenu(Player player) {
+        if (!StableKeeperQuest.hasUnlockedHorseMenu(player.getUniqueId())) {
+            send(player, MessageType.INFO,
+                    "Stable Keeper|Help with his rooster problem before using the stables.");
+            return;
+        }
         UUID playerUUID = player.getUniqueId();
         HorseData horseData = horseManager.getHorse(playerUUID);
 
@@ -60,7 +67,7 @@ public class HorseGUI implements Listener {
         gui.setItem(11, createHorseInfoItem(horseData));
 
         // Add the reroll button to slot 13
-        gui.setItem(13, createRerollButton());
+        gui.setItem(13, createRerollButton(playerUUID));
 
         // Fill empty slots with gray stained glass
         ItemStack filler = createMenuItem(Material.GRAY_STAINED_GLASS_PANE, " ", " ");
@@ -111,16 +118,23 @@ public class HorseGUI implements Listener {
 
 
     // Create the reroll button with cost details
-    private ItemStack createRerollButton() {
+    private ItemStack createRerollButton(UUID playerUUID) {
+        boolean free = StableKeeperQuest.shouldReceiveFreeReroll(playerUUID);
+        String costLine = free
+                ? "§aCost: §20 (first horse)"
+                : "§7Cost: §6<glyph:coins_icon>" + REROLL_COST;
+        String reminder = free
+                ? "§7The Stable Keeper is covering this one."
+                : "§7Click to buy a new horse!";
         return createMenuItem(
             Material.SADDLE,
             "§aBuy a New Horse",
             "",
             "§cYour current horse will be deleted.",
             "",
-            "§7Cost: §6<glyph:coins_icon>" + REROLL_COST,
+            costLine,
             "",
-            "§7Click to buy a new horse!"
+            reminder
         );
     }
 
@@ -128,6 +142,7 @@ public class HorseGUI implements Listener {
     private void updateHorseInfo(Inventory inventory, UUID playerUUID) {
         HorseData horseData = horseManager.getHorse(playerUUID);
         inventory.setItem(11, createHorseInfoItem(horseData)); // Refresh slot 11
+        inventory.setItem(13, createRerollButton(playerUUID));
     }
 
     // Automatically refresh the GUI every second
@@ -162,23 +177,39 @@ public class HorseGUI implements Listener {
 
         UUID playerUUID = player.getUniqueId();
 
-        // Check if the player has enough coins
-        int playerBalance = economyManager.getBalance(player);
-        if (playerBalance < REROLL_COST) {
-            send(player, MessageType.ERROR,
-                    "You don't have enough coins to buy a new horse! (Cost: §6" + REROLL_COST + " <glyph:coins_icon>§c)");
-            return;
-        }
+        int rerollCost = getRerollCost(playerUUID);
+        if (rerollCost > 0) {
+            int playerBalance = economyManager.getBalance(player);
+            if (playerBalance < rerollCost) {
+                send(player, MessageType.ERROR,
+                        "You don't have enough coins to buy a new horse! (Cost: §6" + rerollCost + " <glyph:coins_icon>§c)");
+                return;
+            }
 
-        // Deduct coins and reroll the horse
-        economyManager.deductCoins(player, REROLL_COST);
+            // Deduct coins and reroll the horse
+            economyManager.deductCoins(player, rerollCost);
+        }
         horseManager.dismountHorse(player); // Force dismount before rerolling
         horseManager.rerollHorse(playerUUID);
 
         // Update the horse stats immediately in the GUI
         updateHorseInfo(inventory, playerUUID);
 
-        send(player, MessageType.SUCCESS,
-                "You bought a new horse for §6" + REROLL_COST + " <glyph:coins_icon>§a!");
+        var questManager = Main.getInstance().getQuestManager();
+        if (questManager != null) {
+            questManager.handleBuy(player, StableKeeperQuest.HORSE_BUY_TARGET);
+        }
+
+        if (rerollCost == 0) {
+            send(player, MessageType.SUCCESS,
+                    "You received your first horse on the house!");
+        } else {
+            send(player, MessageType.SUCCESS,
+                    "You bought a new horse for §6" + rerollCost + " <glyph:coins_icon>§a!");
+        }
+    }
+
+    private int getRerollCost(UUID playerUUID) {
+        return StableKeeperQuest.shouldReceiveFreeReroll(playerUUID) ? 0 : REROLL_COST;
     }
 }
