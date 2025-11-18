@@ -185,7 +185,7 @@ public class CommandRegistry {
         plugin.getCommand("addcoins").setExecutor(addCoinsCmd);
         plugin.getCommand("addcoins").setTabCompleter(addCoinsCmd);
         plugin.getCommand("blacksmith").setExecutor(new BlacksmithCommand(blacksmithGUI));
-        HorseCommand horseCommand = new HorseCommand(horseManager, horseGUI);
+        HorseCommand horseCommand = new HorseCommand(horseManager, horseGUI, questManager);
         plugin.getCommand("horse").setExecutor(horseCommand);
         plugin.getCommand("horse").setTabCompleter(horseCommand);
         plugin.getCommand("party").setExecutor(new PartyCommands(partyManager));

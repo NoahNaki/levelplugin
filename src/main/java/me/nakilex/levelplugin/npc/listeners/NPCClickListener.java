@@ -8,6 +8,7 @@ import me.nakilex.levelplugin.quests.def.ZoyaDungeonQuest;
 import me.nakilex.levelplugin.quests.gui.QuestState;
 import me.nakilex.levelplugin.quests.data.PlayerQuestProgress;
 import me.nakilex.levelplugin.quests.def.SerasQuest;
+import me.nakilex.levelplugin.quests.def.StableKeeperQuest;
 import me.nakilex.levelplugin.npc.dialog.NPCDialogManager;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
@@ -37,9 +38,9 @@ public class NPCClickListener implements Listener {
             return; // Ignore offhand clicks
         }
 
-        if (CitizensAPI.getNPCRegistry().isNPC(event.getRightClicked())) {
-            Player player = event.getPlayer();
-            NPC npc = CitizensAPI.getNPCRegistry().getNPC(event.getRightClicked());
+            if (CitizensAPI.getNPCRegistry().isNPC(event.getRightClicked())) {
+                Player player = event.getPlayer();
+                NPC npc = CitizensAPI.getNPCRegistry().getNPC(event.getRightClicked());
 
             String stripped = org.bukkit.ChatColor.stripColor(npc.getName());
             if (npc.getId() == 546) {
@@ -77,6 +78,11 @@ public class NPCClickListener implements Listener {
                 if (sessionNpc != null && sessionNpc.getId() == npc.getId()) {
                     dialogManager.advanceDialog(player, questManager);
                 }
+                return;
+            }
+
+            if (npc.getId() == StableKeeperQuest.NPC_ID) {
+                handleStableKeeper(player, npc);
                 return;
             }
 
@@ -158,5 +164,70 @@ public class NPCClickListener implements Listener {
                 }
             }
         }
+    }
+
+    private void handleStableKeeper(Player player, NPC npc) {
+        Quest quest = questManager.getQuestByNpcId(StableKeeperQuest.NPC_ID);
+        if (quest == null || !StableKeeperQuest.QUEST_ID.equalsIgnoreCase(quest.getId())) {
+            player.performCommand("horse reroll");
+            return;
+        }
+
+        if (questManager.hasCompleted(player.getUniqueId(), quest.getId())) {
+            player.performCommand("horse reroll");
+            return;
+        }
+
+        PlayerQuestProgress progress = questManager.getProgress(player.getUniqueId(), quest.getId());
+        if (progress == null) {
+            questManager.handleTalk(player, "npc" + npc.getId());
+            QuestState state = questManager.getQuestState(player, quest);
+            switch (state) {
+                case AVAILABLE -> dialogManager.startDialog(player, quest, npc);
+                case LOCKED -> questManager.meetsRequirements(player, quest);
+                case ACCEPTED, IN_PROGRESS -> player.sendMessage("§cComplete the quest first!");
+                default -> {}
+            }
+            return;
+        }
+
+        boolean introDone = progress.getProgress(0) >= quest.getObjectives().get(0).getAmount();
+        boolean roostersDown = progress.getProgress(1) >= quest.getObjectives().get(1).getAmount();
+        boolean feedDialog = progress.getProgress(2) >= quest.getObjectives().get(2).getAmount();
+        boolean horseBought = progress.getProgress(3) >= quest.getObjectives().get(3).getAmount();
+        boolean finaleDone = progress.getProgress(4) >= quest.getObjectives().get(4).getAmount();
+
+        if (!introDone) {
+            dialogManager.startDialog(player, quest, npc);
+            return;
+        }
+
+        if (!roostersDown) {
+            player.sendMessage("§cThe Stable Keeper still needs those wild roosters gone.");
+            return;
+        }
+
+        if (roostersDown && !feedDialog) {
+            dialogManager.startDialog(player,
+                    StableKeeperQuest.getDialogForObjective(2),
+                    npc,
+                    () -> questManager.handleTalk(player, "npc" + npc.getId() + "_feed"));
+            return;
+        }
+
+        if (!horseBought) {
+            player.performCommand("horse reroll");
+            return;
+        }
+
+        if (horseBought && !finaleDone) {
+            dialogManager.startDialog(player,
+                    StableKeeperQuest.getDialogForObjective(4),
+                    npc,
+                    () -> questManager.handleTalk(player, "npc" + npc.getId() + "_final"));
+            return;
+        }
+
+        player.performCommand("horse reroll");
     }
 }

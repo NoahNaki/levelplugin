@@ -1,8 +1,11 @@
 package me.nakilex.levelplugin.horse.gui;
 
+import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.horse.data.HorseData;
 import me.nakilex.levelplugin.horse.managers.HorseManager;
+import me.nakilex.levelplugin.quests.def.StableKeeperQuest;
+import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -27,12 +30,14 @@ public class HorseGUI implements Listener {
 
     private final HorseManager horseManager;
     private final EconomyManager economyManager; // Added EconomyManager for handling costs
+    private final QuestManager questManager;
     private final int REROLL_COST = 300; // Set the cost for rerolling horses
 
     // Constructor
-    public HorseGUI(HorseManager horseManager, EconomyManager economyManager) {
+    public HorseGUI(HorseManager horseManager, EconomyManager economyManager, QuestManager questManager) {
         this.horseManager = horseManager;
         this.economyManager = economyManager;
+        this.questManager = questManager;
     }
 
     // Create a menu item with custom properties
@@ -162,23 +167,38 @@ public class HorseGUI implements Listener {
 
         UUID playerUUID = player.getUniqueId();
 
-        // Check if the player has enough coins
-        int playerBalance = economyManager.getBalance(player);
-        if (playerBalance < REROLL_COST) {
-            send(player, MessageType.ERROR,
-                    "You don't have enough coins to buy a new horse! (Cost: §6" + REROLL_COST + " <glyph:coins_icon>§c)");
-            return;
+        boolean freePurchase = questManager != null
+                && StableKeeperQuest.hasFreeHorsePurchase(questManager, playerUUID);
+
+        if (!freePurchase) {
+            int playerBalance = economyManager.getBalance(player);
+            if (playerBalance < REROLL_COST) {
+                send(player, MessageType.ERROR,
+                        "You don't have enough coins to buy a new horse! (Cost: §6" + REROLL_COST + " <glyph:coins_icon>§c)");
+                return;
+            }
+
+            // Deduct coins and reroll the horse
+            economyManager.deductCoins(player, REROLL_COST);
         }
 
-        // Deduct coins and reroll the horse
-        economyManager.deductCoins(player, REROLL_COST);
         horseManager.dismountHorse(player); // Force dismount before rerolling
         horseManager.rerollHorse(playerUUID);
+
+        QuestManager qm = this.questManager != null ? this.questManager : Main.getInstance().getQuestManager();
+        if (qm != null) {
+            qm.handleBuy(player, "horse_purchase");
+        }
 
         // Update the horse stats immediately in the GUI
         updateHorseInfo(inventory, playerUUID);
 
-        send(player, MessageType.SUCCESS,
-                "You bought a new horse for §6" + REROLL_COST + " <glyph:coins_icon>§a!");
+        if (freePurchase) {
+            send(player, MessageType.SUCCESS,
+                    "The Stable Keeper covers this steed—enjoy your first horse!");
+        } else {
+            send(player, MessageType.SUCCESS,
+                    "You bought a new horse for §6" + REROLL_COST + " <glyph:coins_icon>§a!");
+        }
     }
 }

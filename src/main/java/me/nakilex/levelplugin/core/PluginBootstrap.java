@@ -383,7 +383,7 @@ public class PluginBootstrap {
     private void registerCommandsAndListeners() {
         BlacksmithGUI blacksmithGUI = new BlacksmithGUI(economyManager, itemUpgradeManager, itemManager, itemRepairManager);
         horseManager = new HorseManager(horseConfigManager);
-        HorseGUI horseGUI = new HorseGUI(horseManager, economyManager);
+        HorseGUI horseGUI = new HorseGUI(horseManager, economyManager, questManager);
         settingsGUI = new SettingsGUI(settingsManager);
         debugGUI = new me.nakilex.levelplugin.debug.gui.DebugGUI(mobDebugToggleManager, scoreboardManager, chatGameManager);
         this.storageManager = new StorageManager();

@@ -76,6 +76,7 @@ public class QuestManager {
         Quest yasiyaArena = new me.nakilex.levelplugin.quests.def.YasiyaArenaQuest();
         Quest skeggSpiders = new me.nakilex.levelplugin.quests.def.SkeggSpiderQuest();
         Quest zoyaDungeon = new me.nakilex.levelplugin.quests.def.ZoyaDungeonQuest();
+        Quest stableKeeper = new me.nakilex.levelplugin.quests.def.StableKeeperQuest();
         registerQuest(nb);
         registerQuest(seras);
         registerQuest(hawie);
@@ -85,6 +86,7 @@ public class QuestManager {
         registerQuest(yasiyaArena);
         registerQuest(skeggSpiders);
         registerQuest(zoyaDungeon);
+        registerQuest(stableKeeper);
         plugin.getLogger().info("Registered " + quests.size() + " quests.");
     }
 

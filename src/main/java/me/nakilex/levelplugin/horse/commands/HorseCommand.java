@@ -2,6 +2,8 @@ package me.nakilex.levelplugin.horse.commands;
 
 import me.nakilex.levelplugin.horse.managers.HorseManager;
 import me.nakilex.levelplugin.horse.gui.HorseGUI;
+import me.nakilex.levelplugin.quests.def.StableKeeperQuest;
+import me.nakilex.levelplugin.quests.managers.QuestManager;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -20,10 +22,12 @@ public class HorseCommand implements TabExecutor {
 
     private final HorseManager horseManager;
     private final HorseGUI horseGUI;
+    private final QuestManager questManager;
 
-    public HorseCommand(HorseManager horseManager, HorseGUI horseGUI) {
+    public HorseCommand(HorseManager horseManager, HorseGUI horseGUI, QuestManager questManager) {
         this.horseManager = horseManager;
         this.horseGUI = horseGUI;
+        this.questManager = questManager;
     }
 
 
@@ -49,6 +53,12 @@ public class HorseCommand implements TabExecutor {
 
         // Handle 'reroll' command
         if (args[0].equalsIgnoreCase("reroll")) {
+            if (questManager != null &&
+                    !StableKeeperQuest.hasUnlockedHorseMenu(questManager, player.getUniqueId())) {
+                send(player, MessageType.ERROR,
+                        "Earn the Stable Keeper's trust before accessing the stables.");
+                return true;
+            }
             // Dismount any existing horse before rerolling
             horseManager.dismountHorse(player);
             horseGUI.openHorseMenu(player); // Open GUI after dismount
