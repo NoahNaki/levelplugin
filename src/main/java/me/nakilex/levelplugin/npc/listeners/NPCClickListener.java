@@ -4,7 +4,6 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.fakeblock.QuestGateManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
-import me.nakilex.levelplugin.player.config.PlayerConfig;
 import me.nakilex.levelplugin.quests.data.PlayerQuestProgress;
 import me.nakilex.levelplugin.quests.data.Quest;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
@@ -30,15 +29,11 @@ public class NPCClickListener implements Listener {
     private final EconomyManager economyManager;
     private final QuestManager questManager;
     private final NPCDialogManager dialogManager;
-    private final PlayerConfig playerConfig;
-
     // Constructor to get the EconomyManager instance
-    public NPCClickListener(EconomyManager economyManager, QuestManager questManager, NPCDialogManager dialogManager,
-                            PlayerConfig playerConfig) {
+    public NPCClickListener(EconomyManager economyManager, QuestManager questManager, NPCDialogManager dialogManager) {
         this.economyManager = economyManager;
         this.questManager = questManager;
         this.dialogManager = dialogManager;
-        this.playerConfig = playerConfig;
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -310,7 +305,6 @@ public class NPCClickListener implements Listener {
         CurrencyMessageUtil.sendLoss(player, CurrencyMessageUtil.Currency.COINS, DungeonGuardQuest.ENTRY_FEE);
         dialogManager.startDialog(player, DungeonGuardQuest.getApprovalDialog(), npc, () -> {
             questManager.handleTalk(player, "npc" + DungeonGuardQuest.NPC_ID + "_entry");
-            unlockDungeonEntrance(player);
             openDungeonGate(player);
         });
     }
@@ -326,14 +320,7 @@ public class NPCClickListener implements Listener {
     }
 
     private boolean hasUnlockedDungeonEntrance(Player player) {
-        return playerConfig != null
-                && playerConfig.isGateUnlocked(player.getUniqueId(), DungeonGuardQuest.GATE_ID);
-    }
-
-    private void unlockDungeonEntrance(Player player) {
-        if (playerConfig == null) {
-            return;
-        }
-        playerConfig.setGateUnlocked(player.getUniqueId(), DungeonGuardQuest.GATE_ID, true);
+        return questManager != null
+                && questManager.hasCompleted(player.getUniqueId(), DungeonGuardQuest.QUEST_ID);
     }
 }

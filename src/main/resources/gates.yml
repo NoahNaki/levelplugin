@@ -56,3 +56,18 @@ gates:
     closed: false
     animation: INSTANT
     duration: 40
+  dungeonentrance:
+    world: world
+    pos1:
+      x: 491
+      y: 77
+      z: -242
+    pos2:
+      x: 491
+      y: 87
+      z: -236
+    closedSchematic: dungeonentrance_closed.schem
+    openSchematic: dungeonentrance_open.schem
+    closed: true
+    animation: GATE
+    duration: 40

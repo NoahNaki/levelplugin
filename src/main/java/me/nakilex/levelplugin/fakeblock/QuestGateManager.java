@@ -2,8 +2,8 @@ package me.nakilex.levelplugin.fakeblock;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.fakeblock.GateAnimation;
-import me.nakilex.levelplugin.player.config.PlayerConfig;
 import me.nakilex.levelplugin.quests.def.DungeonGuardQuest;
+import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.utils.SchematicUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -233,6 +233,11 @@ public class QuestGateManager implements Listener {
         return setGateState(player, id, true, true);
     }
 
+    /** Open a gate instantly so its state matches the real world without animation. */
+    public boolean openGateInstant(Player player, String id) {
+        return setGateState(player, id, false, true);
+    }
+
     private boolean setGateState(Player player, String id, boolean closed, boolean instant) {
         QuestGate gate = gates.get(id.toLowerCase());
         if (gate == null) return false;
@@ -366,12 +371,16 @@ public class QuestGateManager implements Listener {
         }
         QuestGate dungeonGate = gates.get(DungeonGuardQuest.GATE_ID);
         if (dungeonGate != null) {
-            PlayerConfig playerConfig = plugin.getPlayerConfig();
-            boolean unlocked = playerConfig != null
-                    && playerConfig.isGateUnlocked(player.getUniqueId(), DungeonGuardQuest.GATE_ID);
-            dungeonGate.setClosed(player.getUniqueId(), !unlocked);
+            QuestManager questManager = plugin.getQuestManager();
+            boolean completed = questManager != null
+                    && questManager.hasCompleted(player.getUniqueId(), DungeonGuardQuest.QUEST_ID);
+            if (completed) {
+                openGateInstant(player, DungeonGuardQuest.GATE_ID);
+            } else {
+                closeGateInstant(player, DungeonGuardQuest.GATE_ID);
+            }
             logDebug(player.getName() + " join -> set " + DungeonGuardQuest.GATE_ID
-                    + (unlocked ? " open" : " closed"));
+                    + (completed ? " open" : " closed"));
         }
         // Delay updating until the player's chunks have loaded to ensure
         // the fake blocks are visible on join.

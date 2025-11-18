@@ -17,7 +17,7 @@ import java.util.List;
 public class DungeonGuardQuest extends Quest implements QuestScript {
 
     public static final String QUEST_ID = "dungeonguard";
-    public static final int NPC_ID = 1200;
+    public static final int NPC_ID = 1114;
     public static final int REQUIRED_LEVEL = 50;
     public static final int ENTRY_FEE = 500;
     public static final String GATE_ID = "dungeonentrance";
