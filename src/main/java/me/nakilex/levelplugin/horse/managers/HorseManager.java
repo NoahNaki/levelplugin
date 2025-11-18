@@ -66,10 +66,6 @@ public class HorseManager implements Listener {
         // ── Cooldown check ───────────────────────────────────────────────────────────
         Long last = lastSpawnTimestamps.get(uuid);
         if (last != null && now - last < COOLDOWN_MS) {
-            long secsLeft = (COOLDOWN_MS - (now - last) + 999) / 1000;
-            send(player, MessageType.WARNING,
-                "Please wait " + secsLeft + " more second" +
-                    (secsLeft == 1 ? "" : "s") + " before spawning another horse.");
             return;
         }
 

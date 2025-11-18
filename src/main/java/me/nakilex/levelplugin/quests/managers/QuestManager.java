@@ -61,30 +61,24 @@ public class QuestManager {
     private void registerDefaultQuests() {
         quests.clear();
         // Register quests here manually.
-        Quest tutorial = new me.nakilex.levelplugin.quests.def.TutorialQuest();
-        Quest office   = new me.nakilex.levelplugin.quests.def.OfficeErrandsQuest();
-        Quest dragon   = new me.nakilex.levelplugin.quests.def.DragonianQuest();
-        registerQuest(tutorial);
+        Quest office = new me.nakilex.levelplugin.quests.def.OfficeErrandsQuest();
         registerQuest(office);
-        registerQuest(dragon);
         Quest nb = new me.nakilex.levelplugin.quests.def.NewBeginningQuest();
         Quest seras = new me.nakilex.levelplugin.quests.def.SerasQuest();
-        Quest hawie = new me.nakilex.levelplugin.quests.def.HawieQuest();
-        Quest dungeonMaster = new me.nakilex.levelplugin.quests.def.DungeonMasterQuest();
         Quest hawieCrabs = new me.nakilex.levelplugin.quests.def.HawieHermitCrabQuest();
         Quest rahirScorpid = new me.nakilex.levelplugin.quests.def.RahirScorpidQuest();
         Quest yasiyaArena = new me.nakilex.levelplugin.quests.def.YasiyaArenaQuest();
         Quest skeggSpiders = new me.nakilex.levelplugin.quests.def.SkeggSpiderQuest();
         Quest zoyaDungeon = new me.nakilex.levelplugin.quests.def.ZoyaDungeonQuest();
+        Quest stableKeeper = new me.nakilex.levelplugin.quests.def.StableKeeperQuest();
         registerQuest(nb);
         registerQuest(seras);
-        registerQuest(hawie);
-        registerQuest(dungeonMaster);
         registerQuest(hawieCrabs);
         registerQuest(rahirScorpid);
         registerQuest(yasiyaArena);
         registerQuest(skeggSpiders);
         registerQuest(zoyaDungeon);
+        registerQuest(stableKeeper);
         plugin.getLogger().info("Registered " + quests.size() + " quests.");
     }
 
@@ -852,6 +846,9 @@ public class QuestManager {
                 }
                 if ("starter_armor".equalsIgnoreCase(obj.getTarget())) {
                     return "Buy starter armor";
+                }
+                if ("stablekeeper_horse".equalsIgnoreCase(obj.getTarget())) {
+                    return "Buy a horse from the Stable Keeper";
                 }
                 return "Buy " + obj.getTarget();
             case UPGRADE:

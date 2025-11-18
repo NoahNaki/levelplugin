@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.horse.commands;
 
 import me.nakilex.levelplugin.horse.managers.HorseManager;
 import me.nakilex.levelplugin.horse.gui.HorseGUI;
+import me.nakilex.levelplugin.quests.def.StableKeeperQuest;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -49,6 +50,9 @@ public class HorseCommand implements TabExecutor {
 
         // Handle 'reroll' command
         if (args[0].equalsIgnoreCase("reroll")) {
+            if (!StableKeeperQuest.hasUnlockedHorseMenu(player.getUniqueId())) {
+                return true;
+            }
             // Dismount any existing horse before rerolling
             horseManager.dismountHorse(player);
             horseGUI.openHorseMenu(player); // Open GUI after dismount
