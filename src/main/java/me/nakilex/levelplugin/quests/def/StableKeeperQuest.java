@@ -16,9 +16,9 @@ import java.util.UUID;
 /** Quest that unlocks the horse reroll service. */
 public class StableKeeperQuest extends Quest {
     public static final String ID = "stablekeeper";
-    public static final String NPC_TALK_TARGET = "npc900";
-    public static final String NPC_RETURN_TARGET = "npc900_first";
-    public static final String NPC_FINAL_TARGET = "npc900_second";
+    public static final String NPC_TALK_TARGET = "npc652";
+    public static final String NPC_RETURN_TARGET = "npc652_first";
+    public static final String NPC_FINAL_TARGET = "npc652_second";
     public static final String HORSE_BUY_TARGET = "stablekeeper_horse";
 
     public static final int TALK_INTRO_INDEX = 0;
@@ -30,13 +30,13 @@ public class StableKeeperQuest extends Quest {
     private static List<QuestObjective> createObjectives() {
         return List.of(
                 new QuestObjective(QuestObjectiveType.TALK, NPC_TALK_TARGET, 1,
-                        BeaconTargets.npc(900)),
+                        BeaconTargets.npc(652)),
                 new QuestObjective(QuestObjectiveType.KILL, "wild_roosters", 5),
                 new QuestObjective(QuestObjectiveType.TALK, NPC_RETURN_TARGET, 1,
-                        BeaconTargets.npc(900)),
+                        BeaconTargets.npc(652)),
                 new QuestObjective(QuestObjectiveType.BUY, HORSE_BUY_TARGET, 1),
                 new QuestObjective(QuestObjectiveType.TALK, NPC_FINAL_TARGET, 1,
-                        BeaconTargets.npc(900))
+                        BeaconTargets.npc(652))
         );
     }
 
@@ -64,7 +64,7 @@ public class StableKeeperQuest extends Quest {
                 List.of(),
                 null,
                 QuestRewardCompat.create(50, 25, 0, List.of()),
-                900,
+                652,
                 List.of(
                         "Stable Keeper|Look at this mess... those feral roosters have pecked every wheat stalk I had left.",
                         "<player>|Can't your horses eat something else?",

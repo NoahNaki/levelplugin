@@ -174,7 +174,7 @@ public class NPCClickListener implements Listener {
     private boolean handleStableKeeper(Player player, NPC npc, Quest quest) {
         java.util.UUID uuid = player.getUniqueId();
         if (questManager.hasCompleted(uuid, StableKeeperQuest.ID)) {
-            horseGUI.openHorseMenu(player);
+            horseGUI.openHorseMenu(player, false);
             return true;
         }
 
@@ -211,7 +211,7 @@ public class NPCClickListener implements Listener {
         }
 
         if (reportDone && !horseBought) {
-            horseGUI.openHorseMenu(player);
+            horseGUI.openHorseMenu(player, false);
             player.sendMessage("§ePick a horse from the stable, then talk to the Stable Keeper again.");
             return true;
         }

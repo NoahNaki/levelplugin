@@ -52,10 +52,16 @@ public class HorseGUI implements Listener {
 
     // Open or refresh the horse GUI
     public void openHorseMenu(Player player) {
+        openHorseMenu(player, true);
+    }
+
+    public boolean openHorseMenu(Player player, boolean showLockedMessage) {
         if (!StableKeeperQuest.hasUnlockedHorseMenu(player.getUniqueId())) {
-            send(player, MessageType.INFO,
-                    "Stable Keeper|Help with his rooster problem before using the stables.");
-            return;
+            if (showLockedMessage) {
+                send(player, MessageType.INFO,
+                        "Stable Keeper|Help with his rooster problem before using the stables.");
+            }
+            return false;
         }
         UUID playerUUID = player.getUniqueId();
         HorseData horseData = horseManager.getHorse(playerUUID);
@@ -82,6 +88,7 @@ public class HorseGUI implements Listener {
 
         // Start auto-update for live refresh
         startAutoUpdate(player, gui);
+        return true;
     }
 
     private ItemStack createHorseInfoItem(HorseData horseData) {
