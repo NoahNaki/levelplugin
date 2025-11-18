@@ -36,6 +36,27 @@ public class DungeonListGUI implements Listener {
                 .fillEmptySlots(false)
                 .border()
                 .build();
+        int used = manager.getDailyRewardsUsed(player.getUniqueId());
+        int limit = manager.getDailyRewardLimit();
+        int remaining = Math.max(0, limit - used);
+        ItemStack status = new ItemStack(Material.WRITABLE_BOOK);
+        ItemMeta statusMeta = status.getItemMeta();
+        if (statusMeta != null) {
+            statusMeta.setDisplayName(ChatColor.GOLD + "Daily Dungeon Rewards");
+            List<String> lore = new ArrayList<>();
+            lore.add(ChatColor.GRAY + "Claim rewards from up to " + ChatColor.YELLOW + limit
+                    + ChatColor.GRAY + " dungeons each day.");
+            lore.add(ChatColor.GRAY + "Used: " + ChatColor.YELLOW + used + ChatColor.GRAY + " / " + ChatColor.YELLOW + limit);
+            lore.add(ChatColor.GRAY + "Remaining: "
+                    + (remaining > 0 ? ChatColor.GREEN : ChatColor.RED) + remaining);
+            lore.add(" ");
+            lore.addAll(TooltipUtil.bulletList(
+                    "Rewards scale with performance and party size.",
+                    "Ratings grant a small XP bonus."));
+            statusMeta.setLore(lore);
+            status.setItemMeta(statusMeta);
+        }
+        inv.setItem(4, status);
         int slot = 10;
         DecimalFormat df = new DecimalFormat("#.#");
         for (var entry : manager.getLayoutEntries()) {
@@ -53,6 +74,9 @@ public class DungeonListGUI implements Listener {
                 List<String> lore = new ArrayList<>();
                 lore.addAll(TooltipUtil.clickInstructions("to play", null));
                 lore.add(ChatColor.DARK_RED + "Threat Level: " + threat);
+                lore.add(ChatColor.GRAY + "Attempts left today: "
+                        + (remaining > 0 ? ChatColor.GREEN : ChatColor.RED)
+                        + remaining + ChatColor.GRAY + "/" + limit);
                 lore.add(ratingLine);
                 meta.setLore(lore);
                 meta.setLocalizedName(key);

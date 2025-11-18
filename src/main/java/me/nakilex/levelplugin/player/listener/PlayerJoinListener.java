@@ -1,12 +1,12 @@
 package me.nakilex.levelplugin.player.listener;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.fakeblock.QuestGateManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.config.PlayerConfig;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.player.mining.managers.MiningManager;
 import me.nakilex.levelplugin.environment.EnvironmentManager;
-import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.utils.BetterHudUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
@@ -18,6 +18,7 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import me.nakilex.levelplugin.player.profile.ProfileSelectionGUI;
 import me.nakilex.levelplugin.player.profile.ProfileManager;
 import me.nakilex.levelplugin.items.listeners.StaticItemListener;
+import me.nakilex.levelplugin.quests.def.DungeonGuardQuest;
 
 import java.util.UUID;
 
@@ -146,5 +147,6 @@ public class PlayerJoinListener implements Listener {
                 ProfileSelectionGUI.startSelection(player);
             }, 30L);  // ~1.5 seconds
         }
+
     }
 }
