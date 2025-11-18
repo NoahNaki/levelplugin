@@ -17,6 +17,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.Location;
 
 import java.io.File;
@@ -30,8 +31,11 @@ import java.util.*;
 public class QuestGateManager implements Listener {
 
     private final Main plugin;
+    private static final int DUNGEON_GATE_CHUNK_RANGE = 5;
+
     private final FakeBlockManager blockManager;
     private final Map<String, QuestGate> gates = new HashMap<>();
+    private final Set<UUID> dungeonGateApplied = new HashSet<>();
     /** Folder storing schematics for custom gate states. */
     private final File schemFolder;
     /** Enables verbose logging for gate state changes. */
@@ -343,21 +347,7 @@ public class QuestGateManager implements Listener {
     /** Update all gates for a specific player */
     public void updatePlayer(Player player) {
         for (QuestGate gate : gates.values()) {
-            if (gate.isClosed(player.getUniqueId())) {
-                for (var loc : gate.getBlocks()) {
-                    blockManager.showFakeBlock(player, loc, gate.getClosedData(loc));
-                }
-            } else {
-                if (gate.hasOpenCustomBlocks()) {
-                    for (var loc : gate.getBlocks()) {
-                        blockManager.showFakeBlock(player, loc, gate.getOpenData(loc));
-                    }
-                } else {
-                    for (var loc : gate.getBlocks()) {
-                        blockManager.hideFakeBlock(player, loc);
-                    }
-                }
-            }
+            updateGateForPlayer(player, gate);
         }
     }
 
@@ -374,17 +364,17 @@ public class QuestGateManager implements Listener {
             QuestManager questManager = plugin.getQuestManager();
             boolean completed = questManager != null
                     && questManager.hasCompleted(player.getUniqueId(), DungeonGuardQuest.QUEST_ID);
-            if (completed) {
-                openGateInstant(player, DungeonGuardQuest.GATE_ID);
-            } else {
-                closeGateInstant(player, DungeonGuardQuest.GATE_ID);
-            }
-            logDebug(player.getName() + " join -> set " + DungeonGuardQuest.GATE_ID
+            dungeonGate.setClosed(player.getUniqueId(), !completed);
+            dungeonGateApplied.remove(player.getUniqueId());
+            logDebug(player.getName() + " join -> flag " + DungeonGuardQuest.GATE_ID
                     + (completed ? " open" : " closed"));
         }
         // Delay updating until the player's chunks have loaded to ensure
         // the fake blocks are visible on join.
-        plugin.getServer().getScheduler().runTaskLater(plugin, () -> updatePlayer(player), 10L);
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            updatePlayer(player);
+            handleDungeonGateProximity(player);
+        }, 10L);
     }
 
     @EventHandler
@@ -398,6 +388,82 @@ public class QuestGateManager implements Listener {
                 }
             }
         }
+        handleDungeonGateProximity(player);
+    }
+
+    @EventHandler
+    public void onQuit(PlayerQuitEvent event) {
+        dungeonGateApplied.remove(event.getPlayer().getUniqueId());
+    }
+
+    private void updateGateForPlayer(Player player, QuestGate gate) {
+        if (gate == null) return;
+        UUID uuid = player.getUniqueId();
+        if (DungeonGuardQuest.GATE_ID.equalsIgnoreCase(gate.getId())) {
+            boolean withinRange = isWithinChunkRange(player.getLocation(), gate, DUNGEON_GATE_CHUNK_RANGE);
+            if (!withinRange) {
+                dungeonGateApplied.remove(uuid);
+                return;
+            }
+            dungeonGateApplied.add(uuid);
+        }
+        if (gate.isClosed(uuid)) {
+            for (var loc : gate.getBlocks()) {
+                blockManager.showFakeBlock(player, loc, gate.getClosedData(loc));
+            }
+        } else if (gate.hasOpenCustomBlocks()) {
+            for (var loc : gate.getBlocks()) {
+                blockManager.showFakeBlock(player, loc, gate.getOpenData(loc));
+            }
+        } else {
+            for (var loc : gate.getBlocks()) {
+                blockManager.hideFakeBlock(player, loc);
+            }
+        }
+    }
+
+    private void handleDungeonGateProximity(Player player) {
+        QuestGate gate = gates.get(DungeonGuardQuest.GATE_ID);
+        if (gate == null) return;
+        if (!player.getWorld().equals(gate.getPos1().getWorld())) {
+            dungeonGateApplied.remove(player.getUniqueId());
+            return;
+        }
+        boolean inRange = isWithinChunkRange(player.getLocation(), gate, DUNGEON_GATE_CHUNK_RANGE);
+        boolean alreadyApplied = dungeonGateApplied.contains(player.getUniqueId());
+        if (inRange && !alreadyApplied) {
+            updateGateForPlayer(player, gate);
+        } else if (!inRange && alreadyApplied) {
+            dungeonGateApplied.remove(player.getUniqueId());
+        }
+    }
+
+    private boolean isWithinChunkRange(Location loc, QuestGate gate, int chunkRange) {
+        if (loc == null || gate == null) return false;
+        if (!loc.getWorld().equals(gate.getPos1().getWorld())) return false;
+        int playerChunkX = toChunk(loc.getBlockX());
+        int playerChunkZ = toChunk(loc.getBlockZ());
+        int minChunkX = toChunk(gate.getMinX());
+        int maxChunkX = toChunk(gate.getMaxX());
+        int minChunkZ = toChunk(gate.getMinZ());
+        int maxChunkZ = toChunk(gate.getMaxZ());
+        int dx = 0;
+        if (playerChunkX < minChunkX) {
+            dx = minChunkX - playerChunkX;
+        } else if (playerChunkX > maxChunkX) {
+            dx = playerChunkX - maxChunkX;
+        }
+        int dz = 0;
+        if (playerChunkZ < minChunkZ) {
+            dz = minChunkZ - playerChunkZ;
+        } else if (playerChunkZ > maxChunkZ) {
+            dz = playerChunkZ - maxChunkZ;
+        }
+        return dx <= chunkRange && dz <= chunkRange;
+    }
+
+    private int toChunk(int block) {
+        return Math.floorDiv(block, 16);
     }
 
     @EventHandler(ignoreCancelled = true)
