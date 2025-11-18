@@ -148,17 +148,5 @@ public class PlayerJoinListener implements Listener {
             }, 30L);  // ~1.5 seconds
         }
 
-        if (playerConfig != null
-                && playerConfig.isGateUnlocked(pid, DungeonGuardQuest.GATE_ID)) {
-            Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
-                if (!player.isOnline()) {
-                    return;
-                }
-                QuestGateManager gates = Main.getInstance().getQuestGateManager();
-                if (gates != null) {
-                    gates.openGate(player, DungeonGuardQuest.GATE_ID);
-                }
-            }, 20L);
-        }
     }
 }

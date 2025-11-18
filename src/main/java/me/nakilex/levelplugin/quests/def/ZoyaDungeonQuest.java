@@ -74,7 +74,7 @@ public class ZoyaDungeonQuest extends Quest implements QuestScript, QuestComplet
                 "Help Zoya craft a legacy by creating and saving your first dungeon.",
                 createObjectives(),
                 1,
-                List.of("serashelp"),
+                List.of("serashelp", DungeonGuardQuest.QUEST_ID),
                 null,
                 QuestRewardCompat.create(1000, 500, 0, List.of()),
                 NPC_ID,

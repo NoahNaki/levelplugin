@@ -2,6 +2,8 @@ package me.nakilex.levelplugin.fakeblock;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.fakeblock.GateAnimation;
+import me.nakilex.levelplugin.player.config.PlayerConfig;
+import me.nakilex.levelplugin.quests.def.DungeonGuardQuest;
 import me.nakilex.levelplugin.utils.SchematicUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -361,6 +363,15 @@ public class QuestGateManager implements Listener {
         if (gate != null) {
             gate.setClosed(player.getUniqueId(), true);
             logDebug(player.getName() + " join -> set office_elevator closed");
+        }
+        QuestGate dungeonGate = gates.get(DungeonGuardQuest.GATE_ID);
+        if (dungeonGate != null) {
+            PlayerConfig playerConfig = plugin.getPlayerConfig();
+            boolean unlocked = playerConfig != null
+                    && playerConfig.isGateUnlocked(player.getUniqueId(), DungeonGuardQuest.GATE_ID);
+            dungeonGate.setClosed(player.getUniqueId(), !unlocked);
+            logDebug(player.getName() + " join -> set " + DungeonGuardQuest.GATE_ID
+                    + (unlocked ? " open" : " closed"));
         }
         // Delay updating until the player's chunks have loaded to ensure
         // the fake blocks are visible on join.
