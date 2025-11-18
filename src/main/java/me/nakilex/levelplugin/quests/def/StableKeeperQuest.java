@@ -7,14 +7,16 @@ import me.nakilex.levelplugin.quests.data.QuestObjective;
 import me.nakilex.levelplugin.quests.data.QuestObjectiveType;
 import me.nakilex.levelplugin.quests.data.QuestRewardCompat;
 import me.nakilex.levelplugin.quests.data.PlayerQuestProgress;
+import me.nakilex.levelplugin.quests.data.QuestScript;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
+import org.bukkit.entity.Player;
 
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 /** Quest that unlocks the horse reroll service. */
-public class StableKeeperQuest extends Quest {
+public class StableKeeperQuest extends Quest implements QuestScript {
     public static final String ID = "stablekeeper";
     public static final String NPC_TALK_TARGET = "npc652";
     public static final String NPC_RETURN_TARGET = "npc652_first";
@@ -102,5 +104,13 @@ public class StableKeeperQuest extends Quest {
         }
         return progress.getProgress(TALK_REPORT_INDEX) >= 1
                 && progress.getProgress(BUY_HORSE_INDEX) < 1;
+    }
+
+    @Override
+    public void onStart(Player player, Main plugin) {
+        QuestManager questManager = plugin.getQuestManager();
+        if (questManager != null) {
+            questManager.handleTalk(player, NPC_TALK_TARGET);
+        }
     }
 }
