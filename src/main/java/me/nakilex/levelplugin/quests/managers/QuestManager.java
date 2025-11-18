@@ -847,6 +847,9 @@ public class QuestManager {
                 if ("starter_armor".equalsIgnoreCase(obj.getTarget())) {
                     return "Buy starter armor";
                 }
+                if ("stablekeeper_horse".equalsIgnoreCase(obj.getTarget())) {
+                    return "Buy a horse from the Stable Keeper";
+                }
                 return "Buy " + obj.getTarget();
             case UPGRADE:
                 return "Upgrade " + obj.getTarget();

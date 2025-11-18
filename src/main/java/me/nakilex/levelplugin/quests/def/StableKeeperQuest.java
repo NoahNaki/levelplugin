@@ -31,7 +31,7 @@ public class StableKeeperQuest extends Quest {
         return List.of(
                 new QuestObjective(QuestObjectiveType.TALK, NPC_TALK_TARGET, 1,
                         BeaconTargets.npc(652)),
-                new QuestObjective(QuestObjectiveType.KILL, "wild_roosters", 5),
+                new QuestObjective(QuestObjectiveType.KILL, "wild_rooster", 5),
                 new QuestObjective(QuestObjectiveType.TALK, NPC_RETURN_TARGET, 1,
                         BeaconTargets.npc(652)),
                 new QuestObjective(QuestObjectiveType.BUY, HORSE_BUY_TARGET, 1),
