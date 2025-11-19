@@ -22,9 +22,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
-
-import java.util.HashMap;
-import java.util.Map;
 import java.util.UUID;
 
 public class NPCClickListener implements Listener {
@@ -33,7 +30,6 @@ public class NPCClickListener implements Listener {
     private final QuestManager questManager;
     private final NPCDialogManager dialogManager;
     private final HorseGUI horseGUI;
-    private final Map<UUID, Long> osirisLockNotices = new HashMap<>();
 
     // Constructor to get the EconomyManager instance
     public NPCClickListener(EconomyManager economyManager, QuestManager questManager, NPCDialogManager dialogManager,
@@ -270,7 +266,7 @@ public class NPCClickListener implements Listener {
 
             if (!orchidFound) {
                 ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
-                        "Check beneath the massive oak by the main entrance when the bells toll midnight.");
+                        "Check beneath the massive oak by the main entrance once midnight falls.");
                 return true;
             }
 
@@ -287,7 +283,7 @@ public class NPCClickListener implements Listener {
 
             if (returned && !osirisSpoken) {
                 ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
-                        "Find Osiris at the west entrance and tell him you're here for the tasting.");
+                        "Head to the library and talk to Osiris, tell him you're there for the tasting.");
                 return true;
             }
 
@@ -308,13 +304,6 @@ public class NPCClickListener implements Listener {
             }
 
             if (progress == null) {
-                long now = System.currentTimeMillis();
-                long last = osirisLockNotices.getOrDefault(uuid, 0L);
-                if (now - last > 5_000L) {
-                    osirisLockNotices.put(uuid, now);
-                    ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
-                            "Complete 'The Sharpest Secret' quest to unlock Osiris' enchanting table.");
-                }
                 return true;
             }
 
@@ -339,11 +328,10 @@ public class NPCClickListener implements Listener {
                                         "osiris_choice_",
                                         choice -> {
                                             if (choice == 1) {
-                                                questManager.handleTalk(player, SharpestSecretQuest.NPC_OSIRIS_TARGET);
                                                 dialogManager.startDialog(player,
                                                         SharpestSecretQuest.getOsirisSuccessDialog(player.getName()),
                                                         npc,
-                                                        null);
+                                                        () -> questManager.handleTalk(player, SharpestSecretQuest.NPC_OSIRIS_TARGET));
                                             } else {
                                                 ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
                                                         "Osiris smirks. 'Not quite. Come back when the answer is clear.'");

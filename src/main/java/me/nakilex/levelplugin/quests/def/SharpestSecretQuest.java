@@ -77,7 +77,7 @@ public class SharpestSecretQuest extends Quest implements QuestScript, QuestComp
     private static final long BLOOM_TASK_INTERVAL = 100L;
     private static final String ORCHID_HOLOGRAM_TAG = "sharpsecret_orchid";
     private static final List<String> ORCHID_HOLOGRAM_LINES = List.of(
-            ChatColor.DARK_GRAY + "Right-click " + ChatColor.WHITE + "to pluck"
+            ChatColor.GRAY + "Right-click to pluck"
     );
 
     private static final List<String> INTRO_DIALOG = List.of(
@@ -90,7 +90,7 @@ public class SharpestSecretQuest extends Quest implements QuestScript, QuestComp
 
     private static final List<String> RETURN_DIALOG = List.of(
             "Swordsman Kazan|What?! You found it! The Midnight Orchid—petals still glimmering.",
-            "Swordsman Kazan|Head to the building by the west entrance and tell Osiris you're here for the tasting.",
+            "Swordsman Kazan|Head to the library and talk to Osiris, tell him you're there for the tasting.",
             "Swordsman Kazan|When he asks his riddle, answer 'Secret'. That's your payment—and a free enchant."
     );
 
@@ -190,6 +190,20 @@ public class SharpestSecretQuest extends Quest implements QuestScript, QuestComp
         questManager.registerTalkTarget(NPC_OSIRIS_TARGET, NPC_OSIRIS_NAME, "Osiris");
     }
 
+    public static void registerObjectiveLabels(QuestManager questManager) {
+        if (questManager == null) {
+            return;
+        }
+        questManager.registerObjectiveLabel(WAIT_FOR_NIGHT_TARGET,
+                "Wait for midnight inside the town walls.");
+        questManager.registerObjectiveLabel(ORCHID_DISCOVERY_TARGET,
+                "Pluck the Midnight Orchid beneath the great oak.");
+        questManager.registerObjectiveLabel(NPC_RETURN_TARGET,
+                "Bring the Midnight Orchid back to Guard Kazan.");
+        questManager.registerObjectiveLabel(NPC_OSIRIS_TARGET,
+                "Head to the library and tell Osiris you're here for the tasting.");
+    }
+
     public static List<String> getOsirisIntroDialog() {
         return OSIRIS_INTRO_DIALOG;
     }
@@ -272,8 +286,6 @@ public class SharpestSecretQuest extends Quest implements QuestScript, QuestComp
                 long time = current.getWorld().getTime();
                 if (time >= 13000 && time <= 23000) {
                     questManager.handleDiscover(current, WAIT_FOR_NIGHT_TARGET);
-                    ChatMessageUtil.send(current, ChatMessageUtil.MessageType.INFO,
-                            "The bells toll midnight. Check beneath the great oak near the main gate.");
                     cancel();
                     nightWatchers.remove(uuid);
                     resumeTracking(current, plugin);
@@ -419,7 +431,7 @@ public class SharpestSecretQuest extends Quest implements QuestScript, QuestComp
             return;
         }
         if (progress.getProgress(FIND_ORCHID_INDEX) >= 1) {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
                     "You've already plucked the Midnight Orchid—bring it to Kazan.");
             return;
         }
