@@ -165,14 +165,14 @@ public class SharpestSecretQuest extends Quest implements QuestScript, QuestComp
     private static List<QuestObjective> createObjectives(Location orchidLocation) {
         return List.of(
                 new QuestObjective(QuestObjectiveType.TALK, NPC_INTRO_TARGET, 1,
-                        BeaconTargets.npcByName(NPC_KAZAN_NAME)),
+                        BeaconTargets.npc(NPC_KAZAN_NAME)),
                 new QuestObjective(QuestObjectiveType.DISCOVER, WAIT_FOR_NIGHT_TARGET, 1),
                 new QuestObjective(QuestObjectiveType.DISCOVER, ORCHID_DISCOVERY_TARGET, 1,
                         BeaconTargets.staticLoc(orchidLocation)),
                 new QuestObjective(QuestObjectiveType.TALK, NPC_RETURN_TARGET, 1,
-                        BeaconTargets.npcByName(NPC_KAZAN_NAME)),
+                        BeaconTargets.npc(NPC_KAZAN_NAME)),
                 new QuestObjective(QuestObjectiveType.TALK, NPC_OSIRIS_TARGET, 1,
-                        BeaconTargets.npcByName(NPC_OSIRIS_NAME)),
+                        BeaconTargets.npc(NPC_OSIRIS_NAME)),
                 new QuestObjective(QuestObjectiveType.ENCHANT, "ANY", 1)
         );
     }
