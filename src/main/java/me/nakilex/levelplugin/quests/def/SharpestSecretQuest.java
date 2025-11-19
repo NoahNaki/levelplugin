@@ -165,6 +165,7 @@ public class SharpestSecretQuest extends Quest implements QuestScript, QuestComp
     private static List<QuestObjective> createObjectives(Location orchidLocation) {
         return List.of(
                 new QuestObjective(QuestObjectiveType.TALK, NPC_INTRO_TARGET, 1,
+                        false,
                         BeaconTargets.npc(NPC_KAZAN_NAME),
                         "Speak with Guard Kazan about his blade."),
                 new QuestObjective(QuestObjectiveType.DISCOVER, WAIT_FOR_NIGHT_TARGET, 1,
@@ -172,12 +173,15 @@ public class SharpestSecretQuest extends Quest implements QuestScript, QuestComp
                         null,
                         "Wait for midnight inside the town walls."),
                 new QuestObjective(QuestObjectiveType.DISCOVER, ORCHID_DISCOVERY_TARGET, 1,
+                        false,
                         BeaconTargets.staticLoc(orchidLocation),
                         "Pluck the Midnight Orchid beneath the great oak."),
                 new QuestObjective(QuestObjectiveType.TALK, NPC_RETURN_TARGET, 1,
+                        false,
                         BeaconTargets.npc(NPC_KAZAN_NAME),
                         "Bring the Midnight Orchid back to Guard Kazan."),
                 new QuestObjective(QuestObjectiveType.TALK, NPC_OSIRIS_TARGET, 1,
+                        false,
                         BeaconTargets.npc(NPC_OSIRIS_NAME),
                         "Head to the library and tell Osiris you're here for the tasting."),
                 new QuestObjective(QuestObjectiveType.ENCHANT, "ANY", 1)
