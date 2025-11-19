@@ -9,10 +9,13 @@ import me.nakilex.levelplugin.quests.def.ZoyaDungeonQuest;
 import me.nakilex.levelplugin.quests.gui.QuestState;
 import me.nakilex.levelplugin.quests.data.PlayerQuestProgress;
 import me.nakilex.levelplugin.quests.def.SerasQuest;
+import me.nakilex.levelplugin.quests.def.SharpestSecretQuest;
 import me.nakilex.levelplugin.quests.def.StableKeeperQuest;
 import me.nakilex.levelplugin.npc.dialog.NPCDialogManager;
+import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -134,6 +137,12 @@ public class NPCClickListener implements Listener {
                     }
                 }
 
+                if (SharpestSecretQuest.ID.equals(quest.getId())) {
+                    if (handleSharpestSecret(player, npc)) {
+                        return;
+                    }
+                }
+
                 if ("zoyadungeon".equals(quest.getId())) {
                     PlayerQuestProgress progress = questManager.getProgress(player.getUniqueId(), quest.getId());
                     if (progress != null) {
@@ -221,6 +230,116 @@ public class NPCClickListener implements Listener {
                     StableKeeperQuest.getDialogForObjective(StableKeeperQuest.TALK_FINAL_INDEX),
                     npc,
                     () -> questManager.handleTalk(player, StableKeeperQuest.NPC_FINAL_TARGET));
+            return true;
+        }
+
+        return false;
+    }
+
+    private boolean handleSharpestSecret(Player player, NPC npc) {
+        java.util.UUID uuid = player.getUniqueId();
+        boolean completed = questManager.hasCompleted(uuid, SharpestSecretQuest.ID);
+        PlayerQuestProgress progress = questManager.getProgress(uuid, SharpestSecretQuest.ID);
+
+        if (npc.getId() == SharpestSecretQuest.NPC_KAZAN_ID) {
+            if (completed) {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
+                        "Osiris owes you a tasting whenever you need another edge.");
+                return true;
+            }
+            if (progress == null) {
+                return false;
+            }
+
+            boolean waitDone = progress.getProgress(SharpestSecretQuest.WAIT_FOR_NIGHT_INDEX) >= 1;
+            boolean orchidFound = progress.getProgress(SharpestSecretQuest.FIND_ORCHID_INDEX) >= 1;
+            boolean returned = progress.getProgress(SharpestSecretQuest.TALK_RETURN_INDEX) >= 1;
+            boolean osirisSpoken = progress.getProgress(SharpestSecretQuest.TALK_OSIRIS_INDEX) >= 1;
+
+            if (!waitDone) {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                        "Wait for nightfall within the city walls before the orchid reveals itself.");
+                return true;
+            }
+
+            if (!orchidFound) {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                        "Search the courtyards near the west gate while the moon is high.");
+                return true;
+            }
+
+            if (orchidFound && !returned) {
+                dialogManager.startDialog(player,
+                        SharpestSecretQuest.getReturnDialog(),
+                        npc,
+                        () -> questManager.handleTalk(player, SharpestSecretQuest.NPC_RETURN_TARGET));
+                return true;
+            }
+
+            if (returned && !osirisSpoken) {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                        "Find Osiris at the west entrance and tell him you're here for the tasting.");
+                return true;
+            }
+
+            if (osirisSpoken) {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
+                        "Osiris is waiting at his table—place an item on it and type /enchant.");
+                return true;
+            }
+        }
+
+        if (npc.getId() == SharpestSecretQuest.NPC_OSIRIS_ID) {
+            if (completed) {
+                dialogManager.startDialog(player,
+                        SharpestSecretQuest.getOsirisReminderDialog(),
+                        npc,
+                        null);
+                return true;
+            }
+
+            if (progress == null) {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                        "Osiris glances past you—Kazan hasn't vouched for you yet.");
+                return true;
+            }
+
+            boolean returned = progress.getProgress(SharpestSecretQuest.TALK_RETURN_INDEX) >= 1;
+            boolean osirisSpoken = progress.getProgress(SharpestSecretQuest.TALK_OSIRIS_INDEX) >= 1;
+
+            if (!returned) {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                        "You should report back to Kazan before asking for the tasting.");
+                return true;
+            }
+
+            if (!osirisSpoken) {
+                dialogManager.startDialog(player,
+                        SharpestSecretQuest.getOsirisIntroDialog(),
+                        npc,
+                        () -> Bukkit.getScheduler().runTaskLater(Main.getInstance(), () ->
+                                dialogManager.startChoiceDialog(player,
+                                        npc,
+                                        java.util.List.of("Memory", "Secret", "Spell", "Lie"),
+                                        SharpestSecretQuest.ID,
+                                        "osiris_choice_",
+                                        choice -> {
+                                            if (choice == 1) {
+                                                questManager.handleTalk(player, SharpestSecretQuest.NPC_OSIRIS_TARGET);
+                                                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
+                                                        "Correct. Use /enchant to open the workshop.");
+                                            } else {
+                                                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                                                        "Osiris smirks. 'Not quite. Come back when the answer is clear.'");
+                                            }
+                                        }), 1L));
+                return true;
+            }
+
+            dialogManager.startDialog(player,
+                    SharpestSecretQuest.getOsirisReminderDialog(),
+                    npc,
+                    null);
             return true;
         }
 

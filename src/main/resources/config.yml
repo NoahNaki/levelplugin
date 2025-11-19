@@ -29,6 +29,15 @@ tips:
     - "Swap to different chat channels with the /chat command"
     - "Want to change the appearance of your gear? use the /transmog feature!"
 
+quest-settings:
+  sharpsecret:
+    midnight-orchid:
+      world: mmorpg
+      x: 212.5
+      y: 72.0
+      z: -62.5
+      radius: 6.0
+
 # Leaderboard locations
 leaderboards:
   level:

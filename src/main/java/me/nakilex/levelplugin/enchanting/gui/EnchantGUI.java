@@ -6,6 +6,8 @@ import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.quests.def.SharpestSecretQuest;
+import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import me.nakilex.levelplugin.guild.GuildManager;
@@ -43,9 +45,10 @@ public class EnchantGUI implements Listener {
         Inventory gui = GuiBuilder.create(SIZE, TITLE)
                 .filler(Material.GRAY_STAINED_GLASS_PANE)
                 .build();
+        boolean freeEnchant = SharpestSecretQuest.shouldReceiveFreeEnchant(player.getUniqueId());
         gui.setItem(INFO_SLOT, createInfoItem());
         gui.setItem(13, null);
-        gui.setItem(22, createButton(0));
+        gui.setItem(22, createButton(player, 0, freeEnchant));
         open.put(player.getUniqueId(), gui);
         player.openInventory(gui);
     }
@@ -65,13 +68,22 @@ public class EnchantGUI implements Listener {
         return item;
     }
 
-    private ItemStack createButton(int cost) {
+    private ItemStack createButton(Player player, int cost, boolean freeEnchant) {
         ItemStack item = new ItemStack(Material.ENCHANTING_TABLE);
         ItemMeta meta = item.getItemMeta();
         meta.setDisplayName(ChatColor.LIGHT_PURPLE + "Enchant");
-        meta.setLore(Collections.singletonList(cost > 0
-                ? ChatColor.GRAY + "Cost: " + ChatColor.GOLD + "<glyph:coins_icon> " + cost
-                : ChatColor.GRAY + "Place item to enchant"));
+        List<String> lore = new ArrayList<>();
+        if (freeEnchant) {
+            lore.add(ChatColor.GRAY + "Cost: " + ChatColor.AQUA + "Covered (quest reward)");
+        } else if (cost > 0) {
+            lore.add(ChatColor.GRAY + "Cost: " + ChatColor.GOLD + "<glyph:coins_icon> " + cost);
+        } else {
+            lore.add(ChatColor.GRAY + "Place item to enchant");
+        }
+        if (!freeEnchant && cost > 0 && SharpestSecretQuest.hasEnchantToken(player)) {
+            lore.add(ChatColor.DARK_GRAY + "• " + ChatColor.GRAY + "Shift-click to spend an Enchant Token.");
+        }
+        meta.setLore(lore);
         item.setItemMeta(meta);
         return item;
     }
@@ -103,20 +115,41 @@ public class EnchantGUI implements Listener {
             if (item == null || item.getType().isAir()) return;
             CustomItem ci = ItemManager.getInstance().getCustomItemFromItemStack(item);
             if (ci == null) return;
-            int cost = TownPerkManager.getInstance().applyDiscount(
+            boolean freeEnchant = SharpestSecretQuest.shouldReceiveFreeEnchant(p.getUniqueId());
+            int baseCost = manager.getEnchantCost(ci);
+            int discountedCost = TownPerkManager.getInstance().applyDiscount(
                     GuildManager.getInstance().getGuild(p.getUniqueId()),
                     TownPerk.ENCHANTING_DISCOUNT,
-                    manager.getEnchantCost(ci));
-            try {
-                economy.deductCoins(p, cost);
-            } catch (IllegalArgumentException ex) {
-                p.sendMessage(ChatColor.RED + "Not enough coins! Cost: " + cost);
-                return;
+                    baseCost);
+
+            boolean usingToken = false;
+            if (!freeEnchant && e.isShiftClick()) {
+                usingToken = SharpestSecretQuest.consumeEnchantToken(p);
+                if (!usingToken) {
+                    ChatMessageUtil.send(p, ChatMessageUtil.MessageType.WARNING,
+                            "You don't have an Enchant Token to spend.");
+                }
+            }
+
+            if (!freeEnchant && !usingToken) {
+                try {
+                    economy.deductCoins(p, discountedCost);
+                } catch (IllegalArgumentException ex) {
+                    p.sendMessage(ChatColor.RED + "Not enough coins! Cost: " + discountedCost);
+                    return;
+                }
             }
             String prefix = manager.enchant(p, item, ci);
             gui.setItem(13, item);
             ItemUtil.updateTooltip(item, p);
             p.sendMessage(ChatColor.GREEN + "Item enchanted with " + ChatColor.LIGHT_PURPLE + prefix + ChatColor.GREEN + "!");
+            if (freeEnchant) {
+                ChatMessageUtil.send(p, ChatMessageUtil.MessageType.SUCCESS,
+                        "Osiris covers your first enchant.");
+            } else if (usingToken) {
+                ChatMessageUtil.send(p, ChatMessageUtil.MessageType.SUCCESS,
+                        "Your Enchant Token dissolves into violet sparks.");
+            }
             me.nakilex.levelplugin.Main.getInstance().getQuestManager().handleEnchant(p);
             update(p, gui);
         }
@@ -135,19 +168,21 @@ public class EnchantGUI implements Listener {
 
     private void update(Player p, Inventory gui) {
         ItemStack stack = gui.getItem(13);
+        boolean freeEnchant = SharpestSecretQuest.shouldReceiveFreeEnchant(p.getUniqueId());
         if (stack == null || stack.getType().isAir()) {
-            gui.setItem(22, createButton(0));
+            gui.setItem(22, createButton(p, 0, freeEnchant));
             return;
         }
         CustomItem ci = ItemManager.getInstance().getCustomItemFromItemStack(stack);
         if (ci == null) {
-            gui.setItem(22, createButton(0));
+            gui.setItem(22, createButton(p, 0, freeEnchant));
             return;
         }
-            int cost = TownPerkManager.getInstance().applyDiscount(
-                    GuildManager.getInstance().getGuild(p.getUniqueId()),
-                    TownPerk.ENCHANTING_DISCOUNT,
-                    manager.getEnchantCost(ci));
-            gui.setItem(22, createButton(cost));
+        int baseCost = manager.getEnchantCost(ci);
+        int cost = freeEnchant ? 0 : TownPerkManager.getInstance().applyDiscount(
+                GuildManager.getInstance().getGuild(p.getUniqueId()),
+                TownPerk.ENCHANTING_DISCOUNT,
+                baseCost);
+        gui.setItem(22, createButton(p, cost, freeEnchant));
     }
 }
