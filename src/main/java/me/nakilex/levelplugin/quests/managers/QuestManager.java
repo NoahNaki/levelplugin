@@ -31,7 +31,6 @@ public class QuestManager {
     private final Map<String, Quest> quests = new HashMap<>();
     private final Map<Integer, String> npcQuestMap = new HashMap<>();
     private final Map<String, TalkTargetInfo> talkTargetMap = new HashMap<>();
-    private final Map<String, String> objectiveLabels = new HashMap<>();
     private final Map<String, String> npcQuestNameMap = new HashMap<>();
     // Allow multiple quests to be active per player
     private final Map<UUID, Map<String, PlayerQuestProgress>> activeQuests = new HashMap<>();
@@ -67,7 +66,6 @@ public class QuestManager {
         quests.clear();
         npcQuestMap.clear();
         npcQuestNameMap.clear();
-        objectiveLabels.clear();
         // Register quests here manually.
         Quest office = new me.nakilex.levelplugin.quests.def.OfficeErrandsQuest();
         registerQuest(office);
@@ -90,7 +88,6 @@ public class QuestManager {
         registerQuest(stableKeeper);
         registerQuest(sharpSecret);
         me.nakilex.levelplugin.quests.def.SharpestSecretQuest.registerTalkTargets(this);
-        me.nakilex.levelplugin.quests.def.SharpestSecretQuest.registerObjectiveLabels(this);
         registerNpcQuest(me.nakilex.levelplugin.quests.def.SharpestSecretQuest.NPC_KAZAN_NAME,
                 me.nakilex.levelplugin.quests.def.SharpestSecretQuest.ID);
         registerNpcQuest(me.nakilex.levelplugin.quests.def.SharpestSecretQuest.NPC_OSIRIS_NAME,
@@ -122,13 +119,6 @@ public class QuestManager {
         }
         TalkTargetInfo info = new TalkTargetInfo(npcName, displayName);
         talkTargetMap.put(target, info);
-    }
-
-    public void registerObjectiveLabel(String target, String description) {
-        if (target == null || description == null) {
-            return;
-        }
-        objectiveLabels.put(target, description);
     }
 
     public Quest getQuestByNpcId(int npcId) {
@@ -887,8 +877,8 @@ public class QuestManager {
      * Provide a short description of a quest objective.
      */
     public String describeObjective(QuestObjective obj) {
-        if (objectiveLabels.containsKey(obj.getTarget())) {
-            return objectiveLabels.get(obj.getTarget());
+        if (obj.getDescription() != null && !obj.getDescription().isBlank()) {
+            return obj.getDescription();
         }
         switch (obj.getType()) {
             case KILL:

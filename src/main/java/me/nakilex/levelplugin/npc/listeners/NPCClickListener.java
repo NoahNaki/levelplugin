@@ -14,6 +14,7 @@ import me.nakilex.levelplugin.quests.def.StableKeeperQuest;
 import me.nakilex.levelplugin.npc.dialog.NPCDialogManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.NpcNameUtil;
+import me.nakilex.levelplugin.enchanting.gui.EnchantGUI;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.Bukkit;
@@ -30,14 +31,16 @@ public class NPCClickListener implements Listener {
     private final QuestManager questManager;
     private final NPCDialogManager dialogManager;
     private final HorseGUI horseGUI;
+    private final EnchantGUI enchantGUI;
 
     // Constructor to get the EconomyManager instance
     public NPCClickListener(EconomyManager economyManager, QuestManager questManager, NPCDialogManager dialogManager,
-                            HorseGUI horseGUI) {
+                            HorseGUI horseGUI, EnchantGUI enchantGUI) {
         this.economyManager = economyManager;
         this.questManager = questManager;
         this.dialogManager = dialogManager;
         this.horseGUI = horseGUI;
+        this.enchantGUI = enchantGUI;
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -253,10 +256,19 @@ public class NPCClickListener implements Listener {
                 return false;
             }
 
+            boolean introDone = progress.getProgress(SharpestSecretQuest.TALK_INTRO_INDEX) >= 1;
             boolean waitDone = progress.getProgress(SharpestSecretQuest.WAIT_FOR_NIGHT_INDEX) >= 1;
             boolean orchidFound = progress.getProgress(SharpestSecretQuest.FIND_ORCHID_INDEX) >= 1;
             boolean returned = progress.getProgress(SharpestSecretQuest.TALK_RETURN_INDEX) >= 1;
             boolean osirisSpoken = progress.getProgress(SharpestSecretQuest.TALK_OSIRIS_INDEX) >= 1;
+
+            if (!introDone) {
+                dialogManager.startDialog(player,
+                        SharpestSecretQuest.getIntroDialog(),
+                        npc,
+                        () -> questManager.handleTalk(player, SharpestSecretQuest.NPC_INTRO_TARGET));
+                return true;
+            }
 
             if (!waitDone) {
                 ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
@@ -271,6 +283,11 @@ public class NPCClickListener implements Listener {
             }
 
             if (orchidFound && !returned) {
+                if (!SharpestSecretQuest.hasMidnightOrchid(player)) {
+                    ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                            "You don't have the Midnight Orchid on you. Check beneath the oak at midnight again.");
+                    return true;
+                }
                 dialogManager.startDialog(player,
                         SharpestSecretQuest.getReturnDialog(),
                         npc,
@@ -299,7 +316,11 @@ public class NPCClickListener implements Listener {
                 dialogManager.startDialog(player,
                         SharpestSecretQuest.getOsirisReminderDialog(),
                         npc,
-                        null);
+                        () -> {
+                            if (enchantGUI != null) {
+                                enchantGUI.open(player);
+                            }
+                        });
                 return true;
             }
 
