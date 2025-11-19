@@ -12,6 +12,8 @@ import me.nakilex.levelplugin.mob.utils.MobNameUtil;
 import me.nakilex.levelplugin.quests.data.*;
 import me.nakilex.levelplugin.quests.gui.QuestState;
 import me.nakilex.levelplugin.quests.data.QuestResetScript;
+import me.nakilex.levelplugin.utils.NpcNameUtil;
+import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -28,6 +30,8 @@ public class QuestManager {
     private final LevelManager levelManager;
     private final Map<String, Quest> quests = new HashMap<>();
     private final Map<Integer, String> npcQuestMap = new HashMap<>();
+    private final Map<String, TalkTargetInfo> talkTargetMap = new HashMap<>();
+    private final Map<String, String> npcQuestNameMap = new HashMap<>();
     // Allow multiple quests to be active per player
     private final Map<UUID, Map<String, PlayerQuestProgress>> activeQuests = new HashMap<>();
     private final Map<UUID, Set<String>> completedQuests = new HashMap<>();
@@ -60,6 +64,8 @@ public class QuestManager {
 
     private void registerDefaultQuests() {
         quests.clear();
+        npcQuestMap.clear();
+        npcQuestNameMap.clear();
         // Register quests here manually.
         Quest office = new me.nakilex.levelplugin.quests.def.OfficeErrandsQuest();
         registerQuest(office);
@@ -71,6 +77,7 @@ public class QuestManager {
         Quest skeggSpiders = new me.nakilex.levelplugin.quests.def.SkeggSpiderQuest();
         Quest zoyaDungeon = new me.nakilex.levelplugin.quests.def.ZoyaDungeonQuest();
         Quest stableKeeper = new me.nakilex.levelplugin.quests.def.StableKeeperQuest();
+        Quest sharpSecret = new me.nakilex.levelplugin.quests.def.SharpestSecretQuest();
         registerQuest(nb);
         registerQuest(seras);
         registerQuest(hawieCrabs);
@@ -79,6 +86,12 @@ public class QuestManager {
         registerQuest(skeggSpiders);
         registerQuest(zoyaDungeon);
         registerQuest(stableKeeper);
+        registerQuest(sharpSecret);
+        me.nakilex.levelplugin.quests.def.SharpestSecretQuest.registerTalkTargets(this);
+        registerNpcQuest(me.nakilex.levelplugin.quests.def.SharpestSecretQuest.NPC_KAZAN_NAME,
+                me.nakilex.levelplugin.quests.def.SharpestSecretQuest.ID);
+        registerNpcQuest(me.nakilex.levelplugin.quests.def.SharpestSecretQuest.NPC_OSIRIS_NAME,
+                me.nakilex.levelplugin.quests.def.SharpestSecretQuest.ID);
         plugin.getLogger().info("Registered " + quests.size() + " quests.");
     }
 
@@ -93,9 +106,40 @@ public class QuestManager {
         npcQuestMap.put(npcId, questId);
     }
 
+    public void registerNpcQuest(String npcName, String questId) {
+        if (npcName == null) {
+            return;
+        }
+        npcQuestNameMap.put(NpcNameUtil.normalize(npcName), questId);
+    }
+
+    public void registerTalkTarget(String target, String npcName, String displayName) {
+        if (target == null || npcName == null) {
+            return;
+        }
+        TalkTargetInfo info = new TalkTargetInfo(npcName, displayName);
+        talkTargetMap.put(target, info);
+    }
+
     public Quest getQuestByNpcId(int npcId) {
         String id = npcQuestMap.get(npcId);
         return id == null ? null : quests.get(id);
+    }
+
+    public Quest getQuestByNpc(NPC npc) {
+        if (npc == null) {
+            return null;
+        }
+        Quest quest = getQuestByNpcId(npc.getId());
+        if (quest != null) {
+            return quest;
+        }
+        String normalized = NpcNameUtil.normalize(npc.getName());
+        if (normalized == null) {
+            return null;
+        }
+        String questId = npcQuestNameMap.get(normalized);
+        return questId == null ? null : quests.get(questId);
     }
 
     public Map<Integer, String> getNpcQuestMap() {
@@ -833,6 +877,9 @@ public class QuestManager {
      * Provide a short description of a quest objective.
      */
     public String describeObjective(QuestObjective obj) {
+        if (obj.getDescription() != null && !obj.getDescription().isBlank()) {
+            return obj.getDescription();
+        }
         switch (obj.getType()) {
             case KILL:
                 return "Kill " + beautifyName(obj.getTarget());
@@ -946,6 +993,10 @@ public class QuestManager {
     }
 
     private String resolveNpcName(String raw) {
+        TalkTargetInfo info = talkTargetMap.get(raw);
+        if (info != null) {
+            return info.getDisplayName();
+        }
         String idPart = raw;
         if (raw.toLowerCase().startsWith("npc")) {
             idPart = raw.substring(3);
@@ -970,6 +1021,37 @@ public class QuestManager {
             }
         }
         return raw;
+    }
+
+    public boolean isTalkObjectiveForNpc(QuestObjective obj, NPC npc) {
+        if (obj == null || npc == null || obj.getType() != QuestObjectiveType.TALK) {
+            return false;
+        }
+        TalkTargetInfo info = talkTargetMap.get(obj.getTarget());
+        if (info != null) {
+            String normalized = NpcNameUtil.normalize(npc.getName());
+            return normalized != null && normalized.equals(info.getNormalizedName());
+        }
+        String target = obj.getTarget().toLowerCase();
+        return target.startsWith("npc" + npc.getId());
+    }
+
+    private static class TalkTargetInfo {
+        private final String displayName;
+        private final String normalizedName;
+
+        TalkTargetInfo(String npcName, String displayName) {
+            this.displayName = (displayName == null || displayName.isBlank()) ? npcName : displayName;
+            this.normalizedName = NpcNameUtil.normalize(npcName);
+        }
+
+        String getDisplayName() {
+            return displayName;
+        }
+
+        String getNormalizedName() {
+            return normalizedName;
+        }
     }
 
     public Set<String> getQuestIds() {

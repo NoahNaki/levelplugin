@@ -12,28 +12,37 @@ public class QuestObjective {
     private final boolean allowOverflow;
     /** Target used for navigation beacons. May be null. */
     private final BeaconTarget beaconTarget;
+    /** Optional human-readable description to display in scoreboards/UI. */
+    private final String description;
 
     public QuestObjective(QuestObjectiveType type, String target, int amount) {
-        this(type, target, amount, false, null);
+        this(type, target, amount, false, null, null);
     }
 
     public QuestObjective(QuestObjectiveType type, String target, int amount,
                           BeaconTarget beaconTarget) {
-        this(type, target, amount, false, beaconTarget);
+        this(type, target, amount, false, beaconTarget, null);
     }
 
     public QuestObjective(QuestObjectiveType type, String target, int amount,
                           boolean allowOverflow) {
-        this(type, target, amount, allowOverflow, null);
+        this(type, target, amount, allowOverflow, null, null);
     }
 
     public QuestObjective(QuestObjectiveType type, String target, int amount,
                           boolean allowOverflow, BeaconTarget beaconTarget) {
+        this(type, target, amount, allowOverflow, beaconTarget, null);
+    }
+
+    public QuestObjective(QuestObjectiveType type, String target, int amount,
+                          boolean allowOverflow, BeaconTarget beaconTarget,
+                          String description) {
         this.type = type;
         this.target = target;
         this.amount = amount;
         this.allowOverflow = allowOverflow;
         this.beaconTarget = beaconTarget;
+        this.description = description;
     }
 
     public QuestObjectiveType getType() {
@@ -54,5 +63,9 @@ public class QuestObjective {
 
     public BeaconTarget getBeaconTarget() {
         return beaconTarget;
+    }
+
+    public String getDescription() {
+        return description;
     }
 }

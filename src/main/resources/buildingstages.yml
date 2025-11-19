@@ -226,7 +226,8 @@ stages:
         x: 4597
         y: 116
         z: -1145
-      npcs: []
+      npcs:
+        - 1118;105;8;84;-7.654175;88.799995
       schematic: enchanter_2.schem
       holo:
         x: 102

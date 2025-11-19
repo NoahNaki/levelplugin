@@ -112,9 +112,8 @@ public class QuestNPCEffectTask extends BukkitRunnable {
     }
 
     private String getGlyph(Player player, NPC npc) {
-        String questId = questManager.getNpcQuestMap().get(npc.getId());
-        if (questId != null) {
-            var quest = questManager.getQuest(questId);
+        Quest quest = questManager.getQuestByNpc(npc);
+        if (quest != null) {
             QuestState state = questManager.getQuestState(player, quest);
             if (state == QuestState.AVAILABLE) {
                 return "<glyph:info>";
@@ -130,8 +129,7 @@ public class QuestNPCEffectTask extends BukkitRunnable {
                     }
                 }
                 QuestObjective obj = quest.getObjectives().get(idx);
-                if (obj.getType() == QuestObjectiveType.TALK &&
-                        obj.getTarget().toLowerCase().startsWith("npc" + npc.getId())) {
+                if (questManager.isTalkObjectiveForNpc(obj, npc)) {
                     boolean last = idx == quest.getObjectives().size() - 1;
                     return last ? "<glyph:check>" : "<glyph:alert>";
                 } else if (state == QuestState.TURN_IN_READY) {

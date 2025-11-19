@@ -9,15 +9,21 @@ import me.nakilex.levelplugin.quests.def.ZoyaDungeonQuest;
 import me.nakilex.levelplugin.quests.gui.QuestState;
 import me.nakilex.levelplugin.quests.data.PlayerQuestProgress;
 import me.nakilex.levelplugin.quests.def.SerasQuest;
+import me.nakilex.levelplugin.quests.def.SharpestSecretQuest;
 import me.nakilex.levelplugin.quests.def.StableKeeperQuest;
 import me.nakilex.levelplugin.npc.dialog.NPCDialogManager;
+import me.nakilex.levelplugin.utils.ChatMessageUtil;
+import me.nakilex.levelplugin.utils.NpcNameUtil;
+import me.nakilex.levelplugin.enchanting.gui.EnchantGUI;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
+import java.util.UUID;
 
 public class NPCClickListener implements Listener {
 
@@ -25,14 +31,16 @@ public class NPCClickListener implements Listener {
     private final QuestManager questManager;
     private final NPCDialogManager dialogManager;
     private final HorseGUI horseGUI;
+    private final EnchantGUI enchantGUI;
 
     // Constructor to get the EconomyManager instance
     public NPCClickListener(EconomyManager economyManager, QuestManager questManager, NPCDialogManager dialogManager,
-                            HorseGUI horseGUI) {
+                            HorseGUI horseGUI, EnchantGUI enchantGUI) {
         this.economyManager = economyManager;
         this.questManager = questManager;
         this.dialogManager = dialogManager;
         this.horseGUI = horseGUI;
+        this.enchantGUI = enchantGUI;
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -85,7 +93,7 @@ public class NPCClickListener implements Listener {
                 return;
             }
 
-            Quest quest = questManager.getQuestByNpcId(npc.getId());
+            Quest quest = questManager.getQuestByNpc(npc);
             if (quest != null) {
                 if ("serashelp".equals(quest.getId())) {
                     PlayerQuestProgress progress = questManager.getProgress(player.getUniqueId(), quest.getId());
@@ -134,6 +142,12 @@ public class NPCClickListener implements Listener {
                     }
                 }
 
+                if (SharpestSecretQuest.ID.equals(quest.getId())) {
+                    if (handleSharpestSecret(player, npc)) {
+                        return;
+                    }
+                }
+
                 if ("zoyadungeon".equals(quest.getId())) {
                     PlayerQuestProgress progress = questManager.getProgress(player.getUniqueId(), quest.getId());
                     if (progress != null) {
@@ -159,7 +173,7 @@ public class NPCClickListener implements Listener {
                     }
                 }
 
-                questManager.handleTalk(player, "npc" + npc.getId());
+                questManager.handleTalk(player, resolveTalkTarget(quest, npc));
                 QuestState state = questManager.getQuestState(player, quest);
                 switch (state) {
                     case AVAILABLE -> dialogManager.startDialog(player, quest, npc);
@@ -225,5 +239,164 @@ public class NPCClickListener implements Listener {
         }
 
         return false;
+    }
+
+    private boolean handleSharpestSecret(Player player, NPC npc) {
+        java.util.UUID uuid = player.getUniqueId();
+        boolean completed = questManager.hasCompleted(uuid, SharpestSecretQuest.ID);
+        PlayerQuestProgress progress = questManager.getProgress(uuid, SharpestSecretQuest.ID);
+
+        if (isNpcName(npc, SharpestSecretQuest.NPC_KAZAN_NAME)) {
+            if (completed) {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
+                        "Osiris owes you a tasting whenever you need another edge.");
+                return true;
+            }
+            if (progress == null) {
+                return false;
+            }
+
+            boolean introDone = progress.getProgress(SharpestSecretQuest.TALK_INTRO_INDEX) >= 1;
+            boolean waitDone = progress.getProgress(SharpestSecretQuest.WAIT_FOR_NIGHT_INDEX) >= 1;
+            boolean orchidFound = progress.getProgress(SharpestSecretQuest.FIND_ORCHID_INDEX) >= 1;
+            boolean returned = progress.getProgress(SharpestSecretQuest.TALK_RETURN_INDEX) >= 1;
+            boolean osirisSpoken = progress.getProgress(SharpestSecretQuest.TALK_OSIRIS_INDEX) >= 1;
+
+            if (!introDone) {
+                dialogManager.startDialog(player,
+                        SharpestSecretQuest.getIntroDialog(),
+                        npc,
+                        () -> questManager.handleTalk(player, SharpestSecretQuest.NPC_INTRO_TARGET));
+                return true;
+            }
+
+            if (!waitDone) {
+                return true;
+            }
+
+            if (!orchidFound) {
+                return true;
+            }
+
+            if (orchidFound && !returned) {
+                if (!SharpestSecretQuest.hasMidnightOrchid(player)) {
+                    ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                            "You don't have the Midnight Orchid on you. Check beneath the oak at midnight again.");
+                    return true;
+                }
+                dialogManager.startDialog(player,
+                        SharpestSecretQuest.getReturnDialog(),
+                        npc,
+                        () -> {
+                            SharpestSecretQuest.removeMidnightOrchid(player);
+                            questManager.handleTalk(player, SharpestSecretQuest.NPC_RETURN_TARGET);
+                        });
+                return true;
+            }
+
+            if (returned && !osirisSpoken) {
+                return true;
+            }
+
+            if (osirisSpoken) {
+                dialogManager.startDialog(player,
+                        SharpestSecretQuest.getOsirisReminderDialog(),
+                        npc,
+                        () -> {
+                            if (enchantGUI != null) {
+                                enchantGUI.open(player);
+                            }
+                        });
+                return true;
+            }
+        }
+
+        if (isNpcName(npc, SharpestSecretQuest.NPC_OSIRIS_NAME)) {
+            if (completed) {
+                dialogManager.startDialog(player,
+                        SharpestSecretQuest.getOsirisReminderDialog(),
+                        npc,
+                        () -> {
+                            if (enchantGUI != null) {
+                                enchantGUI.open(player);
+                            }
+                        });
+                return true;
+            }
+
+            if (progress == null) {
+                return true;
+            }
+
+            boolean returned = progress.getProgress(SharpestSecretQuest.TALK_RETURN_INDEX) >= 1;
+            boolean osirisSpoken = progress.getProgress(SharpestSecretQuest.TALK_OSIRIS_INDEX) >= 1;
+
+            if (!returned) {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                        "You should report back to Kazan before asking for the tasting.");
+                return true;
+            }
+
+            if (!osirisSpoken) {
+                dialogManager.startDialog(player,
+                        SharpestSecretQuest.getOsirisIntroDialog(),
+                        npc,
+                        () -> Bukkit.getScheduler().runTaskLater(Main.getInstance(), () ->
+                                dialogManager.startChoiceDialog(player,
+                                        npc,
+                                        java.util.List.of("Memory", "Secret", "Spell", "Lie"),
+                                        SharpestSecretQuest.ID,
+                                        "osiris_choice_",
+                                        choice -> {
+                                            if (choice == 1) {
+                                                dialogManager.startDialog(player,
+                                                        SharpestSecretQuest.getOsirisSuccessDialog(player.getName()),
+                                                        npc,
+                                                        () -> {
+                                                            SharpestSecretQuest.giveEnchantToken(player);
+                                                            questManager.handleTalk(player, SharpestSecretQuest.NPC_OSIRIS_TARGET);
+                                                            if (enchantGUI != null) {
+                                                                enchantGUI.open(player);
+                                                            }
+                                                        });
+                                            } else {
+                                                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                                                        "Osiris smirks. 'Not quite. Come back when the answer is clear.'");
+                                            }
+                                        }), 1L));
+                return true;
+            }
+
+            dialogManager.startDialog(player,
+                    SharpestSecretQuest.getOsirisReminderDialog(),
+                    npc,
+                    () -> {
+                        if (enchantGUI != null) {
+                            enchantGUI.open(player);
+                        }
+                    });
+            return true;
+        }
+
+        return false;
+}
+
+    private boolean isNpcName(NPC npc, String expectedName) {
+        if (npc == null || expectedName == null) {
+            return false;
+        }
+        return NpcNameUtil.equalsNormalized(npc.getName(), expectedName);
+    }
+
+    private String resolveTalkTarget(Quest quest, NPC npc) {
+        if (quest != null && SharpestSecretQuest.ID.equals(quest.getId())) {
+            if (isNpcName(npc, SharpestSecretQuest.NPC_KAZAN_NAME)) {
+                return SharpestSecretQuest.NPC_INTRO_TARGET;
+            }
+            if (isNpcName(npc, SharpestSecretQuest.NPC_OSIRIS_NAME)) {
+                return SharpestSecretQuest.NPC_OSIRIS_TARGET;
+            }
+        }
+        return "npc" + npc.getId();
     }
 }
