@@ -69,6 +69,7 @@ public class SharpestSecretQuest extends Quest implements QuestScript, QuestComp
 
     private static final String CONFIG_PATH = "quest-settings.sharpsecret.midnight-orchid";
     private static final NamespacedKey ENCHANT_TOKEN_KEY = new NamespacedKey(Main.getInstance(), "enchant_token");
+    private static final NamespacedKey MIDNIGHT_ORCHID_KEY = new NamespacedKey(Main.getInstance(), "midnight_orchid");
     private static final long ORCHID_COOLDOWN_MS = 10_000L;
     private static final long BLOOM_START_TICK = 17_500L;
     private static final long BLOOM_END_TICK = 23_500L;
@@ -178,6 +179,15 @@ public class SharpestSecretQuest extends Quest implements QuestScript, QuestComp
 
     public static List<String> getReturnDialog() {
         return RETURN_DIALOG;
+    }
+
+    public static void registerTalkTargets(QuestManager questManager) {
+        if (questManager == null) {
+            return;
+        }
+        questManager.registerTalkTarget(NPC_INTRO_TARGET, NPC_KAZAN_NAME, NPC_KAZAN_NAME);
+        questManager.registerTalkTarget(NPC_RETURN_TARGET, NPC_KAZAN_NAME, NPC_KAZAN_NAME);
+        questManager.registerTalkTarget(NPC_OSIRIS_TARGET, NPC_OSIRIS_NAME, "Osiris");
     }
 
     public static List<String> getOsirisIntroDialog() {
@@ -428,6 +438,18 @@ public class SharpestSecretQuest extends Quest implements QuestScript, QuestComp
                 "You carefully pluck the Midnight Orchid, its glow lingering in your palm.");
     }
 
+    public static void removeMidnightOrchid(Player player) {
+        if (player == null) {
+            return;
+        }
+        for (int slot = 0; slot < player.getInventory().getSize(); slot++) {
+            ItemStack stack = player.getInventory().getItem(slot);
+            if (isMidnightOrchid(stack)) {
+                player.getInventory().clear(slot);
+            }
+        }
+    }
+
     private boolean isOrchidBlock(Block block) {
         if (block == null || orchidLocation == null || orchidLocation.getWorld() == null) {
             return false;
@@ -509,6 +531,7 @@ public class SharpestSecretQuest extends Quest implements QuestScript, QuestComp
             meta.setLore(TooltipUtil.questItemLore("Plucked beneath the oak as midnight struck.", true));
             meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
             meta.getPersistentDataContainer().set(ItemUtil.SOULBOUND_KEY, PersistentDataType.BYTE, (byte) 1);
+            meta.getPersistentDataContainer().set(MIDNIGHT_ORCHID_KEY, PersistentDataType.BYTE, (byte) 1);
             flower.setItemMeta(meta);
         }
         Map<Integer, ItemStack> overflow = player.getInventory().addItem(flower);
@@ -593,5 +616,13 @@ public class SharpestSecretQuest extends Quest implements QuestScript, QuestComp
         }
         ItemMeta meta = stack.getItemMeta();
         return meta != null && meta.getPersistentDataContainer().has(ENCHANT_TOKEN_KEY, PersistentDataType.BYTE);
+    }
+
+    private static boolean isMidnightOrchid(ItemStack stack) {
+        if (stack == null || stack.getType() != Material.BLUE_ORCHID) {
+            return false;
+        }
+        ItemMeta meta = stack.getItemMeta();
+        return meta != null && meta.getPersistentDataContainer().has(MIDNIGHT_ORCHID_KEY, PersistentDataType.BYTE);
     }
 }

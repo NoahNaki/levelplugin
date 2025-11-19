@@ -23,12 +23,17 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
 public class NPCClickListener implements Listener {
 
     private final EconomyManager economyManager;
     private final QuestManager questManager;
     private final NPCDialogManager dialogManager;
     private final HorseGUI horseGUI;
+    private final Map<UUID, Long> osirisLockNotices = new HashMap<>();
 
     // Constructor to get the EconomyManager instance
     public NPCClickListener(EconomyManager economyManager, QuestManager questManager, NPCDialogManager dialogManager,
@@ -273,7 +278,10 @@ public class NPCClickListener implements Listener {
                 dialogManager.startDialog(player,
                         SharpestSecretQuest.getReturnDialog(),
                         npc,
-                        () -> questManager.handleTalk(player, SharpestSecretQuest.NPC_RETURN_TARGET));
+                        () -> {
+                            SharpestSecretQuest.removeMidnightOrchid(player);
+                            questManager.handleTalk(player, SharpestSecretQuest.NPC_RETURN_TARGET);
+                        });
                 return true;
             }
 
@@ -300,8 +308,13 @@ public class NPCClickListener implements Listener {
             }
 
             if (progress == null) {
-                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
-                        "Complete 'The Sharpest Secret' quest to unlock Osiris' enchanting table.");
+                long now = System.currentTimeMillis();
+                long last = osirisLockNotices.getOrDefault(uuid, 0L);
+                if (now - last > 5_000L) {
+                    osirisLockNotices.put(uuid, now);
+                    ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                            "Complete 'The Sharpest Secret' quest to unlock Osiris' enchanting table.");
+                }
                 return true;
             }
 

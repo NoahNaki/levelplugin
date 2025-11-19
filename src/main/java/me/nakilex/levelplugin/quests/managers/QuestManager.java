@@ -30,6 +30,7 @@ public class QuestManager {
     private final LevelManager levelManager;
     private final Map<String, Quest> quests = new HashMap<>();
     private final Map<Integer, String> npcQuestMap = new HashMap<>();
+    private final Map<String, TalkTargetInfo> talkTargetMap = new HashMap<>();
     private final Map<String, String> npcQuestNameMap = new HashMap<>();
     // Allow multiple quests to be active per player
     private final Map<UUID, Map<String, PlayerQuestProgress>> activeQuests = new HashMap<>();
@@ -86,6 +87,7 @@ public class QuestManager {
         registerQuest(zoyaDungeon);
         registerQuest(stableKeeper);
         registerQuest(sharpSecret);
+        me.nakilex.levelplugin.quests.def.SharpestSecretQuest.registerTalkTargets(this);
         registerNpcQuest(me.nakilex.levelplugin.quests.def.SharpestSecretQuest.NPC_KAZAN_NAME,
                 me.nakilex.levelplugin.quests.def.SharpestSecretQuest.ID);
         registerNpcQuest(me.nakilex.levelplugin.quests.def.SharpestSecretQuest.NPC_OSIRIS_NAME,
@@ -109,6 +111,14 @@ public class QuestManager {
             return;
         }
         npcQuestNameMap.put(NpcNameUtil.normalize(npcName), questId);
+    }
+
+    public void registerTalkTarget(String target, String npcName, String displayName) {
+        if (target == null || npcName == null) {
+            return;
+        }
+        TalkTargetInfo info = new TalkTargetInfo(npcName, displayName);
+        talkTargetMap.put(target, info);
     }
 
     public Quest getQuestByNpcId(int npcId) {
@@ -980,6 +990,10 @@ public class QuestManager {
     }
 
     private String resolveNpcName(String raw) {
+        TalkTargetInfo info = talkTargetMap.get(raw);
+        if (info != null) {
+            return info.getDisplayName();
+        }
         String idPart = raw;
         if (raw.toLowerCase().startsWith("npc")) {
             idPart = raw.substring(3);
@@ -1004,6 +1018,37 @@ public class QuestManager {
             }
         }
         return raw;
+    }
+
+    public boolean isTalkObjectiveForNpc(QuestObjective obj, NPC npc) {
+        if (obj == null || npc == null || obj.getType() != QuestObjectiveType.TALK) {
+            return false;
+        }
+        TalkTargetInfo info = talkTargetMap.get(obj.getTarget());
+        if (info != null) {
+            String normalized = NpcNameUtil.normalize(npc.getName());
+            return normalized != null && normalized.equals(info.getNormalizedName());
+        }
+        String target = obj.getTarget().toLowerCase();
+        return target.startsWith("npc" + npc.getId());
+    }
+
+    private static class TalkTargetInfo {
+        private final String displayName;
+        private final String normalizedName;
+
+        TalkTargetInfo(String npcName, String displayName) {
+            this.displayName = (displayName == null || displayName.isBlank()) ? npcName : displayName;
+            this.normalizedName = NpcNameUtil.normalize(npcName);
+        }
+
+        String getDisplayName() {
+            return displayName;
+        }
+
+        String getNormalizedName() {
+            return normalizedName;
+        }
     }
 
     public Set<String> getQuestIds() {
