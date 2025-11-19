@@ -297,7 +297,7 @@ public class NPCClickListener implements Listener {
             return;
         }
         if (questManager.getProgress(player.getUniqueId(), quest.getId()) == null) {
-            questManager.addActiveQuest(player.getUniqueId(), quest.getId());
+            questManager.startQuest(player, quest.getId());
         }
     }
 
