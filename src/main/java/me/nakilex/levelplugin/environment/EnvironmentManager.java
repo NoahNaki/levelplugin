@@ -84,6 +84,29 @@ public class EnvironmentManager {
         }
     }
 
+    /**
+     * Track a block update in the given batch if the new priority is not lower
+     * than any already-recorded placement for that location.
+     */
+    private static boolean enqueueWithPriority(Map<String, Integer> priMap, int priority,
+                                               Location loc,
+                                               org.bukkit.block.data.BlockData data,
+                                               Map<Location, org.bukkit.block.data.BlockData> batch) {
+        String locKey = key(loc);
+        int existing = priMap.getOrDefault(locKey, Integer.MIN_VALUE);
+        if (priMap.containsKey(locKey) && existing > priority) {
+            return false;
+        }
+
+        batch.put(loc, data);
+        if (data.getMaterial() == org.bukkit.Material.AIR) {
+            priMap.remove(locKey);
+        } else {
+            priMap.put(locKey, priority);
+        }
+        return true;
+    }
+
     public static class EnvironmentState {
         public int level;
         public int stage;
@@ -1108,6 +1131,8 @@ public class EnvironmentManager {
         Sound[] breakSounds = { Sound.BLOCK_STONE_BREAK, Sound.BLOCK_DEEPSLATE_BREAK, Sound.BLOCK_WOOD_BREAK };
         Sound[] placeSounds = { Sound.BLOCK_STONE_PLACE, Sound.BLOCK_DEEPSLATE_PLACE, Sound.BLOCK_WOOD_PLACE };
 
+        Map<String, Integer> priMap = blockPriorities.computeIfAbsent(uuid, k -> new java.util.HashMap<>());
+
         BukkitTask task = new BukkitRunnable() {
             int index = 0;
             @Override public void run() {
@@ -1116,7 +1141,7 @@ public class EnvironmentManager {
                 for (int i = 0; i < blocksPerTick && index < blocks.size(); i++, index++) {
                     TownStageManager.BlockDef b = blocks.get(index);
                     Location loc = baseOrigin.clone().add(b.x - stageData.ox, b.y - stageData.oy, b.z - stageData.oz);
-                    batch.put(loc, b.data);
+                    enqueueWithPriority(priMap, stageData.priority, loc, b.data, batch);
                     Sound breakS = breakSounds[rand.nextInt(breakSounds.length)];
                     Sound placeS = placeSounds[rand.nextInt(placeSounds.length)];
                     player.getWorld().playSound(loc, breakS, 0.7f, 1f);
@@ -1167,8 +1192,7 @@ public class EnvironmentManager {
         Map<String, Integer> priMap = blockPriorities.computeIfAbsent(uuid, k -> new java.util.HashMap<>());
         for (var b : stageData.blocks) {
             Location loc = baseOrigin.clone().add(b.x - stageData.ox, b.y - stageData.oy, b.z - stageData.oz);
-            batch.put(loc, b.data);
-            priMap.put(key(loc), stageData.priority);
+            enqueueWithPriority(priMap, stageData.priority, loc, b.data, batch);
         }
         applyBlocks(batch);
         stageManager.spawnForStage(player, town, level, stage, baseOrigin);
@@ -1245,8 +1269,7 @@ public class EnvironmentManager {
             int lcx = loc.getBlockX() >> 4;
             int lcz = loc.getBlockZ() >> 4;
             if (lcx == cx && lcz == cz) {
-                batch.put(loc, b.data);
-                priMap.put(key(loc), stageData.priority);
+                enqueueWithPriority(priMap, stageData.priority, loc, b.data, batch);
             }
         }
         if (!batch.isEmpty()) {
