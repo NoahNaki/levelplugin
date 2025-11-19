@@ -259,13 +259,13 @@ public class NPCClickListener implements Listener {
 
             if (!waitDone) {
                 ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
-                        "Wait for nightfall within the city walls before the orchid reveals itself.");
+                        "Stay inside the town until midnight—the Midnight Orchid won't bloom a moment sooner.");
                 return true;
             }
 
             if (!orchidFound) {
                 ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
-                        "Search the courtyards near the west gate while the moon is high.");
+                        "Check beneath the massive oak by the main entrance when the bells toll midnight.");
                 return true;
             }
 
@@ -327,8 +327,10 @@ public class NPCClickListener implements Listener {
                                         choice -> {
                                             if (choice == 1) {
                                                 questManager.handleTalk(player, SharpestSecretQuest.NPC_OSIRIS_TARGET);
-                                                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                                                        "Correct. Use /enchant to open the workshop.");
+                                                dialogManager.startDialog(player,
+                                                        SharpestSecretQuest.getOsirisSuccessDialog(player.getName()),
+                                                        npc,
+                                                        null);
                                             } else {
                                                 ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
                                                         "Osiris smirks. 'Not quite. Come back when the answer is clear.'");

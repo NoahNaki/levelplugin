@@ -10,8 +10,10 @@ import me.nakilex.levelplugin.quests.data.QuestScript;
 import me.nakilex.levelplugin.quests.data.QuestCompletionScript;
 import me.nakilex.levelplugin.quests.data.QuestResetScript;
 import me.nakilex.levelplugin.quests.data.PlayerQuestProgress;
+import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
+import me.nakilex.levelplugin.utils.MultiLineHologram;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -19,14 +21,18 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.World;
+import org.bukkit.block.Block;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
-import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
-import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.server.PluginDisableEvent;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -63,36 +69,51 @@ public class SharpestSecretQuest extends Quest implements QuestScript, QuestComp
 
     private static final String CONFIG_PATH = "quest-settings.sharpsecret.midnight-orchid";
     private static final NamespacedKey ENCHANT_TOKEN_KEY = new NamespacedKey(Main.getInstance(), "enchant_token");
+    private static final long ORCHID_COOLDOWN_MS = 10_000L;
+    private static final long BLOOM_START_TICK = 17_500L;
+    private static final long BLOOM_END_TICK = 23_500L;
+    private static final long DAY_RESET_TICK = 12_000L;
+    private static final long BLOOM_TASK_INTERVAL = 100L;
+    private static final String ORCHID_HOLOGRAM_TAG = "sharpsecret_orchid";
+    private static final List<String> ORCHID_HOLOGRAM_LINES = List.of(
+            ChatColor.DARK_GRAY + "Right-click " + ChatColor.WHITE + "to pluck"
+    );
 
     private static final List<String> INTRO_DIALOG = List.of(
-            "Swordsman Kazan|Yes, it's sharp enough to split moonlight.",
-            "Swordsman Kazan|Want the secret? Fetch me the Midnight Orchid that blooms only after dusk inside these walls.",
-            "Swordsman Kazan|Wait for nightfall, scour the quiet courtyards, and bring it back without bruising a petal.",
-            "Swordsman Kazan|Do that and I'll introduce you to someone whose knowledge cuts deeper than any blade."
+            "Swordsman Kazan|Yes, what is it, greenie? Oh—this sword? Sharp enough to split moonlight.",
+            "Swordsman Kazan|How did I get it this sharp? Hah... that isn't a secret I spill without a favor in return.",
+            "Swordsman Kazan|There's a barkeep at the tavern—the most beautiful you'll ever see—and I can't find the flowers she loves.",
+            "Swordsman Kazan|They whisper that a Midnight Orchid blooms only within these walls, but I've never caught it.",
+            "Swordsman Kazan|Under the large oak near the main entrance, a blue bloom opens only at midnight. Bring it to me and the sword's secret is yours."
     );
 
     private static final List<String> RETURN_DIALOG = List.of(
-            "Swordsman Kazan|What?! You actually found it—its petals still shimmer.",
+            "Swordsman Kazan|What?! You found it! The Midnight Orchid—petals still glimmering.",
             "Swordsman Kazan|Head to the building by the west entrance and tell Osiris you're here for the tasting.",
-            "Swordsman Kazan|When he asks the riddle, answer 'Secret'. He'll owe you a favor—and a free enchant."
+            "Swordsman Kazan|When he asks his riddle, answer 'Secret'. That's your payment—and a free enchant."
     );
 
     private static final List<String> OSIRIS_INTRO_DIALOG = List.of(
             "Osiris|You came for the tasting? Then taste this...",
-            "Osiris|Sweet when kept, bitter when shared. I die when spoken. What am I?"
+            "Osiris|Sweet when kept, bitter when shared.",
+            "Osiris|I die when spoken.",
+            "Osiris|What am I?"
     );
 
     private static final List<String> OSIRIS_REMINDER_DIALOG = List.of(
-            "Osiris|The boutique is yours. Place your gear on the table and feel the weave of mana yourself."
+            "Osiris|My humble shop is yours. Place your gear upon the table and feel the mana weave."
     );
 
     private static SharpestSecretQuest instance;
     private static boolean lifecycleRegistered = false;
 
     private final Map<UUID, BukkitTask> nightWatchers = new HashMap<>();
-    private final Map<UUID, Listener> orchidListeners = new HashMap<>();
+    private final Map<UUID, Long> orchidCooldowns = new HashMap<>();
     private final Location orchidLocation;
-    private final double orchidRadiusSquared;
+    private final MultiLineHologram orchidHologram;
+    private BlockData dormantBlockData;
+    private boolean orchidBloomed;
+    private BukkitTask bloomTask;
 
     public SharpestSecretQuest() {
         super(
@@ -111,9 +132,18 @@ public class SharpestSecretQuest extends Quest implements QuestScript, QuestComp
         instance = this;
         Location center = loadOrchidLocation();
         this.orchidLocation = center;
-        double radius = Main.getInstance().getConfig().getDouble(CONFIG_PATH + ".radius", 6.0);
-        this.orchidRadiusSquared = radius * radius;
+        Location holoLocation = center.clone().add(0.5, 1.25, 0.5);
+        this.orchidHologram = new MultiLineHologram(holoLocation, ORCHID_HOLOGRAM_TAG);
+        if (center.getWorld() != null) {
+            Block block = center.getBlock();
+            if (block.getType() != Material.BLUE_ORCHID) {
+                this.dormantBlockData = block.getBlockData().clone();
+            }
+        }
         registerLifecycleListener();
+        registerOrchidInteractionListener(Main.getInstance());
+        startOrchidBloomTask(Main.getInstance());
+        updateOrchidBloom();
     }
 
     private static Location loadOrchidLocation() {
@@ -125,9 +155,9 @@ public class SharpestSecretQuest extends Quest implements QuestScript, QuestComp
         if (world == null) {
             world = fallbackWorld;
         }
-        double x = section != null ? section.getDouble("x", 212.5) : 212.5;
-        double y = section != null ? section.getDouble("y", 72.0) : 72.0;
-        double z = section != null ? section.getDouble("z", -62.5) : -62.5;
+        double x = section != null ? section.getDouble("x", 195.0) : 195.0;
+        double y = section != null ? section.getDouble("y", 68.0) : 68.0;
+        double z = section != null ? section.getDouble("z", -217.0) : -217.0;
         return new Location(world, x, y, z);
     }
 
@@ -156,6 +186,15 @@ public class SharpestSecretQuest extends Quest implements QuestScript, QuestComp
 
     public static List<String> getOsirisReminderDialog() {
         return OSIRIS_REMINDER_DIALOG;
+    }
+
+    public static List<String> getOsirisSuccessDialog(String playerName) {
+        String speaker = (playerName == null || playerName.isBlank()) ? "Traveler" : playerName;
+        return List.of(
+                "Osiris|Correct. Welcome to my humble shop, " + speaker + ".",
+                speaker + "|Wait... how do you know my name?",
+                "Osiris|I know more about this town than most suspect. Now—shall we see what your equipment can become?"
+        );
     }
 
     @Override
@@ -196,12 +235,6 @@ public class SharpestSecretQuest extends Quest implements QuestScript, QuestComp
         } else {
             stopNightWatcher(player.getUniqueId());
         }
-        if (progress.getProgress(WAIT_FOR_NIGHT_INDEX) >= 1
-                && progress.getProgress(FIND_ORCHID_INDEX) < 1) {
-            ensureOrchidTracker(player, plugin);
-        } else if (progress.getProgress(FIND_ORCHID_INDEX) >= 1) {
-            stopOrchidListener(player.getUniqueId());
-        }
     }
 
     private void startNightWatcher(Player player, Main plugin) {
@@ -211,6 +244,11 @@ public class SharpestSecretQuest extends Quest implements QuestScript, QuestComp
             @Override
             public void run() {
                 QuestManager questManager = plugin.getQuestManager();
+                if (questManager == null) {
+                    cancel();
+                    nightWatchers.remove(uuid);
+                    return;
+                }
                 PlayerQuestProgress progress = questManager.getProgress(uuid, ID);
                 if (progress == null || progress.getProgress(WAIT_FOR_NIGHT_INDEX) >= 1) {
                     cancel();
@@ -225,7 +263,7 @@ public class SharpestSecretQuest extends Quest implements QuestScript, QuestComp
                 if (time >= 13000 && time <= 23000) {
                     questManager.handleDiscover(current, WAIT_FOR_NIGHT_TARGET);
                     ChatMessageUtil.send(current, ChatMessageUtil.MessageType.INFO,
-                            "Moonlight spills over the rooftops—time to find the Midnight Orchid.");
+                            "The bells toll midnight. Check beneath the great oak near the main gate.");
                     cancel();
                     nightWatchers.remove(uuid);
                     resumeTracking(current, plugin);
@@ -235,63 +273,179 @@ public class SharpestSecretQuest extends Quest implements QuestScript, QuestComp
         nightWatchers.put(uuid, task);
     }
 
-    private void ensureOrchidTracker(Player player, Main plugin) {
-        UUID uuid = player.getUniqueId();
-        if (orchidListeners.containsKey(uuid)) {
-            return;
-        }
-        Listener listener = new Listener() {
-            @EventHandler
-            public void onMove(PlayerMoveEvent event) {
-                if (!event.getPlayer().getUniqueId().equals(uuid)) {
+    private void registerOrchidInteractionListener(Main plugin) {
+        Bukkit.getPluginManager().registerEvents(new Listener() {
+            @EventHandler(ignoreCancelled = true)
+            public void onInteract(PlayerInteractEvent event) {
+                if (event.getHand() == EquipmentSlot.OFF_HAND) {
                     return;
                 }
-                checkForOrchid(event.getPlayer(), plugin);
-            }
-
-            @EventHandler
-            public void onQuit(PlayerQuitEvent event) {
-                if (event.getPlayer().getUniqueId().equals(uuid)) {
-                    HandlerList.unregisterAll(this);
-                    orchidListeners.remove(uuid);
+                if (event.getAction() != Action.RIGHT_CLICK_BLOCK) {
+                    return;
                 }
+                if (!isOrchidBlock(event.getClickedBlock())) {
+                    return;
+                }
+                event.setCancelled(true);
+                handleOrchidPluck(event.getPlayer());
             }
-        };
-        Bukkit.getPluginManager().registerEvents(listener, plugin);
-        orchidListeners.put(uuid, listener);
-        checkForOrchid(player, plugin);
+        }, plugin);
     }
 
-    private void checkForOrchid(Player player, Main plugin) {
-        if (player == null || orchidLocation.getWorld() == null) {
+    private void startOrchidBloomTask(Main plugin) {
+        if (orchidLocation == null) {
             return;
         }
+        if (bloomTask != null) {
+            bloomTask.cancel();
+        }
+        bloomTask = new BukkitRunnable() {
+            @Override
+            public void run() {
+                updateOrchidBloom();
+            }
+        }.runTaskTimer(plugin, 20L, BLOOM_TASK_INTERVAL);
+    }
+
+    private void updateOrchidBloom() {
+        if (orchidLocation == null) {
+            return;
+        }
+        World world = orchidLocation.getWorld();
+        if (world == null) {
+            return;
+        }
+        Block block = orchidLocation.getBlock();
+        if (dormantBlockData == null && block.getType() != Material.BLUE_ORCHID) {
+            dormantBlockData = block.getBlockData().clone();
+        }
+        long time = world.getTime();
+        if (!orchidBloomed && isMidnightWindow(time)) {
+            bloomOrchid();
+            return;
+        }
+        if (orchidBloomed && time < DAY_RESET_TICK) {
+            witherOrchid();
+            return;
+        }
+        if (orchidBloomed && block.getType() != Material.BLUE_ORCHID) {
+            block.setType(Material.BLUE_ORCHID, false);
+        }
+    }
+
+    private boolean isMidnightWindow(long time) {
+        if (BLOOM_START_TICK <= BLOOM_END_TICK) {
+            return time >= BLOOM_START_TICK && time <= BLOOM_END_TICK;
+        }
+        return time >= BLOOM_START_TICK || time <= BLOOM_END_TICK;
+    }
+
+    private void bloomOrchid() {
+        if (orchidLocation == null || orchidLocation.getWorld() == null) {
+            return;
+        }
+        Block block = orchidLocation.getBlock();
+        block.setType(Material.BLUE_ORCHID, false);
+        orchidBloomed = true;
+        spawnOrchidHologram();
+    }
+
+    private void witherOrchid() {
+        if (orchidLocation == null || orchidLocation.getWorld() == null) {
+            return;
+        }
+        Block block = orchidLocation.getBlock();
+        if (dormantBlockData != null) {
+            block.setBlockData(dormantBlockData, false);
+        } else {
+            block.setType(Material.AIR, false);
+        }
+        orchidBloomed = false;
+        despawnOrchidHologram();
+    }
+
+    private void spawnOrchidHologram() {
+        if (orchidHologram == null || orchidLocation.getWorld() == null) {
+            return;
+        }
+        orchidHologram.spawn(ORCHID_HOLOGRAM_LINES);
+    }
+
+    private void despawnOrchidHologram() {
+        if (orchidHologram != null) {
+            orchidHologram.despawn();
+        }
+    }
+
+    private void handleOrchidPluck(Player player) {
+        if (player == null) {
+            return;
+        }
+        Main plugin = Main.getInstance();
         QuestManager questManager = plugin.getQuestManager();
-        PlayerQuestProgress progress = questManager.getProgress(player.getUniqueId(), ID);
+        if (questManager == null) {
+            return;
+        }
+        UUID uuid = player.getUniqueId();
+        if (questManager.hasCompleted(uuid, ID)) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
+                    "Osiris already trusts you with the tasting.");
+            return;
+        }
+        PlayerQuestProgress progress = questManager.getProgress(uuid, ID);
         if (progress == null) {
-            stopOrchidListener(player.getUniqueId());
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                    "The bloom recoils. Maybe Kazan can tell you more.");
             return;
         }
-        if (progress.getProgress(WAIT_FOR_NIGHT_INDEX) < 1
-                || progress.getProgress(FIND_ORCHID_INDEX) >= 1) {
-            stopOrchidListener(player.getUniqueId());
+        if (progress.getProgress(WAIT_FOR_NIGHT_INDEX) < 1) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                    "Patience. Wait until midnight inside the town walls.");
             return;
         }
-        if (!player.getWorld().equals(orchidLocation.getWorld())) {
+        if (!orchidBloomed) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                    "Only roots remain. Return when the moon crowns the oak.");
             return;
         }
-        long time = player.getWorld().getTime();
-        if (time < 13000 || time > 23000) {
+        if (progress.getProgress(FIND_ORCHID_INDEX) >= 1) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                    "You've already plucked the Midnight Orchid—bring it to Kazan.");
             return;
         }
-        if (player.getLocation().distanceSquared(orchidLocation) > orchidRadiusSquared) {
+        long now = System.currentTimeMillis();
+        long last = orchidCooldowns.getOrDefault(uuid, 0L);
+        if (now - last < ORCHID_COOLDOWN_MS) {
+            long remaining = Math.max(1L, (ORCHID_COOLDOWN_MS - (now - last) + 999L) / 1000L);
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                    "The petals need a moment to recover. Try again in " + remaining + "s.");
             return;
         }
+        orchidCooldowns.put(uuid, now);
         questManager.handleDiscover(player, ORCHID_DISCOVERY_TARGET);
         giveMidnightOrchid(player);
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                "You gently pluck the Midnight Orchid, its petals glowing in your hands.");
-        stopOrchidListener(player.getUniqueId());
+                "You carefully pluck the Midnight Orchid, its glow lingering in your palm.");
+    }
+
+    private boolean isOrchidBlock(Block block) {
+        if (block == null || orchidLocation == null || orchidLocation.getWorld() == null) {
+            return false;
+        }
+        if (!block.getWorld().equals(orchidLocation.getWorld())) {
+            return false;
+        }
+        return block.getX() == orchidLocation.getBlockX()
+                && block.getY() == orchidLocation.getBlockY()
+                && block.getZ() == orchidLocation.getBlockZ();
+    }
+
+    private void shutdownOrchidTasks() {
+        if (bloomTask != null) {
+            bloomTask.cancel();
+            bloomTask = null;
+        }
+        witherOrchid();
     }
 
     private void stopNightWatcher(UUID uuid) {
@@ -301,16 +455,9 @@ public class SharpestSecretQuest extends Quest implements QuestScript, QuestComp
         }
     }
 
-    private void stopOrchidListener(UUID uuid) {
-        Listener listener = orchidListeners.remove(uuid);
-        if (listener != null) {
-            HandlerList.unregisterAll(listener);
-        }
-    }
-
     private void cleanupPlayer(UUID uuid) {
         stopNightWatcher(uuid);
-        stopOrchidListener(uuid);
+        orchidCooldowns.remove(uuid);
     }
 
     private static void registerLifecycleListener() {
@@ -336,6 +483,13 @@ public class SharpestSecretQuest extends Quest implements QuestScript, QuestComp
                     instance.cleanupPlayer(event.getPlayer().getUniqueId());
                 }
             }
+
+            @EventHandler
+            public void onPluginDisable(PluginDisableEvent event) {
+                if (event.getPlugin().equals(plugin) && instance != null) {
+                    instance.shutdownOrchidTasks();
+                }
+            }
         }, plugin);
         Bukkit.getScheduler().runTask(plugin, () -> {
             if (instance == null) {
@@ -352,9 +506,9 @@ public class SharpestSecretQuest extends Quest implements QuestScript, QuestComp
         ItemMeta meta = flower.getItemMeta();
         if (meta != null) {
             meta.setDisplayName(ChatColor.AQUA + "Midnight Orchid");
-            List<String> lore = new ArrayList<>();
-            lore.add(ChatColor.GRAY + "A bloom that opens only beneath moonlight.");
-            meta.setLore(lore);
+            meta.setLore(TooltipUtil.questItemLore("Plucked beneath the oak as midnight struck.", true));
+            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+            meta.getPersistentDataContainer().set(ItemUtil.SOULBOUND_KEY, PersistentDataType.BYTE, (byte) 1);
             flower.setItemMeta(meta);
         }
         Map<Integer, ItemStack> overflow = player.getInventory().addItem(flower);

@@ -65,4 +65,25 @@ public final class TooltipUtil {
         }
         return lore;
     }
+
+    /**
+     * Generate standard lore for quest items so they share the same divider and
+     * label styling everywhere.
+     *
+     * @param description optional flavor text shown before the divider
+     * @param soulbound   whether to append the red soulbound line
+     * @return list of formatted lore lines
+     */
+    public static List<String> questItemLore(String description, boolean soulbound) {
+        List<String> lore = new ArrayList<>();
+        if (description != null && !description.isBlank()) {
+            lore.add(ChatColor.GRAY + description.trim());
+        }
+        lore.add("");
+        lore.add(ChatColor.WHITE + "Quest Item");
+        if (soulbound) {
+            lore.add(ChatColor.RED + "Soulbound");
+        }
+        return lore;
+    }
 }

@@ -33,10 +33,9 @@ quest-settings:
   sharpsecret:
     midnight-orchid:
       world: mmorpg
-      x: 212.5
-      y: 72.0
-      z: -62.5
-      radius: 6.0
+      x: 195.0
+      y: 68.0
+      z: -217.0
 
 # Leaderboard locations
 leaderboards:
