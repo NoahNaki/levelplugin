@@ -2,9 +2,11 @@ package me.nakilex.levelplugin.npc.listeners;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
+import me.nakilex.levelplugin.fakeblock.QuestGateManager;
 import me.nakilex.levelplugin.horse.gui.HorseGUI;
 import me.nakilex.levelplugin.quests.data.Quest;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
+import me.nakilex.levelplugin.quests.def.DungeonGuardQuest;
 import me.nakilex.levelplugin.quests.def.ZoyaDungeonQuest;
 import me.nakilex.levelplugin.quests.gui.QuestState;
 import me.nakilex.levelplugin.quests.data.PlayerQuestProgress;
@@ -13,8 +15,10 @@ import me.nakilex.levelplugin.quests.def.SharpestSecretQuest;
 import me.nakilex.levelplugin.quests.def.StableKeeperQuest;
 import me.nakilex.levelplugin.npc.dialog.NPCDialogManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
+import me.nakilex.levelplugin.utils.CurrencyMessageUtil;
 import me.nakilex.levelplugin.utils.NpcNameUtil;
 import me.nakilex.levelplugin.enchanting.gui.EnchantGUI;
+import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.Bukkit;
@@ -90,6 +94,11 @@ public class NPCClickListener implements Listener {
                 if (sessionNpc != null && sessionNpc.getId() == npc.getId()) {
                     dialogManager.advanceDialog(player, questManager);
                 }
+                return;
+            }
+
+            if (npc.getId() == DungeonGuardQuest.NPC_ID) {
+                handleDungeonGuard(player, npc);
                 return;
             }
 
@@ -239,6 +248,89 @@ public class NPCClickListener implements Listener {
         }
 
         return false;
+    }
+
+    private void handleDungeonGuard(Player player, NPC npc) {
+        if (StatsManager.getInstance().getLevel(player) < DungeonGuardQuest.REQUIRED_LEVEL) {
+            dialogManager.startDialog(player, DungeonGuardQuest.getTooWeakDialog(), npc, null);
+            return;
+        }
+
+        ensureDungeonGuardQuestStarted(player);
+
+        if (hasUnlockedDungeonEntrance(player)) {
+            dialogManager.startDialog(player,
+                    DungeonGuardQuest.getApprovalDialog(),
+                    npc,
+                    () -> openDungeonGate(player));
+            return;
+        }
+
+        if (dialogManager.resumePendingChoice(player, npc)) {
+            return;
+        }
+
+        dialogManager.startDialog(player, DungeonGuardQuest.getIntroDialog(), npc,
+                () -> Bukkit.getScheduler().runTaskLater(Main.getInstance(), () ->
+                        dialogManager.startChoiceDialog(player, npc,
+                                java.util.List.of("Yes", "No"),
+                                DungeonGuardQuest.QUEST_ID,
+                                "dungeonguard_choice_",
+                                choice -> {
+                                    if (choice == 0) {
+                                        processDungeonEntryPurchase(player, npc);
+                                    } else {
+                                        dialogManager.startDialog(player,
+                                                DungeonGuardQuest.getDeclineDialog(),
+                                                npc,
+                                                null);
+                                    }
+                                }), 1L));
+    }
+
+    private void ensureDungeonGuardQuestStarted(Player player) {
+        Quest quest = questManager.getQuestByNpcId(DungeonGuardQuest.NPC_ID);
+        if (quest == null) {
+            return;
+        }
+        if (questManager.hasCompleted(player.getUniqueId(), quest.getId())) {
+            return;
+        }
+        if (questManager.getProgress(player.getUniqueId(), quest.getId()) == null) {
+            questManager.addActiveQuest(player.getUniqueId(), quest.getId());
+        }
+    }
+
+    private void processDungeonEntryPurchase(Player player, NPC npc) {
+        int balance = economyManager.getBalance(player);
+        if (balance < DungeonGuardQuest.ENTRY_FEE) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                    "You need " + DungeonGuardQuest.ENTRY_FEE + " coins to pay the entrance fee.");
+            dialogManager.startDialog(player, DungeonGuardQuest.getDeclineDialog(), npc, null);
+            return;
+        }
+
+        economyManager.deductCoins(player, DungeonGuardQuest.ENTRY_FEE);
+        CurrencyMessageUtil.sendLoss(player, CurrencyMessageUtil.Currency.COINS, DungeonGuardQuest.ENTRY_FEE);
+        dialogManager.startDialog(player, DungeonGuardQuest.getApprovalDialog(), npc, () -> {
+            questManager.handleTalk(player, "npc" + DungeonGuardQuest.NPC_ID + "_entry");
+            openDungeonGate(player);
+        });
+    }
+
+    private void openDungeonGate(Player player) {
+        QuestGateManager gates = Main.getInstance().getQuestGateManager();
+        if (gates == null) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                    "The dungeon entrance is unavailable right now.");
+            return;
+        }
+        gates.openGate(player, DungeonGuardQuest.GATE_ID);
+    }
+
+    private boolean hasUnlockedDungeonEntrance(Player player) {
+        return questManager != null
+                && questManager.hasCompleted(player.getUniqueId(), DungeonGuardQuest.QUEST_ID);
     }
 
     private boolean handleSharpestSecret(Player player, NPC npc) {

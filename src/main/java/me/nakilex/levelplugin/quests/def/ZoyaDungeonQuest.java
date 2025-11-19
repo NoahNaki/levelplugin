@@ -10,6 +10,7 @@ import me.nakilex.levelplugin.quests.data.QuestScript;
 import me.nakilex.levelplugin.quests.data.QuestCompletionScript;
 import me.nakilex.levelplugin.quests.data.QuestResetScript;
 import me.nakilex.levelplugin.quests.data.PlayerQuestProgress;
+import me.nakilex.levelplugin.quests.def.DungeonGuardQuest;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -74,7 +75,7 @@ public class ZoyaDungeonQuest extends Quest implements QuestScript, QuestComplet
                 "Help Zoya craft a legacy by creating and saving your first dungeon.",
                 createObjectives(),
                 1,
-                List.of("serashelp"),
+                List.of("serashelp", DungeonGuardQuest.QUEST_ID),
                 null,
                 QuestRewardCompat.create(1000, 500, 0, List.of()),
                 NPC_ID,
