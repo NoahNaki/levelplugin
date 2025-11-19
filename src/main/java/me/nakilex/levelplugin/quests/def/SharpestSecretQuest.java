@@ -45,8 +45,8 @@ import java.util.UUID;
  */
 public class SharpestSecretQuest extends Quest implements QuestScript, QuestCompletionScript, QuestResetScript {
     public static final String ID = "sharpsecret";
-    public static final int NPC_KAZAN_ID = 1299;
-    public static final int NPC_OSIRIS_ID = 1300;
+    public static final int NPC_KAZAN_ID = 1118;
+    public static final int NPC_OSIRIS_ID = 1115;
 
     public static final String NPC_RETURN_TARGET = "npc" + NPC_KAZAN_ID + "_return";
     public static final String NPC_OSIRIS_TARGET = "npc" + NPC_OSIRIS_ID + "_secret";
