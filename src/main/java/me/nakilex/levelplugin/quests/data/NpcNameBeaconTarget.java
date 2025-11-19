@@ -1,12 +1,10 @@
 package me.nakilex.levelplugin.quests.data;
 
+import me.nakilex.levelplugin.utils.NpcNameUtil;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
-import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
-
-import java.util.Locale;
 
 /**
  * Beacon target that resolves to a Citizens NPC by matching its (stripped) name.
@@ -15,8 +13,7 @@ public class NpcNameBeaconTarget implements BeaconTarget {
     private final String normalizedName;
 
     public NpcNameBeaconTarget(String npcName) {
-        String stripped = npcName == null ? null : ChatColor.stripColor(npcName);
-        this.normalizedName = stripped == null ? null : stripped.trim().toLowerCase(Locale.ROOT);
+        this.normalizedName = NpcNameUtil.normalize(npcName);
     }
 
     @Override
@@ -25,12 +22,8 @@ public class NpcNameBeaconTarget implements BeaconTarget {
             return null;
         }
         for (NPC npc : CitizensAPI.getNPCRegistry()) {
-            String npcName = ChatColor.stripColor(npc.getName());
-            if (npcName == null) {
-                continue;
-            }
-            String normalizedNpc = npcName.trim().toLowerCase(Locale.ROOT);
-            if (!normalizedName.equals(normalizedNpc)) {
+            String npcNormalized = NpcNameUtil.normalize(npc.getName());
+            if (npcNormalized == null || !normalizedName.equals(npcNormalized)) {
                 continue;
             }
             if (npc.isSpawned() && npc.getEntity() != null) {

@@ -13,6 +13,7 @@ import me.nakilex.levelplugin.quests.def.SharpestSecretQuest;
 import me.nakilex.levelplugin.quests.def.StableKeeperQuest;
 import me.nakilex.levelplugin.npc.dialog.NPCDialogManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
+import me.nakilex.levelplugin.utils.NpcNameUtil;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.Bukkit;
@@ -300,7 +301,7 @@ public class NPCClickListener implements Listener {
 
             if (progress == null) {
                 ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
-                        "Osiris glances past you—Kazan hasn't vouched for you yet.");
+                        "Complete 'The Sharpest Secret' quest to unlock Osiris' enchanting table.");
                 return true;
             }
 
@@ -350,8 +351,7 @@ public class NPCClickListener implements Listener {
         if (npc == null || expectedName == null) {
             return false;
         }
-        String npcName = org.bukkit.ChatColor.stripColor(npc.getName());
-        return npcName != null && npcName.trim().equalsIgnoreCase(expectedName);
+        return NpcNameUtil.equalsNormalized(npc.getName(), expectedName);
     }
 
     private String resolveTalkTarget(Quest quest, NPC npc) {

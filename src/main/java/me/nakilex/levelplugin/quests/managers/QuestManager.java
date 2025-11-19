@@ -12,9 +12,9 @@ import me.nakilex.levelplugin.mob.utils.MobNameUtil;
 import me.nakilex.levelplugin.quests.data.*;
 import me.nakilex.levelplugin.quests.gui.QuestState;
 import me.nakilex.levelplugin.quests.data.QuestResetScript;
+import me.nakilex.levelplugin.utils.NpcNameUtil;
 import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -108,7 +108,7 @@ public class QuestManager {
         if (npcName == null) {
             return;
         }
-        npcQuestNameMap.put(normalizeNpcName(npcName), questId);
+        npcQuestNameMap.put(NpcNameUtil.normalize(npcName), questId);
     }
 
     public Quest getQuestByNpcId(int npcId) {
@@ -124,20 +124,12 @@ public class QuestManager {
         if (quest != null) {
             return quest;
         }
-        String normalized = normalizeNpcName(npc.getName());
+        String normalized = NpcNameUtil.normalize(npc.getName());
         if (normalized == null) {
             return null;
         }
         String questId = npcQuestNameMap.get(normalized);
         return questId == null ? null : quests.get(questId);
-    }
-
-    private String normalizeNpcName(String npcName) {
-        if (npcName == null) {
-            return null;
-        }
-        String stripped = ChatColor.stripColor(npcName);
-        return stripped == null ? null : stripped.trim().toLowerCase(java.util.Locale.ROOT);
     }
 
     public Map<Integer, String> getNpcQuestMap() {
