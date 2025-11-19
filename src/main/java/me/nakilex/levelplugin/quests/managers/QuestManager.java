@@ -77,6 +77,7 @@ public class QuestManager {
         Quest skeggSpiders = new me.nakilex.levelplugin.quests.def.SkeggSpiderQuest();
         Quest zoyaDungeon = new me.nakilex.levelplugin.quests.def.ZoyaDungeonQuest();
         Quest stableKeeper = new me.nakilex.levelplugin.quests.def.StableKeeperQuest();
+        Quest dungeonGuard = new me.nakilex.levelplugin.quests.def.DungeonGuardQuest();
         Quest sharpSecret = new me.nakilex.levelplugin.quests.def.SharpestSecretQuest();
         registerQuest(nb);
         registerQuest(seras);
@@ -86,6 +87,7 @@ public class QuestManager {
         registerQuest(skeggSpiders);
         registerQuest(zoyaDungeon);
         registerQuest(stableKeeper);
+        registerQuest(dungeonGuard);
         registerQuest(sharpSecret);
         me.nakilex.levelplugin.quests.def.SharpestSecretQuest.registerTalkTargets(this);
         registerNpcQuest(me.nakilex.levelplugin.quests.def.SharpestSecretQuest.NPC_KAZAN_NAME,
