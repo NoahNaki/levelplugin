@@ -45,11 +45,12 @@ import java.util.UUID;
  */
 public class SharpestSecretQuest extends Quest implements QuestScript, QuestCompletionScript, QuestResetScript {
     public static final String ID = "sharpsecret";
-    public static final int NPC_KAZAN_ID = 1118;
-    public static final int NPC_OSIRIS_ID = 1115;
+    public static final String NPC_KAZAN_NAME = "Guard Kazan";
+    public static final String NPC_OSIRIS_NAME = "Enchanter";
 
-    public static final String NPC_RETURN_TARGET = "npc" + NPC_KAZAN_ID + "_return";
-    public static final String NPC_OSIRIS_TARGET = "npc" + NPC_OSIRIS_ID + "_secret";
+    public static final String NPC_INTRO_TARGET = "npc_guard_kazan_intro";
+    public static final String NPC_RETURN_TARGET = "npc_guard_kazan_return";
+    public static final String NPC_OSIRIS_TARGET = "npc_enchanter_secret";
     public static final String WAIT_FOR_NIGHT_TARGET = "sharpsecret_night";
     public static final String ORCHID_DISCOVERY_TARGET = "midnight_orchid";
 
@@ -103,7 +104,7 @@ public class SharpestSecretQuest extends Quest implements QuestScript, QuestComp
                 List.of("serashelp"),
                 null,
                 QuestRewardCompat.create(1200, 0, 0, List.of()),
-                NPC_KAZAN_ID,
+                null,
                 INTRO_DIALOG,
                 false
         );
@@ -132,15 +133,15 @@ public class SharpestSecretQuest extends Quest implements QuestScript, QuestComp
 
     private static List<QuestObjective> createObjectives(Location orchidLocation) {
         return List.of(
-                new QuestObjective(QuestObjectiveType.TALK, "npc" + NPC_KAZAN_ID, 1,
-                        BeaconTargets.npc(NPC_KAZAN_ID)),
+                new QuestObjective(QuestObjectiveType.TALK, NPC_INTRO_TARGET, 1,
+                        BeaconTargets.npcByName(NPC_KAZAN_NAME)),
                 new QuestObjective(QuestObjectiveType.DISCOVER, WAIT_FOR_NIGHT_TARGET, 1),
                 new QuestObjective(QuestObjectiveType.DISCOVER, ORCHID_DISCOVERY_TARGET, 1,
                         BeaconTargets.staticLoc(orchidLocation)),
                 new QuestObjective(QuestObjectiveType.TALK, NPC_RETURN_TARGET, 1,
-                        BeaconTargets.npc(NPC_KAZAN_ID)),
+                        BeaconTargets.npcByName(NPC_KAZAN_NAME)),
                 new QuestObjective(QuestObjectiveType.TALK, NPC_OSIRIS_TARGET, 1,
-                        BeaconTargets.npc(NPC_OSIRIS_ID)),
+                        BeaconTargets.npcByName(NPC_OSIRIS_NAME)),
                 new QuestObjective(QuestObjectiveType.ENCHANT, "ANY", 1)
         );
     }

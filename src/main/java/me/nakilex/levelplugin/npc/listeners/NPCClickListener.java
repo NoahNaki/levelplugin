@@ -88,7 +88,7 @@ public class NPCClickListener implements Listener {
                 return;
             }
 
-            Quest quest = questManager.getQuestByNpcId(npc.getId());
+            Quest quest = questManager.getQuestByNpc(npc);
             if (quest != null) {
                 if ("serashelp".equals(quest.getId())) {
                     PlayerQuestProgress progress = questManager.getProgress(player.getUniqueId(), quest.getId());
@@ -168,7 +168,7 @@ public class NPCClickListener implements Listener {
                     }
                 }
 
-                questManager.handleTalk(player, "npc" + npc.getId());
+                questManager.handleTalk(player, resolveTalkTarget(quest, npc));
                 QuestState state = questManager.getQuestState(player, quest);
                 switch (state) {
                     case AVAILABLE -> dialogManager.startDialog(player, quest, npc);
@@ -241,7 +241,7 @@ public class NPCClickListener implements Listener {
         boolean completed = questManager.hasCompleted(uuid, SharpestSecretQuest.ID);
         PlayerQuestProgress progress = questManager.getProgress(uuid, SharpestSecretQuest.ID);
 
-        if (npc.getId() == SharpestSecretQuest.NPC_KAZAN_ID) {
+        if (isNpcName(npc, SharpestSecretQuest.NPC_KAZAN_NAME)) {
             if (completed) {
                 ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
                         "Osiris owes you a tasting whenever you need another edge.");
@@ -289,7 +289,7 @@ public class NPCClickListener implements Listener {
             }
         }
 
-        if (npc.getId() == SharpestSecretQuest.NPC_OSIRIS_ID) {
+        if (isNpcName(npc, SharpestSecretQuest.NPC_OSIRIS_NAME)) {
             if (completed) {
                 dialogManager.startDialog(player,
                         SharpestSecretQuest.getOsirisReminderDialog(),
@@ -344,5 +344,25 @@ public class NPCClickListener implements Listener {
         }
 
         return false;
+}
+
+    private boolean isNpcName(NPC npc, String expectedName) {
+        if (npc == null || expectedName == null) {
+            return false;
+        }
+        String npcName = org.bukkit.ChatColor.stripColor(npc.getName());
+        return npcName != null && npcName.trim().equalsIgnoreCase(expectedName);
+    }
+
+    private String resolveTalkTarget(Quest quest, NPC npc) {
+        if (quest != null && SharpestSecretQuest.ID.equals(quest.getId())) {
+            if (isNpcName(npc, SharpestSecretQuest.NPC_KAZAN_NAME)) {
+                return SharpestSecretQuest.NPC_INTRO_TARGET;
+            }
+            if (isNpcName(npc, SharpestSecretQuest.NPC_OSIRIS_NAME)) {
+                return SharpestSecretQuest.NPC_OSIRIS_TARGET;
+            }
+        }
+        return "npc" + npc.getId();
     }
 }

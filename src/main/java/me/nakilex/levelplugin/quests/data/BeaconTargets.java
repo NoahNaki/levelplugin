@@ -21,5 +21,12 @@ public final class BeaconTargets {
     public static BeaconTarget npc(int npcId) {
         return new NpcBeaconTarget(npcId);
     }
+
+    /**
+     * Create a beacon target that tracks a Citizens NPC by its (stripped) name.
+     */
+    public static BeaconTarget npcByName(String npcName) {
+        return new NpcNameBeaconTarget(npcName);
+    }
 }
 

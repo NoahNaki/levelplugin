@@ -12,7 +12,9 @@ import me.nakilex.levelplugin.mob.utils.MobNameUtil;
 import me.nakilex.levelplugin.quests.data.*;
 import me.nakilex.levelplugin.quests.gui.QuestState;
 import me.nakilex.levelplugin.quests.data.QuestResetScript;
+import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -28,6 +30,7 @@ public class QuestManager {
     private final LevelManager levelManager;
     private final Map<String, Quest> quests = new HashMap<>();
     private final Map<Integer, String> npcQuestMap = new HashMap<>();
+    private final Map<String, String> npcQuestNameMap = new HashMap<>();
     // Allow multiple quests to be active per player
     private final Map<UUID, Map<String, PlayerQuestProgress>> activeQuests = new HashMap<>();
     private final Map<UUID, Set<String>> completedQuests = new HashMap<>();
@@ -60,6 +63,8 @@ public class QuestManager {
 
     private void registerDefaultQuests() {
         quests.clear();
+        npcQuestMap.clear();
+        npcQuestNameMap.clear();
         // Register quests here manually.
         Quest office = new me.nakilex.levelplugin.quests.def.OfficeErrandsQuest();
         registerQuest(office);
@@ -81,7 +86,9 @@ public class QuestManager {
         registerQuest(zoyaDungeon);
         registerQuest(stableKeeper);
         registerQuest(sharpSecret);
-        registerNpcQuest(me.nakilex.levelplugin.quests.def.SharpestSecretQuest.NPC_OSIRIS_ID,
+        registerNpcQuest(me.nakilex.levelplugin.quests.def.SharpestSecretQuest.NPC_KAZAN_NAME,
+                me.nakilex.levelplugin.quests.def.SharpestSecretQuest.ID);
+        registerNpcQuest(me.nakilex.levelplugin.quests.def.SharpestSecretQuest.NPC_OSIRIS_NAME,
                 me.nakilex.levelplugin.quests.def.SharpestSecretQuest.ID);
         plugin.getLogger().info("Registered " + quests.size() + " quests.");
     }
@@ -97,9 +104,40 @@ public class QuestManager {
         npcQuestMap.put(npcId, questId);
     }
 
+    public void registerNpcQuest(String npcName, String questId) {
+        if (npcName == null) {
+            return;
+        }
+        npcQuestNameMap.put(normalizeNpcName(npcName), questId);
+    }
+
     public Quest getQuestByNpcId(int npcId) {
         String id = npcQuestMap.get(npcId);
         return id == null ? null : quests.get(id);
+    }
+
+    public Quest getQuestByNpc(NPC npc) {
+        if (npc == null) {
+            return null;
+        }
+        Quest quest = getQuestByNpcId(npc.getId());
+        if (quest != null) {
+            return quest;
+        }
+        String normalized = normalizeNpcName(npc.getName());
+        if (normalized == null) {
+            return null;
+        }
+        String questId = npcQuestNameMap.get(normalized);
+        return questId == null ? null : quests.get(questId);
+    }
+
+    private String normalizeNpcName(String npcName) {
+        if (npcName == null) {
+            return null;
+        }
+        String stripped = ChatColor.stripColor(npcName);
+        return stripped == null ? null : stripped.trim().toLowerCase(java.util.Locale.ROOT);
     }
 
     public Map<Integer, String> getNpcQuestMap() {
