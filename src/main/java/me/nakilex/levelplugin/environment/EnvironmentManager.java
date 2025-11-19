@@ -76,12 +76,45 @@ public class EnvironmentManager {
         }
     }
 
+    private static boolean isEnvironmentDebug() {
+        return Main.getInstance().getCustomConfig().getBoolean("debug.environment", false) || isDebug();
+    }
+
+    private static void envDebugLog(String msg) {
+        if (isEnvironmentDebug()) {
+            Main.getInstance().getLogger().info("[EnvironmentDebug] " + msg);
+        }
+    }
+
     /** Physically set blocks for all players instead of showing fake blocks. */
     private static void applyBlocks(Map<Location, org.bukkit.block.data.BlockData> blocks) {
         if (blocks == null || blocks.isEmpty()) return;
         for (var entry : blocks.entrySet()) {
             entry.getKey().getBlock().setBlockData(entry.getValue(), false);
         }
+    }
+
+    /**
+     * Track a block update in the given batch if the new priority is not lower
+     * than any already-recorded placement for that location.
+     */
+    private static boolean enqueueWithPriority(Map<String, Integer> priMap, int priority,
+                                               Location loc,
+                                               org.bukkit.block.data.BlockData data,
+                                               Map<Location, org.bukkit.block.data.BlockData> batch) {
+        String locKey = key(loc);
+        int existing = priMap.getOrDefault(locKey, Integer.MIN_VALUE);
+        if (priMap.containsKey(locKey) && existing >= priority) {
+            return false;
+        }
+
+        batch.put(loc, data);
+        if (data.getMaterial() == org.bukkit.Material.AIR) {
+            priMap.remove(locKey);
+        } else {
+            priMap.put(locKey, priority);
+        }
+        return true;
     }
 
     public static class EnvironmentState {
@@ -446,6 +479,7 @@ public class EnvironmentManager {
             int stg = playerConfig.getEnvironmentStage(id);
             if (lvl <= 0) lvl = 1;
             if (stg <= 0) stg = 1;
+            envDebugLog("Loaded env state for " + id + " => level=" + lvl + ", stage=" + stg);
             return new EnvironmentState(lvl, stg);
         });
 
@@ -523,6 +557,7 @@ public class EnvironmentManager {
         UUID uuid = player.getUniqueId();
 
         UUID owner = playerConfig.getCoopOwner(uuid);
+        envDebugLog("Loading player state for " + player.getName() + (owner != null ? " as coop member of " + owner : ""));
         if (owner != null) {
             coopOwners.put(uuid, owner);
             loadPlayerData(owner);
@@ -550,6 +585,8 @@ public class EnvironmentManager {
     private void initializePlayerInternal(Player player, boolean animated, int ticks) {
         loadPlayerState(player);
 
+        envDebugLog("Initialize player " + player.getName() + " (animated=" + animated + ", ticks=" + ticks + ")");
+
         Runnable spawn = () -> {
             UUID uuid = player.getUniqueId();
             EnvironmentState es = states.get(uuid);
@@ -558,20 +595,24 @@ public class EnvironmentManager {
                 Map<String, BuildingState> bMap = buildingStates.get(uuid);
                 final Map<String, BuildingState> finalBMap = bMap == null ? null : new java.util.HashMap<>(bMap);
                 final Location finalOrigin = origin;
+                if (animated) {
+                    envDebugLog("Spawning town stage L" + es.level + "S" + es.stage + " for " + player.getName());
+                    spawnStructureTimed(player, finalOrigin, es.level, es.stage, null, ticks);
+                } else {
+                    envDebugLog("Spawning town stage instantly L" + es.level + "S" + es.stage + " for " + player.getName());
+                    spawnStructureInstant(player, finalOrigin, es.level, es.stage);
+                }
                 if (finalBMap != null) {
                     for (var e : finalBMap.entrySet()) {
                         Location bOrig = getBuildingOrigin(towns.get(uuid), e.getKey(), finalOrigin);
+                        envDebugLog("Spawning building " + e.getKey() + " stage " + e.getValue().stage
+                                + (animated ? " (animated)" : " (instant)") + " for " + player.getName());
                         if (animated) {
                             spawnBuildingTimed(player, e.getKey(), bOrig, e.getValue().stage, null, ticks);
                         } else {
                             spawnBuildingInstant(player, e.getKey(), bOrig, e.getValue().stage);
                         }
                     }
-                }
-                if (animated) {
-                    spawnStructureTimed(player, finalOrigin, es.level, es.stage, null, ticks);
-                } else {
-                    spawnStructureInstant(player, finalOrigin, es.level, es.stage);
                 }
             }
         };
@@ -1108,6 +1149,8 @@ public class EnvironmentManager {
         Sound[] breakSounds = { Sound.BLOCK_STONE_BREAK, Sound.BLOCK_DEEPSLATE_BREAK, Sound.BLOCK_WOOD_BREAK };
         Sound[] placeSounds = { Sound.BLOCK_STONE_PLACE, Sound.BLOCK_DEEPSLATE_PLACE, Sound.BLOCK_WOOD_PLACE };
 
+        Map<String, Integer> priMap = blockPriorities.computeIfAbsent(uuid, k -> new java.util.HashMap<>());
+
         BukkitTask task = new BukkitRunnable() {
             int index = 0;
             @Override public void run() {
@@ -1116,7 +1159,7 @@ public class EnvironmentManager {
                 for (int i = 0; i < blocksPerTick && index < blocks.size(); i++, index++) {
                     TownStageManager.BlockDef b = blocks.get(index);
                     Location loc = baseOrigin.clone().add(b.x - stageData.ox, b.y - stageData.oy, b.z - stageData.oz);
-                    batch.put(loc, b.data);
+                    enqueueWithPriority(priMap, stageData.priority, loc, b.data, batch);
                     Sound breakS = breakSounds[rand.nextInt(breakSounds.length)];
                     Sound placeS = placeSounds[rand.nextInt(placeSounds.length)];
                     player.getWorld().playSound(loc, breakS, 0.7f, 1f);
@@ -1124,6 +1167,8 @@ public class EnvironmentManager {
                 }
                 applyBlocks(batch);
                 if (index >= blocks.size()) {
+                    envDebugLog("Finished spawning town stage L" + level + "S" + stage + " for " + player.getName()
+                            + " with " + priMap.size() + " tracked priorities");
                     player.playSound(baseOrigin, Sound.BLOCK_ANVIL_USE, 1f, 1f);
                     stageManager.spawnForStage(player, town, level, stage, baseOrigin);
                     if (after != null) after.run();
@@ -1167,10 +1212,11 @@ public class EnvironmentManager {
         Map<String, Integer> priMap = blockPriorities.computeIfAbsent(uuid, k -> new java.util.HashMap<>());
         for (var b : stageData.blocks) {
             Location loc = baseOrigin.clone().add(b.x - stageData.ox, b.y - stageData.oy, b.z - stageData.oz);
-            batch.put(loc, b.data);
-            priMap.put(key(loc), stageData.priority);
+            enqueueWithPriority(priMap, stageData.priority, loc, b.data, batch);
         }
         applyBlocks(batch);
+        envDebugLog("Spawned town stage instantly L" + level + "S" + stage + " for " + player.getName()
+                + " with " + batch.size() + " block updates");
         stageManager.spawnForStage(player, town, level, stage, baseOrigin);
     }
 
@@ -1245,12 +1291,12 @@ public class EnvironmentManager {
             int lcx = loc.getBlockX() >> 4;
             int lcz = loc.getBlockZ() >> 4;
             if (lcx == cx && lcz == cz) {
-                batch.put(loc, b.data);
-                priMap.put(key(loc), stageData.priority);
+                enqueueWithPriority(priMap, stageData.priority, loc, b.data, batch);
             }
         }
         if (!batch.isEmpty()) {
             applyBlocks(batch);
+            envDebugLog("Resent " + batch.size() + " town blocks for chunk " + cx + "," + cz + " for " + player.getName());
         }
     }
 
@@ -1383,11 +1429,9 @@ public class EnvironmentManager {
                         b.x - stageData.ox,
                         b.y - stageData.oy,
                         b.z - stageData.oz);
-                    String k = key(loc);
-                    int exist = priMap.getOrDefault(k, Integer.MIN_VALUE);
-                    if (exist > stageData.priority && priMap.containsKey(k)) continue;
-                    batch.put(loc, b.data);
-                    priMap.put(k, stageData.priority);
+                    if (!enqueueWithPriority(priMap, stageData.priority, loc, b.data, batch)) {
+                        continue;
+                    }
                     Sound breakS = breakSounds[rand.nextInt(breakSounds.length)];
                     Sound placeS = placeSounds[rand.nextInt(placeSounds.length)];
                     player.getWorld().playSound(loc, breakS, 0.7f, 1f);
@@ -1397,6 +1441,8 @@ public class EnvironmentManager {
                 if (index >= blocks.size()) {
                     player.playSound(baseOrigin, Sound.BLOCK_ANVIL_USE, 1f, 1f);
                     buildingStageManager.spawnForStage(player, building, stage, baseOrigin);
+                    envDebugLog("Finished spawning building " + building + " stage " + stage + " for " + player.getName()
+                            + " with " + priMap.size() + " tracked priorities");
                     // Place the hologram where the stage was defined (+1 Y already stored)
                     Location holo = baseOrigin.clone().add(
                         stageData.hx - stageData.ox + 0.5,
@@ -1453,10 +1499,11 @@ public class EnvironmentManager {
         Map<String, Integer> priMap = blockPriorities.computeIfAbsent(uuid, k -> new java.util.HashMap<>());
         for (var b : stageData.blocks) {
             Location loc = baseOrigin.clone().add(b.x - stageData.ox, b.y - stageData.oy, b.z - stageData.oz);
-            batch.put(loc, b.data);
-            priMap.put(key(loc), stageData.priority);
+            enqueueWithPriority(priMap, stageData.priority, loc, b.data, batch);
         }
         applyBlocks(batch);
+        envDebugLog("Spawned building " + building + " stage " + stage + " instantly for " + player.getName()
+                + " with " + batch.size() + " block updates");
         buildingStageManager.spawnForStage(player, building, stage, baseOrigin);
 
         Location holo = baseOrigin.clone().add(
@@ -1488,12 +1535,13 @@ public class EnvironmentManager {
             int lcx = loc.getBlockX() >> 4;
             int lcz = loc.getBlockZ() >> 4;
             if (lcx == cx && lcz == cz) {
-                batch.put(loc, b.data);
-                priMap.put(key(loc), stageData.priority);
+                enqueueWithPriority(priMap, stageData.priority, loc, b.data, batch);
             }
         }
         if (!batch.isEmpty()) {
             applyBlocks(batch);
+            envDebugLog("Resent " + batch.size() + " building blocks for " + building + " chunk " + cx + "," + cz
+                    + " for " + player.getName());
         }
     }
 
