@@ -224,17 +224,19 @@ public class SharpestSecretQuest extends Quest implements QuestScript, QuestComp
 
     @Override
     public void onStart(Player player, Main plugin) {
+        QuestManager questManager = plugin.getQuestManager();
+        if (questManager != null) {
+            PlayerQuestProgress progress = questManager.getProgress(player.getUniqueId(), ID);
+            if (progress != null && progress.getProgress(TALK_INTRO_INDEX) < 1) {
+                questManager.handleTalk(player, NPC_INTRO_TARGET);
+            }
+        }
         resumeTracking(player, plugin);
     }
 
     @Override
     public void onComplete(Player player, Main plugin) {
         cleanupPlayer(player.getUniqueId());
-        ItemStack token = createEnchantToken();
-        Map<Integer, ItemStack> overflow = player.getInventory().addItem(token);
-        overflow.values().forEach(item -> player.getWorld().dropItemNaturally(player.getLocation(), item));
-        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.REWARD,
-                "Osiris slips an Enchant Token into your palm.");
     }
 
     @Override
@@ -555,7 +557,18 @@ public class SharpestSecretQuest extends Quest implements QuestScript, QuestComp
         overflow.values().forEach(item -> player.getWorld().dropItemNaturally(player.getLocation(), item));
     }
 
-    private ItemStack createEnchantToken() {
+    public static void giveEnchantToken(Player player) {
+        if (player == null) {
+            return;
+        }
+        ItemStack token = createEnchantToken();
+        Map<Integer, ItemStack> overflow = player.getInventory().addItem(token);
+        overflow.values().forEach(item -> player.getWorld().dropItemNaturally(player.getLocation(), item));
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.REWARD,
+                "Osiris slips an Enchant Token into your palm.");
+    }
+
+    private static ItemStack createEnchantToken() {
         ItemStack shard = new ItemStack(Material.AMETHYST_SHARD);
         ItemMeta meta = shard.getItemMeta();
         if (meta != null) {

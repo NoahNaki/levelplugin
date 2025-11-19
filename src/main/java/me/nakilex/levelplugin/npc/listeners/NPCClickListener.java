@@ -271,14 +271,10 @@ public class NPCClickListener implements Listener {
             }
 
             if (!waitDone) {
-                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
-                        "Stay inside the town until midnight—the Midnight Orchid won't bloom a moment sooner.");
                 return true;
             }
 
             if (!orchidFound) {
-                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
-                        "Check beneath the massive oak by the main entrance once midnight falls.");
                 return true;
             }
 
@@ -299,14 +295,18 @@ public class NPCClickListener implements Listener {
             }
 
             if (returned && !osirisSpoken) {
-                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
-                        "Head to the library and talk to Osiris, tell him you're there for the tasting.");
                 return true;
             }
 
             if (osirisSpoken) {
-                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                        "Osiris is waiting at his table—place an item on it and type /enchant.");
+                dialogManager.startDialog(player,
+                        SharpestSecretQuest.getOsirisReminderDialog(),
+                        npc,
+                        () -> {
+                            if (enchantGUI != null) {
+                                enchantGUI.open(player);
+                            }
+                        });
                 return true;
             }
         }
@@ -352,7 +352,13 @@ public class NPCClickListener implements Listener {
                                                 dialogManager.startDialog(player,
                                                         SharpestSecretQuest.getOsirisSuccessDialog(player.getName()),
                                                         npc,
-                                                        () -> questManager.handleTalk(player, SharpestSecretQuest.NPC_OSIRIS_TARGET));
+                                                        () -> {
+                                                            SharpestSecretQuest.giveEnchantToken(player);
+                                                            questManager.handleTalk(player, SharpestSecretQuest.NPC_OSIRIS_TARGET);
+                                                            if (enchantGUI != null) {
+                                                                enchantGUI.open(player);
+                                                            }
+                                                        });
                                             } else {
                                                 ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
                                                         "Osiris smirks. 'Not quite. Come back when the answer is clear.'");
@@ -364,7 +370,11 @@ public class NPCClickListener implements Listener {
             dialogManager.startDialog(player,
                     SharpestSecretQuest.getOsirisReminderDialog(),
                     npc,
-                    null);
+                    () -> {
+                        if (enchantGUI != null) {
+                            enchantGUI.open(player);
+                        }
+                    });
             return true;
         }
 
