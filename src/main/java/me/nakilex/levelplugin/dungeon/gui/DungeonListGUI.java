@@ -53,14 +53,11 @@ public class DungeonListGUI implements Listener {
                         ? ChatColor.GRAY + "Rating " + ChatColor.WHITE + df.format(rating) + " " + ChatColor.GOLD + stars
                         : ChatColor.GRAY + "Rating " + ChatColor.WHITE + "N/A";
                 List<String> lore = new ArrayList<>();
-                lore.add(ChatColor.DARK_GRAY + "────────────");
+                lore.add(ChatColor.GRAY + " ");
                 lore.add(ChatColor.GRAY + "Threat Level " + ChatColor.WHITE + threat);
                 lore.add(ratingLine);
-                lore.add(ChatColor.DARK_GRAY + "────────────");
-                lore.add(ChatColor.GRAY + "Explore fan-favorite dungeons with");
-                lore.add(ChatColor.GRAY + "consistent rewards and pacing.");
-                lore.add("");
-                lore.addAll(TooltipUtil.clickInstructions("to play", null));
+                lore.add(ChatColor.GRAY + " ");
+                lore.add(ChatColor.WHITE + "Left-click " + ChatColor.GRAY + "to play");
                 meta.setLore(lore);
                 meta.setLocalizedName(key);
                 item.setItemMeta(meta);

@@ -30,7 +30,9 @@ public class BoosterItemListener implements Listener {
         event.setCancelled(true);
 
         boolean activated = boosterManager.activateBooster(type, Duration.ofHours(1), event.getPlayer());
-        if (!activated) return;
+        if (!activated) {
+            return;
+        }
 
         removeOne(event.getPlayer(), stack);
         event.getPlayer().sendMessage(ChatMessageUtil.format(MessageType.SUCCESS,

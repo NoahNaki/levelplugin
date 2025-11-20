@@ -16,6 +16,7 @@ public class PlayerSettings {
     private boolean autoSkipSongs = false;
     private boolean skillPointReminder = true;
     private boolean fullInventoryTitle = true;
+    private boolean boosterBossBarEnabled = true;
 
     public boolean isDmgChatEnabled() {
         return dmgChat;
@@ -118,5 +119,11 @@ public class PlayerSettings {
         fullInventoryTitle = !fullInventoryTitle;
     }
 
-}
+    public boolean isBoosterBossBarEnabled() {
+        return boosterBossBarEnabled;
+    }
 
+    public void toggleBoosterBossBar() {
+        boosterBossBarEnabled = !boosterBossBarEnabled;
+    }
+}
