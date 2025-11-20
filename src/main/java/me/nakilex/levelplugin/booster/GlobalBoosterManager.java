@@ -15,6 +15,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Collection;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -26,8 +27,8 @@ public class GlobalBoosterManager {
 
     private final Main plugin;
     private final double defaultMultiplier;
-    private final Map<UUID, BossBar> boosterBars = new HashMap<>();
-    private BoosterState activeBooster;
+    private final Map<UUID, Map<BoosterType, BossBar>> boosterBars = new HashMap<>();
+    private final Map<BoosterType, BoosterState> activeBoosters = new EnumMap<>(BoosterType.class);
 
     public GlobalBoosterManager(Main plugin, double defaultMultiplier) {
         this.plugin = plugin;
@@ -36,38 +37,35 @@ public class GlobalBoosterManager {
         new BukkitRunnable() {
             @Override
             public void run() {
-                if (activeBooster != null && activeBooster.expired()) {
-                    activeBooster = null;
-                }
+                activeBoosters.entrySet().removeIf(entry -> entry.getValue().expired());
                 updateBossBars(Bukkit.getOnlinePlayers());
             }
         }.runTaskTimer(plugin, 20L, 20L);
     }
 
     public double getMultiplier(BoosterType type) {
-        if (activeBooster == null || activeBooster.type() != type || activeBooster.expired()) {
-            return 1.0;
-        }
-        return activeBooster.multiplier();
+        BoosterState state = activeBoosters.get(type);
+        if (state == null || state.expired()) return 1.0;
+        return state.multiplier();
     }
 
     public Duration getRemaining(BoosterType type) {
-        if (activeBooster == null || activeBooster.type() != type || activeBooster.expired()) {
-            return Duration.ZERO;
-        }
-        return activeBooster.remaining();
+        BoosterState state = activeBoosters.get(type);
+        if (state == null || state.expired()) return Duration.ZERO;
+        return state.remaining();
     }
 
     public boolean activateBooster(BoosterType type, Duration duration, Player activator) {
-        if (activeBooster != null && !activeBooster.expired()) {
+        BoosterState existing = activeBoosters.get(type);
+        if (existing != null && !existing.expired()) {
             if (activator != null) {
                 activator.sendMessage(ChatMessageUtil.format(MessageType.WARNING,
-                        "Another booster is already active for " + formatDuration(activeBooster.remaining()) + "."));
+                        "A " + type.displayName() + ChatColor.GRAY + " is already active for " + formatDuration(existing.remaining()) + "."));
             }
             return false;
         }
 
-        activeBooster = new BoosterState(type, Instant.now(), duration, defaultMultiplier);
+        activeBoosters.put(type, new BoosterState(type, Instant.now(), duration, defaultMultiplier));
 
         broadcastActivation(type, activator, duration);
         updateBossBars(Bukkit.getOnlinePlayers());
@@ -102,33 +100,35 @@ public class GlobalBoosterManager {
     }
 
     private void updateBossBars(Collection<? extends Player> players) {
-        boolean hasActive = activeBooster != null && !activeBooster.expired();
-        BoosterType activeType = hasActive ? activeBooster.type() : null;
-        Duration remaining = hasActive ? activeBooster.remaining() : Duration.ZERO;
-        double progress = hasActive ? activeBooster.progress() : 0.0;
-
         for (Player player : players) {
-            BossBar bar = boosterBars.computeIfAbsent(player.getUniqueId(), id -> {
-                BossBar created = Bukkit.createBossBar("", BarColor.YELLOW, BarStyle.SOLID);
-                created.addPlayer(player);
-                created.setVisible(false);
-                return created;
-            });
+            Map<BoosterType, BossBar> playerBars = boosterBars.computeIfAbsent(player.getUniqueId(), id -> new EnumMap<>(BoosterType.class));
+            boolean wantsBar = wantsBossBar(player);
 
-            if (!hasActive || !wantsBossBar(player)) {
-                bar.removePlayer(player);
-                bar.setVisible(false);
-                continue;
-            }
+            for (BoosterType type : BoosterType.values()) {
+                BoosterState state = activeBoosters.get(type);
+                boolean active = state != null && !state.expired();
 
-            String title = buildTitle(activeType, remaining);
-            bar.setTitle(title);
-            bar.setColor(activeType == BoosterType.COIN ? BarColor.YELLOW : BarColor.GREEN);
-            bar.setProgress(progress);
-            if (!bar.getPlayers().contains(player)) {
-                bar.addPlayer(player);
+                BossBar bar = playerBars.computeIfAbsent(type, ignored -> {
+                    BossBar created = Bukkit.createBossBar("", type == BoosterType.COIN ? BarColor.YELLOW : BarColor.GREEN, BarStyle.SOLID);
+                    created.addPlayer(player);
+                    created.setVisible(false);
+                    return created;
+                });
+
+                if (!active || !wantsBar) {
+                    bar.removePlayer(player);
+                    bar.setVisible(false);
+                    continue;
+                }
+
+                bar.setTitle(buildTitle(type, state.remaining()));
+                bar.setColor(type == BoosterType.COIN ? BarColor.YELLOW : BarColor.GREEN);
+                bar.setProgress(state.progress());
+                if (!bar.getPlayers().contains(player)) {
+                    bar.addPlayer(player);
+                }
+                bar.setVisible(true);
             }
-            bar.setVisible(true);
         }
     }
 
