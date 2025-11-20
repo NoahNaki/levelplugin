@@ -66,6 +66,10 @@ commands:
     description: Adjust a player's coins (can be negative)
     usage: /addcoins <player|@everyone> <amount>
     permission: none
+  booster:
+    description: Give global booster items.
+    usage: /booster give <player|@everyone> <coin|xp> <amount>
+    permission: levelplugin.admin
   blacksmith:
     description: Opens the Blacksmith GUI.
     usage: /blacksmith

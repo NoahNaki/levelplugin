@@ -1,5 +1,6 @@
 package me.nakilex.levelplugin.settings.gui;
 
+import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.settings.managers.SettingsManager;
 import me.nakilex.levelplugin.settings.data.PlayerSettings;
 import me.nakilex.levelplugin.settings.data.PlayerVisibility;
@@ -147,6 +148,15 @@ public class SettingsGUI implements Listener {
             gui.setItem(25, GuiUtil.createToggleItem(
                     playerSettings.isFullInventoryTitleEnabled(),
                     "§bFull Inventory Title",
+                    "§eClick to toggle"
+            ));
+        }
+
+        // Booster Boss Bar toggle
+        if (filter == Filter.ALL || filter == Filter.VISUAL) {
+            gui.setItem(31, GuiUtil.createToggleItem(
+                    playerSettings.isBoosterBossBarEnabled(),
+                    "§bBooster Boss Bar",
                     "§eClick to toggle"
             ));
         }
@@ -315,6 +325,14 @@ public class SettingsGUI implements Listener {
             settings.toggleFullInventoryTitle();
             updateSettingItem(event.getInventory(), 25,
                 settings.isFullInventoryTitleEnabled(), "§bFull Inventory Title", "");
+        } else if (slot == 31) {
+            settings.toggleBoosterBossBar();
+            updateSettingItem(event.getInventory(), 31,
+                settings.isBoosterBossBarEnabled(), "§bBooster Boss Bar", "");
+            var boosterManager = Main.getInstance().getBoosterManager();
+            if (boosterManager != null) {
+                boosterManager.refreshBossBar(player);
+            }
         }
     }
 }

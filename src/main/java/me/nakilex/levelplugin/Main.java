@@ -143,4 +143,5 @@ public class Main extends JavaPlugin {
     public PathfindingManager getPathfindingManager() { return bootstrap.getPathfindingManager(); }
     public me.nakilex.levelplugin.transmog.TransmogManager getTransmogManager() { return bootstrap.getTransmogManager(); }
     public ChatGameManager getChatGameManager() { return bootstrap.getChatGameManager(); }
+    public me.nakilex.levelplugin.booster.GlobalBoosterManager getBoosterManager() { return bootstrap.getBoosterManager(); }
 }

@@ -118,7 +118,7 @@ public class GuildVaultGUI extends StorageGUI {
                                     int added = g.getCoins() - before;
                                     if (added < amt) {
                                         int refund = amt - added;
-                                        econ.addCoins(player, refund);
+                                        econ.addCoins(player, refund, false);
                                         player.sendMessage(ChatColor.RED + "Storage full. Deposited " + ChatColor.GOLD + added + " <glyph:coins_icon>" + ChatColor.RED + " and refunded " + refund + ".");
                                         Main.getInstance().getLogger().info("[GuildVault] storage full, refunded " + refund);
                                     } else {
@@ -146,7 +146,7 @@ public class GuildVaultGUI extends StorageGUI {
                                 amt -> {
                                     Main.getInstance().getLogger().info("[GuildVault] withdrawing " + amt + " for " + player.getName());
                                     g.removeCoins(amt);
-                                    econ.addCoins(player, amt);
+                                    econ.addCoins(player, amt, false);
                                     player.sendMessage(ChatColor.GRAY + "Withdrew " + ChatColor.GOLD + amt + " <glyph:coins_icon>");
                                     GuildManager.getInstance().save();
                                 }

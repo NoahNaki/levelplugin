@@ -8,6 +8,7 @@ import me.nakilex.levelplugin.blacksmith.gui.BlacksmithGUI;
 import me.nakilex.levelplugin.blacksmith.managers.ItemRepairManager;
 import me.nakilex.levelplugin.blacksmith.managers.ItemUpgradeManager;
 import me.nakilex.levelplugin.chat.games.ChatGameManager;
+import me.nakilex.levelplugin.booster.GlobalBoosterManager;
 import me.nakilex.levelplugin.economy.gui.GemExchangeGUI;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.economy.managers.GemsManager;
@@ -103,6 +104,7 @@ public class PluginBootstrap {
     private me.nakilex.levelplugin.player.mining.managers.MiningManager miningManager;
     private me.nakilex.levelplugin.player.mining.config.MiningRewardsConfig miningRewardsConfig;
     private SpellManager spellmanager;
+    private GlobalBoosterManager boosterManager;
     private HorseManager horseManager;
     private EffectManager effectManager;
     private PartyManager partyManager;
@@ -293,6 +295,7 @@ public class PluginBootstrap {
         miningManager = new me.nakilex.levelplugin.player.mining.managers.MiningManager(plugin);
         miningRewardsConfig = new me.nakilex.levelplugin.player.mining.config.MiningRewardsConfig(plugin);
         effectManager = new EffectManager(plugin);
+        boosterManager = new GlobalBoosterManager(plugin, 2.0);
         economyManager = new EconomyManager(plugin);
         itemUpgradeManager = new ItemUpgradeManager(plugin);
         itemRepairManager = new ItemRepairManager();
@@ -441,6 +444,7 @@ public class PluginBootstrap {
             lootChestManager,
             potionManager,
             partyManager,
+            boosterManager,
             economyManager,
             mobRewardsConfig,
             dmgNumberToggleManager,
@@ -583,6 +587,7 @@ public class PluginBootstrap {
     public me.nakilex.levelplugin.player.mining.managers.MiningManager getMiningManager() { return miningManager; }
     public me.nakilex.levelplugin.player.mining.config.MiningRewardsConfig getMiningRewardsConfig() { return miningRewardsConfig; }
     public SpellManager getSpellmanager() { return spellmanager; }
+    public GlobalBoosterManager getBoosterManager() { return boosterManager; }
     public HorseManager getHorseManager() { return horseManager; }
     public EffectManager getEffectManager() { return effectManager; }
     public PartyManager getPartyManager() { return partyManager; }

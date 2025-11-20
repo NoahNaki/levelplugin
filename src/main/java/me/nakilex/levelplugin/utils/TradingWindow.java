@@ -454,9 +454,9 @@ public class TradingWindow implements Listener {
 
                 // Deduct and add coins based on offers
                 economyManager.deductCoins(p, tw.playerCoinOffer);
-                economyManager.addCoins(o, tw.playerCoinOffer);
+                economyManager.addCoins(o, tw.playerCoinOffer, false);
                 economyManager.deductCoins(o, tw.opponentCoinOffer);
-                economyManager.addCoins(p, tw.opponentCoinOffer);
+                economyManager.addCoins(p, tw.opponentCoinOffer, false);
 
                 sendCoinSummary(p, tw.playerCoinOffer, tw.opponentCoinOffer, o.getName());
                 sendCoinSummary(o, tw.opponentCoinOffer, tw.playerCoinOffer, p.getName());
