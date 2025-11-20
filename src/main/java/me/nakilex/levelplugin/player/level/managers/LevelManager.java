@@ -2,6 +2,8 @@ package me.nakilex.levelplugin.player.level.managers;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
+import me.nakilex.levelplugin.booster.BoosterType;
+import me.nakilex.levelplugin.booster.GlobalBoosterManager;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
@@ -63,7 +65,10 @@ public class LevelManager {
     public void addXP(UUID uuid, int amount) {
         if (getLevel(uuid) >= MAX_LEVEL) return;
 
-        int newXP = getXP(uuid) + amount;
+        int adjusted = applyCombatBoost(amount);
+        if (adjusted == 0) return;
+
+        int newXP = getXP(uuid) + adjusted;
         playerXp.put(uuid, newXP);
 
         checkLevelUp(uuid);
@@ -177,5 +182,13 @@ public class LevelManager {
 
     public int getMaxLevel() {
         return MAX_LEVEL;
+    }
+
+    private int applyCombatBoost(int amount) {
+        if (amount <= 0) return amount;
+        GlobalBoosterManager manager = Main.getInstance().getBoosterManager();
+        if (manager == null) return amount;
+        double boosted = amount * manager.getMultiplier(BoosterType.COMBAT_XP);
+        return (int) Math.round(boosted);
     }
 }

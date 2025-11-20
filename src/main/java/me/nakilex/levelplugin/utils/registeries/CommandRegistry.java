@@ -38,6 +38,7 @@ import me.nakilex.levelplugin.player.battlepass.BattlePassManager;
 import me.nakilex.levelplugin.player.battlepass.command.BattlePassCommand;
 import me.nakilex.levelplugin.player.battlepass.command.BattlePassUnlockCommand;
 import me.nakilex.levelplugin.player.battlepass.command.BattlePassXpCommand;
+import me.nakilex.levelplugin.booster.BoosterCommand;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.player.commands.WipeProfileCommand;
 import me.nakilex.levelplugin.potions.commands.AddPotionCommand;
@@ -184,6 +185,9 @@ public class CommandRegistry {
         AddCoinsCommand addCoinsCmd = new AddCoinsCommand(economyManager);
         plugin.getCommand("addcoins").setExecutor(addCoinsCmd);
         plugin.getCommand("addcoins").setTabCompleter(addCoinsCmd);
+        BoosterCommand boosterCommand = new BoosterCommand(2.0);
+        plugin.getCommand("booster").setExecutor(boosterCommand);
+        plugin.getCommand("booster").setTabCompleter(boosterCommand);
         plugin.getCommand("blacksmith").setExecutor(new BlacksmithCommand(blacksmithGUI));
         HorseCommand horseCommand = new HorseCommand(horseManager, horseGUI);
         plugin.getCommand("horse").setExecutor(horseCommand);

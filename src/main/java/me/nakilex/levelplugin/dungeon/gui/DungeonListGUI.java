@@ -49,14 +49,22 @@ public class DungeonListGUI implements Listener {
                 int threat = manager.getThreatLevel(key);
                 double rating = me.nakilex.levelplugin.Main.getInstance().getDungeonRatingManager().getAverage(key);
                 String stars = GuiUtil.glyphStars((int) Math.floor(rating));
-                String ratingLine = rating > 0 ? ChatColor.GOLD + "Rating: " + df.format(rating) + " " + stars : ChatColor.GOLD + "Rating: N/A";
+                String ratingLine = rating > 0
+                        ? ChatColor.GRAY + "Rating " + ChatColor.WHITE + df.format(rating) + " " + ChatColor.GOLD + stars
+                        : ChatColor.GRAY + "Rating " + ChatColor.WHITE + "N/A";
                 List<String> lore = new ArrayList<>();
-                lore.addAll(TooltipUtil.clickInstructions("to play", null));
-                lore.add(ChatColor.DARK_RED + "Threat Level: " + threat);
+                lore.add(ChatColor.DARK_GRAY + "────────────");
+                lore.add(ChatColor.GRAY + "Threat Level " + ChatColor.WHITE + threat);
                 lore.add(ratingLine);
+                lore.add(ChatColor.DARK_GRAY + "────────────");
+                lore.add(ChatColor.GRAY + "Explore fan-favorite dungeons with");
+                lore.add(ChatColor.GRAY + "consistent rewards and pacing.");
+                lore.add("");
+                lore.addAll(TooltipUtil.clickInstructions("to play", null));
                 meta.setLore(lore);
                 meta.setLocalizedName(key);
                 item.setItemMeta(meta);
+                me.nakilex.levelplugin.utils.TextUtil.centerItemTooltip(item, true, false);
             }
             inv.setItem(slot, item);
             slot++;

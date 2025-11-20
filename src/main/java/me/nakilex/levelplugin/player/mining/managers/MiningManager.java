@@ -2,6 +2,10 @@ package me.nakilex.levelplugin.player.mining.managers;
 
 import me.nakilex.levelplugin.Main;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
+import org.bukkit.boss.BarColor;
+import org.bukkit.boss.BarStyle;
+import org.bukkit.boss.BossBar;
 import org.bukkit.entity.Player;
 
 import java.util.HashMap;
@@ -17,6 +21,7 @@ public class MiningManager {
     private final Main plugin;
     private final HashMap<UUID, Integer> miningLevels = new HashMap<>();
     private final HashMap<UUID, Integer> miningXp     = new HashMap<>();
+    private final HashMap<UUID, BossBar> xpBars       = new HashMap<>();
 
     private final int MAX_LEVEL = 100;
     private final int XP_PER_LEVEL_MULTIPLIER = 75;
@@ -34,6 +39,7 @@ public class MiningManager {
         UUID uuid = player.getUniqueId();
         miningLevels.putIfAbsent(uuid, 1);
         miningXp.putIfAbsent(uuid, 0);
+        updateBossBar(player);
     }
 
     public void addXP(Player player, int amount) {
@@ -71,8 +77,11 @@ public class MiningManager {
         miningXp.put(uuid, xp);
 
         Player player = Bukkit.getPlayer(uuid);
-        if (player != null && leveled) {
-            updatePlayerTooltips(player);
+        if (player != null) {
+            updateBossBar(player);
+            if (leveled) {
+                updatePlayerTooltips(player);
+            }
         }
         if (leveled && plugin.getPlayerConfig() != null) {
             plugin.getPlayerConfig().savePlayerData(uuid);
@@ -103,6 +112,33 @@ public class MiningManager {
             }
         });
         player.updateInventory();
+    }
+
+    private void updateBossBar(Player player) {
+        if (player == null) return;
+        UUID uuid = player.getUniqueId();
+        BossBar bar = xpBars.computeIfAbsent(uuid, id -> {
+            BossBar created = Bukkit.createBossBar("", BarColor.YELLOW, BarStyle.SOLID);
+            created.addPlayer(player);
+            created.setVisible(true);
+            return created;
+        });
+
+        int level = getLevel(uuid);
+        int xp = getXP(uuid);
+        int required = getXpRequired(level);
+        double progress = required <= 0 ? 1.0 : Math.min(1.0, Math.max(0.0, xp / (double) required));
+
+        String title = ChatColor.YELLOW + "" + ChatColor.BOLD + "Mining "
+                + ChatColor.GRAY + "(Lv. " + ChatColor.WHITE + level + ChatColor.GRAY + ") "
+                + ChatColor.DARK_GRAY + "| "
+                + ChatColor.WHITE + xp + ChatColor.GRAY + "/" + ChatColor.WHITE + required;
+
+        bar.setTitle(title);
+        bar.setProgress(progress);
+        if (!bar.getPlayers().contains(player)) {
+            bar.addPlayer(player);
+        }
     }
 
     public int getLevel(Player player) {

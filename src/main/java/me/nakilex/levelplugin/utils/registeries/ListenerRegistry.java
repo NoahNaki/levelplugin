@@ -28,6 +28,8 @@ import me.nakilex.levelplugin.npc.dialog.NPCDialogManager;
 import me.nakilex.levelplugin.chat.ChatChannelListener;
 import me.nakilex.levelplugin.chat.games.ChatGameListener;
 import me.nakilex.levelplugin.chat.games.ChatGameManager;
+import me.nakilex.levelplugin.booster.GlobalBoosterManager;
+import me.nakilex.levelplugin.booster.BoosterItemListener;
 import me.nakilex.levelplugin.party.PartyInviteListener;
 import me.nakilex.levelplugin.party.PartyManager;
 import me.nakilex.levelplugin.player.attributes.listeners.StatsMenuListener;
@@ -81,6 +83,7 @@ public class ListenerRegistry {
                                          LootChestManager lootChestManager,
                                          PotionManager potionManager,
                                          PartyManager partyManager,
+                                         GlobalBoosterManager boosterManager,
                                          EconomyManager economyManager,
                                          MobRewardsConfig mobRewardsConfig,
                                          PlayerToggleManager dmgToggleManager,
@@ -137,6 +140,7 @@ public class ListenerRegistry {
         pm.registerEvents(new PlayerQuitListener(plugin.getPlayerConfig(), plugin.getEnvironmentManager()), plugin);
         pm.registerEvents(new StatsMenuListener(), plugin);
         pm.registerEvents(new StatsEffectListener(), plugin);
+        pm.registerEvents(new BoosterItemListener(boosterManager), plugin);
         pm.registerEvents(new ArmorListener(), plugin);
         pm.registerEvents(new ArmorStatsListener(), plugin);
         pm.registerEvents(new WeaponListener(), plugin);

@@ -1,5 +1,8 @@
 package me.nakilex.levelplugin.economy.managers;
 
+import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.booster.BoosterType;
+import me.nakilex.levelplugin.booster.GlobalBoosterManager;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -65,13 +68,15 @@ public class EconomyManager {
     }
 
     public void addCoins(Player player, int amount) {
+        int boosted = applyCoinBoost(amount);
         int current = getBalance(player);
-        setBalance(player, current + amount);
+        setBalance(player, current + boosted);
     }
 
     public void addCoins(UUID playerId, int amount) {
+        int boosted = applyCoinBoost(amount);
         int current = getBalance(playerId);
-        setBalance(playerId, current + amount);
+        setBalance(playerId, current + boosted);
     }
 
     public void deductCoins(Player player, int amount) {
@@ -104,5 +109,11 @@ public class EconomyManager {
         return balanceConfig;
     }
 
-
+    private int applyCoinBoost(int amount) {
+        if (amount <= 0) return amount;
+        GlobalBoosterManager manager = Main.getInstance().getBoosterManager();
+        if (manager == null) return amount;
+        double boosted = amount * manager.getMultiplier(BoosterType.COIN);
+        return (int)Math.round(boosted);
+    }
 }
