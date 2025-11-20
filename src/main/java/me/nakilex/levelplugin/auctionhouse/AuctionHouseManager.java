@@ -133,7 +133,7 @@ public class AuctionHouseManager {
         }
         // refund previous bidder
         if (ai.getHighestBidder() != null) {
-            economyManager.addCoins(ai.getHighestBidder(), ai.getCurrentBid());
+            economyManager.addCoins(ai.getHighestBidder(), ai.getCurrentBid(), false);
             Player prev = Bukkit.getPlayer(ai.getHighestBidder());
             if (prev != null) {
                 prev.sendMessage(bidder.getName() + " outbid you on an auction.");
@@ -168,7 +168,7 @@ public class AuctionHouseManager {
         economyManager.deductCoins(buyer, price);
         int payout = price - ai.getListingTax();
         if (payout < 0) payout = 0;
-        economyManager.addCoins(ai.getSeller(), payout);
+        economyManager.addCoins(ai.getSeller(), payout, false);
         buyer.getInventory().addItem(ai.getItem());
         ai.setStatus(AuctionStatus.SOLD);
         auctions.remove(index);
@@ -206,7 +206,7 @@ public class AuctionHouseManager {
         if (!ai.getSeller().equals(seller.getUniqueId())) return false;
         if (ai.getStatus() != AuctionStatus.ACTIVE) return false;
         if (ai.getHighestBidder() != null) {
-            economyManager.addCoins(ai.getHighestBidder(), ai.getCurrentBid());
+            economyManager.addCoins(ai.getHighestBidder(), ai.getCurrentBid(), false);
             Player bidder = Bukkit.getPlayer(ai.getHighestBidder());
             if (bidder != null) {
                 bidder.sendMessage(ChatColor.GOLD + "You received "
@@ -232,7 +232,7 @@ public class AuctionHouseManager {
                     // give item to highest bidder and coins to seller
                     int payout = ai.getCurrentBid() - ai.getListingTax();
                     if (payout < 0) payout = 0;
-                    economyManager.addCoins(ai.getSeller(), payout);
+                    economyManager.addCoins(ai.getSeller(), payout, false);
                     Player buyer = Bukkit.getPlayer(ai.getHighestBidder());
                     if (buyer != null) {
                         buyer.getInventory().addItem(ai.getItem());

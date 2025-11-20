@@ -68,13 +68,21 @@ public class EconomyManager {
     }
 
     public void addCoins(Player player, int amount) {
-        int boosted = applyCoinBoost(amount);
+        addCoins(player, amount, true);
+    }
+
+    public void addCoins(Player player, int amount, boolean applyBoost) {
+        int boosted = applyBoost ? applyCoinBoost(amount) : amount;
         int current = getBalance(player);
         setBalance(player, current + boosted);
     }
 
     public void addCoins(UUID playerId, int amount) {
-        int boosted = applyCoinBoost(amount);
+        addCoins(playerId, amount, true);
+    }
+
+    public void addCoins(UUID playerId, int amount, boolean applyBoost) {
+        int boosted = applyBoost ? applyCoinBoost(amount) : amount;
         int current = getBalance(playerId);
         setBalance(playerId, current + boosted);
     }
