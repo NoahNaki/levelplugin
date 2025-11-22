@@ -119,6 +119,13 @@ mobs:
     tier_chance: 100.0
     model_set: default
 
+  slime_lava:
+    exp: 1500
+    coins: "1234-2345"
+    tier: 4
+    tier_chance: 10.0
+    model_set: molten
+
 
 
 
