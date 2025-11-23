@@ -130,6 +130,12 @@ public class DungeonBuilder implements Listener {
                         ItemStack[] arr = InventorySerialUtil.itemStackArrayFromBase64(offhandData);
                         if (arr.length > 0) offhand = arr[0];
                     }
+                    if (sessionConfig.isSet(path + "allowFlight")) {
+                        storedFlight.put(id, sessionConfig.getBoolean(path + "allowFlight"));
+                    }
+                    if (sessionConfig.isSet(path + "flying")) {
+                        storedFlyingState.put(id, sessionConfig.getBoolean(path + "flying"));
+                    }
                     if (contents != null || armor != null || offhand != null) {
                         storedInventories.put(id, new StoredInventory(
                                 contents == null ? new ItemStack[0] : contents,
@@ -160,6 +166,8 @@ public class DungeonBuilder implements Listener {
         ids.addAll(storedReturns.keySet());
         ids.addAll(storedInventories.keySet());
         ids.addAll(unlockedRooms.keySet());
+        ids.addAll(storedFlight.keySet());
+        ids.addAll(storedFlyingState.keySet());
         for (UUID id : ids) {
             String base = "sessions." + id;
             Location loc = storedReturns.get(id);
@@ -190,6 +198,12 @@ public class DungeonBuilder implements Listener {
                 sessionConfig.set(base + ".unlocked", values);
             } else {
                 sessionConfig.set(base + ".unlocked", null);
+            }
+            if (storedFlight.containsKey(id)) {
+                sessionConfig.set(base + ".allowFlight", storedFlight.get(id));
+            }
+            if (storedFlyingState.containsKey(id)) {
+                sessionConfig.set(base + ".flying", storedFlyingState.get(id));
             }
         }
         try { sessionConfig.save(sessionFile); } catch (IOException ignored) {}
@@ -1385,6 +1399,7 @@ public class DungeonBuilder implements Listener {
         UUID id = player.getUniqueId();
         storedFlight.put(id, player.getAllowFlight());
         storedFlyingState.put(id, player.isFlying());
+        saveSessionData();
     }
 
     private void restoreStoredInventory(Player player) {
@@ -1398,8 +1413,11 @@ public class DungeonBuilder implements Listener {
 
     private void restoreFlightState(Player player) {
         UUID id = player.getUniqueId();
-        boolean allow = storedFlight.getOrDefault(id, false);
-        boolean flying = storedFlyingState.getOrDefault(id, false) && allow;
+        if (!storedFlight.containsKey(id) && !storedFlyingState.containsKey(id)) {
+            return;
+        }
+        boolean allow = storedFlight.getOrDefault(id, player.getAllowFlight());
+        boolean flying = storedFlyingState.getOrDefault(id, player.isFlying()) && allow;
         player.setAllowFlight(allow);
         player.setFlying(flying);
         storedFlight.remove(id);
