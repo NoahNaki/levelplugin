@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.arena.commands;
 
 import me.nakilex.levelplugin.arena.ArenaMode;
 import me.nakilex.levelplugin.arena.ArenaQueueManager;
+import me.nakilex.levelplugin.arena.ArenaUnlockUtil;
 import me.nakilex.levelplugin.arena.gui.ArenaQueueGUI;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
@@ -46,6 +47,9 @@ public class ArenaCommand implements TabExecutor {
 
         UUID id = player.getUniqueId();
         if (equalsAny(args[0], "join", "queue")) {
+            if (ArenaUnlockUtil.warnIfLocked(player)) {
+                return true;
+            }
             ArenaMode mode = parseMode(args, 1).orElse(ArenaMode.ONE_VS_ONE);
             Optional<ArenaMode> current = queueManager.getMode(id);
             if (current.isPresent() && !current.get().equals(mode)) {

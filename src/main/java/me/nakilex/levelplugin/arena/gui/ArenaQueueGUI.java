@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.arena.gui;
 
 import me.nakilex.levelplugin.arena.ArenaMode;
 import me.nakilex.levelplugin.arena.ArenaQueueManager;
+import me.nakilex.levelplugin.arena.ArenaUnlockUtil;
 import me.nakilex.levelplugin.arena.rating.ArenaRatingManager;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
@@ -153,6 +154,10 @@ public class ArenaQueueGUI implements Listener {
         } else if (slot == TWO_VS_TWO_SLOT) {
             mode = ArenaMode.TWO_VS_TWO;
         } else {
+            return;
+        }
+
+        if (ArenaUnlockUtil.warnIfLocked(player)) {
             return;
         }
 

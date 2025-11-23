@@ -19,6 +19,7 @@ import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
+import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
@@ -418,6 +419,16 @@ public class DungeonBuilder implements Listener {
         if (isBuilding(event.getPlayer())) {
             event.setCancelled(true);
         }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onCommand(PlayerCommandPreprocessEvent event) {
+        if (!isBuilding(event.getPlayer())) {
+            return;
+        }
+        event.setCancelled(true);
+        ChatMessageUtil.send(event.getPlayer(), MessageType.WARNING,
+                "You cannot use commands while in dungeon editor mode.");
     }
 
     @EventHandler
