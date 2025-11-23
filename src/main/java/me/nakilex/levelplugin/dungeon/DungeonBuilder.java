@@ -395,7 +395,7 @@ public class DungeonBuilder implements Listener {
         if (s == null) return;
         if (s.pending != null && isBuilderMenuTitle(event.getView().getTitle())) return;
         event.setCancelled(true);
-        Bukkit.getScheduler().runTask(Main.getInstance(), event.getPlayer()::closeInventory);
+        Bukkit.getScheduler().runTask(Main.getInstance(), () -> event.getPlayer().closeInventory());
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
@@ -425,7 +425,7 @@ public class DungeonBuilder implements Listener {
         Session s = sessions.get(event.getPlayer().getUniqueId());
         if (s == null) return;
         event.setRespawnLocation(new Location(s.dungeon.getWorld(), 0, 0, 0));
-        Bukkit.getScheduler().runTask(Main.getInstance(), s::resetPlayer);
+        Bukkit.getScheduler().runTask(Main.getInstance(), () -> s.resetPlayer());
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
