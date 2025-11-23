@@ -70,4 +70,4 @@ gates:
     openSchematic: dungeonentrance_open.schem
     closed: true
     animation: GATE
-    duration: 40
+    duration: 200
