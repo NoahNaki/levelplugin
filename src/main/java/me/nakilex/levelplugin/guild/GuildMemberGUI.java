@@ -65,12 +65,12 @@ public class GuildMemberGUI implements Listener {
     private final Map<UUID, PendingRoleChange> pendingRoleChanges = new HashMap<>();
 
     private static final String MANAGE_TITLE = ChatColor.BLACK + "Manage Member";
-    private static final int MANAGE_SIZE = 27;
+    private static final int MANAGE_SIZE = 36;
     private static final int MANAGE_PROMOTE_SLOT = 11;
     private static final int MANAGE_HEAD_SLOT = 13;
     private static final int MANAGE_KICK_SLOT = 15;
     private static final int MANAGE_DEMOTE_SLOT = 20;
-    private static final int MANAGE_BACK_SLOT = 26;
+    private static final int MANAGE_BACK_SLOT = 35;
 
     private static final String CONFIRM_ROLE_TITLE = ChatColor.BLACK + "Confirm Role Change";
     private static final int CONFIRM_ROLE_SIZE = 27;

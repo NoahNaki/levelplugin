@@ -350,7 +350,6 @@ public class ItemUtil {
         int gearScore = SalvageManager.getInstance().getTotalStats(cItem);
         lore.add(ChatColor.GRAY + "Gear Score: "
                 + ChatColor.LIGHT_PURPLE + ChatColor.BOLD + gearScore);
-        lore.add(ChatColor.GRAY + "[" + ChatColor.GREEN + cItem.getEnchantCount() + ChatColor.GRAY + "] Enchanted");
         lore.add(""); // divider after Gear Score
 
         // --- Stats Information ---
@@ -359,6 +358,7 @@ public class ItemUtil {
         addStatLines(lore, cItem, prefixStat);
 
         lore.add("");
+        lore.add(ChatColor.GRAY + "Enchanted: " + ChatColor.WHITE + cItem.getEnchantCount());
         if (cItem.isBroken()) {
             lore.add(ChatColor.GRAY + "Durability: " + ChatColor.RED + ChatColor.BOLD + "BROKEN");
         } else {
