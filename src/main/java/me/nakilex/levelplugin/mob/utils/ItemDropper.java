@@ -46,6 +46,7 @@ public class ItemDropper {
         String mobType = node.getName();
         for (Map<?, ?> entry : itemList) {
             double dropRate = entry.containsKey("drop_rate") ? (double) entry.get("drop_rate") : 100.0;
+            dropRate = Math.min(10.0, dropRate);
             double roll = ThreadLocalRandom.current().nextDouble() * 100.0;
             if (roll > dropRate) continue;
 

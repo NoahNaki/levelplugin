@@ -37,4 +37,13 @@ public class ToolManager {
     public List<CustomTool> getTools() {
         return Collections.unmodifiableList(tools);
     }
+
+    public CustomTool getTool(ToolTier tier) {
+        for (CustomTool tool : tools) {
+            if (tool.getTier() == tier) {
+                return tool;
+            }
+        }
+        return null;
+    }
 }

@@ -477,11 +477,14 @@ public class QuestManager {
         return debug;
     }
 
-    public void handleKill(Player player, String mobType) {
+    public void handleKill(Player player, String mobType, boolean mythicMob) {
         if (debug) {
             plugin.getLogger().info("[QuestDebug] " + player.getName() + " killed " + mobType);
         }
         updateObjective(player, QuestObjectiveType.KILL, mobType, 1);
+        if (mythicMob) {
+            shareMythicKillProgress(player, mobType, 1);
+        }
     }
 
     public void handleBuy(Player player, String itemId) {
@@ -760,18 +763,17 @@ public class QuestManager {
             Quest quest = progress.getQuest();
             for (int i = 0; i < quest.getObjectives().size(); i++) {
                 QuestObjective obj = quest.getObjectives().get(i);
-                if (obj.getType() == type && obj.getTarget().equalsIgnoreCase(target)) {
-                    progress.incrementProgress(i, amount, obj.isAllowOverflow(), obj.getAmount());
-                    if (debug) {
-                        plugin.getLogger().info("[QuestDebug] " + player.getName() + " progressed " + quest.getId()
-                                + " objective " + i + " -> " + progress.getProgress(i) + "/" + obj.getAmount());
-                    }
-                    shareProgress(player, progress, i, amount);
-                    if (progress.isComplete()) {
+                    if (obj.getType() == type && obj.getTarget().equalsIgnoreCase(target)) {
+                        progress.incrementProgress(i, amount, obj.isAllowOverflow(), obj.getAmount());
                         if (debug) {
-                            plugin.getLogger().info("[QuestDebug] " + player.getName() + " completed " + quest.getId());
+                            plugin.getLogger().info("[QuestDebug] " + player.getName() + " progressed " + quest.getId()
+                                    + " objective " + i + " -> " + progress.getProgress(i) + "/" + obj.getAmount());
                         }
-                        it.remove();
+                        if (progress.isComplete()) {
+                            if (debug) {
+                                plugin.getLogger().info("[QuestDebug] " + player.getName() + " completed " + quest.getId());
+                            }
+                            it.remove();
                         if (map.isEmpty()) {
                             activeQuests.remove(uuid);
                         }
@@ -795,46 +797,14 @@ public class QuestManager {
         }
     }
 
-    private void shareProgress(Player player, PlayerQuestProgress progress, int objectiveIndex, int amount) {
-        Party party = partyManager.getParty(player.getUniqueId());
+    private void shareMythicKillProgress(Player killer, String mobType, int amount) {
+        Party party = partyManager.getParty(killer.getUniqueId());
         if (party == null) return;
         for (UUID memberId : party.getMembers()) {
-            if (memberId.equals(player.getUniqueId())) continue;
-            Map<String, PlayerQuestProgress> map = activeQuests.get(memberId);
-            PlayerQuestProgress other = map == null ? null : map.get(progress.getQuest().getId());
-            if (other != null) {
-                QuestObjective obj = progress.getQuest().getObjectives().get(objectiveIndex);
-                other.incrementProgress(objectiveIndex, amount, obj.isAllowOverflow(), obj.getAmount());
-                if (debug) {
-                    plugin.getLogger().info("[QuestDebug] Shared progress " + progress.getQuest().getId() + " to " + memberId);
-                }
-                Player p = Bukkit.getPlayer(memberId);
-                if (p != null) {
-                    if (other.isComplete()) {
-                        if (debug) {
-                            plugin.getLogger().info("[QuestDebug] Party member " + p.getName() + " completed " + other.getQuest().getId());
-                        }
-                        String oid = other.getQuest().getId();
-                        map.remove(oid);
-                        if (map.isEmpty()) {
-                            activeQuests.remove(memberId);
-                        }
-                        if (oid.equals(trackedQuests.get(memberId))) {
-                            trackedQuests.remove(memberId);
-                        }
-                        completedQuests.computeIfAbsent(memberId, k -> new HashSet<>()).add(other.getQuest().getId());
-                        if (!"officeerrands".equalsIgnoreCase(other.getQuest().getId())) {
-                            QuestMessageUtil.sendCompletionMessage(p,
-                                    "§6§lQuest Complete!", other.getQuest().getName(),
-                                    0, 0, other.getQuest().getReward());
-                        }
-                        giveRewards(p, other.getQuest());
-                        if (other.getQuest() instanceof me.nakilex.levelplugin.quests.data.QuestCompletionScript script) {
-                            script.onComplete(p, plugin);
-                        }
-                    }
-                }
-            }
+            if (memberId.equals(killer.getUniqueId())) continue;
+            Player member = Bukkit.getPlayer(memberId);
+            if (member == null) continue;
+            updateObjective(member, QuestObjectiveType.KILL, mobType, amount);
         }
     }
 

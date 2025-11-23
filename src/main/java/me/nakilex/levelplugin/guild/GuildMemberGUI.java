@@ -379,7 +379,6 @@ public class GuildMemberGUI implements Listener {
         }
         if (slot == VAULT_SLOT) {
             if (manager.hasPermission(player.getUniqueId(), GuildPermission.VAULT_ACCESS)) {
-                Guild g = manager.getGuild(player.getUniqueId());
                 if (g != null) {
                     me.nakilex.levelplugin.Main.getInstance().getGuildVaultManager().getVault(g.getName()).open(player);
                 }
