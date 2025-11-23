@@ -5,6 +5,9 @@ import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.data.StatRange;
 import me.nakilex.levelplugin.items.managers.ItemManager;
+import me.nakilex.levelplugin.items.tools.CustomTool;
+import me.nakilex.levelplugin.items.tools.ToolManager;
+import me.nakilex.levelplugin.items.tools.ToolTier;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.merchants.data.MerchantItem;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
@@ -91,69 +94,94 @@ public class MerchantGUI implements Listener {
      */
     private void populateMerchantItems() {
         for (MerchantItem mItem : merchantItems.values()) {
-            CustomItem tpl = ItemManager.getInstance().getTemplateById(mItem.getItemId());
-            if (tpl == null) continue;
-
-            // Base stack using the template's rolled stats.
-            ItemStack stack = ItemUtil.createItemStackFromCustomItem(tpl, mItem.getAmount(), null);
-            ItemMeta meta = stack.getItemMeta();
-            if (meta == null || !meta.hasLore()) {
-                inventory.setItem(mItem.getSlot(), stack);
-                continue;
-            }
-
-            List<String> lore = meta.getLore();
-
-            // 1) Rewrite each stat line to show the RANGE (white numbers)
-            for (int i = 0; i < lore.size(); i++) {
-                String line = lore.get(i);
-                if (line.contains("<glyph:str>")) {
-                    lore.set(i, GuiUtil.formatStatName(StatsManager.StatType.STR) + ": "
-                            + ChatColor.GREEN + "+" + tpl.getStrRange());
-                } else if (line.contains("<glyph:vit>")) {
-                    lore.set(i, GuiUtil.formatStatName(StatsManager.StatType.VIT) + ": "
-                            + ChatColor.RED + "+" + tpl.getHpRange());
-                } else if (line.contains("⛂")) {
-                    lore.set(i, ChatColor.GRAY  + "⛂ " + ChatColor.GRAY + "Defence: "
-                            + ChatColor.GREEN + "+" + tpl.getDefRange());
-                } else if (line.contains("<glyph:agi>")) {
-                    lore.set(i, GuiUtil.formatStatName(StatsManager.StatType.AGI) + ": "
-                            + ChatColor.GREEN + "+" + tpl.getAgiRange());
-                } else if (line.contains("<glyph:int>")) {
-                    lore.set(i, GuiUtil.formatStatName(StatsManager.StatType.INT) + ": "
-                            + ChatColor.GREEN + "+" + tpl.getIntelRange());
-                } else if (line.contains("<glyph:dex>")) {
-                    lore.set(i, GuiUtil.formatStatName(StatsManager.StatType.DEX) + ": "
-                            + ChatColor.GREEN + "+" + tpl.getDexRange());
+            if (mItem.isTool()) {
+                CustomTool tool = mItem.getTool();
+                if (tool == null) {
+                    continue;
                 }
+                ItemStack stack = new ItemStack(tool.getMaterial(), mItem.getAmount());
+                ItemMeta meta = stack.getItemMeta();
+                if (meta != null) {
+                    meta.setDisplayName(ChatColor.GREEN + tool.getName());
+                    stack.setItemMeta(meta);
+                }
+                ItemUtil.updateCustomToolTooltip(stack, null);
+                meta = stack.getItemMeta();
+                if (meta != null) {
+                    List<String> lore = meta.hasLore() ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
+                    addPriceStub(lore, mItem);
+                    meta.setLore(lore);
+                    meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_UNBREAKABLE);
+                    stack.setItemMeta(meta);
+                }
+                inventory.setItem(mItem.getSlot(), stack);
+            } else {
+                CustomItem tpl = ItemManager.getInstance().getTemplateById(mItem.getItemId());
+                if (tpl == null) continue;
+
+                // Base stack using the template's rolled stats.
+                ItemStack stack = ItemUtil.createItemStackFromCustomItem(tpl, mItem.getAmount(), null);
+                ItemMeta meta = stack.getItemMeta();
+                if (meta == null || !meta.hasLore()) {
+                    inventory.setItem(mItem.getSlot(), stack);
+                    continue;
+                }
+
+                List<String> lore = meta.getLore();
+
+                // 1) Rewrite each stat line to show the RANGE (white numbers)
+                for (int i = 0; i < lore.size(); i++) {
+                    String line = lore.get(i);
+                    if (line.contains("<glyph:str>")) {
+                        lore.set(i, GuiUtil.formatStatName(StatsManager.StatType.STR) + ": "
+                                + ChatColor.GREEN + "+" + tpl.getStrRange());
+                    } else if (line.contains("<glyph:vit>")) {
+                        lore.set(i, GuiUtil.formatStatName(StatsManager.StatType.VIT) + ": "
+                                + ChatColor.RED + "+" + tpl.getHpRange());
+                    } else if (line.contains("⛂")) {
+                        lore.set(i, ChatColor.GRAY  + "⛂ " + ChatColor.GRAY + "Defence: "
+                                + ChatColor.GREEN + "+" + tpl.getDefRange());
+                    } else if (line.contains("<glyph:agi>")) {
+                        lore.set(i, GuiUtil.formatStatName(StatsManager.StatType.AGI) + ": "
+                                + ChatColor.GREEN + "+" + tpl.getAgiRange());
+                    } else if (line.contains("<glyph:int>")) {
+                        lore.set(i, GuiUtil.formatStatName(StatsManager.StatType.INT) + ": "
+                                + ChatColor.GREEN + "+" + tpl.getIntelRange());
+                    } else if (line.contains("<glyph:dex>")) {
+                        lore.set(i, GuiUtil.formatStatName(StatsManager.StatType.DEX) + ": "
+                                + ChatColor.GREEN + "+" + tpl.getDexRange());
+                    }
+                }
+
+                // 2) Remove any old currency stubs, then re‐add fresh stubs
+                lore.removeIf(l -> l.equalsIgnoreCase("Price:") || l.startsWith("✘") || l.startsWith("✔"));
+                lore.removeIf(l -> l.equalsIgnoreCase("Gems:")  || l.startsWith("✘") || l.startsWith("✔"));
+
+                addPriceStub(lore, mItem);
+
+                meta.setLore(lore);
+                stack.setItemMeta(meta);
+                inventory.setItem(mItem.getSlot(), stack);
             }
+        }
+    }
 
-            // 2) Remove any old currency stubs, then re‐add fresh stubs
-            lore.removeIf(l -> l.equalsIgnoreCase("Price:") || l.startsWith("✘") || l.startsWith("✔"));
-            lore.removeIf(l -> l.equalsIgnoreCase("Gems:")  || l.startsWith("✘") || l.startsWith("✔"));
+    private void addPriceStub(List<String> lore, MerchantItem mItem) {
+        lore.add("");                               // spacer
+        lore.add(ChatColor.GOLD + "Price:");        // unified price header
 
-            // 3) Add new price & gems stubs
-            lore.add("");                               // spacer
-            lore.add(ChatColor.GOLD + "Price:");        // unified price header
+        lore.add(ChatColor.GRAY + "- "
+            + ChatColor.RED + "✘ "
+            + mItem.getCost()
+            + " "
+            + ChatColor.GOLD + "<glyph:coins_icon>");
 
+        if (mItem.getGems() > 0) {
             lore.add(ChatColor.GRAY + "- "
                 + ChatColor.RED + "✘ "
-                + mItem.getCost()
+                + mItem.getGems()
                 + " "
-                + ChatColor.GOLD + "<glyph:coins_icon>");
-
-            if (mItem.getGems() > 0) {
-                lore.add(ChatColor.GRAY + "- "
-                    + ChatColor.RED + "✘ "
-                    + mItem.getGems()
-                    + " "
-                    + ChatColor.LIGHT_PURPLE + "<glyph:purple_orb_icon>");
-            }
-
-
-            meta.setLore(lore);
-            stack.setItemMeta(meta);
-            inventory.setItem(mItem.getSlot(), stack);
+                + ChatColor.LIGHT_PURPLE + "<glyph:purple_orb_icon>");
         }
     }
 
@@ -164,16 +192,23 @@ public class MerchantGUI implements Listener {
     private void loadMerchantItem(Map<String, Object> map) {
         try {
             int slot   = Integer.parseInt(map.get("slot").toString());
-            int itemId = Integer.parseInt(map.get("item_id").toString());
             int amount = Integer.parseInt(map.get("amount").toString());
             int cost   = Integer.parseInt(map.get("cost").toString());
             // ← safely pull gems (defaults to 0 if missing)
             int gems   = map.containsKey("gems")
                 ? Integer.parseInt(map.get("gems").toString())
                 : 0;
-
-            merchantItems.put(slot,
-                new MerchantItem(slot, itemId, amount, cost, gems));
+            String tierName = map.containsKey("tool_tier") ? map.get("tool_tier").toString() : null;
+            if (tierName != null) {
+                ToolTier tier = ToolTier.valueOf(tierName.toUpperCase());
+                CustomTool tool = ToolManager.getInstance().getTool(tier);
+                if (tool != null) {
+                    merchantItems.put(slot, new MerchantItem(slot, tool, amount, cost, gems));
+                }
+            } else {
+                int itemId = Integer.parseInt(map.get("item_id").toString());
+                merchantItems.put(slot, new MerchantItem(slot, itemId, amount, cost, gems));
+            }
         } catch (Exception e) {
             plugin.getLogger().warning("Failed to load a merchant item from Map: "
                 + e.getMessage());
@@ -183,16 +218,23 @@ public class MerchantGUI implements Listener {
     private void loadMerchantItem(ConfigurationSection cs) {
         try {
             int slot   = cs.getInt("slot");
-            int itemId = cs.getInt("item_id");
             int amount = cs.getInt("amount");
             int cost   = cs.getInt("cost");
             // ← same guard here
             int gems   = cs.contains("gems")
                 ? cs.getInt("gems")
                 : 0;
-
-            merchantItems.put(slot,
-                new MerchantItem(slot, itemId, amount, cost, gems));
+            String tierName = cs.getString("tool_tier");
+            if (tierName != null && !tierName.isBlank()) {
+                ToolTier tier = ToolTier.valueOf(tierName.toUpperCase());
+                CustomTool tool = ToolManager.getInstance().getTool(tier);
+                if (tool != null) {
+                    merchantItems.put(slot, new MerchantItem(slot, tool, amount, cost, gems));
+                }
+            } else {
+                int itemId = cs.getInt("item_id");
+                merchantItems.put(slot, new MerchantItem(slot, itemId, amount, cost, gems));
+            }
         } catch (Exception e) {
             plugin.getLogger().warning("Failed to load a merchant item from Section: "
                 + e.getMessage());
@@ -215,10 +257,10 @@ public class MerchantGUI implements Listener {
             if (stack == null || !stack.hasItemMeta()) continue;
 
             ItemMeta meta = stack.getItemMeta();
-            List<String> lore = new ArrayList<>(meta.getLore());
+            List<String> lore = (meta != null && meta.hasLore()) ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
 
             // Find the gold “Price:” header
-            int headerIdx = lore.indexOf(ChatColor.GOLD + "Price:");
+            int headerIdx = ensurePriceHeader(lore, mItem);
             if (headerIdx == -1) continue;  // shouldn’t happen
 
             // Build the new price line
@@ -296,20 +338,41 @@ public class MerchantGUI implements Listener {
             }
 
             // Give item to player
-            CustomItem template = ItemManager.getInstance().getTemplateById(mItem.getItemId());
-            if (template != null) {
+            if (mItem.isTool()) {
+                CustomTool tool = mItem.getTool();
+                if (tool != null) {
+                    ItemStack purchasedItem = new ItemStack(tool.getMaterial(), mItem.getAmount());
+                    ItemMeta meta = purchasedItem.getItemMeta();
+                    if (meta != null) {
+                        meta.setDisplayName(ChatColor.GREEN + tool.getName());
+                        purchasedItem.setItemMeta(meta);
+                    }
+                    ItemUtil.updateCustomToolTooltip(purchasedItem, player);
+                    player.getInventory().addItem(purchasedItem);
+                    send(player, MessageType.SUCCESS,
+                            "You purchased " +
+                                    purchasedItem.getItemMeta().getDisplayName() +
+                                    ChatColor.GREEN + " for " +
+                                    ChatColor.YELLOW + coinCost + " <glyph:coins_icon> coins" +
+                                    (gemCost > 0 ? ChatColor.GRAY + " and " + ChatColor.LIGHT_PURPLE + gemCost + "<glyph:purple_orb_icon>" : "") +
+                                    ChatColor.GREEN + ".");
+                }
+            } else {
+                CustomItem template = ItemManager.getInstance().getTemplateById(mItem.getItemId());
+                if (template != null) {
 
-                CustomItem newInstance = ItemManager.getInstance().rollNewInstance(template.getId());
-                ItemStack purchasedItem = ItemUtil.createItemStackFromCustomItem(newInstance, mItem.getAmount(), player);
-                player.getInventory().addItem(purchasedItem);
-                Main.getInstance().getQuestManager().handleBuy(player, String.valueOf(mItem.getItemId()));
-                send(player, MessageType.SUCCESS,
-                        "You purchased " +
-                                purchasedItem.getItemMeta().getDisplayName() +
-                                ChatColor.GREEN + " for " +
-                                ChatColor.YELLOW + coinCost + " <glyph:coins_icon> coins" +
-                                (gemCost > 0 ? ChatColor.GRAY + " and " + ChatColor.LIGHT_PURPLE + gemCost + "<glyph:purple_orb_icon>" : "") +
-                                ChatColor.GREEN + ".");
+                    CustomItem newInstance = ItemManager.getInstance().rollNewInstance(template.getId());
+                    ItemStack purchasedItem = ItemUtil.createItemStackFromCustomItem(newInstance, mItem.getAmount(), player);
+                    player.getInventory().addItem(purchasedItem);
+                    Main.getInstance().getQuestManager().handleBuy(player, String.valueOf(mItem.getItemId()));
+                    send(player, MessageType.SUCCESS,
+                            "You purchased " +
+                                    purchasedItem.getItemMeta().getDisplayName() +
+                                    ChatColor.GREEN + " for " +
+                                    ChatColor.YELLOW + coinCost + " <glyph:coins_icon> coins" +
+                                    (gemCost > 0 ? ChatColor.GRAY + " and " + ChatColor.LIGHT_PURPLE + gemCost + "<glyph:purple_orb_icon>" : "") +
+                                    ChatColor.GREEN + ".");
+                }
             }
         }
     }
@@ -325,59 +388,100 @@ public class MerchantGUI implements Listener {
             if (stack == null || !stack.hasItemMeta()) continue;
 
             ItemMeta meta = stack.getItemMeta();
-            List<String> lore = new ArrayList<>(meta.getLore());
-            CustomItem tpl = ItemManager.getInstance().getTemplateById(mItem.getItemId());
-
-            // ── 1) Level Requirement ─────────────────────────
-            int lvlIdx = -1;
-            for (int i = 0; i < lore.size(); i++) {
-                if (lore.get(i).contains("Level Requirement:")) {
-                    lvlIdx = i;
-                    break;
+            List<String> lore = (meta != null && meta.hasLore()) ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
+            if (mItem.isTool()) {
+                ItemUtil.updateCustomToolTooltip(stack, player);
+                meta = stack.getItemMeta();
+                lore = meta != null && meta.hasLore() ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
+                int priceHdr = ensurePriceHeader(lore, mItem);
+                if (priceHdr != -1 && priceHdr + 1 < lore.size()) {
+                    int discounted = TownPerkManager.getInstance().applyDiscount(g, TownPerk.MERCHANT_DISCOUNT, mItem.getCost());
+                    boolean afford = coins >= discounted;
+                    lore.set(priceHdr + 1,
+                            ChatColor.GRAY + ""
+                                    + (afford ? ChatColor.GREEN + "✔ " : ChatColor.RED + "✘ ")
+                                    + discounted + " "
+                                    + ChatColor.GOLD + "<glyph:coins_icon>");
                 }
-            }
-            if (lvlIdx != -1) {
-                boolean ok = lvl >= tpl.getLevelRequirement();
-                lore.set(lvlIdx,
-                    (ok ? ChatColor.GREEN + "✔ " : ChatColor.RED + "✘ ")
-                        + ChatColor.GRAY + "Level Requirement: "
-                        + ChatColor.WHITE + tpl.getLevelRequirement()
-                );
-            }
+                if (mItem.getGems() > 0 && priceHdr != -1) {
+                    int gemLineIdx = priceHdr + 2;
+                    if (gemLineIdx < lore.size()) {
+                        boolean afford = totalGems >= mItem.getGems();
+                        lore.set(gemLineIdx,
+                                ChatColor.GRAY + ""
+                                        + (afford ? ChatColor.GREEN + "✔ " : ChatColor.RED + "✘ ")
+                                        + mItem.getGems()
+                                        + " "
+                                        + ChatColor.LIGHT_PURPLE + "<glyph:purple_orb_icon>");
+                    }
+                }
+                if (meta != null) {
+                    meta.setLore(lore);
+                    stack.setItemMeta(meta);
+                }
+            } else {
+                CustomItem tpl = ItemManager.getInstance().getTemplateById(mItem.getItemId());
 
-
-            // ── 3) Coin Price ────────────────────────────────
-            int priceHdr = lore.indexOf(ChatColor.GOLD + "Price:");
-            if (priceHdr != -1 && priceHdr + 1 < lore.size()) {
-                int discounted = TownPerkManager.getInstance().applyDiscount(g, TownPerk.MERCHANT_DISCOUNT, mItem.getCost());
-                boolean afford = coins >= discounted;
-                lore.set(priceHdr + 1,
-                    ChatColor.GRAY + ""
-                        + (afford ? ChatColor.GREEN + "✔ " : ChatColor.RED + "✘ ")
-                        + discounted + " "
-                        + ChatColor.GOLD + "<glyph:coins_icon>"
-                );
-            }
-
-            // ── 4) Gems Price (if any) ───────────────────────
-            if (mItem.getGems() > 0 && priceHdr != -1) {
-                int gemLineIdx = priceHdr + 2;
-                if (gemLineIdx < lore.size()) {
-                    boolean afford = totalGems >= mItem.getGems();
-                    lore.set(gemLineIdx,
-                        ChatColor.GRAY + ""
-                            + (afford ? ChatColor.GREEN + "✔ " : ChatColor.RED + "✘ ")
-                            + mItem.getGems()
-                            + " "
-                            + ChatColor.LIGHT_PURPLE + "<glyph:purple_orb_icon>"
+                // ── 1) Level Requirement ─────────────────────────
+                int lvlIdx = -1;
+                for (int i = 0; i < lore.size(); i++) {
+                    if (lore.get(i).contains("Level Requirement:")) {
+                        lvlIdx = i;
+                        break;
+                    }
+                }
+                if (lvlIdx != -1 && tpl != null) {
+                    boolean ok = lvl >= tpl.getLevelRequirement();
+                    lore.set(lvlIdx,
+                        (ok ? ChatColor.GREEN + "✔ " : ChatColor.RED + "✘ ")
+                            + ChatColor.GRAY + "Level Requirement: "
+                            + ChatColor.WHITE + tpl.getLevelRequirement()
                     );
                 }
+
+
+                // ── 3) Coin Price ────────────────────────────────
+                int priceHdr = ensurePriceHeader(lore, mItem);
+                if (priceHdr != -1 && priceHdr + 1 < lore.size()) {
+                    int discounted = TownPerkManager.getInstance().applyDiscount(g, TownPerk.MERCHANT_DISCOUNT, mItem.getCost());
+                    boolean afford = coins >= discounted;
+                    lore.set(priceHdr + 1,
+                        ChatColor.GRAY + ""
+                            + (afford ? ChatColor.GREEN + "✔ " : ChatColor.RED + "✘ ")
+                            + discounted + " "
+                            + ChatColor.GOLD + "<glyph:coins_icon>"
+                    );
+                }
+
+                // ── 4) Gems Price (if any) ───────────────────────
+                if (mItem.getGems() > 0 && priceHdr != -1) {
+                    int gemLineIdx = priceHdr + 2;
+                    if (gemLineIdx < lore.size()) {
+                        boolean afford = totalGems >= mItem.getGems();
+                        lore.set(gemLineIdx,
+                            ChatColor.GRAY + ""
+                                + (afford ? ChatColor.GREEN + "✔ " : ChatColor.RED + "✘ ")
+                                + mItem.getGems()
+                                + " "
+                                + ChatColor.LIGHT_PURPLE + "<glyph:purple_orb_icon>"
+                        );
+                    }
+                }
+
+
+                meta.setLore(lore);
+                stack.setItemMeta(meta);
             }
-
-
-            meta.setLore(lore);
-            stack.setItemMeta(meta);
         }
+    }
+
+    private int ensurePriceHeader(List<String> lore, MerchantItem mItem) {
+        int headerIdx = lore.indexOf(ChatColor.GOLD + "Price:");
+        if (headerIdx == -1) {
+            addPriceStub(lore, mItem);
+            headerIdx = lore.indexOf(ChatColor.GOLD + "Price:");
+        }
+        return headerIdx;
     }
 
     // ─── Replace your onInventoryOpen with this ──────────────────────────────

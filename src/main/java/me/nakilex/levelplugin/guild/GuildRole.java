@@ -12,4 +12,13 @@ public enum GuildRole {
         }
         return null;
     }
+
+    public int getPriority() {
+        return switch (this) {
+            case LEADER -> 3;
+            case ADVISOR -> 2;
+            case VETERAN -> 1;
+            case MEMBER -> 0;
+        };
+    }
 }

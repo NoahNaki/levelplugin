@@ -34,10 +34,10 @@ public class Guild {
         this.leader = leader;
         this.members.add(leader);
         roles.put(leader, GuildRole.LEADER);
-        permissions.put(GuildRole.LEADER, new RolePermissions(true,true,true,true,true));
-        permissions.put(GuildRole.ADVISOR, new RolePermissions(true,true,true,true,true));
-        permissions.put(GuildRole.VETERAN, new RolePermissions(true,true,true,false,false));
-        permissions.put(GuildRole.MEMBER, new RolePermissions(false,false,false,false,false));
+        permissions.put(GuildRole.LEADER, new RolePermissions(true,true,true,true,true, true));
+        permissions.put(GuildRole.ADVISOR, new RolePermissions(true,true,true,true,true, true));
+        permissions.put(GuildRole.VETERAN, new RolePermissions(true,true,true,false,false, false));
+        permissions.put(GuildRole.MEMBER, new RolePermissions(false,false,false,false,false, false));
     }
 
     public String getName() {

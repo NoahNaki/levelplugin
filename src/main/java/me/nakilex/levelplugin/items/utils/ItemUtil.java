@@ -358,6 +358,7 @@ public class ItemUtil {
         addStatLines(lore, cItem, prefixStat);
 
         lore.add("");
+        lore.add(ChatColor.GRAY + "Enchanted: " + ChatColor.WHITE + cItem.getEnchantCount());
         if (cItem.isBroken()) {
             lore.add(ChatColor.GRAY + "Durability: " + ChatColor.RED + ChatColor.BOLD + "BROKEN");
         } else {
@@ -663,6 +664,8 @@ public class ItemUtil {
 
 
         lore.add(""); // Blank line before rarity
+
+        lore.add(ChatColor.GRAY + "[" + ChatColor.GREEN + cItem.getEnchantCount() + ChatColor.GRAY + "]");
 
         if (cItem.isBroken()) {
             lore.add(ChatColor.GRAY + "Durability: " + ChatColor.RED + ChatColor.BOLD + "BROKEN");

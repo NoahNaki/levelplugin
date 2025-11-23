@@ -46,6 +46,7 @@ public class GuildSiegeManager {
     private final Set<UUID> active = new HashSet<>();
     private final Set<UUID> attackers = new HashSet<>();
     private final Set<UUID> defenders = new HashSet<>();
+    private final Map<UUID, Location> respawnPoints = new HashMap<>();
 
     private final Location center = new Location(Bukkit.getWorld("world"), 192, 73, -71);
     private final Location teleportLocation = new Location(Bukkit.getWorld("world"), 193, 67, -174);
@@ -109,6 +110,7 @@ public class GuildSiegeManager {
 
     private void announce() {
         queue.clear();
+        respawnPoints.clear();
         if (countdownTask != null) {
             countdownTask.cancel();
             countdownTask = null;
@@ -155,6 +157,7 @@ public class GuildSiegeManager {
      *  @return true if the player was queued or active. */
     public boolean leave(UUID id) {
         boolean removed = queue.remove(id) | active.remove(id) | attackers.remove(id) | defenders.remove(id);
+        respawnPoints.remove(id);
         if (removed && queue.isEmpty() && countdownTask != null) {
             countdownTask.cancel();
             countdownTask = null;
@@ -204,6 +207,7 @@ public class GuildSiegeManager {
             Player p = Bukkit.getPlayer(id);
             if (p != null) {
                 bossBar.addPlayer(p);
+                respawnPoints.put(id, teleportLocation.clone());
                 me.nakilex.levelplugin.utils.TeleportUtils.teleportWithEffect(p, teleportLocation);
                 Main.getInstance().getLocationMusicManager().startSiege(p);
             }
@@ -212,6 +216,7 @@ public class GuildSiegeManager {
             Player p = Bukkit.getPlayer(id);
             if (p != null) {
                 bossBar.addPlayer(p);
+                respawnPoints.put(id, center.clone());
                 me.nakilex.levelplugin.utils.TeleportUtils.teleportWithEffect(p, center);
                 Main.getInstance().getLocationMusicManager().startSiege(p);
             }
@@ -375,6 +380,7 @@ public class GuildSiegeManager {
         queue.clear();
         attackers.clear();
         defenders.clear();
+        respawnPoints.clear();
         progress = 0;
         capturingGuild = null;
         if (bossBar != null) {
@@ -462,6 +468,9 @@ public class GuildSiegeManager {
     public int getProgress() { return progress; }
     public String getOwnerGuild() { return ownerGuild; }
     public boolean isSiegeRunning() { return captureTask != null; }
+    public Location getRespawnLocation(UUID id) {
+        return isSiegeRunning() ? respawnPoints.get(id) : null;
+    }
 
     /** Toggle the fast-capture debug mode. */
     public boolean toggleFastCapture() {

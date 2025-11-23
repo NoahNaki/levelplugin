@@ -21,6 +21,6 @@ public class QuestKillListener implements Listener {
         Player killer = event.getEntity().getKiller();
         ActiveMob mob = MythicBukkit.inst().getAPIHelper().getMythicMobInstance(event.getEntity());
         String typeName = mob != null ? mob.getMobType() : event.getEntityType().name();
-        questManager.handleKill(killer, typeName);
+        questManager.handleKill(killer, typeName, mob != null);
     }
 }

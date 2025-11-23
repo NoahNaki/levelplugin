@@ -15,12 +15,16 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
+import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerDropItemEvent;
+import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -55,6 +59,8 @@ public class DungeonBuilder implements Listener {
     private final Map<UUID, Location> storedReturns = new HashMap<>();
     private final Map<UUID, Location> pendingReturnOverrides = new HashMap<>();
     private final Map<UUID, StoredInventory> storedInventories = new HashMap<>();
+    private final Map<UUID, Boolean> storedFlight = new HashMap<>();
+    private final Map<UUID, Boolean> storedFlyingState = new HashMap<>();
     private final Map<UUID, EnumSet<TemplateType>> unlockedRooms = new HashMap<>();
     private final File sessionFile;
     private final FileConfiguration sessionConfig;
@@ -124,6 +130,12 @@ public class DungeonBuilder implements Listener {
                         ItemStack[] arr = InventorySerialUtil.itemStackArrayFromBase64(offhandData);
                         if (arr.length > 0) offhand = arr[0];
                     }
+                    if (sessionConfig.isSet(path + "allowFlight")) {
+                        storedFlight.put(id, sessionConfig.getBoolean(path + "allowFlight"));
+                    }
+                    if (sessionConfig.isSet(path + "flying")) {
+                        storedFlyingState.put(id, sessionConfig.getBoolean(path + "flying"));
+                    }
                     if (contents != null || armor != null || offhand != null) {
                         storedInventories.put(id, new StoredInventory(
                                 contents == null ? new ItemStack[0] : contents,
@@ -154,6 +166,8 @@ public class DungeonBuilder implements Listener {
         ids.addAll(storedReturns.keySet());
         ids.addAll(storedInventories.keySet());
         ids.addAll(unlockedRooms.keySet());
+        ids.addAll(storedFlight.keySet());
+        ids.addAll(storedFlyingState.keySet());
         for (UUID id : ids) {
             String base = "sessions." + id;
             Location loc = storedReturns.get(id);
@@ -184,6 +198,12 @@ public class DungeonBuilder implements Listener {
                 sessionConfig.set(base + ".unlocked", values);
             } else {
                 sessionConfig.set(base + ".unlocked", null);
+            }
+            if (storedFlight.containsKey(id)) {
+                sessionConfig.set(base + ".allowFlight", storedFlight.get(id));
+            }
+            if (storedFlyingState.containsKey(id)) {
+                sessionConfig.set(base + ".flying", storedFlyingState.get(id));
             }
         }
         try { sessionConfig.save(sessionFile); } catch (IOException ignored) {}
@@ -217,6 +237,7 @@ public class DungeonBuilder implements Listener {
                     }
                     p.teleport(back);
                     restoreStoredInventory(p);
+                    restoreFlightState(p);
                 }
                 manager.getPlugin().getWorldManager().deleteWorld(w.getName());
             }
@@ -253,6 +274,7 @@ public class DungeonBuilder implements Listener {
         sessions.put(player.getUniqueId(), s);
         storedReturns.put(player.getUniqueId(), back);
         storeInventory(player);
+        storeFlightState(player);
         setupInventory(player);
         player.teleport(new Location(world, 0, 64, 0));
         player.setAllowFlight(true);
@@ -283,6 +305,7 @@ public class DungeonBuilder implements Listener {
         sessions.put(player.getUniqueId(), s);
         storedReturns.put(player.getUniqueId(), player.getLocation());
         storeInventory(player);
+        storeFlightState(player);
         setupInventory(player);
 
         // spawn existing rooms relative to the entrance
@@ -373,12 +396,61 @@ public class DungeonBuilder implements Listener {
         return sessions.containsKey(playerId);
     }
 
+    private boolean isBuilderMenuTitle(String rawTitle) {
+        if (rawTitle == null) {
+            return false;
+        }
+        String stripped = ChatColor.stripColor(rawTitle);
+        return stripped.startsWith("Select") || stripped.endsWith("Variants");
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onInventoryOpen(InventoryOpenEvent event) {
+        Session s = sessions.get(event.getPlayer().getUniqueId());
+        if (s == null) return;
+        if (s.pending != null && isBuilderMenuTitle(event.getView().getTitle())) return;
+        event.setCancelled(true);
+        Bukkit.getScheduler().runTask(Main.getInstance(), () -> event.getPlayer().closeInventory());
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onInventoryClickGuard(InventoryClickEvent event) {
+        Session s = sessions.get(event.getWhoClicked().getUniqueId());
+        if (s == null) return;
+        if (s.pending != null && isBuilderMenuTitle(event.getView().getTitle())) return;
+        event.setCancelled(true);
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onDrop(PlayerDropItemEvent event) {
+        if (isBuilding(event.getPlayer())) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onSwap(PlayerSwapHandItemsEvent event) {
+        if (isBuilding(event.getPlayer())) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onCommand(PlayerCommandPreprocessEvent event) {
+        if (!isBuilding(event.getPlayer())) {
+            return;
+        }
+        event.setCancelled(true);
+        ChatMessageUtil.send(event.getPlayer(), MessageType.WARNING,
+                "You cannot use commands while in dungeon editor mode.");
+    }
+
     @EventHandler
     public void onRespawn(PlayerRespawnEvent event) {
         Session s = sessions.get(event.getPlayer().getUniqueId());
         if (s == null) return;
         event.setRespawnLocation(new Location(s.dungeon.getWorld(), 0, 0, 0));
-        Bukkit.getScheduler().runTask(Main.getInstance(), s::resetPlayer);
+        Bukkit.getScheduler().runTask(Main.getInstance(), () -> s.resetPlayer());
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
@@ -437,7 +509,6 @@ public class DungeonBuilder implements Listener {
             event.setCancelled(true);
             s.cancel();
             sessions.remove(player.getUniqueId());
-            restoreStoredInventory(player);
             ChatMessageUtil.send(player, MessageType.WARNING, "Dungeon build cancelled.");
             return;
         }
@@ -670,6 +741,7 @@ public class DungeonBuilder implements Listener {
             }
             p.teleport(back);
             restoreStoredInventory(p);
+            restoreFlightState(p);
             saveSessionData();
             if (original.getName().startsWith("dgn_edit_")) {
                 manager.getPlugin().getWorldManager().deleteWorld(original.getName());
@@ -1251,6 +1323,7 @@ public class DungeonBuilder implements Listener {
             storedReturns.remove(player.getUniqueId());
             if (player.isOnline()) {
                 restoreStoredInventory(player);
+                restoreFlightState(player);
             }
             saveSessionData();
             if (tempWorld) {
@@ -1322,6 +1395,13 @@ public class DungeonBuilder implements Listener {
         saveSessionData();
     }
 
+    private void storeFlightState(Player player) {
+        UUID id = player.getUniqueId();
+        storedFlight.put(id, player.getAllowFlight());
+        storedFlyingState.put(id, player.isFlying());
+        saveSessionData();
+    }
+
     private void restoreStoredInventory(Player player) {
         StoredInventory stored = storedInventories.remove(player.getUniqueId());
         if (stored == null) return;
@@ -1329,6 +1409,19 @@ public class DungeonBuilder implements Listener {
         player.getInventory().setArmorContents(cloneItems(stored.armor));
         player.getInventory().setItemInOffHand(cloneItem(stored.offhand));
         saveSessionData();
+    }
+
+    private void restoreFlightState(Player player) {
+        UUID id = player.getUniqueId();
+        if (!storedFlight.containsKey(id) && !storedFlyingState.containsKey(id)) {
+            return;
+        }
+        boolean allow = storedFlight.getOrDefault(id, player.getAllowFlight());
+        boolean flying = storedFlyingState.getOrDefault(id, player.isFlying()) && allow;
+        player.setAllowFlight(allow);
+        player.setFlying(flying);
+        storedFlight.remove(id);
+        storedFlyingState.remove(id);
     }
 
     private ItemStack[] cloneItems(ItemStack[] items) {

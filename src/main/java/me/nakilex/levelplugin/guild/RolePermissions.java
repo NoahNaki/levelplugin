@@ -6,13 +6,15 @@ public class RolePermissions {
     private boolean acceptApplicants;
     private boolean changeMotd;
     private boolean manageRelations;
+    private boolean manageRoles;
 
-    public RolePermissions(boolean vaultAccess, boolean kick, boolean acceptApplicants, boolean changeMotd, boolean manageRelations) {
+    public RolePermissions(boolean vaultAccess, boolean kick, boolean acceptApplicants, boolean changeMotd, boolean manageRelations, boolean manageRoles) {
         this.vaultAccess = vaultAccess;
         this.kick = kick;
         this.acceptApplicants = acceptApplicants;
         this.changeMotd = changeMotd;
         this.manageRelations = manageRelations;
+        this.manageRoles = manageRoles;
     }
 
     public boolean has(GuildPermission perm) {
@@ -22,6 +24,7 @@ public class RolePermissions {
             case ACCEPT_APPLICANTS -> acceptApplicants;
             case CHANGE_MOTD -> changeMotd;
             case MANAGE_RELATIONS -> manageRelations;
+            case MANAGE_ROLES -> manageRoles;
         };
     }
 
@@ -32,6 +35,7 @@ public class RolePermissions {
             case ACCEPT_APPLICANTS -> acceptApplicants = value;
             case CHANGE_MOTD -> changeMotd = value;
             case MANAGE_RELATIONS -> manageRelations = value;
+            case MANAGE_ROLES -> manageRoles = value;
         }
     }
 

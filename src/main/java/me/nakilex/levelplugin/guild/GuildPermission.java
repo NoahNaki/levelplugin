@@ -5,5 +5,6 @@ public enum GuildPermission {
     KICK,
     ACCEPT_APPLICANTS,
     CHANGE_MOTD,
-    MANAGE_RELATIONS
+    MANAGE_RELATIONS,
+    MANAGE_ROLES
 }

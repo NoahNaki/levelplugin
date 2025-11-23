@@ -24,7 +24,7 @@ public class GuildSettingsGUI implements Listener {
     private static final int SIZE = 45;
     private static final String TITLE = ChatColor.BLACK + "Guild Settings";
     private static final int BACK_SLOT = 0;
-    private static final int[] PERM_SLOTS = {10,11,12,13,14};
+    private static final int[] PERM_SLOTS = {10,11,12,13,14,15};
 
     public GuildSettingsGUI(GuildManager manager) {
         this.manager = manager;
