@@ -350,6 +350,7 @@ public class ItemUtil {
         int gearScore = SalvageManager.getInstance().getTotalStats(cItem);
         lore.add(ChatColor.GRAY + "Gear Score: "
                 + ChatColor.LIGHT_PURPLE + ChatColor.BOLD + gearScore);
+        lore.add(ChatColor.GRAY + "[" + ChatColor.GREEN + cItem.getEnchantCount() + ChatColor.GRAY + "] Enchanted");
         lore.add(""); // divider after Gear Score
 
         // --- Stats Information ---

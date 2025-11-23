@@ -24,6 +24,7 @@ import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import me.nakilex.levelplugin.utils.TextUtil;
 
 import java.util.*;
 
@@ -87,49 +88,13 @@ public class GuildMemberGUI implements Listener {
                 .border()
                 .build();
 
-        String term = searchTerms.getOrDefault(player.getUniqueId(), "").toLowerCase();
+        List<UUID> members = getFilteredMembers(player, g);
         int sort = sortModes.getOrDefault(player.getUniqueId(), 0);
-
-        List<UUID> members = new ArrayList<>(g.getMembers());
-        // filter by search
-        if (!term.isEmpty()) {
-            members.removeIf(id -> {
-                OfflinePlayer op = Bukkit.getOfflinePlayer(id);
-                String n = op.getName();
-                return n == null || !n.toLowerCase().contains(term);
-            });
-        }
-
-        // sort
-        Comparator<UUID> comp;
-        switch (sort) {
-            case 1 -> comp = Comparator.comparing((UUID id) -> Bukkit.getPlayer(id) == null)
-                    .thenComparing(id -> {
-                        OfflinePlayer op = Bukkit.getOfflinePlayer(id);
-                        String n = op.getName();
-                        return n == null ? "" : n.toLowerCase();
-                    }); // online first
-            case 2 -> comp = Comparator.comparingInt((UUID id) ->
-                    -LevelManager.getInstance().getLevel(id)); // level desc
-            default -> comp = Comparator.comparing(id -> {
-                OfflinePlayer op = Bukkit.getOfflinePlayer(id);
-                String n = op.getName();
-                return n == null ? "" : n.toLowerCase();
-            });
-        }
-        members.sort(comp);
 
         int start = page * ITEMS_PER_PAGE;
         for (int i = start, slot = 0; i < members.size() && slot < ITEMS_PER_PAGE; i++) {
             UUID id = members.get(i);
-            OfflinePlayer op = Bukkit.getOfflinePlayer(id);
-            List<String> lore = new ArrayList<>();
-            if (id.equals(g.getLeader())) lore.add(ChatColor.GOLD + "Leader");
-            int level = LevelManager.getInstance().getLevel(id);
-            lore.add(ChatColor.GRAY + "Level: " + level);
-            boolean online = Bukkit.getPlayer(id) != null;
-            lore.add(online ? ChatColor.GREEN + "Online" : ChatColor.RED + "Offline");
-            ItemStack head = HeadUtil.createPlayerHead(op, ChatColor.YELLOW + op.getName(), lore);
+            ItemStack head = createMemberItem(g, player, id);
             inv.setItem(MEMBER_SLOTS[slot++], head);
         }
 
@@ -193,6 +158,93 @@ public class GuildMemberGUI implements Listener {
         inv.setItem(QUESTS_SLOT, GuiUtil.getNexoItem("pack1_scroll2", ChatColor.LIGHT_PURPLE + "Guild Quests"));
 
         player.openInventory(inv);
+    }
+
+    private List<UUID> getFilteredMembers(Player player, Guild g) {
+        String term = searchTerms.getOrDefault(player.getUniqueId(), "").toLowerCase();
+        int sort = sortModes.getOrDefault(player.getUniqueId(), 0);
+        List<UUID> members = new ArrayList<>(g.getMembers());
+        if (!term.isEmpty()) {
+            members.removeIf(id -> {
+                OfflinePlayer op = Bukkit.getOfflinePlayer(id);
+                String n = op.getName();
+                return n == null || !n.toLowerCase().contains(term);
+            });
+        }
+
+        Comparator<UUID> comp;
+        switch (sort) {
+            case 1 -> comp = Comparator.comparing((UUID id) -> Bukkit.getPlayer(id) == null)
+                    .thenComparing(id -> {
+                        OfflinePlayer op = Bukkit.getOfflinePlayer(id);
+                        String n = op.getName();
+                        return n == null ? "" : n.toLowerCase();
+                    });
+            case 2 -> comp = Comparator.comparingInt((UUID id) ->
+                    -LevelManager.getInstance().getLevel(id));
+            default -> comp = Comparator.comparing(id -> {
+                OfflinePlayer op = Bukkit.getOfflinePlayer(id);
+                String n = op.getName();
+                return n == null ? "" : n.toLowerCase();
+            });
+        }
+        members.sort(comp);
+        return members;
+    }
+
+    private ItemStack createMemberItem(Guild guild, Player viewer, UUID memberId) {
+        OfflinePlayer op = Bukkit.getOfflinePlayer(memberId);
+        List<String> lore = new ArrayList<>();
+        GuildRole role = guild.getRole(memberId);
+        lore.add(ChatColor.GRAY + "Role: " + ChatColor.WHITE + TextUtil.beautifyWords(role.name()));
+        int level = LevelManager.getInstance().getLevel(memberId);
+        lore.add(ChatColor.GRAY + "Level: " + level);
+        boolean online = Bukkit.getPlayer(memberId) != null;
+        lore.add(online ? ChatColor.GREEN + "Online" : ChatColor.RED + "Offline");
+        boolean canManage = manager.canManageMemberRole(viewer.getUniqueId(), memberId);
+        if (canManage) {
+            lore.add(" ");
+            lore.addAll(TooltipUtil.clickInstructions("to promote role", "to demote role"));
+        }
+        return HeadUtil.createPlayerHead(op, ChatColor.YELLOW + op.getName(), lore);
+    }
+
+    private void handleMemberRoleClick(InventoryClickEvent e, Player viewer, Guild g, int memberSlotIndex) {
+        List<UUID> members = getFilteredMembers(viewer, g);
+        int page = pageMap.getOrDefault(viewer.getUniqueId(), 0);
+        int idx = page * ITEMS_PER_PAGE + memberSlotIndex;
+        if (idx >= members.size()) return;
+        UUID target = members.get(idx);
+        if (!manager.canManageMemberRole(viewer.getUniqueId(), target)) return;
+        GuildRole current = g.getRole(target);
+        GuildRole desired = e.isLeftClick() ? promoteRole(current) : (e.isRightClick() ? demoteRole(current) : current);
+        if (desired == null || desired == current) return;
+        if (manager.changeRole(viewer.getUniqueId(), target, desired)) {
+            String targetName = Bukkit.getOfflinePlayer(target).getName();
+            if (targetName == null) targetName = "Unknown";
+            viewer.sendMessage(ChatColor.GREEN + "Updated role for " + ChatColor.YELLOW + targetName
+                    + ChatColor.GREEN + " to " + ChatColor.WHITE + TextUtil.beautifyWords(desired.name()) + ChatColor.GREEN + ".");
+            open(viewer, page);
+        } else {
+            viewer.sendMessage(ChatColor.RED + "You cannot change that member's role.");
+        }
+    }
+
+    private GuildRole promoteRole(GuildRole role) {
+        return switch (role) {
+            case MEMBER -> GuildRole.VETERAN;
+            case VETERAN -> GuildRole.ADVISOR;
+            case ADVISOR, LEADER -> role;
+        };
+    }
+
+    private GuildRole demoteRole(GuildRole role) {
+        return switch (role) {
+            case LEADER -> GuildRole.ADVISOR;
+            case ADVISOR -> GuildRole.VETERAN;
+            case VETERAN -> GuildRole.MEMBER;
+            case MEMBER -> role;
+        };
     }
 
     private ItemStack createSearchButton(String term) {
@@ -271,7 +323,16 @@ public class GuildMemberGUI implements Listener {
         if (!ChatColor.stripColor(e.getView().getTitle()).equals(ChatColor.stripColor(TITLE))) return;
         e.setCancelled(true);
         Player player = (Player) e.getWhoClicked();
+        Guild g = manager.getGuild(player.getUniqueId());
         int slot = e.getRawSlot();
+        if (g != null) {
+            for (int i = 0; i < MEMBER_SLOTS.length; i++) {
+                if (slot == MEMBER_SLOTS[i]) {
+                    handleMemberRoleClick(e, player, g, i);
+                    return;
+                }
+            }
+        }
         if (slot == PREV_SLOT) {
             int p = pageMap.getOrDefault(player.getUniqueId(), 0);
             open(player, Math.max(0, p - 1));
@@ -326,14 +387,12 @@ public class GuildMemberGUI implements Listener {
             return;
         }
         if (slot == SETTINGS_SLOT) {
-            Guild g = manager.getGuild(player.getUniqueId());
             if (g != null && g.getRole(player.getUniqueId()) == GuildRole.LEADER) {
                 settingsGUI.open(player);
             }
             return;
         }
         if (slot == QUESTS_SLOT) {
-            Guild g = manager.getGuild(player.getUniqueId());
             if (g != null) {
                 GuildQuestManager.getInstance().ensureQuests(g);
                 player.openInventory(GuildQuestGUI.create(player, g.getQuests()));

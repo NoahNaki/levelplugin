@@ -6,6 +6,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerRespawnEvent;
 
 public class GuildSiegeListener implements Listener {
     private final GuildSiegeManager manager;
@@ -23,5 +24,14 @@ public class GuildSiegeListener implements Listener {
     public void onJoin(PlayerJoinEvent event) {
         Bukkit.getScheduler().runTaskLater(Main.getInstance(), () ->
                 manager.refreshTownVisibility(event.getPlayer()), 40L);
+    }
+
+    @EventHandler
+    public void onRespawn(PlayerRespawnEvent event) {
+        java.util.UUID id = event.getPlayer().getUniqueId();
+        org.bukkit.Location respawn = manager.getRespawnLocation(id);
+        if (respawn != null) {
+            event.setRespawnLocation(respawn);
+        }
     }
 }

@@ -127,15 +127,46 @@ public class GuildManager {
     }
 
     public boolean promote(UUID executor, UUID target, GuildRole role) {
+        return changeRole(executor, target, role);
+    }
+
+    public boolean changeRole(UUID executor, UUID target, GuildRole role) {
         Guild g = getGuild(executor);
-        if (g == null || g.getRole(executor) != GuildRole.LEADER) return false;
-        if (!g.getMembers().contains(target)) return false;
+        if (g == null || !g.getMembers().contains(target)) return false;
+        if (!Objects.equals(g, getGuild(target))) return false;
+        if (role == null || executor.equals(target)) return false;
+        GuildRole executorRole = g.getRole(executor);
+        GuildRole targetRole = g.getRole(target);
+        if (!g.getPermissions(executorRole).has(GuildPermission.MANAGE_ROLES)) return false;
+
+        if (!canAdjustRole(executorRole, targetRole, role)) return false;
+        if (role == GuildRole.LEADER && executorRole != GuildRole.LEADER) return false;
+
         if (role == GuildRole.LEADER) {
             g.setRole(g.getLeader(), GuildRole.ADVISOR);
         }
         g.setRole(target, role);
         me.nakilex.levelplugin.Main.getInstance().getEnvironmentManager().syncGuildTown(g);
         return true;
+    }
+
+    public boolean canManageMemberRole(UUID executor, UUID target) {
+        Guild g = getGuild(executor);
+        if (g == null || !Objects.equals(g, getGuild(target)) || executor.equals(target)) return false;
+        GuildRole executorRole = g.getRole(executor);
+        GuildRole targetRole = g.getRole(target);
+        if (!g.getPermissions(executorRole).has(GuildPermission.MANAGE_ROLES)) return false;
+        return canAdjustRole(executorRole, targetRole, targetRole);
+    }
+
+    private boolean canAdjustRole(GuildRole executorRole, GuildRole targetRole, GuildRole desired) {
+        if (executorRole == null || targetRole == null || desired == null) return false;
+        // Leader transfers are handled separately but still require the target to be below executor.
+        if (desired == GuildRole.LEADER) {
+            return executorRole == GuildRole.LEADER && executorRole.getPriority() > targetRole.getPriority();
+        }
+        return executorRole.getPriority() > targetRole.getPriority()
+                && executorRole.getPriority() > desired.getPriority();
     }
 
     public boolean hasPermission(UUID player, GuildPermission perm) {
