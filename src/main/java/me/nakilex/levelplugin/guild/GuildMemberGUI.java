@@ -122,6 +122,7 @@ public class GuildMemberGUI implements Listener {
             infoMeta.setLore(lore);
             infoItem.setItemMeta(infoMeta);
         }
+        String term = searchTerms.getOrDefault(player.getUniqueId(), "");
         inv.setItem(HOME_SLOT, infoItem);
         inv.setItem(SEARCH_SLOT, createSearchButton(term));
         inv.setItem(MOTD_SLOT, createMotdButton(g, player));
