@@ -771,17 +771,17 @@ public class QuestManager {
             Quest quest = progress.getQuest();
             for (int i = 0; i < quest.getObjectives().size(); i++) {
                 QuestObjective obj = quest.getObjectives().get(i);
-                    if (obj.getType() == type && obj.getTarget().equalsIgnoreCase(target)) {
-                        progress.incrementProgress(i, amount, obj.isAllowOverflow(), obj.getAmount());
+                if (obj.getType() == type && obj.getTarget().equalsIgnoreCase(target)) {
+                    progress.incrementProgress(i, amount, obj.isAllowOverflow(), obj.getAmount());
+                    if (debug) {
+                        plugin.getLogger().info("[QuestDebug] " + player.getName() + " progressed " + quest.getId()
+                                + " objective " + i + " -> " + progress.getProgress(i) + "/" + obj.getAmount());
+                    }
+                    if (progress.isComplete()) {
                         if (debug) {
-                            plugin.getLogger().info("[QuestDebug] " + player.getName() + " progressed " + quest.getId()
-                                    + " objective " + i + " -> " + progress.getProgress(i) + "/" + obj.getAmount());
+                            plugin.getLogger().info("[QuestDebug] " + player.getName() + " completed " + quest.getId());
                         }
-                        if (progress.isComplete()) {
-                            if (debug) {
-                                plugin.getLogger().info("[QuestDebug] " + player.getName() + " completed " + quest.getId());
-                            }
-                            it.remove();
+                        it.remove();
                         if (map.isEmpty()) {
                             activeQuests.remove(uuid);
                         }

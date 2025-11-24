@@ -23,6 +23,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.NamespacedKey;
 import org.bukkit.persistence.PersistentDataType;
+import me.nakilex.levelplugin.player.levels.managers.LevelManager;
 
 import java.util.*;
 
@@ -145,7 +146,7 @@ public class QuestGUI {
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
             List<String> lore = new ArrayList<>();
-            String levelLine = formatLevelRequirement(quest);
+            String levelLine = formatLevelRequirement(player, quest);
             String locationLine = quest.isLocationVisible() ? formatLocationLine(quest) : null;
 
             if (state != QuestState.LOCKED) {
@@ -222,8 +223,13 @@ public class QuestGUI {
         return item;
     }
 
-    private static String formatLevelRequirement(Quest quest) {
-        return ChatColor.GRAY + "Requires Level: " + ChatColor.WHITE + quest.getLevelRequirement();
+    private static String formatLevelRequirement(Player player, Quest quest) {
+        LevelManager levelManager = Main.getInstance().getLevelManager();
+        int playerLevel = levelManager != null ? levelManager.getLevel(player) : 0;
+        boolean meets = playerLevel >= quest.getLevelRequirement();
+        ChatColor color = meets ? ChatColor.GREEN : ChatColor.RED;
+        String symbol = meets ? "✔ " : "✘ ";
+        return color + symbol + ChatColor.GRAY + "Requires Level: " + ChatColor.WHITE + quest.getLevelRequirement();
     }
 
     private static String formatLocationLine(Quest quest) {
