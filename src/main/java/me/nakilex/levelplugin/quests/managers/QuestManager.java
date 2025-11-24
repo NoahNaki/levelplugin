@@ -81,7 +81,6 @@ public class QuestManager {
         Quest sharpSecret = new me.nakilex.levelplugin.quests.def.SharpestSecretQuest();
         Quest salvagersLesson = new me.nakilex.levelplugin.quests.def.SalvagersLessonQuest();
         Quest wayfarersMark = new me.nakilex.levelplugin.quests.def.WayfarersMarkQuest();
-        Quest runicPrimer = new me.nakilex.levelplugin.quests.def.RunicPrimerQuest();
         Quest marketBeginnings = new me.nakilex.levelplugin.quests.def.MarketBeginningsQuest();
         registerQuest(nb);
         registerQuest(seras);
@@ -95,7 +94,6 @@ public class QuestManager {
         registerQuest(sharpSecret);
         registerQuest(salvagersLesson);
         registerQuest(wayfarersMark);
-        registerQuest(runicPrimer);
         registerQuest(marketBeginnings);
         me.nakilex.levelplugin.quests.def.SharpestSecretQuest.registerTalkTargets(this);
         registerNpcQuest(me.nakilex.levelplugin.quests.def.SharpestSecretQuest.NPC_KAZAN_NAME,
@@ -662,14 +660,22 @@ public class QuestManager {
         if (debug) {
             plugin.getLogger().info("[QuestDebug] " + player.getName() + " unlocked waystone " + id);
         }
-        updateObjective(player, QuestObjectiveType.WAYSTONE_UNLOCK, id, 1);
+        updateWaystoneObjective(player, QuestObjectiveType.WAYSTONE_UNLOCK, id);
     }
 
     public void handleWaystoneUse(Player player, String id) {
         if (debug) {
             plugin.getLogger().info("[QuestDebug] " + player.getName() + " used waystone " + id);
         }
-        updateObjective(player, QuestObjectiveType.WAYSTONE_USE, id, 1);
+        updateWaystoneObjective(player, QuestObjectiveType.WAYSTONE_USE, id);
+    }
+
+    private void updateWaystoneObjective(Player player, QuestObjectiveType type, String id) {
+        String target = (id == null || id.isEmpty()) ? "ANY" : id;
+        updateObjective(player, type, target, 1);
+        if (!"ANY".equalsIgnoreCase(target)) {
+            updateObjective(player, type, "ANY", 1);
+        }
     }
 
     public void handleCastCombo(Player player, String combo) {
@@ -919,8 +925,14 @@ public class QuestManager {
             case SALVAGE:
                 return "Salvage items";
             case WAYSTONE_UNLOCK:
+                if (obj.getTarget() == null || obj.getTarget().equalsIgnoreCase("ANY")) {
+                    return "Unlock a waystone";
+                }
                 return "Unlock waystone " + obj.getTarget();
             case WAYSTONE_USE:
+                if (obj.getTarget() == null || obj.getTarget().equalsIgnoreCase("ANY")) {
+                    return "Use a waystone";
+                }
                 return "Use waystone " + obj.getTarget();
             case CAST_COMBO:
                 return "Cast combo " + obj.getTarget();
