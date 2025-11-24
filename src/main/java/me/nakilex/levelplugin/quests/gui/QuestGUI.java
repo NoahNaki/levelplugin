@@ -106,9 +106,12 @@ public class QuestGUI {
             };
         });
 
-        Comparator<Quest> comp = sort == 0
-                ? Comparator.comparing(Quest::getName, String.CASE_INSENSITIVE_ORDER)
-                : Comparator.comparing(q -> questManager.getQuestState(player, q).ordinal());
+        Comparator<Quest> comp = switch (sort) {
+            case 1 -> Comparator.comparing(q -> questManager.getQuestState(player, q).ordinal());
+            case 2 -> Comparator.comparing(Quest::getLevelRequirement)
+                    .thenComparing(Quest::getName, String.CASE_INSENSITIVE_ORDER);
+            default -> Comparator.comparing(Quest::getName, String.CASE_INSENSITIVE_ORDER);
+        };
         list.sort(comp);
 
         int start = page * ITEMS_PER_PAGE;
@@ -298,7 +301,7 @@ public class QuestGUI {
             lore.add(ChatColor.GRAY + "");
             lore.add(ChatColor.DARK_GRAY + "Sort the quests");
             lore.add(" ");
-            String[] opts = {"A-Z", "By State"};
+            String[] opts = {"A-Z", "By State", "By Level"};
             for (int i = 0; i < opts.length; i++) {
                 lore.add(rangeLine(i, mode, opts[i]));
             }

@@ -78,7 +78,7 @@ public class QuestGUIListener implements Listener {
             }
             if (stripped.startsWith("Sort")) {
                 int mode = QuestGUI.sortMap.getOrDefault(player.getUniqueId(), 0);
-                mode = (mode + 1) % 2;
+                mode = (mode + 1) % 3;
                 QuestGUI.sortMap.put(player.getUniqueId(), mode);
                 QuestGUI.openQuestGUI(player, questManager, QuestGUI.pageMap.getOrDefault(player.getUniqueId(),0));
                 return;
