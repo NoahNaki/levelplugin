@@ -33,6 +33,7 @@ import me.nakilex.levelplugin.booster.BoosterItemListener;
 import me.nakilex.levelplugin.party.PartyInviteListener;
 import me.nakilex.levelplugin.party.PartyManager;
 import me.nakilex.levelplugin.player.attributes.listeners.StatsMenuListener;
+import me.nakilex.levelplugin.auctionhouse.AuctionHouseGUI;
 import me.nakilex.levelplugin.player.battlepass.BattlePassManager;
 import me.nakilex.levelplugin.player.listener.*;
 import me.nakilex.levelplugin.player.utils.ArrowUtils;
@@ -95,6 +96,7 @@ public class ListenerRegistry {
                                          MeteorListener meteorListener,
                                          GemsManager gemsManager,
                                         me.nakilex.levelplugin.enchanting.gui.EnchantGUI enchantGUI,
+                                        AuctionHouseGUI auctionGUI,
                                         ChestHologramListener chestHologramListener,
                                         QuestManager questManager,
                                         NPCDialogManager dialogManager,
@@ -149,7 +151,7 @@ public class ListenerRegistry {
         pm.registerEvents(new StaticItemListener(), plugin);
         pm.registerEvents(blacksmithGUI, plugin);
         pm.registerEvents(horseGUI, plugin);
-        pm.registerEvents(new NPCClickListener(economyManager, questManager, dialogManager, horseGUI, enchantGUI, auctionGui), plugin);
+        pm.registerEvents(new NPCClickListener(economyManager, questManager, dialogManager, horseGUI, enchantGUI, auctionGUI), plugin);
         pm.registerEvents(new NPCCommandListener(), plugin);
         pm.registerEvents(new PlayerRightClicksPlayerListener(), plugin);
         pm.registerEvents(new TradingWindow(), plugin);
