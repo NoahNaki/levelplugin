@@ -12,6 +12,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.potions.data.PotionInstance;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
+import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -193,6 +194,7 @@ public class SalvageListener implements Listener {
             if (totalGems > 0) msg.append(ChatColor.LIGHT_PURPLE).append(totalGems).append(ChatColor.LIGHT_PURPLE + " <glyph:purple_orb_icon> "  + ChatColor.GOLD + "gems");
             msg.append("!");
             player.sendMessage(msg.toString());
+            player.playSound(player.getLocation(), Sound.BLOCK_ANVIL_USE, 0.9f, 1.15f);
             Main.getInstance().getQuestManager().handleSalvage(player, "ANY");
         } else {
             player.sendMessage(ChatColor.YELLOW + "No valid items to salvage.");

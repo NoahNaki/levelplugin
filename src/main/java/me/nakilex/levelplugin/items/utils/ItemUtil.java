@@ -358,7 +358,7 @@ public class ItemUtil {
         addStatLines(lore, cItem, prefixStat);
 
         lore.add("");
-        lore.add(ChatColor.GRAY + "Enchanted: " + ChatColor.WHITE + cItem.getEnchantCount());
+        lore.add(ChatColor.translateAlternateColorCodes('&', "&7Enchanted: &f" + cItem.getEnchantCount()));
         if (cItem.isBroken()) {
             lore.add(ChatColor.GRAY + "Durability: " + ChatColor.RED + ChatColor.BOLD + "BROKEN");
         } else {

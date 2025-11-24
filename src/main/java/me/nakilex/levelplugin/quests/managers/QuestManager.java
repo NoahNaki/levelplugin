@@ -79,6 +79,10 @@ public class QuestManager {
         Quest stableKeeper = new me.nakilex.levelplugin.quests.def.StableKeeperQuest();
         Quest dungeonGuard = new me.nakilex.levelplugin.quests.def.DungeonGuardQuest();
         Quest sharpSecret = new me.nakilex.levelplugin.quests.def.SharpestSecretQuest();
+        Quest salvagersLesson = new me.nakilex.levelplugin.quests.def.SalvagersLessonQuest();
+        Quest wayfarersMark = new me.nakilex.levelplugin.quests.def.WayfarersMarkQuest();
+        Quest runicPrimer = new me.nakilex.levelplugin.quests.def.RunicPrimerQuest();
+        Quest marketBeginnings = new me.nakilex.levelplugin.quests.def.MarketBeginningsQuest();
         registerQuest(nb);
         registerQuest(seras);
         registerQuest(hawieCrabs);
@@ -89,6 +93,10 @@ public class QuestManager {
         registerQuest(stableKeeper);
         registerQuest(dungeonGuard);
         registerQuest(sharpSecret);
+        registerQuest(salvagersLesson);
+        registerQuest(wayfarersMark);
+        registerQuest(runicPrimer);
+        registerQuest(marketBeginnings);
         me.nakilex.levelplugin.quests.def.SharpestSecretQuest.registerTalkTargets(this);
         registerNpcQuest(me.nakilex.levelplugin.quests.def.SharpestSecretQuest.NPC_KAZAN_NAME,
                 me.nakilex.levelplugin.quests.def.SharpestSecretQuest.ID);

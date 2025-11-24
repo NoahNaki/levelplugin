@@ -11,9 +11,12 @@ import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import com.nexomc.nexo.api.NexoItems;
 import com.nexomc.nexo.items.ItemBuilder;
+import net.citizensnpcs.api.CitizensAPI;
+import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
+import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -142,9 +145,12 @@ public class QuestGUI {
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
             List<String> lore = new ArrayList<>();
+            String locationLine = formatLocationLine(quest);
 
             if (state != QuestState.LOCKED) {
                 lore.add(ChatColor.GRAY + quest.getDescription());
+                lore.add(" ");
+                lore.add(locationLine);
 
                 if (state == QuestState.ACCEPTED || state == QuestState.IN_PROGRESS || state == QuestState.TURN_IN_READY) {
                     lore.add(" ");
@@ -192,6 +198,10 @@ public class QuestGUI {
                     lore.add(" ");
                     lore.addAll(TooltipUtil.clickInstructions("to track", quest.isMainQuest() ? null : "to abandon"));
                 }
+            } else {
+                lore.add(ChatColor.DARK_GRAY + "???");
+                lore.add(" ");
+                lore.add(locationLine);
             }
 
             meta.setLore(lore);
@@ -200,6 +210,36 @@ public class QuestGUI {
             item.setItemMeta(meta);
         }
         return item;
+    }
+
+    private static String formatLocationLine(Quest quest) {
+        return ChatColor.GRAY + "Quest Location: " + ChatColor.WHITE + resolveNpcLocation(quest);
+    }
+
+    private static String resolveNpcLocation(Quest quest) {
+        if (quest == null || quest.getNpcGiverId() == null) {
+            return "Unknown";
+        }
+
+        NPC npc = CitizensAPI.getNPCRegistry().getById(quest.getNpcGiverId());
+        if (npc == null) {
+            return "Unknown";
+        }
+
+        Location loc = npc.getStoredLocation();
+        if (loc == null && npc.isSpawned()) {
+            loc = npc.getEntity().getLocation();
+        }
+
+        if (loc == null) {
+            return "Unknown";
+        }
+
+        String coords = loc.getBlockX() + ", " + loc.getBlockY() + ", " + loc.getBlockZ();
+        if (loc.getWorld() != null) {
+            coords += " (" + loc.getWorld().getName() + ")";
+        }
+        return coords;
     }
 
     private static ItemStack getNexoItem(String id, String name) {
