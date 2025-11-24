@@ -604,7 +604,7 @@ public class QuestManager {
         if (debug) {
             plugin.getLogger().info("[QuestDebug] " + player.getName() + " listed on auction " + itemId);
         }
-        updateObjective(player, QuestObjectiveType.AUCTION_LIST, itemId, 1);
+        updateObjectiveWithAny(player, QuestObjectiveType.AUCTION_LIST, itemId);
     }
 
     public void handleAuctionSell(Player player, String itemId) {
@@ -618,7 +618,7 @@ public class QuestManager {
         if (debug) {
             plugin.getLogger().info("[QuestDebug] " + player.getName() + " bid on auction " + itemId);
         }
-        updateObjective(player, QuestObjectiveType.AUCTION_BID, itemId, 1);
+        updateObjectiveWithAny(player, QuestObjectiveType.AUCTION_BID, itemId);
     }
 
     public void handleTownUpgrade(Player player) {
@@ -660,22 +660,14 @@ public class QuestManager {
         if (debug) {
             plugin.getLogger().info("[QuestDebug] " + player.getName() + " unlocked waystone " + id);
         }
-        updateWaystoneObjective(player, QuestObjectiveType.WAYSTONE_UNLOCK, id);
+        updateObjectiveWithAny(player, QuestObjectiveType.WAYSTONE_UNLOCK, id);
     }
 
     public void handleWaystoneUse(Player player, String id) {
         if (debug) {
             plugin.getLogger().info("[QuestDebug] " + player.getName() + " used waystone " + id);
         }
-        updateWaystoneObjective(player, QuestObjectiveType.WAYSTONE_USE, id);
-    }
-
-    private void updateWaystoneObjective(Player player, QuestObjectiveType type, String id) {
-        String target = (id == null || id.isEmpty()) ? "ANY" : id;
-        updateObjective(player, type, target, 1);
-        if (!"ANY".equalsIgnoreCase(target)) {
-            updateObjective(player, type, "ANY", 1);
-        }
+        updateObjectiveWithAny(player, QuestObjectiveType.WAYSTONE_USE, id);
     }
 
     public void handleCastCombo(Player player, String combo) {
@@ -708,10 +700,7 @@ public class QuestManager {
         if (debug) {
             plugin.getLogger().info("[QuestDebug] " + player.getName() + " completed arena match " + target);
         }
-        updateObjective(player, QuestObjectiveType.ARENA_MATCH, target, 1);
-        if (!"ANY".equalsIgnoreCase(target)) {
-            updateObjective(player, QuestObjectiveType.ARENA_MATCH, "ANY", 1);
-        }
+        updateObjectiveWithAny(player, QuestObjectiveType.ARENA_MATCH, target);
     }
 
     public void handleDungeonCreate(Player player, String dungeonKey) {
@@ -722,10 +711,7 @@ public class QuestManager {
         if (debug) {
             plugin.getLogger().info("[QuestDebug] " + player.getName() + " saved dungeon " + target);
         }
-        updateObjective(player, QuestObjectiveType.DUNGEON_CREATE, target, 1);
-        if (!"ANY".equalsIgnoreCase(target)) {
-            updateObjective(player, QuestObjectiveType.DUNGEON_CREATE, "ANY", 1);
-        }
+        updateObjectiveWithAny(player, QuestObjectiveType.DUNGEON_CREATE, target);
     }
 
     private boolean requirementsMet(Player player, Quest quest) {
@@ -764,6 +750,14 @@ public class QuestManager {
         }
 
         return true;
+    }
+
+    private void updateObjectiveWithAny(Player player, QuestObjectiveType type, String target) {
+        String normalizedTarget = (target == null || target.isEmpty()) ? "ANY" : target;
+        updateObjective(player, type, normalizedTarget, 1);
+        if (!"ANY".equalsIgnoreCase(normalizedTarget)) {
+            updateObjective(player, type, "ANY", 1);
+        }
     }
 
     private void updateObjective(Player player, QuestObjectiveType type, String target, int amount) {
