@@ -289,7 +289,9 @@ public class DebugCommand implements TabExecutor {
                     .filter(opt -> opt.startsWith(args[1].toLowerCase()))
                     .toList();
         } else if (args.length == 2 && args[0].equalsIgnoreCase("cityowner")) {
-            List<String> guilds = new ArrayList<>(GuildManager.getInstance().getGuilds().keySet());
+            List<String> guilds = GuildManager.getInstance().getGuilds().stream()
+                    .map(Guild::getName)
+                    .collect(Collectors.toCollection(ArrayList::new));
             return guilds.stream()
                     .filter(g -> g.toLowerCase().startsWith(args[1].toLowerCase()))
                     .toList();
