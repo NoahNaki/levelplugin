@@ -18,7 +18,7 @@ public class MarketBeginningsQuest extends Quest implements QuestScript {
     public static final String ID = "marketbeginnings";
 
     /** Placeholder NPC ID; replace with the actual auctioneer NPC when placed. */
-    public static final int NPC_ID = 9912;
+    public static final int NPC_ID = 1363;
 
     private static final String INTRO_TARGET = "npc" + NPC_ID + "_intro";
     private static final String RETURN_TARGET = "npc" + NPC_ID + "_return";

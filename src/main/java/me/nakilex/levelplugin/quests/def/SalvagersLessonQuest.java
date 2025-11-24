@@ -18,7 +18,7 @@ public class SalvagersLessonQuest extends Quest implements QuestScript {
     public static final String ID = "salvagerslesson";
 
     /** Placeholder NPC ID; replace with the actual salvager NPC when available. */
-    public static final int NPC_ID = 9999;
+    public static final int NPC_ID = 1106;
 
     private static final String INTRO_TARGET = "npc" + NPC_ID + "_intro";
     private static final String RETURN_TARGET = "npc" + NPC_ID + "_return";

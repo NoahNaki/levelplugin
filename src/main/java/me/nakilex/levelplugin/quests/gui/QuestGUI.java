@@ -1,5 +1,6 @@
 package me.nakilex.levelplugin.quests.gui;
 
+import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.quests.data.PlayerQuestProgress;
 import me.nakilex.levelplugin.quests.data.Quest;
 import me.nakilex.levelplugin.quests.data.QuestReward;
@@ -23,7 +24,6 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.NamespacedKey;
 import org.bukkit.persistence.PersistentDataType;
-import me.nakilex.levelplugin.player.levels.managers.LevelManager;
 
 import java.util.*;
 
