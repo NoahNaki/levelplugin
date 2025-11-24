@@ -212,7 +212,9 @@ public class CommandRegistry {
         TradeCommand tradeCmd = new TradeCommand();
         plugin.getCommand("trade").setExecutor(tradeCmd);
         plugin.getCommand("trade").setTabCompleter(tradeCmd);
-        plugin.getCommand("duel").setExecutor(new DuelCommand());
+        DuelCommand duelCommand = new DuelCommand();
+        plugin.getCommand("duel").setExecutor(duelCommand);
+        plugin.getCommand("duel").setTabCompleter(duelCommand);
         ArenaCommand arenaCmd = new ArenaCommand(plugin.getArenaQueueGUI(), plugin.getArenaQueueManager());
         plugin.getCommand("arena").setExecutor(arenaCmd);
         plugin.getCommand("arena").setTabCompleter(arenaCmd);

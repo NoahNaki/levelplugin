@@ -456,6 +456,7 @@ public class PluginBootstrap {
             meteorListener,
             gemsManager,
             enchantGUI,
+            auctionHouseGUI,
             chestHologramListener,
             questManager,
             dialogManager,

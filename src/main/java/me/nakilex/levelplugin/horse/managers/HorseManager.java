@@ -104,7 +104,10 @@ public class HorseManager implements Listener {
         int speedStars = Math.min(horseData.getSpeed(), 5);
         horse.setJumpStrength(0.3 + jumpStars * 0.1);
         var speedAttr = horse.getAttribute(Attribute.MOVEMENT_SPEED);
-        if (speedAttr != null) speedAttr.setBaseValue(0.1 + speedStars * 0.03);
+        if (speedAttr != null) {
+            // Raise the baseline and per-star scaling so higher-rated horses feel faster
+            speedAttr.setBaseValue(0.12 + speedStars * 0.04);
+        }
         horse.getInventory().setSaddle(new ItemStack(Material.SADDLE));
         horse.addPassenger(player);
 

@@ -8,6 +8,7 @@ import me.nakilex.levelplugin.guild.Guild;
 import me.nakilex.levelplugin.guild.GuildManager;
 import me.nakilex.levelplugin.guild.siege.GuildSiegeManager;
 import me.nakilex.levelplugin.environment.EnvironmentManager;
+import me.nakilex.levelplugin.utils.NumberUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -190,7 +191,8 @@ public class LeaderboardManager {
         for (Map.Entry<UUID, Integer> e : top) {
             OfflinePlayer off = Bukkit.getOfflinePlayer(e.getKey());
             String name = off.getName() != null ? off.getName() : e.getKey().toString();
-            String value = color + e.getValue();
+            String formatted = NumberUtil.formatCommas(e.getValue());
+            String value = color + formatted;
             if (type == LeaderboardType.BALANCE) {
                 value += " <glyph:coins_icon>";
             } else if (type == LeaderboardType.DUELS) {

@@ -16,19 +16,22 @@ import java.util.List;
  */
 public class MarketBeginningsQuest extends Quest implements QuestScript {
     public static final String ID = "marketbeginnings";
+    public static final String NPC_NAME = "Auction House";
 
-    /** Placeholder NPC ID; replace with the actual auctioneer NPC when placed. */
-    public static final int NPC_ID = 1363;
+    public static final int TALK_INTRO_INDEX = 0;
+    public static final int LIST_INDEX = 1;
+    public static final int BID_INDEX = 2;
+    public static final int TALK_RETURN_INDEX = 3;
 
-    private static final String INTRO_TARGET = "npc" + NPC_ID + "_intro";
-    private static final String RETURN_TARGET = "npc" + NPC_ID + "_return";
+    public static final String INTRO_TARGET = "npc_auction_house_intro";
+    public static final String RETURN_TARGET = "npc_auction_house_return";
 
     private static List<QuestObjective> createObjectives() {
         return List.of(
-                new QuestObjective(QuestObjectiveType.TALK, INTRO_TARGET, 1, BeaconTargets.npc(NPC_ID)),
+                new QuestObjective(QuestObjectiveType.TALK, INTRO_TARGET, 1, BeaconTargets.npc(NPC_NAME)),
                 new QuestObjective(QuestObjectiveType.AUCTION_LIST, "ANY", 1),
-                new QuestObjective(QuestObjectiveType.AUCTION_BID, "ANY", 1),
-                new QuestObjective(QuestObjectiveType.TALK, RETURN_TARGET, 1, BeaconTargets.npc(NPC_ID))
+                new QuestObjective(QuestObjectiveType.AUCTION_BUY, "ANY", 1),
+                new QuestObjective(QuestObjectiveType.TALK, RETURN_TARGET, 1, BeaconTargets.npc(NPC_NAME))
         );
     }
 
@@ -42,7 +45,7 @@ public class MarketBeginningsQuest extends Quest implements QuestScript {
                 List.of(),
                 null,
                 QuestRewardCompat.create(210, 110, 0, List.of()),
-                NPC_ID,
+                null,
                 List.of(
                         "Auctioneer|Every fortune starts with a first listing.",
                         "<player>|I don't want to get swindled.",
@@ -50,6 +53,22 @@ public class MarketBeginningsQuest extends Quest implements QuestScript {
                         "Auctioneer|Once you've danced with the market a bit, come back and I'll share a tip or two."
                 ),
                 false
+        );
+    }
+
+    public static void registerTalkTargets(me.nakilex.levelplugin.quests.managers.QuestManager questManager) {
+        if (questManager == null) {
+            return;
+        }
+        questManager.registerTalkTarget(INTRO_TARGET, NPC_NAME, "Auctioneer");
+        questManager.registerTalkTarget(RETURN_TARGET, NPC_NAME, "Auctioneer");
+    }
+
+    public static List<String> getReturnDialog() {
+        return List.of(
+                "Auctioneer|Not bad for a newcomer. Those coins will start flowing faster now.",
+                "<player>|Any secrets to bidding?",
+                "Auctioneer|Watch the timers, trust your gut, and never bid more than you'd celebrate losing."
         );
     }
 

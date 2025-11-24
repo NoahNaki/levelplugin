@@ -86,4 +86,14 @@ public final class TooltipUtil {
         }
         return lore;
     }
+
+    /**
+     * Standard account limit line for shop tooltips to keep styling consistent.
+     *
+     * @param limit maximum purchases per account
+     * @return formatted lore line, e.g. "§7Account Limit: §f1"
+     */
+    public static String accountLimitLine(int limit) {
+        return ChatColor.GRAY + "Account Limit: " + ChatColor.WHITE + limit;
+    }
 }

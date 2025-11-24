@@ -7,12 +7,19 @@ import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+import me.nakilex.levelplugin.utils.CommandUtil;
 
 import static me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
 import static me.nakilex.levelplugin.utils.ChatMessageUtil.send;
 
-public class DuelCommand implements CommandExecutor {
+public class DuelCommand implements TabExecutor {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
@@ -75,5 +82,22 @@ public class DuelCommand implements CommandExecutor {
         manager.createRequest(player, target);
         DuelMessageUtil.sendRequest(player, target);
         return true;
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        if (args.length == 1) {
+            List<String> options = new ArrayList<>();
+            options.add("accept");
+            options.add("decline");
+
+            for (Player online : Bukkit.getOnlinePlayers()) {
+                if (!online.equals(sender)) {
+                    options.add(online.getName());
+                }
+            }
+            return CommandUtil.filterStartingWith(options, args[0]);
+        }
+        return Collections.emptyList();
     }
 }

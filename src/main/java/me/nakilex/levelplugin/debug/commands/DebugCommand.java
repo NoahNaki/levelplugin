@@ -16,6 +16,8 @@ import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
 import me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager;
 import me.nakilex.levelplugin.utils.ToggleFeedbackUtil;
+import me.nakilex.levelplugin.guild.siege.GuildSiegeManager;
+import me.nakilex.levelplugin.guild.GuildManager;
 import org.bukkit.ChatColor;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Material;
@@ -65,7 +67,7 @@ public class DebugCommand implements TabExecutor {
                 String statUsage = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|autocast|chatgame|" + statUsage + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|cityowner|autocast|chatgame|" + statUsage + ">");
             }
             return true;
         }
@@ -127,6 +129,20 @@ public class DebugCommand implements TabExecutor {
             case "siege":
                 boolean fast = me.nakilex.levelplugin.guild.siege.GuildSiegeManager.getInstance().toggleFastCapture();
                 sender.sendMessage("Fast siege mode " + (fast ? "enabled" : "disabled"));
+                return true;
+
+            case "cityowner":
+                if (args.length < 2) {
+                    sender.sendMessage(ChatColor.RED + "Usage: /debug cityowner <guild name>");
+                    return true;
+                }
+                String guildName = String.join(" ", java.util.Arrays.copyOfRange(args, 1, args.length));
+                boolean updated = GuildSiegeManager.getInstance().debugAssignOwner(guildName);
+                if (updated) {
+                    sender.sendMessage(ChatColor.GREEN + "Assigned castle ownership to guild " + guildName + ".");
+                } else {
+                    sender.sendMessage(ChatColor.RED + "Could not assign ownership. Is the guild name correct?");
+                }
                 return true;
 
             case "autocast":
@@ -210,7 +226,7 @@ public class DebugCommand implements TabExecutor {
                 String statUsage2 = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|autocast|chatgame|" + statUsage2 + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|cityowner|autocast|chatgame|" + statUsage2 + ">");
                 return true;
         }
     }
@@ -258,7 +274,7 @@ public class DebugCommand implements TabExecutor {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            List<String> subs = new ArrayList<>(List.of("mobinfo", "tps", "siege", "autocast", "hand", "chatgame"));
+            List<String> subs = new ArrayList<>(List.of("mobinfo", "tps", "siege", "cityowner", "autocast", "hand", "chatgame"));
             subs.addAll(Arrays.stream(StatType.values()).map(StatType::getAbbrev).toList());
             return subs.stream()
                     .filter(s -> s.startsWith(args[0].toLowerCase()))
@@ -271,6 +287,13 @@ public class DebugCommand implements TabExecutor {
             }
             return options.stream()
                     .filter(opt -> opt.startsWith(args[1].toLowerCase()))
+                    .toList();
+        } else if (args.length == 2 && args[0].equalsIgnoreCase("cityowner")) {
+            List<String> guilds = GuildManager.getInstance().getGuilds().stream()
+                    .map(Guild::getName)
+                    .collect(Collectors.toCollection(ArrayList::new));
+            return guilds.stream()
+                    .filter(g -> g.toLowerCase().startsWith(args[1].toLowerCase()))
                     .toList();
         } else if (args.length == 3 && args[0].equalsIgnoreCase("chatgame")) {
             return List.of("on", "off", "enable", "disable").stream()

@@ -13,11 +13,16 @@ import me.nakilex.levelplugin.quests.data.PlayerQuestProgress;
 import me.nakilex.levelplugin.quests.def.SerasQuest;
 import me.nakilex.levelplugin.quests.def.SharpestSecretQuest;
 import me.nakilex.levelplugin.quests.def.StableKeeperQuest;
+import me.nakilex.levelplugin.quests.def.SalvagersLessonQuest;
+import me.nakilex.levelplugin.quests.def.MarketBeginningsQuest;
 import me.nakilex.levelplugin.npc.dialog.NPCDialogManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.CurrencyMessageUtil;
 import me.nakilex.levelplugin.utils.NpcNameUtil;
 import me.nakilex.levelplugin.enchanting.gui.EnchantGUI;
+import me.nakilex.levelplugin.auctionhouse.AuctionHouseGUI;
+import me.nakilex.levelplugin.salvage.gui.SalvageGUI;
+import me.nakilex.levelplugin.quests.util.QuestServiceAccessTracker;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
@@ -36,15 +41,17 @@ public class NPCClickListener implements Listener {
     private final NPCDialogManager dialogManager;
     private final HorseGUI horseGUI;
     private final EnchantGUI enchantGUI;
+    private final AuctionHouseGUI auctionGUI;
 
     // Constructor to get the EconomyManager instance
     public NPCClickListener(EconomyManager economyManager, QuestManager questManager, NPCDialogManager dialogManager,
-                            HorseGUI horseGUI, EnchantGUI enchantGUI) {
+                            HorseGUI horseGUI, EnchantGUI enchantGUI, AuctionHouseGUI auctionGUI) {
         this.economyManager = economyManager;
         this.questManager = questManager;
         this.dialogManager = dialogManager;
         this.horseGUI = horseGUI;
         this.enchantGUI = enchantGUI;
+        this.auctionGUI = auctionGUI;
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -157,6 +164,18 @@ public class NPCClickListener implements Listener {
                     }
                 }
 
+                if (SalvagersLessonQuest.ID.equals(quest.getId())) {
+                    if (handleSalvagersLesson(player, npc, quest)) {
+                        return;
+                    }
+                }
+
+                if (MarketBeginningsQuest.ID.equals(quest.getId())) {
+                    if (handleMarketBeginnings(player, npc, quest)) {
+                        return;
+                    }
+                }
+
                 if ("zoyadungeon".equals(quest.getId())) {
                     PlayerQuestProgress progress = questManager.getProgress(player.getUniqueId(), quest.getId());
                     if (progress != null) {
@@ -182,7 +201,7 @@ public class NPCClickListener implements Listener {
                     }
                 }
 
-                questManager.handleTalk(player, resolveTalkTarget(quest, npc));
+                questManager.handleTalk(player, resolveTalkTarget(player.getUniqueId(), quest, npc));
                 QuestState state = questManager.getQuestState(player, quest);
                 switch (state) {
                     case AVAILABLE -> dialogManager.startDialog(player, quest, npc);
@@ -473,6 +492,120 @@ public class NPCClickListener implements Listener {
         return false;
 }
 
+    private boolean handleSalvagersLesson(Player player, NPC npc, Quest quest) {
+        QuestState state = questManager.getQuestState(player, quest);
+        if (state == QuestState.AVAILABLE) {
+            dialogManager.startDialog(player, quest, npc);
+            return true;
+        }
+        if (state == QuestState.LOCKED) {
+            questManager.meetsRequirements(player, quest);
+            return true;
+        }
+
+        java.util.UUID uuid = player.getUniqueId();
+        boolean completed = questManager.hasCompleted(uuid, SalvagersLessonQuest.ID);
+        PlayerQuestProgress progress = questManager.getProgress(uuid, SalvagersLessonQuest.ID);
+        boolean introDone = progress != null && progress.getProgress(SalvagersLessonQuest.TALK_INTRO_INDEX) >= 1;
+        boolean salvaged = progress != null &&
+                progress.getProgress(SalvagersLessonQuest.SALVAGE_INDEX) >= SalvagersLessonQuest.SALVAGE_AMOUNT;
+        boolean returned = progress != null && progress.getProgress(SalvagersLessonQuest.TALK_RETURN_INDEX) >= 1;
+        boolean cooling = QuestServiceAccessTracker.isCoolingDown(uuid, QuestServiceAccessTracker.Service.SALVAGE);
+
+        if (!introDone && progress != null) {
+            dialogManager.startDialog(player,
+                    quest.getDialogLines(),
+                    npc,
+                    () -> questManager.handleTalk(player, SalvagersLessonQuest.INTRO_TARGET));
+            return true;
+        }
+
+        if (completed || returned) {
+            if (cooling) {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                        "Give the salvager a moment before reopening the bench.");
+                return true;
+            }
+            SalvageGUI.openMerchantGUI(player);
+            return true;
+        }
+
+        if (!salvaged) {
+            if (!cooling) {
+                SalvageGUI.openMerchantGUI(player);
+            } else {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                        "Let the salvager finish up before trying again.");
+            }
+            return true;
+        }
+
+        dialogManager.startDialog(player,
+                SalvagersLessonQuest.getReturnDialog(),
+                npc,
+                () -> questManager.handleTalk(player, SalvagersLessonQuest.RETURN_TARGET));
+        return true;
+    }
+
+    private boolean handleMarketBeginnings(Player player, NPC npc, Quest quest) {
+        QuestState state = questManager.getQuestState(player, quest);
+        if (state == QuestState.AVAILABLE) {
+            dialogManager.startDialog(player, quest, npc);
+            return true;
+        }
+        if (state == QuestState.LOCKED) {
+            questManager.meetsRequirements(player, quest);
+            return true;
+        }
+
+        java.util.UUID uuid = player.getUniqueId();
+        boolean completed = questManager.hasCompleted(uuid, MarketBeginningsQuest.ID);
+        PlayerQuestProgress progress = questManager.getProgress(uuid, MarketBeginningsQuest.ID);
+        boolean introDone = progress != null && progress.getProgress(MarketBeginningsQuest.TALK_INTRO_INDEX) >= 1;
+        boolean listed = progress != null && progress.getProgress(MarketBeginningsQuest.LIST_INDEX) >= 1;
+        boolean bid = progress != null && progress.getProgress(MarketBeginningsQuest.BID_INDEX) >= 1;
+        boolean returned = progress != null && progress.getProgress(MarketBeginningsQuest.TALK_RETURN_INDEX) >= 1;
+        boolean cooling = QuestServiceAccessTracker.isCoolingDown(uuid, QuestServiceAccessTracker.Service.AUCTION);
+
+        if (!introDone && progress != null) {
+            dialogManager.startDialog(player,
+                    quest.getDialogLines(),
+                    npc,
+                    () -> questManager.handleTalk(player, MarketBeginningsQuest.INTRO_TARGET));
+            return true;
+        }
+
+        if (completed || returned) {
+            if (cooling) {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                        "Hold on, the auctioneer is sorting paperwork.");
+                return true;
+            }
+            if (auctionGUI != null) {
+                auctionGUI.open(player);
+            }
+            return true;
+        }
+
+        if (!listed || !bid) {
+            if (!cooling) {
+                if (auctionGUI != null) {
+                    auctionGUI.open(player);
+                }
+            } else {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                        "Give the auction house a moment before reopening.");
+            }
+            return true;
+        }
+
+        dialogManager.startDialog(player,
+                MarketBeginningsQuest.getReturnDialog(),
+                npc,
+                () -> questManager.handleTalk(player, MarketBeginningsQuest.RETURN_TARGET));
+        return true;
+    }
+
     private boolean isNpcName(NPC npc, String expectedName) {
         if (npc == null || expectedName == null) {
             return false;
@@ -480,7 +613,7 @@ public class NPCClickListener implements Listener {
         return NpcNameUtil.equalsNormalized(npc.getName(), expectedName);
     }
 
-    private String resolveTalkTarget(Quest quest, NPC npc) {
+    private String resolveTalkTarget(UUID playerId, Quest quest, NPC npc) {
         if (quest != null && SharpestSecretQuest.ID.equals(quest.getId())) {
             if (isNpcName(npc, SharpestSecretQuest.NPC_KAZAN_NAME)) {
                 return SharpestSecretQuest.NPC_INTRO_TARGET;
@@ -488,6 +621,24 @@ public class NPCClickListener implements Listener {
             if (isNpcName(npc, SharpestSecretQuest.NPC_OSIRIS_NAME)) {
                 return SharpestSecretQuest.NPC_OSIRIS_TARGET;
             }
+        }
+        if (quest != null && SalvagersLessonQuest.ID.equals(quest.getId())
+                && isNpcName(npc, SalvagersLessonQuest.NPC_NAME)) {
+            PlayerQuestProgress progress = questManager.getProgress(playerId, SalvagersLessonQuest.ID);
+            if (progress != null &&
+                    progress.getProgress(SalvagersLessonQuest.SALVAGE_INDEX) >= SalvagersLessonQuest.SALVAGE_AMOUNT) {
+                return SalvagersLessonQuest.RETURN_TARGET;
+            }
+            return SalvagersLessonQuest.INTRO_TARGET;
+        }
+        if (quest != null && MarketBeginningsQuest.ID.equals(quest.getId())
+                && isNpcName(npc, MarketBeginningsQuest.NPC_NAME)) {
+            PlayerQuestProgress progress = questManager.getProgress(playerId, MarketBeginningsQuest.ID);
+            if (progress != null && progress.getProgress(MarketBeginningsQuest.BID_INDEX) >= 1
+                    && progress.getProgress(MarketBeginningsQuest.LIST_INDEX) >= 1) {
+                return MarketBeginningsQuest.RETURN_TARGET;
+            }
+            return MarketBeginningsQuest.INTRO_TARGET;
         }
         return "npc" + npc.getId();
     }

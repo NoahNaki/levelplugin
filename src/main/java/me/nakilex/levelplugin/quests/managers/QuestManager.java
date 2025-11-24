@@ -13,6 +13,7 @@ import me.nakilex.levelplugin.quests.data.*;
 import me.nakilex.levelplugin.quests.gui.QuestState;
 import me.nakilex.levelplugin.quests.data.QuestResetScript;
 import me.nakilex.levelplugin.utils.NpcNameUtil;
+import me.nakilex.levelplugin.quests.util.QuestServiceAccessTracker;
 import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
@@ -96,10 +97,16 @@ public class QuestManager {
         registerQuest(wayfarersMark);
         registerQuest(marketBeginnings);
         me.nakilex.levelplugin.quests.def.SharpestSecretQuest.registerTalkTargets(this);
+        me.nakilex.levelplugin.quests.def.SalvagersLessonQuest.registerTalkTargets(this);
+        me.nakilex.levelplugin.quests.def.MarketBeginningsQuest.registerTalkTargets(this);
         registerNpcQuest(me.nakilex.levelplugin.quests.def.SharpestSecretQuest.NPC_KAZAN_NAME,
                 me.nakilex.levelplugin.quests.def.SharpestSecretQuest.ID);
         registerNpcQuest(me.nakilex.levelplugin.quests.def.SharpestSecretQuest.NPC_OSIRIS_NAME,
                 me.nakilex.levelplugin.quests.def.SharpestSecretQuest.ID);
+        registerNpcQuest(me.nakilex.levelplugin.quests.def.SalvagersLessonQuest.NPC_NAME,
+                me.nakilex.levelplugin.quests.def.SalvagersLessonQuest.ID);
+        registerNpcQuest(me.nakilex.levelplugin.quests.def.MarketBeginningsQuest.NPC_NAME,
+                me.nakilex.levelplugin.quests.def.MarketBeginningsQuest.ID);
         plugin.getLogger().info("Registered " + quests.size() + " quests.");
     }
 
@@ -280,6 +287,10 @@ public class QuestManager {
     }
 
     public void startQuest(Player player, String id) {
+        startQuest(player, id, true);
+    }
+
+    public void startQuest(Player player, String id, boolean track) {
         Quest quest = quests.get(id);
         if (quest == null) {
             player.sendMessage("§cQuest not found: " + id);
@@ -293,8 +304,10 @@ public class QuestManager {
             return; // already started
         }
         map.put(id, new PlayerQuestProgress(quest));
-        // always track the most recently accepted quest
-        trackedQuests.put(player.getUniqueId(), quest.getId());
+        if (track) {
+            // always track the most recently accepted quest when requested
+            trackedQuests.put(player.getUniqueId(), quest.getId());
+        }
         saveProgress();
         sendStartMessage(player, quest);
 
@@ -598,6 +611,8 @@ public class QuestManager {
             plugin.getLogger().info("[QuestDebug] " + player.getName() + " bought from auction " + itemId);
         }
         updateObjective(player, QuestObjectiveType.AUCTION_BUY, itemId, 1);
+        QuestServiceAccessTracker.markInteraction(player.getUniqueId(),
+                QuestServiceAccessTracker.Service.AUCTION);
     }
 
     public void handleAuctionList(Player player, String itemId) {
@@ -605,6 +620,8 @@ public class QuestManager {
             plugin.getLogger().info("[QuestDebug] " + player.getName() + " listed on auction " + itemId);
         }
         updateObjectiveWithAny(player, QuestObjectiveType.AUCTION_LIST, itemId);
+        QuestServiceAccessTracker.markInteraction(player.getUniqueId(),
+                QuestServiceAccessTracker.Service.AUCTION);
     }
 
     public void handleAuctionSell(Player player, String itemId) {
@@ -619,6 +636,10 @@ public class QuestManager {
             plugin.getLogger().info("[QuestDebug] " + player.getName() + " bid on auction " + itemId);
         }
         updateObjectiveWithAny(player, QuestObjectiveType.AUCTION_BID, itemId);
+        // Bidding should also satisfy quests that only require participating in the market.
+        updateObjectiveWithAny(player, QuestObjectiveType.AUCTION_BUY, itemId);
+        QuestServiceAccessTracker.markInteraction(player.getUniqueId(),
+                QuestServiceAccessTracker.Service.AUCTION);
     }
 
     public void handleTownUpgrade(Player player) {
@@ -654,6 +675,8 @@ public class QuestManager {
             plugin.getLogger().info("[QuestDebug] " + player.getName() + " salvaged " + itemId);
         }
         updateObjective(player, QuestObjectiveType.SALVAGE, itemId, 1);
+        QuestServiceAccessTracker.markInteraction(player.getUniqueId(),
+                QuestServiceAccessTracker.Service.SALVAGE);
     }
 
     public void handleWaystoneUnlock(Player player, String id) {

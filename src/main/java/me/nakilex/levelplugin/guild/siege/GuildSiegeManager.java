@@ -575,6 +575,35 @@ public class GuildSiegeManager {
         }
     }
 
+    /**
+     * Debug helper to assign the castle to a guild immediately.
+     * @return true if ownership was updated
+     */
+    public boolean debugAssignOwner(String guildName) {
+        if (guildName == null || guildName.isBlank()) {
+            return false;
+        }
+        GuildManager gm = GuildManager.getInstance();
+        Guild guild = gm.getGuild(guildName);
+        if (guild == null) {
+            return false;
+        }
+
+        if (ownerGuild != null && !ownerGuild.equalsIgnoreCase(guild.getName())) {
+            Guild prev = gm.getGuild(ownerGuild);
+            if (prev != null) {
+                Main.getInstance().getEnvironmentManager().neutralizeGuildTown(prev);
+            }
+        }
+
+        ownerGuild = guild.getName();
+        Main.getInstance().getEnvironmentManager().syncGuildTown(guild);
+        updateOwnerHologram();
+        save();
+        applyTownVisibility();
+        return true;
+    }
+
     private void updateBossBar() {
         if (bossBar == null) return;
         String guild = capturingGuild != null ? capturingGuild : "None";

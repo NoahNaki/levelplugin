@@ -365,3 +365,43 @@ merchants:
         tool_tier: TIER_VI
         amount: 1
         cost: 2000
+
+  essence_merchant:
+    title: "Essence Merchant"
+    size: 27
+    items:
+      - slot: 11
+        essence_class: WARRIOR
+        essence_rarity: COMMON
+        essence_stars: 0
+        amount: 1
+        cost: 500
+        account_limit: 1
+      - slot: 12
+        essence_class: ROGUE
+        essence_rarity: COMMON
+        essence_stars: 0
+        amount: 1
+        cost: 500
+        account_limit: 1
+      - slot: 13
+        essence_class: MAGE
+        essence_rarity: COMMON
+        essence_stars: 0
+        amount: 1
+        cost: 500
+        account_limit: 1
+      - slot: 14
+        essence_class: ARCHER
+        essence_rarity: COMMON
+        essence_stars: 0
+        amount: 1
+        cost: 500
+        account_limit: 1
+      - slot: 15
+        essence_class: CLERIC
+        essence_rarity: COMMON
+        essence_stars: 0
+        amount: 1
+        cost: 500
+        account_limit: 1

@@ -49,7 +49,7 @@ public class WayfarersMarkQuest extends Quest implements QuestScript {
                         "Wayfinder|Waystones remember you once you've touched them. Unlock one, then use it to blink back here.",
                         "Wayfinder|Do that and you'll never be lost in these hills again."
                 ),
-                false,
+                true,
                 false
         );
     }
