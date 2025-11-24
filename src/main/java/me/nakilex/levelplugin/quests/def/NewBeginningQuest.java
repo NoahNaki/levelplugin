@@ -400,5 +400,6 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
     @Override
     public void onComplete(Player player, Main plugin) {
         plugin.getQuestManager().startQuest(player, "serashelp");
+        plugin.getQuestManager().startQuest(player, me.nakilex.levelplugin.quests.def.WayfarersMarkQuest.ID, false);
     }
 }

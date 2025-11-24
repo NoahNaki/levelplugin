@@ -17,17 +17,21 @@ import java.util.List;
 public class SalvagersLessonQuest extends Quest implements QuestScript {
     public static final String ID = "salvagerslesson";
 
-    /** Placeholder NPC ID; replace with the actual salvager NPC when available. */
-    public static final int NPC_ID = 1106;
+    public static final String NPC_NAME = "Salvager";
 
-    private static final String INTRO_TARGET = "npc" + NPC_ID + "_intro";
-    private static final String RETURN_TARGET = "npc" + NPC_ID + "_return";
+    public static final int TALK_INTRO_INDEX = 0;
+    public static final int SALVAGE_INDEX = 1;
+    public static final int TALK_RETURN_INDEX = 2;
+    public static final int SALVAGE_AMOUNT = 3;
+
+    public static final String INTRO_TARGET = "npc_salvager_intro";
+    public static final String RETURN_TARGET = "npc_salvager_return";
 
     private static List<QuestObjective> createObjectives() {
         return List.of(
-                new QuestObjective(QuestObjectiveType.TALK, INTRO_TARGET, 1, BeaconTargets.npc(NPC_ID)),
-                new QuestObjective(QuestObjectiveType.SALVAGE, "ANY", 3),
-                new QuestObjective(QuestObjectiveType.TALK, RETURN_TARGET, 1, BeaconTargets.npc(NPC_ID))
+                new QuestObjective(QuestObjectiveType.TALK, INTRO_TARGET, 1, BeaconTargets.npc(NPC_NAME)),
+                new QuestObjective(QuestObjectiveType.SALVAGE, "ANY", SALVAGE_AMOUNT),
+                new QuestObjective(QuestObjectiveType.TALK, RETURN_TARGET, 1, BeaconTargets.npc(NPC_NAME))
         );
     }
 
@@ -41,7 +45,7 @@ public class SalvagersLessonQuest extends Quest implements QuestScript {
                 List.of(),
                 null,
                 QuestRewardCompat.create(120, 40, 0, List.of()),
-                NPC_ID,
+                null,
                 List.of(
                         "Salvager|Nothing is truly worthless. Even rusted blades still have a second life in them.",
                         "<player>|You make coin from junk?",
@@ -49,6 +53,22 @@ public class SalvagersLessonQuest extends Quest implements QuestScript {
                         "Salvager|Break them down at the salvager's bench, then come back and tell me what you found."
                 ),
                 false
+        );
+    }
+
+    public static void registerTalkTargets(me.nakilex.levelplugin.quests.managers.QuestManager questManager) {
+        if (questManager == null) {
+            return;
+        }
+        questManager.registerTalkTarget(INTRO_TARGET, NPC_NAME, NPC_NAME);
+        questManager.registerTalkTarget(RETURN_TARGET, NPC_NAME, NPC_NAME);
+    }
+
+    public static List<String> getReturnDialog() {
+        return List.of(
+                "Salvager|See? Even scraps sparkle once you melt them down.",
+                "<player>|The coins weren't bad either.",
+                "Salvager|Keep bringing me your leftovers. There's profit in every shard."
         );
     }
 
