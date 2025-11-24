@@ -145,15 +145,20 @@ public class QuestGUI {
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
             List<String> lore = new ArrayList<>();
-            String locationLine = formatLocationLine(quest);
+            String levelLine = formatLevelRequirement(quest);
+            String locationLine = quest.isLocationVisible() ? formatLocationLine(quest) : null;
 
             if (state != QuestState.LOCKED) {
+                lore.add(levelLine);
+                lore.add(" ");
                 lore.add(ChatColor.GRAY + quest.getDescription());
                 lore.add(" ");
-                lore.add(locationLine);
+                if (locationLine != null) {
+                    lore.add(locationLine);
+                    lore.add(" ");
+                }
 
                 if (state == QuestState.ACCEPTED || state == QuestState.IN_PROGRESS || state == QuestState.TURN_IN_READY) {
-                    lore.add(" ");
                     int objIndex = 0;
                     int objProgress = 0;
                     if (progress != null && progress.getQuest().getId().equals(quest.getId())) {
@@ -190,6 +195,9 @@ public class QuestGUI {
                         String pretty = cls.name().substring(0,1) + cls.name().substring(1).toLowerCase();
                         lore.add(ChatColor.GREEN + "- " + ChatColor.GRAY + pretty + " Class");
                     }
+                    for (String text : r.getCustomLines()) {
+                        lore.add(ChatColor.GREEN + "- " + ChatColor.GRAY + text);
+                    }
                 } else {
                     lore.add(ChatColor.GREEN + "- " + ChatColor.GRAY + "None");
                 }
@@ -199,9 +207,11 @@ public class QuestGUI {
                     lore.addAll(TooltipUtil.clickInstructions("to track", quest.isMainQuest() ? null : "to abandon"));
                 }
             } else {
-                lore.add(ChatColor.DARK_GRAY + "???");
-                lore.add(" ");
-                lore.add(locationLine);
+                lore.add(levelLine);
+                if (locationLine != null) {
+                    lore.add(" ");
+                    lore.add(locationLine);
+                }
             }
 
             meta.setLore(lore);
@@ -210,6 +220,10 @@ public class QuestGUI {
             item.setItemMeta(meta);
         }
         return item;
+    }
+
+    private static String formatLevelRequirement(Quest quest) {
+        return ChatColor.GRAY + "Requires Level: " + ChatColor.WHITE + quest.getLevelRequirement();
     }
 
     private static String formatLocationLine(Quest quest) {
@@ -236,9 +250,6 @@ public class QuestGUI {
         }
 
         String coords = loc.getBlockX() + ", " + loc.getBlockY() + ", " + loc.getBlockZ();
-        if (loc.getWorld() != null) {
-            coords += " (" + loc.getWorld().getName() + ")";
-        }
         return coords;
     }
 

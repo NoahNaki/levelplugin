@@ -38,7 +38,7 @@ public class MarketBeginningsQuest extends Quest implements QuestScript {
                 "Market Beginnings",
                 "Learn how to list items and bid for deals at the auction house.",
                 createObjectives(),
-                1,
+                6,
                 List.of(),
                 null,
                 QuestRewardCompat.create(210, 110, 0, List.of()),

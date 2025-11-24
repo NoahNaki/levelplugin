@@ -62,7 +62,7 @@ public class StableKeeperQuest extends Quest implements QuestScript {
                 "Feathered Famine",
                 "Help the Stable Keeper reclaim his wheat and earn your first horse.",
                 createObjectives(),
-                1,
+                2,
                 List.of(),
                 null,
                 QuestRewardCompat.create(50, 25, 0, List.of()),

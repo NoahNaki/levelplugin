@@ -37,7 +37,7 @@ public class SalvagersLessonQuest extends Quest implements QuestScript {
                 "Scrap Lessons",
                 "Learn how to break down extra gear and turn it into profit.",
                 createObjectives(),
-                1,
+                3,
                 List.of(),
                 null,
                 QuestRewardCompat.create(120, 40, 0, List.of()),

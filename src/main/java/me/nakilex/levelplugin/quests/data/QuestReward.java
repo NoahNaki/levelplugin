@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.quests.data;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 
@@ -11,20 +12,29 @@ public class QuestReward {
     private final int gems;
     private final List<Integer> itemIds;
     private final List<PlayerClass> unlockClasses;
+    private final List<String> customLines;
 
     public QuestReward(int xp, int coins, int gems,
                        List<Integer> itemIds) {
-        this(xp, coins, gems, itemIds, java.util.Collections.emptyList());
+        this(xp, coins, gems, itemIds, Collections.emptyList(), Collections.emptyList());
     }
 
     public QuestReward(int xp, int coins, int gems,
                        List<Integer> itemIds,
                        List<PlayerClass> unlockClasses) {
+        this(xp, coins, gems, itemIds, unlockClasses, Collections.emptyList());
+    }
+
+    public QuestReward(int xp, int coins, int gems,
+                       List<Integer> itemIds,
+                       List<PlayerClass> unlockClasses,
+                       List<String> customLines) {
         this.xp = xp;
         this.coins = coins;
         this.gems = gems;
         this.itemIds = itemIds != null ? new ArrayList<>(itemIds) : new ArrayList<>();
         this.unlockClasses = unlockClasses != null ? new ArrayList<>(unlockClasses) : new ArrayList<>();
+        this.customLines = customLines != null ? new ArrayList<>(customLines) : new ArrayList<>();
     }
 
     /**
@@ -46,4 +56,5 @@ public class QuestReward {
     public int getGems() { return gems; }
     public List<Integer> getItemIds() { return itemIds; }
     public List<PlayerClass> getUnlockClasses() { return unlockClasses; }
+    public List<String> getCustomLines() { return customLines; }
 }

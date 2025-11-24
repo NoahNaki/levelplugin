@@ -28,7 +28,7 @@ public class SkeggSpiderQuest extends Quest implements QuestScript {
                 "Frozen Threadwork",
                 "Clear the ice spider den for Skegg.",
                 createObjectives(),
-                1,
+                30,
                 List.of("serashelp"),
                 null,
                 QuestRewardCompat.create(10000, 6000, 0, List.of()),

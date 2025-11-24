@@ -28,7 +28,7 @@ public class RahirScorpidQuest extends Quest implements QuestScript {
                 "Scorpid Sweep",
                 "Cull the scorpid packs that stalk Rahir's trade route.",
                 createObjectives(),
-                1,
+                18,
                 List.of("serashelp"),
                 null,
                 QuestRewardCompat.create(3000, 2500, 0, List.of()),

@@ -56,7 +56,7 @@ public class DungeonGuardQuest extends Quest implements QuestScript {
                 REQUIRED_LEVEL,
                 List.of(),
                 null,
-                QuestRewardCompat.create(0, 0, 0, List.of()),
+                QuestRewardCompat.create(0, 0, 0, List.of(), List.of(), List.of("Entry to the Dungeon")),
                 NPC_ID,
                 INTRO_DIALOG,
                 false
