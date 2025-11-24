@@ -18,6 +18,7 @@ import me.nakilex.levelplugin.player.classes.essence.ClassEssence;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.items.data.ItemRarity;
 import me.nakilex.levelplugin.utils.GuiUtil;
+import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -208,8 +209,7 @@ public class MerchantGUI implements Listener {
         }
 
         if (mItem.getAccountLimit() > 0) {
-            lore.add(ChatColor.DARK_GRAY + "Limit: "
-                    + ChatColor.WHITE + mItem.getAccountLimit() + ChatColor.GRAY + " per account");
+            lore.add(TooltipUtil.accountLimitLine(mItem.getAccountLimit()));
         }
     }
 

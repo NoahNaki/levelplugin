@@ -370,21 +370,21 @@ merchants:
     title: "Essence Merchant"
     size: 27
     items:
-      - slot: 10
+      - slot: 11
         essence_class: WARRIOR
         essence_rarity: COMMON
         essence_stars: 0
         amount: 1
         cost: 500
         account_limit: 1
-      - slot: 11
+      - slot: 12
         essence_class: ROGUE
         essence_rarity: COMMON
         essence_stars: 0
         amount: 1
         cost: 500
         account_limit: 1
-      - slot: 12
+      - slot: 13
         essence_class: MAGE
         essence_rarity: COMMON
         essence_stars: 0
