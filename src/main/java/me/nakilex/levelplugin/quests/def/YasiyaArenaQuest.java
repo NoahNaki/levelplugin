@@ -29,7 +29,7 @@ public class YasiyaArenaQuest extends Quest implements QuestScript {
                 "Gladiator's Greeting",
                 "Complete a full arena match for Yasiya.",
                 createObjectives(),
-                1,
+                22,
                 List.of("serashelp"),
                 null,
                 QuestRewardCompat.create(1500, 1000, 0, List.of()),

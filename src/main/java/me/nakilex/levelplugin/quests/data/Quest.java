@@ -24,11 +24,23 @@ public class Quest {
     /** Whether this is considered a main quest. */
     private final boolean mainQuest;
 
+    /** Whether to surface the quest-giver's location in UI. */
+    private final boolean showLocation;
+
     public Quest(String id, String name, String description, List<QuestObjective> objectives,
                  int levelRequirement, List<String> questRequirements,
                  PlayerClass classRequirement, QuestReward reward,
                  Integer npcGiverId, List<String> dialogLines,
                  boolean mainQuest) {
+        this(id, name, description, objectives, levelRequirement, questRequirements, classRequirement,
+                reward, npcGiverId, dialogLines, mainQuest, true);
+    }
+
+    public Quest(String id, String name, String description, List<QuestObjective> objectives,
+                 int levelRequirement, List<String> questRequirements,
+                 PlayerClass classRequirement, QuestReward reward,
+                 Integer npcGiverId, List<String> dialogLines,
+                 boolean mainQuest, boolean showLocation) {
         this.id = id;
         this.name = name;
         this.description = description;
@@ -40,6 +52,7 @@ public class Quest {
         this.npcGiverId = npcGiverId;
         this.dialogLines = dialogLines;
         this.mainQuest = mainQuest;
+        this.showLocation = showLocation;
     }
 
     public String getId() {
@@ -84,5 +97,9 @@ public class Quest {
 
     public boolean isMainQuest() {
         return mainQuest;
+    }
+
+    public boolean isLocationVisible() {
+        return showLocation;
     }
 }

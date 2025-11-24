@@ -13,11 +13,16 @@ public final class QuestRewardCompat {
     private QuestRewardCompat() {}
 
     public static QuestReward create(int xp, int coins, int gems, List<Integer> itemIds) {
-        return new QuestReward(xp, coins, gems, itemIds, Collections.emptyList());
+        return new QuestReward(xp, coins, gems, itemIds, Collections.emptyList(), Collections.emptyList());
     }
 
     public static QuestReward create(int xp, int coins, int gems, List<Integer> itemIds,
                                      List<PlayerClass> classes) {
-        return new QuestReward(xp, coins, gems, itemIds, classes);
+        return new QuestReward(xp, coins, gems, itemIds, classes, Collections.emptyList());
+    }
+
+    public static QuestReward create(int xp, int coins, int gems, List<Integer> itemIds,
+                                     List<PlayerClass> classes, List<String> customLines) {
+        return new QuestReward(xp, coins, gems, itemIds, classes, customLines);
     }
 }

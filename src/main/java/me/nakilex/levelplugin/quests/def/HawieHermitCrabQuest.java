@@ -29,7 +29,7 @@ public class HawieHermitCrabQuest extends Quest implements QuestScript {
                 "Clattering Cleanup",
                 "Help Hawie stop the hermit crabs from tearing up his docks.",
                 createObjectives(),
-                1,
+                10,
                 List.of("serashelp"),
                 null,
                 QuestRewardCompat.create(300, 250, 0, List.of()),

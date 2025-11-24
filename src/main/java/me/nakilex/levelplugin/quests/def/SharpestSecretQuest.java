@@ -122,7 +122,7 @@ public class SharpestSecretQuest extends Quest implements QuestScript, QuestComp
                 "The Sharpest Secret",
                 "Recover the Midnight Orchid for Kazan and earn access to Osiris' enchanting atelier.",
                 createObjectives(loadOrchidLocation()),
-                5,
+                20,
                 List.of("serashelp"),
                 null,
                 QuestRewardCompat.create(1200, 0, 0, List.of()),

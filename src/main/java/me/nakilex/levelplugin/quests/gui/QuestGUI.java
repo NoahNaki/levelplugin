@@ -11,15 +11,19 @@ import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import com.nexomc.nexo.api.NexoItems;
 import com.nexomc.nexo.items.ItemBuilder;
+import net.citizensnpcs.api.CitizensAPI;
+import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
+import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.NamespacedKey;
 import org.bukkit.persistence.PersistentDataType;
+import me.nakilex.levelplugin.player.levels.managers.LevelManager;
 
 import java.util.*;
 
@@ -102,9 +106,12 @@ public class QuestGUI {
             };
         });
 
-        Comparator<Quest> comp = sort == 0
-                ? Comparator.comparing(Quest::getName, String.CASE_INSENSITIVE_ORDER)
-                : Comparator.comparing(q -> questManager.getQuestState(player, q).ordinal());
+        Comparator<Quest> comp = switch (sort) {
+            case 1 -> Comparator.comparing(q -> questManager.getQuestState(player, q).ordinal());
+            case 2 -> Comparator.comparing(Quest::getLevelRequirement)
+                    .thenComparing(Quest::getName, String.CASE_INSENSITIVE_ORDER);
+            default -> Comparator.comparing(Quest::getName, String.CASE_INSENSITIVE_ORDER);
+        };
         list.sort(comp);
 
         int start = page * ITEMS_PER_PAGE;
@@ -142,12 +149,20 @@ public class QuestGUI {
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
             List<String> lore = new ArrayList<>();
+            String levelLine = formatLevelRequirement(player, quest);
+            String locationLine = quest.isLocationVisible() ? formatLocationLine(quest) : null;
 
             if (state != QuestState.LOCKED) {
+                lore.add(levelLine);
+                lore.add(" ");
                 lore.add(ChatColor.GRAY + quest.getDescription());
+                lore.add(" ");
+                if (locationLine != null) {
+                    lore.add(locationLine);
+                    lore.add(" ");
+                }
 
                 if (state == QuestState.ACCEPTED || state == QuestState.IN_PROGRESS || state == QuestState.TURN_IN_READY) {
-                    lore.add(" ");
                     int objIndex = 0;
                     int objProgress = 0;
                     if (progress != null && progress.getQuest().getId().equals(quest.getId())) {
@@ -184,6 +199,9 @@ public class QuestGUI {
                         String pretty = cls.name().substring(0,1) + cls.name().substring(1).toLowerCase();
                         lore.add(ChatColor.GREEN + "- " + ChatColor.GRAY + pretty + " Class");
                     }
+                    for (String text : r.getCustomLines()) {
+                        lore.add(ChatColor.GREEN + "- " + ChatColor.GRAY + text);
+                    }
                 } else {
                     lore.add(ChatColor.GREEN + "- " + ChatColor.GRAY + "None");
                 }
@@ -191,6 +209,12 @@ public class QuestGUI {
                 if (state == QuestState.ACCEPTED || state == QuestState.IN_PROGRESS || state == QuestState.TURN_IN_READY) {
                     lore.add(" ");
                     lore.addAll(TooltipUtil.clickInstructions("to track", quest.isMainQuest() ? null : "to abandon"));
+                }
+            } else {
+                lore.add(levelLine);
+                if (locationLine != null) {
+                    lore.add(" ");
+                    lore.add(locationLine);
                 }
             }
 
@@ -200,6 +224,42 @@ public class QuestGUI {
             item.setItemMeta(meta);
         }
         return item;
+    }
+
+    private static String formatLevelRequirement(Player player, Quest quest) {
+        LevelManager levelManager = Main.getInstance().getLevelManager();
+        int playerLevel = levelManager != null ? levelManager.getLevel(player) : 0;
+        boolean meets = playerLevel >= quest.getLevelRequirement();
+        ChatColor color = meets ? ChatColor.GREEN : ChatColor.RED;
+        String symbol = meets ? "✔ " : "✘ ";
+        return color + symbol + ChatColor.GRAY + "Requires Level: " + ChatColor.WHITE + quest.getLevelRequirement();
+    }
+
+    private static String formatLocationLine(Quest quest) {
+        return ChatColor.GRAY + "Quest Location: " + ChatColor.WHITE + resolveNpcLocation(quest);
+    }
+
+    private static String resolveNpcLocation(Quest quest) {
+        if (quest == null || quest.getNpcGiverId() == null) {
+            return "Unknown";
+        }
+
+        NPC npc = CitizensAPI.getNPCRegistry().getById(quest.getNpcGiverId());
+        if (npc == null) {
+            return "Unknown";
+        }
+
+        Location loc = npc.getStoredLocation();
+        if (loc == null && npc.isSpawned()) {
+            loc = npc.getEntity().getLocation();
+        }
+
+        if (loc == null) {
+            return "Unknown";
+        }
+
+        String coords = loc.getBlockX() + ", " + loc.getBlockY() + ", " + loc.getBlockZ();
+        return coords;
     }
 
     private static ItemStack getNexoItem(String id, String name) {
@@ -241,7 +301,7 @@ public class QuestGUI {
             lore.add(ChatColor.GRAY + "");
             lore.add(ChatColor.DARK_GRAY + "Sort the quests");
             lore.add(" ");
-            String[] opts = {"A-Z", "By State"};
+            String[] opts = {"A-Z", "By State", "By Level"};
             for (int i = 0; i < opts.length; i++) {
                 lore.add(rangeLine(i, mode, opts[i]));
             }

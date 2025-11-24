@@ -28,8 +28,6 @@ public enum QuestObjectiveType {
     WAYSTONE_UNLOCK,
     WAYSTONE_USE,
     CAST_COMBO,
-    RUNE_EQUIP,
-    RUNE_UNEQUIP,
     DUEL_PARTICIPATE,
     DUEL_LOSE,
     LOOTCHEST_OPEN,

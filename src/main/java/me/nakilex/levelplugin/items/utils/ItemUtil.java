@@ -131,6 +131,10 @@ public class ItemUtil {
         }
     }
 
+    private static void addEnchantedLine(List<String> lore, CustomItem cItem) {
+        lore.add(ChatColor.translateAlternateColorCodes('&', "&7Enchanted: &f" + cItem.getEnchantCount()));
+    }
+
     // ─── Default Models ─────────────────────────────────────────────────────
 
     /** Maximum level that uses the early-game model set. */
@@ -358,7 +362,7 @@ public class ItemUtil {
         addStatLines(lore, cItem, prefixStat);
 
         lore.add("");
-        lore.add(ChatColor.GRAY + "Enchanted: " + ChatColor.WHITE + cItem.getEnchantCount());
+        addEnchantedLine(lore, cItem);
         if (cItem.isBroken()) {
             lore.add(ChatColor.GRAY + "Durability: " + ChatColor.RED + ChatColor.BOLD + "BROKEN");
         } else {
@@ -665,7 +669,7 @@ public class ItemUtil {
 
         lore.add(""); // Blank line before rarity
 
-        lore.add(ChatColor.GRAY + "[" + ChatColor.GREEN + cItem.getEnchantCount() + ChatColor.GRAY + "]");
+        addEnchantedLine(lore, cItem);
 
         if (cItem.isBroken()) {
             lore.add(ChatColor.GRAY + "Durability: " + ChatColor.RED + ChatColor.BOLD + "BROKEN");
