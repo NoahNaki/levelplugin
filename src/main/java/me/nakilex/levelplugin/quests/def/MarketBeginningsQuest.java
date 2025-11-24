@@ -30,7 +30,7 @@ public class MarketBeginningsQuest extends Quest implements QuestScript {
         return List.of(
                 new QuestObjective(QuestObjectiveType.TALK, INTRO_TARGET, 1, BeaconTargets.npc(NPC_NAME)),
                 new QuestObjective(QuestObjectiveType.AUCTION_LIST, "ANY", 1),
-                new QuestObjective(QuestObjectiveType.AUCTION_BID, "ANY", 1),
+                new QuestObjective(QuestObjectiveType.AUCTION_BUY, "ANY", 1),
                 new QuestObjective(QuestObjectiveType.TALK, RETURN_TARGET, 1, BeaconTargets.npc(NPC_NAME))
         );
     }

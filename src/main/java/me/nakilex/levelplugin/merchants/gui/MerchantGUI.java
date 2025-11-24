@@ -47,6 +47,8 @@ public class MerchantGUI implements Listener {
     private final Map<Integer, MerchantItem> merchantItems = new HashMap<>();
     private final EconomyManager economyManager;
     private final Plugin plugin;
+    private final me.nakilex.levelplugin.player.config.PlayerConfig playerConfig;
+    private final String merchantName;
     private int updateTaskId = -1;
 
     /**
@@ -57,6 +59,8 @@ public class MerchantGUI implements Listener {
     public MerchantGUI(Plugin plugin, FileConfiguration merchantConfig, String merchantName) {
         this.plugin = plugin;
         this.economyManager = Main.getInstance().getEconomyManager();
+        this.playerConfig = Main.getInstance().getPlayerConfig();
+        this.merchantName = merchantName;
 
         String basePath = "merchants." + merchantName;
         String title = merchantConfig.getString(basePath + ".title", "Merchant");
@@ -183,6 +187,11 @@ public class MerchantGUI implements Listener {
                 + " "
                 + ChatColor.LIGHT_PURPLE + "<glyph:purple_orb_icon>");
         }
+
+        if (mItem.getAccountLimit() > 0) {
+            lore.add(ChatColor.DARK_GRAY + "Limit: "
+                    + ChatColor.WHITE + mItem.getAccountLimit() + ChatColor.GRAY + " per account");
+        }
     }
 
 
@@ -198,16 +207,19 @@ public class MerchantGUI implements Listener {
             int gems   = map.containsKey("gems")
                 ? Integer.parseInt(map.get("gems").toString())
                 : 0;
+            int accountLimit = map.containsKey("account_limit")
+                ? Integer.parseInt(map.get("account_limit").toString())
+                : 0;
             String tierName = map.containsKey("tool_tier") ? map.get("tool_tier").toString() : null;
             if (tierName != null) {
                 ToolTier tier = ToolTier.valueOf(tierName.toUpperCase());
                 CustomTool tool = ToolManager.getInstance().getTool(tier);
                 if (tool != null) {
-                    merchantItems.put(slot, new MerchantItem(slot, tool, amount, cost, gems));
+                    merchantItems.put(slot, new MerchantItem(slot, tool, amount, cost, gems, accountLimit));
                 }
             } else {
                 int itemId = Integer.parseInt(map.get("item_id").toString());
-                merchantItems.put(slot, new MerchantItem(slot, itemId, amount, cost, gems));
+                merchantItems.put(slot, new MerchantItem(slot, itemId, amount, cost, gems, accountLimit));
             }
         } catch (Exception e) {
             plugin.getLogger().warning("Failed to load a merchant item from Map: "
@@ -224,16 +236,17 @@ public class MerchantGUI implements Listener {
             int gems   = cs.contains("gems")
                 ? cs.getInt("gems")
                 : 0;
+            int accountLimit = cs.getInt("account_limit", 0);
             String tierName = cs.getString("tool_tier");
             if (tierName != null && !tierName.isBlank()) {
                 ToolTier tier = ToolTier.valueOf(tierName.toUpperCase());
                 CustomTool tool = ToolManager.getInstance().getTool(tier);
                 if (tool != null) {
-                    merchantItems.put(slot, new MerchantItem(slot, tool, amount, cost, gems));
+                    merchantItems.put(slot, new MerchantItem(slot, tool, amount, cost, gems, accountLimit));
                 }
             } else {
                 int itemId = cs.getInt("item_id");
-                merchantItems.put(slot, new MerchantItem(slot, itemId, amount, cost, gems));
+                merchantItems.put(slot, new MerchantItem(slot, itemId, amount, cost, gems, accountLimit));
             }
         } catch (Exception e) {
             plugin.getLogger().warning("Failed to load a merchant item from Section: "
@@ -263,15 +276,17 @@ public class MerchantGUI implements Listener {
             int headerIdx = ensurePriceHeader(lore, mItem);
             if (headerIdx == -1) continue;  // shouldn’t happen
 
+            boolean limitReached = hasReachedLimit(player, mItem);
+
             // Build the new price line
-            boolean afford = coins >= mItem.getCost();
+            boolean afford = !limitReached && coins >= mItem.getCost();
             String priceLine = ChatColor.GOLD + "- "
-                + (afford
+                + (limitReached
+                ? ChatColor.RED + "✘ Limit reached"
+                : (afford
                 ? ChatColor.GREEN + "✔ "
                 : ChatColor.RED   + "✘ ")
-                + mItem.getCost()
-                + " "
-                + ChatColor.GOLD + "<glyph:coins_icon>";
+                + mItem.getCost() + " " + ChatColor.GOLD + "<glyph:coins_icon>");
 
             // Replace the line immediately after the header
             int lineIdx = headerIdx + 1;
@@ -279,6 +294,10 @@ public class MerchantGUI implements Listener {
                 lore.set(lineIdx, priceLine);
             } else {
                 lore.add(priceLine);
+            }
+
+            if (limitReached && mItem.getGems() > 0 && headerIdx + 2 < lore.size()) {
+                lore.set(headerIdx + 2, ChatColor.GRAY + "- " + ChatColor.RED + "✘ Limit reached");
             }
 
             meta.setLore(lore);
@@ -297,6 +316,11 @@ public class MerchantGUI implements Listener {
             if (mItem == null) return;
 
             Player player = (Player) event.getWhoClicked();
+
+            if (hasReachedLimit(player, mItem)) {
+                send(player, MessageType.ERROR, "You have already bought the maximum allowed for this offer.");
+                return;
+            }
 
             int coinCost = TownPerkManager.getInstance().applyDiscount(
                     GuildManager.getInstance().getGuild(player.getUniqueId()),
@@ -356,6 +380,7 @@ public class MerchantGUI implements Listener {
                                     ChatColor.YELLOW + coinCost + " <glyph:coins_icon> coins" +
                                     (gemCost > 0 ? ChatColor.GRAY + " and " + ChatColor.LIGHT_PURPLE + gemCost + "<glyph:purple_orb_icon>" : "") +
                                     ChatColor.GREEN + ".");
+                    recordPurchase(player, mItem);
                 }
             } else {
                 CustomItem template = ItemManager.getInstance().getTemplateById(mItem.getItemId());
@@ -372,6 +397,7 @@ public class MerchantGUI implements Listener {
                                     ChatColor.YELLOW + coinCost + " <glyph:coins_icon> coins" +
                                     (gemCost > 0 ? ChatColor.GRAY + " and " + ChatColor.LIGHT_PURPLE + gemCost + "<glyph:purple_orb_icon>" : "") +
                                     ChatColor.GREEN + ".");
+                    recordPurchase(player, mItem);
                 }
             }
         }
@@ -389,6 +415,7 @@ public class MerchantGUI implements Listener {
 
             ItemMeta meta = stack.getItemMeta();
             List<String> lore = (meta != null && meta.hasLore()) ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
+            boolean limitReached = hasReachedLimit(player, mItem);
             if (mItem.isTool()) {
                 ItemUtil.updateCustomToolTooltip(stack, player);
                 meta = stack.getItemMeta();
@@ -396,9 +423,11 @@ public class MerchantGUI implements Listener {
                 int priceHdr = ensurePriceHeader(lore, mItem);
                 if (priceHdr != -1 && priceHdr + 1 < lore.size()) {
                     int discounted = TownPerkManager.getInstance().applyDiscount(g, TownPerk.MERCHANT_DISCOUNT, mItem.getCost());
-                    boolean afford = coins >= discounted;
+                    boolean afford = !limitReached && coins >= discounted;
                     lore.set(priceHdr + 1,
-                            ChatColor.GRAY + ""
+                            limitReached
+                                    ? ChatColor.GRAY + "- " + ChatColor.RED + "✘ Limit reached"
+                                    : ChatColor.GRAY + ""
                                     + (afford ? ChatColor.GREEN + "✔ " : ChatColor.RED + "✘ ")
                                     + discounted + " "
                                     + ChatColor.GOLD + "<glyph:coins_icon>");
@@ -406,9 +435,11 @@ public class MerchantGUI implements Listener {
                 if (mItem.getGems() > 0 && priceHdr != -1) {
                     int gemLineIdx = priceHdr + 2;
                     if (gemLineIdx < lore.size()) {
-                        boolean afford = totalGems >= mItem.getGems();
+                        boolean afford = !limitReached && totalGems >= mItem.getGems();
                         lore.set(gemLineIdx,
-                                ChatColor.GRAY + ""
+                                limitReached
+                                        ? ChatColor.GRAY + "- " + ChatColor.RED + "✘ Limit reached"
+                                        : ChatColor.GRAY + ""
                                         + (afford ? ChatColor.GREEN + "✔ " : ChatColor.RED + "✘ ")
                                         + mItem.getGems()
                                         + " "
@@ -444,9 +475,11 @@ public class MerchantGUI implements Listener {
                 int priceHdr = ensurePriceHeader(lore, mItem);
                 if (priceHdr != -1 && priceHdr + 1 < lore.size()) {
                     int discounted = TownPerkManager.getInstance().applyDiscount(g, TownPerk.MERCHANT_DISCOUNT, mItem.getCost());
-                    boolean afford = coins >= discounted;
+                    boolean afford = !limitReached && coins >= discounted;
                     lore.set(priceHdr + 1,
-                        ChatColor.GRAY + ""
+                        limitReached
+                                ? ChatColor.GRAY + "- " + ChatColor.RED + "✘ Limit reached"
+                                : ChatColor.GRAY + ""
                             + (afford ? ChatColor.GREEN + "✔ " : ChatColor.RED + "✘ ")
                             + discounted + " "
                             + ChatColor.GOLD + "<glyph:coins_icon>"
@@ -457,9 +490,11 @@ public class MerchantGUI implements Listener {
                 if (mItem.getGems() > 0 && priceHdr != -1) {
                     int gemLineIdx = priceHdr + 2;
                     if (gemLineIdx < lore.size()) {
-                        boolean afford = totalGems >= mItem.getGems();
+                        boolean afford = !limitReached && totalGems >= mItem.getGems();
                         lore.set(gemLineIdx,
-                            ChatColor.GRAY + ""
+                            limitReached
+                                    ? ChatColor.GRAY + "- " + ChatColor.RED + "✘ Limit reached"
+                                    : ChatColor.GRAY + ""
                                 + (afford ? ChatColor.GREEN + "✔ " : ChatColor.RED + "✘ ")
                                 + mItem.getGems()
                                 + " "
@@ -482,6 +517,32 @@ public class MerchantGUI implements Listener {
             headerIdx = lore.indexOf(ChatColor.GOLD + "Price:");
         }
         return headerIdx;
+    }
+
+    private int getPurchaseCount(Player player, MerchantItem item) {
+        if (playerConfig == null || item.getAccountLimit() <= 0) {
+            return 0;
+        }
+        String path = "players." + player.getUniqueId() + ".merchant_limits." + merchantName + "." + item.getSlot();
+        return playerConfig.getConfig().getInt(path, 0);
+    }
+
+    private boolean hasReachedLimit(Player player, MerchantItem item) {
+        int limit = item.getAccountLimit();
+        if (limit <= 0) {
+            return false;
+        }
+        return getPurchaseCount(player, item) >= limit;
+    }
+
+    private void recordPurchase(Player player, MerchantItem item) {
+        if (playerConfig == null || item.getAccountLimit() <= 0) {
+            return;
+        }
+        String path = "players." + player.getUniqueId() + ".merchant_limits." + merchantName + "." + item.getSlot();
+        int current = playerConfig.getConfig().getInt(path, 0);
+        playerConfig.getConfig().set(path, current + 1);
+        playerConfig.saveConfigFile();
     }
 
     // ─── Replace your onInventoryOpen with this ──────────────────────────────

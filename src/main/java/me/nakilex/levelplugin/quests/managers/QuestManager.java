@@ -611,6 +611,8 @@ public class QuestManager {
             plugin.getLogger().info("[QuestDebug] " + player.getName() + " bought from auction " + itemId);
         }
         updateObjective(player, QuestObjectiveType.AUCTION_BUY, itemId, 1);
+        QuestServiceAccessTracker.markInteraction(player.getUniqueId(),
+                QuestServiceAccessTracker.Service.AUCTION);
     }
 
     public void handleAuctionList(Player player, String itemId) {
@@ -634,6 +636,8 @@ public class QuestManager {
             plugin.getLogger().info("[QuestDebug] " + player.getName() + " bid on auction " + itemId);
         }
         updateObjectiveWithAny(player, QuestObjectiveType.AUCTION_BID, itemId);
+        // Bidding should also satisfy quests that only require participating in the market.
+        updateObjectiveWithAny(player, QuestObjectiveType.AUCTION_BUY, itemId);
         QuestServiceAccessTracker.markInteraction(player.getUniqueId(),
                 QuestServiceAccessTracker.Service.AUCTION);
     }
