@@ -201,7 +201,7 @@ public class NPCClickListener implements Listener {
                     }
                 }
 
-                questManager.handleTalk(player, resolveTalkTarget(quest, npc));
+                questManager.handleTalk(player, resolveTalkTarget(player, quest, npc));
                 QuestState state = questManager.getQuestState(player, quest);
                 switch (state) {
                     case AVAILABLE -> dialogManager.startDialog(player, quest, npc);
@@ -613,7 +613,7 @@ public class NPCClickListener implements Listener {
         return NpcNameUtil.equalsNormalized(npc.getName(), expectedName);
     }
 
-    private String resolveTalkTarget(Quest quest, NPC npc) {
+    private String resolveTalkTarget(Player player, Quest quest, NPC npc) {
         if (quest != null && SharpestSecretQuest.ID.equals(quest.getId())) {
             if (isNpcName(npc, SharpestSecretQuest.NPC_KAZAN_NAME)) {
                 return SharpestSecretQuest.NPC_INTRO_TARGET;
