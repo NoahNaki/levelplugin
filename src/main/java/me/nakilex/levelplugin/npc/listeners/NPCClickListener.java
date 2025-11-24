@@ -201,7 +201,7 @@ public class NPCClickListener implements Listener {
                     }
                 }
 
-                questManager.handleTalk(player, resolveTalkTarget(player, quest, npc));
+                questManager.handleTalk(player, resolveTalkTarget(player.getUniqueId(), quest, npc));
                 QuestState state = questManager.getQuestState(player, quest);
                 switch (state) {
                     case AVAILABLE -> dialogManager.startDialog(player, quest, npc);
@@ -613,7 +613,7 @@ public class NPCClickListener implements Listener {
         return NpcNameUtil.equalsNormalized(npc.getName(), expectedName);
     }
 
-    private String resolveTalkTarget(Player player, Quest quest, NPC npc) {
+    private String resolveTalkTarget(UUID playerId, Quest quest, NPC npc) {
         if (quest != null && SharpestSecretQuest.ID.equals(quest.getId())) {
             if (isNpcName(npc, SharpestSecretQuest.NPC_KAZAN_NAME)) {
                 return SharpestSecretQuest.NPC_INTRO_TARGET;
@@ -624,7 +624,7 @@ public class NPCClickListener implements Listener {
         }
         if (quest != null && SalvagersLessonQuest.ID.equals(quest.getId())
                 && isNpcName(npc, SalvagersLessonQuest.NPC_NAME)) {
-            PlayerQuestProgress progress = questManager.getProgress(player.getUniqueId(), SalvagersLessonQuest.ID);
+            PlayerQuestProgress progress = questManager.getProgress(playerId, SalvagersLessonQuest.ID);
             if (progress != null &&
                     progress.getProgress(SalvagersLessonQuest.SALVAGE_INDEX) >= SalvagersLessonQuest.SALVAGE_AMOUNT) {
                 return SalvagersLessonQuest.RETURN_TARGET;
@@ -633,7 +633,7 @@ public class NPCClickListener implements Listener {
         }
         if (quest != null && MarketBeginningsQuest.ID.equals(quest.getId())
                 && isNpcName(npc, MarketBeginningsQuest.NPC_NAME)) {
-            PlayerQuestProgress progress = questManager.getProgress(player.getUniqueId(), MarketBeginningsQuest.ID);
+            PlayerQuestProgress progress = questManager.getProgress(playerId, MarketBeginningsQuest.ID);
             if (progress != null && progress.getProgress(MarketBeginningsQuest.BID_INDEX) >= 1
                     && progress.getProgress(MarketBeginningsQuest.LIST_INDEX) >= 1) {
                 return MarketBeginningsQuest.RETURN_TARGET;
