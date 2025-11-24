@@ -14,6 +14,9 @@ import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.guild.GuildManager;
 import me.nakilex.levelplugin.guild.TownPerk;
 import me.nakilex.levelplugin.guild.TownPerkManager;
+import me.nakilex.levelplugin.player.classes.essence.ClassEssence;
+import me.nakilex.levelplugin.player.classes.data.PlayerClass;
+import me.nakilex.levelplugin.items.data.ItemRarity;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import org.bukkit.Bukkit;
@@ -98,7 +101,14 @@ public class MerchantGUI implements Listener {
      */
     private void populateMerchantItems() {
         for (MerchantItem mItem : merchantItems.values()) {
-            if (mItem.isTool()) {
+            if (mItem.isEssence()) {
+                ItemStack essence = createEssenceStack(mItem.getEssenceData());
+                if (essence == null) {
+                    continue;
+                }
+                addPriceStubToStack(essence, mItem);
+                inventory.setItem(mItem.getSlot(), essence);
+            } else if (mItem.isTool()) {
                 CustomTool tool = mItem.getTool();
                 if (tool == null) {
                     continue;
@@ -170,6 +180,15 @@ public class MerchantGUI implements Listener {
         }
     }
 
+    private ItemStack createEssenceStack(me.nakilex.levelplugin.items.data.GameItem.EssenceData data) {
+        PlayerClass clazz = PlayerClass.fromString(data.clazz());
+        ItemRarity rarity = data.rarity();
+        if (clazz == null || rarity == null) {
+            return null;
+        }
+        return ClassEssence.generateEssence(clazz, rarity, data.stars());
+    }
+
     private void addPriceStub(List<String> lore, MerchantItem mItem) {
         lore.add("");                               // spacer
         lore.add(ChatColor.GOLD + "Price:");        // unified price header
@@ -198,6 +217,15 @@ public class MerchantGUI implements Listener {
 
 
 
+    private void addPriceStubToStack(ItemStack stack, MerchantItem mItem) {
+        ItemMeta meta = stack.getItemMeta();
+        if (meta == null) return;
+        List<String> lore = meta.hasLore() ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
+        addPriceStub(lore, mItem);
+        meta.setLore(lore);
+        stack.setItemMeta(meta);
+    }
+
     private void loadMerchantItem(Map<String, Object> map) {
         try {
             int slot   = Integer.parseInt(map.get("slot").toString());
@@ -210,6 +238,21 @@ public class MerchantGUI implements Listener {
             int accountLimit = map.containsKey("account_limit")
                 ? Integer.parseInt(map.get("account_limit").toString())
                 : 0;
+            String essenceClass = map.containsKey("essence_class") ? map.get("essence_class").toString() : null;
+            if (essenceClass != null) {
+                PlayerClass clazz = PlayerClass.fromString(essenceClass);
+                ItemRarity rarity = map.containsKey("essence_rarity")
+                        ? ItemRarity.valueOf(map.get("essence_rarity").toString().toUpperCase())
+                        : ItemRarity.COMMON;
+                int stars = map.containsKey("essence_stars")
+                        ? Integer.parseInt(map.get("essence_stars").toString())
+                        : 0;
+                if (clazz != null) {
+                    merchantItems.put(slot, new MerchantItem(slot,
+                            MerchantItem.essence(clazz, rarity, stars), amount, cost, gems, accountLimit));
+                }
+                return;
+            }
             String tierName = map.containsKey("tool_tier") ? map.get("tool_tier").toString() : null;
             if (tierName != null) {
                 ToolTier tier = ToolTier.valueOf(tierName.toUpperCase());
@@ -237,6 +280,17 @@ public class MerchantGUI implements Listener {
                 ? cs.getInt("gems")
                 : 0;
             int accountLimit = cs.getInt("account_limit", 0);
+            String essenceClass = cs.getString("essence_class");
+            if (essenceClass != null && !essenceClass.isBlank()) {
+                PlayerClass clazz = PlayerClass.fromString(essenceClass);
+                ItemRarity rarity = ItemRarity.valueOf(cs.getString("essence_rarity", "COMMON").toUpperCase());
+                int stars = cs.getInt("essence_stars", 0);
+                if (clazz != null) {
+                    merchantItems.put(slot, new MerchantItem(slot,
+                            MerchantItem.essence(clazz, rarity, stars), amount, cost, gems, accountLimit));
+                }
+                return;
+            }
             String tierName = cs.getString("tool_tier");
             if (tierName != null && !tierName.isBlank()) {
                 ToolTier tier = ToolTier.valueOf(tierName.toUpperCase());
@@ -362,7 +416,20 @@ public class MerchantGUI implements Listener {
             }
 
             // Give item to player
-            if (mItem.isTool()) {
+            if (mItem.isEssence()) {
+                ItemStack purchasedItem = createEssenceStack(mItem.getEssenceData());
+                if (purchasedItem != null) {
+                    Main.getInstance().getQuestManager().handleBuy(player, "essence:" + mItem.getEssenceData().clazz());
+                    player.getInventory().addItem(purchasedItem);
+                    send(player, MessageType.SUCCESS,
+                            "You purchased " + purchasedItem.getItemMeta().getDisplayName()
+                                    + ChatColor.GREEN + " for "
+                                    + ChatColor.YELLOW + coinCost + " <glyph:coins_icon> coins"
+                                    + (gemCost > 0 ? ChatColor.GRAY + " and " + ChatColor.LIGHT_PURPLE + gemCost + "<glyph:purple_orb_icon>" : "")
+                                    + ChatColor.GREEN + ".");
+                    recordPurchase(player, mItem);
+                }
+            } else if (mItem.isTool()) {
                 CustomTool tool = mItem.getTool();
                 if (tool != null) {
                     ItemStack purchasedItem = new ItemStack(tool.getMaterial(), mItem.getAmount());
@@ -416,7 +483,33 @@ public class MerchantGUI implements Listener {
             ItemMeta meta = stack.getItemMeta();
             List<String> lore = (meta != null && meta.hasLore()) ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
             boolean limitReached = hasReachedLimit(player, mItem);
-            if (mItem.isTool()) {
+            if (mItem.isEssence()) {
+                int priceHdr = ensurePriceHeader(lore, mItem);
+                if (priceHdr != -1 && priceHdr + 1 < lore.size()) {
+                    int discounted = TownPerkManager.getInstance().applyDiscount(g, TownPerk.MERCHANT_DISCOUNT, mItem.getCost());
+                    boolean afford = !limitReached && coins >= discounted;
+                    lore.set(priceHdr + 1,
+                            limitReached
+                                    ? ChatColor.GRAY + "- " + ChatColor.RED + "✘ Limit reached"
+                                    : ChatColor.GRAY + "" + (afford ? ChatColor.GREEN + "✔ " : ChatColor.RED + "✘ ")
+                                    + discounted + " " + ChatColor.GOLD + "<glyph:coins_icon>");
+                }
+                if (mItem.getGems() > 0 && priceHdr != -1) {
+                    int gemLineIdx = priceHdr + 2;
+                    if (gemLineIdx < lore.size()) {
+                        boolean afford = !limitReached && totalGems >= mItem.getGems();
+                        lore.set(gemLineIdx,
+                                limitReached
+                                        ? ChatColor.GRAY + "- " + ChatColor.RED + "✘ Limit reached"
+                                        : ChatColor.GRAY + "" + (afford ? ChatColor.GREEN + "✔ " : ChatColor.RED + "✘ ")
+                                        + mItem.getGems() + " " + ChatColor.LIGHT_PURPLE + "<glyph:purple_orb_icon>");
+                    }
+                }
+                if (meta != null) {
+                    meta.setLore(lore);
+                    stack.setItemMeta(meta);
+                }
+            } else if (mItem.isTool()) {
                 ItemUtil.updateCustomToolTooltip(stack, player);
                 meta = stack.getItemMeta();
                 lore = meta != null && meta.hasLore() ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
