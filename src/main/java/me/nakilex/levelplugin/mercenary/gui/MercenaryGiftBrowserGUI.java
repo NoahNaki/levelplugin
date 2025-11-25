@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.mercenary.gui;
 
 import me.nakilex.levelplugin.mercenary.MercenaryAffinityManager;
 import me.nakilex.levelplugin.mercenary.MercenaryGift;
+import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -11,7 +12,11 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Simple browser that lets designers self-serve friendship gifts for testing.
@@ -33,7 +38,7 @@ public class MercenaryGiftBrowserGUI implements Listener {
         GuiBuilder builder = GuiBuilder.create(SIZE, TITLE).border();
         int slot = 10;
         for (MercenaryGift gift : affinityManager.getGifts()) {
-            builder.setItem(slot, gift.getIcon());
+            builder.setItem(slot, decorate(gift));
             if ((slot + 1) % 9 == 8) {
                 slot += 3;
             } else {
@@ -58,5 +63,21 @@ public class MercenaryGiftBrowserGUI implements Listener {
             player.getInventory().addItem(clicked.clone());
             player.sendMessage(ChatColor.GREEN + "Added gift to your inventory for testing.");
         }
+    }
+
+    private ItemStack decorate(MercenaryGift gift) {
+        ItemStack stack = gift.getIcon();
+        ItemMeta meta = stack.getItemMeta();
+        if (meta != null) {
+            List<String> lore = new ArrayList<>();
+            if (meta.getLore() != null) {
+                lore.addAll(meta.getLore());
+            }
+            lore.add(" ");
+            lore.addAll(TooltipUtil.clickInstructions("to receive a copy for testing", null));
+            meta.setLore(lore);
+            stack.setItemMeta(meta);
+        }
+        return stack;
     }
 }

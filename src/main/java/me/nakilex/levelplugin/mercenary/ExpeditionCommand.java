@@ -46,7 +46,7 @@ public class ExpeditionCommand implements CommandExecutor {
             return true;
         }
 
-        if ("giftbrowser".equalsIgnoreCase(args[0])) {
+        if ("giftbrowser".equalsIgnoreCase(args[0]) || "gifts".equalsIgnoreCase(args[0])) {
             giftBrowserGUI.open(player);
             return true;
         }
@@ -83,7 +83,7 @@ public class ExpeditionCommand implements CommandExecutor {
             expeditionGUI.open(player);
             return true;
         } catch (NumberFormatException e) {
-            player.sendMessage(ChatColor.RED + "Usage: /expedition [giftbrowser|rewards|<npcId>]");
+            player.sendMessage(ChatColor.RED + "Usage: /expedition [gifts|giftbrowser|rewards|<npcId>]");
             return true;
         }
     }

@@ -192,7 +192,7 @@ commands:
     usage: /transmog
   expedition:
     description: Manage mercenary expeditions and affinity.
-    usage: /expedition <npcId|giftbrowser>
+    usage: /expedition <npcId|gifts|giftbrowser>
   auctionhouse:
     description: Open the auction house, sell items or place bids.
     usage: /auctionhouse [open|sell <start> [bin] [hours]|bid <index> <amount>]
