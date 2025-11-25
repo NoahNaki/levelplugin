@@ -1,5 +1,6 @@
 package me.nakilex.levelplugin.mercenary;
 
+import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.dungeon.DungeonLayout;
 import me.nakilex.levelplugin.dungeon.DungeonManager;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
@@ -29,9 +30,11 @@ public class MercenaryExpeditionManager {
     private final DungeonManager dungeonManager;
     private final EconomyManager economyManager;
     private final LootChestManager lootChestManager;
+    private final Main main;
     private final Map<String, ExpeditionDefinition> expeditions = new LinkedHashMap<>();
     private final Map<UUID, ActiveExpedition> active = new HashMap<>();
     private final Map<UUID, ExpeditionRewards> pendingRewards = new HashMap<>();
+    private boolean instantExpeditions;
 
     public MercenaryExpeditionManager(Plugin plugin,
                                       MercenaryAffinityManager affinityManager,
@@ -39,6 +42,7 @@ public class MercenaryExpeditionManager {
                                       EconomyManager economyManager,
                                       LootChestManager lootChestManager) {
         this.plugin = plugin;
+        this.main = plugin instanceof Main ? (Main) plugin : null;
         this.affinityManager = affinityManager;
         this.dungeonManager = dungeonManager;
         this.economyManager = economyManager;
@@ -48,6 +52,7 @@ public class MercenaryExpeditionManager {
     }
 
     public void reload() {
+        loadDebugFlags();
         expeditions.clear();
         List<Map.Entry<String, String>> layouts = new ArrayList<>(dungeonManager.getLayoutEntries());
         layouts.sort(Comparator.comparing(entry -> ChatColor.stripColor(entry.getValue())));
@@ -78,6 +83,9 @@ public class MercenaryExpeditionManager {
                 Instant.now().plusSeconds(seconds), success);
         active.put(player.getUniqueId(), expedition);
         player.sendMessage(ChatColor.GREEN + "Sent mercenaries to " + definition.displayName());
+        if (instantExpeditions) {
+            Bukkit.getScheduler().runTask(plugin, () -> complete(player));
+        }
         return expedition;
     }
 
@@ -119,6 +127,9 @@ public class MercenaryExpeditionManager {
     }
 
     public int adjustedDuration(int gs, int threat, int baseSeconds, int friendshipLevel) {
+        if (instantExpeditions) {
+            return 0;
+        }
         double modifier = 1.0;
         if (gs > threat && threat > 0) {
             double ratio = (double) gs / (double) threat;
@@ -145,6 +156,18 @@ public class MercenaryExpeditionManager {
 
     public void clearPending(UUID playerId) {
         pendingRewards.remove(playerId);
+    }
+
+    public boolean isInstantExpeditions() {
+        return instantExpeditions;
+    }
+
+    public void setInstantExpeditions(boolean instantExpeditions) {
+        this.instantExpeditions = instantExpeditions;
+        if (main != null) {
+            main.getCustomConfig().set("debug.instant-expeditions", instantExpeditions);
+            main.saveConfig();
+        }
     }
 
     public int recommendedGearScore(DungeonLayout layout, int threat) {
@@ -200,6 +223,14 @@ public class MercenaryExpeditionManager {
             reward *= 1.25;
         }
         return (int) Math.round(reward);
+    }
+
+    private void loadDebugFlags() {
+        if (main == null) {
+            instantExpeditions = false;
+            return;
+        }
+        instantExpeditions = main.getCustomConfig().getBoolean("debug.instant-expeditions", false);
     }
 
     public int averageFriendship(UUID playerId, List<Integer> npcIds) {

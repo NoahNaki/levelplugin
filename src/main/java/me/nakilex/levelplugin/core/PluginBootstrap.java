@@ -393,7 +393,7 @@ public class PluginBootstrap {
         mercenaryGiftBrowserGUI = new me.nakilex.levelplugin.mercenary.gui.MercenaryGiftBrowserGUI(plugin, mercenaryAffinityManager);
         mercenaryFriendshipGUI = new me.nakilex.levelplugin.mercenary.gui.MercenaryFriendshipGUI(plugin, mercenaryAffinityManager);
         mercenaryExpeditionRewardsGUI = new me.nakilex.levelplugin.mercenary.gui.MercenaryExpeditionRewardsGUI(plugin, mercenaryExpeditionManager);
-        mercenaryExpeditionGUI = new me.nakilex.levelplugin.mercenary.gui.MercenaryExpeditionGUI(plugin, mercenaryAffinityManager, mercenaryExpeditionManager, mercenaryGiftBrowserGUI, mercenaryFriendshipGUI, mercenaryExpeditionRewardsGUI);
+        mercenaryExpeditionGUI = new me.nakilex.levelplugin.mercenary.gui.MercenaryExpeditionGUI(plugin, mercenaryAffinityManager, mercenaryExpeditionManager, mercenaryFriendshipGUI, mercenaryExpeditionRewardsGUI);
     }
 
     private void setupCustomConfig() {
@@ -796,6 +796,9 @@ public class PluginBootstrap {
         }
         if (!customConfig.contains("debug.mythic-skill-damage")) {
             customConfig.set("debug.mythic-skill-damage", false);
+        }
+        if (!customConfig.contains("debug.instant-expeditions")) {
+            customConfig.set("debug.instant-expeditions", false);
         }
         if (!customConfig.contains("chat-games.interval-minutes")) {
             customConfig.set("chat-games.interval-minutes", 15);

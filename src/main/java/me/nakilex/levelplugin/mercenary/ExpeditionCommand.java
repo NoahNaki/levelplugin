@@ -1,10 +1,10 @@
 package me.nakilex.levelplugin.mercenary;
 
+import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.mercenary.gui.MercenaryExpeditionGUI;
 import me.nakilex.levelplugin.mercenary.gui.MercenaryExpeditionRewardsGUI;
 import me.nakilex.levelplugin.mercenary.gui.MercenaryFriendshipGUI;
 import me.nakilex.levelplugin.mercenary.gui.MercenaryGiftBrowserGUI;
-import me.nakilex.levelplugin.mercenary.MercenaryGift;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -13,6 +13,7 @@ import org.bukkit.entity.Player;
 
 /** Entry point for the /expedition command pipeline. */
 public class ExpeditionCommand implements CommandExecutor {
+    private final Main plugin;
     private final MercenaryAffinityManager affinityManager;
     private final MercenaryExpeditionManager expeditionManager;
     private final MercenaryGiftBrowserGUI giftBrowserGUI;
@@ -20,12 +21,14 @@ public class ExpeditionCommand implements CommandExecutor {
     private final MercenaryExpeditionGUI expeditionGUI;
     private final MercenaryExpeditionRewardsGUI rewardsGUI;
 
-    public ExpeditionCommand(MercenaryAffinityManager affinityManager,
+    public ExpeditionCommand(Main plugin,
+                             MercenaryAffinityManager affinityManager,
                              MercenaryExpeditionManager expeditionManager,
                              MercenaryGiftBrowserGUI giftBrowserGUI,
                              MercenaryFriendshipGUI friendshipGUI,
                              MercenaryExpeditionGUI expeditionGUI,
                              MercenaryExpeditionRewardsGUI rewardsGUI) {
+        this.plugin = plugin;
         this.affinityManager = affinityManager;
         this.expeditionManager = expeditionManager;
         this.giftBrowserGUI = giftBrowserGUI;
@@ -43,6 +46,22 @@ public class ExpeditionCommand implements CommandExecutor {
 
         if (args.length == 0) {
             expeditionGUI.open(player);
+            return true;
+        }
+
+        if ("instant".equalsIgnoreCase(args[0])) {
+            if (!player.isOp()) {
+                player.sendMessage(ChatColor.RED + "Operator access required for debug toggles.");
+                return true;
+            }
+            boolean enable;
+            if (args.length >= 2) {
+                enable = args[1].equalsIgnoreCase("on") || args[1].equalsIgnoreCase("true");
+            } else {
+                enable = !expeditionManager.isInstantExpeditions();
+            }
+            expeditionManager.setInstantExpeditions(enable);
+            player.sendMessage(ChatColor.YELLOW + "Instant expeditions " + (enable ? ChatColor.GREEN + "enabled" : ChatColor.RED + "disabled") + ChatColor.YELLOW + ".");
             return true;
         }
 

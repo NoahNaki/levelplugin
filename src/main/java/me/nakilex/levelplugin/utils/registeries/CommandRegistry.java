@@ -324,6 +324,7 @@ public class CommandRegistry {
         plugin.getCommand("mercenary").setTabCompleter(mercCmd);
 
         me.nakilex.levelplugin.mercenary.ExpeditionCommand expeditionCmd = new me.nakilex.levelplugin.mercenary.ExpeditionCommand(
+                plugin,
                 plugin.getMercenaryAffinityManager(),
                 plugin.getMercenaryExpeditionManager(),
                 plugin.getMercenaryGiftBrowserGUI(),
