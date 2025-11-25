@@ -60,19 +60,7 @@ public class ExpeditionCommand implements CommandExecutor {
             int npcId = Integer.parseInt(args[0]);
             affinityManager.loadPlayer(player.getUniqueId());
             if (args.length >= 2 && "gift".equalsIgnoreCase(args[1])) {
-                MercenaryGift gift = affinityManager.matchGift(player.getInventory().getItemInMainHand());
-                if (gift == null) {
-                    player.sendMessage(ChatColor.RED + "Hold a mercenary gift in your main hand.");
-                    return true;
-                }
-                affinityManager.addAffinity(player, npcId, gift.getAffinityValue());
-                int remaining = player.getInventory().getItemInMainHand().getAmount() - 1;
-                if (remaining <= 0) {
-                    player.getInventory().setItemInMainHand(null);
-                } else {
-                    player.getInventory().getItemInMainHand().setAmount(remaining);
-                }
-                player.sendMessage(ChatColor.GREEN + "Gave a gift to mercenary " + npcId + ".");
+                affinityManager.handGift(player, npcId, "Mercenary " + npcId);
                 return true;
             }
             if (args.length >= 2 && "affinity".equalsIgnoreCase(args[1])) {

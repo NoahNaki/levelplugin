@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.mercenary;
 
 import me.nakilex.levelplugin.utils.TooltipUtil;
+import net.citizensnpcs.api.event.NPCRightClickEvent;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -194,6 +195,35 @@ public class MercenaryAffinityManager implements org.bukkit.event.Listener {
         return friendship;
     }
 
+    /**
+     * Apply the player's held gift to the specified mercenary, consuming one
+     * stack item and updating their affinity progress. Returns {@code true}
+     * when a valid gift was applied.
+     */
+    public boolean handGift(Player player, int npcId, String npcName) {
+        MercenaryGift gift = matchGift(player.getInventory().getItemInMainHand());
+        if (gift == null) {
+            player.sendMessage(ChatColor.RED + "Hold a mercenary gift in your main hand.");
+            return false;
+        }
+        MercenaryFriendship friendship = addAffinity(player, npcId, gift.getAffinityValue());
+        String giftName = gift.getIcon().getItemMeta() != null
+                ? gift.getIcon().getItemMeta().getDisplayName()
+                : ChatColor.WHITE + gift.getId();
+
+        ItemStack hand = player.getInventory().getItemInMainHand();
+        int remaining = hand.getAmount() - 1;
+        if (remaining <= 0) {
+            player.getInventory().setItemInMainHand(null);
+        } else {
+            hand.setAmount(remaining);
+        }
+
+        player.sendMessage(ChatColor.GREEN + "You gave " + giftName + ChatColor.GREEN
+                + " to " + ChatColor.GOLD + npcName + ChatColor.GREEN + " (Level " + friendship.getLevel() + ")");
+        return true;
+    }
+
     public int computeLevel(int points) {
         int level = 1;
         for (Map.Entry<Integer, Integer> entry : levelThresholds.entrySet()) {
@@ -259,5 +289,15 @@ public class MercenaryAffinityManager implements org.bukkit.event.Listener {
     @org.bukkit.event.EventHandler
     public void onJoin(org.bukkit.event.player.PlayerJoinEvent event) {
         loadPlayer(event.getPlayer().getUniqueId());
+    }
+
+    @org.bukkit.event.EventHandler
+    public void onMercenaryGift(NPCRightClickEvent event) {
+        int npcId = event.getNPC().getId();
+        if (!gearScores.containsKey(npcId)) {
+            return;
+        }
+        Player player = event.getClicker();
+        handGift(player, npcId, event.getNPC().getName());
     }
 }

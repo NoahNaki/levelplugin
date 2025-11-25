@@ -3,10 +3,12 @@ package me.nakilex.levelplugin.mercenary.gui;
 import me.nakilex.levelplugin.mercenary.ExpeditionDefinition;
 import me.nakilex.levelplugin.mercenary.MercenaryAffinityManager;
 import me.nakilex.levelplugin.mercenary.MercenaryExpeditionManager;
+import me.nakilex.levelplugin.mercenary.MercenaryFriendship;
 import me.nakilex.levelplugin.mercenary.MercenaryRole;
 import me.nakilex.levelplugin.mercenary.gui.MercenaryExpeditionRewardsGUI.RewardView;
 import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.utils.GuiUtil;
+import me.nakilex.levelplugin.utils.NumberUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import org.bukkit.ChatColor;
@@ -124,15 +126,32 @@ public class MercenaryExpeditionGUI implements Listener {
                 meta.setDisplayName(ChatColor.GOLD + "Mercenary " + npcId);
                 List<String> lore = new ArrayList<>();
                 int gs = affinityManager.getGearScore(npcId);
-                int level = affinityManager.getFriendship(player.getUniqueId(), npcId).getLevel();
+                MercenaryFriendship friendship = affinityManager.getFriendship(player.getUniqueId(), npcId);
+                int level = friendship.getLevel();
                 MercenaryRole role = affinityManager.getRole(npcId);
-                lore.add(ChatColor.GRAY + "Role: " + ChatColor.YELLOW + role.name());
-                lore.add(ChatColor.GRAY + "Gear Score: " + ChatColor.GREEN + gs);
-                lore.add(ChatColor.GRAY + "Friendship: " + ChatColor.AQUA + level);
-                lore.add(ChatColor.WHITE + TooltipUtil.progressBar(level, 5, 10));
+                int currentThreshold = affinityManager.thresholdForLevel(level);
+                int nextThreshold = affinityManager.thresholdForLevel(Math.min(5, level + 1));
+                int progressCurrent = Math.max(0, friendship.getPoints() - currentThreshold);
+                int progressMax = level >= 5 ? 1 : Math.max(1, nextThreshold - currentThreshold);
+                if (level >= 5) {
+                    progressCurrent = 1;
+                } else {
+                    progressCurrent = Math.min(progressCurrent, progressMax);
+                }
+
+                lore.addAll(TooltipUtil.bulletList(
+                        "Role: " + ChatColor.YELLOW + role.name(),
+                        "Gear Score: " + ChatColor.GREEN + NumberUtil.formatCommas(gs),
+                        "Friendship: " + ChatColor.AQUA + level + ChatColor.DARK_GRAY + "/5"
+                ));
+                lore.add(ChatColor.GRAY + "Progress: " + ChatColor.WHITE
+                        + TooltipUtil.progressBar(progressCurrent, progressMax, 12));
+                if (level < 5) {
+                    lore.add(ChatColor.DARK_GRAY + "• " + ChatColor.GRAY + progressCurrent + ChatColor.DARK_GRAY + "/"
+                            + ChatColor.GRAY + progressMax);
+                }
                 lore.add(" ");
-                lore.add(ChatColor.YELLOW + "Left-click to toggle selection");
-                lore.add(ChatColor.GRAY + "Right-click to open affinity");
+                lore.addAll(TooltipUtil.clickInstructions("to toggle selection", "to view affinity & perks"));
                 if (level < 3) {
                     lore.add(ChatColor.RED + "Requires level 3+ to deploy");
                 }
