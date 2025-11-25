@@ -47,22 +47,18 @@ public class MercenaryExpeditionManager {
         this.dungeonManager = dungeonManager;
         this.economyManager = economyManager;
         this.lootChestManager = lootChestManager;
-        reload();
+        loadDebugFlags();
+        rebuildExpeditionsFromLayouts();
         startTick();
     }
 
     public void reload() {
         loadDebugFlags();
-        expeditions.clear();
-        List<Map.Entry<String, String>> layouts = new ArrayList<>(dungeonManager.getLayoutEntries());
-        layouts.sort(Comparator.comparing(entry -> ChatColor.stripColor(entry.getValue())));
-        for (Map.Entry<String, String> entry : layouts) {
-            ExpeditionDefinition def = toDefinition(entry.getKey(), entry.getValue());
-            expeditions.put(def.id(), def);
-        }
+        rebuildExpeditionsFromLayouts();
     }
 
     public Collection<ExpeditionDefinition> getExpeditions() {
+        rebuildExpeditionsFromLayouts();
         return expeditions.values();
     }
 
@@ -167,6 +163,16 @@ public class MercenaryExpeditionManager {
         if (main != null) {
             main.getCustomConfig().set("debug.instant-expeditions", instantExpeditions);
             main.saveConfig();
+        }
+    }
+
+    private void rebuildExpeditionsFromLayouts() {
+        expeditions.clear();
+        List<Map.Entry<String, String>> layouts = new ArrayList<>(dungeonManager.getLayoutEntries());
+        layouts.sort(Comparator.comparing(entry -> ChatColor.stripColor(entry.getValue())));
+        for (Map.Entry<String, String> entry : layouts) {
+            ExpeditionDefinition def = toDefinition(entry.getKey(), entry.getValue());
+            expeditions.put(def.id(), def);
         }
     }
 
