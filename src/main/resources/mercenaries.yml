@@ -1,0 +1,61 @@
+# Gear scores for each mercenary NPC template.
+gearscore:
+  1400: 1000
+  1401: 1200
+
+# Friendship levels and thresholds (cumulative affinity points).
+levels:
+  1: 0
+  2: 50
+  3: 110
+  4: 180
+  5: 260
+
+# Benefits shown for each level in the affinity GUI.
+benefits:
+  1:
+    - "&7Access to small talk and lore snippets."
+  2:
+    - "&7Gifts provide &a10% &7more affinity."
+  3:
+    - "&aUnlocks expeditions &7for this mercenary."
+  4:
+    - "&7Expedition durations reduced by &a10%&7."
+  5:
+    - "&aExtra reward roll &7on successful expeditions."
+
+# Gifts that can be handed to mercenaries.
+gifts:
+  blossom_bundle:
+    material: POPPY
+    name: "&dBlossom Bundle"
+    affinity: 15
+    lore:
+      - "&7Freshly gathered wildflowers."
+  heroic_token:
+    material: GOLD_NUGGET
+    name: "&6Heroic Token"
+    affinity: 30
+    lore:
+      - "&7Proof of your past victories."
+  adventurers_feast:
+    material: COOKED_BEEF
+    name: "&eAdventurer's Feast"
+    affinity: 25
+    lore:
+      - "&7A hearty meal before a long journey."
+
+# Dungeon expedition definitions with threat ratings.
+dungeons:
+  crypt:
+    name: "&aForgotten Crypt"
+    threat: 900
+    base-duration-seconds: 1200
+  ruins:
+    name: "&bSunken Ruins"
+    threat: 1200
+    base-duration-seconds: 1800
+  spire:
+    name: "&dCrystal Spire"
+    threat: 1500
+    base-duration-seconds: 2400

@@ -201,6 +201,11 @@ public class PluginBootstrap {
     private me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager wanderingMerchantManager;
     private PathfindingManager pathfindingManager;
     private MercenaryManager mercenaryManager;
+    private me.nakilex.levelplugin.mercenary.MercenaryAffinityManager mercenaryAffinityManager;
+    private me.nakilex.levelplugin.mercenary.MercenaryExpeditionManager mercenaryExpeditionManager;
+    private me.nakilex.levelplugin.mercenary.gui.MercenaryGiftBrowserGUI mercenaryGiftBrowserGUI;
+    private me.nakilex.levelplugin.mercenary.gui.MercenaryFriendshipGUI mercenaryFriendshipGUI;
+    private me.nakilex.levelplugin.mercenary.gui.MercenaryExpeditionGUI mercenaryExpeditionGUI;
     private me.nakilex.levelplugin.transmog.TransmogManager transmogManager;
 
     public PluginBootstrap(Main plugin) {
@@ -374,6 +379,11 @@ public class PluginBootstrap {
         wanderingMerchantManager = new me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager(plugin);
         pathfindingManager = new PathfindingManager(plugin);
         mercenaryManager = new MercenaryManager(plugin);
+        mercenaryAffinityManager = new me.nakilex.levelplugin.mercenary.MercenaryAffinityManager(plugin);
+        mercenaryExpeditionManager = new me.nakilex.levelplugin.mercenary.MercenaryExpeditionManager(plugin, mercenaryAffinityManager);
+        mercenaryGiftBrowserGUI = new me.nakilex.levelplugin.mercenary.gui.MercenaryGiftBrowserGUI(plugin, mercenaryAffinityManager);
+        mercenaryFriendshipGUI = new me.nakilex.levelplugin.mercenary.gui.MercenaryFriendshipGUI(plugin, mercenaryAffinityManager);
+        mercenaryExpeditionGUI = new me.nakilex.levelplugin.mercenary.gui.MercenaryExpeditionGUI(plugin, mercenaryAffinityManager, mercenaryExpeditionManager);
     }
 
     private void setupCustomConfig() {
@@ -679,6 +689,11 @@ public class PluginBootstrap {
     public me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager getWanderingMerchantManager() { return wanderingMerchantManager; }
     public PathfindingManager getPathfindingManager() { return pathfindingManager; }
     public MercenaryManager getMercenaryManager() { return mercenaryManager; }
+    public me.nakilex.levelplugin.mercenary.MercenaryAffinityManager getMercenaryAffinityManager() { return mercenaryAffinityManager; }
+    public me.nakilex.levelplugin.mercenary.MercenaryExpeditionManager getMercenaryExpeditionManager() { return mercenaryExpeditionManager; }
+    public me.nakilex.levelplugin.mercenary.gui.MercenaryGiftBrowserGUI getMercenaryGiftBrowserGUI() { return mercenaryGiftBrowserGUI; }
+    public me.nakilex.levelplugin.mercenary.gui.MercenaryFriendshipGUI getMercenaryFriendshipGUI() { return mercenaryFriendshipGUI; }
+    public me.nakilex.levelplugin.mercenary.gui.MercenaryExpeditionGUI getMercenaryExpeditionGUI() { return mercenaryExpeditionGUI; }
     public me.nakilex.levelplugin.transmog.TransmogManager getTransmogManager() { return transmogManager; }
 
     public void reloadPluginConfig() {

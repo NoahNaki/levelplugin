@@ -317,6 +317,14 @@ public class CommandRegistry {
         plugin.getCommand("mercenary").setExecutor(mercCmd);
         plugin.getCommand("mercenary").setTabCompleter(mercCmd);
 
+        me.nakilex.levelplugin.mercenary.ExpeditionCommand expeditionCmd = new me.nakilex.levelplugin.mercenary.ExpeditionCommand(
+                plugin.getMercenaryAffinityManager(),
+                plugin.getMercenaryExpeditionManager(),
+                plugin.getMercenaryGiftBrowserGUI(),
+                plugin.getMercenaryFriendshipGUI(),
+                plugin.getMercenaryExpeditionGUI());
+        plugin.getCommand("expedition").setExecutor(expeditionCmd);
+
         ChatCommand channelCmd = new ChatCommand(plugin);
         plugin.getCommand("chat").setExecutor(channelCmd);
         plugin.getCommand("chat").setTabCompleter(channelCmd);
