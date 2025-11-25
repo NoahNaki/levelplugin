@@ -5,7 +5,7 @@ import me.nakilex.levelplugin.mercenary.MercenaryAffinityManager;
 import me.nakilex.levelplugin.mercenary.MercenaryExpeditionManager;
 import me.nakilex.levelplugin.mercenary.MercenaryRole;
 import me.nakilex.levelplugin.mercenary.gui.MercenaryExpeditionRewardsGUI.RewardView;
-import me.nakilex.levelplugin.utils.ChatUtil;
+import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
@@ -259,14 +259,14 @@ public class MercenaryExpeditionGUI implements Listener {
             List<Integer> selection = party.computeIfAbsent(player.getUniqueId(), id -> new ArrayList<>());
             if (selection.contains(npcId)) {
                 selection.remove((Integer) npcId);
-                ChatUtil.sendCenteredMessage(player, ChatColor.YELLOW + "Removed mercenary #" + npcId + " from party.");
+                ChatFormatter.sendCenteredMessage(player, ChatColor.YELLOW + "Removed mercenary #" + npcId + " from party.");
             } else {
                 if (selection.size() >= 3) {
                     player.sendMessage(ChatColor.RED + "You can only send up to 3 mercenaries per expedition.");
                     return;
                 }
                 selection.add(npcId);
-                ChatUtil.sendCenteredMessage(player, ChatColor.GREEN + "Added mercenary #" + npcId + " to party.");
+                ChatFormatter.sendCenteredMessage(player, ChatColor.GREEN + "Added mercenary #" + npcId + " to party.");
             }
             open(player, Tab.PARTY);
         } catch (NumberFormatException ignored) {
