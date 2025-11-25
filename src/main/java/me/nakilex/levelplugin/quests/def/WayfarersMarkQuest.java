@@ -38,7 +38,7 @@ public class WayfarersMarkQuest extends Quest implements QuestScript {
                 "Wayfarer's Mark",
                 "Unlock a waystone and learn to travel between anchors.",
                 createObjectives(),
-                5,
+                3,
                 List.of(),
                 null,
                 QuestRewardCompat.create(200, 90, 0, List.of()),

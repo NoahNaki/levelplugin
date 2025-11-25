@@ -46,7 +46,7 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
                 "Office Errands",
                 "Help around the office.",
                 createObjectives(),
-                12,
+                1,
                 java.util.List.of(),
                 null,
                 null,

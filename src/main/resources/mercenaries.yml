@@ -1,20 +1,22 @@
 # Gear scores for each mercenary NPC template.
 gearscore:
-  1400: 1000
-  1401: 1200
+  1410: 1000
+  1411: 1200
+  1412: 1400
 
 # Combat role for each mercenary, used for party synergy bonuses.
 roles:
-  1400: TANK
-  1401: DPS
+  1410: TANK
+  1411: DPS
+  1412: SUPPORT
 
 # Friendship levels and thresholds (cumulative affinity points).
 levels:
   1: 0
   2: 50
-  3: 110
-  4: 180
-  5: 260
+  3: 150
+  4: 350
+  5: 800
 
 # Benefits shown for each level in the affinity GUI.
 benefits:
@@ -46,7 +48,7 @@ gifts:
   adventurers_feast:
     material: COOKED_BEEF
     name: "&eAdventurer's Feast"
-    affinity: 25
+    affinity: 250
     lore:
       - "&7A hearty meal before a long journey."
 
