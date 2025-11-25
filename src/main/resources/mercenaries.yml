@@ -45,17 +45,4 @@ gifts:
     lore:
       - "&7A hearty meal before a long journey."
 
-# Dungeon expedition definitions with threat ratings.
-dungeons:
-  crypt:
-    name: "&aForgotten Crypt"
-    threat: 900
-    base-duration-seconds: 1200
-  ruins:
-    name: "&bSunken Ruins"
-    threat: 1200
-    base-duration-seconds: 1800
-  spire:
-    name: "&dCrystal Spire"
-    threat: 1500
-    base-duration-seconds: 2400
+# Dungeon expeditions now pull directly from player-built layouts via the dungeon builder system.

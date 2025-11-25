@@ -49,13 +49,13 @@ public class ExpeditionCommand implements CommandExecutor {
 
         try {
             int npcId = Integer.parseInt(args[0]);
+            affinityManager.loadPlayer(player.getUniqueId());
             if (args.length >= 2 && "gift".equalsIgnoreCase(args[1])) {
                 MercenaryGift gift = affinityManager.matchGift(player.getInventory().getItemInMainHand());
                 if (gift == null) {
                     player.sendMessage(ChatColor.RED + "Hold a mercenary gift in your main hand.");
                     return true;
                 }
-                affinityManager.loadPlayer(player.getUniqueId());
                 affinityManager.addAffinity(player, npcId, gift.getAffinityValue());
                 int remaining = player.getInventory().getItemInMainHand().getAmount() - 1;
                 if (remaining <= 0) {
@@ -68,11 +68,13 @@ public class ExpeditionCommand implements CommandExecutor {
             }
             if (args.length >= 2 && "affinity".equalsIgnoreCase(args[1])) {
                 String name = args.length >= 3 ? args[2] : "Mercenary " + npcId;
-                affinityManager.loadPlayer(player.getUniqueId());
                 friendshipGUI.open(player, npcId, name);
                 return true;
             }
-            affinityManager.loadPlayer(player.getUniqueId());
+            if (affinityManager.getFriendship(player.getUniqueId(), npcId).getLevel() < 3) {
+                player.sendMessage(ChatColor.RED + "Increase your friendship to level 3 to unlock expeditions with this mercenary.");
+                return true;
+            }
             expeditionGUI.open(player, npcId);
             return true;
         } catch (NumberFormatException e) {

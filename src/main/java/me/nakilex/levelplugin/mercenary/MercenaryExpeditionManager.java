@@ -1,15 +1,15 @@
 package me.nakilex.levelplugin.mercenary;
 
+import me.nakilex.levelplugin.dungeon.DungeonLayout;
+import me.nakilex.levelplugin.dungeon.DungeonManager;
+import me.nakilex.levelplugin.economy.managers.EconomyManager;
+import me.nakilex.levelplugin.utils.NumberUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
 
-import java.io.File;
 import java.time.Instant;
 import java.util.*;
 
@@ -21,32 +21,30 @@ import java.util.*;
 public class MercenaryExpeditionManager {
     private final Plugin plugin;
     private final MercenaryAffinityManager affinityManager;
-    private final Map<String, ExpeditionDefinition> expeditions = new HashMap<>();
+    private final DungeonManager dungeonManager;
+    private final EconomyManager economyManager;
+    private final Map<String, ExpeditionDefinition> expeditions = new LinkedHashMap<>();
     private final Map<UUID, ActiveExpedition> active = new HashMap<>();
 
-    public MercenaryExpeditionManager(Plugin plugin, MercenaryAffinityManager affinityManager) {
+    public MercenaryExpeditionManager(Plugin plugin,
+                                      MercenaryAffinityManager affinityManager,
+                                      DungeonManager dungeonManager,
+                                      EconomyManager economyManager) {
         this.plugin = plugin;
         this.affinityManager = affinityManager;
+        this.dungeonManager = dungeonManager;
+        this.economyManager = economyManager;
         reload();
         startTick();
     }
 
     public void reload() {
-        File cfgFile = new File(plugin.getDataFolder(), "mercenaries.yml");
-        if (!cfgFile.exists()) {
-            plugin.saveResource("mercenaries.yml", false);
-        }
-        FileConfiguration cfg = YamlConfiguration.loadConfiguration(cfgFile);
         expeditions.clear();
-        ConfigurationSection section = cfg.getConfigurationSection("dungeons");
-        if (section == null) {
-            return;
-        }
-        for (String id : section.getKeys(false)) {
-            String name = ChatColor.translateAlternateColorCodes('&', section.getString(id + ".name", id));
-            int threat = section.getInt(id + ".threat", 0);
-            int duration = section.getInt(id + ".base-duration-seconds", 600);
-            expeditions.put(id, new ExpeditionDefinition(id, name, threat, duration));
+        List<Map.Entry<String, String>> layouts = new ArrayList<>(dungeonManager.getLayoutEntries());
+        layouts.sort(Comparator.comparing(entry -> ChatColor.stripColor(entry.getValue())));
+        for (Map.Entry<String, String> entry : layouts) {
+            ExpeditionDefinition def = toDefinition(entry.getKey(), entry.getValue());
+            expeditions.put(def.id(), def);
         }
     }
 
@@ -80,13 +78,14 @@ public class MercenaryExpeditionManager {
         }
         boolean success = Math.random() * 100 <= expedition.getSuccessChance();
         if (success) {
+            grantRewards(player, expedition);
             player.sendMessage(ChatColor.GREEN + "Expedition success! Rewards delivered from " + expedition.getDefinition().displayName());
         } else {
             player.sendMessage(ChatColor.RED + "Expedition failed. Your mercenary returns empty handed.");
         }
     }
 
-    private double successChance(int gs, int threat) {
+    public double successChance(int gs, int threat) {
         if (threat <= 0) {
             return 100.0;
         }
@@ -97,7 +96,7 @@ public class MercenaryExpeditionManager {
         return Math.max(25.0, 100.0 - (deficit * 0.05));
     }
 
-    private int adjustedDuration(int gs, int threat, int baseSeconds, int friendshipLevel) {
+    public int adjustedDuration(int gs, int threat, int baseSeconds, int friendshipLevel) {
         double modifier = 1.0;
         if (gs > threat && threat > 0) {
             double ratio = (double) gs / (double) threat;
@@ -108,6 +107,51 @@ public class MercenaryExpeditionManager {
         }
         modifier = Math.max(0.5, modifier);
         return (int) Math.round(baseSeconds * modifier);
+    }
+
+    private ExpeditionDefinition toDefinition(String layoutKey, String display) {
+        int threat = dungeonManager.getThreatLevel(layoutKey);
+        DungeonLayout layout = dungeonManager.getLayout(layoutKey);
+        int rooms = layout == null ? 0 : countRooms(layout);
+        int baseDuration = estimateDuration(threat, rooms);
+        String colored = ChatColor.AQUA + display;
+        return new ExpeditionDefinition(layoutKey, colored, threat, baseDuration);
+    }
+
+    private int countRooms(DungeonLayout layout) {
+        int rooms = 0;
+        for (int x = 0; x < DungeonLayout.WIDTH; x++) {
+            for (int y = 0; y < DungeonLayout.HEIGHT; y++) {
+                if (layout.get(x, y) != me.nakilex.levelplugin.dungeon.RoomType.NONE) {
+                    rooms++;
+                }
+            }
+        }
+        return rooms;
+    }
+
+    private int estimateDuration(int threat, int rooms) {
+        double duration = threat * 1.1 + rooms * 20;
+        return (int) Math.max(600, Math.round(duration));
+    }
+
+    private void grantRewards(Player player, ActiveExpedition expedition) {
+        if (economyManager == null) {
+            return;
+        }
+        int friendship = affinityManager.getFriendship(player.getUniqueId(), expedition.getNpcId()).getLevel();
+        int coins = rewardFor(expedition.getDefinition().threat(), friendship);
+        economyManager.addCoins(player, coins, false);
+        player.sendMessage(ChatColor.GOLD + "You received " + ChatColor.YELLOW + NumberUtil.format(coins)
+                + ChatColor.GOLD + " coins from the expedition.");
+    }
+
+    int rewardFor(int threat, int friendshipLevel) {
+        double reward = Math.max(50, threat * 0.4);
+        if (friendshipLevel >= 5) {
+            reward *= 1.25;
+        }
+        return (int) Math.round(reward);
     }
 
     private void startTick() {

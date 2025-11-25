@@ -16,6 +16,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 
 import java.util.ArrayList;
+import java.util.Locale;
 import java.util.List;
 
 /**
@@ -43,6 +44,7 @@ public class MercenaryExpeditionGUI implements Listener {
     public void open(Player player, int npcId) {
         GuiBuilder builder = GuiBuilder.create(SIZE, TITLE).border();
         currentNpc.put(player.getUniqueId(), npcId);
+        int friendship = affinityManager.getFriendship(player.getUniqueId(), npcId).getLevel();
         int slot = 10;
         for (ExpeditionDefinition definition : expeditionManager.getExpeditions()) {
             ItemStack item = new ItemStack(Material.MAP);
@@ -51,11 +53,17 @@ public class MercenaryExpeditionGUI implements Listener {
                 meta.setDisplayName(ChatColor.GOLD + definition.displayName());
                 List<String> lore = new ArrayList<>();
                 lore.add(ChatColor.GRAY + "Threat: " + ChatColor.RED + definition.threat());
-                lore.add(ChatColor.GRAY + "Base Duration: " + ChatColor.AQUA + definition.baseDurationSeconds() / 60 + "m");
                 int gs = affinityManager.getGearScore(npcId);
+                double success = expeditionManager.successChance(gs, definition.threat());
+                int seconds = expeditionManager.adjustedDuration(gs, definition.threat(),
+                        definition.baseDurationSeconds(), friendship);
+                int reward = expeditionManager.rewardFor(definition.threat(), friendship);
+                lore.add(ChatColor.GRAY + "Est. Duration: " + ChatColor.AQUA + seconds / 60 + "m");
                 lore.add(ChatColor.GRAY + "Mercenary GS: " + ChatColor.GREEN + gs);
                 lore.add(ChatColor.WHITE + TooltipUtil.progressBar(Math.min(gs, definition.threat()),
                         Math.max(definition.threat(), 1), 12));
+                lore.add(ChatColor.GRAY + "Success Chance: " + ChatColor.GREEN + String.format(Locale.ENGLISH, "%.1f%%", success));
+                lore.add(ChatColor.GRAY + "Reward: " + ChatColor.GOLD + reward + " coins");
                 lore.add(" ");
                 lore.add(ChatColor.YELLOW + "Left-click to send mercenary");
                 meta.setLore(lore);
