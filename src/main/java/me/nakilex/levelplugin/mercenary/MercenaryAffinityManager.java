@@ -25,6 +25,7 @@ public class MercenaryAffinityManager implements org.bukkit.event.Listener {
     private final Plugin plugin;
     private final Map<String, MercenaryGift> gifts = new LinkedHashMap<>();
     private final Map<Integer, Integer> gearScores = new HashMap<>();
+    private final Map<Integer, MercenaryRole> roles = new HashMap<>();
     private final Map<Integer, List<String>> levelBenefits = new HashMap<>();
     private final NavigableMap<Integer, Integer> levelThresholds = new TreeMap<>();
     private FileConfiguration config;
@@ -46,6 +47,7 @@ public class MercenaryAffinityManager implements org.bukkit.event.Listener {
 
         loadGifts();
         loadGearScores();
+        loadRoles();
         loadBenefits();
         loadThresholds();
     }
@@ -77,6 +79,22 @@ public class MercenaryAffinityManager implements org.bukkit.event.Listener {
                 gearScores.put(Integer.parseInt(id), section.getInt(id));
             } catch (NumberFormatException ex) {
                 Bukkit.getLogger().warning("Invalid mercenary id in mercenaries.yml: " + id);
+            }
+        }
+    }
+
+    private void loadRoles() {
+        roles.clear();
+        ConfigurationSection section = config.getConfigurationSection("roles");
+        if (section == null) {
+            return;
+        }
+        for (String id : section.getKeys(false)) {
+            try {
+                int npcId = Integer.parseInt(id);
+                roles.put(npcId, MercenaryRole.fromString(section.getString(id)));
+            } catch (NumberFormatException ex) {
+                Bukkit.getLogger().warning("Invalid mercenary id in mercenaries.yml (roles): " + id);
             }
         }
     }
@@ -148,6 +166,14 @@ public class MercenaryAffinityManager implements org.bukkit.event.Listener {
 
     public int getGearScore(int npcId) {
         return gearScores.getOrDefault(npcId, 0);
+    }
+
+    public Collection<Integer> getMercenaryIds() {
+        return Collections.unmodifiableSet(gearScores.keySet());
+    }
+
+    public MercenaryRole getRole(int npcId) {
+        return roles.getOrDefault(npcId, MercenaryRole.DPS);
     }
 
     public List<String> getBenefits(int level) {

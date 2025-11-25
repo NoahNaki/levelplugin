@@ -206,6 +206,7 @@ public class PluginBootstrap {
     private me.nakilex.levelplugin.mercenary.gui.MercenaryGiftBrowserGUI mercenaryGiftBrowserGUI;
     private me.nakilex.levelplugin.mercenary.gui.MercenaryFriendshipGUI mercenaryFriendshipGUI;
     private me.nakilex.levelplugin.mercenary.gui.MercenaryExpeditionGUI mercenaryExpeditionGUI;
+    private me.nakilex.levelplugin.mercenary.gui.MercenaryExpeditionRewardsGUI mercenaryExpeditionRewardsGUI;
     private me.nakilex.levelplugin.transmog.TransmogManager transmogManager;
 
     public PluginBootstrap(Main plugin) {
@@ -384,10 +385,12 @@ public class PluginBootstrap {
                 plugin,
                 mercenaryAffinityManager,
                 dungeonManager,
-                economyManager);
+                economyManager,
+                lootChestManager);
         mercenaryGiftBrowserGUI = new me.nakilex.levelplugin.mercenary.gui.MercenaryGiftBrowserGUI(plugin, mercenaryAffinityManager);
         mercenaryFriendshipGUI = new me.nakilex.levelplugin.mercenary.gui.MercenaryFriendshipGUI(plugin, mercenaryAffinityManager);
-        mercenaryExpeditionGUI = new me.nakilex.levelplugin.mercenary.gui.MercenaryExpeditionGUI(plugin, mercenaryAffinityManager, mercenaryExpeditionManager);
+        mercenaryExpeditionRewardsGUI = new me.nakilex.levelplugin.mercenary.gui.MercenaryExpeditionRewardsGUI(plugin, mercenaryExpeditionManager);
+        mercenaryExpeditionGUI = new me.nakilex.levelplugin.mercenary.gui.MercenaryExpeditionGUI(plugin, mercenaryAffinityManager, mercenaryExpeditionManager, mercenaryGiftBrowserGUI, mercenaryFriendshipGUI, mercenaryExpeditionRewardsGUI);
     }
 
     private void setupCustomConfig() {
@@ -698,6 +701,7 @@ public class PluginBootstrap {
     public me.nakilex.levelplugin.mercenary.gui.MercenaryGiftBrowserGUI getMercenaryGiftBrowserGUI() { return mercenaryGiftBrowserGUI; }
     public me.nakilex.levelplugin.mercenary.gui.MercenaryFriendshipGUI getMercenaryFriendshipGUI() { return mercenaryFriendshipGUI; }
     public me.nakilex.levelplugin.mercenary.gui.MercenaryExpeditionGUI getMercenaryExpeditionGUI() { return mercenaryExpeditionGUI; }
+    public me.nakilex.levelplugin.mercenary.gui.MercenaryExpeditionRewardsGUI getMercenaryExpeditionRewardsGUI() { return mercenaryExpeditionRewardsGUI; }
     public me.nakilex.levelplugin.transmog.TransmogManager getTransmogManager() { return transmogManager; }
 
     public void reloadPluginConfig() {

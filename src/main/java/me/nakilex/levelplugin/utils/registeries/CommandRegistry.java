@@ -322,7 +322,8 @@ public class CommandRegistry {
                 plugin.getMercenaryExpeditionManager(),
                 plugin.getMercenaryGiftBrowserGUI(),
                 plugin.getMercenaryFriendshipGUI(),
-                plugin.getMercenaryExpeditionGUI());
+                plugin.getMercenaryExpeditionGUI(),
+                plugin.getMercenaryExpeditionRewardsGUI());
         plugin.getCommand("expedition").setExecutor(expeditionCmd);
 
         ChatCommand channelCmd = new ChatCommand(plugin);

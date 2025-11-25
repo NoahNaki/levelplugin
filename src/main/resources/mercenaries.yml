@@ -3,6 +3,11 @@ gearscore:
   1400: 1000
   1401: 1200
 
+# Combat role for each mercenary, used for party synergy bonuses.
+roles:
+  1400: TANK
+  1401: DPS
+
 # Friendship levels and thresholds (cumulative affinity points).
 levels:
   1: 0

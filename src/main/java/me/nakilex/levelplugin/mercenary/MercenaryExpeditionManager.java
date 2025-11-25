@@ -3,10 +3,15 @@ package me.nakilex.levelplugin.mercenary;
 import me.nakilex.levelplugin.dungeon.DungeonLayout;
 import me.nakilex.levelplugin.dungeon.DungeonManager;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
+import me.nakilex.levelplugin.items.data.CustomItem;
+import me.nakilex.levelplugin.items.managers.ItemManager;
+import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
+import me.nakilex.levelplugin.salvage.managers.SalvageManager;
 import me.nakilex.levelplugin.utils.NumberUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
 
@@ -23,17 +28,21 @@ public class MercenaryExpeditionManager {
     private final MercenaryAffinityManager affinityManager;
     private final DungeonManager dungeonManager;
     private final EconomyManager economyManager;
+    private final LootChestManager lootChestManager;
     private final Map<String, ExpeditionDefinition> expeditions = new LinkedHashMap<>();
     private final Map<UUID, ActiveExpedition> active = new HashMap<>();
+    private final Map<UUID, ExpeditionRewards> pendingRewards = new HashMap<>();
 
     public MercenaryExpeditionManager(Plugin plugin,
                                       MercenaryAffinityManager affinityManager,
                                       DungeonManager dungeonManager,
-                                      EconomyManager economyManager) {
+                                      EconomyManager economyManager,
+                                      LootChestManager lootChestManager) {
         this.plugin = plugin;
         this.affinityManager = affinityManager;
         this.dungeonManager = dungeonManager;
         this.economyManager = economyManager;
+        this.lootChestManager = lootChestManager;
         reload();
         startTick();
     }
@@ -60,14 +69,15 @@ public class MercenaryExpeditionManager {
         return active.get(playerId);
     }
 
-    public ActiveExpedition startExpedition(Player player, int npcId, ExpeditionDefinition definition) {
-        int gs = affinityManager.getGearScore(npcId);
-        double success = successChance(gs, definition.threat());
-        int seconds = adjustedDuration(gs, definition.threat(), definition.baseDurationSeconds(),
-                affinityManager.getFriendship(player.getUniqueId(), npcId).getLevel());
-        ActiveExpedition expedition = new ActiveExpedition(npcId, definition, Instant.now().plusSeconds(seconds), success);
+    public ActiveExpedition startExpedition(Player player, List<Integer> npcIds, ExpeditionDefinition definition) {
+        int combinedGs = npcIds.stream().mapToInt(affinityManager::getGearScore).sum();
+        double success = successChance(npcIds, definition.threat(), definition.recommendedGearScore());
+        int friendship = averageFriendship(player.getUniqueId(), npcIds);
+        int seconds = adjustedDuration(combinedGs, definition.threat(), definition.baseDurationSeconds(), friendship);
+        ActiveExpedition expedition = new ActiveExpedition(new ArrayList<>(npcIds), definition,
+                Instant.now().plusSeconds(seconds), success);
         active.put(player.getUniqueId(), expedition);
-        player.sendMessage(ChatColor.GREEN + "Sent mercenary " + npcId + " to " + definition.displayName());
+        player.sendMessage(ChatColor.GREEN + "Sent mercenaries to " + definition.displayName());
         return expedition;
     }
 
@@ -78,22 +88,34 @@ public class MercenaryExpeditionManager {
         }
         boolean success = Math.random() * 100 <= expedition.getSuccessChance();
         if (success) {
-            grantRewards(player, expedition);
-            player.sendMessage(ChatColor.GREEN + "Expedition success! Rewards delivered from " + expedition.getDefinition().displayName());
+            ExpeditionRewards rewards = generateRewards(player, expedition);
+            pendingRewards.merge(player.getUniqueId(), rewards, (existing, added) -> {
+                ExpeditionRewards merged = new ExpeditionRewards().coins(existing.coins() + added.coins());
+                existing.loot().forEach(merged::addLoot);
+                added.loot().forEach(merged::addLoot);
+                return merged;
+            });
+            player.sendMessage(ChatColor.GREEN + "Expedition success! Open the rewards menu to claim loot from "
+                    + expedition.getDefinition().displayName());
         } else {
             player.sendMessage(ChatColor.RED + "Expedition failed. Your mercenary returns empty handed.");
         }
     }
 
-    public double successChance(int gs, int threat) {
+    public double successChance(List<Integer> npcIds, int threat, int recommendedGs) {
         if (threat <= 0) {
             return 100.0;
         }
-        if (gs >= threat) {
-            return 100.0;
+        int totalGs = npcIds.stream().mapToInt(affinityManager::getGearScore).sum();
+        double ratio = recommendedGs <= 0 ? 1.0 : (double) totalGs / (double) recommendedGs;
+        double base = 40.0 + Math.min(60.0, ratio * 45.0);
+        boolean hasTank = npcIds.stream().anyMatch(id -> affinityManager.getRole(id) == MercenaryRole.TANK);
+        boolean hasDps = npcIds.stream().anyMatch(id -> affinityManager.getRole(id) == MercenaryRole.DPS);
+        boolean hasSupport = npcIds.stream().anyMatch(id -> affinityManager.getRole(id) == MercenaryRole.SUPPORT);
+        if (hasTank && hasDps && hasSupport) {
+            base += 15.0;
         }
-        double deficit = threat - gs;
-        return Math.max(25.0, 100.0 - (deficit * 0.05));
+        return Math.min(100.0, Math.max(15.0, base));
     }
 
     public int adjustedDuration(int gs, int threat, int baseSeconds, int friendshipLevel) {
@@ -109,13 +131,36 @@ public class MercenaryExpeditionManager {
         return (int) Math.round(baseSeconds * modifier);
     }
 
+    public ExpeditionRewards getPendingRewards(UUID playerId) {
+        return pendingRewards.get(playerId);
+    }
+
+    public void setPendingRewards(UUID playerId, ExpeditionRewards rewards) {
+        if (rewards == null) {
+            pendingRewards.remove(playerId);
+        } else {
+            pendingRewards.put(playerId, rewards);
+        }
+    }
+
+    public void clearPending(UUID playerId) {
+        pendingRewards.remove(playerId);
+    }
+
+    public int recommendedGearScore(DungeonLayout layout, int threat) {
+        int rooms = layout == null ? 0 : countRooms(layout);
+        int baseline = Math.max(1200, threat * 450);
+        return baseline + rooms * 60;
+    }
+
     private ExpeditionDefinition toDefinition(String layoutKey, String display) {
         int threat = dungeonManager.getThreatLevel(layoutKey);
         DungeonLayout layout = dungeonManager.getLayout(layoutKey);
         int rooms = layout == null ? 0 : countRooms(layout);
         int baseDuration = estimateDuration(threat, rooms);
+        int recommendedGs = recommendedGearScore(layout, threat);
         String colored = ChatColor.AQUA + display;
-        return new ExpeditionDefinition(layoutKey, colored, threat, baseDuration);
+        return new ExpeditionDefinition(layoutKey, colored, threat, baseDuration, recommendedGs);
     }
 
     private int countRooms(DungeonLayout layout) {
@@ -135,15 +180,18 @@ public class MercenaryExpeditionManager {
         return (int) Math.max(600, Math.round(duration));
     }
 
-    private void grantRewards(Player player, ActiveExpedition expedition) {
-        if (economyManager == null) {
-            return;
-        }
-        int friendship = affinityManager.getFriendship(player.getUniqueId(), expedition.getNpcId()).getLevel();
+    private ExpeditionRewards generateRewards(Player player, ActiveExpedition expedition) {
+        ExpeditionRewards rewards = new ExpeditionRewards();
+        int friendship = averageFriendship(player.getUniqueId(), expedition.getNpcIds());
         int coins = rewardFor(expedition.getDefinition().threat(), friendship);
-        economyManager.addCoins(player, coins, false);
-        player.sendMessage(ChatColor.GOLD + "You received " + ChatColor.YELLOW + NumberUtil.format(coins)
-                + ChatColor.GOLD + " coins from the expedition.");
+        rewards.coins(coins);
+        if (lootChestManager != null) {
+            int rolls = Math.max(2, expedition.getDefinition().threat() / 2);
+            for (int i = 0; i < rolls; i++) {
+                rewards.addLoot(lootChestManager.getRandomLootForTier(expedition.getDefinition().threat(), null, null));
+            }
+        }
+        return rewards;
     }
 
     int rewardFor(int threat, int friendshipLevel) {
@@ -152,6 +200,38 @@ public class MercenaryExpeditionManager {
             reward *= 1.25;
         }
         return (int) Math.round(reward);
+    }
+
+    public int averageFriendship(UUID playerId, List<Integer> npcIds) {
+        if (npcIds.isEmpty()) {
+            return 1;
+        }
+        return (int) Math.round(npcIds.stream()
+                .map(id -> affinityManager.getFriendship(playerId, id).getLevel())
+                .mapToInt(Integer::intValue)
+                .average()
+                .orElse(1.0));
+    }
+
+    public void salvageRemaining(Player player, List<ItemStack> leftovers) {
+        if (economyManager == null) {
+            return;
+        }
+        int coins = 0;
+        for (ItemStack stack : leftovers) {
+            if (stack == null) {
+                continue;
+            }
+            CustomItem ci = ItemManager.getInstance().getCustomItemFromItemStack(stack);
+            if (ci != null) {
+                coins += SalvageManager.getInstance().getSellPrice(ci);
+            }
+        }
+        if (coins > 0) {
+            economyManager.addCoins(player, coins, false);
+            player.sendMessage(ChatColor.YELLOW + "Unused loot was salvaged for " + ChatColor.GOLD + NumberUtil.format(coins)
+                    + ChatColor.YELLOW + " coins.");
+        }
     }
 
     private void startTick() {

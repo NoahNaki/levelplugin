@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.mercenary;
 
 import me.nakilex.levelplugin.mercenary.gui.MercenaryExpeditionGUI;
+import me.nakilex.levelplugin.mercenary.gui.MercenaryExpeditionRewardsGUI;
 import me.nakilex.levelplugin.mercenary.gui.MercenaryFriendshipGUI;
 import me.nakilex.levelplugin.mercenary.gui.MercenaryGiftBrowserGUI;
 import me.nakilex.levelplugin.mercenary.MercenaryGift;
@@ -17,17 +18,20 @@ public class ExpeditionCommand implements CommandExecutor {
     private final MercenaryGiftBrowserGUI giftBrowserGUI;
     private final MercenaryFriendshipGUI friendshipGUI;
     private final MercenaryExpeditionGUI expeditionGUI;
+    private final MercenaryExpeditionRewardsGUI rewardsGUI;
 
     public ExpeditionCommand(MercenaryAffinityManager affinityManager,
                              MercenaryExpeditionManager expeditionManager,
                              MercenaryGiftBrowserGUI giftBrowserGUI,
                              MercenaryFriendshipGUI friendshipGUI,
-                             MercenaryExpeditionGUI expeditionGUI) {
+                             MercenaryExpeditionGUI expeditionGUI,
+                             MercenaryExpeditionRewardsGUI rewardsGUI) {
         this.affinityManager = affinityManager;
         this.expeditionManager = expeditionManager;
         this.giftBrowserGUI = giftBrowserGUI;
         this.friendshipGUI = friendshipGUI;
         this.expeditionGUI = expeditionGUI;
+        this.rewardsGUI = rewardsGUI;
     }
 
     @Override
@@ -38,12 +42,17 @@ public class ExpeditionCommand implements CommandExecutor {
         }
 
         if (args.length == 0) {
-            player.sendMessage(ChatColor.YELLOW + "Usage: /expedition <npcId> | /expedition giftbrowser");
+            expeditionGUI.open(player);
             return true;
         }
 
         if ("giftbrowser".equalsIgnoreCase(args[0])) {
             giftBrowserGUI.open(player);
+            return true;
+        }
+
+        if ("rewards".equalsIgnoreCase(args[0])) {
+            rewardsGUI.open(player, MercenaryExpeditionRewardsGUI.RewardView.EXPEDITIONS);
             return true;
         }
 
@@ -71,14 +80,10 @@ public class ExpeditionCommand implements CommandExecutor {
                 friendshipGUI.open(player, npcId, name);
                 return true;
             }
-            if (affinityManager.getFriendship(player.getUniqueId(), npcId).getLevel() < 3) {
-                player.sendMessage(ChatColor.RED + "Increase your friendship to level 3 to unlock expeditions with this mercenary.");
-                return true;
-            }
-            expeditionGUI.open(player, npcId);
+            expeditionGUI.open(player);
             return true;
         } catch (NumberFormatException e) {
-            player.sendMessage(ChatColor.RED + "First argument must be an NPC id or 'giftbrowser'.");
+            player.sendMessage(ChatColor.RED + "Usage: /expedition [giftbrowser|rewards|<npcId>]");
             return true;
         }
     }
