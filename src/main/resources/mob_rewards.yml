@@ -1,31 +1,31 @@
 mobs:
   cursed_archer:
     exp: 7000
-    coins: "5000-8000"
+    coins: "5000-12000"
     tier: 6
-    tier_chance: 8.0
+    tier_chance: 12.0
     model_set: molten
     essence: archer, 0.3
 
   Slime_Common:
     exp: 50
-    coins: "8-30"
+    coins: "12-30"
     tier: 1
-    tier_chance: 8.0
+    tier_chance: 12.0
     model_set: default
 
   Slime_Minion:
     exp: 50
-    coins: "8-30"
+    coins: "12-30"
     tier: 1
-    tier_chance: 8.0
+    tier_chance: 12.0
     model_set: default
 
   Slime_King:
     exp: 3000
     coins: "1500-2000"
     tier: 2
-    tier_chance: 20.0
+    tier_chance: 100.0
     model_set: default
 
   YUKIO:
@@ -39,56 +39,56 @@ mobs:
     exp: 50
     coins: "33-55"
     tier: 1
-    tier_chance: 8.0
+    tier_chance: 12.0
     model_set: default
 
   gnollspear:
     exp: 75
     coins: "33-55"
     tier: 1
-    tier_chance: 8.0
+    tier_chance: 12.0
     model_set: default
 
   gnollarcher:
     exp: 55
     coins: "33-55"
     tier: 1
-    tier_chance: 8.0
+    tier_chance: 12.0
     model_set: default
 
   ice_bruiser:
     exp: 3000
     coins: "1500-2000"
     tier: 2
-    tier_chance: 8.0
+    tier_chance: 12.0
     model_set: default
 
   ice_golem:
     exp: 3000
     coins: "1500-2000"
     tier: 2
-    tier_chance: 8.0
+    tier_chance: 12.0
     model_set: default
 
   ice_queen:
     exp: 3000
     coins: "1500-2000"
     tier: 2
-    tier_chance: 8.0
+    tier_chance: 12.0
     model_set: default
 
   lp_spider_ice:
     exp: 3000
     coins: "1500-2000"
     tier: 2
-    tier_chance: 8.0
+    tier_chance: 12.0
     model_set: default
 
   turtle:
     exp: 30
     coins: "1500-2000"
     tier: 2
-    tier_chance: 8.0
+    tier_chance: 12.0
     model_set: default
 
   vp1_hermit_crab:
@@ -102,14 +102,14 @@ mobs:
     exp: 2000
     coins: "150-200"
     tier: 3
-    tier_chance: 8.0
+    tier_chance: 12.0
     model_set: default
 
   vp1_scorpid:
     exp: 3000
     coins: "250-300"
     tier: 3
-    tier_chance: 8.0
+    tier_chance: 12.0
     model_set: default
 
   wild_rooster:
@@ -123,14 +123,14 @@ mobs:
     exp: 3000
     coins: "1500-2000"
     tier: 2
-    tier_chance: 8.0
+    tier_chance: 12.0
     model_set: default
 
   slime_lava:
     exp: 1500
     coins: "1234-2345"
     tier: 4
-    tier_chance: 8.0
+    tier_chance: 12.0
     model_set: molten
 
 

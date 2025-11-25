@@ -45,7 +45,7 @@ public class SerasQuest extends Quest implements QuestScript {
                 "Seras' Request",
                 "Help Seras clear the forest slimes and defeat their king.",
                 createObjectives(),
-                7,
+                2,
                 List.of("newbeginning"),
                 null,
                 QuestRewardCompat.create(200, 100, 0, List.of()),

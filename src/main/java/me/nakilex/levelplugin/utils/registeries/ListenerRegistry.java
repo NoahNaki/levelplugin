@@ -19,6 +19,7 @@ import me.nakilex.levelplugin.lootchests.listeners.LootChestListener;
 import me.nakilex.levelplugin.lootchests.listeners.LootChestShutdownListener;
 import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
 import me.nakilex.levelplugin.mob.config.MobRewardsConfig;
+import me.nakilex.levelplugin.mob.dps.DpsDummyManager;
 import me.nakilex.levelplugin.mob.listeners.*;
 import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
 import me.nakilex.levelplugin.mob.managers.MythicMobNameManager;
@@ -117,7 +118,8 @@ public class ListenerRegistry {
                                         ArenaQueueGUI arenaQueueGUI,
                                         ArenaMatchManager arenaMatchManager,
                                         ArenaTeamMatchManager arenaTeamMatchManager,
-                                        ChatGameManager chatGameManager) {
+                                        ChatGameManager chatGameManager,
+                                        DpsDummyManager dpsDummyManager) {
 
 
         PluginManager pm = plugin.getServer().getPluginManager();
@@ -168,6 +170,7 @@ public class ListenerRegistry {
         pm.registerEvents(new MythicMobNameManager(plugin), plugin);
         pm.registerEvents(new MythicMobDamageListener(), plugin);
         pm.registerEvents(new me.nakilex.levelplugin.mob.listeners.MythicSkillDamageScaler(), plugin);
+        pm.registerEvents(dpsDummyManager, plugin);
         pm.registerEvents(new FallDamageDisabler(), plugin);
         pm.registerEvents(new HungerDisabler(), plugin);
         pm.registerEvents(new CropTrampleListener(), plugin);

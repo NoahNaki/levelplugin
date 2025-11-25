@@ -8,6 +8,7 @@ import java.util.Map;
 import me.nakilex.levelplugin.chat.games.ChatGameManager;
 import me.nakilex.levelplugin.chat.games.ChatGameStatus;
 import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
+import me.nakilex.levelplugin.mercenary.MercenaryExpeditionManager;
 import me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
@@ -32,19 +33,23 @@ public class DebugGUI implements Listener {
     private static final int MOBINFO_SLOT = 11;
     private static final int TPS_SLOT = 15;
     private static final int SIEGE_SLOT = 13;
+    private static final int EXPEDITION_SLOT = 20;
     private static final int[] CHAT_GAME_SLOTS = {28, 30, 32, 34, 22, 24};
 
     private final PlayerToggleManager mobDebugManager;
     private final PlayerScoreboardManager scoreboardManager;
+    private final MercenaryExpeditionManager expeditionManager;
     private final ChatGameManager chatGameManager;
     private final Map<Integer, String> chatGameSlots = new HashMap<>();
     private final Map<String, ChatGameStatus> chatGameStatusById = new HashMap<>();
 
     public DebugGUI(PlayerToggleManager mobDebugManager,
                     PlayerScoreboardManager scoreboardManager,
-                    ChatGameManager chatGameManager) {
+                    ChatGameManager chatGameManager,
+                    MercenaryExpeditionManager expeditionManager) {
         this.mobDebugManager = mobDebugManager;
         this.scoreboardManager = scoreboardManager;
+        this.expeditionManager = expeditionManager;
         this.chatGameManager = chatGameManager;
     }
 
@@ -71,6 +76,10 @@ public class DebugGUI implements Listener {
                 fast,
                 "§bFast Siege",
                 "§750% progress per second"));
+        builder.setItem(EXPEDITION_SLOT, GuiUtil.createToggleItem(
+                expeditionManager.isInstantExpeditions(),
+                "§bInstant Expeditions",
+                "§7Expeditions complete instantly"));
 
         if (chatGameManager != null) {
             List<ChatGameStatus> statuses = chatGameManager.getStatuses();
@@ -113,6 +122,13 @@ public class DebugGUI implements Listener {
                     "§bFast Siege",
                     "§750% progress per second"));
             ToggleFeedbackUtil.sendToggle(player, "Fast siege mode", enabled);
+        } else if (slot == EXPEDITION_SLOT) {
+            boolean enabled = !expeditionManager.isInstantExpeditions();
+            expeditionManager.setInstantExpeditions(enabled);
+            inv.setItem(EXPEDITION_SLOT, GuiUtil.createToggleItem(enabled,
+                    "§bInstant Expeditions",
+                    "§7Expeditions complete instantly"));
+            ToggleFeedbackUtil.sendToggle(player, "Instant expeditions", enabled);
         } else if (chatGameManager != null && chatGameSlots.containsKey(slot)) {
             String id = chatGameSlots.get(slot);
             ChatGameStatus status = chatGameStatusById.get(id.toLowerCase(Locale.ROOT));

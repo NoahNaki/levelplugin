@@ -22,7 +22,7 @@ public class SalvagersLessonQuest extends Quest implements QuestScript {
     public static final int TALK_INTRO_INDEX = 0;
     public static final int SALVAGE_INDEX = 1;
     public static final int TALK_RETURN_INDEX = 2;
-    public static final int SALVAGE_AMOUNT = 3;
+    public static final int SALVAGE_AMOUNT = 1;
 
     public static final String INTRO_TARGET = "npc_salvager_intro";
     public static final String RETURN_TARGET = "npc_salvager_return";

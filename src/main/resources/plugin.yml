@@ -190,6 +190,9 @@ commands:
   transmog:
     description: Open the transmog menu.
     usage: /transmog
+  expedition:
+    description: Manage mercenary expeditions and affinity.
+    usage: /expedition <npcId|gifts|giftbrowser>
   auctionhouse:
     description: Open the auction house, sell items or place bids.
     usage: /auctionhouse [open|sell <start> [bin] [hours]|bid <index> <amount>]
@@ -311,3 +314,6 @@ commands:
   roll:
     description: Roll a number between 1 and 100
     usage: /roll
+  dpsdummy:
+    description: Manage DPS training dummies
+    usage: /dpsdummy <spawn|select|despawn|list>
