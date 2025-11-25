@@ -49,22 +49,6 @@ public class ExpeditionCommand implements CommandExecutor {
             return true;
         }
 
-        if ("instant".equalsIgnoreCase(args[0])) {
-            if (!player.isOp()) {
-                player.sendMessage(ChatColor.RED + "Operator access required for debug toggles.");
-                return true;
-            }
-            boolean enable;
-            if (args.length >= 2) {
-                enable = args[1].equalsIgnoreCase("on") || args[1].equalsIgnoreCase("true");
-            } else {
-                enable = !expeditionManager.isInstantExpeditions();
-            }
-            expeditionManager.setInstantExpeditions(enable);
-            player.sendMessage(ChatColor.YELLOW + "Instant expeditions " + (enable ? ChatColor.GREEN + "enabled" : ChatColor.RED + "disabled") + ChatColor.YELLOW + ".");
-            return true;
-        }
-
         if ("giftbrowser".equalsIgnoreCase(args[0]) || "gifts".equalsIgnoreCase(args[0])) {
             giftBrowserGUI.open(player);
             return true;

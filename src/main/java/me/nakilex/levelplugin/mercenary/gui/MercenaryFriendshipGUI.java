@@ -2,7 +2,9 @@ package me.nakilex.levelplugin.mercenary.gui;
 
 import me.nakilex.levelplugin.mercenary.MercenaryAffinityManager;
 import me.nakilex.levelplugin.mercenary.MercenaryFriendship;
+import me.nakilex.levelplugin.mercenary.gui.MercenaryExpeditionGUI;
 import me.nakilex.levelplugin.utils.TooltipUtil;
+import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -24,11 +26,16 @@ public class MercenaryFriendshipGUI implements Listener {
 
     private final Plugin plugin;
     private final MercenaryAffinityManager affinityManager;
+    private MercenaryExpeditionGUI expeditionGUI;
 
     public MercenaryFriendshipGUI(Plugin plugin, MercenaryAffinityManager affinityManager) {
         this.plugin = plugin;
         this.affinityManager = affinityManager;
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
+    }
+
+    public void setExpeditionGUI(MercenaryExpeditionGUI expeditionGUI) {
+        this.expeditionGUI = expeditionGUI;
     }
 
     public void open(Player player, int npcId, String npcName) {
@@ -77,6 +84,8 @@ public class MercenaryFriendshipGUI implements Listener {
         }
         builder.setItem(15, benefits);
 
+        builder.setItem(18, GuiUtil.getNexoItem("arrow_left", ChatColor.GREEN + "Back"));
+
         player.openInventory(builder.build());
     }
 
@@ -89,6 +98,10 @@ public class MercenaryFriendshipGUI implements Listener {
             return;
         }
         event.setCancelled(true);
+        if (event.getRawSlot() == 18 && expeditionGUI != null) {
+            expeditionGUI.open(player);
+            return;
+        }
         if (event.getCurrentItem() != null) {
             player.sendMessage(ChatColor.GRAY + "Interact with gifts to raise friendship.");
         }

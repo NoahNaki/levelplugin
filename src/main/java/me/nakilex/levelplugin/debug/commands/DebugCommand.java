@@ -10,6 +10,7 @@ import me.nakilex.levelplugin.chat.games.ChatGameManager;
 import me.nakilex.levelplugin.chat.games.ChatGameStatus;
 import me.nakilex.levelplugin.debug.gui.DebugGUI;
 import me.nakilex.levelplugin.debug.AutoCastManager;
+import me.nakilex.levelplugin.mercenary.MercenaryExpeditionManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
@@ -46,16 +47,19 @@ public class DebugCommand implements TabExecutor {
     private final PlayerScoreboardManager scoreboardManager;
     private final DebugGUI debugGUI;
     private final ChatGameManager chatGameManager;
+    private final MercenaryExpeditionManager expeditionManager;
     private final AutoCastManager autoCastManager = new AutoCastManager();
 
     public DebugCommand(PlayerToggleManager mobDebugManager,
                         PlayerScoreboardManager scoreboardManager,
                         DebugGUI debugGUI,
-                        ChatGameManager chatGameManager) {
+                        ChatGameManager chatGameManager,
+                        MercenaryExpeditionManager expeditionManager) {
         this.mobDebugManager = mobDebugManager;
         this.scoreboardManager = scoreboardManager;
         this.debugGUI = debugGUI;
         this.chatGameManager = chatGameManager;
+        this.expeditionManager = expeditionManager;
     }
 
     @Override
@@ -67,7 +71,7 @@ public class DebugCommand implements TabExecutor {
                 String statUsage = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|cityowner|autocast|chatgame|" + statUsage + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|cityowner|autocast|chatgame|expedition|" + statUsage + ">");
             }
             return true;
         }
@@ -129,6 +133,17 @@ public class DebugCommand implements TabExecutor {
             case "siege":
                 boolean fast = me.nakilex.levelplugin.guild.siege.GuildSiegeManager.getInstance().toggleFastCapture();
                 sender.sendMessage("Fast siege mode " + (fast ? "enabled" : "disabled"));
+                return true;
+
+            case "expedition":
+                if (!(sender instanceof Player)) {
+                    sender.sendMessage(ChatColor.RED + "Players only.");
+                    return true;
+                }
+                boolean enable = !expeditionManager.isInstantExpeditions();
+                expeditionManager.setInstantExpeditions(enable);
+                sender.sendMessage(ChatColor.YELLOW + "Expedition timers "
+                        + (enable ? ChatColor.GREEN + "set to instant" : ChatColor.RED + "restored to normal") + ChatColor.YELLOW + ".");
                 return true;
 
             case "cityowner":
@@ -226,7 +241,7 @@ public class DebugCommand implements TabExecutor {
                 String statUsage2 = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|cityowner|autocast|chatgame|" + statUsage2 + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|cityowner|autocast|chatgame|expedition|" + statUsage2 + ">");
                 return true;
         }
     }
@@ -274,7 +289,7 @@ public class DebugCommand implements TabExecutor {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            List<String> subs = new ArrayList<>(List.of("mobinfo", "tps", "siege", "cityowner", "autocast", "hand", "chatgame"));
+            List<String> subs = new ArrayList<>(List.of("mobinfo", "tps", "siege", "cityowner", "autocast", "hand", "chatgame", "expedition"));
             subs.addAll(Arrays.stream(StatType.values()).map(StatType::getAbbrev).toList());
             return subs.stream()
                     .filter(s -> s.startsWith(args[0].toLowerCase()))

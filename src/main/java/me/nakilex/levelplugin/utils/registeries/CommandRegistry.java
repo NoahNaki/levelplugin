@@ -276,7 +276,8 @@ public class CommandRegistry {
         DebugCommand debugCmd = new DebugCommand(mobDebugToggleManager,
                 plugin.getScoreboardManager(),
                 debugGUI,
-                chatGameManager);
+                chatGameManager,
+                plugin.getMercenaryExpeditionManager());
         plugin.getCommand("debug").setExecutor(debugCmd);
         plugin.getCommand("debug").setTabCompleter(debugCmd);
 
