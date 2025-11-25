@@ -89,11 +89,16 @@ public class MercenaryExpeditionRewardsGUI implements Listener {
         if (!TITLE.equals(event.getView().getTitle())) {
             return;
         }
+        int raw = event.getRawSlot();
+        // Bottom inventory interactions should remain untouched.
+        if (raw >= event.getView().getTopInventory().getSize()) {
+            return;
+        }
         if (event.getCurrentItem() == null || event.getCurrentItem().getType() == Material.GRAY_STAINED_GLASS_PANE) {
             event.setCancelled(true);
             return;
         }
-        // Allow players to take loot items; everything else stays locked.
+        // Allow players to take loot items from tracked slots; keep all other GUI controls locked.
         Set<Integer> tracked = lootTrackedSlots.getOrDefault(player.getUniqueId(), Collections.emptySet());
         if (!tracked.contains(event.getSlot())) {
             event.setCancelled(true);

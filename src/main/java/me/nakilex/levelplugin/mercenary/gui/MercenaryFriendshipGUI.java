@@ -56,8 +56,20 @@ public class MercenaryFriendshipGUI implements Listener {
         if (bMeta != null) {
             bMeta.setDisplayName(ChatColor.AQUA + "Level Benefits");
             List<String> lore = new ArrayList<>();
-            lore.add(ChatColor.WHITE + "Current perks:");
-            lore.addAll(affinityManager.getBenefits(friendship.getLevel()));
+            lore.add(ChatColor.WHITE + "Perks by level:");
+            for (int lvl = 1; lvl <= 5; lvl++) {
+                boolean unlocked = friendship.getLevel() >= lvl;
+                String prefix = unlocked ? ChatColor.GREEN + "✔ " : ChatColor.RED + "✘ ";
+                List<String> perks = affinityManager.getBenefits(lvl);
+                if (perks.isEmpty()) {
+                    lore.add(prefix + ChatColor.GRAY + "Level " + lvl + ChatColor.DARK_GRAY + ": " + ChatColor.GRAY + "No perks");
+                    continue;
+                }
+                for (String perk : perks) {
+                    lore.add(prefix + ChatColor.GRAY + "Level " + lvl + ChatColor.DARK_GRAY + ": " + ChatColor.RESET + perk);
+                    prefix = ChatColor.DARK_GRAY + "• " + ChatColor.GRAY; // indent subsequent perks under same level
+                }
+            }
             lore.add(" ");
             lore.add(ChatColor.GRAY + "Higher levels unlock new perks.");
             bMeta.setLore(lore);

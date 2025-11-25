@@ -206,6 +206,12 @@ public class MercenaryAffinityManager implements org.bukkit.event.Listener {
             player.sendMessage(ChatColor.RED + "Hold a mercenary gift in your main hand.");
             return false;
         }
+        MercenaryFriendship existing = getFriendship(player.getUniqueId(), npcId);
+        int maxThreshold = thresholdForLevel(5);
+        if (existing.getLevel() >= 5 && existing.getPoints() >= maxThreshold) {
+            player.sendMessage(ChatColor.GOLD + npcName + ChatColor.RED + " is already at max friendship.");
+            return false;
+        }
         MercenaryFriendship friendship = addAffinity(player, npcId, gift.getAffinityValue());
         String giftName = gift.getIcon().getItemMeta() != null
                 ? gift.getIcon().getItemMeta().getDisplayName()
