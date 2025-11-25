@@ -1,7 +1,6 @@
 package me.nakilex.levelplugin.mob.dps;
 
 import io.lumine.mythic.bukkit.BukkitAPIHelper;
-import io.lumine.mythic.core.mobs.ActiveMob;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.MultiLineHologram;
@@ -147,8 +146,12 @@ public class DpsDummyManager implements Listener {
 
     private LivingEntity spawnMythic(Location loc) {
         if (mythicHelper == null) return null;
-        ActiveMob active = mythicHelper.spawnMythicMob("training_dummy", loc);
-        return active != null ? (LivingEntity) active.getLivingEntity() : null;
+
+        org.bukkit.entity.Entity entity = mythicHelper.spawnMythicMob("training_dummy", loc);
+        if (entity instanceof LivingEntity living) {
+            return living;
+        }
+        return null;
     }
 
     private LivingEntity spawnFallback(Location loc) {
