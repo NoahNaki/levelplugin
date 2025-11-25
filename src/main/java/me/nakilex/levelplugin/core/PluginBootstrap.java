@@ -34,6 +34,7 @@ import me.nakilex.levelplugin.lootchests.listeners.ChestHologramListener;
 import me.nakilex.levelplugin.lootchests.managers.CooldownManager;
 import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
 import me.nakilex.levelplugin.mob.config.MobRewardsConfig;
+import me.nakilex.levelplugin.mob.dps.DpsDummyManager;
 import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
 import me.nakilex.levelplugin.party.PartyManager;
 import me.nakilex.levelplugin.party.PartyGlowManager;
@@ -148,6 +149,7 @@ public class PluginBootstrap {
     private PlayerConfig playerConfig;
     private PlayerToggleManager dmgNumberToggleManager;
     private PlayerToggleManager mobDebugToggleManager;
+    private DpsDummyManager dpsDummyManager;
     private ManaCostTracker manaTracker;
     private FileConfiguration bossConfig;
     private File bossConfigFile;
@@ -296,6 +298,7 @@ public class PluginBootstrap {
         lootChestManager = new LootChestManager(plugin, configManager, cooldownManager, potionManager);
         dmgNumberToggleManager = new PlayerToggleManager();
         mobDebugToggleManager = new PlayerToggleManager();
+        dpsDummyManager = new DpsDummyManager(plugin, mythicHelper);
         upgradeKey = new NamespacedKey(plugin, "upgrade_level");
         levelManager = new LevelManager(plugin);
         miningManager = new me.nakilex.levelplugin.player.mining.managers.MiningManager(plugin);
@@ -444,7 +447,8 @@ public class PluginBootstrap {
             pathfindingManager,
             mercenaryManager,
             battlePassManager,
-            chatGameManager
+            chatGameManager,
+            dpsDummyManager
         );
         me.nakilex.levelplugin.maintenance.MaintenanceCommand maintenanceCmd =
                 new me.nakilex.levelplugin.maintenance.MaintenanceCommand(maintenanceManager);
@@ -494,7 +498,8 @@ public class PluginBootstrap {
             arenaQueueGUI,
             arenaMatchManager,
             arenaTeamMatchManager,
-            chatGameManager
+            chatGameManager,
+            dpsDummyManager
         );
         plugin.getServer().getPluginManager().registerEvents(battlePassGUI, plugin);
         plugin.getServer().getPluginManager().registerEvents(
@@ -568,6 +573,7 @@ public class PluginBootstrap {
         if (guildVaultManager != null) guildVaultManager.saveAll();
         if (auctionHouseManager != null) auctionHouseManager.saveAuctionsSync();
         if (lootChestManager != null) lootChestManager.removeAllChests();
+        if (dpsDummyManager != null) dpsDummyManager.shutdown();
         if (dungeonManager != null) {
             dungeonManager.cleanupInstances();
             dungeonManager.cleanupOldInstanceWorlds();

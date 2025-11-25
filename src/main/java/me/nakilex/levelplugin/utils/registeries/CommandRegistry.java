@@ -19,7 +19,9 @@ import me.nakilex.levelplugin.items.commands.OpSwordCommand;
 import me.nakilex.levelplugin.merchants.commands.MerchantCommand;
 import me.nakilex.levelplugin.mob.commands.DmgChatCommand;
 import me.nakilex.levelplugin.mob.commands.DmgNumberCommand;
+import me.nakilex.levelplugin.mob.commands.DpsDummyCommand;
 import me.nakilex.levelplugin.mob.commands.ToggleCommand;
+import me.nakilex.levelplugin.mob.dps.DpsDummyManager;
 import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
 import me.nakilex.levelplugin.debug.commands.DebugCommand;
 import me.nakilex.levelplugin.player.attributes.commands.AddPointsCommand;
@@ -135,7 +137,8 @@ public class CommandRegistry {
                                         PathfindingManager pathManager,
                                         MercenaryManager mercManager,
                                         BattlePassManager battlePassManager,
-                                        ChatGameManager chatGameManager) {
+                                        ChatGameManager chatGameManager,
+                                        DpsDummyManager dpsDummyManager) {
 
 
         AddPointsCommand addPointsCmd = new AddPointsCommand();
@@ -246,6 +249,9 @@ public class CommandRegistry {
         ToggleCommand toggleCmd = new ToggleCommand(plugin);
         plugin.getCommand("toggle").setExecutor(toggleCmd);
         plugin.getCommand("toggle").setTabCompleter(toggleCmd);
+        DpsDummyCommand dummyCmd = new DpsDummyCommand(dpsDummyManager);
+        plugin.getCommand("dpsdummy").setExecutor(dummyCmd);
+        plugin.getCommand("dpsdummy").setTabCompleter(dummyCmd);
         plugin.getCommand("skipsong").setExecutor(new SkipSongCommand(plugin));
         AuctionCommand auctionCmd = new AuctionCommand(auctionMgr, auctionGui);
         plugin.getCommand("auctionhouse").setExecutor(auctionCmd);

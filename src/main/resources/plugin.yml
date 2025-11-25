@@ -314,3 +314,6 @@ commands:
   roll:
     description: Roll a number between 1 and 100
     usage: /roll
+  dpsdummy:
+    description: Manage DPS training dummies
+    usage: /dpsdummy <spawn|select|despawn|list>
