@@ -86,9 +86,8 @@ public class DpsDummyManager implements Listener {
 
     /** Attempt to select the dummy the player is currently looking at. */
     public void select(Player player) {
-        LivingEntity lookedAt = player.getTargetEntity(10);
-        LivingEntity target = lookedAt instanceof LivingEntity ? (LivingEntity) lookedAt : null;
-        if (target == null || !dummies.containsKey(target.getUniqueId())) {
+        org.bukkit.entity.Entity lookedAt = player.getTargetEntity(10);
+        if (!(lookedAt instanceof LivingEntity target) || !dummies.containsKey(target.getUniqueId())) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING, "Look at a DPS dummy to select it.");
             return;
         }
