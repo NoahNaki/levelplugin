@@ -63,7 +63,7 @@ public class MercenaryExpeditionRewardsGUI implements Listener {
         ItemMeta meta = info.getItemMeta();
         if (meta != null) {
             List<String> lore = new ArrayList<>();
-            lore.add(ChatColor.GRAY + "Coins: " + ChatColor.GOLD + NumberUtil.format(rewards.coins()));
+            lore.add(ChatColor.GRAY + "Coins: " + ChatColor.GOLD + NumberUtil.formatCommas(rewards.coins()));
             lore.add(ChatColor.GRAY + "Take the pieces you want; the rest are salvaged.");
             meta.setLore(lore);
             info.setItemMeta(meta);
@@ -73,7 +73,7 @@ public class MercenaryExpeditionRewardsGUI implements Listener {
 
         // Credit coins immediately so they aren't lost.
         if (rewards.coins() > 0) {
-            player.sendMessage(ChatColor.GOLD + "You received " + ChatColor.YELLOW + NumberUtil.format(rewards.coins())
+            player.sendMessage(ChatColor.GOLD + "You received " + ChatColor.YELLOW + NumberUtil.formatCommas(rewards.coins())
                     + ChatColor.GOLD + " coins from your expedition.");
             ExpeditionRewards remaining = new ExpeditionRewards();
             rewards.loot().forEach(remaining::addLoot);

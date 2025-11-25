@@ -229,8 +229,8 @@ public class MercenaryExpeditionManager {
         }
         if (coins > 0) {
             economyManager.addCoins(player, coins, false);
-            player.sendMessage(ChatColor.YELLOW + "Unused loot was salvaged for " + ChatColor.GOLD + NumberUtil.format(coins)
-                    + ChatColor.YELLOW + " coins.");
+            player.sendMessage(ChatColor.YELLOW + "Unused loot was salvaged for "
+                    + ChatColor.GOLD + NumberUtil.formatCommas(coins) + ChatColor.YELLOW + " coins.");
         }
     }
 
