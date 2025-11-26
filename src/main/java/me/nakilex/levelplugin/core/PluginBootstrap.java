@@ -248,7 +248,7 @@ public class PluginBootstrap {
             return;
         }
         mobRewardsConfig = new MobRewardsConfig(plugin);
-        towerManager = new me.nakilex.levelplugin.tower.TowerManager(plugin, arenaInstanceManager, mobRewardsConfig);
+        towerManager = new me.nakilex.levelplugin.tower.TowerManager(plugin, dungeonManager, mobRewardsConfig);
         towerGUI = new me.nakilex.levelplugin.tower.TowerGUI(towerManager);
         GuildQuestManager.getInstance().reloadMobCategories();
         codexManager = new CodexManager(playerConfig, mobRewardsConfig, bossConfig);

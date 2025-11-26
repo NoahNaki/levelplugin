@@ -1,11 +1,13 @@
 package me.nakilex.levelplugin.tower;
 
 import io.lumine.mythic.core.mobs.ActiveMob;
-import me.nakilex.levelplugin.arena.instance.ArenaInstance;
-import me.nakilex.levelplugin.arena.instance.ArenaInstanceManager;
+import me.nakilex.levelplugin.dungeon.Dungeon;
+import me.nakilex.levelplugin.dungeon.DungeonManager;
+import me.nakilex.levelplugin.dungeon.RoomTemplate;
 import me.nakilex.levelplugin.mob.config.MobRewardsConfig;
 import me.nakilex.levelplugin.mob.utils.MobNameUtil;
 import me.nakilex.levelplugin.mob.utils.MythicMobModifier;
+import me.nakilex.levelplugin.utils.FileUtil;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -29,9 +31,10 @@ import java.io.IOException;
 import java.util.*;
 
 /**
- * Foundation for an infinite tower using the arena instance as the combat room.
- * Players progress floor-by-floor with a short time limit per stage and a brief
- * intermission between floors.
+ * Foundation for an infinite tower that chains together dungeon templates into
+ * combat arenas and lobby intermissions. Players clear waves of MythicMobs per
+ * floor, visit a lobby for breathing room, and then advance deeper into the
+ * catacombs.
  */
 public class TowerManager implements Listener, Runnable {
 
@@ -39,7 +42,7 @@ public class TowerManager implements Listener, Runnable {
     private static final int BASE_TIME_LIMIT = 75;
 
     private final Plugin plugin;
-    private final ArenaInstanceManager arenaInstanceManager;
+    private final DungeonManager dungeonManager;
     private final Map<UUID, TowerRun> activeRuns = new HashMap<>();
     private final Map<UUID, Integer> playerStages = new HashMap<>();
     private BukkitTask ticker;
@@ -51,9 +54,9 @@ public class TowerManager implements Listener, Runnable {
 
     private final MobRewardsConfig mobRewardsConfig;
 
-    public TowerManager(Plugin plugin, ArenaInstanceManager arenaInstanceManager, MobRewardsConfig mobRewardsConfig) {
+    public TowerManager(Plugin plugin, DungeonManager dungeonManager, MobRewardsConfig mobRewardsConfig) {
         this.plugin = plugin;
-        this.arenaInstanceManager = arenaInstanceManager;
+        this.dungeonManager = dungeonManager;
         this.mobRewardsConfig = mobRewardsConfig;
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
         loadMobPools();
@@ -95,16 +98,28 @@ public class TowerManager implements Listener, Runnable {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING, "You are already in the tower.");
             return;
         }
-        ArenaInstance instance = arenaInstanceManager.createInstance();
-        if (instance == null) {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "The arena room is unavailable right now.");
+        TowerRun run = createRun(player.getUniqueId());
+        if (run == null) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                    "The tower realm failed to generate. Please try again.");
             return;
         }
         int stage = playerStages.getOrDefault(player.getUniqueId(), 1);
-        TowerRun run = new TowerRun(player.getUniqueId(), instance, stage);
+        run.stage = stage;
         activeRuns.put(player.getUniqueId(), run);
-        teleportToArena(player, instance);
+        teleportToArena(player, run);
         startStage(player, run);
+    }
+
+    private TowerRun createRun(UUID playerId) {
+        String worldName = "tower_" + playerId.toString().substring(0, 8) + "_" + System.currentTimeMillis();
+        org.bukkit.World world = dungeonManager.createVoidWorld(worldName);
+        if (world == null) {
+            plugin.getLogger().warning("[TowerDebug] Failed to create tower world for " + playerId);
+            return null;
+        }
+        Dungeon dungeon = new Dungeon(world, worldName);
+        return new TowerRun(playerId, dungeon, world, dungeonManager.getStep());
     }
 
     public void exit(Player player) {
@@ -123,19 +138,28 @@ public class TowerManager implements Listener, Runnable {
             }
             return;
         }
-        arenaInstanceManager.destroyInstance(current.instance);
         saveProgress(current.playerId);
         Location fallback = Bukkit.getWorlds().isEmpty() ? null : Bukkit.getWorlds().get(0).getSpawnLocation();
         if (fallback != null && player != null && player.isOnline()) {
             player.teleport(fallback);
         }
+        destroyRunWorld(current);
         if (!timedOut && player != null) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO, "You leave the tower.");
         }
     }
 
-    private void teleportToArena(Player player, ArenaInstance instance) {
-        player.teleport(instance.getFirstSpawn());
+    private void destroyRunWorld(TowerRun run) {
+        if (run == null || run.world == null) return;
+        Bukkit.unloadWorld(run.world, false);
+        File folder = new File(plugin.getServer().getWorldContainer(), run.world.getName());
+        FileUtil.deleteDirectory(folder);
+    }
+
+    private void teleportToArena(Player player, TowerRun run) {
+        ensureRooms(run, run.stage, isBossStage(run.stage));
+        Location spawn = run.stageCenters.getOrDefault(run.stage, run.origin.clone());
+        player.teleport(spawn.clone().add(0.5, 1.5, 0.5));
     }
 
     private void startStage(Player player, TowerRun run) {
@@ -144,6 +168,7 @@ public class TowerManager implements Listener, Runnable {
         run.timeLimitSeconds = computeTimeLimit(run.stage);
         run.deadline = System.currentTimeMillis() + run.timeLimitSeconds * 1000L;
         boolean boss = isBossStage(run.stage);
+        ensureRooms(run, run.stage, boss);
         spawnWave(run, boss);
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                 ChatColor.YELLOW + "Floor " + run.stage + (boss ? ChatColor.DARK_RED + " (Boss)" : "")
@@ -152,7 +177,7 @@ public class TowerManager implements Listener, Runnable {
 
     private void spawnWave(TowerRun run, boolean boss) {
         int mobCount = boss ? 1 : Math.min(6, 3 + run.stage / 3);
-        Location center = run.instance.getFirstSpawn().clone().add(run.instance.getSecondSpawn()).multiply(0.5);
+        Location center = run.stageCenters.getOrDefault(run.stage, run.origin).clone();
         MobTemplate template = chooseTemplate(boss, run.stage);
         if (template == null) {
             Player player = Bukkit.getPlayer(run.playerId);
@@ -160,15 +185,25 @@ public class TowerManager implements Listener, Runnable {
                 ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
                         "No valid MythicMobs are configured for the tower. Please contact staff.");
             }
+            plugin.getLogger().warning("[TowerDebug] No mob template found for boss=" + boss + " stage=" + run.stage
+                    + " mobPool=" + mobPool.size() + " bossPool=" + bossPool.size());
             exit(player, run, true);
             return;
         }
 
+        plugin.getLogger().info(String.format(Locale.US,
+                "[TowerDebug] Spawning wave stage=%d boss=%s mobs=%d template=%s center=%s",
+                run.stage, boss, mobCount, template.mobId(), formatLoc(center)));
+
         for (int i = 0; i < mobCount; i++) {
             Location spawn = center.clone().add(randomOffset(3.5));
-            ActiveMob mob = spawnMythic(template, spawn, run.stage, boss);
+            ActiveMob mob = spawnModifiedMob(template, spawn, run.stage, boss);
             if (mob != null && mob.getEntity() != null) {
                 run.mobs.add(mob.getEntity().getUniqueId());
+            } else {
+                plugin.getLogger().warning(String.format(Locale.US,
+                        "[TowerDebug] Failed to spawn Mythic mob id=%s at %s (stage=%d)",
+                        template.mobId(), formatLoc(spawn), run.stage));
             }
         }
     }
@@ -187,7 +222,51 @@ public class TowerManager implements Listener, Runnable {
         return stage > 0 && stage % 10 == 0;
     }
 
-    private ActiveMob spawnMythic(MobTemplate template, Location loc, int stage, boolean boss) {
+    private void ensureRooms(TowerRun run, int stage, boolean boss) {
+        if (run.stageCenters.containsKey(stage)) return;
+
+        int offset = (stage - 1) * (run.spacing * 2);
+        Location combatCenter = run.origin.clone().add(offset, 0, 0);
+        RoomTemplate combatTemplate = boss ? dungeonManager.getBoss() : pickCombatTemplate();
+        RoomTemplate lobbyTemplate = pickLobbyTemplate();
+        int combatRotation = random.nextInt(4);
+        int lobbyRotation = random.nextInt(4);
+
+        if (combatTemplate != null) {
+            var result = dungeonManager.pasteRoom(run.dungeon, combatTemplate, combatRotation, combatCenter, null, true);
+            if (!result.success()) {
+                plugin.getLogger().warning(String.format(Locale.US,
+                        "[TowerDebug] Combat room overlap=%.3f prevented paste for stage=%d at %s", result.overlap(), stage,
+                        formatLoc(combatCenter)));
+            }
+            dungeonManager.pasteRoom(run.dungeon, combatTemplate, combatRotation, combatCenter, null, false);
+            run.stageCenters.put(stage, combatCenter);
+            plugin.getLogger().info(String.format(Locale.US,
+                    "[TowerDebug] Built combat room template=%s rotation=%d at %s for stage=%d", identify(combatTemplate),
+                    combatRotation, formatLoc(combatCenter), stage));
+        } else {
+            plugin.getLogger().warning("[TowerDebug] Missing combat template for stage " + stage);
+        }
+
+        if (lobbyTemplate != null) {
+            Location lobbyCenter = combatCenter.clone().add(run.spacing, 0, 0);
+            var result = dungeonManager.pasteRoom(run.dungeon, lobbyTemplate, lobbyRotation, lobbyCenter, null, true);
+            if (!result.success()) {
+                plugin.getLogger().warning(String.format(Locale.US,
+                        "[TowerDebug] Lobby room overlap=%.3f prevented paste for stage=%d at %s", result.overlap(), stage,
+                        formatLoc(lobbyCenter)));
+            }
+            dungeonManager.pasteRoom(run.dungeon, lobbyTemplate, lobbyRotation, lobbyCenter, null, false);
+            run.lobbyCenters.put(stage, lobbyCenter);
+            plugin.getLogger().info(String.format(Locale.US,
+                    "[TowerDebug] Built lobby room template=%s rotation=%d at %s for stage=%d", identify(lobbyTemplate),
+                    lobbyRotation, formatLoc(lobbyCenter), stage));
+        } else {
+            plugin.getLogger().warning("[TowerDebug] Missing lobby template for stage " + stage);
+        }
+    }
+
+    private ActiveMob spawnModifiedMob(MobTemplate template, Location loc, int stage, boolean boss) {
         double tierScale = 1.0 + (template.tier() - 1) * 0.35;
         double stageScale = 1.0 + stage * 0.12;
         double health = (boss ? 240 : 110) * tierScale * stageScale * (boss ? 1.8 : 1.0);
@@ -230,6 +309,36 @@ public class TowerManager implements Listener, Runnable {
         return pool.get(pool.size() - 1);
     }
 
+    private RoomTemplate pickCombatTemplate() {
+        List<RoomTemplate> options = new ArrayList<>();
+        if (dungeonManager.getCombatLeft() != null) options.add(dungeonManager.getCombatLeft());
+        if (dungeonManager.getCombatRight() != null) options.add(dungeonManager.getCombatRight());
+        if (dungeonManager.getHallway() != null) options.add(dungeonManager.getHallway());
+        if (dungeonManager.getLibrary() != null) options.add(dungeonManager.getLibrary());
+        return options.isEmpty() ? null : options.get(random.nextInt(options.size()));
+    }
+
+    private RoomTemplate pickLobbyTemplate() {
+        List<RoomTemplate> options = new ArrayList<>();
+        if (dungeonManager.getLibrary() != null) options.add(dungeonManager.getLibrary());
+        if (dungeonManager.getTreasureLeft() != null) options.add(dungeonManager.getTreasureLeft());
+        if (dungeonManager.getTreasureTRight() != null) options.add(dungeonManager.getTreasureTRight());
+        if (dungeonManager.getDecorChest() != null) options.add(dungeonManager.getDecorChest());
+        if (dungeonManager.getDecorStone() != null) options.add(dungeonManager.getDecorStone());
+        return options.isEmpty() ? null : options.get(random.nextInt(options.size()));
+    }
+
+    private String identify(RoomTemplate template) {
+        if (template == null) return "unknown";
+        return dungeonManager.identifyTemplate(template).name();
+    }
+
+    private String formatLoc(Location loc) {
+        return String.format(Locale.US, "%s:(%.1f,%.1f,%.1f)",
+                loc.getWorld() != null ? loc.getWorld().getName() : "null",
+                loc.getX(), loc.getY(), loc.getZ());
+    }
+
     private void loadMobPools() {
         mobPool.clear();
         bossPool.clear();
@@ -244,6 +353,7 @@ public class TowerManager implements Listener, Runnable {
                     mobPool.add(new MobTemplate(key, tier));
                     maxMobTier = Math.max(maxMobTier, tier);
                 }
+                plugin.getLogger().info("[TowerDebug] Loaded " + mobPool.size() + " tower mobs from mob_rewards.yml");
             }
         }
 
@@ -256,6 +366,7 @@ public class TowerManager implements Listener, Runnable {
                 bossPool.add(new MobTemplate(key, tier));
                 maxBossTier = Math.max(maxBossTier, tier);
             }
+            plugin.getLogger().info("[TowerDebug] Loaded " + bossPool.size() + " tower bosses from field_bosses.yml");
         }
     }
 
@@ -273,7 +384,7 @@ public class TowerManager implements Listener, Runnable {
             TowerRun run = entry.getValue();
             Player player = Bukkit.getPlayer(playerId);
             if (player == null || !player.isOnline()) {
-                arenaInstanceManager.destroyInstance(run.instance);
+                destroyRunWorld(run);
                 iterator.remove();
                 continue;
             }
@@ -300,13 +411,20 @@ public class TowerManager implements Listener, Runnable {
                     if (player != null) {
                         int clearedStage = run.stage;
                         rewardStageClear(player, clearedStage, isBossStage(clearedStage));
+                        ensureRooms(run, clearedStage, isBossStage(clearedStage));
+                        Location lobby = run.lobbyCenters.getOrDefault(clearedStage,
+                                run.stageCenters.getOrDefault(clearedStage, run.origin));
                         run.stage++;
                         playerStages.put(run.playerId, run.stage);
                         saveProgress(run.playerId);
                         run.awaitingNext = true;
                         run.nextStageAt = System.currentTimeMillis() + NEXT_FLOOR_DELAY_SECONDS * 1000L;
                         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                                "Floor cleared! Next floor begins shortly.");
+                                "Floor cleared! Catch your breath in the lobby or type /tower exit.");
+                        player.teleport(lobby.clone().add(0.5, 1.5, 0.5));
+                        plugin.getLogger().info(String.format(Locale.US,
+                                "[TowerDebug] Player %s cleared stage=%d (next=%d) lobby=%s",
+                                player.getName(), clearedStage, run.stage, formatLoc(lobby)));
                     }
                 }
                 break;
@@ -327,7 +445,7 @@ public class TowerManager implements Listener, Runnable {
         UUID id = event.getPlayer().getUniqueId();
         TowerRun run = activeRuns.remove(id);
         if (run != null) {
-            arenaInstanceManager.destroyInstance(run.instance);
+            destroyRunWorld(run);
         }
         saveProgress(id);
     }
@@ -370,18 +488,25 @@ public class TowerManager implements Listener, Runnable {
 
 class TowerRun {
     final UUID playerId;
-    final ArenaInstance instance;
+    final Dungeon dungeon;
+    final org.bukkit.World world;
+    final Location origin;
+    final int spacing;
     int stage;
     long deadline;
     long nextStageAt;
     boolean awaitingNext;
     int timeLimitSeconds;
     final Set<UUID> mobs = new HashSet<>();
+    final Map<Integer, Location> stageCenters = new HashMap<>();
+    final Map<Integer, Location> lobbyCenters = new HashMap<>();
 
-    TowerRun(UUID playerId, ArenaInstance instance, int stage) {
+    TowerRun(UUID playerId, Dungeon dungeon, org.bukkit.World world, int spacing) {
         this.playerId = playerId;
-        this.instance = instance;
-        this.stage = stage;
+        this.dungeon = dungeon;
+        this.world = world;
+        this.spacing = spacing;
+        this.origin = new Location(world, 0, 64, 0);
     }
 }
 
