@@ -213,9 +213,19 @@ public class TowerManager implements Listener, Runnable {
 
         for (int i = 0; i < mobCount; i++) {
             Location spawn = center.clone().add(randomOffset(3.5));
-            run.pendingSpawns.add(new WaveSpawn(template, spawn, boss));
+            ActiveMob mob = spawnModifiedMob(template, spawn, run.stage, boss);
+            double distance = player != null ? player.getLocation().distance(spawn) : 0.0;
+            if (mob != null && mob.getEntity() != null) {
+                run.mobs.add(mob.getEntity().getUniqueId());
+                plugin.getLogger().info(String.format(Locale.US,
+                        "[TowerDebug] Spawned Mythic mob id=%s at %s (stage=%d boss=%s distance=%.2f)",
+                        template.mobId(), formatLoc(spawn), run.stage, boss, distance));
+            } else {
+                plugin.getLogger().warning(String.format(Locale.US,
+                        "[TowerDebug] Failed to spawn Mythic mob id=%s at %s (stage=%d distance=%.2f)",
+                        template.mobId(), formatLoc(spawn), run.stage, distance));
+            }
         }
-        triggerPendingSpawns(run, player);
     }
 
     private void triggerPendingSpawns(TowerRun run, Player player) {
