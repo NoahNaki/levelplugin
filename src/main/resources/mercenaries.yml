@@ -3,12 +3,22 @@ gearscore:
   1410: 1000
   1411: 1200
   1412: 1400
+  1413: 1500
+  1414: 1650
+  1415: 1800
+  1416: 1950
+  1417: 2100
 
 # Combat role for each mercenary, used for party synergy bonuses.
 roles:
   1410: TANK
   1411: DPS
   1412: SUPPORT
+  1413: DPS
+  1414: TANK
+  1415: SUPPORT
+  1416: DPS
+  1417: TANK
 
 # Friendship levels and thresholds (cumulative affinity points).
 levels:
