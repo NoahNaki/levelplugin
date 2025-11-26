@@ -1,14 +1,18 @@
 package me.nakilex.levelplugin.codex;
 
+import me.nakilex.levelplugin.mercenary.MercenaryAffinityManager;
+import me.nakilex.levelplugin.mercenary.gui.MercenaryFriendshipGUI;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.HeadUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
+import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
 import net.citizensnpcs.trait.SkinTrait;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -17,6 +21,8 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.plugin.Plugin;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -36,13 +42,23 @@ public class NpcCodexGUI implements Listener {
     private static final int NEXT_SLOT = 53;
     private static final int BACK_SLOT = 49;
 
+    private final NamespacedKey npcKey;
     private final CodexManager manager;
     private CodexMainGUI mainGui;
+    private final MercenaryAffinityManager affinityManager;
+    private final MercenaryFriendshipGUI friendshipGUI;
     private final Map<UUID, Integer> pageMap = new HashMap<>();
 
-    public NpcCodexGUI(CodexManager manager, CodexMainGUI mainGui) {
+    public NpcCodexGUI(Plugin plugin,
+                       CodexManager manager,
+                       CodexMainGUI mainGui,
+                       MercenaryAffinityManager affinityManager,
+                       MercenaryFriendshipGUI friendshipGUI) {
+        this.npcKey = new NamespacedKey(plugin, "codex_npc_id");
         this.manager = manager;
         this.mainGui = mainGui;
+        this.affinityManager = affinityManager;
+        this.friendshipGUI = friendshipGUI;
     }
 
     public void setMainGui(CodexMainGUI gui) { this.mainGui = gui; }
@@ -104,6 +120,12 @@ public class NpcCodexGUI implements Listener {
                 String bar = TooltipUtil.progressBar(discoveredCount, total, 15);
                 lore.add(bar + " " + ChatColor.YELLOW + discoveredCount + ChatColor.GOLD + "/" + ChatColor.YELLOW + total
                         + ChatColor.GRAY + " (" + ChatColor.YELLOW + Math.round(progress * 100) + "%" + ChatColor.GRAY + ")");
+                if (isMercenary(npc.getId())) {
+                    lore.add(" ");
+                    lore.addAll(TooltipUtil.bulletList("Mercenary affinity tracked."));
+                    lore.addAll(TooltipUtil.clickInstructions("to view affinity & perks", null));
+                    meta.getPersistentDataContainer().set(npcKey, PersistentDataType.INTEGER, npc.getId());
+                }
                 meta.setLore(lore);
                 meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
                 head.setItemMeta(meta);
@@ -141,5 +163,44 @@ public class NpcCodexGUI implements Listener {
         if (slot == BACK_SLOT && mainGui != null) {
             mainGui.open(p);
         }
+
+        ItemStack clicked = e.getCurrentItem();
+        if (clicked == null || clicked.getType() == Material.AIR) {
+            return;
+        }
+
+        Integer npcId = readNpcId(clicked);
+        if (npcId == null) {
+            return;
+        }
+        if (affinityManager == null || friendshipGUI == null) {
+            return;
+        }
+
+        if (!isMercenary(npcId)) {
+            p.sendMessage(ChatColor.RED + "Affinity is not tracked for this NPC.");
+            return;
+        }
+
+        NPC npc = CitizensAPI.getNPCRegistry().getById(npcId);
+        String npcName = npc != null ? ChatColor.stripColor(npc.getName()) : ChatColor.stripColor(clicked.getItemMeta().getDisplayName());
+        if (npcName == null || npcName.isBlank()) {
+            npcName = "Mercenary " + npcId;
+        }
+        affinityManager.loadPlayer(p.getUniqueId());
+        friendshipGUI.open(p, npcId, npcName);
+    }
+
+    private boolean isMercenary(int npcId) {
+        return affinityManager != null && affinityManager.getMercenaryIds().contains(npcId);
+    }
+
+    private Integer readNpcId(ItemStack item) {
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) {
+            return null;
+        }
+        Integer value = meta.getPersistentDataContainer().get(npcKey, PersistentDataType.INTEGER);
+        return value;
     }
 }
