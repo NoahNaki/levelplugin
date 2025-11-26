@@ -32,6 +32,7 @@ public class MercenaryAffinityManager implements org.bukkit.event.Listener {
     private FileConfiguration config;
 
     private final Map<UUID, Map<Integer, MercenaryFriendship>> friendships = new HashMap<>();
+    private final Map<UUID, Long> giftHintCooldowns = new HashMap<>();
 
     public MercenaryAffinityManager(Plugin plugin) {
         this.plugin = plugin;
@@ -201,7 +202,10 @@ public class MercenaryAffinityManager implements org.bukkit.event.Listener {
      * when a valid gift was applied.
      */
     public boolean handGift(Player player, int npcId, String npcName) {
-        MercenaryGift gift = matchGift(player.getInventory().getItemInMainHand());
+        return handGift(player, npcId, npcName, matchGift(player.getInventory().getItemInMainHand()));
+    }
+
+    private boolean handGift(Player player, int npcId, String npcName, MercenaryGift gift) {
         if (gift == null) {
             player.sendMessage(ChatColor.RED + "Hold a mercenary gift in your main hand.");
             return false;
@@ -304,6 +308,30 @@ public class MercenaryAffinityManager implements org.bukkit.event.Listener {
             return;
         }
         Player player = event.getClicker();
-        handGift(player, npcId, event.getNPC().getName());
+        MercenaryGift heldGift = matchGift(player.getInventory().getItemInMainHand());
+        if (!player.isSneaking()) {
+            if (heldGift != null && shouldSendGiftHint(player.getUniqueId())) {
+                player.sendMessage(ChatColor.GRAY + "Sneak + right-click with your gift to give it to "
+                        + ChatColor.GOLD + event.getNPC().getName() + ChatColor.GRAY + ".");
+            }
+            return;
+        }
+
+        if (heldGift == null) {
+            player.sendMessage(ChatColor.RED + "Hold a mercenary gift in your main hand.");
+            return;
+        }
+
+        handGift(player, npcId, event.getNPC().getName(), heldGift);
+    }
+
+    private boolean shouldSendGiftHint(UUID playerId) {
+        long now = System.currentTimeMillis();
+        Long lastHint = giftHintCooldowns.get(playerId);
+        if (lastHint != null && now - lastHint < 3000) {
+            return false;
+        }
+        giftHintCooldowns.put(playerId, now);
+        return true;
     }
 }
