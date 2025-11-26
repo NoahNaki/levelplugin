@@ -169,6 +169,7 @@ public class TowerManager implements Listener, Runnable {
     private void startStage(Player player, TowerRun run) {
         run.awaitingNext = false;
         run.mobs.clear();
+        run.pendingSpawns.clear();
         run.timeLimitSeconds = computeTimeLimit(run.stage);
         run.deadline = System.currentTimeMillis() + run.timeLimitSeconds * 1000L;
         boolean boss = isBossStage(run.stage);
@@ -181,13 +182,13 @@ public class TowerManager implements Listener, Runnable {
             plugin.getLogger().info(String.format(Locale.US,
                     "[TowerDebug] First stage starting from entrance; combat center at %s", formatLoc(combatCenter)));
         }
-        spawnWave(run, boss);
+        spawnWave(run, boss, player);
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                 ChatColor.YELLOW + "Floor " + run.stage + (boss ? ChatColor.DARK_RED + " (Boss)" : "")
                         + ChatColor.GRAY + " started. Clear all Mythic mobs before the timer expires.");
     }
 
-    private void spawnWave(TowerRun run, boolean boss) {
+    private void spawnWave(TowerRun run, boolean boss, Player player) {
         int mobCount = boss ? 1 : Math.min(6, 3 + run.stage / 3);
         boolean usingFallbackCenter = !run.stageCenters.containsKey(run.stage);
         Location center = run.stageCenters.getOrDefault(run.stage, run.origin).clone();
@@ -210,18 +211,44 @@ public class TowerManager implements Listener, Runnable {
         }
 
         plugin.getLogger().info(String.format(Locale.US,
-                "[TowerDebug] Spawning wave stage=%d boss=%s mobs=%d template=%s center=%s",
+                "[TowerDebug] Preparing wave stage=%d boss=%s mobs=%d template=%s center=%s",
                 run.stage, boss, mobCount, template.mobId(), formatLoc(center)));
 
         for (int i = 0; i < mobCount; i++) {
             Location spawn = center.clone().add(randomOffset(3.5));
-            ActiveMob mob = spawnModifiedMob(template, spawn, run.stage, boss);
+            run.pendingSpawns.add(new WaveSpawn(template, spawn, boss));
+        }
+        triggerPendingSpawns(run, player);
+    }
+
+    private void triggerPendingSpawns(TowerRun run, Player player) {
+        if (run.pendingSpawns.isEmpty() || player == null || !player.isOnline()) return;
+        if (!player.getWorld().equals(run.world)) return;
+
+        Iterator<WaveSpawn> iterator = run.pendingSpawns.iterator();
+        while (iterator.hasNext()) {
+            WaveSpawn spawn = iterator.next();
+            if (spawn.location() == null) {
+                iterator.remove();
+                continue;
+            }
+            double distance = player.getLocation().distance(spawn.location());
+            if (distance > 15.0) {
+                continue;
+            }
+
+            ActiveMob mob = spawnModifiedMob(spawn.template(), spawn.location(), run.stage, spawn.boss());
             if (mob != null && mob.getEntity() != null) {
                 run.mobs.add(mob.getEntity().getUniqueId());
+                iterator.remove();
+                plugin.getLogger().info(String.format(Locale.US,
+                        "[TowerDebug] Spawned Mythic mob id=%s at %s (stage=%d boss=%s distance=%.2f)",
+                        spawn.template().mobId(), formatLoc(spawn.location()), run.stage, spawn.boss(), distance));
             } else {
+                iterator.remove();
                 plugin.getLogger().warning(String.format(Locale.US,
-                        "[TowerDebug] Failed to spawn Mythic mob id=%s at %s (stage=%d)",
-                        template.mobId(), formatLoc(spawn), run.stage));
+                        "[TowerDebug] Failed to spawn Mythic mob id=%s at %s (stage=%d distance=%.2f)",
+                        spawn.template().mobId(), formatLoc(spawn.location()), run.stage, distance));
             }
         }
     }
@@ -265,7 +292,7 @@ public class TowerManager implements Listener, Runnable {
             run.lastRotation = run.entranceRotation;
         }
 
-        RoomTemplate combatTemplate = boss ? dungeonManager.getBoss() : pickCombatTemplate();
+        RoomTemplate combatTemplate = pickCombatTemplate();
         RoomTemplate lobbyTemplate = pickLobbyTemplate();
         RoomTemplate anchorTemplate = run.lastTemplate != null ? run.lastTemplate : dungeonManager.getEntrance();
         int anchorRotation = run.lastRotation;
@@ -437,21 +464,19 @@ public class TowerManager implements Listener, Runnable {
 
     private RoomTemplate pickCombatTemplate() {
         List<RoomTemplate> options = new ArrayList<>();
-        if (dungeonManager.getCombatLeft() != null) options.add(dungeonManager.getCombatLeft());
-        if (dungeonManager.getCombatRight() != null) options.add(dungeonManager.getCombatRight());
-        if (dungeonManager.getHallway() != null) options.add(dungeonManager.getHallway());
-        if (dungeonManager.getLibrary() != null) options.add(dungeonManager.getLibrary());
+        if (dungeonManager.getDeadEnd() != null) options.add(dungeonManager.getDeadEnd());
+        if (dungeonManager.getStraight() != null) options.add(dungeonManager.getStraight());
+        if (dungeonManager.getCornerLeft() != null) options.add(dungeonManager.getCornerLeft());
+        if (dungeonManager.getCornerRight() != null) options.add(dungeonManager.getCornerRight());
+        if (dungeonManager.getTJunctionLeft() != null) options.add(dungeonManager.getTJunctionLeft());
+        if (dungeonManager.getTJunctionRight() != null) options.add(dungeonManager.getTJunctionRight());
+        if (dungeonManager.getCrossroad() != null) options.add(dungeonManager.getCrossroad());
         return options.isEmpty() ? null : options.get(random.nextInt(options.size()));
     }
 
     private RoomTemplate pickLobbyTemplate() {
-        List<RoomTemplate> options = new ArrayList<>();
-        if (dungeonManager.getLibrary() != null) options.add(dungeonManager.getLibrary());
-        if (dungeonManager.getTreasureLeft() != null) options.add(dungeonManager.getTreasureLeft());
-        if (dungeonManager.getTreasureTRight() != null) options.add(dungeonManager.getTreasureTRight());
-        if (dungeonManager.getDecorChest() != null) options.add(dungeonManager.getDecorChest());
-        if (dungeonManager.getDecorStone() != null) options.add(dungeonManager.getDecorStone());
-        return options.isEmpty() ? null : options.get(random.nextInt(options.size()));
+        // Lobbies reuse the same basic rooms to keep generation simple and prevent connector mismatches.
+        return pickCombatTemplate();
     }
 
     private String identify(RoomTemplate template) {
@@ -515,6 +540,9 @@ public class TowerManager implements Listener, Runnable {
                 continue;
             }
             Main.getInstance().getScoreboardManager().updateBoard(player);
+            if (!run.awaitingNext) {
+                triggerPendingSpawns(run, player);
+            }
             if (!run.awaitingNext && now > run.deadline) {
                 ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "You ran out of time on this floor.");
                 iterator.remove();
@@ -537,6 +565,7 @@ public class TowerManager implements Listener, Runnable {
                     Player player = Bukkit.getPlayer(run.playerId);
                     if (player != null) {
                         int clearedStage = run.stage;
+                        run.pendingSpawns.clear();
                         rewardStageClear(player, clearedStage, isBossStage(clearedStage));
                         ensureRooms(run, clearedStage, isBossStage(clearedStage));
                         Location lobby = run.lobbyCenters.getOrDefault(clearedStage,
@@ -625,6 +654,7 @@ class TowerRun {
     boolean awaitingNext;
     int timeLimitSeconds;
     final Set<UUID> mobs = new HashSet<>();
+    final List<WaveSpawn> pendingSpawns = new ArrayList<>();
     final Map<Integer, Location> stageCenters = new HashMap<>();
     final Map<Integer, Location> lobbyCenters = new HashMap<>();
     boolean hasEntrance;
@@ -647,4 +677,7 @@ record MobTemplate(String mobId, int tier) {
 }
 
 record Placement(Location center, int rotation) {
+}
+
+record WaveSpawn(MobTemplate template, Location location, boolean boss) {
 }
