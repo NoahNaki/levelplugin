@@ -113,7 +113,7 @@ public class TowerManager implements Listener, Runnable {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING, "You are not inside the tower.");
             return;
         }
-        arenaInstanceManager.destroyInstance(current.instance());
+        arenaInstanceManager.destroyInstance(current.instance);
         saveProgress(current.playerId);
         Location fallback = Bukkit.getWorlds().isEmpty() ? null : Bukkit.getWorlds().get(0).getSpawnLocation();
         if (fallback != null && player.isOnline()) {
@@ -141,7 +141,7 @@ public class TowerManager implements Listener, Runnable {
     private void spawnWave(TowerRun run) {
         boolean boss = run.stage % 10 == 0;
         int mobCount = boss ? 1 : Math.min(6, 3 + run.stage / 3);
-        Location center = run.instance().getFirstSpawn().clone().add(run.instance().getSecondSpawn()).multiply(0.5);
+        Location center = run.instance.getFirstSpawn().clone().add(run.instance.getSecondSpawn()).multiply(0.5);
         for (int i = 0; i < mobCount; i++) {
             Location spawn = center.clone().add(randomOffset(3.5));
             LivingEntity entity = spawnRandomMob(spawn, boss);
@@ -156,15 +156,29 @@ public class TowerManager implements Listener, Runnable {
     private void scaleAttributes(LivingEntity entity, int stage, boolean boss) {
         double health = (30 + stage * 6) * (boss ? 2.5 : 1.0);
         double damage = (3 + stage * 0.8) * (boss ? 1.8 : 1.0);
-        if (entity.getAttribute(Attribute.GENERIC_MAX_HEALTH) != null) {
-            entity.getAttribute(Attribute.GENERIC_MAX_HEALTH).setBaseValue(health);
+        Attribute maxHealth = resolveAttribute("GENERIC_MAX_HEALTH", "MAX_HEALTH");
+        if (maxHealth != null && entity.getAttribute(maxHealth) != null) {
+            entity.getAttribute(maxHealth).setBaseValue(health);
             entity.setHealth(health);
         }
-        if (entity.getAttribute(Attribute.GENERIC_ATTACK_DAMAGE) != null) {
-            entity.getAttribute(Attribute.GENERIC_ATTACK_DAMAGE).setBaseValue(damage);
+        Attribute attack = resolveAttribute("GENERIC_ATTACK_DAMAGE", "ATTACK_DAMAGE");
+        if (attack != null && entity.getAttribute(attack) != null) {
+            entity.getAttribute(attack).setBaseValue(damage);
         }
         entity.setCustomName(ChatColor.RED + "Floor " + stage + (boss ? " Boss" : ""));
         entity.setCustomNameVisible(true);
+    }
+
+    private Attribute resolveAttribute(String generic, String fallback) {
+        try {
+            return Attribute.valueOf(generic);
+        } catch (IllegalArgumentException ignored) {
+        }
+        try {
+            return Attribute.valueOf(fallback);
+        } catch (IllegalArgumentException ignored) {
+            return null;
+        }
     }
 
     private LivingEntity spawnRandomMob(Location loc, boolean boss) {
@@ -201,7 +215,7 @@ public class TowerManager implements Listener, Runnable {
             TowerRun run = entry.getValue();
             Player player = Bukkit.getPlayer(playerId);
             if (player == null || !player.isOnline()) {
-                arenaInstanceManager.destroyInstance(run.instance());
+                arenaInstanceManager.destroyInstance(run.instance);
                 iterator.remove();
                 continue;
             }
@@ -254,7 +268,7 @@ public class TowerManager implements Listener, Runnable {
         UUID id = event.getPlayer().getUniqueId();
         TowerRun run = activeRuns.remove(id);
         if (run != null) {
-            arenaInstanceManager.destroyInstance(run.instance());
+            arenaInstanceManager.destroyInstance(run.instance);
         }
         saveProgress(id);
     }
