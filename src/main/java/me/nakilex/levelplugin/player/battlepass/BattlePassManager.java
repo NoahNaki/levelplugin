@@ -22,6 +22,7 @@ import me.nakilex.levelplugin.quests.data.QuestReward;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
+import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -362,22 +363,25 @@ public class BattlePassManager implements BattlePassProvider {
     }
 
     private void sendLevelUpMessage(Player player, int newTier, int currentProgress, int nextRequired) {
-        ChatMessageUtil.send(
-                player,
-                MessageType.REWARD,
-                ChatColor.YELLOW + "Battle Pass Tier " + ChatColor.GOLD + newTier + ChatColor.YELLOW + " unlocked!"
-        );
+        int clampedProgress = Math.max(0, currentProgress);
+        ChatFormatter.constructDivider(player, "§6§l-", 45);
+        ChatFormatter.sendCenteredMessage(player, "§6§lBATTLE PASS LEVEL UP");
+        ChatFormatter.sendCenteredMessage(player, "");
+        ChatFormatter.sendCenteredMessage(player,
+                ChatColor.GRAY + "You reached " + ChatColor.GOLD + "Tier " + newTier + ChatColor.GRAY + "!");
+
         if (newTier < tiers.size() && nextRequired > 0) {
-            ChatMessageUtil.send(
-                    player,
-                    MessageType.INFO,
-                    ChatColor.GRAY + "Progress to Tier " + (newTier + 1) + ": "
-                            + TooltipUtil.progressBar(currentProgress, nextRequired, 20)
-                            + ChatColor.GRAY + " " + currentProgress + "/" + nextRequired
-            );
+            ChatFormatter.sendCenteredMessage(player, ChatColor.GRAY + "Next Tier Progress:");
+            ChatFormatter.sendCenteredMessage(player,
+                    TooltipUtil.progressBar(clampedProgress, nextRequired, 20)
+                            + ChatColor.GRAY + " " + clampedProgress + "/" + nextRequired);
         } else {
-            ChatMessageUtil.send(player, MessageType.INFO, "All battle pass tiers completed!");
+            ChatFormatter.sendCenteredMessage(player, ChatColor.GREEN + "All battle pass tiers completed!");
         }
+
+        ChatFormatter.sendCenteredMessage(player, ChatColor.GRAY + "Use " + ChatColor.YELLOW + "/battlepass "
+                + ChatColor.GRAY + "to claim rewards.");
+        ChatFormatter.constructDivider(player, "§6§l-", 45);
     }
 
     private Optional<TierDefinition> tierDefinition(int tier) {

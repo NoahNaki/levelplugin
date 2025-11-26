@@ -96,6 +96,7 @@ public class MercenaryExpeditionGUI implements Listener {
     }
 
     public void open(Player player) {
+        pruneParty(player);
         open(player, tabs.getOrDefault(player.getUniqueId(), Tab.PARTY));
     }
 
@@ -260,7 +261,9 @@ public class MercenaryExpeditionGUI implements Listener {
     private void renderParty(Inventory inv, Player player) {
         int slotIndex = 10;
         List<Integer> selected = party.computeIfAbsent(player.getUniqueId(), id -> new ArrayList<>());
-        for (int npcId : affinityManager.getMercenaryIds()) {
+        Set<Integer> unlocked = new HashSet<>(affinityManager.getUnlockedMercenaryIds(player.getUniqueId()));
+        selected.removeIf(id -> !unlocked.contains(id));
+        for (int npcId : affinityManager.getUnlockedMercenaryIds(player.getUniqueId())) {
             boolean isSelected = selected.contains(npcId);
             inv.setItem(slotIndex, createMercenaryIcon(player, npcId, isSelected));
             slotIndex++;
@@ -544,6 +547,18 @@ public class MercenaryExpeditionGUI implements Listener {
         return "Mercenary";
     }
 
+    private void pruneParty(Player player) {
+        if (player == null) {
+            return;
+        }
+        List<Integer> selection = party.get(player.getUniqueId());
+        if (selection == null) {
+            return;
+        }
+        Set<Integer> unlocked = new HashSet<>(affinityManager.getUnlockedMercenaryIds(player.getUniqueId()));
+        selection.removeIf(id -> !unlocked.contains(id));
+    }
+
     private void handlePartyClick(Player player, ItemStack clicked, int slot, ClickType clickType) {
         ItemMeta meta = clicked.getItemMeta();
         if (meta == null) {
@@ -557,6 +572,10 @@ public class MercenaryExpeditionGUI implements Listener {
         int level = affinityManager.getFriendship(player.getUniqueId(), npcId).getLevel();
         if (clickType.isRightClick()) {
             friendshipGUI.open(player, npcId, getNpcName(npcId));
+            return;
+        }
+        if (!affinityManager.isUnlocked(player.getUniqueId(), npcId)) {
+            player.sendMessage(ChatColor.RED + "Meet this mercenary in the Codex before deploying them.");
             return;
         }
         if (level < 3) {
