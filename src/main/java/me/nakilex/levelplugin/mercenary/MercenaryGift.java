@@ -34,10 +34,8 @@ public final class MercenaryGift {
                     finalLore.add(ChatColor.translateAlternateColorCodes('&', line));
                 }
             }
-            finalLore.addAll(TooltipUtil.bulletList(
-                    "Gives " + affinityValue + " affinity",
-                    "Sneak-right-click a mercenary to gift"
-            ));
+            finalLore.addAll(TooltipUtil.bulletList("Gives " + affinityValue + " affinity"));
+            finalLore.addAll(TooltipUtil.sneakClickInstructions(null, "to gift to mercenaries"));
             meta.setLore(finalLore);
             meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ENCHANTS);
             this.icon.setItemMeta(meta);

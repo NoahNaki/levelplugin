@@ -4,7 +4,6 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.mercenary.gui.MercenaryExpeditionGUI;
 import me.nakilex.levelplugin.mercenary.gui.MercenaryExpeditionRewardsGUI;
 import me.nakilex.levelplugin.mercenary.gui.MercenaryFriendshipGUI;
-import me.nakilex.levelplugin.mercenary.gui.MercenaryGiftBrowserGUI;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -16,7 +15,6 @@ public class ExpeditionCommand implements CommandExecutor {
     private final Main plugin;
     private final MercenaryAffinityManager affinityManager;
     private final MercenaryExpeditionManager expeditionManager;
-    private final MercenaryGiftBrowserGUI giftBrowserGUI;
     private final MercenaryFriendshipGUI friendshipGUI;
     private final MercenaryExpeditionGUI expeditionGUI;
     private final MercenaryExpeditionRewardsGUI rewardsGUI;
@@ -24,14 +22,12 @@ public class ExpeditionCommand implements CommandExecutor {
     public ExpeditionCommand(Main plugin,
                              MercenaryAffinityManager affinityManager,
                              MercenaryExpeditionManager expeditionManager,
-                             MercenaryGiftBrowserGUI giftBrowserGUI,
                              MercenaryFriendshipGUI friendshipGUI,
                              MercenaryExpeditionGUI expeditionGUI,
                              MercenaryExpeditionRewardsGUI rewardsGUI) {
         this.plugin = plugin;
         this.affinityManager = affinityManager;
         this.expeditionManager = expeditionManager;
-        this.giftBrowserGUI = giftBrowserGUI;
         this.friendshipGUI = friendshipGUI;
         this.expeditionGUI = expeditionGUI;
         this.rewardsGUI = rewardsGUI;
@@ -46,11 +42,6 @@ public class ExpeditionCommand implements CommandExecutor {
 
         if (args.length == 0) {
             expeditionGUI.open(player);
-            return true;
-        }
-
-        if ("giftbrowser".equalsIgnoreCase(args[0]) || "gifts".equalsIgnoreCase(args[0])) {
-            giftBrowserGUI.open(player);
             return true;
         }
 
@@ -74,7 +65,7 @@ public class ExpeditionCommand implements CommandExecutor {
             expeditionGUI.open(player);
             return true;
         } catch (NumberFormatException e) {
-            player.sendMessage(ChatColor.RED + "Usage: /expedition [gifts|giftbrowser|rewards|<npcId>]");
+            player.sendMessage(ChatColor.RED + "Usage: /expedition [rewards|<npcId>]");
             return true;
         }
     }

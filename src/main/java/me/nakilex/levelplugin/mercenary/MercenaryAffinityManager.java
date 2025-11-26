@@ -1,5 +1,6 @@
 package me.nakilex.levelplugin.mercenary;
 
+import me.nakilex.levelplugin.utils.TextUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import net.citizensnpcs.api.event.NPCRightClickEvent;
 import org.bukkit.Bukkit;
@@ -176,6 +177,10 @@ public class MercenaryAffinityManager implements org.bukkit.event.Listener {
 
     public MercenaryRole getRole(int npcId) {
         return roles.getOrDefault(npcId, MercenaryRole.DPS);
+    }
+
+    public String getRoleLabel(int npcId) {
+        return TextUtil.beautifyWords(getRole(npcId).name());
     }
 
     public List<String> getBenefits(int level) {

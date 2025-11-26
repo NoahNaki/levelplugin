@@ -5,7 +5,6 @@ import me.nakilex.levelplugin.mercenary.ExpeditionDefinition;
 import me.nakilex.levelplugin.mercenary.MercenaryAffinityManager;
 import me.nakilex.levelplugin.mercenary.MercenaryExpeditionManager;
 import me.nakilex.levelplugin.mercenary.MercenaryFriendship;
-import me.nakilex.levelplugin.mercenary.MercenaryRole;
 import me.nakilex.levelplugin.mercenary.gui.MercenaryExpeditionRewardsGUI.RewardView;
 import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.utils.GuiUtil;
@@ -138,7 +137,7 @@ public class MercenaryExpeditionGUI implements Listener {
             meta.setDisplayName(ChatColor.GOLD + "Selected Mercenaries" + ChatColor.GRAY + " (" + selected.size() + "/3)");
             List<String> lore = new ArrayList<>();
             for (int id : selected) {
-                lore.add(ChatColor.GRAY + getNpcName(id) + ChatColor.WHITE + " • " + ChatColor.YELLOW + affinityManager.getRole(id));
+                lore.add(ChatColor.GRAY + getNpcName(id) + ChatColor.WHITE + " • " + ChatColor.YELLOW + affinityManager.getRoleLabel(id));
             }
             if (lore.isEmpty()) {
                 lore.add(ChatColor.DARK_GRAY + "No mercenaries selected.");
@@ -223,7 +222,6 @@ public class MercenaryExpeditionGUI implements Listener {
             int gs = affinityManager.getGearScore(npcId);
             MercenaryFriendship friendship = affinityManager.getFriendship(player.getUniqueId(), npcId);
             int level = friendship.getLevel();
-            MercenaryRole role = affinityManager.getRole(npcId);
             int currentThreshold = affinityManager.thresholdForLevel(level);
             int nextThreshold = affinityManager.thresholdForLevel(Math.min(5, level + 1));
             int progressCurrent = Math.max(0, friendship.getPoints() - currentThreshold);
@@ -236,7 +234,7 @@ public class MercenaryExpeditionGUI implements Listener {
 
             List<String> lore = new ArrayList<>();
             lore.addAll(TooltipUtil.bulletList(
-                    "Role: " + ChatColor.YELLOW + role.name(),
+                    "Role: " + ChatColor.YELLOW + affinityManager.getRoleLabel(npcId),
                     "Gear Score: " + ChatColor.GREEN + NumberUtil.formatCommas(gs),
                     "Friendship: " + ChatColor.AQUA + level + ChatColor.DARK_GRAY + "/5"
             ));

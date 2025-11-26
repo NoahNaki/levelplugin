@@ -328,11 +328,12 @@ public class CommandRegistry {
                 plugin,
                 plugin.getMercenaryAffinityManager(),
                 plugin.getMercenaryExpeditionManager(),
-                plugin.getMercenaryGiftBrowserGUI(),
                 plugin.getMercenaryFriendshipGUI(),
                 plugin.getMercenaryExpeditionGUI(),
                 plugin.getMercenaryExpeditionRewardsGUI());
         plugin.getCommand("expedition").setExecutor(expeditionCmd);
+        plugin.getCommand("giftbrowser").setExecutor(
+                new me.nakilex.levelplugin.mercenary.GiftBrowserCommand(plugin.getMercenaryGiftBrowserGUI()));
 
         ChatCommand channelCmd = new ChatCommand(plugin);
         plugin.getCommand("chat").setExecutor(channelCmd);
