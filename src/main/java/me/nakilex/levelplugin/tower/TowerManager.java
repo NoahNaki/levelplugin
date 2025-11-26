@@ -162,8 +162,8 @@ public class TowerManager implements Listener, Runnable {
 
     private void teleportToArena(Player player, TowerRun run) {
         ensureRooms(run, run.stage, isBossStage(run.stage));
-        Location spawn = run.stageCenters.getOrDefault(run.stage, run.origin.clone());
-        player.teleport(spawn.clone().add(0.5, 1.5, 0.5));
+        Location spawn = run.origin.clone();
+        player.teleport(spawn.add(0.5, 1.5, 0.5));
     }
 
     private void startStage(Player player, TowerRun run) {
@@ -173,6 +173,14 @@ public class TowerManager implements Listener, Runnable {
         run.deadline = System.currentTimeMillis() + run.timeLimitSeconds * 1000L;
         boolean boss = isBossStage(run.stage);
         ensureRooms(run, run.stage, boss);
+        Location combatCenter = run.stageCenters.getOrDefault(run.stage, run.origin);
+        if (run.hasEnteredCombat) {
+            player.teleport(combatCenter.clone().add(0.5, 1.5, 0.5));
+        } else {
+            run.hasEnteredCombat = true;
+            plugin.getLogger().info(String.format(Locale.US,
+                    "[TowerDebug] First stage starting from entrance; combat center at %s", formatLoc(combatCenter)));
+        }
         spawnWave(run, boss);
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                 ChatColor.YELLOW + "Floor " + run.stage + (boss ? ChatColor.DARK_RED + " (Boss)" : "")
@@ -181,7 +189,13 @@ public class TowerManager implements Listener, Runnable {
 
     private void spawnWave(TowerRun run, boolean boss) {
         int mobCount = boss ? 1 : Math.min(6, 3 + run.stage / 3);
+        boolean usingFallbackCenter = !run.stageCenters.containsKey(run.stage);
         Location center = run.stageCenters.getOrDefault(run.stage, run.origin).clone();
+        if (usingFallbackCenter) {
+            plugin.getLogger().warning(String.format(Locale.US,
+                    "[TowerDebug] Using fallback center for stage=%d because no placement was recorded; origin=%s", run.stage,
+                    formatLoc(center)));
+        }
         MobTemplate template = chooseTemplate(boss, run.stage);
         if (template == null) {
             Player player = Bukkit.getPlayer(run.playerId);
@@ -614,6 +628,7 @@ class TowerRun {
     final Map<Integer, Location> stageCenters = new HashMap<>();
     final Map<Integer, Location> lobbyCenters = new HashMap<>();
     boolean hasEntrance;
+    boolean hasEnteredCombat;
     int entranceRotation;
     RoomTemplate lastTemplate;
     int lastRotation;
