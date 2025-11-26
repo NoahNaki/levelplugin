@@ -1,26 +1,26 @@
 package me.nakilex.levelplugin.tower;
 
+import io.lumine.mythic.core.mobs.ActiveMob;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.arena.instance.ArenaInstance;
 import me.nakilex.levelplugin.arena.instance.ArenaInstanceManager;
+import me.nakilex.levelplugin.mob.config.MobRewardsConfig;
+import me.nakilex.levelplugin.mob.utils.MobNameUtil;
+import me.nakilex.levelplugin.mob.utils.MythicMobModifier;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.attribute.Attribute;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
-import org.bukkit.entity.Skeleton;
-import org.bukkit.entity.Zombie;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
@@ -45,11 +45,16 @@ public class TowerManager implements Listener, Runnable {
     private final Map<UUID, Integer> playerStages = new HashMap<>();
     private BukkitTask ticker;
     private final Random random = new Random();
+    private final List<MobTemplate> mobPool = new ArrayList<>();
+    private final List<MobTemplate> bossPool = new ArrayList<>();
+    private int maxMobTier = 1;
+    private int maxBossTier = 1;
 
     public TowerManager(Plugin plugin, ArenaInstanceManager arenaInstanceManager) {
         this.plugin = plugin;
         this.arenaInstanceManager = arenaInstanceManager;
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
+        loadMobPools();
         startTicker();
     }
 
@@ -105,21 +110,24 @@ public class TowerManager implements Listener, Runnable {
     }
 
     private void exit(Player player, TowerRun run, boolean timedOut) {
-        TowerRun current = activeRuns.remove(player.getUniqueId());
+        UUID playerId = player != null ? player.getUniqueId() : (run != null ? run.playerId : null);
+        TowerRun current = playerId != null ? activeRuns.remove(playerId) : null;
         if (current == null) {
             current = run;
         }
         if (current == null) {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING, "You are not inside the tower.");
+            if (player != null) {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING, "You are not inside the tower.");
+            }
             return;
         }
         arenaInstanceManager.destroyInstance(current.instance);
         saveProgress(current.playerId);
         Location fallback = Bukkit.getWorlds().isEmpty() ? null : Bukkit.getWorlds().get(0).getSpawnLocation();
-        if (fallback != null && player.isOnline()) {
+        if (fallback != null && player != null && player.isOnline()) {
             player.teleport(fallback);
         }
-        if (!timedOut) {
+        if (!timedOut && player != null) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO, "You leave the tower.");
         }
     }
@@ -133,66 +141,34 @@ public class TowerManager implements Listener, Runnable {
         run.mobs.clear();
         run.timeLimitSeconds = computeTimeLimit(run.stage);
         run.deadline = System.currentTimeMillis() + run.timeLimitSeconds * 1000L;
-        spawnWave(run);
+        boolean boss = isBossStage(run.stage);
+        spawnWave(run, boss);
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
-                ChatColor.YELLOW + "Floor " + run.stage + ChatColor.GRAY + " begins. Clear it before the timer expires!");
+                ChatColor.YELLOW + "Floor " + run.stage + (boss ? ChatColor.DARK_RED + " (Boss)" : "")
+                        + ChatColor.GRAY + " started. Clear all Mythic mobs before the timer expires.");
     }
 
-    private void spawnWave(TowerRun run) {
-        boolean boss = run.stage % 10 == 0;
+    private void spawnWave(TowerRun run, boolean boss) {
         int mobCount = boss ? 1 : Math.min(6, 3 + run.stage / 3);
         Location center = run.instance.getFirstSpawn().clone().add(run.instance.getSecondSpawn()).multiply(0.5);
+        MobTemplate template = chooseTemplate(boss, run.stage);
+        if (template == null) {
+            Player player = Bukkit.getPlayer(run.playerId);
+            if (player != null) {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                        "No valid MythicMobs are configured for the tower. Please contact staff.");
+            }
+            exit(player, run, true);
+            return;
+        }
+
         for (int i = 0; i < mobCount; i++) {
             Location spawn = center.clone().add(randomOffset(3.5));
-            LivingEntity entity = spawnRandomMob(spawn, boss);
-            if (entity == null) {
-                continue;
+            ActiveMob mob = spawnMythic(template, spawn, run.stage, boss);
+            if (mob != null && mob.getEntity() != null) {
+                run.mobs.add(mob.getEntity().getUUID());
             }
-            scaleAttributes(entity, run.stage, boss);
-            run.mobs.add(entity.getUniqueId());
         }
-    }
-
-    private void scaleAttributes(LivingEntity entity, int stage, boolean boss) {
-        double health = (30 + stage * 6) * (boss ? 2.5 : 1.0);
-        double damage = (3 + stage * 0.8) * (boss ? 1.8 : 1.0);
-        Attribute maxHealth = resolveAttribute("GENERIC_MAX_HEALTH", "MAX_HEALTH");
-        if (maxHealth != null && entity.getAttribute(maxHealth) != null) {
-            entity.getAttribute(maxHealth).setBaseValue(health);
-            entity.setHealth(health);
-        }
-        Attribute attack = resolveAttribute("GENERIC_ATTACK_DAMAGE", "ATTACK_DAMAGE");
-        if (attack != null && entity.getAttribute(attack) != null) {
-            entity.getAttribute(attack).setBaseValue(damage);
-        }
-        entity.setCustomName(ChatColor.RED + "Floor " + stage + (boss ? " Boss" : ""));
-        entity.setCustomNameVisible(true);
-    }
-
-    private Attribute resolveAttribute(String generic, String fallback) {
-        try {
-            return Attribute.valueOf(generic);
-        } catch (IllegalArgumentException ignored) {
-        }
-        try {
-            return Attribute.valueOf(fallback);
-        } catch (IllegalArgumentException ignored) {
-            return null;
-        }
-    }
-
-    private LivingEntity spawnRandomMob(Location loc, boolean boss) {
-        LivingEntity spawned;
-        if (boss) {
-            spawned = loc.getWorld().spawn(loc, Zombie.class, z -> z.getEquipment().setItemInMainHand(new ItemStack(Material.IRON_SWORD)));
-        } else {
-            spawned = switch (random.nextInt(3)) {
-                case 0 -> loc.getWorld().spawn(loc, Zombie.class);
-                case 1 -> loc.getWorld().spawn(loc, Skeleton.class);
-                default -> loc.getWorld().spawn(loc, Zombie.class);
-            };
-        }
-        return spawned;
     }
 
     private Vector randomOffset(double radius) {
@@ -203,6 +179,83 @@ public class TowerManager implements Listener, Runnable {
 
     private int computeTimeLimit(int stage) {
         return BASE_TIME_LIMIT + Math.min(90, stage * 3);
+    }
+
+    private boolean isBossStage(int stage) {
+        return stage > 0 && stage % 10 == 0;
+    }
+
+    private ActiveMob spawnMythic(MobTemplate template, Location loc, int stage, boolean boss) {
+        double tierScale = 1.0 + (template.tier - 1) * 0.35;
+        double stageScale = 1.0 + stage * 0.12;
+        double health = (boss ? 240 : 110) * tierScale * stageScale * (boss ? 1.8 : 1.0);
+        double damage = (boss ? 18 : 8) * tierScale * (1 + stage * 0.08) * (boss ? 1.75 : 1.0);
+
+        ActiveMob mob = MythicMobModifier.spawnModifiedMob(template.mobId, loc, health, damage, null, null);
+        if (mob != null && mob.getEntity() != null) {
+            LivingEntity entity = (LivingEntity) mob.getEntity().getBukkitEntity();
+            String name = MobNameUtil.getDisplayName(template.mobId);
+            entity.setCustomName(ChatColor.RED + name + ChatColor.GRAY + " [F" + stage + (boss ? " Boss" : "") + "]");
+            entity.setCustomNameVisible(true);
+        }
+        return mob;
+    }
+
+    private MobTemplate chooseTemplate(boolean boss, int stage) {
+        List<MobTemplate> pool = boss ? bossPool : mobPool;
+        if (pool.isEmpty()) return null;
+
+        int maxTier = boss ? maxBossTier : maxMobTier;
+        int targetTier = Math.min(maxTier, Math.max(1, (stage + 2) / 3));
+
+        double totalWeight = 0.0;
+        List<Double> weights = new ArrayList<>(pool.size());
+        for (MobTemplate template : pool) {
+            int distance = Math.abs(template.tier - targetTier);
+            double weight = 1.0 / (1 + distance);
+            weights.add(weight);
+            totalWeight += weight;
+        }
+
+        double roll = random.nextDouble() * totalWeight;
+        double cursor = 0.0;
+        for (int i = 0; i < pool.size(); i++) {
+            cursor += weights.get(i);
+            if (roll <= cursor) {
+                return pool.get(i);
+            }
+        }
+        return pool.get(pool.size() - 1);
+    }
+
+    private void loadMobPools() {
+        mobPool.clear();
+        bossPool.clear();
+        maxMobTier = 1;
+        maxBossTier = 1;
+
+        MobRewardsConfig config = Main.getInstance().getMobRewardsConfig();
+        if (config != null) {
+            ConfigurationSection section = config.getConfig().getConfigurationSection("mobs");
+            if (section != null) {
+                for (String key : section.getKeys(false)) {
+                    int tier = section.getInt(key + ".tier", 1);
+                    mobPool.add(new MobTemplate(key, tier));
+                    maxMobTier = Math.max(maxMobTier, tier);
+                }
+            }
+        }
+
+        File bossFile = new File(plugin.getDataFolder(), "field_bosses.yml");
+        FileConfiguration bossCfg = YamlConfiguration.loadConfiguration(bossFile);
+        ConfigurationSection bossSection = bossCfg.getConfigurationSection("mobs");
+        if (bossSection != null) {
+            for (String key : bossSection.getKeys(false)) {
+                int tier = bossSection.getInt(key + ".tier", 1);
+                bossPool.add(new MobTemplate(key, tier));
+                maxBossTier = Math.max(maxBossTier, tier);
+            }
+        }
     }
 
     @Override
@@ -241,7 +294,7 @@ public class TowerManager implements Listener, Runnable {
                     Player player = Bukkit.getPlayer(run.playerId);
                     if (player != null) {
                         int clearedStage = run.stage;
-                        rewardStageClear(player, clearedStage);
+                        rewardStageClear(player, clearedStage, isBossStage(clearedStage));
                         run.stage++;
                         playerStages.put(run.playerId, run.stage);
                         saveProgress(run.playerId);
@@ -256,11 +309,12 @@ public class TowerManager implements Listener, Runnable {
         }
     }
 
-    private void rewardStageClear(Player player, int stage) {
-        int coins = 50 + stage * 10;
-        Main.getInstance().getEconomyManager().addCoins(player.getUniqueId(), coins);
+    private void rewardStageClear(Player player, int stage, boolean boss) {
+        int sigils = (int) Math.round((12 + stage * 2.5) * (boss ? 2.5 : 1.0));
+        Main.getInstance().getSigilManager().addUnits(player, sigils);
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.REWARD,
-                ChatColor.GOLD + "+" + coins + " coins" + ChatColor.GRAY + " for clearing floor " + stage + ".");
+                ChatColor.AQUA + "+" + sigils + " Soul Sigils" + ChatColor.GRAY + " for clearing floor "
+                        + stage + (boss ? ChatColor.DARK_RED + " (Boss)" + ChatColor.GRAY + "." : ChatColor.GRAY + "."));
     }
 
     @EventHandler
@@ -324,4 +378,7 @@ class TowerRun {
         this.instance = instance;
         this.stage = stage;
     }
+}
+
+record MobTemplate(String mobId, int tier) {
 }

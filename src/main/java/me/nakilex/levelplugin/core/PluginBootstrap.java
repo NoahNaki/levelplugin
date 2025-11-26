@@ -12,6 +12,7 @@ import me.nakilex.levelplugin.booster.GlobalBoosterManager;
 import me.nakilex.levelplugin.economy.gui.GemExchangeGUI;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.economy.managers.GemsManager;
+import me.nakilex.levelplugin.economy.managers.SigilManager;
 import me.nakilex.levelplugin.arena.ArenaMode;
 import me.nakilex.levelplugin.arena.ArenaQueueManager;
 import me.nakilex.levelplugin.arena.match.ArenaCombatTracker;
@@ -154,6 +155,7 @@ public class PluginBootstrap {
     private FileConfiguration bossConfig;
     private File bossConfigFile;
     private GemsManager gemsManager;
+    private SigilManager sigilManager;
     private GemExchangeGUI gemGui;
     private me.nakilex.levelplugin.enchanting.managers.EnchantManager enchantManager;
     private me.nakilex.levelplugin.enchanting.gui.EnchantGUI enchantGUI;
@@ -333,6 +335,7 @@ public class PluginBootstrap {
         guildSiegeManager.init(plugin);
         gemsManager = new GemsManager();
         gemGui = new GemExchangeGUI(plugin, gemsManager);
+        sigilManager = new SigilManager();
         auctionHouseManager = new me.nakilex.levelplugin.auctionhouse.AuctionHouseManager(plugin, economyManager);
         auctionHouseGUI = new me.nakilex.levelplugin.auctionhouse.AuctionHouseGUI(plugin, auctionHouseManager, economyManager);
         tipsCfg = new TipsConfigManager(plugin);
@@ -665,6 +668,7 @@ public class PluginBootstrap {
     public FileConfiguration getBossConfig() { return bossConfig; }
     public File getBossConfigFile() { return bossConfigFile; }
     public GemsManager getGemsManager() { return gemsManager; }
+    public SigilManager getSigilManager() { return sigilManager; }
     public GemExchangeGUI getGemGui() { return gemGui; }
     public me.nakilex.levelplugin.enchanting.managers.EnchantManager getEnchantManager() { return enchantManager; }
     public me.nakilex.levelplugin.enchanting.gui.EnchantGUI getEnchantGUI() { return enchantGUI; }

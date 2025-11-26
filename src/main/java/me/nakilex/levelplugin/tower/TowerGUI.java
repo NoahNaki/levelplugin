@@ -48,8 +48,8 @@ public class TowerGUI implements Listener {
                 .border();
 
         builder.setItem(SUMMARY_SLOT, buildSummary(player));
-        builder.setItem(ENTER_SLOT, GuiUtil.getNexoItem("sword", ChatColor.GREEN + "Enter Current Floor"));
-        builder.setItem(EXIT_SLOT, GuiUtil.getNexoItem("cross", ChatColor.RED + "Exit Tower"));
+        builder.setItem(ENTER_SLOT, buildEnter());
+        builder.setItem(EXIT_SLOT, buildExit());
         return builder.build();
     }
 
@@ -70,13 +70,39 @@ public class TowerGUI implements Listener {
                 lore.add(ChatColor.GRAY + "Mobs remaining: " + ChatColor.WHITE + status.mobsRemaining());
             }
             lore.add(" ");
-            lore.addAll(TooltipUtil.bulletList("Boss floors appear every 10 stages.",
-                    "Rewards grow with each clear.",
-                    "Leave anytime with /tower exit."));
+            lore.addAll(TooltipUtil.bulletList(
+                    ChatColor.AQUA + "Soul Sigils" + ChatColor.GRAY + " awarded per clear.",
+                    "Mythic mobs rotate from mob_rewards.yml.",
+                    "Bosses pull from field_bosses.yml every 10 floors.",
+                    "Leave anytime with /tower exit."
+            ));
             meta.setLore(lore);
             book.setItemMeta(meta);
         }
         return book;
+    }
+
+    private ItemStack buildEnter() {
+        ItemStack item = GuiUtil.getNexoItem("sword", ChatColor.GREEN + "Enter Current Floor");
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            List<String> lore = new ArrayList<>();
+            lore.add(ChatColor.GRAY + "Clear waves before the timer ends.");
+            lore.addAll(TooltipUtil.clickInstructions("Enter the tower", null));
+            meta.setLore(lore);
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
+    private ItemStack buildExit() {
+        ItemStack item = GuiUtil.getNexoItem("cross", ChatColor.RED + "Exit Tower");
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setLore(TooltipUtil.clickInstructions("Leave your current run", null));
+            item.setItemMeta(meta);
+        }
+        return item;
     }
 
     @EventHandler
