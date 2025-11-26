@@ -199,7 +199,6 @@ public class TowerManager implements Listener, Runnable {
         }
         MobTemplate template = chooseTemplate(boss, run.stage);
         if (template == null) {
-            Player player = Bukkit.getPlayer(run.playerId);
             if (player != null) {
                 ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
                         "No valid MythicMobs are configured for the tower. Please contact staff.");
