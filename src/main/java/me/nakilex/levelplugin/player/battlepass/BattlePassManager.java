@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.player.battlepass;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.items.data.ItemRarity;
 import me.nakilex.levelplugin.items.managers.ItemManager;
+import me.nakilex.levelplugin.mercenary.MercenaryAffinityManager;
 import me.nakilex.levelplugin.player.battlepass.data.BattlePassEntry;
 import me.nakilex.levelplugin.player.battlepass.data.BattlePassReward;
 import me.nakilex.levelplugin.player.battlepass.data.BattlePassRewardContext;
@@ -19,6 +20,7 @@ import me.nakilex.levelplugin.potions.data.PotionTemplate;
 import me.nakilex.levelplugin.potions.managers.PotionManager;
 import me.nakilex.levelplugin.quests.data.QuestReward;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
+import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
 import me.nakilex.levelplugin.utils.TooltipUtil;
@@ -94,7 +96,9 @@ public class BattlePassManager implements BattlePassProvider {
         if (player == null) {
             return;
         }
-        addProgressInternal(player, amount);
+        if (addProgressInternal(player, amount)) {
+            sendProgressMessage(player, amount, reason);
+        }
     }
 
     private boolean addProgressInternal(Player player, int amount) {
@@ -126,6 +130,41 @@ public class BattlePassManager implements BattlePassProvider {
         }
         persist(player.getUniqueId());
         return true;
+    }
+
+    private void sendProgressMessage(Player player, int added, String reason) {
+        PlayerProgress progress = progress(player.getUniqueId());
+        boolean completed = progress.tier >= tiers.size();
+        int nextTier = Math.min(progress.tier + 1, tiers.size());
+        int required = completed ? 0 : xpRequiredForTier(progress.tier + 1);
+        int current = completed ? 0 : Math.min(progress.progress, required);
+
+        ChatFormatter.constructDivider(player, "§6§l-", 45);
+        ChatFormatter.sendCenteredMessage(player, "§6§lBATTLE PASS PROGRESS");
+        ChatFormatter.sendCenteredMessage(player, "");
+
+        StringBuilder gainLine = new StringBuilder()
+                .append(ChatColor.GRAY).append("You gained ")
+                .append(ChatColor.GOLD).append(added)
+                .append(ChatColor.GRAY).append(" Battle Pass XP");
+        if (reason != null && !reason.isBlank()) {
+            gainLine.append(ChatColor.GRAY).append(" ").append(reason);
+        }
+        ChatFormatter.sendCenteredMessage(player, gainLine.toString());
+
+        if (completed) {
+            ChatFormatter.sendCenteredMessage(player, ChatColor.GREEN + "All battle pass tiers completed!");
+        } else {
+            ChatFormatter.sendCenteredMessage(player,
+                    ChatColor.GRAY + "Tier " + ChatColor.YELLOW + nextTier + ChatColor.GRAY + " Progress:");
+            ChatFormatter.sendCenteredMessage(player,
+                    TooltipUtil.progressBar(current, required, 20)
+                            + ChatColor.GRAY + " " + current + "/" + required);
+        }
+
+        ChatFormatter.sendCenteredMessage(player, ChatColor.GRAY + "Use " + ChatColor.YELLOW + "/battlepass "
+                + ChatColor.GRAY + "to claim rewards.");
+        ChatFormatter.constructDivider(player, "§6§l-", 45);
     }
 
     public boolean setPremium(UUID uuid, boolean active) {
@@ -331,6 +370,22 @@ public class BattlePassManager implements BattlePassProvider {
         return () -> ClassEssence.generateEssence(target, raritySafe, stars);
     }
 
+    private Supplier<ItemStack> mercenaryGift(String giftId, int amount) {
+        int count = Math.max(1, amount);
+        return () -> {
+            MercenaryAffinityManager affinity = plugin.getMercenaryAffinityManager();
+            if (affinity == null) {
+                return new ItemStack(Material.AIR);
+            }
+            ItemStack gift = affinity.createGiftItem(giftId);
+            if (gift == null) {
+                return new ItemStack(Material.AIR);
+            }
+            gift.setAmount(count);
+            return gift;
+        };
+    }
+
     private ItemStack createPotionStack(String templateId) {
         PotionManager potionManager = plugin.getPotionManager();
         if (potionManager == null || templateId == null || templateId.isBlank()) {
@@ -454,6 +509,18 @@ public class BattlePassManager implements BattlePassProvider {
 
         defs.add(new TierDefinition(tier++,
                 BattlePassRewardDefinition.builder()
+                        .displayName("Mercenary Welcome Parcel")
+                        .xp(750)
+                        .directItem("Blossom Bundle", 3, mercenaryGift("blossom_bundle", 3))
+                        .build(),
+                BattlePassRewardDefinition.builder()
+                        .displayName("Veteran's Tribute")
+                        .coins(1200)
+                        .directItem("Heroic Token", 2, mercenaryGift("heroic_token", 2))
+                        .build()));
+
+        defs.add(new TierDefinition(tier++,
+                BattlePassRewardDefinition.builder()
                         .displayName("Sealed Essence Kit")
                         .directItem("Sealing Charm", 2, sealingCharm(2))
                         .xp(1200)
@@ -504,6 +571,19 @@ public class BattlePassManager implements BattlePassProvider {
                         .gems(35)
                         .directItem("Healing Potion", 1, potion("healing_iii"))
                         .directItem("Sealing Charm", 6, sealingCharm(6))
+                        .build()));
+
+        defs.add(new TierDefinition(tier++,
+                BattlePassRewardDefinition.builder()
+                        .displayName("Mercenary Favor Cache")
+                        .coins(2200)
+                        .directItem("Heroic Token", 3, mercenaryGift("heroic_token", 3))
+                        .build(),
+                BattlePassRewardDefinition.builder()
+                        .displayName("Trusted Ally's Trove")
+                        .xp(1800)
+                        .directItem("Adventurer's Feast", 1, mercenaryGift("adventurers_feast", 1))
+                        .directItem("Heroic Token", 2, mercenaryGift("heroic_token", 2))
                         .build()));
 
         defs.add(new TierDefinition(tier++,
@@ -561,6 +641,22 @@ public class BattlePassManager implements BattlePassProvider {
                         .gems(18)
                         .directItem(PlayerClass.AWAKARCHER.getDisplayName() + " Essence", 1,
                                 essence(PlayerClass.AWAKARCHER, ItemRarity.RARE, 0))
+                        .build()));
+
+        defs.add(new TierDefinition(tier++,
+                BattlePassRewardDefinition.builder()
+                        .displayName("Allied Quartermaster's Pack")
+                        .coins(2600)
+                        .xp(1900)
+                        .directItem("Blossom Bundle", 6, mercenaryGift("blossom_bundle", 6))
+                        .directItem("Heroic Token", 2, mercenaryGift("heroic_token", 2))
+                        .build(),
+                BattlePassRewardDefinition.builder()
+                        .displayName("Mercenary Feast Shipment")
+                        .coins(3400)
+                        .gems(18)
+                        .directItem("Adventurer's Feast", 2, mercenaryGift("adventurers_feast", 2))
+                        .directItem("Heroic Token", 3, mercenaryGift("heroic_token", 3))
                         .build()));
 
         defs.add(new TierDefinition(tier++,

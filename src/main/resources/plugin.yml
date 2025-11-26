@@ -159,6 +159,9 @@ commands:
     description: Opens the custom item browser GUI.
     usage: /itemsbrowser
     permission: none
+  giftbrowser:
+    description: Browse mercenary gifts for testing.
+    usage: /giftbrowser
   potionbrowser:
     description: Browse and obtain potions.
     usage: /potionbrowser
@@ -192,7 +195,7 @@ commands:
     usage: /transmog
   expedition:
     description: Manage mercenary expeditions and affinity.
-    usage: /expedition <npcId|gifts|giftbrowser>
+    usage: /expedition <npcId|rewards>
   auctionhouse:
     description: Open the auction house, sell items or place bids.
     usage: /auctionhouse [open|sell <start> [bin] [hours]|bid <index> <amount>]

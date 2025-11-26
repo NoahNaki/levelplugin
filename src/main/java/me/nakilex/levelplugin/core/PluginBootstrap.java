@@ -246,7 +246,7 @@ public class PluginBootstrap {
         GuildQuestManager.getInstance().reloadMobCategories();
         codexManager = new CodexManager(playerConfig, mobRewardsConfig, bossConfig);
         mobCodexGUI = new MobCodexGUI(codexManager, null);
-        npcCodexGUI = new NpcCodexGUI(codexManager, null);
+        npcCodexGUI = new NpcCodexGUI(plugin, codexManager, null, mercenaryAffinityManager, mercenaryFriendshipGUI);
         locationCodexGUI = new LocationCodexGUI(codexManager, null);
         codexGUI = new CodexMainGUI(mobCodexGUI, npcCodexGUI, locationCodexGUI);
         mobCodexGUI.setMainGui(codexGUI);

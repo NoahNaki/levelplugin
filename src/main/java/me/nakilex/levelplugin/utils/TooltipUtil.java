@@ -46,6 +46,25 @@ public final class TooltipUtil {
     }
 
     /**
+     * Generate standard sneak + click instruction lines. This mirrors the base click instruction
+     * styling while calling out the sneak modifier for clarity.
+     *
+     * @param leftAction  description following "Sneak + Left-click" or {@code null}
+     * @param rightAction description following "Sneak + Right-click" or {@code null}
+     * @return list of formatted instruction lines
+     */
+    public static List<String> sneakClickInstructions(String leftAction, String rightAction) {
+        List<String> lore = new ArrayList<>(2);
+        if (leftAction != null) {
+            lore.add(ChatColor.WHITE + "Sneak + Left-click " + ChatColor.GRAY + leftAction);
+        }
+        if (rightAction != null) {
+            lore.add(ChatColor.WHITE + "Sneak + Right-click " + ChatColor.GRAY + rightAction);
+        }
+        return lore;
+    }
+
+    /**
      * Generate a coloured bullet list using the standard grey styling. This is useful for
      * describing key points in GUI tooltips without hand-writing the prefix every time.
      *

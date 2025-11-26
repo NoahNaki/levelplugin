@@ -21,7 +21,7 @@ public class CodexCommand implements CommandExecutor {
             sender.sendMessage(ChatColor.RED + "Only players can use this command.");
             return true;
         }
-        gui.open(p);
+        gui.openFrom(p, null);
         return true;
     }
 }

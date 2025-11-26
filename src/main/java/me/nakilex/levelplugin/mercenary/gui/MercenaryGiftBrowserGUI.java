@@ -73,8 +73,6 @@ public class MercenaryGiftBrowserGUI implements Listener {
             if (meta.getLore() != null) {
                 lore.addAll(meta.getLore());
             }
-            lore.add(" ");
-            lore.addAll(TooltipUtil.clickInstructions("to receive a copy for testing", null));
             meta.setLore(lore);
             stack.setItemMeta(meta);
         }
