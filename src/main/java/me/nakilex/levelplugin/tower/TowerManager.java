@@ -175,17 +175,15 @@ public class TowerManager implements Listener, Runnable {
         boolean boss = isBossStage(run.stage);
         ensureRooms(run, run.stage, boss);
         Location combatCenter = run.stageCenters.getOrDefault(run.stage, run.origin);
-        boolean firstEntry = !run.hasEnteredCombat;
-        run.hasEnteredCombat = true;
-        player.teleport(combatCenter.clone().add(0.5, 1.5, 0.5));
-        if (firstEntry) {
+        if (!run.hasEnteredCombat) {
+            run.hasEnteredCombat = true;
             plugin.getLogger().info(String.format(Locale.US,
                     "[TowerDebug] First stage starting from entrance; combat center at %s", formatLoc(combatCenter)));
         }
         spawnWave(run, boss, player);
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                 ChatColor.YELLOW + "Floor " + run.stage + (boss ? ChatColor.DARK_RED + " (Boss)" : "")
-                        + ChatColor.GRAY + " started. Clear all Mythic mobs before the timer expires.");
+                        + ChatColor.GRAY + " started. Enter the combat room and clear all Mythic mobs before the timer expires.");
     }
 
     private void spawnWave(TowerRun run, boolean boss, Player player) {
@@ -292,7 +290,6 @@ public class TowerManager implements Listener, Runnable {
         }
 
         RoomTemplate combatTemplate = pickCombatTemplate();
-        RoomTemplate lobbyTemplate = pickLobbyTemplate();
         RoomTemplate anchorTemplate = run.lastTemplate != null ? run.lastTemplate : dungeonManager.getEntrance();
         int anchorRotation = run.lastRotation;
         Location anchorCenter = run.lastCenter != null ? run.lastCenter : run.origin;
@@ -303,41 +300,61 @@ public class TowerManager implements Listener, Runnable {
             dungeonManager.pasteRoom(run.dungeon, combatTemplate, combatPlacement.rotation(), combatPlacement.center(), null,
                     false);
             run.stageCenters.put(stage, combatPlacement.center());
+            run.stageTemplates.put(stage, combatTemplate);
+            run.stageRotations.put(stage, combatPlacement.rotation());
             plugin.getLogger().info(String.format(Locale.US,
                     "[TowerDebug] Built combat room template=%s rotation=%d at %s for stage=%d (aligned to %s)",
                     identify(combatTemplate), combatPlacement.rotation(), formatLoc(combatPlacement.center()), stage,
                     identify(anchorTemplate)));
+            Player owner = Bukkit.getPlayer(run.playerId);
+            if (owner != null) {
+                ChatMessageUtil.send(owner, ChatMessageUtil.MessageType.INFO,
+                        ChatColor.GRAY + "Combat room prepared. Head through the entrance to start floor " + stage + "!");
+            }
         } else {
             plugin.getLogger().warning("[TowerDebug] Missing combat template for stage " + stage);
         }
+    }
 
-        Location combatCenter = run.stageCenters.get(stage);
-        if (lobbyTemplate != null && combatCenter != null) {
-            Placement lobbyPlacement = findPlacement(run, combatTemplate, combatPlacement.rotation(), combatCenter,
-                    lobbyTemplate, stage, "lobby");
-            if (lobbyPlacement.center() != null) {
-                dungeonManager.pasteRoom(run.dungeon, lobbyTemplate, lobbyPlacement.rotation(), lobbyPlacement.center(), null,
-                        false);
-                run.lobbyCenters.put(stage, lobbyPlacement.center());
-                plugin.getLogger().info(String.format(Locale.US,
-                        "[TowerDebug] Built lobby room template=%s rotation=%d at %s for stage=%d", identify(lobbyTemplate),
-                        lobbyPlacement.rotation(), formatLoc(lobbyPlacement.center()), stage));
-                run.lastCenter = lobbyPlacement.center();
-                run.lastTemplate = lobbyTemplate;
-                run.lastRotation = lobbyPlacement.rotation();
-            } else {
-                run.lastCenter = combatCenter;
-                run.lastTemplate = combatTemplate;
-                run.lastRotation = combatPlacement.rotation();
-            }
-        } else {
-            plugin.getLogger().warning("[TowerDebug] Missing lobby template for stage " + stage);
-            if (combatCenter != null) {
-                run.lastCenter = combatCenter;
-                run.lastTemplate = combatTemplate;
-                run.lastRotation = combatPlacement.rotation();
-            }
+    private Location buildWaitingRoom(TowerRun run, int clearedStage, Player player) {
+        RoomTemplate combatTemplate = run.stageTemplates.get(clearedStage);
+        Integer combatRotation = run.stageRotations.get(clearedStage);
+        Location combatCenter = run.stageCenters.get(clearedStage);
+        if (combatTemplate == null || combatRotation == null || combatCenter == null) {
+            plugin.getLogger().warning("[TowerDebug] Cannot build waiting room; missing combat placement for stage "
+                    + clearedStage);
+            return combatCenter;
         }
+
+        RoomTemplate waitingTemplate = pickWaitingTemplate();
+        if (waitingTemplate == null) {
+            plugin.getLogger().warning("[TowerDebug] No waiting template (straight) available; staying in combat room");
+            return combatCenter;
+        }
+
+        Placement waitingPlacement = findPlacement(run, combatTemplate, combatRotation, combatCenter, waitingTemplate,
+                clearedStage, "waiting");
+        if (waitingPlacement.center() != null) {
+            dungeonManager.pasteRoom(run.dungeon, waitingTemplate, waitingPlacement.rotation(), waitingPlacement.center(), null,
+                    false);
+            run.lobbyCenters.put(clearedStage, waitingPlacement.center());
+            run.lastCenter = waitingPlacement.center();
+            run.lastTemplate = waitingTemplate;
+            run.lastRotation = waitingPlacement.rotation();
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                    ChatColor.GREEN + "Waiting room ready. Proceed to queue the next floor.");
+            plugin.getLogger().info(String.format(Locale.US,
+                    "[TowerDebug] Built waiting room template=%s rotation=%d at %s after stage=%d and anchored for next floor",
+                    identify(waitingTemplate), waitingPlacement.rotation(), formatLoc(waitingPlacement.center()), clearedStage));
+            return waitingPlacement.center();
+        }
+
+        plugin.getLogger().warning(String.format(Locale.US,
+                "[TowerDebug] Failed to place waiting room for stage=%d; reusing combat center", clearedStage));
+        run.lastCenter = combatCenter;
+        run.lastTemplate = combatTemplate;
+        run.lastRotation = combatRotation;
+        return combatCenter;
     }
 
     private Location alignRoom(RoomTemplate from, int fromRot, RoomTemplate to, int toRot, Location fromCenter) {
@@ -463,7 +480,6 @@ public class TowerManager implements Listener, Runnable {
 
     private RoomTemplate pickCombatTemplate() {
         List<RoomTemplate> options = new ArrayList<>();
-        if (dungeonManager.getDeadEnd() != null) options.add(dungeonManager.getDeadEnd());
         if (dungeonManager.getStraight() != null) options.add(dungeonManager.getStraight());
         if (dungeonManager.getCornerLeft() != null) options.add(dungeonManager.getCornerLeft());
         if (dungeonManager.getCornerRight() != null) options.add(dungeonManager.getCornerRight());
@@ -473,9 +489,9 @@ public class TowerManager implements Listener, Runnable {
         return options.isEmpty() ? null : options.get(random.nextInt(options.size()));
     }
 
-    private RoomTemplate pickLobbyTemplate() {
-        // Lobbies reuse the same basic rooms to keep generation simple and prevent connector mismatches.
-        return pickCombatTemplate();
+    private RoomTemplate pickWaitingTemplate() {
+        // Waiting rooms should be simple two-connector hallways to guarantee clean chaining.
+        return dungeonManager.getStraight();
     }
 
     private String identify(RoomTemplate template) {
@@ -566,20 +582,20 @@ public class TowerManager implements Listener, Runnable {
                         int clearedStage = run.stage;
                         run.pendingSpawns.clear();
                         rewardStageClear(player, clearedStage, isBossStage(clearedStage));
-                        ensureRooms(run, clearedStage, isBossStage(clearedStage));
-                        Location lobby = run.lobbyCenters.getOrDefault(clearedStage,
-                                run.stageCenters.getOrDefault(clearedStage, run.origin));
+                        Location waiting = buildWaitingRoom(run, clearedStage, player);
                         run.stage++;
                         playerStages.put(run.playerId, run.stage);
                         saveProgress(run.playerId);
                         run.awaitingNext = true;
                         run.nextStageAt = System.currentTimeMillis() + NEXT_FLOOR_DELAY_SECONDS * 1000L;
                         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                                "Floor cleared! Catch your breath in the lobby or type /tower exit.");
-                        player.teleport(lobby.clone().add(0.5, 1.5, 0.5));
+                                "Floor cleared! Head into the waiting room for the next floor or type /tower exit.");
+                        if (waiting != null) {
+                            player.teleport(waiting.clone().add(0.5, 1.5, 0.5));
+                        }
                         plugin.getLogger().info(String.format(Locale.US,
-                                "[TowerDebug] Player %s cleared stage=%d (next=%d) lobby=%s",
-                                player.getName(), clearedStage, run.stage, formatLoc(lobby)));
+                                "[TowerDebug] Player %s cleared stage=%d (next=%d) waiting=%s",
+                                player.getName(), clearedStage, run.stage, formatLoc(waiting != null ? waiting : run.origin)));
                     }
                 }
                 break;
@@ -656,6 +672,8 @@ class TowerRun {
     final List<WaveSpawn> pendingSpawns = new ArrayList<>();
     final Map<Integer, Location> stageCenters = new HashMap<>();
     final Map<Integer, Location> lobbyCenters = new HashMap<>();
+    final Map<Integer, RoomTemplate> stageTemplates = new HashMap<>();
+    final Map<Integer, Integer> stageRotations = new HashMap<>();
     boolean hasEntrance;
     boolean hasEnteredCombat;
     int entranceRotation;
