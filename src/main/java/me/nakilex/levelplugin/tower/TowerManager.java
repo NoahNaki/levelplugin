@@ -256,45 +256,46 @@ public class TowerManager implements Listener, Runnable {
         int anchorRotation = run.lastRotation;
         Location anchorCenter = run.lastCenter != null ? run.lastCenter : run.origin;
 
-        int combatRotation = random.nextInt(4);
-        Location combatCenter = alignRoom(anchorTemplate, anchorRotation, combatTemplate, combatRotation, anchorCenter);
-        if (combatTemplate != null && combatCenter != null) {
-            var result = dungeonManager.pasteRoom(run.dungeon, combatTemplate, combatRotation, combatCenter, null, true);
-            if (!result.success()) {
-                plugin.getLogger().warning(String.format(Locale.US,
-                        "[TowerDebug] Combat room overlap=%.3f prevented paste for stage=%d at %s", result.overlap(), stage,
-                        formatLoc(combatCenter)));
-            }
-            dungeonManager.pasteRoom(run.dungeon, combatTemplate, combatRotation, combatCenter, null, false);
-            run.stageCenters.put(stage, combatCenter);
+        Placement combatPlacement = findPlacement(run, anchorTemplate, anchorRotation, anchorCenter, combatTemplate, stage,
+                "combat");
+        if (combatTemplate != null && combatPlacement.center != null) {
+            dungeonManager.pasteRoom(run.dungeon, combatTemplate, combatPlacement.rotation, combatPlacement.center, null,
+                    false);
+            run.stageCenters.put(stage, combatPlacement.center);
             plugin.getLogger().info(String.format(Locale.US,
                     "[TowerDebug] Built combat room template=%s rotation=%d at %s for stage=%d (aligned to %s)",
-                    identify(combatTemplate), combatRotation, formatLoc(combatCenter), stage, identify(anchorTemplate)));
+                    identify(combatTemplate), combatPlacement.rotation, formatLoc(combatPlacement.center), stage,
+                    identify(anchorTemplate)));
         } else {
             plugin.getLogger().warning("[TowerDebug] Missing combat template for stage " + stage);
         }
 
+        Location combatCenter = run.stageCenters.get(stage);
         if (lobbyTemplate != null && combatCenter != null) {
-            int lobbyRotation = random.nextInt(4);
-            Location lobbyCenter = alignRoom(combatTemplate, combatRotation, lobbyTemplate, lobbyRotation, combatCenter);
-            if (lobbyCenter != null) {
-                var result = dungeonManager.pasteRoom(run.dungeon, lobbyTemplate, lobbyRotation, lobbyCenter, null, true);
-                if (!result.success()) {
-                    plugin.getLogger().warning(String.format(Locale.US,
-                            "[TowerDebug] Lobby room overlap=%.3f prevented paste for stage=%d at %s", result.overlap(), stage,
-                            formatLoc(lobbyCenter)));
-                }
-                dungeonManager.pasteRoom(run.dungeon, lobbyTemplate, lobbyRotation, lobbyCenter, null, false);
-                run.lobbyCenters.put(stage, lobbyCenter);
+            Placement lobbyPlacement = findPlacement(run, combatTemplate, combatPlacement.rotation, combatCenter,
+                    lobbyTemplate, stage, "lobby");
+            if (lobbyPlacement.center != null) {
+                dungeonManager.pasteRoom(run.dungeon, lobbyTemplate, lobbyPlacement.rotation, lobbyPlacement.center, null,
+                        false);
+                run.lobbyCenters.put(stage, lobbyPlacement.center);
                 plugin.getLogger().info(String.format(Locale.US,
                         "[TowerDebug] Built lobby room template=%s rotation=%d at %s for stage=%d", identify(lobbyTemplate),
-                        lobbyRotation, formatLoc(lobbyCenter), stage));
-                run.lastCenter = lobbyCenter;
+                        lobbyPlacement.rotation, formatLoc(lobbyPlacement.center), stage));
+                run.lastCenter = lobbyPlacement.center;
                 run.lastTemplate = lobbyTemplate;
-                run.lastRotation = lobbyRotation;
+                run.lastRotation = lobbyPlacement.rotation;
+            } else {
+                run.lastCenter = combatCenter;
+                run.lastTemplate = combatTemplate;
+                run.lastRotation = combatPlacement.rotation;
             }
         } else {
             plugin.getLogger().warning("[TowerDebug] Missing lobby template for stage " + stage);
+            if (combatCenter != null) {
+                run.lastCenter = combatCenter;
+                run.lastTemplate = combatTemplate;
+                run.lastRotation = combatPlacement.rotation;
+            }
         }
     }
 
@@ -316,6 +317,48 @@ public class TowerManager implements Listener, Runnable {
                 "[TowerDebug] Aligning room %s->%s using connectors facing %s/%s from %s to %s", identify(from),
                 identify(to), exit.facing, entry.facing, formatLoc(fromCenter), formatLoc(center)));
         return center;
+    }
+
+    private Placement findPlacement(TowerRun run, RoomTemplate anchorTemplate, int anchorRotation, Location anchorCenter,
+                                     RoomTemplate candidate, int stage, String kind) {
+        if (anchorTemplate == null || candidate == null || anchorCenter == null) {
+            return new Placement(null, 0);
+        }
+
+        List<Integer> rotations = Arrays.asList(0, 1, 2, 3);
+        Collections.shuffle(rotations, random);
+
+        Placement fallback = new Placement(null, 0);
+        double fallbackOverlap = Double.MAX_VALUE;
+        for (int rotation : rotations) {
+            Location center = alignRoom(anchorTemplate, anchorRotation, candidate, rotation, anchorCenter);
+            if (center == null) continue;
+            var preview = dungeonManager.pasteRoom(run.dungeon, candidate, rotation, center, null, true);
+            plugin.getLogger().info(String.format(Locale.US,
+                    "[TowerDebug] Preview %s room stage=%d rotation=%d overlap=%.3f center=%s", kind, stage, rotation,
+                    preview.overlap(), formatLoc(center)));
+            if (preview.success()) {
+                return new Placement(center, rotation);
+            }
+            // Track the best-scoring placement so we can at least progress if
+            // all previews overlap slightly.
+            if (preview.overlap() < fallbackOverlap) {
+                fallback = new Placement(center, rotation);
+                fallbackOverlap = preview.overlap();
+            }
+        }
+
+        if (fallback.center != null && fallbackOverlap <= 0.25) {
+            plugin.getLogger().warning(String.format(Locale.US,
+                    "[TowerDebug] Using fallback %s placement with minor overlap stage=%d rotation=%d center=%s", kind,
+                    stage, fallback.rotation, formatLoc(fallback.center)));
+        } else {
+            plugin.getLogger().warning(String.format(Locale.US,
+                    "[TowerDebug] No available %s placement for stage=%d after trying %d rotations", kind, stage,
+                    rotations.size()));
+            return new Placement(null, 0);
+        }
+        return fallback;
     }
 
     private RoomTemplate.Connector chooseConnector(RoomTemplate template, int rotation, boolean forward) {
@@ -585,4 +628,7 @@ class TowerRun {
 }
 
 record MobTemplate(String mobId, int tier) {
+}
+
+record Placement(Location center, int rotation) {
 }
