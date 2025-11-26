@@ -1,7 +1,6 @@
 package me.nakilex.levelplugin.tower;
 
 import io.lumine.mythic.core.mobs.ActiveMob;
-import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.arena.instance.ArenaInstance;
 import me.nakilex.levelplugin.arena.instance.ArenaInstanceManager;
 import me.nakilex.levelplugin.mob.config.MobRewardsConfig;
@@ -50,9 +49,12 @@ public class TowerManager implements Listener, Runnable {
     private int maxMobTier = 1;
     private int maxBossTier = 1;
 
-    public TowerManager(Plugin plugin, ArenaInstanceManager arenaInstanceManager) {
+    private final MobRewardsConfig mobRewardsConfig;
+
+    public TowerManager(Plugin plugin, ArenaInstanceManager arenaInstanceManager, MobRewardsConfig mobRewardsConfig) {
         this.plugin = plugin;
         this.arenaInstanceManager = arenaInstanceManager;
+        this.mobRewardsConfig = mobRewardsConfig;
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
         loadMobPools();
         startTicker();
@@ -234,9 +236,8 @@ public class TowerManager implements Listener, Runnable {
         maxMobTier = 1;
         maxBossTier = 1;
 
-        MobRewardsConfig config = Main.getInstance().getMobRewardsConfig();
-        if (config != null) {
-            ConfigurationSection section = config.getConfig().getConfigurationSection("mobs");
+        if (mobRewardsConfig != null) {
+            ConfigurationSection section = mobRewardsConfig.getConfig().getConfigurationSection("mobs");
             if (section != null) {
                 for (String key : section.getKeys(false)) {
                     int tier = section.getInt(key + ".tier", 1);
@@ -256,6 +257,10 @@ public class TowerManager implements Listener, Runnable {
                 maxBossTier = Math.max(maxBossTier, tier);
             }
         }
+    }
+
+    public void reloadMobPools() {
+        loadMobPools();
     }
 
     @Override

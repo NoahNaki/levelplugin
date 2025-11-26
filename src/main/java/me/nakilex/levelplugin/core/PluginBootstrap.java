@@ -248,6 +248,8 @@ public class PluginBootstrap {
             return;
         }
         mobRewardsConfig = new MobRewardsConfig(plugin);
+        towerManager = new me.nakilex.levelplugin.tower.TowerManager(plugin, arenaInstanceManager, mobRewardsConfig);
+        towerGUI = new me.nakilex.levelplugin.tower.TowerGUI(towerManager);
         GuildQuestManager.getInstance().reloadMobCategories();
         codexManager = new CodexManager(playerConfig, mobRewardsConfig, bossConfig);
         mobCodexGUI = new MobCodexGUI(codexManager, null);
@@ -319,8 +321,6 @@ public class PluginBootstrap {
         arenaQueueManager = new ArenaQueueManager(arenaRatingManager, partyManager);
         arenaQueueGUI = new ArenaQueueGUI(arenaQueueManager, arenaRatingManager);
         arenaInstanceManager = new ArenaInstanceManager(plugin);
-        towerManager = new me.nakilex.levelplugin.tower.TowerManager(plugin, arenaInstanceManager);
-        towerGUI = new me.nakilex.levelplugin.tower.TowerGUI(towerManager);
         friendManager = new FriendManager();
         guildManager = me.nakilex.levelplugin.guild.GuildManager.getInstance();
         guildManager.init(plugin);
@@ -736,6 +736,9 @@ public class PluginBootstrap {
         }
         if (mobRewardsConfig != null) {
             mobRewardsConfig.reloadConfig();
+            if (towerManager != null) {
+                towerManager.reloadMobPools();
+            }
             GuildQuestManager.getInstance().reloadMobCategories();
         }
         if (bossConfigFile != null && bossConfigFile.exists()) {
