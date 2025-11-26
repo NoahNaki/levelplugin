@@ -101,18 +101,27 @@ public class TowerManager implements Listener, Runnable {
     }
 
     public void exit(Player player) {
-        TowerRun run = activeRuns.remove(player.getUniqueId());
-        if (run == null) {
+        exit(player, null, false);
+    }
+
+    private void exit(Player player, TowerRun run, boolean timedOut) {
+        TowerRun current = activeRuns.remove(player.getUniqueId());
+        if (current == null) {
+            current = run;
+        }
+        if (current == null) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING, "You are not inside the tower.");
             return;
         }
-        arenaInstanceManager.destroyInstance(run.instance());
-        saveProgress(player.getUniqueId());
+        arenaInstanceManager.destroyInstance(current.instance());
+        saveProgress(current.playerId);
         Location fallback = Bukkit.getWorlds().isEmpty() ? null : Bukkit.getWorlds().get(0).getSpawnLocation();
-        if (fallback != null) {
+        if (fallback != null && player.isOnline()) {
             player.teleport(fallback);
         }
-        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO, "You leave the tower.");
+        if (!timedOut) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO, "You leave the tower.");
+        }
     }
 
     private void teleportToArena(Player player, ArenaInstance instance) {
@@ -199,8 +208,7 @@ public class TowerManager implements Listener, Runnable {
             if (!run.awaitingNext && now > run.deadline) {
                 ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "You ran out of time on this floor.");
                 iterator.remove();
-                arenaInstanceManager.destroyInstance(run.instance());
-                exit(player);
+                exit(player, run, true);
                 continue;
             }
             if (run.awaitingNext && now >= run.nextStageAt) {
