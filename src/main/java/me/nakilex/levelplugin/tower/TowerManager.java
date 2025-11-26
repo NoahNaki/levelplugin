@@ -166,7 +166,7 @@ public class TowerManager implements Listener, Runnable {
             Location spawn = center.clone().add(randomOffset(3.5));
             ActiveMob mob = spawnMythic(template, spawn, run.stage, boss);
             if (mob != null && mob.getEntity() != null) {
-                run.mobs.add(mob.getEntity().getUUID());
+                run.mobs.add(mob.getEntity().getUniqueId());
             }
         }
     }
@@ -186,15 +186,15 @@ public class TowerManager implements Listener, Runnable {
     }
 
     private ActiveMob spawnMythic(MobTemplate template, Location loc, int stage, boolean boss) {
-        double tierScale = 1.0 + (template.tier - 1) * 0.35;
+        double tierScale = 1.0 + (template.tier() - 1) * 0.35;
         double stageScale = 1.0 + stage * 0.12;
         double health = (boss ? 240 : 110) * tierScale * stageScale * (boss ? 1.8 : 1.0);
         double damage = (boss ? 18 : 8) * tierScale * (1 + stage * 0.08) * (boss ? 1.75 : 1.0);
 
-        ActiveMob mob = MythicMobModifier.spawnModifiedMob(template.mobId, loc, health, damage, null, null);
+        ActiveMob mob = MythicMobModifier.spawnModifiedMob(template.mobId(), loc, health, damage, null, null);
         if (mob != null && mob.getEntity() != null) {
             LivingEntity entity = (LivingEntity) mob.getEntity().getBukkitEntity();
-            String name = MobNameUtil.getDisplayName(template.mobId);
+            String name = MobNameUtil.getDisplayName(template.mobId());
             entity.setCustomName(ChatColor.RED + name + ChatColor.GRAY + " [F" + stage + (boss ? " Boss" : "") + "]");
             entity.setCustomNameVisible(true);
         }
@@ -211,7 +211,7 @@ public class TowerManager implements Listener, Runnable {
         double totalWeight = 0.0;
         List<Double> weights = new ArrayList<>(pool.size());
         for (MobTemplate template : pool) {
-            int distance = Math.abs(template.tier - targetTier);
+            int distance = Math.abs(template.tier() - targetTier);
             double weight = 1.0 / (1 + distance);
             weights.add(weight);
             totalWeight += weight;
