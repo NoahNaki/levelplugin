@@ -451,9 +451,17 @@ public class TowerManager implements Listener, Runnable {
         double health = (boss ? 240 : 110) * tierScale * stageScale * (boss ? 1.8 : 1.0);
         double damage = (boss ? 18 : 8) * tierScale * (1 + stage * 0.08) * (boss ? 1.75 : 1.0);
 
+        // Keep the chunk loaded and prevent range-based despawns so mobs remain visible
+        // while players wait in the lobby. This mirrors dungeon combat spawning, where
+        // mobs are always kept alive until the fight concludes.
+        loc.getChunk().load(true);
+
         ActiveMob mob = MythicMobModifier.spawnModifiedMob(template.mobId(), loc, health, damage, null, null);
         if (mob != null && mob.getEntity() != null) {
             LivingEntity entity = (LivingEntity) mob.getEntity().getBukkitEntity();
+            entity.setRemoveWhenFarAway(false);
+            entity.setPersistent(true);
+
             String name = MobNameUtil.getDisplayName(template.mobId());
             entity.setCustomName(ChatColor.RED + name + ChatColor.GRAY + " [F" + stage + (boss ? " Boss" : "") + "]");
             entity.setCustomNameVisible(true);
