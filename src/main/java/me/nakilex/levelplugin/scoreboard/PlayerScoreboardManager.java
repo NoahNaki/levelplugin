@@ -4,6 +4,8 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.arena.ArenaMode;
 import me.nakilex.levelplugin.arena.ArenaQueueManager;
 import me.nakilex.levelplugin.arena.rating.ArenaRatingManager;
+import me.nakilex.levelplugin.tower.TowerManager;
+import me.nakilex.levelplugin.tower.TowerStatus;
 import me.nakilex.levelplugin.party.Party;
 import me.nakilex.levelplugin.party.PartyManager;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
@@ -34,6 +36,7 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
     private final LevelManager levelManager;
     private final ArenaQueueManager arenaQueueManager;
     private final ArenaRatingManager arenaRatingManager;
+    private final TowerManager towerManager;
 
     private final Map<UUID, Scoreboard> boards = new HashMap<>();
     private final String[] entries = new String[15];
@@ -62,13 +65,15 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
                                    PartyManager partyManager,
                                    QuestManager questManager,
                                    ArenaQueueManager arenaQueueManager,
-                                   ArenaRatingManager arenaRatingManager) {
+                                   ArenaRatingManager arenaRatingManager,
+                                   TowerManager towerManager) {
         this.plugin = plugin;
         this.partyManager = partyManager;
         this.questManager = questManager;
         this.levelManager = plugin.getLevelManager();
         this.arenaQueueManager = arenaQueueManager;
         this.arenaRatingManager = arenaRatingManager;
+        this.towerManager = towerManager;
     }
 
     public void createBoard(Player player) {
@@ -172,7 +177,10 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
 
         boolean queueing = arenaQueueManager != null && arenaQueueManager.isQueued(id);
 
-        boolean showBoard = siegeActive || hasQuest || hasGuildQuest || inParty || queueing;
+        TowerStatus towerStatus = towerManager != null ? towerManager.getStatus(id) : null;
+        boolean inTower = towerStatus != null;
+
+        boolean showBoard = siegeActive || hasQuest || hasGuildQuest || inParty || queueing || inTower;
         Scoreboard board = boards.get(id);
         if (!showBoard) {
             if (board != null) {
@@ -265,6 +273,46 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
                 setLine(board, obj, idx, line, current[idx]);
             }
             idx++; line--;
+
+            current[idx] = " ";
+            if (!current[idx].equals(prev[idx])) {
+                setLine(board, obj, idx, line, current[idx]);
+            }
+            idx++; line--;
+        }
+
+        if (inTower && towerStatus != null) {
+            current[idx] = ChatColor.DARK_RED + "Infinite Tower";
+            if (!current[idx].equals(prev[idx])) {
+                setLine(board, obj, idx, line, current[idx]);
+            }
+            idx++; line--;
+
+            current[idx] = ChatColor.GRAY + "Floor: " + ChatColor.WHITE + towerStatus.stage();
+            if (!current[idx].equals(prev[idx])) {
+                setLine(board, obj, idx, line, current[idx]);
+            }
+            idx++; line--;
+
+            if (towerStatus.awaitingNext()) {
+                current[idx] = ChatColor.GRAY + "Next floor in: " + ChatColor.WHITE + towerStatus.nextStartSeconds() + "s";
+                if (!current[idx].equals(prev[idx])) {
+                    setLine(board, obj, idx, line, current[idx]);
+                }
+                idx++; line--;
+            } else {
+                current[idx] = ChatColor.GRAY + "Time left: " + ChatColor.WHITE + towerStatus.secondsRemaining() + "s/"
+                        + towerStatus.timeLimitSeconds() + "s";
+                if (!current[idx].equals(prev[idx])) {
+                    setLine(board, obj, idx, line, current[idx]);
+                }
+                idx++; line--;
+                current[idx] = ChatColor.GRAY + "Mobs remaining: " + ChatColor.WHITE + towerStatus.mobsRemaining();
+                if (!current[idx].equals(prev[idx])) {
+                    setLine(board, obj, idx, line, current[idx]);
+                }
+                idx++; line--;
+            }
 
             current[idx] = " ";
             if (!current[idx].equals(prev[idx])) {

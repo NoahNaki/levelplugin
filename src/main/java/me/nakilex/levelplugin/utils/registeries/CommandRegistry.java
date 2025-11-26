@@ -221,6 +221,8 @@ public class CommandRegistry {
         ArenaCommand arenaCmd = new ArenaCommand(plugin.getArenaQueueGUI(), plugin.getArenaQueueManager());
         plugin.getCommand("arena").setExecutor(arenaCmd);
         plugin.getCommand("arena").setTabCompleter(arenaCmd);
+        me.nakilex.levelplugin.tower.TowerCommand towerCommand = new me.nakilex.levelplugin.tower.TowerCommand(plugin.getTowerGUI(), plugin.getTowerManager());
+        plugin.getCommand("tower").setExecutor(towerCommand);
         plugin.getCommand("ps").setExecutor(new StorageCommand(storageManager));
         MerchantCommand merchantCommand = new MerchantCommand(plugin);
         plugin.getCommand("merchant").setExecutor(merchantCommand);

@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.mercenary.gui;
 
 import me.nakilex.levelplugin.mercenary.MercenaryAffinityManager;
 import me.nakilex.levelplugin.mercenary.MercenaryFriendship;
+import me.nakilex.levelplugin.mercenary.gui.FriendshipMilestoneGUI;
 import me.nakilex.levelplugin.mercenary.gui.MercenaryExpeditionGUI;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.GuiUtil;
@@ -27,15 +28,22 @@ import java.util.function.Consumer;
 /** Displays friendship progress for a specific mercenary NPC. */
 public class MercenaryFriendshipGUI implements Listener {
     private static final int SIZE = 27;
+    private static final int PORTRAIT_SLOT = 11;
+    private static final int BENEFITS_SLOT = 15;
+    private static final int BACK_SLOT = 18;
+    private static final int MILESTONES_SLOT = 26;
 
     private final Plugin plugin;
     private final MercenaryAffinityManager affinityManager;
+    private final FriendshipMilestoneGUI milestoneGUI;
     private MercenaryExpeditionGUI expeditionGUI;
     private final Map<UUID, Consumer<Player>> backActions = new HashMap<>();
 
-    public MercenaryFriendshipGUI(Plugin plugin, MercenaryAffinityManager affinityManager) {
+    public MercenaryFriendshipGUI(Plugin plugin, MercenaryAffinityManager affinityManager,
+                                  FriendshipMilestoneGUI milestoneGUI) {
         this.plugin = plugin;
         this.affinityManager = affinityManager;
+        this.milestoneGUI = milestoneGUI;
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
     }
 
@@ -77,7 +85,7 @@ public class MercenaryFriendshipGUI implements Listener {
             meta.setLore(lore);
             portrait.setItemMeta(meta);
         }
-        builder.setItem(11, portrait);
+        builder.setItem(PORTRAIT_SLOT, portrait);
 
         ItemStack benefits = new ItemStack(Material.WRITABLE_BOOK);
         ItemMeta bMeta = benefits.getItemMeta();
@@ -103,9 +111,10 @@ public class MercenaryFriendshipGUI implements Listener {
             bMeta.setLore(lore);
             benefits.setItemMeta(bMeta);
         }
-        builder.setItem(15, benefits);
+        builder.setItem(BENEFITS_SLOT, benefits);
 
-        builder.setItem(18, GuiUtil.getNexoItem("arrow_left", ChatColor.GREEN + "Back"));
+        builder.setItem(BACK_SLOT, GuiUtil.getNexoItem("arrow_left", ChatColor.GREEN + "Back"));
+        builder.setItem(MILESTONES_SLOT, GuiUtil.getNexoItem("reward", ChatColor.GOLD + "Collection Rewards"));
 
         player.openInventory(builder.build());
     }
@@ -119,7 +128,7 @@ public class MercenaryFriendshipGUI implements Listener {
             return;
         }
         event.setCancelled(true);
-        if (event.getRawSlot() == 18) {
+        if (event.getRawSlot() == BACK_SLOT) {
             Consumer<Player> back = backActions.get(player.getUniqueId());
             if (back != null) {
                 back.accept(player);
@@ -128,6 +137,10 @@ public class MercenaryFriendshipGUI implements Listener {
             } else {
                 player.closeInventory();
             }
+            return;
+        }
+        if (event.getRawSlot() == MILESTONES_SLOT && milestoneGUI != null) {
+            milestoneGUI.open(player);
             return;
         }
         if (event.getCurrentItem() != null) {

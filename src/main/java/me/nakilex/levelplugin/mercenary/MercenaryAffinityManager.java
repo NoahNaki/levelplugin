@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.utils.TextUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.codex.CodexManager;
+import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import net.citizensnpcs.api.event.NPCRightClickEvent;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
@@ -34,9 +35,11 @@ public class MercenaryAffinityManager implements org.bukkit.event.Listener {
     private final Map<Integer, MercenaryRole> roles = new HashMap<>();
     private final Map<Integer, List<String>> levelBenefits = new HashMap<>();
     private final NavigableMap<Integer, Integer> levelThresholds = new TreeMap<>();
+    private final List<FriendshipMilestone> milestones = new ArrayList<>();
     private FileConfiguration config;
 
     private final Map<UUID, Map<Integer, MercenaryFriendship>> friendships = new HashMap<>();
+    private final Map<UUID, Set<Integer>> claimedMilestones = new HashMap<>();
     private final Map<UUID, Long> giftHintCooldowns = new HashMap<>();
 
     public MercenaryAffinityManager(Plugin plugin) {
@@ -57,6 +60,7 @@ public class MercenaryAffinityManager implements org.bukkit.event.Listener {
         loadRoles();
         loadBenefits();
         loadThresholds();
+        loadMilestones();
     }
 
     private void loadGifts() {
@@ -145,6 +149,30 @@ public class MercenaryAffinityManager implements org.bukkit.event.Listener {
         }
     }
 
+    private void loadMilestones() {
+        milestones.clear();
+        milestones.add(new FriendshipMilestone(5, ChatColor.GREEN + "Friendly Faces",
+                new FriendshipReward(250, 150,
+                        List.of(new ItemStack(Material.EMERALD, 8))),
+                TooltipUtil.bulletList("Boost your stash with starter emeralds.")));
+        milestones.add(new FriendshipMilestone(10, ChatColor.AQUA + "Trusted Companions",
+                new FriendshipReward(500, 250,
+                        List.of(new ItemStack(Material.GOLDEN_APPLE, 2))),
+                TooltipUtil.bulletList("Extra XP to level faster.", "Golden apples for tough fights.")));
+        milestones.add(new FriendshipMilestone(15, ChatColor.LIGHT_PURPLE + "Inner Circle",
+                new FriendshipReward(750, 400,
+                        List.of(new ItemStack(Material.DIAMOND, 2))),
+                TooltipUtil.bulletList("Rare crafting pieces for progress.")));
+        milestones.add(new FriendshipMilestone(20, ChatColor.GOLD + "Family",
+                new FriendshipReward(1250, 600,
+                        List.of(new ItemStack(Material.TOTEM_OF_UNDYING, 1))),
+                TooltipUtil.bulletList("A safety totem for deeper dives.")));
+        milestones.add(new FriendshipMilestone(25, ChatColor.RED + "Legendary Bonds",
+                new FriendshipReward(2000, 900,
+                        List.of(new ItemStack(Material.NETHERITE_SCRAP, 2))),
+                TooltipUtil.bulletList("High-end upgrade material.")));
+    }
+
     public Collection<MercenaryGift> getGifts() {
         return gifts.values();
     }
@@ -228,7 +256,54 @@ public class MercenaryAffinityManager implements org.bukkit.event.Listener {
         int newLevel = computeLevel(friendship.getPoints());
         friendship.setLevel(newLevel);
         save(player.getUniqueId());
+        checkMilestones(player);
         return friendship;
+    }
+
+    public int getTotalFriendshipLevel(UUID playerId) {
+        Map<Integer, MercenaryFriendship> map = friendships.getOrDefault(playerId, Collections.emptyMap());
+        return map.values().stream().mapToInt(MercenaryFriendship::getLevel).sum();
+    }
+
+    public List<FriendshipMilestone> getMilestones() {
+        return Collections.unmodifiableList(milestones);
+    }
+
+    public boolean isMilestoneClaimed(UUID playerId, int requiredLevel) {
+        return claimedMilestones.getOrDefault(playerId, Collections.emptySet()).contains(requiredLevel);
+    }
+
+    public boolean canClaim(UUID playerId, FriendshipMilestone milestone) {
+        return getTotalFriendshipLevel(playerId) >= milestone.requiredTotalLevel()
+                && !isMilestoneClaimed(playerId, milestone.requiredTotalLevel());
+    }
+
+    public boolean claimMilestone(Player player, FriendshipMilestone milestone) {
+        UUID id = player.getUniqueId();
+        if (!canClaim(id, milestone)) {
+            return false;
+        }
+
+        FriendshipReward reward = milestone.reward();
+        if (reward.coins() > 0) {
+            Main.getInstance().getEconomyManager().addCoins(id, reward.coins());
+        }
+        if (reward.experience() > 0) {
+            Main.getInstance().getLevelManager().addXP(id, reward.experience());
+        }
+        if (!reward.items().isEmpty()) {
+            for (ItemStack item : reward.items()) {
+                ItemStack copy = item.clone();
+                player.getInventory().addItem(copy);
+            }
+        }
+
+        claimedMilestones.computeIfAbsent(id, uuid -> new HashSet<>())
+                .add(milestone.requiredTotalLevel());
+        save(id);
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.REWARD,
+                "Claimed " + ChatColor.YELLOW + milestone.label() + ChatColor.GREEN + " collection reward!");
+        return true;
     }
 
     /**
@@ -279,6 +354,18 @@ public class MercenaryAffinityManager implements org.bukkit.event.Listener {
         return Math.min(level, 5);
     }
 
+    private void checkMilestones(Player player) {
+        int total = getTotalFriendshipLevel(player.getUniqueId());
+        for (FriendshipMilestone milestone : milestones) {
+            if (total >= milestone.requiredTotalLevel()
+                    && !isMilestoneClaimed(player.getUniqueId(), milestone.requiredTotalLevel())) {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                        ChatColor.YELLOW + milestone.label() + ChatColor.GRAY
+                                + " is now claimable in the friendship menu.");
+            }
+        }
+    }
+
     public int thresholdForLevel(int level) {
         return levelThresholds.getOrDefault(level, 0);
     }
@@ -303,6 +390,11 @@ public class MercenaryAffinityManager implements org.bukkit.event.Listener {
             } catch (NumberFormatException ignored) {
             }
         }
+
+        List<Integer> claimed = data.getIntegerList("claimedMilestones");
+        if (!claimed.isEmpty()) {
+            claimedMilestones.put(playerId, new HashSet<>(claimed));
+        }
     }
 
     public void save(UUID playerId) {
@@ -315,6 +407,10 @@ public class MercenaryAffinityManager implements org.bukkit.event.Listener {
         for (Map.Entry<Integer, MercenaryFriendship> entry : map.entrySet()) {
             data.set("friendship." + entry.getKey() + ".points", entry.getValue().getPoints());
             data.set("friendship." + entry.getKey() + ".level", entry.getValue().getLevel());
+        }
+        Set<Integer> claimed = claimedMilestones.get(playerId);
+        if (claimed != null && !claimed.isEmpty()) {
+            data.set("claimedMilestones", new ArrayList<>(claimed));
         }
         try {
             data.save(file);

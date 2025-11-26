@@ -207,9 +207,12 @@ public class PluginBootstrap {
     private me.nakilex.levelplugin.mercenary.MercenaryExpeditionManager mercenaryExpeditionManager;
     private me.nakilex.levelplugin.mercenary.gui.MercenaryGiftBrowserGUI mercenaryGiftBrowserGUI;
     private me.nakilex.levelplugin.mercenary.gui.MercenaryFriendshipGUI mercenaryFriendshipGUI;
+    private me.nakilex.levelplugin.mercenary.gui.FriendshipMilestoneGUI friendshipMilestoneGUI;
     private me.nakilex.levelplugin.mercenary.gui.MercenaryExpeditionGUI mercenaryExpeditionGUI;
     private me.nakilex.levelplugin.mercenary.gui.MercenaryExpeditionRewardsGUI mercenaryExpeditionRewardsGUI;
     private me.nakilex.levelplugin.transmog.TransmogManager transmogManager;
+    private me.nakilex.levelplugin.tower.TowerManager towerManager;
+    private me.nakilex.levelplugin.tower.TowerGUI towerGUI;
 
     public PluginBootstrap(Main plugin) {
         this.plugin = plugin;
@@ -314,6 +317,8 @@ public class PluginBootstrap {
         arenaQueueManager = new ArenaQueueManager(arenaRatingManager, partyManager);
         arenaQueueGUI = new ArenaQueueGUI(arenaQueueManager, arenaRatingManager);
         arenaInstanceManager = new ArenaInstanceManager(plugin);
+        towerManager = new me.nakilex.levelplugin.tower.TowerManager(plugin, arenaInstanceManager);
+        towerGUI = new me.nakilex.levelplugin.tower.TowerGUI(towerManager);
         friendManager = new FriendManager();
         guildManager = me.nakilex.levelplugin.guild.GuildManager.getInstance();
         guildManager.init(plugin);
@@ -338,7 +343,7 @@ public class PluginBootstrap {
         battlePassManager = new BattlePassManager(plugin, questManager, itemManager);
         battlePassGUI = battlePassManager.getGui();
         dialogManager = new me.nakilex.levelplugin.npc.dialog.NPCDialogManager(plugin);
-        scoreboardManager = new me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager(plugin, partyManager, questManager, arenaQueueManager, arenaRatingManager);
+        scoreboardManager = new me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager(plugin, partyManager, questManager, arenaQueueManager, arenaRatingManager, towerManager);
         arenaQueueManager.setScoreboardManager(scoreboardManager);
         arenaCombatTracker = new ArenaCombatTracker();
         arenaMatchManager = new ArenaMatchManager(plugin, arenaQueueManager, arenaInstanceManager, arenaRatingManager, scoreboardManager, arenaCombatTracker);
@@ -391,7 +396,8 @@ public class PluginBootstrap {
                 economyManager,
                 lootChestManager);
         mercenaryGiftBrowserGUI = new me.nakilex.levelplugin.mercenary.gui.MercenaryGiftBrowserGUI(plugin, mercenaryAffinityManager);
-        mercenaryFriendshipGUI = new me.nakilex.levelplugin.mercenary.gui.MercenaryFriendshipGUI(plugin, mercenaryAffinityManager);
+        friendshipMilestoneGUI = new me.nakilex.levelplugin.mercenary.gui.FriendshipMilestoneGUI(mercenaryAffinityManager);
+        mercenaryFriendshipGUI = new me.nakilex.levelplugin.mercenary.gui.MercenaryFriendshipGUI(plugin, mercenaryAffinityManager, friendshipMilestoneGUI);
         mercenaryExpeditionRewardsGUI = new me.nakilex.levelplugin.mercenary.gui.MercenaryExpeditionRewardsGUI(plugin, mercenaryExpeditionManager);
         mercenaryExpeditionGUI = new me.nakilex.levelplugin.mercenary.gui.MercenaryExpeditionGUI(plugin, mercenaryAffinityManager, mercenaryExpeditionManager, mercenaryFriendshipGUI, mercenaryExpeditionRewardsGUI);
         mercenaryFriendshipGUI.setExpeditionGUI(mercenaryExpeditionGUI);
@@ -709,6 +715,8 @@ public class PluginBootstrap {
     public me.nakilex.levelplugin.mercenary.gui.MercenaryFriendshipGUI getMercenaryFriendshipGUI() { return mercenaryFriendshipGUI; }
     public me.nakilex.levelplugin.mercenary.gui.MercenaryExpeditionGUI getMercenaryExpeditionGUI() { return mercenaryExpeditionGUI; }
     public me.nakilex.levelplugin.mercenary.gui.MercenaryExpeditionRewardsGUI getMercenaryExpeditionRewardsGUI() { return mercenaryExpeditionRewardsGUI; }
+    public me.nakilex.levelplugin.tower.TowerManager getTowerManager() { return towerManager; }
+    public me.nakilex.levelplugin.tower.TowerGUI getTowerGUI() { return towerGUI; }
     public me.nakilex.levelplugin.transmog.TransmogManager getTransmogManager() { return transmogManager; }
 
     public void reloadPluginConfig() {

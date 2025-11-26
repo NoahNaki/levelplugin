@@ -160,6 +160,8 @@ public class ListenerRegistry {
         pm.registerEvents(arenaQueueGUI, plugin);
         pm.registerEvents(arenaMatchManager, plugin);
         pm.registerEvents(arenaTeamMatchManager, plugin);
+        pm.registerEvents(plugin.getTowerManager(), plugin);
+        pm.registerEvents(plugin.getTowerGUI(), plugin);
         pm.registerEvents(new ChatChannelListener(), plugin);
         pm.registerEvents(new ChatGameListener(chatGameManager), plugin);
         pm.registerEvents(new PartyInviteListener(partyManager), plugin);
