@@ -38,6 +38,7 @@ import java.util.*;
  * floor, visit a lobby for breathing room, and then advance deeper into the
  * catacombs.
  */
+@SuppressWarnings("deprecation")
 public class TowerManager implements Listener, Runnable {
 
     private static final int NEXT_FLOOR_DELAY_SECONDS = 10;
@@ -258,13 +259,13 @@ public class TowerManager implements Listener, Runnable {
 
         Placement combatPlacement = findPlacement(run, anchorTemplate, anchorRotation, anchorCenter, combatTemplate, stage,
                 "combat");
-        if (combatTemplate != null && combatPlacement.center != null) {
-            dungeonManager.pasteRoom(run.dungeon, combatTemplate, combatPlacement.rotation, combatPlacement.center, null,
+        if (combatTemplate != null && combatPlacement.center() != null) {
+            dungeonManager.pasteRoom(run.dungeon, combatTemplate, combatPlacement.rotation(), combatPlacement.center(), null,
                     false);
-            run.stageCenters.put(stage, combatPlacement.center);
+            run.stageCenters.put(stage, combatPlacement.center());
             plugin.getLogger().info(String.format(Locale.US,
                     "[TowerDebug] Built combat room template=%s rotation=%d at %s for stage=%d (aligned to %s)",
-                    identify(combatTemplate), combatPlacement.rotation, formatLoc(combatPlacement.center), stage,
+                    identify(combatTemplate), combatPlacement.rotation(), formatLoc(combatPlacement.center()), stage,
                     identify(anchorTemplate)));
         } else {
             plugin.getLogger().warning("[TowerDebug] Missing combat template for stage " + stage);
@@ -272,29 +273,29 @@ public class TowerManager implements Listener, Runnable {
 
         Location combatCenter = run.stageCenters.get(stage);
         if (lobbyTemplate != null && combatCenter != null) {
-            Placement lobbyPlacement = findPlacement(run, combatTemplate, combatPlacement.rotation, combatCenter,
+            Placement lobbyPlacement = findPlacement(run, combatTemplate, combatPlacement.rotation(), combatCenter,
                     lobbyTemplate, stage, "lobby");
-            if (lobbyPlacement.center != null) {
-                dungeonManager.pasteRoom(run.dungeon, lobbyTemplate, lobbyPlacement.rotation, lobbyPlacement.center, null,
+            if (lobbyPlacement.center() != null) {
+                dungeonManager.pasteRoom(run.dungeon, lobbyTemplate, lobbyPlacement.rotation(), lobbyPlacement.center(), null,
                         false);
-                run.lobbyCenters.put(stage, lobbyPlacement.center);
+                run.lobbyCenters.put(stage, lobbyPlacement.center());
                 plugin.getLogger().info(String.format(Locale.US,
                         "[TowerDebug] Built lobby room template=%s rotation=%d at %s for stage=%d", identify(lobbyTemplate),
-                        lobbyPlacement.rotation, formatLoc(lobbyPlacement.center), stage));
-                run.lastCenter = lobbyPlacement.center;
+                        lobbyPlacement.rotation(), formatLoc(lobbyPlacement.center()), stage));
+                run.lastCenter = lobbyPlacement.center();
                 run.lastTemplate = lobbyTemplate;
-                run.lastRotation = lobbyPlacement.rotation;
+                run.lastRotation = lobbyPlacement.rotation();
             } else {
                 run.lastCenter = combatCenter;
                 run.lastTemplate = combatTemplate;
-                run.lastRotation = combatPlacement.rotation;
+                run.lastRotation = combatPlacement.rotation();
             }
         } else {
             plugin.getLogger().warning("[TowerDebug] Missing lobby template for stage " + stage);
             if (combatCenter != null) {
                 run.lastCenter = combatCenter;
                 run.lastTemplate = combatTemplate;
-                run.lastRotation = combatPlacement.rotation;
+                run.lastRotation = combatPlacement.rotation();
             }
         }
     }
@@ -348,10 +349,10 @@ public class TowerManager implements Listener, Runnable {
             }
         }
 
-        if (fallback.center != null && fallbackOverlap <= 0.25) {
+        if (fallback.center() != null && fallbackOverlap <= 0.25) {
             plugin.getLogger().warning(String.format(Locale.US,
                     "[TowerDebug] Using fallback %s placement with minor overlap stage=%d rotation=%d center=%s", kind,
-                    stage, fallback.rotation, formatLoc(fallback.center)));
+                    stage, fallback.rotation(), formatLoc(fallback.center())));
         } else {
             plugin.getLogger().warning(String.format(Locale.US,
                     "[TowerDebug] No available %s placement for stage=%d after trying %d rotations", kind, stage,
