@@ -2,7 +2,11 @@ package me.nakilex.levelplugin.mercenary;
 
 import me.nakilex.levelplugin.utils.TextUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
+import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.codex.CodexManager;
 import net.citizensnpcs.api.event.NPCRightClickEvent;
+import net.citizensnpcs.api.CitizensAPI;
+import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -175,6 +179,32 @@ public class MercenaryAffinityManager implements org.bukkit.event.Listener {
         return Collections.unmodifiableSet(gearScores.keySet());
     }
 
+    public Collection<Integer> getUnlockedMercenaryIds(UUID playerId) {
+        if (playerId == null) {
+            return getMercenaryIds();
+        }
+        List<Integer> unlocked = new ArrayList<>();
+        for (int id : getMercenaryIds()) {
+            if (isUnlocked(playerId, id)) {
+                unlocked.add(id);
+            }
+        }
+        return unlocked;
+    }
+
+    public boolean isUnlocked(UUID playerId, int npcId) {
+        CodexManager codexManager = resolveCodexManager();
+        if (codexManager == null || playerId == null) {
+            return true;
+        }
+        String name = getMercenaryName(npcId);
+        if (name == null || name.isBlank()) {
+            return true;
+        }
+        return codexManager.getDiscoveredNpcs(playerId).stream()
+                .anyMatch(found -> found.equalsIgnoreCase(name));
+    }
+
     public MercenaryRole getRole(int npcId) {
         return roles.getOrDefault(npcId, MercenaryRole.DPS);
     }
@@ -312,6 +342,7 @@ public class MercenaryAffinityManager implements org.bukkit.event.Listener {
         if (!gearScores.containsKey(npcId)) {
             return;
         }
+        recordDiscovery(event.getClicker(), event.getNPC());
         Player player = event.getClicker();
         MercenaryGift heldGift = matchGift(player.getInventory().getItemInMainHand());
         if (!player.isSneaking()) {
@@ -338,5 +369,32 @@ public class MercenaryAffinityManager implements org.bukkit.event.Listener {
         }
         giftHintCooldowns.put(playerId, now);
         return true;
+    }
+
+    private CodexManager resolveCodexManager() {
+        if (plugin instanceof Main main) {
+            return main.getCodexManager();
+        }
+        return null;
+    }
+
+    private String getMercenaryName(int npcId) {
+        NPC npc = CitizensAPI.getNPCRegistry().getById(npcId);
+        if (npc == null || npc.getName() == null) {
+            return null;
+        }
+        return ChatColor.stripColor(npc.getName());
+    }
+
+    private void recordDiscovery(Player player, NPC npc) {
+        CodexManager codexManager = resolveCodexManager();
+        if (codexManager == null || player == null || npc == null) {
+            return;
+        }
+        String name = ChatColor.stripColor(npc.getName());
+        if (name == null || name.isBlank()) {
+            return;
+        }
+        codexManager.recordNpc(player, name);
     }
 }

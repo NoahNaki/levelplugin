@@ -20,9 +20,9 @@ import me.nakilex.levelplugin.potions.data.PotionTemplate;
 import me.nakilex.levelplugin.potions.managers.PotionManager;
 import me.nakilex.levelplugin.quests.data.QuestReward;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
-import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
+import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -96,9 +96,7 @@ public class BattlePassManager implements BattlePassProvider {
         if (player == null) {
             return;
         }
-        if (addProgressInternal(player, amount)) {
-            sendProgressMessage(player, amount, reason);
-        }
+        addProgressInternal(player, amount);
     }
 
     private boolean addProgressInternal(Player player, int amount) {
@@ -130,41 +128,6 @@ public class BattlePassManager implements BattlePassProvider {
         }
         persist(player.getUniqueId());
         return true;
-    }
-
-    private void sendProgressMessage(Player player, int added, String reason) {
-        PlayerProgress progress = progress(player.getUniqueId());
-        boolean completed = progress.tier >= tiers.size();
-        int nextTier = Math.min(progress.tier + 1, tiers.size());
-        int required = completed ? 0 : xpRequiredForTier(progress.tier + 1);
-        int current = completed ? 0 : Math.min(progress.progress, required);
-
-        ChatFormatter.constructDivider(player, "§6§l-", 45);
-        ChatFormatter.sendCenteredMessage(player, "§6§lBATTLE PASS PROGRESS");
-        ChatFormatter.sendCenteredMessage(player, "");
-
-        StringBuilder gainLine = new StringBuilder()
-                .append(ChatColor.GRAY).append("You gained ")
-                .append(ChatColor.GOLD).append(added)
-                .append(ChatColor.GRAY).append(" Battle Pass XP");
-        if (reason != null && !reason.isBlank()) {
-            gainLine.append(ChatColor.GRAY).append(" ").append(reason);
-        }
-        ChatFormatter.sendCenteredMessage(player, gainLine.toString());
-
-        if (completed) {
-            ChatFormatter.sendCenteredMessage(player, ChatColor.GREEN + "All battle pass tiers completed!");
-        } else {
-            ChatFormatter.sendCenteredMessage(player,
-                    ChatColor.GRAY + "Tier " + ChatColor.YELLOW + nextTier + ChatColor.GRAY + " Progress:");
-            ChatFormatter.sendCenteredMessage(player,
-                    TooltipUtil.progressBar(current, required, 20)
-                            + ChatColor.GRAY + " " + current + "/" + required);
-        }
-
-        ChatFormatter.sendCenteredMessage(player, ChatColor.GRAY + "Use " + ChatColor.YELLOW + "/battlepass "
-                + ChatColor.GRAY + "to claim rewards.");
-        ChatFormatter.constructDivider(player, "§6§l-", 45);
     }
 
     public boolean setPremium(UUID uuid, boolean active) {
@@ -400,22 +363,25 @@ public class BattlePassManager implements BattlePassProvider {
     }
 
     private void sendLevelUpMessage(Player player, int newTier, int currentProgress, int nextRequired) {
-        ChatMessageUtil.send(
-                player,
-                MessageType.REWARD,
-                ChatColor.YELLOW + "Battle Pass Tier " + ChatColor.GOLD + newTier + ChatColor.YELLOW + " unlocked!"
-        );
+        int clampedProgress = Math.max(0, currentProgress);
+        ChatFormatter.constructDivider(player, "§6§l-", 45);
+        ChatFormatter.sendCenteredMessage(player, "§6§lBATTLE PASS LEVEL UP");
+        ChatFormatter.sendCenteredMessage(player, "");
+        ChatFormatter.sendCenteredMessage(player,
+                ChatColor.GRAY + "You reached " + ChatColor.GOLD + "Tier " + newTier + ChatColor.GRAY + "!");
+
         if (newTier < tiers.size() && nextRequired > 0) {
-            ChatMessageUtil.send(
-                    player,
-                    MessageType.INFO,
-                    ChatColor.GRAY + "Progress to Tier " + (newTier + 1) + ": "
-                            + TooltipUtil.progressBar(currentProgress, nextRequired, 20)
-                            + ChatColor.GRAY + " " + currentProgress + "/" + nextRequired
-            );
+            ChatFormatter.sendCenteredMessage(player, ChatColor.GRAY + "Next Tier Progress:");
+            ChatFormatter.sendCenteredMessage(player,
+                    TooltipUtil.progressBar(clampedProgress, nextRequired, 20)
+                            + ChatColor.GRAY + " " + clampedProgress + "/" + nextRequired);
         } else {
-            ChatMessageUtil.send(player, MessageType.INFO, "All battle pass tiers completed!");
+            ChatFormatter.sendCenteredMessage(player, ChatColor.GREEN + "All battle pass tiers completed!");
         }
+
+        ChatFormatter.sendCenteredMessage(player, ChatColor.GRAY + "Use " + ChatColor.YELLOW + "/battlepass "
+                + ChatColor.GRAY + "to claim rewards.");
+        ChatFormatter.constructDivider(player, "§6§l-", 45);
     }
 
     private Optional<TierDefinition> tierDefinition(int tier) {
