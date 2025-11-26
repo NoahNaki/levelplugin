@@ -1,6 +1,8 @@
 package me.nakilex.levelplugin.tower;
 
 import io.lumine.mythic.core.mobs.ActiveMob;
+import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.dungeon.Direction;
 import me.nakilex.levelplugin.dungeon.Dungeon;
 import me.nakilex.levelplugin.dungeon.DungeonManager;
 import me.nakilex.levelplugin.dungeon.RoomTemplate;
@@ -109,6 +111,7 @@ public class TowerManager implements Listener, Runnable {
         activeRuns.put(player.getUniqueId(), run);
         teleportToArena(player, run);
         startStage(player, run);
+        Main.getInstance().getScoreboardManager().updateBoard(player);
     }
 
     private TowerRun createRun(UUID playerId) {
@@ -225,14 +228,37 @@ public class TowerManager implements Listener, Runnable {
     private void ensureRooms(TowerRun run, int stage, boolean boss) {
         if (run.stageCenters.containsKey(stage)) return;
 
-        int offset = (stage - 1) * (run.spacing * 2);
-        Location combatCenter = run.origin.clone().add(offset, 0, 0);
+        // Always anchor the first placement to the entrance template and then
+        // attach the combat room to whichever connector faces forward so redstone
+        // markers line up like the dungeon editor flow.
+        if (!run.hasEntrance) {
+            RoomTemplate entrance = dungeonManager.getEntrance();
+            run.entranceRotation = 0;
+            run.hasEntrance = true;
+            var preview = dungeonManager.pasteRoom(run.dungeon, entrance, run.entranceRotation, run.origin, null, true);
+            if (!preview.success()) {
+                plugin.getLogger().warning(String.format(Locale.US,
+                        "[TowerDebug] Entrance overlap=%.3f prevented paste at %s", preview.overlap(),
+                        formatLoc(run.origin)));
+            }
+            dungeonManager.pasteRoom(run.dungeon, entrance, run.entranceRotation, run.origin, null, false);
+            plugin.getLogger().info(String.format(Locale.US,
+                    "[TowerDebug] Built entrance template=%s rotation=%d at %s", identify(entrance),
+                    run.entranceRotation, formatLoc(run.origin)));
+            run.lastCenter = run.origin.clone();
+            run.lastTemplate = entrance;
+            run.lastRotation = run.entranceRotation;
+        }
+
         RoomTemplate combatTemplate = boss ? dungeonManager.getBoss() : pickCombatTemplate();
         RoomTemplate lobbyTemplate = pickLobbyTemplate();
-        int combatRotation = random.nextInt(4);
-        int lobbyRotation = random.nextInt(4);
+        RoomTemplate anchorTemplate = run.lastTemplate != null ? run.lastTemplate : dungeonManager.getEntrance();
+        int anchorRotation = run.lastRotation;
+        Location anchorCenter = run.lastCenter != null ? run.lastCenter : run.origin;
 
-        if (combatTemplate != null) {
+        int combatRotation = random.nextInt(4);
+        Location combatCenter = alignRoom(anchorTemplate, anchorRotation, combatTemplate, combatRotation, anchorCenter);
+        if (combatTemplate != null && combatCenter != null) {
             var result = dungeonManager.pasteRoom(run.dungeon, combatTemplate, combatRotation, combatCenter, null, true);
             if (!result.success()) {
                 plugin.getLogger().warning(String.format(Locale.US,
@@ -242,28 +268,70 @@ public class TowerManager implements Listener, Runnable {
             dungeonManager.pasteRoom(run.dungeon, combatTemplate, combatRotation, combatCenter, null, false);
             run.stageCenters.put(stage, combatCenter);
             plugin.getLogger().info(String.format(Locale.US,
-                    "[TowerDebug] Built combat room template=%s rotation=%d at %s for stage=%d", identify(combatTemplate),
-                    combatRotation, formatLoc(combatCenter), stage));
+                    "[TowerDebug] Built combat room template=%s rotation=%d at %s for stage=%d (aligned to %s)",
+                    identify(combatTemplate), combatRotation, formatLoc(combatCenter), stage, identify(anchorTemplate)));
         } else {
             plugin.getLogger().warning("[TowerDebug] Missing combat template for stage " + stage);
         }
 
-        if (lobbyTemplate != null) {
-            Location lobbyCenter = combatCenter.clone().add(run.spacing, 0, 0);
-            var result = dungeonManager.pasteRoom(run.dungeon, lobbyTemplate, lobbyRotation, lobbyCenter, null, true);
-            if (!result.success()) {
-                plugin.getLogger().warning(String.format(Locale.US,
-                        "[TowerDebug] Lobby room overlap=%.3f prevented paste for stage=%d at %s", result.overlap(), stage,
-                        formatLoc(lobbyCenter)));
+        if (lobbyTemplate != null && combatCenter != null) {
+            int lobbyRotation = random.nextInt(4);
+            Location lobbyCenter = alignRoom(combatTemplate, combatRotation, lobbyTemplate, lobbyRotation, combatCenter);
+            if (lobbyCenter != null) {
+                var result = dungeonManager.pasteRoom(run.dungeon, lobbyTemplate, lobbyRotation, lobbyCenter, null, true);
+                if (!result.success()) {
+                    plugin.getLogger().warning(String.format(Locale.US,
+                            "[TowerDebug] Lobby room overlap=%.3f prevented paste for stage=%d at %s", result.overlap(), stage,
+                            formatLoc(lobbyCenter)));
+                }
+                dungeonManager.pasteRoom(run.dungeon, lobbyTemplate, lobbyRotation, lobbyCenter, null, false);
+                run.lobbyCenters.put(stage, lobbyCenter);
+                plugin.getLogger().info(String.format(Locale.US,
+                        "[TowerDebug] Built lobby room template=%s rotation=%d at %s for stage=%d", identify(lobbyTemplate),
+                        lobbyRotation, formatLoc(lobbyCenter), stage));
+                run.lastCenter = lobbyCenter;
+                run.lastTemplate = lobbyTemplate;
+                run.lastRotation = lobbyRotation;
             }
-            dungeonManager.pasteRoom(run.dungeon, lobbyTemplate, lobbyRotation, lobbyCenter, null, false);
-            run.lobbyCenters.put(stage, lobbyCenter);
-            plugin.getLogger().info(String.format(Locale.US,
-                    "[TowerDebug] Built lobby room template=%s rotation=%d at %s for stage=%d", identify(lobbyTemplate),
-                    lobbyRotation, formatLoc(lobbyCenter), stage));
         } else {
             plugin.getLogger().warning("[TowerDebug] Missing lobby template for stage " + stage);
         }
+    }
+
+    private Location alignRoom(RoomTemplate from, int fromRot, RoomTemplate to, int toRot, Location fromCenter) {
+        if (from == null || to == null) return null;
+
+        RoomTemplate.Connector exit = chooseConnector(from, fromRot, true);
+        RoomTemplate.Connector entry = chooseConnector(to, toRot, false);
+        if (exit == null || entry == null) return fromCenter.clone().add(dungeonManager.getStep(), 0, 0);
+
+        int[] exitOffset = RoomTemplate.rotate(exit.x - (int) Math.round(from.getCenterX()),
+                exit.z - (int) Math.round(from.getCenterZ()), fromRot);
+        int[] entryOffset = RoomTemplate.rotate(entry.x - (int) Math.round(to.getCenterX()),
+                entry.z - (int) Math.round(to.getCenterZ()), toRot);
+
+        Location exitWorld = fromCenter.clone().add(exitOffset[0], exit.bottomY - from.getConnectorMinY(), exitOffset[1]);
+        Location center = exitWorld.clone().subtract(entryOffset[0], entry.bottomY - to.getConnectorMinY(), entryOffset[1]);
+        plugin.getLogger().info(String.format(Locale.US,
+                "[TowerDebug] Aligning room %s->%s using connectors facing %s/%s from %s to %s", identify(from),
+                identify(to), exit.facing, entry.facing, formatLoc(fromCenter), formatLoc(center)));
+        return center;
+    }
+
+    private RoomTemplate.Connector chooseConnector(RoomTemplate template, int rotation, boolean forward) {
+        Direction desired = forward ? Direction.EAST : Direction.WEST;
+        RoomTemplate.Connector fallback = null;
+        for (RoomTemplate.Connector c : template.getConnectors()) {
+            Direction facing = rotate(c.facing, rotation);
+            if (fallback == null) fallback = c;
+            if (facing == desired) return c;
+        }
+        return fallback;
+    }
+
+    private Direction rotate(Direction dir, int rotation) {
+        int ord = (dir.ordinal() + rotation) & 3;
+        return Direction.values()[ord];
     }
 
     private ActiveMob spawnModifiedMob(MobTemplate template, Location loc, int stage, boolean boss) {
@@ -388,6 +456,7 @@ public class TowerManager implements Listener, Runnable {
                 iterator.remove();
                 continue;
             }
+            Main.getInstance().getScoreboardManager().updateBoard(player);
             if (!run.awaitingNext && now > run.deadline) {
                 ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "You ran out of time on this floor.");
                 iterator.remove();
@@ -500,6 +569,11 @@ class TowerRun {
     final Set<UUID> mobs = new HashSet<>();
     final Map<Integer, Location> stageCenters = new HashMap<>();
     final Map<Integer, Location> lobbyCenters = new HashMap<>();
+    boolean hasEntrance;
+    int entranceRotation;
+    RoomTemplate lastTemplate;
+    int lastRotation;
+    Location lastCenter;
 
     TowerRun(UUID playerId, Dungeon dungeon, org.bukkit.World world, int spacing) {
         this.playerId = playerId;
