@@ -175,10 +175,10 @@ public class TowerManager implements Listener, Runnable {
         boolean boss = isBossStage(run.stage);
         ensureRooms(run, run.stage, boss);
         Location combatCenter = run.stageCenters.getOrDefault(run.stage, run.origin);
-        if (run.hasEnteredCombat) {
-            player.teleport(combatCenter.clone().add(0.5, 1.5, 0.5));
-        } else {
-            run.hasEnteredCombat = true;
+        boolean firstEntry = !run.hasEnteredCombat;
+        run.hasEnteredCombat = true;
+        player.teleport(combatCenter.clone().add(0.5, 1.5, 0.5));
+        if (firstEntry) {
             plugin.getLogger().info(String.format(Locale.US,
                     "[TowerDebug] First stage starting from entrance; combat center at %s", formatLoc(combatCenter)));
         }
