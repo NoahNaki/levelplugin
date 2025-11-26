@@ -18,7 +18,11 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.function.Consumer;
 
 /** Displays friendship progress for a specific mercenary NPC. */
 public class MercenaryFriendshipGUI implements Listener {
@@ -27,6 +31,7 @@ public class MercenaryFriendshipGUI implements Listener {
     private final Plugin plugin;
     private final MercenaryAffinityManager affinityManager;
     private MercenaryExpeditionGUI expeditionGUI;
+    private final Map<UUID, Consumer<Player>> backActions = new HashMap<>();
 
     public MercenaryFriendshipGUI(Plugin plugin, MercenaryAffinityManager affinityManager) {
         this.plugin = plugin;
@@ -39,6 +44,22 @@ public class MercenaryFriendshipGUI implements Listener {
     }
 
     public void open(Player player, int npcId, String npcName) {
+        Consumer<Player> defaultBack = p -> {
+            if (expeditionGUI != null) {
+                expeditionGUI.open(p);
+            } else {
+                p.closeInventory();
+            }
+        };
+        openWithBack(player, npcId, npcName, defaultBack);
+    }
+
+    public void openWithBack(Player player, int npcId, String npcName, Consumer<Player> backAction) {
+        if (backAction != null) {
+            backActions.put(player.getUniqueId(), backAction);
+        } else {
+            backActions.remove(player.getUniqueId());
+        }
         String title = ChatColor.DARK_GREEN + npcName + ChatColor.GRAY + " Affinity";
         GuiBuilder builder = GuiBuilder.create(SIZE, title).border();
         MercenaryFriendship friendship = affinityManager.getFriendship(player.getUniqueId(), npcId);
@@ -98,8 +119,15 @@ public class MercenaryFriendshipGUI implements Listener {
             return;
         }
         event.setCancelled(true);
-        if (event.getRawSlot() == 18 && expeditionGUI != null) {
-            expeditionGUI.open(player);
+        if (event.getRawSlot() == 18) {
+            Consumer<Player> back = backActions.get(player.getUniqueId());
+            if (back != null) {
+                back.accept(player);
+            } else if (expeditionGUI != null) {
+                expeditionGUI.open(player);
+            } else {
+                player.closeInventory();
+            }
             return;
         }
         if (event.getCurrentItem() != null) {

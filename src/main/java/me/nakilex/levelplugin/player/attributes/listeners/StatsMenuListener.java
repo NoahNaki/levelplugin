@@ -1,5 +1,6 @@
 package me.nakilex.levelplugin.player.attributes.listeners;
 
+import me.nakilex.levelplugin.codex.CodexMainGUI;
 import me.nakilex.levelplugin.player.attributes.gui.StatsInventory;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import org.bukkit.ChatColor;
@@ -17,7 +18,12 @@ import java.util.Set;
 
 public class StatsMenuListener implements Listener {
 
+    private final CodexMainGUI codexGUI;
     private final Set<Player> refundConfirmations = new HashSet<>();
+
+    public StatsMenuListener(CodexMainGUI codexGUI) {
+        this.codexGUI = codexGUI;
+    }
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
@@ -51,6 +57,12 @@ public class StatsMenuListener implements Listener {
 
             if (displayName.equalsIgnoreCase("Settings")) {
                 player.performCommand("settings");
+                return;
+            }
+
+            if (displayName.equalsIgnoreCase("Codex")) {
+                codexGUI.openFrom(player, viewer ->
+                        viewer.openInventory(StatsInventory.getStatsMenu(viewer, StatsInventory.getPage(viewer))));
                 return;
             }
 

@@ -432,12 +432,15 @@ public class MercenaryExpeditionGUI implements Listener {
         if (meta != null) {
             String term = searchTerms.getOrDefault(player.getUniqueId(), "");
             List<String> lore = new ArrayList<>();
+            lore.add(ChatColor.DARK_GRAY + "Search by dungeon name or ID.");
+            lore.add(" ");
             if (term.isEmpty()) {
-                lore.add(ChatColor.GRAY + "Left-Click to enter a term.");
+                lore.addAll(TooltipUtil.bulletList("No search set."));
             } else {
-                lore.add(ChatColor.GRAY + "Current: " + ChatColor.WHITE + term);
+                lore.addAll(TooltipUtil.bulletList("Current: " + ChatColor.WHITE + term));
             }
-            lore.add(ChatColor.DARK_GRAY + "Right-Click to clear search.");
+            lore.add(" ");
+            lore.addAll(TooltipUtil.clickInstructions("to enter a term", "to clear search"));
             meta.setLore(lore);
             item.setItemMeta(meta);
         }

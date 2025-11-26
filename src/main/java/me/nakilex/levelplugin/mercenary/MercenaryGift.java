@@ -35,6 +35,7 @@ public final class MercenaryGift {
                 }
             }
             finalLore.addAll(TooltipUtil.bulletList("Gives " + affinityValue + " affinity"));
+            finalLore.add(" ");
             finalLore.addAll(TooltipUtil.sneakClickInstructions(null, "to gift to mercenaries"));
             meta.setLore(finalLore);
             meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ENCHANTS);

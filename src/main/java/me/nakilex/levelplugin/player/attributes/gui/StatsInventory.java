@@ -121,10 +121,25 @@ public class StatsInventory {
         builder.setItem(8, createPlayerHead(player, ps, page));
         builder.setItem(37, GuiUtil.getNexoItem("arrow_left", ChatColor.GRAY + "Back"));
         builder.setItem(43, GuiUtil.getNexoItem("arrow_right", ChatColor.GRAY + "Forward"));
-        builder.setItem(48, GuiUtil.getNexoItem("camera", ChatColor.YELLOW + "Coming Soon"));
+        builder.setItem(48, createCodexButton());
         builder.setItem(50, GuiUtil.getNexoItem("settings", ChatColor.AQUA + "Settings"));
 
         return builder.build();
+    }
+
+    private static ItemStack createCodexButton() {
+        ItemStack codex = GuiUtil.getNexoItem("book", ChatColor.YELLOW + "Codex");
+        ItemMeta meta = codex.getItemMeta();
+        if (meta != null) {
+            List<String> lore = new ArrayList<>();
+            lore.add(ChatColor.GRAY + "Review discoveries and mercenary affinity.");
+            lore.addAll(TooltipUtil.bulletList("Track NPCs, locations, and mobs."));
+            lore.add("");
+            lore.addAll(TooltipUtil.clickInstructions("to open the codex", null));
+            meta.setLore(lore);
+            codex.setItemMeta(meta);
+        }
+        return codex;
     }
 
 

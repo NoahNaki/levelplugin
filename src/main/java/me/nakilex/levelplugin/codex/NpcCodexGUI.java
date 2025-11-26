@@ -188,7 +188,7 @@ public class NpcCodexGUI implements Listener {
             npcName = "Mercenary " + npcId;
         }
         affinityManager.loadPlayer(p.getUniqueId());
-        friendshipGUI.open(p, npcId, npcName);
+        friendshipGUI.openWithBack(p, npcId, npcName, viewer -> open(viewer));
     }
 
     private boolean isMercenary(int npcId) {
