@@ -308,6 +308,18 @@ public class PlayerConfig {
         config.set("players." + uuid + ".fasttravel", null);
     }
 
+    // ----- Catacombs Progress -----
+
+    public int getCatacombsBestStage(UUID uuid, int slot) {
+        String path = "players." + uuid + ".profiles." + slot + ".catacombs.best_stage";
+        return config.getInt(path, 0);
+    }
+
+    public void setCatacombsBestStage(UUID uuid, int slot, int stage) {
+        String base = "players." + uuid + ".profiles." + slot + ".catacombs.";
+        config.set(base + "best_stage", Math.max(0, stage));
+    }
+
     // ----- Global Town Ownership -----
 
     /** Get the UUID of the player who owns the specified global town. */

@@ -45,6 +45,8 @@ public class CatacombsManager implements Listener {
 
     private final Main plugin;
     private final DungeonManager dungeonManager;
+    private final PlayerConfig playerConfig;
+    private final ProfileManager profileManager;
     private final RoomTemplate waitingTemplate;
     private final RoomTemplate combatTemplate;
     private final Map<UUID, CatacombRun> runs = new HashMap<>();
@@ -52,6 +54,8 @@ public class CatacombsManager implements Listener {
     public CatacombsManager(Main plugin, DungeonManager dungeonManager) {
         this.plugin = plugin;
         this.dungeonManager = dungeonManager;
+        this.playerConfig = plugin.getPlayerConfig();
+        this.profileManager = ProfileManager.getInstance();
         this.waitingTemplate = dungeonManager.getHallway();
         this.combatTemplate = dungeonManager.getStraight();
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
@@ -102,7 +106,8 @@ public class CatacombsManager implements Listener {
             return;
         }
 
-        CatacombRun run = new CatacombRun(player.getUniqueId(), dungeon, waiting, combat, returnLoc);
+        int highestCleared = getHighestCleared(player.getUniqueId());
+        CatacombRun run = new CatacombRun(player.getUniqueId(), dungeon, waiting, combat, returnLoc, highestCleared);
         runs.put(player.getUniqueId(), run);
         TeleportUtils.safeTeleport(player, waiting.spawnLocation);
         ChatMessageUtil.send(player, MessageType.SUCCESS, "You descend into the Catacombs.");
@@ -115,6 +120,7 @@ public class CatacombsManager implements Listener {
             ChatMessageUtil.send(player, MessageType.WARNING, "You are not inside the Catacombs.");
             return;
         }
+        persistProgress(run);
         run.end();
         TeleportUtils.safeTeleport(player, run.returnLocation);
         updateProfileLocation(player.getUniqueId(), run.returnLocation);
@@ -251,21 +257,24 @@ public class CatacombsManager implements Listener {
 
     private void completeStage(CatacombRun run) {
         run.stage++;
+        run.highestCleared = Math.max(run.highestCleared, run.stage - 1);
+        persistProgress(run);
+        RoomPlacement previousWaiting = run.waitingRoom;
         RoomPlacement nextWaiting = attachRoom(run.dungeon, waitingTemplate, run.combatRoom.exitConnector);
         if (nextWaiting == null) {
             ChatMessageUtil.send(run.getPlayer(), MessageType.ERROR, "No further rooms can be placed. Exiting...");
             exit(run.getPlayer());
             return;
         }
-        run.waitingRoom = nextWaiting;
         RoomPlacement nextCombat = attachRoom(run.dungeon, combatTemplate, nextWaiting.exitConnector);
         if (nextCombat == null) {
             ChatMessageUtil.send(run.getPlayer(), MessageType.ERROR, "Unable to continue deeper.");
             exit(run.getPlayer());
             return;
         }
+        run.waitingRoom = nextWaiting;
         run.combatRoom = nextCombat;
-        TeleportUtils.safeTeleport(run.getPlayer(), nextWaiting.spawnLocation);
+        scheduleRemoval(run, previousWaiting);
         ChatMessageUtil.send(run.getPlayer(), MessageType.SUCCESS,
                 "Stage " + (run.stage - 1) + " cleared! Preparing the next fight.");
         beginStage(run);
@@ -293,6 +302,7 @@ public class CatacombsManager implements Listener {
     public void onQuit(PlayerQuitEvent event) {
         CatacombRun run = runs.remove(event.getPlayer().getUniqueId());
         if (run != null) {
+            persistProgress(run);
             run.end();
             updateProfileLocation(run.playerId, run.returnLocation);
             cleanupWorld(run.world);
@@ -306,13 +316,47 @@ public class CatacombsManager implements Listener {
 
     private void updateProfileLocation(UUID id, Location back) {
         if (back == null) return;
-        ProfileManager pm = ProfileManager.getInstance();
-        PlayerConfig cfg = Main.getInstance().getPlayerConfig();
-        Integer slot = pm.getActiveSlot(id);
+        Integer slot = profileManager.getActiveSlot(id);
         if (slot != null) {
-            cfg.setProfileLocation(id, slot, back);
-            cfg.savePlayer(id);
+            playerConfig.setProfileLocation(id, slot, back);
+            playerConfig.savePlayer(id);
         }
+    }
+
+    private int getHighestCleared(UUID playerId) {
+        Integer slot = profileManager.getActiveSlot(playerId);
+        if (slot == null) return 0;
+        return playerConfig.getCatacombsBestStage(playerId, slot);
+    }
+
+    private void persistProgress(CatacombRun run) {
+        Integer slot = profileManager.getActiveSlot(run.playerId);
+        if (slot == null) return;
+        playerConfig.setCatacombsBestStage(run.playerId, slot, run.highestCleared);
+        playerConfig.savePlayer(run.playerId);
+    }
+
+    private void scheduleRemoval(CatacombRun run, RoomPlacement toRemove) {
+        if (toRemove == null) return;
+        new BukkitRunnable() {
+            int attempts = 0;
+
+            @Override
+            public void run() {
+                attempts++;
+                if (!runs.containsKey(run.playerId)) {
+                    cancel();
+                    return;
+                }
+                Player player = run.getPlayer();
+                boolean playerInside = player != null && toRemove.instance.contains(player.getLocation());
+                if (playerInside && attempts < 10) {
+                    return;
+                }
+                run.dungeon.deleteRoom(toRemove.instance);
+                cancel();
+            }
+        }.runTaskTimer(plugin, 0L, 20L);
     }
 
     private class CatacombRun {
@@ -322,20 +366,23 @@ public class CatacombsManager implements Listener {
         final Location returnLocation;
         RoomPlacement waitingRoom;
         RoomPlacement combatRoom;
-        int stage = 1;
+        int stage;
+        int highestCleared;
         long deadline = 0L;
         int mobsRemaining = 0;
         BukkitTask timer;
         final Set<UUID> mobIds = new HashSet<>();
 
         CatacombRun(UUID playerId, Dungeon dungeon, RoomPlacement waitingRoom,
-                    RoomPlacement combatRoom, Location returnLocation) {
+                    RoomPlacement combatRoom, Location returnLocation, int highestCleared) {
             this.playerId = playerId;
             this.dungeon = dungeon;
             this.world = dungeon.getWorld();
             this.waitingRoom = waitingRoom;
             this.combatRoom = combatRoom;
             this.returnLocation = returnLocation;
+            this.highestCleared = highestCleared;
+            this.stage = Math.max(1, highestCleared + 1);
         }
 
         boolean isActive() {
