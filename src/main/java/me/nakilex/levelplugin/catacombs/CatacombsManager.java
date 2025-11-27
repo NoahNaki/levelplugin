@@ -234,6 +234,10 @@ public class CatacombsManager implements Listener {
 
     private void failStage(CatacombRun run) {
         if (!run.isActive()) return;
+        if (run.timer != null) {
+            run.timer.cancel();
+            run.timer = null;
+        }
         run.clearMobs();
         run.deadline = 0L;
         ChatMessageUtil.send(run.getPlayer(), MessageType.ERROR, "You failed to clear the stage in time!");
