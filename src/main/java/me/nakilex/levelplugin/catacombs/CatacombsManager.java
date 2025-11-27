@@ -7,6 +7,7 @@ import me.nakilex.levelplugin.dungeon.DungeonManager;
 import me.nakilex.levelplugin.dungeon.RoomTemplate;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.FileUtil;
+import me.nakilex.levelplugin.utils.AttributeUtil;
 import me.nakilex.levelplugin.utils.TeleportUtils;
 import me.nakilex.levelplugin.player.config.PlayerConfig;
 import me.nakilex.levelplugin.player.profile.ProfileManager;
@@ -22,6 +23,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scheduler.BukkitTask;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -212,17 +214,19 @@ public class CatacombsManager implements Listener {
     private int spawnMobs(CatacombRun run) {
         Location center = run.combatRoom.instance.center.clone().add(0.5, 1, 0.5);
         int count = Math.max(3, 2 + run.stage);
+        Attribute maxHealthAttr = AttributeUtil.resolve("GENERIC_MAX_HEALTH", "MAX_HEALTH");
+        Attribute attackDamageAttr = AttributeUtil.resolve("GENERIC_ATTACK_DAMAGE", "ATTACK_DAMAGE");
         for (int i = 0; i < count; i++) {
             Location spawn = center.clone().add((i % 3) - 1, 0, (i / 3));
             LivingEntity entity = spawn.getWorld().spawn(spawn, org.bukkit.entity.Zombie.class, e -> {
                 double health = 20.0 + (run.stage * 10.0);
                 double damage = 4.0 + (run.stage * 1.5);
-                if (e.getAttribute(Attribute.GENERIC_MAX_HEALTH) != null) {
-                    e.getAttribute(Attribute.GENERIC_MAX_HEALTH).setBaseValue(health);
+                if (maxHealthAttr != null && e.getAttribute(maxHealthAttr) != null) {
+                    e.getAttribute(maxHealthAttr).setBaseValue(health);
                     e.setHealth(health);
                 }
-                if (e.getAttribute(Attribute.GENERIC_ATTACK_DAMAGE) != null) {
-                    e.getAttribute(Attribute.GENERIC_ATTACK_DAMAGE).setBaseValue(damage);
+                if (attackDamageAttr != null && e.getAttribute(attackDamageAttr) != null) {
+                    e.getAttribute(attackDamageAttr).setBaseValue(damage);
                 }
                 e.setCustomName(ChatColor.DARK_RED + "Catacomb Foe");
                 e.addScoreboardTag("catacombs_mob");
@@ -321,7 +325,7 @@ public class CatacombsManager implements Listener {
         int stage = 1;
         long deadline = 0L;
         int mobsRemaining = 0;
-        BukkitRunnable timer;
+        BukkitTask timer;
         final Set<UUID> mobIds = new HashSet<>();
 
         CatacombRun(UUID playerId, Dungeon dungeon, RoomPlacement waitingRoom,

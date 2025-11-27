@@ -4,6 +4,7 @@ import io.lumine.mythic.bukkit.MythicBukkit;
 import io.lumine.mythic.core.mobs.ActiveMob;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.lootchests.utils.LocationUtils;
+import me.nakilex.levelplugin.utils.AttributeUtil;
 import org.bukkit.Location;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Entity;
@@ -59,26 +60,26 @@ public static ActiveMob spawnModifiedMob(
     LivingEntity entity = (LivingEntity) active.getEntity().getBukkitEntity();
 
     if (hp != null) {
-        Attribute attr = resolve("GENERIC_MAX_HEALTH", "MAX_HEALTH");
+        Attribute attr = AttributeUtil.resolve("GENERIC_MAX_HEALTH", "MAX_HEALTH");
         if (attr != null && entity.getAttribute(attr) != null) {
             entity.getAttribute(attr).setBaseValue(hp);
         }
         entity.setHealth(hp);
     }
     if (damage != null) {
-        Attribute attr = resolve("GENERIC_ATTACK_DAMAGE", "ATTACK_DAMAGE");
+        Attribute attr = AttributeUtil.resolve("GENERIC_ATTACK_DAMAGE", "ATTACK_DAMAGE");
         if (attr != null && entity.getAttribute(attr) != null) {
             entity.getAttribute(attr).setBaseValue(damage);
         }
     }
     if (moveSpeed != null) {
-        Attribute attr = resolve("GENERIC_MOVEMENT_SPEED", "MOVEMENT_SPEED");
+        Attribute attr = AttributeUtil.resolve("GENERIC_MOVEMENT_SPEED", "MOVEMENT_SPEED");
         if (attr != null && entity.getAttribute(attr) != null) {
             entity.getAttribute(attr).setBaseValue(moveSpeed);
         }
     }
     if (attackSpeed != null) {
-        Attribute attr = resolve("GENERIC_ATTACK_SPEED", "ATTACK_SPEED");
+        Attribute attr = AttributeUtil.resolve("GENERIC_ATTACK_SPEED", "ATTACK_SPEED");
         if (attr != null && entity.getAttribute(attr) != null) {
             entity.getAttribute(attr).setBaseValue(attackSpeed);
         }
@@ -97,18 +98,6 @@ public static ActiveMob spawnModifiedMob(
             overrides));
 
     return active;
-}
-
-private static Attribute resolve(String generic, String fallback) {
-    try {
-        return Attribute.valueOf(generic);
-    } catch (IllegalArgumentException ex) {
-        try {
-            return Attribute.valueOf(fallback);
-        } catch (IllegalArgumentException ignore) {
-            return null;
-        }
-    }
 }
 
     /**
