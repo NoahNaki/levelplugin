@@ -5,6 +5,7 @@ import me.nakilex.levelplugin.dungeon.Direction;
 import me.nakilex.levelplugin.dungeon.Dungeon;
 import me.nakilex.levelplugin.dungeon.DungeonManager;
 import me.nakilex.levelplugin.dungeon.RoomTemplate;
+import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.FileUtil;
 import me.nakilex.levelplugin.utils.AttributeUtil;
@@ -256,10 +257,13 @@ public class CatacombsManager implements Listener {
     }
 
     private void completeStage(CatacombRun run) {
+        int clearedStage = run.stage;
         run.stage++;
         run.highestCleared = Math.max(run.highestCleared, run.stage - 1);
         persistProgress(run);
         RoomPlacement previousWaiting = run.waitingRoom;
+        RoomPlacement previousCombat = run.previousCombat;
+        run.previousCombat = run.combatRoom;
         RoomPlacement nextWaiting = attachRoom(run.dungeon, waitingTemplate, run.combatRoom.exitConnector);
         if (nextWaiting == null) {
             ChatMessageUtil.send(run.getPlayer(), MessageType.ERROR, "No further rooms can be placed. Exiting...");
@@ -275,9 +279,21 @@ public class CatacombsManager implements Listener {
         run.waitingRoom = nextWaiting;
         run.combatRoom = nextCombat;
         scheduleRemoval(run, previousWaiting);
-        ChatMessageUtil.send(run.getPlayer(), MessageType.SUCCESS,
-                "Stage " + (run.stage - 1) + " cleared! Preparing the next fight.");
+        scheduleRemoval(run, previousCombat);
+        sendStageClearMessage(run, clearedStage);
         beginStage(run);
+    }
+
+    private void sendStageClearMessage(CatacombRun run, int clearedStage) {
+        Player player = run.getPlayer();
+        if (player == null) return;
+        ChatFormatter.constructDivider(player, "§a§l-", 45);
+        ChatFormatter.sendCenteredMessage(player, "§a§lCATACOMBS STAGE CLEARED");
+        ChatFormatter.sendCenteredMessage(player, "");
+        ChatFormatter.sendCenteredMessage(player,
+                ChatColor.GRAY + "You conquered Stage " + ChatColor.GREEN + clearedStage + ChatColor.GRAY + "!");
+        ChatFormatter.sendCenteredMessage(player, ChatColor.GRAY + "Preparing your next challenge...");
+        ChatFormatter.constructDivider(player, "§a§l-", 45);
     }
 
     @EventHandler
@@ -366,6 +382,7 @@ public class CatacombsManager implements Listener {
         final Location returnLocation;
         RoomPlacement waitingRoom;
         RoomPlacement combatRoom;
+        RoomPlacement previousCombat;
         int stage;
         int highestCleared;
         long deadline = 0L;
@@ -383,6 +400,7 @@ public class CatacombsManager implements Listener {
             this.returnLocation = returnLocation;
             this.highestCleared = highestCleared;
             this.stage = Math.max(1, highestCleared + 1);
+            this.previousCombat = null;
         }
 
         boolean isActive() {
