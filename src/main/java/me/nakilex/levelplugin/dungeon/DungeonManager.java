@@ -57,6 +57,7 @@ public class DungeonManager {
     public static String normalizeKey(String name) {
         if (name == null) return "";
         String cleaned = org.bukkit.ChatColor.stripColor(name);
+        cleaned = cleaned.trim();
         cleaned = cleaned.replaceAll("\\s+", "_");
         cleaned = cleaned.toLowerCase();
         return cleaned;
