@@ -5,6 +5,8 @@ import me.nakilex.levelplugin.dungeon.TemplateType;
 import me.nakilex.levelplugin.mob.utils.MobNameUtil;
 import me.nakilex.levelplugin.mob.utils.MythicMobModifier;
 import me.nakilex.levelplugin.lootchests.utils.LocationUtils;
+import me.nakilex.levelplugin.dungeon.verified.VerifiedDungeonDefinition;
+import me.nakilex.levelplugin.dungeon.verified.CrimsonReliquaryDungeon;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import me.nakilex.levelplugin.utils.FileUtil;
@@ -35,14 +37,7 @@ public class DungeonManager {
     private final Map<String, String> layoutDisplay = new HashMap<>();
     private final Map<String, Integer> layoutThreat = new HashMap<>();
     private final Map<String, Boolean> layoutVerified = new HashMap<>();
-    private static final String VERIFIED_LAYOUT_KEY = normalizeKey("Crimson Reliquary");
-    private static final String VERIFIED_SOURCE_WORLD = "assets";
-    private static final int VERIFIED_MIN_X = -245;
-    private static final int VERIFIED_MIN_Y = -57;
-    private static final int VERIFIED_MIN_Z = -5936;
-    private static final int VERIFIED_MAX_X = 138;
-    private static final int VERIFIED_MAX_Y = 107;
-    private static final int VERIFIED_MAX_Z = -5387;
+    private final java.util.List<VerifiedDungeonDefinition> verifiedDungeons = new java.util.ArrayList<>();
     private java.io.File layoutFile;
     private org.bukkit.configuration.file.FileConfiguration layoutConfig;
     /** Guard asynchronous layout saves. */
@@ -102,7 +97,7 @@ public class DungeonManager {
         this.lootChestManager = lootChestManager;
         loadTemplates();
         loadLayouts();
-        registerVerifiedDungeonLayout();
+        registerVerifiedDungeons();
         this.builder = new DungeonBuilder(this);
         Bukkit.getPluginManager().registerEvents(builder, plugin);
         Bukkit.getPluginManager().registerEvents(new InstanceListener(), plugin);
@@ -129,6 +124,7 @@ public class DungeonManager {
     public RoomTemplate getExit() { return exit; }
     public int getStep() { return step; }
     public Main getPlugin() { return plugin; }
+    public me.nakilex.levelplugin.lootchests.managers.LootChestManager getLootChestManager() { return lootChestManager; }
 
     /** Create a void world used for temporary dungeon sessions. */
     public World createVoidWorld(String worldName) {
@@ -642,15 +638,30 @@ public class DungeonManager {
         }
     }
 
-    private void registerVerifiedDungeonLayout() {
-        if (!layouts.containsKey(VERIFIED_LAYOUT_KEY)) {
-            DungeonLayout layout = new DungeonLayout();
-            layout.setStep(0);
-            layouts.put(VERIFIED_LAYOUT_KEY, layout);
-            layoutThreat.put(VERIFIED_LAYOUT_KEY, 10);
+    private void registerVerifiedDungeons() {
+        verifiedDungeons.clear();
+        VerifiedDungeonDefinition reliquary = new CrimsonReliquaryDungeon(plugin);
+        reliquary.register(this);
+        verifiedDungeons.add(reliquary);
+    }
+
+    public void registerVerifiedLayout(String key, String displayName, int defaultThreat, DungeonLayout fallbackLayout) {
+        String normalized = normalizeKey(key);
+        if (!layouts.containsKey(normalized) && fallbackLayout != null) {
+            fallbackLayout.setStep(0);
+            layouts.put(normalized, fallbackLayout);
         }
-        layoutDisplay.putIfAbsent(VERIFIED_LAYOUT_KEY, "Crimson Reliquary");
-        layoutVerified.put(VERIFIED_LAYOUT_KEY, true);
+        layoutDisplay.putIfAbsent(normalized, displayName);
+        layoutVerified.put(normalized, true);
+        layoutThreat.putIfAbsent(normalized, defaultThreat);
+    }
+
+    private VerifiedDungeonDefinition getVerifiedDungeon(String key) {
+        String normalized = normalizeKey(key);
+        for (VerifiedDungeonDefinition def : verifiedDungeons) {
+            if (def.matches(normalized)) return def;
+        }
+        return null;
     }
 
     public void saveLayouts() {
@@ -731,8 +742,9 @@ public class DungeonManager {
 
     public void startInstance(Player player, String name) {
         String keyName = normalizeKey(name);
-        if (VERIFIED_LAYOUT_KEY.equals(keyName)) {
-            startVerifiedDungeonInstance(player);
+        VerifiedDungeonDefinition verified = getVerifiedDungeon(keyName);
+        if (verified != null) {
+            verified.startInstance(this, player);
             return;
         }
         DungeonLayout layout = getLayout(name);
@@ -840,173 +852,6 @@ public class DungeonManager {
         }.runTaskTimer(plugin, 1L, 1L);
     }
 
-    private void startVerifiedDungeonInstance(Player player) {
-        World source = Bukkit.getWorld(VERIFIED_SOURCE_WORLD);
-        if (source == null) {
-            player.sendMessage(ChatColor.RED + "Verified dungeon template world is missing.");
-            return;
-        }
-
-        String worldName = "dgn_verified_" + System.currentTimeMillis();
-        World world = createVoidWorld(worldName);
-        if (world == null) return;
-
-        Dungeon dungeon = new Dungeon(world, VERIFIED_LAYOUT_KEY);
-        Instance inst = new Instance(dungeon, VERIFIED_LAYOUT_KEY);
-
-        java.util.List<Player> participants = new java.util.ArrayList<>();
-        me.nakilex.levelplugin.party.PartyManager pm = plugin.getPartyManager();
-        me.nakilex.levelplugin.party.Party party = pm.getParty(player.getUniqueId());
-        if (party != null && party.isLeader(player.getUniqueId())) {
-            for (java.util.UUID id : party.getMembers()) {
-                Player mem = Bukkit.getPlayer(id);
-                if (mem != null && mem.isOnline()) {
-                    participants.add(mem);
-                    inst.returnLocations.put(id, mem.getLocation());
-                }
-            }
-        } else {
-            participants.add(player);
-            inst.returnLocations.put(player.getUniqueId(), player.getLocation());
-        }
-
-        int width = VERIFIED_MAX_X - VERIFIED_MIN_X + 1;
-        int height = VERIFIED_MAX_Y - VERIFIED_MIN_Y + 1;
-        int depth = VERIFIED_MAX_Z - VERIFIED_MIN_Z + 1;
-        int offsetX = 0;
-        int offsetZ = 0;
-        int offsetY = 64 - VERIFIED_MIN_Y;
-        Location origin = new Location(world, offsetX, offsetY, offsetZ);
-
-        java.util.List<Location> bossMarkers = new java.util.ArrayList<>();
-        java.util.List<Location> miniBossMarkers = new java.util.ArrayList<>();
-        java.util.List<Location> normalMarkers = new java.util.ArrayList<>();
-        java.util.List<Location> yellowFlowers = new java.util.ArrayList<>();
-        java.util.List<Location> bluePlacements = new java.util.ArrayList<>();
-        java.util.List<Location> brownRewards = new java.util.ArrayList<>();
-        java.util.List<Location> chestMarkers = new java.util.ArrayList<>();
-
-        for (int x = VERIFIED_MIN_X; x <= VERIFIED_MAX_X; x++) {
-            for (int y = VERIFIED_MIN_Y; y <= VERIFIED_MAX_Y; y++) {
-                for (int z = VERIFIED_MIN_Z; z <= VERIFIED_MAX_Z; z++) {
-                    Location sourceLoc = new Location(source, x, y, z);
-                    Material mat = sourceLoc.getBlock().getType();
-                    Location destLoc = origin.clone().add(x - VERIFIED_MIN_X, y - VERIFIED_MIN_Y, z - VERIFIED_MIN_Z);
-
-                    switch (mat) {
-                        case BLACK_WOOL -> bossMarkers.add(destLoc.clone().add(0.5, 0, 0.5));
-                        case CYAN_WOOL -> miniBossMarkers.add(destLoc.clone().add(0.5, 0, 0.5));
-                        case MAGENTA_WOOL -> normalMarkers.add(destLoc.clone().add(0.5, 0, 0.5));
-                        case YELLOW_WOOL -> yellowFlowers.add(destLoc);
-                        case BLUE_WOOL -> bluePlacements.add(destLoc);
-                        case BROWN_WOOL -> brownRewards.add(destLoc);
-                        case CHEST, TRAPPED_CHEST -> {
-                            chestMarkers.add(destLoc);
-                            continue;
-                        }
-                        default -> {
-                            BlockData data = sourceLoc.getBlock().getBlockData().clone();
-                            world.getBlockAt(destLoc).setBlockData(data, false);
-                            continue;
-                        }
-                    }
-                    world.getBlockAt(destLoc).setType(Material.AIR, false);
-                }
-            }
-        }
-
-        int minX = offsetX;
-        int minY = offsetY;
-        int minZ = offsetZ;
-        int maxX = offsetX + width - 1;
-        int maxY = offsetY + height - 1;
-        int maxZ = offsetZ + depth - 1;
-        Location center = origin.clone().add((width - 1) / 2.0, 1, (depth - 1) / 2.0);
-        Dungeon.RoomInstance bounds = new Dungeon.RoomInstance(null, 0, center, minX, minY, minZ, maxX, maxY, maxZ, null, java.util.List.of(), null);
-        dungeon.addRoom(bounds);
-
-        instances.put(world, inst);
-        world.setDifficulty(org.bukkit.Difficulty.HARD);
-        world.setGameRule(org.bukkit.GameRule.DO_MOB_SPAWNING, false);
-        world.setSpawnLocation(center);
-
-        class State { boolean allowFlight; boolean flying; boolean invul; State(Player p){allowFlight=p.getAllowFlight();flying=p.isFlying();invul=p.isInvulnerable();}}
-        java.util.Map<Player, State> prev = new java.util.HashMap<>();
-        for (Player p : participants) {
-            prev.put(p, new State(p));
-            p.setAllowFlight(true);
-            p.setFlying(true);
-            p.setInvulnerable(true);
-            p.teleport(center);
-        }
-
-        java.util.List<Material> flowerTypes = java.util.Arrays.asList(
-                Material.POPPY,
-                Material.DANDELION,
-                Material.BLUE_ORCHID,
-                Material.ALLIUM
-        );
-        for (Location yellow : yellowFlowers) {
-            Material choice = flowerTypes.get(plugin.getRandom().nextInt(flowerTypes.size()));
-            yellow.getBlock().setType(choice, false);
-        }
-        for (Location marker : bluePlacements) {
-            marker.getBlock().setType(Material.LIGHT_BLUE_GLAZED_TERRACOTTA, false);
-            var stand = marker.getWorld().spawn(marker.clone().add(0.5, 0.1, 0.5), org.bukkit.entity.ArmorStand.class, as -> {
-                as.setVisible(false);
-                as.setGravity(false);
-                as.setMarker(true);
-                as.customName(net.kyori.adventure.text.Component.text("Place Flower"));
-                as.setCustomNameVisible(true);
-                as.addScoreboardTag("dungeon_flower_slot");
-            });
-        }
-
-        for (Location brown : brownRewards) {
-            brown.getBlock().setType(Material.SOUL_SAND, false);
-        }
-
-        int tier = getThreatLevel(VERIFIED_LAYOUT_KEY);
-        for (Location chest : chestMarkers) {
-            int id = lootChestManager.createAndSpawnChest(chest, tier);
-            inst.chestIds.add(id);
-        }
-
-        for (Location magenta : normalMarkers) {
-            String[] mobs = new String[]{
-                    "Nocsy_Bokoblin_Shaman",
-                    "Nocsy_Bokoblin_Swordsman",
-                    "Nocsy_Bokoblin_Warrior"
-            };
-            String mob = mobs[plugin.getRandom().nextInt(mobs.length)];
-            MythicMobModifier.spawnModifiedMob(mob, magenta, null, null, null, null);
-        }
-        for (Location cyan : miniBossMarkers) {
-            MythicMobModifier.spawnModifiedMob("Nocsy_Ganon", cyan, null, null, null, null);
-        }
-        for (Location boss : bossMarkers) {
-            var mob = MythicMobModifier.spawnModifiedMob("MSO_Demon_General", boss, null, null, null, null);
-            if (mob != null) {
-                mob.getEntity().getBukkitEntity().addScoreboardTag("dungeon_boss");
-            }
-        }
-
-        for (int y = -35; y <= -31; y++) {
-            for (int z = -5803; z <= -5798; z++) {
-                Location dest = origin.clone().add(-222 - VERIFIED_MIN_X, y - VERIFIED_MIN_Y, z - VERIFIED_MIN_Z);
-                dest.getBlock().setType(Material.NETHER_PORTAL, false);
-            }
-        }
-
-        for (Player p : participants) {
-            State st = prev.get(p);
-            if (st != null && p.isOnline()) {
-                p.setInvulnerable(st.invul);
-                p.setAllowFlight(st.allowFlight);
-                p.setFlying(st.allowFlight && st.flying);
-            }
-        }
-    }
 
     public void cleanupInstances() {
         for (World w : new java.util.ArrayList<>(instances.keySet())) {
@@ -1027,8 +872,9 @@ public class DungeonManager {
 
     public boolean playDungeon(Player player, String name) {
         String key = normalizeKey(name);
-        if (VERIFIED_LAYOUT_KEY.equals(key)) {
-            startVerifiedDungeonInstance(player);
+        VerifiedDungeonDefinition verified = getVerifiedDungeon(key);
+        if (verified != null) {
+            verified.startInstance(this, player);
             return true;
         }
         DungeonLayout layout = getLayout(name);
@@ -1055,6 +901,12 @@ public class DungeonManager {
         player.sendMessage(ChatColor.GRAY + "[Debug] Spawned in "
                 + (System.currentTimeMillis() - debugStart) + "ms");
         return true;
+    }
+
+    public Instance createTrackedInstance(Dungeon dungeon, String layoutKey, World world) {
+        Instance inst = new Instance(dungeon, layoutKey);
+        instances.put(world, inst);
+        return inst;
     }
 
     public DungeonBuilder getBuilder() { return builder; }
@@ -1172,13 +1024,20 @@ public class DungeonManager {
                 src.getBossSpawn(), src.getWidth(), src.getHeight(), src.getDepth(), src.getMinY());
     }
 
-    private static class Instance {
-        final Dungeon dungeon;
-        final String layout;
-        final Map<java.util.UUID, Location> returnLocations = new HashMap<>();
-        final java.util.List<Integer> chestIds = new java.util.ArrayList<>();
+    public static class Instance {
+        private final Dungeon dungeon;
+        private final String layout;
+        private final Map<java.util.UUID, Location> returnLocations = new HashMap<>();
+        private final java.util.List<Integer> chestIds = new java.util.ArrayList<>();
         org.bukkit.scheduler.BukkitTask removalTask;
         Instance(Dungeon d, String layout) { this.dungeon = d; this.layout = layout; }
+
+        public Dungeon getDungeon() { return dungeon; }
+        public String getLayout() { return layout; }
+        public Map<java.util.UUID, Location> getReturnLocations() { return returnLocations; }
+        public java.util.List<Integer> getChestIds() { return chestIds; }
+        public void addReturnLocation(java.util.UUID id, Location loc) { returnLocations.put(id, loc); }
+        public void addChestId(int id) { chestIds.add(id); }
     }
 
         private class InstanceListener implements org.bukkit.event.Listener {
