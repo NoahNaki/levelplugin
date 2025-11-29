@@ -33,6 +33,7 @@ import static me.nakilex.levelplugin.utils.ChatMessageUtil.send;
 public class PotionMerchantGUI implements Listener {
     private final Inventory inventory;
     private final Map<Integer, PotionTemplate> potionItems = new HashMap<>();
+    private final Map<Integer, Integer> potionCosts = new HashMap<>();
     private final EconomyManager economyManager;
     private final PotionManager potionManager;
     private final Plugin plugin;
@@ -71,7 +72,7 @@ public class PotionMerchantGUI implements Listener {
         for (Map.Entry<Integer, PotionTemplate> entry : potionItems.entrySet()) {
             PotionTemplate potion = entry.getValue();
             Bukkit.getLogger().info("[PotionMerchantGUI] Adding potion '" + potion.getId() + "' to slot " + entry.getKey());
-            ItemStack potionItem = createPotionPreview(potion);
+            ItemStack potionItem = createPotionPreview(entry.getKey(), potion);
             inventory.setItem(entry.getKey(), potionItem);
         }
 
@@ -96,6 +97,7 @@ public class PotionMerchantGUI implements Listener {
             PotionTemplate potion = potionManager.getTemplate(potionId);
             if (potion != null) {
                 potionItems.put(slot, potion);
+                potionCosts.put(slot, cost);
                 Bukkit.getLogger().info("[PotionMerchantGUI] Successfully loaded potion: " + potion.getName() + " at slot: " + slot);
             } else {
                 Bukkit.getLogger().warning("[PotionMerchantGUI] Potion with ID '" + potionId + "' not found in PotionManager.");
@@ -110,7 +112,7 @@ public class PotionMerchantGUI implements Listener {
         return inventory;
     }
 
-    private ItemStack createPotionPreview(PotionTemplate potion) {
+    private ItemStack createPotionPreview(int slot, PotionTemplate potion) {
         ItemStack potionItem = new ItemStack(potion.getMaterial());
         ItemMeta meta = potionItem.getItemMeta();
         meta.setDisplayName(ChatColor.GOLD + potion.getName());
@@ -118,7 +120,8 @@ public class PotionMerchantGUI implements Listener {
         lore.add(ChatColor.GRAY + "Charges: " + ChatColor.YELLOW + potion.getCharges());
         lore.add(ChatColor.GRAY + "Cooldown: " + ChatColor.AQUA + potion.getCooldownSeconds() + "s");
         lore.add("");
-        lore.add(ChatColor.GOLD + "Price: " + ChatColor.GREEN + potion.getCooldownSeconds() + " <glyph:coins_icon>");
+        int cost = potionCosts.getOrDefault(slot, potion.getCooldownSeconds());
+        lore.add(ChatColor.GOLD + "Price: " + ChatColor.GREEN + cost + " <glyph:coins_icon>");
         meta.setLore(lore);
         potionItem.setItemMeta(meta);
         ItemRarity rarity = ItemRarity.fromTier(potion.getTier());
@@ -137,7 +140,7 @@ public class PotionMerchantGUI implements Listener {
             if (potion == null) return;
 
             Player player = (Player) event.getWhoClicked();
-            int cost = potion.getCooldownSeconds();
+            int cost = potionCosts.getOrDefault(slot, potion.getCooldownSeconds());
             int balance = economyManager.getBalance(player);
 
             if (balance < cost) {
@@ -201,11 +204,11 @@ public class PotionMerchantGUI implements Listener {
             lore.add(ChatColor.GRAY + "Charges: " + ChatColor.YELLOW + potion.getCharges());
             lore.add(ChatColor.GRAY + "Cooldown: " + ChatColor.AQUA + potion.getCooldownSeconds() + "s");
             lore.add("");
-
-            if (playerCoins < potion.getCooldownSeconds()) {
-                lore.add(ChatColor.GOLD + "Price: " + ChatColor.RED + "✘ " + potion.getCooldownSeconds() + " <glyph:coins_icon>");
+            int cost = potionCosts.getOrDefault(slot, potion.getCooldownSeconds());
+            if (playerCoins < cost) {
+                lore.add(ChatColor.GOLD + "Price: " + ChatColor.RED + "✘ " + cost + " <glyph:coins_icon>");
             } else {
-                lore.add(ChatColor.GOLD + "Price: " + ChatColor.GREEN + "✔ " + potion.getCooldownSeconds() + " <glyph:coins_icon>");
+                lore.add(ChatColor.GOLD + "Price: " + ChatColor.GREEN + "✔ " + cost + " <glyph:coins_icon>");
             }
             meta.setLore(lore);
             stack.setItemMeta(meta);

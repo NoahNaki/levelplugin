@@ -33,6 +33,7 @@ public class DungeonManager {
     private final Map<String, DungeonLayout> layouts = new HashMap<>();
     private final Map<String, String> layoutDisplay = new HashMap<>();
     private final Map<String, Integer> layoutThreat = new HashMap<>();
+    private final Map<String, Boolean> layoutVerified = new HashMap<>();
     private java.io.File layoutFile;
     private org.bukkit.configuration.file.FileConfiguration layoutConfig;
     /** Guard asynchronous layout saves. */
@@ -484,6 +485,7 @@ public class DungeonManager {
         }
         if (layouts.remove(key) != null) {
             layoutDisplay.remove(key);
+            layoutVerified.remove(key);
             saveLayouts();
             removed = true;
         }
@@ -508,6 +510,7 @@ public class DungeonManager {
         String lower = normalizeKey(key);
         layouts.put(lower, layout);
         layoutDisplay.put(lower, displayName);
+        layoutVerified.putIfAbsent(lower, false);
 
         if (player == null) {
             saveLayouts();
@@ -543,8 +546,26 @@ public class DungeonManager {
         return layout;
     }
 
+    public enum LayoutFilter { ALL, VERIFIED, COMMUNITY }
+
     public Set<Map.Entry<String, String>> getLayoutEntries() {
-        return layoutDisplay.entrySet();
+        return getLayoutEntries(LayoutFilter.ALL);
+    }
+
+    public Set<Map.Entry<String, String>> getLayoutEntries(LayoutFilter filter) {
+        if (filter == LayoutFilter.ALL) {
+            return layoutDisplay.entrySet();
+        }
+        java.util.LinkedHashSet<Map.Entry<String, String>> filtered = new java.util.LinkedHashSet<>();
+        for (var entry : layoutDisplay.entrySet()) {
+            boolean verified = isVerified(entry.getKey());
+            if (filter == LayoutFilter.VERIFIED && verified) {
+                filtered.add(entry);
+            } else if (filter == LayoutFilter.COMMUNITY && !verified) {
+                filtered.add(entry);
+            }
+        }
+        return filtered;
     }
 
     public String getDisplayName(String key) {
@@ -555,21 +576,30 @@ public class DungeonManager {
         return layoutThreat.getOrDefault(normalizeKey(key), 1);
     }
 
+    public boolean isVerified(String key) {
+        return layoutVerified.getOrDefault(normalizeKey(key), false);
+    }
+
+    public void setVerified(String key, boolean verified) {
+        layoutVerified.put(normalizeKey(key), verified);
+    }
+
     private void loadLayouts() {
         layoutFile = new java.io.File(plugin.getDataFolder(), "dungeons.yml");
         if (!layoutFile.exists()) {
             try { layoutFile.createNewFile(); } catch (Exception ignored) {}
         }
         layoutConfig = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(layoutFile);
-        org.bukkit.configuration.ConfigurationSection root = layoutConfig.getConfigurationSection("layouts");
-        if (root == null) return;
-        for (String rawKey : root.getKeys(false)) {
-            org.bukkit.configuration.ConfigurationSection sec = root.getConfigurationSection(rawKey);
-            if (sec == null) continue;
-            String display = sec.getString("display", rawKey);
-            int stepVal = sec.getInt("step", 0);
-            DungeonLayout layout = new DungeonLayout();
-            layout.setStep(stepVal);
+            org.bukkit.configuration.ConfigurationSection root = layoutConfig.getConfigurationSection("layouts");
+            if (root == null) return;
+            for (String rawKey : root.getKeys(false)) {
+                org.bukkit.configuration.ConfigurationSection sec = root.getConfigurationSection(rawKey);
+                if (sec == null) continue;
+                String display = sec.getString("display", rawKey);
+                boolean verified = sec.getBoolean("verified", false);
+                int stepVal = sec.getInt("step", 0);
+                DungeonLayout layout = new DungeonLayout();
+                layout.setStep(stepVal);
             org.bukkit.configuration.ConfigurationSection cells = sec.getConfigurationSection("cells");
             if (cells != null) {
                 for (String coord : cells.getKeys(false)) {
@@ -598,6 +628,7 @@ public class DungeonManager {
             layouts.put(key, layout);
             layoutDisplay.put(key, display);
             layoutThreat.put(key, layout.getMaxThreat());
+            layoutVerified.put(key, verified);
         }
     }
 
@@ -639,6 +670,7 @@ public class DungeonManager {
             DungeonLayout layout = layouts.get(key);
             org.bukkit.configuration.ConfigurationSection sec = root.createSection(key);
             sec.set("display", layoutDisplay.getOrDefault(key, key));
+            sec.set("verified", layoutVerified.getOrDefault(key, false));
             sec.set("step", layout.getStep());
             org.bukkit.configuration.ConfigurationSection cells = sec.createSection("cells");
             for (int x = 0; x < DungeonLayout.WIDTH; x++) {

@@ -77,6 +77,11 @@ public class NPCClickListener implements Listener {
                 }
             }
 
+            if (stripped.equalsIgnoreCase("Potion Merchant")) {
+                player.performCommand("merchant potion_merchant");
+                return;
+            }
+
             if (npc.getId() == 546 &&
                     questManager.hasCompleted(player.getUniqueId(), "newbeginning")) {
                 if (!dialogManager.hasSession(player)) {

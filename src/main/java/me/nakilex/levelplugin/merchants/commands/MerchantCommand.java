@@ -1,7 +1,7 @@
 package me.nakilex.levelplugin.merchants.commands;
 
 import me.nakilex.levelplugin.merchants.gui.MerchantGUI;
-import org.bukkit.ChatColor;
+import me.nakilex.levelplugin.merchants.gui.PotionMerchantGUI;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -48,6 +48,11 @@ public class MerchantCommand implements TabExecutor {
         String merchantName = args[0];
         if (!merchantConfig.contains("merchants." + merchantName)) {
             send(sender, MessageType.ERROR, "Merchant not found!");
+            return true;
+        }
+        if ("potion_merchant".equalsIgnoreCase(merchantName)) {
+            PotionMerchantGUI potionGUI = new PotionMerchantGUI(plugin, merchantConfig);
+            ((Player) sender).openInventory(potionGUI.getInventory());
             return true;
         }
         // Create and open the merchant GUI
