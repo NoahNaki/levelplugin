@@ -4,14 +4,16 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.dungeon.Dungeon;
 import me.nakilex.levelplugin.dungeon.DungeonLayout;
 import me.nakilex.levelplugin.dungeon.DungeonManager;
 import me.nakilex.levelplugin.mob.utils.MythicMobModifier;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -55,7 +57,7 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
     public void startInstance(DungeonManager manager, Player player) {
         World source = Bukkit.getWorld(SOURCE_WORLD);
         if (source == null) {
-            player.sendMessage(ChatColor.RED + "Verified dungeon template world is missing.");
+            player.sendMessage(Component.text("Verified dungeon template world is missing.", NamedTextColor.RED));
             return;
         }
 
@@ -158,7 +160,7 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
                 Material.ALLIUM
         );
         for (Location yellow : yellowFlowers) {
-            Material choice = flowerTypes.get(plugin.getRandom().nextInt(flowerTypes.size()));
+            Material choice = flowerTypes.get(ThreadLocalRandom.current().nextInt(flowerTypes.size()));
             yellow.getBlock().setType(choice, false);
         }
         for (Location marker : bluePlacements) {
@@ -189,7 +191,7 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
                     "Nocsy_Bokoblin_Swordsman",
                     "Nocsy_Bokoblin_Warrior"
             };
-            String mob = mobs[plugin.getRandom().nextInt(mobs.length)];
+            String mob = mobs[ThreadLocalRandom.current().nextInt(mobs.length)];
             MythicMobModifier.spawnModifiedMob(mob, magenta, null, null, null, null);
         }
         for (Location cyan : miniBossMarkers) {
