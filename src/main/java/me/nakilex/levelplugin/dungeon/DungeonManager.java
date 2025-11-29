@@ -38,6 +38,8 @@ public class DungeonManager {
     private final Map<String, Integer> layoutThreat = new HashMap<>();
     private final Map<String, Boolean> layoutVerified = new HashMap<>();
     private final java.util.List<VerifiedDungeonDefinition> verifiedDungeons = new java.util.ArrayList<>();
+    private java.io.File verifiedLayoutFile;
+    private org.bukkit.configuration.file.FileConfiguration verifiedLayoutConfig;
     private java.io.File layoutFile;
     private org.bukkit.configuration.file.FileConfiguration layoutConfig;
     /** Guard asynchronous layout saves. */
@@ -590,6 +592,19 @@ public class DungeonManager {
         layoutVerified.put(normalizeKey(key), verified);
     }
 
+    private org.bukkit.configuration.file.FileConfiguration getVerifiedLayoutConfig() {
+        if (verifiedLayoutFile == null) {
+            verifiedLayoutFile = new java.io.File(plugin.getDataFolder(), "verified_dungeons.yml");
+        }
+        if (!verifiedLayoutFile.exists()) {
+            plugin.saveResource("verified_dungeons.yml", false);
+        }
+        if (verifiedLayoutConfig == null) {
+            verifiedLayoutConfig = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(verifiedLayoutFile);
+        }
+        return verifiedLayoutConfig;
+    }
+
     private void loadLayouts() {
         layoutFile = new java.io.File(plugin.getDataFolder(), "dungeons.yml");
         if (!layoutFile.exists()) {
@@ -640,9 +655,42 @@ public class DungeonManager {
 
     private void registerVerifiedDungeons() {
         verifiedDungeons.clear();
+
+        java.util.Map<String, VerifiedDungeonDefinition> available = new java.util.LinkedHashMap<>();
         VerifiedDungeonDefinition reliquary = new CrimsonReliquaryDungeon(plugin);
-        reliquary.register(this);
-        verifiedDungeons.add(reliquary);
+        available.put(reliquary.getKey(), reliquary);
+
+        org.bukkit.configuration.file.FileConfiguration cfg = getVerifiedLayoutConfig();
+        boolean changed = false;
+        for (var entry : available.entrySet()) {
+            VerifiedDungeonDefinition def = entry.getValue();
+            String base = "verified." + normalizeKey(def.getKey());
+            if (!cfg.contains(base + ".enabled")) {
+                cfg.set(base + ".enabled", true);
+                changed = true;
+            }
+            if (!cfg.contains(base + ".display")) {
+                cfg.set(base + ".display", def.getDisplayName());
+                changed = true;
+            }
+
+            if (!cfg.getBoolean(base + ".enabled", true)) {
+                continue;
+            }
+
+            String display = cfg.getString(base + ".display", def.getDisplayName());
+            def.register(this);
+            layoutDisplay.put(normalizeKey(def.getKey()), display);
+            verifiedDungeons.add(def);
+        }
+
+        if (changed && verifiedLayoutFile != null) {
+            try {
+                cfg.save(verifiedLayoutFile);
+            } catch (Exception e) {
+                plugin.getLogger().warning("Failed to save verified dungeon config: " + e.getMessage());
+            }
+        }
     }
 
     public void registerVerifiedLayout(String key, String displayName, int defaultThreat, DungeonLayout fallbackLayout) {
