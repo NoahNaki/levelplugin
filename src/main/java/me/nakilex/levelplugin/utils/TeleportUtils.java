@@ -49,4 +49,16 @@ public final class TeleportUtils {
                 10L);
         }, delayTicks);
     }
+
+    /**
+     * Teleport the player on the next tick after ensuring the destination
+     * chunk is loaded. This helper avoids unsafe async teleports and can be
+     * reused by systems that need a lightweight, server-thread safe move.
+     */
+    public static void safeTeleport(Player player, Location dest) {
+        if (player == null || dest == null || dest.getWorld() == null) return;
+        Location target = dest.clone();
+        target.getChunk().load();
+        Bukkit.getScheduler().runTask(Main.getInstance(), () -> player.teleport(target));
+    }
 }

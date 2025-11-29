@@ -210,6 +210,8 @@ public class PluginBootstrap {
     private me.nakilex.levelplugin.mercenary.gui.MercenaryExpeditionGUI mercenaryExpeditionGUI;
     private me.nakilex.levelplugin.mercenary.gui.MercenaryExpeditionRewardsGUI mercenaryExpeditionRewardsGUI;
     private me.nakilex.levelplugin.transmog.TransmogManager transmogManager;
+    private me.nakilex.levelplugin.catacombs.CatacombsManager catacombsManager;
+    private me.nakilex.levelplugin.catacombs.CatacombsGUI catacombsGUI;
 
     public PluginBootstrap(Main plugin) {
         this.plugin = plugin;
@@ -369,6 +371,10 @@ public class PluginBootstrap {
         dungeonManager.cleanupOldInstanceWorlds();
         dungeonManager.getBuilder().cleanupOrphans();
         dungeonListGUI = new me.nakilex.levelplugin.dungeon.gui.DungeonListGUI(dungeonManager);
+        catacombsManager = new me.nakilex.levelplugin.catacombs.CatacombsManager(plugin, dungeonManager);
+        scoreboardManager.setCatacombsManager(catacombsManager);
+        catacombsGUI = new me.nakilex.levelplugin.catacombs.CatacombsGUI(catacombsManager);
+        plugin.getServer().getPluginManager().registerEvents(catacombsGUI, plugin);
         townStageManager = new me.nakilex.levelplugin.environment.stage.TownStageManager(plugin);
         buildingStageManager = new me.nakilex.levelplugin.environment.stage.BuildingStageManager(plugin);
         cooldownManager.setLootChestManager(lootChestManager);
@@ -451,6 +457,10 @@ public class PluginBootstrap {
             chatGameManager,
             dpsDummyManager
         );
+        me.nakilex.levelplugin.catacombs.CatacombsCommand catacombsCommand =
+                new me.nakilex.levelplugin.catacombs.CatacombsCommand(catacombsManager, catacombsGUI);
+        plugin.getCommand("catacombs").setExecutor(catacombsCommand);
+        plugin.getCommand("catacombs").setTabCompleter(catacombsCommand);
         me.nakilex.levelplugin.maintenance.MaintenanceCommand maintenanceCmd =
                 new me.nakilex.levelplugin.maintenance.MaintenanceCommand(maintenanceManager);
         plugin.getCommand("maintenance").setExecutor(maintenanceCmd);
@@ -680,6 +690,8 @@ public class PluginBootstrap {
     public me.nakilex.levelplugin.fakeblock.ModelGateManager getModelGateManager() { return modelGateManager; }
     public me.nakilex.levelplugin.dungeon.rating.DungeonRatingManager getDungeonRatingManager() { return dungeonRatingManager; }
     public me.nakilex.levelplugin.dungeon.DungeonManager getDungeonManager() { return dungeonManager; }
+    public me.nakilex.levelplugin.catacombs.CatacombsManager getCatacombsManager() { return catacombsManager; }
+    public me.nakilex.levelplugin.catacombs.CatacombsGUI getCatacombsGUI() { return catacombsGUI; }
     public me.nakilex.levelplugin.world.WorldManager getWorldManager() { return worldManager; }
     public me.nakilex.levelplugin.environment.EnvironmentManager getEnvironmentManager() { return environmentManager; }
     public me.nakilex.levelplugin.environment.UpgradeGUI getUpgradeGUI() { return upgradeGUI; }

@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.mob.utils;
 
 import io.lumine.mythic.core.mobs.ActiveMob;
 import io.lumine.mythic.bukkit.BukkitAdapter;
+import me.nakilex.levelplugin.utils.AttributeUtil;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.LivingEntity;
 
@@ -19,17 +20,22 @@ public final class CombatPowerUtil {
     public static int getCombatPower(ActiveMob mob) {
         if (mob == null || mob.getEntity() == null) return 0;
         LivingEntity ent = (LivingEntity) mob.getEntity().getBukkitEntity();
-        double hp = ent.getAttribute(resolve("GENERIC_MAX_HEALTH", "MAX_HEALTH")) != null
-                ? ent.getAttribute(resolve("GENERIC_MAX_HEALTH", "MAX_HEALTH")).getBaseValue()
+        Attribute hpAttr = AttributeUtil.resolve("GENERIC_MAX_HEALTH", "MAX_HEALTH");
+        Attribute dmgAttr = AttributeUtil.resolve("GENERIC_ATTACK_DAMAGE", "ATTACK_DAMAGE");
+        Attribute moveAttr = AttributeUtil.resolve("GENERIC_MOVEMENT_SPEED", "MOVEMENT_SPEED");
+        Attribute atkAttr = AttributeUtil.resolve("GENERIC_ATTACK_SPEED", "ATTACK_SPEED");
+
+        double hp = hpAttr != null && ent.getAttribute(hpAttr) != null
+                ? ent.getAttribute(hpAttr).getBaseValue()
                 : ent.getMaxHealth();
-        double dmg = ent.getAttribute(resolve("GENERIC_ATTACK_DAMAGE", "ATTACK_DAMAGE")) != null
-                ? ent.getAttribute(resolve("GENERIC_ATTACK_DAMAGE", "ATTACK_DAMAGE")).getBaseValue()
+        double dmg = dmgAttr != null && ent.getAttribute(dmgAttr) != null
+                ? ent.getAttribute(dmgAttr).getBaseValue()
                 : 0;
-        double move = ent.getAttribute(resolve("GENERIC_MOVEMENT_SPEED", "MOVEMENT_SPEED")) != null
-                ? ent.getAttribute(resolve("GENERIC_MOVEMENT_SPEED", "MOVEMENT_SPEED")).getBaseValue()
+        double move = moveAttr != null && ent.getAttribute(moveAttr) != null
+                ? ent.getAttribute(moveAttr).getBaseValue()
                 : 0;
-        double atk = ent.getAttribute(resolve("GENERIC_ATTACK_SPEED", "ATTACK_SPEED")) != null
-                ? ent.getAttribute(resolve("GENERIC_ATTACK_SPEED", "ATTACK_SPEED")).getBaseValue()
+        double atk = atkAttr != null && ent.getAttribute(atkAttr) != null
+                ? ent.getAttribute(atkAttr).getBaseValue()
                 : 0;
         double level = mob.getLevel();
         double power = hp + dmg * 10 + move * 100 + atk * 20 + level * 5;
@@ -52,17 +58,5 @@ public final class CombatPowerUtil {
         int power = getCombatPower(mob);
         mob.getEntity().getBukkitEntity().remove();
         return power;
-    }
-
-    private static Attribute resolve(String generic, String fallback) {
-        try {
-            return Attribute.valueOf(generic);
-        } catch (IllegalArgumentException ex) {
-            try {
-                return Attribute.valueOf(fallback);
-            } catch (IllegalArgumentException ignore) {
-                return null;
-            }
-        }
     }
 }

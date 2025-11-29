@@ -99,32 +99,41 @@ public class Dungeon {
 
     /** Remove all placed blocks for this dungeon. */
     public void delete() {
-        for (RoomInstance r : rooms) {
-            for (RoomTemplate.BlockDef b : r.template.getBlocks()) {
-                int[] vec = RoomTemplate.rotate(b.x - (int)Math.round(r.template.getCenterX()),
-                        b.z - (int)Math.round(r.template.getCenterZ()), r.rotation);
-                int wx = r.center.getBlockX() + vec[0];
-                int wy = r.center.getBlockY() + (b.y - r.template.getConnectorMinY());
-                int wz = r.center.getBlockZ() + vec[1];
-                world.getBlockAt(wx, wy, wz).setType(Material.AIR, false);
-            }
-            for (RoomTemplate.Marker m : r.template.getPortals()) {
-                int[] vec = RoomTemplate.rotate(m.x - (int)Math.round(r.template.getCenterX()),
-                        m.z - (int)Math.round(r.template.getCenterZ()), r.rotation);
-                int wx = r.center.getBlockX() + vec[0];
-                int wy = r.center.getBlockY() + (m.y - r.template.getConnectorMinY());
-                int wz = r.center.getBlockZ() + vec[1];
-                world.getBlockAt(wx, wy, wz).setType(Material.AIR, false);
-            }
-            for (RoomTemplate.Marker m : r.template.getExitMarkers()) {
-                int[] vec = RoomTemplate.rotate(m.x - (int)Math.round(r.template.getCenterX()),
-                        m.z - (int)Math.round(r.template.getCenterZ()), r.rotation);
-                Location loc = r.center.clone().add(vec[0], m.y - r.template.getConnectorMinY(), vec[1]);
-                for (var ent : world.getNearbyEntities(loc, 1.5, 2.5, 1.5)) {
-                    if (ent.getScoreboardTags().contains("dungeon_exit")) ent.remove();
-                }
+        for (RoomInstance r : new ArrayList<>(rooms)) {
+            deleteRoom(r);
+        }
+    }
+
+    /** Remove a specific room from the dungeon and clear its blocks. */
+    public void deleteRoom(RoomInstance r) {
+        clearRoomBlocks(r);
+        rooms.remove(r);
+    }
+
+    private void clearRoomBlocks(RoomInstance r) {
+        for (RoomTemplate.BlockDef b : r.template.getBlocks()) {
+            int[] vec = RoomTemplate.rotate(b.x - (int)Math.round(r.template.getCenterX()),
+                    b.z - (int)Math.round(r.template.getCenterZ()), r.rotation);
+            int wx = r.center.getBlockX() + vec[0];
+            int wy = r.center.getBlockY() + (b.y - r.template.getConnectorMinY());
+            int wz = r.center.getBlockZ() + vec[1];
+            world.getBlockAt(wx, wy, wz).setType(Material.AIR, false);
+        }
+        for (RoomTemplate.Marker m : r.template.getPortals()) {
+            int[] vec = RoomTemplate.rotate(m.x - (int)Math.round(r.template.getCenterX()),
+                    m.z - (int)Math.round(r.template.getCenterZ()), r.rotation);
+            int wx = r.center.getBlockX() + vec[0];
+            int wy = r.center.getBlockY() + (m.y - r.template.getConnectorMinY());
+            int wz = r.center.getBlockZ() + vec[1];
+            world.getBlockAt(wx, wy, wz).setType(Material.AIR, false);
+        }
+        for (RoomTemplate.Marker m : r.template.getExitMarkers()) {
+            int[] vec = RoomTemplate.rotate(m.x - (int)Math.round(r.template.getCenterX()),
+                    m.z - (int)Math.round(r.template.getCenterZ()), r.rotation);
+            Location loc = r.center.clone().add(vec[0], m.y - r.template.getConnectorMinY(), vec[1]);
+            for (var ent : world.getNearbyEntities(loc, 1.5, 2.5, 1.5)) {
+                if (ent.getScoreboardTags().contains("dungeon_exit")) ent.remove();
             }
         }
-        rooms.clear();
     }
 }

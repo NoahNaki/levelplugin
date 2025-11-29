@@ -150,4 +150,6 @@ public class Main extends JavaPlugin {
     public me.nakilex.levelplugin.mercenary.gui.MercenaryFriendshipGUI getMercenaryFriendshipGUI() { return bootstrap.getMercenaryFriendshipGUI(); }
     public me.nakilex.levelplugin.mercenary.gui.MercenaryExpeditionGUI getMercenaryExpeditionGUI() { return bootstrap.getMercenaryExpeditionGUI(); }
     public me.nakilex.levelplugin.mercenary.gui.MercenaryExpeditionRewardsGUI getMercenaryExpeditionRewardsGUI() { return bootstrap.getMercenaryExpeditionRewardsGUI(); }
+    public me.nakilex.levelplugin.catacombs.CatacombsManager getCatacombsManager() { return bootstrap.getCatacombsManager(); }
+    public me.nakilex.levelplugin.catacombs.CatacombsGUI getCatacombsGUI() { return bootstrap.getCatacombsGUI(); }
 }
