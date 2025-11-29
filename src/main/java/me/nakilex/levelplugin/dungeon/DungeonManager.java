@@ -661,6 +661,7 @@ public class DungeonManager {
         available.put(reliquary.getKey(), reliquary);
 
         org.bukkit.configuration.file.FileConfiguration cfg = getVerifiedLayoutConfig();
+        plugin.getLogger().info("[Dungeon] Loading verified dungeon config from " + verifiedLayoutFile.getAbsolutePath());
         boolean changed = false;
         for (var entry : available.entrySet()) {
             VerifiedDungeonDefinition def = entry.getValue();
@@ -675,6 +676,7 @@ public class DungeonManager {
             }
 
             if (!cfg.getBoolean(base + ".enabled", true)) {
+                plugin.getLogger().info("[Dungeon] Verified dungeon '" + def.getKey() + "' disabled in config");
                 continue;
             }
 
@@ -682,6 +684,7 @@ public class DungeonManager {
             def.register(this);
             layoutDisplay.put(normalizeKey(def.getKey()), display);
             verifiedDungeons.add(def);
+            plugin.getLogger().info("[Dungeon] Registered verified dungeon '" + def.getKey() + "' with display '" + display + "'");
         }
 
         if (changed && verifiedLayoutFile != null) {
@@ -798,6 +801,7 @@ public class DungeonManager {
         DungeonLayout layout = getLayout(name);
         if (layout == null) {
             player.sendMessage(ChatColor.RED + "Dungeon not found.");
+            debugMissingDungeon(keyName);
             return;
         }
         long debugStart = System.currentTimeMillis();
@@ -1021,6 +1025,41 @@ public class DungeonManager {
 
     public Set<String> getLayoutNames() {
         return new java.util.HashSet<>(layoutDisplay.values());
+    }
+
+    private void debugMissingDungeon(String requestedKey) {
+        String normalized = normalizeKey(requestedKey);
+        plugin.getLogger().warning("[Dungeon] Dungeon lookup failed for '" + requestedKey + "' (normalized='" + normalized + "')");
+
+        java.util.List<String> verifiedKeys = new java.util.ArrayList<>();
+        for (VerifiedDungeonDefinition def : verifiedDungeons) {
+            verifiedKeys.add(def.getKey());
+        }
+        plugin.getLogger().warning("[Dungeon] Verified definitions loaded: " + joinOrNone(verifiedKeys));
+
+        java.util.List<String> layoutKeys = new java.util.ArrayList<>();
+        for (String key : layouts.keySet()) {
+            layoutKeys.add(key);
+        }
+        plugin.getLogger().warning("[Dungeon] Layout keys loaded: " + joinOrNone(layoutKeys));
+
+        java.util.List<String> layoutDisplays = new java.util.ArrayList<>();
+        for (var entry : layoutDisplay.entrySet()) {
+            layoutDisplays.add(entry.getKey() + "=" + entry.getValue());
+        }
+        plugin.getLogger().warning("[Dungeon] Layout display map: " + joinOrNone(layoutDisplays));
+
+        if (verifiedLayoutFile != null) {
+            plugin.getLogger().warning("[Dungeon] Verified config path: " + verifiedLayoutFile.getAbsolutePath()
+                    + " (exists=" + verifiedLayoutFile.exists() + ")");
+        }
+    }
+
+    private String joinOrNone(java.util.Collection<String> values) {
+        if (values == null || values.isEmpty()) {
+            return "<none>";
+        }
+        return String.join(", ", values);
     }
 
     private Set<String> filterUnlocked(Set<String> keys, java.util.UUID playerId) {
