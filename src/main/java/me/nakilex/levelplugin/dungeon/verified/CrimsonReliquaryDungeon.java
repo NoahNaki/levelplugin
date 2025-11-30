@@ -141,7 +141,7 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
             }
         }
 
-        final int chunksPerTick = 2;
+        final int chunksPerTick = 1;
         Bukkit.getScheduler().runTaskTimer(plugin, task -> {
             int processed = 0;
             while (processed < chunksPerTick && !chunkQueue.isEmpty()) {
@@ -159,11 +159,14 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
 
     private void processChunk(World source, World dest, Location origin, TemplateMarkers markers, int chunkX, int chunkZ) {
         var srcChunk = source.getChunkAt(chunkX, chunkZ);
+        srcChunk.load();
+
         int destChunkX = Math.floorDiv(origin.getBlockX() + (chunkX << 4) - MIN_X, 16);
         int destChunkZ = Math.floorDiv(origin.getBlockZ() + (chunkZ << 4) - MIN_Z, 16);
         var dstChunk = dest.getChunkAt(destChunkX, destChunkZ);
-        srcChunk.load();
         dstChunk.load();
+
+        var snapshot = srcChunk.getChunkSnapshot();
 
         int baseX = chunkX << 4;
         int baseZ = chunkZ << 4;
@@ -174,8 +177,9 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
                 int worldZ = baseZ + z;
                 if (worldZ < MIN_Z || worldZ > MAX_Z) continue;
                 for (int y = MIN_Y; y <= MAX_Y; y++) {
-                    var block = srcChunk.getBlock(x, y, z);
-                    Material mat = block.getType();
+                    Material mat = snapshot.getBlockType(x, y, z);
+                    if (mat == Material.AIR) continue;
+
                     int destX = origin.getBlockX() + (worldX - MIN_X);
                     int destY = origin.getBlockY() + (y - MIN_Y);
                     int destZ = origin.getBlockZ() + (worldZ - MIN_Z);
@@ -209,7 +213,9 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
                             markers.chestMarkers.add(destLoc);
                             dest.getBlockAt(destLoc).setType(Material.AIR, false);
                         }
-                        default -> dest.getBlockAt(destLoc).setBlockData(block.getBlockData().clone(), false);
+                        default -> {
+                            dest.getBlockAt(destLoc).setBlockData(snapshot.getBlockData(x, y, z), false);
+                        }
                     }
                 }
             }
@@ -260,7 +266,7 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
             brown.getBlock().setType(Material.SOUL_SAND, false);
         }
 
-        int tier = manager.getThreatLevel(KEY);
+        int tier = Math.max(1, manager.getThreatLevel(KEY));
         for (Location chest : markers.chestMarkers) {
             int id = manager.getLootChestManager().createAndSpawnChest(chest, tier);
             inst.addChestId(id);
