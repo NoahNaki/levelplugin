@@ -2,7 +2,9 @@ package me.nakilex.levelplugin.dungeon.verified;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -10,32 +12,58 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.dungeon.Dungeon;
 import me.nakilex.levelplugin.dungeon.DungeonLayout;
 import me.nakilex.levelplugin.dungeon.DungeonManager;
+import me.nakilex.levelplugin.dungeon.RoomTemplate;
 import me.nakilex.levelplugin.mob.utils.MythicMobModifier;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
+import me.nakilex.levelplugin.utils.MultiLineHologram;
+import me.nakilex.levelplugin.utils.TooltipUtil;
+import me.nakilex.levelplugin.utils.items.ItemUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.World;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
+import org.bukkit.event.player.PlayerInteractAtEntityEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerTeleportEvent;
+import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.inventory.ItemFlag;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.util.Vector;
 
 public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
     private static final String DISPLAY = "Crimson Reliquary";
     private static final String KEY = DungeonManager.normalizeKey(DISPLAY);
-    private static final String SOURCE_WORLD = "assets";
+    private static final String SOURCE_WORLD = "flatland";
     private static final int MIN_X = -245;
     private static final int MIN_Y = -57;
     private static final int MIN_Z = -5936;
     private static final int MAX_X = 138;
     private static final int MAX_Y = 107;
     private static final int MAX_Z = -5387;
+    private static final Location TEMPLATE_SPAWN = new Location(null, -211, -34, -5801);
+    private static final NamespacedKey DUNGEON_FLOWER_KEY = new NamespacedKey(Main.getInstance(), "crimson_flower");
 
     private final Main plugin;
+    private final Map<World, InstanceState> activeInstances = new HashMap<>();
+    private volatile RoomTemplate cachedTemplate;
 
     public CrimsonReliquaryDungeon(Main plugin) {
         this.plugin = plugin;
+        Bukkit.getPluginManager().registerEvents(new InteractionListener(), plugin);
     }
 
     private static final class TemplateMarkers {
@@ -46,6 +74,32 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
         private final List<Location> bluePlacements = new ArrayList<>();
         private final List<Location> brownRewards = new ArrayList<>();
         private final List<Location> chestMarkers = new ArrayList<>();
+    }
+
+    private enum FlowerType {
+        POPPY(Material.POPPY, "Scarlet Poppy", "Blood-red petals hide a subtle glow."),
+        DANDELION(Material.DANDELION, "Sunlit Dandelion", "Warm to the touch despite the chill."),
+        BLUE_ORCHID(Material.BLUE_ORCHID, "Azure Orchid", "Its perfume hums with latent mana."),
+        ALLIUM(Material.ALLIUM, "Amethyst Allium", "A violet bloom that refuses to wilt.");
+
+        final Material block;
+        final String display;
+        final String description;
+
+        FlowerType(Material block, String display, String description) {
+            this.block = block;
+            this.display = display;
+            this.description = description;
+        }
+    }
+
+    private static final class InstanceState {
+        final Map<Location, FlowerType> pluckable = new HashMap<>();
+        final Map<Location, FlowerType> placements = new HashMap<>();
+        final Map<Location, MultiLineHologram> pluckHolograms = new HashMap<>();
+        final List<Location> rewardFountains = new ArrayList<>();
+        final List<Player> participants = new ArrayList<>();
+        boolean puzzleComplete;
     }
 
     @Override
@@ -65,13 +119,24 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
         manager.registerVerifiedLayout(KEY, DISPLAY, 10, layout);
     }
 
-    @Override
-    public void startInstance(DungeonManager manager, Player player) {
+    private RoomTemplate getTemplate() {
+        if (cachedTemplate != null) {
+            return cachedTemplate;
+        }
         plugin.getWorldManager().ensureWorldsLoaded(SOURCE_WORLD);
-
         World source = Bukkit.getWorld(SOURCE_WORLD);
         if (source == null) {
-            player.sendMessage(Component.text("Verified dungeon template world is missing (assets).", NamedTextColor.RED));
+            return null;
+        }
+        cachedTemplate = RoomTemplate.capture(source, MIN_X, MIN_Y, MIN_Z, MAX_X, MAX_Y, MAX_Z, false);
+        return cachedTemplate;
+    }
+
+    @Override
+    public void startInstance(DungeonManager manager, Player player) {
+        RoomTemplate template = getTemplate();
+        if (template == null) {
+            player.sendMessage(Component.text("Verified dungeon template world is missing (flatland).", NamedTextColor.RED));
             return;
         }
 
@@ -116,116 +181,81 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
         int maxX = offsetX + width - 1;
         int maxY = offsetY + height - 1;
         int maxZ = offsetZ + depth - 1;
-        Location center = origin.clone().add((width - 1) / 2.0, 1, (depth - 1) / 2.0);
-        Dungeon.RoomInstance bounds = new Dungeon.RoomInstance(null, 0, center, minX, minY, minZ, maxX, maxY, maxZ, null, List.of(), null);
+        Location spawn = origin.clone().add(TEMPLATE_SPAWN.getX() - MIN_X + 0.5, TEMPLATE_SPAWN.getY() - MIN_Y, TEMPLATE_SPAWN.getZ() - MIN_Z + 0.5);
+        Dungeon.RoomInstance bounds = new Dungeon.RoomInstance(null, 0, spawn, minX, minY, minZ, maxX, maxY, maxZ, null, List.of(), null);
         dungeon.addRoom(bounds);
 
         world.setDifficulty(org.bukkit.Difficulty.HARD);
         world.setGameRule(org.bukkit.GameRule.DO_MOB_SPAWNING, false);
-        world.setSpawnLocation(center);
+        world.setSpawnLocation(spawn);
 
         TemplateMarkers markers = new TemplateMarkers();
-        copyTemplateAsync(source, world, origin, markers, () -> finalizeInstance(manager, inst, origin, center, participants, markers));
+        pasteTemplateAsync(template, world, origin, markers, () -> finalizeInstance(manager, inst, origin, spawn, participants, markers));
     }
 
-    private void copyTemplateAsync(World source, World dest, Location origin, TemplateMarkers markers, Runnable done) {
-        int minChunkX = Math.floorDiv(MIN_X, 16);
-        int maxChunkX = Math.floorDiv(MAX_X, 16);
-        int minChunkZ = Math.floorDiv(MIN_Z, 16);
-        int maxChunkZ = Math.floorDiv(MAX_Z, 16);
-
-        List<int[]> chunkQueue = new ArrayList<>();
-        for (int cx = minChunkX; cx <= maxChunkX; cx++) {
-            for (int cz = minChunkZ; cz <= maxChunkZ; cz++) {
-                chunkQueue.add(new int[]{cx, cz});
+    private void handleTemplateBlock(World dest, Location destLoc, BlockData data, TemplateMarkers markers) {
+        Material mat = data.getMaterial();
+        switch (mat) {
+            case BLACK_WOOL -> {
+                markers.bossMarkers.add(destLoc.clone().add(0.5, 0, 0.5));
+                dest.getBlockAt(destLoc).setType(Material.AIR, false);
             }
+            case CYAN_WOOL -> {
+                markers.miniBossMarkers.add(destLoc.clone().add(0.5, 0, 0.5));
+                dest.getBlockAt(destLoc).setType(Material.AIR, false);
+            }
+            case MAGENTA_WOOL -> {
+                markers.normalMarkers.add(destLoc.clone().add(0.5, 0, 0.5));
+                dest.getBlockAt(destLoc).setType(Material.AIR, false);
+            }
+            case YELLOW_WOOL -> {
+                markers.yellowFlowers.add(destLoc);
+                dest.getBlockAt(destLoc).setType(Material.AIR, false);
+            }
+            case BLUE_WOOL -> {
+                markers.bluePlacements.add(destLoc);
+                dest.getBlockAt(destLoc).setType(Material.AIR, false);
+            }
+            case BROWN_WOOL -> {
+                markers.brownRewards.add(destLoc);
+                dest.getBlockAt(destLoc).setType(Material.AIR, false);
+            }
+            default -> dest.getBlockAt(destLoc).setBlockData(data, false);
+        }
+    }
+
+    private void pasteTemplateAsync(RoomTemplate template, World dest, Location origin, TemplateMarkers markers, Runnable done) {
+        for (RoomTemplate.ChestMarker chest : template.getChests()) {
+            Location loc = origin.clone().add(chest.x, chest.y, chest.z);
+            markers.chestMarkers.add(loc);
         }
 
-        final int chunksPerTick = 1;
-        Bukkit.getScheduler().runTaskTimer(plugin, task -> {
-            int processed = 0;
-            while (processed < chunksPerTick && !chunkQueue.isEmpty()) {
-                int[] pair = chunkQueue.remove(0);
-                processChunk(source, dest, origin, markers, pair[0], pair[1]);
-                processed++;
-            }
+        List<RoomTemplate.BlockDef> blocks = template.getBlocks();
+        final int blocksPerTick = 20000;
+        new BukkitRunnable() {
+            int idx = 0;
 
-            if (chunkQueue.isEmpty()) {
-                task.cancel();
-                done.run();
-            }
-        }, 0L, 1L);
-    }
-
-    private void processChunk(World source, World dest, Location origin, TemplateMarkers markers, int chunkX, int chunkZ) {
-        var srcChunk = source.getChunkAt(chunkX, chunkZ);
-        srcChunk.load();
-
-        int destChunkX = Math.floorDiv(origin.getBlockX() + (chunkX << 4) - MIN_X, 16);
-        int destChunkZ = Math.floorDiv(origin.getBlockZ() + (chunkZ << 4) - MIN_Z, 16);
-        var dstChunk = dest.getChunkAt(destChunkX, destChunkZ);
-        dstChunk.load();
-
-        var snapshot = srcChunk.getChunkSnapshot();
-
-        int baseX = chunkX << 4;
-        int baseZ = chunkZ << 4;
-        for (int x = 0; x < 16; x++) {
-            int worldX = baseX + x;
-            if (worldX < MIN_X || worldX > MAX_X) continue;
-            for (int z = 0; z < 16; z++) {
-                int worldZ = baseZ + z;
-                if (worldZ < MIN_Z || worldZ > MAX_Z) continue;
-                for (int y = MIN_Y; y <= MAX_Y; y++) {
-                    Material mat = snapshot.getBlockType(x, y, z);
-                    if (mat == Material.AIR) continue;
-
-                    int destX = origin.getBlockX() + (worldX - MIN_X);
-                    int destY = origin.getBlockY() + (y - MIN_Y);
-                    int destZ = origin.getBlockZ() + (worldZ - MIN_Z);
-                    Location destLoc = new Location(dest, destX, destY, destZ);
-                    switch (mat) {
-                        case BLACK_WOOL -> {
-                            markers.bossMarkers.add(destLoc.clone().add(0.5, 0, 0.5));
-                            dest.getBlockAt(destLoc).setType(Material.AIR, false);
-                        }
-                        case CYAN_WOOL -> {
-                            markers.miniBossMarkers.add(destLoc.clone().add(0.5, 0, 0.5));
-                            dest.getBlockAt(destLoc).setType(Material.AIR, false);
-                        }
-                        case MAGENTA_WOOL -> {
-                            markers.normalMarkers.add(destLoc.clone().add(0.5, 0, 0.5));
-                            dest.getBlockAt(destLoc).setType(Material.AIR, false);
-                        }
-                        case YELLOW_WOOL -> {
-                            markers.yellowFlowers.add(destLoc);
-                            dest.getBlockAt(destLoc).setType(Material.AIR, false);
-                        }
-                        case BLUE_WOOL -> {
-                            markers.bluePlacements.add(destLoc);
-                            dest.getBlockAt(destLoc).setType(Material.AIR, false);
-                        }
-                        case BROWN_WOOL -> {
-                            markers.brownRewards.add(destLoc);
-                            dest.getBlockAt(destLoc).setType(Material.AIR, false);
-                        }
-                        case CHEST, TRAPPED_CHEST -> {
-                            markers.chestMarkers.add(destLoc);
-                            dest.getBlockAt(destLoc).setType(Material.AIR, false);
-                        }
-                        default -> {
-                            dest.getBlockAt(destLoc).setBlockData(snapshot.getBlockData(x, y, z), false);
-                        }
-                    }
+            @Override
+            public void run() {
+                int processed = 0;
+                while (idx < blocks.size() && processed < blocksPerTick) {
+                    RoomTemplate.BlockDef b = blocks.get(idx++);
+                    Location destLoc = origin.clone().add(b.x, b.y, b.z);
+                    handleTemplateBlock(dest, destLoc, b.data, markers);
+                    processed++;
+                }
+                if (idx >= blocks.size()) {
+                    cancel();
+                    done.run();
                 }
             }
-        }
+        }.runTaskTimer(plugin, 0L, 1L);
     }
 
     private void finalizeInstance(DungeonManager manager,
                                   DungeonManager.Instance inst,
                                   Location origin,
-                                  Location center,
+                                  Location spawn,
                                   List<Player> participants,
                                   TemplateMarkers markers) {
         class State { boolean allowFlight; boolean flying; boolean invul; State(Player p){allowFlight=p.getAllowFlight();flying=p.isFlying();invul=p.isInvulnerable();}}
@@ -236,19 +266,26 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
                 p.setAllowFlight(true);
                 p.setFlying(true);
                 p.setInvulnerable(true);
-                p.teleport(center);
+                p.teleport(spawn);
             }
         }
+        InstanceState state = new InstanceState();
+        state.participants.addAll(participants);
+        activeInstances.put(origin.getWorld(), state);
 
-        List<Material> flowerTypes = Arrays.asList(
-                Material.POPPY,
-                Material.DANDELION,
-                Material.BLUE_ORCHID,
-                Material.ALLIUM
-        );
+        List<FlowerType> flowers = new ArrayList<>(Arrays.asList(FlowerType.values()));
+        int idx = 0;
         for (Location yellow : markers.yellowFlowers) {
-            Material choice = flowerTypes.get(ThreadLocalRandom.current().nextInt(flowerTypes.size()));
-            yellow.getBlock().setType(choice, false);
+            FlowerType choice = flowers.get(idx % flowers.size());
+            if (idx >= flowers.size()) {
+                choice = flowers.get(ThreadLocalRandom.current().nextInt(flowers.size()));
+            }
+            idx++;
+            yellow.getBlock().setType(choice.block, false);
+            state.pluckable.put(yellow, choice);
+            MultiLineHologram holo = new MultiLineHologram(yellow.clone().add(0.5, 1.1, 0.5), "crimson_flower_pluck");
+            holo.spawn(List.of(ChatColor.GRAY + "Right-click to pluck"));
+            state.pluckHolograms.put(yellow, holo);
         }
         for (Location marker : markers.bluePlacements) {
             marker.getBlock().setType(Material.LIGHT_BLUE_GLAZED_TERRACOTTA, false);
@@ -260,10 +297,12 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
                 as.setCustomNameVisible(true);
                 as.addScoreboardTag("dungeon_flower_slot");
             });
+            state.placements.put(marker, null);
         }
 
         for (Location brown : markers.brownRewards) {
             brown.getBlock().setType(Material.SOUL_SAND, false);
+            state.rewardFountains.add(brown);
         }
 
         int tier = Math.max(1, manager.getThreatLevel(KEY));
@@ -305,6 +344,159 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
                 p.setAllowFlight(st.allowFlight);
                 p.setFlying(st.allowFlight && st.flying);
                 ChatMessageUtil.send(p, MessageType.SUCCESS, "Crimson Reliquary is ready.");
+            }
+        }
+    }
+
+    private ItemStack createFlowerItem(FlowerType type) {
+        ItemStack stack = new ItemStack(type.block);
+        ItemMeta meta = stack.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(ChatColor.AQUA + type.display);
+            meta.setLore(TooltipUtil.dungeonItemLore(type.description, true));
+            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+            meta.getPersistentDataContainer().set(ItemUtil.SOULBOUND_KEY, PersistentDataType.BYTE, (byte) 1);
+            meta.getPersistentDataContainer().set(DUNGEON_FLOWER_KEY, PersistentDataType.STRING, type.name());
+            stack.setItemMeta(meta);
+        }
+        return stack;
+    }
+
+    private boolean isDungeonFlower(ItemStack stack) {
+        if (stack == null) return false;
+        ItemMeta meta = stack.getItemMeta();
+        if (meta == null) return false;
+        String type = meta.getPersistentDataContainer().get(DUNGEON_FLOWER_KEY, PersistentDataType.STRING);
+        return type != null;
+    }
+
+    private FlowerType getFlowerType(ItemStack stack) {
+        if (stack == null) return null;
+        ItemMeta meta = stack.getItemMeta();
+        if (meta == null) return null;
+        String type = meta.getPersistentDataContainer().get(DUNGEON_FLOWER_KEY, PersistentDataType.STRING);
+        if (type == null) return null;
+        try {
+            return FlowerType.valueOf(type);
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
+    }
+
+    private void completePuzzle(InstanceState state) {
+        if (state.puzzleComplete) return;
+        state.puzzleComplete = true;
+        for (Player p : state.participants) {
+            if (p != null && p.isOnline()) {
+                ChatMessageUtil.send(p, MessageType.SUCCESS, "Puzzle complete!");
+            }
+        }
+        for (Location fountain : state.rewardFountains) {
+            new BukkitRunnable() {
+                int drops = 0;
+
+                @Override
+                public void run() {
+                    if (drops++ >= 8) {
+                        cancel();
+                        return;
+                    }
+                    ItemStack reward = switch (ThreadLocalRandom.current().nextInt(4)) {
+                        case 0 -> new ItemStack(Material.DIAMOND_SWORD);
+                        case 1 -> new ItemStack(Material.GOLDEN_APPLE, 2);
+                        case 2 -> new ItemStack(Material.EMERALD, 6);
+                        default -> new ItemStack(Material.POTION);
+                    };
+                    Vector vel = new Vector(ThreadLocalRandom.current().nextDouble(-0.3, 0.3),
+                            0.4 + ThreadLocalRandom.current().nextDouble(0.1, 0.3),
+                            ThreadLocalRandom.current().nextDouble(-0.3, 0.3));
+                    fountain.getWorld().dropItem(fountain.clone().add(0.5, 1, 0.5), reward).setVelocity(vel);
+                }
+            }.runTaskTimer(plugin, 0L, 6L);
+        }
+    }
+
+    private void removeDungeonItems(Player player) {
+        if (player == null) return;
+        for (int i = 0; i < player.getInventory().getSize(); i++) {
+            ItemStack stack = player.getInventory().getItem(i);
+            if (isDungeonFlower(stack)) {
+                player.getInventory().clear(i);
+            }
+        }
+    }
+
+    private class InteractionListener implements Listener {
+        @EventHandler(ignoreCancelled = true)
+        public void onInteract(PlayerInteractEvent event) {
+            if (event.getHand() == EquipmentSlot.OFF_HAND) return;
+            if (event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
+            if (event.getClickedBlock() == null) return;
+            World world = event.getClickedBlock().getWorld();
+            InstanceState state = activeInstances.get(world);
+            if (state == null) return;
+            Location loc = event.getClickedBlock().getLocation();
+            FlowerType type = state.pluckable.get(loc);
+            if (type == null) return;
+            event.setCancelled(true);
+            ItemStack reward = createFlowerItem(type);
+            Map<Integer, ItemStack> overflow = event.getPlayer().getInventory().addItem(reward);
+            overflow.values().forEach(item -> world.dropItemNaturally(event.getPlayer().getLocation(), item));
+            event.getClickedBlock().setType(Material.AIR, false);
+            MultiLineHologram holo = state.pluckHolograms.remove(loc);
+            if (holo != null) holo.despawn();
+            state.pluckable.remove(loc);
+            ChatMessageUtil.send(event.getPlayer(), MessageType.SUCCESS, "You pluck the flower.");
+        }
+
+        @EventHandler(ignoreCancelled = true)
+        public void onInteractEntity(PlayerInteractAtEntityEvent event) {
+            if (event.getHand() == EquipmentSlot.OFF_HAND) return;
+            if (!event.getRightClicked().getScoreboardTags().contains("dungeon_flower_slot")) return;
+            World world = event.getRightClicked().getWorld();
+            InstanceState state = activeInstances.get(world);
+            if (state == null) return;
+            event.setCancelled(true);
+            ItemStack held = event.getPlayer().getInventory().getItemInMainHand();
+            if (!isDungeonFlower(held)) {
+                ChatMessageUtil.send(event.getPlayer(), MessageType.ERROR, "Hold a dungeon flower to place it.");
+                return;
+            }
+            FlowerType type = getFlowerType(held);
+            if (type == null) {
+                ChatMessageUtil.send(event.getPlayer(), MessageType.ERROR, "That flower has faded.");
+                return;
+            }
+            Location base = event.getRightClicked().getLocation().getBlock().getLocation();
+            if (!state.placements.containsKey(base)) {
+                return;
+            }
+            base.getBlock().setType(type.block, false);
+            event.getRightClicked().remove();
+            held.setAmount(held.getAmount() - 1);
+            state.placements.put(base, type);
+            ChatMessageUtil.send(event.getPlayer(), MessageType.SUCCESS, "Flower placed.");
+            long distinct = state.placements.values().stream().filter(java.util.Objects::nonNull).map(ft -> ft.block).distinct().count();
+            if (distinct >= 4) {
+                completePuzzle(state);
+            }
+        }
+
+        @EventHandler
+        public void onTeleport(PlayerTeleportEvent event) {
+            if (event.getFrom() == null || event.getTo() == null) return;
+            World from = event.getFrom().getWorld();
+            World to = event.getTo().getWorld();
+            if (from != null && to != from && activeInstances.containsKey(from)) {
+                removeDungeonItems(event.getPlayer());
+            }
+        }
+
+        @EventHandler
+        public void onQuit(PlayerQuitEvent event) {
+            World world = event.getPlayer().getWorld();
+            if (activeInstances.containsKey(world)) {
+                removeDungeonItems(event.getPlayer());
             }
         }
     }
