@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.dungeon.Dungeon;
@@ -76,6 +77,17 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
         private final List<Location> chestMarkers = new ArrayList<>();
     }
 
+    private static final class MobMarker {
+        private final Location loc;
+        private final String mobId;
+        private boolean spawned;
+
+        private MobMarker(Location loc, String mobId) {
+            this.loc = loc;
+            this.mobId = mobId;
+        }
+    }
+
     private enum FlowerType {
         POPPY(Material.POPPY, "Scarlet Poppy", "Blood-red petals hide a subtle glow."),
         DANDELION(Material.DANDELION, "Sunlit Dandelion", "Warm to the touch despite the chill."),
@@ -99,6 +111,7 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
         final Map<Location, MultiLineHologram> pluckHolograms = new HashMap<>();
         final List<Location> rewardFountains = new ArrayList<>();
         final List<Player> participants = new ArrayList<>();
+        final List<MobMarker> mobMarkers = new ArrayList<>();
         boolean puzzleComplete;
     }
 
@@ -231,25 +244,37 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
         }
 
         List<RoomTemplate.BlockDef> blocks = template.getBlocks();
-        final int blocksPerTick = 20000;
+        Map<Long, List<RoomTemplate.BlockDef>> byChunk = blocks.stream()
+                .collect(Collectors.groupingBy(b -> chunkKey(origin, b)));
+
+        final int chunksPerTick = 6;
         new BukkitRunnable() {
+            final List<Map.Entry<Long, List<RoomTemplate.BlockDef>>> chunkEntries = new ArrayList<>(byChunk.entrySet());
             int idx = 0;
 
             @Override
             public void run() {
-                int processed = 0;
-                while (idx < blocks.size() && processed < blocksPerTick) {
-                    RoomTemplate.BlockDef b = blocks.get(idx++);
-                    Location destLoc = origin.clone().add(b.x, b.y, b.z);
-                    handleTemplateBlock(dest, destLoc, b.data, markers);
-                    processed++;
+                int processedChunks = 0;
+                while (idx < chunkEntries.size() && processedChunks < chunksPerTick) {
+                    Map.Entry<Long, List<RoomTemplate.BlockDef>> entry = chunkEntries.get(idx++);
+                    for (RoomTemplate.BlockDef b : entry.getValue()) {
+                        Location destLoc = origin.clone().add(b.x, b.y, b.z);
+                        handleTemplateBlock(dest, destLoc, b.data, markers);
+                    }
+                    processedChunks++;
                 }
-                if (idx >= blocks.size()) {
+                if (idx >= chunkEntries.size()) {
                     cancel();
                     done.run();
                 }
             }
         }.runTaskTimer(plugin, 0L, 1L);
+    }
+
+    private long chunkKey(Location origin, RoomTemplate.BlockDef b) {
+        int cx = (origin.getBlockX() + b.x) >> 4;
+        int cz = (origin.getBlockZ() + b.z) >> 4;
+        return (((long) cx) << 32) ^ (cz & 0xffffffffL);
     }
 
     private void finalizeInstance(DungeonManager manager,
@@ -288,7 +313,7 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
             state.pluckHolograms.put(yellow, holo);
         }
         for (Location marker : markers.bluePlacements) {
-            marker.getBlock().setType(Material.LIGHT_BLUE_GLAZED_TERRACOTTA, false);
+            marker.getBlock().setType(Material.AIR, false);
             marker.getWorld().spawn(marker.clone().add(0.5, 0.1, 0.5), org.bukkit.entity.ArmorStand.class, as -> {
                 as.setVisible(false);
                 as.setGravity(false);
@@ -307,28 +332,12 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
 
         int tier = Math.max(1, manager.getThreatLevel(KEY));
         for (Location chest : markers.chestMarkers) {
-            int id = manager.getLootChestManager().createAndSpawnChest(chest, tier);
+            int id = manager.getLootChestManager().createAndSpawnChest(chest, tier, getFacingFromData(chest.getBlock().getBlockData()));
             inst.addChestId(id);
         }
 
-        for (Location magenta : markers.normalMarkers) {
-            String[] mobs = new String[]{
-                    "Nocsy_Bokoblin_Shaman",
-                    "Nocsy_Bokoblin_Swordsman",
-                    "Nocsy_Bokoblin_Warrior"
-            };
-            String mob = mobs[ThreadLocalRandom.current().nextInt(mobs.length)];
-            MythicMobModifier.spawnModifiedMob(mob, magenta, null, null, null, null);
-        }
-        for (Location cyan : markers.miniBossMarkers) {
-            MythicMobModifier.spawnModifiedMob("Nocsy_Ganon", cyan, null, null, null, null);
-        }
-        for (Location boss : markers.bossMarkers) {
-            var mob = MythicMobModifier.spawnModifiedMob("MSO_Demon_General", boss, null, null, null, null);
-            if (mob != null) {
-                mob.getEntity().getBukkitEntity().addScoreboardTag("dungeon_boss");
-            }
-        }
+        queueMobs(state, markers);
+        startMobWatcher(state);
 
         for (int y = -35; y <= -31; y++) {
             for (int z = -5803; z <= -5798; z++) {
@@ -360,6 +369,58 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
             stack.setItemMeta(meta);
         }
         return stack;
+    }
+
+    private org.bukkit.block.BlockFace getFacingFromData(BlockData data) {
+        if (data instanceof org.bukkit.block.data.Directional dir) {
+            return dir.getFacing();
+        }
+        return org.bukkit.block.BlockFace.NORTH;
+    }
+
+    private void queueMobs(InstanceState state, TemplateMarkers markers) {
+        String[] mobs = new String[]{
+                "Nocsy_Bokoblin_Shaman",
+                "Nocsy_Bokoblin_Swordsman",
+                "Nocsy_Bokoblin_Warrior"
+        };
+        for (Location magenta : markers.normalMarkers) {
+            String mob = mobs[ThreadLocalRandom.current().nextInt(mobs.length)];
+            state.mobMarkers.add(new MobMarker(magenta, mob));
+        }
+        for (Location cyan : markers.miniBossMarkers) {
+            state.mobMarkers.add(new MobMarker(cyan, "Nocsy_Ganon"));
+        }
+        for (Location boss : markers.bossMarkers) {
+            state.mobMarkers.add(new MobMarker(boss, "MSO_Demon_General"));
+        }
+    }
+
+    private void startMobWatcher(InstanceState state) {
+        final double radiusSq = 24 * 24;
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                if (state.participants.stream().noneMatch(p -> p != null && p.isOnline())) {
+                    cancel();
+                    return;
+                }
+                for (MobMarker marker : state.mobMarkers) {
+                    if (marker.spawned) continue;
+                    for (Player p : state.participants) {
+                        if (p == null || !p.isOnline() || p.getWorld() != marker.loc.getWorld()) continue;
+                        if (p.getLocation().distanceSquared(marker.loc) <= radiusSq) {
+                            var mob = MythicMobModifier.spawnModifiedMob(marker.mobId, marker.loc, null, null, null, null);
+                            if (mob != null && marker.mobId.equals("MSO_Demon_General")) {
+                                mob.getEntity().getBukkitEntity().addScoreboardTag("dungeon_boss");
+                            }
+                            marker.spawned = true;
+                            break;
+                        }
+                    }
+                }
+            }
+        }.runTaskTimer(plugin, 20L, 20L);
     }
 
     private boolean isDungeonFlower(ItemStack stack) {
