@@ -11,6 +11,8 @@ import me.nakilex.levelplugin.dungeon.Dungeon;
 import me.nakilex.levelplugin.dungeon.DungeonLayout;
 import me.nakilex.levelplugin.dungeon.DungeonManager;
 import me.nakilex.levelplugin.mob.utils.MythicMobModifier;
+import me.nakilex.levelplugin.utils.ChatMessageUtil;
+import me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
@@ -34,6 +36,16 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
 
     public CrimsonReliquaryDungeon(Main plugin) {
         this.plugin = plugin;
+    }
+
+    private static final class TemplateMarkers {
+        private final List<Location> bossMarkers = new ArrayList<>();
+        private final List<Location> miniBossMarkers = new ArrayList<>();
+        private final List<Location> normalMarkers = new ArrayList<>();
+        private final List<Location> yellowFlowers = new ArrayList<>();
+        private final List<Location> bluePlacements = new ArrayList<>();
+        private final List<Location> brownRewards = new ArrayList<>();
+        private final List<Location> chestMarkers = new ArrayList<>();
     }
 
     @Override
@@ -86,6 +98,10 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
             inst.addReturnLocation(player.getUniqueId(), player.getLocation());
         }
 
+        for (Player p : participants) {
+            ChatMessageUtil.send(p, MessageType.INFO, "Preparing Crimson Reliquary instance. Please wait...");
+        }
+
         int width = MAX_X - MIN_X + 1;
         int height = MAX_Y - MIN_Y + 1;
         int depth = MAX_Z - MIN_Z + 1;
@@ -93,43 +109,6 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
         int offsetZ = 0;
         int offsetY = 64 - MIN_Y;
         Location origin = new Location(world, offsetX, offsetY, offsetZ);
-
-        List<Location> bossMarkers = new ArrayList<>();
-        List<Location> miniBossMarkers = new ArrayList<>();
-        List<Location> normalMarkers = new ArrayList<>();
-        List<Location> yellowFlowers = new ArrayList<>();
-        List<Location> bluePlacements = new ArrayList<>();
-        List<Location> brownRewards = new ArrayList<>();
-        List<Location> chestMarkers = new ArrayList<>();
-
-        for (int x = MIN_X; x <= MAX_X; x++) {
-            for (int y = MIN_Y; y <= MAX_Y; y++) {
-                for (int z = MIN_Z; z <= MAX_Z; z++) {
-                    Location sourceLoc = new Location(source, x, y, z);
-                    Material mat = sourceLoc.getBlock().getType();
-                    Location destLoc = origin.clone().add(x - MIN_X, y - MIN_Y, z - MIN_Z);
-
-                    switch (mat) {
-                        case BLACK_WOOL -> bossMarkers.add(destLoc.clone().add(0.5, 0, 0.5));
-                        case CYAN_WOOL -> miniBossMarkers.add(destLoc.clone().add(0.5, 0, 0.5));
-                        case MAGENTA_WOOL -> normalMarkers.add(destLoc.clone().add(0.5, 0, 0.5));
-                        case YELLOW_WOOL -> yellowFlowers.add(destLoc);
-                        case BLUE_WOOL -> bluePlacements.add(destLoc);
-                        case BROWN_WOOL -> brownRewards.add(destLoc);
-                        case CHEST, TRAPPED_CHEST -> {
-                            chestMarkers.add(destLoc);
-                            continue;
-                        }
-                        default -> {
-                            var data = sourceLoc.getBlock().getBlockData().clone();
-                            world.getBlockAt(destLoc).setBlockData(data, false);
-                            continue;
-                        }
-                    }
-                    world.getBlockAt(destLoc).setType(Material.AIR, false);
-                }
-            }
-        }
 
         int minX = offsetX;
         int minY = offsetY;
@@ -145,14 +124,114 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
         world.setGameRule(org.bukkit.GameRule.DO_MOB_SPAWNING, false);
         world.setSpawnLocation(center);
 
+        TemplateMarkers markers = new TemplateMarkers();
+        copyTemplateAsync(source, world, origin, markers, () -> finalizeInstance(manager, inst, origin, center, participants, markers));
+    }
+
+    private void copyTemplateAsync(World source, World dest, Location origin, TemplateMarkers markers, Runnable done) {
+        int minChunkX = Math.floorDiv(MIN_X, 16);
+        int maxChunkX = Math.floorDiv(MAX_X, 16);
+        int minChunkZ = Math.floorDiv(MIN_Z, 16);
+        int maxChunkZ = Math.floorDiv(MAX_Z, 16);
+
+        List<int[]> chunkQueue = new ArrayList<>();
+        for (int cx = minChunkX; cx <= maxChunkX; cx++) {
+            for (int cz = minChunkZ; cz <= maxChunkZ; cz++) {
+                chunkQueue.add(new int[]{cx, cz});
+            }
+        }
+
+        final int chunksPerTick = 2;
+        Bukkit.getScheduler().runTaskTimer(plugin, task -> {
+            int processed = 0;
+            while (processed < chunksPerTick && !chunkQueue.isEmpty()) {
+                int[] pair = chunkQueue.remove(0);
+                processChunk(source, dest, origin, markers, pair[0], pair[1]);
+                processed++;
+            }
+
+            if (chunkQueue.isEmpty()) {
+                task.cancel();
+                done.run();
+            }
+        }, 0L, 1L);
+    }
+
+    private void processChunk(World source, World dest, Location origin, TemplateMarkers markers, int chunkX, int chunkZ) {
+        var srcChunk = source.getChunkAt(chunkX, chunkZ);
+        int destChunkX = Math.floorDiv(origin.getBlockX() + (chunkX << 4) - MIN_X, 16);
+        int destChunkZ = Math.floorDiv(origin.getBlockZ() + (chunkZ << 4) - MIN_Z, 16);
+        var dstChunk = dest.getChunkAt(destChunkX, destChunkZ);
+        srcChunk.load();
+        dstChunk.load();
+
+        int baseX = chunkX << 4;
+        int baseZ = chunkZ << 4;
+        for (int x = 0; x < 16; x++) {
+            int worldX = baseX + x;
+            if (worldX < MIN_X || worldX > MAX_X) continue;
+            for (int z = 0; z < 16; z++) {
+                int worldZ = baseZ + z;
+                if (worldZ < MIN_Z || worldZ > MAX_Z) continue;
+                for (int y = MIN_Y; y <= MAX_Y; y++) {
+                    var block = srcChunk.getBlock(x, y, z);
+                    Material mat = block.getType();
+                    int destX = origin.getBlockX() + (worldX - MIN_X);
+                    int destY = origin.getBlockY() + (y - MIN_Y);
+                    int destZ = origin.getBlockZ() + (worldZ - MIN_Z);
+                    Location destLoc = new Location(dest, destX, destY, destZ);
+                    switch (mat) {
+                        case BLACK_WOOL -> {
+                            markers.bossMarkers.add(destLoc.clone().add(0.5, 0, 0.5));
+                            dest.getBlockAt(destLoc).setType(Material.AIR, false);
+                        }
+                        case CYAN_WOOL -> {
+                            markers.miniBossMarkers.add(destLoc.clone().add(0.5, 0, 0.5));
+                            dest.getBlockAt(destLoc).setType(Material.AIR, false);
+                        }
+                        case MAGENTA_WOOL -> {
+                            markers.normalMarkers.add(destLoc.clone().add(0.5, 0, 0.5));
+                            dest.getBlockAt(destLoc).setType(Material.AIR, false);
+                        }
+                        case YELLOW_WOOL -> {
+                            markers.yellowFlowers.add(destLoc);
+                            dest.getBlockAt(destLoc).setType(Material.AIR, false);
+                        }
+                        case BLUE_WOOL -> {
+                            markers.bluePlacements.add(destLoc);
+                            dest.getBlockAt(destLoc).setType(Material.AIR, false);
+                        }
+                        case BROWN_WOOL -> {
+                            markers.brownRewards.add(destLoc);
+                            dest.getBlockAt(destLoc).setType(Material.AIR, false);
+                        }
+                        case CHEST, TRAPPED_CHEST -> {
+                            markers.chestMarkers.add(destLoc);
+                            dest.getBlockAt(destLoc).setType(Material.AIR, false);
+                        }
+                        default -> dest.getBlockAt(destLoc).setBlockData(block.getBlockData().clone(), false);
+                    }
+                }
+            }
+        }
+    }
+
+    private void finalizeInstance(DungeonManager manager,
+                                  DungeonManager.Instance inst,
+                                  Location origin,
+                                  Location center,
+                                  List<Player> participants,
+                                  TemplateMarkers markers) {
         class State { boolean allowFlight; boolean flying; boolean invul; State(Player p){allowFlight=p.getAllowFlight();flying=p.isFlying();invul=p.isInvulnerable();}}
         java.util.Map<Player, State> prev = new java.util.HashMap<>();
         for (Player p : participants) {
             prev.put(p, new State(p));
-            p.setAllowFlight(true);
-            p.setFlying(true);
-            p.setInvulnerable(true);
-            p.teleport(center);
+            if (p.isOnline()) {
+                p.setAllowFlight(true);
+                p.setFlying(true);
+                p.setInvulnerable(true);
+                p.teleport(center);
+            }
         }
 
         List<Material> flowerTypes = Arrays.asList(
@@ -161,11 +240,11 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
                 Material.BLUE_ORCHID,
                 Material.ALLIUM
         );
-        for (Location yellow : yellowFlowers) {
+        for (Location yellow : markers.yellowFlowers) {
             Material choice = flowerTypes.get(ThreadLocalRandom.current().nextInt(flowerTypes.size()));
             yellow.getBlock().setType(choice, false);
         }
-        for (Location marker : bluePlacements) {
+        for (Location marker : markers.bluePlacements) {
             marker.getBlock().setType(Material.LIGHT_BLUE_GLAZED_TERRACOTTA, false);
             marker.getWorld().spawn(marker.clone().add(0.5, 0.1, 0.5), org.bukkit.entity.ArmorStand.class, as -> {
                 as.setVisible(false);
@@ -177,17 +256,17 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
             });
         }
 
-        for (Location brown : brownRewards) {
+        for (Location brown : markers.brownRewards) {
             brown.getBlock().setType(Material.SOUL_SAND, false);
         }
 
         int tier = manager.getThreatLevel(KEY);
-        for (Location chest : chestMarkers) {
+        for (Location chest : markers.chestMarkers) {
             int id = manager.getLootChestManager().createAndSpawnChest(chest, tier);
             inst.addChestId(id);
         }
 
-        for (Location magenta : normalMarkers) {
+        for (Location magenta : markers.normalMarkers) {
             String[] mobs = new String[]{
                     "Nocsy_Bokoblin_Shaman",
                     "Nocsy_Bokoblin_Swordsman",
@@ -196,10 +275,10 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
             String mob = mobs[ThreadLocalRandom.current().nextInt(mobs.length)];
             MythicMobModifier.spawnModifiedMob(mob, magenta, null, null, null, null);
         }
-        for (Location cyan : miniBossMarkers) {
+        for (Location cyan : markers.miniBossMarkers) {
             MythicMobModifier.spawnModifiedMob("Nocsy_Ganon", cyan, null, null, null, null);
         }
-        for (Location boss : bossMarkers) {
+        for (Location boss : markers.bossMarkers) {
             var mob = MythicMobModifier.spawnModifiedMob("MSO_Demon_General", boss, null, null, null, null);
             if (mob != null) {
                 mob.getEntity().getBukkitEntity().addScoreboardTag("dungeon_boss");
@@ -219,6 +298,7 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
                 p.setInvulnerable(st.invul);
                 p.setAllowFlight(st.allowFlight);
                 p.setFlying(st.allowFlight && st.flying);
+                ChatMessageUtil.send(p, MessageType.SUCCESS, "Crimson Reliquary is ready.");
             }
         }
     }
