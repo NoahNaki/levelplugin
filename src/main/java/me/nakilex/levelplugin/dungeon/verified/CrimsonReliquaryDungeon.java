@@ -35,6 +35,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -131,6 +133,9 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
         final List<Location> rewardFountains = new ArrayList<>();
         final List<Player> participants = new ArrayList<>();
         final List<MobMarker> mobMarkers = new ArrayList<>();
+        long startTime;
+        double damageTaken;
+        boolean bossDefeated;
         boolean puzzleComplete;
     }
 
@@ -346,6 +351,7 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
                                   Map<Player, PlayerState> prevStates) {
         InstanceState state = new InstanceState();
         state.participants.addAll(participants);
+        state.startTime = System.currentTimeMillis();
         activeInstances.put(origin.getWorld(), state);
 
         List<Location> flowerSpots = new ArrayList<>(markers.yellowFlowers);
@@ -373,8 +379,6 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
                 as.setVisible(false);
                 as.setGravity(false);
                 as.setMarker(false);
-                as.customName(net.kyori.adventure.text.Component.text(ChatColor.AQUA + "Place Flower"));
-                as.setCustomNameVisible(true);
                 as.addScoreboardTag("dungeon_flower_slot");
             });
             MultiLineHologram holo = new MultiLineHologram(marker.clone().add(0.5, 1.2, 0.5), "crimson_flower_slot");
@@ -444,7 +448,7 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
                 "Nocsy_Bokoblin_Warrior"
         };
         for (Location magenta : markers.normalMarkers) {
-            for (int i = 0; i < 3; i++) {
+            for (int i = 0; i < 4; i++) {
                 String mob = mobs[ThreadLocalRandom.current().nextInt(mobs.length)];
                 Location spread = magenta.clone().add(ThreadLocalRandom.current().nextDouble(-0.7, 0.7), 0,
                         ThreadLocalRandom.current().nextDouble(-0.7, 0.7));
@@ -460,7 +464,7 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
     }
 
     private void startMobWatcher(InstanceState state) {
-        final double radiusSq = 48 * 48;
+        final double radiusSq = 64 * 64;
         new BukkitRunnable() {
             @Override
             public void run() {
@@ -473,11 +477,14 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
                     for (Player p : state.participants) {
                         if (p == null || !p.isOnline() || p.getWorld() != marker.loc.getWorld()) continue;
                         if (p.getLocation().distanceSquared(marker.loc) <= radiusSq) {
+                            marker.loc.getChunk().load();
                             var mob = MythicMobModifier.spawnModifiedMob(marker.mobId, marker.loc, null, null, null, null);
-                            if (mob != null && marker.mobId.equals("MSO_Demon_General")) {
-                                mob.getEntity().getBukkitEntity().addScoreboardTag("dungeon_boss");
+                            if (mob != null) {
+                                if (marker.mobId.equals("MSO_Demon_General")) {
+                                    mob.getEntity().getBukkitEntity().addScoreboardTag("dungeon_boss");
+                                }
+                                marker.spawned = true;
                             }
-                            marker.spawned = true;
                             break;
                         }
                     }
@@ -525,19 +532,28 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
                         cancel();
                         return;
                     }
-                    ItemStack reward = switch (ThreadLocalRandom.current().nextInt(4)) {
-                        case 0 -> new ItemStack(Material.DIAMOND_SWORD);
-                        case 1 -> new ItemStack(Material.GOLDEN_APPLE, 2);
-                        case 2 -> new ItemStack(Material.EMERALD, 6);
-                        default -> new ItemStack(Material.POTION);
-                    };
-                    Vector vel = new Vector(ThreadLocalRandom.current().nextDouble(-0.3, 0.3),
-                            0.4 + ThreadLocalRandom.current().nextDouble(0.1, 0.3),
-                            ThreadLocalRandom.current().nextDouble(-0.3, 0.3));
+                    ItemStack reward = createFountainReward();
+                    Vector vel = new Vector(ThreadLocalRandom.current().nextDouble(-0.35, 0.35),
+                            0.5 + ThreadLocalRandom.current().nextDouble(0.1, 0.25),
+                            ThreadLocalRandom.current().nextDouble(-0.35, 0.35));
                     fountain.getWorld().dropItem(fountain.clone().add(0.5, 1, 0.5), reward).setVelocity(vel);
+                    fountain.getWorld().spawnParticle(Particle.ENCHANT, fountain.clone().add(0.5, 1.1, 0.5), 18, 0.4, 0.4, 0.4, 0.1);
+                    fountain.getWorld().playSound(fountain, Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.6f, 1.1f);
                 }
             }.runTaskTimer(plugin, 0L, 6L);
         }
+    }
+
+    private ItemStack createFountainReward() {
+        int roll = ThreadLocalRandom.current().nextInt(6);
+        return switch (roll) {
+            case 0 -> new ItemStack(Material.SPLASH_POTION);
+            case 1 -> new ItemStack(Material.POTION);
+            case 2 -> new ItemStack(Material.EMERALD, ThreadLocalRandom.current().nextInt(4, 9));
+            case 3 -> new ItemStack(Material.GOLDEN_APPLE, 1 + ThreadLocalRandom.current().nextInt(2));
+            case 4 -> new ItemStack(Material.DIAMOND_SWORD);
+            default -> new ItemStack(Material.PRISMARINE_CRYSTALS, ThreadLocalRandom.current().nextInt(3, 7));
+        };
     }
 
     private void removeDungeonItems(Player player) {
@@ -612,6 +628,35 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
             long distinct = state.placements.values().stream().filter(java.util.Objects::nonNull).map(ft -> ft.block).distinct().count();
             if (filled >= required && distinct >= Math.min(required, FlowerType.values().length)) {
                 completePuzzle(state);
+            }
+        }
+
+        @EventHandler(ignoreCancelled = true)
+        public void onDamage(EntityDamageEvent event) {
+            if (!(event.getEntity() instanceof Player player)) return;
+            InstanceState state = activeInstances.get(player.getWorld());
+            if (state == null) return;
+            state.damageTaken += event.getFinalDamage();
+        }
+
+        @EventHandler(ignoreCancelled = true)
+        public void onDeath(EntityDeathEvent event) {
+            if (!event.getEntity().getScoreboardTags().contains("dungeon_boss")) return;
+            InstanceState state = activeInstances.get(event.getEntity().getWorld());
+            if (state == null || state.bossDefeated) return;
+            state.bossDefeated = true;
+            long durationMs = System.currentTimeMillis() - state.startTime;
+            long seconds = Math.max(1, durationMs / 1000);
+            double damage = state.damageTaken;
+            int baseScore = 1000;
+            int timePenalty = (int) Math.min(baseScore, seconds * 4);
+            int damagePenalty = (int) Math.round(damage * 3);
+            int puzzleBonus = state.puzzleComplete ? 200 : 0;
+            int score = Math.max(0, baseScore - timePenalty - damagePenalty + puzzleBonus);
+            for (Player p : state.participants) {
+                if (p != null && p.isOnline()) {
+                    ChatMessageUtil.send(p, MessageType.SUCCESS, "Dungeon complete! Time: " + seconds + "s | Score: " + score);
+                }
             }
         }
 
