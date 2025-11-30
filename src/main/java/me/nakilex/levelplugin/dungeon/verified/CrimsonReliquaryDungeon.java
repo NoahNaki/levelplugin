@@ -55,9 +55,11 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
 
     @Override
     public void startInstance(DungeonManager manager, Player player) {
+        plugin.getWorldManager().ensureWorldsLoaded(SOURCE_WORLD);
+
         World source = Bukkit.getWorld(SOURCE_WORLD);
         if (source == null) {
-            player.sendMessage(Component.text("Verified dungeon template world is missing.", NamedTextColor.RED));
+            player.sendMessage(Component.text("Verified dungeon template world is missing (assets).", NamedTextColor.RED));
             return;
         }
 
