@@ -101,6 +101,7 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
         private final String mobId;
         private boolean spawned;
         private boolean spawning;
+        private boolean proximityTriggered;
 
         private MobMarker(Location loc, String mobId) {
             this.loc = loc;
@@ -434,6 +435,47 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
         return stack;
     }
 
+    private void attemptPlaceFlower(Player player, InstanceState state, Location base, org.bukkit.block.Block clickedBlock) {
+        ItemStack held = player.getInventory().getItemInMainHand();
+        if (!isDungeonFlower(held)) {
+            ChatMessageUtil.send(player, MessageType.ERROR, "Hold a dungeon flower to place it.");
+            return;
+        }
+        FlowerType type = getFlowerType(held);
+        if (type == null) {
+            ChatMessageUtil.send(player, MessageType.ERROR, "That flower has faded.");
+            return;
+        }
+        if (!state.placements.containsKey(base)) {
+            return;
+        }
+        int required = Math.min(4, state.placements.size());
+        if (required == 0) return;
+
+        if (clickedBlock != null) {
+            clickedBlock.setType(Material.AIR, false);
+        }
+        base.getBlock().setType(type.block, false);
+
+        // Remove any placement armor stands nearby to avoid duplicate holograms lingering.
+        base.getWorld().getNearbyEntities(base.clone().add(0.5, 0.5, 0.5), 0.75, 1.5, 0.75, ent ->
+                ent instanceof ArmorStand && ent.getScoreboardTags().contains("dungeon_flower_slot"))
+                .forEach(org.bukkit.entity.Entity::remove);
+
+        MultiLineHologram holo = state.placementHolograms.remove(base);
+        if (holo != null) holo.despawn();
+        held.setAmount(held.getAmount() - 1);
+        state.placements.put(base, type);
+        ChatMessageUtil.send(player, MessageType.SUCCESS, "Flower placed.");
+        base.getWorld().spawnParticle(Particle.END_ROD, base.clone().add(0.5, 1.1, 0.5), 16, 0.2, 0.35, 0.2, 0.01);
+        base.getWorld().playSound(base, Sound.BLOCK_BEACON_POWER_SELECT, 0.8f, 1.4f);
+        long filled = state.placements.values().stream().filter(java.util.Objects::nonNull).count();
+        long distinct = state.placements.values().stream().filter(java.util.Objects::nonNull).map(ft -> ft.block).distinct().count();
+        if (filled >= required && distinct >= Math.min(required, FlowerType.values().length)) {
+            completePuzzle(state);
+        }
+    }
+
     private org.bukkit.block.BlockFace getFacingFromData(BlockData data) {
         if (data instanceof org.bukkit.block.data.Directional dir) {
             return dir.getFacing();
@@ -474,15 +516,27 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
                     cancel();
                     return;
                 }
+                int waiting = 0;
+                double nearestSq = Double.MAX_VALUE;
                 for (MobMarker marker : state.mobMarkers) {
                     if (marker.spawned) continue;
+                    waiting++;
                     for (Player p : state.participants) {
                         if (p == null || !p.isOnline() || p.getWorld() != marker.loc.getWorld()) continue;
-                        if (p.getLocation().distanceSquared(marker.loc) <= radiusSq) {
+                        double distSq = p.getLocation().distanceSquared(marker.loc);
+                        nearestSq = Math.min(nearestSq, distSq);
+                        if (distSq <= radiusSq) {
+                            if (!marker.proximityTriggered) {
+                                marker.proximityTriggered = true;
+                                plugin.getLogger().info("[Dungeon] Player " + p.getName() + " within spawn radius for " + marker.mobId + " at " + marker.loc);
+                            }
                             trySpawnMob(marker);
                             break;
                         }
                     }
+                }
+                if (waiting > 0 && nearestSq < Double.MAX_VALUE && nearestSq > radiusSq) {
+                    plugin.getLogger().fine("[Dungeon] Mob spawns pending=" + waiting + " nearestDistSq=" + nearestSq);
                 }
             }
         }.runTaskTimer(plugin, 20L, 20L);
@@ -511,9 +565,10 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
                     cancel();
                     return;
                 }
-                plugin.getLogger().warning("[Dungeon] Failed to spawn mob " + marker.mobId + " at attempt " + attempts);
+                plugin.getLogger().warning("[Dungeon] Failed to spawn mob " + marker.mobId + " at attempt " + attempts + " location=" + marker.loc);
                 if (++attempts >= 5) {
                     marker.spawning = false;
+                    plugin.getLogger().warning("[Dungeon] Giving up spawning mob " + marker.mobId + " at " + marker.loc);
                     cancel();
                 }
             }
@@ -617,7 +672,13 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
             if (state == null) return;
             Location loc = event.getClickedBlock().getLocation();
             FlowerType type = state.pluckable.get(loc);
-            if (type == null) return;
+            if (type == null) {
+                if (state.placements.containsKey(loc)) {
+                    event.setCancelled(true);
+                    attemptPlaceFlower(event.getPlayer(), state, loc, event.getClickedBlock());
+                }
+                return;
+            }
             event.setCancelled(true);
             ItemStack reward = createFlowerItem(type);
             Map<Integer, ItemStack> overflow = event.getPlayer().getInventory().addItem(reward);
@@ -629,6 +690,11 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
             ChatMessageUtil.send(event.getPlayer(), MessageType.SUCCESS, "You pluck the flower.");
             world.spawnParticle(Particle.HAPPY_VILLAGER, loc.clone().add(0.5, 1, 0.5), 12, 0.25, 0.25, 0.25, 0.01);
             world.playSound(loc, Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.8f, 1.2f);
+
+            // If the clicked block is also a placement slot (e.g., flower pot under a hologram), process placement too.
+            if (state.placements.containsKey(loc)) {
+                attemptPlaceFlower(event.getPlayer(), state, loc, event.getClickedBlock());
+            }
         }
 
         @EventHandler(ignoreCancelled = true)
@@ -639,36 +705,8 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
             InstanceState state = activeInstances.get(world);
             if (state == null) return;
             event.setCancelled(true);
-            ItemStack held = event.getPlayer().getInventory().getItemInMainHand();
-            if (!isDungeonFlower(held)) {
-                ChatMessageUtil.send(event.getPlayer(), MessageType.ERROR, "Hold a dungeon flower to place it.");
-                return;
-            }
-            FlowerType type = getFlowerType(held);
-            if (type == null) {
-                ChatMessageUtil.send(event.getPlayer(), MessageType.ERROR, "That flower has faded.");
-                return;
-            }
             Location base = event.getRightClicked().getLocation().getBlock().getLocation();
-            if (!state.placements.containsKey(base)) {
-                return;
-            }
-            int required = Math.min(4, state.placements.size());
-            if (required == 0) return;
-            base.getBlock().setType(type.block, false);
-            event.getRightClicked().remove();
-            MultiLineHologram holo = state.placementHolograms.remove(base);
-            if (holo != null) holo.despawn();
-            held.setAmount(held.getAmount() - 1);
-            state.placements.put(base, type);
-            ChatMessageUtil.send(event.getPlayer(), MessageType.SUCCESS, "Flower placed.");
-            world.spawnParticle(Particle.END_ROD, base.clone().add(0.5, 1.1, 0.5), 16, 0.2, 0.35, 0.2, 0.01);
-            world.playSound(base, Sound.BLOCK_BEACON_POWER_SELECT, 0.8f, 1.4f);
-            long filled = state.placements.values().stream().filter(java.util.Objects::nonNull).count();
-            long distinct = state.placements.values().stream().filter(java.util.Objects::nonNull).map(ft -> ft.block).distinct().count();
-            if (filled >= required && distinct >= Math.min(required, FlowerType.values().length)) {
-                completePuzzle(state);
-            }
+            attemptPlaceFlower(event.getPlayer(), state, base, null);
         }
 
         @EventHandler(ignoreCancelled = true)
