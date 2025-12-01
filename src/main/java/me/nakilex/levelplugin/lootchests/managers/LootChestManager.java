@@ -608,7 +608,7 @@ public class LootChestManager {
         List<CustomItem> matching = new ArrayList<>();
         for (CustomItem cItem : ItemManager.getInstance().getAllTemplates().values()) {
             int req = cItem.getLevelRequirement();
-            if (req >= minLevel && req <= maxLevel) {
+            if (req >= range.minLevel() && req <= range.maxLevel()) {
                 matching.add(cItem);
             }
         }
