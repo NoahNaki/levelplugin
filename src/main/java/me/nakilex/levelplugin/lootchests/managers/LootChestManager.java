@@ -137,12 +137,18 @@ public class LootChestManager {
                 "[LootChestManager] Could not find FurnitureMechanic for ID '" + crateId + "'. Did your YAML register it?"
             );
             NexoUtil.logAvailableFurnitureIds(plugin.getLogger());
-            return;
+            loc.getBlock().setType(Material.CHEST, false);
+            org.bukkit.block.data.BlockData dataBlock = loc.getBlock().getBlockData();
+            if (dataBlock instanceof org.bukkit.block.data.Directional directional) {
+                directional.setFacing(data.getFacing());
+                loc.getBlock().setBlockData(directional, false);
+            }
+        } else {
+            // Center the furniture within the block to avoid spawning offset issues.
+            Location centered = LocationUtils.centerOnBlock(loc);
+            // The place(...) call returns the spawned Entity; we ignore it here.
+            NexoFurniture.place(crateId, centered, 0f, data.getFacing());
         }
-        // Center the furniture within the block to avoid spawning offset issues.
-        Location centered = LocationUtils.centerOnBlock(loc);
-        // The place(...) call returns the spawned Entity; we ignore it here.
-        NexoFurniture.place(crateId, centered, 0f, data.getFacing());
 
         // 2) Remember this location so getChestIdAtLocation(loc) will still work:
         spawnedChests.put(data.getChestId(), loc.getBlock().getLocation());
@@ -196,7 +202,8 @@ public class LootChestManager {
         // Check if there is STILL the correct crate furniture at that Location:
         String crateId = getCrateIdForTier(data.getTier());
         FurnitureMechanic mechAtLoc = NexoFurniture.furnitureMechanic(base.getBlock());
-        boolean isCrate = (mechAtLoc != null && mechAtLoc.getItemID().equals(crateId));
+        boolean isCrate = (mechAtLoc != null && mechAtLoc.getItemID().equals(crateId))
+                || base.getBlock().getType() == Material.CHEST;
 
         if (!chunkLoaded || !isCrate) {
             return;
@@ -568,8 +575,12 @@ public class LootChestManager {
     }
 
     public ItemStack getRandomLootForCombatPower(double combatPower, String mobType, String modelSet) {
+        return getRandomLootForCombatPower(combatPower, null, mobType, modelSet);
+    }
+
+    public ItemStack getRandomLootForCombatPower(double combatPower, Integer levelRequirement, String mobType, String modelSet) {
         CombatRewardCalculator.GearTarget target = CombatRewardCalculator.rollGearTarget((int) Math.round(combatPower));
-        return generateLootForTarget(target, mobType, modelSet);
+        return generateLootForTarget(target, mobType, modelSet, levelRequirement);
     }
 
     public ItemStack getRandomLootForTier(int tier, String mobType, String modelSet) {
@@ -598,18 +609,21 @@ public class LootChestManager {
 
         int level = ThreadLocalRandom.current().nextInt(range.minLevel(), range.maxLevel() + 1);
         CombatRewardCalculator.GearTarget target = CombatRewardCalculator.rollGearTarget((int) Math.round(level * 5 / 3.0));
-        return generateLootForTarget(target, mobType, modelSet);
+        return generateLootForTarget(target, mobType, modelSet, null);
     }
 
-    private ItemStack generateLootForTarget(CombatRewardCalculator.GearTarget target, String mobType, String modelSet) {
+    private ItemStack generateLootForTarget(CombatRewardCalculator.GearTarget target, String mobType, String modelSet, Integer levelRequirement) {
         if (target == null) {
             return null;
         }
 
         // 30% chance to roll a procedural item instead of template
         if (Math.random() < 0.3) {
-            CustomItem generated = ItemManager.getInstance()
-                    .generateItemForGearScore(mobType, target.targetGearScore(), target.rarity());
+            CustomItem generated = levelRequirement != null
+                    ? ItemManager.getInstance().generateItemForGearScore(
+                            mobType, target.targetGearScore(), target.rarity(), levelRequirement)
+                    : ItemManager.getInstance().generateItemForGearScore(
+                            mobType, target.targetGearScore(), target.rarity());
             String nexo = modelSet != null
                     ? Main.getInstance().getModelSetManager().getModelId(modelSet, generated.getMaterial())
                     : null;
@@ -634,15 +648,18 @@ public class LootChestManager {
         if (!matching.isEmpty()) {
             template = matching.get(new Random().nextInt(matching.size()));
         } else {
-            template = ItemManager.getInstance()
-                    .generateItemForGearScore(mobType, target.targetGearScore(), target.rarity());
+            template = levelRequirement != null
+                    ? ItemManager.getInstance().generateItemForGearScore(
+                            mobType, target.targetGearScore(), target.rarity(), levelRequirement)
+                    : ItemManager.getInstance().generateItemForGearScore(
+                            mobType, target.targetGearScore(), target.rarity());
         }
 
         CustomItem newInstance = new CustomItem(
             template.getId(),
             template.getBaseName(),
             template.getRarity(),
-            template.getLevelRequirement(),
+            levelRequirement != null ? levelRequirement : template.getLevelRequirement(),
             template.getClassRequirement(),
             template.getMaterial(),
             template.getHpRange(),

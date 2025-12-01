@@ -77,12 +77,18 @@ public class ProceduralItemGenerator {
     }
 
     public CustomItem generateForGearScore(String mobType, GearTarget target) {
+        return generateForGearScore(mobType, target, null);
+    }
+
+    public CustomItem generateForGearScore(String mobType, GearTarget target, Integer forcedLevel) {
         if (target == null) {
             return generateWithRarity(mobType, 1, ItemRarity.COMMON);
         }
         int desired = Math.max(1, target.targetGearScore());
         ItemRarity rarity = target.rarity();
-        int level = Math.max(1, (int) Math.round(desired / rarityMultiplier(rarity)));
+        int level = forcedLevel != null
+                ? Math.max(1, forcedLevel)
+                : Math.max(1, (int) Math.round(desired / rarityMultiplier(rarity)));
 
         CustomItem best = null;
         double bestDiff = Double.MAX_VALUE;
@@ -97,8 +103,10 @@ public class ProceduralItemGenerator {
             if (diff <= desired * 0.10) {
                 break; // close enough
             }
-            double ratio = desired / Math.max(1.0, gearScore);
-            level = Math.max(1, (int) Math.round(level * ratio));
+            if (forcedLevel == null) {
+                double ratio = desired / Math.max(1.0, gearScore);
+                level = Math.max(1, (int) Math.round(level * ratio));
+            }
         }
         return best != null ? best : generateInternal(mobType, level, rarity, rarity);
     }

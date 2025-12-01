@@ -33,7 +33,7 @@ public class ItemDropper {
     /**
      * Drop configured custom items for the given MythicMob type.
      */
-    public void dropCustomItems(Player player, ConfigurationSection node, String modelSet, int combatPower) {
+    public void dropCustomItems(Player player, ConfigurationSection node, String modelSet, int combatPower, int mobLevel) {
         if (node == null) {
             return;
         }
@@ -55,14 +55,15 @@ public class ItemDropper {
             int quantity = ThreadLocalRandom.current().nextInt(minQty, maxQty + 1);
 
             for (int i = 0; i < quantity; i++) {
-                dropGeneratedItem(player, mobType, modelSet, combatPower);
+                dropGeneratedItem(player, mobType, modelSet, combatPower, mobLevel);
             }
         }
     }
 
-    private void dropGeneratedItem(Player player, String mobType, String modelSet, int combatPower) {
+    private void dropGeneratedItem(Player player, String mobType, String modelSet, int combatPower, int mobLevel) {
         GearTarget target = CombatRewardCalculator.rollGearTarget(combatPower);
-        CustomItem ci = ItemManager.getInstance().generateItemForGearScore(mobType, target.targetGearScore(), target.rarity());
+        CustomItem ci = ItemManager.getInstance()
+                .generateItemForGearScore(mobType, target.targetGearScore(), target.rarity(), mobLevel);
         String nexo = modelSet != null ? modelSetManager.getModelId(modelSet, ci.getMaterial()) : null;
         ItemStack stack = ItemUtil.createItemStackFromCustomItem(ci, 1, player, nexo);
         ItemUtil.updateTooltip(stack, player);

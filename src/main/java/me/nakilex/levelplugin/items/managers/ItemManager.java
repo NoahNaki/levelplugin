@@ -235,6 +235,10 @@ public class ItemManager {
         return generator.generateForGearScore(mobType, new GearTarget(targetGearScore, rarity));
     }
 
+    public CustomItem generateItemForGearScore(String mobType, int targetGearScore, ItemRarity rarity, int levelRequirement) {
+        return generator.generateForGearScore(mobType, new GearTarget(targetGearScore, rarity), levelRequirement);
+    }
+
     public CustomItem getCustomItem(int id) {
         return getTemplateById(id);
     }

@@ -108,6 +108,7 @@ public class MythicMobRewardListener implements Listener {
         String mobType = node.getName();
 
         int combatPower = CombatPowerUtil.getCombatPower(mythicMob);
+        int mobLevel = (int) Math.round(mythicMob.getLevel());
         int exp = CombatRewardCalculator.calculateXpReward(combatPower);
         int coins = CombatRewardCalculator.calculateCoinReward(combatPower);
         double tierChance = node.getDouble("tier_chance", 100.0);
@@ -150,11 +151,11 @@ public class MythicMobRewardListener implements Listener {
             int awardedExp = ExperienceUtil.applyPartyBonus(scaledExp, partySize);
             levelManager.addXP(player, awardedExp);
             economyManager.addCoins(player, coins);
-            itemDropper.dropCustomItems(player, node, modelSet, combatPower);
+            itemDropper.dropCustomItems(player, node, modelSet, combatPower, mobLevel);
             itemDropper.maybeDropEssence(player, node);
             double roll = ThreadLocalRandom.current().nextDouble() * 100.0;
             if (roll <= tierChance) {
-                ItemStack loot = lootChestManager.getRandomLootForCombatPower(combatPower, mobType, modelSet);
+                ItemStack loot = lootChestManager.getRandomLootForCombatPower(combatPower, mobLevel, mobType, modelSet);
                 if (loot != null) {
                     ItemUtil.updateTooltip(loot, player);
                     player.getInventory().addItem(loot).values()
