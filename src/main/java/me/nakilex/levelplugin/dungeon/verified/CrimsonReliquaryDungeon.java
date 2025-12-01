@@ -21,6 +21,9 @@ import me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
 import me.nakilex.levelplugin.utils.MultiLineHologram;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.items.ItemUtil;
+import net.citizensnpcs.api.CitizensAPI;
+import net.citizensnpcs.api.npc.NPC;
+import net.citizensnpcs.api.trait.trait.CurrentLocation;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
@@ -62,6 +65,11 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
     private static final int MAX_Z = -5387;
     private static final Location TEMPLATE_SPAWN = new Location(null, -211, -34, -5801);
     private static final NamespacedKey DUNGEON_FLOWER_KEY = new NamespacedKey(Main.getInstance(), "crimson_flower");
+    private static final List<NpcPlacement> NPCS = List.of(
+            new NpcPlacement(-174, -43, -5805, 1420),
+            new NpcPlacement(-166, -43, -5794, 658),
+            new NpcPlacement(-167, -43, -5806, 671)
+    );
 
     private final Main plugin;
     private final Map<World, InstanceState> activeInstances = new HashMap<>();
@@ -134,11 +142,14 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
         final List<Location> rewardFountains = new ArrayList<>();
         final List<Player> participants = new ArrayList<>();
         final List<MobMarker> mobMarkers = new ArrayList<>();
+        final List<NPC> npcs = new ArrayList<>();
         long startTime;
         double damageTaken;
         boolean bossDefeated;
         boolean puzzleComplete;
     }
+
+    private record NpcPlacement(int x, int y, int z, int id) { }
 
     @Override
     public String getKey() {
@@ -231,6 +242,21 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
         pasteTemplateAsync(template, world, origin, spawn, markers,
                 () -> teleportParticipantsEarly(participants, prevStates, spawn),
                 () -> finalizeInstance(manager, inst, origin, spawn, participants, markers, prevStates));
+    }
+
+    private void logMarkerSummary(TemplateMarkers markers) {
+        plugin.getLogger().info("[Dungeon] Parsed markers - boss: " + markers.bossMarkers.size()
+                + " miniboss: " + markers.miniBossMarkers.size()
+                + " normal: " + markers.normalMarkers.size()
+                + " flowers: " + markers.yellowFlowers.size()
+                + " placements: " + markers.bluePlacements.size()
+                + " chests: " + markers.chestMarkers.size());
+        if (markers.normalMarkers.isEmpty()) {
+            plugin.getLogger().warning("[Dungeon] No magenta wool markers found for normal mobs.");
+        }
+        if (markers.bossMarkers.isEmpty()) {
+            plugin.getLogger().warning("[Dungeon] No black wool markers found for boss spawn.");
+        }
     }
 
     private void handleTemplateBlock(World dest, Location destLoc, BlockData data, TemplateMarkers markers) {
@@ -400,8 +426,11 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
             inst.addChestId(id);
         }
 
+        logMarkerSummary(markers);
         queueMobs(state, markers);
         startMobWatcher(state);
+
+        spawnInstanceNpcs(origin, state);
 
         for (int y = -35; y <= -31; y++) {
             for (int z = -5803; z <= -5798; z++) {
@@ -478,8 +507,27 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
 
     private org.bukkit.block.BlockFace getFacingFromData(BlockData data) {
         if (data instanceof org.bukkit.block.data.Directional dir) {
-            return dir.getFacing();
+        return dir.getFacing();
+    }
+
+    private void spawnInstanceNpcs(Location origin, InstanceState state) {
+        for (NpcPlacement placement : NPCS) {
+            NPC template = CitizensAPI.getNPCRegistry().getById(placement.id());
+            if (template == null) {
+                plugin.getLogger().warning("[Dungeon] Missing NPC template id=" + placement.id());
+                continue;
+            }
+            NPC clone = template.copy();
+            Location loc = origin.clone().add(placement.x() - MIN_X + 0.5, placement.y() - MIN_Y, placement.z() - MIN_Z + 0.5);
+            clone.getOrAddTrait(CurrentLocation.class).setLocation(loc);
+            clone.spawn(loc);
+            if (clone.isSpawned()) {
+                clone.getEntity().teleport(loc, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.PLUGIN);
+                clone.getEntity().setGravity(false);
+            }
+            state.npcs.add(clone);
         }
+    }
         return org.bukkit.block.BlockFace.NORTH;
     }
 
@@ -508,7 +556,7 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
     }
 
     private void startMobWatcher(InstanceState state) {
-        final double radiusSq = 96 * 96;
+        final double radiusSq = 140 * 140;
         new BukkitRunnable() {
             @Override
             public void run() {
@@ -554,7 +602,17 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
                     cancel();
                     return;
                 }
-                marker.loc.getChunk().load();
+                org.bukkit.Chunk chunk = marker.loc.getChunk();
+                if (!chunk.isLoaded()) {
+                    chunk.load(true);
+                    plugin.getLogger().info("[Dungeon] Loading chunk for mob " + marker.mobId + " at " + marker.loc);
+                    if (++attempts >= 5) {
+                        marker.spawning = false;
+                        plugin.getLogger().warning("[Dungeon] Unable to load chunk for mob " + marker.mobId + " at " + marker.loc);
+                        cancel();
+                    }
+                    return;
+                }
                 var mob = MythicMobModifier.spawnModifiedMob(marker.mobId, marker.loc, null, null, null, null);
                 if (mob != null) {
                     if (marker.mobId.equals("MSO_Demon_General")) {
@@ -614,12 +672,16 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
             }
         }
         for (Location fountain : state.rewardFountains) {
-            RewardBombUtil.startRewardBomb(plugin, fountain, this::createFountainReward, 100);
+            for (Player p : state.participants) {
+                if (p != null && p.isOnline()) {
+                    RewardBombUtil.startRewardBomb(plugin, fountain, this::createFountainReward, 100, p);
+                }
+            }
         }
     }
 
     private ItemStack createFountainReward() {
-        int roll = ThreadLocalRandom.current().nextInt(4);
+        int roll = ThreadLocalRandom.current().nextInt(3);
         return switch (roll) {
             case 0 -> {
                 var generator = plugin.getItemManager();
@@ -635,7 +697,7 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
                 }
                 yield gift == null ? new ItemStack(Material.PRISMARINE_CRYSTALS) : gift;
             }
-            case 2 -> {
+            default -> {
                 var templates = plugin.getPotionManager().getAllTemplates();
                 if (!templates.isEmpty()) {
                     int idx = ThreadLocalRandom.current().nextInt(templates.size());
@@ -647,7 +709,6 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
                 }
                 yield new ItemStack(Material.HONEY_BOTTLE);
             }
-            default -> new ItemStack(Material.GOLD_INGOT, 1 + ThreadLocalRandom.current().nextInt(3));
         };
     }
 
