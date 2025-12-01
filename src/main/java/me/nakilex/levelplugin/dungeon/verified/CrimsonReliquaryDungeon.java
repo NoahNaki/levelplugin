@@ -178,7 +178,7 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
     public void register(DungeonManager manager) {
         DungeonLayout layout = new DungeonLayout();
         layout.setStep(0);
-        manager.registerVerifiedLayout(KEY, DISPLAY, 10, layout);
+        manager.registerVerifiedLayout(KEY, DISPLAY, 5, layout);
     }
 
     private RoomTemplate getTemplate() {
@@ -423,11 +423,7 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
         return counted == 0 ? 0 : total / counted;
     }
 
-    private int determineLootTier(DungeonManager manager, int averageGearScore) {
-        me.nakilex.levelplugin.lootchests.managers.LootChestManager lootManager = manager.getLootChestManager();
-        if (lootManager != null && averageGearScore > 0) {
-            return lootManager.tierForGearScore(averageGearScore);
-        }
+    private int determineLootTier(DungeonManager manager) {
         return Math.min(8, Math.max(1, manager.getThreatLevel(KEY)));
     }
 
@@ -452,7 +448,7 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
         InstanceState state = new InstanceState();
         state.participants.addAll(participants);
         state.averageGearScore = calculateAverageGearScore(participants);
-        state.lootTier = determineLootTier(manager, state.averageGearScore);
+        state.lootTier = determineLootTier(manager);
         state.startTime = System.currentTimeMillis();
         state.exitPortalRegion = createExitPortalBounds(origin);
         activeInstances.put(origin.getWorld(), state);
