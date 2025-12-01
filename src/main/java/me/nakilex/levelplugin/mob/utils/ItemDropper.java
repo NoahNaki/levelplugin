@@ -3,7 +3,7 @@ package me.nakilex.levelplugin.mob.utils;
 import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
-import me.nakilex.levelplugin.player.level.managers.LevelManager;
+import me.nakilex.levelplugin.mob.utils.CombatRewardCalculator.GearTarget;
 import me.nakilex.levelplugin.mob.config.ModelSetManager;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.classes.essence.ClassEssence;
@@ -24,18 +24,16 @@ import java.util.concurrent.ThreadLocalRandom;
  * Handles dropping custom items and rare reroll scrolls when a mob dies.
  */
 public class ItemDropper {
-    private final LevelManager levelManager;
     private final ModelSetManager modelSetManager;
 
-    public ItemDropper(LevelManager levelManager, ModelSetManager modelSetManager) {
-        this.levelManager = levelManager;
+    public ItemDropper(ModelSetManager modelSetManager) {
         this.modelSetManager = modelSetManager;
     }
 
     /**
      * Drop configured custom items for the given MythicMob type.
      */
-    public void dropCustomItems(Player player, ConfigurationSection node, String modelSet) {
+    public void dropCustomItems(Player player, ConfigurationSection node, String modelSet, int combatPower) {
         if (node == null) {
             return;
         }
@@ -57,14 +55,14 @@ public class ItemDropper {
             int quantity = ThreadLocalRandom.current().nextInt(minQty, maxQty + 1);
 
             for (int i = 0; i < quantity; i++) {
-                dropGeneratedItem(player, mobType, modelSet);
+                dropGeneratedItem(player, mobType, modelSet, combatPower);
             }
         }
     }
 
-    private void dropGeneratedItem(Player player, String mobType, String modelSet) {
-        int lvl = levelManager.getLevel(player);
-        CustomItem ci = ItemManager.getInstance().generateItem(mobType, lvl);
+    private void dropGeneratedItem(Player player, String mobType, String modelSet, int combatPower) {
+        GearTarget target = CombatRewardCalculator.rollGearTarget(combatPower);
+        CustomItem ci = ItemManager.getInstance().generateItemForGearScore(mobType, target.targetGearScore(), target.rarity());
         String nexo = modelSet != null ? modelSetManager.getModelId(modelSet, ci.getMaterial()) : null;
         ItemStack stack = ItemUtil.createItemStackFromCustomItem(ci, 1, player, nexo);
         ItemUtil.updateTooltip(stack, player);

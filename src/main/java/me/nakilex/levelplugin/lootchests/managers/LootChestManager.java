@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.lootchests.managers;
 import com.nexomc.nexo.api.NexoFurniture;
 import com.nexomc.nexo.mechanics.furniture.FurnitureMechanic;
 import me.nakilex.levelplugin.items.data.CustomItem;
+import me.nakilex.levelplugin.items.data.ItemRarity;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.lootchests.config.ConfigManager;
@@ -13,6 +14,8 @@ import me.nakilex.levelplugin.potions.data.PotionInstance;
 import me.nakilex.levelplugin.potions.data.PotionTemplate;
 import me.nakilex.levelplugin.potions.managers.PotionManager;
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.mob.utils.CombatRewardCalculator;
+import me.nakilex.levelplugin.salvage.managers.SalvageManager;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -564,6 +567,11 @@ public class LootChestManager {
         return cooldownManager;
     }
 
+    public ItemStack getRandomLootForCombatPower(double combatPower, String mobType, String modelSet) {
+        CombatRewardCalculator.GearTarget target = CombatRewardCalculator.rollGearTarget((int) Math.round(combatPower));
+        return generateLootForTarget(target, mobType, modelSet);
+    }
+
     public ItemStack getRandomLootForTier(int tier, String mobType, String modelSet) {
         // Example: 20% chance to drop a potion
         double potionChance = 0.2;
@@ -589,45 +597,62 @@ public class LootChestManager {
         }
 
         int level = ThreadLocalRandom.current().nextInt(range.minLevel(), range.maxLevel() + 1);
+        CombatRewardCalculator.GearTarget target = CombatRewardCalculator.rollGearTarget((int) Math.round(level * 5 / 3.0));
+        return generateLootForTarget(target, mobType, modelSet);
+    }
+
+    private ItemStack generateLootForTarget(CombatRewardCalculator.GearTarget target, String mobType, String modelSet) {
+        if (target == null) {
+            return null;
+        }
 
         // 30% chance to roll a procedural item instead of template
         if (Math.random() < 0.3) {
-            CustomItem generated = ItemManager.getInstance().generateItem(mobType, level);
-            String nexo = modelSet != null ? Main.getInstance().getModelSetManager().getModelId(modelSet, generated.getMaterial()) : null;
+            CustomItem generated = ItemManager.getInstance()
+                    .generateItemForGearScore(mobType, target.targetGearScore(), target.rarity());
+            String nexo = modelSet != null
+                    ? Main.getInstance().getModelSetManager().getModelId(modelSet, generated.getMaterial())
+                    : null;
             return ItemUtil.createItemStackFromCustomItem(generated, 1, null, nexo);
         }
 
         // Gather matching custom items
         List<CustomItem> matching = new ArrayList<>();
         for (CustomItem cItem : ItemManager.getInstance().getAllTemplates().values()) {
-            int req = cItem.getLevelRequirement();
-            if (req >= range.minLevel() && req <= range.maxLevel()) {
+            if (cItem.getRarity().ordinal() > ItemRarity.RARE.ordinal()) {
+                continue; // enforce rare and below
+            }
+            int score = SalvageManager.getInstance().getTotalStats(cItem);
+            double diff = Math.abs(score - target.targetGearScore());
+            double allowance = target.targetGearScore() * 0.25;
+            if (diff <= allowance) {
                 matching.add(cItem);
             }
         }
 
-        if (matching.isEmpty()) {
-            return null; // No matching custom item: chest gets no loot
+        CustomItem template;
+        if (!matching.isEmpty()) {
+            template = matching.get(new Random().nextInt(matching.size()));
+        } else {
+            template = ItemManager.getInstance()
+                    .generateItemForGearScore(mobType, target.targetGearScore(), target.rarity());
         }
 
-        // Pick one custom item at random from the templates
-        CustomItem chosen = matching.get(new Random().nextInt(matching.size()));
-
         CustomItem newInstance = new CustomItem(
-            chosen.getId(),
-            chosen.getBaseName(),
-            chosen.getRarity(),
-            chosen.getLevelRequirement(),
-            chosen.getClassRequirement(),
-            chosen.getMaterial(),
-            chosen.getHpRange(),
-            chosen.getDefRange(),
-            chosen.getStrRange(),
-            chosen.getAgiRange(),
-            chosen.getIntelRange(),
-            chosen.getDexRange(),
-            chosen.getWilRange(),
-            chosen.getTecRange()
+            template.getId(),
+            template.getBaseName(),
+            template.getRarity(),
+            template.getLevelRequirement(),
+            template.getClassRequirement(),
+            template.getMaterial(),
+            template.getHpRange(),
+            template.getDefRange(),
+            template.getStrRange(),
+            template.getAgiRange(),
+            template.getIntelRange(),
+            template.getDexRange(),
+            template.getWilRange(),
+            template.getTecRange()
         );
         ItemManager.getInstance().addInstance(newInstance);
 
