@@ -95,6 +95,37 @@ public class DungeonManager {
         return instances.containsKey(world);
     }
 
+    /**
+     * Handle a player exiting a dungeon instance, returning them to their stored
+     * location and sending the appropriate messaging.
+     */
+    public void handleInstanceExit(World world, Player player) {
+        if (world == null || player == null) {
+            return;
+        }
+        Instance inst = instances.get(world);
+        if (inst == null) {
+            return;
+        }
+        handleExit(player, inst, world);
+    }
+
+    private void handleExit(Player player, Instance inst, World world) {
+        java.util.UUID id = player.getUniqueId();
+        Location back = inst.returnLocations.remove(id);
+        if (back != null) {
+            Dungeon.RoomInstance room = inst.dungeon.getRoomContaining(player.getLocation());
+            boolean completed = room != null && room.template == exit && inst.dungeon.isBossDefeated();
+            if (completed) {
+                sendCompleteMessage(player, getDisplayName(inst.layout));
+            } else {
+                sendExitMessage(player, getDisplayName(inst.layout));
+            }
+            player.teleport(back);
+        }
+        checkInstance(world);
+    }
+
     public DungeonManager(Main plugin, me.nakilex.levelplugin.lootchests.managers.LootChestManager lootChestManager) {
         this.plugin = plugin;
         this.lootChestManager = lootChestManager;
@@ -1149,22 +1180,6 @@ public class DungeonManager {
                 Instance inst = instances.get(e.getTo().getWorld());
                 if (inst == null) return;
                 handleExit(e.getPlayer(), inst, e.getTo().getWorld());
-            }
-
-            private void handleExit(Player player, Instance inst, World world) {
-                java.util.UUID id = player.getUniqueId();
-                Location back = inst.returnLocations.remove(id);
-                if (back != null) {
-                    Dungeon.RoomInstance room = inst.dungeon.getRoomContaining(player.getLocation());
-                    boolean completed = room != null && room.template == exit && inst.dungeon.isBossDefeated();
-                    if (completed) {
-                        sendCompleteMessage(player, getDisplayName(inst.layout));
-                    } else {
-                        sendExitMessage(player, getDisplayName(inst.layout));
-                    }
-                    player.teleport(back);
-                }
-                checkInstance(world);
             }
 
         @org.bukkit.event.EventHandler
