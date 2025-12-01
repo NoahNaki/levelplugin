@@ -49,7 +49,6 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.util.Vector;
 
 public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
     private static final String DISPLAY = "Crimson Reliquary";
@@ -101,6 +100,7 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
         private final Location loc;
         private final String mobId;
         private boolean spawned;
+        private boolean spawning;
 
         private MobMarker(Location loc, String mobId) {
             this.loc = loc;
@@ -448,7 +448,7 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
                 "Nocsy_Bokoblin_Warrior"
         };
         for (Location magenta : markers.normalMarkers) {
-            for (int i = 0; i < 4; i++) {
+            for (int i = 0; i < 5; i++) {
                 String mob = mobs[ThreadLocalRandom.current().nextInt(mobs.length)];
                 Location spread = magenta.clone().add(ThreadLocalRandom.current().nextDouble(-0.7, 0.7), 0,
                         ThreadLocalRandom.current().nextDouble(-0.7, 0.7));
@@ -464,7 +464,7 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
     }
 
     private void startMobWatcher(InstanceState state) {
-        final double radiusSq = 64 * 64;
+        final double radiusSq = 96 * 96;
         new BukkitRunnable() {
             @Override
             public void run() {
@@ -477,20 +477,43 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
                     for (Player p : state.participants) {
                         if (p == null || !p.isOnline() || p.getWorld() != marker.loc.getWorld()) continue;
                         if (p.getLocation().distanceSquared(marker.loc) <= radiusSq) {
-                            marker.loc.getChunk().load();
-                            var mob = MythicMobModifier.spawnModifiedMob(marker.mobId, marker.loc, null, null, null, null);
-                            if (mob != null) {
-                                if (marker.mobId.equals("MSO_Demon_General")) {
-                                    mob.getEntity().getBukkitEntity().addScoreboardTag("dungeon_boss");
-                                }
-                                marker.spawned = true;
-                            }
+                            trySpawnMob(marker);
                             break;
                         }
                     }
                 }
             }
         }.runTaskTimer(plugin, 20L, 20L);
+    }
+
+    private void trySpawnMob(MobMarker marker) {
+        if (marker.spawned || marker.spawning) return;
+        marker.spawning = true;
+        new BukkitRunnable() {
+            int attempts = 0;
+
+            @Override
+            public void run() {
+                if (marker.spawned) {
+                    cancel();
+                    return;
+                }
+                marker.loc.getChunk().load();
+                var mob = MythicMobModifier.spawnModifiedMob(marker.mobId, marker.loc, null, null, null, null);
+                if (mob != null) {
+                    if (marker.mobId.equals("MSO_Demon_General")) {
+                        mob.getEntity().getBukkitEntity().addScoreboardTag("dungeon_boss");
+                    }
+                    marker.spawned = true;
+                    cancel();
+                    return;
+                }
+                if (++attempts >= 5) {
+                    marker.spawning = false;
+                    cancel();
+                }
+            }
+        }.runTaskTimer(plugin, 0L, 10L);
     }
 
     private boolean isDungeonFlower(ItemStack stack) {
@@ -523,24 +546,7 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
             }
         }
         for (Location fountain : state.rewardFountains) {
-            new BukkitRunnable() {
-                int drops = 0;
-
-                @Override
-                public void run() {
-                    if (drops++ >= 8) {
-                        cancel();
-                        return;
-                    }
-                    ItemStack reward = createFountainReward();
-                    Vector vel = new Vector(ThreadLocalRandom.current().nextDouble(-0.35, 0.35),
-                            0.5 + ThreadLocalRandom.current().nextDouble(0.1, 0.25),
-                            ThreadLocalRandom.current().nextDouble(-0.35, 0.35));
-                    fountain.getWorld().dropItem(fountain.clone().add(0.5, 1, 0.5), reward).setVelocity(vel);
-                    fountain.getWorld().spawnParticle(Particle.ENCHANT, fountain.clone().add(0.5, 1.1, 0.5), 18, 0.4, 0.4, 0.4, 0.1);
-                    fountain.getWorld().playSound(fountain, Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.6f, 1.1f);
-                }
-            }.runTaskTimer(plugin, 0L, 6L);
+            RewardBombUtil.startRewardBomb(plugin, fountain, this::createFountainReward, 100);
         }
     }
 
