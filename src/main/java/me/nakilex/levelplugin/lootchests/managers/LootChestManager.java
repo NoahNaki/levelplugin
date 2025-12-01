@@ -126,17 +126,26 @@ public class LootChestManager {
         //    Use the recorded facing to orient the crate correctly.
         String crateId = getCrateIdForTier(data.getTier());
         FurnitureMechanic mech = NexoFurniture.furnitureMechanic(crateId);
+        boolean placedFurniture = false;
         if (mech == null) {
-            plugin.getLogger().severe(
-                "[LootChestManager] Could not find FurnitureMechanic for ID '" + crateId + "'. Did your YAML register it?"
+            plugin.getLogger().warning(
+                "[LootChestManager] Missing furniture ID '" + crateId + "', falling back to vanilla chest for tier " + data.getTier()
             );
             NexoUtil.logAvailableFurnitureIds(plugin.getLogger());
-            return;
+        } else {
+            // Center the furniture within the block to avoid spawning offset issues.
+            Location centered = LocationUtils.centerOnBlock(loc);
+            placedFurniture = NexoFurniture.place(crateId, centered, 0f, data.getFacing()) != null;
+            if (!placedFurniture) {
+                plugin.getLogger().warning(
+                    "[LootChestManager] Furniture placement for '" + crateId + "' failed. Using vanilla chest instead."
+                );
+            }
         }
-        // Center the furniture within the block to avoid spawning offset issues.
-        Location centered = LocationUtils.centerOnBlock(loc);
-        // The place(...) call returns the spawned Entity; we ignore it here.
-        NexoFurniture.place(crateId, centered, 0f, data.getFacing());
+
+        if (!placedFurniture) {
+            placeVanillaChest(loc, data.getFacing(), data.getTier());
+        }
 
         // 2) Remember this location so getChestIdAtLocation(loc) will still work:
         spawnedChests.put(data.getChestId(), loc.getBlock().getLocation());
@@ -498,6 +507,21 @@ public class LootChestManager {
      */
     public String getCrateIdForTier(int tier) {
         return "crate_lvl" + tier;
+    }
+
+    private void placeVanillaChest(Location loc, BlockFace facing, int tier) {
+        Block block = loc.getBlock();
+        block.setType(Material.CHEST, false);
+        org.bukkit.block.data.BlockData data = block.getBlockData();
+        if (data instanceof org.bukkit.block.data.type.Chest chestData) {
+            chestData.setFacing(facing);
+            block.setBlockData(chestData, false);
+        }
+
+        if (block.getState() instanceof org.bukkit.block.Chest chestState) {
+            chestState.setCustomName(ChatColor.GOLD + "Tier " + toRoman(tier) + " Loot Chest");
+            chestState.update(true);
+        }
     }
 
     public void removeAllChests() {
