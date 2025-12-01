@@ -347,9 +347,9 @@ public class ProceduralItemGenerator {
         String suffix;
         if (level >= 76)      suffix = "NETHERITE_";
         else if (level >= 61) suffix = "DIAMOND_";
-        else if (level >= 41) suffix = "IRON_";
-        else if (level >= 21) suffix = "GOLDEN_";
-        else if (level >= 11) suffix = "CHAINMAIL_";
+        else if (level >= 46) suffix = "IRON_";
+        else if (level >= 31) suffix = "CHAINMAIL_";
+        else if (level >= 16) suffix = "GOLDEN_";
         else                  suffix = "LEATHER_";
 
         String matName = suffix + slot.name();
