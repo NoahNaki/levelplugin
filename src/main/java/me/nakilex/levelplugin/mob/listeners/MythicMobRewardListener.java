@@ -188,7 +188,8 @@ public class MythicMobRewardListener implements Listener {
                 sendDebugInfo(player, rawMobType, mythicMob, baseEntity, numericHpName);
                 String expColor = ChatFormatter.experienceColor();
                 player.sendMessage(ChatColor.YELLOW + "[MobDebug] Exp: " + expColor + awardedExp
-                        + ChatColor.GRAY + ", Coins: " + coins);
+                        + ChatColor.GRAY + " (base " + exp + ", scaled " + scaledExp
+                        + ", party " + partySize + "), Coins: " + coins);
             }
         }
     }

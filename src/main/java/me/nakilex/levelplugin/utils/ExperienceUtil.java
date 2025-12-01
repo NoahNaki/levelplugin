@@ -5,26 +5,29 @@ public final class ExperienceUtil {
     private ExperienceUtil() {}
 
     /**
-     * Scale a base XP value according to the level gap between a player and a mob.
-     * Full XP is awarded when the level difference is within five levels. Beyond
-     * that, XP is reduced by 4% per level and floored at 10% of the base value to
-     * discourage farming content far below or above the player's level.
+     * Scale a base XP value according to how far a player's level exceeds the mob's level.
+     * Full XP is awarded when the player is within five levels of the mob or lower level.
+     * Beyond that, XP is reduced by 4% per level difference with a floor at 50% of the
+     * base value to keep rewards predictable for high-combat-power mobs that are set to
+     * low MythicMob levels.
      *
-     * @param baseExp     original XP value from configuration
+     * @param baseExp     original XP value derived from combat power
      * @param playerLevel player's current level
      * @param mobLevel    mob's level
      * @return scaled XP amount
      */
     public static int scaleExperience(int baseExp, int playerLevel, double mobLevel) {
-        int diff = Math.abs(playerLevel - (int)Math.round(mobLevel));
-        if (diff <= 5) {
+        int roundedMobLevel = Math.max(0, (int) Math.round(mobLevel));
+        int levelLead = playerLevel - roundedMobLevel;
+        if (levelLead <= 5) {
             return baseExp;
         }
-        double multiplier = 1.0 - 0.04 * (diff - 5);
-        if (multiplier < 0.10) {
-            multiplier = 0.10;
+
+        double multiplier = 1.0 - 0.04 * (levelLead - 5);
+        if (multiplier < 0.50) {
+            multiplier = 0.50;
         }
-        return (int)Math.round(baseExp * multiplier);
+        return (int) Math.round(baseExp * multiplier);
     }
 
     /**
