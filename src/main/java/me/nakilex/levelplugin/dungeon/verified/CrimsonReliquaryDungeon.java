@@ -19,6 +19,7 @@ import me.nakilex.levelplugin.mob.utils.MythicMobModifier;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
 import me.nakilex.levelplugin.utils.MultiLineHologram;
+import me.nakilex.levelplugin.utils.CurrencyMessageUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.items.ItemUtil;
 import net.citizensnpcs.api.CitizensAPI;
@@ -110,6 +111,7 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
         private boolean spawned;
         private boolean spawning;
         private boolean proximityTriggered;
+        private int ticksWaited;
 
         private MobMarker(Location loc, String mobId) {
             this.loc = loc;
@@ -558,7 +560,7 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
     }
 
     private void startMobWatcher(InstanceState state) {
-        final double radiusSq = 140 * 140;
+        final double radiusSq = 220 * 220;
         new BukkitRunnable() {
             @Override
             public void run() {
@@ -571,14 +573,22 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
                 for (MobMarker marker : state.mobMarkers) {
                     if (marker.spawned) continue;
                     waiting++;
+                    marker.ticksWaited++;
+                    org.bukkit.Chunk chunk = marker.loc.getChunk();
+                    if (!chunk.isLoaded()) {
+                        chunk.load(true);
+                        plugin.getLogger().info("[Dungeon] Loading chunk " + chunk.getX() + "," + chunk.getZ() + " for mob " + marker.mobId);
+                        continue;
+                    }
                     for (Player p : state.participants) {
                         if (p == null || !p.isOnline() || p.getWorld() != marker.loc.getWorld()) continue;
                         double distSq = p.getLocation().distanceSquared(marker.loc);
                         nearestSq = Math.min(nearestSq, distSq);
-                        if (distSq <= radiusSq) {
+                        if (distSq <= radiusSq || marker.ticksWaited > 200) {
                             if (!marker.proximityTriggered) {
                                 marker.proximityTriggered = true;
-                                plugin.getLogger().info("[Dungeon] Player " + p.getName() + " within spawn radius for " + marker.mobId + " at " + marker.loc);
+                                plugin.getLogger().info("[Dungeon] Player " + p.getName() + " within spawn radius for " + marker.mobId + " at " + marker.loc
+                                        + " (waited " + marker.ticksWaited + "t)");
                             }
                             trySpawnMob(marker);
                             break;
@@ -586,7 +596,8 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
                     }
                 }
                 if (waiting > 0 && nearestSq < Double.MAX_VALUE && nearestSq > radiusSq) {
-                    plugin.getLogger().fine("[Dungeon] Mob spawns pending=" + waiting + " nearestDistSq=" + nearestSq);
+                    plugin.getLogger().info("[Dungeon] Mob spawns pending=" + waiting + " nearestDistSq=" + String.format("%.1f", Math.sqrt(nearestSq))
+                            + " (radius=" + Math.sqrt(radiusSq) + ")");
                 }
             }
         }.runTaskTimer(plugin, 20L, 20L);
@@ -659,18 +670,17 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
     private void completePuzzle(InstanceState state) {
         if (state.puzzleComplete) return;
         state.puzzleComplete = true;
-        for (Player p : state.participants) {
-            if (p != null && p.isOnline()) {
-                ChatMessageUtil.send(p, MessageType.SUCCESS, "Puzzle complete!");
-            }
-        }
         int coinsAward = ThreadLocalRandom.current().nextInt(300, 601);
         int gemsAward = ThreadLocalRandom.current().nextInt(3, 8);
+        String rewardLine = ChatColor.GOLD + "Puzzle complete! "
+                + CurrencyMessageUtil.formatAmount(CurrencyMessageUtil.Currency.COINS, coinsAward)
+                + ChatColor.GOLD + " & "
+                + CurrencyMessageUtil.formatAmount(CurrencyMessageUtil.Currency.GEMS, gemsAward);
         for (Player p : state.participants) {
             if (p != null && p.isOnline()) {
                 plugin.getEconomyManager().addCoins(p, coinsAward);
                 plugin.getGemsManager().addUnits(p, gemsAward);
-                ChatMessageUtil.send(p, MessageType.SUCCESS, "Rewards: +" + coinsAward + " coins, +" + gemsAward + " gems");
+                ChatMessageUtil.send(p, MessageType.REWARD, rewardLine);
             }
         }
         for (Location fountain : state.rewardFountains) {
@@ -796,7 +806,9 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
             int score = Math.max(0, baseScore - timePenalty - damagePenalty + puzzleBonus);
             for (Player p : state.participants) {
                 if (p != null && p.isOnline()) {
-                    ChatMessageUtil.send(p, MessageType.SUCCESS, "Dungeon complete! Time: " + seconds + "s | Score: " + score);
+                    ChatMessageUtil.send(p, MessageType.REWARD,
+                            ChatColor.GOLD + "Dungeon complete! " + ChatColor.YELLOW + seconds + "s" + ChatColor.GOLD + " | Score: "
+                                    + ChatColor.YELLOW + score + ChatColor.GOLD + (state.puzzleComplete ? " (puzzle bonus)" : ""));
                 }
             }
         }

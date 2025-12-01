@@ -13,6 +13,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -25,6 +26,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.io.InputStream;
 import java.util.*;
 
 import static me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
@@ -69,6 +71,12 @@ public class PotionMerchantGUI implements Listener {
             Bukkit.getLogger().warning("[PotionMerchantGUI] No items found in merchants.yml for potion_merchant.");
         }
 
+        // If the live merchants.yml is missing the potion shop entries, merge defaults from the bundled resource
+        // so the GUI never opens empty.
+        if (potionItems.isEmpty()) {
+            copyDefaultsFromResource(plugin, basePath);
+        }
+
         for (Map.Entry<Integer, PotionTemplate> entry : potionItems.entrySet()) {
             PotionTemplate potion = entry.getValue();
             Bukkit.getLogger().info("[PotionMerchantGUI] Adding potion '" + potion.getId() + "' to slot " + entry.getKey());
@@ -104,6 +112,31 @@ public class PotionMerchantGUI implements Listener {
             }
         } catch (Exception e) {
             Bukkit.getLogger().warning("[PotionMerchantGUI] Failed to load a potion item: " + e.getMessage());
+        }
+    }
+
+    private void copyDefaultsFromResource(Plugin plugin, String basePath) {
+        try (InputStream in = plugin.getResource("merchants.yml")) {
+            if (in == null) {
+                Bukkit.getLogger().warning("[PotionMerchantGUI] No bundled merchants.yml found; cannot seed potion shop.");
+                return;
+            }
+            YamlConfiguration defaults = YamlConfiguration.loadConfiguration(new java.io.InputStreamReader(in));
+            List<?> fallback = defaults.getList(basePath + ".items");
+            if (fallback == null || fallback.isEmpty()) {
+                Bukkit.getLogger().warning("[PotionMerchantGUI] Bundled merchants.yml missing potion_merchant items.");
+                return;
+            }
+            for (Object obj : fallback) {
+                if (obj instanceof Map) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> map = (Map<String, Object>) obj;
+                    loadPotionItem(map);
+                }
+            }
+            Bukkit.getLogger().info("[PotionMerchantGUI] Seeded potion shop items from bundled defaults (" + potionItems.size() + " items).");
+        } catch (Exception ex) {
+            Bukkit.getLogger().warning("[PotionMerchantGUI] Failed to seed potion merchant defaults: " + ex.getMessage());
         }
     }
 

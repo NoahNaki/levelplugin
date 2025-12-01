@@ -145,16 +145,19 @@ public class QuestManager {
         if (npc == null) {
             return null;
         }
-        Quest quest = getQuestByNpcId(npc.getId());
-        if (quest != null) {
-            return quest;
-        }
+
+        // Prefer name-based lookup so quests that rely on display names (e.g., salvager tutorial)
+        // still resolve even if NPC IDs change between environments.
         String normalized = NpcNameUtil.normalize(npc.getName());
-        if (normalized == null) {
-            return null;
+        if (normalized != null) {
+            String questId = npcQuestNameMap.get(normalized);
+            Quest quest = questId == null ? null : quests.get(questId);
+            if (quest != null) {
+                return quest;
+            }
         }
-        String questId = npcQuestNameMap.get(normalized);
-        return questId == null ? null : quests.get(questId);
+
+        return getQuestByNpcId(npc.getId());
     }
 
     public Map<Integer, String> getNpcQuestMap() {
