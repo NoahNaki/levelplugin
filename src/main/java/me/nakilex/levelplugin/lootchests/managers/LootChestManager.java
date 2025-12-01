@@ -125,24 +125,12 @@ public class LootChestManager {
         // Remove any existing block at this location
         loc.getBlock().setType(Material.AIR, false);
 
-        // 1) Place our tier specific crate furniture instead of a vanilla CHEST block.
-        //    Use the recorded facing to orient the crate correctly.
-        String crateId = getCrateIdForTier(data.getTier());
-        FurnitureMechanic mech = NexoFurniture.furnitureMechanic(crateId);
-        boolean placedFurniture = false;
-        if (mech == null) {
-            plugin.getLogger().warning(
-                "[LootChestManager] Missing furniture ID '" + crateId + "', falling back to vanilla chest for tier " + data.getTier()
-            );
-            NexoUtil.logAvailableFurnitureIds(plugin.getLogger());
-        } else {
-            // Center the furniture within the block to avoid spawning offset issues.
-            Location centered = LocationUtils.centerOnBlock(loc);
-            placedFurniture = NexoFurniture.place(crateId, centered, 0f, data.getFacing()) != null;
-            if (!placedFurniture) {
-                plugin.getLogger().warning(
-                    "[LootChestManager] Furniture placement for '" + crateId + "' failed. Using vanilla chest instead."
-                );
+        boolean placedFurniture = placeCrateFurniture(loc, data.getFacing(), data.getTier());
+        if (!placedFurniture) {
+            int highestTier = findHighestAvailableCrateTier();
+            if (highestTier > 0 && highestTier != data.getTier()) {
+                String fallbackCrateId = crateIdForTierValue(highestTier);
+                placedFurniture = placeCrateFurniture(loc, data.getFacing(), highestTier, fallbackCrateId);
             }
         }
 
@@ -557,6 +545,30 @@ public class LootChestManager {
         return CRATE_ID_PREFIX + tier;
     }
 
+    private boolean placeCrateFurniture(Location loc, BlockFace facing, int tier) {
+        return placeCrateFurniture(loc, facing, tier, getCrateIdForTier(tier));
+    }
+
+    private boolean placeCrateFurniture(Location loc, BlockFace facing, int tier, String crateId) {
+        FurnitureMechanic mech = NexoFurniture.furnitureMechanic(crateId);
+        if (mech == null) {
+            plugin.getLogger().warning(
+                "[LootChestManager] Missing furniture ID '" + crateId + "' for tier " + tier + "."
+            );
+            NexoUtil.logAvailableFurnitureIds(plugin.getLogger());
+            return false;
+        }
+
+        Location centered = LocationUtils.centerOnBlock(loc);
+        boolean placed = NexoFurniture.place(crateId, centered, 0f, facing) != null;
+        if (!placed) {
+            plugin.getLogger().warning(
+                "[LootChestManager] Furniture placement for '" + crateId + "' (tier " + tier + ") failed."
+            );
+        }
+        return placed;
+    }
+
     private void placeVanillaChest(Location loc, BlockFace facing, int tier) {
         Block block = loc.getBlock();
         block.setType(Material.CHEST, false);
@@ -645,6 +657,30 @@ public class LootChestManager {
         return resolveRangeForTier(tier);
     }
 
+    private LevelRange findHighestAvailableTemplateRange() {
+        int highestLevel = 0;
+        for (CustomItem cItem : ItemManager.getInstance().getAllTemplates().values()) {
+            highestLevel = Math.max(highestLevel, cItem.getLevelRequirement());
+        }
+
+        if (highestLevel <= 0) {
+            return null;
+        }
+
+        LevelRange tierRange = determineRangeForLevel(highestLevel);
+        return tierRange != null ? tierRange : new LevelRange(highestLevel, highestLevel);
+    }
+
+    private LevelRange determineRangeForLevel(int level) {
+        for (int tier = 8; tier >= 1; tier--) {
+            LevelRange range = resolveRangeForTier(tier);
+            if (range != null && level >= range.minLevel() && level <= range.maxLevel()) {
+                return range;
+            }
+        }
+        return null;
+    }
+
     public ItemStack getRandomLootForTier(int tier, String mobType, String modelSet) {
         LevelRange range = resolveRangeForTier(tier);
         if (range == null) return null;
@@ -686,7 +722,23 @@ public class LootChestManager {
         }
 
         if (matching.isEmpty()) {
-            return null; // No matching custom item: chest gets no loot
+            LevelRange fallbackRange = findHighestAvailableTemplateRange();
+            if (fallbackRange == null) {
+                return null; // No templates exist at all
+            }
+
+            range = fallbackRange;
+            level = ThreadLocalRandom.current().nextInt(range.minLevel(), range.maxLevel() + 1);
+            for (CustomItem cItem : ItemManager.getInstance().getAllTemplates().values()) {
+                int req = cItem.getLevelRequirement();
+                if (req >= range.minLevel() && req <= range.maxLevel()) {
+                    matching.add(cItem);
+                }
+            }
+
+            if (matching.isEmpty()) {
+                return null; // Still nothing to give
+            }
         }
 
         // Pick one custom item at random from the templates
