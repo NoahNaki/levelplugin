@@ -5,10 +5,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
@@ -29,6 +31,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -66,6 +69,7 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
     private static final int MAX_Z = -5387;
     private static final Location TEMPLATE_SPAWN = new Location(null, -211, -34, -5801);
     private static final NamespacedKey DUNGEON_FLOWER_KEY = new NamespacedKey(Main.getInstance(), "crimson_flower");
+    private static final String DUNGEON_MOB_TAG = "reliquary_dungeon_mob";
     private static final List<NpcPlacement> NPCS = List.of(
             new NpcPlacement(-174, -43, -5805, 1420),
             new NpcPlacement(-166, -43, -5794, 658),
@@ -146,6 +150,7 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
         final List<Player> participants = new ArrayList<>();
         final List<MobMarker> mobMarkers = new ArrayList<>();
         final List<NPC> npcs = new ArrayList<>();
+        final Set<UUID> activeMobIds = new HashSet<>();
         long startTime;
         double damageTaken;
         boolean bossDefeated;
@@ -193,7 +198,7 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
         }
 
         String worldName = "dgn_verified_" + System.currentTimeMillis();
-        World world = manager.createVoidWorld(worldName);
+        World world = manager.createVoidWorld(worldName, org.bukkit.Difficulty.HARD);
         if (world == null) return;
 
         Dungeon dungeon = new Dungeon(world, KEY);
@@ -235,16 +240,33 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
         Dungeon.RoomInstance bounds = new Dungeon.RoomInstance(null, 0, spawn, minX, minY, minZ, maxX, maxY, maxZ, null, List.of(), null);
         dungeon.addRoom(bounds);
 
-        world.setDifficulty(org.bukkit.Difficulty.HARD);
         world.setGameRule(org.bukkit.GameRule.DO_MOB_SPAWNING, false);
         world.setSpawnLocation(spawn);
 
         TemplateMarkers markers = new TemplateMarkers();
         Map<Player, PlayerState> prevStates = captureStates(participants);
 
+        seedMarkersFromTemplate(template, origin, markers);
+        plugin.getLogger().info("[Dungeon] Seeded template markers: normal=" + markers.normalMarkers.size()
+                + " boss=" + markers.bossMarkers.size());
         pasteTemplateAsync(template, world, origin, spawn, markers,
                 () -> teleportParticipantsEarly(participants, prevStates, spawn),
                 () -> finalizeInstance(manager, inst, origin, spawn, participants, markers, prevStates));
+    }
+
+    private void seedMarkersFromTemplate(RoomTemplate template, Location origin, TemplateMarkers markers) {
+        if (template == null) return;
+
+        for (RoomTemplate.Marker portal : template.getPortals()) {
+            Location loc = origin.clone().add(portal.x, portal.y, portal.z).add(0.5, 0, 0.5);
+            addMarkerIfAbsent(markers.normalMarkers, loc);
+        }
+
+        RoomTemplate.Marker boss = template.getBossSpawn();
+        if (boss != null) {
+            Location loc = origin.clone().add(boss.x, boss.y, boss.z).add(0.5, 0, 0.5);
+            addMarkerIfAbsent(markers.bossMarkers, loc);
+        }
     }
 
     private void logMarkerSummary(TemplateMarkers markers) {
@@ -262,11 +284,21 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
         }
     }
 
+    private void addMarkerIfAbsent(List<Location> targets, Location loc) {
+        boolean exists = targets.stream().anyMatch(existing ->
+                existing.getBlockX() == loc.getBlockX()
+                        && existing.getBlockY() == loc.getBlockY()
+                        && existing.getBlockZ() == loc.getBlockZ());
+        if (!exists) {
+            targets.add(loc);
+        }
+    }
+
     private void handleTemplateBlock(World dest, Location destLoc, BlockData data, TemplateMarkers markers) {
         Material mat = data.getMaterial();
         switch (mat) {
             case BLACK_WOOL -> {
-                markers.bossMarkers.add(destLoc.clone().add(0.5, 0, 0.5));
+                addMarkerIfAbsent(markers.bossMarkers, destLoc.clone().add(0.5, 0, 0.5));
                 dest.getBlockAt(destLoc).setType(Material.AIR, false);
             }
             case CYAN_WOOL -> {
@@ -274,7 +306,7 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
                 dest.getBlockAt(destLoc).setType(Material.AIR, false);
             }
             case MAGENTA_WOOL, PURPLE_WOOL -> {
-                markers.normalMarkers.add(destLoc.clone().add(0.5, 0, 0.5));
+                addMarkerIfAbsent(markers.normalMarkers, destLoc.clone().add(0.5, 0, 0.5));
                 dest.getBlockAt(destLoc).setType(Material.AIR, false);
             }
             case YELLOW_WOOL -> {
@@ -386,22 +418,23 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
 
         List<Location> flowerSpots = new ArrayList<>(markers.yellowFlowers);
         Collections.shuffle(flowerSpots);
-        int pluckableCount = Math.min(5, flowerSpots.size());
         List<FlowerType> flowers = new ArrayList<>(Arrays.asList(FlowerType.values()));
         Collections.shuffle(flowers);
         for (int i = 0; i < flowerSpots.size(); i++) {
             Location yellow = flowerSpots.get(i);
             FlowerType choice = flowers.get(i % flowers.size());
             yellow.getBlock().setType(choice.block, false);
-            if (i < pluckableCount) {
-                state.pluckable.put(yellow, choice);
-                MultiLineHologram holo = new MultiLineHologram(yellow.clone().add(0.5, 1.25, 0.5), "crimson_flower_pluck");
-                holo.spawn(List.of(
-                        legacy.serialize(Component.text("Mystic Bloom", NamedTextColor.GOLD)),
-                        legacy.serialize(Component.text("Right-click to pluck", NamedTextColor.GRAY))));
-                state.pluckHolograms.put(yellow, holo);
-            }
+            state.pluckable.put(yellow, choice);
+            MultiLineHologram holo = new MultiLineHologram(yellow.clone().add(0.5, 1.25, 0.5), "crimson_flower_pluck");
+            holo.spawn(List.of(
+                    legacy.serialize(Component.text(choice.display, NamedTextColor.GOLD)),
+                    legacy.serialize(Component.text("Right-click to pluck", NamedTextColor.GRAY))));
+            state.pluckHolograms.put(yellow, holo);
         }
+        Map<FlowerType, Long> flowerCounts = state.pluckable.values().stream()
+                .collect(Collectors.groupingBy(ft -> ft, Collectors.counting()));
+        plugin.getLogger().info("[Dungeon] Flower placements prepared: total=" + state.pluckable.size()
+                + " distinct=" + flowerCounts.size() + " " + flowerCounts);
 
         List<Location> placementSpots = new ArrayList<>(markers.bluePlacements);
         Collections.shuffle(placementSpots);
@@ -576,6 +609,14 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
         final int attemptsBeforeGiveUp = 12;
         final int mobsPerTick = 10;
 
+        World mobWorld = queue.peek() != null ? queue.peek().loc.getWorld() : null;
+        if (mobWorld != null) {
+            Boolean naturalSpawns = mobWorld.getGameRuleValue(org.bukkit.GameRule.DO_MOB_SPAWNING);
+            plugin.getLogger().info("[Dungeon] Mob spawner initializing in " + mobWorld.getName()
+                    + " difficulty=" + mobWorld.getDifficulty()
+                    + " gamerule.DO_MOB_SPAWNING=" + naturalSpawns);
+        }
+
         // Make sure all target chunks stay loaded while we attempt spawns.
         for (MobMarker marker : queue) {
             org.bukkit.Chunk chunk = marker.loc.getChunk();
@@ -610,19 +651,31 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
                     marker.ticksWaited++;
                     var mob = MythicMobModifier.spawnModifiedMob(marker.mobId, marker.loc, null, null, null, null);
                     if (mob != null) {
-                        if (marker.mobId.equals("MSO_Demon_General")) {
-                            mob.getEntity().getBukkitEntity().addScoreboardTag("dungeon_boss");
+                        var entity = mob.getEntity().getBukkitEntity();
+                        entity.addScoreboardTag(DUNGEON_MOB_TAG);
+                        if (entity instanceof org.bukkit.entity.LivingEntity living) {
+                            living.setRemoveWhenFarAway(false);
+                            living.setPersistent(true);
                         }
+                        if (marker.mobId.equals("MSO_Demon_General")) {
+                            entity.addScoreboardTag("dungeon_boss");
+                        }
+                        state.activeMobIds.add(entity.getUniqueId());
                         marker.spawned = true;
                         it.remove();
                         plugin.getLogger().info("[Dungeon] Spawned mob " + marker.mobId + " at " + marker.loc + " after " + marker.ticksWaited + " ticks waiting.");
                     } else {
                         if (marker.ticksWaited == 1 || marker.ticksWaited % 5 == 0) {
-                            plugin.getLogger().warning("[Dungeon] Failed to spawn mob " + marker.mobId + " (attempt " + marker.ticksWaited + ") at " + marker.loc);
+                            plugin.getLogger().warning("[Dungeon] Failed to spawn mob " + marker.mobId + " (attempt " + marker.ticksWaited + ") at " + marker.loc
+                                    + " chunkLoaded=" + chunk.isLoaded()
+                                    + " forceLoaded=" + chunk.isForceLoaded()
+                                    + " difficulty=" + chunk.getWorld().getDifficulty());
                         }
                         if (marker.ticksWaited >= attemptsBeforeGiveUp) {
                             it.remove();
-                            plugin.getLogger().warning("[Dungeon] Giving up on mob " + marker.mobId + " at " + marker.loc);
+                            plugin.getLogger().warning("[Dungeon] Giving up on mob " + marker.mobId + " at " + marker.loc
+                                    + " chunkLoaded=" + chunk.isLoaded()
+                                    + " forceLoaded=" + chunk.isForceLoaded());
                         }
                     }
 
@@ -783,9 +836,11 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
 
         @EventHandler(ignoreCancelled = true)
         public void onDeath(EntityDeathEvent event) {
-            if (!event.getEntity().getScoreboardTags().contains("dungeon_boss")) return;
             InstanceState state = activeInstances.get(event.getEntity().getWorld());
-            if (state == null || state.bossDefeated) return;
+            if (state == null) return;
+            state.activeMobIds.remove(event.getEntity().getUniqueId());
+            if (!event.getEntity().getScoreboardTags().contains("dungeon_boss")) return;
+            if (state.bossDefeated) return;
             state.bossDefeated = true;
             long durationMs = System.currentTimeMillis() - state.startTime;
             long seconds = Math.max(1, durationMs / 1000);
@@ -797,10 +852,26 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
             int score = Math.max(0, baseScore - timePenalty - damagePenalty + puzzleBonus);
             for (Player p : state.participants) {
                 if (p != null && p.isOnline()) {
-                    ChatMessageUtil.send(p, MessageType.REWARD,
-                            "Dungeon complete! " + seconds + "s | Score: "
-                                    + score + (state.puzzleComplete ? " (puzzle bonus)" : ""));
+                    sendDungeonClearMessage(p, seconds, score, state.puzzleComplete);
                 }
+            }
+        }
+
+        @EventHandler
+        public void onChunkUnload(org.bukkit.event.world.ChunkUnloadEvent event) {
+            World world = event.getWorld();
+            InstanceState state = activeInstances.get(world);
+            if (state == null) return;
+
+            boolean hasDungeonMob = Arrays.stream(event.getChunk().getEntities())
+                    .anyMatch(ent -> ent.getScoreboardTags().contains(DUNGEON_MOB_TAG)
+                            || state.activeMobIds.contains(ent.getUniqueId()));
+            if (hasDungeonMob) {
+                org.bukkit.Chunk chunk = event.getChunk();
+                boolean ticketed = chunk.addPluginChunkTicket(plugin);
+                chunk.setForceLoaded(true);
+                plugin.getLogger().info("[Dungeon] Kept chunk " + chunk.getX() + "," + chunk.getZ()
+                        + " loaded for active dungeon mobs (ticketAdded=" + ticketed + ").");
             }
         }
 
@@ -821,5 +892,18 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
                 removeDungeonItems(event.getPlayer());
             }
         }
+    }
+
+    private void sendDungeonClearMessage(Player player, long seconds, int score, boolean puzzleComplete) {
+        ChatFormatter.constructDivider(player, "§c§l-", 45);
+        ChatFormatter.sendCenteredMessage(player, "§c§lCRIMSON RELIQUARY CLEARED");
+        ChatFormatter.sendCenteredMessage(player, "");
+        ChatFormatter.sendCenteredMessage(player,
+                ChatColor.GRAY + "Run Time: " + ChatColor.RED + seconds + ChatColor.GRAY + "s");
+        ChatFormatter.sendCenteredMessage(player,
+                ChatColor.GRAY + "Score: " + ChatColor.RED + score
+                        + (puzzleComplete ? ChatColor.DARK_GRAY + " (puzzle bonus)" : ""));
+        ChatFormatter.sendCenteredMessage(player, ChatColor.GRAY + "Great work, challenger.");
+        ChatFormatter.constructDivider(player, "§c§l-", 45);
     }
 }
