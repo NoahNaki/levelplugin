@@ -33,7 +33,7 @@ public class ItemDropper {
     /**
      * Drop configured custom items for the given MythicMob type.
      */
-    public void dropCustomItems(Player player, ConfigurationSection node, String modelSet, int combatPower, int mobLevel) {
+    public void dropCustomItems(Player player, ConfigurationSection node, String modelSet, int combatPower, int mobLevel, boolean forceDrops) {
         if (node == null) {
             return;
         }
@@ -44,9 +44,11 @@ public class ItemDropper {
         String mobType = node.getName();
         for (Map<?, ?> entry : itemList) {
             double dropRate = entry.containsKey("drop_rate") ? (double) entry.get("drop_rate") : 100.0;
-            dropRate = Math.min(10.0, dropRate);
-            double roll = ThreadLocalRandom.current().nextDouble() * 100.0;
-            if (roll > dropRate) continue;
+            if (!forceDrops) {
+                dropRate = Math.min(10.0, dropRate);
+                double roll = ThreadLocalRandom.current().nextDouble() * 100.0;
+                if (roll > dropRate) continue;
+            }
 
             String qtyRange = entry.containsKey("quantity") ? (String) entry.get("quantity") : "1-1";
             String[] rangeSplit = qtyRange.split("-");

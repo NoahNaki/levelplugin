@@ -14,6 +14,7 @@ import me.nakilex.levelplugin.mob.utils.CombatPowerUtil;
 import me.nakilex.levelplugin.mob.utils.CombatRewardCalculator;
 import me.nakilex.levelplugin.mob.utils.MobNameUtil;
 import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
+import me.nakilex.levelplugin.debug.DropDebugManager;
 import me.nakilex.levelplugin.guild.quests.GuildQuestManager;
 import io.lumine.mythic.api.skills.placeholders.PlaceholderString;
 import me.nakilex.levelplugin.party.Party;
@@ -58,6 +59,7 @@ public class MythicMobRewardListener implements Listener {
     private final BattlePassManager battlePassManager;
     private final ItemDropper itemDropper;
     private final PlayerToggleManager debugToggle;
+    private final DropDebugManager dropDebugManager;
 
     public MythicMobRewardListener(MythicMobDamageTracker tracker,
                                    MobRewardsConfig mobRewardsConfig,
@@ -66,7 +68,8 @@ public class MythicMobRewardListener implements Listener {
                                    LootChestManager lootChestManager,
                                    ModelSetManager modelSetManager,
                                    PlayerToggleManager debugToggle,
-                                   BattlePassManager battlePassManager) {
+                                   BattlePassManager battlePassManager,
+                                   DropDebugManager dropDebugManager) {
         this.tracker = tracker;
         this.mobRewardsConfig = mobRewardsConfig;
         this.levelManager = levelManager;
@@ -76,6 +79,7 @@ public class MythicMobRewardListener implements Listener {
         this.itemDropper = new ItemDropper(modelSetManager);
         this.debugToggle = debugToggle;
         this.battlePassManager = battlePassManager;
+        this.dropDebugManager = dropDebugManager;
     }
 
     @EventHandler
@@ -112,6 +116,7 @@ public class MythicMobRewardListener implements Listener {
         int exp = CombatRewardCalculator.calculateXpReward(combatPower);
         int coins = CombatRewardCalculator.calculateCoinReward(combatPower);
         double tierChance = node.getDouble("tier_chance", 100.0);
+        boolean forceDrops = dropDebugManager != null && dropDebugManager.isForceMobDrops();
         String modelSet = node.getString("model_set", null);
 
         Location deathLoc = event.getEntity().getLocation();
@@ -151,10 +156,10 @@ public class MythicMobRewardListener implements Listener {
             int awardedExp = ExperienceUtil.applyPartyBonus(scaledExp, partySize);
             levelManager.addXP(player, awardedExp);
             economyManager.addCoins(player, coins);
-            itemDropper.dropCustomItems(player, node, modelSet, combatPower, mobLevel);
+            itemDropper.dropCustomItems(player, node, modelSet, combatPower, mobLevel, forceDrops);
             itemDropper.maybeDropEssence(player, node);
             double roll = ThreadLocalRandom.current().nextDouble() * 100.0;
-            if (roll <= tierChance) {
+            if (forceDrops || roll <= tierChance) {
                 ItemStack loot = lootChestManager.getRandomLootForCombatPower(combatPower, mobLevel, mobType, modelSet);
                 if (loot != null) {
                     ItemUtil.updateTooltip(loot, player);

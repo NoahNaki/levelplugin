@@ -7,6 +7,8 @@ features:
 debug:
   chunk-loading: false
   mythic-skill-damage: false
+  force-mob-drops: false
+  instant-expeditions: false
 
 # Chat game rotation interval in minutes
 chat-games:
