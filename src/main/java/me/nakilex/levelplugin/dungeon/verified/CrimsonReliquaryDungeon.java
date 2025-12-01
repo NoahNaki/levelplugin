@@ -193,7 +193,7 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
         }
 
         String worldName = "dgn_verified_" + System.currentTimeMillis();
-        World world = manager.createVoidWorld(worldName);
+        World world = manager.createVoidWorld(worldName, org.bukkit.Difficulty.HARD);
         if (world == null) return;
 
         Dungeon dungeon = new Dungeon(world, KEY);
@@ -235,7 +235,6 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
         Dungeon.RoomInstance bounds = new Dungeon.RoomInstance(null, 0, spawn, minX, minY, minZ, maxX, maxY, maxZ, null, List.of(), null);
         dungeon.addRoom(bounds);
 
-        world.setDifficulty(org.bukkit.Difficulty.HARD);
         world.setGameRule(org.bukkit.GameRule.DO_MOB_SPAWNING, false);
         world.setSpawnLocation(spawn);
 

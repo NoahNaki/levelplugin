@@ -131,6 +131,10 @@ public class DungeonManager {
 
     /** Create a void world used for temporary dungeon sessions. */
     public World createVoidWorld(String worldName) {
+        return createVoidWorld(worldName, org.bukkit.Difficulty.PEACEFUL);
+    }
+
+    public World createVoidWorld(String worldName, org.bukkit.Difficulty difficulty) {
         WorldCreator wc = new WorldCreator(worldName);
         wc.generator(new VoidWorldGenerator());
         wc.type(WorldType.FLAT);
@@ -139,7 +143,7 @@ public class DungeonManager {
         if (world != null) {
             world.setKeepSpawnInMemory(false);
             world.setAutoSave(false);
-            world.setDifficulty(org.bukkit.Difficulty.PEACEFUL);
+            world.setDifficulty(difficulty);
             world.setGameRule(org.bukkit.GameRule.DO_MOB_SPAWNING, false);
         }
         return world;
@@ -807,7 +811,7 @@ public class DungeonManager {
         }
         long debugStart = System.currentTimeMillis();
         String worldName = "dgn_" + keyName + "_" + System.currentTimeMillis();
-        World world = createVoidWorld(worldName);
+        World world = createVoidWorld(worldName, org.bukkit.Difficulty.HARD);
         if (world == null) return;
         player.sendMessage(ChatColor.GRAY + "[Debug] World created in "
                 + (System.currentTimeMillis() - debugStart) + "ms");
@@ -863,7 +867,6 @@ public class DungeonManager {
             inst.returnLocations.put(player.getUniqueId(), player.getLocation());
         }
         instances.put(world, inst);
-        world.setDifficulty(org.bukkit.Difficulty.HARD);
         world.setGameRule(org.bukkit.GameRule.DO_MOB_SPAWNING, false);
 
         class State { boolean allowFlight; boolean flying; boolean invul; State(Player p){allowFlight=p.getAllowFlight();flying=p.isFlying();invul=p.isInvulnerable();}}

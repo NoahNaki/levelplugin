@@ -181,17 +181,20 @@ public class PotionMerchantGUI implements Listener {
     }
 
     private ItemStack createPotionPreview(int slot, PotionTemplate potion) {
-        ItemStack potionItem = new ItemStack(potion.getMaterial());
+        PotionInstance instance = new PotionInstance(potion);
+        ItemStack potionItem = instance.toItemStack((JavaPlugin) plugin);
         ItemMeta meta = potionItem.getItemMeta();
-        meta.setDisplayName(ChatColor.GOLD + potion.getName());
-        List<String> lore = new ArrayList<>();
-        lore.add(ChatColor.GRAY + "Charges: " + ChatColor.YELLOW + potion.getCharges());
-        lore.add(ChatColor.GRAY + "Cooldown: " + ChatColor.AQUA + potion.getCooldownSeconds() + "s");
+        List<String> lore = meta != null && meta.hasLore() ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
         lore.add("");
         int cost = potionCosts.getOrDefault(slot, potion.getCooldownSeconds());
         lore.add(ChatColor.GOLD + "Price: " + ChatColor.GREEN + cost + " <glyph:coins_icon>");
-        meta.setLore(lore);
-        potionItem.setItemMeta(meta);
+        if (meta != null) {
+            String name = meta.hasDisplayName() ? meta.getDisplayName()
+                    : ChatColor.translateAlternateColorCodes('&', potion.getName());
+            meta.setDisplayName(name);
+            meta.setLore(lore);
+            potionItem.setItemMeta(meta);
+        }
         ItemRarity rarity = ItemRarity.fromTier(potion.getTier());
         ItemUtil.applyRarityTooltipStyle(potionItem, rarity);
         return potionItem;
@@ -268,9 +271,9 @@ public class PotionMerchantGUI implements Listener {
             if (stack == null || !stack.hasItemMeta()) continue;
 
             ItemMeta meta = stack.getItemMeta();
-            List<String> lore = new ArrayList<>();
-            lore.add(ChatColor.GRAY + "Charges: " + ChatColor.YELLOW + potion.getCharges());
-            lore.add(ChatColor.GRAY + "Cooldown: " + ChatColor.AQUA + potion.getCooldownSeconds() + "s");
+            List<String> lore = meta.hasLore() ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
+            lore.removeIf(line -> ChatColor.stripColor(line).startsWith("Price:"));
+            lore.removeIf(line -> line.isEmpty());
             lore.add("");
             int cost = potionCosts.getOrDefault(slot, potion.getCooldownSeconds());
             if (playerCoins < cost) {
