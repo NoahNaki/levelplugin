@@ -34,9 +34,12 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class LootChestManager {
+
+    private static final String CRATE_ID_PREFIX = "crate_lvl";
 
     private final JavaPlugin plugin;
     private final ConfigManager configManager;
@@ -503,10 +506,55 @@ public class LootChestManager {
     }
 
     /**
-     * Convenience method to map a chest tier to its furniture ID.
+     * Convenience method to map a requested chest tier to the best available
+     * furniture ID. If the requested tier does not have a registered Nexo
+     * model, the highest available crate model is used instead so interactions
+     * and holograms stay consistent with the spawned furniture.
      */
     public String getCrateIdForTier(int tier) {
-        return "crate_lvl" + tier;
+        int resolvedTier = resolveAvailableCrateTier(tier);
+        if (resolvedTier != tier) {
+            plugin.getLogger().warning(
+                "[LootChestManager] Requested crate tier " + tier + " has no Nexo model; using tier " + resolvedTier + " model instead."
+            );
+        }
+        return crateIdForTierValue(resolvedTier);
+    }
+
+    private int resolveAvailableCrateTier(int requestedTier) {
+        String requestedId = crateIdForTierValue(requestedTier);
+        if (NexoFurniture.furnitureMechanic(requestedId) != null) {
+            return requestedTier;
+        }
+
+        int highestAvailable = findHighestAvailableCrateTier();
+        if (highestAvailable > 0) {
+            return Math.min(requestedTier, highestAvailable);
+        }
+
+        return requestedTier;
+    }
+
+    private int findHighestAvailableCrateTier() {
+        Set<String> ids = NexoUtil.getRegisteredFurnitureIds();
+        int highest = 0;
+        for (String id : ids) {
+            if (!id.startsWith(CRATE_ID_PREFIX)) {
+                continue;
+            }
+            String suffix = id.substring(CRATE_ID_PREFIX.length());
+            try {
+                int tierValue = Integer.parseInt(suffix);
+                highest = Math.max(highest, tierValue);
+            } catch (NumberFormatException ignored) {
+                // Ignore malformed crate IDs
+            }
+        }
+        return highest;
+    }
+
+    private String crateIdForTierValue(int tier) {
+        return CRATE_ID_PREFIX + tier;
     }
 
     private void placeVanillaChest(Location loc, BlockFace facing, int tier) {
