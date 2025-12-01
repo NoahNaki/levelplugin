@@ -1204,26 +1204,27 @@ public class DungeonManager {
             }, 1L);
         }
 
-        private void sendCompleteMessage(Player player, String layout) {
-            me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§a§l-", 45);
-            me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§a§lDUNGEON COMPLETE!");
-            me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§7You finished the §a" + layout + "§7 dungeon.");
-            me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "");
-            String msg = me.nakilex.levelplugin.utils.ChatFormatter.getCenteredText("§e§lCLICK-HERE §7to rate the dungeon!");
-            net.md_5.bungee.api.chat.TextComponent comp = new net.md_5.bungee.api.chat.TextComponent(msg);
-            comp.setClickEvent(new net.md_5.bungee.api.chat.ClickEvent(net.md_5.bungee.api.chat.ClickEvent.Action.RUN_COMMAND,
-                    "/dungeon rate " + layout));
-            player.spigot().sendMessage(comp);
-            me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§a§l-", 45);
-            markPendingRating(player.getUniqueId(), normalizeKey(layout));
-        }
+    }
 
-        private void sendExitMessage(Player player, String layout) {
-            me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§c§l-", 45);
-            me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§c§lDUNGEON EXITED");
-            me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§7You left the §5" + layout + "§7 dungeon.");
-            me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§c§l-", 45);
-        }
+    private void sendCompleteMessage(Player player, String layout) {
+        me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§a§l-", 45);
+        me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§a§lDUNGEON COMPLETE!");
+        me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§7You finished the §a" + layout + "§7 dungeon.");
+        me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "");
+        String msg = me.nakilex.levelplugin.utils.ChatFormatter.getCenteredText("§e§lCLICK-HERE §7to rate the dungeon!");
+        net.md_5.bungee.api.chat.TextComponent comp = new net.md_5.bungee.api.chat.TextComponent(msg);
+        comp.setClickEvent(new net.md_5.bungee.api.chat.ClickEvent(net.md_5.bungee.api.chat.ClickEvent.Action.RUN_COMMAND,
+                "/dungeon rate " + layout));
+        player.spigot().sendMessage(comp);
+        me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§a§l-", 45);
+        markPendingRating(player.getUniqueId(), normalizeKey(layout));
+    }
+
+    private void sendExitMessage(Player player, String layout) {
+        me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§c§l-", 45);
+        me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§c§lDUNGEON EXITED");
+        me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§7You left the §5" + layout + "§7 dungeon.");
+        me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§c§l-", 45);
     }
 
     private void checkInstance(World world) {
