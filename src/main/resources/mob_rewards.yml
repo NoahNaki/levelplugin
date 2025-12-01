@@ -126,12 +126,40 @@ mobs:
     tier_chance: 12.0
     model_set: default
 
-  slime_lava:
-    exp: 1500
-    coins: "1234-2345"
+  Nocsy_Bokoblin_Shaman:
+    exp: 150
+    coins: "100-300"
+    tier: 3
+    tier_chance: 8.0
+    model_set: default
+
+  Nocsy_Bokoblin_Swordsman:
+    exp: 100
+    coins: "100-300"
+    tier: 3
+    tier_chance: 8.0
+    model_set: default
+
+  Nocsy_Bokoblin_Warrior:
+    exp: 120
+    coins: "100-300"
+    tier: 3
+    tier_chance: 8.0
+    model_set: default
+
+  Ganon:
+    exp: 15000
+    coins: "100-300"
+    tier: 3
+    tier_chance: 8.0
+    model_set: default
+
+  MSO_Demon_General:
+    exp: 30000
+    coins: "1000-3000"
     tier: 4
-    tier_chance: 12.0
-    model_set: molten
+    tier_chance: 8.0
+    model_set: default
 
 
 
