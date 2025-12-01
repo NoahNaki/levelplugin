@@ -10,9 +10,15 @@ import org.bukkit.WorldType;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 
-public class WorldCommand implements CommandExecutor {
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.stream.Collectors;
+
+public class WorldCommand implements CommandExecutor, TabCompleter {
     private final WorldManager manager;
 
     public WorldCommand(WorldManager manager) {
@@ -173,5 +179,54 @@ public class WorldCommand implements CommandExecutor {
                 return false;
             }
         }
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        if (args.length == 0) return List.of();
+
+        if (args.length == 1) {
+            List<String> subs = List.of("create", "import", "delete", "unload", "tp", "spawn", "setspawn", "info", "list");
+            return filter(args[0], subs);
+        }
+
+        String sub = args[0].toLowerCase(Locale.ROOT);
+        switch (sub) {
+            case "tp", "spawn", "setspawn", "info", "unload", "delete" -> {
+                return filter(args[1], manager.listWorlds().stream().map(World::getName).collect(Collectors.toList()));
+            }
+            case "create" -> {
+                if (args.length == 3) {
+                    return filter(args[2], List.of("void", "flatland", "nether", "end"));
+                }
+            }
+            case "import" -> {
+                java.io.File[] dirs = sender.getServer().getWorldContainer().listFiles(java.io.File::isDirectory);
+                List<String> names = new ArrayList<>();
+                if (dirs != null) {
+                    for (java.io.File dir : dirs) {
+                        if (new java.io.File(dir, "level.dat").exists()) {
+                            names.add(dir.getName());
+                        }
+                    }
+                }
+                return filter(args[1], names);
+            }
+            default -> {
+                return List.of();
+            }
+        }
+        return List.of();
+    }
+
+    private List<String> filter(String token, List<String> options) {
+        String lower = token.toLowerCase(Locale.ROOT);
+        List<String> matches = new ArrayList<>();
+        for (String opt : options) {
+            if (opt.toLowerCase(Locale.ROOT).startsWith(lower)) {
+                matches.add(opt);
+            }
+        }
+        return matches;
     }
 }

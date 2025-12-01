@@ -1,7 +1,6 @@
 package me.nakilex.levelplugin.dungeon.gui;
 
 import me.nakilex.levelplugin.dungeon.DungeonManager;
-import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -17,14 +16,19 @@ import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 import java.text.DecimalFormat;
 
 /** GUI listing playable dungeons. */
 public class DungeonListGUI implements Listener {
     private static final String TITLE = ChatColor.BLACK + "Dungeons";
     private static final int SIZE = 54;
+    private static final int COMMUNITY_FILTER_SLOT = 3;
+    private static final int VERIFIED_FILTER_SLOT = 5;
 
     private final DungeonManager manager;
+    private final Map<java.util.UUID, DungeonManager.LayoutFilter> filters = new HashMap<>();
 
     public DungeonListGUI(DungeonManager manager) {
         this.manager = manager;
@@ -36,9 +40,12 @@ public class DungeonListGUI implements Listener {
                 .fillEmptySlots(false)
                 .border()
                 .build();
+        DungeonManager.LayoutFilter filter = filters.getOrDefault(player.getUniqueId(), DungeonManager.LayoutFilter.ALL);
+        inv.setItem(COMMUNITY_FILTER_SLOT, createFilterItem(DungeonManager.LayoutFilter.COMMUNITY, filter));
+        inv.setItem(VERIFIED_FILTER_SLOT, createFilterItem(DungeonManager.LayoutFilter.VERIFIED, filter));
         int slot = 10;
         DecimalFormat df = new DecimalFormat("#.#");
-        for (var entry : manager.getLayoutEntries()) {
+        for (var entry : manager.getLayoutEntries(filter)) {
             if (slot >= 44) break;
             String key = entry.getKey();
             String display = entry.getValue();
@@ -57,6 +64,9 @@ public class DungeonListGUI implements Listener {
                 lore.add(ChatColor.GRAY + "Threat Level " + ChatColor.WHITE + threat);
                 lore.add(ratingLine);
                 lore.add(ChatColor.GRAY + " ");
+                lore.add(ChatColor.GRAY + "Category: " + (manager.isVerified(key)
+                        ? ChatColor.GREEN + "Verified"
+                        : ChatColor.AQUA + "Community"));
                 lore.add(ChatColor.WHITE + "Left-click " + ChatColor.GRAY + "to play");
                 meta.setLore(lore);
                 meta.setLocalizedName(key);
@@ -77,10 +87,40 @@ public class DungeonListGUI implements Listener {
         if (!(event.getWhoClicked() instanceof Player player)) return;
         ItemStack item = event.getCurrentItem();
         if (item == null || !item.hasItemMeta()) return;
-        if (!event.getClick().isLeftClick()) return;
         ItemMeta meta = item.getItemMeta();
+        if (meta != null && meta.getLocalizedName() != null && meta.getLocalizedName().startsWith("filter:")) {
+            String token = meta.getLocalizedName().substring("filter:".length());
+            DungeonManager.LayoutFilter next = DungeonManager.LayoutFilter.valueOf(token);
+            DungeonManager.LayoutFilter current = filters.getOrDefault(player.getUniqueId(), DungeonManager.LayoutFilter.ALL);
+            if (current == next) {
+                next = DungeonManager.LayoutFilter.ALL;
+            }
+            filters.put(player.getUniqueId(), next);
+            open(player);
+            return;
+        }
+        if (!event.getClick().isLeftClick()) return;
         String key = meta != null && meta.getLocalizedName() != null ? meta.getLocalizedName() : ChatColor.stripColor(meta.getDisplayName());
         player.closeInventory();
         manager.startInstance(player, key);
+    }
+
+    private ItemStack createFilterItem(DungeonManager.LayoutFilter type, DungeonManager.LayoutFilter active) {
+        boolean selected = active == type;
+        ItemStack filter = new ItemStack(selected ? Material.LIME_STAINED_GLASS_PANE : Material.WHITE_STAINED_GLASS_PANE);
+        ItemMeta meta = filter.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName((selected ? ChatColor.GREEN : ChatColor.WHITE) + (type == DungeonManager.LayoutFilter.COMMUNITY
+                    ? "Community Dungeons"
+                    : "Verified Dungeons"));
+            List<String> lore = new ArrayList<>();
+            lore.add(ChatColor.GRAY + "Toggle to filter the dungeon list.");
+            lore.add(ChatColor.GRAY + "Current filter: " + ChatColor.WHITE + active.name().toLowerCase());
+            lore.addAll(TooltipUtil.clickInstructions("to apply", null));
+            meta.setLore(lore);
+            meta.setLocalizedName("filter:" + type.name());
+            filter.setItemMeta(meta);
+        }
+        return filter;
     }
 }

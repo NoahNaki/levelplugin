@@ -107,6 +107,27 @@ public final class TooltipUtil {
     }
 
     /**
+     * Generate standard lore for dungeon items so they follow the same divider
+     * styling as quest items while carrying the dungeon-specific label.
+     *
+     * @param description optional flavour text shown before the divider
+     * @param soulbound   whether to append the red soulbound line
+     * @return list of formatted lore lines
+     */
+    public static List<String> dungeonItemLore(String description, boolean soulbound) {
+        List<String> lore = new ArrayList<>();
+        if (description != null && !description.isBlank()) {
+            lore.add(ChatColor.GRAY + description.trim());
+        }
+        lore.add("");
+        lore.add(ChatColor.WHITE + "Dungeon Item");
+        if (soulbound) {
+            lore.add(ChatColor.RED + "Soulbound");
+        }
+        return lore;
+    }
+
+    /**
      * Standard account limit line for shop tooltips to keep styling consistent.
      *
      * @param limit maximum purchases per account

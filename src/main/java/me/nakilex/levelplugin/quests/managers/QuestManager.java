@@ -99,14 +99,10 @@ public class QuestManager {
         me.nakilex.levelplugin.quests.def.SharpestSecretQuest.registerTalkTargets(this);
         me.nakilex.levelplugin.quests.def.SalvagersLessonQuest.registerTalkTargets(this);
         me.nakilex.levelplugin.quests.def.MarketBeginningsQuest.registerTalkTargets(this);
-        registerNpcQuest(me.nakilex.levelplugin.quests.def.SharpestSecretQuest.NPC_KAZAN_NAME,
-                me.nakilex.levelplugin.quests.def.SharpestSecretQuest.ID);
-        registerNpcQuest(me.nakilex.levelplugin.quests.def.SharpestSecretQuest.NPC_OSIRIS_NAME,
-                me.nakilex.levelplugin.quests.def.SharpestSecretQuest.ID);
+        // Only the salvaging quest relies on NPC name lookups; others stay ID-based to avoid
+        // accidental cross-talk when multiple NPCs share display names.
         registerNpcQuest(me.nakilex.levelplugin.quests.def.SalvagersLessonQuest.NPC_NAME,
                 me.nakilex.levelplugin.quests.def.SalvagersLessonQuest.ID);
-        registerNpcQuest(me.nakilex.levelplugin.quests.def.MarketBeginningsQuest.NPC_NAME,
-                me.nakilex.levelplugin.quests.def.MarketBeginningsQuest.ID);
         plugin.getLogger().info("Registered " + quests.size() + " quests.");
     }
 
@@ -145,16 +141,26 @@ public class QuestManager {
         if (npc == null) {
             return null;
         }
-        Quest quest = getQuestByNpcId(npc.getId());
-        if (quest != null) {
-            return quest;
-        }
+
+        // Prefer name-based lookup so quests that rely on display names (e.g., salvager tutorial)
+        // still resolve even if NPC IDs change between environments.
         String normalized = NpcNameUtil.normalize(npc.getName());
-        if (normalized == null) {
+        if (normalized != null) {
+            String questId = npcQuestNameMap.get(normalized);
+            Quest quest = questId == null ? null : quests.get(questId);
+            if (quest != null) {
+                return quest;
+            }
+        }
+
+        return getQuestByNpcId(npc.getId());
+    }
+
+    public Quest getQuestById(String questId) {
+        if (questId == null) {
             return null;
         }
-        String questId = npcQuestNameMap.get(normalized);
-        return questId == null ? null : quests.get(questId);
+        return quests.get(questId);
     }
 
     public Map<Integer, String> getNpcQuestMap() {

@@ -310,7 +310,9 @@ public class CommandRegistry {
                 new me.nakilex.levelplugin.dungeon.DungeonCommand(plugin);
         plugin.getCommand("dungeon").setExecutor(dungeonCmd);
         plugin.getCommand("dungeon").setTabCompleter(dungeonCmd);
-        plugin.getCommand("world").setExecutor(new me.nakilex.levelplugin.world.WorldCommand(plugin.getWorldManager()));
+        me.nakilex.levelplugin.world.WorldCommand worldCmd = new me.nakilex.levelplugin.world.WorldCommand(plugin.getWorldManager());
+        plugin.getCommand("world").setExecutor(worldCmd);
+        plugin.getCommand("world").setTabCompleter(worldCmd);
         plugin.getCommand("centertooltip").setExecutor(new CenterTooltipCommand());
         plugin.getCommand("centergui").setExecutor(new CenterGuiCommand());
         AddLoreCommand addLoreCmd = new AddLoreCommand();

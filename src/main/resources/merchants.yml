@@ -61,6 +61,32 @@ merchants:
         amount: 1
         cost: 55      # max stats = 48 → price > 48
 
+  potion_merchant:
+    title: "Potion Merchant"
+    size: 27
+    items:
+      # Healing potions
+      - slot: 10
+        item_id: healing_i
+        cost: 50
+      - slot: 11
+        item_id: healing_ii
+        cost: 150
+      - slot: 12
+        item_id: healing_iii
+        cost: 400
+      # spacer slot 13 intentionally left empty
+      # Mana potions
+      - slot: 14
+        item_id: mana_i
+        cost: 50
+      - slot: 15
+        item_id: mana_ii
+        cost: 150
+      - slot: 16
+        item_id: mana_iii
+        cost: 400
+
   rare_gear_shop:
     title: "Rare Gear Emporium"
     size: 54

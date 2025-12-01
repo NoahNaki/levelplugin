@@ -13,6 +13,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -25,6 +26,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.io.InputStream;
 import java.util.*;
 
 import static me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
@@ -33,6 +35,7 @@ import static me.nakilex.levelplugin.utils.ChatMessageUtil.send;
 public class PotionMerchantGUI implements Listener {
     private final Inventory inventory;
     private final Map<Integer, PotionTemplate> potionItems = new HashMap<>();
+    private final Map<Integer, Integer> potionCosts = new HashMap<>();
     private final EconomyManager economyManager;
     private final PotionManager potionManager;
     private final Plugin plugin;
@@ -43,7 +46,13 @@ public class PotionMerchantGUI implements Listener {
         this.economyManager = Main.getInstance().getEconomyManager();
         this.potionManager = Main.getInstance().getPotionManager();
 
-        String basePath = "merchants.potion_merchant";
+        String basePath;
+        if (merchantConfig.getConfigurationSection("merchants.potion_merchant") != null
+                || merchantConfig.contains("merchants.potion_merchant")) {
+            basePath = "merchants.potion_merchant";
+        } else {
+            basePath = "potion_merchant";
+        }
         String title = merchantConfig.getString(basePath + ".title", "Potion Merchant");
         int size = merchantConfig.getInt(basePath + ".size", 27);
         this.inventory = GuiBuilder.create(size, title)
@@ -55,6 +64,10 @@ public class PotionMerchantGUI implements Listener {
         Bukkit.getLogger().info("[PotionMerchantGUI] Initializing Potion Merchant GUI...");
 
         List<?> list = merchantConfig.getList(basePath + ".items");
+        if (list == null && basePath.startsWith("merchants.")) {
+            // Fallback in case the caller passed an already-scoped config
+            list = merchantConfig.getList(basePath.substring("merchants.".length()) + ".items");
+        }
         if (list != null) {
             Bukkit.getLogger().info("[PotionMerchantGUI] Found " + list.size() + " items in configuration.");
             for (Object obj : list) {
@@ -68,10 +81,19 @@ public class PotionMerchantGUI implements Listener {
             Bukkit.getLogger().warning("[PotionMerchantGUI] No items found in merchants.yml for potion_merchant.");
         }
 
+        // If the live merchants.yml is missing the potion shop entries, merge defaults from the bundled resource
+        // so the GUI never opens empty.
+        if (potionItems.isEmpty()) {
+            copyDefaultsFromResource(plugin, basePath);
+        }
+        if (potionItems.isEmpty()) {
+            seedFromPotionTemplates();
+        }
+
         for (Map.Entry<Integer, PotionTemplate> entry : potionItems.entrySet()) {
             PotionTemplate potion = entry.getValue();
             Bukkit.getLogger().info("[PotionMerchantGUI] Adding potion '" + potion.getId() + "' to slot " + entry.getKey());
-            ItemStack potionItem = createPotionPreview(potion);
+            ItemStack potionItem = createPotionPreview(entry.getKey(), potion);
             inventory.setItem(entry.getKey(), potionItem);
         }
 
@@ -96,6 +118,7 @@ public class PotionMerchantGUI implements Listener {
             PotionTemplate potion = potionManager.getTemplate(potionId);
             if (potion != null) {
                 potionItems.put(slot, potion);
+                potionCosts.put(slot, cost);
                 Bukkit.getLogger().info("[PotionMerchantGUI] Successfully loaded potion: " + potion.getName() + " at slot: " + slot);
             } else {
                 Bukkit.getLogger().warning("[PotionMerchantGUI] Potion with ID '" + potionId + "' not found in PotionManager.");
@@ -105,12 +128,59 @@ public class PotionMerchantGUI implements Listener {
         }
     }
 
+    private void copyDefaultsFromResource(Plugin plugin, String basePath) {
+        try (InputStream in = plugin.getResource("merchants.yml")) {
+            if (in == null) {
+                Bukkit.getLogger().warning("[PotionMerchantGUI] No bundled merchants.yml found; cannot seed potion shop.");
+                return;
+            }
+            YamlConfiguration defaults = YamlConfiguration.loadConfiguration(new java.io.InputStreamReader(in));
+            List<?> fallback = defaults.getList(basePath + ".items");
+            if (fallback == null || fallback.isEmpty()) {
+                Bukkit.getLogger().warning("[PotionMerchantGUI] Bundled merchants.yml missing potion_merchant items.");
+                return;
+            }
+            for (Object obj : fallback) {
+                if (obj instanceof Map) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> map = (Map<String, Object>) obj;
+                    loadPotionItem(map);
+                }
+            }
+            Bukkit.getLogger().info("[PotionMerchantGUI] Seeded potion shop items from bundled defaults (" + potionItems.size() + " items).");
+        } catch (Exception ex) {
+            Bukkit.getLogger().warning("[PotionMerchantGUI] Failed to seed potion merchant defaults: " + ex.getMessage());
+        }
+    }
+
+    /**
+     * As a last resort, populate the shop directly from loaded potion templates so the GUI never opens empty.
+     */
+    private void seedFromPotionTemplates() {
+        List<PotionTemplate> templates = new ArrayList<>(potionManager.getAllTemplates());
+        if (templates.isEmpty()) {
+            Bukkit.getLogger().warning("[PotionMerchantGUI] PotionManager returned no templates; cannot seed shop.");
+            return;
+        }
+        templates.sort(Comparator.comparingInt(PotionTemplate::getTier).thenComparing(PotionTemplate::getId));
+
+        int slot = 10;
+        for (PotionTemplate template : templates) {
+            if (slot >= inventory.getSize()) break;
+            potionItems.put(slot, template);
+            potionCosts.put(slot, Math.max(50, template.getCooldownSeconds()));
+            slot++;
+            if (slot == 13) slot = 14; // skip spacer between healing/mana if present
+        }
+        Bukkit.getLogger().info("[PotionMerchantGUI] Seeded potion shop from PotionManager templates (" + potionItems.size() + " items).");
+    }
+
 
     public Inventory getInventory() {
         return inventory;
     }
 
-    private ItemStack createPotionPreview(PotionTemplate potion) {
+    private ItemStack createPotionPreview(int slot, PotionTemplate potion) {
         ItemStack potionItem = new ItemStack(potion.getMaterial());
         ItemMeta meta = potionItem.getItemMeta();
         meta.setDisplayName(ChatColor.GOLD + potion.getName());
@@ -118,7 +188,8 @@ public class PotionMerchantGUI implements Listener {
         lore.add(ChatColor.GRAY + "Charges: " + ChatColor.YELLOW + potion.getCharges());
         lore.add(ChatColor.GRAY + "Cooldown: " + ChatColor.AQUA + potion.getCooldownSeconds() + "s");
         lore.add("");
-        lore.add(ChatColor.GOLD + "Price: " + ChatColor.GREEN + potion.getCooldownSeconds() + " <glyph:coins_icon>");
+        int cost = potionCosts.getOrDefault(slot, potion.getCooldownSeconds());
+        lore.add(ChatColor.GOLD + "Price: " + ChatColor.GREEN + cost + " <glyph:coins_icon>");
         meta.setLore(lore);
         potionItem.setItemMeta(meta);
         ItemRarity rarity = ItemRarity.fromTier(potion.getTier());
@@ -137,7 +208,7 @@ public class PotionMerchantGUI implements Listener {
             if (potion == null) return;
 
             Player player = (Player) event.getWhoClicked();
-            int cost = potion.getCooldownSeconds();
+            int cost = potionCosts.getOrDefault(slot, potion.getCooldownSeconds());
             int balance = economyManager.getBalance(player);
 
             if (balance < cost) {
@@ -201,11 +272,11 @@ public class PotionMerchantGUI implements Listener {
             lore.add(ChatColor.GRAY + "Charges: " + ChatColor.YELLOW + potion.getCharges());
             lore.add(ChatColor.GRAY + "Cooldown: " + ChatColor.AQUA + potion.getCooldownSeconds() + "s");
             lore.add("");
-
-            if (playerCoins < potion.getCooldownSeconds()) {
-                lore.add(ChatColor.GOLD + "Price: " + ChatColor.RED + "✘ " + potion.getCooldownSeconds() + " <glyph:coins_icon>");
+            int cost = potionCosts.getOrDefault(slot, potion.getCooldownSeconds());
+            if (playerCoins < cost) {
+                lore.add(ChatColor.GOLD + "Price: " + ChatColor.RED + "✘ " + cost + " <glyph:coins_icon>");
             } else {
-                lore.add(ChatColor.GOLD + "Price: " + ChatColor.GREEN + "✔ " + potion.getCooldownSeconds() + " <glyph:coins_icon>");
+                lore.add(ChatColor.GOLD + "Price: " + ChatColor.GREEN + "✔ " + cost + " <glyph:coins_icon>");
             }
             meta.setLore(lore);
             stack.setItemMeta(meta);

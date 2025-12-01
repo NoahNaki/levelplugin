@@ -69,12 +69,28 @@ public class NPCClickListener implements Listener {
             if (npc.getId() == 546) {
                 Main.getInstance().getCodexManager().recordNpc(player, stripped);
             }
+
+            if (isNpcName(npc, SalvagersLessonQuest.NPC_NAME)
+                    && questManager.hasCompleted(player.getUniqueId(), SalvagersLessonQuest.ID)) {
+                if (QuestServiceAccessTracker.isCoolingDown(player.getUniqueId(), QuestServiceAccessTracker.Service.SALVAGE)) {
+                    ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                            "Give the salvager a moment before reopening the bench.");
+                    return;
+                }
+                SalvageGUI.openMerchantGUI(player);
+                return;
+            }
             if (stripped.equalsIgnoreCase("Starter Merchant")) {
                 PlayerQuestProgress prog = questManager.getProgress(player.getUniqueId(), "newbeginning");
                 if (prog == null || questManager.hasCompleted(player.getUniqueId(), "newbeginning")) {
                     player.performCommand("merchant starter_shop");
                     return;
                 }
+            }
+
+            if (stripped.equalsIgnoreCase("Potion Merchant")) {
+                player.performCommand("merchant potion_merchant");
+                return;
             }
 
             if (npc.getId() == 546 &&
@@ -110,6 +126,9 @@ public class NPCClickListener implements Listener {
             }
 
             Quest quest = questManager.getQuestByNpc(npc);
+            if (quest == null && isNpcName(npc, SalvagersLessonQuest.NPC_NAME)) {
+                quest = questManager.getQuestById(SalvagersLessonQuest.ID);
+            }
             if (quest != null) {
                 if ("serashelp".equals(quest.getId())) {
                     PlayerQuestProgress progress = questManager.getProgress(player.getUniqueId(), quest.getId());

@@ -5,7 +5,9 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.concurrent.ThreadLocalRandom;
 
+import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.chat.games.ChatGameManager;
 import me.nakilex.levelplugin.chat.games.ChatGameStatus;
 import me.nakilex.levelplugin.debug.gui.DebugGUI;
@@ -17,6 +19,7 @@ import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
 import me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager;
+import me.nakilex.levelplugin.utils.RewardBombUtil;
 import me.nakilex.levelplugin.utils.ToggleFeedbackUtil;
 import me.nakilex.levelplugin.guild.siege.GuildSiegeManager;
 import me.nakilex.levelplugin.guild.GuildManager;
@@ -175,6 +178,20 @@ public class DebugCommand implements TabExecutor {
                 ToggleFeedbackUtil.sendToggle(p3, "Mage autocast", auto);
                 return true;
 
+            case "rewardbomb":
+                if (!(sender instanceof Player pRb)) {
+                    sender.sendMessage(ChatColor.RED + "Players only.");
+                    return true;
+                }
+                org.bukkit.block.Block target = pRb.getTargetBlockExact(20);
+                if (target == null) {
+                    pRb.sendMessage(ChatColor.RED + "Look at a block within 20 blocks to start the reward bomb.");
+                    return true;
+                }
+                RewardBombUtil.startRewardBomb(Main.getInstance(), target.getLocation(), this::debugRewardItem, 100);
+                pRb.sendMessage(ChatColor.YELLOW + "Reward bomb triggered for testing.");
+                return true;
+
             case "hand":
                 if (!(sender instanceof Player p4)) {
                     sender.sendMessage("Players only.");
@@ -290,7 +307,7 @@ public class DebugCommand implements TabExecutor {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            List<String> subs = new ArrayList<>(List.of("mobinfo", "tps", "siege", "cityowner", "autocast", "hand", "chatgame", "expedition"));
+            List<String> subs = new ArrayList<>(List.of("mobinfo", "tps", "siege", "cityowner", "autocast", "hand", "chatgame", "expedition", "rewardbomb"));
             subs.addAll(Arrays.stream(StatType.values()).map(StatType::getAbbrev).toList());
             return subs.stream()
                     .filter(s -> s.startsWith(args[0].toLowerCase()))
@@ -317,5 +334,18 @@ public class DebugCommand implements TabExecutor {
                     .toList();
         }
         return Collections.emptyList();
+    }
+
+    private ItemStack debugRewardItem() {
+        int roll = ThreadLocalRandom.current().nextInt(7);
+        return switch (roll) {
+            case 0 -> new ItemStack(Material.SPLASH_POTION);
+            case 1 -> new ItemStack(Material.POTION);
+            case 2 -> new ItemStack(Material.EMERALD, ThreadLocalRandom.current().nextInt(3, 7));
+            case 3 -> new ItemStack(Material.PRISMARINE_CRYSTALS, ThreadLocalRandom.current().nextInt(3, 8));
+            case 4 -> new ItemStack(Material.GOLDEN_APPLE, 1 + ThreadLocalRandom.current().nextInt(2));
+            case 5 -> new ItemStack(Material.DIAMOND_SWORD);
+            default -> new ItemStack(Material.RABBIT_FOOT);
+        };
     }
 }
