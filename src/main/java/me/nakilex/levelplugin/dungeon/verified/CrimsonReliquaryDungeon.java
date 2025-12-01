@@ -241,9 +241,27 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
         TemplateMarkers markers = new TemplateMarkers();
         Map<Player, PlayerState> prevStates = captureStates(participants);
 
+        seedMarkersFromTemplate(template, origin, markers);
+        plugin.getLogger().info("[Dungeon] Seeded template markers: normal=" + markers.normalMarkers.size()
+                + " boss=" + markers.bossMarkers.size());
         pasteTemplateAsync(template, world, origin, spawn, markers,
                 () -> teleportParticipantsEarly(participants, prevStates, spawn),
                 () -> finalizeInstance(manager, inst, origin, spawn, participants, markers, prevStates));
+    }
+
+    private void seedMarkersFromTemplate(RoomTemplate template, Location origin, TemplateMarkers markers) {
+        if (template == null) return;
+
+        for (RoomTemplate.Marker portal : template.getPortals()) {
+            Location loc = origin.clone().add(portal.x, portal.y, portal.z).add(0.5, 0, 0.5);
+            addMarkerIfAbsent(markers.normalMarkers, loc);
+        }
+
+        RoomTemplate.Marker boss = template.getBossSpawn();
+        if (boss != null) {
+            Location loc = origin.clone().add(boss.x, boss.y, boss.z).add(0.5, 0, 0.5);
+            addMarkerIfAbsent(markers.bossMarkers, loc);
+        }
     }
 
     private void logMarkerSummary(TemplateMarkers markers) {
@@ -261,11 +279,21 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
         }
     }
 
+    private void addMarkerIfAbsent(List<Location> targets, Location loc) {
+        boolean exists = targets.stream().anyMatch(existing ->
+                existing.getBlockX() == loc.getBlockX()
+                        && existing.getBlockY() == loc.getBlockY()
+                        && existing.getBlockZ() == loc.getBlockZ());
+        if (!exists) {
+            targets.add(loc);
+        }
+    }
+
     private void handleTemplateBlock(World dest, Location destLoc, BlockData data, TemplateMarkers markers) {
         Material mat = data.getMaterial();
         switch (mat) {
             case BLACK_WOOL -> {
-                markers.bossMarkers.add(destLoc.clone().add(0.5, 0, 0.5));
+                addMarkerIfAbsent(markers.bossMarkers, destLoc.clone().add(0.5, 0, 0.5));
                 dest.getBlockAt(destLoc).setType(Material.AIR, false);
             }
             case CYAN_WOOL -> {
@@ -273,7 +301,7 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
                 dest.getBlockAt(destLoc).setType(Material.AIR, false);
             }
             case MAGENTA_WOOL, PURPLE_WOOL -> {
-                markers.normalMarkers.add(destLoc.clone().add(0.5, 0, 0.5));
+                addMarkerIfAbsent(markers.normalMarkers, destLoc.clone().add(0.5, 0, 0.5));
                 dest.getBlockAt(destLoc).setType(Material.AIR, false);
             }
             case YELLOW_WOOL -> {

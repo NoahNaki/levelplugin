@@ -8,6 +8,7 @@ import me.nakilex.levelplugin.potions.data.PotionTemplate;
 import me.nakilex.levelplugin.items.data.ItemRarity;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.utils.GuiUtil;
+import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -185,9 +186,12 @@ public class PotionMerchantGUI implements Listener {
         ItemStack potionItem = instance.toItemStack((JavaPlugin) plugin);
         ItemMeta meta = potionItem.getItemMeta();
         List<String> lore = meta != null && meta.hasLore() ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
+        lore.removeIf(line -> ChatColor.stripColor(line).startsWith("Left-click")
+                || ChatColor.stripColor(line).startsWith("Right-click"));
         lore.add("");
         int cost = potionCosts.getOrDefault(slot, potion.getCooldownSeconds());
         lore.add(ChatColor.GOLD + "Price: " + ChatColor.GREEN + cost + " <glyph:coins_icon>");
+        lore.addAll(TooltipUtil.clickInstructions("to purchase", null));
         if (meta != null) {
             String name = meta.hasDisplayName() ? meta.getDisplayName()
                     : ChatColor.translateAlternateColorCodes('&', potion.getName());
