@@ -1,11 +1,14 @@
 package me.nakilex.levelplugin.dungeon.verified;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
@@ -27,8 +30,8 @@ import net.citizensnpcs.api.npc.NPC;
 import net.citizensnpcs.api.trait.trait.CurrentLocation;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -73,6 +76,7 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
     );
 
     private final Main plugin;
+    private final LegacyComponentSerializer legacy = LegacyComponentSerializer.legacySection();
     private final Map<World, InstanceState> activeInstances = new HashMap<>();
     private volatile RoomTemplate cachedTemplate;
 
@@ -395,7 +399,9 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
             if (i < pluckableCount) {
                 state.pluckable.put(yellow, choice);
                 MultiLineHologram holo = new MultiLineHologram(yellow.clone().add(0.5, 1.25, 0.5), "crimson_flower_pluck");
-                holo.spawn(List.of(ChatColor.GOLD + "Mystic Bloom", ChatColor.GRAY + "Right-click to pluck"));
+                holo.spawn(List.of(
+                        legacy.serialize(Component.text("Mystic Bloom", NamedTextColor.GOLD)),
+                        legacy.serialize(Component.text("Right-click to pluck", NamedTextColor.GRAY))));
                 state.pluckHolograms.put(yellow, holo);
             }
         }
@@ -413,7 +419,9 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
                 as.addScoreboardTag("dungeon_flower_slot");
             });
             MultiLineHologram holo = new MultiLineHologram(marker.clone().add(0.5, 1.2, 0.5), "crimson_flower_slot");
-            holo.spawn(List.of(ChatColor.AQUA + "Place Flower", ChatColor.GRAY + "Right-click with a bloom"));
+            holo.spawn(List.of(
+                    legacy.serialize(Component.text("Place Flower", NamedTextColor.AQUA)),
+                    legacy.serialize(Component.text("Right-click with a bloom", NamedTextColor.GRAY))));
             state.placementHolograms.put(marker, holo);
             state.placements.put(marker, null);
         }
@@ -458,8 +466,10 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
         ItemStack stack = new ItemStack(type.block);
         ItemMeta meta = stack.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName(ChatColor.AQUA + type.display);
-            meta.setLore(TooltipUtil.dungeonItemLore(type.description, true));
+            meta.displayName(Component.text(type.display, NamedTextColor.AQUA));
+            meta.lore(TooltipUtil.dungeonItemLore(type.description, true).stream()
+                    .map(legacy::deserialize)
+                    .collect(Collectors.toList()));
             meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
             meta.getPersistentDataContainer().set(ItemUtil.SOULBOUND_KEY, PersistentDataType.BYTE, (byte) 1);
             meta.getPersistentDataContainer().set(DUNGEON_FLOWER_KEY, PersistentDataType.STRING, type.name());
@@ -647,15 +657,15 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
         state.puzzleComplete = true;
         int coinsAward = ThreadLocalRandom.current().nextInt(300, 601);
         int gemsAward = ThreadLocalRandom.current().nextInt(3, 8);
-        String rewardLine = ChatColor.GOLD + "Puzzle complete! "
-                + CurrencyMessageUtil.formatAmount(CurrencyMessageUtil.Currency.COINS, coinsAward)
-                + ChatColor.GOLD + " & "
-                + CurrencyMessageUtil.formatAmount(CurrencyMessageUtil.Currency.GEMS, gemsAward);
         for (Player p : state.participants) {
             if (p != null && p.isOnline()) {
                 plugin.getEconomyManager().addCoins(p, coinsAward);
                 plugin.getGemsManager().addUnits(p, gemsAward);
-                ChatMessageUtil.send(p, MessageType.REWARD, rewardLine);
+                ChatMessageUtil.send(p, MessageType.REWARD,
+                        "Puzzle complete! "
+                                + CurrencyMessageUtil.formatAmount(CurrencyMessageUtil.Currency.COINS, coinsAward)
+                                + " & "
+                                + CurrencyMessageUtil.formatAmount(CurrencyMessageUtil.Currency.GEMS, gemsAward));
             }
         }
         for (Location fountain : state.rewardFountains) {
@@ -782,8 +792,8 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
             for (Player p : state.participants) {
                 if (p != null && p.isOnline()) {
                     ChatMessageUtil.send(p, MessageType.REWARD,
-                            ChatColor.GOLD + "Dungeon complete! " + ChatColor.YELLOW + seconds + "s" + ChatColor.GOLD + " | Score: "
-                                    + ChatColor.YELLOW + score + ChatColor.GOLD + (state.puzzleComplete ? " (puzzle bonus)" : ""));
+                            "Dungeon complete! " + seconds + "s | Score: "
+                                    + score + (state.puzzleComplete ? " (puzzle bonus)" : ""));
                 }
             }
         }

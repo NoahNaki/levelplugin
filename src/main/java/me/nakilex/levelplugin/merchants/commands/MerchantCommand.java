@@ -33,6 +33,16 @@ public class MerchantCommand implements TabExecutor {
             plugin.saveResource("merchants.yml", false);
         }
         this.merchantConfig = YamlConfiguration.loadConfiguration(file);
+        try (java.io.InputStream in = plugin.getResource("merchants.yml")) {
+            if (in != null) {
+                FileConfiguration defaults = YamlConfiguration.loadConfiguration(new java.io.InputStreamReader(in));
+                this.merchantConfig.setDefaults(defaults);
+                this.merchantConfig.options().copyDefaults(true);
+                this.merchantConfig.save(file);
+            }
+        } catch (Exception ex) {
+            plugin.getLogger().warning("Failed to merge default merchants.yml: " + ex.getMessage());
+        }
     }
 
     @Override
@@ -46,7 +56,9 @@ public class MerchantCommand implements TabExecutor {
             return true;
         }
         String merchantName = args[0];
-        if (!merchantConfig.contains("merchants." + merchantName)) {
+        boolean hasMerchant = merchantConfig.contains("merchants." + merchantName)
+                || merchantConfig.contains(merchantName);
+        if (!hasMerchant) {
             send(sender, MessageType.ERROR, "Merchant not found!");
             return true;
         }
