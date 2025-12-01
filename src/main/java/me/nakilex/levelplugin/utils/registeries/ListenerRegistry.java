@@ -137,7 +137,8 @@ public class ListenerRegistry {
                 lootChestManager,
                 plugin.getModelSetManager(),
                 mobDebugToggleManager,
-                battlePassManager
+                battlePassManager,
+                plugin.getDropDebugManager()
         ), plugin);
         pm.registerEvents(new me.nakilex.levelplugin.player.mining.listeners.OreMiningListener(plugin, plugin.getMiningRewardsConfig(), plugin.getMiningManager()), plugin);
         pm.registerEvents(new PlayerJoinListener(plugin.getLevelManager(), plugin.getMiningManager(), plugin.getPlayerConfig(), plugin.getEnvironmentManager()), plugin);

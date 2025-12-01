@@ -11,8 +11,10 @@ import me.nakilex.levelplugin.mob.config.ModelSetManager;
 import me.nakilex.levelplugin.mob.utils.ItemDropper;
 import me.nakilex.levelplugin.mob.utils.RewardHologramUtil;
 import me.nakilex.levelplugin.mob.utils.CombatPowerUtil;
+import me.nakilex.levelplugin.mob.utils.CombatRewardCalculator;
 import me.nakilex.levelplugin.mob.utils.MobNameUtil;
 import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
+import me.nakilex.levelplugin.debug.DropDebugManager;
 import me.nakilex.levelplugin.guild.quests.GuildQuestManager;
 import io.lumine.mythic.api.skills.placeholders.PlaceholderString;
 import me.nakilex.levelplugin.party.Party;
@@ -57,6 +59,7 @@ public class MythicMobRewardListener implements Listener {
     private final BattlePassManager battlePassManager;
     private final ItemDropper itemDropper;
     private final PlayerToggleManager debugToggle;
+    private final DropDebugManager dropDebugManager;
 
     public MythicMobRewardListener(MythicMobDamageTracker tracker,
                                    MobRewardsConfig mobRewardsConfig,
@@ -65,16 +68,18 @@ public class MythicMobRewardListener implements Listener {
                                    LootChestManager lootChestManager,
                                    ModelSetManager modelSetManager,
                                    PlayerToggleManager debugToggle,
-                                   BattlePassManager battlePassManager) {
+                                   BattlePassManager battlePassManager,
+                                   DropDebugManager dropDebugManager) {
         this.tracker = tracker;
         this.mobRewardsConfig = mobRewardsConfig;
         this.levelManager = levelManager;
         this.economyManager = economyManager;
         this.lootChestManager = lootChestManager;
         this.modelSetManager = modelSetManager;
-        this.itemDropper = new ItemDropper(levelManager, modelSetManager);
+        this.itemDropper = new ItemDropper(modelSetManager);
         this.debugToggle = debugToggle;
         this.battlePassManager = battlePassManager;
+        this.dropDebugManager = dropDebugManager;
     }
 
     @EventHandler
@@ -106,14 +111,13 @@ public class MythicMobRewardListener implements Listener {
 
         String mobType = node.getName();
 
-        int exp = node.getInt("exp", 0);
-        String coinsSpec = node.getString("coins", "0-0");
-        int tier = node.getInt("tier", 0);
+        int combatPower = CombatPowerUtil.getCombatPower(mythicMob);
+        int mobLevel = (int) Math.round(mythicMob.getLevel());
+        int exp = CombatRewardCalculator.calculateXpReward(combatPower);
+        int coins = CombatRewardCalculator.calculateCoinReward(combatPower);
         double tierChance = node.getDouble("tier_chance", 100.0);
+        boolean forceDrops = dropDebugManager != null && dropDebugManager.isForceMobDrops();
         String modelSet = node.getString("model_set", null);
-        String[] sp = coinsSpec.split("-");
-        int minCoins = Integer.parseInt(sp[0]);
-        int maxCoins = Integer.parseInt(sp[1]);
 
         Location deathLoc = event.getEntity().getLocation();
         PartyManager pm = Main.getInstance().getPartyManager();
@@ -151,19 +155,16 @@ public class MythicMobRewardListener implements Listener {
             int scaledExp = ExperienceUtil.scaleExperience(exp, levelManager.getLevel(player), mythicMob.getLevel());
             int awardedExp = ExperienceUtil.applyPartyBonus(scaledExp, partySize);
             levelManager.addXP(player, awardedExp);
-            int coins = ThreadLocalRandom.current().nextInt(minCoins, maxCoins + 1);
             economyManager.addCoins(player, coins);
-            itemDropper.dropCustomItems(player, node, modelSet);
+            itemDropper.dropCustomItems(player, node, modelSet, combatPower, mobLevel, forceDrops);
             itemDropper.maybeDropEssence(player, node);
-            if (tier > 0) {
-                double roll = ThreadLocalRandom.current().nextDouble() * 100.0;
-                if (roll <= tierChance) {
-                    ItemStack loot = lootChestManager.getRandomLootForTier(tier, mobType, modelSet);
-                    if (loot != null) {
-                        ItemUtil.updateTooltip(loot, player);
-                        player.getInventory().addItem(loot).values()
-                                .forEach(i -> player.getWorld().dropItemNaturally(player.getLocation(), i));
-                    }
+            double roll = ThreadLocalRandom.current().nextDouble() * 100.0;
+            if (forceDrops || roll <= tierChance) {
+                ItemStack loot = lootChestManager.getRandomLootForCombatPower(combatPower, mobLevel, mobType, modelSet);
+                if (loot != null) {
+                    ItemUtil.updateTooltip(loot, player);
+                    player.getInventory().addItem(loot).values()
+                            .forEach(i -> player.getWorld().dropItemNaturally(player.getLocation(), i));
                 }
             }
             itemDropper.maybeDropRerollScroll(player);
@@ -182,7 +183,7 @@ public class MythicMobRewardListener implements Listener {
                         + ChatColor.GOLD + "!");
             }
             GuildQuestManager.getInstance().handleKill(player, mobType);
-            maybeAwardBattlePassXp(player, mobType, tier, awardedExp);
+            maybeAwardBattlePassXp(player, mobType, combatPower, awardedExp);
             if (debugToggle.isEnabled(player)) {
                 sendDebugInfo(player, rawMobType, mythicMob, baseEntity, numericHpName);
                 String expColor = ChatFormatter.experienceColor();
@@ -192,11 +193,11 @@ public class MythicMobRewardListener implements Listener {
         }
     }
 
-    private void maybeAwardBattlePassXp(Player player, String mobType, int tier, int awardedExp) {
+    private void maybeAwardBattlePassXp(Player player, String mobType, int combatPower, int awardedExp) {
         if (battlePassManager == null || player == null) {
             return;
         }
-        int battlePassXp = calculateBattlePassXp(tier, awardedExp);
+        int battlePassXp = calculateBattlePassXp(combatPower, awardedExp);
         if (battlePassXp <= 0) {
             return;
         }
@@ -211,11 +212,9 @@ public class MythicMobRewardListener implements Listener {
         );
     }
 
-    private int calculateBattlePassXp(int tier, int awardedExp) {
+    private int calculateBattlePassXp(int combatPower, int awardedExp) {
         int base = Math.max(25, awardedExp / 4);
-        if (tier > 0) {
-            base += tier * 35;
-        }
+        base += Math.min(200, Math.max(0, combatPower / 5));
         return Math.min(base, 500);
     }
 

@@ -5,6 +5,7 @@ import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.data.StatRange;
 import me.nakilex.levelplugin.items.data.ItemRarity;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
+import me.nakilex.levelplugin.mob.utils.CombatRewardCalculator.GearTarget;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -224,6 +225,18 @@ public class ItemManager {
      */
     public CustomItem generateItem(String mobType, int level) {
         return generator.generate(mobType, level);
+    }
+
+    public CustomItem generateItemWithMaxRarity(String mobType, int level, ItemRarity maxRarity) {
+        return generator.generateWithMaxRarity(mobType, level, maxRarity);
+    }
+
+    public CustomItem generateItemForGearScore(String mobType, int targetGearScore, ItemRarity rarity) {
+        return generator.generateForGearScore(mobType, new GearTarget(targetGearScore, rarity));
+    }
+
+    public CustomItem generateItemForGearScore(String mobType, int targetGearScore, ItemRarity rarity, int levelRequirement) {
+        return generator.generateForGearScore(mobType, new GearTarget(targetGearScore, rarity), levelRequirement);
     }
 
     public CustomItem getCustomItem(int id) {

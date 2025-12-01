@@ -149,6 +149,8 @@ public class PluginBootstrap {
     private PlayerConfig playerConfig;
     private PlayerToggleManager dmgNumberToggleManager;
     private PlayerToggleManager mobDebugToggleManager;
+    private me.nakilex.levelplugin.debug.DropDebugManager dropDebugManager;
+    private me.nakilex.levelplugin.debug.AutoCastManager autoCastManager;
     private DpsDummyManager dpsDummyManager;
     private ManaCostTracker manaTracker;
     private FileConfiguration bossConfig;
@@ -300,6 +302,8 @@ public class PluginBootstrap {
         lootChestManager = new LootChestManager(plugin, configManager, cooldownManager, potionManager);
         dmgNumberToggleManager = new PlayerToggleManager();
         mobDebugToggleManager = new PlayerToggleManager();
+        dropDebugManager = new me.nakilex.levelplugin.debug.DropDebugManager(plugin);
+        autoCastManager = new me.nakilex.levelplugin.debug.AutoCastManager();
         dpsDummyManager = new DpsDummyManager(plugin, mythicHelper);
         upgradeKey = new NamespacedKey(plugin, "upgrade_level");
         levelManager = new LevelManager(plugin);
@@ -415,7 +419,13 @@ public class PluginBootstrap {
         horseManager = new HorseManager(horseConfigManager);
         HorseGUI horseGUI = new HorseGUI(horseManager, economyManager);
         settingsGUI = new SettingsGUI(settingsManager);
-        debugGUI = new me.nakilex.levelplugin.debug.gui.DebugGUI(mobDebugToggleManager, scoreboardManager, chatGameManager, mercenaryExpeditionManager);
+        debugGUI = new me.nakilex.levelplugin.debug.gui.DebugGUI(
+                mobDebugToggleManager,
+                scoreboardManager,
+                chatGameManager,
+                mercenaryExpeditionManager,
+                dropDebugManager,
+                autoCastManager);
         this.storageManager = new StorageManager();
         this.guildVaultManager = new me.nakilex.levelplugin.guild.GuildVaultManager(storageEvents, guildMemberGUI);
         CommandRegistry.registerCommands(
@@ -665,6 +675,8 @@ public class PluginBootstrap {
     public ChatGameManager getChatGameManager() { return chatGameManager; }
     public PlayerToggleManager getDmgNumberToggleManager() { return dmgNumberToggleManager; }
     public PlayerToggleManager getMobDebugToggleManager() { return mobDebugToggleManager; }
+    public me.nakilex.levelplugin.debug.DropDebugManager getDropDebugManager() { return dropDebugManager; }
+    public me.nakilex.levelplugin.debug.AutoCastManager getAutoCastManager() { return autoCastManager; }
     public ManaCostTracker getManaTracker() { return manaTracker; }
     public FileConfiguration getBossConfig() { return bossConfig; }
     public File getBossConfigFile() { return bossConfigFile; }

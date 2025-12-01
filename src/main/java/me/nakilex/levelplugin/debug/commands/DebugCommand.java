@@ -5,18 +5,17 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.concurrent.ThreadLocalRandom;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.chat.games.ChatGameManager;
 import me.nakilex.levelplugin.chat.games.ChatGameStatus;
 import me.nakilex.levelplugin.debug.gui.DebugGUI;
 import me.nakilex.levelplugin.debug.AutoCastManager;
+import me.nakilex.levelplugin.debug.DropDebugManager;
 import me.nakilex.levelplugin.guild.Guild;
 import me.nakilex.levelplugin.mercenary.MercenaryExpeditionManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
-import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
 import me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager;
 import me.nakilex.levelplugin.utils.RewardBombUtil;
@@ -52,18 +51,23 @@ public class DebugCommand implements TabExecutor {
     private final DebugGUI debugGUI;
     private final ChatGameManager chatGameManager;
     private final MercenaryExpeditionManager expeditionManager;
-    private final AutoCastManager autoCastManager = new AutoCastManager();
+    private final DropDebugManager dropDebugManager;
+    private final AutoCastManager autoCastManager;
 
     public DebugCommand(PlayerToggleManager mobDebugManager,
                         PlayerScoreboardManager scoreboardManager,
                         DebugGUI debugGUI,
                         ChatGameManager chatGameManager,
-                        MercenaryExpeditionManager expeditionManager) {
+                        MercenaryExpeditionManager expeditionManager,
+                        DropDebugManager dropDebugManager,
+                        AutoCastManager autoCastManager) {
         this.mobDebugManager = mobDebugManager;
         this.scoreboardManager = scoreboardManager;
         this.debugGUI = debugGUI;
         this.chatGameManager = chatGameManager;
         this.expeditionManager = expeditionManager;
+        this.dropDebugManager = dropDebugManager;
+        this.autoCastManager = autoCastManager;
     }
 
     @Override
@@ -150,6 +154,13 @@ public class DebugCommand implements TabExecutor {
                         + (enable ? ChatColor.GREEN + "set to instant" : ChatColor.RED + "restored to normal") + ChatColor.YELLOW + ".");
                 return true;
 
+            case "drops":
+                boolean forced = dropDebugManager.toggleForceMobDrops();
+                sender.sendMessage(ChatColor.YELLOW + "Mob loot drops are now "
+                        + (forced ? ChatColor.GREEN + "100%" : ChatColor.RED + "respecting configured chances")
+                        + ChatColor.YELLOW + ".");
+                return true;
+
             case "cityowner":
                 if (args.length < 2) {
                     sender.sendMessage(ChatColor.RED + "Usage: /debug cityowner <guild name>");
@@ -169,13 +180,12 @@ public class DebugCommand implements TabExecutor {
                     sender.sendMessage("Players only.");
                     return true;
                 }
-                StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(p3.getUniqueId());
-                if (ps.playerClass != PlayerClass.MAGE) {
-                    p3.sendMessage("Mage class required for autocast debug.");
+                AutoCastManager.ToggleOutcome outcome = autoCastManager.toggleMageFireball(p3);
+                if (!outcome.success()) {
+                    p3.sendMessage(outcome.errorMessage());
                     return true;
                 }
-                boolean auto = autoCastManager.toggle(p3, "fireball");
-                ToggleFeedbackUtil.sendToggle(p3, "Mage autocast", auto);
+                ToggleFeedbackUtil.sendToggle(p3, "Mage autocast", outcome.enabled());
                 return true;
 
             case "rewardbomb":
@@ -188,7 +198,8 @@ public class DebugCommand implements TabExecutor {
                     pRb.sendMessage(ChatColor.RED + "Look at a block within 20 blocks to start the reward bomb.");
                     return true;
                 }
-                RewardBombUtil.startRewardBomb(Main.getInstance(), target.getLocation(), this::debugRewardItem, 100);
+                RewardBombUtil.startRewardBomb(Main.getInstance(), target.getLocation(),
+                        me.nakilex.levelplugin.debug.DebugRewardUtil::rollDebugReward, 100);
                 pRb.sendMessage(ChatColor.YELLOW + "Reward bomb triggered for testing.");
                 return true;
 
@@ -307,7 +318,7 @@ public class DebugCommand implements TabExecutor {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            List<String> subs = new ArrayList<>(List.of("mobinfo", "tps", "siege", "cityowner", "autocast", "hand", "chatgame", "expedition", "rewardbomb"));
+            List<String> subs = new ArrayList<>(List.of("mobinfo", "tps", "siege", "cityowner", "autocast", "hand", "chatgame", "expedition", "rewardbomb", "drops"));
             subs.addAll(Arrays.stream(StatType.values()).map(StatType::getAbbrev).toList());
             return subs.stream()
                     .filter(s -> s.startsWith(args[0].toLowerCase()))
@@ -336,16 +347,4 @@ public class DebugCommand implements TabExecutor {
         return Collections.emptyList();
     }
 
-    private ItemStack debugRewardItem() {
-        int roll = ThreadLocalRandom.current().nextInt(7);
-        return switch (roll) {
-            case 0 -> new ItemStack(Material.SPLASH_POTION);
-            case 1 -> new ItemStack(Material.POTION);
-            case 2 -> new ItemStack(Material.EMERALD, ThreadLocalRandom.current().nextInt(3, 7));
-            case 3 -> new ItemStack(Material.PRISMARINE_CRYSTALS, ThreadLocalRandom.current().nextInt(3, 8));
-            case 4 -> new ItemStack(Material.GOLDEN_APPLE, 1 + ThreadLocalRandom.current().nextInt(2));
-            case 5 -> new ItemStack(Material.DIAMOND_SWORD);
-            default -> new ItemStack(Material.RABBIT_FOOT);
-        };
-    }
 }

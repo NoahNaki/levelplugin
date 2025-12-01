@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.debug;
 import io.lumine.mythic.bukkit.MythicBukkit;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
+import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.spells.Spell;
 import me.nakilex.levelplugin.spells.managers.CooldownManager;
 import me.nakilex.levelplugin.spells.managers.SpellManager;
@@ -23,6 +24,16 @@ public class AutoCastManager {
     private static final String COOLDOWN_KEY = "debug_autocast";
     private final Map<UUID, BukkitTask> tasks = new HashMap<>();
     private final Map<UUID, Long> lastCast = new HashMap<>();
+
+    public record ToggleOutcome(boolean success, boolean enabled, String errorMessage) {
+        public static ToggleOutcome failure(String errorMessage) {
+            return new ToggleOutcome(false, false, errorMessage);
+        }
+
+        public static ToggleOutcome success(boolean enabled) {
+            return new ToggleOutcome(true, enabled, null);
+        }
+    }
 
     /**
      * Toggle autocasting of the provided skill for the player.
@@ -68,6 +79,19 @@ public class AutoCastManager {
         tasks.put(id, task);
         lastCast.remove(id);
         return true;
+    }
+
+    public ToggleOutcome toggleMageFireball(Player player) {
+        StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
+        if (ps == null || ps.playerClass != PlayerClass.MAGE) {
+            return ToggleOutcome.failure("Mage class required for autocast debug.");
+        }
+        boolean enabled = toggle(player, "fireball");
+        return ToggleOutcome.success(enabled);
+    }
+
+    public boolean isAutoCasting(Player player) {
+        return tasks.containsKey(player.getUniqueId());
     }
 
     /**

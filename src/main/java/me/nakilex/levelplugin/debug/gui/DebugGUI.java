@@ -7,6 +7,8 @@ import java.util.Map;
 
 import me.nakilex.levelplugin.chat.games.ChatGameManager;
 import me.nakilex.levelplugin.chat.games.ChatGameStatus;
+import me.nakilex.levelplugin.debug.AutoCastManager;
+import me.nakilex.levelplugin.debug.DropDebugManager;
 import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
 import me.nakilex.levelplugin.mercenary.MercenaryExpeditionManager;
 import me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager;
@@ -14,8 +16,9 @@ import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.ToggleFeedbackUtil;
+import me.nakilex.levelplugin.utils.RewardBombUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
-import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -23,6 +26,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 
 /**
  * Simple GUI to toggle developer debug features like mob kill info
@@ -34,11 +38,16 @@ public class DebugGUI implements Listener {
     private static final int TPS_SLOT = 15;
     private static final int SIEGE_SLOT = 13;
     private static final int EXPEDITION_SLOT = 20;
+    private static final int FORCE_DROP_SLOT = 29;
+    private static final int AUTOCAST_SLOT = 31;
+    private static final int REWARD_BOMB_SLOT = 33;
     private static final int[] CHAT_GAME_SLOTS = {28, 30, 32, 34, 22, 24};
 
     private final PlayerToggleManager mobDebugManager;
     private final PlayerScoreboardManager scoreboardManager;
     private final MercenaryExpeditionManager expeditionManager;
+    private final DropDebugManager dropDebugManager;
+    private final AutoCastManager autoCastManager;
     private final ChatGameManager chatGameManager;
     private final Map<Integer, String> chatGameSlots = new HashMap<>();
     private final Map<String, ChatGameStatus> chatGameStatusById = new HashMap<>();
@@ -46,10 +55,14 @@ public class DebugGUI implements Listener {
     public DebugGUI(PlayerToggleManager mobDebugManager,
                     PlayerScoreboardManager scoreboardManager,
                     ChatGameManager chatGameManager,
-                    MercenaryExpeditionManager expeditionManager) {
+                    MercenaryExpeditionManager expeditionManager,
+                    DropDebugManager dropDebugManager,
+                    AutoCastManager autoCastManager) {
         this.mobDebugManager = mobDebugManager;
         this.scoreboardManager = scoreboardManager;
         this.expeditionManager = expeditionManager;
+        this.dropDebugManager = dropDebugManager;
+        this.autoCastManager = autoCastManager;
         this.chatGameManager = chatGameManager;
     }
 
@@ -80,6 +93,21 @@ public class DebugGUI implements Listener {
                 expeditionManager.isInstantExpeditions(),
                 "§bInstant Expeditions",
                 "§7Expeditions complete instantly"));
+        builder.setItem(FORCE_DROP_SLOT, GuiUtil.createToggleItem(
+                dropDebugManager.isForceMobDrops(),
+                "§bGuaranteed Mob Drops",
+                "§7Force MythicMob loot and chests",
+                "§7to drop every time."));
+        builder.setItem(AUTOCAST_SLOT, GuiUtil.createToggleItem(
+                autoCastManager.isAutoCasting(player),
+                "§bMage Autocast",
+                "§7Auto-cast Fireball using TEC",
+                "§7Requires Mage class."));
+        builder.setItem(REWARD_BOMB_SLOT, createActionItem(
+                Material.TNT,
+                "§dReward Bomb",
+                "§7Spawn debug loot at your",
+                "§7targeted block (20 blocks)."));
 
         if (chatGameManager != null) {
             List<ChatGameStatus> statuses = chatGameManager.getStatuses();
@@ -129,6 +157,39 @@ public class DebugGUI implements Listener {
                     "§bInstant Expeditions",
                     "§7Expeditions complete instantly"));
             ToggleFeedbackUtil.sendToggle(player, "Instant expeditions", enabled);
+        } else if (slot == FORCE_DROP_SLOT) {
+            boolean enabled = dropDebugManager.toggleForceMobDrops();
+            inv.setItem(FORCE_DROP_SLOT, GuiUtil.createToggleItem(enabled,
+                    "§bGuaranteed Mob Drops",
+                    "§7Force MythicMob loot and chests",
+                    "§7to drop every time."));
+            ToggleFeedbackUtil.sendToggle(player, "Guaranteed mob drops", enabled);
+        } else if (slot == AUTOCAST_SLOT) {
+            AutoCastManager.ToggleOutcome outcome = autoCastManager.toggleMageFireball(player);
+            if (!outcome.success()) {
+                ChatMessageUtil.send(player, MessageType.ERROR, outcome.errorMessage());
+                return;
+            }
+            inv.setItem(AUTOCAST_SLOT, GuiUtil.createToggleItem(outcome.enabled(),
+                    "§bMage Autocast",
+                    "§7Auto-cast Fireball using TEC",
+                    "§7Requires Mage class."));
+            ToggleFeedbackUtil.sendToggle(player, "Mage autocast", outcome.enabled());
+        } else if (slot == REWARD_BOMB_SLOT) {
+            var target = player.getTargetBlockExact(20);
+            if (target == null) {
+                ChatMessageUtil.send(player, MessageType.ERROR,
+                        "Look at a block within 20 blocks to start the reward bomb.");
+                return;
+            }
+            RewardBombUtil.startRewardBomb(me.nakilex.levelplugin.Main.getInstance(), target.getLocation(),
+                    me.nakilex.levelplugin.debug.DebugRewardUtil::rollDebugReward, 100);
+            inv.setItem(REWARD_BOMB_SLOT, createActionItem(
+                    Material.TNT,
+                    "§dReward Bomb",
+                    "§7Spawn debug loot at your",
+                    "§7targeted block (20 blocks)."));
+            ChatMessageUtil.send(player, MessageType.SUCCESS, ChatColor.LIGHT_PURPLE + "Reward bomb triggered.");
         } else if (chatGameManager != null && chatGameSlots.containsKey(slot)) {
             String id = chatGameSlots.get(slot);
             ChatGameStatus status = chatGameStatusById.get(id.toLowerCase(Locale.ROOT));
@@ -154,6 +215,19 @@ public class DebugGUI implements Listener {
                 ? "§7Click to toggle this chat game."
                 : "§cUnavailable - check chat_games.yml.";
         return GuiUtil.createToggleItem(status.enabled(), displayName, idLore, availability);
+    }
+
+    private ItemStack createActionItem(Material material, String displayName, String... lore) {
+        ItemStack stack = new ItemStack(material);
+        ItemMeta meta = stack.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(displayName);
+            if (lore != null && lore.length > 0) {
+                meta.setLore(java.util.Arrays.asList(lore));
+            }
+            stack.setItemMeta(meta);
+        }
+        return stack;
     }
 
     private void recordStatus(ChatGameStatus status) {

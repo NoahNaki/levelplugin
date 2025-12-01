@@ -6,6 +6,9 @@ import me.nakilex.levelplugin.items.data.ItemRarity;
 import me.nakilex.levelplugin.items.data.StatRange;
 import me.nakilex.levelplugin.items.data.ArmorType;
 import me.nakilex.levelplugin.items.managers.ItemManager;
+import me.nakilex.levelplugin.mob.utils.CombatRewardCalculator;
+import me.nakilex.levelplugin.mob.utils.CombatRewardCalculator.GearTarget;
+import me.nakilex.levelplugin.salvage.managers.SalvageManager;
 import org.bukkit.Material;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -62,7 +65,59 @@ public class ProceduralItemGenerator {
      * Generate a new CustomItem based on a mob type and level.
      */
     public CustomItem generate(String mobType, int level) {
-        ItemRarity rarity = rollRarity(level);
+        return generateInternal(mobType, level, null, null);
+    }
+
+    public CustomItem generateWithMaxRarity(String mobType, int level, ItemRarity maxRarity) {
+        return generateInternal(mobType, level, null, maxRarity);
+    }
+
+    public CustomItem generateWithRarity(String mobType, int level, ItemRarity rarity) {
+        return generateInternal(mobType, level, rarity, null);
+    }
+
+    public CustomItem generateForGearScore(String mobType, GearTarget target) {
+        return generateForGearScore(mobType, target, null);
+    }
+
+    public CustomItem generateForGearScore(String mobType, GearTarget target, Integer forcedLevel) {
+        if (target == null) {
+            return generateWithRarity(mobType, 1, ItemRarity.COMMON);
+        }
+        int desired = Math.max(1, target.targetGearScore());
+        ItemRarity rarity = target.rarity();
+        int level = forcedLevel != null
+                ? Math.max(1, forcedLevel)
+                : Math.max(1, (int) Math.round(desired / rarityMultiplier(rarity)));
+
+        CustomItem best = null;
+        double bestDiff = Double.MAX_VALUE;
+        for (int i = 0; i < 6; i++) {
+            CustomItem candidate = generateInternal(mobType, level, rarity, rarity);
+            double gearScore = SalvageManager.getInstance().getTotalStats(candidate);
+            double diff = Math.abs(gearScore - desired);
+            if (diff < bestDiff) {
+                bestDiff = diff;
+                best = candidate;
+            }
+            if (diff <= desired * 0.10) {
+                break; // close enough
+            }
+            if (forcedLevel == null) {
+                double ratio = desired / Math.max(1.0, gearScore);
+                level = Math.max(1, (int) Math.round(level * ratio));
+            }
+        }
+        return best != null ? best : generateInternal(mobType, level, rarity, rarity);
+    }
+
+    public CustomItem generateForCombatPower(int combatPower, String mobType) {
+        GearTarget target = CombatRewardCalculator.rollGearTarget(combatPower);
+        return generateForGearScore(mobType, target);
+    }
+
+    private CustomItem generateInternal(String mobType, int level, ItemRarity forcedRarity, ItemRarity maxRarity) {
+        ItemRarity rarity = forcedRarity != null ? forcedRarity : rollRarity(level, maxRarity);
         String clazz = pickClassForMob(mobType);
 
         // Randomly decide whether to create armor or a weapon
@@ -138,7 +193,7 @@ public class ProceduralItemGenerator {
 
         String dominant = getDominantStat(str, agi, intel, dex, def);
         String name = buildName(mobType, baseDisplay, rarity, dominant);
-        Material material = createArmor ? pickArmorMaterial(level, armorSlot) : pickWeaponMaterial(clazz, level);
+        Material material = createArmor ? resolveArmorMaterial(level, armorSlot) : pickWeaponMaterial(clazz, level);
 
         String classReq = createArmor ? "ANY" : clazz;
 
@@ -288,13 +343,13 @@ public class ProceduralItemGenerator {
         }
     }
 
-    private Material pickArmorMaterial(int level, ArmorType slot) {
+    public static Material resolveArmorMaterial(int level, ArmorType slot) {
         String suffix;
         if (level >= 76)      suffix = "NETHERITE_";
         else if (level >= 61) suffix = "DIAMOND_";
-        else if (level >= 41) suffix = "IRON_";
-        else if (level >= 21) suffix = "GOLDEN_";
-        else if (level >= 11) suffix = "CHAINMAIL_";
+        else if (level >= 46) suffix = "IRON_";
+        else if (level >= 31) suffix = "CHAINMAIL_";
+        else if (level >= 16) suffix = "GOLDEN_";
         else                  suffix = "LEATHER_";
 
         String matName = suffix + slot.name();
@@ -305,15 +360,21 @@ public class ProceduralItemGenerator {
         }
     }
 
-    private ItemRarity rollRarity(int level) {
+    private ItemRarity rollRarity(int level, ItemRarity maxRarity) {
+        ItemRarity rarity;
         double r = random.nextDouble() * 100.0;
-        if (r < 30.0) return ItemRarity.COMMON;
-        if (r < 70.0) return ItemRarity.UNCOMMON;
-        if (r < 90.0) return ItemRarity.RARE;
-        if (r < 99.0) return ItemRarity.EPIC;
-        if (level >= 7 && r < 99.9) return ItemRarity.LEGENDARY;
-        if (level >= 10) return ItemRarity.MYTHIC;
-        return ItemRarity.EPIC;
+        if (r < 30.0) rarity = ItemRarity.COMMON;
+        else if (r < 70.0) rarity = ItemRarity.UNCOMMON;
+        else if (r < 90.0) rarity = ItemRarity.RARE;
+        else if (r < 99.0) rarity = ItemRarity.EPIC;
+        else if (level >= 7 && r < 99.9) rarity = ItemRarity.LEGENDARY;
+        else if (level >= 10) rarity = ItemRarity.MYTHIC;
+        else rarity = ItemRarity.EPIC;
+
+        if (maxRarity != null && rarity.ordinal() > maxRarity.ordinal()) {
+            return maxRarity;
+        }
+        return rarity;
     }
 
     /**

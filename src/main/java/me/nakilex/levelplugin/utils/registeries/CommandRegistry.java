@@ -277,7 +277,9 @@ public class CommandRegistry {
                 plugin.getScoreboardManager(),
                 debugGUI,
                 chatGameManager,
-                plugin.getMercenaryExpeditionManager());
+                plugin.getMercenaryExpeditionManager(),
+                plugin.getDropDebugManager(),
+                plugin.getAutoCastManager());
         plugin.getCommand("debug").setExecutor(debugCmd);
         plugin.getCommand("debug").setTabCompleter(debugCmd);
 

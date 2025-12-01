@@ -112,6 +112,8 @@ public class Main extends JavaPlugin {
     public PlayerToggleManager getDmgNumberToggleManager() { return bootstrap.getDmgNumberToggleManager(); }
 
     public PlayerToggleManager getMobDebugToggleManager() { return bootstrap.getMobDebugToggleManager(); }
+    public me.nakilex.levelplugin.debug.DropDebugManager getDropDebugManager() { return bootstrap.getDropDebugManager(); }
+    public me.nakilex.levelplugin.debug.AutoCastManager getAutoCastManager() { return bootstrap.getAutoCastManager(); }
     public me.nakilex.levelplugin.fasttravel.FastTravelManager getFastTravelManager() { return bootstrap.getFastTravelManager(); }
     public me.nakilex.levelplugin.fasttravel.gui.FastTravelGUI getFastTravelGUI() { return bootstrap.getFastTravelGUI(); }
     public me.nakilex.levelplugin.music.LocationMusicManager getLocationMusicManager() { return bootstrap.getLocationMusicManager(); }
