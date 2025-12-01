@@ -432,7 +432,7 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
 
         logMarkerSummary(markers);
         queueMobs(state, markers);
-        startMobWatcher(state);
+        startMobSpawner(state);
 
         spawnInstanceNpcs(origin, state);
 
@@ -559,8 +559,16 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
         }
     }
 
-    private void startMobWatcher(InstanceState state) {
-        final double radiusSq = 220 * 220;
+    private void startMobSpawner(InstanceState state) {
+        if (state.mobMarkers.isEmpty()) {
+            plugin.getLogger().info("[Dungeon] No mob markers queued; skipping spawner.");
+            return;
+        }
+
+        Queue<MobMarker> queue = new ArrayDeque<>(state.mobMarkers);
+        final int attemptsBeforeGiveUp = 12;
+        final int mobsPerTick = 10;
+
         new BukkitRunnable() {
             @Override
             public void run() {
@@ -568,82 +576,49 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
                     cancel();
                     return;
                 }
-                int waiting = 0;
-                double nearestSq = Double.MAX_VALUE;
-                for (MobMarker marker : state.mobMarkers) {
-                    if (marker.spawned) continue;
-                    waiting++;
-                    marker.ticksWaited++;
+                int spawnedThisTick = 0;
+                Iterator<MobMarker> it = queue.iterator();
+                while (it.hasNext() && spawnedThisTick < mobsPerTick) {
+                    MobMarker marker = it.next();
+                    if (marker.spawned) {
+                        it.remove();
+                        continue;
+                    }
                     org.bukkit.Chunk chunk = marker.loc.getChunk();
                     if (!chunk.isLoaded()) {
                         chunk.load(true);
                         plugin.getLogger().info("[Dungeon] Loading chunk " + chunk.getX() + "," + chunk.getZ() + " for mob " + marker.mobId);
                         continue;
                     }
-                    for (Player p : state.participants) {
-                        if (p == null || !p.isOnline() || p.getWorld() != marker.loc.getWorld()) continue;
-                        double distSq = p.getLocation().distanceSquared(marker.loc);
-                        nearestSq = Math.min(nearestSq, distSq);
-                        if (distSq <= radiusSq || marker.ticksWaited > 200) {
-                            if (!marker.proximityTriggered) {
-                                marker.proximityTriggered = true;
-                                plugin.getLogger().info("[Dungeon] Player " + p.getName() + " within spawn radius for " + marker.mobId + " at " + marker.loc
-                                        + " (waited " + marker.ticksWaited + "t)");
-                            }
-                            trySpawnMob(marker);
-                            break;
+
+                    marker.ticksWaited++;
+                    var mob = MythicMobModifier.spawnModifiedMob(marker.mobId, marker.loc, null, null, null, null);
+                    if (mob != null) {
+                        if (marker.mobId.equals("MSO_Demon_General")) {
+                            mob.getEntity().getBukkitEntity().addScoreboardTag("dungeon_boss");
+                        }
+                        marker.spawned = true;
+                        it.remove();
+                        plugin.getLogger().info("[Dungeon] Spawned mob " + marker.mobId + " at " + marker.loc + " after " + marker.ticksWaited + " ticks waiting.");
+                    } else {
+                        if (marker.ticksWaited == 1 || marker.ticksWaited % 5 == 0) {
+                            plugin.getLogger().warning("[Dungeon] Failed to spawn mob " + marker.mobId + " (attempt " + marker.ticksWaited + ") at " + marker.loc);
+                        }
+                        if (marker.ticksWaited >= attemptsBeforeGiveUp) {
+                            it.remove();
+                            plugin.getLogger().warning("[Dungeon] Giving up on mob " + marker.mobId + " at " + marker.loc);
                         }
                     }
+
+                    spawnedThisTick++;
                 }
-                if (waiting > 0 && nearestSq < Double.MAX_VALUE && nearestSq > radiusSq) {
-                    plugin.getLogger().info("[Dungeon] Mob spawns pending=" + waiting + " nearestDistSq=" + String.format("%.1f", Math.sqrt(nearestSq))
-                            + " (radius=" + Math.sqrt(radiusSq) + ")");
+
+                if (queue.isEmpty()) {
+                    cancel();
+                    plugin.getLogger().info("[Dungeon] Mob spawner finished processing all markers.");
                 }
             }
-        }.runTaskTimer(plugin, 20L, 20L);
-    }
-
-    private void trySpawnMob(MobMarker marker) {
-        if (marker.spawned || marker.spawning) return;
-        marker.spawning = true;
-        new BukkitRunnable() {
-            int attempts = 0;
-
-            @Override
-            public void run() {
-                if (marker.spawned) {
-                    cancel();
-                    return;
-                }
-                org.bukkit.Chunk chunk = marker.loc.getChunk();
-                if (!chunk.isLoaded()) {
-                    chunk.load(true);
-                    plugin.getLogger().info("[Dungeon] Loading chunk for mob " + marker.mobId + " at " + marker.loc);
-                    if (++attempts >= 5) {
-                        marker.spawning = false;
-                        plugin.getLogger().warning("[Dungeon] Unable to load chunk for mob " + marker.mobId + " at " + marker.loc);
-                        cancel();
-                    }
-                    return;
-                }
-                var mob = MythicMobModifier.spawnModifiedMob(marker.mobId, marker.loc, null, null, null, null);
-                if (mob != null) {
-                    if (marker.mobId.equals("MSO_Demon_General")) {
-                        mob.getEntity().getBukkitEntity().addScoreboardTag("dungeon_boss");
-                    }
-                    marker.spawned = true;
-                    plugin.getLogger().info("[Dungeon] Spawned mob " + marker.mobId + " at " + marker.loc);
-                    cancel();
-                    return;
-                }
-                plugin.getLogger().warning("[Dungeon] Failed to spawn mob " + marker.mobId + " at attempt " + attempts + " location=" + marker.loc);
-                if (++attempts >= 5) {
-                    marker.spawning = false;
-                    plugin.getLogger().warning("[Dungeon] Giving up spawning mob " + marker.mobId + " at " + marker.loc);
-                    cancel();
-                }
-            }
-        }.runTaskTimer(plugin, 0L, 10L);
+        }.runTaskTimer(plugin, 10L, 10L);
     }
 
     private boolean isDungeonFlower(ItemStack stack) {

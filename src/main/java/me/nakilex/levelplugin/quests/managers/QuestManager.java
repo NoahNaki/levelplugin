@@ -99,14 +99,10 @@ public class QuestManager {
         me.nakilex.levelplugin.quests.def.SharpestSecretQuest.registerTalkTargets(this);
         me.nakilex.levelplugin.quests.def.SalvagersLessonQuest.registerTalkTargets(this);
         me.nakilex.levelplugin.quests.def.MarketBeginningsQuest.registerTalkTargets(this);
-        registerNpcQuest(me.nakilex.levelplugin.quests.def.SharpestSecretQuest.NPC_KAZAN_NAME,
-                me.nakilex.levelplugin.quests.def.SharpestSecretQuest.ID);
-        registerNpcQuest(me.nakilex.levelplugin.quests.def.SharpestSecretQuest.NPC_OSIRIS_NAME,
-                me.nakilex.levelplugin.quests.def.SharpestSecretQuest.ID);
+        // Only the salvaging quest relies on NPC name lookups; others stay ID-based to avoid
+        // accidental cross-talk when multiple NPCs share display names.
         registerNpcQuest(me.nakilex.levelplugin.quests.def.SalvagersLessonQuest.NPC_NAME,
                 me.nakilex.levelplugin.quests.def.SalvagersLessonQuest.ID);
-        registerNpcQuest(me.nakilex.levelplugin.quests.def.MarketBeginningsQuest.NPC_NAME,
-                me.nakilex.levelplugin.quests.def.MarketBeginningsQuest.ID);
         plugin.getLogger().info("Registered " + quests.size() + " quests.");
     }
 

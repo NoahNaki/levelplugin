@@ -46,7 +46,9 @@ public class PotionMerchantGUI implements Listener {
         this.economyManager = Main.getInstance().getEconomyManager();
         this.potionManager = Main.getInstance().getPotionManager();
 
-        String basePath = "merchants.potion_merchant";
+        String basePath = merchantConfig.contains("merchants.potion_merchant")
+                ? "merchants.potion_merchant"
+                : "potion_merchant";
         String title = merchantConfig.getString(basePath + ".title", "Potion Merchant");
         int size = merchantConfig.getInt(basePath + ".size", 27);
         this.inventory = GuiBuilder.create(size, title)
@@ -75,6 +77,9 @@ public class PotionMerchantGUI implements Listener {
         // so the GUI never opens empty.
         if (potionItems.isEmpty()) {
             copyDefaultsFromResource(plugin, basePath);
+        }
+        if (potionItems.isEmpty()) {
+            seedFromPotionTemplates();
         }
 
         for (Map.Entry<Integer, PotionTemplate> entry : potionItems.entrySet()) {
@@ -138,6 +143,28 @@ public class PotionMerchantGUI implements Listener {
         } catch (Exception ex) {
             Bukkit.getLogger().warning("[PotionMerchantGUI] Failed to seed potion merchant defaults: " + ex.getMessage());
         }
+    }
+
+    /**
+     * As a last resort, populate the shop directly from loaded potion templates so the GUI never opens empty.
+     */
+    private void seedFromPotionTemplates() {
+        List<PotionTemplate> templates = new ArrayList<>(potionManager.getAllTemplates());
+        if (templates.isEmpty()) {
+            Bukkit.getLogger().warning("[PotionMerchantGUI] PotionManager returned no templates; cannot seed shop.");
+            return;
+        }
+        templates.sort(Comparator.comparingInt(PotionTemplate::getTier).thenComparing(PotionTemplate::getId));
+
+        int slot = 10;
+        for (PotionTemplate template : templates) {
+            if (slot >= inventory.getSize()) break;
+            potionItems.put(slot, template);
+            potionCosts.put(slot, Math.max(50, template.getCooldownSeconds()));
+            slot++;
+            if (slot == 13) slot = 14; // skip spacer between healing/mana if present
+        }
+        Bukkit.getLogger().info("[PotionMerchantGUI] Seeded potion shop from PotionManager templates (" + potionItems.size() + " items).");
     }
 
 
