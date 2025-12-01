@@ -867,10 +867,11 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
                     .anyMatch(ent -> ent.getScoreboardTags().contains(DUNGEON_MOB_TAG)
                             || state.activeMobIds.contains(ent.getUniqueId()));
             if (hasDungeonMob) {
-                event.setCancelled(true);
-                event.getChunk().setForceLoaded(true);
-                plugin.getLogger().info("[Dungeon] Prevented unload for chunk " + event.getChunk().getX() + "," + event.getChunk().getZ()
-                        + " to keep dungeon mobs active.");
+                org.bukkit.Chunk chunk = event.getChunk();
+                boolean ticketed = chunk.addPluginChunkTicket(plugin);
+                chunk.setForceLoaded(true);
+                plugin.getLogger().info("[Dungeon] Kept chunk " + chunk.getX() + "," + chunk.getZ()
+                        + " loaded for active dungeon mobs (ticketAdded=" + ticketed + ").");
             }
         }
 
