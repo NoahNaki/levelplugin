@@ -356,7 +356,7 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
 
         List<Location> flowerSpots = new ArrayList<>(markers.yellowFlowers);
         Collections.shuffle(flowerSpots);
-        int flowerCount = Math.min(4, flowerSpots.size());
+        int flowerCount = Math.min(5, flowerSpots.size());
         List<FlowerType> flowers = new ArrayList<>(Arrays.asList(FlowerType.values()));
         Collections.shuffle(flowers);
         for (int i = 0; i < flowerCount; i++) {
@@ -388,7 +388,7 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
         }
 
         for (Location brown : markers.brownRewards) {
-            brown.getBlock().setType(Material.SOUL_SAND, false);
+            brown.getBlock().setType(Material.AIR, false);
             state.rewardFountains.add(brown);
         }
 
@@ -447,6 +447,8 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
                 "Nocsy_Bokoblin_Swordsman",
                 "Nocsy_Bokoblin_Warrior"
         };
+        plugin.getLogger().info("[Dungeon] queuing mob markers: normal=" + markers.normalMarkers.size()
+                + " miniboss=" + markers.miniBossMarkers.size() + " boss=" + markers.bossMarkers.size());
         for (Location magenta : markers.normalMarkers) {
             for (int i = 0; i < 5; i++) {
                 String mob = mobs[ThreadLocalRandom.current().nextInt(mobs.length)];
@@ -505,9 +507,11 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
                         mob.getEntity().getBukkitEntity().addScoreboardTag("dungeon_boss");
                     }
                     marker.spawned = true;
+                    plugin.getLogger().info("[Dungeon] Spawned mob " + marker.mobId + " at " + marker.loc);
                     cancel();
                     return;
                 }
+                plugin.getLogger().warning("[Dungeon] Failed to spawn mob " + marker.mobId + " at attempt " + attempts);
                 if (++attempts >= 5) {
                     marker.spawning = false;
                     cancel();
@@ -545,20 +549,50 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
                 ChatMessageUtil.send(p, MessageType.SUCCESS, "Puzzle complete!");
             }
         }
+        int coinsAward = ThreadLocalRandom.current().nextInt(300, 601);
+        int gemsAward = ThreadLocalRandom.current().nextInt(3, 8);
+        for (Player p : state.participants) {
+            if (p != null && p.isOnline()) {
+                plugin.getEconomyManager().addCoins(p, coinsAward);
+                plugin.getGemsManager().addUnits(p, gemsAward);
+                ChatMessageUtil.send(p, MessageType.SUCCESS, "Rewards: +" + coinsAward + " coins, +" + gemsAward + " gems");
+            }
+        }
         for (Location fountain : state.rewardFountains) {
             RewardBombUtil.startRewardBomb(plugin, fountain, this::createFountainReward, 100);
         }
     }
 
     private ItemStack createFountainReward() {
-        int roll = ThreadLocalRandom.current().nextInt(6);
+        int roll = ThreadLocalRandom.current().nextInt(4);
         return switch (roll) {
-            case 0 -> new ItemStack(Material.SPLASH_POTION);
-            case 1 -> new ItemStack(Material.POTION);
-            case 2 -> new ItemStack(Material.EMERALD, ThreadLocalRandom.current().nextInt(4, 9));
-            case 3 -> new ItemStack(Material.GOLDEN_APPLE, 1 + ThreadLocalRandom.current().nextInt(2));
-            case 4 -> new ItemStack(Material.DIAMOND_SWORD);
-            default -> new ItemStack(Material.PRISMARINE_CRYSTALS, ThreadLocalRandom.current().nextInt(3, 7));
+            case 0 -> {
+                var generator = plugin.getItemManager();
+                var generated = generator.generateItem("dungeon", 20 + ThreadLocalRandom.current().nextInt(10));
+                yield ItemUtil.createItemStackFromCustomItem(generated, 1, null);
+            }
+            case 1 -> {
+                var gifts = plugin.getMercenaryAffinityManager().getGifts();
+                ItemStack gift = null;
+                if (!gifts.isEmpty()) {
+                    int idx = ThreadLocalRandom.current().nextInt(gifts.size());
+                    gift = gifts.stream().skip(idx).findFirst().map(me.nakilex.levelplugin.mercenary.MercenaryGift::getIcon).orElse(null);
+                }
+                yield gift == null ? new ItemStack(Material.PRISMARINE_CRYSTALS) : gift;
+            }
+            case 2 -> {
+                var templates = plugin.getPotionManager().getAllTemplates();
+                if (!templates.isEmpty()) {
+                    int idx = ThreadLocalRandom.current().nextInt(templates.size());
+                    var template = templates.stream().skip(idx).findFirst().orElse(null);
+                    if (template != null) {
+                        var inst = plugin.getPotionManager().createInstance(template);
+                        yield inst.toItemStack(plugin);
+                    }
+                }
+                yield new ItemStack(Material.HONEY_BOTTLE);
+            }
+            default -> new ItemStack(Material.GOLD_INGOT, 1 + ThreadLocalRandom.current().nextInt(3));
         };
     }
 
