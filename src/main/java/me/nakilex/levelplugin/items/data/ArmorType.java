@@ -40,6 +40,20 @@ public enum ArmorType {
             }
         }
 
+        return resolveByName(typeName);
+    }
+
+    /**
+     * Resolve armor type directly from a Bukkit Material.
+     */
+    public static ArmorType fromMaterial(Material material) {
+        if (material == null || material == Material.AIR) {
+            return null;
+        }
+        return resolveByName(material.name());
+    }
+
+    private static ArmorType resolveByName(String typeName) {
         // Helmet checks
         if (typeName.endsWith("_HELMET") || typeName.endsWith("_HEAD") || typeName.endsWith("_SKULL")) {
             return HELMET;

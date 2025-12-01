@@ -193,7 +193,7 @@ public class ProceduralItemGenerator {
 
         String dominant = getDominantStat(str, agi, intel, dex, def);
         String name = buildName(mobType, baseDisplay, rarity, dominant);
-        Material material = createArmor ? pickArmorMaterial(level, armorSlot) : pickWeaponMaterial(clazz, level);
+        Material material = createArmor ? resolveArmorMaterial(level, armorSlot) : pickWeaponMaterial(clazz, level);
 
         String classReq = createArmor ? "ANY" : clazz;
 
@@ -343,7 +343,7 @@ public class ProceduralItemGenerator {
         }
     }
 
-    private Material pickArmorMaterial(int level, ArmorType slot) {
+    public static Material resolveArmorMaterial(int level, ArmorType slot) {
         String suffix;
         if (level >= 76)      suffix = "NETHERITE_";
         else if (level >= 61) suffix = "DIAMOND_";

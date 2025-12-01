@@ -30,6 +30,8 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
 
+import me.nakilex.levelplugin.items.data.ArmorType;
+import me.nakilex.levelplugin.items.generator.ProceduralItemGenerator;
 import me.nakilex.levelplugin.utils.NexoUtil;
 
 
@@ -655,13 +657,19 @@ public class LootChestManager {
                             mobType, target.targetGearScore(), target.rarity());
         }
 
+        Material material = template.getMaterial();
+        ArmorType armorSlot = ArmorType.fromMaterial(material);
+        if (levelRequirement != null && armorSlot != null) {
+            material = ProceduralItemGenerator.resolveArmorMaterial(levelRequirement, armorSlot);
+        }
+
         CustomItem newInstance = new CustomItem(
             template.getId(),
             template.getBaseName(),
             template.getRarity(),
             levelRequirement != null ? levelRequirement : template.getLevelRequirement(),
             template.getClassRequirement(),
-            template.getMaterial(),
+            material,
             template.getHpRange(),
             template.getDefRange(),
             template.getStrRange(),
