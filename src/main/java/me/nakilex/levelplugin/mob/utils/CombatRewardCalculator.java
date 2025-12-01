@@ -10,7 +10,7 @@ import java.util.concurrent.ThreadLocalRandom;
 public final class CombatRewardCalculator {
 
     private static final double GEAR_SCORE_PORTION = 0.25;
-    private static final double GEAR_SCORE_VARIANCE = 0.30;
+    private static final double GEAR_SCORE_VARIANCE = 0.20;
 
     private CombatRewardCalculator() {
     }
@@ -63,7 +63,7 @@ public final class CombatRewardCalculator {
      * Coins reward is 10% of combat power, rounded to the nearest whole number.
      */
     public static int calculateCoinReward(int combatPower) {
-        return (int) Math.round(combatPower * 0.10);
+        return (int) Math.round(combatPower * 0.05);
     }
 
     /**
