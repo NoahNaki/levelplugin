@@ -385,22 +385,23 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
 
         List<Location> flowerSpots = new ArrayList<>(markers.yellowFlowers);
         Collections.shuffle(flowerSpots);
-        int pluckableCount = Math.min(5, flowerSpots.size());
         List<FlowerType> flowers = new ArrayList<>(Arrays.asList(FlowerType.values()));
         Collections.shuffle(flowers);
         for (int i = 0; i < flowerSpots.size(); i++) {
             Location yellow = flowerSpots.get(i);
             FlowerType choice = flowers.get(i % flowers.size());
             yellow.getBlock().setType(choice.block, false);
-            if (i < pluckableCount) {
-                state.pluckable.put(yellow, choice);
-                MultiLineHologram holo = new MultiLineHologram(yellow.clone().add(0.5, 1.25, 0.5), "crimson_flower_pluck");
-                holo.spawn(List.of(
-                        legacy.serialize(Component.text("Mystic Bloom", NamedTextColor.GOLD)),
-                        legacy.serialize(Component.text("Right-click to pluck", NamedTextColor.GRAY))));
-                state.pluckHolograms.put(yellow, holo);
-            }
+            state.pluckable.put(yellow, choice);
+            MultiLineHologram holo = new MultiLineHologram(yellow.clone().add(0.5, 1.25, 0.5), "crimson_flower_pluck");
+            holo.spawn(List.of(
+                    legacy.serialize(Component.text(choice.display, NamedTextColor.GOLD)),
+                    legacy.serialize(Component.text("Right-click to pluck", NamedTextColor.GRAY))));
+            state.pluckHolograms.put(yellow, holo);
         }
+        Map<FlowerType, Long> flowerCounts = state.pluckable.values().stream()
+                .collect(Collectors.groupingBy(ft -> ft, Collectors.counting()));
+        plugin.getLogger().info("[Dungeon] Flower placements prepared: total=" + state.pluckable.size()
+                + " distinct=" + flowerCounts.size() + " " + flowerCounts);
 
         List<Location> placementSpots = new ArrayList<>(markers.bluePlacements);
         Collections.shuffle(placementSpots);
@@ -575,6 +576,14 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
         final int attemptsBeforeGiveUp = 12;
         final int mobsPerTick = 10;
 
+        World mobWorld = queue.peek() != null ? queue.peek().loc.getWorld() : null;
+        if (mobWorld != null) {
+            Boolean naturalSpawns = mobWorld.getGameRuleValue(org.bukkit.GameRule.DO_MOB_SPAWNING);
+            plugin.getLogger().info("[Dungeon] Mob spawner initializing in " + mobWorld.getName()
+                    + " difficulty=" + mobWorld.getDifficulty()
+                    + " gamerule.DO_MOB_SPAWNING=" + naturalSpawns);
+        }
+
         // Make sure all target chunks stay loaded while we attempt spawns.
         for (MobMarker marker : queue) {
             org.bukkit.Chunk chunk = marker.loc.getChunk();
@@ -617,11 +626,16 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
                         plugin.getLogger().info("[Dungeon] Spawned mob " + marker.mobId + " at " + marker.loc + " after " + marker.ticksWaited + " ticks waiting.");
                     } else {
                         if (marker.ticksWaited == 1 || marker.ticksWaited % 5 == 0) {
-                            plugin.getLogger().warning("[Dungeon] Failed to spawn mob " + marker.mobId + " (attempt " + marker.ticksWaited + ") at " + marker.loc);
+                            plugin.getLogger().warning("[Dungeon] Failed to spawn mob " + marker.mobId + " (attempt " + marker.ticksWaited + ") at " + marker.loc
+                                    + " chunkLoaded=" + chunk.isLoaded()
+                                    + " forceLoaded=" + chunk.isForceLoaded()
+                                    + " difficulty=" + chunk.getWorld().getDifficulty());
                         }
                         if (marker.ticksWaited >= attemptsBeforeGiveUp) {
                             it.remove();
-                            plugin.getLogger().warning("[Dungeon] Giving up on mob " + marker.mobId + " at " + marker.loc);
+                            plugin.getLogger().warning("[Dungeon] Giving up on mob " + marker.mobId + " at " + marker.loc
+                                    + " chunkLoaded=" + chunk.isLoaded()
+                                    + " forceLoaded=" + chunk.isForceLoaded());
                         }
                     }
 
