@@ -55,6 +55,11 @@ public class LootChestManager {
     // NEW: remember which chest each player opened
     private final java.util.Map<java.util.UUID, Integer> openChestByPlayer = new java.util.HashMap<>();
 
+    /**
+     * Represents the inclusive level range for a loot chest tier.
+     */
+    public record LevelRange(int minLevel, int maxLevel) {}
+
 
     public LootChestManager(JavaPlugin plugin, ConfigManager configManager, CooldownManager cooldownManager, PotionManager potionManager) {
         this.plugin = plugin;
@@ -578,46 +583,12 @@ public class LootChestManager {
             }
         }
 
-        // If no potion is chosen, or if none exist, fallback to custom item logic
-        int minLevel, maxLevel;
-        switch (tier) {
-            case 1:
-                minLevel = 1;
-                maxLevel = 12;
-                break;
-            case 2:
-                minLevel = 13;
-                maxLevel = 25;
-                break;
-            case 3:
-                minLevel = 26;
-                maxLevel = 38;
-                break;
-            case 4:
-                minLevel = 39;
-                maxLevel = 50;
-                break;
-            case 5:
-                minLevel = 51;
-                maxLevel = 62;
-                break;
-            case 6:
-                minLevel = 63;
-                maxLevel = 75;
-                break;
-            case 7:
-                minLevel = 76;
-                maxLevel = 88;
-                break;
-            case 8:
-                minLevel = 89;
-                maxLevel = 100;
-                break;
-            default:
-                return null;
+        LevelRange range = getRangeForTier(tier);
+        if (range == null) {
+            return null;
         }
 
-        int level = ThreadLocalRandom.current().nextInt(minLevel, maxLevel + 1);
+        int level = ThreadLocalRandom.current().nextInt(range.minLevel(), range.maxLevel() + 1);
 
         // 30% chance to roll a procedural item instead of template
         if (Math.random() < 0.3) {
@@ -630,7 +601,7 @@ public class LootChestManager {
         List<CustomItem> matching = new ArrayList<>();
         for (CustomItem cItem : ItemManager.getInstance().getAllTemplates().values()) {
             int req = cItem.getLevelRequirement();
-            if (req >= minLevel && req <= maxLevel) {
+            if (req >= range.minLevel() && req <= range.maxLevel()) {
                 matching.add(cItem);
             }
         }
@@ -663,5 +634,22 @@ public class LootChestManager {
         String nexo = modelSet != null ? Main.getInstance().getModelSetManager().getModelId(modelSet, newInstance.getMaterial()) : null;
         return ItemUtil.createItemStackFromCustomItem(newInstance, 1, null, nexo);
 
+    }
+
+    /**
+     * Returns the inclusive level range for the requested tier.
+     */
+    public LevelRange getRangeForTier(int tier) {
+        return switch (tier) {
+            case 1 -> new LevelRange(1, 12);
+            case 2 -> new LevelRange(13, 25);
+            case 3 -> new LevelRange(26, 38);
+            case 4 -> new LevelRange(39, 50);
+            case 5 -> new LevelRange(51, 62);
+            case 6 -> new LevelRange(63, 75);
+            case 7 -> new LevelRange(76, 88);
+            case 8 -> new LevelRange(89, 100);
+            default -> null;
+        };
     }
 }

@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.utils;
 import com.nexomc.nexo.api.NexoFurniture;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
@@ -16,6 +17,20 @@ public final class NexoUtil {
      * useful for debugging when a specific furniture ID cannot be found.
      */
     public static void logAvailableFurnitureIds(Logger logger) {
+        Set<String> ids = getRegisteredFurnitureIds();
+        if (ids.isEmpty()) {
+            logger.warning("[NexoUtil] No furniture IDs detected in NexoFurniture registry.");
+            return;
+        }
+        logger.info("[NexoUtil] Available furniture IDs: " + ids);
+    }
+
+    /**
+     * Returns a set of all furniture IDs currently registered by Nexo. Falls
+     * back to an empty set if the registry cannot be introspected.
+     */
+    public static Set<String> getRegisteredFurnitureIds() {
+        Set<String> ids = new HashSet<>();
         try {
             for (java.lang.reflect.Field field : NexoFurniture.class.getDeclaredFields()) {
                 Class<?> type = field.getType();
@@ -32,10 +47,15 @@ public final class NexoUtil {
                 } else {
                     continue;
                 }
-                logger.info("[NexoUtil] Available IDs from field '" + field.getName() + "': " + keys);
+                for (Object key : keys) {
+                    if (key != null) {
+                        ids.add(key.toString());
+                    }
+                }
             }
         } catch (Exception ex) {
-            logger.warning("[NexoUtil] Failed to list furniture IDs: " + ex.getMessage());
+            return ids;
         }
+        return ids;
     }
 }

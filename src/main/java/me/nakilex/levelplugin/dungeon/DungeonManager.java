@@ -95,6 +95,37 @@ public class DungeonManager {
         return instances.containsKey(world);
     }
 
+    /**
+     * Handle a player exiting a dungeon instance, returning them to their stored
+     * location and sending the appropriate messaging.
+     */
+    public void handleInstanceExit(World world, Player player) {
+        if (world == null || player == null) {
+            return;
+        }
+        Instance inst = instances.get(world);
+        if (inst == null) {
+            return;
+        }
+        handleExit(player, inst, world);
+    }
+
+    private void handleExit(Player player, Instance inst, World world) {
+        java.util.UUID id = player.getUniqueId();
+        Location back = inst.returnLocations.remove(id);
+        if (back != null) {
+            Dungeon.RoomInstance room = inst.dungeon.getRoomContaining(player.getLocation());
+            boolean completed = room != null && room.template == exit && inst.dungeon.isBossDefeated();
+            if (completed) {
+                sendCompleteMessage(player, getDisplayName(inst.layout));
+            } else {
+                sendExitMessage(player, getDisplayName(inst.layout));
+            }
+            player.teleport(back);
+        }
+        checkInstance(world);
+    }
+
     public DungeonManager(Main plugin, me.nakilex.levelplugin.lootchests.managers.LootChestManager lootChestManager) {
         this.plugin = plugin;
         this.lootChestManager = lootChestManager;
@@ -1151,22 +1182,6 @@ public class DungeonManager {
                 handleExit(e.getPlayer(), inst, e.getTo().getWorld());
             }
 
-            private void handleExit(Player player, Instance inst, World world) {
-                java.util.UUID id = player.getUniqueId();
-                Location back = inst.returnLocations.remove(id);
-                if (back != null) {
-                    Dungeon.RoomInstance room = inst.dungeon.getRoomContaining(player.getLocation());
-                    boolean completed = room != null && room.template == exit && inst.dungeon.isBossDefeated();
-                    if (completed) {
-                        sendCompleteMessage(player, getDisplayName(inst.layout));
-                    } else {
-                        sendExitMessage(player, getDisplayName(inst.layout));
-                    }
-                    player.teleport(back);
-                }
-                checkInstance(world);
-            }
-
         @org.bukkit.event.EventHandler
         public void onQuit(org.bukkit.event.player.PlayerQuitEvent e) {
             World w = e.getPlayer().getWorld();
@@ -1189,26 +1204,27 @@ public class DungeonManager {
             }, 1L);
         }
 
-        private void sendCompleteMessage(Player player, String layout) {
-            me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§a§l-", 45);
-            me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§a§lDUNGEON COMPLETE!");
-            me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§7You finished the §a" + layout + "§7 dungeon.");
-            me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "");
-            String msg = me.nakilex.levelplugin.utils.ChatFormatter.getCenteredText("§e§lCLICK-HERE §7to rate the dungeon!");
-            net.md_5.bungee.api.chat.TextComponent comp = new net.md_5.bungee.api.chat.TextComponent(msg);
-            comp.setClickEvent(new net.md_5.bungee.api.chat.ClickEvent(net.md_5.bungee.api.chat.ClickEvent.Action.RUN_COMMAND,
-                    "/dungeon rate " + layout));
-            player.spigot().sendMessage(comp);
-            me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§a§l-", 45);
-            markPendingRating(player.getUniqueId(), normalizeKey(layout));
-        }
+    }
 
-        private void sendExitMessage(Player player, String layout) {
-            me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§c§l-", 45);
-            me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§c§lDUNGEON EXITED");
-            me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§7You left the §5" + layout + "§7 dungeon.");
-            me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§c§l-", 45);
-        }
+    private void sendCompleteMessage(Player player, String layout) {
+        me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§a§l-", 45);
+        me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§a§lDUNGEON COMPLETE!");
+        me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§7You finished the §a" + layout + "§7 dungeon.");
+        me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "");
+        String msg = me.nakilex.levelplugin.utils.ChatFormatter.getCenteredText("§e§lCLICK-HERE §7to rate the dungeon!");
+        net.md_5.bungee.api.chat.TextComponent comp = new net.md_5.bungee.api.chat.TextComponent(msg);
+        comp.setClickEvent(new net.md_5.bungee.api.chat.ClickEvent(net.md_5.bungee.api.chat.ClickEvent.Action.RUN_COMMAND,
+                "/dungeon rate " + layout));
+        player.spigot().sendMessage(comp);
+        me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§a§l-", 45);
+        markPendingRating(player.getUniqueId(), normalizeKey(layout));
+    }
+
+    private void sendExitMessage(Player player, String layout) {
+        me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§c§l-", 45);
+        me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§c§lDUNGEON EXITED");
+        me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§7You left the §5" + layout + "§7 dungeon.");
+        me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§c§l-", 45);
     }
 
     private void checkInstance(World world) {

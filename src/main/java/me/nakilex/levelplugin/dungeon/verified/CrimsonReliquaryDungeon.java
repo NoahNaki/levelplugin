@@ -48,6 +48,7 @@ import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
+import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
@@ -56,6 +57,7 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.util.BoundingBox;
 
 public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
     private static final String DISPLAY = "Crimson Reliquary";
@@ -151,6 +153,9 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
         final List<MobMarker> mobMarkers = new ArrayList<>();
         final List<NPC> npcs = new ArrayList<>();
         final Set<UUID> activeMobIds = new HashSet<>();
+        BoundingBox exitPortalRegion;
+        int averageGearScore;
+        int lootTier;
         long startTime;
         double damageTaken;
         boolean bossDefeated;
@@ -173,7 +178,7 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
     public void register(DungeonManager manager) {
         DungeonLayout layout = new DungeonLayout();
         layout.setStep(0);
-        manager.registerVerifiedLayout(KEY, DISPLAY, 10, layout);
+        manager.registerVerifiedLayout(KEY, DISPLAY, 5, layout);
     }
 
     private RoomTemplate getTemplate() {
@@ -385,12 +390,41 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
         return (((long) loc.getBlockX() >> 4) << 32) ^ ((loc.getBlockZ() >> 4) & 0xffffffffL);
     }
 
+    private BoundingBox createExitPortalBounds(Location origin) {
+        double worldX = origin.getX() + (-222 - MIN_X);
+        double minY = origin.getY() + (-35 - MIN_Y);
+        double maxY = origin.getY() + (-31 - MIN_Y) + 1;
+        double minZ = origin.getZ() + (-5803 - MIN_Z);
+        double maxZ = origin.getZ() + (-5798 - MIN_Z) + 1;
+        return BoundingBox.of(new Location(origin.getWorld(), worldX, minY, minZ),
+                new Location(origin.getWorld(), worldX + 1, maxY, maxZ));
+    }
+
     private Map<Player, PlayerState> captureStates(List<Player> participants) {
         Map<Player, PlayerState> states = new HashMap<>();
         for (Player p : participants) {
             states.put(p, new PlayerState(p));
         }
         return states;
+    }
+
+    private int calculateAverageGearScore(List<Player> participants) {
+        if (participants == null || participants.isEmpty()) {
+            return 0;
+        }
+        int total = 0;
+        int counted = 0;
+        for (Player p : participants) {
+            if (p != null && p.isOnline()) {
+                total += ItemUtil.calculateTotalGearScore(p);
+                counted++;
+            }
+        }
+        return counted == 0 ? 0 : total / counted;
+    }
+
+    private int determineLootTier(DungeonManager manager) {
+        return Math.min(8, Math.max(1, manager.getThreatLevel(KEY)));
     }
 
     private void teleportParticipantsEarly(List<Player> participants, Map<Player, PlayerState> prevStates, Location spawn) {
@@ -413,7 +447,10 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
                                   Map<Player, PlayerState> prevStates) {
         InstanceState state = new InstanceState();
         state.participants.addAll(participants);
+        state.averageGearScore = calculateAverageGearScore(participants);
+        state.lootTier = determineLootTier(manager);
         state.startTime = System.currentTimeMillis();
+        state.exitPortalRegion = createExitPortalBounds(origin);
         activeInstances.put(origin.getWorld(), state);
 
         List<Location> flowerSpots = new ArrayList<>(markers.yellowFlowers);
@@ -461,11 +498,14 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
             state.rewardFountains.add(brown);
         }
 
-        int tier = Math.max(1, manager.getThreatLevel(KEY));
-        for (TemplateChest chest : markers.chestMarkers) {
-            chest.loc().getBlock().setType(Material.AIR, false);
-            int id = manager.getLootChestManager().createAndSpawnChest(chest.loc(), tier, getFacingFromData(chest.data()));
-            inst.addChestId(id);
+        int tier = state.lootTier <= 0 ? Math.max(1, manager.getThreatLevel(KEY)) : state.lootTier;
+        me.nakilex.levelplugin.lootchests.managers.LootChestManager lootManager = manager.getLootChestManager();
+        if (lootManager != null) {
+            for (TemplateChest chest : markers.chestMarkers) {
+                chest.loc().getBlock().setType(Material.AIR, false);
+                int id = lootManager.createAndSpawnChest(chest.loc(), tier, getFacingFromData(chest.data()));
+                inst.addChestId(id);
+            }
         }
 
         logMarkerSummary(markers);
@@ -730,18 +770,33 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
         for (Location fountain : state.rewardFountains) {
             for (Player p : state.participants) {
                 if (p != null && p.isOnline()) {
-                    RewardBombUtil.startRewardBomb(plugin, fountain, this::createFountainReward, 100, p);
+                    RewardBombUtil.startRewardBomb(plugin, fountain, () -> createFountainReward(state), 100, p);
                 }
             }
         }
     }
 
-    private ItemStack createFountainReward() {
+    private ItemStack createFountainReward(InstanceState state) {
+        me.nakilex.levelplugin.lootchests.managers.LootChestManager lootManager = plugin.getDungeonManager().getLootChestManager();
+        int tier = state.lootTier <= 0 ? 1 : state.lootTier;
+        me.nakilex.levelplugin.lootchests.managers.LootChestManager.LevelRange range =
+                lootManager != null ? lootManager.getRangeForTier(tier) : null;
+
+        if (lootManager != null) {
+            ItemStack scaledLoot = lootManager.getRandomLootForTier(tier, "dungeon", null);
+            if (scaledLoot != null) {
+                return scaledLoot;
+            }
+        }
+
+        int minLevel = range != null ? range.minLevel() : 20;
+        int maxLevel = range != null ? range.maxLevel() : 29;
         int roll = ThreadLocalRandom.current().nextInt(3);
         return switch (roll) {
             case 0 -> {
                 var generator = plugin.getItemManager();
-                var generated = generator.generateItem("dungeon", 20 + ThreadLocalRandom.current().nextInt(10));
+                int level = ThreadLocalRandom.current().nextInt(minLevel, maxLevel + 1);
+                var generated = generator.generateItem("dungeon", level);
                 yield ItemUtil.createItemStackFromCustomItem(generated, 1, null);
             }
             case 1 -> {
@@ -832,6 +887,20 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
             InstanceState state = activeInstances.get(player.getWorld());
             if (state == null) return;
             state.damageTaken += event.getFinalDamage();
+        }
+
+        @EventHandler(ignoreCancelled = true)
+        public void onMove(PlayerMoveEvent event) {
+            Location to = event.getTo();
+            if (to == null) return;
+            InstanceState state = activeInstances.get(to.getWorld());
+            if (state == null || state.exitPortalRegion == null) return;
+            boolean entered = state.exitPortalRegion.contains(to.getX(), to.getY(), to.getZ())
+                    && (event.getFrom() == null || !state.exitPortalRegion.contains(event.getFrom().getX(),
+                    event.getFrom().getY(), event.getFrom().getZ()));
+            if (entered) {
+                plugin.getDungeonManager().handleInstanceExit(to.getWorld(), event.getPlayer());
+            }
         }
 
         @EventHandler(ignoreCancelled = true)
