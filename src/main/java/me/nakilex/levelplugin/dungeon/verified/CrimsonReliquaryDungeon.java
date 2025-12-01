@@ -383,17 +383,19 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
 
         List<Location> flowerSpots = new ArrayList<>(markers.yellowFlowers);
         Collections.shuffle(flowerSpots);
-        int flowerCount = Math.min(5, flowerSpots.size());
+        int pluckableCount = Math.min(5, flowerSpots.size());
         List<FlowerType> flowers = new ArrayList<>(Arrays.asList(FlowerType.values()));
         Collections.shuffle(flowers);
-        for (int i = 0; i < flowerCount; i++) {
+        for (int i = 0; i < flowerSpots.size(); i++) {
             Location yellow = flowerSpots.get(i);
             FlowerType choice = flowers.get(i % flowers.size());
             yellow.getBlock().setType(choice.block, false);
-            state.pluckable.put(yellow, choice);
-            MultiLineHologram holo = new MultiLineHologram(yellow.clone().add(0.5, 1.25, 0.5), "crimson_flower_pluck");
-            holo.spawn(List.of(ChatColor.GOLD + "Mystic Bloom", ChatColor.GRAY + "Right-click to pluck"));
-            state.pluckHolograms.put(yellow, holo);
+            if (i < pluckableCount) {
+                state.pluckable.put(yellow, choice);
+                MultiLineHologram holo = new MultiLineHologram(yellow.clone().add(0.5, 1.25, 0.5), "crimson_flower_pluck");
+                holo.spawn(List.of(ChatColor.GOLD + "Mystic Bloom", ChatColor.GRAY + "Right-click to pluck"));
+                state.pluckHolograms.put(yellow, holo);
+            }
         }
 
         List<Location> placementSpots = new ArrayList<>(markers.bluePlacements);
@@ -507,7 +509,9 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
 
     private org.bukkit.block.BlockFace getFacingFromData(BlockData data) {
         if (data instanceof org.bukkit.block.data.Directional dir) {
-        return dir.getFacing();
+            return dir.getFacing();
+        }
+        return org.bukkit.block.BlockFace.NORTH;
     }
 
     private void spawnInstanceNpcs(Location origin, InstanceState state) {
@@ -527,8 +531,6 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
             }
             state.npcs.add(clone);
         }
-    }
-        return org.bukkit.block.BlockFace.NORTH;
     }
 
     private void queueMobs(InstanceState state, TemplateMarkers markers) {
