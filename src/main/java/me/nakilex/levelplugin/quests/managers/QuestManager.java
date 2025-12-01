@@ -156,6 +156,13 @@ public class QuestManager {
         return getQuestByNpcId(npc.getId());
     }
 
+    public Quest getQuestById(String questId) {
+        if (questId == null) {
+            return null;
+        }
+        return quests.get(questId);
+    }
+
     public Map<Integer, String> getNpcQuestMap() {
         return npcQuestMap;
     }

@@ -46,9 +46,13 @@ public class PotionMerchantGUI implements Listener {
         this.economyManager = Main.getInstance().getEconomyManager();
         this.potionManager = Main.getInstance().getPotionManager();
 
-        String basePath = merchantConfig.contains("merchants.potion_merchant")
-                ? "merchants.potion_merchant"
-                : "potion_merchant";
+        String basePath;
+        if (merchantConfig.getConfigurationSection("merchants.potion_merchant") != null
+                || merchantConfig.contains("merchants.potion_merchant")) {
+            basePath = "merchants.potion_merchant";
+        } else {
+            basePath = "potion_merchant";
+        }
         String title = merchantConfig.getString(basePath + ".title", "Potion Merchant");
         int size = merchantConfig.getInt(basePath + ".size", 27);
         this.inventory = GuiBuilder.create(size, title)
@@ -60,6 +64,10 @@ public class PotionMerchantGUI implements Listener {
         Bukkit.getLogger().info("[PotionMerchantGUI] Initializing Potion Merchant GUI...");
 
         List<?> list = merchantConfig.getList(basePath + ".items");
+        if (list == null && basePath.startsWith("merchants.")) {
+            // Fallback in case the caller passed an already-scoped config
+            list = merchantConfig.getList(basePath.substring("merchants.".length()) + ".items");
+        }
         if (list != null) {
             Bukkit.getLogger().info("[PotionMerchantGUI] Found " + list.size() + " items in configuration.");
             for (Object obj : list) {

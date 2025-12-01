@@ -126,6 +126,9 @@ public class NPCClickListener implements Listener {
             }
 
             Quest quest = questManager.getQuestByNpc(npc);
+            if (quest == null && isNpcName(npc, SalvagersLessonQuest.NPC_NAME)) {
+                quest = questManager.getQuestById(SalvagersLessonQuest.ID);
+            }
             if (quest != null) {
                 if ("serashelp".equals(quest.getId())) {
                     PlayerQuestProgress progress = questManager.getProgress(player.getUniqueId(), quest.getId());

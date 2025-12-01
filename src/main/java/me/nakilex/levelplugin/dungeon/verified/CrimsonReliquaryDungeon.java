@@ -276,7 +276,7 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
                 markers.miniBossMarkers.add(destLoc.clone().add(0.5, 0, 0.5));
                 dest.getBlockAt(destLoc).setType(Material.AIR, false);
             }
-            case MAGENTA_WOOL -> {
+            case MAGENTA_WOOL, PURPLE_WOOL -> {
                 markers.normalMarkers.add(destLoc.clone().add(0.5, 0, 0.5));
                 dest.getBlockAt(destLoc).setType(Material.AIR, false);
             }
@@ -578,6 +578,15 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
         Queue<MobMarker> queue = new ArrayDeque<>(state.mobMarkers);
         final int attemptsBeforeGiveUp = 12;
         final int mobsPerTick = 10;
+
+        // Make sure all target chunks stay loaded while we attempt spawns.
+        for (MobMarker marker : queue) {
+            org.bukkit.Chunk chunk = marker.loc.getChunk();
+            if (!chunk.isLoaded()) {
+                chunk.load(true);
+            }
+            chunk.setForceLoaded(true);
+        }
 
         new BukkitRunnable() {
             @Override
