@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.chat.games.ChatGameManager;
 import me.nakilex.levelplugin.chat.games.ChatGameStatus;
 import me.nakilex.levelplugin.debug.AutoCastManager;
@@ -14,13 +15,16 @@ import me.nakilex.levelplugin.mercenary.MercenaryExpeditionManager;
 import me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
+import me.nakilex.levelplugin.utils.DoubleInputPrompt;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.ToggleFeedbackUtil;
 import me.nakilex.levelplugin.utils.RewardBombUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import org.bukkit.conversations.ConversationFactory;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -38,6 +42,7 @@ public class DebugGUI implements Listener {
     private static final int TPS_SLOT = 15;
     private static final int SIEGE_SLOT = 13;
     private static final int EXPEDITION_SLOT = 20;
+    private static final int DROP_RATE_SLOT = 27;
     private static final int FORCE_DROP_SLOT = 29;
     private static final int AUTOCAST_SLOT = 31;
     private static final int REWARD_BOMB_SLOT = 33;
@@ -93,6 +98,7 @@ public class DebugGUI implements Listener {
                 expeditionManager.isInstantExpeditions(),
                 "§bInstant Expeditions",
                 "§7Expeditions complete instantly"));
+        builder.setItem(DROP_RATE_SLOT, createDropRateItem());
         builder.setItem(FORCE_DROP_SLOT, GuiUtil.createToggleItem(
                 dropDebugManager.isForceMobDrops(),
                 "§bGuaranteed Mob Drops",
@@ -157,6 +163,8 @@ public class DebugGUI implements Listener {
                     "§bInstant Expeditions",
                     "§7Expeditions complete instantly"));
             ToggleFeedbackUtil.sendToggle(player, "Instant expeditions", enabled);
+        } else if (slot == DROP_RATE_SLOT) {
+            openDropRateChatInput(player);
         } else if (slot == FORCE_DROP_SLOT) {
             boolean enabled = dropDebugManager.toggleForceMobDrops();
             inv.setItem(FORCE_DROP_SLOT, GuiUtil.createToggleItem(enabled,
@@ -242,5 +250,37 @@ public class DebugGUI implements Listener {
                 .filter(status -> status.id().equalsIgnoreCase(id))
                 .findFirst()
                 .ifPresent(this::recordStatus);
+    }
+
+    private ItemStack createDropRateItem() {
+        double dropRate = dropDebugManager.getGlobalGearDropRate();
+        return createActionItem(
+                Material.ENCHANTED_BOOK,
+                "§bGlobal Gear Drop Rate",
+                "§7Current: §f" + String.format("%.2f%%", dropRate),
+                "§7Click to enter a new chance in chat."
+        );
+    }
+
+    private void openDropRateChatInput(Player player) {
+        player.closeInventory();
+        ConversationFactory factory = new ConversationFactory(Main.getInstance())
+                .withFirstPrompt(DoubleInputPrompt.percentagePrompt(
+                        Main.getInstance(),
+                        player,
+                        ChatColor.GOLD + "Enter the global gear drop chance (%):",
+                        value -> {
+                            dropDebugManager.setGlobalGearDropRate(value);
+                            ChatMessageUtil.send(player, MessageType.SUCCESS,
+                                    ChatColor.GREEN + String.format("Global gear drop rate set to %.2f%%.", value));
+                            Bukkit.getScheduler().runTask(Main.getInstance(), () -> open(player));
+                        }
+                ))
+                .withLocalEcho(false)
+                .withTimeout(30)
+                .addConversationAbandonedListener(event ->
+                        Bukkit.getScheduler().runTask(Main.getInstance(), () -> open(player)));
+
+        factory.buildConversation(player).begin();
     }
 }

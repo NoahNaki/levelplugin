@@ -1,95 +1,73 @@
 mobs:
   cursed_archer:
-    tier_chance: 12.0
     model_set: molten
     essence: archer, 0.3
 
   Slime_Common:
-    tier_chance: 12.0
+    drop_override: 20.0
     model_set: default
 
   Slime_Minion:
-    tier_chance: 12.0
     model_set: default
 
   Slime_King:
-    tier_chance: 100.0
     model_set: default
 
   YUKIO:
-    tier_chance: 20.0
     model_set: arctic
 
   gnollaxe:
-    tier_chance: 12.0
     model_set: default
 
   gnollspear:
-    tier_chance: 12.0
     model_set: default
 
   gnollarcher:
-    tier_chance: 12.0
     model_set: default
 
   ice_bruiser:
-    tier_chance: 12.0
     model_set: default
 
   ice_golem:
-    tier_chance: 12.0
     model_set: default
 
   ice_queen:
-    tier_chance: 12.0
     model_set: default
 
   lp_spider_ice:
-    tier_chance: 12.0
     model_set: default
 
   turtle:
-    tier_chance: 12.0
     model_set: default
 
   vp1_hermit_crab:
-    tier_chance: 3.0
     model_set: default
 
   vp1_ore_golem:
-    tier_chance: 12.0
     model_set: default
 
   vp1_scorpid:
-    tier_chance: 12.0
     model_set: default
 
   wild_rooster:
-    tier_chance: 5.0
     model_set: default
 
   vp1_rhino_beetle:
-    tier_chance: 12.0
     model_set: default
 
   Nocsy_Bokoblin_Shaman:
-    tier_chance: 8.0
     model_set: default
 
   Nocsy_Bokoblin_Swordsman:
-    tier_chance: 8.0
     model_set: default
 
   Nocsy_Bokoblin_Warrior:
-    tier_chance: 8.0
     model_set: default
 
   Ganon:
-    tier_chance: 8.0
     model_set: default
 
   MSO_Demon_General:
-    tier_chance: 8.0
     model_set: default
 
 
