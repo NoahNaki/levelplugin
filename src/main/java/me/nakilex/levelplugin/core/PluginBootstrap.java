@@ -825,6 +825,9 @@ public class PluginBootstrap {
         if (!customConfig.contains("debug.instant-expeditions")) {
             customConfig.set("debug.instant-expeditions", false);
         }
+        if (!customConfig.contains("debug.mob-gear-drop-rate")) {
+            customConfig.set("debug.mob-gear-drop-rate", 8.0);
+        }
         if (!customConfig.contains("chat-games.interval-minutes")) {
             customConfig.set("chat-games.interval-minutes", 15);
         }

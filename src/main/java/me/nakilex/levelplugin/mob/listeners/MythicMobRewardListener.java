@@ -115,9 +115,11 @@ public class MythicMobRewardListener implements Listener {
         int mobLevel = (int) Math.round(mythicMob.getLevel());
         int exp = CombatRewardCalculator.calculateXpReward(combatPower);
         int coins = CombatRewardCalculator.calculateCoinReward(combatPower);
-        double tierChance = node.getDouble("tier_chance", 100.0);
         boolean forceDrops = dropDebugManager != null && dropDebugManager.isForceMobDrops();
-        String modelSet = node.getString("model_set", null);
+        double gearDropChance = dropDebugManager != null
+                ? dropDebugManager.resolveDropChance(node)
+                : node.getDouble("drop_override", node.getDouble("tier_chance", 8.0));
+        String modelSet = node.getString("model_set", "default");
 
         Location deathLoc = event.getEntity().getLocation();
         PartyManager pm = Main.getInstance().getPartyManager();
@@ -159,7 +161,7 @@ public class MythicMobRewardListener implements Listener {
             itemDropper.dropCustomItems(player, node, modelSet, combatPower, mobLevel, forceDrops);
             itemDropper.maybeDropEssence(player, node);
             double roll = ThreadLocalRandom.current().nextDouble() * 100.0;
-            if (forceDrops || roll <= tierChance) {
+            if (forceDrops || roll <= gearDropChance) {
                 ItemStack loot = lootChestManager.getRandomLootForCombatPower(combatPower, mobLevel, mobType, modelSet);
                 if (loot != null) {
                     ItemUtil.updateTooltip(loot, player);

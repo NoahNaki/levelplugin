@@ -4,9 +4,9 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.storage.events.StorageEvents;
 import me.nakilex.levelplugin.storage.gui.StorageGUI;
-import me.nakilex.levelplugin.utils.CoinInputPrompt;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
+import me.nakilex.levelplugin.utils.IntegerInputPrompt;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -101,15 +101,12 @@ public class GuildVaultGUI extends StorageGUI {
                 player.closeInventory();
                 Main.getInstance().getLogger().info("[GuildVault] opening deposit prompt for " + player.getName());
                 ConversationFactory factory = new ConversationFactory(Main.getInstance())
-                        .withFirstPrompt(new CoinInputPrompt(
+                        .withFirstPrompt(IntegerInputPrompt.coinAmountWithinBalance(
                                 Main.getInstance(),
                                 player,
                                 ChatColor.GOLD + "Enter amount to deposit:",
-                                amt -> {
-                                    boolean ok = amt > 0 && econ.getBalance(player) >= amt;
-                                    Main.getInstance().getLogger().info("[GuildVault] deposit validate amt=" + amt + " ok=" + ok);
-                                    return ok;
-                                },
+                                () -> econ.getBalance(player),
+                                true,
                                 amt -> {
                                     Main.getInstance().getLogger().info("[GuildVault] depositing " + amt + " for " + player.getName());
                                     econ.deductCoins(player, amt);
@@ -134,15 +131,12 @@ public class GuildVaultGUI extends StorageGUI {
                 player.closeInventory();
                 Main.getInstance().getLogger().info("[GuildVault] opening withdraw prompt for " + player.getName());
                 ConversationFactory factory = new ConversationFactory(Main.getInstance())
-                        .withFirstPrompt(new CoinInputPrompt(
+                        .withFirstPrompt(IntegerInputPrompt.coinAmountWithinBalance(
                                 Main.getInstance(),
                                 player,
                                 ChatColor.GOLD + "Enter amount to withdraw:",
-                                amt -> {
-                                    boolean ok = amt > 0 && g.getCoins() >= amt;
-                                    Main.getInstance().getLogger().info("[GuildVault] withdraw validate amt=" + amt + " ok=" + ok);
-                                    return ok;
-                                },
+                                g::getCoins,
+                                true,
                                 amt -> {
                                     Main.getInstance().getLogger().info("[GuildVault] withdrawing " + amt + " for " + player.getName());
                                     g.removeCoins(amt);

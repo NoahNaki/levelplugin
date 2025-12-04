@@ -8,6 +8,7 @@ import me.nakilex.levelplugin.trade.utils.Translations;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.CurrencyMessageUtil;
 import me.nakilex.levelplugin.utils.GuiUtil;
+import me.nakilex.levelplugin.utils.IntegerInputPrompt;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import org.bukkit.*;
@@ -136,25 +137,26 @@ public class TradingWindow implements Listener {
 
         // 3. Show chat prompt
         ConversationFactory factory = new ConversationFactory(Main.getPlugin())
-            .withFirstPrompt(new CoinInputPrompt(
-                Main.getPlugin(),
-                p,
-                ChatColor.GOLD + "Please enter the number of coins you want to offer:",
-                amt -> amt >= 0 && tw.getEconomyManager().getBalance(p) >= amt,
-                amt -> {
-                    if (tw.getPlayer().equals(p)) {
-                        tw.setPlayerCoinOffer(p, amt);
-                    } else if (tw.getOpponent().equals(p)) {
-                        tw.setOpponentCoinOffer(p, amt);
+            .withFirstPrompt(IntegerInputPrompt.coinAmountWithinBalance(
+                    Main.getPlugin(),
+                    p,
+                    ChatColor.GOLD + "Please enter the number of coins you want to offer:",
+                    () -> tw.getEconomyManager().getBalance(p),
+                    false,
+                    amt -> {
+                        if (tw.getPlayer().equals(p)) {
+                            tw.setPlayerCoinOffer(p, amt);
+                        } else if (tw.getOpponent().equals(p)) {
+                            tw.setOpponentCoinOffer(p, amt);
+                        }
+                        if (amt == 0) {
+                            p.sendMessage(ChatColor.YELLOW + "You cleared your coin offer.");
+                        } else {
+                            p.sendMessage(ChatColor.GREEN + "Your coin offer has been set to: " + amt);
+                        }
+                        tw.updateCoinOfferItems();
+                        tw.reopenInventories();
                     }
-                    if (amt == 0) {
-                        p.sendMessage(ChatColor.YELLOW + "You cleared your coin offer.");
-                    } else {
-                        p.sendMessage(ChatColor.GREEN + "Your coin offer has been set to: " + amt);
-                    }
-                    tw.updateCoinOfferItems();
-                    tw.reopenInventories();
-                }
             ))
             .withLocalEcho(false)
             .withTimeout(30)
