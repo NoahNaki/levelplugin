@@ -6,8 +6,8 @@ import com.comphenix.protocol.ProtocolManager;
 import com.comphenix.protocol.events.ListenerPriority;
 import com.comphenix.protocol.events.PacketAdapter;
 import com.comphenix.protocol.events.PacketEvent;
+import com.comphenix.protocol.wrappers.EnumWrappers;
 import me.nakilex.levelplugin.Main;
-import org.bukkit.Particle;
 
 /**
  * Cancels damage-indicator particles before they reach clients.
@@ -24,8 +24,8 @@ public final class DamageIndicatorPacketBlocker {
                     return;
                 }
 
-                Particle particle = event.getPacket().getParticles().read(0).getParticle();
-                if (particle == Particle.DAMAGE_INDICATOR) {
+                EnumWrappers.Particle particle = event.getPacket().getParticles().read(0);
+                if (particle == EnumWrappers.Particle.DAMAGE_INDICATOR) {
                     event.setCancelled(true);
                 }
             }
