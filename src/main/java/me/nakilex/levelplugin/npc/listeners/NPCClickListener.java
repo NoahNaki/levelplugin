@@ -15,6 +15,8 @@ import me.nakilex.levelplugin.quests.def.SharpestSecretQuest;
 import me.nakilex.levelplugin.quests.def.StableKeeperQuest;
 import me.nakilex.levelplugin.quests.def.SalvagersLessonQuest;
 import me.nakilex.levelplugin.quests.def.MarketBeginningsQuest;
+import me.nakilex.levelplugin.quests.def.ForgeFundamentalsQuest;
+import me.nakilex.levelplugin.quests.def.EssenceWeaversLessonQuest;
 import me.nakilex.levelplugin.npc.dialog.NPCDialogManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.CurrencyMessageUtil;
@@ -130,6 +132,18 @@ public class NPCClickListener implements Listener {
                 quest = questManager.getQuestById(SalvagersLessonQuest.ID);
             }
             if (quest != null) {
+                if (ForgeFundamentalsQuest.ID.equals(quest.getId())) {
+                    if (handleForgeFundamentals(player, npc, quest)) {
+                        return;
+                    }
+                }
+
+                if (EssenceWeaversLessonQuest.ID.equals(quest.getId())) {
+                    if (handleEssenceWeaverLesson(player, npc, quest)) {
+                        return;
+                    }
+                }
+
                 if ("serashelp".equals(quest.getId())) {
                     PlayerQuestProgress progress = questManager.getProgress(player.getUniqueId(), quest.getId());
                     if (progress != null) {
@@ -230,6 +244,98 @@ public class NPCClickListener implements Listener {
                 }
             }
         }
+    }
+
+    private boolean handleForgeFundamentals(Player player, NPC npc, Quest quest) {
+        QuestState state = questManager.getQuestState(player, quest);
+        if (state == QuestState.AVAILABLE) {
+            dialogManager.startDialog(player, quest, npc);
+            return true;
+        }
+        if (state == QuestState.LOCKED) {
+            questManager.meetsRequirements(player, quest);
+            return true;
+        }
+
+        java.util.UUID uuid = player.getUniqueId();
+        PlayerQuestProgress progress = questManager.getProgress(uuid, quest.getId());
+        boolean introDone = progress != null && progress.getProgress(0) >= 1;
+        boolean serviceDone = progress != null && progress.getProgress(1) >= 1;
+        boolean returned = progress != null && progress.getProgress(2) >= 1;
+
+        if (!introDone && progress != null) {
+            dialogManager.startDialog(player,
+                    quest.getDialogLines(),
+                    npc,
+                    () -> questManager.handleTalk(player, ForgeFundamentalsQuest.NPC_NAME.equalsIgnoreCase(npc.getName())
+                            ? "npc_blacksmith_intro"
+                            : "npc" + npc.getId()));
+            return true;
+        }
+
+        if (returned || questManager.hasCompleted(uuid, ForgeFundamentalsQuest.ID)) {
+            player.performCommand("blacksmith");
+            return true;
+        }
+
+        if (!serviceDone) {
+            player.performCommand("blacksmith");
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                    "Use repair, reroll, or upgrade once, then check back with the Blacksmith.");
+            return true;
+        }
+
+        dialogManager.startDialog(player,
+                ForgeFundamentalsQuest.getReturnDialog(),
+                npc,
+                () -> questManager.handleTalk(player, "npc_blacksmith_return"));
+        return true;
+    }
+
+    private boolean handleEssenceWeaverLesson(Player player, NPC npc, Quest quest) {
+        QuestState state = questManager.getQuestState(player, quest);
+        if (state == QuestState.AVAILABLE) {
+            dialogManager.startDialog(player, quest, npc);
+            return true;
+        }
+        if (state == QuestState.LOCKED) {
+            questManager.meetsRequirements(player, quest);
+            return true;
+        }
+
+        java.util.UUID uuid = player.getUniqueId();
+        PlayerQuestProgress progress = questManager.getProgress(uuid, quest.getId());
+        boolean introDone = progress != null && progress.getProgress(0) >= 1;
+        boolean upgradeTried = progress != null && progress.getProgress(1) >= 1;
+        boolean returned = progress != null && progress.getProgress(2) >= 1;
+
+        if (!introDone && progress != null) {
+            dialogManager.startDialog(player,
+                    quest.getDialogLines(),
+                    npc,
+                    () -> questManager.handleTalk(player, EssenceWeaversLessonQuest.NPC_NAME.equalsIgnoreCase(npc.getName())
+                            ? "npc_essence_weaver_intro"
+                            : "npc" + npc.getId()));
+            return true;
+        }
+
+        if (returned || questManager.hasCompleted(uuid, EssenceWeaversLessonQuest.ID)) {
+            player.performCommand("essenceupgrade");
+            return true;
+        }
+
+        if (!upgradeTried) {
+            player.performCommand("essenceupgrade");
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                    "Invest a duplicate essence or attempt a star upgrade, then speak with the Essence Weaver again.");
+            return true;
+        }
+
+        dialogManager.startDialog(player,
+                EssenceWeaversLessonQuest.getReturnDialog(),
+                npc,
+                () -> questManager.handleTalk(player, "npc_essence_weaver_return"));
+        return true;
     }
 
     private boolean handleStableKeeper(Player player, NPC npc, Quest quest) {

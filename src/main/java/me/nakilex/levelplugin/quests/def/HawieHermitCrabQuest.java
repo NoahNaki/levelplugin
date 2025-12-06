@@ -7,6 +7,9 @@ import me.nakilex.levelplugin.quests.data.QuestObjective;
 import me.nakilex.levelplugin.quests.data.QuestObjectiveType;
 import me.nakilex.levelplugin.quests.data.QuestRewardCompat;
 import me.nakilex.levelplugin.quests.data.QuestScript;
+import me.nakilex.levelplugin.quests.data.QuestCompletionScript;
+import me.nakilex.levelplugin.quests.managers.QuestManager;
+import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.entity.Player;
 
 import java.util.List;
@@ -15,7 +18,7 @@ import java.util.List;
  * Hawie's follow-up request that has players thin out the hermit crabs gnawing
  * on his newly rebuilt docks.
  */
-public class HawieHermitCrabQuest extends Quest implements QuestScript {
+public class HawieHermitCrabQuest extends Quest implements QuestScript, QuestCompletionScript {
     private static List<QuestObjective> createObjectives() {
         return List.of(
                 new QuestObjective(QuestObjectiveType.KILL, "vp1_hermit_crab", 10),
@@ -30,7 +33,7 @@ public class HawieHermitCrabQuest extends Quest implements QuestScript {
                 "Help Hawie stop the hermit crabs from tearing up his docks.",
                 createObjectives(),
                 10,
-                List.of("serashelp"),
+                List.of("serashelp", SalvagersLessonQuest.ID),
                 null,
                 QuestRewardCompat.create(300, 250, 0, List.of()),
                 1089,
@@ -47,5 +50,19 @@ public class HawieHermitCrabQuest extends Quest implements QuestScript {
     @Override
     public void onStart(Player player, Main plugin) {
         // no special start logic
+    }
+
+    @Override
+    public void onComplete(Player player, Main plugin) {
+        QuestManager questManager = plugin.getQuestManager();
+        if (questManager == null) {
+            return;
+        }
+        if (!questManager.hasCompleted(player.getUniqueId(), StableKeeperQuest.ID)
+                && questManager.getProgress(player.getUniqueId(), StableKeeperQuest.ID) == null) {
+            questManager.startQuest(player, StableKeeperQuest.ID);
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                    "Hawie thanks you and points you toward the Stable Keeper (NPC 652) for a new mount.");
+        }
     }
 }

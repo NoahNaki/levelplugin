@@ -7,6 +7,9 @@ import me.nakilex.levelplugin.quests.data.QuestObjective;
 import me.nakilex.levelplugin.quests.data.QuestObjectiveType;
 import me.nakilex.levelplugin.quests.data.QuestRewardCompat;
 import me.nakilex.levelplugin.quests.data.QuestScript;
+import me.nakilex.levelplugin.quests.data.QuestCompletionScript;
+import me.nakilex.levelplugin.quests.managers.QuestManager;
+import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.entity.Player;
 
 import java.util.List;
@@ -14,7 +17,7 @@ import java.util.List;
 /**
  * Short quest that teaches players how to salvage unwanted gear.
  */
-public class SalvagersLessonQuest extends Quest implements QuestScript {
+public class SalvagersLessonQuest extends Quest implements QuestScript, QuestCompletionScript {
     public static final String ID = "salvagerslesson";
 
     public static final String NPC_NAME = "Salvager";
@@ -42,7 +45,7 @@ public class SalvagersLessonQuest extends Quest implements QuestScript {
                 "Learn how to break down extra gear and turn it into profit.",
                 createObjectives(),
                 3,
-                List.of(),
+                List.of(SerasQuest.ID),
                 null,
                 QuestRewardCompat.create(120, 40, 0, List.of()),
                 null,
@@ -75,5 +78,19 @@ public class SalvagersLessonQuest extends Quest implements QuestScript {
     @Override
     public void onStart(Player player, Main plugin) {
         plugin.getQuestManager().handleTalk(player, INTRO_TARGET);
+    }
+
+    @Override
+    public void onComplete(Player player, Main plugin) {
+        QuestManager questManager = plugin.getQuestManager();
+        if (questManager == null) {
+            return;
+        }
+        if (!questManager.hasCompleted(player.getUniqueId(), HawieHermitCrabQuest.ID)
+                && questManager.getProgress(player.getUniqueId(), HawieHermitCrabQuest.ID) == null) {
+            questManager.startQuest(player, HawieHermitCrabQuest.ID);
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                    "The Salvager suggests you lend Hawie (NPC 1089) a hand on the docks next.");
+        }
     }
 }

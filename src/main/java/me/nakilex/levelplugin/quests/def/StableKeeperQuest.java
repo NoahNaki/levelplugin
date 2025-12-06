@@ -8,6 +8,7 @@ import me.nakilex.levelplugin.quests.data.QuestObjectiveType;
 import me.nakilex.levelplugin.quests.data.QuestRewardCompat;
 import me.nakilex.levelplugin.quests.data.PlayerQuestProgress;
 import me.nakilex.levelplugin.quests.data.QuestScript;
+import me.nakilex.levelplugin.quests.def.HawieHermitCrabQuest;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import org.bukkit.entity.Player;
 
@@ -63,7 +64,7 @@ public class StableKeeperQuest extends Quest implements QuestScript {
                 "Help the Stable Keeper reclaim his wheat and earn your first horse.",
                 createObjectives(),
                 2,
-                List.of(),
+                List.of(HawieHermitCrabQuest.ID),
                 null,
                 QuestRewardCompat.create(50, 25, 0, List.of()),
                 652,
