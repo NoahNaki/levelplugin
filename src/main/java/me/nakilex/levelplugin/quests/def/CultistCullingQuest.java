@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.quests.def;
 
 import io.lumine.mythic.api.exceptions.InvalidMobTypeException;
+import io.lumine.mythic.bukkit.MythicBukkit;
 import io.lumine.mythic.bukkit.events.MythicMobDeathEvent;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.fakeblock.QuestGateManager;
@@ -77,19 +78,21 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
         return CONTACT_NPC_ID;
     }
 
+    private static final int RITUAL_KILL_TARGET = 10;
+
     private static final List<RitualSite> RITUAL_SITES = List.of(
-            new RitualSite(SHADOW_SITE_KEY, "LRD_eldric", new Location(world(), 262.5, 73, -364.5)),
-            new RitualSite("tenebris", "hv_tenebris", new Location(world(), 176.5, 80, -629.5)),
-            new RitualSite("gravekeeper", "Nocsy_FPV2-Gravekeeper", new Location(world(), 329.5, 73, 175.5)),
-            new RitualSite("crowknight", "thecrowknight", new Location(world(), -329.5, 87, 36.5)),
-            new RitualSite("piglinking", "LRD_PIGLINKING", new Location(world(), -1161.5, 66, -834.5))
+            new RitualSite(SHADOW_SITE_KEY, "cultist_acolyte", "Shadow Ritual", new Location(world(), 262.5, 73, -364.5)),
+            new RitualSite("tenebris", "cultist_zealot", "Zealot Ritual", new Location(world(), 176.5, 80, -629.5)),
+            new RitualSite("gravekeeper", "cultist_fanatic", "Fanatic Ritual", new Location(world(), 329.5, 73, 175.5)),
+            new RitualSite("crowknight", "cultist_inquisitor", "Inquisitor Ritual", new Location(world(), -329.5, 87, 36.5)),
+            new RitualSite("piglinking", "cultist_high_priest", "High Priest Ritual", new Location(world(), -1161.5, 66, -834.5))
     );
 
     private static CultistCullingQuest instance;
     private static boolean listenersRegistered;
     private static int proximityTaskId = -1;
 
-    private final Map<UUID, Map<String, UUID>> activeSpawns = new HashMap<>();
+    private final Map<UUID, Map<String, SiteProgress>> siteProgress = new HashMap<>();
     private final Map<UUID, ActiveRitual> mobOwners = new HashMap<>();
     private final Map<UUID, Integer> processedDeaths = new HashMap<>();
     private final NamespacedKey ritualSiteKey = new NamespacedKey(Main.getInstance(), RITUAL_SITE_KEY_NAME);
@@ -252,7 +255,7 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
         if (ritual == null) {
             return;
         }
-        clearActive(ritual.playerId(), ritual.siteKey());
+        clearActive(ritual.playerId(), ritual.siteKey(), entity.getUniqueId());
         Player player = Bukkit.getPlayer(ritual.playerId());
         if (player == null || !player.isOnline()) {
             return;
@@ -265,6 +268,22 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
         if (questManager == null) {
             return;
         }
+        SiteProgress progress = getSiteProgress(player.getUniqueId(), ritual.siteKey());
+        if (progress == null) {
+            return;
+        }
+
+        progress.incrementKills();
+        if (progress.kills() < RITUAL_KILL_TARGET) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
+                    "Cultist ritual weakened. " + (RITUAL_KILL_TARGET - progress.kills()) + " cultists remain.");
+            return;
+        }
+
+        if (questManager.hasFlag(player.getUniqueId(), ID, ritual.siteKey())) {
+            return;
+        }
+
         questManager.setFlag(player.getUniqueId(), ID, ritual.siteKey());
         questManager.handleKill(player, RITUAL_TARGET, true);
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, "Cultist Ritual Halted.");
@@ -282,66 +301,77 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
         if (loc == null || loc.getWorld() == null) {
             return;
         }
-        Entity mob;
-        try {
-            mob = MythicBukkit.inst().getAPIHelper().spawnMythicMob(site.mobId(), loc);
-        } catch (InvalidMobTypeException ex) {
-            Main.getInstance().getLogger().warning("Unable to spawn ritual mob '" + site.mobId() + "': " + ex.getMessage());
+        int remaining = Math.max(0, RITUAL_KILL_TARGET - getKills(player.getUniqueId(), site.key()));
+        if (remaining <= 0) {
             return;
         }
-        if (!(mob instanceof LivingEntity living)) {
-            return;
+
+        int spawnCount = remaining;
+        SiteProgress progress = siteProgress
+                .computeIfAbsent(player.getUniqueId(), k -> new HashMap<>())
+                .computeIfAbsent(site.key(), k -> new SiteProgress());
+
+        for (int i = 0; i < spawnCount; i++) {
+            Entity mob;
+            try {
+                mob = MythicBukkit.inst().getAPIHelper().spawnMythicMob(site.mobId(), loc);
+            } catch (InvalidMobTypeException ex) {
+                Main.getInstance().getLogger().warning("Unable to spawn ritual mob '" + site.mobId() + "': " + ex.getMessage());
+                return;
+            }
+            if (!(mob instanceof LivingEntity living)) {
+                continue;
+            }
+            UUID playerId = player.getUniqueId();
+            UUID mobId = living.getUniqueId();
+            progress.activeMobIds().add(mobId);
+            mobOwners.put(mobId, new ActiveRitual(playerId, site.key()));
+            PersistentDataContainer data = living.getPersistentDataContainer();
+            data.set(ritualSiteKey, PersistentDataType.STRING, site.key());
+            data.set(ritualOwnerKey, PersistentDataType.STRING, playerId.toString());
         }
-        UUID playerId = player.getUniqueId();
-        UUID mobId = living.getUniqueId();
-        activeSpawns.computeIfAbsent(playerId, k -> new HashMap<>()).put(site.key(), mobId);
-        mobOwners.put(mobId, new ActiveRitual(playerId, site.key()));
-        PersistentDataContainer data = living.getPersistentDataContainer();
-        data.set(ritualSiteKey, PersistentDataType.STRING, site.key());
-        data.set(ritualOwnerKey, PersistentDataType.STRING, playerId.toString());
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                 "Dark energy gathers nearby. The cult begins a ritual...");
     }
 
     private boolean isActive(UUID playerId, String key) {
-        Map<String, UUID> map = activeSpawns.get(playerId);
-        return map != null && map.containsKey(key);
+        SiteProgress progress = getSiteProgress(playerId, key);
+        return progress != null && !progress.activeMobIds().isEmpty();
     }
 
     private void pruneIfInvalid(UUID playerId, String key) {
-        Map<String, UUID> map = activeSpawns.get(playerId);
-        if (map == null) {
+        SiteProgress progress = getSiteProgress(playerId, key);
+        if (progress == null) {
             return;
         }
-        UUID mobId = map.get(key);
-        if (mobId == null) {
-            map.remove(key);
-            return;
-        }
-        Entity mob = Bukkit.getEntity(mobId);
-        if (mob == null || mob.isDead()) {
-            clearActive(playerId, key);
-        }
+        progress.activeMobIds().removeIf(id -> {
+            Entity mob = Bukkit.getEntity(id);
+            return mob == null || mob.isDead();
+        });
     }
 
-    private void clearActive(UUID playerId, String key) {
-        Map<String, UUID> map = activeSpawns.get(playerId);
+    private void clearActive(UUID playerId, String key, UUID mobIdToRemove) {
+        Map<String, SiteProgress> map = siteProgress.get(playerId);
         if (map != null) {
-            UUID mobId = map.remove(key);
-            if (map.isEmpty()) {
-                activeSpawns.remove(playerId);
-            }
-            if (mobId != null) {
-                mobOwners.remove(mobId);
+            SiteProgress progress = map.get(key);
+            if (progress != null) {
+                if (mobIdToRemove != null) {
+                    progress.activeMobIds().remove(mobIdToRemove);
+                }
+                if (mobIdToRemove != null) {
+                    mobOwners.remove(mobIdToRemove);
+                }
             }
         }
     }
 
     private void clearTracking(UUID playerId) {
-        Map<String, UUID> map = activeSpawns.remove(playerId);
+        Map<String, SiteProgress> map = siteProgress.remove(playerId);
         if (map != null) {
-            for (UUID mobId : map.values()) {
-                mobOwners.remove(mobId);
+            for (SiteProgress progress : map.values()) {
+                for (UUID mobId : progress.activeMobIds()) {
+                    mobOwners.remove(mobId);
+                }
             }
         }
     }
@@ -409,7 +439,9 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
         }
     }
 
-    private record RitualSite(String key, String mobId, Location location) {
+    public record RitualStatus(String title, int remaining, int target) {}
+
+    private record RitualSite(String key, String mobId, String title, Location location) {
         boolean withinRange(Location loc) {
             if (loc == null || location == null) {
                 return false;
@@ -437,6 +469,46 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
         return ritual;
     }
 
+    private SiteProgress getSiteProgress(UUID playerId, String key) {
+        Map<String, SiteProgress> map = siteProgress.get(playerId);
+        if (map == null) {
+            return null;
+        }
+        return map.get(key);
+    }
+
+    private int getKills(UUID playerId, String key) {
+        SiteProgress progress = getSiteProgress(playerId, key);
+        return progress == null ? 0 : progress.kills();
+    }
+
+    public static RitualStatus getRitualStatus(Player player) {
+        if (instance == null || player == null) {
+            return null;
+        }
+        QuestManager qm = Main.getInstance().getQuestManager();
+        if (qm == null) {
+            return null;
+        }
+        PlayerQuestProgress progress = qm.getProgress(player.getUniqueId(), ID);
+        if (progress == null) {
+            return null;
+        }
+
+        Location loc = player.getLocation();
+        for (RitualSite site : RITUAL_SITES) {
+            if (!site.withinRange(loc)) {
+                continue;
+            }
+            if (qm.hasFlag(player.getUniqueId(), ID, site.key())) {
+                continue;
+            }
+            int remaining = Math.max(0, RITUAL_KILL_TARGET - instance.getKills(player.getUniqueId(), site.key()));
+            return new RitualStatus(site.title(), remaining, RITUAL_KILL_TARGET);
+        }
+        return null;
+    }
+
     private boolean markProcessed(UUID mobId) {
         if (processedDeaths.containsKey(mobId)) {
             return false;
@@ -448,5 +520,22 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
 
         processedDeaths.put(mobId, taskId);
         return true;
+    }
+
+    private static final class SiteProgress {
+        private int kills;
+        private final java.util.Set<UUID> activeMobIds = new java.util.HashSet<>();
+
+        int kills() {
+            return kills;
+        }
+
+        void incrementKills() {
+            kills++;
+        }
+
+        java.util.Set<UUID> activeMobIds() {
+            return activeMobIds;
+        }
     }
 }

@@ -8,6 +8,7 @@ import me.nakilex.levelplugin.catacombs.CatacombsManager;
 import me.nakilex.levelplugin.party.Party;
 import me.nakilex.levelplugin.party.PartyManager;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
+import me.nakilex.levelplugin.quests.def.CultistCullingQuest;
 import me.nakilex.levelplugin.quests.data.PlayerQuestProgress;
 import me.nakilex.levelplugin.quests.data.Quest;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
@@ -222,6 +223,27 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
             idx++; line--;
 
             current[idx] = ChatColor.RED + "<glyph:flagleft_icon> " + ChatColor.WHITE + "Duration: " + ChatColor.GRAY + siege.getFormattedRemaining();
+            if (!current[idx].equals(prev[idx])) {
+                setLine(board, obj, idx, line, current[idx]);
+            }
+            idx++; line--;
+
+            current[idx] = " ";
+            if (!current[idx].equals(prev[idx])) {
+                setLine(board, obj, idx, line, current[idx]);
+            }
+            idx++; line--;
+        }
+
+        CultistCullingQuest.RitualStatus ritualStatus = CultistCullingQuest.getRitualStatus(player);
+        if (ritualStatus != null) {
+            current[idx] = ChatColor.DARK_PURPLE + ritualStatus.title();
+            if (!current[idx].equals(prev[idx])) {
+                setLine(board, obj, idx, line, current[idx]);
+            }
+            idx++; line--;
+
+            current[idx] = ChatColor.GRAY + "Cultists: " + ChatColor.WHITE + ritualStatus.remaining() + "/" + ritualStatus.target();
             if (!current[idx].equals(prev[idx])) {
                 setLine(board, obj, idx, line, current[idx]);
             }
