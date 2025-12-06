@@ -79,9 +79,6 @@ public class MythicMobNameManager implements Listener {
             return;
         }
         Entity base = mob.getEntity().getBukkitEntity();
-        plugin.getLogger().info("[NameManager] Tracking MythicMob " + mob.getMobType()
-                + " template=" + mob.getType().getEntityType().name()
-                + " bukkit=" + base.getType() + " (" + base.getClass().getSimpleName() + ")");
         trackedMobs.add(mob);
         setDisplayName(mob);
     }

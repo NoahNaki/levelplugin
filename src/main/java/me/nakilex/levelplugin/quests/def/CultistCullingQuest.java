@@ -54,7 +54,6 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
     private static final double TRIGGER_RADIUS_SQ = 30 * 30;
     private static final double LEASH_RANGE = 60;
     private static final double SPAWN_RADIUS = 6;
-    private static final boolean DEBUG_LEASH = true;
     private static final String RITUAL_SITE_KEY_NAME = "cultist_site";
     private static final String RITUAL_OWNER_KEY_NAME = "cultist_owner";
     private static final String RITUAL_SPAWN_X = "cultist_spawn_x";
@@ -594,7 +593,6 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
                     origin = living.getLocation();
                     mobSpawnLocations.put(living.getUniqueId(), origin);
                     storeSpawn(living, origin);
-                    debugLeash("Captured missing origin for mob " + living.getUniqueId() + " at " + formatLoc(origin));
                 }
             }
             if (origin == null || origin.getWorld() == null || living.getWorld() == null) {
@@ -602,29 +600,13 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
             }
             if (!origin.getWorld().equals(living.getWorld())) {
                 living.teleport(origin);
-                debugLeash("Returned mob " + living.getUniqueId() + " to origin due to world mismatch: " + formatLoc(origin));
                 return false;
             }
             if (origin.distanceSquared(living.getLocation()) > LEASH_RANGE * LEASH_RANGE) {
                 living.teleport(origin);
-                debugLeash("Leashed mob " + living.getUniqueId() + " back to " + formatLoc(origin));
             }
             return false;
         });
-    }
-
-    private void debugLeash(String message) {
-        if (!DEBUG_LEASH) {
-            return;
-        }
-        Main.getInstance().getLogger().info("[CultistCulling][Leash] " + message);
-    }
-
-    private String formatLoc(Location location) {
-        if (location == null) {
-            return "unknown";
-        }
-        return String.format("(%.1f, %.1f, %.1f)", location.getX(), location.getY(), location.getZ());
     }
 
     private static final class SiteProgress {
