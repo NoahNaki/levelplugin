@@ -87,11 +87,11 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
     private static final int RITUAL_KILL_TARGET = 10;
 
     private static final List<RitualSite> RITUAL_SITES = List.of(
-            new RitualSite(SHADOW_SITE_KEY, "cultist_acolyte", "Shadow Ritual", new Location(world(), 262.5, 73, -364.5)),
-            new RitualSite("tenebris", "cultist_zealot", "Zealot Ritual", new Location(world(), 176.5, 80, -629.5)),
-            new RitualSite("gravekeeper", "cultist_fanatic", "Fanatic Ritual", new Location(world(), 329.5, 73, 175.5)),
-            new RitualSite("crowknight", "cultist_inquisitor", "Inquisitor Ritual", new Location(world(), -329.5, 87, 36.5)),
-            new RitualSite("piglinking", "cultist_high_priest", "High Priest Ritual", new Location(world(), -1161.5, 66, -834.5))
+            new RitualSite(SHADOW_SITE_KEY, "cultist_acolyte", 20, "Shadow Ritual", new Location(world(), 262.5, 73, -364.5)),
+            new RitualSite("tenebris", "cultist_zealot", 40, "Zealot Ritual", new Location(world(), 176.5, 80, -629.5)),
+            new RitualSite("gravekeeper", "cultist_fanatic", 60, "Fanatic Ritual", new Location(world(), 329.5, 73, 175.5)),
+            new RitualSite("crowknight", "cultist_inquisitor", 80, "Inquisitor Ritual", new Location(world(), -329.5, 87, 36.5)),
+            new RitualSite("piglinking", "cultist_high_priest", 100, "High Priest Ritual", new Location(world(), -1161.5, 66, -834.5))
     );
 
     private static CultistCullingQuest instance;
@@ -326,7 +326,7 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
             Location spawnLoc = site.randomizedLocation();
             Entity mob;
             try {
-                mob = MythicBukkit.inst().getAPIHelper().spawnMythicMob(site.mobId(), spawnLoc);
+                mob = MythicBukkit.inst().getAPIHelper().spawnMythicMob(site.mobId(), spawnLoc, site.level());
             } catch (InvalidMobTypeException ex) {
                 Main.getInstance().getLogger().warning("Unable to spawn ritual mob '" + site.mobId() + "': " + ex.getMessage());
                 return;
@@ -457,7 +457,7 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
 
     public record RitualStatus(String title, int remaining, int target) {}
 
-    private record RitualSite(String key, String mobId, String title, Location location) {
+    private record RitualSite(String key, String mobId, int level, String title, Location location) {
         boolean withinRange(Location loc) {
             if (loc == null || location == null) {
                 return false;
