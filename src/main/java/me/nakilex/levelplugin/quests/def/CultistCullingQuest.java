@@ -2,7 +2,6 @@ package me.nakilex.levelplugin.quests.def;
 
 import io.lumine.mythic.bukkit.MythicBukkit;
 import io.lumine.mythic.bukkit.events.MythicMobDeathEvent;
-import io.lumine.mythic.core.mobs.ActiveMob;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.fakeblock.QuestGateManager;
 import me.nakilex.levelplugin.quests.data.BeaconTargets;
@@ -165,8 +164,8 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
 
             @EventHandler
             public void onMythicDeath(MythicMobDeathEvent event) {
-                if (instance != null) {
-                    instance.handleDeath(event.getEntity());
+                if (instance != null && event.getEntity() instanceof LivingEntity living) {
+                    instance.handleDeath(living);
                 }
             }
 
@@ -258,12 +257,12 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
         if (loc == null || loc.getWorld() == null) {
             return;
         }
-        ActiveMob mob = MythicBukkit.inst().getAPIHelper().spawnMythicMob(site.mobId(), loc);
-        if (mob == null || mob.getEntity() == null) {
+        Entity mob = MythicBukkit.inst().getAPIHelper().spawnMythicMob(site.mobId(), loc);
+        if (!(mob instanceof LivingEntity living)) {
             return;
         }
         UUID playerId = player.getUniqueId();
-        UUID mobId = mob.getEntity().getUniqueId();
+        UUID mobId = living.getUniqueId();
         activeSpawns.computeIfAbsent(playerId, k -> new HashMap<>()).put(site.key(), mobId);
         mobOwners.put(mobId, new ActiveRitual(playerId, site.key()));
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
