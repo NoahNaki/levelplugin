@@ -11,6 +11,8 @@ import java.util.List;
 import java.util.Map;
 
 public class SerasQuest extends Quest implements QuestScript, QuestCompletionScript {
+    public static final String ID = "serashelp";
+
     private static List<QuestObjective> createObjectives() {
         World world = Bukkit.getWorld("mmorpg");
         return List.of(
@@ -45,7 +47,7 @@ public class SerasQuest extends Quest implements QuestScript, QuestCompletionScr
 
     public SerasQuest() {
         super(
-                "serashelp",
+                ID,
                 "Seras' Request",
                 "Help Seras clear the forest slimes and defeat their king.",
                 createObjectives(),

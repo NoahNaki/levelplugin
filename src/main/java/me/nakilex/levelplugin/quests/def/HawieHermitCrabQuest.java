@@ -19,6 +19,8 @@ import java.util.List;
  * on his newly rebuilt docks.
  */
 public class HawieHermitCrabQuest extends Quest implements QuestScript, QuestCompletionScript {
+    public static final String ID = "hawiehermitcrabs";
+
     private static List<QuestObjective> createObjectives() {
         return List.of(
                 new QuestObjective(QuestObjectiveType.KILL, "vp1_hermit_crab", 10),
@@ -28,7 +30,7 @@ public class HawieHermitCrabQuest extends Quest implements QuestScript, QuestCom
 
     public HawieHermitCrabQuest() {
         super(
-                "hawiehermitcrabs",
+                ID,
                 "Clattering Cleanup",
                 "Help Hawie stop the hermit crabs from tearing up his docks.",
                 createObjectives(),
