@@ -48,7 +48,7 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
     public static final String RITUAL_TARGET = "cultist_ritual";
     private static final int CONTACT_NPC_ID = 1510;
     private static final String CONTACT_TALK_TARGET = "npc" + CONTACT_NPC_ID + "_mystery";
-    private static final String WORLD_NAME = "mmorpg";
+    private static final String WORLD_NAME = "world";
     private static final String GATE_ID = "cultisthq";
     private static final double TRIGGER_RADIUS_SQ = 30 * 30;
     private static final String RITUAL_SITE_KEY_NAME = "cultist_site";
