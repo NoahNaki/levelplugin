@@ -61,6 +61,7 @@ public class NPCClickListener implements Listener {
         this.blacksmithGUI = blacksmithGUI;
     }
 
+    @SuppressWarnings("deprecation")
     @EventHandler(ignoreCancelled = true)
     public void onNPCClick(PlayerInteractEntityEvent event) {
         // Ignore offhand interactions
@@ -72,7 +73,7 @@ public class NPCClickListener implements Listener {
             Player player = event.getPlayer();
             NPC npc = CitizensAPI.getNPCRegistry().getNPC(event.getRightClicked());
 
-            String stripped = org.bukkit.ChatColor.stripColor(npc.getName());
+            String stripped = NpcNameUtil.normalize(npc.getName());
             if (npc.getId() == 546) {
                 Main.getInstance().getCodexManager().recordNpc(player, stripped);
             }
@@ -591,7 +592,7 @@ public class NPCClickListener implements Listener {
         }
         QuestState state = questManager.getQuestState(player, quest);
         if (state == QuestState.AVAILABLE) {
-            dialogManager.startDialog(player, quest, npc,
+            dialogManager.startDialog(player, quest.getDialogLines(), npc,
                     () -> questManager.handleTalk(player, EssenceWeaversLessonQuest.INTRO_TARGET));
             return true;
         }
@@ -650,7 +651,7 @@ public class NPCClickListener implements Listener {
         }
         QuestState state = questManager.getQuestState(player, quest);
         if (state == QuestState.AVAILABLE) {
-            dialogManager.startDialog(player, quest, npc,
+            dialogManager.startDialog(player, quest.getDialogLines(), npc,
                     () -> questManager.handleTalk(player, ForgeFundamentalsQuest.INTRO_TARGET));
             return true;
         }
