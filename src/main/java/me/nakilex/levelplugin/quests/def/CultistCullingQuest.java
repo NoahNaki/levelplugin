@@ -20,6 +20,7 @@ import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
@@ -30,6 +31,8 @@ import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.persistence.PersistentDataContainer;
+import org.bukkit.persistence.PersistentDataType;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 
@@ -48,6 +51,8 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
     private static final String WORLD_NAME = "mmorpg";
     private static final String GATE_ID = "cultisthq";
     private static final double TRIGGER_RADIUS_SQ = 30 * 30;
+    private static final String RITUAL_SITE_KEY_NAME = "cultist_site";
+    private static final String RITUAL_OWNER_KEY_NAME = "cultist_owner";
 
     private static final List<String> INTRO_DIALOG = List.of(
             "Seras|Word is a cult has been stirring trouble well beyond these woods.",
@@ -82,9 +87,12 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
 
     private static CultistCullingQuest instance;
     private static boolean listenersRegistered;
+    private static int proximityTaskId = -1;
 
     private final Map<UUID, Map<String, UUID>> activeSpawns = new HashMap<>();
     private final Map<UUID, ActiveRitual> mobOwners = new HashMap<>();
+    private final NamespacedKey ritualSiteKey = new NamespacedKey(Main.getInstance(), RITUAL_SITE_KEY_NAME);
+    private final NamespacedKey ritualOwnerKey = new NamespacedKey(Main.getInstance(), RITUAL_OWNER_KEY_NAME);
 
     public CultistCullingQuest() {
         super(
@@ -152,7 +160,7 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
             @EventHandler
             public void onMove(PlayerMoveEvent event) {
                 if (instance != null) {
-                    instance.handleMove(event.getPlayer(), event.getTo());
+                    instance.handleProximity(event.getPlayer(), event.getTo());
                 }
             }
 
@@ -184,9 +192,20 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
                 }
             }
         }, plugin);
+
+        if (proximityTaskId == -1) {
+            proximityTaskId = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+                if (instance == null) {
+                    return;
+                }
+                for (Player player : Bukkit.getOnlinePlayers()) {
+                    instance.handleProximity(player, player.getLocation());
+                }
+            }, 40L, 40L).getTaskId();
+        }
     }
 
-    private void handleMove(Player player, Location to) {
+    private void handleProximity(Player player, Location to) {
         if (player == null || to == null || to.getWorld() == null) {
             return;
         }
@@ -225,6 +244,9 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
         }
         UUID mobId = entity.getUniqueId();
         ActiveRitual ritual = mobOwners.remove(mobId);
+        if (ritual == null) {
+            ritual = extractRitualData(entity);
+        }
         if (ritual == null) {
             return;
         }
@@ -265,6 +287,9 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
             Main.getInstance().getLogger().warning("Unable to spawn ritual mob '" + site.mobId() + "': " + ex.getMessage());
             return;
         }
+        if (mob == null) {
+            return;
+        }
         if (!(mob instanceof LivingEntity living)) {
             return;
         }
@@ -272,6 +297,9 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
         UUID mobId = living.getUniqueId();
         activeSpawns.computeIfAbsent(playerId, k -> new HashMap<>()).put(site.key(), mobId);
         mobOwners.put(mobId, new ActiveRitual(playerId, site.key()));
+        PersistentDataContainer data = living.getPersistentDataContainer();
+        data.set(ritualSiteKey, PersistentDataType.STRING, site.key());
+        data.set(ritualOwnerKey, PersistentDataType.STRING, playerId.toString());
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                 "Dark energy gathers nearby. The cult begins a ritual...");
     }
@@ -316,6 +344,21 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
             for (UUID mobId : map.values()) {
                 mobOwners.remove(mobId);
             }
+        }
+    }
+
+    private ActiveRitual extractRitualData(LivingEntity entity) {
+        PersistentDataContainer data = entity.getPersistentDataContainer();
+        String siteKey = data.get(ritualSiteKey, PersistentDataType.STRING);
+        String ownerId = data.get(ritualOwnerKey, PersistentDataType.STRING);
+        if (siteKey == null || ownerId == null) {
+            return null;
+        }
+        try {
+            UUID playerId = UUID.fromString(ownerId);
+            return new ActiveRitual(playerId, siteKey);
+        } catch (IllegalArgumentException ignored) {
+            return null;
         }
     }
 
