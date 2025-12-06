@@ -7,6 +7,8 @@ import me.nakilex.levelplugin.quests.data.QuestObjective;
 import me.nakilex.levelplugin.quests.data.QuestObjectiveType;
 import me.nakilex.levelplugin.quests.data.QuestRewardCompat;
 import me.nakilex.levelplugin.quests.data.QuestScript;
+import me.nakilex.levelplugin.quests.data.QuestCompletionScript;
+import me.nakilex.levelplugin.quests.managers.QuestManager;
 import org.bukkit.entity.Player;
 
 import java.util.List;
@@ -14,7 +16,7 @@ import java.util.List;
 /**
  * Short quest that teaches players how to salvage unwanted gear.
  */
-public class SalvagersLessonQuest extends Quest implements QuestScript {
+public class SalvagersLessonQuest extends Quest implements QuestScript, QuestCompletionScript {
     public static final String ID = "salvagerslesson";
 
     public static final String NPC_NAME = "Salvager";
@@ -30,7 +32,7 @@ public class SalvagersLessonQuest extends Quest implements QuestScript {
     private static List<QuestObjective> createObjectives() {
         return List.of(
                 new QuestObjective(QuestObjectiveType.TALK, INTRO_TARGET, 1, BeaconTargets.npc(NPC_NAME)),
-                new QuestObjective(QuestObjectiveType.SALVAGE, "ANY", SALVAGE_AMOUNT),
+                new QuestObjective(QuestObjectiveType.SALVAGE, "ANY", SALVAGE_AMOUNT, BeaconTargets.npc(NPC_NAME)),
                 new QuestObjective(QuestObjectiveType.TALK, RETURN_TARGET, 1, BeaconTargets.npc(NPC_NAME))
         );
     }
@@ -42,7 +44,7 @@ public class SalvagersLessonQuest extends Quest implements QuestScript {
                 "Learn how to break down extra gear and turn it into profit.",
                 createObjectives(),
                 3,
-                List.of(),
+                List.of(SerasQuest.ID),
                 null,
                 QuestRewardCompat.create(120, 40, 0, List.of()),
                 null,
@@ -68,12 +70,25 @@ public class SalvagersLessonQuest extends Quest implements QuestScript {
         return List.of(
                 "Salvager|See? Even scraps sparkle once you melt them down.",
                 "<player>|The coins weren't bad either.",
-                "Salvager|Keep bringing me your leftovers. There's profit in every shard."
+                "Salvager|Keep bringing me your leftovers. There's profit in every shard.",
+                "Salvager|If you're eager for more work, Hawie down on the docks needs a steady hand."
         );
     }
 
     @Override
     public void onStart(Player player, Main plugin) {
-        plugin.getQuestManager().handleTalk(player, INTRO_TARGET);
+        // Allow the beacon to guide players back to the Salvager instead of auto-advancing the intro.
+    }
+
+    @Override
+    public void onComplete(Player player, Main plugin) {
+        QuestManager questManager = plugin.getQuestManager();
+        if (questManager == null) {
+            return;
+        }
+        if (!questManager.hasCompleted(player.getUniqueId(), HawieHermitCrabQuest.ID)
+                && questManager.getProgress(player.getUniqueId(), HawieHermitCrabQuest.ID) == null) {
+            questManager.startQuest(player, HawieHermitCrabQuest.ID);
+        }
     }
 }

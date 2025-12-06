@@ -7,6 +7,8 @@ import me.nakilex.levelplugin.quests.data.QuestObjective;
 import me.nakilex.levelplugin.quests.data.QuestObjectiveType;
 import me.nakilex.levelplugin.quests.data.QuestRewardCompat;
 import me.nakilex.levelplugin.quests.data.QuestScript;
+import me.nakilex.levelplugin.quests.data.QuestCompletionScript;
+import me.nakilex.levelplugin.quests.managers.QuestManager;
 import org.bukkit.entity.Player;
 
 import java.util.List;
@@ -15,7 +17,9 @@ import java.util.List;
  * Hawie's follow-up request that has players thin out the hermit crabs gnawing
  * on his newly rebuilt docks.
  */
-public class HawieHermitCrabQuest extends Quest implements QuestScript {
+public class HawieHermitCrabQuest extends Quest implements QuestScript, QuestCompletionScript {
+    public static final String ID = "hawiehermitcrabs";
+
     private static List<QuestObjective> createObjectives() {
         return List.of(
                 new QuestObjective(QuestObjectiveType.KILL, "vp1_hermit_crab", 10),
@@ -25,12 +29,12 @@ public class HawieHermitCrabQuest extends Quest implements QuestScript {
 
     public HawieHermitCrabQuest() {
         super(
-                "hawiehermitcrabs",
+                ID,
                 "Clattering Cleanup",
                 "Help Hawie stop the hermit crabs from tearing up his docks.",
                 createObjectives(),
                 10,
-                List.of("serashelp"),
+                List.of("serashelp", SalvagersLessonQuest.ID),
                 null,
                 QuestRewardCompat.create(300, 250, 0, List.of()),
                 1089,
@@ -44,8 +48,29 @@ public class HawieHermitCrabQuest extends Quest implements QuestScript {
         );
     }
 
+    public static List<String> getReturnDialog() {
+        return List.of(
+                "Hawie|That's the last of the clattering nuisances? Music to my ears!",
+                "<player>|The docks should stay in one piece now.",
+                "Hawie|Good. If you want steadier work, the Stable Keeper up the road is always looking for capable riders.",
+                "Hawie|Tell them Hawie sent you—they'll set you up quick."
+        );
+    }
+
     @Override
     public void onStart(Player player, Main plugin) {
         // no special start logic
+    }
+
+    @Override
+    public void onComplete(Player player, Main plugin) {
+        QuestManager questManager = plugin.getQuestManager();
+        if (questManager == null) {
+            return;
+        }
+        if (!questManager.hasCompleted(player.getUniqueId(), StableKeeperQuest.ID)
+                && questManager.getProgress(player.getUniqueId(), StableKeeperQuest.ID) == null) {
+            questManager.startQuest(player, StableKeeperQuest.ID);
+        }
     }
 }

@@ -301,6 +301,7 @@ public class ClassEssenceUpgradeGUI implements Listener {
                 send(player, MessageType.SUCCESS, "Essence rarity increased to "
                         + upgraded.getColor() + TextUtil.beautifyWords(upgraded.name()));
             }
+            Main.getInstance().getQuestManager().handleUpgrade(player, "essence");
         } else {
             send(player, MessageType.ERROR, "Essences must match class.");
         }
@@ -332,6 +333,7 @@ public class ClassEssenceUpgradeGUI implements Listener {
                     }
                     inv.setItem(STAR_SLOT, essence);
                     updateStarButton(inv);
+                    Main.getInstance().getQuestManager().handleUpgrade(player, "essence");
                 } else {
                     send(player, MessageType.ERROR, "You need " + cost + " coins.");
                 }

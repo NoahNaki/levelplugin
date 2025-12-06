@@ -30,6 +30,17 @@ public final class RewardBombUtil {
     }
 
     /**
+     * Reward bomb that exposes the requested level to the reward supplier.
+     */
+    public static void startRewardBomb(JavaPlugin plugin, Location origin, int level, java.util.function.Function<Integer, ItemStack> reward, int duration, Player owner) {
+        if (reward == null) {
+            startRewardBomb(plugin, origin, (Supplier<ItemStack>) null, duration, owner);
+            return;
+        }
+        startRewardBomb(plugin, origin, () -> reward.apply(level), duration, owner);
+    }
+
+    /**
      * Client-biased reward bomb that optionally sets an owner for each drop so every player
      * sees their own fountain of loot.
      */

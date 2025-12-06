@@ -71,6 +71,7 @@ public class QuestManager {
         Quest office = new me.nakilex.levelplugin.quests.def.OfficeErrandsQuest();
         registerQuest(office);
         Quest nb = new me.nakilex.levelplugin.quests.def.NewBeginningQuest();
+        Quest cultistCulling = new me.nakilex.levelplugin.quests.def.CultistCullingQuest();
         Quest seras = new me.nakilex.levelplugin.quests.def.SerasQuest();
         Quest hawieCrabs = new me.nakilex.levelplugin.quests.def.HawieHermitCrabQuest();
         Quest rahirScorpid = new me.nakilex.levelplugin.quests.def.RahirScorpidQuest();
@@ -83,7 +84,11 @@ public class QuestManager {
         Quest salvagersLesson = new me.nakilex.levelplugin.quests.def.SalvagersLessonQuest();
         Quest wayfarersMark = new me.nakilex.levelplugin.quests.def.WayfarersMarkQuest();
         Quest marketBeginnings = new me.nakilex.levelplugin.quests.def.MarketBeginningsQuest();
+        Quest forgeFundamentals = new me.nakilex.levelplugin.quests.def.ForgeFundamentalsQuest();
+        Quest stonemasonJudeau = new me.nakilex.levelplugin.quests.def.StonemasonJudeauQuest();
+        Quest essenceWeaverLesson = new me.nakilex.levelplugin.quests.def.EssenceWeaversLessonQuest();
         registerQuest(nb);
+        registerQuest(cultistCulling);
         registerQuest(seras);
         registerQuest(hawieCrabs);
         registerQuest(rahirScorpid);
@@ -96,13 +101,26 @@ public class QuestManager {
         registerQuest(salvagersLesson);
         registerQuest(wayfarersMark);
         registerQuest(marketBeginnings);
+        registerQuest(forgeFundamentals);
+        registerQuest(stonemasonJudeau);
+        registerQuest(essenceWeaverLesson);
         me.nakilex.levelplugin.quests.def.SharpestSecretQuest.registerTalkTargets(this);
         me.nakilex.levelplugin.quests.def.SalvagersLessonQuest.registerTalkTargets(this);
         me.nakilex.levelplugin.quests.def.MarketBeginningsQuest.registerTalkTargets(this);
-        // Only the salvaging quest relies on NPC name lookups; others stay ID-based to avoid
-        // accidental cross-talk when multiple NPCs share display names.
+        me.nakilex.levelplugin.quests.def.ForgeFundamentalsQuest.registerTalkTargets(this);
+        me.nakilex.levelplugin.quests.def.StonemasonJudeauQuest.registerTalkTargets(this);
+        me.nakilex.levelplugin.quests.def.CultistCullingQuest.registerTalkTargets(this);
+        me.nakilex.levelplugin.quests.def.EssenceWeaversLessonQuest.registerTalkTargets(this);
+        // These service/tutorial quests rely on NPC display names so they continue to work even if IDs
+        // change between environments.
         registerNpcQuest(me.nakilex.levelplugin.quests.def.SalvagersLessonQuest.NPC_NAME,
                 me.nakilex.levelplugin.quests.def.SalvagersLessonQuest.ID);
+        registerNpcQuest(me.nakilex.levelplugin.quests.def.ForgeFundamentalsQuest.NPC_NAME,
+                me.nakilex.levelplugin.quests.def.ForgeFundamentalsQuest.ID);
+        registerNpcQuest(me.nakilex.levelplugin.quests.def.StonemasonJudeauQuest.NPC_NAME,
+                me.nakilex.levelplugin.quests.def.StonemasonJudeauQuest.ID);
+        registerNpcQuest(me.nakilex.levelplugin.quests.def.EssenceWeaversLessonQuest.NPC_NAME,
+                me.nakilex.levelplugin.quests.def.EssenceWeaversLessonQuest.ID);
         plugin.getLogger().info("Registered " + quests.size() + " quests.");
     }
 
@@ -539,7 +557,7 @@ public class QuestManager {
         if (debug) {
             plugin.getLogger().info("[QuestDebug] " + player.getName() + " upgraded " + itemId);
         }
-        updateObjective(player, QuestObjectiveType.UPGRADE, itemId, 1);
+        updateObjectiveWithAny(player, QuestObjectiveType.UPGRADE, itemId);
     }
 
     public void handleCast(Player player, String spellId) {
@@ -666,14 +684,24 @@ public class QuestManager {
         if (debug) {
             plugin.getLogger().info("[QuestDebug] " + player.getName() + " repaired " + itemId);
         }
-        updateObjective(player, QuestObjectiveType.BLACKSMITH_REPAIR, itemId, 1);
+        updateObjectiveWithAny(player, QuestObjectiveType.BLACKSMITH_REPAIR, itemId);
+        handleBlacksmithService(player, itemId);
     }
 
     public void handleReroll(Player player, String itemId) {
         if (debug) {
             plugin.getLogger().info("[QuestDebug] " + player.getName() + " rerolled " + itemId);
         }
-        updateObjective(player, QuestObjectiveType.BLACKSMITH_REROLL, itemId, 1);
+        updateObjectiveWithAny(player, QuestObjectiveType.BLACKSMITH_REROLL, itemId);
+        handleBlacksmithService(player, itemId);
+    }
+
+    public void handleBlacksmithUpgrade(Player player, String itemId) {
+        if (debug) {
+            plugin.getLogger().info("[QuestDebug] " + player.getName() + " blacksmith-upgraded " + itemId);
+        }
+        updateObjectiveWithAny(player, QuestObjectiveType.UPGRADE, itemId);
+        handleBlacksmithService(player, itemId);
     }
 
     public void handleSalvage(Player player, String itemId) {
@@ -741,6 +769,10 @@ public class QuestManager {
             plugin.getLogger().info("[QuestDebug] " + player.getName() + " saved dungeon " + target);
         }
         updateObjectiveWithAny(player, QuestObjectiveType.DUNGEON_CREATE, target);
+    }
+
+    private void handleBlacksmithService(Player player, String itemId) {
+        updateObjectiveWithAny(player, QuestObjectiveType.BLACKSMITH_SERVICE, itemId);
     }
 
     private boolean requirementsMet(Player player, Quest quest) {
@@ -908,6 +940,9 @@ public class QuestManager {
                 }
                 return "Buy " + obj.getTarget();
             case UPGRADE:
+                if (obj.getTarget() == null || obj.getTarget().equalsIgnoreCase("ANY")) {
+                    return "Upgrade an item";
+                }
                 return "Upgrade " + obj.getTarget();
             case CAST:
                 return "Cast " + obj.getTarget();
@@ -941,6 +976,11 @@ public class QuestManager {
                 return "Bid on an auction";
             case TOWN_UPGRADE:
                 return "Upgrade your town";
+            case BLACKSMITH_SERVICE:
+                if (obj.getTarget() == null || obj.getTarget().equalsIgnoreCase("ANY")) {
+                    return "Use the blacksmith";
+                }
+                return "Use the blacksmith on " + obj.getTarget();
             case BLACKSMITH_REPAIR:
                 return "Repair an item";
             case BLACKSMITH_REROLL:

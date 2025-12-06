@@ -1,13 +1,18 @@
 package me.nakilex.levelplugin.quests.def;
 
+import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.quests.data.*;
+import me.nakilex.levelplugin.quests.managers.QuestManager;
+import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import java.util.List;
 import java.util.Map;
 
-public class SerasQuest extends Quest implements QuestScript {
+public class SerasQuest extends Quest implements QuestScript, QuestCompletionScript {
+    public static final String ID = "serashelp";
+
     private static List<QuestObjective> createObjectives() {
         World world = Bukkit.getWorld("mmorpg");
         return List.of(
@@ -33,6 +38,7 @@ public class SerasQuest extends Quest implements QuestScript {
                     "Seras|Alright, you've certainly proven yourself adventurer,",
                     "Seras|I wonder why I've never heard of someone as strong as you before...",
                     "Seras|I'm sure you have your reasons, nonetheless I must take care of some other matters for now,",
+                    "Seras|If your packs start spilling with scraps, the Salvager near town can break them down for you.",
                     "Seras|I'm sure our paths will cross again."));
 
     public static List<String> getDialogForObjective(int objectiveIndex) {
@@ -41,7 +47,7 @@ public class SerasQuest extends Quest implements QuestScript {
 
     public SerasQuest() {
         super(
-                "serashelp",
+                ID,
                 "Seras' Request",
                 "Help Seras clear the forest slimes and defeat their king.",
                 createObjectives(),
@@ -64,6 +70,20 @@ public class SerasQuest extends Quest implements QuestScript {
     @Override
     public void onStart(org.bukkit.entity.Player player, me.nakilex.levelplugin.Main plugin) {
         // No special start logic
+    }
+
+    @Override
+    public void onComplete(org.bukkit.entity.Player player, Main plugin) {
+        QuestManager questManager = plugin.getQuestManager();
+        if (questManager == null) {
+            return;
+        }
+        if (!questManager.hasCompleted(player.getUniqueId(), SalvagersLessonQuest.ID)
+                && questManager.getProgress(player.getUniqueId(), SalvagersLessonQuest.ID) == null) {
+            questManager.startQuest(player, SalvagersLessonQuest.ID);
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                    "Seras points you toward the Salvager for lessons on breaking down extra loot.");
+        }
     }
 
 }

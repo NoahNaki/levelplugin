@@ -94,7 +94,7 @@ public class QuestGUI {
 
         List<Quest> list = new ArrayList<>(questManager.getQuests());
         int filter = filterMap.getOrDefault(player.getUniqueId(), 0);
-        int sort = sortMap.getOrDefault(player.getUniqueId(), 0);
+        int sort = sortMap.getOrDefault(player.getUniqueId(), 2);
 
         list.removeIf(q -> {
             QuestState state = questManager.getQuestState(player, q);
