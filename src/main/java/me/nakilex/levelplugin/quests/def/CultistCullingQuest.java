@@ -1,12 +1,9 @@
 package me.nakilex.levelplugin.quests.def;
 
 import io.lumine.mythic.api.exceptions.InvalidMobTypeException;
-import io.lumine.mythic.bukkit.MythicBukkit;
 import io.lumine.mythic.bukkit.events.MythicMobDeathEvent;
-import io.lumine.mythic.core.mobs.ActiveMob;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.fakeblock.QuestGateManager;
-import me.nakilex.levelplugin.mob.utils.MobNameUtil;
 import me.nakilex.levelplugin.quests.data.BeaconTargets;
 import me.nakilex.levelplugin.quests.data.PlayerQuestProgress;
 import me.nakilex.levelplugin.quests.data.Quest;
@@ -55,9 +52,7 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
     private static final double TRIGGER_RADIUS_SQ = 30 * 30;
     private static final String RITUAL_SITE_KEY_NAME = "cultist_site";
     private static final String RITUAL_OWNER_KEY_NAME = "cultist_owner";
-    private static final String SHADOW_CORE_ID = "Shadow_Sorcerer_Core";
     private static final String SHADOW_SITE_KEY = "shadow_sorcerer";
-    private static final String SHADOW_CORE_CANONICAL = MobNameUtil.canonicalMobKey(SHADOW_CORE_ID);
 
     private static final List<String> INTRO_DIALOG = List.of(
             "Seras|Word is a cult has been stirring trouble well beyond these woods.",
@@ -83,7 +78,7 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
     }
 
     private static final List<RitualSite> RITUAL_SITES = List.of(
-            new RitualSite(SHADOW_SITE_KEY, "Shadow_Sorcerer", new Location(world(), 262.5, 73, -364.5)),
+            new RitualSite(SHADOW_SITE_KEY, "LDR_eldric", new Location(world(), 262.5, 73, -364.5)),
             new RitualSite("tenebris", "hv_tenebris", new Location(world(), 176.5, 80, -629.5)),
             new RitualSite("gravekeeper", "Nocsy_FPV2-Gravekeeper", new Location(world(), 329.5, 73, 175.5)),
             new RitualSite("crowknight", "thecrowknight", new Location(world(), -329.5, 87, 36.5)),
@@ -252,10 +247,6 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
         if (ritual == null) {
             return;
         }
-        if (isShadowCoreRequired(ritual.siteKey()) && !isShadowCore(entity)) {
-            return;
-        }
-
         clearActive(ritual.playerId(), ritual.siteKey());
         Player player = Bukkit.getPlayer(ritual.playerId());
         if (player == null || !player.isOnline()) {
@@ -438,55 +429,6 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
         if (ritual == null) {
             ritual = extractRitualData(entity);
         }
-        if (ritual == null && isShadowCore(entity)) {
-            Player killer = entity.getKiller();
-            if (killer != null) {
-                ritual = shadowFallback(killer, entity.getLocation());
-            }
-        }
         return ritual;
-    }
-
-    private boolean isShadowCoreRequired(String siteKey) {
-        return SHADOW_SITE_KEY.equals(siteKey);
-    }
-
-    private boolean isShadowCore(LivingEntity entity) {
-        MythicBukkit mythic = MythicBukkit.inst();
-        if (mythic == null || mythic.getMobManager() == null) {
-            return false;
-        }
-        ActiveMob mob = mythic.getMobManager().getActiveMob(entity.getUniqueId()).orElse(null);
-        if (mob == null || mob.getType() == null) {
-            return false;
-        }
-        String typeName = mob.getType().getInternalName();
-        return !SHADOW_CORE_CANONICAL.isBlank()
-                && SHADOW_CORE_CANONICAL.equals(MobNameUtil.canonicalMobKey(typeName));
-    }
-
-    private ActiveRitual shadowFallback(Player killer, Location deathLoc) {
-        QuestManager questManager = Main.getInstance().getQuestManager();
-        if (questManager == null) {
-            return null;
-        }
-        PlayerQuestProgress progress = questManager.getProgress(killer.getUniqueId(), ID);
-        if (progress == null || questManager.hasFlag(killer.getUniqueId(), ID, SHADOW_SITE_KEY)) {
-            return null;
-        }
-        RitualSite site = getSite(SHADOW_SITE_KEY);
-        if (site == null || deathLoc == null || !site.withinRange(deathLoc)) {
-            return null;
-        }
-        return new ActiveRitual(killer.getUniqueId(), SHADOW_SITE_KEY);
-    }
-
-    private RitualSite getSite(String key) {
-        for (RitualSite site : RITUAL_SITES) {
-            if (site.key().equals(key)) {
-                return site;
-            }
-        }
-        return null;
     }
 }
