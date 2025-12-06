@@ -22,6 +22,7 @@ public enum QuestObjectiveType {
     AUCTION_SELL,
     AUCTION_BID,
     TOWN_UPGRADE,
+    BLACKSMITH_SERVICE,
     BLACKSMITH_REPAIR,
     BLACKSMITH_REROLL,
     SALVAGE,

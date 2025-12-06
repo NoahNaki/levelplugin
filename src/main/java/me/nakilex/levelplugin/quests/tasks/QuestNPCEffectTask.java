@@ -34,7 +34,9 @@ public class QuestNPCEffectTask extends BukkitRunnable {
             "storage manager", "<glyph:banker>",
             "auction house", "<glyph:auctionhouse>",
             "stable keeper", "<glyph:horse>",
-            "salvager", "<glyph:scrapper>");
+            "salvager", "<glyph:scrapper>",
+            "essence weaver", "<glyph:essenceicon>",
+            "potion merchant", "<glyph:potionicon>");
 
     /** Vertical offset for NPC glyph displays. */
     private static final double GLYPH_Y_OFFSET = 2.8;
