@@ -16,13 +16,10 @@ import java.util.List;
  */
 public class ForgeFundamentalsQuest extends Quest implements QuestScript {
     public static final String ID = "forgefundamentals";
-    public static final String NPC_NAME = "Forge Master";
+    public static final String NPC_NAME = "Blacksmith";
 
-    /** Placeholder NPC ID; replace with the blacksmith trainer in-game. */
-    public static final int NPC_ID = 9925;
-
-    public static final String INTRO_TARGET = "npc" + NPC_ID + "_intro";
-    public static final String RETURN_TARGET = "npc" + NPC_ID + "_return";
+    public static final String INTRO_TARGET = "npc_blacksmith_intro";
+    public static final String RETURN_TARGET = "npc_blacksmith_return";
 
     private static List<QuestObjective> createObjectives() {
         return List.of(
@@ -43,12 +40,12 @@ public class ForgeFundamentalsQuest extends Quest implements QuestScript {
                 List.of("newbeginning"),
                 null,
                 QuestRewardCompat.create(190, 95, 0, List.of()),
-                NPC_ID,
+                null,
                 List.of(
-                        "Bram|Steel keeps you alive longer than bravado.",
+                        "Blacksmith|Steel keeps you alive longer than bravado.",
                         "<player>|My gear has seen better days.",
-                        "Bram|Then let's fix that. Repair one item with my anvil, reroll another at the forge,",
-                        "Bram|and you'll stop looking like a walking scrap heap."
+                        "Blacksmith|Then let's fix that. Repair one item with my anvil, reroll another at the forge,",
+                        "Blacksmith|and you'll stop looking like a walking scrap heap."
                 ),
                 false,
                 true
@@ -59,8 +56,8 @@ public class ForgeFundamentalsQuest extends Quest implements QuestScript {
         if (questManager == null) {
             return;
         }
-        questManager.registerTalkTarget(INTRO_TARGET, NPC_NAME, "Bram");
-        questManager.registerTalkTarget(RETURN_TARGET, NPC_NAME, "Bram");
+        questManager.registerTalkTarget(INTRO_TARGET, NPC_NAME, NPC_NAME);
+        questManager.registerTalkTarget(RETURN_TARGET, NPC_NAME, NPC_NAME);
     }
 
     @Override

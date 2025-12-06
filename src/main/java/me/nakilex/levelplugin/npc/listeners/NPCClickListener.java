@@ -15,6 +15,7 @@ import me.nakilex.levelplugin.quests.def.SharpestSecretQuest;
 import me.nakilex.levelplugin.quests.def.StableKeeperQuest;
 import me.nakilex.levelplugin.quests.def.SalvagersLessonQuest;
 import me.nakilex.levelplugin.quests.def.MarketBeginningsQuest;
+import me.nakilex.levelplugin.quests.def.EssenceWeaversLessonQuest;
 import me.nakilex.levelplugin.npc.dialog.NPCDialogManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.CurrencyMessageUtil;
@@ -22,6 +23,7 @@ import me.nakilex.levelplugin.utils.NpcNameUtil;
 import me.nakilex.levelplugin.enchanting.gui.EnchantGUI;
 import me.nakilex.levelplugin.auctionhouse.AuctionHouseGUI;
 import me.nakilex.levelplugin.salvage.gui.SalvageGUI;
+import me.nakilex.levelplugin.player.classes.essence.gui.ClassEssenceUpgradeGUI;
 import me.nakilex.levelplugin.quests.util.QuestServiceAccessTracker;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import net.citizensnpcs.api.CitizensAPI;
@@ -79,6 +81,12 @@ public class NPCClickListener implements Listener {
                 }
                 SalvageGUI.openMerchantGUI(player);
                 return;
+            }
+            if (isNpcName(npc, EssenceWeaversLessonQuest.NPC_NAME)) {
+                Quest essenceQuest = questManager.getQuestById(EssenceWeaversLessonQuest.ID);
+                if (handleEssenceWeaverLesson(player, npc, essenceQuest)) {
+                    return;
+                }
             }
             if (stripped.equalsIgnoreCase("Starter Merchant")) {
                 PlayerQuestProgress prog = questManager.getProgress(player.getUniqueId(), "newbeginning");
@@ -563,6 +571,64 @@ public class NPCClickListener implements Listener {
                 SalvagersLessonQuest.getReturnDialog(),
                 npc,
                 () -> questManager.handleTalk(player, SalvagersLessonQuest.RETURN_TARGET));
+        return true;
+    }
+
+    private boolean handleEssenceWeaverLesson(Player player, NPC npc, Quest quest) {
+        if (quest == null) {
+            return false;
+        }
+        QuestState state = questManager.getQuestState(player, quest);
+        if (state == QuestState.AVAILABLE) {
+            dialogManager.startDialog(player, quest, npc);
+            return true;
+        }
+        if (state == QuestState.LOCKED) {
+            questManager.meetsRequirements(player, quest);
+            return true;
+        }
+
+        UUID uuid = player.getUniqueId();
+        boolean completed = questManager.hasCompleted(uuid, EssenceWeaversLessonQuest.ID);
+        PlayerQuestProgress progress = questManager.getProgress(uuid, EssenceWeaversLessonQuest.ID);
+        boolean introDone = progress != null && progress.getProgress(EssenceWeaversLessonQuest.TALK_INTRO_INDEX) >= 1;
+        boolean upgraded = progress != null &&
+                progress.getProgress(EssenceWeaversLessonQuest.UPGRADE_INDEX) >= 1;
+        boolean returned = progress != null && progress.getProgress(EssenceWeaversLessonQuest.TALK_RETURN_INDEX) >= 1;
+        boolean cooling = QuestServiceAccessTracker.isCoolingDown(uuid, QuestServiceAccessTracker.Service.ESSENCE);
+
+        if (!introDone && progress != null) {
+            dialogManager.startDialog(player,
+                    quest.getDialogLines(),
+                    npc,
+                    () -> questManager.handleTalk(player, EssenceWeaversLessonQuest.INTRO_TARGET));
+            return true;
+        }
+
+        if (completed || returned) {
+            if (cooling) {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                        "Give the Essence Weaver a moment to reset the loom.");
+                return true;
+            }
+            ClassEssenceUpgradeGUI.openInvest(player, null);
+            return true;
+        }
+
+        if (!upgraded) {
+            if (!cooling) {
+                ClassEssenceUpgradeGUI.openInvest(player, null);
+            } else {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                        "Let the Essence Weaver finish the weave before trying again.");
+            }
+            return true;
+        }
+
+        dialogManager.startDialog(player,
+                EssenceWeaversLessonQuest.getReturnDialog(),
+                npc,
+                () -> questManager.handleTalk(player, EssenceWeaversLessonQuest.RETURN_TARGET));
         return true;
     }
 

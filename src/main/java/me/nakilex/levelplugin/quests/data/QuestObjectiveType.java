@@ -6,6 +6,7 @@ public enum QuestObjectiveType {
     INTERACT,
     BUY,
     UPGRADE,
+    ESSENCE_UPGRADE,
     CAST,
     CRAFT,
     DUEL,

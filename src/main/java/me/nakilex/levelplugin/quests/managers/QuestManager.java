@@ -89,6 +89,7 @@ public class QuestManager {
         Quest runicResonance = new me.nakilex.levelplugin.quests.def.RunicResonanceQuest();
         Quest stonemasonsPlea = new me.nakilex.levelplugin.quests.def.StonemasonsPleaQuest();
         Quest delversCharter = new me.nakilex.levelplugin.quests.def.DelversCharterQuest();
+        Quest essenceWeaverLesson = new me.nakilex.levelplugin.quests.def.EssenceWeaversLessonQuest();
         registerQuest(nb);
         registerQuest(seras);
         registerQuest(hawieCrabs);
@@ -108,6 +109,7 @@ public class QuestManager {
         registerQuest(runicResonance);
         registerQuest(stonemasonsPlea);
         registerQuest(delversCharter);
+        registerQuest(essenceWeaverLesson);
         me.nakilex.levelplugin.quests.def.SharpestSecretQuest.registerTalkTargets(this);
         me.nakilex.levelplugin.quests.def.SalvagersLessonQuest.registerTalkTargets(this);
         me.nakilex.levelplugin.quests.def.MarketBeginningsQuest.registerTalkTargets(this);
@@ -117,10 +119,14 @@ public class QuestManager {
         me.nakilex.levelplugin.quests.def.RunicResonanceQuest.registerTalkTargets(this);
         me.nakilex.levelplugin.quests.def.StonemasonsPleaQuest.registerTalkTargets(this);
         me.nakilex.levelplugin.quests.def.DelversCharterQuest.registerTalkTargets(this);
-        // Only the salvaging quest relies on NPC name lookups; others stay ID-based to avoid
-        // accidental cross-talk when multiple NPCs share display names.
+        me.nakilex.levelplugin.quests.def.EssenceWeaversLessonQuest.registerTalkTargets(this);
+        // GUI-driven services rely on NPC display names so they stay consistent across environments.
         registerNpcQuest(me.nakilex.levelplugin.quests.def.SalvagersLessonQuest.NPC_NAME,
                 me.nakilex.levelplugin.quests.def.SalvagersLessonQuest.ID);
+        registerNpcQuest(me.nakilex.levelplugin.quests.def.ForgeFundamentalsQuest.NPC_NAME,
+                me.nakilex.levelplugin.quests.def.ForgeFundamentalsQuest.ID);
+        registerNpcQuest(me.nakilex.levelplugin.quests.def.EssenceWeaversLessonQuest.NPC_NAME,
+                me.nakilex.levelplugin.quests.def.EssenceWeaversLessonQuest.ID);
         plugin.getLogger().info("Registered " + quests.size() + " quests.");
     }
 
@@ -560,6 +566,14 @@ public class QuestManager {
         updateObjective(player, QuestObjectiveType.UPGRADE, itemId, 1);
     }
 
+    public void handleEssenceUpgrade(Player player, String action) {
+        if (debug) {
+            plugin.getLogger().info("[QuestDebug] " + player.getName() + " essence-upgraded via " + action);
+        }
+        updateObjectiveWithAny(player, QuestObjectiveType.ESSENCE_UPGRADE, action);
+        QuestServiceAccessTracker.markInteraction(player.getUniqueId(), QuestServiceAccessTracker.Service.ESSENCE);
+    }
+
     public void handleCast(Player player, String spellId) {
         if (debug) {
             plugin.getLogger().info("[QuestDebug] " + player.getName() + " cast " + spellId);
@@ -927,6 +941,8 @@ public class QuestManager {
                 return "Buy " + obj.getTarget();
             case UPGRADE:
                 return "Upgrade " + obj.getTarget();
+            case ESSENCE_UPGRADE:
+                return "Upgrade an essence";
             case CAST:
                 return "Cast " + obj.getTarget();
             case CRAFT:
