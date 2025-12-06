@@ -19,7 +19,6 @@ import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
@@ -31,6 +30,8 @@ import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 
 import java.util.HashMap;
 import java.util.List;
@@ -107,9 +108,9 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
         return List.of(
                 new QuestObjective(QuestObjectiveType.KILL, RITUAL_TARGET, RITUAL_SITES.size(), false, null,
                         "Disrupt cultist rituals"),
-                new QuestObjective(QuestObjectiveType.TALK, CONTACT_TALK_TARGET, 1,
+                new QuestObjective(QuestObjectiveType.TALK, CONTACT_TALK_TARGET, 1, false,
                         BeaconTargets.npc(CONTACT_NPC_ID),
-                        ChatColor.DARK_PURPLE + "Report to the mysterious contact")
+                        "Report to the mysterious contact")
         );
     }
 
@@ -218,7 +219,7 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
         }
     }
 
-    private void handleDeath(Entity entity) {
+    private void handleDeath(LivingEntity entity) {
         if (entity == null) {
             return;
         }
@@ -332,7 +333,7 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
         Entity entity = npc.getEntity();
         if (entity instanceof LivingEntity living) {
             living.setCustomNameVisible(false);
-            living.setCustomName(ChatColor.DARK_PURPLE + "Mysterious Person");
+            living.customName(Component.text("Mysterious Person", NamedTextColor.DARK_PURPLE));
         }
         npc.spawn(npc.getStoredLocation());
     }
