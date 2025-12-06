@@ -333,7 +333,6 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
             }
             if (mobId != null) {
                 mobOwners.remove(mobId);
-                processedDeaths.remove(mobId);
             }
         }
     }
@@ -343,7 +342,6 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
         if (map != null) {
             for (UUID mobId : map.values()) {
                 mobOwners.remove(mobId);
-                processedDeaths.remove(mobId);
             }
         }
     }
