@@ -78,6 +78,14 @@ public class NPCClickListener implements Listener {
                 Main.getInstance().getCodexManager().recordNpc(player, stripped);
             }
 
+            if (dialogManager.hasSession(player)) {
+                NPC sessionNpc = dialogManager.getSessionNpc(player);
+                if (sessionNpc != null && sessionNpc.getId() == npc.getId()) {
+                    dialogManager.advanceDialog(player, questManager);
+                }
+                return;
+            }
+
             if (isNpcName(npc, SalvagersLessonQuest.NPC_NAME)
                     && questManager.hasCompleted(player.getUniqueId(), SalvagersLessonQuest.ID)) {
                 if (QuestServiceAccessTracker.isCoolingDown(player.getUniqueId(), QuestServiceAccessTracker.Service.SALVAGE)) {
