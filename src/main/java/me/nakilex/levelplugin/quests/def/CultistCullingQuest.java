@@ -53,6 +53,7 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
     private static final double TRIGGER_RADIUS_SQ = 30 * 30;
     private static final String RITUAL_SITE_KEY_NAME = "cultist_site";
     private static final String RITUAL_OWNER_KEY_NAME = "cultist_owner";
+    private static final boolean DEBUG = true;
 
     private static final List<String> INTRO_DIALOG = List.of(
             "Seras|Word is a cult has been stirring trouble well beyond these woods.",
@@ -91,6 +92,7 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
 
     private final Map<UUID, Map<String, UUID>> activeSpawns = new HashMap<>();
     private final Map<UUID, ActiveRitual> mobOwners = new HashMap<>();
+    private final Map<UUID, Map<String, String>> lastProximityDebug = new HashMap<>();
     private final NamespacedKey ritualSiteKey = new NamespacedKey(Main.getInstance(), RITUAL_SITE_KEY_NAME);
     private final NamespacedKey ritualOwnerKey = new NamespacedKey(Main.getInstance(), RITUAL_OWNER_KEY_NAME);
 
@@ -225,15 +227,20 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
 
         for (RitualSite site : RITUAL_SITES) {
             if (questManager.hasFlag(player.getUniqueId(), ID, site.key())) {
+                debugSite(player, site.key(), "already cleared");
                 continue;
             }
             if (!site.isInRange(to)) {
+                clearSiteDebug(player.getUniqueId(), site.key());
                 continue;
             }
             if (isActive(player.getUniqueId(), site.key())) {
                 pruneIfInvalid(player.getUniqueId(), site.key());
+                debugSite(player, site.key(), "ritual already active");
                 continue;
             }
+            debugSite(player, site.key(), "spawning ritual mob '" + site.mobId() + "' at "
+                    + site.location().getBlockX() + "," + site.location().getBlockY() + "," + site.location().getBlockZ());
             spawnRitual(player, site);
         }
     }
@@ -248,19 +255,23 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
             ritual = extractRitualData(entity);
         }
         if (ritual == null) {
+            debug(null, "Death ignored: no ritual metadata for entity " + entity.getType());
             return;
         }
         clearActive(ritual.playerId(), ritual.siteKey());
         Player player = Bukkit.getPlayer(ritual.playerId());
         if (player == null || !player.isOnline()) {
+            debug(null, "Death ignored: owner offline for site " + ritual.siteKey());
             return;
         }
         if (entity.getKiller() == null || !player.getUniqueId().equals(entity.getKiller().getUniqueId())) {
+            debug(player, "Death ignored: killer mismatch for site " + ritual.siteKey());
             return;
         }
 
         QuestManager questManager = Main.getInstance().getQuestManager();
         if (questManager == null) {
+            debug(player, "Death ignored: quest manager unavailable for site " + ritual.siteKey());
             return;
         }
         questManager.setFlag(player.getUniqueId(), ID, ritual.siteKey());
@@ -288,9 +299,11 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
             return;
         }
         if (mob == null) {
+            debug(player, "Spawn failed: API returned null for site " + site.key());
             return;
         }
         if (!(mob instanceof LivingEntity living)) {
+            debug(player, "Spawn failed: non-living entity for site " + site.key());
             return;
         }
         UUID playerId = player.getUniqueId();
@@ -336,6 +349,7 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
                 mobOwners.remove(mobId);
             }
         }
+        clearSiteDebug(playerId, key);
     }
 
     private void clearTracking(UUID playerId) {
@@ -345,6 +359,7 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
                 mobOwners.remove(mobId);
             }
         }
+        lastProximityDebug.remove(playerId);
     }
 
     private ActiveRitual extractRitualData(LivingEntity entity) {
@@ -423,5 +438,33 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
     }
 
     private record ActiveRitual(UUID playerId, String siteKey) {
+    }
+
+    private void debugSite(Player player, String siteKey, String note) {
+        Map<String, String> siteNotes = lastProximityDebug.computeIfAbsent(player.getUniqueId(), id -> new HashMap<>());
+        String previous = siteNotes.get(siteKey);
+        if (note.equals(previous)) {
+            return;
+        }
+        siteNotes.put(siteKey, note);
+        debug(player, "site=" + siteKey + " " + note);
+    }
+
+    private void clearSiteDebug(UUID playerId, String siteKey) {
+        Map<String, String> siteNotes = lastProximityDebug.get(playerId);
+        if (siteNotes != null) {
+            siteNotes.remove(siteKey);
+            if (siteNotes.isEmpty()) {
+                lastProximityDebug.remove(playerId);
+            }
+        }
+    }
+
+    private void debug(Player player, String message) {
+        if (!DEBUG) {
+            return;
+        }
+        String prefix = player != null ? "[" + player.getName() + "] " : "";
+        Main.getInstance().getLogger().info("[CultistCulling] " + prefix + message);
     }
 }
