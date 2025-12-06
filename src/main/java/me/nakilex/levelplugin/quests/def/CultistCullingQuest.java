@@ -21,12 +21,24 @@ import me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
 import me.nakilex.levelplugin.mob.utils.CombatPowerUtil;
 import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
+import me.nakilex.levelplugin.economy.managers.EconomyManager;
+import me.nakilex.levelplugin.economy.managers.GemsManager;
+import me.nakilex.levelplugin.potions.managers.PotionManager;
+import me.nakilex.levelplugin.potions.data.PotionTemplate;
+import me.nakilex.levelplugin.potions.data.PotionInstance;
+import me.nakilex.levelplugin.mercenary.MercenaryGift;
+import me.nakilex.levelplugin.mercenary.MercenaryAffinityManager;
+import me.nakilex.levelplugin.player.classes.data.PlayerClass;
+import me.nakilex.levelplugin.player.classes.essence.ClassEssence;
+import me.nakilex.levelplugin.utils.NumberUtil;
+import me.nakilex.levelplugin.utils.TooltipUtil;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
 import org.bukkit.World;
+import org.bukkit.Material;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -41,6 +53,9 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.ChatColor;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.ItemFlag;
 
 import java.util.HashMap;
 import java.util.List;
@@ -656,25 +671,129 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
             return;
         }
 
-        LootChestManager loot = Main.getInstance().getLootChestManager();
-        if (loot == null) {
-            return;
-        }
-
         Location origin = site.location();
         if (origin == null || origin.getWorld() == null) {
             return;
         }
 
-        int combatPower = site.combatPower();
-        int levelRequirement = site.level();
-        RewardBombUtil.startRewardBomb(Main.getInstance(), origin.clone(), () -> {
-            var lootItem = loot.getRandomLootForCombatPower(combatPower, levelRequirement, site.mobId(), null);
-            if (lootItem != null) {
-                ItemUtil.updateTooltip(lootItem, player);
+        LootChestManager loot = Main.getInstance().getLootChestManager();
+        PotionManager potionManager = Main.getInstance().getPotionManager();
+        MercenaryAffinityManager affinity = Main.getInstance().getMercenaryAffinityManager();
+        EconomyManager economyManager = Main.getInstance().getEconomyManager();
+        GemsManager gemsManager = Main.getInstance().getGemsManager();
+
+        RewardBombUtil.startRewardBomb(Main.getInstance(), origin.clone(), site.level(), lvl ->
+                        rollReward(player, site, loot, potionManager, affinity, economyManager, gemsManager),
+                80, player);
+    }
+
+    private ItemStack rollReward(Player player, RitualSite site, LootChestManager loot,
+                                 PotionManager potionManager, MercenaryAffinityManager affinity,
+                                 EconomyManager economyManager, GemsManager gemsManager) {
+        double roll = ThreadLocalRandom.current().nextDouble();
+
+        if (roll < 0.35 && loot != null) {
+            ItemStack gear = loot.getRandomLootForCombatPower(site.combatPower(), site.level(), site.mobId(), null);
+            if (gear != null) {
+                ItemUtil.updateTooltip(gear, player);
             }
-            return lootItem;
-        }, 80, player);
+            return gear;
+        }
+        roll -= 0.35;
+
+        if (roll < 0.15 && potionManager != null) {
+            return rollPotion(potionManager, site.level());
+        }
+        roll -= 0.15;
+
+        if (roll < 0.2) {
+            return rollEssence();
+        }
+        roll -= 0.2;
+
+        if (roll < 0.1 && affinity != null) {
+            return rollFriendshipGift(affinity);
+        }
+        roll -= 0.1;
+
+        if (roll < 0.1 && gemsManager != null && player != null) {
+            return rollGems(gemsManager, site.level());
+        }
+        roll -= 0.1;
+
+        if (economyManager != null && player != null) {
+            return grantCoins(economyManager, player, site);
+        }
+
+        return null;
+    }
+
+    private ItemStack rollPotion(PotionManager potionManager, int level) {
+        int tier;
+        if (level < 35) {
+            tier = 1;
+        } else if (level < 70) {
+            tier = 2;
+        } else {
+            tier = 3;
+        }
+        List<PotionTemplate> templates = potionManager.getTemplatesForTier(tier);
+        if (templates == null || templates.isEmpty()) {
+            return null;
+        }
+        PotionTemplate chosen = templates.get(ThreadLocalRandom.current().nextInt(templates.size()));
+        PotionInstance instance = potionManager.createInstance(chosen);
+        return instance == null ? null : instance.toItemStack(Main.getInstance());
+    }
+
+    private ItemStack rollEssence() {
+        List<PlayerClass> options = List.of(PlayerClass.ARCHER, PlayerClass.WARRIOR, PlayerClass.MAGE, PlayerClass.ROGUE);
+        PlayerClass clazz = options.get(ThreadLocalRandom.current().nextInt(options.size()));
+        return ClassEssence.generateEssence(clazz);
+    }
+
+    private ItemStack rollFriendshipGift(MercenaryAffinityManager affinity) {
+        List<MercenaryGift> gifts = new java.util.ArrayList<>(affinity.getGifts());
+        if (gifts.isEmpty()) {
+            return null;
+        }
+        MercenaryGift gift = gifts.get(ThreadLocalRandom.current().nextInt(gifts.size()));
+        return gift.getIcon();
+    }
+
+    private ItemStack rollGems(GemsManager gemsManager, int level) {
+        int units = Math.max(10, level * 5);
+        Material material = Material.MEDIUM_AMETHYST_BUD;
+        int unitValue = 1;
+        int qty = Math.max(1, units);
+        if (units >= 4096) {
+            material = Material.AMETHYST_CLUSTER;
+            unitValue = 4096;
+            qty = Math.max(1, units / unitValue);
+        } else if (units >= 64) {
+            material = Material.AMETHYST_SHARD;
+            unitValue = 64;
+            qty = Math.max(1, units / unitValue);
+        }
+        return gemsManager.createCurrencyItem(material, qty, unitValue);
+    }
+
+    private ItemStack grantCoins(EconomyManager economyManager, Player player, RitualSite site) {
+        int coins = Math.max(10, (site.combatPower() * site.level()) / 120);
+        economyManager.addCoins(player, coins);
+        ItemStack pouch = new ItemStack(Material.GOLD_NUGGET);
+        ItemMeta meta = pouch.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(ChatColor.GOLD + "Coin Pouch");
+            List<String> lore = new java.util.ArrayList<>();
+            lore.add(ChatColor.GRAY + "Currency");
+            lore.addAll(TooltipUtil.bulletList(ChatColor.YELLOW + "+" + NumberUtil.formatCommas(coins) + " coins added"));
+            lore.add(ChatColor.DARK_GRAY + "Already deposited to your balance.");
+            meta.setLore(lore);
+            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+            pouch.setItemMeta(meta);
+        }
+        return pouch;
     }
 
     private static final class SiteProgress {
