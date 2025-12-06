@@ -230,8 +230,9 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
                 debugSite(player, site.key(), "already cleared");
                 continue;
             }
-            if (!site.isInRange(to)) {
-                clearSiteDebug(player.getUniqueId(), site.key());
+            String distanceNote = site.distanceNote(to);
+            if (distanceNote != null) {
+                debugSite(player, site.key(), distanceNote);
                 continue;
             }
             if (isActive(player.getUniqueId(), site.key())) {
@@ -426,14 +427,26 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
     }
 
     private record RitualSite(String key, String mobId, Location location) {
-        boolean isInRange(Location loc) {
+        /**
+         * @return null when in range, otherwise a note describing why spawning was skipped.
+         */
+        String distanceNote(Location loc) {
             if (loc == null || location == null) {
-                return false;
+                return "missing location";
             }
-            if (location.getWorld() == null || !location.getWorld().equals(loc.getWorld())) {
-                return false;
+            World siteWorld = location.getWorld();
+            World playerWorld = loc.getWorld();
+            if (siteWorld == null || playerWorld == null) {
+                return "missing world";
             }
-            return location.distanceSquared(loc) <= TRIGGER_RADIUS_SQ;
+            if (!siteWorld.equals(playerWorld)) {
+                return "out of world (player=" + playerWorld.getName() + ", site=" + siteWorld.getName() + ")";
+            }
+            double distanceSq = location.distanceSquared(loc);
+            if (distanceSq > TRIGGER_RADIUS_SQ) {
+                return "out of range (d^2=" + String.format("%.2f", distanceSq) + ")";
+            }
+            return null;
         }
     }
 
