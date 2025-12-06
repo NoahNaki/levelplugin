@@ -78,7 +78,7 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
     }
 
     private static final List<RitualSite> RITUAL_SITES = List.of(
-            new RitualSite(SHADOW_SITE_KEY, "LDR_eldric", new Location(world(), 262.5, 73, -364.5)),
+            new RitualSite(SHADOW_SITE_KEY, "LRD_eldric", new Location(world(), 262.5, 73, -364.5)),
             new RitualSite("tenebris", "hv_tenebris", new Location(world(), 176.5, 80, -629.5)),
             new RitualSite("gravekeeper", "Nocsy_FPV2-Gravekeeper", new Location(world(), 329.5, 73, 175.5)),
             new RitualSite("crowknight", "thecrowknight", new Location(world(), -329.5, 87, 36.5)),
@@ -91,6 +91,7 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
 
     private final Map<UUID, Map<String, UUID>> activeSpawns = new HashMap<>();
     private final Map<UUID, ActiveRitual> mobOwners = new HashMap<>();
+    private final Map<UUID, Integer> processedDeaths = new HashMap<>();
     private final NamespacedKey ritualSiteKey = new NamespacedKey(Main.getInstance(), RITUAL_SITE_KEY_NAME);
     private final NamespacedKey ritualOwnerKey = new NamespacedKey(Main.getInstance(), RITUAL_OWNER_KEY_NAME);
 
@@ -243,6 +244,10 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
             return;
         }
 
+        if (!markProcessed(entity.getUniqueId())) {
+            return;
+        }
+
         ActiveRitual ritual = resolveRitual(entity);
         if (ritual == null) {
             return;
@@ -328,6 +333,7 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
             }
             if (mobId != null) {
                 mobOwners.remove(mobId);
+                processedDeaths.remove(mobId);
             }
         }
     }
@@ -337,6 +343,7 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
         if (map != null) {
             for (UUID mobId : map.values()) {
                 mobOwners.remove(mobId);
+                processedDeaths.remove(mobId);
             }
         }
     }
@@ -430,5 +437,18 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
             ritual = extractRitualData(entity);
         }
         return ritual;
+    }
+
+    private boolean markProcessed(UUID mobId) {
+        if (processedDeaths.containsKey(mobId)) {
+            return false;
+        }
+
+        int taskId = Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
+            processedDeaths.remove(mobId);
+        }, 200L).getTaskId();
+
+        processedDeaths.put(mobId, taskId);
+        return true;
     }
 }
