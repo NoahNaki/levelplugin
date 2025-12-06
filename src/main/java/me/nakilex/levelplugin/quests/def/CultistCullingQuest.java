@@ -40,6 +40,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class CultistCullingQuest extends Quest implements QuestScript, QuestCompletionScript, QuestResetScript {
     public static final String ID = "cultistculling";
@@ -51,8 +52,13 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
     private static final String WORLD_NAME = "world";
     private static final String GATE_ID = "cultisthq";
     private static final double TRIGGER_RADIUS_SQ = 30 * 30;
+    private static final double LEASH_RANGE = 60;
+    private static final double SPAWN_RADIUS = 6;
     private static final String RITUAL_SITE_KEY_NAME = "cultist_site";
     private static final String RITUAL_OWNER_KEY_NAME = "cultist_owner";
+    private static final String RITUAL_SPAWN_X = "cultist_spawn_x";
+    private static final String RITUAL_SPAWN_Y = "cultist_spawn_y";
+    private static final String RITUAL_SPAWN_Z = "cultist_spawn_z";
     private static final String SHADOW_SITE_KEY = "shadow_sorcerer";
 
     private static final List<String> INTRO_DIALOG = List.of(
@@ -94,9 +100,13 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
 
     private final Map<UUID, Map<String, SiteProgress>> siteProgress = new HashMap<>();
     private final Map<UUID, ActiveRitual> mobOwners = new HashMap<>();
+    private final Map<UUID, Location> mobSpawnLocations = new HashMap<>();
     private final Map<UUID, Integer> processedDeaths = new HashMap<>();
     private final NamespacedKey ritualSiteKey = new NamespacedKey(Main.getInstance(), RITUAL_SITE_KEY_NAME);
     private final NamespacedKey ritualOwnerKey = new NamespacedKey(Main.getInstance(), RITUAL_OWNER_KEY_NAME);
+    private final NamespacedKey ritualSpawnXKey = new NamespacedKey(Main.getInstance(), RITUAL_SPAWN_X);
+    private final NamespacedKey ritualSpawnYKey = new NamespacedKey(Main.getInstance(), RITUAL_SPAWN_Y);
+    private final NamespacedKey ritualSpawnZKey = new NamespacedKey(Main.getInstance(), RITUAL_SPAWN_Z);
 
     public CultistCullingQuest() {
         super(
@@ -205,6 +215,7 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
                 for (Player player : Bukkit.getOnlinePlayers()) {
                     instance.handleProximity(player, player.getLocation());
                 }
+                instance.enforceLeash();
             }, 40L, 40L).getTaskId();
         }
     }
@@ -312,9 +323,10 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
                 .computeIfAbsent(site.key(), k -> new SiteProgress());
 
         for (int i = 0; i < spawnCount; i++) {
+            Location spawnLoc = site.randomizedLocation();
             Entity mob;
             try {
-                mob = MythicBukkit.inst().getAPIHelper().spawnMythicMob(site.mobId(), loc);
+                mob = MythicBukkit.inst().getAPIHelper().spawnMythicMob(site.mobId(), spawnLoc);
             } catch (InvalidMobTypeException ex) {
                 Main.getInstance().getLogger().warning("Unable to spawn ritual mob '" + site.mobId() + "': " + ex.getMessage());
                 return;
@@ -329,6 +341,8 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
             PersistentDataContainer data = living.getPersistentDataContainer();
             data.set(ritualSiteKey, PersistentDataType.STRING, site.key());
             data.set(ritualOwnerKey, PersistentDataType.STRING, playerId.toString());
+            storeSpawn(living, spawnLoc);
+            mobSpawnLocations.put(mobId, spawnLoc);
         }
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                 "Dark energy gathers nearby. The cult begins a ritual...");
@@ -360,6 +374,7 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
                 }
                 if (mobIdToRemove != null) {
                     mobOwners.remove(mobIdToRemove);
+                    mobSpawnLocations.remove(mobIdToRemove);
                 }
             }
         }
@@ -371,6 +386,7 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
             for (SiteProgress progress : map.values()) {
                 for (UUID mobId : progress.activeMobIds()) {
                     mobOwners.remove(mobId);
+                    mobSpawnLocations.remove(mobId);
                 }
             }
         }
@@ -456,6 +472,17 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
             }
             return location.distanceSquared(loc) <= TRIGGER_RADIUS_SQ;
         }
+
+        Location randomizedLocation() {
+            if (location == null) {
+                return null;
+            }
+            double angle = ThreadLocalRandom.current().nextDouble(Math.PI * 2);
+            double radius = Math.sqrt(ThreadLocalRandom.current().nextDouble()) * SPAWN_RADIUS;
+            double xOffset = Math.cos(angle) * radius;
+            double zOffset = Math.sin(angle) * radius;
+            return location.clone().add(xOffset, 0, zOffset);
+        }
     }
 
     private record ActiveRitual(UUID playerId, String siteKey) {
@@ -520,6 +547,61 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
 
         processedDeaths.put(mobId, taskId);
         return true;
+    }
+
+    private void storeSpawn(LivingEntity living, Location spawnLoc) {
+        if (living == null || spawnLoc == null) {
+            return;
+        }
+        PersistentDataContainer data = living.getPersistentDataContainer();
+        data.set(ritualSpawnXKey, PersistentDataType.DOUBLE, spawnLoc.getX());
+        data.set(ritualSpawnYKey, PersistentDataType.DOUBLE, spawnLoc.getY());
+        data.set(ritualSpawnZKey, PersistentDataType.DOUBLE, spawnLoc.getZ());
+    }
+
+    private Location resolveSpawn(LivingEntity living) {
+        Location cached = mobSpawnLocations.get(living.getUniqueId());
+        if (cached != null) {
+            return cached;
+        }
+        PersistentDataContainer data = living.getPersistentDataContainer();
+        Double x = data.get(ritualSpawnXKey, PersistentDataType.DOUBLE);
+        Double y = data.get(ritualSpawnYKey, PersistentDataType.DOUBLE);
+        Double z = data.get(ritualSpawnZKey, PersistentDataType.DOUBLE);
+        if (x == null || y == null || z == null) {
+            return null;
+        }
+        Location loc = living.getLocation().clone();
+        loc.setX(x);
+        loc.setY(y);
+        loc.setZ(z);
+        mobSpawnLocations.put(living.getUniqueId(), loc);
+        return loc;
+    }
+
+    private void enforceLeash() {
+        mobSpawnLocations.entrySet().removeIf(entry -> {
+            Entity entity = Bukkit.getEntity(entry.getKey());
+            if (!(entity instanceof LivingEntity living) || entity.isDead()) {
+                mobOwners.remove(entry.getKey());
+                return true;
+            }
+            Location origin = entry.getValue();
+            if (origin == null) {
+                origin = resolveSpawn(living);
+            }
+            if (origin == null || origin.getWorld() == null || living.getWorld() == null) {
+                return false;
+            }
+            if (!origin.getWorld().equals(living.getWorld())) {
+                living.teleport(origin);
+                return false;
+            }
+            if (origin.distanceSquared(living.getLocation()) > LEASH_RANGE * LEASH_RANGE) {
+                living.teleport(origin);
+            }
+            return false;
+        });
     }
 
     private static final class SiteProgress {
