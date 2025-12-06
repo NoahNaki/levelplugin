@@ -32,7 +32,7 @@ public class CartographersLedgerQuest extends Quest implements QuestScript {
         return List.of(
                 new QuestObjective(QuestObjectiveType.TALK, INTRO_TARGET, 1, BeaconTargets.npc(NPC_NAME)),
                 new QuestObjective(QuestObjectiveType.EXPLORE, "NORTHERN_OVERLOOK", 1,
-                        BeaconTargets.staticLoc(overlook), "Scout the overlook marked on the map."),
+                        false, BeaconTargets.staticLoc(overlook), "Scout the overlook marked on the map."),
                 new QuestObjective(QuestObjectiveType.DISCOVER, DISCOVERY_TARGET, 1),
                 new QuestObjective(QuestObjectiveType.TALK, RETURN_TARGET, 1, BeaconTargets.npc(NPC_NAME))
         );

@@ -86,6 +86,9 @@ public class QuestManager {
         Quest forgeFundamentals = new me.nakilex.levelplugin.quests.def.ForgeFundamentalsQuest();
         Quest cartographersLedger = new me.nakilex.levelplugin.quests.def.CartographersLedgerQuest();
         Quest siegeSignals = new me.nakilex.levelplugin.quests.def.SiegeSignalsQuest();
+        Quest runicResonance = new me.nakilex.levelplugin.quests.def.RunicResonanceQuest();
+        Quest stonemasonsPlea = new me.nakilex.levelplugin.quests.def.StonemasonsPleaQuest();
+        Quest delversCharter = new me.nakilex.levelplugin.quests.def.DelversCharterQuest();
         registerQuest(nb);
         registerQuest(seras);
         registerQuest(hawieCrabs);
@@ -102,12 +105,18 @@ public class QuestManager {
         registerQuest(forgeFundamentals);
         registerQuest(cartographersLedger);
         registerQuest(siegeSignals);
+        registerQuest(runicResonance);
+        registerQuest(stonemasonsPlea);
+        registerQuest(delversCharter);
         me.nakilex.levelplugin.quests.def.SharpestSecretQuest.registerTalkTargets(this);
         me.nakilex.levelplugin.quests.def.SalvagersLessonQuest.registerTalkTargets(this);
         me.nakilex.levelplugin.quests.def.MarketBeginningsQuest.registerTalkTargets(this);
         me.nakilex.levelplugin.quests.def.ForgeFundamentalsQuest.registerTalkTargets(this);
         me.nakilex.levelplugin.quests.def.CartographersLedgerQuest.registerTalkTargets(this);
         me.nakilex.levelplugin.quests.def.SiegeSignalsQuest.registerTalkTargets(this);
+        me.nakilex.levelplugin.quests.def.RunicResonanceQuest.registerTalkTargets(this);
+        me.nakilex.levelplugin.quests.def.StonemasonsPleaQuest.registerTalkTargets(this);
+        me.nakilex.levelplugin.quests.def.DelversCharterQuest.registerTalkTargets(this);
         // Only the salvaging quest relies on NPC name lookups; others stay ID-based to avoid
         // accidental cross-talk when multiple NPCs share display names.
         registerNpcQuest(me.nakilex.levelplugin.quests.def.SalvagersLessonQuest.NPC_NAME,
