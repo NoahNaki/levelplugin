@@ -1,5 +1,6 @@
 package me.nakilex.levelplugin.quests.def;
 
+import io.lumine.mythic.api.exceptions.InvalidMobTypeException;
 import io.lumine.mythic.bukkit.MythicBukkit;
 import io.lumine.mythic.bukkit.events.MythicMobDeathEvent;
 import me.nakilex.levelplugin.Main;
@@ -257,7 +258,13 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
         if (loc == null || loc.getWorld() == null) {
             return;
         }
-        Entity mob = MythicBukkit.inst().getAPIHelper().spawnMythicMob(site.mobId(), loc);
+        Entity mob;
+        try {
+            mob = MythicBukkit.inst().getAPIHelper().spawnMythicMob(site.mobId(), loc);
+        } catch (InvalidMobTypeException ex) {
+            Main.getInstance().getLogger().warning("Unable to spawn ritual mob '" + site.mobId() + "': " + ex.getMessage());
+            return;
+        }
         if (!(mob instanceof LivingEntity living)) {
             return;
         }
