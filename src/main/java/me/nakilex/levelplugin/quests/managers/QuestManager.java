@@ -71,6 +71,7 @@ public class QuestManager {
         Quest office = new me.nakilex.levelplugin.quests.def.OfficeErrandsQuest();
         registerQuest(office);
         Quest nb = new me.nakilex.levelplugin.quests.def.NewBeginningQuest();
+        Quest cultistCulling = new me.nakilex.levelplugin.quests.def.CultistCullingQuest();
         Quest seras = new me.nakilex.levelplugin.quests.def.SerasQuest();
         Quest hawieCrabs = new me.nakilex.levelplugin.quests.def.HawieHermitCrabQuest();
         Quest rahirScorpid = new me.nakilex.levelplugin.quests.def.RahirScorpidQuest();
@@ -87,6 +88,7 @@ public class QuestManager {
         Quest stonemasonJudeau = new me.nakilex.levelplugin.quests.def.StonemasonJudeauQuest();
         Quest essenceWeaverLesson = new me.nakilex.levelplugin.quests.def.EssenceWeaversLessonQuest();
         registerQuest(nb);
+        registerQuest(cultistCulling);
         registerQuest(seras);
         registerQuest(hawieCrabs);
         registerQuest(rahirScorpid);
@@ -107,6 +109,7 @@ public class QuestManager {
         me.nakilex.levelplugin.quests.def.MarketBeginningsQuest.registerTalkTargets(this);
         me.nakilex.levelplugin.quests.def.ForgeFundamentalsQuest.registerTalkTargets(this);
         me.nakilex.levelplugin.quests.def.StonemasonJudeauQuest.registerTalkTargets(this);
+        me.nakilex.levelplugin.quests.def.CultistCullingQuest.registerTalkTargets(this);
         me.nakilex.levelplugin.quests.def.EssenceWeaversLessonQuest.registerTalkTargets(this);
         // These service/tutorial quests rely on NPC display names so they continue to work even if IDs
         // change between environments.

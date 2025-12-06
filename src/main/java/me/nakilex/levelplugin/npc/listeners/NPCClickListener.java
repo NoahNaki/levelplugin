@@ -18,6 +18,7 @@ import me.nakilex.levelplugin.quests.def.MarketBeginningsQuest;
 import me.nakilex.levelplugin.quests.def.ForgeFundamentalsQuest;
 import me.nakilex.levelplugin.quests.def.EssenceWeaversLessonQuest;
 import me.nakilex.levelplugin.quests.def.HawieHermitCrabQuest;
+import me.nakilex.levelplugin.quests.def.CultistCullingQuest;
 import me.nakilex.levelplugin.npc.dialog.NPCDialogManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.CurrencyMessageUtil;
@@ -126,6 +127,18 @@ public class NPCClickListener implements Listener {
             if (npc.getId() == DungeonGuardQuest.NPC_ID) {
                 handleDungeonGuard(player, npc);
                 return;
+            }
+
+            if (npc.getId() == CultistCullingQuest.NPC_ID) {
+                if (handleCultistCulling(player, npc)) {
+                    return;
+                }
+            }
+
+            if (npc.getId() == CultistCullingQuest.getContactNpcId()) {
+                if (handleCultistContact(player, npc)) {
+                    return;
+                }
             }
 
             Quest quest = questManager.getQuestByNpc(npc);
@@ -676,6 +689,67 @@ public class NPCClickListener implements Listener {
                 SalvagersLessonQuest.getReturnDialog(),
                 npc,
                 () -> questManager.handleTalk(player, SalvagersLessonQuest.RETURN_TARGET));
+        return true;
+    }
+
+    private boolean handleCultistCulling(Player player, NPC npc) {
+        Quest quest = questManager.getQuestById(CultistCullingQuest.ID);
+        if (quest == null) {
+            return false;
+        }
+        QuestState state = questManager.getQuestState(player, quest);
+        if (state == QuestState.LOCKED) {
+            return false;
+        }
+        if (state == QuestState.AVAILABLE) {
+            if (questManager.meetsRequirements(player, quest)) {
+                dialogManager.startDialog(player, quest, npc);
+            }
+            return true;
+        }
+
+        PlayerQuestProgress progress = questManager.getProgress(player.getUniqueId(), quest.getId());
+        if (progress != null) {
+            int halted = progress.getProgress(0);
+            int total = quest.getObjectives().get(0).getAmount();
+            if (halted < total) {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                        "Rituals halted: " + halted + "/" + total + ". Draw closer to cult activity to stop the rest.");
+            } else {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                        "All rituals disrupted. Report to the mysterious contact now visible nearby.");
+            }
+            return true;
+        }
+
+        return questManager.hasCompleted(player.getUniqueId(), quest.getId());
+    }
+
+    private boolean handleCultistContact(Player player, NPC npc) {
+        Quest quest = questManager.getQuestById(CultistCullingQuest.ID);
+        if (quest == null) {
+            return false;
+        }
+        boolean completed = questManager.hasCompleted(player.getUniqueId(), quest.getId());
+        PlayerQuestProgress progress = questManager.getProgress(player.getUniqueId(), quest.getId());
+        if (completed || progress == null) {
+            return false;
+        }
+        boolean ritualsDone = progress.getProgress(0) >= quest.getObjectives().get(0).getAmount();
+        boolean spoken = progress.getProgress(1) >= 1;
+        if (!ritualsDone) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                    "Disrupt the remaining rituals before reporting in.");
+            return true;
+        }
+        if (spoken) {
+            return false;
+        }
+
+        dialogManager.startDialog(player,
+                CultistCullingQuest.getContactDialog(),
+                npc,
+                () -> questManager.handleTalk(player, CultistCullingQuest.getContactTalkTarget()));
         return true;
     }
 
