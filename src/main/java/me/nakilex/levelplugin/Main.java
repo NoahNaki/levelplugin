@@ -76,6 +76,7 @@ public class Main extends JavaPlugin {
     public HorseManager getHorseManager() { return bootstrap.getHorseManager(); }
     public DealMaker getDealMaker() { return bootstrap.getDealMaker(); }
     public ItemConfig getItemConfig() { return bootstrap.getItemConfig(); }
+    public me.nakilex.levelplugin.lootchests.managers.LootChestManager getLootChestManager() { return bootstrap.getLootChestManager(); }
     public MessageStrings getMessageStrings() { return bootstrap.getMessageStrings(); }
     public me.nakilex.levelplugin.spells.managers.ManaCostTracker getManaTracker() { return bootstrap.getManaTracker(); }
     public void reloadConfigValues() {
