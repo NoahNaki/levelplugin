@@ -15,8 +15,12 @@ import me.nakilex.levelplugin.quests.data.QuestCompletionScript;
 import me.nakilex.levelplugin.quests.data.QuestResetScript;
 import me.nakilex.levelplugin.quests.data.QuestScript;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
+import me.nakilex.levelplugin.utils.RewardBombUtil;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
+import me.nakilex.levelplugin.mob.utils.CombatPowerUtil;
+import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
+import me.nakilex.levelplugin.items.utils.ItemUtil;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.Bukkit;
@@ -55,7 +59,7 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
     private static final String GATE_ID = "cultisthq";
     private static final double TRIGGER_RADIUS_SQ = 30 * 30;
     private static final double LEASH_RANGE = 60;
-    private static final double SPAWN_RADIUS = 6;
+    private static final double SPAWN_RADIUS = 10;
     private static final String RITUAL_SITE_KEY_NAME = "cultist_site";
     private static final String RITUAL_OWNER_KEY_NAME = "cultist_owner";
     private static final String RITUAL_SPAWN_X = "cultist_spawn_x";
@@ -89,11 +93,11 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
     private static final int RITUAL_KILL_TARGET = 10;
 
     private static final List<RitualSite> RITUAL_SITES = List.of(
-            new RitualSite(SHADOW_SITE_KEY, "cultist_acolyte", 20, "Shadow Ritual", new Location(world(), 262.5, 73, -364.5)),
-            new RitualSite("tenebris", "cultist_zealot", 40, "Zealot Ritual", new Location(world(), 176.5, 80, -629.5)),
-            new RitualSite("gravekeeper", "cultist_fanatic", 60, "Fanatic Ritual", new Location(world(), 329.5, 73, 175.5)),
-            new RitualSite("crowknight", "cultist_inquisitor", 80, "Inquisitor Ritual", new Location(world(), -329.5, 87, 36.5)),
-            new RitualSite("piglinking", "cultist_high_priest", 100, "High Priest Ritual", new Location(world(), -1161.5, 66, -834.5))
+            createSite(SHADOW_SITE_KEY, "cultist_acolyte", 20, "Shadow Ritual", new Location(world(), 262.5, 73, -364.5)),
+            createSite("tenebris", "cultist_zealot", 40, "Zealot Ritual", new Location(world(), 176.5, 80, -629.5)),
+            createSite("gravekeeper", "cultist_fanatic", 60, "Fanatic Ritual", new Location(world(), 329.5, 73, 175.5)),
+            createSite("crowknight", "cultist_inquisitor", 80, "Inquisitor Ritual", new Location(world(), -329.5, 87, 36.5)),
+            createSite("piglinking", "cultist_high_priest", 100, "High Priest Ritual", new Location(world(), -1161.5, 66, -834.5))
     );
 
     private static CultistCullingQuest instance;
@@ -302,6 +306,7 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
         questManager.handleKill(player, RITUAL_TARGET, true);
         sendRitualMessage(player, MessageType.REWARD,
                 ChatColor.GRAY + "Ritual halted! The cult loses its grip here.");
+        spawnRewardBomb(player, ritual.siteKey());
 
         if (ritualsCleared(questManager, player.getUniqueId())) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
@@ -462,7 +467,24 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
 
     public record RitualStatus(String title, int remaining, int target) {}
 
-    private record RitualSite(String key, String mobId, int level, String title, Location location) {
+    private static RitualSite createSite(String key, String mobId, int level, String title, Location location) {
+        return new RitualSite(key, mobId, level, title, resolveCombatPower(mobId, level), location);
+    }
+
+    private static int resolveCombatPower(String mobId, int level) {
+        int combatPower = 0;
+        try {
+            combatPower = CombatPowerUtil.estimateCombatPower(mobId);
+        } catch (Exception ex) {
+            Main.getInstance().getLogger().warning("Failed to estimate combat power for mob '" + mobId + "': " + ex.getMessage());
+        }
+        if (combatPower <= 0) {
+            combatPower = Math.max(level * 5, level * 3);
+        }
+        return combatPower;
+    }
+
+    private record RitualSite(String key, String mobId, int level, String title, int combatPower, Location location) {
         boolean withinRange(Location loc) {
             if (loc == null || location == null) {
                 return false;
@@ -620,6 +642,39 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
 
     private void sendRitualMessage(Player player, MessageType type, String body) {
         ChatMessageUtil.send(player, type, ritualHeader() + body);
+    }
+
+    private void spawnRewardBomb(Player player, String siteKey) {
+        if (player == null) {
+            return;
+        }
+        RitualSite site = RITUAL_SITES.stream()
+                .filter(s -> s.key().equals(siteKey))
+                .findFirst()
+                .orElse(null);
+        if (site == null) {
+            return;
+        }
+
+        LootChestManager loot = Main.getInstance().getLootChestManager();
+        if (loot == null) {
+            return;
+        }
+
+        Location origin = site.location();
+        if (origin == null || origin.getWorld() == null) {
+            return;
+        }
+
+        int combatPower = site.combatPower();
+        int levelRequirement = site.level();
+        RewardBombUtil.startRewardBomb(Main.getInstance(), origin.clone(), () -> {
+            var lootItem = loot.getRandomLootForCombatPower(combatPower, levelRequirement, site.mobId(), null);
+            if (lootItem != null) {
+                ItemUtil.updateTooltip(lootItem, player);
+            }
+            return lootItem;
+        }, 80, player);
     }
 
     private static final class SiteProgress {
