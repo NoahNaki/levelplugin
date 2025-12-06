@@ -13,7 +13,8 @@ public final class QuestServiceAccessTracker {
     public enum Service {
         SALVAGE,
         AUCTION,
-        ESSENCE
+        ESSENCE,
+        BLACKSMITH
     }
 
     /** Default cooldown in milliseconds after completing a service interaction. */

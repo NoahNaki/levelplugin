@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.fakeblock.QuestGateManager;
 import me.nakilex.levelplugin.horse.gui.HorseGUI;
+import me.nakilex.levelplugin.blacksmith.gui.BlacksmithGUI;
 import me.nakilex.levelplugin.quests.data.Quest;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.quests.def.DungeonGuardQuest;
@@ -16,6 +17,7 @@ import me.nakilex.levelplugin.quests.def.StableKeeperQuest;
 import me.nakilex.levelplugin.quests.def.SalvagersLessonQuest;
 import me.nakilex.levelplugin.quests.def.MarketBeginningsQuest;
 import me.nakilex.levelplugin.quests.def.EssenceWeaversLessonQuest;
+import me.nakilex.levelplugin.quests.def.ForgeFundamentalsQuest;
 import me.nakilex.levelplugin.npc.dialog.NPCDialogManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.CurrencyMessageUtil;
@@ -44,16 +46,19 @@ public class NPCClickListener implements Listener {
     private final HorseGUI horseGUI;
     private final EnchantGUI enchantGUI;
     private final AuctionHouseGUI auctionGUI;
+    private final BlacksmithGUI blacksmithGUI;
 
     // Constructor to get the EconomyManager instance
     public NPCClickListener(EconomyManager economyManager, QuestManager questManager, NPCDialogManager dialogManager,
-                            HorseGUI horseGUI, EnchantGUI enchantGUI, AuctionHouseGUI auctionGUI) {
+                            HorseGUI horseGUI, EnchantGUI enchantGUI, AuctionHouseGUI auctionGUI,
+                            BlacksmithGUI blacksmithGUI) {
         this.economyManager = economyManager;
         this.questManager = questManager;
         this.dialogManager = dialogManager;
         this.horseGUI = horseGUI;
         this.enchantGUI = enchantGUI;
         this.auctionGUI = auctionGUI;
+        this.blacksmithGUI = blacksmithGUI;
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -85,6 +90,12 @@ public class NPCClickListener implements Listener {
             if (isNpcName(npc, EssenceWeaversLessonQuest.NPC_NAME)) {
                 Quest essenceQuest = questManager.getQuestById(EssenceWeaversLessonQuest.ID);
                 if (handleEssenceWeaverLesson(player, npc, essenceQuest)) {
+                    return;
+                }
+            }
+            if (isNpcName(npc, ForgeFundamentalsQuest.NPC_NAME)) {
+                Quest forgeQuest = questManager.getQuestById(ForgeFundamentalsQuest.ID);
+                if (handleForgeFundamentals(player, npc, forgeQuest)) {
                     return;
                 }
             }
@@ -580,7 +591,8 @@ public class NPCClickListener implements Listener {
         }
         QuestState state = questManager.getQuestState(player, quest);
         if (state == QuestState.AVAILABLE) {
-            dialogManager.startDialog(player, quest, npc);
+            dialogManager.startDialog(player, quest, npc,
+                    () -> questManager.handleTalk(player, EssenceWeaversLessonQuest.INTRO_TARGET));
             return true;
         }
         if (state == QuestState.LOCKED) {
@@ -629,6 +641,64 @@ public class NPCClickListener implements Listener {
                 EssenceWeaversLessonQuest.getReturnDialog(),
                 npc,
                 () -> questManager.handleTalk(player, EssenceWeaversLessonQuest.RETURN_TARGET));
+        return true;
+    }
+
+    private boolean handleForgeFundamentals(Player player, NPC npc, Quest quest) {
+        if (quest == null) {
+            return false;
+        }
+        QuestState state = questManager.getQuestState(player, quest);
+        if (state == QuestState.AVAILABLE) {
+            dialogManager.startDialog(player, quest, npc,
+                    () -> questManager.handleTalk(player, ForgeFundamentalsQuest.INTRO_TARGET));
+            return true;
+        }
+        if (state == QuestState.LOCKED) {
+            questManager.meetsRequirements(player, quest);
+            return true;
+        }
+
+        UUID uuid = player.getUniqueId();
+        boolean completed = questManager.hasCompleted(uuid, ForgeFundamentalsQuest.ID);
+        PlayerQuestProgress progress = questManager.getProgress(uuid, ForgeFundamentalsQuest.ID);
+        boolean introDone = progress != null && progress.getProgress(ForgeFundamentalsQuest.TALK_INTRO_INDEX) >= 1;
+        boolean serviced = progress != null && progress.getProgress(ForgeFundamentalsQuest.SERVICE_INDEX) >= 1;
+        boolean returned = progress != null && progress.getProgress(ForgeFundamentalsQuest.TALK_RETURN_INDEX) >= 1;
+        boolean cooling = QuestServiceAccessTracker.isCoolingDown(uuid, QuestServiceAccessTracker.Service.BLACKSMITH);
+
+        if (!introDone && progress != null) {
+            dialogManager.startDialog(player,
+                    quest.getDialogLines(),
+                    npc,
+                    () -> questManager.handleTalk(player, ForgeFundamentalsQuest.INTRO_TARGET));
+            return true;
+        }
+
+        if (completed || returned) {
+            if (cooling) {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                        "Give the blacksmith a moment before reopening the forge.");
+                return true;
+            }
+            blacksmithGUI.openUpgradeGUI(player);
+            return true;
+        }
+
+        if (!serviced) {
+            if (!cooling) {
+                blacksmithGUI.openUpgradeGUI(player);
+            } else {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                        "Let the blacksmith finish their work before trying again.");
+            }
+            return true;
+        }
+
+        dialogManager.startDialog(player,
+                ForgeFundamentalsQuest.getReturnDialog(),
+                npc,
+                () -> questManager.handleTalk(player, ForgeFundamentalsQuest.RETURN_TARGET));
         return true;
     }
 

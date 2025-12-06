@@ -21,11 +21,14 @@ public class ForgeFundamentalsQuest extends Quest implements QuestScript {
     public static final String INTRO_TARGET = "npc_blacksmith_intro";
     public static final String RETURN_TARGET = "npc_blacksmith_return";
 
+    public static final int TALK_INTRO_INDEX = 0;
+    public static final int SERVICE_INDEX = 1;
+    public static final int TALK_RETURN_INDEX = 2;
+
     private static List<QuestObjective> createObjectives() {
         return List.of(
                 new QuestObjective(QuestObjectiveType.TALK, INTRO_TARGET, 1, BeaconTargets.npc(NPC_NAME)),
-                new QuestObjective(QuestObjectiveType.BLACKSMITH_REPAIR, "ANY", 1),
-                new QuestObjective(QuestObjectiveType.BLACKSMITH_REROLL, "ANY", 1),
+                new QuestObjective(QuestObjectiveType.BLACKSMITH_SERVICE, "ANY", 1),
                 new QuestObjective(QuestObjectiveType.TALK, RETURN_TARGET, 1, BeaconTargets.npc(NPC_NAME))
         );
     }
@@ -34,9 +37,9 @@ public class ForgeFundamentalsQuest extends Quest implements QuestScript {
         super(
                 ID,
                 "Forge Fundamentals",
-                "Learn to repair and reroll your equipment with the blacksmith.",
+                "Learn to repair, reroll, or upgrade your equipment with the blacksmith.",
                 createObjectives(),
-                4,
+                3,
                 List.of("newbeginning"),
                 null,
                 QuestRewardCompat.create(190, 95, 0, List.of()),
@@ -44,7 +47,7 @@ public class ForgeFundamentalsQuest extends Quest implements QuestScript {
                 List.of(
                         "Blacksmith|Steel keeps you alive longer than bravado.",
                         "<player>|My gear has seen better days.",
-                        "Blacksmith|Then let's fix that. Repair one item with my anvil, reroll another at the forge,",
+                        "Blacksmith|Then let's fix that. Repair, reroll, or upgrade something at my stations,",
                         "Blacksmith|and you'll stop looking like a walking scrap heap."
                 ),
                 false,
@@ -58,6 +61,14 @@ public class ForgeFundamentalsQuest extends Quest implements QuestScript {
         }
         questManager.registerTalkTarget(INTRO_TARGET, NPC_NAME, NPC_NAME);
         questManager.registerTalkTarget(RETURN_TARGET, NPC_NAME, NPC_NAME);
+    }
+
+    public static List<String> getReturnDialog() {
+        return List.of(
+                "Blacksmith|Not bad. You handled the tools without losing a finger.",
+                "<player>|Turns out steel listens when you respect it.",
+                "Blacksmith|Keep at it. A well-kept blade will carry you further than luck."
+        );
     }
 
     @Override

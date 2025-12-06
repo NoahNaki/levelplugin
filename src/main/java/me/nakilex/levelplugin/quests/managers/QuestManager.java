@@ -564,6 +564,8 @@ public class QuestManager {
             plugin.getLogger().info("[QuestDebug] " + player.getName() + " upgraded " + itemId);
         }
         updateObjective(player, QuestObjectiveType.UPGRADE, itemId, 1);
+        updateObjectiveWithAny(player, QuestObjectiveType.BLACKSMITH_SERVICE, itemId);
+        QuestServiceAccessTracker.markInteraction(player.getUniqueId(), QuestServiceAccessTracker.Service.BLACKSMITH);
     }
 
     public void handleEssenceUpgrade(Player player, String action) {
@@ -699,6 +701,8 @@ public class QuestManager {
             plugin.getLogger().info("[QuestDebug] " + player.getName() + " repaired " + itemId);
         }
         updateObjective(player, QuestObjectiveType.BLACKSMITH_REPAIR, itemId, 1);
+        updateObjectiveWithAny(player, QuestObjectiveType.BLACKSMITH_SERVICE, itemId);
+        QuestServiceAccessTracker.markInteraction(player.getUniqueId(), QuestServiceAccessTracker.Service.BLACKSMITH);
     }
 
     public void handleReroll(Player player, String itemId) {
@@ -706,6 +710,8 @@ public class QuestManager {
             plugin.getLogger().info("[QuestDebug] " + player.getName() + " rerolled " + itemId);
         }
         updateObjective(player, QuestObjectiveType.BLACKSMITH_REROLL, itemId, 1);
+        updateObjectiveWithAny(player, QuestObjectiveType.BLACKSMITH_SERVICE, itemId);
+        QuestServiceAccessTracker.markInteraction(player.getUniqueId(), QuestServiceAccessTracker.Service.BLACKSMITH);
     }
 
     public void handleSalvage(Player player, String itemId) {
@@ -979,6 +985,8 @@ public class QuestManager {
                 return "Repair an item";
             case BLACKSMITH_REROLL:
                 return "Reroll an item";
+            case BLACKSMITH_SERVICE:
+                return "Use the blacksmith (repair, reroll, or upgrade)";
             case SALVAGE:
                 return "Salvage items";
             case WAYSTONE_UNLOCK:
