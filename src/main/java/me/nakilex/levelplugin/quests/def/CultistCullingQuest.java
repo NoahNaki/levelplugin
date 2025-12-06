@@ -16,6 +16,7 @@ import me.nakilex.levelplugin.quests.data.QuestResetScript;
 import me.nakilex.levelplugin.quests.data.QuestScript;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
+import me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.Bukkit;
@@ -33,6 +34,7 @@ import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.ChatColor;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 
@@ -286,8 +288,9 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
 
         progress.incrementKills();
         if (progress.kills() < RITUAL_KILL_TARGET) {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                    "Cultist ritual weakened. " + (RITUAL_KILL_TARGET - progress.kills()) + " cultists remain.");
+            sendRitualMessage(player, MessageType.SUCCESS,
+                    ChatColor.GRAY + "Ritual weakened—" + ChatColor.YELLOW + (RITUAL_KILL_TARGET - progress.kills())
+                            + ChatColor.GRAY + " cultists remain.");
             return;
         }
 
@@ -297,7 +300,8 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
 
         questManager.setFlag(player.getUniqueId(), ID, ritual.siteKey());
         questManager.handleKill(player, RITUAL_TARGET, true);
-        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, "Cultist Ritual Halted.");
+        sendRitualMessage(player, MessageType.REWARD,
+                ChatColor.GRAY + "Ritual halted! The cult loses its grip here.");
 
         if (ritualsCleared(questManager, player.getUniqueId())) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
@@ -345,7 +349,8 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
             mobSpawnLocations.put(mobId, spawnLoc);
         }
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
-                "Dark energy gathers nearby. The cult begins a ritual...");
+                ritualHeader() + ChatColor.GRAY + "Dark energy gathers nearby. Cultists are preparing a ritual!"
+        );
     }
 
     private boolean isActive(UUID playerId, String key) {
@@ -607,6 +612,14 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
             }
             return false;
         });
+    }
+
+    private static String ritualHeader() {
+        return ChatColor.DARK_PURPLE + "§lRITUAL" + ChatColor.GRAY + " | ";
+    }
+
+    private void sendRitualMessage(Player player, MessageType type, String body) {
+        ChatMessageUtil.send(player, type, ritualHeader() + body);
     }
 
     private static final class SiteProgress {
