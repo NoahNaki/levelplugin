@@ -17,6 +17,7 @@ import me.nakilex.levelplugin.quests.def.SalvagersLessonQuest;
 import me.nakilex.levelplugin.quests.def.MarketBeginningsQuest;
 import me.nakilex.levelplugin.quests.def.ForgeFundamentalsQuest;
 import me.nakilex.levelplugin.quests.def.EssenceWeaversLessonQuest;
+import me.nakilex.levelplugin.quests.def.HawieHermitCrabQuest;
 import me.nakilex.levelplugin.npc.dialog.NPCDialogManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.CurrencyMessageUtil;
@@ -140,6 +141,12 @@ public class NPCClickListener implements Listener {
 
                 if (EssenceWeaversLessonQuest.ID.equals(quest.getId())) {
                     if (handleEssenceWeaverLesson(player, npc, quest)) {
+                        return;
+                    }
+                }
+
+                if (HawieHermitCrabQuest.ID.equals(quest.getId())) {
+                    if (handleHawieHermitCrabs(player, npc, quest)) {
                         return;
                     }
                 }
@@ -670,6 +677,42 @@ public class NPCClickListener implements Listener {
                 npc,
                 () -> questManager.handleTalk(player, SalvagersLessonQuest.RETURN_TARGET));
         return true;
+    }
+
+    private boolean handleHawieHermitCrabs(Player player, NPC npc, Quest quest) {
+        QuestState state = questManager.getQuestState(player, quest);
+        if (state == QuestState.AVAILABLE) {
+            dialogManager.startDialog(player, quest, npc);
+            return true;
+        }
+        if (state == QuestState.LOCKED) {
+            questManager.meetsRequirements(player, quest);
+            return true;
+        }
+
+        java.util.UUID uuid = player.getUniqueId();
+        PlayerQuestProgress progress = questManager.getProgress(uuid, HawieHermitCrabQuest.ID);
+        if (progress == null) {
+            return false;
+        }
+
+        boolean crabsCleared = progress.getProgress(0) >= quest.getObjectives().get(0).getAmount();
+        boolean returned = progress.getProgress(1) >= 1;
+
+        if (!crabsCleared) {
+            player.sendMessage("§cClear the hermit crabs before reporting back.");
+            return true;
+        }
+
+        if (!returned) {
+            dialogManager.startDialog(player,
+                    HawieHermitCrabQuest.getReturnDialog(),
+                    npc,
+                    () -> questManager.handleTalk(player, "npc" + npc.getId()));
+            return true;
+        }
+
+        return false;
     }
 
     private boolean handleMarketBeginnings(Player player, NPC npc, Quest quest) {

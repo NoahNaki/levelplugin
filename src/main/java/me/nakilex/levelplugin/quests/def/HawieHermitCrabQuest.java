@@ -9,7 +9,6 @@ import me.nakilex.levelplugin.quests.data.QuestRewardCompat;
 import me.nakilex.levelplugin.quests.data.QuestScript;
 import me.nakilex.levelplugin.quests.data.QuestCompletionScript;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
-import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.entity.Player;
 
 import java.util.List;
@@ -49,6 +48,15 @@ public class HawieHermitCrabQuest extends Quest implements QuestScript, QuestCom
         );
     }
 
+    public static List<String> getReturnDialog() {
+        return List.of(
+                "Hawie|That's the last of the clattering nuisances? Music to my ears!",
+                "<player>|The docks should stay in one piece now.",
+                "Hawie|Good. If you want steadier work, the Stable Keeper up the road is always looking for capable riders.",
+                "Hawie|Tell them Hawie sent you—they'll set you up quick."
+        );
+    }
+
     @Override
     public void onStart(Player player, Main plugin) {
         // no special start logic
@@ -63,8 +71,6 @@ public class HawieHermitCrabQuest extends Quest implements QuestScript, QuestCom
         if (!questManager.hasCompleted(player.getUniqueId(), StableKeeperQuest.ID)
                 && questManager.getProgress(player.getUniqueId(), StableKeeperQuest.ID) == null) {
             questManager.startQuest(player, StableKeeperQuest.ID);
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
-                    "Hawie thanks you and points you toward the Stable Keeper (NPC 652) for a new mount.");
         }
     }
 }

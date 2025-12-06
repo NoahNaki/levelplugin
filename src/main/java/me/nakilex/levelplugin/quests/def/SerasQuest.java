@@ -38,7 +38,7 @@ public class SerasQuest extends Quest implements QuestScript, QuestCompletionScr
                     "Seras|Alright, you've certainly proven yourself adventurer,",
                     "Seras|I wonder why I've never heard of someone as strong as you before...",
                     "Seras|I'm sure you have your reasons, nonetheless I must take care of some other matters for now,",
-                    "Seras|If your packs start spilling with scraps, the Salvager (NPC 1106) near town can break them down for you.",
+                    "Seras|If your packs start spilling with scraps, the Salvager near town can break them down for you.",
                     "Seras|I'm sure our paths will cross again."));
 
     public static List<String> getDialogForObjective(int objectiveIndex) {
