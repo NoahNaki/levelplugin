@@ -118,7 +118,7 @@ public class NPCClickListener implements Listener {
             }
 
             if (isNpcName(npc, "Tool Merchant")) {
-                player.performCommand("merchant tool_shop");
+                player.performCommand("merchant tool");
                 return;
             }
 
