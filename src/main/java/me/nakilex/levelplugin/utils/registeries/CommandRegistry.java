@@ -1,6 +1,5 @@
 package me.nakilex.levelplugin.utils.registeries;
 
-import de.slikey.effectlib.EffectManager;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.blacksmith.commands.BlacksmithCommand;
 import me.nakilex.levelplugin.blacksmith.gui.BlacksmithGUI;

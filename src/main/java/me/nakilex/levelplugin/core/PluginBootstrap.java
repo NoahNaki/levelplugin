@@ -1,6 +1,5 @@
 package me.nakilex.levelplugin.core;
 
-import de.slikey.effectlib.EffectManager;
 import io.lumine.mythic.bukkit.BukkitAPIHelper;
 import io.lumine.mythic.bukkit.MythicBukkit;
 import me.nakilex.levelplugin.Main;
@@ -107,7 +106,6 @@ public class PluginBootstrap {
     private SpellManager spellmanager;
     private GlobalBoosterManager boosterManager;
     private HorseManager horseManager;
-    private EffectManager effectManager;
     private PartyManager partyManager;
     private ArenaQueueManager arenaQueueManager;
     private ArenaRatingManager arenaRatingManager;
@@ -310,7 +308,6 @@ public class PluginBootstrap {
         levelManager = new LevelManager(plugin);
         miningManager = new me.nakilex.levelplugin.player.mining.managers.MiningManager(plugin);
         miningRewardsConfig = new me.nakilex.levelplugin.player.mining.config.MiningRewardsConfig(plugin);
-        effectManager = new EffectManager(plugin);
         boosterManager = new GlobalBoosterManager(plugin, 2.0);
         economyManager = new EconomyManager(plugin);
         itemUpgradeManager = new ItemUpgradeManager(plugin);
@@ -650,7 +647,6 @@ public class PluginBootstrap {
     public SpellManager getSpellmanager() { return spellmanager; }
     public GlobalBoosterManager getBoosterManager() { return boosterManager; }
     public HorseManager getHorseManager() { return horseManager; }
-    public EffectManager getEffectManager() { return effectManager; }
     public PartyManager getPartyManager() { return partyManager; }
     public ArenaQueueManager getArenaQueueManager() { return arenaQueueManager; }
     public ArenaRatingManager getArenaRatingManager() { return arenaRatingManager; }
