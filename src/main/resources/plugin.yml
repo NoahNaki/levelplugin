@@ -129,6 +129,9 @@ commands:
   salvage:
     description: Opens the Salvage GUI
     usage: /salvage
+  ps:
+    description: Manage personal storage
+    usage: /ps <create|open>
   merchant:
     description: Opens a merchant GUI.
     usage: /merchant <name>
@@ -306,6 +309,9 @@ commands:
   mute:
     description: Mute world chat
     usage: /mute all
+  emotes:
+    description: List available chat emotes
+    usage: /emotes
   unmute:
     description: Unmute world chat
     usage: /unmute all

@@ -1,6 +1,5 @@
 package me.nakilex.levelplugin.utils.registeries;
 
-import de.slikey.effectlib.EffectManager;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.blacksmith.commands.BlacksmithCommand;
 import me.nakilex.levelplugin.blacksmith.gui.BlacksmithGUI;
@@ -96,6 +95,7 @@ import me.nakilex.levelplugin.chat.ChatModerationCommand;
 import me.nakilex.levelplugin.chat.games.ChatGameManager;
 import me.nakilex.levelplugin.commands.LevelPluginCommand;
 import me.nakilex.levelplugin.chat.ChatCommand;
+import me.nakilex.levelplugin.chat.EmotesCommand;
 import me.nakilex.levelplugin.chat.RollCommand;
 import org.bukkit.command.PluginCommand;
 import me.nakilex.levelplugin.pathfinding.MercenaryManager;
@@ -342,6 +342,10 @@ public class CommandRegistry {
         ChatCommand channelCmd = new ChatCommand(plugin);
         plugin.getCommand("chat").setExecutor(channelCmd);
         plugin.getCommand("chat").setTabCompleter(channelCmd);
+
+        EmotesCommand emotesCommand = new EmotesCommand();
+        plugin.getCommand("emotes").setExecutor(emotesCommand);
+        plugin.getCommand("emotes").setTabCompleter(emotesCommand);
 
         plugin.getCommand("roll").setExecutor(new RollCommand());
 
