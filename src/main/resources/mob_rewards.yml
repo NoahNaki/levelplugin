@@ -70,6 +70,22 @@ mobs:
   MSO_Demon_General:
     model_set: default
 
+  cultist_acolyte:
+    model_set: witchcaster
+
+  cultist_zealot:
+    model_set: witchcaster
+
+  cultist_fanatic:
+    model_set: witchcaster
+
+  cultist_inquisitor:
+    model_set: witchcaster
+
+  cultist_high_priest:
+    model_set: witchcaster
+
+
 
 
 
