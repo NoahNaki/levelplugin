@@ -17,53 +17,58 @@ public final class ChatUtil {
     private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
     private static final Pattern EMOJI_PATTERN = Pattern.compile(":([a-z_]+):", Pattern.CASE_INSENSITIVE);
     private static final Map<String, String> EMOJI_GLYPHS = Map.ofEntries(
-            Map.entry("begging", "꒝"),
-            Map.entry("begging_emote", "꒝"),
-            Map.entry("clown", "꒞"),
-            Map.entry("clown_emote", "꒞"),
-            Map.entry("crying", "꒟"),
-            Map.entry("crying_emote", "꒟"),
-            Map.entry("eyes", "꒠"),
-            Map.entry("eyes_emote", "꒠"),
-            Map.entry("fire", "꒡"),
-            Map.entry("fire_emote", "꒡"),
-            Map.entry("grimacing", "꒢"),
-            Map.entry("grimacing_emote", "꒢"),
-            Map.entry("happy", "꒣"),
-            Map.entry("happy_emote", "꒣"),
-            Map.entry("heart", "꒤"),
-            Map.entry("heart_emote", "꒤"),
-            Map.entry("hearteyes", "꒥"),
-            Map.entry("hearteyes_emote", "꒥"),
-            Map.entry("joy", "꒦"),
-            Map.entry("joy_emote", "꒦"),
-            Map.entry("love", "꒧"),
-            Map.entry("love_emote", "꒧"),
-            Map.entry("rage", "꒨"),
-            Map.entry("rage_emote", "꒨"),
-            Map.entry("rainbow", "꒩"),
-            Map.entry("rainbow_emote", "꒩"),
-            Map.entry("sad", "꒪"),
-            Map.entry("sad_emote", "꒪"),
-            Map.entry("skull", "꒫"),
-            Map.entry("skull_emote", "꒫"),
-            Map.entry("smiling", "꒬"),
-            Map.entry("smiling_emote", "꒬"),
-            Map.entry("sunglasses", "꒭"),
-            Map.entry("sunglasses_emote", "꒭"),
-            Map.entry("sweat", "꒮"),
-            Map.entry("sweat_emote", "꒮"),
-            Map.entry("thumbdown", "꒯"),
-            Map.entry("thumbdown_emote", "꒯"),
-            Map.entry("thumbup", "꒰"),
-            Map.entry("thumbup_emote", "꒰"),
-            Map.entry("tongue", "꒱"),
-            Map.entry("tongue_emote", "꒱"),
-            Map.entry("upsidedown", "꒲"),
-            Map.entry("upsidedown_emote", "꒲"),
-            Map.entry("wink", "꒳"),
-            Map.entry("wink_emote", "꒳")
+            Map.entry("begging", glyphTag("begging_emote")),
+            Map.entry("begging_emote", glyphTag("begging_emote")),
+            Map.entry("clown", glyphTag("clown_emote")),
+            Map.entry("clown_emote", glyphTag("clown_emote")),
+            Map.entry("crying", glyphTag("crying_emote")),
+            Map.entry("crying_emote", glyphTag("crying_emote")),
+            Map.entry("eyes", glyphTag("eyes_emote")),
+            Map.entry("eyes_emote", glyphTag("eyes_emote")),
+            Map.entry("fire", glyphTag("fire_emote")),
+            Map.entry("fire_emote", glyphTag("fire_emote")),
+            Map.entry("grimacing", glyphTag("grimacing_emote")),
+            Map.entry("grimacing_emote", glyphTag("grimacing_emote")),
+            Map.entry("happy", glyphTag("happy_emote")),
+            Map.entry("happy_emote", glyphTag("happy_emote")),
+            Map.entry("heart", glyphTag("heart_emote")),
+            Map.entry("heart_emote", glyphTag("heart_emote")),
+            Map.entry("hearteyes", glyphTag("hearteyes_emote")),
+            Map.entry("hearteyes_emote", glyphTag("hearteyes_emote")),
+            Map.entry("joy", glyphTag("joy_emote")),
+            Map.entry("joy_emote", glyphTag("joy_emote")),
+            Map.entry("love", glyphTag("love_emote")),
+            Map.entry("love_emote", glyphTag("love_emote")),
+            Map.entry("rage", glyphTag("rage_emote")),
+            Map.entry("rage_emote", glyphTag("rage_emote")),
+            Map.entry("rainbow", glyphTag("rainbow_emote")),
+            Map.entry("rainbow_emote", glyphTag("rainbow_emote")),
+            Map.entry("sad", glyphTag("sad_emote")),
+            Map.entry("sad_emote", glyphTag("sad_emote")),
+            Map.entry("skull", glyphTag("skull_emote")),
+            Map.entry("skull_emote", glyphTag("skull_emote")),
+            Map.entry("smile", glyphTag("smiling_emote")),
+            Map.entry("smiling", glyphTag("smiling_emote")),
+            Map.entry("smiling_emote", glyphTag("smiling_emote")),
+            Map.entry("sunglasses", glyphTag("sunglasses_emote")),
+            Map.entry("sunglasses_emote", glyphTag("sunglasses_emote")),
+            Map.entry("sweat", glyphTag("sweat_emote")),
+            Map.entry("sweat_emote", glyphTag("sweat_emote")),
+            Map.entry("thumbdown", glyphTag("thumbdown_emote")),
+            Map.entry("thumbdown_emote", glyphTag("thumbdown_emote")),
+            Map.entry("thumbup", glyphTag("thumbup_emote")),
+            Map.entry("thumbup_emote", glyphTag("thumbup_emote")),
+            Map.entry("tongue", glyphTag("tongue_emote")),
+            Map.entry("tongue_emote", glyphTag("tongue_emote")),
+            Map.entry("upsidedown", glyphTag("upsidedown_emote")),
+            Map.entry("upsidedown_emote", glyphTag("upsidedown_emote")),
+            Map.entry("wink", glyphTag("wink_emote")),
+            Map.entry("wink_emote", glyphTag("wink_emote"))
     );
+
+    private static String glyphTag(String emoteName) {
+        return "<glyph:" + emoteName + ">";
+    }
 
     private ChatUtil() {
     }
@@ -107,7 +112,7 @@ public final class ChatUtil {
     }
 
     /**
-     * Replace :emoji: shortcodes with their configured glyph characters.
+     * Replace :emoji: shortcodes with their configured glyph tags for the font provider.
      */
     public static String applyEmojis(String message) {
         if (message == null || message.isEmpty()) {
