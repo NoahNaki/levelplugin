@@ -97,7 +97,7 @@ public class StorageManager {
             // 2) Now actually open the GUI
             ps.open(player);
         } else {
-            player.sendMessage("You do not have storage! Use /ps create first.");
+            player.sendMessage("You do not have storage! Speak to a Storage Manager to register one.");
         }
     }
 
