@@ -47,6 +47,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
@@ -74,6 +75,9 @@ public class LootChestManager {
 
     // For continuous particles: chestId -> repeating task
     private final Map<Integer, BukkitTask> chestParticleTasks = new HashMap<>();
+
+    // Quick lookup for which chests belong to a given chunk
+    private final Map<ChunkKey, List<ChestData>> chunkChestIndex = new HashMap<>();
 
     // Track active loot sessions so we can pay out coins once per open
     private final Map<UUID, LootSession> openChestSessions = new HashMap<>();
@@ -136,6 +140,8 @@ public class LootChestManager {
                 plugin.getLogger().warning("Error loading chest ID: " + key);
             }
         }
+
+        rebuildChunkIndex();
     }
 
     // 2) Spawn all on startup
@@ -343,14 +349,20 @@ public class LootChestManager {
             return;
         }
 
+        ChunkKey key = chunkKeyFromChunk(chunk);
+        if (key == null) {
+            return;
+        }
+
+        List<ChestData> chestsInChunk = chunkChestIndex.get(key);
+        if (chestsInChunk == null || chestsInChunk.isEmpty()) {
+            return;
+        }
+
         int removed = 0;
         int configuredInChunk = 0;
 
-        for (ChestData data : chestDataList) {
-            if (!isChestInChunk(data, chunk)) {
-                continue;
-            }
-
+        for (ChestData data : chestsInChunk) {
             configuredInChunk++;
 
             if (spawnedChests.containsKey(data.getChestId())) {
@@ -392,6 +404,7 @@ public class LootChestManager {
         boolean removed = removeChest(chestId);
 
         chestDataList.removeIf(cd -> cd.getChestId() == chestId);
+        removeChestFromIndex(chestId);
         spawnedChests.remove(chestId);
         openChestSessions.entrySet().removeIf(entry -> entry.getValue().chestId() == chestId);
 
@@ -436,6 +449,7 @@ public class LootChestManager {
     // So we can add new data via a command
     public void addChestData(ChestData data) {
         chestDataList.add(data);
+        addChestToIndex(data);
     }
 
     private ChestData getChestData(int chestId) {
@@ -577,6 +591,48 @@ public class LootChestManager {
         return loc.getWorld().equals(chunk.getWorld())
                 && loc.getBlockX() >> 4 == chunk.getX()
                 && loc.getBlockZ() >> 4 == chunk.getZ();
+    }
+
+    private void rebuildChunkIndex() {
+        chunkChestIndex.clear();
+        for (ChestData data : chestDataList) {
+            addChestToIndex(data);
+        }
+    }
+
+    private void addChestToIndex(ChestData data) {
+        ChunkKey key = chunkKeyFromChest(data);
+        if (key == null) {
+            return;
+        }
+        chunkChestIndex.computeIfAbsent(key, k -> new ArrayList<>()).add(data);
+    }
+
+    private void removeChestFromIndex(int chestId) {
+        chunkChestIndex.values().forEach(list -> list.removeIf(cd -> cd.getChestId() == chestId));
+        chunkChestIndex.entrySet().removeIf(entry -> entry.getValue().isEmpty());
+    }
+
+    private ChunkKey chunkKeyFromChunk(Chunk chunk) {
+        if (chunk == null || chunk.getWorld() == null) {
+            return null;
+        }
+        String worldName = chunk.getWorld().getName();
+        return new ChunkKey(worldName.toLowerCase(Locale.ROOT), chunk.getX(), chunk.getZ());
+    }
+
+    private ChunkKey chunkKeyFromChest(ChestData data) {
+        if (data == null) {
+            return null;
+        }
+        String worldName = normalizeWorldName(data.getWorldName());
+        if (worldName == null || worldName.isBlank()) {
+            return null;
+        }
+
+        int chunkX = ((int) Math.floor(data.getX())) >> 4;
+        int chunkZ = ((int) Math.floor(data.getZ())) >> 4;
+        return new ChunkKey(worldName.toLowerCase(Locale.ROOT), chunkX, chunkZ);
     }
 
     private int removeUntrackedCratesInChunk(Chunk chunk) {
@@ -878,4 +934,6 @@ public class LootChestManager {
     public record LootSession(int chestId, Inventory inventory, int coinReward, int gearScore) {}
 
     private record LootResult(List<ItemStack> items, int coinReward) {}
+
+    private record ChunkKey(String worldName, int chunkX, int chunkZ) {}
 }
