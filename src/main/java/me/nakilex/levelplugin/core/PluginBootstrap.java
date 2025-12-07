@@ -220,6 +220,12 @@ public class PluginBootstrap {
     }
 
     public void enable() {
+        if (!validateDependencies()) {
+            plugin.getLogger().severe("Missing required dependencies. Disabling plugin..");
+            plugin.getServer().getPluginManager().disablePlugin(plugin);
+            return;
+        }
+
         manaTracker = new ManaCostTracker(1.5, 4_000L);
         loadConfigFiles();
         setupCustomConfig();
@@ -241,11 +247,6 @@ public class PluginBootstrap {
                 settingsManager,
                 environmentManager);
         CitizensAPI.getTraitFactory().registerTrait(net.citizensnpcs.api.trait.TraitInfo.create(MetadataTrait.class).withName("MetadataTrait"));
-        if (!validateDependencies()) {
-            plugin.getLogger().severe("Missing required dependencies. Disabling plugin..");
-            plugin.getServer().getPluginManager().disablePlugin(plugin);
-            return;
-        }
         mobRewardsConfig = new MobRewardsConfig(plugin);
         GuildQuestManager.getInstance().reloadMobCategories();
         codexManager = new CodexManager(playerConfig, mobRewardsConfig, bossConfig);
@@ -558,12 +559,27 @@ public class PluginBootstrap {
     }
 
     private boolean validateDependencies() {
-        if (!plugin.getServer().getPluginManager().isPluginEnabled("Citizens")) {
-            plugin.getLogger().severe("Citizens is installed but disabled! Check for errors.");
-            plugin.getServer().getPluginManager().disablePlugin(plugin);
+        return ensureDependency("Citizens", null)
+                && ensureDependency("MythicMobs", "io.lumine.mythic.bukkit.MythicBukkit");
+    }
+
+    private boolean ensureDependency(String pluginName, String requiredClassName) {
+        if (!plugin.getServer().getPluginManager().isPluginEnabled(pluginName)) {
+            plugin.getLogger().severe(pluginName + " is installed but disabled! Check for errors.");
             return false;
         }
-        return true;
+
+        if (requiredClassName == null) {
+            return true;
+        }
+
+        try {
+            Class.forName(requiredClassName);
+            return true;
+        } catch (ClassNotFoundException ex) {
+            plugin.getLogger().severe("Required class '" + requiredClassName + "' from " + pluginName + " is missing. Make sure the plugin is updated and loaded.");
+            return false;
+        }
     }
 
     public void disable() {
