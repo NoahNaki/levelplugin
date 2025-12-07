@@ -132,6 +132,7 @@ commands:
   ps:
     description: Manage personal storage
     usage: /ps <create|open>
+    permission: none
   merchant:
     description: Opens a merchant GUI.
     usage: /merchant <name>
