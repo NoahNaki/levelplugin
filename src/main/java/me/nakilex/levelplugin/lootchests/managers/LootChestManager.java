@@ -32,7 +32,6 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -42,6 +41,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -87,6 +87,7 @@ public class LootChestManager {
         this.potionManager = potionManager;
         this.wandKey = new NamespacedKey(plugin, "lootchest_wand");
 
+        removeExistingLootHolograms();
         loadChestDataFromConfig();
         refreshUpgradeMaterials();
 
@@ -170,8 +171,8 @@ public class LootChestManager {
         // 2) Remember this location so getChestIdAtLocation(loc) will still work:
         spawnedChests.put(data.getChestId(), loc.getBlock().getLocation());
 
-        // 3) Start the particle task (handles hologram spawning based on player proximity)
-        startParticleTask(data.getChestId(), loc, data);
+        // 3) Start the particle task (handles particle effects based on player proximity)
+        startParticleTask(data.getChestId(), loc);
     }
 
     /**
@@ -193,45 +194,6 @@ public class LootChestManager {
 
     public Location getLocationForChestId(int chestId) {
         return spawnedChests.get(chestId);
-    }
-
-    public void spawnHologramForChest(ChestData data) {
-        Location base = data.toLocation();
-        if (base == null) {
-            plugin.getLogger().warning(
-                "[LootChestManager] No location for chest " + data.getChestId()
-            );
-            return;
-        }
-
-        if (!data.getHolograms().isEmpty()) {
-            return; // already spawned
-        }
-
-        boolean chunkLoaded = base.getChunk().isLoaded();
-
-        // Check if there is STILL the correct crate furniture at that Location:
-        FurnitureMechanic mechAtLoc = NexoFurniture.furnitureMechanic(base.getBlock());
-        boolean isCrate = (mechAtLoc != null && mechAtLoc.getItemID().equals(DEFAULT_CRATE_ID))
-                || base.getBlock().getType() == Material.CHEST;
-
-        if (!chunkLoaded || !isCrate) {
-            return;
-        }
-
-        // Positions for the three lines of text above the crate:
-        Location line1Loc = base.clone().add(0.5, 1.2, 0.5);
-        Location line2Loc = base.clone().add(0.5, 0.95, 0.5);
-        Location line3Loc = base.clone().add(0.5, 0.70, 0.5);
-
-        String namePrefix = data.getCustomName().orElse("Loot Chest");
-        String text1      = ChatColor.GOLD + "" + ChatColor.BOLD + namePrefix;
-        String text2      = "§fRight-Click §7to open";
-        String text3      = ChatColor.GRAY + "[Scaled to your gear score]";
-
-        spawnArmorStand(line1Loc, text1, data);
-        spawnArmorStand(line2Loc, text2, data);
-        spawnArmorStand(line3Loc, text3, data);
     }
 
     /**
@@ -271,41 +233,7 @@ public class LootChestManager {
         return inv;
     }
 
-
-
-    private void spawnArmorStand(Location loc, String text, ChestData data) {
-        org.bukkit.entity.ArmorStand stand = loc.getWorld().spawn(loc, org.bukkit.entity.ArmorStand.class);
-        // Tag it so we can find and kill it later, even if its chunk was unloaded
-        stand.addScoreboardTag("loot_hologram");
-
-        stand.setVisible(false);
-        stand.setMarker(true);
-        stand.setGravity(false);
-        stand.setCustomName(text);
-        stand.setCustomNameVisible(true);
-        stand.setSilent(true);
-        stand.setSmall(true);
-
-        data.getHolograms().add(stand); // Track it in-memory
-    }
-
-    public void killAllHologramArmorStands() {
-        // Loop through every world
-        for (org.bukkit.World world : plugin.getServer().getWorlds()) {
-            // Only loaded chunks are visible; unloaded ones will get cleaned when they load if you also use the ChunkLoad listener
-            for (org.bukkit.Chunk chunk : world.getLoadedChunks()) {
-                for (org.bukkit.entity.Entity e : chunk.getEntities()) {
-                    if (e instanceof org.bukkit.entity.ArmorStand stand
-                        && stand.getScoreboardTags().contains("loot_hologram")) {
-                        stand.remove();
-                    }
-                }
-            }
-        }
-    }
-
-
-    private void startParticleTask(int chestId, Location loc, ChestData data) {
+    private void startParticleTask(int chestId, Location loc) {
         cancelParticleTask(chestId);
 
         BukkitTask task = plugin.getServer().getScheduler().runTaskTimer(
@@ -314,7 +242,6 @@ public class LootChestManager {
                 FurnitureMechanic mechAtLoc = NexoFurniture.furnitureMechanic(loc.getBlock());
                 boolean hasCrate = mechAtLoc != null && mechAtLoc.getItemID().equals(DEFAULT_CRATE_ID);
                 if (!hasCrate) {
-                    removeHolograms(data);
                     return;
                 }
 
@@ -322,12 +249,7 @@ public class LootChestManager {
                         .anyMatch(p -> p.getLocation().distanceSquared(loc) <= 20 * 20);
 
                 if (playerNearby) {
-                    if (data.getHolograms().isEmpty()) {
-                        spawnHologramForChest(data);
-                    }
                     ParticleUtils.displayChestParticles(loc);
-                } else {
-                    removeHolograms(data);
                 }
             },
             0L,
@@ -336,11 +258,28 @@ public class LootChestManager {
         chestParticleTasks.put(chestId, task);
     }
 
-    private void removeHolograms(ChestData data) {
-        data.getHolograms().removeIf(stand -> {
-            if (!stand.isDead()) stand.remove();
-            return true;
-        });
+    private void removeExistingLootHolograms() {
+        for (org.bukkit.World world : plugin.getServer().getWorlds()) {
+            for (org.bukkit.Chunk chunk : world.getLoadedChunks()) {
+                purgeTaggedHolograms(Arrays.asList(chunk.getEntities()));
+            }
+        }
+    }
+
+    private void removeTaggedHologramsAt(Location loc) {
+        if (loc == null || loc.getWorld() == null) {
+            return;
+        }
+        purgeTaggedHolograms(Arrays.asList(loc.getChunk().getEntities()));
+    }
+
+    private void purgeTaggedHolograms(Iterable<? extends org.bukkit.entity.Entity> entities) {
+        for (org.bukkit.entity.Entity entity : entities) {
+            if (entity instanceof org.bukkit.entity.ArmorStand stand
+                    && stand.getScoreboardTags().contains("loot_hologram")) {
+                stand.remove();
+            }
+        }
     }
 
 
@@ -368,24 +307,14 @@ public class LootChestManager {
                 " (ID " + chestId + "). Maybe it's already gone?");
         }
 
-        // 3) Remove only this chest’s holograms (ArmorStands)
-        for (ChestData data : chestDataList) {
-            if (data.getChestId() == chestId) {
-                for (ArmorStand stand : data.getHolograms()) {
-                    if (!stand.isDead()) {
-                        stand.remove();
-                    }
-                }
-                data.getHolograms().clear();
-                break;
-            }
-        }
-
-        // 4) Cancel its particle task, if one is running
+        // 3) Cancel its particle task, if one is running
         cancelParticleTask(chestId);
 
-        // 5) Remove from our spawned‐map so that future lookups no longer think it exists
+        // 4) Remove from our spawned‐map so that future lookups no longer think it exists
         spawnedChests.remove(chestId);
+
+        // Clean up any lingering holograms from older versions
+        removeTaggedHologramsAt(loc);
 
         plugin.getLogger().info("[LootChestManager] Removed crate with ID " + chestId + " at " + loc);
         return true;
