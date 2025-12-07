@@ -1,63 +1,63 @@
 loot_chests:
   1:
     coordinates: 786, 100, -41
-    world: MmoRPG
+    world: world
     facing: NORTH
   2:
     coordinates: 754, 101, -105
-    world: MmoRPG
+    world: world
     facing: NORTH
   3:
     coordinates: 688, 103, -129
-    world: MmoRPG
+    world: world
     facing: NORTH
   4:
     coordinates: 741, 98, -181
-    world: MmoRPG
+    world: world
     facing: NORTH
   5:
     coordinates: 758, 78, -289
-    world: MmoRPG
+    world: world
     facing: NORTH
   6:
     coordinates: 320, 74, -140
-    world: MmoRPG
+    world: world
     facing: NORTH
   7:
     coordinates: 308, 76, -136
-    world: MmoRPG
+    world: world
     facing: NORTH
   8:
     coordinates: 192, 52, -238
-    world: MmoRPG
+    world: world
     facing: NORTH
   9:
     coordinates: 370, 52, 250
-    world: MmoRPG
+    world: world
     facing: NORTH
   10:
     coordinates: 439, 65, 201
-    world: MmoRPG
+    world: world
     facing: NORTH
   11:
     coordinates: 715, 102, -50
-    world: MmoRPG
+    world: world
     facing: NORTH
   12:
     coordinates: -360, 74, 261
-    world: MmoRPG
+    world: world
     facing: NORTH
   13:
     coordinates: -418, 72, 320
-    world: MmoRPG
+    world: world
     facing: NORTH
   14:
     coordinates: -437, 68, 389
-    world: MmoRPG
+    world: world
     facing: NORTH
   15:
     coordinates: -412, 70, 384
-    world: MmoRPG
+    world: world
     facing: NORTH
 
 cooldowns:

@@ -265,11 +265,19 @@ public class ProceduralItemGenerator {
     }
 
     private String pickClassForMob(String mobType) {
+        if (mobType == null || mobType.isBlank()) {
+            return pickRandomClass();
+        }
+
         String type = mobType.toLowerCase();
         if (type.contains("skeleton")) return random.nextBoolean() ? "ARCHER" : "ROGUE";
         if (type.contains("zombie")) return "WARRIOR";
         if (type.contains("slime")) return "MAGE";
         // default random class
+        return pickRandomClass();
+    }
+
+    private String pickRandomClass() {
         String[] classes = {"ROGUE", "MAGE", "ARCHER", "WARRIOR"};
         return classes[random.nextInt(classes.length)];
     }

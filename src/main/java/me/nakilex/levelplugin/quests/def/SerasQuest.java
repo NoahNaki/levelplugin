@@ -14,7 +14,10 @@ public class SerasQuest extends Quest implements QuestScript, QuestCompletionScr
     public static final String ID = "serashelp";
 
     private static List<QuestObjective> createObjectives() {
-        World world = Bukkit.getWorld("mmorpg");
+        World world = Bukkit.getWorld("world");
+        if (world == null && !Bukkit.getWorlds().isEmpty()) {
+            world = Bukkit.getWorlds().get(0);
+        }
         return List.of(
                 new QuestObjective(QuestObjectiveType.TALK, "npc823", 1,
                         BeaconTargets.npc(823)),

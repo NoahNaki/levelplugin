@@ -121,7 +121,7 @@ public class LootChestManager {
                 double y = Double.parseDouble(split[1].trim());
                 double z = Double.parseDouble(split[2].trim());
                 BlockFace face = BlockFace.valueOf(root.getString(key + ".facing", "NORTH"));
-                String world = root.getString(key + ".world", "MmoRPG");
+                String world = root.getString(key + ".world", "world");
 
                 ChestData data = new ChestData(chestId, world, x, y, z, face);
                 chestDataList.add(data);

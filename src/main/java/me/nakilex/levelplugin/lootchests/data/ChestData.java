@@ -10,7 +10,7 @@ import java.util.Optional;
 
 public class ChestData {
 
-    private static final String DEFAULT_WORLD = "MmoRPG";
+    private static final String DEFAULT_WORLD = "world";
 
     private final int chestId;
     private final String worldName;
@@ -72,6 +72,12 @@ public class ChestData {
 
     public Location toLocation() {
         World world = Bukkit.getWorld(worldName);
+        if (world == null) {
+            world = Bukkit.getWorld(DEFAULT_WORLD);
+        }
+        if (world == null && !Bukkit.getWorlds().isEmpty()) {
+            world = Bukkit.getWorlds().get(0);
+        }
         if (world == null) return null;
         return new Location(world, x, y, z);
     }

@@ -151,7 +151,7 @@ public class SharpestSecretQuest extends Quest implements QuestScript, QuestComp
         Main plugin = Main.getInstance();
         World fallbackWorld = Bukkit.getWorlds().isEmpty() ? null : Bukkit.getWorlds().get(0);
         ConfigurationSection section = plugin.getConfig().getConfigurationSection(CONFIG_PATH);
-        String worldName = section != null ? section.getString("world", "mmorpg") : "mmorpg";
+        String worldName = section != null ? section.getString("world", "world") : "world";
         World world = Bukkit.getWorld(worldName);
         if (world == null) {
             world = fallbackWorld;
