@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.codex;
 import me.nakilex.levelplugin.mob.config.MobRewardsConfig;
 import me.nakilex.levelplugin.mob.utils.MobNameUtil;
 import me.nakilex.levelplugin.player.config.PlayerConfig;
+import me.nakilex.levelplugin.utils.NpcNameUtil;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.ChatColor;
@@ -169,7 +170,11 @@ public class CodexManager {
     /* ----- NPC Tracking ----- */
     public void recordNpc(Player player, String name) {
         UUID id = player.getUniqueId();
-        String path = "players." + id + ".codex.npcs." + name.toLowerCase();
+        String normalized = normalizeNpcName(name);
+        if (normalized.isEmpty()) {
+            return;
+        }
+        String path = "players." + id + ".codex.npcs." + normalized;
         if (!playerConfig.getConfig().contains(path)) {
             playerConfig.getConfig().set(path, true);
             playerConfig.saveConfigFile();
@@ -180,7 +185,14 @@ public class CodexManager {
     public List<String> getDiscoveredNpcs(UUID id) {
         String base = "players." + id + ".codex.npcs";
         if (!playerConfig.getConfig().isConfigurationSection(base)) return java.util.Collections.emptyList();
-        return new ArrayList<>(playerConfig.getConfig().getConfigurationSection(base).getKeys(false));
+        List<String> discovered = new ArrayList<>();
+        for (String key : playerConfig.getConfig().getConfigurationSection(base).getKeys(false)) {
+            String normalized = normalizeNpcName(key);
+            if (!normalized.isEmpty() && !discovered.contains(normalized)) {
+                discovered.add(normalized);
+            }
+        }
+        return discovered;
     }
 
     public int getDiscoveredNpcCount(UUID id) {
@@ -188,17 +200,23 @@ public class CodexManager {
     }
 
     public int getTotalNpcCount() {
-        int count = 0;
-        for (NPC ignored : CitizensAPI.getNPCRegistry()) {
-            count++;
-        }
-        return count;
+        return getAllNpcs().size();
     }
 
     public List<NPC> getAllNpcs() {
-        List<NPC> list = new ArrayList<>();
-        CitizensAPI.getNPCRegistry().forEach(list::add);
-        return list;
+        Map<String, NPC> uniqueByName = new LinkedHashMap<>();
+        CitizensAPI.getNPCRegistry().forEach(npc -> {
+            String normalized = normalizeNpcName(npc.getName());
+            if (!normalized.isEmpty() && !uniqueByName.containsKey(normalized)) {
+                uniqueByName.put(normalized, npc);
+            }
+        });
+        return new ArrayList<>(uniqueByName.values());
+    }
+
+    private String normalizeNpcName(String name) {
+        String normalized = NpcNameUtil.normalize(name);
+        return normalized == null ? "" : normalized;
     }
 
     /* ----- Location Tracking ----- */

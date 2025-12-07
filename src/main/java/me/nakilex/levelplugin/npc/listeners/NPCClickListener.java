@@ -117,6 +117,11 @@ public class NPCClickListener implements Listener {
                 return;
             }
 
+            if (isNpcName(npc, "Tool Merchant")) {
+                player.performCommand("merchant tool");
+                return;
+            }
+
             if (npc.getId() == 546 &&
                     questManager.hasCompleted(player.getUniqueId(), "newbeginning")) {
                 if (!dialogManager.hasSession(player)) {
