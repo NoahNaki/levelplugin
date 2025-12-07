@@ -10,13 +10,13 @@ import me.nakilex.levelplugin.economy.managers.GemsManager;
 import me.nakilex.levelplugin.arena.gui.ArenaQueueGUI;
 import me.nakilex.levelplugin.arena.match.ArenaMatchManager;
 import me.nakilex.levelplugin.arena.match.ArenaTeamMatchManager;
-import me.nakilex.levelplugin.lootchests.listeners.ChestHologramListener;
 import me.nakilex.levelplugin.player.attributes.listeners.StatsEffectListener;
 import me.nakilex.levelplugin.horse.gui.HorseGUI;
 import me.nakilex.levelplugin.items.listeners.*;
 import me.nakilex.levelplugin.lootchests.listeners.LootChestCloseListener;
 import me.nakilex.levelplugin.lootchests.listeners.LootChestListener;
 import me.nakilex.levelplugin.lootchests.listeners.LootChestShutdownListener;
+import me.nakilex.levelplugin.lootchests.listeners.LootChestWandListener;
 import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
 import me.nakilex.levelplugin.mob.config.MobRewardsConfig;
 import me.nakilex.levelplugin.mob.dps.DpsDummyManager;
@@ -94,11 +94,10 @@ public class ListenerRegistry {
                                          SettingsGUI settingsGUI,
                                          me.nakilex.levelplugin.debug.gui.DebugGUI debugGUI,
                                          FileConfiguration bossConfig,
-                                         MeteorListener meteorListener,
-                                         GemsManager gemsManager,
-                                        me.nakilex.levelplugin.enchanting.gui.EnchantGUI enchantGUI,
-                                        AuctionHouseGUI auctionGUI,
-                                        ChestHologramListener chestHologramListener,
+                                        MeteorListener meteorListener,
+                                        GemsManager gemsManager,
+                                       me.nakilex.levelplugin.enchanting.gui.EnchantGUI enchantGUI,
+                                       AuctionHouseGUI auctionGUI,
                                         QuestManager questManager,
                                         NPCDialogManager dialogManager,
                                          PlayerScoreboardManager scoreboardManager,
@@ -174,6 +173,7 @@ public class ListenerRegistry {
         pm.registerEvents(new LootChestListener(lootChestManager, battlePassManager), plugin);
         pm.registerEvents(new LootChestCloseListener(lootChestManager, economyManager,
                 plugin.getDungeonManager()), plugin);
+        pm.registerEvents(new LootChestWandListener(lootChestManager), plugin);
         pm.registerEvents(new PotionUseListener(potionManager, plugin), plugin);
         pm.registerEvents(new MythicMobNameManager(plugin), plugin);
         pm.registerEvents(new MythicMobDamageListener(), plugin);
@@ -202,7 +202,6 @@ public class ListenerRegistry {
         pm.registerEvents(new ClassEssenceMenuListener(), plugin);
         pm.registerEvents(new ClassEssenceBoundListener(), plugin);
         pm.registerEvents(new ClassEssenceUpgradeGUI(), plugin);
-        pm.registerEvents(new ChestHologramListener(lootChestManager), plugin);
         pm.registerEvents(new LootChestShutdownListener(plugin, lootChestManager), plugin);
 
         pm.registerEvents(new FieldBossListener(plugin, plugin.getBossConfig(), plugin.getItemManager(), plugin.getGemsManager()), plugin);

@@ -25,7 +25,7 @@ public class CooldownManager {
     }
 
     public void reloadSettings() {
-        this.defaultCooldownSeconds = configManager.getLootChestsConfig().getInt("cooldowns.default", 5);
+        this.defaultCooldownSeconds = configManager.getLootChestsConfig().getInt("cooldowns.default", 240);
     }
 
     public void setLootChestManager(LootChestManager manager) {
@@ -69,6 +69,10 @@ public class CooldownManager {
             + " => " + expired + " (time left = " + delta + "ms)");
 
         return expired;
+    }
+
+    public void clearCooldown(int chestId) {
+        chestExpiration.remove(chestId);
     }
 
 }

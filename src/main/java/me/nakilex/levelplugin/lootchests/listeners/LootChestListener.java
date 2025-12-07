@@ -6,7 +6,6 @@ import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
 import me.nakilex.levelplugin.player.battlepass.BattlePassManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.guild.quests.GuildQuestManager;
-import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -30,7 +29,7 @@ public class LootChestListener implements Listener {
         FurnitureMechanic mech = event.getMechanic();
 
         // Only handle our crate furniture
-        if (!mech.getItemID().startsWith("crate_lvl")) {
+        if (!lootChestManager.getCrateModelId().equals(mech.getItemID())) {
             return;
         }
 
@@ -44,18 +43,8 @@ public class LootChestListener implements Listener {
             return; // not one of our managed chests
         }
 
-        // Verify the mechanic ID matches the tier for this chest
-        int tier = lootChestManager.getTierForChest(chestId);
-        String expectedId = lootChestManager.getCrateIdForTier(tier);
-        if (!mech.getItemID().equals(expectedId)) {
-            return;
-        }
-
-        // 4) Identify player and ensure we only process the first interaction
+        // 4) Identify player
         Player player = event.getPlayer();
-        if (!lootChestManager.markPlayerViewingChest(player.getUniqueId(), chestId)) {
-            return; // duplicate event, ignore to avoid double counting
-        }
 
         // 5) Build the custom loot GUI
         Inventory lootGui = lootChestManager.buildLootInventory(chestId, player);
@@ -77,20 +66,21 @@ public class LootChestListener implements Listener {
         // 8) Track guild quest progress
         GuildQuestManager.getInstance().handleLootChestOpen(player);
 
-        awardBattlePassProgress(player, tier);
+        int gearScore = lootChestManager.peekSession(player.getUniqueId()) != null
+                ? lootChestManager.peekSession(player.getUniqueId()).gearScore()
+                : ItemUtil.calculateTotalGearScore(player);
+        awardBattlePassProgress(player, gearScore);
     }
 
-    private void awardBattlePassProgress(Player player, int tier) {
-        if (battlePassManager == null || tier <= 0) {
+    private void awardBattlePassProgress(Player player, int gearScore) {
+        if (battlePassManager == null) {
             return;
         }
-        int battlePassXp = 120 + Math.max(0, tier - 1) * 35;
+        int battlePassXp = Math.max(120, Math.min(400, 80 + (int) (gearScore * 0.3)));
         battlePassManager.addProgress(
                 player,
                 battlePassXp,
-                "for opening a Tier "
-                        + ChatColor.GOLD + tier
-                        + ChatColor.GRAY + " loot chest"
+                "for opening a scaled loot chest"
         );
     }
 }
