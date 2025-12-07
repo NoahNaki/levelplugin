@@ -29,6 +29,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.Chunk;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.configuration.ConfigurationSection;
@@ -330,6 +331,36 @@ public class LootChestManager {
         return true;
     }
 
+    public void removeInactiveChestsInChunk(Chunk chunk) {
+        if (chunk == null) {
+            return;
+        }
+
+        for (ChestData data : chestDataList) {
+            if (!isChestInChunk(data, chunk)) {
+                continue;
+            }
+
+            if (spawnedChests.containsKey(data.getChestId())) {
+                continue; // active this session
+            }
+
+            Location location = data.toLocation();
+            if (location == null) {
+                continue;
+            }
+
+            FurnitureMechanic mechAtLoc = NexoFurniture.furnitureMechanic(location.getBlock());
+            boolean strayChestPresent = mechAtLoc != null && DEFAULT_CRATE_ID.equals(mechAtLoc.getItemID());
+            if (strayChestPresent) {
+                NexoFurniture.remove(location);
+                removeTaggedHologramsAt(location);
+                plugin.getLogger().info("[LootChestManager] Removed inactive crate model for chest "
+                        + data.getChestId() + " in chunk " + chunk.getX() + "," + chunk.getZ());
+            }
+        }
+    }
+
     public boolean deleteChest(int chestId) {
         ChestData data = getChestData(chestId);
         Location loc = data != null ? data.toLocation() : null;
@@ -512,6 +543,16 @@ public class LootChestManager {
         if (!chunk.isLoaded()) {
             chunk.load();
         }
+    }
+
+    private boolean isChestInChunk(ChestData data, Chunk chunk) {
+        Location loc = data.toLocation();
+        if (loc == null || loc.getWorld() == null) {
+            return false;
+        }
+        return loc.getWorld().equals(chunk.getWorld())
+                && loc.getBlockX() >> 4 == chunk.getX()
+                && loc.getBlockZ() >> 4 == chunk.getZ();
     }
 
     public void clearAllChests() {
