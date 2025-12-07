@@ -20,7 +20,6 @@ public class ChestData {
     private final double x;
     private final double y;
     private final double z;
-    private final int tier;
     private final BlockFace facing;
     private String customName; // Optional
     private String contentType; // Optional, like "Weapon", "Armor", etc.
@@ -28,17 +27,16 @@ public class ChestData {
     private ItemStack bufferedLootItem;
 
 
-    public ChestData(int chestId, double x, double y, double z, int tier, BlockFace facing) {
-        this(chestId, DEFAULT_WORLD, x, y, z, tier, facing);
+    public ChestData(int chestId, double x, double y, double z, BlockFace facing) {
+        this(chestId, DEFAULT_WORLD, x, y, z, facing);
     }
 
-    public ChestData(int chestId, String worldName, double x, double y, double z, int tier, BlockFace facing) {
+    public ChestData(int chestId, String worldName, double x, double y, double z, BlockFace facing) {
         this.chestId = chestId;
         this.worldName = worldName;
         this.x = x;
         this.y = y;
         this.z = z;
-        this.tier = tier;
         this.facing = facing == null ? BlockFace.NORTH : facing;
         this.bufferedLootItem = null;
     }
@@ -49,10 +47,6 @@ public class ChestData {
 
     public String getWorldName() {
         return worldName;
-    }
-
-    public int getTier() {
-        return tier;
     }
 
     public BlockFace getFacing() {

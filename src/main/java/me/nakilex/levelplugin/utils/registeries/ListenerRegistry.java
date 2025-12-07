@@ -17,6 +17,7 @@ import me.nakilex.levelplugin.items.listeners.*;
 import me.nakilex.levelplugin.lootchests.listeners.LootChestCloseListener;
 import me.nakilex.levelplugin.lootchests.listeners.LootChestListener;
 import me.nakilex.levelplugin.lootchests.listeners.LootChestShutdownListener;
+import me.nakilex.levelplugin.lootchests.listeners.LootChestWandListener;
 import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
 import me.nakilex.levelplugin.mob.config.MobRewardsConfig;
 import me.nakilex.levelplugin.mob.dps.DpsDummyManager;
@@ -174,6 +175,7 @@ public class ListenerRegistry {
         pm.registerEvents(new LootChestListener(lootChestManager, battlePassManager), plugin);
         pm.registerEvents(new LootChestCloseListener(lootChestManager, economyManager,
                 plugin.getDungeonManager()), plugin);
+        pm.registerEvents(new LootChestWandListener(lootChestManager), plugin);
         pm.registerEvents(new PotionUseListener(potionManager, plugin), plugin);
         pm.registerEvents(new MythicMobNameManager(plugin), plugin);
         pm.registerEvents(new MythicMobDamageListener(), plugin);

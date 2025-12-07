@@ -503,7 +503,7 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
         if (lootManager != null) {
             for (TemplateChest chest : markers.chestMarkers) {
                 chest.loc().getBlock().setType(Material.AIR, false);
-                int id = lootManager.createAndSpawnChest(chest.loc(), tier, getFacingFromData(chest.data()));
+                int id = lootManager.createAndSpawnChest(chest.loc(), getFacingFromData(chest.data()));
                 inst.addChestId(id);
             }
         }
@@ -779,8 +779,6 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
     private ItemStack createFountainReward(InstanceState state) {
         me.nakilex.levelplugin.lootchests.managers.LootChestManager lootManager = plugin.getDungeonManager().getLootChestManager();
         int tier = state.lootTier <= 0 ? 1 : state.lootTier;
-        me.nakilex.levelplugin.lootchests.managers.LootChestManager.LevelRange range =
-                lootManager != null ? lootManager.getRangeForTier(tier) : null;
 
         if (lootManager != null) {
             ItemStack scaledLoot = lootManager.getRandomLootForTier(tier, "dungeon", null);
@@ -789,8 +787,8 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
             }
         }
 
-        int minLevel = range != null ? range.minLevel() : 20;
-        int maxLevel = range != null ? range.maxLevel() : 29;
+        int minLevel = Math.max(1, (tier * 8));
+        int maxLevel = minLevel + 9;
         int roll = ThreadLocalRandom.current().nextInt(3);
         return switch (roll) {
             case 0 -> {

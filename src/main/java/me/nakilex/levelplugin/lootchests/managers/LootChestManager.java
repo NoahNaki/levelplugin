@@ -2,24 +2,33 @@ package me.nakilex.levelplugin.lootchests.managers;
 
 import com.nexomc.nexo.api.NexoFurniture;
 import com.nexomc.nexo.mechanics.furniture.FurnitureMechanic;
+import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.environment.stage.BuildingStageManager;
+import me.nakilex.levelplugin.items.data.ArmorType;
 import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.data.ItemRarity;
+import me.nakilex.levelplugin.items.generator.ProceduralItemGenerator;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.lootchests.config.ConfigManager;
 import me.nakilex.levelplugin.lootchests.data.ChestData;
-import me.nakilex.levelplugin.lootchests.utils.ParticleUtils;
 import me.nakilex.levelplugin.lootchests.utils.LocationUtils;
+import me.nakilex.levelplugin.lootchests.utils.ParticleUtils;
+import me.nakilex.levelplugin.mercenary.MercenaryAffinityManager;
+import me.nakilex.levelplugin.mercenary.MercenaryGift;
+import me.nakilex.levelplugin.mob.utils.CombatRewardCalculator;
 import me.nakilex.levelplugin.potions.data.PotionInstance;
 import me.nakilex.levelplugin.potions.data.PotionTemplate;
 import me.nakilex.levelplugin.potions.managers.PotionManager;
-import me.nakilex.levelplugin.Main;
-import me.nakilex.levelplugin.mob.utils.CombatRewardCalculator;
 import me.nakilex.levelplugin.salvage.managers.SalvageManager;
+import me.nakilex.levelplugin.utils.NexoUtil;
+import me.nakilex.levelplugin.utils.TooltipUtil;
+import me.nakilex.levelplugin.utils.TextUtil;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.configuration.ConfigurationSection;
@@ -27,52 +36,59 @@ import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
 
-import me.nakilex.levelplugin.items.data.ArmorType;
-import me.nakilex.levelplugin.items.generator.ProceduralItemGenerator;
-import me.nakilex.levelplugin.utils.NexoUtil;
-
-
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class LootChestManager {
 
+    private static final String DEFAULT_CRATE_ID = "crate_lvl1";
+    private static final int LOOT_ROLLS = 3;
+    private static final int INVENTORY_SIZE = 27;
+
     private final JavaPlugin plugin;
     private final ConfigManager configManager;
     private CooldownManager cooldownManager;
-    private final PotionManager potionManager; // New field
+    private final PotionManager potionManager;
+    private final NamespacedKey wandKey;
+    private final Random random = new Random();
 
     // Each chest’s data (ID -> ChestData)
     private final List<ChestData> chestDataList = new ArrayList<>();
 
     // Track where we actually spawned each chest. chestId -> location
-    private final java.util.Map<Integer, Location> spawnedChests = new java.util.HashMap<>();
+    private final Map<Integer, Location> spawnedChests = new HashMap<>();
 
     // For continuous particles: chestId -> repeating task
-    private final java.util.Map<Integer, org.bukkit.scheduler.BukkitTask> chestParticleTasks = new java.util.HashMap<>();
+    private final Map<Integer, BukkitTask> chestParticleTasks = new HashMap<>();
 
-    // NEW: remember which chest each player opened
-    private final java.util.Map<java.util.UUID, Integer> openChestByPlayer = new java.util.HashMap<>();
+    // Track active loot sessions so we can pay out coins once per open
+    private final Map<UUID, LootSession> openChestSessions = new HashMap<>();
 
-    /**
-     * Represents the inclusive level range for a loot chest tier.
-     */
-    public record LevelRange(int minLevel, int maxLevel) {}
+    private final Set<Material> upgradeMaterials = new HashSet<>();
 
 
     public LootChestManager(JavaPlugin plugin, ConfigManager configManager, CooldownManager cooldownManager, PotionManager potionManager) {
         this.plugin = plugin;
         this.configManager = configManager;
         this.cooldownManager = cooldownManager;
-        this.potionManager = potionManager; // assign it here
+        this.potionManager = potionManager;
+        this.wandKey = new NamespacedKey(plugin, "lootchest_wand");
 
         loadChestDataFromConfig();
+        refreshUpgradeMaterials();
 
         // Delay spawning chests until the server has fully started. This gives
         // the Nexo plugin time to finish registering furniture IDs.
@@ -99,11 +115,10 @@ public class LootChestManager {
                 double x = Double.parseDouble(split[0].trim());
                 double y = Double.parseDouble(split[1].trim());
                 double z = Double.parseDouble(split[2].trim());
-                int tier = root.getInt(key + ".tier", 1);
                 BlockFace face = BlockFace.valueOf(root.getString(key + ".facing", "NORTH"));
                 String world = root.getString(key + ".world", "MmoRPG");
 
-                ChestData data = new ChestData(chestId, world, x, y, z, tier, face);
+                ChestData data = new ChestData(chestId, world, x, y, z, face);
                 chestDataList.add(data);
             } catch (Exception e) {
                 plugin.getLogger().warning("Error loading chest ID: " + key);
@@ -130,9 +145,9 @@ public class LootChestManager {
         // Remove any existing block at this location
         loc.getBlock().setType(Material.AIR, false);
 
-        // 1) Place our tier specific crate furniture instead of a vanilla CHEST block.
+        // 1) Place our standard crate furniture instead of a vanilla CHEST block.
         //    Use the recorded facing to orient the crate correctly.
-        String crateId = getCrateIdForTier(data.getTier());
+        String crateId = DEFAULT_CRATE_ID;
         FurnitureMechanic mech = NexoFurniture.furnitureMechanic(crateId);
         if (mech == null) {
             plugin.getLogger().severe(
@@ -155,27 +170,21 @@ public class LootChestManager {
         // 2) Remember this location so getChestIdAtLocation(loc) will still work:
         spawnedChests.put(data.getChestId(), loc.getBlock().getLocation());
 
-        // 3) Pre-buffer one random loot ItemStack (we’ll place it into the GUI when a player opens it)
-        //    NOTE: ChestData must have a method setBufferedLootItem(ItemStack).
-        //          Add that setter to ChestData if it's missing.
-        ItemStack loot = getRandomLootForTier(data.getTier(), "default", null);
-        data.setBufferedLootItem(loot);
-
-        // 4) Start the particle task (handles hologram spawning based on player proximity)
-        startParticleTask(data.getChestId(), loc, data.getTier(), data);
+        // 3) Start the particle task (handles hologram spawning based on player proximity)
+        startParticleTask(data.getChestId(), loc, data);
     }
 
     /**
      * Convenience for dynamic chests. Generates a new ID, adds the data list
      * and spawns the crate at the provided location.
      */
-    public int createAndSpawnChest(Location loc, int tier) {
-        return createAndSpawnChest(loc, tier, BlockFace.NORTH);
+    public int createAndSpawnChest(Location loc) {
+        return createAndSpawnChest(loc, BlockFace.NORTH);
     }
 
-    public int createAndSpawnChest(Location loc, int tier, BlockFace facing) {
+    public int createAndSpawnChest(Location loc, BlockFace facing) {
         int id = chestDataList.stream().mapToInt(ChestData::getChestId).max().orElse(0) + 1;
-        ChestData data = new ChestData(id, loc.getWorld().getName(), loc.getX(), loc.getY(), loc.getZ(), tier, facing);
+        ChestData data = new ChestData(id, loc.getWorld().getName(), loc.getX(), loc.getY(), loc.getZ(), facing);
         chestDataList.add(data);
         spawnChest(data);
         return id;
@@ -202,9 +211,8 @@ public class LootChestManager {
         boolean chunkLoaded = base.getChunk().isLoaded();
 
         // Check if there is STILL the correct crate furniture at that Location:
-        String crateId = getCrateIdForTier(data.getTier());
         FurnitureMechanic mechAtLoc = NexoFurniture.furnitureMechanic(base.getBlock());
-        boolean isCrate = (mechAtLoc != null && mechAtLoc.getItemID().equals(crateId))
+        boolean isCrate = (mechAtLoc != null && mechAtLoc.getItemID().equals(DEFAULT_CRATE_ID))
                 || base.getBlock().getType() == Material.CHEST;
 
         if (!chunkLoaded || !isCrate) {
@@ -217,59 +225,49 @@ public class LootChestManager {
         Location line3Loc = base.clone().add(0.5, 0.70, 0.5);
 
         String namePrefix = data.getCustomName().orElse("Loot Chest");
-        String tierText   = "Tier " + toRoman(data.getTier());
-        String text1      = formatTierLine(namePrefix, tierText, data.getTier());
+        String text1      = ChatColor.GOLD + "" + ChatColor.BOLD + namePrefix;
         String text2      = "§fRight-Click §7to open";
-        String text3      = data.getContentType()
-            .map(t -> "§7[Contains: " + t + "]")
-            .orElse(null);
+        String text3      = ChatColor.GRAY + "[Scaled to your gear score]";
 
         spawnArmorStand(line1Loc, text1, data);
         spawnArmorStand(line2Loc, text2, data);
-        if (text3 != null) {
-            spawnArmorStand(line3Loc, text3, data);
-        }
+        spawnArmorStand(line3Loc, text3, data);
     }
 
     /**
-     * Builds and returns a new Inventory for the player, where:
-     * - The title is "Loot Chest <RomanTier>" (e.g. "Loot Chest IV")
-     * - The single buffered loot item is placed in a random slot within the 27‐slot GUI.
+     * Builds and returns a new Inventory for the player with loot that scales off of
+     * their current gear score. Results are cached in {@link #openChestSessions} so we can
+     * pay out coins once when the player closes the GUI.
      */
     public Inventory buildLootInventory(int chestId, Player player) {
-        // 1) Find the ChestData for this ID
-        ChestData data = null;
-        for (ChestData cd : chestDataList) {
-            if (cd.getChestId() == chestId) {
-                data = cd;
-                break;
-            }
+        LootSession existing = openChestSessions.get(player.getUniqueId());
+        if (existing != null && existing.chestId() == chestId) {
+            return existing.inventory();
         }
 
-        // 2) If somehow we didn’t find it (shouldn’t happen), fall back to an empty GUI with a generic title
+        ChestData data = getChestData(chestId);
         if (data == null) {
-            return Bukkit.createInventory(null, 27, "Loot Chest");
+            return Bukkit.createInventory(null, INVENTORY_SIZE, ChatColor.DARK_GREEN + "Loot Chest");
         }
 
-        // 3) Determine the tier and convert it to Roman numerals.
-        int tier = data.getTier();
-        String romanTier = toRoman(tier);
+        Inventory inv = Bukkit.createInventory(null, INVENTORY_SIZE, ChatColor.DARK_GREEN + "Loot Chest");
+        int gearScore = Math.max(50, ItemUtil.calculateTotalGearScore(player));
+        LootResult loot = rollLootForPlayer(player, gearScore);
 
-        // 4) Create a new 27‐slot inventory, titled "Loot Chest <RomanTier>"
-        Inventory inv = Bukkit.createInventory(null, 27, "Loot Chest " + romanTier);
-
-        // 5) Grab the buffered loot item from ChestData
-        ItemStack loot = data.getBufferedLootItem();
-        if (loot != null) {
-            // 6) Choose a random slot between 0 (inclusive) and inv.getSize() (exclusive).
-            int size = inv.getSize(); // 27
-            int randomSlot = new Random().nextInt(size);
-
-            // 7) Place the loot in that random slot
-            inv.setItem(randomSlot, loot);
+        List<Integer> availableSlots = new ArrayList<>();
+        for (int i = 0; i < INVENTORY_SIZE; i++) {
+            availableSlots.add(i);
         }
 
-        // 8) Return the newly built Inventory
+        for (ItemStack item : loot.items()) {
+            if (availableSlots.isEmpty()) break;
+            int slotIndex = random.nextInt(availableSlots.size());
+            int slot = availableSlots.remove(slotIndex);
+            inv.setItem(slot, item);
+        }
+
+        LootSession session = new LootSession(chestId, inv, loot.coinReward(), gearScore);
+        openChestSessions.put(player.getUniqueId(), session);
         return inv;
     }
 
@@ -307,70 +305,14 @@ public class LootChestManager {
     }
 
 
-
-    private String formatTierLine(String name, String tierText, int tier) {
-        String fullPrefix = name; // just "Loot Chest" by default
-
-        // Gradient from left to right (smooth), over Loot Chest
-        ChatColor[] gradient = getSmoothGradientForTier(tier, fullPrefix.length());
-
-        StringBuilder sb = new StringBuilder();
-
-        // Apply gradient to Loot Chest
-        for (int i = 0; i < fullPrefix.length(); i++) {
-            sb.append(gradient[i]).append(fullPrefix.charAt(i));
-        }
-
-        // Append non-bold bracket + tier
-        sb.append(ChatColor.RESET).append(" ").append(ChatColor.DARK_GRAY).append("[").append(ChatColor.GRAY)
-            .append(tierText).append(ChatColor.DARK_GRAY).append("]");
-
-        return sb.toString();
-    }
-
-
-    private ChatColor[] getSmoothGradientForTier(int tier, int length) {
-        java.awt.Color start, end;
-
-        switch (tier) {
-            case 1: start = new java.awt.Color(255, 255, 255); end = new java.awt.Color(180, 180, 180); break;
-            case 2: start = new java.awt.Color(0, 255, 0);     end = new java.awt.Color(0, 150, 0);     break;
-            case 3: start = new java.awt.Color(0, 255, 255);   end = new java.awt.Color(0, 100, 255);   break;
-            case 4: start = new java.awt.Color(255, 0, 255);   end = new java.awt.Color(100, 0, 150);   break;
-            case 5: start = new java.awt.Color(255, 215, 0);   end = new java.awt.Color(255, 140, 0);   break;
-            case 6: start = new java.awt.Color(255, 0, 0);     end = new java.awt.Color(150, 0, 0);     break;
-            default: start = new java.awt.Color(200, 200, 200); end = new java.awt.Color(100, 100, 100); break;
-        }
-
-        ChatColor[] result = new ChatColor[length];
-        for (int i = 0; i < length; i++) {
-            float ratio = (float) i / (length - 1);
-            int r = (int) (start.getRed() * (1 - ratio) + end.getRed() * ratio);
-            int g = (int) (start.getGreen() * (1 - ratio) + end.getGreen() * ratio);
-            int b = (int) (start.getBlue() * (1 - ratio) + end.getBlue() * ratio);
-            result[i] = ChatColor.of(new java.awt.Color(r, g, b));
-        }
-        return result;
-    }
-
-
-    private String toRoman(int number) {
-        String[] romanNumerals = {
-            "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"
-        };
-        return (number >= 1 && number <= 10) ? romanNumerals[number - 1] : String.valueOf(number);
-    }
-
-
-    private void startParticleTask(int chestId, Location loc, int tier, ChestData data) {
+    private void startParticleTask(int chestId, Location loc, ChestData data) {
         cancelParticleTask(chestId);
 
         BukkitTask task = plugin.getServer().getScheduler().runTaskTimer(
             plugin,
             () -> {
-                String crateId = getCrateIdForTier(tier);
                 FurnitureMechanic mechAtLoc = NexoFurniture.furnitureMechanic(loc.getBlock());
-                boolean hasCrate = mechAtLoc != null && mechAtLoc.getItemID().equals(crateId);
+                boolean hasCrate = mechAtLoc != null && mechAtLoc.getItemID().equals(DEFAULT_CRATE_ID);
                 if (!hasCrate) {
                     removeHolograms(data);
                     return;
@@ -383,7 +325,7 @@ public class LootChestManager {
                     if (data.getHolograms().isEmpty()) {
                         spawnHologramForChest(data);
                     }
-                    ParticleUtils.displayTierParticles(loc, tier);
+                    ParticleUtils.displayChestParticles(loc);
                 } else {
                     removeHolograms(data);
                 }
@@ -481,13 +423,22 @@ public class LootChestManager {
         chestDataList.add(data);
     }
 
+    private ChestData getChestData(int chestId) {
+        for (ChestData data : chestDataList) {
+            if (data.getChestId() == chestId) {
+                return data;
+            }
+        }
+        return null;
+    }
+
     public JavaPlugin getPlugin() {
         return plugin;
     }
 
     // Check if a given location belongs to a spawned chest
     public Integer getChestIdAtLocation(Location location) {
-        for (java.util.Map.Entry<Integer, Location> entry : spawnedChests.entrySet()) {
+        for (Map.Entry<Integer, Location> entry : spawnedChests.entrySet()) {
             Location stored = entry.getValue();
             if (stored.getWorld().equals(location.getWorld())
                     && stored.getBlockX() == location.getBlockX()
@@ -499,20 +450,8 @@ public class LootChestManager {
         return null;
     }
 
-    public int getTierForChest(int chestId) {
-        for (ChestData data : chestDataList) {
-            if (data.getChestId() == chestId) {
-                return data.getTier();
-            }
-        }
-        return -1;
-    }
-
-    /**
-     * Convenience method to map a chest tier to its furniture ID.
-     */
-    public String getCrateIdForTier(int tier) {
-        return "crate_lvl" + tier;
+    public String getCrateModelId() {
+        return DEFAULT_CRATE_ID;
     }
 
     public void removeAllChests() {
@@ -520,6 +459,7 @@ public class LootChestManager {
         for (int chestId : ids) {
             removeChest(chestId);
         }
+        openChestSessions.clear();
     }
 
     public synchronized void reloadFromConfig() {
@@ -527,19 +467,19 @@ public class LootChestManager {
         chestParticleTasks.values().forEach(BukkitTask::cancel);
         chestParticleTasks.clear();
         spawnedChests.clear();
-        openChestByPlayer.clear();
+        openChestSessions.clear();
+        upgradeMaterials.clear();
         loadChestDataFromConfig();
+        refreshUpgradeMaterials();
         spawnAllChests();
     }
 
-    // NEW: call this when a player opens a chest GUI. Returns true if this is the first open.
-    public boolean markPlayerViewingChest(java.util.UUID playerUUID, int chestId) {
-        return openChestByPlayer.putIfAbsent(playerUUID, chestId) == null;
+    public LootSession consumeSession(UUID playerUUID) {
+        return openChestSessions.remove(playerUUID);
     }
 
-    // NEW: call this when a player closes a chest GUI
-    public Integer unmarkPlayerViewingChest(java.util.UUID playerUUID) {
-        return openChestByPlayer.remove(playerUUID);
+    public LootSession peekSession(UUID playerUUID) {
+        return openChestSessions.get(playerUUID);
     }
 
 
@@ -576,6 +516,145 @@ public class LootChestManager {
         return cooldownManager;
     }
 
+    public ItemStack createWand() {
+        ItemStack wand = new ItemStack(Material.BLAZE_ROD);
+        ItemMeta meta = wand.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(ChatColor.GOLD + "" + ChatColor.BOLD + "Loot Chest Wand");
+            List<String> lore = new ArrayList<>();
+            lore.add(ChatColor.GRAY + "Right-click a block to register a loot chest");
+            lore.addAll(TooltipUtil.clickInstructions(null, "to save the location"));
+            meta.getPersistentDataContainer().set(wandKey, PersistentDataType.INTEGER, 1);
+            meta.setLore(lore);
+            wand.setItemMeta(meta);
+        }
+        return wand;
+    }
+
+    public boolean isWand(ItemStack stack) {
+        if (stack == null || !stack.hasItemMeta()) {
+            return false;
+        }
+        Integer marker = stack.getItemMeta().getPersistentDataContainer().get(wandKey, PersistentDataType.INTEGER);
+        return marker != null && marker == 1;
+    }
+
+    public int registerChest(Location location, BlockFace facing) {
+        int id = configManager.addLootChest(location, facing);
+        ChestData data = new ChestData(id, location.getWorld().getName(), location.getX(), location.getY(), location.getZ(), facing);
+        addChestData(data);
+        spawnChest(data);
+        return id;
+    }
+
+    private LootResult rollLootForPlayer(Player player, int gearScore) {
+        List<ItemStack> items = new ArrayList<>();
+        for (int i = 0; i < LOOT_ROLLS; i++) {
+            LootType type = rollLootCategory();
+            ItemStack rolled = switch (type) {
+                case GEAR -> rollGearLoot(gearScore);
+                case POTION -> generatePotionForGearScore(gearScore);
+                case GIFT -> rollGift();
+                case MATERIAL -> rollUpgradeMaterial(gearScore);
+            };
+            if (rolled != null && !rolled.getType().isAir()) {
+                items.add(rolled);
+            }
+        }
+
+        if (items.isEmpty()) {
+            ItemStack fallback = rollGearLoot(gearScore);
+            if (fallback != null) {
+                items.add(fallback);
+            }
+        }
+
+        int coinReward = ThreadLocalRandom.current().nextInt(1, gearScore + 1);
+        return new LootResult(items, coinReward);
+    }
+
+    private LootType rollLootCategory() {
+        int roll = random.nextInt(100);
+        if (roll < 45) return LootType.GEAR;
+        if (roll < 65) return LootType.MATERIAL;
+        if (roll < 80) return LootType.POTION;
+        return LootType.GIFT;
+    }
+
+    private ItemStack rollGearLoot(int gearScore) {
+        return getRandomLootForCombatPower(gearScore, null, null);
+    }
+
+    private ItemStack rollGift() {
+        MercenaryAffinityManager affinityManager = Main.getInstance().getMercenaryAffinityManager();
+        if (affinityManager == null) {
+            return null;
+        }
+        List<MercenaryGift> gifts = new ArrayList<>(affinityManager.getGifts());
+        if (gifts.isEmpty()) {
+            return null;
+        }
+        MercenaryGift gift = gifts.get(random.nextInt(gifts.size()));
+        return gift.getIcon();
+    }
+
+    private ItemStack rollUpgradeMaterial(int gearScore) {
+        if (upgradeMaterials.isEmpty()) {
+            return null;
+        }
+        List<Material> materials = new ArrayList<>(upgradeMaterials);
+        Material material = materials.get(random.nextInt(materials.size()));
+        int amount = Math.max(1, Math.min(32, gearScore / 40 + random.nextInt(3) + 1));
+        ItemStack stack = new ItemStack(material, amount);
+        ItemMeta meta = stack.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(ChatColor.YELLOW + TextUtil.beautifyWords(material.name().toLowerCase().replace('_', ' ')));
+            List<String> lore = new ArrayList<>();
+            lore.add(ChatColor.GRAY + "Town upgrade material");
+            lore.addAll(TooltipUtil.clickInstructions(null, "to collect"));
+            meta.setLore(lore);
+            stack.setItemMeta(meta);
+        }
+        return stack;
+    }
+
+    private ItemStack generatePotionForGearScore(int gearScore) {
+        int tier;
+        if (gearScore < 200) {
+            tier = 1;
+        } else if (gearScore < 400) {
+            tier = 2;
+        } else {
+            tier = 3;
+        }
+
+        List<PotionTemplate> availablePotions = potionManager.getTemplatesForTier(tier);
+        if (availablePotions.isEmpty()) {
+            return null;
+        }
+        PotionTemplate selected = availablePotions.get(random.nextInt(availablePotions.size()));
+        PotionInstance instance = potionManager.createInstance(selected);
+        return instance.toItemStack(plugin);
+    }
+
+    private void refreshUpgradeMaterials() {
+        BuildingStageManager stageManager = Main.getInstance().getBuildingStageManager();
+        if (stageManager == null) {
+            return;
+        }
+        for (String building : stageManager.getStageNames()) {
+            int stage = 1;
+            while (true) {
+                BuildingStageManager.BuildingStage stageData = stageManager.getStage(building, stage);
+                if (stageData == null) {
+                    break;
+                }
+                upgradeMaterials.addAll(stageData.materialCost.keySet());
+                stage++;
+            }
+        }
+    }
+
     public ItemStack getRandomLootForCombatPower(double combatPower, String mobType, String modelSet) {
         return getRandomLootForCombatPower(combatPower, null, mobType, modelSet);
     }
@@ -586,32 +665,14 @@ public class LootChestManager {
     }
 
     public ItemStack getRandomLootForTier(int tier, String mobType, String modelSet) {
-        // Example: 20% chance to drop a potion
-        double potionChance = 0.2;
-        if (Math.random() < potionChance) {
-            List<PotionTemplate> availablePotions;
-            if (tier >= 1 && tier <= 3) {
-                availablePotions = potionManager.getTemplatesForTier(1);
-            } else if (tier >= 4 && tier <= 6) {
-                availablePotions = potionManager.getTemplatesForTier(2);
-            } else {
-                availablePotions = potionManager.getTemplatesForTier(3);
-            }
-            if (!availablePotions.isEmpty()) {
-                PotionTemplate selected = availablePotions.get(new Random().nextInt(availablePotions.size()));
-                PotionInstance instance = potionManager.createInstance(selected);
-                return instance.toItemStack(plugin);
+        int gearScore = Math.max(50, tier * 40);
+        if (random.nextDouble() < 0.2) {
+            ItemStack potion = generatePotionForGearScore(gearScore);
+            if (potion != null) {
+                return potion;
             }
         }
-
-        LevelRange range = getRangeForTier(tier);
-        if (range == null) {
-            return null;
-        }
-
-        int level = ThreadLocalRandom.current().nextInt(range.minLevel(), range.maxLevel() + 1);
-        CombatRewardCalculator.GearTarget target = CombatRewardCalculator.rollGearTarget((int) Math.round(level * 5 / 3.0));
-        return generateLootForTarget(target, mobType, modelSet, null);
+        return getRandomLootForCombatPower(gearScore, mobType, modelSet);
     }
 
     private ItemStack generateLootForTarget(CombatRewardCalculator.GearTarget target, String mobType, String modelSet, Integer levelRequirement) {
@@ -648,7 +709,7 @@ public class LootChestManager {
 
         CustomItem template;
         if (!matching.isEmpty()) {
-            template = matching.get(new Random().nextInt(matching.size()));
+            template = matching.get(random.nextInt(matching.size()));
         } else {
             template = levelRequirement != null
                     ? ItemManager.getInstance().generateItemForGearScore(
@@ -686,20 +747,14 @@ public class LootChestManager {
 
     }
 
-    /**
-     * Returns the inclusive level range for the requested tier.
-     */
-    public LevelRange getRangeForTier(int tier) {
-        return switch (tier) {
-            case 1 -> new LevelRange(1, 12);
-            case 2 -> new LevelRange(13, 25);
-            case 3 -> new LevelRange(26, 38);
-            case 4 -> new LevelRange(39, 50);
-            case 5 -> new LevelRange(51, 62);
-            case 6 -> new LevelRange(63, 75);
-            case 7 -> new LevelRange(76, 88);
-            case 8 -> new LevelRange(89, 100);
-            default -> null;
-        };
+    private enum LootType {
+        GEAR,
+        POTION,
+        GIFT,
+        MATERIAL
     }
+
+    public record LootSession(int chestId, Inventory inventory, int coinReward, int gearScore) {}
+
+    private record LootResult(List<ItemStack> items, int coinReward) {}
 }

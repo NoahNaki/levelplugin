@@ -212,6 +212,7 @@ public class PluginBootstrap {
     private me.nakilex.levelplugin.transmog.TransmogManager transmogManager;
     private me.nakilex.levelplugin.catacombs.CatacombsManager catacombsManager;
     private me.nakilex.levelplugin.catacombs.CatacombsGUI catacombsGUI;
+    private me.nakilex.levelplugin.nexo.FurnitureGuiMapper furnitureGuiMapper;
 
     public PluginBootstrap(Main plugin) {
         this.plugin = plugin;
@@ -477,6 +478,11 @@ public class PluginBootstrap {
                 new me.nakilex.levelplugin.guild.siege.GuildSiegeCommand(guildSiegeManager);
         plugin.getCommand("siege").setExecutor(siegeCmd);
         plugin.getCommand("siege").setTabCompleter(siegeCmd);
+
+        furnitureGuiMapper = new me.nakilex.levelplugin.nexo.FurnitureGuiMapper();
+        furnitureGuiMapper.register("quest_board", player -> mercenaryExpeditionGUI.open(player));
+        plugin.getServer().getPluginManager().registerEvents(furnitureGuiMapper, plugin);
+
         ListenerRegistry.registerListeners(
             plugin,
             blacksmithGUI,

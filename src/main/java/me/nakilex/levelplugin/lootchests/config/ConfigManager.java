@@ -1,5 +1,8 @@
 package me.nakilex.levelplugin.lootchests.config;
 
+import org.bukkit.Location;
+import org.bukkit.block.BlockFace;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -37,6 +40,37 @@ public class ConfigManager {
             plugin.getLogger().severe("Could not save lootchests.yml!");
             e.printStackTrace();
         }
+    }
+
+    public int addLootChest(Location location, BlockFace facing) {
+        if (location == null || location.getWorld() == null) {
+            throw new IllegalArgumentException("Location and world must not be null");
+        }
+
+        ConfigurationSection section = lootChestsConfig.getConfigurationSection("loot_chests");
+        if (section == null) {
+            section = lootChestsConfig.createSection("loot_chests");
+        }
+
+        int nextId = section.getKeys(false).stream()
+                .mapToInt(key -> {
+                    try {
+                        return Integer.parseInt(key);
+                    } catch (NumberFormatException ignored) {
+                        return 0;
+                    }
+                })
+                .max()
+                .orElse(0) + 1;
+
+        String coords = location.getBlockX() + ", " + location.getBlockY() + ", " + location.getBlockZ();
+        String key = String.valueOf(nextId);
+        section.set(key + ".coordinates", coords);
+        section.set(key + ".world", location.getWorld().getName());
+        section.set(key + ".facing", (facing == null ? BlockFace.NORTH : facing).name());
+
+        saveLootChestsConfig();
+        return nextId;
     }
 
     public void reloadLootChestsConfig() {

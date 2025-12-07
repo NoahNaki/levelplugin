@@ -7,6 +7,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 
 public class LootChestCommand implements CommandExecutor {
 
@@ -39,6 +40,10 @@ public class LootChestCommand implements CommandExecutor {
                 handleClear(sender, args);
                 return true;
 
+            case "wand":
+                handleWand(sender);
+                return true;
+
             default:
                 sendHelp(sender);
                 return true;
@@ -69,10 +74,11 @@ public class LootChestCommand implements CommandExecutor {
             return;
         }
 
-        sender.sendMessage(ChatColor.GREEN + "Loaded Loot Chests (world: rpgworld):");
+        sender.sendMessage(ChatColor.GREEN + "Loaded Loot Chests:");
         for (ChestData chestData : allChests) {
             sender.sendMessage(ChatColor.DARK_GREEN + "- Chest ID: " + chestData.getChestId()
-                + ", Tier: " + chestData.getTier()
+                + ", World: " + chestData.getWorldName()
+                + ", Facing: " + chestData.getFacing()
                 + ", Coordinates: (" + chestData.getX() + ", " + chestData.getY() + ", " + chestData.getZ() + ")");
         }
     }
@@ -126,5 +132,16 @@ public class LootChestCommand implements CommandExecutor {
         sender.sendMessage(ChatColor.YELLOW + "/lootchest list           - List all loaded loot chests.");
         sender.sendMessage(ChatColor.YELLOW + "/lootchest clear <id>     - Clear the contents of the chest with the given ID.");
         sender.sendMessage(ChatColor.YELLOW + "/lootchest clear all      - Clear the contents of *all* loot chests.");
+        sender.sendMessage(ChatColor.YELLOW + "/lootchest wand           - Receive a wand to register loot chests.");
+    }
+
+    private void handleWand(CommandSender sender) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(ChatColor.RED + "Only players can use this command.");
+            return;
+        }
+
+        player.getInventory().addItem(lootChestManager.createWand());
+        sender.sendMessage(ChatColor.GREEN + "Loot chest wand added to your inventory.");
     }
 }

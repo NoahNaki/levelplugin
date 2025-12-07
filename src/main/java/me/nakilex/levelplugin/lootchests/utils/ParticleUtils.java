@@ -6,7 +6,7 @@ import org.bukkit.World;
 
 public class ParticleUtils {
 
-    public static void displayTierParticles(Location location, int tier) {
+    public static void displayChestParticles(Location location) {
         if (location == null) return;
         World world = location.getWorld();
         if (world == null) return;
