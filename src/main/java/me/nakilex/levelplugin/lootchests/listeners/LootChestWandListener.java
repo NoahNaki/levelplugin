@@ -1,5 +1,6 @@
 package me.nakilex.levelplugin.lootchests.listeners;
 
+import me.nakilex.levelplugin.lootchests.data.ChestData;
 import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -24,13 +25,6 @@ public class LootChestWandListener implements Listener {
 
     @EventHandler
     public void onInteract(PlayerInteractEvent event) {
-        if (event.getAction() != Action.RIGHT_CLICK_BLOCK) {
-            return;
-        }
-        if (event.getClickedBlock() == null) {
-            return;
-        }
-
         ItemStack stack = event.getItem();
         if (!lootChestManager.isWand(stack)) {
             return;
@@ -38,12 +32,46 @@ public class LootChestWandListener implements Listener {
 
         event.setCancelled(true);
         Player player = event.getPlayer();
-        Location loc = event.getClickedBlock().getLocation();
-        BlockFace facing = player.getFacing();
-        int id = lootChestManager.registerChest(loc, facing);
-        player.sendMessage(ChatColor.GREEN + "Registered loot chest #" + id + ChatColor.GRAY + " at "
-                + ChatColor.YELLOW + loc.getBlockX() + ChatColor.GRAY + ", "
-                + ChatColor.YELLOW + loc.getBlockY() + ChatColor.GRAY + ", "
-                + ChatColor.YELLOW + loc.getBlockZ());
+
+        if (event.getAction() == Action.RIGHT_CLICK_BLOCK && event.getClickedBlock() != null) {
+            Location loc = event.getClickedBlock().getLocation();
+            BlockFace facing = player.getFacing();
+            int id = lootChestManager.registerChest(loc, facing);
+            player.sendMessage(ChatColor.GREEN + "Registered loot chest #" + id + ChatColor.GRAY + " at "
+                    + ChatColor.YELLOW + loc.getBlockX() + ChatColor.GRAY + ", "
+                    + ChatColor.YELLOW + loc.getBlockY() + ChatColor.GRAY + ", "
+                    + ChatColor.YELLOW + loc.getBlockZ());
+            return;
+        }
+
+        if (event.getAction() == Action.LEFT_CLICK_BLOCK && event.getClickedBlock() != null) {
+            Location reference = event.getClickedBlock().getLocation();
+            Integer nearestId = lootChestManager.findNearestChestId(reference);
+            if (nearestId == null) {
+                player.sendMessage(ChatColor.RED + "No loot chests found to delete in this world.");
+                return;
+            }
+
+            Location chestLoc = lootChestManager.getLocationForChestId(nearestId);
+            lootChestManager.deleteChest(nearestId);
+
+            if (chestLoc == null && lootChestManager.getAllChestData() != null) {
+                // Fallback to config data if the chest wasn't currently spawned
+                for (ChestData data : lootChestManager.getAllChestData()) {
+                    if (data.getChestId() == nearestId) {
+                        chestLoc = data.toLocation();
+                        break;
+                    }
+                }
+            }
+
+            String position = chestLoc != null
+                    ? ChatColor.YELLOW + "" + chestLoc.getBlockX() + ChatColor.GRAY + ", "
+                    + ChatColor.YELLOW + chestLoc.getBlockY() + ChatColor.GRAY + ", "
+                    + ChatColor.YELLOW + chestLoc.getBlockZ()
+                    : ChatColor.GRAY + "unknown location";
+
+            player.sendMessage(ChatColor.RED + "Deleted loot chest #" + nearestId + ChatColor.GRAY + " at " + position);
+        }
     }
 }

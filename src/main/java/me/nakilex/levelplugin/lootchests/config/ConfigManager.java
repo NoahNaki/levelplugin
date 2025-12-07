@@ -76,4 +76,20 @@ public class ConfigManager {
     public void reloadLootChestsConfig() {
         lootChestsConfig = YamlConfiguration.loadConfiguration(lootChestsFile);
     }
+
+    public boolean removeLootChest(int chestId) {
+        ConfigurationSection section = lootChestsConfig.getConfigurationSection("loot_chests");
+        if (section == null) {
+            return false;
+        }
+
+        String key = String.valueOf(chestId);
+        if (!section.contains(key)) {
+            return false;
+        }
+
+        section.set(key, null);
+        saveLootChestsConfig();
+        return true;
+    }
 }

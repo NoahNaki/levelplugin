@@ -391,6 +391,27 @@ public class LootChestManager {
         return true;
     }
 
+    public boolean deleteChest(int chestId) {
+        ChestData data = getChestData(chestId);
+        Location loc = data != null ? data.toLocation() : null;
+
+        boolean removed = removeChest(chestId);
+
+        chestDataList.removeIf(cd -> cd.getChestId() == chestId);
+        spawnedChests.remove(chestId);
+        openChestSessions.entrySet().removeIf(entry -> entry.getValue().chestId() == chestId);
+
+        if (cooldownManager != null) {
+            cooldownManager.clearCooldown(chestId);
+        }
+        configManager.removeLootChest(chestId);
+
+        if (loc != null) {
+            plugin.getLogger().info("[LootChestManager] Deleted loot chest #" + chestId + " at " + loc);
+        }
+        return removed;
+    }
+
 
     // Respawn after cooldown
     public void respawnChest(int chestId) {
@@ -448,6 +469,33 @@ public class LootChestManager {
             }
         }
         return null;
+    }
+
+    public Integer findNearestChestId(Location reference) {
+        if (reference == null || reference.getWorld() == null) {
+            return null;
+        }
+
+        double closest = Double.MAX_VALUE;
+        Integer closestId = null;
+
+        for (ChestData data : chestDataList) {
+            Location chestLoc = data.toLocation();
+            if (chestLoc == null || chestLoc.getWorld() == null) {
+                continue;
+            }
+            if (!reference.getWorld().equals(chestLoc.getWorld())) {
+                continue;
+            }
+
+            double distanceSq = chestLoc.distanceSquared(reference);
+            if (distanceSq < closest) {
+                closest = distanceSq;
+                closestId = data.getChestId();
+            }
+        }
+
+        return closestId;
     }
 
     public String getCrateModelId() {
@@ -523,6 +571,7 @@ public class LootChestManager {
             meta.setDisplayName(ChatColor.GOLD + "" + ChatColor.BOLD + "Loot Chest Wand");
             List<String> lore = new ArrayList<>();
             lore.add(ChatColor.GRAY + "Right-click a block to register a loot chest");
+            lore.add(ChatColor.GRAY + "Left-click a block to delete the nearest loot chest");
             lore.addAll(TooltipUtil.clickInstructions(null, "to save the location"));
             meta.getPersistentDataContainer().set(wandKey, PersistentDataType.INTEGER, 1);
             meta.setLore(lore);

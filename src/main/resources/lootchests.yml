@@ -61,4 +61,4 @@ loot_chests:
     facing: NORTH
 
 cooldowns:
-  default: 20
+  default: 240
