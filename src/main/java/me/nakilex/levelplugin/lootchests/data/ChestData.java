@@ -4,11 +4,8 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.BlockFace;
-import org.bukkit.entity.ArmorStand;
 import org.bukkit.inventory.ItemStack;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
 
 public class ChestData {
@@ -23,7 +20,6 @@ public class ChestData {
     private final BlockFace facing;
     private String customName; // Optional
     private String contentType; // Optional, like "Weapon", "Armor", etc.
-    private final List<ArmorStand> holograms = new ArrayList<>();
     private ItemStack bufferedLootItem;
 
 
@@ -73,11 +69,6 @@ public class ChestData {
     public Optional<String> getContentType() {
         return Optional.ofNullable(contentType);
     }
-
-    public List<org.bukkit.entity.ArmorStand> getHolograms() {
-        return holograms;
-    }
-
 
     public Location toLocation() {
         World world = Bukkit.getWorld(worldName);

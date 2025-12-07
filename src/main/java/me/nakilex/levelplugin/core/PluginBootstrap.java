@@ -29,7 +29,6 @@ import me.nakilex.levelplugin.potions.gui.PotionBrowser;
 import me.nakilex.levelplugin.items.listeners.PickupCustomItemListener;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.lootchests.config.ConfigManager;
-import me.nakilex.levelplugin.lootchests.listeners.ChestHologramListener;
 import me.nakilex.levelplugin.lootchests.managers.CooldownManager;
 import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
 import me.nakilex.levelplugin.mob.config.MobRewardsConfig;
@@ -188,7 +187,6 @@ public class PluginBootstrap {
     private me.nakilex.levelplugin.leaderboards.LeaderboardManager leaderboardManager;
     private me.nakilex.levelplugin.leaderboards.DuelStatsManager duelStatsManager;
     private final Map<UUID, List<NPC>> activeBowDrones = new HashMap<>();
-    private ChestHologramListener chestHologramListener;
     private me.nakilex.levelplugin.auctionhouse.AuctionHouseManager auctionHouseManager;
     private me.nakilex.levelplugin.auctionhouse.AuctionHouseGUI auctionHouseGUI;
     private SettingsManager settingsManager;
@@ -503,7 +501,6 @@ public class PluginBootstrap {
             gemsManager,
             enchantGUI,
             auctionHouseGUI,
-            chestHologramListener,
             questManager,
             dialogManager,
             scoreboardManager,
@@ -730,7 +727,6 @@ public class PluginBootstrap {
     public me.nakilex.levelplugin.environment.stage.BuildingStageManager getBuildingStageManager() { return buildingStageManager; }
     public me.nakilex.levelplugin.leaderboards.LeaderboardManager getLeaderboardManager() { return leaderboardManager; }
     public me.nakilex.levelplugin.leaderboards.DuelStatsManager getDuelStatsManager() { return duelStatsManager; }
-    public ChestHologramListener getChestHologramListener() { return chestHologramListener; }
     public me.nakilex.levelplugin.auctionhouse.AuctionHouseManager getAuctionHouseManager() { return auctionHouseManager; }
     public me.nakilex.levelplugin.auctionhouse.AuctionHouseGUI getAuctionHouseGUI() { return auctionHouseGUI; }
     public SettingsManager getSettingsManager() { return settingsManager; }
