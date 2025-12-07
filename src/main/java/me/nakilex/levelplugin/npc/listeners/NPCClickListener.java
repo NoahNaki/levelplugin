@@ -20,6 +20,7 @@ import me.nakilex.levelplugin.quests.def.EssenceWeaversLessonQuest;
 import me.nakilex.levelplugin.quests.def.HawieHermitCrabQuest;
 import me.nakilex.levelplugin.quests.def.CultistCullingQuest;
 import me.nakilex.levelplugin.npc.dialog.NPCDialogManager;
+import me.nakilex.levelplugin.storage.StorageManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.CurrencyMessageUtil;
 import me.nakilex.levelplugin.utils.NpcNameUtil;
@@ -36,9 +37,25 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
+import java.util.List;
 import java.util.UUID;
 
 public class NPCClickListener implements Listener {
+
+    private static final int STORAGE_REGISTRATION_COST = 100;
+    private static final List<String> STORAGE_INTRO_DIALOG = List.of(
+            "Storage Manager|Looking to keep your belongings safe?",
+            "Storage Manager|I can register a personal storage for you for " + STORAGE_REGISTRATION_COST + " coins."
+    );
+    private static final List<String> STORAGE_DECLINE_DIALOG = List.of(
+            "Storage Manager|No worries. Come back if you change your mind."
+    );
+    private static final List<String> STORAGE_CREATED_DIALOG = List.of(
+            "Storage Manager|All set. Your personal storage is ready whenever you need it."
+    );
+    private static final List<String> STORAGE_FUNDS_DIALOG = List.of(
+            "Storage Manager|You'll need " + STORAGE_REGISTRATION_COST + " coins before I can register your personal storage."
+    );
 
     private final EconomyManager economyManager;
     private final QuestManager questManager;
@@ -46,16 +63,19 @@ public class NPCClickListener implements Listener {
     private final HorseGUI horseGUI;
     private final EnchantGUI enchantGUI;
     private final AuctionHouseGUI auctionGUI;
+    private final StorageManager storageManager;
 
     // Constructor to get the EconomyManager instance
     public NPCClickListener(EconomyManager economyManager, QuestManager questManager, NPCDialogManager dialogManager,
-                            HorseGUI horseGUI, EnchantGUI enchantGUI, AuctionHouseGUI auctionGUI) {
+                            HorseGUI horseGUI, EnchantGUI enchantGUI, AuctionHouseGUI auctionGUI,
+                            StorageManager storageManager) {
         this.economyManager = economyManager;
         this.questManager = questManager;
         this.dialogManager = dialogManager;
         this.horseGUI = horseGUI;
         this.enchantGUI = enchantGUI;
         this.auctionGUI = auctionGUI;
+        this.storageManager = storageManager;
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -121,6 +141,11 @@ public class NPCClickListener implements Listener {
                 if (sessionNpc != null && sessionNpc.getId() == npc.getId()) {
                     dialogManager.advanceDialog(player, questManager);
                 }
+                return;
+            }
+
+            if (isNpcName(npc, "Storage Manager")) {
+                handleStorageManagerInteraction(player, npc);
                 return;
             }
 
@@ -412,6 +437,45 @@ public class NPCClickListener implements Listener {
         }
 
         return false;
+    }
+
+    private void handleStorageManagerInteraction(Player player, NPC npc) {
+        if (storageManager == null) {
+            return;
+        }
+
+        if (storageManager.hasStorage(player.getUniqueId())) {
+            storageManager.openStorage(player);
+            return;
+        }
+
+        dialogManager.startDialog(player, STORAGE_INTRO_DIALOG, npc,
+                () -> Bukkit.getScheduler().runTaskLater(Main.getInstance(), () ->
+                        dialogManager.startChoiceDialog(player, npc, List.of("Yes", "No"), choice -> {
+                            if (choice == 0) {
+                                completeStorageRegistration(player, npc);
+                            } else {
+                                dialogManager.startDialog(player, STORAGE_DECLINE_DIALOG, npc, null);
+                            }
+                        }), 1L));
+    }
+
+    private void completeStorageRegistration(Player player, NPC npc) {
+        if (storageManager.hasStorage(player.getUniqueId())) {
+            storageManager.openStorage(player);
+            return;
+        }
+
+        if (economyManager.getBalance(player) < STORAGE_REGISTRATION_COST) {
+            dialogManager.startDialog(player, STORAGE_FUNDS_DIALOG, npc, null);
+            return;
+        }
+
+        economyManager.deductCoins(player, STORAGE_REGISTRATION_COST);
+        CurrencyMessageUtil.sendLoss(player, CurrencyMessageUtil.Currency.COINS, STORAGE_REGISTRATION_COST);
+        storageManager.createStorage(player.getUniqueId());
+        dialogManager.startDialog(player, STORAGE_CREATED_DIALOG, npc,
+                () -> storageManager.openStorage(player));
     }
 
     private void handleDungeonGuard(Player player, NPC npc) {

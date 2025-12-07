@@ -98,7 +98,6 @@ public class LeaderboardManager {
         if (!checkVisibility()) {
             return;
         }
-        plugin.getLogger().info("Updating " + boards.size() + " leaderboards");
         for (LeaderboardType type : LeaderboardType.values()) {
             updateTypeInternal(type);
         }

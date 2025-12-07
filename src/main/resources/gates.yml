@@ -13,6 +13,21 @@ gates:
     closed: true
     animation: ELEVATOR
     duration: 40
+  cultisthq:
+    world: world
+    pos1:
+      x: 922
+      y: 114
+      z: -852
+    pos2:
+      x: 926
+      y: 113
+      z: -848
+    closedSchematic: cultisthq_closed.schem
+    openSchematic: cultisthq_open.schem
+    closed: true
+    animation: INSTANT
+    duration: 40
   world_elevator:
     world: world
     pos1:
@@ -41,21 +56,6 @@ gates:
     closed: true
     animation: INSTANT
     duration: 40
-  world_elevator_room:
-    world: world
-    pos1:
-      x: 101
-      y: 66
-      z: -92
-    pos2:
-      x: 107
-      y: 74
-      z: -99
-    closedSchematic: world_elevator_room_closed.schem
-    openSchematic: world_elevator_room_open.schem
-    closed: false
-    animation: INSTANT
-    duration: 40
   dungeonentrance:
     world: world
     pos1:
@@ -71,3 +71,18 @@ gates:
     closed: true
     animation: GATE
     duration: 200
+  world_elevator_room:
+    world: world
+    pos1:
+      x: 101
+      y: 66
+      z: -92
+    pos2:
+      x: 107
+      y: 74
+      z: -99
+    closedSchematic: world_elevator_room_closed.schem
+    openSchematic: world_elevator_room_open.schem
+    closed: false
+    animation: INSTANT
+    duration: 40

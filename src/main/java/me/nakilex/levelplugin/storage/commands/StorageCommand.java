@@ -44,7 +44,7 @@ public class StorageCommand implements CommandExecutor {
                 if (storageManager.hasStorage(player.getUniqueId())) {
                     storageManager.openStorage(player);
                 } else {
-                    player.sendMessage("You don't have a storage yet. Use /ps create first.");
+                    player.sendMessage("You don't have a storage yet. Speak to a Storage Manager to register one.");
                 }
                 break;
 
