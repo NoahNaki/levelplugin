@@ -32,6 +32,7 @@ import java.util.*;
 
 import static me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
 import static me.nakilex.levelplugin.utils.ChatMessageUtil.send;
+import static me.nakilex.levelplugin.utils.ChatMessageUtil.sendPurchaseMessage;
 
 public class PotionMerchantGUI implements Listener {
     private final Inventory inventory;
@@ -238,9 +239,7 @@ public class PotionMerchantGUI implements Listener {
             PotionInstance instance = new PotionInstance(potion);
             ItemStack purchasedPotion = instance.toItemStack((JavaPlugin) plugin);
             player.getInventory().addItem(purchasedPotion);
-            send(player, MessageType.SUCCESS, "You purchased " +
-                purchasedPotion.getItemMeta().getDisplayName() + ChatColor.GREEN +
-                "for " + cost + " coins.");
+            sendPurchaseMessage(player, purchasedPotion.getItemMeta().getDisplayName(), cost);
         }
     }
 

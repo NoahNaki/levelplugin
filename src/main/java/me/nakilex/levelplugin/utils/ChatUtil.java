@@ -8,7 +8,10 @@ import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -71,6 +74,22 @@ public final class ChatUtil {
     }
 
     private ChatUtil() {
+    }
+
+    /**
+     * Return an unmodifiable view of the emoji shortcode to glyph map.
+     */
+    public static Map<String, String> getEmojiGlyphs() {
+        return Collections.unmodifiableMap(EMOJI_GLYPHS);
+    }
+
+    /**
+     * Return a sorted list of available emoji shortcodes for display.
+     */
+    public static List<String> getEmojiShortcodes() {
+        return EMOJI_GLYPHS.keySet().stream()
+                .sorted()
+                .collect(Collectors.toList());
     }
 
     /**

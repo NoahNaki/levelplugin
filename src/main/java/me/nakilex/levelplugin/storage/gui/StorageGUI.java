@@ -20,6 +20,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import static me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
+import static me.nakilex.levelplugin.utils.ChatMessageUtil.send;
+import static me.nakilex.levelplugin.utils.ChatMessageUtil.sendPurchaseMessage;
+
 public class StorageGUI {
 
     private final String ownerKey;
@@ -207,7 +211,7 @@ public class StorageGUI {
 
         if (currentPage == pages.size() - 1) {
             if (pages.size() >= maxPages) {
-                player.sendMessage(ChatColor.RED + "Storage is at maximum pages.");
+                send(player, MessageType.ERROR, "Storage is at maximum pages.");
                 confirmUnlock = false;
                 open(player);
                 return;
@@ -221,18 +225,15 @@ public class StorageGUI {
             EconomyManager econ = Main.getInstance().getEconomyManager();
             int balance = econ.getBalance(player);
             if (balance < currentPageCost) {
-                player.sendMessage(
-                    ChatColor.RED + "You need " + currentPageCost + " coins to unlock a new page!"
-                );
+                send(player, MessageType.ERROR,
+                        "You need " + ChatColor.YELLOW + currentPageCost + " <glyph:coins_icon> coins to unlock a new page!");
                 confirmUnlock = false;
                 open(player);
                 return;
             }
 
             econ.deductCoins(player, currentPageCost);
-            player.sendMessage(
-                ChatColor.GREEN + "Purchased new storage page for " + currentPageCost + " coins!"
-            );
+            sendPurchaseMessage(player, ChatColor.YELLOW + "a new storage page", currentPageCost);
 
             pages.add(createBlankPage(pages.size() + 1));
             // next page cost scales with current page count

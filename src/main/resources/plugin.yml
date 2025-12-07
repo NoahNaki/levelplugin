@@ -306,6 +306,9 @@ commands:
   mute:
     description: Mute world chat
     usage: /mute all
+  emotes:
+    description: List available chat emotes
+    usage: /emotes
   unmute:
     description: Unmute world chat
     usage: /unmute all

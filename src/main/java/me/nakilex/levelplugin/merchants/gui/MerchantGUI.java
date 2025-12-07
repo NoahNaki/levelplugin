@@ -45,6 +45,7 @@ import java.util.UUID;
 
 import static me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
 import static me.nakilex.levelplugin.utils.ChatMessageUtil.send;
+import static me.nakilex.levelplugin.utils.ChatMessageUtil.sendPurchaseMessage;
 
 public class MerchantGUI implements Listener {
     private final Inventory inventory;
@@ -421,12 +422,7 @@ public class MerchantGUI implements Listener {
                 if (purchasedItem != null) {
                     Main.getInstance().getQuestManager().handleBuy(player, "essence:" + mItem.getEssenceData().clazz());
                     player.getInventory().addItem(purchasedItem);
-                    send(player, MessageType.SUCCESS,
-                            "You purchased " + purchasedItem.getItemMeta().getDisplayName()
-                                    + ChatColor.GREEN + " for "
-                                    + ChatColor.YELLOW + coinCost + " <glyph:coins_icon> coins"
-                                    + (gemCost > 0 ? ChatColor.GRAY + " and " + ChatColor.LIGHT_PURPLE + gemCost + "<glyph:purple_orb_icon>" : "")
-                                    + ChatColor.GREEN + ".");
+                    sendPurchaseMessage(player, purchasedItem.getItemMeta().getDisplayName(), coinCost, gemCost);
                     recordPurchase(player, mItem);
                 }
             } else if (mItem.isTool()) {
@@ -440,13 +436,7 @@ public class MerchantGUI implements Listener {
                     }
                     ItemUtil.updateCustomToolTooltip(purchasedItem, player);
                     player.getInventory().addItem(purchasedItem);
-                    send(player, MessageType.SUCCESS,
-                            "You purchased " +
-                                    purchasedItem.getItemMeta().getDisplayName() +
-                                    ChatColor.GREEN + " for " +
-                                    ChatColor.YELLOW + coinCost + " <glyph:coins_icon> coins" +
-                                    (gemCost > 0 ? ChatColor.GRAY + " and " + ChatColor.LIGHT_PURPLE + gemCost + "<glyph:purple_orb_icon>" : "") +
-                                    ChatColor.GREEN + ".");
+                    sendPurchaseMessage(player, purchasedItem.getItemMeta().getDisplayName(), coinCost, gemCost);
                     recordPurchase(player, mItem);
                 }
             } else {
@@ -457,13 +447,7 @@ public class MerchantGUI implements Listener {
                     ItemStack purchasedItem = ItemUtil.createItemStackFromCustomItem(newInstance, mItem.getAmount(), player);
                     player.getInventory().addItem(purchasedItem);
                     Main.getInstance().getQuestManager().handleBuy(player, String.valueOf(mItem.getItemId()));
-                    send(player, MessageType.SUCCESS,
-                            "You purchased " +
-                                    purchasedItem.getItemMeta().getDisplayName() +
-                                    ChatColor.GREEN + " for " +
-                                    ChatColor.YELLOW + coinCost + " <glyph:coins_icon> coins" +
-                                    (gemCost > 0 ? ChatColor.GRAY + " and " + ChatColor.LIGHT_PURPLE + gemCost + "<glyph:purple_orb_icon>" : "") +
-                                    ChatColor.GREEN + ".");
+                    sendPurchaseMessage(player, purchasedItem.getItemMeta().getDisplayName(), coinCost, gemCost);
                     recordPurchase(player, mItem);
                 }
             }

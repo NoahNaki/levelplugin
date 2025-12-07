@@ -69,6 +69,41 @@ public final class ChatMessageUtil {
         sender.sendMessage(format(type, message));
     }
 
+    /**
+     * Send a standardized purchase confirmation to a player.
+     */
+    public static void sendPurchaseMessage(Player player, String itemName, int coinCost) {
+        sendPurchaseMessage(player, itemName, coinCost, 0);
+    }
+
+    /**
+     * Send a standardized purchase confirmation to a player, supporting both coins and gems.
+     */
+    public static void sendPurchaseMessage(Player player, String itemName, int coinCost, int gemCost) {
+        send(player, MessageType.SUCCESS, buildPurchaseMessage(itemName, coinCost, gemCost));
+    }
+
+    /**
+     * Build a consistent purchase message for reuse across systems.
+     */
+    public static String buildPurchaseMessage(String itemName, int coinCost, int gemCost) {
+        StringBuilder message = new StringBuilder();
+        message.append("You purchased ").append(itemName);
+
+        boolean hasCoins = coinCost > 0;
+        boolean hasGems = gemCost > 0;
+        if (hasCoins) {
+            message.append(ChatColor.GREEN).append(" for ")
+                    .append(ChatColor.YELLOW).append(coinCost).append(" <glyph:coins_icon> coins");
+        }
+        if (hasGems) {
+            message.append(hasCoins ? ChatColor.GRAY + " and " : ChatColor.GREEN + " for ")
+                    .append(ChatColor.LIGHT_PURPLE).append(gemCost).append("<glyph:purple_orb_icon>");
+        }
+        message.append(ChatColor.GREEN).append('.');
+        return message.toString();
+    }
+
     /** Broadcast a formatted message to all online players. */
     public static void broadcast(MessageType type, String message) {
         if (message == null) return;
