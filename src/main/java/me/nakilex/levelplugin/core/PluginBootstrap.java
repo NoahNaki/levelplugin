@@ -422,7 +422,8 @@ public class PluginBootstrap {
                 chatGameManager,
                 mercenaryExpeditionManager,
                 dropDebugManager,
-                autoCastManager);
+                autoCastManager,
+                lootChestManager.getCooldownManager());
         this.storageManager = new StorageManager();
         this.guildVaultManager = new me.nakilex.levelplugin.guild.GuildVaultManager(storageEvents, guildMemberGUI);
         CommandRegistry.registerCommands(

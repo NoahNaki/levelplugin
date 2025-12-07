@@ -343,10 +343,15 @@ public class LootChestManager {
             return;
         }
 
+        int removed = 0;
+        int configuredInChunk = 0;
+
         for (ChestData data : chestDataList) {
             if (!isChestInChunk(data, chunk)) {
                 continue;
             }
+
+            configuredInChunk++;
 
             if (spawnedChests.containsKey(data.getChestId())) {
                 continue; // active this session
@@ -362,9 +367,21 @@ public class LootChestManager {
             if (strayChestPresent) {
                 NexoFurniture.remove(location);
                 removeTaggedHologramsAt(location);
+                removed++;
                 plugin.getLogger().info("[LootChestManager] Removed inactive crate model for chest "
                         + data.getChestId() + " in chunk " + chunk.getX() + "," + chunk.getZ());
+            } else {
+                plugin.getLogger().info("[LootChestManager] Chunk " + chunk.getX() + "," + chunk.getZ()
+                        + " contains configured chest #" + data.getChestId()
+                        + " but no stray crate entity was found.");
             }
+        }
+
+        removed += removeUntrackedCratesInChunk(chunk);
+
+        if (configuredInChunk > 0 || removed > 0) {
+            plugin.getLogger().info("[LootChestManager] Chunk " + chunk.getX() + "," + chunk.getZ()
+                    + " scan complete: configured=" + configuredInChunk + ", removed=" + removed + ".");
         }
     }
 
@@ -560,6 +577,51 @@ public class LootChestManager {
         return loc.getWorld().equals(chunk.getWorld())
                 && loc.getBlockX() >> 4 == chunk.getX()
                 && loc.getBlockZ() >> 4 == chunk.getZ();
+    }
+
+    private int removeUntrackedCratesInChunk(Chunk chunk) {
+        if (chunk == null || chunk.getWorld() == null) {
+            return 0;
+        }
+
+        int removed = 0;
+        Set<Location> activeChestBlocks = new HashSet<>();
+        for (Location loc : spawnedChests.values()) {
+            if (loc != null) {
+                activeChestBlocks.add(loc.getBlock().getLocation());
+            }
+        }
+
+        int minY = chunk.getWorld().getMinHeight();
+        int maxY = chunk.getWorld().getMaxHeight();
+
+        for (int x = 0; x < 16; x++) {
+            for (int z = 0; z < 16; z++) {
+                for (int y = minY; y < maxY; y++) {
+                    Block block = chunk.getBlock(x, y, z);
+                    FurnitureMechanic mechAtLoc = NexoFurniture.furnitureMechanic(block);
+                    if (mechAtLoc == null || !DEFAULT_CRATE_ID.equals(mechAtLoc.getItemID())) {
+                        continue;
+                    }
+
+                    Location blockLoc = block.getLocation();
+                    if (activeChestBlocks.contains(blockLoc)) {
+                        continue;
+                    }
+
+                    NexoFurniture.remove(blockLoc);
+                    removeTaggedHologramsAt(blockLoc);
+                    removed++;
+                }
+            }
+        }
+
+        if (removed > 0) {
+            plugin.getLogger().info("[LootChestManager] Purged " + removed + " untracked crate models in chunk "
+                    + chunk.getX() + "," + chunk.getZ());
+        }
+
+        return removed;
     }
 
     public void clearAllChests() {
