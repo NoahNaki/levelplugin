@@ -80,6 +80,13 @@ public class LootChestManager {
 
     private final Set<Material> upgradeMaterials = new HashSet<>();
 
+    private String normalizeWorldName(String storedWorld) {
+        if (storedWorld == null || storedWorld.isBlank() || storedWorld.equalsIgnoreCase("mmorpg")) {
+            return "world";
+        }
+        return storedWorld;
+    }
+
 
     public LootChestManager(JavaPlugin plugin, ConfigManager configManager, CooldownManager cooldownManager, PotionManager potionManager) {
         this.plugin = plugin;
@@ -121,7 +128,7 @@ public class LootChestManager {
                 double y = Double.parseDouble(split[1].trim());
                 double z = Double.parseDouble(split[2].trim());
                 BlockFace face = BlockFace.valueOf(root.getString(key + ".facing", "NORTH"));
-                String world = root.getString(key + ".world", "world");
+                String world = normalizeWorldName(root.getString(key + ".world", "world"));
 
                 ChestData data = new ChestData(chestId, world, x, y, z, face);
                 chestDataList.add(data);
@@ -189,7 +196,7 @@ public class LootChestManager {
 
     public int createAndSpawnChest(Location loc, BlockFace facing) {
         int id = chestDataList.stream().mapToInt(ChestData::getChestId).max().orElse(0) + 1;
-        ChestData data = new ChestData(id, loc.getWorld().getName(), loc.getX(), loc.getY(), loc.getZ(), facing);
+        ChestData data = new ChestData(id, normalizeWorldName(loc.getWorld().getName()), loc.getX(), loc.getY(), loc.getZ(), facing);
         chestDataList.add(data);
         spawnChest(data);
         return id;

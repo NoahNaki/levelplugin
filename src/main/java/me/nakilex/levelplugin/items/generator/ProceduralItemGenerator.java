@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Locale;
 
 /**
  * Simple procedural item generator used for testing. It builds item names
@@ -118,7 +119,8 @@ public class ProceduralItemGenerator {
 
     private CustomItem generateInternal(String mobType, int level, ItemRarity forcedRarity, ItemRarity maxRarity) {
         ItemRarity rarity = forcedRarity != null ? forcedRarity : rollRarity(level, maxRarity);
-        String clazz = pickClassForMob(mobType);
+        String safeMobType = normalizeMobType(mobType);
+        String clazz = pickClassForMob(safeMobType);
 
         // Randomly decide whether to create armor or a weapon
         boolean createArmor = random.nextBoolean();
@@ -192,7 +194,7 @@ public class ProceduralItemGenerator {
         }
 
         String dominant = getDominantStat(str, agi, intel, dex, def);
-        String name = buildName(mobType, baseDisplay, rarity, dominant);
+        String name = buildName(safeMobType, baseDisplay, rarity, dominant);
         Material material = createArmor ? resolveArmorMaterial(level, armorSlot) : pickWeaponMaterial(clazz, level);
 
         String classReq = createArmor ? "ANY" : clazz;
@@ -264,12 +266,25 @@ public class ProceduralItemGenerator {
         return key;
     }
 
+    private String normalizeMobType(String mobType) {
+        if (mobType == null) {
+            return "";
+        }
+
+        String trimmed = mobType.trim();
+        if (trimmed.equalsIgnoreCase("null")) {
+            return "";
+        }
+
+        return trimmed;
+    }
+
     private String pickClassForMob(String mobType) {
         if (mobType == null || mobType.isBlank()) {
             return pickRandomClass();
         }
 
-        String type = mobType.toLowerCase();
+        String type = mobType.toLowerCase(Locale.ROOT);
         if (type.contains("skeleton")) return random.nextBoolean() ? "ARCHER" : "ROGUE";
         if (type.contains("zombie")) return "WARRIOR";
         if (type.contains("slime")) return "MAGE";
