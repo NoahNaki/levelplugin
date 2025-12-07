@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.mercenary.MercenaryAffinityManager;
 import me.nakilex.levelplugin.mercenary.gui.MercenaryFriendshipGUI;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.HeadUtil;
+import me.nakilex.levelplugin.utils.NpcNameUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import net.citizensnpcs.api.CitizensAPI;
@@ -98,7 +99,7 @@ public class NpcCodexGUI implements Listener {
 
     private ItemStack createNpcIcon(UUID id, Set<String> discovered, NPC npc) {
         String rawName = ChatColor.stripColor(npc.getName());
-        String key = rawName.toLowerCase();
+        String key = NpcNameUtil.normalize(rawName);
         boolean has = discovered.contains(key);
         if (has) {
             SkinTrait skin = npc.getOrAddTrait(SkinTrait.class);
