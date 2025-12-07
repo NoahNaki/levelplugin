@@ -129,6 +129,9 @@ commands:
   salvage:
     description: Opens the Salvage GUI
     usage: /salvage
+  ps:
+    description: Manage personal storage
+    usage: /ps <create|open>
   merchant:
     description: Opens a merchant GUI.
     usage: /merchant <name>
