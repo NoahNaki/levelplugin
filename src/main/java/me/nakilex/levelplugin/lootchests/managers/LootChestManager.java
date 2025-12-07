@@ -376,8 +376,17 @@ public class LootChestManager {
 
             FurnitureMechanic mechAtLoc = NexoFurniture.furnitureMechanic(location.getBlock());
             boolean strayChestPresent = mechAtLoc != null && DEFAULT_CRATE_ID.equals(mechAtLoc.getItemID());
+
+            boolean removedModel = false;
             if (strayChestPresent) {
-                NexoFurniture.remove(location);
+                removedModel = NexoFurniture.remove(location);
+            } else {
+                // Even if the mechanic lookup failed (old display entity, different hitbox),
+                // force a remove at the stored location to catch lingering models.
+                removedModel = NexoFurniture.remove(location);
+            }
+
+            if (removedModel) {
                 removeTaggedHologramsAt(location);
                 removed++;
                 plugin.getLogger().info("[LootChestManager] Removed inactive crate model for chest "
@@ -385,7 +394,7 @@ public class LootChestManager {
             } else {
                 plugin.getLogger().info("[LootChestManager] Chunk " + chunk.getX() + "," + chunk.getZ()
                         + " contains configured chest #" + data.getChestId()
-                        + " but no stray crate entity was found.");
+                        + " but no crate entity was removed (none found at stored location).");
             }
         }
 
