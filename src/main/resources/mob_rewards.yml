@@ -85,6 +85,21 @@ mobs:
   cultist_high_priest:
     model_set: witchcaster
 
+  Dreadlands-LostVein-wicked_wolf:
+    model_set: default
+
+  rpg_mushroom:
+    model_set: default
+
+  Dreadlands-LostVein-oblivion_orb_yellow:
+    model_set: default
+
+  Dreadlands-LostVein-sorrowful_sylph:
+    model_set: default
+
+  Dreadlands-LostVein-oblivion_orb_purple:
+    model_set: default
+
 
 
 

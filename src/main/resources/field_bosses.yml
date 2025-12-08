@@ -1,43 +1,22 @@
 # field_bosses.yml
 mobs:
-  ALIEN:
-    exp: 1000
-    coins: "200-600"
-    gems: 20
-    tier: 4
-
   KING_SLIME:
     exp: 4000
     coins: "2000-6000"
-    gems: 60
-    tier: 3
+    gems: 10
 
-  TERRACOTTA_GENERAL:
-    exp: 25000
-    coins: "10000-25000"
-    gems: 150
-    tier: 4
+  Dreadlands-LostVein-the_nyx:
+    exp: 40000
+    coins: "10000-20000"
+    gems: 50
 
-  ELF_KING:
-    exp: 45000
-    coins: "35000-60000"
-    gems: 450
-    tier: 6
-
-  GORGON:
-    exp: 60000
-    coins: "60000-100000"
-    gems: 900
-    tier: 6
-
-  AUXI:
-    exp: 75000
-    coins: "100000-250000"
-    gems: 1500
-    tier: 8
-
-  REMPEX:
+  YUKIO:
     exp: 100000
-    coins: "260000-500000"
-    gems: 3000
-    tier: 8
+    coins: "20000-60000"
+    gems: 250
+
+  dragon_sentinel:
+    exp: 250000
+    coins: "30000-70000"
+    gems: 350
+
