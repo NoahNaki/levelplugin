@@ -408,11 +408,11 @@ public class LootChestManager {
 
         removed += removeUntrackedCratesInChunk(chunk);
 
-        if (configuredInChunk > 0 || removed > 0 || removedEntities > 0) {
-            plugin.getLogger().info("[LootChestManager] Chunk " + chunk.getX() + "," + chunk.getZ()
-                    + " scan complete: configured=" + configuredInChunk + ", removed=" + removed
-                    + ", entitiesCleared=" + removedEntities + ".");
-        }
+//        if (configuredInChunk > 0 || removed > 0 || removedEntities > 0) {
+//            plugin.getLogger().info("[LootChestManager] Chunk " + chunk.getX() + "," + chunk.getZ()
+//                    + " scan complete: configured=" + configuredInChunk + ", removed=" + removed
+//                    + ", entitiesCleared=" + removedEntities + ".");
+//        }
     }
 
     private int removeNearbyFurnitureEntities(Chunk chunk, Location target) {

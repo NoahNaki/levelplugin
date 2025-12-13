@@ -1,9 +1,9 @@
 gates:
   quanxi:
     world: world
-    x: 886.5
-    y: 133.0
-    z: 191.5
+    x: 816.0
+    y: 120.0
+    z: 197.0
     open_model: base_beacon_blue_inventory
     closed_model: base_beacon_inert
     closed: true
