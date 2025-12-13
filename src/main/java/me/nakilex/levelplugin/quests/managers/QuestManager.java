@@ -834,6 +834,19 @@ public class QuestManager {
             Quest quest = progress.getQuest();
             for (int i = 0; i < quest.getObjectives().size(); i++) {
                 QuestObjective obj = quest.getObjectives().get(i);
+                if (quest.isSequentialObjectives()) {
+                    boolean priorComplete = true;
+                    for (int prev = 0; prev < i; prev++) {
+                        QuestObjective previous = quest.getObjectives().get(prev);
+                        if (progress.getProgress(prev) < previous.getAmount()) {
+                            priorComplete = false;
+                            break;
+                        }
+                    }
+                    if (!priorComplete) {
+                        continue;
+                    }
+                }
                 if (obj.getType() == type && obj.getTarget().equalsIgnoreCase(target)) {
                     progress.incrementProgress(i, amount, obj.isAllowOverflow(), obj.getAmount());
                     if (debug) {

@@ -20,8 +20,11 @@ import me.nakilex.levelplugin.dungeon.Dungeon;
 import me.nakilex.levelplugin.dungeon.DungeonLayout;
 import me.nakilex.levelplugin.dungeon.DungeonManager;
 import me.nakilex.levelplugin.dungeon.RoomTemplate;
+import me.nakilex.levelplugin.items.data.ItemRarity;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.mob.utils.MythicMobModifier;
+import me.nakilex.levelplugin.player.classes.data.PlayerClass;
+import me.nakilex.levelplugin.player.classes.essence.ClassEssence;
 import me.nakilex.levelplugin.utils.*;
 import me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
 import net.citizensnpcs.api.CitizensAPI;
@@ -909,6 +912,8 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
             if (!event.getEntity().getScoreboardTags().contains("dungeon_boss")) return;
             if (state.bossDefeated) return;
             state.bossDefeated = true;
+            RewardBombUtil.startRewardBomb(plugin, event.getEntity().getLocation(),
+                    createBossRewardBombSupplier(state), 120);
             long durationMs = System.currentTimeMillis() - state.startTime;
             long seconds = Math.max(1, durationMs / 1000);
             double damage = state.damageTaken;
@@ -922,6 +927,18 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
                     sendDungeonClearMessage(p, seconds, score, state.puzzleComplete);
                 }
             }
+        }
+
+        private java.util.function.Supplier<ItemStack> createBossRewardBombSupplier(InstanceState state) {
+            boolean[] essenceServed = {false};
+            return () -> {
+                if (!essenceServed[0]) {
+                    essenceServed[0] = true;
+                    PlayerClass awakened = PlayerClass.randomAwakened(ThreadLocalRandom.current());
+                    return ClassEssence.generateEssence(awakened, ItemRarity.RARE, 0);
+                }
+                return createFountainReward(state);
+            };
         }
 
         @EventHandler
