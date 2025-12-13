@@ -1278,13 +1278,12 @@ public class DungeonManager {
      * when the dungeon is removed.
      */
     public void spawnLootChests(Dungeon dungeon) {
-        int tier = getThreatLevel(dungeon.getName());
         World world = dungeon.getRooms().isEmpty() ? null : dungeon.getRooms().get(0).center.getWorld();
         Instance inst = world == null ? null : instances.get(world);
-        spawnLootChests(dungeon, tier, inst);
+        spawnLootChests(dungeon, inst);
     }
 
-    private void spawnLootChests(Dungeon dungeon, int tier, Instance inst) {
+    private void spawnLootChests(Dungeon dungeon, Instance inst) {
         for (Dungeon.RoomInstance r : dungeon.getRooms()) {
             for (Dungeon.Chest c : r.chests) {
                 Location l = c.loc();
@@ -1292,7 +1291,7 @@ public class DungeonManager {
                     l.getChunk().load();
                 }
                 l.getBlock().setType(Material.AIR, false);
-                int id = lootChestManager.createAndSpawnChest(l.clone(), tier, c.facing());
+                int id = lootChestManager.createAndSpawnChest(l.clone(), c.facing());
                 if (inst != null) inst.chestIds.add(id);
             }
         }

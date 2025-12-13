@@ -73,6 +73,7 @@ public class QuestManager {
         Quest nb = new me.nakilex.levelplugin.quests.def.NewBeginningQuest();
         Quest cultistCulling = new me.nakilex.levelplugin.quests.def.CultistCullingQuest();
         Quest seras = new me.nakilex.levelplugin.quests.def.SerasQuest();
+        Quest serasPartTwo = new me.nakilex.levelplugin.quests.def.SerasSlimeKingQuest();
         Quest hawieCrabs = new me.nakilex.levelplugin.quests.def.HawieHermitCrabQuest();
         Quest rahirScorpid = new me.nakilex.levelplugin.quests.def.RahirScorpidQuest();
         Quest yasiyaArena = new me.nakilex.levelplugin.quests.def.YasiyaArenaQuest();
@@ -90,6 +91,7 @@ public class QuestManager {
         registerQuest(nb);
         registerQuest(cultistCulling);
         registerQuest(seras);
+        registerQuest(serasPartTwo);
         registerQuest(hawieCrabs);
         registerQuest(rahirScorpid);
         registerQuest(yasiyaArena);

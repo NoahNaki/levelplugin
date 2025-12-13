@@ -25,7 +25,19 @@ public class CooldownManager {
     }
 
     public void reloadSettings() {
-        this.defaultCooldownSeconds = configManager.getLootChestsConfig().getInt("cooldowns.default", 5);
+        this.defaultCooldownSeconds = configManager.getLootChestsConfig().getInt("cooldowns.default", 240);
+    }
+
+    public int getDefaultCooldownSeconds() {
+        return defaultCooldownSeconds;
+    }
+
+    public void setDefaultCooldownSeconds(int seconds) {
+        this.defaultCooldownSeconds = Math.max(1, seconds);
+        configManager.getLootChestsConfig().set("cooldowns.default", this.defaultCooldownSeconds);
+        configManager.saveLootChestsConfig();
+        plugin.getLogger().info("[CooldownManager] Updated default loot chest cooldown to "
+                + this.defaultCooldownSeconds + "s");
     }
 
     public void setLootChestManager(LootChestManager manager) {
@@ -69,6 +81,10 @@ public class CooldownManager {
             + " => " + expired + " (time left = " + delta + "ms)");
 
         return expired;
+    }
+
+    public void clearCooldown(int chestId) {
+        chestExpiration.remove(chestId);
     }
 
 }

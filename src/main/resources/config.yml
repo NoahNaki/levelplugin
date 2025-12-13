@@ -36,7 +36,7 @@ tips:
 quest-settings:
   sharpsecret:
     midnight-orchid:
-      world: mmorpg
+      world: world
       x: 195.0
       y: 68.0
       z: -217.0

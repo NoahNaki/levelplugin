@@ -4,41 +4,35 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.BlockFace;
-import org.bukkit.entity.ArmorStand;
 import org.bukkit.inventory.ItemStack;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
 
 public class ChestData {
 
-    private static final String DEFAULT_WORLD = "MmoRPG";
+    private static final String DEFAULT_WORLD = "world";
 
     private final int chestId;
     private final String worldName;
     private final double x;
     private final double y;
     private final double z;
-    private final int tier;
     private final BlockFace facing;
     private String customName; // Optional
     private String contentType; // Optional, like "Weapon", "Armor", etc.
-    private final List<ArmorStand> holograms = new ArrayList<>();
     private ItemStack bufferedLootItem;
 
 
-    public ChestData(int chestId, double x, double y, double z, int tier, BlockFace facing) {
-        this(chestId, DEFAULT_WORLD, x, y, z, tier, facing);
+    public ChestData(int chestId, double x, double y, double z, BlockFace facing) {
+        this(chestId, DEFAULT_WORLD, x, y, z, facing);
     }
 
-    public ChestData(int chestId, String worldName, double x, double y, double z, int tier, BlockFace facing) {
+    public ChestData(int chestId, String worldName, double x, double y, double z, BlockFace facing) {
         this.chestId = chestId;
         this.worldName = worldName;
         this.x = x;
         this.y = y;
         this.z = z;
-        this.tier = tier;
         this.facing = facing == null ? BlockFace.NORTH : facing;
         this.bufferedLootItem = null;
     }
@@ -49,10 +43,6 @@ public class ChestData {
 
     public String getWorldName() {
         return worldName;
-    }
-
-    public int getTier() {
-        return tier;
     }
 
     public BlockFace getFacing() {
@@ -80,13 +70,14 @@ public class ChestData {
         return Optional.ofNullable(contentType);
     }
 
-    public List<org.bukkit.entity.ArmorStand> getHolograms() {
-        return holograms;
-    }
-
-
     public Location toLocation() {
         World world = Bukkit.getWorld(worldName);
+        if (world == null) {
+            world = Bukkit.getWorld(DEFAULT_WORLD);
+        }
+        if (world == null && !Bukkit.getWorlds().isEmpty()) {
+            world = Bukkit.getWorlds().get(0);
+        }
         if (world == null) return null;
         return new Location(world, x, y, z);
     }

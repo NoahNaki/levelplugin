@@ -97,7 +97,11 @@ public class FieldBossListener implements Listener {
         String cfgKey = bossKeyMap.get(mobId);
         if (cfgKey == null) return;
 
-        String bossDisplayName = MobNameUtil.getPlainDisplayName(mobId);
+        String bossDisplayName = MobNameUtil.getDisplayName(mobId);
+        if (bossDisplayName == null || bossDisplayName.isBlank()) {
+            bossDisplayName = MobNameUtil.toPrettyName(mobId);
+        }
+        bossDisplayName = ChatColor.stripColor(bossDisplayName);
         final String bossNameUpper = bossDisplayName.toUpperCase(Locale.ROOT);
 
         UUID bossId = BukkitAdapter.adapt(ev.getEntity()).getUniqueId();
