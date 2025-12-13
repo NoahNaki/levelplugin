@@ -172,6 +172,9 @@ public class NPCClickListener implements Listener {
             }
 
             Quest quest = questManager.getQuestByNpc(npc);
+            if (quest == null && npc.getId() == SerasQuest.NPC_ID) {
+                quest = questManager.getQuestById(SerasQuest.ID);
+            }
             if (quest == null && isNpcName(npc, SalvagersLessonQuest.NPC_NAME)) {
                 quest = questManager.getQuestById(SalvagersLessonQuest.ID);
             }

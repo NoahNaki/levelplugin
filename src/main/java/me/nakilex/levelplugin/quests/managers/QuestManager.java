@@ -106,6 +106,7 @@ public class QuestManager {
         registerQuest(forgeFundamentals);
         registerQuest(stonemasonJudeau);
         registerQuest(essenceWeaverLesson);
+        registerNpcQuest("Seras", me.nakilex.levelplugin.quests.def.SerasQuest.ID);
         me.nakilex.levelplugin.quests.def.SharpestSecretQuest.registerTalkTargets(this);
         me.nakilex.levelplugin.quests.def.SalvagersLessonQuest.registerTalkTargets(this);
         me.nakilex.levelplugin.quests.def.MarketBeginningsQuest.registerTalkTargets(this);
@@ -129,12 +130,12 @@ public class QuestManager {
     public void registerQuest(Quest quest) {
         quests.put(quest.getId(), quest);
         if (quest.getNpcGiverId() != null) {
-            npcQuestMap.put(quest.getNpcGiverId(), quest.getId());
+            npcQuestMap.putIfAbsent(quest.getNpcGiverId(), quest.getId());
         }
     }
 
     public void registerNpcQuest(int npcId, String questId) {
-        npcQuestMap.put(npcId, questId);
+        npcQuestMap.putIfAbsent(npcId, questId);
     }
 
     public void registerNpcQuest(String npcName, String questId) {
