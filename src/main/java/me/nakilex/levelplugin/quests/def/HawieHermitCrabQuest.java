@@ -8,7 +8,9 @@ import me.nakilex.levelplugin.quests.data.QuestObjectiveType;
 import me.nakilex.levelplugin.quests.data.QuestRewardCompat;
 import me.nakilex.levelplugin.quests.data.QuestScript;
 import me.nakilex.levelplugin.quests.data.QuestCompletionScript;
+import me.nakilex.levelplugin.quests.def.SerasSlimeKingQuest;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
+import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.entity.Player;
 
 import java.util.List;
@@ -34,7 +36,7 @@ public class HawieHermitCrabQuest extends Quest implements QuestScript, QuestCom
                 "Help Hawie stop the hermit crabs from tearing up his docks.",
                 createObjectives(),
                 10,
-                List.of("serashelp", SalvagersLessonQuest.ID),
+                List.of(StableKeeperQuest.ID),
                 null,
                 QuestRewardCompat.create(300, 250, 0, List.of()),
                 1089,
@@ -68,9 +70,12 @@ public class HawieHermitCrabQuest extends Quest implements QuestScript, QuestCom
         if (questManager == null) {
             return;
         }
-        if (!questManager.hasCompleted(player.getUniqueId(), StableKeeperQuest.ID)
-                && questManager.getProgress(player.getUniqueId(), StableKeeperQuest.ID) == null) {
-            questManager.startQuest(player, StableKeeperQuest.ID);
+        if (!questManager.hasCompleted(player.getUniqueId(), SerasSlimeKingQuest.ID)
+                && questManager.getProgress(player.getUniqueId(), SerasSlimeKingQuest.ID) == null) {
+            questManager.startQuest(player, SerasSlimeKingQuest.ID);
+            ChatMessageUtil.send(player,
+                    ChatMessageUtil.MessageType.INFO,
+                    "Hawie|Seras was looking for you—sounds like that Slime King finally needs dealing with.");
         }
     }
 }

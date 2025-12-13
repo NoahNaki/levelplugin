@@ -5,24 +5,17 @@ import com.nexomc.nexo.mechanics.furniture.FurnitureMechanic;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
 import me.nakilex.levelplugin.dungeon.DungeonManager;
-import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 
-import java.util.Random;
-
 public class LootChestCloseListener implements Listener {
 
     private final LootChestManager lootChestManager;
     private final EconomyManager economyManager;
     private final DungeonManager dungeonManager;
-    private final Random random = new Random();
-
-    // e.g. 40% chance to find coins
-    private static final double COIN_CHANCE = 0.4;
 
     public LootChestCloseListener(LootChestManager lootChestManager,
                                   EconomyManager economyManager,
@@ -36,10 +29,11 @@ public class LootChestCloseListener implements Listener {
     public void onInventoryClose(InventoryCloseEvent event) {
         // 1) Look up which chest the player was viewing
         Player player = (Player) event.getPlayer();
-        Integer chestId = lootChestManager.unmarkPlayerViewingChest(player.getUniqueId());
-        if (chestId == null) {
+        LootChestManager.LootSession session = lootChestManager.consumeSession(player.getUniqueId());
+        if (session == null) {
             return; // Player wasn’t viewing a loot‐chest GUI
         }
+        int chestId = session.chestId();
 
         // 2) Verify the crate still exists at its stored location
         Location loc = lootChestManager.getLocationForChestId(chestId);
@@ -47,23 +41,13 @@ public class LootChestCloseListener implements Listener {
             return;
         }
         FurnitureMechanic mechAtLoc = NexoFurniture.furnitureMechanic(loc.getBlock());
-        int tier = lootChestManager.getTierForChest(chestId);
-        String expectedId = lootChestManager.getCrateIdForTier(tier);
-        if (mechAtLoc == null || !mechAtLoc.getItemID().equals(expectedId)) {
+        if (mechAtLoc == null || !mechAtLoc.getItemID().equals(lootChestManager.getCrateModelId())) {
             return; // No crate there anymore
         }
 
-        // 3) Drop random coins (using the EconomyManager instance)
-        if (Math.random() < COIN_CHANCE) {
-            int min, max;
-            if (tier <= 2) {
-                min = 10; max = 20;
-            } else if (tier <= 4) {
-                min = 25; max = 40;
-            } else {
-                min = 50; max = 75;
-            }
-            int coinAmount = random.nextInt(max - min + 1) + min;
+        // 3) Pay out coins scaled to the player's gear score for this session
+        int coinAmount = Math.max(0, session.coinReward());
+        if (coinAmount > 0) {
             economyManager.addCoins(player, coinAmount);
             me.nakilex.levelplugin.utils.CurrencyMessageUtil.sendReceive(player,
                     me.nakilex.levelplugin.utils.CurrencyMessageUtil.Currency.COINS, coinAmount);

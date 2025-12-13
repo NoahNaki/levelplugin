@@ -14,32 +14,25 @@ public class SerasQuest extends Quest implements QuestScript, QuestCompletionScr
     public static final String ID = "serashelp";
 
     private static List<QuestObjective> createObjectives() {
-        World world = Bukkit.getWorld("mmorpg");
+        World world = Bukkit.getWorld("world");
+        if (world == null && !Bukkit.getWorlds().isEmpty()) {
+            world = Bukkit.getWorlds().get(0);
+        }
         return List.of(
                 new QuestObjective(QuestObjectiveType.TALK, "npc823", 1,
                         BeaconTargets.npc(823)),
                 new QuestObjective(QuestObjectiveType.KILL, "SLIME_COMMON", 10,
                         BeaconTargets.staticLoc(new Location(world, 820, 65, -120))),
                 new QuestObjective(QuestObjectiveType.TALK, "npc823_first", 1,
-                        BeaconTargets.npc(823)),
-                new QuestObjective(QuestObjectiveType.KILL, "SLIME_KING", 1),
-                new QuestObjective(QuestObjectiveType.TALK, "npc823_second", 1,
                         BeaconTargets.npc(823))
         );
     }
 
     private static final Map<Integer, List<String>> STAGE_DIALOGS = Map.of(
             2, List.of(
-                    "Seras|Alright, you have some skill considering you completed that way faster than I was expecting.",
-                    "Seras|Perhaps I underestimated you, how about something a little more challenging then?",
-                    "Seras|I'm sure you've noticed already but there is a massive slime that has gotten out of control, the folks around here call it the Slime King,",
-                    "Seras|If you can defeat that then I'll truly be impressed."),
-            4, List.of(
-                    "Seras|Alright, you've certainly proven yourself adventurer,",
-                    "Seras|I wonder why I've never heard of someone as strong as you before...",
-                    "Seras|I'm sure you have your reasons, nonetheless I must take care of some other matters for now,",
-                    "Seras|If your packs start spilling with scraps, the Salvager near town can break them down for you.",
-                    "Seras|I'm sure our paths will cross again."));
+                    "Seras|Not bad, those slimes won't be regrouping anytime soon.",
+                    "Seras|If you want to really help the town, head to the Stable Keeper and cull the wild roosters.",
+                    "Seras|Once you've handled that, come back to me—I've got a much bigger slime problem in mind."));
 
     public static List<String> getDialogForObjective(int objectiveIndex) {
         return STAGE_DIALOGS.getOrDefault(objectiveIndex, List.of());
@@ -48,8 +41,8 @@ public class SerasQuest extends Quest implements QuestScript, QuestCompletionScr
     public SerasQuest() {
         super(
                 ID,
-                "Seras' Request",
-                "Help Seras clear the forest slimes and defeat their king.",
+                "Seras' Request (Part 1)",
+                "Help Seras clear the forest slimes around town.",
                 createObjectives(),
                 2,
                 List.of("newbeginning"),
@@ -77,6 +70,12 @@ public class SerasQuest extends Quest implements QuestScript, QuestCompletionScr
         QuestManager questManager = plugin.getQuestManager();
         if (questManager == null) {
             return;
+        }
+        if (!questManager.hasCompleted(player.getUniqueId(), StableKeeperQuest.ID)
+                && questManager.getProgress(player.getUniqueId(), StableKeeperQuest.ID) == null) {
+            questManager.startQuest(player, StableKeeperQuest.ID);
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                    "Seras|The Stable Keeper needs help with wild roosters—lend a hand then report back.");
         }
         if (!questManager.hasCompleted(player.getUniqueId(), SalvagersLessonQuest.ID)
                 && questManager.getProgress(player.getUniqueId(), SalvagersLessonQuest.ID) == null) {

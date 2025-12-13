@@ -8,8 +8,10 @@ import me.nakilex.levelplugin.quests.data.QuestObjectiveType;
 import me.nakilex.levelplugin.quests.data.QuestRewardCompat;
 import me.nakilex.levelplugin.quests.data.PlayerQuestProgress;
 import me.nakilex.levelplugin.quests.data.QuestScript;
+import me.nakilex.levelplugin.quests.data.QuestCompletionScript;
 import me.nakilex.levelplugin.quests.def.HawieHermitCrabQuest;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
+import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.entity.Player;
 
 import java.util.List;
@@ -17,7 +19,7 @@ import java.util.Map;
 import java.util.UUID;
 
 /** Quest that unlocks the horse reroll service. */
-public class StableKeeperQuest extends Quest implements QuestScript {
+public class StableKeeperQuest extends Quest implements QuestScript, QuestCompletionScript {
     public static final String ID = "stablekeeper";
     public static final String NPC_TALK_TARGET = "npc652";
     public static final String NPC_RETURN_TARGET = "npc652_first";
@@ -64,7 +66,7 @@ public class StableKeeperQuest extends Quest implements QuestScript {
                 "Help the Stable Keeper reclaim his wheat and earn your first horse.",
                 createObjectives(),
                 2,
-                List.of(HawieHermitCrabQuest.ID),
+                List.of(SerasQuest.ID),
                 null,
                 QuestRewardCompat.create(50, 25, 0, List.of()),
                 652,
@@ -112,6 +114,24 @@ public class StableKeeperQuest extends Quest implements QuestScript {
         QuestManager questManager = plugin.getQuestManager();
         if (questManager != null) {
             questManager.handleTalk(player, NPC_TALK_TARGET);
+        }
+    }
+
+    @Override
+    public void onComplete(Player player, Main plugin) {
+        QuestManager questManager = plugin.getQuestManager();
+        if (questManager == null) {
+            return;
+        }
+
+        if (!questManager.hasCompleted(player.getUniqueId(), HawieHermitCrabQuest.ID)
+                && questManager.getProgress(player.getUniqueId(), HawieHermitCrabQuest.ID) == null) {
+            questManager.startQuest(player, HawieHermitCrabQuest.ID);
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                    "Stable Keeper|Hawie down by the docks needs help with hermit crabs—give him a hand then report back to Seras.");
+        } else {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                    "Stable Keeper|Let Seras know the roosters won't be bothering us anymore.");
         }
     }
 }

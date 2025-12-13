@@ -52,7 +52,7 @@ public class QuestBeaconTask extends BukkitRunnable {
                 }
             }
 
-            if (loc != null && loc.getWorld().equals(player.getWorld())) {
+            if (loc != null && loc.getWorld() != null && loc.getWorld().equals(player.getWorld())) {
                 Location pLoc = player.getLocation();
                 double dist = pLoc.distance(loc);
 

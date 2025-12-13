@@ -10,6 +10,7 @@ import me.nakilex.levelplugin.chat.games.ChatGameManager;
 import me.nakilex.levelplugin.chat.games.ChatGameStatus;
 import me.nakilex.levelplugin.debug.AutoCastManager;
 import me.nakilex.levelplugin.debug.DropDebugManager;
+import me.nakilex.levelplugin.lootchests.managers.CooldownManager;
 import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
 import me.nakilex.levelplugin.mercenary.MercenaryExpeditionManager;
 import me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager;
@@ -19,6 +20,7 @@ import me.nakilex.levelplugin.utils.DoubleInputPrompt;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.ToggleFeedbackUtil;
 import me.nakilex.levelplugin.utils.RewardBombUtil;
+import me.nakilex.levelplugin.utils.NumericInputPrompt;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -43,6 +45,7 @@ public class DebugGUI implements Listener {
     private static final int SIEGE_SLOT = 13;
     private static final int EXPEDITION_SLOT = 20;
     private static final int DROP_RATE_SLOT = 27;
+    private static final int CHEST_RESPAWN_SLOT = 25;
     private static final int FORCE_DROP_SLOT = 29;
     private static final int AUTOCAST_SLOT = 31;
     private static final int REWARD_BOMB_SLOT = 33;
@@ -54,6 +57,7 @@ public class DebugGUI implements Listener {
     private final DropDebugManager dropDebugManager;
     private final AutoCastManager autoCastManager;
     private final ChatGameManager chatGameManager;
+    private final CooldownManager cooldownManager;
     private final Map<Integer, String> chatGameSlots = new HashMap<>();
     private final Map<String, ChatGameStatus> chatGameStatusById = new HashMap<>();
 
@@ -62,13 +66,15 @@ public class DebugGUI implements Listener {
                     ChatGameManager chatGameManager,
                     MercenaryExpeditionManager expeditionManager,
                     DropDebugManager dropDebugManager,
-                    AutoCastManager autoCastManager) {
+                    AutoCastManager autoCastManager,
+                    CooldownManager cooldownManager) {
         this.mobDebugManager = mobDebugManager;
         this.scoreboardManager = scoreboardManager;
         this.expeditionManager = expeditionManager;
         this.dropDebugManager = dropDebugManager;
         this.autoCastManager = autoCastManager;
         this.chatGameManager = chatGameManager;
+        this.cooldownManager = cooldownManager;
     }
 
     /** Open the debug tools menu for the player. */
@@ -98,6 +104,7 @@ public class DebugGUI implements Listener {
                 expeditionManager.isInstantExpeditions(),
                 "§bInstant Expeditions",
                 "§7Expeditions complete instantly"));
+        builder.setItem(CHEST_RESPAWN_SLOT, createRespawnItem());
         builder.setItem(DROP_RATE_SLOT, createDropRateItem());
         builder.setItem(FORCE_DROP_SLOT, GuiUtil.createToggleItem(
                 dropDebugManager.isForceMobDrops(),
@@ -163,6 +170,8 @@ public class DebugGUI implements Listener {
                     "§bInstant Expeditions",
                     "§7Expeditions complete instantly"));
             ToggleFeedbackUtil.sendToggle(player, "Instant expeditions", enabled);
+        } else if (slot == CHEST_RESPAWN_SLOT) {
+            openRespawnChatInput(player);
         } else if (slot == DROP_RATE_SLOT) {
             openDropRateChatInput(player);
         } else if (slot == FORCE_DROP_SLOT) {
@@ -262,6 +271,16 @@ public class DebugGUI implements Listener {
         );
     }
 
+    private ItemStack createRespawnItem() {
+        int cooldown = cooldownManager.getDefaultCooldownSeconds();
+        return createActionItem(
+                Material.CLOCK,
+                "§bLoot Chest Respawn",
+                "§7Current: §f" + cooldown + "s",
+                "§7Click to enter a new cooldown in chat."
+        );
+    }
+
     private void openDropRateChatInput(Player player) {
         player.closeInventory();
         ConversationFactory factory = new ConversationFactory(Main.getInstance())
@@ -273,6 +292,32 @@ public class DebugGUI implements Listener {
                             dropDebugManager.setGlobalGearDropRate(value);
                             ChatMessageUtil.send(player, MessageType.SUCCESS,
                                     ChatColor.GREEN + String.format("Global gear drop rate set to %.2f%%.", value));
+                            Bukkit.getScheduler().runTask(Main.getInstance(), () -> open(player));
+                        }
+                ))
+                .withLocalEcho(false)
+                .withTimeout(30)
+                .addConversationAbandonedListener(event ->
+                        Bukkit.getScheduler().runTask(Main.getInstance(), () -> open(player)));
+
+        factory.buildConversation(player).begin();
+    }
+
+    private void openRespawnChatInput(Player player) {
+        player.closeInventory();
+        ConversationFactory factory = new ConversationFactory(Main.getInstance())
+                .withFirstPrompt(new NumericInputPrompt<>(
+                        Main.getInstance(),
+                        player,
+                        ChatColor.GOLD + "Enter loot chest respawn time in seconds:",
+                        "Invalid input! Please enter a whole number of seconds.",
+                        ChatColor.RED + "Please enter a value between 5 and 7200 seconds.",
+                        Integer::parseInt,
+                        value -> value >= 5 && value <= 7200,
+                        value -> {
+                            cooldownManager.setDefaultCooldownSeconds(value);
+                            ChatMessageUtil.send(player, MessageType.SUCCESS,
+                                    ChatColor.GREEN + "Loot chest respawn set to " + value + "s.");
                             Bukkit.getScheduler().runTask(Main.getInstance(), () -> open(player));
                         }
                 ))
