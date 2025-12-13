@@ -8,7 +8,7 @@ public class ChatToggleManager extends PlayerToggleManager {
     public static ChatToggleManager getInstance() { return instance; }
 
     private ChatToggleManager() {
-        // Defaults to enabled so new players immediately see damage feedback.
-        super(true);
+        // Default to disabled; players can opt in to combat chat if desired.
+        super(false);
     }
 }

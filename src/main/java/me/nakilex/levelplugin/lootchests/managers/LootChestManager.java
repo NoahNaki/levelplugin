@@ -332,7 +332,7 @@ public class LootChestManager {
         //    The remove(...) call will find the barrier entity/display entity combo and delete them.
         boolean removed = NexoFurniture.remove(loc);
         if (!removed) {
-            plugin.getLogger().warning("[LootChestManager] Could not remove Nexo furniture at " + loc +
+            plugin.getLogger().fine("[LootChestManager] Could not remove Nexo furniture at " + loc +
                 " (ID " + chestId + "). Maybe it's already gone?");
         }
 
@@ -345,7 +345,7 @@ public class LootChestManager {
         // Clean up any lingering holograms from older versions
         removeTaggedHologramsAt(loc);
 
-        plugin.getLogger().info("[LootChestManager] Removed crate with ID " + chestId + " at " + loc);
+        plugin.getLogger().fine("[LootChestManager] Removed crate with ID " + chestId + " at " + loc);
         return true;
     }
 

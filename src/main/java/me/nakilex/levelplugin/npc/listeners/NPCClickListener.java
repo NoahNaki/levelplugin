@@ -199,9 +199,7 @@ public class NPCClickListener implements Listener {
                     if (progress != null) {
                         boolean introDone = progress.getProgress(0) >= quest.getObjectives().get(0).getAmount();
                         boolean killSlimesDone = progress.getProgress(1) >= quest.getObjectives().get(1).getAmount();
-                        boolean talkAfterSlimes = progress.getProgress(2) >= quest.getObjectives().get(2).getAmount();
-                        boolean killKingDone = progress.getProgress(3) >= quest.getObjectives().get(3).getAmount();
-                        boolean talkAfterKing = progress.getProgress(4) >= quest.getObjectives().get(4).getAmount();
+                        boolean talkedAfterSlimes = progress.getProgress(2) >= quest.getObjectives().get(2).getAmount();
 
                         if (!introDone) {
                             dialogManager.startDialog(player,
@@ -210,26 +208,15 @@ public class NPCClickListener implements Listener {
                                     () -> questManager.handleTalk(player, "npc" + npc.getId()));
                             return;
                         }
-                        if (killSlimesDone && !talkAfterSlimes) {
+                        if (killSlimesDone && !talkedAfterSlimes) {
                             dialogManager.startDialog(player,
                                     me.nakilex.levelplugin.quests.def.SerasQuest.getDialogForObjective(2),
                                     npc,
                                     () -> questManager.handleTalk(player, "npc" + npc.getId() + "_first"));
                             return;
                         }
-                        if (killSlimesDone && talkAfterSlimes && !killKingDone) {
-                            player.sendMessage("§cComplete the quest first!");
-                            return;
-                        }
-                        if (killKingDone && !talkAfterKing) {
-                            dialogManager.startDialog(player,
-                                    me.nakilex.levelplugin.quests.def.SerasQuest.getDialogForObjective(4),
-                                    npc,
-                                    () -> questManager.handleTalk(player, "npc" + npc.getId() + "_second"));
-                            return;
-                        }
                         if (!killSlimesDone) {
-                            player.sendMessage("§cComplete the quest first!");
+                            player.sendMessage("§cClear 10 forest slimes, then report back to Seras.");
                             return;
                         }
                     }
