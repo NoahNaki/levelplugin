@@ -42,7 +42,7 @@ public class TipBroadcastTask extends BukkitRunnable {
             ChatFormatter.sendCenteredMessage(player, formatted);
         }
 
-        plugin.getLogger().info("[Tips] Broadcasted tip #" + (index + 1));
+        //plugin.getLogger().info("[Tips] Broadcasted tip #" + (index + 1));
         index++;
         manager.resetCountdown();
     }

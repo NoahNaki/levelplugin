@@ -63,10 +63,10 @@ public class StableKeeperQuest extends Quest implements QuestScript {
                 "Feathered Famine",
                 "Help the Stable Keeper reclaim his wheat and earn your first horse.",
                 createObjectives(),
-                2,
+                5,
                 List.of(HawieHermitCrabQuest.ID),
                 null,
-                QuestRewardCompat.create(50, 25, 0, List.of()),
+                QuestRewardCompat.create(500, 150, 0, List.of()),
                 652,
                 List.of(
                         "Stable Keeper|Look at this mess... those feral roosters have pecked every wheat stalk I had left.",

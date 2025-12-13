@@ -20,3 +20,8 @@ mobs:
     coins: "30000-70000"
     gems: 350
 
+  Hanashiguro2:
+    exp: 20000
+    coins: "3500-7000"
+    gems: 25
+

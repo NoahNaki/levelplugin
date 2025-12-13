@@ -36,7 +36,7 @@ public class HawieHermitCrabQuest extends Quest implements QuestScript, QuestCom
                 10,
                 List.of("serashelp", SalvagersLessonQuest.ID),
                 null,
-                QuestRewardCompat.create(300, 250, 0, List.of()),
+                QuestRewardCompat.create(1000, 250, 0, List.of()),
                 1089,
                 List.of(
                         "Hawie|This little pond used to be peaceful, but now it's crawling with hermit crabs squatting in every tidepool.",
