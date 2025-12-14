@@ -1,5 +1,9 @@
 package me.nakilex.levelplugin.player.classes.data;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.Random;
+
 public enum PlayerClass {
     VILLAGER(1),
     WARRIOR(1),
@@ -46,6 +50,21 @@ public enum PlayerClass {
             return "Awakened " + me.nakilex.levelplugin.utils.TextUtil.beautifyWords(name.substring(4));
         }
         return me.nakilex.levelplugin.utils.TextUtil.beautifyWords(name);
+    }
+
+    public boolean isAwakened() {
+        return name().startsWith("AWAK");
+    }
+
+    public static PlayerClass randomAwakened(Random random) {
+        List<PlayerClass> awakened = Arrays.stream(values())
+                .filter(PlayerClass::isAwakened)
+                .toList();
+        if (awakened.isEmpty()) {
+            return WARRIOR;
+        }
+        Random rng = random == null ? new Random() : random;
+        return awakened.get(rng.nextInt(awakened.size()));
     }
 
     /**

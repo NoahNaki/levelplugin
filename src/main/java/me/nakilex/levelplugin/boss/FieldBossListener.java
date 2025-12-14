@@ -7,10 +7,14 @@ import io.lumine.mythic.core.mobs.ActiveMob;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.economy.managers.GemsManager;
 import me.nakilex.levelplugin.items.data.CustomItem;
+import me.nakilex.levelplugin.items.data.ItemRarity;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.mob.utils.MobNameUtil;
+import me.nakilex.levelplugin.player.classes.data.PlayerClass;
+import me.nakilex.levelplugin.player.classes.essence.ClassEssence;
 import me.nakilex.levelplugin.utils.ChatFormatter;
+import me.nakilex.levelplugin.utils.RewardBombUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -165,33 +169,14 @@ public class FieldBossListener implements Listener {
             plugin.getEconomyManager().addCoins(p, coinsAward);
 
             for (Map<String,Object> m : items) {
-                String itemId   = m.get("itemid").toString();
-                double dropPct  = (double)m.get("drop_rate");
-                String qtyRange = m.get("quantity").toString();
-
-                if (ThreadLocalRandom.current().nextDouble(0, 100) > dropPct)
-                    continue;
-
-                String[] qr = qtyRange.split("-");
-                int minQ = Integer.parseInt(qr[0]), maxQ = Integer.parseInt(qr[1]);
-                int qty = ThreadLocalRandom.current().nextInt(minQ, maxQ + 1);
-
-                ItemStack drop = null;
-                if (itemId.matches("\\d+")) {
-                    int cid = Integer.parseInt(itemId);
-                    CustomItem inst = itemManager.rollNewInstance(cid);
-                    if (inst != null)
-                        drop = ItemUtil.createItemStackFromCustomItem(inst, qty, p);
-                }
-                if (drop == null) {
-                    Material mat = Material.matchMaterial(itemId.toUpperCase(Locale.ROOT));
-                    if (mat != null)
-                        drop = new ItemStack(mat, qty);
-                }
+                ItemStack drop = rollConfiguredDrop(m, p);
                 if (drop != null)
                     p.getWorld().dropItemNaturally(p.getLocation(), drop);
             }
         }
+
+        RewardBombUtil.startRewardBomb(plugin, ev.getEntity().getLocation(),
+                createBossRewardBomb(items), 100);
 
         // 6) Delay only the chat output by 5 ticks
         final String fElapsed = elapsed;
@@ -251,4 +236,66 @@ public class FieldBossListener implements Listener {
 //            }
 //        }.runTask(plugin);
 //    }
+
+    private ItemStack rollConfiguredDrop(Map<String, Object> config, Player owner) {
+        if (config == null) return null;
+
+        Object chance = config.get("drop_rate");
+        double dropPct = chance == null ? 0 : Double.parseDouble(chance.toString());
+        if (ThreadLocalRandom.current().nextDouble(0, 100) > dropPct) {
+            return null;
+        }
+
+        String qtyRange = String.valueOf(config.getOrDefault("quantity", "1-1"));
+        String[] qr = qtyRange.split("-");
+        int minQ = Integer.parseInt(qr[0]);
+        int maxQ = qr.length > 1 ? Integer.parseInt(qr[1]) : minQ;
+        int qty = ThreadLocalRandom.current().nextInt(minQ, maxQ + 1);
+
+        String itemId = String.valueOf(config.get("itemid"));
+        ItemStack drop = null;
+        if (itemId != null && itemId.matches("\\d+")) {
+            int cid = Integer.parseInt(itemId);
+            CustomItem inst = itemManager.rollNewInstance(cid);
+            if (inst != null) {
+                drop = ItemUtil.createItemStackFromCustomItem(inst, qty, owner);
+            }
+        }
+        if (drop == null && itemId != null) {
+            Material mat = Material.matchMaterial(itemId.toUpperCase(Locale.ROOT));
+            if (mat != null) {
+                drop = new ItemStack(mat, qty);
+            }
+        }
+        return drop;
+    }
+
+    private ItemStack createAwakenedEssenceDrop() {
+        PlayerClass awakened = PlayerClass.randomAwakened(ThreadLocalRandom.current());
+        return ClassEssence.generateEssence(awakened, ItemRarity.RARE, 0);
+    }
+
+    private java.util.function.Supplier<ItemStack> createBossRewardBomb(List<Map<String, Object>> items) {
+        List<ItemStack> lootPool = new ArrayList<>();
+        lootPool.add(createAwakenedEssenceDrop());
+        if (items != null) {
+            for (Map<String, Object> entry : items) {
+                ItemStack drop = rollConfiguredDrop(entry, null);
+                if (drop != null) {
+                    lootPool.add(drop);
+                }
+            }
+        }
+        if (lootPool.isEmpty()) {
+            lootPool.add(createAwakenedEssenceDrop());
+        }
+
+        return () -> {
+            if (lootPool.isEmpty()) {
+                return null;
+            }
+            ItemStack choice = lootPool.get(ThreadLocalRandom.current().nextInt(lootPool.size()));
+            return choice == null ? null : choice.clone();
+        };
+    }
 }

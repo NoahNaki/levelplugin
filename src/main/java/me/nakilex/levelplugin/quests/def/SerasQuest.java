@@ -12,6 +12,7 @@ import java.util.Map;
 
 public class SerasQuest extends Quest implements QuestScript, QuestCompletionScript {
     public static final String ID = "serashelp";
+    public static final int NPC_ID = 823;
 
     private static List<QuestObjective> createObjectives() {
         World world = Bukkit.getWorld("world");
@@ -19,12 +20,12 @@ public class SerasQuest extends Quest implements QuestScript, QuestCompletionScr
             world = Bukkit.getWorlds().get(0);
         }
         return List.of(
-                new QuestObjective(QuestObjectiveType.TALK, "npc823", 1,
-                        BeaconTargets.npc(823)),
+                new QuestObjective(QuestObjectiveType.TALK, "npc" + NPC_ID, 1,
+                        BeaconTargets.npc(NPC_ID)),
                 new QuestObjective(QuestObjectiveType.KILL, "SLIME_COMMON", 10,
                         BeaconTargets.staticLoc(new Location(world, 820, 65, -120))),
-                new QuestObjective(QuestObjectiveType.TALK, "npc823_first", 1,
-                        BeaconTargets.npc(823))
+                new QuestObjective(QuestObjectiveType.TALK, "npc" + NPC_ID + "_first", 1,
+                        BeaconTargets.npc(NPC_ID))
         );
     }
 
@@ -48,7 +49,7 @@ public class SerasQuest extends Quest implements QuestScript, QuestCompletionScr
                 List.of("newbeginning"),
                 null,
                 QuestRewardCompat.create(200, 100, 0, List.of()),
-                823,
+                NPC_ID,
                 List.of(
                         "What are you looking at huh?",
                         "Piwan sent you did he, ugh, that rascal is always giving me more trouble.",
@@ -56,7 +57,9 @@ public class SerasQuest extends Quest implements QuestScript, QuestCompletionScr
                         "Yeah that's true, there's never a still moment in this village that's for sure.",
                         "Follow this path, you'll come across some slimes that have been infesting the forest recently, kill 10 of those and bring back their cores and I'll give you a reward."
                 ),
-                false
+                false,
+                true,
+                true
         );
     }
 

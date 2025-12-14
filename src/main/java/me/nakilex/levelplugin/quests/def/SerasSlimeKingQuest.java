@@ -23,11 +23,11 @@ public class SerasSlimeKingQuest extends Quest implements QuestScript, QuestComp
 
     private static List<QuestObjective> createObjectives() {
         return List.of(
-                new QuestObjective(QuestObjectiveType.TALK, "npc823_second", 1,
-                        BeaconTargets.npc(823)),
+                new QuestObjective(QuestObjectiveType.TALK, "npc" + SerasQuest.NPC_ID + "_second", 1,
+                        BeaconTargets.npc(SerasQuest.NPC_ID)),
                 new QuestObjective(QuestObjectiveType.KILL, "SLIME_KING", 1),
-                new QuestObjective(QuestObjectiveType.TALK, "npc823_third", 1,
-                        BeaconTargets.npc(823))
+                new QuestObjective(QuestObjectiveType.TALK, "npc" + SerasQuest.NPC_ID + "_third", 1,
+                        BeaconTargets.npc(SerasQuest.NPC_ID))
         );
     }
 
@@ -51,7 +51,7 @@ public class SerasSlimeKingQuest extends Quest implements QuestScript, QuestComp
                 List.of(SerasQuest.ID, StableKeeperQuest.ID, HawieHermitCrabQuest.ID),
                 null,
                 QuestRewardCompat.create(250, 175, 0, List.of()),
-                823,
+                SerasQuest.NPC_ID,
                 List.of(
                         "Seras|Welcome back. Those roosters should be quiet now—ready for the real challenge?",
                         "Seras|The Slime King is still oozing around the grove. Put it down and report back to me."),

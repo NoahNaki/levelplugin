@@ -15,7 +15,6 @@ import me.nakilex.levelplugin.horse.gui.HorseGUI;
 import me.nakilex.levelplugin.items.listeners.*;
 import me.nakilex.levelplugin.lootchests.listeners.LootChestCloseListener;
 import me.nakilex.levelplugin.lootchests.listeners.LootChestListener;
-import me.nakilex.levelplugin.lootchests.listeners.LootChestShutdownListener;
 import me.nakilex.levelplugin.lootchests.listeners.LootChestChunkListener;
 import me.nakilex.levelplugin.lootchests.listeners.LootChestWandListener;
 import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
@@ -204,8 +203,6 @@ public class ListenerRegistry {
         pm.registerEvents(new ClassEssenceMenuListener(), plugin);
         pm.registerEvents(new ClassEssenceBoundListener(), plugin);
         pm.registerEvents(new ClassEssenceUpgradeGUI(), plugin);
-        pm.registerEvents(new LootChestShutdownListener(plugin, lootChestManager), plugin);
-
         pm.registerEvents(new FieldBossListener(plugin, plugin.getBossConfig(), plugin.getItemManager(), plugin.getGemsManager()), plugin);
         pm.registerEvents(new EquipOnJoinListener(), plugin);
         pm.registerEvents(new PlayerDeathListener(plugin), plugin);

@@ -27,13 +27,16 @@ public class Quest {
     /** Whether to surface the quest-giver's location in UI. */
     private final boolean showLocation;
 
+    /** Whether objectives must be completed in order. */
+    private final boolean sequentialObjectives;
+
     public Quest(String id, String name, String description, List<QuestObjective> objectives,
                  int levelRequirement, List<String> questRequirements,
                  PlayerClass classRequirement, QuestReward reward,
                  Integer npcGiverId, List<String> dialogLines,
                  boolean mainQuest) {
         this(id, name, description, objectives, levelRequirement, questRequirements, classRequirement,
-                reward, npcGiverId, dialogLines, mainQuest, true);
+                reward, npcGiverId, dialogLines, mainQuest, true, false);
     }
 
     public Quest(String id, String name, String description, List<QuestObjective> objectives,
@@ -41,6 +44,15 @@ public class Quest {
                  PlayerClass classRequirement, QuestReward reward,
                  Integer npcGiverId, List<String> dialogLines,
                  boolean mainQuest, boolean showLocation) {
+        this(id, name, description, objectives, levelRequirement, questRequirements, classRequirement,
+                reward, npcGiverId, dialogLines, mainQuest, showLocation, false);
+    }
+
+    public Quest(String id, String name, String description, List<QuestObjective> objectives,
+                 int levelRequirement, List<String> questRequirements,
+                 PlayerClass classRequirement, QuestReward reward,
+                 Integer npcGiverId, List<String> dialogLines,
+                 boolean mainQuest, boolean showLocation, boolean sequentialObjectives) {
         this.id = id;
         this.name = name;
         this.description = description;
@@ -53,6 +65,7 @@ public class Quest {
         this.dialogLines = dialogLines;
         this.mainQuest = mainQuest;
         this.showLocation = showLocation;
+        this.sequentialObjectives = sequentialObjectives;
     }
 
     public String getId() {
@@ -101,5 +114,9 @@ public class Quest {
 
     public boolean isLocationVisible() {
         return showLocation;
+    }
+
+    public boolean isSequentialObjectives() {
+        return sequentialObjectives;
     }
 }

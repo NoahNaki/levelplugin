@@ -35,7 +35,7 @@ public class LootChestWandListener implements Listener {
 
         if (event.getAction() == Action.RIGHT_CLICK_BLOCK && event.getClickedBlock() != null) {
             Location loc = event.getClickedBlock().getLocation();
-            BlockFace facing = player.getFacing();
+            BlockFace facing = player.getFacing().getOppositeFace();
             int id = lootChestManager.registerChest(loc, facing);
             player.sendMessage(ChatColor.GREEN + "Registered loot chest #" + id + ChatColor.GRAY + " at "
                     + ChatColor.YELLOW + loc.getBlockX() + ChatColor.GRAY + ", "

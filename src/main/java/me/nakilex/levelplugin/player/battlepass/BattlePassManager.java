@@ -571,8 +571,8 @@ public class BattlePassManager implements BattlePassProvider {
                 BattlePassRewardDefinition.builder()
                         .displayName("Arcane Studies Cache")
                         .coins(1200)
-                        .directItem(PlayerClass.MAGE.getDisplayName() + " Essence", 1,
-                                essence(PlayerClass.MAGE, ItemRarity.UNCOMMON, 0))
+                        .directItem(PlayerClass.AWAKMAGE.getDisplayName() + " Essence", 1,
+                                essence(PlayerClass.AWAKMAGE, ItemRarity.UNCOMMON, 0))
                         .build(),
                 BattlePassRewardDefinition.builder()
                         .displayName("Awakened Arcana Vault")
@@ -585,8 +585,8 @@ public class BattlePassManager implements BattlePassProvider {
                 BattlePassRewardDefinition.builder()
                         .displayName("Martial Discipline Pack")
                         .coins(1400)
-                        .directItem(PlayerClass.WARRIOR.getDisplayName() + " Essence", 1,
-                                essence(PlayerClass.WARRIOR, ItemRarity.UNCOMMON, 0))
+                        .directItem(PlayerClass.AWAKWARRIOR.getDisplayName() + " Essence", 1,
+                                essence(PlayerClass.AWAKWARRIOR, ItemRarity.UNCOMMON, 0))
                         .build(),
                 BattlePassRewardDefinition.builder()
                         .displayName("Awakened Legion Cache")
@@ -599,8 +599,8 @@ public class BattlePassManager implements BattlePassProvider {
                 BattlePassRewardDefinition.builder()
                         .displayName("Sharpshooter's Satchel")
                         .coins(1400)
-                        .directItem(PlayerClass.ARCHER.getDisplayName() + " Essence", 1,
-                                essence(PlayerClass.ARCHER, ItemRarity.UNCOMMON, 0))
+                        .directItem(PlayerClass.AWAKARCHER.getDisplayName() + " Essence", 1,
+                                essence(PlayerClass.AWAKARCHER, ItemRarity.UNCOMMON, 0))
                         .build(),
                 BattlePassRewardDefinition.builder()
                         .displayName("Awakened Ranger Kit")
@@ -629,8 +629,8 @@ public class BattlePassManager implements BattlePassProvider {
                 BattlePassRewardDefinition.builder()
                         .displayName("Shadow Operative Pack")
                         .coins(1400)
-                        .directItem(PlayerClass.ROGUE.getDisplayName() + " Essence", 1,
-                                essence(PlayerClass.ROGUE, ItemRarity.UNCOMMON, 0))
+                        .directItem(PlayerClass.AWAKROGUE.getDisplayName() + " Essence", 1,
+                                essence(PlayerClass.AWAKROGUE, ItemRarity.UNCOMMON, 0))
                         .build(),
                 BattlePassRewardDefinition.builder()
                         .displayName("Awakened Shadow Cache")
@@ -717,8 +717,8 @@ public class BattlePassManager implements BattlePassProvider {
                 BattlePassRewardDefinition.builder()
                         .displayName("Cleric's Boon")
                         .coins(1600)
-                        .directItem(PlayerClass.CLERIC.getDisplayName() + " Essence", 1,
-                                essence(PlayerClass.CLERIC, ItemRarity.UNCOMMON, 0))
+                        .directItem(PlayerClass.AWAKCLERIC.getDisplayName() + " Essence", 1,
+                                essence(PlayerClass.AWAKCLERIC, ItemRarity.UNCOMMON, 0))
                         .build(),
                 BattlePassRewardDefinition.builder()
                         .displayName("Awakened Cleric's Cache")
