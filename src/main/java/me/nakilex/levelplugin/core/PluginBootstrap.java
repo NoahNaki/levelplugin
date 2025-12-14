@@ -480,6 +480,18 @@ public class PluginBootstrap {
 
         furnitureGuiMapper = new me.nakilex.levelplugin.nexo.FurnitureGuiMapper();
         furnitureGuiMapper.register("quest_board", player -> mercenaryExpeditionGUI.open(player));
+        java.util.List.of(
+                "portal_decoration_animated_v1_portal_1",
+                "portal_decoration_animated_v1_portal_2",
+                "portal_decoration_animated_v1_portal_3",
+                "portal_decoration_animated_v1_portal_4",
+                "portal_decoration_animated_v1_portal_5",
+                "portal_decoration_animated_v1_portal_6",
+                "portal_decoration_animated_v1_portal_7",
+                "portal_decoration_animated_v1_portal_8",
+                "portal_decoration_animated_v1_portal_9",
+                "portal_decoration_animated_v1_portal_10"
+        ).forEach(id -> furnitureGuiMapper.registerProximity(id, player -> dungeonListGUI.open(player)));
         plugin.getServer().getPluginManager().registerEvents(furnitureGuiMapper, plugin);
 
         ListenerRegistry.registerListeners(
