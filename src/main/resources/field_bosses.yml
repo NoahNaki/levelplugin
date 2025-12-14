@@ -15,7 +15,7 @@ mobs:
     coins: "20000-60000"
     gems: 250
 
-  dragon_sentinel:
+  dragon_sentinel_dragonform:
     exp: 250000
     coins: "30000-70000"
     gems: 350

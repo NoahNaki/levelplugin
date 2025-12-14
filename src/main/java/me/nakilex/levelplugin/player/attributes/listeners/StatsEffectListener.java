@@ -117,9 +117,9 @@ public class StatsEffectListener implements Listener {
                 : SPELL_DAMAGE_MULTIPLIER;
             finalDamage *= scale;
 
-            me.nakilex.levelplugin.Main.getPlugin().getLogger().info(
-                "[StatsEffect] dmg=" + event.getDamage() + "->" + finalDamage +
-                " crit=" + isCrit + " player=" + player.getName());
+//            me.nakilex.levelplugin.Main.getPlugin().getLogger().info(
+//                "[StatsEffect] dmg=" + event.getDamage() + "->" + finalDamage +
+//                " crit=" + isCrit + " player=" + player.getName());
 
             // Record for chat, etc.
             lastCritMap.put(player.getUniqueId(), isCrit);
