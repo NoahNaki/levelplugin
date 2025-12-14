@@ -43,18 +43,18 @@ public final class ClassEssence {
 
     private record AttrData(int value, boolean percent) {}
 
-    private static final java.util.Map<PlayerClass, String> CLASS_NEXO_IDS = java.util.Map.of(
-            PlayerClass.MAGE, "riptide",
-            PlayerClass.GAMBLER, "luck_of_the_sea",
-            PlayerClass.WARRIOR, "sharpness",
-            PlayerClass.CLERIC, "smite",
-            PlayerClass.ROGUE, "protection",
-            PlayerClass.ARCHER, "projectile_protection",
-            PlayerClass.AWAKMAGE, "channeling",
-            PlayerClass.AWAKROGUE, "unbreaking",
-            PlayerClass.AWAKWARRIOR, "sweeping_edge",
-            PlayerClass.AWAKARCHER, "piercing",
-            PlayerClass.AWAKCLERIC, "mending"
+    private static final Map<PlayerClass, String> CLASS_NEXO_IDS = Map.ofEntries(
+            Map.entry(PlayerClass.MAGE, "riptide"),
+            Map.entry(PlayerClass.GAMBLER, "luck_of_the_sea"),
+            Map.entry(PlayerClass.WARRIOR, "sharpness"),
+            Map.entry(PlayerClass.CLERIC, "smite"),
+            Map.entry(PlayerClass.ROGUE, "protection"),
+            Map.entry(PlayerClass.ARCHER, "projectile_protection"),
+            Map.entry(PlayerClass.AWAKMAGE, "channeling"),
+            Map.entry(PlayerClass.AWAKROGUE, "unbreaking"),
+            Map.entry(PlayerClass.AWAKWARRIOR, "sweeping_edge"),
+            Map.entry(PlayerClass.AWAKARCHER, "piercing"),
+            Map.entry(PlayerClass.AWAKCLERIC, "mending")
     );
 
     private ClassEssence() {}
