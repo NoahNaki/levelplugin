@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.fakeblock;
 import com.nexomc.nexo.api.NexoFurniture;
 import com.nexomc.nexo.mechanics.furniture.FurnitureMechanic;
 import me.nakilex.levelplugin.lootchests.utils.LocationUtils;
+import me.nakilex.levelplugin.utils.FurnitureCleanupUtil;
 import me.nakilex.levelplugin.utils.NexoUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -106,6 +107,8 @@ public class ModelGate {
             plugin.getLogger().warning("[ModelGate] Unable to spawn gate '" + id + "'; location is null");
             return;
         }
+
+        FurnitureCleanupUtil.clearNearbyFurnitureEntities(plugin, centered, 9.0, "[ModelGate]");
 
         FurnitureMechanic openMech = NexoFurniture.furnitureMechanic(openModel);
         FurnitureMechanic closedMech = NexoFurniture.furnitureMechanic(closedModel);

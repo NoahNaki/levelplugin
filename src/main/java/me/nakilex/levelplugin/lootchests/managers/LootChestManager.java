@@ -21,6 +21,7 @@ import me.nakilex.levelplugin.potions.data.PotionInstance;
 import me.nakilex.levelplugin.potions.data.PotionTemplate;
 import me.nakilex.levelplugin.potions.managers.PotionManager;
 import me.nakilex.levelplugin.salvage.managers.SalvageManager;
+import me.nakilex.levelplugin.utils.FurnitureCleanupUtil;
 import me.nakilex.levelplugin.utils.NexoUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.TextUtil;
@@ -34,11 +35,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.ArmorStand;
-import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Player;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.Interaction;
-import org.bukkit.entity.ItemDisplay;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -416,38 +413,8 @@ public class LootChestManager {
     }
 
     private int removeNearbyFurnitureEntities(Chunk chunk, Location target) {
-        if (chunk == null || target == null || target.getWorld() == null) {
-            return 0;
-        }
-
-        double radiusSq = 4.0; // within ~2 blocks of the stored location
-        int removed = 0;
-
-        for (Entity entity : chunk.getEntities()) {
-            if (!target.getWorld().equals(entity.getWorld())) {
-                continue;
-            }
-            if (!(entity instanceof ItemDisplay
-                    || entity instanceof BlockDisplay
-                    || entity instanceof Interaction
-                    || entity instanceof ArmorStand)) {
-                continue;
-            }
-
-            if (entity.getLocation().distanceSquared(target) > radiusSq) {
-                continue;
-            }
-
-            entity.remove();
-            removed++;
-        }
-
-        if (removed > 0) {
-            plugin.getLogger().info("[LootChestManager] Cleared " + removed
-                    + " stray display entities near loot chest location " + target);
-        }
-
-        return removed;
+        return FurnitureCleanupUtil.clearNearbyFurnitureEntities(plugin, target, 4.0,
+                "[LootChestManager]");
     }
 
     public boolean deleteChest(int chestId) {

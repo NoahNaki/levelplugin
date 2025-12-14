@@ -10,11 +10,14 @@ import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Projectile;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Entity;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
@@ -25,6 +28,7 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -63,7 +67,7 @@ public class DpsDummyManager implements Listener {
         }
 
         prepareEntity(entity);
-        Dummy dummy = new Dummy(entity, createHologram(entity));
+        Dummy dummy = new Dummy(entity);
         dummies.put(entity.getUniqueId(), dummy);
         selections.put(player.getUniqueId(), entity.getUniqueId());
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, "Spawned DPS dummy and selected it.");
@@ -126,14 +130,17 @@ public class DpsDummyManager implements Listener {
         Dummy dummy = dummies.get(entity.getUniqueId());
         if (dummy == null) return;
 
-        double damage = event.getFinalDamage();
-        dummy.recordDamage(damage);
+        UUID damagerId = resolvePlayerDamager(event);
+        if (damagerId != null) {
+            double damage = event.getFinalDamage();
+            dummy.recordDamage(damagerId, damage);
+        }
 
         event.setCancelled(true);
         entity.setFireTicks(0);
         entity.setVelocity(new Vector());
         entity.setHealth(entity.getAttribute(Attribute.MAX_HEALTH).getBaseValue());
-        dummy.refreshHologram();
+        dummy.refreshHolograms();
     }
 
     @EventHandler
@@ -142,7 +149,7 @@ public class DpsDummyManager implements Listener {
     }
 
     private void startUpdater() {
-        updater = Bukkit.getScheduler().runTaskTimer(plugin, () -> dummies.values().forEach(Dummy::refreshHologram), 20L, 20L);
+        updater = Bukkit.getScheduler().runTaskTimer(plugin, () -> dummies.values().forEach(Dummy::refreshHolograms), 20L, 20L);
     }
 
     private LivingEntity spawnMythic(Location loc) throws InvalidMobTypeException {
@@ -176,15 +183,21 @@ public class DpsDummyManager implements Listener {
         }
     }
 
-    private MultiLineHologram createHologram(LivingEntity entity) {
-        Location above = entity.getLocation().clone().add(0, entity.getHeight() + 0.5, 0);
-        MultiLineHologram hologram = new MultiLineHologram(above, DUMMY_TAG);
-        hologram.spawn(List.of(formatDpsLine(0)));
-        return hologram;
-    }
-
     private String formatDpsLine(double dps) {
         return ChatColor.translateAlternateColorCodes('&', "&aDPS&7: &f" + DPS_FORMAT.format(dps));
+    }
+
+    private UUID resolvePlayerDamager(EntityDamageEvent event) {
+        if (event instanceof EntityDamageByEntityEvent byEntity) {
+            Entity damager = byEntity.getDamager();
+            if (damager instanceof Player player) {
+                return player.getUniqueId();
+            }
+            if (damager instanceof Projectile projectile && projectile.getShooter() instanceof Player player) {
+                return player.getUniqueId();
+            }
+        }
+        return null;
     }
 
     private UUID resolveTarget(Player player, String idOrNull) {
@@ -200,37 +213,99 @@ public class DpsDummyManager implements Listener {
     /** Lightweight dummy state holder. */
     private class Dummy {
         private final LivingEntity entity;
-        private final MultiLineHologram hologram;
-        private final Deque<DamageSample> samples = new ArrayDeque<>();
+        private final Map<UUID, Deque<DamageSample>> samples = new HashMap<>();
+        private final Map<UUID, MultiLineHologram> holograms = new HashMap<>();
 
-        Dummy(LivingEntity entity, MultiLineHologram hologram) {
+        Dummy(LivingEntity entity) {
             this.entity = entity;
-            this.hologram = hologram;
         }
 
-        void recordDamage(double amount) {
+        void recordDamage(UUID playerId, double amount) {
             long now = System.currentTimeMillis();
-            samples.addLast(new DamageSample(amount, now));
-            trim(now);
+            Deque<DamageSample> playerSamples = samples.computeIfAbsent(playerId, id -> new ArrayDeque<>());
+            playerSamples.addLast(new DamageSample(amount, now));
+            trim(playerSamples, now);
+            ensureHologram(playerId);
         }
 
-        void refreshHologram() {
-            double dps = computeDps();
-            hologram.setLines(List.of(formatDpsLine(dps)));
-        }
-
-        double computeDps() {
+        void refreshHolograms() {
             long now = System.currentTimeMillis();
-            trim(now);
-            if (samples.isEmpty()) return 0d;
-            double total = samples.stream().mapToDouble(sample -> sample.amount).sum();
-            long window = Math.max(1L, Math.min(DPS_WINDOW_MS, now - samples.getFirst().time));
+            for (Map.Entry<UUID, Deque<DamageSample>> entry : samples.entrySet()) {
+                trim(entry.getValue(), now);
+            }
+
+            for (UUID playerId : Set.copyOf(samples.keySet())) {
+                Deque<DamageSample> playerSamples = samples.get(playerId);
+                if (playerSamples == null) {
+                    continue;
+                }
+
+                Player viewer = Bukkit.getPlayer(playerId);
+                if (viewer == null) {
+                    MultiLineHologram stale = holograms.remove(playerId);
+                    if (stale != null) {
+                        stale.despawn();
+                    }
+                    samples.remove(playerId);
+                    continue;
+                }
+
+                MultiLineHologram hologram = holograms.get(playerId);
+                if (hologram == null) {
+                    ensureHologram(playerId);
+                    hologram = holograms.get(playerId);
+                }
+
+                if (playerSamples.isEmpty()) {
+                    samples.remove(playerId);
+                    if (hologram != null) {
+                        hologram.setLines(List.of(formatDpsLine(0)));
+                    }
+                    continue;
+                }
+
+                double dps = computeDps(playerSamples, now);
+                if (hologram != null) {
+                    hologram.setLines(List.of(formatDpsLine(dps)));
+                }
+            }
+        }
+
+        private void ensureHologram(UUID playerId) {
+            if (holograms.containsKey(playerId)) {
+                return;
+            }
+
+            Player viewer = Bukkit.getPlayer(playerId);
+            if (viewer == null) {
+                return;
+            }
+
+            Location above = entity.getLocation().clone().add(0, entity.getHeight() + 0.5, 0);
+            MultiLineHologram hologram = new MultiLineHologram(above, DUMMY_TAG);
+            hologram.spawn(List.of(formatDpsLine(0)));
+
+            holograms.put(playerId, hologram);
+
+            hologram.getDisplays().forEach(display -> {
+                display.setVisibleByDefault(false);
+                for (Player online : Bukkit.getOnlinePlayers()) {
+                    online.hideEntity(plugin, display);
+                }
+                viewer.showEntity(plugin, display);
+            });
+        }
+
+        double computeDps(Deque<DamageSample> playerSamples, long now) {
+            if (playerSamples.isEmpty()) return 0d;
+            double total = playerSamples.stream().mapToDouble(sample -> sample.amount).sum();
+            long window = Math.max(1L, Math.min(DPS_WINDOW_MS, now - playerSamples.getFirst().time));
             return total * 1000d / window;
         }
 
-        void trim(long now) {
-            while (!samples.isEmpty() && now - samples.getFirst().time > DPS_WINDOW_MS) {
-                samples.removeFirst();
+        void trim(Deque<DamageSample> playerSamples, long now) {
+            while (!playerSamples.isEmpty() && now - playerSamples.getFirst().time > DPS_WINDOW_MS) {
+                playerSamples.removeFirst();
             }
         }
 
@@ -247,7 +322,7 @@ public class DpsDummyManager implements Listener {
         }
 
         void despawn() {
-            hologram.despawn();
+            holograms.values().forEach(MultiLineHologram::despawn);
             entity.remove();
         }
     }

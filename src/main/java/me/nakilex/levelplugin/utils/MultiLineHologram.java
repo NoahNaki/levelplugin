@@ -10,6 +10,7 @@ import org.bukkit.entity.Interaction;
 import org.bukkit.Bukkit;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -31,6 +32,10 @@ public class MultiLineHologram {
 
     public Location getLocation() {
         return location;
+    }
+
+    public List<TextDisplay> getDisplays() {
+        return Collections.unmodifiableList(lines);
     }
 
     /** Remove existing hologram entities. */
