@@ -808,19 +808,6 @@ items:
     intel: 0-0
     dex: 5-10
 
-  63:
-    name: "Common Gold Mage Rod"
-    rarity: COMMON
-    level_requirement: 30
-    class_requirement: MAGE
-    material: GOLDEN_ROD
-    hp: 0-0
-    def: 0-0
-    str: 0-0
-    agi: 0-5
-    intel: 10-20
-    dex: 0-5
-
   64:
     name: "Common Gold Archer Bow"
     rarity: COMMON
