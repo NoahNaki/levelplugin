@@ -11,6 +11,7 @@ public enum PlayerClass {
     MAGE(1),
     CLERIC(1),
     WITCH(1),
+    GAMBLER(1),
 
     // awakened / advanced classes
     BARBARIAN(1),
