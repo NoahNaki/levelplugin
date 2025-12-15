@@ -37,6 +37,8 @@ public class DamageChatListener implements Listener {
         String spellName = null;
         boolean isCrit = false;
 
+        debugVanillaDamage(event);
+
         // 1) Projectile-based spells & basic‐attack arrows
         if (rawDamager instanceof Projectile) {
             Projectile proj = (Projectile) rawDamager;
@@ -135,11 +137,17 @@ public class DamageChatListener implements Listener {
         LivingEntity target = MythicEventUtil.resolveTarget(event);
         Object trigger = safelyInvoke(event, "getTrigger");
         Object shooter = safelyInvoke(event, "getShooter");
+        Object rawDamager = safelyInvoke(event, "getDamager");
+        Object rawSource = safelyInvoke(event, "getSource");
+        Object rawAttacker = safelyInvoke(event, "getAttacker");
 
         String skillName = String.valueOf(safelyInvoke(event, "getSkillName"));
         String casterInfo = describeParticipant(event.getCaster());
         String triggerInfo = describeParticipant(trigger);
         String shooterInfo = describeParticipant(shooter);
+        String damagerInfo = describeParticipant(rawDamager);
+        String sourceInfo = describeParticipant(rawSource);
+        String attackerInfo = describeParticipant(rawAttacker);
 
         SpellContextManager.Context ctx = player != null
                 ? SpellContextManager.peek(player.getUniqueId())
@@ -152,9 +160,33 @@ public class DamageChatListener implements Listener {
                         " caster=" + casterInfo +
                         " trigger=" + triggerInfo +
                         " shooter=" + shooterInfo +
+                        " rawDamager=" + damagerInfo +
+                        " rawSource=" + sourceInfo +
+                        " rawAttacker=" + attackerInfo +
                         " resolvedDamager={" + describeEntity(damager) + "}" +
                         " target={" + describeEntity(target) + "}" +
                         " spellCtx={" + describeSpellCtx(ctx) + "}");
+    }
+
+    private void debugVanillaDamage(EntityDamageByEntityEvent event) {
+        if (!debugDamageMetadata) {
+            return;
+        }
+
+        Entity damager = event.getDamager();
+        LivingEntity target = event.getEntity() instanceof LivingEntity le ? le : null;
+
+        Entity shooter = null;
+        if (damager instanceof Projectile projectile && projectile.getShooter() instanceof Entity shooterEntity) {
+            shooter = shooterEntity;
+        }
+
+        Main.getInstance().getLogger().info(
+                "[DamageDebug] EntityDamageByEntityEvent damager={" + describeEntity(damager) + "}" +
+                        " shooter={" + describeEntity(shooter) + "}" +
+                        " target={" + describeEntity(target) + "}" +
+                        " damage=" + event.getFinalDamage() +
+                        " cause=" + event.getCause());
     }
 
     private String describeParticipant(Object obj) {
