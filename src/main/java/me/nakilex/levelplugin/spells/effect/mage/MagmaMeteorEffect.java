@@ -264,6 +264,14 @@ public class MagmaMeteorEffect implements SpellEffect {
             }
         }
 
+        private boolean isValid() {
+            if (!core.isValid()) return false;
+            for (ArmorStand shard : shards) {
+                if (!shard.isValid()) return false;
+            }
+            return true;
+        }
+
         private boolean usesFallback() {
             return fallback;
         }
