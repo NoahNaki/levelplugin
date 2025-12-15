@@ -49,7 +49,9 @@ public class DungeonListGUI implements Listener {
             if (slot >= 44) break;
             String key = entry.getKey();
             String display = entry.getValue();
-            ItemStack item = new ItemStack(Material.PAPER);
+            boolean verified = manager.isVerified(key);
+            Material icon = verified ? Material.WITHER_SKELETON_SKULL : Material.SKELETON_SKULL;
+            ItemStack item = new ItemStack(icon);
             ItemMeta meta = item.getItemMeta();
             if (meta != null) {
                 meta.setDisplayName(ChatColor.AQUA + display);
@@ -64,7 +66,7 @@ public class DungeonListGUI implements Listener {
                 lore.add(ChatColor.GRAY + "Threat Level " + ChatColor.WHITE + threat);
                 lore.add(ratingLine);
                 lore.add(ChatColor.GRAY + " ");
-                lore.add(ChatColor.GRAY + "Category: " + (manager.isVerified(key)
+                lore.add(ChatColor.GRAY + "Category: " + (verified
                         ? ChatColor.GREEN + "Verified"
                         : ChatColor.AQUA + "Community"));
                 lore.add(ChatColor.WHITE + "Left-click " + ChatColor.GRAY + "to play");
