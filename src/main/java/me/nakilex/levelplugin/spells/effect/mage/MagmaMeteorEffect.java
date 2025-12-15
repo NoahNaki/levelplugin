@@ -24,7 +24,6 @@ import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.util.BoundingBox;
 import org.bukkit.util.Vector;
 
-import java.util.Optional;
 import org.bukkit.inventory.ItemStack;
 import io.lumine.mythic.bukkit.MythicBukkit;
 
@@ -167,11 +166,11 @@ public class MagmaMeteorEffect implements SpellEffect {
 
     private ItemStack resolveMeteorModel() {
         try {
-            Optional<ItemStack> mythicItem = MythicBukkit.inst()
+            ItemStack mythicItem = MythicBukkit.inst()
                 .getItemManager()
                 .getItemStack("meteor");
-            if (mythicItem.isPresent()) {
-                return mythicItem.get();
+            if (mythicItem != null) {
+                return mythicItem;
             }
         } catch (Exception ignored) {
             // fall through to magma block fallback
@@ -181,20 +180,22 @@ public class MagmaMeteorEffect implements SpellEffect {
 
     private void spawnTrail(Location location, BlockData magmaData) {
         World world = location.getWorld();
-        world.spawnParticle(Particle.SMOKE_LARGE, location, 6, 0.35, 0.35, 0.35, 0.01);
+        world.spawnParticle(Particle.SMOKE, location, 6, 0.35, 0.35, 0.35, 0.01);
         world.spawnParticle(Particle.FLAME, location, 10, 0.3, 0.3, 0.3, 0.02);
         world.spawnParticle(Particle.LAVA, location, 8, 0.25, 0.25, 0.25, 0.02);
         world.spawnParticle(Particle.CAMPFIRE_COSY_SMOKE, location, 5, 0.35, 0.2, 0.35, 0.015);
 
-        FallingBlock fragment = world.spawnFallingBlock(location, magmaData);
-        fragment.setDropItem(false);
-        fragment.setVelocity(new Vector(
-            (Math.random() - 0.5) * 0.4,
-            -0.6,
-            (Math.random() - 0.5) * 0.4
-        ));
-        fragment.setMetadata("Meteor", new FixedMetadataValue(Main.getInstance(), true));
-        fragment.setHurtEntities(false);
+        FallingBlock fragment = world.spawn(location, FallingBlock.class, fb -> {
+            fb.setBlockData(magmaData);
+            fb.setDropItem(false);
+            fb.setVelocity(new Vector(
+                (Math.random() - 0.5) * 0.4,
+                -0.6,
+                (Math.random() - 0.5) * 0.4
+            ));
+            fb.setMetadata("Meteor", new FixedMetadataValue(Main.getInstance(), true));
+            fb.setHurtEntities(false);
+        });
         Main.getInstance().getServer().getScheduler().runTaskLater(
             Main.getInstance(), fragment::remove, 40L
         );
@@ -225,7 +226,7 @@ public class MagmaMeteorEffect implements SpellEffect {
 
     private void explode(Location center, Player caster, SpellCastContext ctx) {
         World world = center.getWorld();
-        world.spawnParticle(Particle.EXPLOSION_LARGE, center, 4, 0.5, 0.5, 0.5, 0.05);
+        world.spawnParticle(Particle.EXPLOSION, center, 4, 0.5, 0.5, 0.5, 0.05);
         world.spawnParticle(Particle.LAVA, center, 25, 0.7, 0.4, 0.7, 0.05);
         world.playSound(center, org.bukkit.Sound.ENTITY_GENERIC_EXPLODE, 1.0f, 1.0f);
         world.playSound(center, org.bukkit.Sound.BLOCK_LAVA_EXTINGUISH, 0.8f, 0.8f);
