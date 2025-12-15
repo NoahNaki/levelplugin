@@ -38,11 +38,16 @@ import java.util.Set;
 public class MagmaMeteorEffect implements SpellEffect {
 
     private static final double DEFAULT_RANGE = 28.0;
-    private static final double DESIRED_SPAWN_HEIGHT = 15.0;
+    private static final double DESIRED_SPAWN_HEIGHT = 22.0;
     private static final double MIN_TRAVEL_DISTANCE = 4.0;
     private static final double STEP_SPEED = 1.2;
     private static final double IMPACT_RADIUS = 4.0;
     private static final int IGNITE_TICKS = 80;
+    private static final Vector[] CLUSTER_OFFSETS = new Vector[] {
+        new Vector(0.35, 0.25, 0.0),
+        new Vector(-0.3, -0.1, 0.25),
+        new Vector(0.0, -0.25, -0.35)
+    };
 
     @Override
     public void apply(SpellCastContext ctx) {
@@ -52,12 +57,11 @@ public class MagmaMeteorEffect implements SpellEffect {
         Location impact = findImpactLocation(player, DEFAULT_RANGE);
         if (impact == null) return;
 
-        Location spawn = findSpawnLocation(impact, DESIRED_SPAWN_HEIGHT, MIN_TRAVEL_DISTANCE);
+        Location spawn = findSpawnLocation(applyLateralOffset(impact, player), DESIRED_SPAWN_HEIGHT, MIN_TRAVEL_DISTANCE);
         Vector velocity = impact.clone().subtract(spawn).toVector().normalize().multiply(STEP_SPEED);
 
         ItemStack model = resolveMeteorModel();
-        boolean spawnFragments = model.getType() == Material.MAGMA_BLOCK;
-        ArmorStand meteor = spawnMeteorStand(spawn, model);
+        MeteorCluster meteor = spawnMeteorCluster(spawn, model);
         BlockData magmaData = Material.MAGMA_BLOCK.createBlockData();
 
         new SpellAnimation(1, 80) {
@@ -74,7 +78,7 @@ public class MagmaMeteorEffect implements SpellEffect {
                 // Advance meteor
                 current.add(velocity);
                 meteor.teleport(current);
-                spawnTrail(current, magmaData, spawnFragments);
+                spawnTrail(current, magmaData, meteor.usesFallback());
 
                 if (hasCollided(current)) {
                     explode(current, player, ctx);
@@ -98,6 +102,15 @@ public class MagmaMeteorEffect implements SpellEffect {
                 meteor.remove();
             }
         };
+    }
+
+    private Location applyLateralOffset(Location impact, Player player) {
+        Vector facing = player.getEyeLocation().getDirection().normalize();
+        if (facing.lengthSquared() == 0) {
+            return impact;
+        }
+        Vector offset = facing.multiply(6.0);
+        return impact.clone().add(offset);
     }
 
     private Location findImpactLocation(Player player, double maxRange) {
@@ -149,10 +162,10 @@ public class MagmaMeteorEffect implements SpellEffect {
         return new Location(world, impact.getX(), chosenY + 0.1, impact.getZ());
     }
 
-    private ArmorStand spawnMeteorStand(Location spawn, ItemStack model) {
+    private MeteorCluster spawnMeteorCluster(Location spawn, ItemStack model) {
         World world = spawn.getWorld();
 
-        ArmorStand meteor = world.spawn(spawn, ArmorStand.class, stand -> {
+        ArmorStand core = world.spawn(spawn, ArmorStand.class, stand -> {
             stand.setInvisible(true);
             stand.setMarker(true);
             stand.setGravity(false);
@@ -162,7 +175,23 @@ public class MagmaMeteorEffect implements SpellEffect {
             stand.getEquipment().setHelmet(model);
             stand.setMetadata("Meteor", new FixedMetadataValue(Main.getInstance(), true));
         });
-        return meteor;
+
+        Set<ArmorStand> shards = new HashSet<>();
+        for (Vector offset : CLUSTER_OFFSETS) {
+            ArmorStand shard = world.spawn(spawn.clone().add(offset), ArmorStand.class, stand -> {
+                stand.setInvisible(true);
+                stand.setMarker(true);
+                stand.setGravity(false);
+                stand.setInvulnerable(true);
+                stand.setSmall(true);
+                stand.setSilent(true);
+                stand.getEquipment().setHelmet(model);
+                stand.setMetadata("Meteor", new FixedMetadataValue(Main.getInstance(), true));
+            });
+            shards.add(shard);
+        }
+
+        return new MeteorCluster(core, shards, model.getType() == Material.MAGMA_BLOCK);
     }
 
     private ItemStack resolveMeteorModel() {
@@ -197,17 +226,47 @@ public class MagmaMeteorEffect implements SpellEffect {
         FallingBlock fragment = world.spawn(location, FallingBlock.class, fb -> {
             fb.setBlockData(magmaData);
             fb.setDropItem(false);
-            fb.setVelocity(new Vector(
-                (Math.random() - 0.5) * 0.4,
-                -0.6,
-                (Math.random() - 0.5) * 0.4
-            ));
+            fb.setVelocity(new Vector(0, -0.6, 0));
             fb.setMetadata("Meteor", new FixedMetadataValue(Main.getInstance(), true));
             fb.setHurtEntities(false);
         });
         Main.getInstance().getServer().getScheduler().runTaskLater(
             Main.getInstance(), fragment::remove, 40L
         );
+    }
+
+    private static final class MeteorCluster {
+        private final ArmorStand core;
+        private final Set<ArmorStand> shards;
+        private final boolean fallback;
+
+        private MeteorCluster(ArmorStand core, Set<ArmorStand> shards, boolean fallback) {
+            this.core = core;
+            this.shards = shards;
+            this.fallback = fallback;
+        }
+
+        private void teleport(Location base) {
+            core.teleport(base);
+            if (shards.isEmpty()) return;
+            int i = 0;
+            for (ArmorStand shard : shards) {
+                Vector offset = CLUSTER_OFFSETS[Math.min(i, CLUSTER_OFFSETS.length - 1)];
+                shard.teleport(base.clone().add(offset));
+                i++;
+            }
+        }
+
+        private void remove() {
+            core.remove();
+            for (ArmorStand shard : shards) {
+                shard.remove();
+            }
+        }
+
+        private boolean usesFallback() {
+            return fallback;
+        }
     }
 
     private boolean hasCollided(Location location) {
