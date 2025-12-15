@@ -2,6 +2,8 @@ package me.nakilex.levelplugin.spells.effect.mage;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.duels.managers.DuelManager;
+import me.nakilex.levelplugin.player.attributes.listeners.StatsEffectListener;
+import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.spells.context.SpellCastContext;
 import me.nakilex.levelplugin.spells.context.SpellCastContextCompat;
 import me.nakilex.levelplugin.spells.effect.SpellEffect;
@@ -21,6 +23,8 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Predicate;
 
 /**
@@ -30,6 +34,15 @@ import java.util.function.Predicate;
 public class MeteorEffect implements SpellEffect {
 
     private static final String METEOR_META = "Meteor";
+    private static final Vector[] METEOR_OFFSETS = new Vector[] {
+        new Vector(0, 0, 0),
+        new Vector(0.35, 0.15, 0),
+        new Vector(-0.35, 0.15, 0),
+        new Vector(0, 0.15, 0.35),
+        new Vector(0, 0.15, -0.35),
+        new Vector(0.35, -0.05, 0.35),
+        new Vector(-0.35, -0.05, -0.35)
+    };
 
     @Override
     public void apply(SpellCastContext ctx) {
@@ -42,6 +55,7 @@ public class MeteorEffect implements SpellEffect {
         double impactRadius = getDouble(ctx, "impactRadius", 4.0);
         double maxRange = getDouble(ctx, "range", 25.0);
         double spawnHeight = getDouble(ctx, "spawnHeight", 15.0);
+        double travelSpeed = getDouble(ctx, "meteorSpeed", 0.45);
 
         Location eye = caster.getEyeLocation();
         Vector direction = eye.getDirection().normalize();
@@ -49,49 +63,91 @@ public class MeteorEffect implements SpellEffect {
         Location target = findImpactLocation(caster, direction, maxRange);
         Location spawn = findSpawnLocationAbove(target, spawnHeight);
 
-        ArmorStand stand = world.spawn(spawn, ArmorStand.class, as -> {
-            as.setVisible(false);
-            as.setMarker(false);
-            as.setGravity(true);
-            as.setSmall(true);
-            as.setInvulnerable(true);
-            as.setCollidable(false);
-            as.getEquipment().setHelmet(new ItemStack(Material.MAGMA_BLOCK));
-            as.setMetadata(METEOR_META, new FixedMetadataValue(plugin, true));
-        });
+        List<ArmorStand> pieces = spawnMeteorPieces(plugin, spawn);
+        ArmorStand anchor = pieces.get(0);
 
-        Vector velocity = direction.clone().multiply(0.6).setY(-0.9);
-        stand.setVelocity(velocity);
+        Vector travelVector = target.clone().subtract(spawn).toVector();
+        double totalDistance = travelVector.length();
+        if (totalDistance == 0) totalDistance = 0.001; // prevent div-by-zero
+        Vector step = travelVector.normalize().multiply(travelSpeed);
 
         new BukkitRunnable() {
             private int ticksLived = 0;
+            private double traveled = 0;
 
             @Override
             public void run() {
-                if (stand.isDead() || !stand.isValid()) {
+                if (anchor.isDead() || !anchor.isValid()) {
                     cancel();
                     return;
                 }
 
                 if (ticksLived++ > 200) {
-                    stand.remove();
+                    removePieces(pieces);
                     cancel();
                     return;
                 }
 
-                Location current = stand.getLocation();
-                world.spawnParticle(Particle.SMOKE_NORMAL, current, 4, 0.2, 0.2, 0.2, 0.01);
-                world.spawnParticle(Particle.FLAME, current, 4, 0.2, 0.2, 0.2, 0.01);
+                Location current = anchor.getLocation().add(step);
+                anchor.teleport(current);
+                teleportPieces(pieces, current);
 
-                if (hasCollided(current) || current.getY() <= target.getY()) {
+                traveled += step.length();
+
+                world.spawnParticle(Particle.SMOKE_NORMAL, current, 6, 0.25, 0.25, 0.25, 0.01);
+                world.spawnParticle(Particle.FLAME, current, 6, 0.25, 0.25, 0.25, 0.01);
+
+                boolean reachedTarget = current.distanceSquared(target) <= 1.0;
+                boolean collision = hasCollided(current) || traveled >= totalDistance + 1.0;
+
+                if (reachedTarget || collision) {
                     explode(caster, baseDamage, impactRadius, current, spellName);
-                    stand.remove();
+                    removePieces(pieces);
                     cancel();
                 }
             }
         }.runTaskTimer(plugin, 1L, 1L);
 
         SpellCastContextCompat.markSuccess(ctx, true);
+    }
+
+    private List<ArmorStand> spawnMeteorPieces(Main plugin, Location spawn) {
+        World world = spawn.getWorld();
+        List<ArmorStand> stands = new ArrayList<>();
+
+        for (Vector offset : METEOR_OFFSETS) {
+            Location loc = spawn.clone().add(offset);
+            ArmorStand stand = world.spawn(loc, ArmorStand.class, as -> {
+                as.setVisible(false);
+                as.setMarker(true);
+                as.setGravity(false);
+                as.setSmall(false);
+                as.setInvulnerable(true);
+                as.setCollidable(false);
+                as.getEquipment().setHelmet(new ItemStack(Material.MAGMA_BLOCK));
+                as.setMetadata(METEOR_META, new FixedMetadataValue(plugin, true));
+            });
+            stands.add(stand);
+        }
+
+        return stands;
+    }
+
+    private void teleportPieces(List<ArmorStand> stands, Location anchor) {
+        for (int i = 0; i < stands.size(); i++) {
+            ArmorStand stand = stands.get(i);
+            if (stand == null || stand.isDead()) continue;
+
+            stand.teleport(anchor.clone().add(METEOR_OFFSETS[Math.min(i, METEOR_OFFSETS.length - 1)]));
+        }
+    }
+
+    private void removePieces(List<ArmorStand> stands) {
+        for (ArmorStand stand : stands) {
+            if (stand != null && stand.isValid()) {
+                stand.remove();
+            }
+        }
     }
 
     private Location findImpactLocation(Player caster, Vector direction, double maxRange) {
@@ -142,11 +198,19 @@ public class MeteorEffect implements SpellEffect {
             return true;
         };
 
+        StatsManager.PlayerStats stats = StatsManager.getInstance().getPlayerStats(caster.getUniqueId());
+        int totalDexterity = stats.baseDexterity + stats.bonusDexterity;
+        double critChance = (double) totalDexterity / (totalDexterity + 100.0);
+
         for (Entity entity : world.getNearbyEntities(impact, radius, radius, radius)) {
             if (!(entity instanceof LivingEntity living)) continue;
             if (!validTarget.test(living)) continue;
 
-            SpellUtils.dealWithChat(caster, living, baseDamage, spellName);
+            boolean isCrit = Math.random() < Math.max(0.0, Math.min(1.0, critChance));
+
+            StatsEffectListener.recordCrit(caster, isCrit);
+
+            SpellUtils.dealWithChat(caster, living, baseDamage, spellName, isCrit);
             living.setFireTicks(Math.max(living.getFireTicks(), 80));
         }
     }

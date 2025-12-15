@@ -41,6 +41,20 @@ public class SpellUtils {
         double rawDamage,
         String spellName
     ) {
+        dealWithChat(caster, target, rawDamage, spellName, false);
+    }
+
+    /**
+     * Variant that lets callers pass an explicit critical flag so stats-driven
+     * crit rolls can be preserved for custom spells.
+     */
+    public static void dealWithChat(
+        Player caster,
+        LivingEntity target,
+        double rawDamage,
+        String spellName,
+        boolean isCritOverride
+    ) {
         Logger logger = Main.getInstance().getLogger();
         ChatToggleManager chatMgr = ChatToggleManager.getInstance();
         boolean wasChatOn = chatMgr.isEnabled(caster);
@@ -98,7 +112,7 @@ public class SpellUtils {
 
         // Apply the damage
         SpellContextManager.applySpellDamage(
-            caster, target, rawDamage, spellName, false, false
+            caster, target, rawDamage, spellName, isCritOverride, false
         );
         //logger.info("dealWithChat: applySpellDamage called for " + caster.getName());
 
