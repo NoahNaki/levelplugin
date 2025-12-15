@@ -31,10 +31,11 @@ public class DamageChatListener implements Listener {
                 player = (Player) proj.getShooter();
 
                 SpellContextManager.Context ctx =
-                        SpellContextManager.consume(player.getUniqueId());
+                        SpellContextManager.peek(player.getUniqueId());
                 if (ctx != null) {
                     spellName = ctx.spellName;
                     isCrit = ctx.isCrit;
+                    SpellContextManager.consume(player.getUniqueId());
                 } else if (proj.hasMetadata("Meteor")) {
                     spellName = "Meteor";
                 } else if (proj.hasMetadata("BasicAttack")) {
@@ -48,11 +49,12 @@ public class DamageChatListener implements Listener {
 
             // a) consume any spell context
             SpellContextManager.Context ctx =
-                SpellContextManager.consume(player.getUniqueId());
+                SpellContextManager.peek(player.getUniqueId());
 
             if (ctx != null) {
                 spellName = ctx.spellName;
                 isCrit    = ctx.isCrit;
+                SpellContextManager.consume(player.getUniqueId());
             } else {
                 // b) no spell → check for Warrior/Rogue basic melee
                 StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
