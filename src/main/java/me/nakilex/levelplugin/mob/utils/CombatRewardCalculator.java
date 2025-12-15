@@ -9,15 +9,15 @@ import java.util.concurrent.ThreadLocalRandom;
  */
 public final class CombatRewardCalculator {
 
-    private static final double GEAR_SCORE_PORTION = 0.25;
-    private static final double GEAR_SCORE_VARIANCE = 0.20;
+    private static final double GEAR_SCORE_PORTION = 0.15;
+    private static final double GEAR_SCORE_VARIANCE = 0.15;
 
     private CombatRewardCalculator() {
     }
 
     /**
      * Roll a target gear score and rarity for a given combat power.
-     * The base gear score is 25% of combat power with a ±30% band and
+     * The base gear score is 15% of combat power with a ±15% band and
      * equal odds to land on the lower, middle, or upper band. Only
      * rarities up to RARE are returned.
      */
