@@ -55,7 +55,9 @@ public class MagmaMeteorEffect implements SpellEffect {
         Location spawn = findSpawnLocation(impact, DESIRED_SPAWN_HEIGHT, MIN_TRAVEL_DISTANCE);
         Vector velocity = impact.clone().subtract(spawn).toVector().normalize().multiply(STEP_SPEED);
 
-        ArmorStand meteor = spawnMeteorStand(spawn);
+        ItemStack model = resolveMeteorModel();
+        boolean spawnFragments = model.getType() == Material.MAGMA_BLOCK;
+        ArmorStand meteor = spawnMeteorStand(spawn, model);
         BlockData magmaData = Material.MAGMA_BLOCK.createBlockData();
 
         new SpellAnimation(1, 80) {
@@ -72,7 +74,7 @@ public class MagmaMeteorEffect implements SpellEffect {
                 // Advance meteor
                 current.add(velocity);
                 meteor.teleport(current);
-                spawnTrail(current, magmaData);
+                spawnTrail(current, magmaData, spawnFragments);
 
                 if (hasCollided(current)) {
                     explode(current, player, ctx);
@@ -147,9 +149,8 @@ public class MagmaMeteorEffect implements SpellEffect {
         return new Location(world, impact.getX(), chosenY + 0.1, impact.getZ());
     }
 
-    private ArmorStand spawnMeteorStand(Location spawn) {
+    private ArmorStand spawnMeteorStand(Location spawn, ItemStack model) {
         World world = spawn.getWorld();
-        ItemStack model = resolveMeteorModel();
 
         ArmorStand meteor = world.spawn(spawn, ArmorStand.class, stand -> {
             stand.setInvisible(true);
@@ -166,11 +167,15 @@ public class MagmaMeteorEffect implements SpellEffect {
 
     private ItemStack resolveMeteorModel() {
         try {
-            ItemStack mythicItem = MythicBukkit.inst()
-                .getItemManager()
-                .getItemStack("meteor");
+            var itemManager = MythicBukkit.inst().getItemManager();
+            var mythicItem = itemManager.getItem("meteor").orElse(null);
             if (mythicItem != null) {
-                return mythicItem;
+                return mythicItem.generateItemStack(1);
+            }
+
+            ItemStack direct = itemManager.getItemStack("meteor");
+            if (direct != null) {
+                return direct.clone();
             }
         } catch (Exception ignored) {
             // fall through to magma block fallback
@@ -178,12 +183,16 @@ public class MagmaMeteorEffect implements SpellEffect {
         return new ItemStack(Material.MAGMA_BLOCK);
     }
 
-    private void spawnTrail(Location location, BlockData magmaData) {
+    private void spawnTrail(Location location, BlockData magmaData, boolean spawnFragments) {
         World world = location.getWorld();
         world.spawnParticle(Particle.SMOKE, location, 6, 0.35, 0.35, 0.35, 0.01);
         world.spawnParticle(Particle.FLAME, location, 10, 0.3, 0.3, 0.3, 0.02);
         world.spawnParticle(Particle.LAVA, location, 8, 0.25, 0.25, 0.25, 0.02);
         world.spawnParticle(Particle.CAMPFIRE_COSY_SMOKE, location, 5, 0.35, 0.2, 0.35, 0.015);
+
+        if (!spawnFragments) {
+            return;
+        }
 
         FallingBlock fragment = world.spawn(location, FallingBlock.class, fb -> {
             fb.setBlockData(magmaData);
