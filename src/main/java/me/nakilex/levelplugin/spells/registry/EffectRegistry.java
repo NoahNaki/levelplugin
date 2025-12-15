@@ -163,7 +163,7 @@ public class EffectRegistry {
         // --- Mage Mythic skills ---
         register("MYTHIC_FIREBALL", new MythicSkillEffect("Fireball"));
         register("MYTHIC_BLINK", new me.nakilex.levelplugin.spells.effect.mage.TeleportEffect());
-        register("MYTHIC_METEOR", new MythicSkillEffect("Meteor"));
+        register("MYTHIC_METEOR", new me.nakilex.levelplugin.spells.effect.mage.MeteorEffect());
         register("MYTHIC_FROST_NOVA", new MythicSkillEffect("Frost_Nova"));
         register("MYTHIC_INFERNO_CHAINS", new MythicSkillEffect("Inferno_Chains"));
 
