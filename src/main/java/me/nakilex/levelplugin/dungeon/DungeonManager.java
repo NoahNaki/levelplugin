@@ -100,6 +100,10 @@ public class DungeonManager {
      * location and sending the appropriate messaging.
      */
     public void handleInstanceExit(World world, Player player) {
+        handleInstanceExit(world, player, false);
+    }
+
+    public void handleInstanceExit(World world, Player player, boolean treatAsCompletion) {
         if (world == null || player == null) {
             return;
         }
@@ -107,15 +111,16 @@ public class DungeonManager {
         if (inst == null) {
             return;
         }
-        handleExit(player, inst, world);
+        handleExit(player, inst, world, treatAsCompletion);
     }
 
-    private void handleExit(Player player, Instance inst, World world) {
+    private void handleExit(Player player, Instance inst, World world, boolean treatAsCompletion) {
         java.util.UUID id = player.getUniqueId();
         Location back = inst.returnLocations.remove(id);
         if (back != null) {
             Dungeon.RoomInstance room = inst.dungeon.getRoomContaining(player.getLocation());
-            boolean completed = room != null && room.template == exit && inst.dungeon.isBossDefeated();
+            boolean completed = inst.dungeon.isBossDefeated()
+                    && (treatAsCompletion || (room != null && room.template == exit));
             if (completed) {
                 sendCompleteMessage(player, getDisplayName(inst.layout));
             } else {
@@ -1169,7 +1174,7 @@ public class DungeonManager {
                 Instance inst = instances.get(e.getFrom().getWorld());
                 if (inst == null) return;
                 e.setCancelled(true);
-                handleExit(e.getPlayer(), inst, e.getFrom().getWorld());
+                handleExit(e.getPlayer(), inst, e.getFrom().getWorld(), false);
             }
 
             @org.bukkit.event.EventHandler
@@ -1179,7 +1184,7 @@ public class DungeonManager {
                 if (e.getFrom().getBlock().getType() == Material.NETHER_PORTAL) return;
                 Instance inst = instances.get(e.getTo().getWorld());
                 if (inst == null) return;
-                handleExit(e.getPlayer(), inst, e.getTo().getWorld());
+                handleExit(e.getPlayer(), inst, e.getTo().getWorld(), false);
             }
 
         @org.bukkit.event.EventHandler

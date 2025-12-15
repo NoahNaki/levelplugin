@@ -15,6 +15,8 @@ import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
+import com.nexomc.nexo.api.NexoFurniture;
+import com.nexomc.nexo.mechanics.furniture.FurnitureMechanic;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.dungeon.Dungeon;
 import me.nakilex.levelplugin.dungeon.DungeonLayout;
@@ -39,6 +41,7 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.World;
+import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Player;
@@ -152,12 +155,15 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
         final Map<Location, MultiLineHologram> pluckHolograms = new HashMap<>();
         final Map<Location, MultiLineHologram> placementHolograms = new HashMap<>();
         final List<Location> rewardFountains = new ArrayList<>();
+        Location bossPortalLocation;
         final List<Player> participants = new ArrayList<>();
         final List<MobMarker> mobMarkers = new ArrayList<>();
         final List<NPC> npcs = new ArrayList<>();
         final Set<UUID> activeMobIds = new HashSet<>();
         BoundingBox exitPortalRegion;
+        DungeonManager.Instance trackedInstance;
         int averageGearScore;
+        int highestAverageGearScore;
         int lootTier;
         long startTime;
         double damageTaken;
@@ -426,6 +432,16 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
         return counted == 0 ? 0 : total / counted;
     }
 
+    private int updatePeakAverageGearScore(InstanceState state) {
+        if (state == null) return 0;
+        int current = calculateAverageGearScore(state.participants);
+        if (current > 0) {
+            state.averageGearScore = current;
+            state.highestAverageGearScore = Math.max(state.highestAverageGearScore, current);
+        }
+        return Math.max(state.highestAverageGearScore, state.averageGearScore);
+    }
+
     private int determineLootTier(DungeonManager manager) {
         return Math.min(8, Math.max(1, manager.getThreatLevel(KEY)));
     }
@@ -451,9 +467,12 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
         InstanceState state = new InstanceState();
         state.participants.addAll(participants);
         state.averageGearScore = calculateAverageGearScore(participants);
+        state.highestAverageGearScore = state.averageGearScore;
         state.lootTier = determineLootTier(manager);
         state.startTime = System.currentTimeMillis();
         state.exitPortalRegion = createExitPortalBounds(origin);
+        state.bossPortalLocation = markers.bossMarkers.isEmpty() ? null : markers.bossMarkers.get(0);
+        state.trackedInstance = inst;
         activeInstances.put(origin.getWorld(), state);
 
         List<Location> flowerSpots = new ArrayList<>(markers.yellowFlowers);
@@ -781,10 +800,11 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
 
     private ItemStack createFountainReward(InstanceState state) {
         me.nakilex.levelplugin.lootchests.managers.LootChestManager lootManager = plugin.getDungeonManager().getLootChestManager();
+        int peakGearScore = Math.max(updatePeakAverageGearScore(state), state.lootTier * 40);
         int tier = state.lootTier <= 0 ? 1 : state.lootTier;
 
         if (lootManager != null) {
-            ItemStack scaledLoot = lootManager.getRandomLootForTier(tier, "dungeon", null);
+            ItemStack scaledLoot = lootManager.getRandomLootForCombatPower(Math.max(50, peakGearScore), "dungeon", null);
             if (scaledLoot != null) {
                 return scaledLoot;
             }
@@ -832,6 +852,20 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
                 player.getInventory().clear(i);
             }
         }
+    }
+
+    private void spawnBossExitPortal(InstanceState state) {
+        if (state == null || state.bossPortalLocation == null) return;
+        FurnitureMechanic existing = NexoFurniture.furnitureMechanic(state.bossPortalLocation.getBlock());
+        if (existing != null && "portal_decoration_animated_v1_portal_5".equalsIgnoreCase(existing.getItemID())) {
+            return;
+        }
+        FurnitureMechanic target = NexoFurniture.furnitureMechanic("portal_decoration_animated_v1_portal_5");
+        if (target == null) {
+            plugin.getLogger().warning("[Dungeon] Unable to spawn boss exit portal furniture (missing mechanic)");
+            return;
+        }
+        NexoFurniture.place(target.getItemID(), state.bossPortalLocation, 0f, BlockFace.NORTH);
     }
 
     private class InteractionListener implements Listener {
@@ -912,8 +946,12 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
             if (!event.getEntity().getScoreboardTags().contains("dungeon_boss")) return;
             if (state.bossDefeated) return;
             state.bossDefeated = true;
+            if (state.trackedInstance != null) {
+                state.trackedInstance.getDungeon().setBossDefeated(true);
+            }
             RewardBombUtil.startRewardBomb(plugin, event.getEntity().getLocation(),
                     createBossRewardBombSupplier(state), 120);
+            spawnBossExitPortal(state);
             long durationMs = System.currentTimeMillis() - state.startTime;
             long seconds = Math.max(1, durationMs / 1000);
             double damage = state.damageTaken;
