@@ -4,6 +4,9 @@ import io.lumine.mythic.bukkit.MythicBukkit;
 import io.lumine.mythic.core.mobs.ActiveMob;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.player.attributes.listeners.StatsEffectListener;
+import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
+import me.nakilex.levelplugin.player.classes.data.ClassUtil;
+import me.nakilex.levelplugin.player.classes.managers.PlayerClassManager;
 import me.nakilex.levelplugin.spells.managers.SpellContextManager;
 import me.nakilex.levelplugin.mob.managers.ChatToggleManager;
 import org.bukkit.Bukkit;
@@ -54,6 +57,22 @@ public class SpellUtils {
         double rawDamage,
         String spellName,
         boolean isCritOverride
+    ) {
+        dealWithChat(caster, target, rawDamage, spellName, isCritOverride, false);
+    }
+
+    /**
+     * Variant that allows pre-scaled damage values to bypass StatsEffectListener's
+     * stat scaling logic. Use this for spells that already fold in attribute
+     * multipliers (Intelligence, Technique, crit, etc.).
+     */
+    public static void dealWithChat(
+        Player caster,
+        LivingEntity target,
+        double rawDamage,
+        String spellName,
+        boolean isCritOverride,
+        boolean isPreScaled
     ) {
         Logger logger = Main.getInstance().getLogger();
         ChatToggleManager chatMgr = ChatToggleManager.getInstance();
@@ -112,7 +131,7 @@ public class SpellUtils {
 
         // Apply the damage
         SpellContextManager.applySpellDamage(
-            caster, target, rawDamage, spellName, isCritOverride, false
+            caster, target, rawDamage, spellName, isCritOverride, false, isPreScaled
         );
         //logger.info("dealWithChat: applySpellDamage called for " + caster.getName());
 
@@ -174,5 +193,43 @@ public class SpellUtils {
             ChatColor.RED + "\u2764";
 
         player.sendMessage(msg);
+    }
+
+    /**
+     * Mirrors {@link StatsEffectListener}'s outgoing damage scaling so spells can
+     * apply fully scaled numbers when bypassing the listener (e.g., custom AoE).
+     */
+    public static double scaleSpellDamage(Player caster, double baseDamage, boolean isMage, boolean isCrit) {
+        StatsManager.PlayerStats stats = StatsManager.getInstance().getPlayerStats(caster.getUniqueId());
+
+        double damage = baseDamage;
+        int totalTec = stats.baseTechnique + stats.bonusTechnique;
+
+        if (isMage) {
+            int totalInt = stats.baseIntelligence + stats.bonusIntelligence;
+            damage += totalInt * 0.5;
+        } else {
+            int totalStrength = stats.baseStrength + stats.bonusStrength;
+            damage += totalStrength * 0.5;
+        }
+
+        damage *= (1.0 + totalTec * 0.003);
+
+        if (isCrit) {
+            damage *= 2;
+        }
+
+        damage *= StatsEffectListener.SPELL_DAMAGE_MULTIPLIER;
+        return damage;
+    }
+
+    /**
+     * Convenience overload for mage spells to keep call sites concise.
+     */
+    public static double scaleMageSpellDamage(Player caster, double baseDamage, boolean isCrit) {
+        boolean isMage = ClassUtil.isMageFamily(
+            PlayerClassManager.getInstance().getPlayerClass(caster)
+        );
+        return scaleSpellDamage(caster, baseDamage, isMage, isCrit);
     }
 }

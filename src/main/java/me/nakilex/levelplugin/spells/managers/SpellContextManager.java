@@ -14,10 +14,10 @@ import java.util.concurrent.ConcurrentHashMap;
 public class SpellContextManager {
     private static final Map<UUID, Context> pending = new ConcurrentHashMap<>();
 
-    public static void setPending(UUID playerId, String spellName, boolean isCrit, boolean basicAttack) {
+    public static void setPending(UUID playerId, String spellName, boolean isCrit, boolean basicAttack, boolean preScaled) {
         Main.getInstance().getLogger();
            // .info("[SpellContext] setPending for " + playerId + " -> " + spellName + " crit=" + isCrit);
-        pending.put(playerId, new Context(spellName, isCrit, basicAttack));
+        pending.put(playerId, new Context(spellName, isCrit, basicAttack, preScaled));
     }
 
     public static Context consume(UUID playerId) {
@@ -42,9 +42,10 @@ public class SpellContextManager {
                                         double damage,
                                         String spellName,
                                         boolean isCrit,
-                                        boolean basicAttack) {
+                                        boolean basicAttack,
+                                        boolean preScaled) {
         // 1) mark context
-        setPending(caster.getUniqueId(), spellName, isCrit, basicAttack);
+        setPending(caster.getUniqueId(), spellName, isCrit, basicAttack, preScaled);
         // 2) actually deal damage
         target.damage(damage, caster);
     }
@@ -54,11 +55,13 @@ public class SpellContextManager {
         public final String spellName;
         public final boolean isCrit;
         public final boolean basicAttack;
+        public final boolean preScaled;
 
-        public Context(String spellName, boolean isCrit, boolean basicAttack) {
-            this.spellName  = spellName;
-            this.isCrit     = isCrit;
+        public Context(String spellName, boolean isCrit, boolean basicAttack, boolean preScaled) {
+            this.spellName   = spellName;
+            this.isCrit      = isCrit;
             this.basicAttack = basicAttack;
+            this.preScaled   = preScaled;
         }
     }
 }

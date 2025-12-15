@@ -55,7 +55,7 @@ public class MeteorEffect implements SpellEffect {
         double impactRadius = getDouble(ctx, "impactRadius", 4.0);
         double maxRange = getDouble(ctx, "range", 25.0);
         double spawnHeight = getDouble(ctx, "spawnHeight", 15.0);
-        double travelSpeed = getDouble(ctx, "meteorSpeed", 0.45);
+        double travelSpeed = getDouble(ctx, "meteorSpeed", 0.6);
 
         Location eye = caster.getEyeLocation();
         Vector direction = eye.getDirection().normalize();
@@ -94,8 +94,8 @@ public class MeteorEffect implements SpellEffect {
 
                 traveled += step.length();
 
-                world.spawnParticle(Particle.SMOKE_NORMAL, current, 6, 0.25, 0.25, 0.25, 0.01);
-                world.spawnParticle(Particle.FLAME, current, 6, 0.25, 0.25, 0.25, 0.01);
+                world.spawnParticle(Particle.SMOKE_NORMAL, current, 8, 0.25, 0.25, 0.25, 0.0);
+                world.spawnParticle(Particle.FLAME, current, 8, 0.25, 0.25, 0.25, 0.0);
 
                 boolean reachedTarget = current.distanceSquared(target) <= 1.0;
                 boolean collision = hasCollided(current) || traveled >= totalDistance + 1.0;
@@ -208,9 +208,10 @@ public class MeteorEffect implements SpellEffect {
 
             boolean isCrit = Math.random() < Math.max(0.0, Math.min(1.0, critChance));
 
+            double scaledDamage = SpellUtils.scaleMageSpellDamage(caster, baseDamage, isCrit);
             StatsEffectListener.recordCrit(caster, isCrit);
 
-            SpellUtils.dealWithChat(caster, living, baseDamage, spellName, isCrit);
+            SpellUtils.dealWithChat(caster, living, scaledDamage, spellName, isCrit, true);
             living.setFireTicks(Math.max(living.getFireTicks(), 80));
         }
     }

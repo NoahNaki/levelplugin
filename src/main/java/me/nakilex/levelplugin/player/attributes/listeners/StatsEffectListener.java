@@ -83,39 +83,46 @@ public class StatsEffectListener implements Listener {
         if (player != null && !player.hasMetadata(SweepAttack.SWEEP_META)) {
             PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
 
-            double finalDamage = event.getDamage();
-            int totalTec = ps.baseTechnique + ps.bonusTechnique;
-
-            // Use Intelligence instead of Strength for all mage attacks
-            boolean isMage = ClassUtil.isMageFamily(
-                    PlayerClassManager.getInstance().getPlayerClass(player));
-            if (isMage) {
-                int totalInt = ps.baseIntelligence + ps.bonusIntelligence;
-                finalDamage += totalInt * 0.5;
-            } else {
-                int totalStrength = ps.baseStrength + ps.bonusStrength;
-                finalDamage += totalStrength * 0.5;
+            if (ctx == null) {
+                ctx = SpellContextManager.peek(player.getUniqueId());
             }
 
-            // Technique scaling (overall damage)
-            finalDamage *= (1.0 + totalTec * 0.003);
+            boolean preScaled = ctx != null && ctx.preScaled;
+            double finalDamage = event.getDamage();
+
+            if (!preScaled) {
+                int totalTec = ps.baseTechnique + ps.bonusTechnique;
+
+                // Use Intelligence instead of Strength for all mage attacks
+                boolean isMage = ClassUtil.isMageFamily(
+                        PlayerClassManager.getInstance().getPlayerClass(player));
+                if (isMage) {
+                    int totalInt = ps.baseIntelligence + ps.bonusIntelligence;
+                    finalDamage += totalInt * 0.5;
+                } else {
+                    int totalStrength = ps.baseStrength + ps.bonusStrength;
+                    finalDamage += totalStrength * 0.5;
+                }
+
+                // Technique scaling (overall damage)
+                finalDamage *= (1.0 + totalTec * 0.003);
+            }
 
             // Dex → crit (diminishing returns)
             int totalDexterity = ps.baseDexterity + ps.bonusDexterity;
             double critChance = (double) totalDexterity / (totalDexterity + 100.0);
             critChance = Math.max(0.0, Math.min(1.0, critChance));
 
-            if (ctx == null) {
-                ctx = SpellContextManager.peek(player.getUniqueId());
-            }
             boolean isCrit = (ctx != null) ? ctx.isCrit : random.nextDouble() < critChance;
-            if (isCrit) finalDamage *= 2;
+            if (isCrit && !preScaled) finalDamage *= 2;
 
             // Apply type-based multiplier to keep spells ahead of basics
             double scale = (ctx == null || ctx.basicAttack)
                 ? BASIC_ATTACK_MULTIPLIER
                 : SPELL_DAMAGE_MULTIPLIER;
-            finalDamage *= scale;
+            if (!preScaled) {
+                finalDamage *= scale;
+            }
 
 //            me.nakilex.levelplugin.Main.getPlugin().getLogger().info(
 //                "[StatsEffect] dmg=" + event.getDamage() + "->" + finalDamage +
