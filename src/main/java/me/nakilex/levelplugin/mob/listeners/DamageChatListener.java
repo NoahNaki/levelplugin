@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.mob.listeners;
 import io.lumine.mythic.bukkit.events.MythicDamageEvent;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.mob.utils.MythicEventUtil;
+import me.nakilex.levelplugin.mob.utils.MythicMobModifier;
 import me.nakilex.levelplugin.mob.utils.SweepAttack;
 import me.nakilex.levelplugin.player.attributes.listeners.StatsEffectListener;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
@@ -92,13 +93,13 @@ public class DamageChatListener implements Listener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onMythicDamage(MythicDamageEvent event) {
         Player player = MythicEventUtil.resolvePlayer(event);
-        if (player == null) return;
-
         Entity damager = MythicEventUtil.resolveDamager(event);
+
+        debugMythicEvent(event, player, damager);
+
+        if (player == null) return;
         if (damager instanceof Player) return;
         if (damager instanceof Projectile proj && proj.getShooter() instanceof Player) return;
-
-        debugDamager("MythicDamageEvent", damager, player);
 
         LivingEntity target = MythicEventUtil.resolveTarget(event);
         if (target == null) return;
@@ -115,46 +116,102 @@ public class DamageChatListener implements Listener {
             return;
         }
 
+        SpellContextManager.Context ctx = shooter != null
+                ? SpellContextManager.peek(shooter.getUniqueId())
+                : null;
+
+        Main.getInstance().getLogger().info(
+                "[DamageDebug] source=" + source +
+                        " damager={" + describeEntity(damager) + "}" +
+                        " shooter=" + (shooter != null ? shooter.getName() : "n/a") +
+                        " spellCtx={" + describeSpellCtx(ctx) + "}");
+    }
+
+    private void debugMythicEvent(MythicDamageEvent event, Player player, Entity damager) {
+        if (!debugDamageMetadata) {
+            return;
+        }
+
+        LivingEntity target = MythicEventUtil.resolveTarget(event);
+        Object trigger = safelyInvoke(event, "getTrigger");
+        Object shooter = safelyInvoke(event, "getShooter");
+
+        String skillName = String.valueOf(safelyInvoke(event, "getSkillName"));
+        String casterInfo = describeParticipant(event.getCaster());
+        String triggerInfo = describeParticipant(trigger);
+        String shooterInfo = describeParticipant(shooter);
+
+        SpellContextManager.Context ctx = player != null
+                ? SpellContextManager.peek(player.getUniqueId())
+                : null;
+
+        Main.getInstance().getLogger().info(
+                "[DamageDebug] MythicDamageEvent skill=" + skillName +
+                        " baseDamage=" + event.getDamage() +
+                        " player=" + (player == null ? "n/a" : player.getName()) +
+                        " caster=" + casterInfo +
+                        " trigger=" + triggerInfo +
+                        " shooter=" + shooterInfo +
+                        " resolvedDamager={" + describeEntity(damager) + "}" +
+                        " target={" + describeEntity(target) + "}" +
+                        " spellCtx={" + describeSpellCtx(ctx) + "}");
+    }
+
+    private String describeParticipant(Object obj) {
+        Entity entity = MythicMobModifier.toBukkitEntity(obj);
+        if (entity != null) {
+            return describeEntity(entity);
+        }
+        if (obj == null) {
+            return "null";
+        }
+        return obj.getClass().getSimpleName();
+    }
+
+    private String describeEntity(Entity entity) {
+        if (entity == null) return "null";
+
         StringBuilder metaDescription = new StringBuilder();
         for (String key : COMMON_METADATA_KEYS) {
-            if (damager.hasMetadata(key)) {
-                String value = describeMetadataValues(damager.getMetadata(key));
+            if (entity.hasMetadata(key)) {
+                String value = describeMetadataValues(entity.getMetadata(key));
                 metaDescription.append(key).append("=").append(value).append(", ");
             }
         }
+        String metaInfo = metaDescription.length() > 0
+                ? metaDescription.substring(0, metaDescription.length() - 2)
+                : "none";
 
-        String pdcKeys = damager.getPersistentDataContainer()
+        String pdcKeys = entity.getPersistentDataContainer()
                 .getKeys()
                 .stream()
                 .map(NamespacedKey::toString)
                 .reduce((a, b) -> a + ", " + b)
                 .orElse("none");
 
-        String scoreboardTags = damager.getScoreboardTags().isEmpty()
+        String scoreboardTags = entity.getScoreboardTags().isEmpty()
                 ? "none"
-                : String.join(", ", damager.getScoreboardTags());
+                : String.join(", ", entity.getScoreboardTags());
 
-        String shooterInfo = shooter != null ? shooter.getName() : "n/a";
-        String metaInfo = metaDescription.length() > 0
-                ? metaDescription.substring(0, metaDescription.length() - 2)
-                : "none";
+        return entity.getType() + " class=" + entity.getClass().getSimpleName() +
+                " metadata=" + metaInfo +
+                " pdc=" + pdcKeys +
+                " tags=" + scoreboardTags;
+    }
 
-        SpellContextManager.Context ctx = shooter != null
-                ? SpellContextManager.peek(shooter.getUniqueId())
-                : null;
-        String spellInfo = ctx != null
-                ? ctx.spellName + " (crit=" + ctx.isCrit + ", basic=" + ctx.basicAttack + ")"
-                : "none";
+    private String describeSpellCtx(SpellContextManager.Context ctx) {
+        return ctx == null
+                ? "none"
+                : ctx.spellName + " (crit=" + ctx.isCrit + ", basic=" + ctx.basicAttack + ")";
+    }
 
-        Main.getInstance().getLogger().info(
-                "[DamageDebug] source=" + source +
-                        " damager=" + damager.getType() +
-                        " class=" + damager.getClass().getSimpleName() +
-                        " shooter=" + shooterInfo +
-                        " metadata={" + metaInfo + "}" +
-                        " spellCtx={" + spellInfo + "}" +
-                        " pdcKeys={" + pdcKeys + "}" +
-                        " scoreboardTags={" + scoreboardTags + "}");
+    private Object safelyInvoke(Object target, String method) {
+        if (target == null) return null;
+        try {
+            return target.getClass().getMethod(method).invoke(target);
+        } catch (Exception ignore) {
+            return null;
+        }
     }
 
     private String describeMetadataValues(java.util.List<MetadataValue> values) {
