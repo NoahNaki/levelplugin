@@ -41,6 +41,27 @@ public class SpellUtils {
         double rawDamage,
         String spellName
     ) {
+        dealWithChat(caster, target, rawDamage, spellName, false, false);
+    }
+
+    public static void dealWithChat(
+        Player caster,
+        LivingEntity target,
+        double rawDamage,
+        String spellName,
+        boolean preScaledDamage
+    ) {
+        dealWithChat(caster, target, rawDamage, spellName, preScaledDamage, false);
+    }
+
+    public static void dealWithChat(
+        Player caster,
+        LivingEntity target,
+        double rawDamage,
+        String spellName,
+        boolean preScaledDamage,
+        boolean isCrit
+    ) {
         Logger logger = Main.getInstance().getLogger();
         ChatToggleManager chatMgr = ChatToggleManager.getInstance();
         boolean wasChatOn = chatMgr.isEnabled(caster);
@@ -98,7 +119,7 @@ public class SpellUtils {
 
         // Apply the damage
         SpellContextManager.applySpellDamage(
-            caster, target, rawDamage, spellName, false, false
+            caster, target, rawDamage, spellName, isCrit, false, preScaledDamage
         );
         //logger.info("dealWithChat: applySpellDamage called for " + caster.getName());
 

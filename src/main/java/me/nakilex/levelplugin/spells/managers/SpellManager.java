@@ -834,9 +834,10 @@ public class SpellManager {
         mageMap.put("LLL", new Spell(
             "meteor", "Meteor", "LLL",
             12.0,
-            MythicSkillConfig.getCooldownSeconds("Meteor"), 5,
+            2,
+            5,
             WeaponType.WAND.getMaterials(),
-            "MYTHIC_METEOR", 0.0
+            "MAGE_MAGMA_METEOR", 10.0
         ));
         mageMap.put("LRR", new Spell(
             "frost_nova", "Frost Nova", "LRR",

@@ -29,7 +29,12 @@ public class MythicSkillEffect implements SpellEffect {
         boolean isCrit = Math.random() < critChance;
 
         boolean basic = "BASIC_ATTACK".equals(ctx.getBaseSpell().getCombo());
-        SpellContextManager.setPending(caster.getUniqueId(), ctx.getBaseSpell().getDisplayName(), isCrit, basic);
+        SpellContextManager.setPending(
+                caster.getUniqueId(),
+                ctx.getBaseSpell().getDisplayName(),
+                isCrit,
+                basic,
+                false);
 
         me.nakilex.levelplugin.Main.getPlugin().getLogger().info(
                 "[MythicSkillEffect] skill=" + skill + " cast by " + caster.getName());
