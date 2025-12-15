@@ -284,25 +284,40 @@ public class FieldBossListener implements Listener {
 
     private java.util.function.Supplier<ItemStack> createBossRewardBomb(List<Map<String, Object>> items) {
         return () -> {
-            List<ItemStack> lootPool = new ArrayList<>();
-            // Offer one essence for each awakened class we want available.
-            for (PlayerClass clazz : AWAKENED_DROP_POOL) {
-                lootPool.add(ClassEssence.generateEssence(clazz, ItemRarity.RARE, 0));
-            }
-            if (items != null) {
-                for (Map<String, Object> entry : items) {
-                    ItemStack drop = rollConfiguredDrop(entry, null);
-                    if (drop != null) {
-                        lootPool.add(drop);
-                    }
-                }
-            }
-            if (lootPool.isEmpty()) {
-                lootPool.add(createAwakenedEssenceDrop());
+            ItemStack gearDrop = rollRandomConfiguredDrop(items);
+            double roll = ThreadLocalRandom.current().nextDouble();
+
+            if (roll < 0.70 && gearDrop != null) {
+                return gearDrop.clone();
             }
 
-            ItemStack choice = lootPool.get(ThreadLocalRandom.current().nextInt(lootPool.size()));
-            return choice == null ? null : choice.clone();
+            if (roll < 0.95) {
+                return ClassEssence.generateEssence();
+            }
+
+            if (gearDrop != null) {
+                return gearDrop.clone();
+            }
+
+            return createAwakenedEssenceDrop();
         };
+    }
+
+    private ItemStack rollRandomConfiguredDrop(List<Map<String, Object>> items) {
+        if (items == null || items.isEmpty()) {
+            return null;
+        }
+
+        List<Map<String, Object>> shuffled = new ArrayList<>(items);
+        Collections.shuffle(shuffled);
+
+        for (Map<String, Object> entry : shuffled) {
+            ItemStack drop = rollConfiguredDrop(entry, null);
+            if (drop != null) {
+                return drop;
+            }
+        }
+
+        return null;
     }
 }
