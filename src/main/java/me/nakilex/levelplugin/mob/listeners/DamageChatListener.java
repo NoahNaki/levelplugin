@@ -36,6 +36,7 @@ public class DamageChatListener implements Listener {
         Player player = null;
         String spellName = null;
         boolean isCrit = false;
+        boolean skipChat = false;
 
         debugVanillaDamage(event);
 
@@ -94,13 +95,13 @@ public class DamageChatListener implements Listener {
                 if (ctx != null) {
                     spellName = ctx.spellName;
                     isCrit = ctx.isCrit;
-                    SpellContextManager.consume(player.getUniqueId());
                 }
+                skipChat = MythicEventUtil.hasMythicOwner(rawDamager);
             }
         }
 
         // nothing to do if not a player spell/attack
-        if (player == null || spellName == null) return;
+        if (skipChat || player == null || spellName == null) return;
         if (!(event.getEntity() instanceof LivingEntity target)) return;
 
         SpellUtils.maybeSendDamageChat(player, target, event.getFinalDamage(), spellName, isCrit);
@@ -120,7 +121,7 @@ public class DamageChatListener implements Listener {
         LivingEntity target = MythicEventUtil.resolveTarget(event);
         if (target == null) return;
 
-        SpellContextManager.Context ctx = SpellContextManager.consume(player.getUniqueId());
+        SpellContextManager.Context ctx = SpellContextManager.peek(player.getUniqueId());
         if (ctx == null) return;
 
         StatsEffectListener.recordCrit(player, ctx.isCrit);

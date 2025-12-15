@@ -11,6 +11,8 @@ import org.bukkit.persistence.PersistentDataType;
 /** Utility helpers for resolving Mythic event participants using reflection-friendly fallbacks. */
 public final class MythicEventUtil {
 
+    private static final NamespacedKey MYTHIC_OWNER_KEY = new NamespacedKey("mythicmobs", "owner");
+
     private MythicEventUtil() {}
 
     public static Player resolvePlayer(Object casterObj) {
@@ -61,9 +63,8 @@ public final class MythicEventUtil {
         if (entity == null) return null;
 
         try {
-            var key = new NamespacedKey("mythicmobs", "owner");
             var pdc = entity.getPersistentDataContainer();
-            String ownerId = pdc.get(key, PersistentDataType.STRING);
+            String ownerId = pdc.get(MYTHIC_OWNER_KEY, PersistentDataType.STRING);
             if (ownerId != null) {
                 try {
                     return Bukkit.getPlayer(java.util.UUID.fromString(ownerId));
@@ -75,6 +76,17 @@ public final class MythicEventUtil {
         }
 
         return null;
+    }
+
+    /** Returns true if the entity declares a MythicMobs owner in PDC. */
+    public static boolean hasMythicOwner(Entity entity) {
+        if (entity == null) return false;
+        try {
+            return entity.getPersistentDataContainer()
+                    .has(MYTHIC_OWNER_KEY, PersistentDataType.STRING);
+        } catch (Exception ignored) {
+            return false;
+        }
     }
 
     /**

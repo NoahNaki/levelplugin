@@ -13,15 +13,17 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class SpellContextManager {
     private static final Map<UUID, Context> pending = new ConcurrentHashMap<>();
+    private static final long CONTEXT_TTL_MS = 4000L;
 
     public static void setPending(UUID playerId, String spellName, boolean isCrit, boolean basicAttack) {
         Main.getInstance().getLogger();
            // .info("[SpellContext] setPending for " + playerId + " -> " + spellName + " crit=" + isCrit);
-        pending.put(playerId, new Context(spellName, isCrit, basicAttack));
+        pending.put(playerId, new Context(spellName, isCrit, basicAttack, System.currentTimeMillis()));
     }
 
     public static Context consume(UUID playerId) {
-        Context ctx = pending.remove(playerId);
+        Context ctx = getFresh(playerId);
+        pending.remove(playerId);
         Main.getInstance().getLogger();
             //.info("[SpellContext] consume for " + playerId + " -> " + (ctx == null ? "null" : ctx.spellName));
         return ctx;
@@ -29,12 +31,12 @@ public class SpellContextManager {
 
     /** Returns true if the player has a pending spell damage context. */
     public static boolean hasPending(UUID playerId) {
-        return pending.containsKey(playerId);
+        return getFresh(playerId) != null;
     }
 
     /** Returns the pending context without consuming it, or {@code null}. */
     public static Context peek(UUID playerId) {
-        return pending.get(playerId);
+        return getFresh(playerId);
     }
 
     public static void applySpellDamage(Player caster,
@@ -50,15 +52,33 @@ public class SpellContextManager {
     }
 
 
+    private static Context getFresh(UUID playerId) {
+        Context ctx = pending.get(playerId);
+        if (ctx == null) return null;
+
+        if (ctx.isExpired()) {
+            pending.remove(playerId);
+            return null;
+        }
+
+        return ctx;
+    }
+
     public static class Context {
         public final String spellName;
         public final boolean isCrit;
         public final boolean basicAttack;
+        private final long createdAt;
 
-        public Context(String spellName, boolean isCrit, boolean basicAttack) {
+        public Context(String spellName, boolean isCrit, boolean basicAttack, long createdAt) {
             this.spellName  = spellName;
             this.isCrit     = isCrit;
             this.basicAttack = basicAttack;
+            this.createdAt = createdAt;
+        }
+
+        private boolean isExpired() {
+            return System.currentTimeMillis() - createdAt > CONTEXT_TTL_MS;
         }
     }
 }
