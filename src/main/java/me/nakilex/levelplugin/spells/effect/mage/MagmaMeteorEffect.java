@@ -199,7 +199,7 @@ public class MagmaMeteorEffect implements SpellEffect {
             var itemManager = MythicBukkit.inst().getItemManager();
             var mythicItem = itemManager.getItem("meteor").orElse(null);
             if (mythicItem != null) {
-                return mythicItem.generateItemStack(1);
+                return (ItemStack) mythicItem.generateItemStack(1);
             }
 
             ItemStack direct = itemManager.getItemStack("meteor");
@@ -214,26 +214,16 @@ public class MagmaMeteorEffect implements SpellEffect {
 
     private void spawnTrail(Location location, BlockData magmaData, boolean spawnFragments) {
         World world = location.getWorld();
+
+        // Visual-only trail. No FallingBlock fragments will ever be spawned.
         world.spawnParticle(Particle.SMOKE, location, 6, 0.35, 0.35, 0.35, 0.01);
         world.spawnParticle(Particle.FLAME, location, 10, 0.3, 0.3, 0.3, 0.02);
         world.spawnParticle(Particle.LAVA, location, 8, 0.25, 0.25, 0.25, 0.02);
         world.spawnParticle(Particle.CAMPFIRE_COSY_SMOKE, location, 5, 0.35, 0.2, 0.35, 0.015);
 
-        if (!spawnFragments) {
-            return;
-        }
-
-        FallingBlock fragment = world.spawn(location, FallingBlock.class, fb -> {
-            fb.setBlockData(magmaData);
-            fb.setDropItem(false);
-            fb.setVelocity(new Vector(0, -0.6, 0));
-            fb.setMetadata("Meteor", new FixedMetadataValue(Main.getInstance(), true));
-            fb.setHurtEntities(false);
-        });
-        Main.getInstance().getServer().getScheduler().runTaskLater(
-            Main.getInstance(), fragment::remove, 40L
-        );
+        // Intentionally no fragments.
     }
+
 
     private static final class MeteorCluster {
         private final ArmorStand core;
