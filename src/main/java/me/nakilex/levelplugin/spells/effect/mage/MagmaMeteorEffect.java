@@ -7,6 +7,8 @@ import me.nakilex.levelplugin.spells.context.SpellCastContextCompat;
 import me.nakilex.levelplugin.spells.effect.SpellEffect;
 import me.nakilex.levelplugin.spells.utils.SpellUtils;
 import me.nakilex.levelplugin.spells.utils.animation.SpellAnimation;
+import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
+import me.nakilex.levelplugin.player.attributes.managers.StatsManager.PlayerStats;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
@@ -18,10 +20,13 @@ import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.FallingBlock;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.util.BoundingBox;
 import org.bukkit.util.Vector;
+
+import java.util.Optional;
+import org.bukkit.inventory.ItemStack;
+import io.lumine.mythic.bukkit.MythicBukkit;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -145,20 +150,41 @@ public class MagmaMeteorEffect implements SpellEffect {
 
     private ArmorStand spawnMeteorStand(Location spawn) {
         World world = spawn.getWorld();
+        ItemStack model = resolveMeteorModel();
+
         ArmorStand meteor = world.spawn(spawn, ArmorStand.class, stand -> {
             stand.setInvisible(true);
             stand.setMarker(true);
             stand.setGravity(false);
-            stand.getEquipment().setHelmet(new ItemStack(Material.MAGMA_BLOCK));
+            stand.setInvulnerable(true);
+            stand.setSmall(false);
+            stand.setSilent(true);
+            stand.getEquipment().setHelmet(model);
             stand.setMetadata("Meteor", new FixedMetadataValue(Main.getInstance(), true));
         });
         return meteor;
     }
 
+    private ItemStack resolveMeteorModel() {
+        try {
+            Optional<ItemStack> mythicItem = MythicBukkit.inst()
+                .getItemManager()
+                .getItemStack("meteor");
+            if (mythicItem.isPresent()) {
+                return mythicItem.get();
+            }
+        } catch (Exception ignored) {
+            // fall through to magma block fallback
+        }
+        return new ItemStack(Material.MAGMA_BLOCK);
+    }
+
     private void spawnTrail(Location location, BlockData magmaData) {
         World world = location.getWorld();
-        world.spawnParticle(Particle.SMOKE_LARGE, location, 4, 0.3, 0.3, 0.3, 0.01);
-        world.spawnParticle(Particle.FLAME, location, 6, 0.25, 0.25, 0.25, 0.02);
+        world.spawnParticle(Particle.SMOKE_LARGE, location, 6, 0.35, 0.35, 0.35, 0.01);
+        world.spawnParticle(Particle.FLAME, location, 10, 0.3, 0.3, 0.3, 0.02);
+        world.spawnParticle(Particle.LAVA, location, 8, 0.25, 0.25, 0.25, 0.02);
+        world.spawnParticle(Particle.CAMPFIRE_COSY_SMOKE, location, 5, 0.35, 0.2, 0.35, 0.015);
 
         FallingBlock fragment = world.spawnFallingBlock(location, magmaData);
         fragment.setDropItem(false);
@@ -206,7 +232,7 @@ public class MagmaMeteorEffect implements SpellEffect {
 
         SpellCastContextCompat.markSuccess(ctx, true);
 
-        double damage = ctx.getFinalDamage();
+        DamageResult damage = computeMageDamage(caster, ctx);
         Set<LivingEntity> alreadyHit = new HashSet<>();
         for (LivingEntity target : world.getNearbyLivingEntities(center, IMPACT_RADIUS)) {
             if (target.equals(caster)) continue;
@@ -217,8 +243,38 @@ public class MagmaMeteorEffect implements SpellEffect {
                 continue;
             }
 
-            SpellUtils.dealWithChat(caster, target, damage, ctx.getBaseSpell().getDisplayName());
+            SpellUtils.dealWithChat(
+                caster,
+                target,
+                damage.amount(),
+                ctx.getBaseSpell().getDisplayName(),
+                true,
+                damage.isCrit()
+            );
             target.setFireTicks(Math.max(target.getFireTicks(), IGNITE_TICKS));
         }
     }
+
+    private DamageResult computeMageDamage(Player caster, SpellCastContext ctx) {
+        PlayerStats stats = StatsManager.getInstance().getPlayerStats(caster.getUniqueId());
+        double damage = ctx.getFinalDamage();
+
+        int totalInt = stats.baseIntelligence + stats.bonusIntelligence;
+        int totalTec = stats.baseTechnique + stats.bonusTechnique;
+        int totalDex = stats.baseDexterity + stats.bonusDexterity;
+
+        damage += totalInt * 0.5;
+        damage *= (1.0 + totalTec * 0.003);
+
+        double critChance = (double) totalDex / (totalDex + 100.0);
+        boolean isCrit = Math.random() < critChance;
+        if (isCrit) {
+            damage *= 2;
+        }
+
+        damage *= me.nakilex.levelplugin.player.attributes.listeners.StatsEffectListener.SPELL_DAMAGE_MULTIPLIER;
+        return new DamageResult(damage, isCrit);
+    }
+
+    private record DamageResult(double amount, boolean isCrit) {}
 }
