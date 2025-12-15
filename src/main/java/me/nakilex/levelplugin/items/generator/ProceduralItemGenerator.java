@@ -158,7 +158,7 @@ public class ProceduralItemGenerator {
                 case 4 -> def  = (int) Math.round(def  * (1 + DOMINANT_BONUS));
             }
         } else {
-            def = scaleStat(level, rarity, 1.0);
+            def = 0;
             switch (clazz) {
                 case "WARRIOR" -> {
                     str = scaleStat(level, rarity, 2.0);

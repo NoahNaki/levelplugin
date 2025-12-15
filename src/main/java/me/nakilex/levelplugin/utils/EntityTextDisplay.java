@@ -8,6 +8,7 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.TextDisplay;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
+import me.nakilex.levelplugin.utils.MultiLineHologram;
 
 /**
  * Simple helper to render a single TextDisplay above a living entity and keep
@@ -15,6 +16,8 @@ import org.bukkit.scheduler.BukkitTask;
  * when the underlying entity is invisible (e.g. ModelEngine models).
  */
 public class EntityTextDisplay {
+
+    public static final String DISPLAY_TAG = "lp_entity_display";
 
     private final JavaPlugin plugin;
     private final LivingEntity target;
@@ -45,6 +48,7 @@ public class EntityTextDisplay {
             display.setShadowStrength(0f);
             display.setBackgroundColor(Color.fromARGB(0, 0, 0, 0));
             display.setTeleportDuration(1); // interpolate for smoothness
+            display.addScoreboardTag(DISPLAY_TAG);
             startFollowTask();
         }
         if (!text.equals(display.getText())) {
@@ -75,5 +79,10 @@ public class EntityTextDisplay {
             display.remove();
         }
         display = null;
+    }
+
+    /** Remove any lingering displays spawned by this helper. */
+    public static void removeAllDisplays() {
+        MultiLineHologram.removeAll(DISPLAY_TAG);
     }
 }

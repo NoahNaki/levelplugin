@@ -9,6 +9,7 @@ import me.nakilex.levelplugin.quests.data.QuestRewardCompat;
 import me.nakilex.levelplugin.quests.data.QuestScript;
 import me.nakilex.levelplugin.quests.data.QuestCompletionScript;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
+import me.nakilex.levelplugin.quests.def.SerasSlimeKingQuest;
 import org.bukkit.entity.Player;
 
 import java.util.List;
@@ -44,7 +45,7 @@ public class SalvagersLessonQuest extends Quest implements QuestScript, QuestCom
                 "Learn how to break down extra gear and turn it into profit.",
                 createObjectives(),
                 3,
-                List.of(SerasQuest.ID),
+                List.of(SerasSlimeKingQuest.ID),
                 null,
                 QuestRewardCompat.create(120, 40, 0, List.of()),
                 null,
@@ -70,8 +71,7 @@ public class SalvagersLessonQuest extends Quest implements QuestScript, QuestCom
         return List.of(
                 "Salvager|See? Even scraps sparkle once you melt them down.",
                 "<player>|The coins weren't bad either.",
-                "Salvager|Keep bringing me your leftovers. There's profit in every shard.",
-                "Salvager|If you're eager for more work, Hawie down on the docks needs a steady hand."
+                "Salvager|Keep bringing me your leftovers. There's profit in every shard."
         );
     }
 
@@ -85,10 +85,6 @@ public class SalvagersLessonQuest extends Quest implements QuestScript, QuestCom
         QuestManager questManager = plugin.getQuestManager();
         if (questManager == null) {
             return;
-        }
-        if (!questManager.hasCompleted(player.getUniqueId(), HawieHermitCrabQuest.ID)
-                && questManager.getProgress(player.getUniqueId(), HawieHermitCrabQuest.ID) == null) {
-            questManager.startQuest(player, HawieHermitCrabQuest.ID);
         }
     }
 }

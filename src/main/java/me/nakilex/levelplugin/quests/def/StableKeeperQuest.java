@@ -9,8 +9,8 @@ import me.nakilex.levelplugin.quests.data.QuestRewardCompat;
 import me.nakilex.levelplugin.quests.data.PlayerQuestProgress;
 import me.nakilex.levelplugin.quests.data.QuestScript;
 import me.nakilex.levelplugin.quests.data.QuestCompletionScript;
-import me.nakilex.levelplugin.quests.def.HawieHermitCrabQuest;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
+import me.nakilex.levelplugin.quests.def.SerasSlimeKingQuest;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.entity.Player;
 
@@ -111,10 +111,7 @@ public class StableKeeperQuest extends Quest implements QuestScript, QuestComple
 
     @Override
     public void onStart(Player player, Main plugin) {
-        QuestManager questManager = plugin.getQuestManager();
-        if (questManager != null) {
-            questManager.handleTalk(player, NPC_TALK_TARGET);
-        }
+        // Keep the intro objective active so players are guided to speak with the Stable Keeper first.
     }
 
     @Override
@@ -124,14 +121,12 @@ public class StableKeeperQuest extends Quest implements QuestScript, QuestComple
             return;
         }
 
-        if (!questManager.hasCompleted(player.getUniqueId(), HawieHermitCrabQuest.ID)
-                && questManager.getProgress(player.getUniqueId(), HawieHermitCrabQuest.ID) == null) {
-            questManager.startQuest(player, HawieHermitCrabQuest.ID);
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
-                    "Stable Keeper|Hawie down by the docks needs help with hermit crabs—give him a hand then report back to Seras.");
-        } else {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
-                    "Stable Keeper|Let Seras know the roosters won't be bothering us anymore.");
+        if (!questManager.hasCompleted(player.getUniqueId(), SerasSlimeKingQuest.ID)
+                && questManager.getProgress(player.getUniqueId(), SerasSlimeKingQuest.ID) == null) {
+            questManager.startQuest(player, SerasSlimeKingQuest.ID);
         }
+
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                "Stable Keeper|Seras was asking for you—head back to her. The beacon will guide you.");
     }
 }

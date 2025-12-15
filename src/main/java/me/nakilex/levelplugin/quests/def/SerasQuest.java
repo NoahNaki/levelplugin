@@ -77,6 +77,8 @@ public class SerasQuest extends Quest implements QuestScript, QuestCompletionScr
         if (!questManager.hasCompleted(player.getUniqueId(), StableKeeperQuest.ID)
                 && questManager.getProgress(player.getUniqueId(), StableKeeperQuest.ID) == null) {
             questManager.startQuest(player, StableKeeperQuest.ID);
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                    "Seras|Check in with the Stable Keeper before hunting down those roosters.");
         }
     }
 

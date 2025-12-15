@@ -11,6 +11,7 @@ import me.nakilex.levelplugin.quests.def.ZoyaDungeonQuest;
 import me.nakilex.levelplugin.quests.gui.QuestState;
 import me.nakilex.levelplugin.quests.data.PlayerQuestProgress;
 import me.nakilex.levelplugin.quests.def.SerasQuest;
+import me.nakilex.levelplugin.quests.def.SerasSlimeKingQuest;
 import me.nakilex.levelplugin.quests.def.SharpestSecretQuest;
 import me.nakilex.levelplugin.quests.def.StableKeeperQuest;
 import me.nakilex.levelplugin.quests.def.SalvagersLessonQuest;
@@ -172,8 +173,19 @@ public class NPCClickListener implements Listener {
             }
 
             Quest quest = questManager.getQuestByNpc(npc);
-            if (quest == null && npc.getId() == SerasQuest.NPC_ID) {
-                quest = questManager.getQuestById(SerasQuest.ID);
+            if (npc.getId() == SerasQuest.NPC_ID) {
+                Quest serasPartTwo = questManager.getQuestById(SerasSlimeKingQuest.ID);
+                if (serasPartTwo != null && !questManager.hasCompleted(player.getUniqueId(), serasPartTwo.getId())) {
+                    PlayerQuestProgress partTwoProgress = questManager.getProgress(player.getUniqueId(), serasPartTwo.getId());
+                    QuestState partTwoState = questManager.getQuestState(player, serasPartTwo);
+                    if (partTwoProgress != null || partTwoState == QuestState.AVAILABLE) {
+                        quest = serasPartTwo;
+                    }
+                }
+
+                if (quest == null) {
+                    quest = questManager.getQuestById(SerasQuest.ID);
+                }
             }
             if (quest == null && isNpcName(npc, SalvagersLessonQuest.NPC_NAME)) {
                 quest = questManager.getQuestById(SalvagersLessonQuest.ID);
@@ -222,6 +234,12 @@ public class NPCClickListener implements Listener {
                             player.sendMessage("§cClear 10 forest slimes, then report back to Seras.");
                             return;
                         }
+                    }
+                }
+
+                if (SerasSlimeKingQuest.ID.equals(quest.getId())) {
+                    if (handleSerasSlimeKing(player, npc, quest)) {
+                        return;
                     }
                 }
 
@@ -912,6 +930,51 @@ public class NPCClickListener implements Listener {
             return false;
         }
         return NpcNameUtil.equalsNormalized(npc.getName(), expectedName);
+    }
+
+    private boolean handleSerasSlimeKing(Player player, NPC npc, Quest quest) {
+        QuestState state = questManager.getQuestState(player, quest);
+        if (state == QuestState.AVAILABLE) {
+            dialogManager.startDialog(player, quest, npc);
+            return true;
+        }
+        if (state == QuestState.LOCKED) {
+            questManager.meetsRequirements(player, quest);
+            return true;
+        }
+
+        PlayerQuestProgress progress = questManager.getProgress(player.getUniqueId(), quest.getId());
+        if (progress == null) {
+            return false;
+        }
+
+        boolean introDone = progress.getProgress(0) >= quest.getObjectives().get(0).getAmount();
+        boolean slimeKingDefeated = progress.getProgress(1) >= quest.getObjectives().get(1).getAmount();
+        boolean finaleDone = progress.getProgress(2) >= quest.getObjectives().get(2).getAmount();
+
+        if (!introDone) {
+            dialogManager.startDialog(player,
+                    quest.getDialogLines(),
+                    npc,
+                    () -> questManager.handleTalk(player, "npc" + npc.getId() + "_second"));
+            return true;
+        }
+
+        if (!slimeKingDefeated) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                    "Seras|The Slime King is still oozing around—bring it down and return to me.");
+            return true;
+        }
+
+        if (!finaleDone) {
+            dialogManager.startDialog(player,
+                    SerasSlimeKingQuest.getDialogForObjective(2),
+                    npc,
+                    () -> questManager.handleTalk(player, "npc" + npc.getId() + "_third"));
+            return true;
+        }
+
+        return false;
     }
 
     private String resolveTalkTarget(UUID playerId, Quest quest, NPC npc) {

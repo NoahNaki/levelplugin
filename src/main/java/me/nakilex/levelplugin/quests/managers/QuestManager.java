@@ -479,19 +479,8 @@ public class QuestManager {
     }
 
     public void completeQuest(UUID player, String questId) {
-        Map<String, PlayerQuestProgress> map = activeQuests.get(player);
-        if (map != null) {
-            map.remove(questId);
-            if (map.isEmpty()) {
-                activeQuests.remove(player);
-            }
-        }
-        completedQuests.computeIfAbsent(player, k -> new HashSet<>()).add(questId);
-        Player p = Bukkit.getPlayer(player);
         Quest quest = quests.get(questId);
-        if (p != null && quest instanceof QuestResetScript reset) {
-            reset.onReset(p, plugin);
-        }
+        finalizeQuestCompletion(player, quest, null);
     }
 
     public String getQuestStatus(UUID player, String questId) {
@@ -858,28 +847,53 @@ public class QuestManager {
                         if (debug) {
                             plugin.getLogger().info("[QuestDebug] " + player.getName() + " completed " + quest.getId());
                         }
-                        it.remove();
-                        if (map.isEmpty()) {
-                            activeQuests.remove(uuid);
-                        }
-                        completedQuests.computeIfAbsent(uuid, k -> new HashSet<>()).add(quest.getId());
-                        if (quest.getId().equals(trackedQuests.get(uuid))) {
-                            trackedQuests.remove(uuid);
-                        }
-                        if (!"officeerrands".equalsIgnoreCase(quest.getId())) {
-                            QuestMessageUtil.sendCompletionMessage(player,
-                                    "§6§lQuest Complete!", quest.getName(),
-                                    0, 0, quest.getReward());
-                        }
-                        giveRewards(player, quest);
-                        if (quest instanceof me.nakilex.levelplugin.quests.data.QuestCompletionScript script) {
-                            script.onComplete(player, plugin);
-                        }
+                        finalizeQuestCompletion(uuid, quest, it);
                     }
                     break outer;
                 }
             }
         }
+    }
+
+    private void finalizeQuestCompletion(UUID playerId, Quest quest,
+                                         Iterator<Map.Entry<String, PlayerQuestProgress>> iterator) {
+        if (quest == null) {
+            return;
+        }
+
+        if (iterator != null) {
+            iterator.remove();
+        } else {
+            Map<String, PlayerQuestProgress> map = activeQuests.get(playerId);
+            if (map != null) {
+                map.remove(quest.getId());
+            }
+        }
+
+        Map<String, PlayerQuestProgress> map = activeQuests.get(playerId);
+        if (map != null && map.isEmpty()) {
+            activeQuests.remove(playerId);
+        }
+
+        completedQuests.computeIfAbsent(playerId, k -> new HashSet<>()).add(quest.getId());
+        if (quest.getId().equals(trackedQuests.get(playerId))) {
+            trackedQuests.remove(playerId);
+        }
+
+        Player player = Bukkit.getPlayer(playerId);
+        if (player != null) {
+            if (!"officeerrands".equalsIgnoreCase(quest.getId())) {
+                QuestMessageUtil.sendCompletionMessage(player,
+                        "§6§lQuest Complete!", quest.getName(),
+                        0, 0, quest.getReward());
+            }
+            giveRewards(player, quest);
+            if (quest instanceof me.nakilex.levelplugin.quests.data.QuestCompletionScript script) {
+                script.onComplete(player, plugin);
+            }
+        }
+
+        saveProgress();
     }
 
     private void shareMythicKillProgress(Player killer, String mobType, int amount) {

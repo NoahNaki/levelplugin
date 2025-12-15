@@ -48,7 +48,7 @@ public class SerasSlimeKingQuest extends Quest implements QuestScript, QuestComp
                 "Return to Seras and slay the Slime King.",
                 createObjectives(),
                 7,
-                List.of(SerasQuest.ID, StableKeeperQuest.ID, HawieHermitCrabQuest.ID),
+                List.of(SerasQuest.ID, StableKeeperQuest.ID),
                 null,
                 QuestRewardCompat.create(250, 175, 0, List.of()),
                 SerasQuest.NPC_ID,
@@ -71,6 +71,13 @@ public class SerasSlimeKingQuest extends Quest implements QuestScript, QuestComp
             return;
         }
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                "Seras|Impressive work. If you need steadier coin, the Stable Keeper and Hawie can vouch for you now.");
+                "Seras|Impressive work. If you need steadier coin, find the Salvager—he's always buying scraps.");
+
+        if (!questManager.hasCompleted(player.getUniqueId(), SalvagersLessonQuest.ID)
+                && questManager.getProgress(player.getUniqueId(), SalvagersLessonQuest.ID) == null) {
+            questManager.startQuest(player, SalvagersLessonQuest.ID);
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                    "Seras|The salvager is looking for help—talk to him to learn how to scrap your gear.");
+        }
     }
 }
