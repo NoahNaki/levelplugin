@@ -133,8 +133,9 @@ public final class GuiUtil {
     /** Format a stat line using standard colours without icons. */
     public static String formatStatLine(StatType type, int value, boolean percent) {
         String suffix = percent ? "%" : "";
-        ChatColor valueColor = (type == StatType.VIT) ? ChatColor.RED : ChatColor.GREEN;
-        return formatStatName(type) + ": " + valueColor + "+" + value + suffix;
+        ChatColor statColor = (type == StatType.VIT) ? ChatColor.RED : ChatColor.GREEN;
+        return statColor + type.getDisplayName() + ChatColor.GRAY + ": "
+                + ChatColor.WHITE + "+" + value + suffix;
     }
 
     /**

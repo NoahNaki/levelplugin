@@ -54,8 +54,8 @@ public class HawieHermitCrabQuest extends Quest implements QuestScript, QuestCom
         return List.of(
                 "Hawie|That's the last of the clattering nuisances? Music to my ears!",
                 "<player>|The docks should stay in one piece now.",
-                "Hawie|Good. If you want steadier work, the Stable Keeper up the road is always looking for capable riders.",
-                "Hawie|Tell them Hawie sent you—they'll set you up quick."
+                "Hawie|Good. The docks will stay quiet for a while.",
+                "Hawie|If you're hungry for tougher prey, wander farther from town—only small fry hang around here."
         );
     }
 

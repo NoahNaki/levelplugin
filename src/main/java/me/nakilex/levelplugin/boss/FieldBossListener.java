@@ -42,6 +42,12 @@ public class FieldBossListener implements Listener {
     private final Map<String, String> bossKeyMap = new HashMap<>();
     private final Map<UUID, Map<UUID, Double>> damageMap = new ConcurrentHashMap<>();
     private final Map<UUID, Long> bossStartTime = new ConcurrentHashMap<>();
+    private static final java.util.List<PlayerClass> AWAKENED_DROP_POOL = java.util.List.of(
+            PlayerClass.AWAKMAGE,
+            PlayerClass.AWAKWARRIOR,
+            PlayerClass.AWAKARCHER,
+            PlayerClass.AWAKROGUE
+    );
 
     public FieldBossListener(Main plugin,
                              FileConfiguration bossConfig,
@@ -271,29 +277,30 @@ public class FieldBossListener implements Listener {
     }
 
     private ItemStack createAwakenedEssenceDrop() {
-        PlayerClass awakened = PlayerClass.randomAwakened(ThreadLocalRandom.current());
+        PlayerClass awakened = AWAKENED_DROP_POOL.get(ThreadLocalRandom.current()
+                .nextInt(AWAKENED_DROP_POOL.size()));
         return ClassEssence.generateEssence(awakened, ItemRarity.RARE, 0);
     }
 
     private java.util.function.Supplier<ItemStack> createBossRewardBomb(List<Map<String, Object>> items) {
-        List<ItemStack> lootPool = new ArrayList<>();
-        lootPool.add(createAwakenedEssenceDrop());
-        if (items != null) {
-            for (Map<String, Object> entry : items) {
-                ItemStack drop = rollConfiguredDrop(entry, null);
-                if (drop != null) {
-                    lootPool.add(drop);
+        return () -> {
+            List<ItemStack> lootPool = new ArrayList<>();
+            // Offer one essence for each awakened class we want available.
+            for (PlayerClass clazz : AWAKENED_DROP_POOL) {
+                lootPool.add(ClassEssence.generateEssence(clazz, ItemRarity.RARE, 0));
+            }
+            if (items != null) {
+                for (Map<String, Object> entry : items) {
+                    ItemStack drop = rollConfiguredDrop(entry, null);
+                    if (drop != null) {
+                        lootPool.add(drop);
+                    }
                 }
             }
-        }
-        if (lootPool.isEmpty()) {
-            lootPool.add(createAwakenedEssenceDrop());
-        }
-
-        return () -> {
             if (lootPool.isEmpty()) {
-                return null;
+                lootPool.add(createAwakenedEssenceDrop());
             }
+
             ItemStack choice = lootPool.get(ThreadLocalRandom.current().nextInt(lootPool.size()));
             return choice == null ? null : choice.clone();
         };
