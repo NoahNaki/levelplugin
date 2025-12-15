@@ -36,8 +36,13 @@ public class MythicSkillDamageScaler implements Listener {
             try {
                 Object trigger = event.getClass().getMethod("getTrigger").invoke(event);
                 if (trigger != null) {
-                    Object trigCaster = trigger.getClass().getMethod("getCaster").invoke(trigger);
-                    player = resolvePlayer(trigCaster);
+                    // Some skills (like Meteor anchors) keep the original caster as the trigger
+                    player = resolvePlayer(trigger);
+
+                    if (player == null) {
+                        Object trigCaster = trigger.getClass().getMethod("getCaster").invoke(trigger);
+                        player = resolvePlayer(trigCaster);
+                    }
                 }
             } catch (Exception ignore) {
             }
