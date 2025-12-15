@@ -48,7 +48,7 @@ public class SerasQuest extends Quest implements QuestScript, QuestCompletionScr
                 2,
                 List.of("newbeginning"),
                 null,
-                QuestRewardCompat.create(200, 100, 0, List.of()),
+                QuestRewardCompat.create(300, 100, 0, List.of()),
                 NPC_ID,
                 List.of(
                         "What are you looking at huh?",
@@ -77,14 +77,6 @@ public class SerasQuest extends Quest implements QuestScript, QuestCompletionScr
         if (!questManager.hasCompleted(player.getUniqueId(), StableKeeperQuest.ID)
                 && questManager.getProgress(player.getUniqueId(), StableKeeperQuest.ID) == null) {
             questManager.startQuest(player, StableKeeperQuest.ID);
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
-                    "Seras|The Stable Keeper needs help with wild roosters—lend a hand then report back.");
-        }
-        if (!questManager.hasCompleted(player.getUniqueId(), SalvagersLessonQuest.ID)
-                && questManager.getProgress(player.getUniqueId(), SalvagersLessonQuest.ID) == null) {
-            questManager.startQuest(player, SalvagersLessonQuest.ID);
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
-                    "Seras points you toward the Salvager for lessons on breaking down extra loot.");
         }
     }
 

@@ -109,6 +109,9 @@ mobs:
   oni_shogun:
     model_set: default
 
+  crowreaper:
+    model_set: default
+
 
 
 

@@ -118,7 +118,7 @@ public class MythicMobRewardListener implements Listener {
         boolean forceDrops = dropDebugManager != null && dropDebugManager.isForceMobDrops();
         double gearDropChance = dropDebugManager != null
                 ? dropDebugManager.resolveDropChance(node)
-                : node.getDouble("drop_override", node.getDouble("tier_chance", 8.0));
+                : node.getDouble("drop_override", node.getDouble("tier_chance", 12.0));
         String modelSet = node.getString("model_set", "default");
 
         Location deathLoc = event.getEntity().getLocation();
