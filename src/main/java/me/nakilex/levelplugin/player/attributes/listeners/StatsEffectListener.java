@@ -81,6 +81,11 @@ public class StatsEffectListener implements Listener {
 
         // ── Outgoing damage (when the damager is a player or their projectile) ──
         if (player != null && !player.hasMetadata(SweepAttack.SWEEP_META)) {
+            if (ctx != null && ctx.preScaledDamage) {
+                recordCrit(player, ctx.isCrit);
+                return;
+            }
+
             PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
 
             double finalDamage = event.getDamage();
