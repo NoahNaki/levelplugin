@@ -1,9 +1,12 @@
 package me.nakilex.levelplugin.mob.utils;
 
 import io.lumine.mythic.bukkit.events.MythicDamageEvent;
+import org.bukkit.Bukkit;
+import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.persistence.PersistentDataType;
 
 /** Utility helpers for resolving Mythic event participants using reflection-friendly fallbacks. */
 public final class MythicEventUtil {
@@ -12,7 +15,9 @@ public final class MythicEventUtil {
 
     public static Player resolvePlayer(Object casterObj) {
         var entity = MythicMobModifier.toBukkitEntity(casterObj);
-        return entity instanceof Player p ? p : null;
+        if (entity instanceof Player p) return p;
+
+        return resolveOwnerPlayer(entity);
     }
 
     /**
@@ -46,6 +51,30 @@ public final class MythicEventUtil {
         }
 
         return player;
+    }
+
+    /**
+     * Mythic projectiles/anchors often carry the owning player's UUID in PDC under mythicmobs:owner.
+     * This attempts to resolve that owner to a Bukkit player.
+     */
+    public static Player resolveOwnerPlayer(Entity entity) {
+        if (entity == null) return null;
+
+        try {
+            var key = new NamespacedKey("mythicmobs", "owner");
+            var pdc = entity.getPersistentDataContainer();
+            String ownerId = pdc.get(key, PersistentDataType.STRING);
+            if (ownerId != null) {
+                try {
+                    return Bukkit.getPlayer(java.util.UUID.fromString(ownerId));
+                } catch (IllegalArgumentException ignored) {
+                    // fall through if the stored value isn't a UUID
+                }
+            }
+        } catch (Exception ignored) {
+        }
+
+        return null;
     }
 
     /**

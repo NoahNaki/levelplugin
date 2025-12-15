@@ -85,6 +85,20 @@ public class DamageChatListener implements Listener {
             }
         }
 
+        // 3) Mythic anchors/minions that carry an owner in PDC
+        else {
+            player = MythicEventUtil.resolveOwnerPlayer(rawDamager);
+            if (player != null) {
+                debugDamager("EntityDamageByEntityEvent", rawDamager, player);
+                SpellContextManager.Context ctx = SpellContextManager.peek(player.getUniqueId());
+                if (ctx != null) {
+                    spellName = ctx.spellName;
+                    isCrit = ctx.isCrit;
+                    SpellContextManager.consume(player.getUniqueId());
+                }
+            }
+        }
+
         // nothing to do if not a player spell/attack
         if (player == null || spellName == null) return;
         if (!(event.getEntity() instanceof LivingEntity target)) return;
