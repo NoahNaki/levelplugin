@@ -7,6 +7,7 @@ features:
 debug:
   chunk-loading: false
   mythic-skill-damage: false
+  damage-metadata: false
   force-mob-drops: false
   mob-gear-drop-rate: 8.0
   instant-expeditions: false
