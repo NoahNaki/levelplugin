@@ -111,10 +111,7 @@ public class StableKeeperQuest extends Quest implements QuestScript, QuestComple
 
     @Override
     public void onStart(Player player, Main plugin) {
-        QuestManager questManager = plugin.getQuestManager();
-        if (questManager != null) {
-            questManager.handleTalk(player, NPC_TALK_TARGET);
-        }
+        // Keep the intro objective active so players are guided to speak with the Stable Keeper first.
     }
 
     @Override

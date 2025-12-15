@@ -68,6 +68,7 @@ import me.nakilex.levelplugin.trade.data.ConfigValues;
 import me.nakilex.levelplugin.trade.utils.MessageStrings;
 import me.nakilex.levelplugin.utils.DealMaker;
 import me.nakilex.levelplugin.utils.NakiPlaceholderExpansion;
+import me.nakilex.levelplugin.utils.EntityTextDisplay;
 import me.nakilex.levelplugin.utils.MetadataTrait;
 import me.nakilex.levelplugin.utils.registeries.CommandRegistry;
 import me.nakilex.levelplugin.utils.registeries.ListenerRegistry;
@@ -637,6 +638,7 @@ public class PluginBootstrap {
             environmentManager.removeAllHolograms();
             environmentManager.saveAll();
         }
+        EntityTextDisplay.removeAllDisplays();
         if (guildSiegeManager != null) {
             guildSiegeManager.cleanup();
             guildSiegeManager.save();

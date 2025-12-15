@@ -72,5 +72,12 @@ public class SerasSlimeKingQuest extends Quest implements QuestScript, QuestComp
         }
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
                 "Seras|Impressive work. If you need steadier coin, the Stable Keeper and Hawie can vouch for you now.");
+
+        if (!questManager.hasCompleted(player.getUniqueId(), SalvagersLessonQuest.ID)
+                && questManager.getProgress(player.getUniqueId(), SalvagersLessonQuest.ID) == null) {
+            questManager.startQuest(player, SalvagersLessonQuest.ID);
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                    "Seras|The salvager is looking for help—talk to him to learn how to scrap your gear.");
+        }
     }
 }

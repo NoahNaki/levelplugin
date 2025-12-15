@@ -190,6 +190,7 @@ public class MythicMobNameManager implements Listener {
         for (EntityTextDisplay disp : healthDisplays.values()) {
             disp.remove();
         }
+        EntityTextDisplay.removeAllDisplays();
         healthDisplays.clear();
         trackedMobs.forEach(m -> {
             Entity base = m.getEntity().getBukkitEntity();
