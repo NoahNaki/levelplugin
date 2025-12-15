@@ -137,4 +137,28 @@ public class SpellUtils {
         // fallback to vanilla name
         return MobNameUtil.toPrettyName(e.getType().name());
     }
+
+    /**
+     * Sends a formatted damage chat line if the player has the feature enabled.
+     */
+    public static void maybeSendDamageChat(Player player,
+                                           LivingEntity target,
+                                           double damage,
+                                           String spellName,
+                                           boolean isCrit) {
+        if (!ChatToggleManager.getInstance().isEnabled(player)) return;
+
+        String targetName = getMobDisplayName(target);
+        String hitWord = isCrit ? "critically hit" : "hit";
+        ChatColor mainColor = isCrit ? ChatColor.YELLOW : ChatColor.WHITE;
+
+        String msg = mainColor + spellName +
+            ChatColor.GRAY + " " + hitWord + " " +
+            ChatColor.YELLOW + targetName +
+            ChatColor.GRAY + " for " +
+            ChatColor.GRAY + String.format("%.1f", damage) + " " +
+            ChatColor.RED + "\u2764";
+
+        player.sendMessage(msg);
+    }
 }

@@ -1,16 +1,13 @@
 package me.nakilex.levelplugin.mob.listeners;
 
-import io.lumine.mythic.api.skills.placeholders.PlaceholderString;
-import io.lumine.mythic.bukkit.BukkitAPIHelper;
-import io.lumine.mythic.core.mobs.ActiveMob;
-import me.nakilex.levelplugin.Main;
-import me.nakilex.levelplugin.mob.managers.ChatToggleManager;
-import me.nakilex.levelplugin.mob.utils.MobNameUtil;
+import io.lumine.mythic.bukkit.events.MythicDamageEvent;
+import me.nakilex.levelplugin.mob.utils.MythicEventUtil;
 import me.nakilex.levelplugin.player.attributes.listeners.StatsEffectListener;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.spells.managers.SpellContextManager;
-import org.bukkit.ChatColor;
+import me.nakilex.levelplugin.spells.utils.SpellUtils;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
 import org.bukkit.event.EventHandler;
@@ -69,36 +66,28 @@ public class DamageChatListener implements Listener {
 
         // nothing to do if not a player spell/attack
         if (player == null || spellName == null) return;
+        if (!(event.getEntity() instanceof LivingEntity target)) return;
 
-        // check chat toggle
-        if (!ChatToggleManager.getInstance().isEnabled(player)) return;
+        SpellUtils.maybeSendDamageChat(player, target, event.getFinalDamage(), spellName, isCrit);
+    }
 
-        // build & send message
-        String targetName;
-        BukkitAPIHelper helper = Main.getInstance().getMythicHelper();
-        ActiveMob mythic = helper != null ? helper.getMythicMobInstance(event.getEntity()) : null;
-        if (mythic != null) {
-            PlaceholderString disp = mythic.getType().getDisplayName();
-            String name = disp != null ? disp.get() : mythic.getType().getInternalName();
-            targetName = ChatColor.stripColor(name != null ? name :
-                    MobNameUtil.toPrettyName(mythic.getType().getInternalName()));
-        } else {
-            targetName = event.getEntity().getType().name();
-            targetName = targetName.charAt(0) + targetName.substring(1).toLowerCase();
-        }
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onMythicDamage(MythicDamageEvent event) {
+        Player player = MythicEventUtil.resolvePlayer(event);
+        if (player == null) return;
 
-        double dmg = event.getFinalDamage();
-        String hitWord = isCrit ? "critically hit" : "hit";
-        ChatColor mainColor = isCrit ? ChatColor.YELLOW : ChatColor.WHITE;
+        Entity damager = MythicEventUtil.resolveDamager(event);
+        if (damager instanceof Player) return;
+        if (damager instanceof Projectile proj && proj.getShooter() instanceof Player) return;
 
-        String msg = mainColor + spellName +
-            ChatColor.GRAY + " " + hitWord + " " +
-            ChatColor.YELLOW + targetName +
-            ChatColor.GRAY + " for " +
-            ChatColor.GRAY + String.format("%.1f", dmg) + " " +
-                ChatColor.RED + "\u2764";
+        LivingEntity target = MythicEventUtil.resolveTarget(event);
+        if (target == null) return;
 
-        player.sendMessage(msg);
+        SpellContextManager.Context ctx = SpellContextManager.consume(player.getUniqueId());
+        if (ctx == null) return;
+
+        StatsEffectListener.recordCrit(player, ctx.isCrit);
+        SpellUtils.maybeSendDamageChat(player, target, event.getDamage(), ctx.spellName, ctx.isCrit);
     }
 
 }
