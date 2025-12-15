@@ -142,6 +142,7 @@ public class Main extends JavaPlugin {
     public MercenaryManager getMercenaryManager() { return bootstrap.getMercenaryManager(); }
     public CodexMainGUI getCodexGUI() { return bootstrap.getCodexGUI(); }
     public me.nakilex.levelplugin.dungeon.gui.DungeonListGUI getDungeonListGUI() { return bootstrap.getDungeonListGUI(); }
+    public me.nakilex.levelplugin.dungeon.gui.DungeonLeaveGUI getDungeonLeaveGUI() { return bootstrap.getDungeonLeaveGUI(); }
     public me.nakilex.levelplugin.guild.siege.GuildSiegeManager getGuildSiegeManager() { return bootstrap.getGuildSiegeManager(); }
     public PathfindingManager getPathfindingManager() { return bootstrap.getPathfindingManager(); }
     public me.nakilex.levelplugin.transmog.TransmogManager getTransmogManager() { return bootstrap.getTransmogManager(); }

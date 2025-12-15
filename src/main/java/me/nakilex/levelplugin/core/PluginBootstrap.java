@@ -170,6 +170,7 @@ public class PluginBootstrap {
     private me.nakilex.levelplugin.fasttravel.gui.FastTravelGUI fastTravelGUI;
     private me.nakilex.levelplugin.music.LocationMusicManager locationMusicManager;
     private me.nakilex.levelplugin.dungeon.gui.DungeonListGUI dungeonListGUI;
+    private me.nakilex.levelplugin.dungeon.gui.DungeonLeaveGUI dungeonLeaveGUI;
     private me.nakilex.levelplugin.motd.MotdManager motdManager;
     private me.nakilex.levelplugin.maintenance.MaintenanceManager maintenanceManager;
     private me.nakilex.levelplugin.calendar.CalendarManager calendarManager;
@@ -373,6 +374,7 @@ public class PluginBootstrap {
         dungeonManager.cleanupOldInstanceWorlds();
         dungeonManager.getBuilder().cleanupOrphans();
         dungeonListGUI = new me.nakilex.levelplugin.dungeon.gui.DungeonListGUI(dungeonManager);
+        dungeonLeaveGUI = new me.nakilex.levelplugin.dungeon.gui.DungeonLeaveGUI(dungeonManager);
         catacombsManager = new me.nakilex.levelplugin.catacombs.CatacombsManager(plugin, dungeonManager);
         scoreboardManager.setCatacombsManager(catacombsManager);
         catacombsGUI = new me.nakilex.levelplugin.catacombs.CatacombsGUI(catacombsManager);
@@ -492,7 +494,13 @@ public class PluginBootstrap {
                 "portal_decoration_animated_v1_portal_8",
                 "portal_decoration_animated_v1_portal_9",
                 "portal_decoration_animated_v1_portal_10"
-        ).forEach(id -> furnitureGuiMapper.registerProximity(id, player -> dungeonListGUI.open(player)));
+        ).forEach(id -> furnitureGuiMapper.registerProximity(id, player -> {
+            if ("world".equalsIgnoreCase(player.getWorld().getName())) {
+                dungeonListGUI.open(player);
+            } else {
+                dungeonLeaveGUI.open(player);
+            }
+        }));
         plugin.getServer().getPluginManager().registerEvents(furnitureGuiMapper, plugin);
 
         ListenerRegistry.registerListeners(
@@ -521,6 +529,7 @@ public class PluginBootstrap {
             fastTravelManager,
             fastTravelGUI,
             dungeonListGUI,
+            dungeonLeaveGUI,
             motdManager,
             upgradeGUI,
             buildingUpgradeGUI,
@@ -753,6 +762,7 @@ public class PluginBootstrap {
     public CodexManager getCodexManager() { return codexManager; }
     public CodexMainGUI getCodexGUI() { return codexGUI; }
     public me.nakilex.levelplugin.dungeon.gui.DungeonListGUI getDungeonListGUI() { return dungeonListGUI; }
+    public me.nakilex.levelplugin.dungeon.gui.DungeonLeaveGUI getDungeonLeaveGUI() { return dungeonLeaveGUI; }
     public me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager getWanderingMerchantManager() { return wanderingMerchantManager; }
     public PathfindingManager getPathfindingManager() { return pathfindingManager; }
     public MercenaryManager getMercenaryManager() { return mercenaryManager; }

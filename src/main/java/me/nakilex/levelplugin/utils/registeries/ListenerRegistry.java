@@ -104,6 +104,7 @@ public class ListenerRegistry {
                                         FastTravelManager fastTravelManager,
                                         FastTravelGUI fastTravelGUI,
                                         me.nakilex.levelplugin.dungeon.gui.DungeonListGUI dungeonListGUI,
+                                        me.nakilex.levelplugin.dungeon.gui.DungeonLeaveGUI dungeonLeaveGUI,
                                         MotdManager motdManager,
                                         UpgradeGUI upgradeGUI,
                                         BuildingUpgradeGUI buildingUpgradeGUI,
@@ -222,6 +223,7 @@ public class ListenerRegistry {
         pm.registerEvents(new ExplorationListener(fastTravelManager, plugin.getLocationMusicManager()), plugin);
         pm.registerEvents(new FastTravelRespawnListener(fastTravelManager), plugin);
         pm.registerEvents(dungeonListGUI, plugin);
+        pm.registerEvents(dungeonLeaveGUI, plugin);
         pm.registerEvents(motdManager, plugin);
         pm.registerEvents(upgradeGUI, plugin);
         pm.registerEvents(buildingUpgradeGUI, plugin);
