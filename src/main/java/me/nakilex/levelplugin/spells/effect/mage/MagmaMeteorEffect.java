@@ -1,0 +1,224 @@
+package me.nakilex.levelplugin.spells.effect.mage;
+
+import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.duels.managers.DuelManager;
+import me.nakilex.levelplugin.spells.context.SpellCastContext;
+import me.nakilex.levelplugin.spells.context.SpellCastContextCompat;
+import me.nakilex.levelplugin.spells.effect.SpellEffect;
+import me.nakilex.levelplugin.spells.utils.SpellUtils;
+import me.nakilex.levelplugin.spells.utils.animation.SpellAnimation;
+import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.Particle;
+import org.bukkit.World;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
+import org.bukkit.block.data.BlockData;
+import org.bukkit.entity.ArmorStand;
+import org.bukkit.entity.FallingBlock;
+import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.metadata.FixedMetadataValue;
+import org.bukkit.util.BoundingBox;
+import org.bukkit.util.Vector;
+
+import java.util.HashSet;
+import java.util.Set;
+
+/**
+ * Custom in‑house meteor implementation that drops a magma block “core” using an armor
+ * stand and fragments the path with falling magma blocks. Handles collision manually so
+ * low ceilings do not instantly explode the meteor and filters damage to valid targets.
+ */
+public class MagmaMeteorEffect implements SpellEffect {
+
+    private static final double DEFAULT_RANGE = 28.0;
+    private static final double DESIRED_SPAWN_HEIGHT = 15.0;
+    private static final double MIN_TRAVEL_DISTANCE = 4.0;
+    private static final double STEP_SPEED = 1.2;
+    private static final double IMPACT_RADIUS = 4.0;
+    private static final int IGNITE_TICKS = 80;
+
+    @Override
+    public void apply(SpellCastContext ctx) {
+        Player player = ctx.getPlayer();
+        if (player == null || !player.isOnline()) return;
+
+        Location impact = findImpactLocation(player, DEFAULT_RANGE);
+        if (impact == null) return;
+
+        Location spawn = findSpawnLocation(impact, DESIRED_SPAWN_HEIGHT, MIN_TRAVEL_DISTANCE);
+        Vector velocity = impact.clone().subtract(spawn).toVector().normalize().multiply(STEP_SPEED);
+
+        ArmorStand meteor = spawnMeteorStand(spawn);
+        BlockData magmaData = Material.MAGMA_BLOCK.createBlockData();
+
+        new SpellAnimation(1, 80) {
+            private Location current = spawn.clone();
+            private boolean exploded = false;
+
+            @Override
+            protected void onTick(int tick) {
+                if (exploded || !meteor.isValid()) {
+                    cancel();
+                    return;
+                }
+
+                // Advance meteor
+                current.add(velocity);
+                meteor.teleport(current);
+                spawnTrail(current, magmaData);
+
+                if (hasCollided(current)) {
+                    explode(current, player, ctx);
+                    exploded = true;
+                    meteor.remove();
+                    cancel();
+                    return;
+                }
+
+                LivingEntity directHit = findDirectHit(player, current, 1.5);
+                if (directHit != null) {
+                    explode(current, player, ctx);
+                    exploded = true;
+                    meteor.remove();
+                    cancel();
+                }
+            }
+
+            @Override
+            protected void onEnd() {
+                meteor.remove();
+            }
+        };
+    }
+
+    private Location findImpactLocation(Player player, double maxRange) {
+        World world = player.getWorld();
+        Location eye = player.getEyeLocation();
+        Vector direction = eye.getDirection().normalize();
+        Location cursor = eye.clone().add(direction.multiply(maxRange));
+
+        Block targetBlock = player.getTargetBlockExact((int) maxRange);
+        if (targetBlock != null) {
+            cursor = targetBlock.getLocation().add(0.5, 1.0, 0.5);
+        }
+
+        // Ensure we always impact at ground level even if aiming mid‑air
+        Location ground = cursor.clone();
+        while (ground.getY() > world.getMinHeight() && ground.getBlock().isPassable()) {
+            ground.subtract(0, 1, 0);
+        }
+        ground.add(0, 1, 0);
+        return ground;
+    }
+
+    private Location findSpawnLocation(Location impact, double desiredHeight, double minTravel) {
+        World world = impact.getWorld();
+        int columnX = impact.getBlockX();
+        int columnZ = impact.getBlockZ();
+        int maxY = Math.min(world.getMaxHeight() - 2, (int) Math.floor(impact.getY() + desiredHeight));
+        int impactY = (int) Math.floor(impact.getY());
+
+        int airRun = 0;
+        int chosenY = -1;
+        int highestPassable = -1;
+        for (int y = maxY; y > impactY; y--) {
+            if (world.getBlockAt(columnX, y, columnZ).isPassable()) {
+                highestPassable = Math.max(highestPassable, y);
+                airRun++;
+                if (airRun >= minTravel) {
+                    chosenY = y;
+                    break;
+                }
+            } else {
+                airRun = 0;
+            }
+        }
+
+        if (chosenY == -1) {
+            chosenY = highestPassable > 0 ? highestPassable : impactY + 1;
+        }
+        return new Location(world, impact.getX(), chosenY + 0.1, impact.getZ());
+    }
+
+    private ArmorStand spawnMeteorStand(Location spawn) {
+        World world = spawn.getWorld();
+        ArmorStand meteor = world.spawn(spawn, ArmorStand.class, stand -> {
+            stand.setInvisible(true);
+            stand.setMarker(true);
+            stand.setGravity(false);
+            stand.getEquipment().setHelmet(new ItemStack(Material.MAGMA_BLOCK));
+            stand.setMetadata("Meteor", new FixedMetadataValue(Main.getInstance(), true));
+        });
+        return meteor;
+    }
+
+    private void spawnTrail(Location location, BlockData magmaData) {
+        World world = location.getWorld();
+        world.spawnParticle(Particle.SMOKE_LARGE, location, 4, 0.3, 0.3, 0.3, 0.01);
+        world.spawnParticle(Particle.FLAME, location, 6, 0.25, 0.25, 0.25, 0.02);
+
+        FallingBlock fragment = world.spawnFallingBlock(location, magmaData);
+        fragment.setDropItem(false);
+        fragment.setVelocity(new Vector(
+            (Math.random() - 0.5) * 0.4,
+            -0.6,
+            (Math.random() - 0.5) * 0.4
+        ));
+        fragment.setMetadata("Meteor", new FixedMetadataValue(Main.getInstance(), true));
+        fragment.setHurtEntities(false);
+        Main.getInstance().getServer().getScheduler().runTaskLater(
+            Main.getInstance(), fragment::remove, 40L
+        );
+    }
+
+    private boolean hasCollided(Location location) {
+        Block block = location.getBlock();
+        if (!block.isPassable()) return true;
+        Block below = block.getRelative(BlockFace.DOWN);
+        return below.getType().isSolid() && location.getY() <= below.getY() + 1.1;
+    }
+
+    private LivingEntity findDirectHit(Player caster, Location location, double radius) {
+        World world = location.getWorld();
+        BoundingBox box = BoundingBox.of(location, radius, radius, radius);
+        for (LivingEntity entity : world.getLivingEntities()) {
+            if (entity.equals(caster)) continue;
+            if (entity instanceof ArmorStand) continue;
+            if (!box.overlaps(entity.getBoundingBox())) continue;
+            if (entity instanceof Player other &&
+                !DuelManager.getInstance().areInDuel(caster.getUniqueId(), other.getUniqueId())) {
+                continue;
+            }
+            return entity;
+        }
+        return null;
+    }
+
+    private void explode(Location center, Player caster, SpellCastContext ctx) {
+        World world = center.getWorld();
+        world.spawnParticle(Particle.EXPLOSION_LARGE, center, 4, 0.5, 0.5, 0.5, 0.05);
+        world.spawnParticle(Particle.LAVA, center, 25, 0.7, 0.4, 0.7, 0.05);
+        world.playSound(center, org.bukkit.Sound.ENTITY_GENERIC_EXPLODE, 1.0f, 1.0f);
+        world.playSound(center, org.bukkit.Sound.BLOCK_LAVA_EXTINGUISH, 0.8f, 0.8f);
+
+        SpellCastContextCompat.markSuccess(ctx, true);
+
+        double damage = ctx.getFinalDamage();
+        Set<LivingEntity> alreadyHit = new HashSet<>();
+        for (LivingEntity target : world.getNearbyLivingEntities(center, IMPACT_RADIUS)) {
+            if (target.equals(caster)) continue;
+            if (target instanceof ArmorStand) continue;
+            if (!alreadyHit.add(target)) continue;
+            if (target instanceof Player other &&
+                !DuelManager.getInstance().areInDuel(caster.getUniqueId(), other.getUniqueId())) {
+                continue;
+            }
+
+            SpellUtils.dealWithChat(caster, target, damage, ctx.getBaseSpell().getDisplayName());
+            target.setFireTicks(Math.max(target.getFireTicks(), IGNITE_TICKS));
+        }
+    }
+}
