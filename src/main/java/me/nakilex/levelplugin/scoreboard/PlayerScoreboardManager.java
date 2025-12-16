@@ -54,6 +54,12 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
     @org.bukkit.event.EventHandler
     public void onJoin(org.bukkit.event.player.PlayerJoinEvent event) {
         updateBoard(event.getPlayer());
+        org.bukkit.entity.Player player = event.getPlayer();
+        org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            if (player.isOnline()) {
+                updateBoard(player);
+            }
+        }, 20L);
     }
 
     @org.bukkit.event.EventHandler
@@ -193,6 +199,8 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
             createBoard(player);
             return;
         }
+
+        player.setScoreboard(board);
 
         Objective obj = board.getObjective("stats");
         if (obj == null) return;

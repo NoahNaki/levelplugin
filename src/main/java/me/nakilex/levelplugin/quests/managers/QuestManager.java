@@ -30,9 +30,9 @@ public class QuestManager {
     private final PartyManager partyManager;
     private final LevelManager levelManager;
     private final Map<String, Quest> quests = new HashMap<>();
-    private final Map<Integer, String> npcQuestMap = new HashMap<>();
+    private final Map<Integer, List<String>> npcQuestMap = new HashMap<>();
     private final Map<String, TalkTargetInfo> talkTargetMap = new HashMap<>();
-    private final Map<String, String> npcQuestNameMap = new HashMap<>();
+    private final Map<String, List<String>> npcQuestNameMap = new HashMap<>();
     // Allow multiple quests to be active per player
     private final Map<UUID, Map<String, PlayerQuestProgress>> activeQuests = new HashMap<>();
     private final Map<UUID, Set<String>> completedQuests = new HashMap<>();
@@ -88,6 +88,7 @@ public class QuestManager {
         Quest forgeFundamentals = new me.nakilex.levelplugin.quests.def.ForgeFundamentalsQuest();
         Quest stonemasonJudeau = new me.nakilex.levelplugin.quests.def.StonemasonJudeauQuest();
         Quest essenceWeaverLesson = new me.nakilex.levelplugin.quests.def.EssenceWeaversLessonQuest();
+        Quest gamblersGambit = new me.nakilex.levelplugin.quests.def.GamblersGambitQuest();
         registerQuest(nb);
         registerQuest(cultistCulling);
         registerQuest(seras);
@@ -106,7 +107,16 @@ public class QuestManager {
         registerQuest(forgeFundamentals);
         registerQuest(stonemasonJudeau);
         registerQuest(essenceWeaverLesson);
+        registerQuest(gamblersGambit);
         registerNpcQuest("Seras", me.nakilex.levelplugin.quests.def.SerasQuest.ID);
+        registerNpcQuest(me.nakilex.levelplugin.quests.def.MarketBeginningsQuest.NPC_NAME,
+                me.nakilex.levelplugin.quests.def.MarketBeginningsQuest.ID);
+        registerNpcQuest(me.nakilex.levelplugin.quests.def.SharpestSecretQuest.NPC_KAZAN_NAME,
+                me.nakilex.levelplugin.quests.def.SharpestSecretQuest.ID);
+        registerNpcQuest(me.nakilex.levelplugin.quests.def.SharpestSecretQuest.NPC_OSIRIS_NAME,
+                me.nakilex.levelplugin.quests.def.SharpestSecretQuest.ID);
+        registerNpcQuest(me.nakilex.levelplugin.quests.def.CultistCullingQuest.getContactNpcId(),
+                me.nakilex.levelplugin.quests.def.CultistCullingQuest.ID);
         me.nakilex.levelplugin.quests.def.SharpestSecretQuest.registerTalkTargets(this);
         me.nakilex.levelplugin.quests.def.SalvagersLessonQuest.registerTalkTargets(this);
         me.nakilex.levelplugin.quests.def.MarketBeginningsQuest.registerTalkTargets(this);
@@ -114,6 +124,7 @@ public class QuestManager {
         me.nakilex.levelplugin.quests.def.StonemasonJudeauQuest.registerTalkTargets(this);
         me.nakilex.levelplugin.quests.def.CultistCullingQuest.registerTalkTargets(this);
         me.nakilex.levelplugin.quests.def.EssenceWeaversLessonQuest.registerTalkTargets(this);
+        me.nakilex.levelplugin.quests.def.GamblersGambitQuest.registerTalkTargets(this);
         // These service/tutorial quests rely on NPC display names so they continue to work even if IDs
         // change between environments.
         registerNpcQuest(me.nakilex.levelplugin.quests.def.SalvagersLessonQuest.NPC_NAME,
@@ -130,19 +141,32 @@ public class QuestManager {
     public void registerQuest(Quest quest) {
         quests.put(quest.getId(), quest);
         if (quest.getNpcGiverId() != null) {
-            npcQuestMap.putIfAbsent(quest.getNpcGiverId(), quest.getId());
+            registerNpcQuest(quest.getNpcGiverId(), quest.getId());
         }
     }
 
     public void registerNpcQuest(int npcId, String questId) {
-        npcQuestMap.putIfAbsent(npcId, questId);
+        addNpcQuest(npcQuestMap, npcId, questId);
     }
 
     public void registerNpcQuest(String npcName, String questId) {
         if (npcName == null) {
             return;
         }
-        npcQuestNameMap.put(NpcNameUtil.normalize(npcName), questId);
+        String normalized = NpcNameUtil.normalize(npcName);
+        if (normalized != null && !normalized.isBlank()) {
+            addNpcQuest(npcQuestNameMap, normalized, questId);
+        }
+    }
+
+    private <K> void addNpcQuest(Map<K, List<String>> map, K key, String questId) {
+        if (key == null || questId == null) {
+            return;
+        }
+        List<String> ids = map.computeIfAbsent(key, k -> new java.util.ArrayList<>());
+        if (!ids.contains(questId)) {
+            ids.add(questId);
+        }
     }
 
     public void registerTalkTarget(String target, String npcName, String displayName) {
@@ -154,27 +178,80 @@ public class QuestManager {
     }
 
     public Quest getQuestByNpcId(int npcId) {
-        String id = npcQuestMap.get(npcId);
-        return id == null ? null : quests.get(id);
+        List<String> ids = npcQuestMap.get(npcId);
+        if (ids == null || ids.isEmpty()) {
+            return null;
+        }
+        return quests.get(ids.get(0));
     }
 
     public Quest getQuestByNpc(NPC npc) {
+        return getQuestByNpc(npc, null);
+    }
+
+    public Quest getQuestByNpc(NPC npc, Player player) {
         if (npc == null) {
             return null;
         }
 
-        // Prefer name-based lookup so quests that rely on display names (e.g., salvager tutorial)
-        // still resolve even if NPC IDs change between environments.
+        java.util.Set<String> candidates = new java.util.LinkedHashSet<>();
+
         String normalized = NpcNameUtil.normalize(npc.getName());
         if (normalized != null) {
-            String questId = npcQuestNameMap.get(normalized);
-            Quest quest = questId == null ? null : quests.get(questId);
-            if (quest != null) {
-                return quest;
+            List<String> nameMapped = npcQuestNameMap.get(normalized);
+            if (nameMapped != null) {
+                candidates.addAll(nameMapped);
             }
         }
 
-        return getQuestByNpcId(npc.getId());
+        List<String> idMapped = npcQuestMap.get(npc.getId());
+        if (idMapped != null) {
+            candidates.addAll(idMapped);
+        }
+
+        if (candidates.isEmpty()) {
+            return null;
+        }
+
+        if (player == null) {
+            return quests.get(candidates.iterator().next());
+        }
+
+        Quest best = null;
+        int bestPriority = Integer.MIN_VALUE;
+        for (String questId : candidates) {
+            Quest candidate = quests.get(questId);
+            if (candidate == null) {
+                continue;
+            }
+            QuestState state = getQuestState(player, candidate);
+            int priority = switch (state) {
+                case TURN_IN_READY -> 5;
+                case IN_PROGRESS -> 4;
+                case ACCEPTED -> 3;
+                case AVAILABLE -> 2;
+                case LOCKED -> 1;
+                default -> 0;
+            };
+            if (priority > bestPriority) {
+                bestPriority = priority;
+                best = candidate;
+            }
+        }
+        return best;
+    }
+
+    /** Determine whether any quest is associated with the given NPC. */
+    public boolean hasQuestForNpc(NPC npc) {
+        if (npc == null) {
+            return false;
+        }
+        String normalized = NpcNameUtil.normalize(npc.getName());
+        if (normalized != null && npcQuestNameMap.containsKey(normalized)) {
+            return true;
+        }
+        List<String> mapped = npcQuestMap.get(npc.getId());
+        return mapped != null && !mapped.isEmpty();
     }
 
     public Quest getQuestById(String questId) {
@@ -184,7 +261,7 @@ public class QuestManager {
         return quests.get(questId);
     }
 
-    public Map<Integer, String> getNpcQuestMap() {
+    public Map<Integer, List<String>> getNpcQuestMap() {
         return npcQuestMap;
     }
 

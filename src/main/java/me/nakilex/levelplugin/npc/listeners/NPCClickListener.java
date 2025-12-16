@@ -20,6 +20,7 @@ import me.nakilex.levelplugin.quests.def.ForgeFundamentalsQuest;
 import me.nakilex.levelplugin.quests.def.EssenceWeaversLessonQuest;
 import me.nakilex.levelplugin.quests.def.HawieHermitCrabQuest;
 import me.nakilex.levelplugin.quests.def.CultistCullingQuest;
+import me.nakilex.levelplugin.quests.def.GamblersGambitQuest;
 import me.nakilex.levelplugin.npc.dialog.NPCDialogManager;
 import me.nakilex.levelplugin.storage.StorageManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
@@ -172,7 +173,7 @@ public class NPCClickListener implements Listener {
                 }
             }
 
-            Quest quest = questManager.getQuestByNpc(npc);
+            Quest quest = questManager.getQuestByNpc(npc, player);
             if (npc.getId() == SerasQuest.NPC_ID) {
                 Quest serasPartTwo = questManager.getQuestById(SerasSlimeKingQuest.ID);
                 if (serasPartTwo != null && !questManager.hasCompleted(player.getUniqueId(), serasPartTwo.getId())) {
@@ -193,6 +194,12 @@ public class NPCClickListener implements Listener {
             if (quest != null) {
                 if (ForgeFundamentalsQuest.ID.equals(quest.getId())) {
                     if (handleForgeFundamentals(player, npc, quest)) {
+                        return;
+                    }
+                }
+
+                if (GamblersGambitQuest.ID.equals(quest.getId())) {
+                    if (handleGamblersGambit(player, npc, quest)) {
                         return;
                     }
                 }
@@ -393,6 +400,79 @@ public class NPCClickListener implements Listener {
                 EssenceWeaversLessonQuest.getReturnDialog(),
                 npc,
                 () -> questManager.handleTalk(player, "npc_essence_weaver_return"));
+        return true;
+    }
+
+    private boolean handleGamblersGambit(Player player, NPC npc, Quest quest) {
+        if (dialogManager.resumePendingChoice(player, npc)) {
+            return true;
+        }
+
+        QuestState state = questManager.getQuestState(player, quest);
+        if (state == QuestState.LOCKED) {
+            questManager.meetsRequirements(player, quest);
+            return true;
+        }
+        if (state == QuestState.COMPLETED) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
+                    "The gambler winks—you already claimed their lucky charm.");
+            return true;
+        }
+
+        UUID uuid = player.getUniqueId();
+        PlayerQuestProgress progress = questManager.getProgress(uuid, quest.getId());
+        GamblersGambitQuest script = GamblersGambitQuest.getInstance();
+
+        if (state == QuestState.AVAILABLE) {
+            dialogManager.startDialog(player,
+                    GamblersGambitQuest.getOfferDialog(),
+                    npc,
+                    () -> dialogManager.startChoiceDialog(player,
+                            npc,
+                            java.util.List.of("Yes", "No"),
+                            GamblersGambitQuest.ID,
+                            GamblersGambitQuest.getChoiceFlagBase(),
+                            choice -> {
+                                questManager.removeFlag(uuid, GamblersGambitQuest.ID,
+                                        GamblersGambitQuest.getChoiceFlagBase() + choice);
+                                if (choice == 0) {
+                                    int balance = economyManager.getBalance(player);
+                                    if (balance < GamblersGambitQuest.ENTRY_FEE) {
+                                        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                                                "You need " + GamblersGambitQuest.ENTRY_FEE + " coins to ante up.");
+                                        return;
+                                    }
+                                    economyManager.deductCoins(player, GamblersGambitQuest.ENTRY_FEE);
+                                    CurrencyMessageUtil.sendLoss(player, CurrencyMessageUtil.Currency.COINS,
+                                            GamblersGambitQuest.ENTRY_FEE);
+                                    questManager.startQuest(player, GamblersGambitQuest.ID);
+                                    dialogManager.startDialog(player,
+                                            GamblersGambitQuest.getAcceptDialog(),
+                                            npc,
+                                            () -> {
+                                                if (script != null) {
+                                                    script.remindGuess(player);
+                                                }
+                                            });
+                                } else {
+                                    dialogManager.startDialog(player,
+                                            GamblersGambitQuest.getDeclineDialog(),
+                                            npc,
+                                            null);
+                                }
+                            }));
+            return true;
+        }
+
+        if (progress != null && progress.getProgress(GamblersGambitQuest.GUESS_OBJECTIVE_INDEX) >= 1) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
+                    "Enjoy your winnings—you already cracked the gambler's game.");
+            return true;
+        }
+
+        if (script != null) {
+            script.remindGuess(player);
+        }
         return true;
     }
 
