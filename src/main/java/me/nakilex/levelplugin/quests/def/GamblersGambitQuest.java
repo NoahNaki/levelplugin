@@ -80,10 +80,10 @@ public class GamblersGambitQuest extends Quest implements QuestScript, QuestComp
     private static List<QuestObjective> createObjectives() {
         return List.of(
                 new QuestObjective(QuestObjectiveType.TALK, INTRO_TARGET, 1,
-                        BeaconTargets.npc(NPC_ID),
+                        false, BeaconTargets.npc(NPC_ID),
                         "Pay the entry fee to hear the gambler's offer."),
                 new QuestObjective(QuestObjectiveType.TALK, GUESS_TARGET, 1,
-                        BeaconTargets.npc(NPC_ID),
+                        false, BeaconTargets.npc(NPC_ID),
                         "Match the gambler's hidden number between 1 and 10.")
         );
     }
