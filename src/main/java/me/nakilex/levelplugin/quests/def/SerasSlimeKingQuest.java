@@ -50,7 +50,7 @@ public class SerasSlimeKingQuest extends Quest implements QuestScript, QuestComp
                 7,
                 List.of(SerasQuest.ID, StableKeeperQuest.ID),
                 null,
-                QuestRewardCompat.create(250, 175, 0, List.of()),
+                QuestRewardCompat.create(1250, 375, 0, List.of()),
                 SerasQuest.NPC_ID,
                 List.of(
                         "Seras|Welcome back. Those roosters should be quiet now—ready for the real challenge?",

@@ -834,8 +834,8 @@ public class SpellManager {
         mageMap.put("LLL", new Spell(
             "meteor", "Meteor", "LLL",
             12.0,
-            2,
-            5,
+            8,
+            8,
             WeaponType.WAND.getMaterials(),
             "MAGE_MAGMA_METEOR", 10.0
         ));
@@ -844,7 +844,7 @@ public class SpellManager {
             8.0,
             MythicSkillConfig.getCooldownSeconds("Frost_Nova"), 5,
             WeaponType.WAND.getMaterials(),
-            "MYTHIC_FROST_NOVA", 0.0
+            "MYTHIC_FROST_NOVA", 5.0
         ));
         mageMap.put("RRR", new Spell(
             "inferno_chains", "Inferno Chains", "RRR",
