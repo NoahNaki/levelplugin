@@ -34,7 +34,7 @@ public class RahirScorpidQuest extends Quest implements QuestScript {
                 QuestRewardCompat.create(3000, 2500, 0, List.of()),
                 1109,
                 List.of(
-                        "Rahir|There's an open field just beyond town where the sand stays warm and the vp1_scorpid crawl out in droves.",
+                        "Rahir|There's an open field just beyond town where the sand stays warm and the Scorpid crawl out in droves.",
                         "Rahir|The caravans can't leave while they're nesting there, so the trade road is bleeding coin.",
                         "Rahir|Take that field back—kill ten of the scorpions skittering behind the walls and then return so I know the route is safe.",
                         "Rahir|Do that and I'll pay you properly for every wagon that makes it through without venom in the wheels."

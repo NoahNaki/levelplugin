@@ -83,7 +83,7 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
     private static final String SHADOW_SITE_KEY = "shadow_sorcerer";
 
     private static final List<String> INTRO_DIALOG = List.of(
-            "Seras|Word is a cult has been stirring trouble well beyond these woods.",
+            "Seras|Word is, a cult has been stirring trouble well beyond these woods.",
             "Seras|You're not the same fresh-faced adventurer from before—think you can stamp out their rituals?",
             "Seras|Disrupt every circle you find, then seek out the contact waiting to debrief you."
     );

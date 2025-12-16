@@ -1,6 +1,6 @@
 # field_bosses.yml
 mobs:
-  KING_SLIME:
+  Slime_King:
     exp: 4000
     coins: "2000-6000"
     gems: 10

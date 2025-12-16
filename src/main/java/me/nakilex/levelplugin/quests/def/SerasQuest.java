@@ -23,7 +23,7 @@ public class SerasQuest extends Quest implements QuestScript, QuestCompletionScr
                 new QuestObjective(QuestObjectiveType.TALK, "npc" + NPC_ID, 1,
                         BeaconTargets.npc(NPC_ID)),
                 new QuestObjective(QuestObjectiveType.KILL, "SLIME_COMMON", 10,
-                        BeaconTargets.staticLoc(new Location(world, 820, 65, -120))),
+                        BeaconTargets.staticLoc(new Location(world, 139, 69, -215))),
                 new QuestObjective(QuestObjectiveType.TALK, "npc" + NPC_ID + "_first", 1,
                         BeaconTargets.npc(NPC_ID))
         );
@@ -54,7 +54,7 @@ public class SerasQuest extends Quest implements QuestScript, QuestCompletionScr
                         "What are you looking at huh?",
                         "Piwan sent you did he, ugh, that rascal is always giving me more trouble.",
                         "<player>|He told me you could give me some tasks to help out around here.",
-                        "Yeah that's true, there's never a still moment in this village that's for sure.",
+                        "Yeah, that's true. There's never a still moment in this village that's for sure.",
                         "Follow this path, you'll come across some slimes that have been infesting the forest recently, kill 10 of those and bring back their cores and I'll give you a reward."
                 ),
                 false,
