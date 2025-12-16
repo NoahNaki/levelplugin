@@ -64,6 +64,9 @@ public class MagmaMeteorEffect implements SpellEffect {
         MeteorCluster meteor = spawnMeteorCluster(spawn, model);
         BlockData magmaData = Material.MAGMA_BLOCK.createBlockData();
 
+        // Mark success as soon as the meteor is spawned so mana and cooldown apply immediately
+        SpellCastContextCompat.markSuccess(ctx, true);
+
         new SpellAnimation(1, 80) {
             private Location current = spawn.clone();
             private boolean exploded = false;
