@@ -88,6 +88,7 @@ public class QuestManager {
         Quest forgeFundamentals = new me.nakilex.levelplugin.quests.def.ForgeFundamentalsQuest();
         Quest stonemasonJudeau = new me.nakilex.levelplugin.quests.def.StonemasonJudeauQuest();
         Quest essenceWeaverLesson = new me.nakilex.levelplugin.quests.def.EssenceWeaversLessonQuest();
+        Quest gamblersGambit = new me.nakilex.levelplugin.quests.def.GamblersGambitQuest();
         registerQuest(nb);
         registerQuest(cultistCulling);
         registerQuest(seras);
@@ -106,6 +107,7 @@ public class QuestManager {
         registerQuest(forgeFundamentals);
         registerQuest(stonemasonJudeau);
         registerQuest(essenceWeaverLesson);
+        registerQuest(gamblersGambit);
         registerNpcQuest("Seras", me.nakilex.levelplugin.quests.def.SerasQuest.ID);
         me.nakilex.levelplugin.quests.def.SharpestSecretQuest.registerTalkTargets(this);
         me.nakilex.levelplugin.quests.def.SalvagersLessonQuest.registerTalkTargets(this);
@@ -114,6 +116,7 @@ public class QuestManager {
         me.nakilex.levelplugin.quests.def.StonemasonJudeauQuest.registerTalkTargets(this);
         me.nakilex.levelplugin.quests.def.CultistCullingQuest.registerTalkTargets(this);
         me.nakilex.levelplugin.quests.def.EssenceWeaversLessonQuest.registerTalkTargets(this);
+        me.nakilex.levelplugin.quests.def.GamblersGambitQuest.registerTalkTargets(this);
         // These service/tutorial quests rely on NPC display names so they continue to work even if IDs
         // change between environments.
         registerNpcQuest(me.nakilex.levelplugin.quests.def.SalvagersLessonQuest.NPC_NAME,
