@@ -43,7 +43,7 @@ public class HawieHermitCrabQuest extends Quest implements QuestScript, QuestCom
                 List.of(
                         "Hawie|This little pond used to be peaceful, but now it's crawling with hermit crabs squatting in every tidepool.",
                         "Hawie|They rip shingles off my dock to make new shells and pinch the deckhands any time they reach for a mooring rope.",
-                        "Hawie|Head down the shoreline, smash ten of the vp1_hermit_crabs stirring up the muck, and I'll pay you better than those pests deserve.",
+                        "Hawie|Head down the shoreline, smash ten of the Hermit Crabs stirring up the muck, and I'll pay you better than those pests deserve.",
                         "Hawie|Come back alive with good news and maybe we can hear the waves again instead of all that clattering."
                 ),
                 false

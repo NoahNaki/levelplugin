@@ -53,7 +53,7 @@ public class SalvagersLessonQuest extends Quest implements QuestScript, QuestCom
                         "Salvager|Nothing is truly worthless. Even rusted blades still have a second life in them.",
                         "<player>|You make coin from junk?",
                         "Salvager|From junk, from splinters, from whatever you bring me. Salvage three pieces yourself and I'll show you the trick.",
-                        "Salvager|Break them down at the salvager's bench, then come back and tell me what you found."
+                        "Salvager|Hand them to me and I'll break them down."
                 ),
                 false
         );
