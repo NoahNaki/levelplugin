@@ -24,3 +24,8 @@ mobs:
     exp: 20000
     coins: "3500-7000"
     gems: 25
+
+  MSO_SkeletonOverlord:
+    exp: 15000
+    coins: "2000-5000"
+    gems: 20
