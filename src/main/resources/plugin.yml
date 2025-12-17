@@ -90,6 +90,7 @@ commands:
   guild:
     description: Manage your guild
     usage: /guild <subcommand> | /guild menu
+    aliases: [g]
   siege:
     description: Join or leave the guild siege event
     usage: /siege <join|leave>
@@ -102,6 +103,7 @@ commands:
   friend:
     description: Manage friends
     usage: /friend <add|remove|list|accept|deny>
+    aliases: [f]
   friends:
     description: View your friends list
     usage: /friends
@@ -125,7 +127,6 @@ commands:
   arena:
     description: Manage the arena queue
     usage: /arena [join|leave|open]
-    aliases: [arenaqueue]
   salvage:
     description: Opens the Salvage GUI
     usage: /salvage
