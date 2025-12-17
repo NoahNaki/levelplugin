@@ -187,7 +187,7 @@ public class AbandonedCastleQuest extends Quest implements QuestScript, QuestRes
             return false;
         }
 
-        if (!isReadyForTurnIn(player.getUniqueId(), questManager)) {
+        if (!isReadyForTurnIn(player, questManager)) {
             return false;
         }
 
@@ -201,14 +201,19 @@ public class AbandonedCastleQuest extends Quest implements QuestScript, QuestRes
         return true;
     }
 
-    private static boolean isReadyForTurnIn(UUID playerId, QuestManager questManager) {
-        if (questManager == null) {
+    private static boolean isReadyForTurnIn(Player player, QuestManager questManager) {
+        if (questManager == null || player == null) {
             return false;
         }
         Quest questDef = questManager.getQuestById(ID);
-        PlayerQuestProgress progress = questManager.getProgress(playerId, ID);
-        if (questDef == null || progress == null || questManager.hasCompleted(playerId, ID)) {
+        PlayerQuestProgress progress = questManager.getProgress(player.getUniqueId(), ID);
+        if (questDef == null || progress == null) {
             return false;
+        }
+        me.nakilex.levelplugin.quests.gui.QuestState state = questManager.getQuestState(player, questDef);
+        if (state == me.nakilex.levelplugin.quests.gui.QuestState.TURN_IN_READY
+                || state == me.nakilex.levelplugin.quests.gui.QuestState.COMPLETED) {
+            return true;
         }
         boolean cleared = progress.getProgress(CLEAR_INDEX) >= questDef.getObjectives().get(CLEAR_INDEX).getAmount();
         boolean entered = progress.getProgress(ENTER_INDEX) >= questDef.getObjectives().get(ENTER_INDEX).getAmount();

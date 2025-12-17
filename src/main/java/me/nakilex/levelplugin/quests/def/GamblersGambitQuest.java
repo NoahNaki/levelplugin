@@ -84,6 +84,7 @@ public class GamblersGambitQuest extends Quest implements QuestScript, QuestComp
     private static GamblersGambitQuest instance;
     private static boolean listenersRegistered;
     private final Map<UUID, Integer> guessTargets = new ConcurrentHashMap<>();
+    private final Map<UUID, Long> lastDialogAdvance = new ConcurrentHashMap<>();
 
     private static List<QuestObjective> createObjectives() {
         return List.of(
@@ -459,6 +460,13 @@ public class GamblersGambitQuest extends Quest implements QuestScript, QuestComp
                 if (dialogManager != null && dialogManager.hasSession(player)) {
                     net.citizensnpcs.api.npc.NPC sessionNpc = dialogManager.getSessionNpc(player);
                     if (sessionNpc != null && sessionNpc.getId() == NPC_ID) {
+                        long now = System.currentTimeMillis();
+                        Long last = lastDialogAdvance.get(player.getUniqueId());
+                        if (last != null && (now - last) < 150) {
+                            event.setCancelled(true);
+                            return;
+                        }
+                        lastDialogAdvance.put(player.getUniqueId(), now);
                         dialogManager.advanceDialog(player, questManager);
                         event.setCancelled(true);
                     }
