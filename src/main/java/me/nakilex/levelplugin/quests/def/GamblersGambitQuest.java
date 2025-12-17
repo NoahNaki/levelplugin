@@ -48,6 +48,8 @@ public class GamblersGambitQuest extends Quest implements QuestScript, QuestComp
     public static final int NPC_ID = 1417;
     public static final String NPC_NAME = "High Stakes Gambler";
     public static final int ENTRY_FEE = 1000;
+    public static final double DROP_RATE_BONUS = 1.0;
+    private static final long DROP_RATE_DURATION_MS = 30 * 60 * 1000L;
 
     public static final int INTRO_OBJECTIVE_INDEX = 0;
     public static final int GUESS_OBJECTIVE_INDEX = 1;
@@ -58,9 +60,13 @@ public class GamblersGambitQuest extends Quest implements QuestScript, QuestComp
     private static final String GUESS_FLAG = "awaiting_guess";
     private static final String CHOICE_FLAG_BASE = "gambit_choice_";
     private static final NamespacedKey REWARD_KEY = new NamespacedKey(Main.getInstance(), "gambit_aquamarine");
+    private static final NamespacedKey BONUS_KEY = new NamespacedKey(Main.getInstance(), "gambit_bonus_until");
 
     private static final List<String> OFFER_DIALOG = List.of(
-            "Gambler|Hey you, you seem like you like to live life on the edge, wanna play a little game for the cheap price of 1000 coins?"
+            "Gambler|Hey you, you seem like you like to live life on the edge, wanna play a little game for the cheap price of <glyph:coins_icon> 1,000 coins?"
+    );
+    private static final List<String> REPEAT_DIALOG = List.of(
+            "Gambler|Come to test your luck again?"
     );
     private static final List<String> ACCEPT_DIALOG = List.of(
             "Gambler|I'm going to think of a number and you have to guess it, if you get it right, I'll give you a little gift that might come in handy someday.",
@@ -126,6 +132,10 @@ public class GamblersGambitQuest extends Quest implements QuestScript, QuestComp
 
     public static List<String> getSuccessDialog() {
         return SUCCESS_DIALOG;
+    }
+
+    public static List<String> getRepeatDialog() {
+        return REPEAT_DIALOG;
     }
 
     public static String getChoiceFlagBase() {
@@ -319,7 +329,15 @@ public class GamblersGambitQuest extends Quest implements QuestScript, QuestComp
         ItemMeta meta = stack.getItemMeta();
         if (meta != null) {
             meta.setDisplayName(ChatColor.AQUA + "Highroller's Aquamarine");
-            List<String> lore = TooltipUtil.questItemLore("A charm said to shimmer brighter after a lucky streak.", true);
+            List<String> lore = new java.util.ArrayList<>();
+            lore.add(ChatColor.GRAY + "A charm said to shimmer brighter after a lucky streak.");
+            lore.add(" ");
+            lore.addAll(TooltipUtil.bulletList("Consume to gain +1% mob drop chance for 30 minutes."));
+            lore.add(" ");
+            lore.addAll(TooltipUtil.clickInstructions("Consume the aquamarine", null));
+            lore.add(" ");
+            lore.add(ChatColor.WHITE + "Quest Item");
+            lore.add(ChatColor.RED + "Soulbound");
             meta.setLore(lore);
             meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
             PersistentDataContainer pdc = meta.getPersistentDataContainer();
@@ -328,6 +346,31 @@ public class GamblersGambitQuest extends Quest implements QuestScript, QuestComp
             stack.setItemMeta(meta);
         }
         return stack;
+    }
+
+    public static double resolveDropBonus(Player player) {
+        if (player == null) {
+            return 0.0;
+        }
+        PersistentDataContainer pdc = player.getPersistentDataContainer();
+        Long until = pdc.get(BONUS_KEY, PersistentDataType.LONG);
+        if (until == null || until <= System.currentTimeMillis()) {
+            if (until != null) {
+                pdc.remove(BONUS_KEY);
+            }
+            return 0.0;
+        }
+        return DROP_RATE_BONUS;
+    }
+
+    private static void grantDropBonus(Player player) {
+        if (player == null) {
+            return;
+        }
+        long expires = System.currentTimeMillis() + DROP_RATE_DURATION_MS;
+        player.getPersistentDataContainer().set(BONUS_KEY, PersistentDataType.LONG, expires);
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
+                ChatColor.AQUA + "You feel fortune favor you. (+1% mob drop chance for 30 minutes)");
     }
 
     private void registerLifecycleListeners() {
@@ -366,6 +409,36 @@ public class GamblersGambitQuest extends Quest implements QuestScript, QuestComp
                 if (quest != null) {
                     quest.remindGuess(event.getPlayer());
                 }
+            }
+
+            @EventHandler
+            public void onInteract(org.bukkit.event.player.PlayerInteractEvent event) {
+                if (event.getItem() == null) {
+                    return;
+                }
+                ItemStack item = event.getItem();
+                ItemMeta meta = item.getItemMeta();
+                if (meta == null || !meta.getPersistentDataContainer().has(REWARD_KEY, PersistentDataType.BYTE)) {
+                    return;
+                }
+                event.setCancelled(true);
+                Player player = event.getPlayer();
+                ItemStack inHand = event.getHand() == org.bukkit.inventory.EquipmentSlot.HAND
+                        ? player.getInventory().getItemInMainHand()
+                        : player.getInventory().getItemInOffHand();
+                if (inHand == null || !inHand.isSimilar(item)) {
+                    return;
+                }
+                if (inHand.getAmount() > 1) {
+                    inHand.setAmount(inHand.getAmount() - 1);
+                } else {
+                    if (event.getHand() == org.bukkit.inventory.EquipmentSlot.HAND) {
+                        player.getInventory().setItemInMainHand(null);
+                    } else {
+                        player.getInventory().setItemInOffHand(null);
+                    }
+                }
+                grantDropBonus(player);
             }
         }, Main.getInstance());
     }

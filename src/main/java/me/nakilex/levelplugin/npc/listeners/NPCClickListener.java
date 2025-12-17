@@ -413,15 +413,52 @@ public class NPCClickListener implements Listener {
             questManager.meetsRequirements(player, quest);
             return true;
         }
-        if (state == QuestState.COMPLETED) {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                    "The gambler winks—you already claimed their lucky charm.");
-            return true;
-        }
 
         UUID uuid = player.getUniqueId();
         PlayerQuestProgress progress = questManager.getProgress(uuid, quest.getId());
         GamblersGambitQuest script = GamblersGambitQuest.getInstance();
+
+        if (state == QuestState.COMPLETED) {
+            dialogManager.startDialog(player,
+                    GamblersGambitQuest.getRepeatDialog(),
+                    npc,
+                    () -> dialogManager.startChoiceDialog(player,
+                            npc,
+                            java.util.List.of("Yes", "No"),
+                            GamblersGambitQuest.ID,
+                            GamblersGambitQuest.getChoiceFlagBase(),
+                            choice -> {
+                                questManager.removeFlag(uuid, GamblersGambitQuest.ID,
+                                        GamblersGambitQuest.getChoiceFlagBase() + choice);
+                                if (choice == 0) {
+                                    int balance = economyManager.getBalance(player);
+                                    if (balance < GamblersGambitQuest.ENTRY_FEE) {
+                                        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                                                "You need <glyph:coins_icon> " + GamblersGambitQuest.ENTRY_FEE + " to ante up.");
+                                        return;
+                                    }
+                                    economyManager.deductCoins(player, GamblersGambitQuest.ENTRY_FEE);
+                                    CurrencyMessageUtil.sendLoss(player, CurrencyMessageUtil.Currency.COINS,
+                                            GamblersGambitQuest.ENTRY_FEE);
+                                    questManager.resetQuest(uuid, GamblersGambitQuest.ID, true);
+                                    questManager.startQuest(player, GamblersGambitQuest.ID);
+                                    dialogManager.startDialog(player,
+                                            GamblersGambitQuest.getAcceptDialog(),
+                                            npc,
+                                            () -> {
+                                                if (script != null) {
+                                                    script.remindGuess(player);
+                                                }
+                                            });
+                                } else {
+                                    dialogManager.startDialog(player,
+                                            GamblersGambitQuest.getDeclineDialog(),
+                                            npc,
+                                            null);
+                                }
+                            }));
+            return true;
+        }
 
         if (state == QuestState.AVAILABLE) {
             dialogManager.startDialog(player,
@@ -439,7 +476,7 @@ public class NPCClickListener implements Listener {
                                     int balance = economyManager.getBalance(player);
                                     if (balance < GamblersGambitQuest.ENTRY_FEE) {
                                         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
-                                                "You need " + GamblersGambitQuest.ENTRY_FEE + " coins to ante up.");
+                                                "You need <glyph:coins_icon> " + GamblersGambitQuest.ENTRY_FEE + " to ante up.");
                                         return;
                                     }
                                     economyManager.deductCoins(player, GamblersGambitQuest.ENTRY_FEE);
