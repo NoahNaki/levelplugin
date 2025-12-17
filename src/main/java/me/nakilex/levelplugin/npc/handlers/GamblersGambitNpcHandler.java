@@ -1,5 +1,6 @@
 package me.nakilex.levelplugin.npc.handlers;
 
+import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.npc.dialog.NPCDialogManager;
 import me.nakilex.levelplugin.quests.data.PlayerQuestProgress;
@@ -11,6 +12,7 @@ import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.CurrencyMessageUtil;
 import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.UUID;
 
@@ -47,28 +49,12 @@ public class GamblersGambitNpcHandler extends AbstractQuestNpcHandler {
         GamblersGambitQuest script = GamblersGambitQuest.getInstance();
 
         if (state == QuestState.COMPLETED) {
-            dialogManager.startDialog(player,
-                    GamblersGambitQuest.getRepeatDialog(),
-                    npc,
-                    () -> dialogManager.startChoiceDialog(player,
-                            npc,
-                            java.util.List.of("Yes", "No"),
-                            GamblersGambitQuest.ID,
-                            GamblersGambitQuest.getChoiceFlagBase(),
-                            choice -> handleChoice(player, uuid, choice, script, npc)));
+            openOfferWithChoice(player, npc, GamblersGambitQuest.getRepeatDialog(), script);
             return true;
         }
 
         if (state == QuestState.AVAILABLE) {
-            dialogManager.startDialog(player,
-                    GamblersGambitQuest.getOfferDialog(),
-                    npc,
-                    () -> dialogManager.startChoiceDialog(player,
-                            npc,
-                            java.util.List.of("Yes", "No"),
-                            GamblersGambitQuest.ID,
-                            GamblersGambitQuest.getChoiceFlagBase(),
-                            choice -> handleChoice(player, uuid, choice, script, npc)));
+            openOfferWithChoice(player, npc, GamblersGambitQuest.getOfferDialog(), script);
             return true;
         }
 
@@ -82,6 +68,24 @@ public class GamblersGambitNpcHandler extends AbstractQuestNpcHandler {
             script.remindGuess(player);
         }
         return true;
+    }
+
+    private void openOfferWithChoice(Player player, NPC npc, java.util.List<String> dialog,
+                                     GamblersGambitQuest script) {
+        dialogManager.startDialog(player,
+                dialog,
+                npc,
+                () -> new BukkitRunnable() {
+                    @Override
+                    public void run() {
+                        dialogManager.startChoiceDialog(player,
+                                npc,
+                                java.util.List.of("Yes", "No"),
+                                GamblersGambitQuest.ID,
+                                GamblersGambitQuest.getChoiceFlagBase(),
+                                choice -> handleChoice(player, player.getUniqueId(), choice, script, npc));
+                    }
+                }.runTaskLater(Main.getInstance(), 1L));
     }
 
     private void handleChoice(Player player, UUID uuid, int choice, GamblersGambitQuest script, NPC npc) {
