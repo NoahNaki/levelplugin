@@ -7,20 +7,26 @@ import me.nakilex.levelplugin.horse.gui.HorseGUI;
 import me.nakilex.levelplugin.quests.data.Quest;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.quests.def.DungeonGuardQuest;
-import me.nakilex.levelplugin.quests.def.ZoyaDungeonQuest;
 import me.nakilex.levelplugin.quests.gui.QuestState;
 import me.nakilex.levelplugin.quests.data.PlayerQuestProgress;
 import me.nakilex.levelplugin.quests.def.SerasQuest;
 import me.nakilex.levelplugin.quests.def.SerasSlimeKingQuest;
 import me.nakilex.levelplugin.quests.def.SharpestSecretQuest;
-import me.nakilex.levelplugin.quests.def.StableKeeperQuest;
 import me.nakilex.levelplugin.quests.def.SalvagersLessonQuest;
 import me.nakilex.levelplugin.quests.def.MarketBeginningsQuest;
-import me.nakilex.levelplugin.quests.def.ForgeFundamentalsQuest;
-import me.nakilex.levelplugin.quests.def.EssenceWeaversLessonQuest;
-import me.nakilex.levelplugin.quests.def.HawieHermitCrabQuest;
 import me.nakilex.levelplugin.quests.def.CultistCullingQuest;
-import me.nakilex.levelplugin.quests.def.GamblersGambitQuest;
+import me.nakilex.levelplugin.npc.handlers.EssenceWeaverLessonNpcHandler;
+import me.nakilex.levelplugin.npc.handlers.ForgeFundamentalsNpcHandler;
+import me.nakilex.levelplugin.npc.handlers.GamblersGambitNpcHandler;
+import me.nakilex.levelplugin.npc.handlers.HawieHermitCrabNpcHandler;
+import me.nakilex.levelplugin.npc.handlers.MarketBeginningsNpcHandler;
+import me.nakilex.levelplugin.npc.handlers.QuestNpcInteractionRegistry;
+import me.nakilex.levelplugin.npc.handlers.SalvagersLessonNpcHandler;
+import me.nakilex.levelplugin.npc.handlers.SerasQuestNpcHandler;
+import me.nakilex.levelplugin.npc.handlers.SerasSlimeKingNpcHandler;
+import me.nakilex.levelplugin.npc.handlers.SharpestSecretNpcHandler;
+import me.nakilex.levelplugin.npc.handlers.StableKeeperNpcHandler;
+import me.nakilex.levelplugin.npc.handlers.ZoyaDungeonNpcHandler;
 import me.nakilex.levelplugin.npc.dialog.NPCDialogManager;
 import me.nakilex.levelplugin.storage.StorageManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
@@ -66,6 +72,7 @@ public class NPCClickListener implements Listener {
     private final EnchantGUI enchantGUI;
     private final AuctionHouseGUI auctionGUI;
     private final StorageManager storageManager;
+    private final QuestNpcInteractionRegistry questHandlerRegistry;
 
     // Constructor to get the EconomyManager instance
     public NPCClickListener(EconomyManager economyManager, QuestManager questManager, NPCDialogManager dialogManager,
@@ -78,6 +85,8 @@ public class NPCClickListener implements Listener {
         this.enchantGUI = enchantGUI;
         this.auctionGUI = auctionGUI;
         this.storageManager = storageManager;
+        this.questHandlerRegistry = new QuestNpcInteractionRegistry();
+        registerQuestHandlers();
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -192,115 +201,12 @@ public class NPCClickListener implements Listener {
                 quest = questManager.getQuestById(SalvagersLessonQuest.ID);
             }
             if (quest != null) {
-                if (ForgeFundamentalsQuest.ID.equals(quest.getId())) {
-                    if (handleForgeFundamentals(player, npc, quest)) {
-                        return;
-                    }
-                }
-
-                if (GamblersGambitQuest.ID.equals(quest.getId())) {
-                    if (handleGamblersGambit(player, npc, quest)) {
-                        return;
-                    }
-                }
-
-                if (EssenceWeaversLessonQuest.ID.equals(quest.getId())) {
-                    if (handleEssenceWeaverLesson(player, npc, quest)) {
-                        return;
-                    }
-                }
-
-                if (HawieHermitCrabQuest.ID.equals(quest.getId())) {
-                    if (handleHawieHermitCrabs(player, npc, quest)) {
-                        return;
-                    }
-                }
-
-                if ("serashelp".equals(quest.getId())) {
-                    PlayerQuestProgress progress = questManager.getProgress(player.getUniqueId(), quest.getId());
-                    if (progress != null) {
-                        boolean introDone = progress.getProgress(0) >= quest.getObjectives().get(0).getAmount();
-                        boolean killSlimesDone = progress.getProgress(1) >= quest.getObjectives().get(1).getAmount();
-                        boolean talkedAfterSlimes = progress.getProgress(2) >= quest.getObjectives().get(2).getAmount();
-
-                        if (!introDone) {
-                            dialogManager.startDialog(player,
-                                    quest.getDialogLines(),
-                                    npc,
-                                    () -> questManager.handleTalk(player, "npc" + npc.getId()));
-                            return;
-                        }
-                        if (killSlimesDone && !talkedAfterSlimes) {
-                            dialogManager.startDialog(player,
-                                    me.nakilex.levelplugin.quests.def.SerasQuest.getDialogForObjective(2),
-                                    npc,
-                                    () -> questManager.handleTalk(player, "npc" + npc.getId() + "_first"));
-                            return;
-                        }
-                        if (!killSlimesDone) {
-                            player.sendMessage("§cClear 10 forest slimes, then report back to Seras.");
-                            return;
-                        }
-                    }
-                }
-
-                if (SerasSlimeKingQuest.ID.equals(quest.getId())) {
-                    if (handleSerasSlimeKing(player, npc, quest)) {
-                        return;
-                    }
-                }
-
-                if (StableKeeperQuest.ID.equals(quest.getId())) {
-                    if (handleStableKeeper(player, npc, quest)) {
-                        return;
-                    }
-                }
-
-                if (SharpestSecretQuest.ID.equals(quest.getId())) {
-                    if (handleSharpestSecret(player, npc)) {
-                        return;
-                    }
-                }
-
-                if (SalvagersLessonQuest.ID.equals(quest.getId())) {
-                    if (handleSalvagersLesson(player, npc, quest)) {
-                        return;
-                    }
-                }
-
-                if (MarketBeginningsQuest.ID.equals(quest.getId())) {
-                    if (handleMarketBeginnings(player, npc, quest)) {
-                        return;
-                    }
-                }
-
-                if ("zoyadungeon".equals(quest.getId())) {
-                    PlayerQuestProgress progress = questManager.getProgress(player.getUniqueId(), quest.getId());
-                    if (progress != null) {
-                        boolean introDone = progress.getProgress(0) >= quest.getObjectives().get(0).getAmount();
-                        boolean dungeonSaved = progress.getProgress(1) >= quest.getObjectives().get(1).getAmount();
-                        boolean finaleDone = progress.getProgress(2) >= quest.getObjectives().get(2).getAmount();
-
-                        if (introDone && !dungeonSaved) {
-                            dialogManager.startDialog(player,
-                                    ZoyaDungeonQuest.getReminderDialog(),
-                                    npc,
-                                    null);
-                            return;
-                        }
-
-                        if (dungeonSaved && !finaleDone) {
-                            dialogManager.startDialog(player,
-                                    ZoyaDungeonQuest.getCompletionDialog(),
-                                    npc,
-                                    () -> questManager.handleTalk(player, "npc" + npc.getId() + "_return"));
-                            return;
-                        }
-                    }
+                QuestState state = questManager.getQuestState(player, quest);
+                if (questHandlerRegistry.handle(player, npc, quest, state, questManager, dialogManager)) {
+                    return;
                 }
 
                 questManager.handleTalk(player, resolveTalkTarget(player.getUniqueId(), quest, npc));
-                QuestState state = questManager.getQuestState(player, quest);
                 switch (state) {
                     case AVAILABLE -> dialogManager.startDialog(player, quest, npc);
                     case LOCKED -> questManager.meetsRequirements(player, quest);
@@ -309,264 +215,6 @@ public class NPCClickListener implements Listener {
                 }
             }
         }
-    }
-
-    private boolean handleForgeFundamentals(Player player, NPC npc, Quest quest) {
-        QuestState state = questManager.getQuestState(player, quest);
-        if (state == QuestState.AVAILABLE) {
-            dialogManager.startDialog(player, quest, npc);
-            return true;
-        }
-        if (state == QuestState.LOCKED) {
-            questManager.meetsRequirements(player, quest);
-            return true;
-        }
-
-        java.util.UUID uuid = player.getUniqueId();
-        PlayerQuestProgress progress = questManager.getProgress(uuid, quest.getId());
-        boolean introDone = progress != null && progress.getProgress(0) >= 1;
-        boolean serviceDone = progress != null && progress.getProgress(1) >= 1;
-        boolean returned = progress != null && progress.getProgress(2) >= 1;
-
-        if (!introDone && progress != null) {
-            dialogManager.startDialog(player,
-                    quest.getDialogLines(),
-                    npc,
-                    () -> questManager.handleTalk(player, ForgeFundamentalsQuest.NPC_NAME.equalsIgnoreCase(npc.getName())
-                            ? "npc_blacksmith_intro"
-                            : "npc" + npc.getId()));
-            return true;
-        }
-
-        if (returned || questManager.hasCompleted(uuid, ForgeFundamentalsQuest.ID)) {
-            player.performCommand("blacksmith");
-            return true;
-        }
-
-        if (!serviceDone) {
-            player.performCommand("blacksmith");
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
-                    "Use repair, reroll, or upgrade once, then check back with the Blacksmith.");
-            return true;
-        }
-
-        dialogManager.startDialog(player,
-                ForgeFundamentalsQuest.getReturnDialog(),
-                npc,
-                () -> questManager.handleTalk(player, "npc_blacksmith_return"));
-        return true;
-    }
-
-    private boolean handleEssenceWeaverLesson(Player player, NPC npc, Quest quest) {
-        QuestState state = questManager.getQuestState(player, quest);
-        if (state == QuestState.AVAILABLE) {
-            dialogManager.startDialog(player, quest, npc);
-            return true;
-        }
-        if (state == QuestState.LOCKED) {
-            questManager.meetsRequirements(player, quest);
-            return true;
-        }
-
-        java.util.UUID uuid = player.getUniqueId();
-        PlayerQuestProgress progress = questManager.getProgress(uuid, quest.getId());
-        boolean introDone = progress != null && progress.getProgress(0) >= 1;
-        boolean upgradeTried = progress != null && progress.getProgress(1) >= 1;
-        boolean returned = progress != null && progress.getProgress(2) >= 1;
-
-        if (!introDone && progress != null) {
-            dialogManager.startDialog(player,
-                    quest.getDialogLines(),
-                    npc,
-                    () -> questManager.handleTalk(player, EssenceWeaversLessonQuest.NPC_NAME.equalsIgnoreCase(npc.getName())
-                            ? "npc_essence_weaver_intro"
-                            : "npc" + npc.getId()));
-            return true;
-        }
-
-        if (returned || questManager.hasCompleted(uuid, EssenceWeaversLessonQuest.ID)) {
-            player.performCommand("essenceupgrade");
-            return true;
-        }
-
-        if (!upgradeTried) {
-            player.performCommand("essenceupgrade");
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
-                    "Invest a duplicate essence or attempt a star upgrade, then speak with the Essence Weaver again.");
-            return true;
-        }
-
-        dialogManager.startDialog(player,
-                EssenceWeaversLessonQuest.getReturnDialog(),
-                npc,
-                () -> questManager.handleTalk(player, "npc_essence_weaver_return"));
-        return true;
-    }
-
-    private boolean handleGamblersGambit(Player player, NPC npc, Quest quest) {
-        if (dialogManager.resumePendingChoice(player, npc)) {
-            return true;
-        }
-
-        QuestState state = questManager.getQuestState(player, quest);
-        if (state == QuestState.LOCKED) {
-            questManager.meetsRequirements(player, quest);
-            return true;
-        }
-
-        UUID uuid = player.getUniqueId();
-        PlayerQuestProgress progress = questManager.getProgress(uuid, quest.getId());
-        GamblersGambitQuest script = GamblersGambitQuest.getInstance();
-
-        if (state == QuestState.COMPLETED) {
-            dialogManager.startDialog(player,
-                    GamblersGambitQuest.getRepeatDialog(),
-                    npc,
-                    () -> dialogManager.startChoiceDialog(player,
-                            npc,
-                            java.util.List.of("Yes", "No"),
-                            GamblersGambitQuest.ID,
-                            GamblersGambitQuest.getChoiceFlagBase(),
-                            choice -> {
-                                questManager.removeFlag(uuid, GamblersGambitQuest.ID,
-                                        GamblersGambitQuest.getChoiceFlagBase() + choice);
-                                if (choice == 0) {
-                                    int balance = economyManager.getBalance(player);
-                                    if (balance < GamblersGambitQuest.ENTRY_FEE) {
-                                        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
-                                                "You need <glyph:coins_icon> " + GamblersGambitQuest.ENTRY_FEE + " to ante up.");
-                                        return;
-                                    }
-                                    economyManager.deductCoins(player, GamblersGambitQuest.ENTRY_FEE);
-                                    CurrencyMessageUtil.sendLoss(player, CurrencyMessageUtil.Currency.COINS,
-                                            GamblersGambitQuest.ENTRY_FEE);
-                                    questManager.resetQuest(uuid, GamblersGambitQuest.ID, true);
-                                    questManager.startQuest(player, GamblersGambitQuest.ID);
-                                    dialogManager.startDialog(player,
-                                            GamblersGambitQuest.getAcceptDialog(),
-                                            npc,
-                                            () -> {
-                                                if (script != null) {
-                                                    script.remindGuess(player);
-                                                }
-                                            });
-                                } else {
-                                    dialogManager.startDialog(player,
-                                            GamblersGambitQuest.getDeclineDialog(),
-                                            npc,
-                                            null);
-                                }
-                            }));
-            return true;
-        }
-
-        if (state == QuestState.AVAILABLE) {
-            dialogManager.startDialog(player,
-                    GamblersGambitQuest.getOfferDialog(),
-                    npc,
-                    () -> dialogManager.startChoiceDialog(player,
-                            npc,
-                            java.util.List.of("Yes", "No"),
-                            GamblersGambitQuest.ID,
-                            GamblersGambitQuest.getChoiceFlagBase(),
-                            choice -> {
-                                questManager.removeFlag(uuid, GamblersGambitQuest.ID,
-                                        GamblersGambitQuest.getChoiceFlagBase() + choice);
-                                if (choice == 0) {
-                                    int balance = economyManager.getBalance(player);
-                                    if (balance < GamblersGambitQuest.ENTRY_FEE) {
-                                        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
-                                                "You need <glyph:coins_icon> " + GamblersGambitQuest.ENTRY_FEE + " to ante up.");
-                                        return;
-                                    }
-                                    economyManager.deductCoins(player, GamblersGambitQuest.ENTRY_FEE);
-                                    CurrencyMessageUtil.sendLoss(player, CurrencyMessageUtil.Currency.COINS,
-                                            GamblersGambitQuest.ENTRY_FEE);
-                                    questManager.startQuest(player, GamblersGambitQuest.ID);
-                                    dialogManager.startDialog(player,
-                                            GamblersGambitQuest.getAcceptDialog(),
-                                            npc,
-                                            () -> {
-                                                if (script != null) {
-                                                    script.remindGuess(player);
-                                                }
-                                            });
-                                } else {
-                                    dialogManager.startDialog(player,
-                                            GamblersGambitQuest.getDeclineDialog(),
-                                            npc,
-                                            null);
-                                }
-                            }));
-            return true;
-        }
-
-        if (progress != null && progress.getProgress(GamblersGambitQuest.GUESS_OBJECTIVE_INDEX) >= 1) {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                    "Enjoy your winnings—you already cracked the gambler's game.");
-            return true;
-        }
-
-        if (script != null) {
-            script.remindGuess(player);
-        }
-        return true;
-    }
-
-    private boolean handleStableKeeper(Player player, NPC npc, Quest quest) {
-        java.util.UUID uuid = player.getUniqueId();
-        if (questManager.hasCompleted(uuid, StableKeeperQuest.ID)) {
-            horseGUI.openHorseMenu(player);
-            return true;
-        }
-
-        PlayerQuestProgress progress = questManager.getProgress(uuid, StableKeeperQuest.ID);
-        if (progress == null) {
-            return false;
-        }
-
-        boolean introDone = progress.getProgress(StableKeeperQuest.TALK_INTRO_INDEX) >= 1;
-        boolean roostersCleared = progress.getProgress(StableKeeperQuest.KILL_ROOSTERS_INDEX) >= 5;
-        boolean reportDone = progress.getProgress(StableKeeperQuest.TALK_REPORT_INDEX) >= 1;
-        boolean horseBought = progress.getProgress(StableKeeperQuest.BUY_HORSE_INDEX) >= 1;
-        boolean finaleDone = progress.getProgress(StableKeeperQuest.TALK_FINAL_INDEX) >= 1;
-
-        if (!introDone) {
-            dialogManager.startDialog(player,
-                    quest.getDialogLines(),
-                    npc,
-                    () -> questManager.handleTalk(player, StableKeeperQuest.NPC_TALK_TARGET));
-            return true;
-        }
-
-        if (!roostersCleared) {
-            player.sendMessage("§cThin out five wild roosters so the feed can grow back.");
-            return true;
-        }
-
-        if (roostersCleared && !reportDone) {
-            dialogManager.startDialog(player,
-                    StableKeeperQuest.getDialogForObjective(StableKeeperQuest.TALK_REPORT_INDEX),
-                    npc,
-                    () -> questManager.handleTalk(player, StableKeeperQuest.NPC_RETURN_TARGET));
-            return true;
-        }
-
-        if (reportDone && !horseBought) {
-            horseGUI.openHorseMenu(player);
-            player.sendMessage("§ePick a horse from the stable, then talk to the Stable Keeper again.");
-            return true;
-        }
-
-        if (horseBought && !finaleDone) {
-            dialogManager.startDialog(player,
-                    StableKeeperQuest.getDialogForObjective(StableKeeperQuest.TALK_FINAL_INDEX),
-                    npc,
-                    () -> questManager.handleTalk(player, StableKeeperQuest.NPC_FINAL_TARGET));
-            return true;
-        }
-
-        return false;
     }
 
     private void handleStorageManagerInteraction(Player player, NPC npc) {
@@ -691,199 +339,19 @@ public class NPCClickListener implements Listener {
                 && questManager.hasCompleted(player.getUniqueId(), DungeonGuardQuest.QUEST_ID);
     }
 
-    private boolean handleSharpestSecret(Player player, NPC npc) {
-        java.util.UUID uuid = player.getUniqueId();
-        boolean completed = questManager.hasCompleted(uuid, SharpestSecretQuest.ID);
-        PlayerQuestProgress progress = questManager.getProgress(uuid, SharpestSecretQuest.ID);
-
-        if (isNpcName(npc, SharpestSecretQuest.NPC_KAZAN_NAME)) {
-            if (completed) {
-                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                        "Osiris owes you a tasting whenever you need another edge.");
-                return true;
-            }
-            if (progress == null) {
-                return false;
-            }
-
-            boolean introDone = progress.getProgress(SharpestSecretQuest.TALK_INTRO_INDEX) >= 1;
-            boolean waitDone = progress.getProgress(SharpestSecretQuest.WAIT_FOR_NIGHT_INDEX) >= 1;
-            boolean orchidFound = progress.getProgress(SharpestSecretQuest.FIND_ORCHID_INDEX) >= 1;
-            boolean returned = progress.getProgress(SharpestSecretQuest.TALK_RETURN_INDEX) >= 1;
-            boolean osirisSpoken = progress.getProgress(SharpestSecretQuest.TALK_OSIRIS_INDEX) >= 1;
-
-            if (!introDone) {
-                dialogManager.startDialog(player,
-                        SharpestSecretQuest.getIntroDialog(),
-                        npc,
-                        () -> questManager.handleTalk(player, SharpestSecretQuest.NPC_INTRO_TARGET));
-                return true;
-            }
-
-            if (!waitDone) {
-                return true;
-            }
-
-            if (!orchidFound) {
-                return true;
-            }
-
-            if (orchidFound && !returned) {
-                if (!SharpestSecretQuest.hasMidnightOrchid(player)) {
-                    ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
-                            "You don't have the Midnight Orchid on you. Check beneath the oak at midnight again.");
-                    return true;
-                }
-                dialogManager.startDialog(player,
-                        SharpestSecretQuest.getReturnDialog(),
-                        npc,
-                        () -> {
-                            SharpestSecretQuest.removeMidnightOrchid(player);
-                            questManager.handleTalk(player, SharpestSecretQuest.NPC_RETURN_TARGET);
-                        });
-                return true;
-            }
-
-            if (returned && !osirisSpoken) {
-                return true;
-            }
-
-            if (osirisSpoken) {
-                dialogManager.startDialog(player,
-                        SharpestSecretQuest.getOsirisReminderDialog(),
-                        npc,
-                        () -> {
-                            if (enchantGUI != null) {
-                                enchantGUI.open(player);
-                            }
-                        });
-                return true;
-            }
-        }
-
-        if (isNpcName(npc, SharpestSecretQuest.NPC_OSIRIS_NAME)) {
-            if (completed) {
-                dialogManager.startDialog(player,
-                        SharpestSecretQuest.getOsirisReminderDialog(),
-                        npc,
-                        () -> {
-                            if (enchantGUI != null) {
-                                enchantGUI.open(player);
-                            }
-                        });
-                return true;
-            }
-
-            if (progress == null) {
-                return true;
-            }
-
-            boolean returned = progress.getProgress(SharpestSecretQuest.TALK_RETURN_INDEX) >= 1;
-            boolean osirisSpoken = progress.getProgress(SharpestSecretQuest.TALK_OSIRIS_INDEX) >= 1;
-
-            if (!returned) {
-                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
-                        "You should report back to Kazan before asking for the tasting.");
-                return true;
-            }
-
-            if (!osirisSpoken) {
-                dialogManager.startDialog(player,
-                        SharpestSecretQuest.getOsirisIntroDialog(),
-                        npc,
-                        () -> Bukkit.getScheduler().runTaskLater(Main.getInstance(), () ->
-                                dialogManager.startChoiceDialog(player,
-                                        npc,
-                                        java.util.List.of("Memory", "Secret", "Spell", "Lie"),
-                                        SharpestSecretQuest.ID,
-                                        "osiris_choice_",
-                                        choice -> {
-                                            if (choice == 1) {
-                                                dialogManager.startDialog(player,
-                                                        SharpestSecretQuest.getOsirisSuccessDialog(player.getName()),
-                                                        npc,
-                                                        () -> {
-                                                            SharpestSecretQuest.giveEnchantToken(player);
-                                                            questManager.handleTalk(player, SharpestSecretQuest.NPC_OSIRIS_TARGET);
-                                                            if (enchantGUI != null) {
-                                                                enchantGUI.open(player);
-                                                            }
-                                                        });
-                                            } else {
-                                                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
-                                                        "Osiris smirks. 'Not quite. Come back when the answer is clear.'");
-                                            }
-                                        }), 1L));
-                return true;
-            }
-
-            dialogManager.startDialog(player,
-                    SharpestSecretQuest.getOsirisReminderDialog(),
-                    npc,
-                    () -> {
-                        if (enchantGUI != null) {
-                            enchantGUI.open(player);
-                        }
-                    });
-            return true;
-        }
-
-        return false;
-}
-
-    private boolean handleSalvagersLesson(Player player, NPC npc, Quest quest) {
-        QuestState state = questManager.getQuestState(player, quest);
-        if (state == QuestState.AVAILABLE) {
-            dialogManager.startDialog(player, quest, npc);
-            return true;
-        }
-        if (state == QuestState.LOCKED) {
-            questManager.meetsRequirements(player, quest);
-            return true;
-        }
-
-        java.util.UUID uuid = player.getUniqueId();
-        boolean completed = questManager.hasCompleted(uuid, SalvagersLessonQuest.ID);
-        PlayerQuestProgress progress = questManager.getProgress(uuid, SalvagersLessonQuest.ID);
-        boolean introDone = progress != null && progress.getProgress(SalvagersLessonQuest.TALK_INTRO_INDEX) >= 1;
-        boolean salvaged = progress != null &&
-                progress.getProgress(SalvagersLessonQuest.SALVAGE_INDEX) >= SalvagersLessonQuest.SALVAGE_AMOUNT;
-        boolean returned = progress != null && progress.getProgress(SalvagersLessonQuest.TALK_RETURN_INDEX) >= 1;
-        boolean cooling = QuestServiceAccessTracker.isCoolingDown(uuid, QuestServiceAccessTracker.Service.SALVAGE);
-
-        if (!introDone && progress != null) {
-            dialogManager.startDialog(player,
-                    quest.getDialogLines(),
-                    npc,
-                    () -> questManager.handleTalk(player, SalvagersLessonQuest.INTRO_TARGET));
-            return true;
-        }
-
-        if (completed || returned) {
-            if (cooling) {
-                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
-                        "Give the salvager a moment before reopening the bench.");
-                return true;
-            }
-            SalvageGUI.openMerchantGUI(player);
-            return true;
-        }
-
-        if (!salvaged) {
-            if (!cooling) {
-                SalvageGUI.openMerchantGUI(player);
-            } else {
-                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
-                        "Let the salvager finish up before trying again.");
-            }
-            return true;
-        }
-
-        dialogManager.startDialog(player,
-                SalvagersLessonQuest.getReturnDialog(),
-                npc,
-                () -> questManager.handleTalk(player, SalvagersLessonQuest.RETURN_TARGET));
-        return true;
+    private void registerQuestHandlers() {
+        questHandlerRegistry
+                .register(new ForgeFundamentalsNpcHandler(questManager, dialogManager))
+                .register(new EssenceWeaverLessonNpcHandler(questManager, dialogManager))
+                .register(new GamblersGambitNpcHandler(questManager, dialogManager, economyManager))
+                .register(new HawieHermitCrabNpcHandler(questManager, dialogManager))
+                .register(new MarketBeginningsNpcHandler(questManager, dialogManager, auctionGUI))
+                .register(new SalvagersLessonNpcHandler(questManager, dialogManager))
+                .register(new SerasQuestNpcHandler(questManager, dialogManager))
+                .register(new SerasSlimeKingNpcHandler(questManager, dialogManager))
+                .register(new SharpestSecretNpcHandler(questManager, dialogManager, enchantGUI))
+                .register(new StableKeeperNpcHandler(questManager, dialogManager, horseGUI))
+                .register(new ZoyaDungeonNpcHandler(questManager, dialogManager));
     }
 
     private boolean handleCultistCulling(Player player, NPC npc) {
@@ -947,151 +415,11 @@ public class NPCClickListener implements Listener {
         return true;
     }
 
-    private boolean handleHawieHermitCrabs(Player player, NPC npc, Quest quest) {
-        QuestState state = questManager.getQuestState(player, quest);
-        if (state == QuestState.AVAILABLE) {
-            dialogManager.startDialog(player, quest, npc);
-            return true;
-        }
-        if (state == QuestState.LOCKED) {
-            questManager.meetsRequirements(player, quest);
-            return true;
-        }
-
-        java.util.UUID uuid = player.getUniqueId();
-        PlayerQuestProgress progress = questManager.getProgress(uuid, HawieHermitCrabQuest.ID);
-        if (progress == null) {
-            return false;
-        }
-
-        boolean crabsCleared = progress.getProgress(0) >= quest.getObjectives().get(0).getAmount();
-        boolean returned = progress.getProgress(1) >= 1;
-
-        if (!crabsCleared) {
-            player.sendMessage("§cClear the hermit crabs before reporting back.");
-            return true;
-        }
-
-        if (!returned) {
-            dialogManager.startDialog(player,
-                    HawieHermitCrabQuest.getReturnDialog(),
-                    npc,
-                    () -> questManager.handleTalk(player, "npc" + npc.getId()));
-            return true;
-        }
-
-        return false;
-    }
-
-    private boolean handleMarketBeginnings(Player player, NPC npc, Quest quest) {
-        QuestState state = questManager.getQuestState(player, quest);
-        if (state == QuestState.AVAILABLE) {
-            dialogManager.startDialog(player, quest, npc);
-            return true;
-        }
-        if (state == QuestState.LOCKED) {
-            questManager.meetsRequirements(player, quest);
-            return true;
-        }
-
-        java.util.UUID uuid = player.getUniqueId();
-        boolean completed = questManager.hasCompleted(uuid, MarketBeginningsQuest.ID);
-        PlayerQuestProgress progress = questManager.getProgress(uuid, MarketBeginningsQuest.ID);
-        boolean introDone = progress != null && progress.getProgress(MarketBeginningsQuest.TALK_INTRO_INDEX) >= 1;
-        boolean listed = progress != null && progress.getProgress(MarketBeginningsQuest.LIST_INDEX) >= 1;
-        boolean bid = progress != null && progress.getProgress(MarketBeginningsQuest.BID_INDEX) >= 1;
-        boolean returned = progress != null && progress.getProgress(MarketBeginningsQuest.TALK_RETURN_INDEX) >= 1;
-        boolean cooling = QuestServiceAccessTracker.isCoolingDown(uuid, QuestServiceAccessTracker.Service.AUCTION);
-
-        if (!introDone && progress != null) {
-            dialogManager.startDialog(player,
-                    quest.getDialogLines(),
-                    npc,
-                    () -> questManager.handleTalk(player, MarketBeginningsQuest.INTRO_TARGET));
-            return true;
-        }
-
-        if (completed || returned) {
-            if (cooling) {
-                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
-                        "Hold on, the auctioneer is sorting paperwork.");
-                return true;
-            }
-            if (auctionGUI != null) {
-                auctionGUI.open(player);
-            }
-            return true;
-        }
-
-        if (!listed || !bid) {
-            if (!cooling) {
-                if (auctionGUI != null) {
-                    auctionGUI.open(player);
-                }
-            } else {
-                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
-                        "Give the auction house a moment before reopening.");
-            }
-            return true;
-        }
-
-        dialogManager.startDialog(player,
-                MarketBeginningsQuest.getReturnDialog(),
-                npc,
-                () -> questManager.handleTalk(player, MarketBeginningsQuest.RETURN_TARGET));
-        return true;
-    }
-
     private boolean isNpcName(NPC npc, String expectedName) {
         if (npc == null || expectedName == null) {
             return false;
         }
         return NpcNameUtil.equalsNormalized(npc.getName(), expectedName);
-    }
-
-    private boolean handleSerasSlimeKing(Player player, NPC npc, Quest quest) {
-        QuestState state = questManager.getQuestState(player, quest);
-        if (state == QuestState.AVAILABLE) {
-            dialogManager.startDialog(player, quest, npc);
-            return true;
-        }
-        if (state == QuestState.LOCKED) {
-            questManager.meetsRequirements(player, quest);
-            return true;
-        }
-
-        PlayerQuestProgress progress = questManager.getProgress(player.getUniqueId(), quest.getId());
-        if (progress == null) {
-            return false;
-        }
-
-        boolean introDone = progress.getProgress(0) >= quest.getObjectives().get(0).getAmount();
-        boolean slimeKingDefeated = progress.getProgress(1) >= quest.getObjectives().get(1).getAmount();
-        boolean finaleDone = progress.getProgress(2) >= quest.getObjectives().get(2).getAmount();
-
-        if (!introDone) {
-            dialogManager.startDialog(player,
-                    quest.getDialogLines(),
-                    npc,
-                    () -> questManager.handleTalk(player, "npc" + npc.getId() + "_second"));
-            return true;
-        }
-
-        if (!slimeKingDefeated) {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
-                    "Seras|The Slime King is still oozing around—bring it down and return to me.");
-            return true;
-        }
-
-        if (!finaleDone) {
-            dialogManager.startDialog(player,
-                    SerasSlimeKingQuest.getDialogForObjective(2),
-                    npc,
-                    () -> questManager.handleTalk(player, "npc" + npc.getId() + "_third"));
-            return true;
-        }
-
-        return false;
     }
 
     private String resolveTalkTarget(UUID playerId, Quest quest, NPC npc) {

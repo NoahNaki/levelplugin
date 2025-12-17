@@ -89,6 +89,7 @@ public class QuestManager {
         Quest stonemasonJudeau = new me.nakilex.levelplugin.quests.def.StonemasonJudeauQuest();
         Quest essenceWeaverLesson = new me.nakilex.levelplugin.quests.def.EssenceWeaversLessonQuest();
         Quest gamblersGambit = new me.nakilex.levelplugin.quests.def.GamblersGambitQuest();
+        Quest abandonedCastle = new me.nakilex.levelplugin.quests.def.AbandonedCastleQuest();
         registerQuest(nb);
         registerQuest(cultistCulling);
         registerQuest(seras);
@@ -108,6 +109,7 @@ public class QuestManager {
         registerQuest(stonemasonJudeau);
         registerQuest(essenceWeaverLesson);
         registerQuest(gamblersGambit);
+        registerQuest(abandonedCastle);
         registerNpcQuest("Seras", me.nakilex.levelplugin.quests.def.SerasQuest.ID);
         registerNpcQuest(me.nakilex.levelplugin.quests.def.MarketBeginningsQuest.NPC_NAME,
                 me.nakilex.levelplugin.quests.def.MarketBeginningsQuest.ID);
@@ -125,6 +127,7 @@ public class QuestManager {
         me.nakilex.levelplugin.quests.def.CultistCullingQuest.registerTalkTargets(this);
         me.nakilex.levelplugin.quests.def.EssenceWeaversLessonQuest.registerTalkTargets(this);
         me.nakilex.levelplugin.quests.def.GamblersGambitQuest.registerTalkTargets(this);
+        me.nakilex.levelplugin.quests.def.AbandonedCastleQuest.registerTalkTargets(this);
         // These service/tutorial quests rely on NPC display names so they continue to work even if IDs
         // change between environments.
         registerNpcQuest(me.nakilex.levelplugin.quests.def.SalvagersLessonQuest.NPC_NAME,
@@ -135,6 +138,8 @@ public class QuestManager {
                 me.nakilex.levelplugin.quests.def.StonemasonJudeauQuest.ID);
         registerNpcQuest(me.nakilex.levelplugin.quests.def.EssenceWeaversLessonQuest.NPC_NAME,
                 me.nakilex.levelplugin.quests.def.EssenceWeaversLessonQuest.ID);
+        registerNpcQuest(me.nakilex.levelplugin.quests.def.AbandonedCastleQuest.NPC_NAME,
+                me.nakilex.levelplugin.quests.def.AbandonedCastleQuest.ID);
         plugin.getLogger().info("Registered " + quests.size() + " quests.");
     }
 
@@ -840,6 +845,17 @@ public class QuestManager {
         updateObjectiveWithAny(player, QuestObjectiveType.DUNGEON_CREATE, target);
     }
 
+    public void handleDungeonComplete(Player player, String dungeonKey) {
+        if (player == null) {
+            return;
+        }
+        String target = (dungeonKey == null || dungeonKey.isEmpty()) ? "ANY" : dungeonKey;
+        if (debug) {
+            plugin.getLogger().info("[QuestDebug] " + player.getName() + " cleared dungeon " + target);
+        }
+        updateObjectiveWithAny(player, QuestObjectiveType.DUNGEON_COMPLETE, target);
+    }
+
     private void handleBlacksmithService(Player player, String itemId) {
         updateObjectiveWithAny(player, QuestObjectiveType.BLACKSMITH_SERVICE, itemId);
     }
@@ -1123,6 +1139,11 @@ public class QuestManager {
                     return "Create and save a dungeon";
                 }
                 return "Save the dungeon \"" + obj.getTarget() + "\"";
+            case DUNGEON_COMPLETE:
+                if (obj.getTarget() == null || obj.getTarget().equalsIgnoreCase("ANY")) {
+                    return "Complete a dungeon run";
+                }
+                return "Complete the " + beautifyName(obj.getTarget()) + " dungeon";
             default:
                 return obj.getTarget();
         }

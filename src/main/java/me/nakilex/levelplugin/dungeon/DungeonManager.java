@@ -95,6 +95,12 @@ public class DungeonManager {
         return instances.containsKey(world);
     }
 
+    /** Retrieve the layout key for an active dungeon instance world, if any. */
+    public String getInstanceLayout(World world) {
+        Instance inst = instances.get(world);
+        return inst == null ? null : inst.getLayout();
+    }
+
     /**
      * Handle a player exiting a dungeon instance, returning them to their stored
      * location and sending the appropriate messaging.
