@@ -13,11 +13,14 @@ import me.nakilex.levelplugin.quests.data.QuestRepeatType;
 import me.nakilex.levelplugin.quests.data.PlayerQuestProgress;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import net.citizensnpcs.api.CitizensAPI;
+import net.citizensnpcs.api.npc.NPC;
+import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
@@ -45,6 +48,10 @@ public class AbandonedCastleQuest extends Quest implements QuestScript, QuestRes
     private static final String APPROACH_TARGET = "abandoned_castle_approach";
     private static final String ENTER_TARGET = "abandoned_castle_enter";
     private static final String CLEAR_TARGET = "abandoned_castle_clear";
+    private static final List<String> TURN_IN_DIALOG = List.of(
+            "Cedric|You're back! I was starting to worry you'd vanished like the others.",
+            "Cedric|What did you find inside the castle?"
+    );
 
     private static final int APPROACH_INDEX = 1;
     private static final int ENTER_INDEX = 2;
@@ -146,7 +153,7 @@ public class AbandonedCastleQuest extends Quest implements QuestScript, QuestRes
                 refreshObjectiveState(event.getPlayer(), event.getPlayer().getLocation());
             }
 
-            @EventHandler
+            @EventHandler(priority = EventPriority.LOWEST)
             public void onInteract(org.bukkit.event.player.PlayerInteractEntityEvent event) {
                 if (event.getHand() == org.bukkit.inventory.EquipmentSlot.OFF_HAND) {
                     return;
@@ -163,45 +170,86 @@ public class AbandonedCastleQuest extends Quest implements QuestScript, QuestRes
                 if (questManager == null) {
                     return;
                 }
-                Quest questDef = questManager.getQuestById(ID);
-                PlayerQuestProgress progress = questManager.getProgress(player.getUniqueId(), ID);
-                if (progress == null) {
+                if (questManager.getProgress(player.getUniqueId(), ID) == null) {
                     return;
                 }
-                event.setCancelled(true);
                 me.nakilex.levelplugin.npc.dialog.NPCDialogManager dialogManager = Main.getInstance().getDialogManager();
-                if (dialogManager != null && dialogManager.hasSession(player)) {
-                    net.citizensnpcs.api.npc.NPC sessionNpc = dialogManager.getSessionNpc(player);
-                    if (sessionNpc != null && sessionNpc.getId() == npc.getId()) {
-                        dialogManager.advanceDialog(player, questManager);
-                        return;
-                    }
-                }
-
-                boolean readyForTurnIn = false;
-                if (questDef != null) {
-                    me.nakilex.levelplugin.quests.gui.QuestState state = questManager.getQuestState(player, questDef);
-                    readyForTurnIn = state == me.nakilex.levelplugin.quests.gui.QuestState.TURN_IN_READY
-                            || state == me.nakilex.levelplugin.quests.gui.QuestState.COMPLETED;
-                    if (!readyForTurnIn) {
-                        readyForTurnIn = progress.getProgress(CLEAR_INDEX) >= questDef.getObjectives().get(CLEAR_INDEX).getAmount()
-                                && progress.getProgress(ENTER_INDEX) >= questDef.getObjectives().get(ENTER_INDEX).getAmount();
-                    }
-                }
-                if (readyForTurnIn) {
-                    if (dialogManager != null) {
-                        dialogManager.startDialog(player, List.of(
-                                "Cedric|You're back! I was starting to worry you'd vanished like the others.",
-                                "Cedric|What did you find inside the castle?"
-                        ), npc, () -> questManager.handleTalk(player, RETURN_TARGET));
-                        dialogManager.advanceDialog(player, questManager);
-                    } else {
-                        questManager.handleTalk(player, RETURN_TARGET);
-                    }
+                if (handleCedricTurnIn(player, questManager, npc, dialogManager)) {
+                    event.setCancelled(true);
                 }
             }
         }, plugin);
         listenersRegistered = true;
+    }
+
+    public static boolean handleCedricTurnIn(Player player, QuestManager questManager, NPC npc,
+                                             me.nakilex.levelplugin.npc.dialog.NPCDialogManager dialogManager) {
+        if (player == null || questManager == null || npc == null || npc.getId() != NPC_ID) {
+            return false;
+        }
+
+        if (!isReadyForTurnIn(player, questManager)) {
+            Main.getInstance().getLogger().info("[CedricTurnIn] Blocked for " + player.getName() + " state="
+                    + questManager.getQuestState(player, questManager.getQuestById(ID)));
+            return false;
+        }
+
+        if (questManager.isDebug()) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                    "[CedricDebug] Turn-in triggered. State=" + questManager.getQuestState(player, questManager.getQuestById(ID)));
+        }
+        PlayerQuestProgress progress = questManager.getProgress(player.getUniqueId(), ID);
+        Quest quest = questManager.getQuestById(ID);
+        if (progress != null && quest != null) {
+            String detail = "[CedricTurnIn] ready for " + player.getName()
+                    + " entered=" + progress.getProgress(ENTER_INDEX) + "/" + quest.getObjectives().get(ENTER_INDEX).getAmount()
+                    + " cleared=" + progress.getProgress(CLEAR_INDEX) + "/" + quest.getObjectives().get(CLEAR_INDEX).getAmount();
+            Main.getInstance().getLogger().info(detail);
+            if (questManager.isDebug()) {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO, detail);
+            }
+        }
+
+        if (dialogManager != null) {
+            dialogManager.startDialog(player, TURN_IN_DIALOG, npc,
+                    () -> questManager.handleTalk(player, RETURN_TARGET));
+            dialogManager.advanceDialog(player, questManager);
+        } else {
+            questManager.handleTalk(player, RETURN_TARGET);
+        }
+        return true;
+    }
+
+    public static boolean isReadyForTurnIn(Player player, QuestManager questManager) {
+        if (questManager == null || player == null) {
+            return false;
+        }
+        Quest questDef = questManager.getQuestById(ID);
+        PlayerQuestProgress progress = questManager.getProgress(player.getUniqueId(), ID);
+        if (questDef == null || progress == null) {
+            return false;
+        }
+        me.nakilex.levelplugin.quests.gui.QuestState state = questManager.getQuestState(player, questDef);
+        boolean completed = questManager.hasCompleted(player.getUniqueId(), ID);
+        if (state == me.nakilex.levelplugin.quests.gui.QuestState.TURN_IN_READY
+                || state == me.nakilex.levelplugin.quests.gui.QuestState.COMPLETED) {
+            if (questManager.isDebug()) {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                        "[CedricDebug] Ready via quest state: " + state + " completed=" + completed);
+            }
+            return true;
+        }
+        boolean cleared = progress.getProgress(CLEAR_INDEX) >= questDef.getObjectives().get(CLEAR_INDEX).getAmount();
+        boolean entered = progress.getProgress(ENTER_INDEX) >= questDef.getObjectives().get(ENTER_INDEX).getAmount();
+        if (questManager.isDebug()) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                    "[CedricDebug] Ready check — state=" + state + " entered=" + progress.getProgress(ENTER_INDEX) + "/"
+                            + questDef.getObjectives().get(ENTER_INDEX).getAmount()
+                            + " cleared=" + progress.getProgress(CLEAR_INDEX) + "/"
+                            + questDef.getObjectives().get(CLEAR_INDEX).getAmount()
+                            + " completed=" + completed);
+        }
+        return cleared && entered;
     }
 
     private static void refreshObjectiveState(Player player, Location to) {

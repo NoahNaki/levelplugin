@@ -38,6 +38,10 @@ public class GamblersGambitNpcHandler extends AbstractQuestNpcHandler {
             return true;
         }
 
+        if (dialogManager != null && (state == QuestState.AVAILABLE || state == QuestState.COMPLETED)) {
+            dialogManager.resetDialog(player);
+        }
+
         UUID uuid = player.getUniqueId();
         PlayerQuestProgress progress = questManager.getProgress(uuid, quest.getId());
         GamblersGambitQuest script = GamblersGambitQuest.getInstance();

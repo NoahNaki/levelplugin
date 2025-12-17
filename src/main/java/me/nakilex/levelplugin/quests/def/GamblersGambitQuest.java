@@ -84,6 +84,8 @@ public class GamblersGambitQuest extends Quest implements QuestScript, QuestComp
     private static GamblersGambitQuest instance;
     private static boolean listenersRegistered;
     private final Map<UUID, Integer> guessTargets = new ConcurrentHashMap<>();
+    private final Map<UUID, Long> lastDialogAdvance = new ConcurrentHashMap<>();
+    private final Map<UUID, Long> lastNpcClick = new ConcurrentHashMap<>();
 
     private static List<QuestObjective> createObjectives() {
         return List.of(
@@ -217,9 +219,12 @@ public class GamblersGambitQuest extends Quest implements QuestScript, QuestComp
         int target = ensureTarget(player.getUniqueId(), progress, questManager);
         if (guess != target) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
-                    "Not quite. The gambler chuckles and shuffles the deck. You'll need to start over.");
+                    "Not quite. The gambler chuckles and shuffles the deck. You'll need to ante up again before taking another shot.");
             questManager.resetQuest(player.getUniqueId(), ID, true);
-            questManager.startQuest(player, ID, false);
+            if (questManager.isDebug()) {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                        "[GambitDebug] Wrong guess=" + guess + " target=" + target + " -> quest reset");
+            }
             return;
         }
 
@@ -457,11 +462,24 @@ public class GamblersGambitQuest extends Quest implements QuestScript, QuestComp
                     return;
                 }
                 me.nakilex.levelplugin.npc.dialog.NPCDialogManager dialogManager = Main.getInstance().getDialogManager();
+                if (questManager.isDebug()) {
+                    long now = System.currentTimeMillis();
+                    long since = now - lastNpcClick.getOrDefault(player.getUniqueId(), 0L);
+                    ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                            "[GambitDebug] Right-click captured. Since last=" + since + "ms, hasSession="
+                                    + (dialogManager != null && dialogManager.hasSession(player)));
+                    lastNpcClick.put(player.getUniqueId(), now);
+                }
                 if (dialogManager != null && dialogManager.hasSession(player)) {
                     net.citizensnpcs.api.npc.NPC sessionNpc = dialogManager.getSessionNpc(player);
                     if (sessionNpc != null && sessionNpc.getId() == NPC_ID) {
-                        dialogManager.advanceDialog(player, questManager);
+                        long now = System.currentTimeMillis();
+                        Long last = lastDialogAdvance.get(player.getUniqueId());
+                        long delta = last == null ? Long.MAX_VALUE : now - last;
+                        Main.getInstance().getLogger().info("[Gambit] NPCRightClick session delta=" + delta + "ms for " + player.getName());
+                        // Do not advance dialog here; just cancel to avoid duplicate choices.
                         event.setCancelled(true);
+                        return;
                     }
                 }
             }

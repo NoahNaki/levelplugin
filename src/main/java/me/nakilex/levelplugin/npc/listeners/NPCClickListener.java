@@ -20,6 +20,7 @@ import me.nakilex.levelplugin.npc.handlers.ForgeFundamentalsNpcHandler;
 import me.nakilex.levelplugin.npc.handlers.GamblersGambitNpcHandler;
 import me.nakilex.levelplugin.npc.handlers.HawieHermitCrabNpcHandler;
 import me.nakilex.levelplugin.npc.handlers.MarketBeginningsNpcHandler;
+import me.nakilex.levelplugin.npc.handlers.AbandonedCastleNpcHandler;
 import me.nakilex.levelplugin.npc.handlers.QuestNpcInteractionRegistry;
 import me.nakilex.levelplugin.npc.handlers.SalvagersLessonNpcHandler;
 import me.nakilex.levelplugin.npc.handlers.SerasQuestNpcHandler;
@@ -344,6 +345,7 @@ public class NPCClickListener implements Listener {
                 .register(new ForgeFundamentalsNpcHandler(questManager, dialogManager))
                 .register(new EssenceWeaverLessonNpcHandler(questManager, dialogManager))
                 .register(new GamblersGambitNpcHandler(questManager, dialogManager, economyManager))
+                .register(new AbandonedCastleNpcHandler(questManager, dialogManager))
                 .register(new HawieHermitCrabNpcHandler(questManager, dialogManager))
                 .register(new MarketBeginningsNpcHandler(questManager, dialogManager, auctionGUI))
                 .register(new SalvagersLessonNpcHandler(questManager, dialogManager))
