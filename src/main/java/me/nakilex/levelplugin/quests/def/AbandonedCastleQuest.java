@@ -177,8 +177,10 @@ public class AbandonedCastleQuest extends Quest implements QuestScript, QuestRes
                     }
                 }
 
-                if (progress.getProgress(CLEAR_INDEX) >= quest.getObjectives().get(CLEAR_INDEX).getAmount()
-                        && progress.getProgress(ENTER_INDEX) >= quest.getObjectives().get(ENTER_INDEX).getAmount()) {
+                Quest questDef = questManager.getQuestById(ID);
+                if (questDef != null
+                        && progress.getProgress(CLEAR_INDEX) >= questDef.getObjectives().get(CLEAR_INDEX).getAmount()
+                        && progress.getProgress(ENTER_INDEX) >= questDef.getObjectives().get(ENTER_INDEX).getAmount()) {
                     if (dialogManager != null) {
                         dialogManager.startDialog(player, List.of(
                                 "Cedric|You're back! I was starting to worry you'd vanished like the others.",
