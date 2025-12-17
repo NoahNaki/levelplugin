@@ -36,6 +36,7 @@ public class QuestManager {
     // Allow multiple quests to be active per player
     private final Map<UUID, Map<String, PlayerQuestProgress>> activeQuests = new HashMap<>();
     private final Map<UUID, Set<String>> completedQuests = new HashMap<>();
+    private final Map<UUID, Map<String, Long>> lastQuestCompletion = new HashMap<>();
     private final Map<UUID, String> trackedQuests = new HashMap<>();
     private boolean debug = false;
     private FileConfiguration progressConfig;
@@ -273,6 +274,7 @@ public class QuestManager {
     private void loadProgress() {
         activeQuests.clear();
         completedQuests.clear();
+        lastQuestCompletion.clear();
         ConfigurationSection players = progressConfig.getConfigurationSection("players");
         if (players == null) return;
         for (String uuidStr : players.getKeys(false)) {
@@ -281,7 +283,32 @@ public class QuestManager {
             if (sec == null) continue;
             List<String> completed = sec.getStringList("completed");
             if (!completed.isEmpty()) {
-                completedQuests.put(uuid, new HashSet<>(completed));
+                Set<String> permanent = new HashSet<>();
+                for (String questId : completed) {
+                    Quest quest = quests.get(questId);
+                    if (quest != null && quest.getRepeatType() != QuestRepeatType.ONE_TIME) {
+                        Map<String, Long> history = lastQuestCompletion.computeIfAbsent(uuid, k -> new HashMap<>());
+                        history.putIfAbsent(questId, 0L);
+                    } else {
+                        permanent.add(questId);
+                    }
+                }
+                if (!permanent.isEmpty()) {
+                    completedQuests.put(uuid, permanent);
+                }
+            }
+            ConfigurationSection lastCompleted = sec.getConfigurationSection("last_completed");
+            if (lastCompleted != null) {
+                Map<String, Long> history = new HashMap<>();
+                for (String questId : lastCompleted.getKeys(false)) {
+                    long ts = lastCompleted.getLong(questId, -1L);
+                    if (ts > 0L) {
+                        history.put(questId, ts);
+                    }
+                }
+                if (!history.isEmpty()) {
+                    lastQuestCompletion.put(uuid, history);
+                }
             }
             ConfigurationSection activeSec = sec.getConfigurationSection("active");
             if (activeSec != null) {
@@ -353,6 +380,13 @@ public class QuestManager {
                     qSec.set("flags", new ArrayList<>(progress.getFlags()));
                 }
             }
+            Map<String, Long> history = lastQuestCompletion.get(uuid);
+            if (history != null && !history.isEmpty()) {
+                ConfigurationSection lastSec = sec.createSection("last_completed");
+                for (Map.Entry<String, Long> entry : history.entrySet()) {
+                    lastSec.set(entry.getKey(), entry.getValue());
+                }
+            }
             String tracked = trackedQuests.get(uuid);
             if (tracked != null) {
                 sec.set("tracked", tracked);
@@ -373,12 +407,73 @@ public class QuestManager {
         return quests.values();
     }
 
+    private Long getLastCompletion(UUID playerId, String questId) {
+        Map<String, Long> history = lastQuestCompletion.get(playerId);
+        if (history == null) {
+            return null;
+        }
+        return history.get(questId);
+    }
+
+    private void recordCompletion(UUID playerId, Quest quest) {
+        if (quest == null) {
+            return;
+        }
+        lastQuestCompletion.computeIfAbsent(playerId, k -> new HashMap<>())
+                .put(quest.getId(), System.currentTimeMillis());
+    }
+
+    private boolean hasCompletedBefore(UUID playerId, String questId) {
+        if (completedQuests.getOrDefault(playerId, Collections.emptySet()).contains(questId)) {
+            return true;
+        }
+        Map<String, Long> history = lastQuestCompletion.get(playerId);
+        return history != null && history.containsKey(questId);
+    }
+
+    private boolean isQuestCooling(UUID playerId, Quest quest) {
+        if (quest == null) {
+            return false;
+        }
+        if (quest.getRepeatType() == QuestRepeatType.ONE_TIME) {
+            return completedQuests.getOrDefault(playerId, Collections.emptySet()).contains(quest.getId());
+        }
+        Long completedAt = getLastCompletion(playerId, quest.getId());
+        if (completedAt == null) {
+            return false;
+        }
+        long remaining = getCooldownRemaining(playerId, quest);
+        return remaining > 0;
+    }
+
+    public long getCooldownRemaining(UUID playerId, Quest quest) {
+        if (quest == null) {
+            return 0L;
+        }
+        if (quest.getRepeatType() == QuestRepeatType.ONE_TIME) {
+            return completedQuests.getOrDefault(playerId, Collections.emptySet()).contains(quest.getId())
+                    ? Long.MAX_VALUE
+                    : 0L;
+        }
+        Long completedAt = getLastCompletion(playerId, quest.getId());
+        if (completedAt == null) {
+            return 0L;
+        }
+        long cooldown = quest.getRepeatType().getCooldownMillis();
+        if (cooldown <= 0) {
+            return 0L;
+        }
+        long remaining = (completedAt + cooldown) - System.currentTimeMillis();
+        return Math.max(remaining, 0L);
+    }
+
     public QuestState getQuestState(Player player, Quest quest) {
-        if (completedQuests.getOrDefault(player.getUniqueId(), Collections.emptySet()).contains(quest.getId())) {
+        UUID playerId = player.getUniqueId();
+        if (isQuestCooling(playerId, quest)) {
             return QuestState.COMPLETED;
         }
 
-        Map<String, PlayerQuestProgress> map = activeQuests.get(player.getUniqueId());
+        Map<String, PlayerQuestProgress> map = activeQuests.get(playerId);
         PlayerQuestProgress progress = map == null ? null : map.get(quest.getId());
         if (progress != null) {
             if (progress.isComplete()) {
@@ -406,6 +501,16 @@ public class QuestManager {
             return;
         }
         if (!requirementsMet(player, quest)) {
+            return;
+        }
+        if (isQuestCooling(player.getUniqueId(), quest)) {
+            long remaining = getCooldownRemaining(player.getUniqueId(), quest);
+            String label = quest.getRepeatType().getDisplayName();
+            if (remaining == Long.MAX_VALUE) {
+                player.sendMessage("§cYou have already completed this quest.");
+            } else {
+                player.sendMessage("§cThis " + label.toLowerCase() + " quest will reset in " + formatDurationShort(remaining) + ".");
+            }
             return;
         }
         Map<String, PlayerQuestProgress> map = activeQuests.computeIfAbsent(player.getUniqueId(), k -> new HashMap<>());
@@ -514,6 +619,50 @@ public class QuestManager {
         saveProgress();
     }
 
+    /**
+     * Clear completion cooldowns for repeatable quests of the specified type. Useful for
+     * debugging or forcing a new daily/weekly cycle without waiting for the timer.
+     *
+     * @param repeatType quest repeat type to clear
+     * @return number of quest completion records removed
+     */
+    public int resetRepeatableProgress(QuestRepeatType repeatType) {
+        if (repeatType == null) {
+            return 0;
+        }
+        int cleared = 0;
+        for (Iterator<Map.Entry<UUID, Map<String, Long>>> playerIt = lastQuestCompletion.entrySet().iterator();
+             playerIt.hasNext(); ) {
+            Map.Entry<UUID, Map<String, Long>> entry = playerIt.next();
+            Map<String, Long> history = entry.getValue();
+            if (history == null) {
+                continue;
+            }
+            for (Iterator<String> questIt = history.keySet().iterator(); questIt.hasNext(); ) {
+                String questId = questIt.next();
+                Quest quest = quests.get(questId);
+                if (quest != null && quest.getRepeatType() == repeatType) {
+                    questIt.remove();
+                    cleared++;
+                }
+            }
+            if (history.isEmpty()) {
+                playerIt.remove();
+            }
+        }
+        for (Set<String> completed : completedQuests.values()) {
+            if (completed == null) {
+                continue;
+            }
+            completed.removeIf(id -> {
+                Quest quest = quests.get(id);
+                return quest != null && quest.getRepeatType() == repeatType;
+            });
+        }
+        saveProgress();
+        return cleared;
+    }
+
     private void resetQuestInternal(UUID player, String questId, boolean ignoreMain) {
         Quest quest = quests.get(questId);
         if (quest != null && quest.isMainQuest() && !ignoreMain) {
@@ -533,6 +682,13 @@ public class QuestManager {
         Set<String> completed = completedQuests.get(player);
         if (completed != null) {
             completed.remove(questId);
+        }
+        Map<String, Long> history = lastQuestCompletion.get(player);
+        if (history != null) {
+            history.remove(questId);
+            if (history.isEmpty()) {
+                lastQuestCompletion.remove(player);
+            }
         }
         String tracked = trackedQuests.get(player);
         if (questId.equals(tracked)) {
@@ -557,6 +713,7 @@ public class QuestManager {
             }
         }
         trackedQuests.remove(player);
+        lastQuestCompletion.remove(player);
         saveProgress();
     }
 
@@ -566,7 +723,15 @@ public class QuestManager {
     }
 
     public String getQuestStatus(UUID player, String questId) {
-        if (completedQuests.getOrDefault(player, Collections.emptySet()).contains(questId)) {
+        Quest quest = quests.get(questId);
+        if (quest != null && isQuestCooling(player, quest)) {
+            long remaining = getCooldownRemaining(player, quest);
+            if (remaining == Long.MAX_VALUE || quest.getRepeatType() == QuestRepeatType.ONE_TIME) {
+                return "§a" + questId + " is completed";
+            }
+            return "§e" + questId + " resets in " + formatDurationShort(remaining);
+        }
+        if (quest == null && completedQuests.getOrDefault(player, Collections.emptySet()).contains(questId)) {
             return "§a" + questId + " is completed";
         }
         Map<String, PlayerQuestProgress> map = activeQuests.get(player);
@@ -886,9 +1051,8 @@ public class QuestManager {
             }
         }
 
-        Set<String> completed = completedQuests.getOrDefault(player.getUniqueId(), Collections.emptySet());
         for (String req : quest.getQuestRequirements()) {
-            if (!completed.contains(req)) {
+            if (!hasCompletedBefore(player.getUniqueId(), req)) {
                 if (sendMsg)
                     player.sendMessage("§cYou must complete \"" + req + "\" first.");
                 return false;
@@ -968,7 +1132,10 @@ public class QuestManager {
             activeQuests.remove(playerId);
         }
 
-        completedQuests.computeIfAbsent(playerId, k -> new HashSet<>()).add(quest.getId());
+        recordCompletion(playerId, quest);
+        if (quest.getRepeatType() == QuestRepeatType.ONE_TIME) {
+            completedQuests.computeIfAbsent(playerId, k -> new HashSet<>()).add(quest.getId());
+        }
         if (quest.getId().equals(trackedQuests.get(playerId))) {
             trackedQuests.remove(playerId);
         }
@@ -1158,6 +1325,33 @@ public class QuestManager {
         return "Complete a " + pretty + " /arena match" + queueHint;
     }
 
+    private String formatDurationShort(long millis) {
+        if (millis == Long.MAX_VALUE) {
+            return "never";
+        }
+        long seconds = Math.max(0L, millis / 1000L);
+        long minutes = seconds / 60L;
+        long hours = minutes / 60L;
+        long days = hours / 24L;
+        long remHours = hours % 24L;
+        long remMinutes = minutes % 60L;
+        long remSeconds = seconds % 60L;
+        if (days > 0) {
+            return days + "d " + remHours + "h";
+        }
+        if (hours > 0) {
+            return hours + "h " + remMinutes + "m";
+        }
+        if (minutes > 0) {
+            return minutes + "m " + remSeconds + "s";
+        }
+        return remSeconds + "s";
+    }
+
+    public String formatCooldown(long millis) {
+        return formatDurationShort(millis);
+    }
+
     /**
      * Display a styled quest start message to the player.
      */
@@ -1243,7 +1437,12 @@ public class QuestManager {
 
     /** Number of quests the player has completed. */
     public int getCompletedQuestCount(java.util.UUID player) {
-        return completedQuests.getOrDefault(player, java.util.Collections.emptySet()).size();
+        Set<String> unique = new HashSet<>(completedQuests.getOrDefault(player, java.util.Collections.emptySet()));
+        Map<String, Long> history = lastQuestCompletion.get(player);
+        if (history != null) {
+            unique.addAll(history.keySet());
+        }
+        return unique.size();
     }
 
     /** Total number of registered quests. */
@@ -1252,6 +1451,6 @@ public class QuestManager {
     }
 
     public boolean hasCompleted(UUID player, String questId) {
-        return completedQuests.getOrDefault(player, Collections.emptySet()).contains(questId);
+        return hasCompletedBefore(player, questId);
     }
 }

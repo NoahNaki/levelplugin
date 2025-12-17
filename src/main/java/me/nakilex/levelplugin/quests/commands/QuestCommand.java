@@ -13,6 +13,7 @@ import java.util.Collections;
 import java.util.List;
 
 import me.nakilex.levelplugin.quests.data.Quest;
+import me.nakilex.levelplugin.quests.data.QuestRepeatType;
 import me.nakilex.levelplugin.utils.CommandUtil;
 
 public class QuestCommand implements TabExecutor {
@@ -78,14 +79,27 @@ public class QuestCommand implements TabExecutor {
             return true;
         }
 
-        sender.sendMessage("Usage: /quest [start|reset|complete|status|debug]");
+        if (sub.equals("resetdailies")) {
+            int cleared = questManager.resetRepeatableProgress(QuestRepeatType.DAILY);
+            sender.sendMessage("Cleared " + cleared + " daily quest completion records.");
+            return true;
+        }
+
+        if (sub.equals("resetweeklies")) {
+            int cleared = questManager.resetRepeatableProgress(QuestRepeatType.WEEKLY);
+            sender.sendMessage("Cleared " + cleared + " weekly quest completion records.");
+            return true;
+        }
+
+        sender.sendMessage("Usage: /quest [start|reset|complete|status|debug|resetdailies|resetweeklies]");
         return true;
     }
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            return CommandUtil.filterStartingWith(List.of("start", "reset", "complete", "status", "debug"), args[0]);
+            return CommandUtil.filterStartingWith(List.of("start", "reset", "complete", "status", "debug",
+                    "resetdailies", "resetweeklies"), args[0]);
         }
         String sub = args[0].toLowerCase();
         if (args.length == 2) {

@@ -12,6 +12,7 @@ import me.nakilex.levelplugin.quests.data.QuestScript;
 import me.nakilex.levelplugin.quests.data.PlayerQuestProgress;
 import me.nakilex.levelplugin.quests.data.QuestCompletionScript;
 import me.nakilex.levelplugin.quests.data.QuestResetScript;
+import me.nakilex.levelplugin.quests.data.QuestRepeatType;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
@@ -48,8 +49,8 @@ public class GamblersGambitQuest extends Quest implements QuestScript, QuestComp
     public static final int NPC_ID = 1417;
     public static final String NPC_NAME = "High Stakes Gambler";
     public static final int ENTRY_FEE = 1000;
-    public static final double DROP_RATE_BONUS = 1.0;
-    private static final long DROP_RATE_DURATION_MS = 30 * 60 * 1000L;
+    public static final double DROP_RATE_BONUS = 10.0;
+    private static final long DROP_RATE_DURATION_MS = 10 * 60 * 1000L;
 
     public static final int INTRO_OBJECTIVE_INDEX = 0;
     public static final int GUESS_OBJECTIVE_INDEX = 1;
@@ -108,7 +109,8 @@ public class GamblersGambitQuest extends Quest implements QuestScript, QuestComp
                 OFFER_DIALOG,
                 false,
                 true,
-                true
+                true,
+                QuestRepeatType.DAILY
         );
         instance = this;
         registerLifecycleListeners();
@@ -332,7 +334,7 @@ public class GamblersGambitQuest extends Quest implements QuestScript, QuestComp
             List<String> lore = new java.util.ArrayList<>();
             lore.add(ChatColor.GRAY + "A charm said to shimmer brighter after a lucky streak.");
             lore.add(" ");
-            lore.addAll(TooltipUtil.bulletList("Consume to gain +1% mob drop chance for 30 minutes."));
+            lore.addAll(TooltipUtil.bulletList("Consume to gain +10% mob drop chance for 10 minutes."));
             lore.add(" ");
             lore.addAll(TooltipUtil.clickInstructions("Consume the aquamarine", null));
             lore.add(" ");
@@ -370,7 +372,7 @@ public class GamblersGambitQuest extends Quest implements QuestScript, QuestComp
         long expires = System.currentTimeMillis() + DROP_RATE_DURATION_MS;
         player.getPersistentDataContainer().set(BONUS_KEY, PersistentDataType.LONG, expires);
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                ChatColor.AQUA + "You feel fortune favor you. (+1% mob drop chance for 30 minutes)");
+                ChatColor.AQUA + "You feel fortune favor you. (+10% mob drop chance for 10 minutes)");
     }
 
     private void registerLifecycleListeners() {

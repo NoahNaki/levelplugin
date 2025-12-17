@@ -151,9 +151,19 @@ public class QuestGUI {
             List<String> lore = new ArrayList<>();
             String levelLine = formatLevelRequirement(player, quest);
             String locationLine = quest.isLocationVisible() ? formatLocationLine(quest) : null;
+            String typeLine = ChatColor.GRAY + "Quest Type: " + ChatColor.WHITE + quest.getRepeatType().getDisplayName();
+            long cooldownRemaining = qm.getCooldownRemaining(player.getUniqueId(), quest);
+            boolean showCooldown = quest.getRepeatType().isRepeatable()
+                    && cooldownRemaining > 0 && cooldownRemaining != Long.MAX_VALUE;
 
             if (state != QuestState.LOCKED) {
                 lore.add(levelLine);
+                lore.add(typeLine);
+                if (showCooldown) {
+                    lore.add(ChatColor.GRAY + "Resets in: " + ChatColor.AQUA + qm.formatCooldown(cooldownRemaining));
+                } else if (quest.getRepeatType().isRepeatable()) {
+                    lore.add(ChatColor.GRAY + "Resets: " + ChatColor.AQUA + quest.getRepeatType().getDisplayName());
+                }
                 lore.add(" ");
                 lore.add(ChatColor.GRAY + quest.getDescription());
                 lore.add(" ");
@@ -212,6 +222,7 @@ public class QuestGUI {
                 }
             } else {
                 lore.add(levelLine);
+                lore.add(typeLine);
                 if (locationLine != null) {
                     lore.add(" ");
                     lore.add(locationLine);
