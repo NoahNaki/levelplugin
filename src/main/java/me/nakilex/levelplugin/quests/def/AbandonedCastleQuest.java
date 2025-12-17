@@ -9,8 +9,10 @@ import me.nakilex.levelplugin.quests.data.QuestObjectiveType;
 import me.nakilex.levelplugin.quests.data.QuestRewardCompat;
 import me.nakilex.levelplugin.quests.data.QuestScript;
 import me.nakilex.levelplugin.quests.data.QuestResetScript;
+import me.nakilex.levelplugin.quests.data.QuestRepeatType;
 import me.nakilex.levelplugin.quests.data.PlayerQuestProgress;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
+import net.citizensnpcs.api.CitizensAPI;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -32,9 +34,9 @@ public class AbandonedCastleQuest extends Quest implements QuestScript, QuestRes
     public static final int NPC_ID = 1650;
 
     private static final String WORLD_NAME = "world";
-    private static final double CASTLE_X = 100.5;
-    private static final double CASTLE_Y = 100;
-    private static final double CASTLE_Z = 100.5;
+    private static final double CASTLE_X = -105.0;
+    private static final double CASTLE_Y = 103.0;
+    private static final double CASTLE_Z = 161.0;
     private static final double CASTLE_RADIUS = 10.0;
     private static final String CRIMSON_KEY = DungeonManager.normalizeKey("Crimson Reliquary");
 
@@ -56,7 +58,7 @@ public class AbandonedCastleQuest extends Quest implements QuestScript, QuestRes
         World world = Bukkit.getWorld(WORLD_NAME);
         Location beaconLoc = world == null ? null : new Location(world, CASTLE_X, CASTLE_Y, CASTLE_Z);
         return List.of(
-                new QuestObjective(QuestObjectiveType.TALK, INTRO_TARGET, 1, BeaconTargets.npc(NPC_ID),
+                new QuestObjective(QuestObjectiveType.TALK, INTRO_TARGET, 1, false, BeaconTargets.npc(NPC_ID),
                         "Hear Cedric's warning"),
                 new QuestObjective(QuestObjectiveType.EXPLORE, APPROACH_TARGET, 1, false,
                         beaconLoc == null ? null : BeaconTargets.staticLoc(beaconLoc),
@@ -66,7 +68,7 @@ public class AbandonedCastleQuest extends Quest implements QuestScript, QuestRes
                         "Enter the Crimson Reliquary dungeon"),
                 new QuestObjective(QuestObjectiveType.DUNGEON_COMPLETE, CRIMSON_KEY, 1, false, null,
                         "Clear the Crimson Reliquary"),
-                new QuestObjective(QuestObjectiveType.TALK, RETURN_TARGET, 1, BeaconTargets.npc(NPC_ID),
+                new QuestObjective(QuestObjectiveType.TALK, RETURN_TARGET, 1, false, BeaconTargets.npc(NPC_ID),
                         "Report back to Cedric")
         );
     }
@@ -84,12 +86,13 @@ public class AbandonedCastleQuest extends Quest implements QuestScript, QuestRes
                 NPC_ID,
                 List.of(
                         "Cedric|Rumors of some adventurers disappearing once they get near an abandoned castle have been spreading.",
-                        "Cedric|Go check out what could be causing the disturbance at §8[§e100, 100, 100§8]§f.",
+                        "Cedric|Go check out what could be causing the disturbance at §8[§e-105, 103, 161§8]§f.",
                         "Cedric|If you find your way into the Crimson Reliquary inside, make sure you come back in one piece."
                 ),
                 false,
                 true,
-                true
+                true,
+                QuestRepeatType.ONE_TIME
         );
         ensureListeners(Main.getInstance());
     }
@@ -105,6 +108,10 @@ public class AbandonedCastleQuest extends Quest implements QuestScript, QuestRes
     @Override
     public void onStart(Player player, Main plugin) {
         ensureListeners(plugin);
+        QuestManager questManager = plugin.getQuestManager();
+        if (questManager != null) {
+            questManager.handleTalk(player, INTRO_TARGET);
+        }
     }
 
     @Override
@@ -137,6 +144,61 @@ public class AbandonedCastleQuest extends Quest implements QuestScript, QuestRes
             @EventHandler
             public void onJoin(PlayerJoinEvent event) {
                 refreshObjectiveState(event.getPlayer(), event.getPlayer().getLocation());
+            }
+
+            @EventHandler
+            public void onInteract(org.bukkit.event.player.PlayerInteractEntityEvent event) {
+                if (event.getHand() == org.bukkit.inventory.EquipmentSlot.OFF_HAND) {
+                    return;
+                }
+                if (!CitizensAPI.getNPCRegistry().isNPC(event.getRightClicked())) {
+                    return;
+                }
+                net.citizensnpcs.api.npc.NPC npc = CitizensAPI.getNPCRegistry().getNPC(event.getRightClicked());
+                if (npc.getId() != NPC_ID) {
+                    return;
+                }
+                Player player = event.getPlayer();
+                QuestManager questManager = Main.getInstance().getQuestManager();
+                if (questManager == null) {
+                    return;
+                }
+                Quest questDef = questManager.getQuestById(ID);
+                PlayerQuestProgress progress = questManager.getProgress(player.getUniqueId(), ID);
+                if (progress == null) {
+                    return;
+                }
+                event.setCancelled(true);
+                me.nakilex.levelplugin.npc.dialog.NPCDialogManager dialogManager = Main.getInstance().getDialogManager();
+                if (dialogManager != null && dialogManager.hasSession(player)) {
+                    net.citizensnpcs.api.npc.NPC sessionNpc = dialogManager.getSessionNpc(player);
+                    if (sessionNpc != null && sessionNpc.getId() == npc.getId()) {
+                        dialogManager.advanceDialog(player, questManager);
+                        return;
+                    }
+                }
+
+                boolean readyForTurnIn = false;
+                if (questDef != null) {
+                    me.nakilex.levelplugin.quests.gui.QuestState state = questManager.getQuestState(player, questDef);
+                    readyForTurnIn = state == me.nakilex.levelplugin.quests.gui.QuestState.TURN_IN_READY
+                            || state == me.nakilex.levelplugin.quests.gui.QuestState.COMPLETED;
+                    if (!readyForTurnIn) {
+                        readyForTurnIn = progress.getProgress(CLEAR_INDEX) >= questDef.getObjectives().get(CLEAR_INDEX).getAmount()
+                                && progress.getProgress(ENTER_INDEX) >= questDef.getObjectives().get(ENTER_INDEX).getAmount();
+                    }
+                }
+                if (readyForTurnIn) {
+                    if (dialogManager != null) {
+                        dialogManager.startDialog(player, List.of(
+                                "Cedric|You're back! I was starting to worry you'd vanished like the others.",
+                                "Cedric|What did you find inside the castle?"
+                        ), npc, () -> questManager.handleTalk(player, RETURN_TARGET));
+                        dialogManager.advanceDialog(player, questManager);
+                    } else {
+                        questManager.handleTalk(player, RETURN_TARGET);
+                    }
+                }
             }
         }, plugin);
         listenersRegistered = true;

@@ -12,11 +12,13 @@ import me.nakilex.levelplugin.quests.data.QuestScript;
 import me.nakilex.levelplugin.quests.data.PlayerQuestProgress;
 import me.nakilex.levelplugin.quests.data.QuestCompletionScript;
 import me.nakilex.levelplugin.quests.data.QuestResetScript;
+import me.nakilex.levelplugin.quests.data.QuestRepeatType;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
+import net.citizensnpcs.api.event.NPCRightClickEvent;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -48,8 +50,8 @@ public class GamblersGambitQuest extends Quest implements QuestScript, QuestComp
     public static final int NPC_ID = 1417;
     public static final String NPC_NAME = "High Stakes Gambler";
     public static final int ENTRY_FEE = 1000;
-    public static final double DROP_RATE_BONUS = 1.0;
-    private static final long DROP_RATE_DURATION_MS = 30 * 60 * 1000L;
+    public static final double DROP_RATE_BONUS = 10.0;
+    private static final long DROP_RATE_DURATION_MS = 10 * 60 * 1000L;
 
     public static final int INTRO_OBJECTIVE_INDEX = 0;
     public static final int GUESS_OBJECTIVE_INDEX = 1;
@@ -108,7 +110,8 @@ public class GamblersGambitQuest extends Quest implements QuestScript, QuestComp
                 OFFER_DIALOG,
                 false,
                 true,
-                true
+                true,
+                QuestRepeatType.DAILY
         );
         instance = this;
         registerLifecycleListeners();
@@ -214,7 +217,9 @@ public class GamblersGambitQuest extends Quest implements QuestScript, QuestComp
         int target = ensureTarget(player.getUniqueId(), progress, questManager);
         if (guess != target) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
-                    "Not quite. Pick another number between 1 and 10.");
+                    "Not quite. The gambler chuckles and shuffles the deck. You'll need to start over.");
+            questManager.resetQuest(player.getUniqueId(), ID, true);
+            questManager.startQuest(player, ID, false);
             return;
         }
 
@@ -332,7 +337,7 @@ public class GamblersGambitQuest extends Quest implements QuestScript, QuestComp
             List<String> lore = new java.util.ArrayList<>();
             lore.add(ChatColor.GRAY + "A charm said to shimmer brighter after a lucky streak.");
             lore.add(" ");
-            lore.addAll(TooltipUtil.bulletList("Consume to gain +1% mob drop chance for 30 minutes."));
+            lore.addAll(TooltipUtil.bulletList("Consume to gain +10% mob drop chance for 10 minutes."));
             lore.add(" ");
             lore.addAll(TooltipUtil.clickInstructions("Consume the aquamarine", null));
             lore.add(" ");
@@ -370,7 +375,7 @@ public class GamblersGambitQuest extends Quest implements QuestScript, QuestComp
         long expires = System.currentTimeMillis() + DROP_RATE_DURATION_MS;
         player.getPersistentDataContainer().set(BONUS_KEY, PersistentDataType.LONG, expires);
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                ChatColor.AQUA + "You feel fortune favor you. (+1% mob drop chance for 30 minutes)");
+                ChatColor.AQUA + "You feel fortune favor you. (+10% mob drop chance for 10 minutes)");
     }
 
     private void registerLifecycleListeners() {
@@ -439,6 +444,26 @@ public class GamblersGambitQuest extends Quest implements QuestScript, QuestComp
                     }
                 }
                 grantDropBonus(player);
+            }
+
+            @EventHandler(priority = org.bukkit.event.EventPriority.LOWEST)
+            public void onNpcInteract(net.citizensnpcs.api.event.NPCRightClickEvent event) {
+                if (event.getNPC() == null || event.getNPC().getId() != NPC_ID) {
+                    return;
+                }
+                Player player = event.getClicker();
+                QuestManager questManager = Main.getInstance().getQuestManager();
+                if (questManager == null || questManager.getProgress(player.getUniqueId(), ID) == null) {
+                    return;
+                }
+                me.nakilex.levelplugin.npc.dialog.NPCDialogManager dialogManager = Main.getInstance().getDialogManager();
+                if (dialogManager != null && dialogManager.hasSession(player)) {
+                    net.citizensnpcs.api.npc.NPC sessionNpc = dialogManager.getSessionNpc(player);
+                    if (sessionNpc != null && sessionNpc.getId() == NPC_ID) {
+                        dialogManager.advanceDialog(player, questManager);
+                        event.setCancelled(true);
+                    }
+                }
             }
         }, Main.getInstance());
     }

@@ -14,6 +14,7 @@ public class Quest {
     private final List<String> questRequirements;
     private final PlayerClass classRequirement;
     private final QuestReward reward;
+    private final QuestRepeatType repeatType;
 
     /** ID of the NPC that starts this quest. */
     private final Integer npcGiverId;
@@ -36,7 +37,7 @@ public class Quest {
                  Integer npcGiverId, List<String> dialogLines,
                  boolean mainQuest) {
         this(id, name, description, objectives, levelRequirement, questRequirements, classRequirement,
-                reward, npcGiverId, dialogLines, mainQuest, true, false);
+                reward, npcGiverId, dialogLines, mainQuest, true, false, QuestRepeatType.ONE_TIME);
     }
 
     public Quest(String id, String name, String description, List<QuestObjective> objectives,
@@ -45,7 +46,7 @@ public class Quest {
                  Integer npcGiverId, List<String> dialogLines,
                  boolean mainQuest, boolean showLocation) {
         this(id, name, description, objectives, levelRequirement, questRequirements, classRequirement,
-                reward, npcGiverId, dialogLines, mainQuest, showLocation, false);
+                reward, npcGiverId, dialogLines, mainQuest, showLocation, false, QuestRepeatType.ONE_TIME);
     }
 
     public Quest(String id, String name, String description, List<QuestObjective> objectives,
@@ -53,6 +54,16 @@ public class Quest {
                  PlayerClass classRequirement, QuestReward reward,
                  Integer npcGiverId, List<String> dialogLines,
                  boolean mainQuest, boolean showLocation, boolean sequentialObjectives) {
+        this(id, name, description, objectives, levelRequirement, questRequirements, classRequirement, reward,
+                npcGiverId, dialogLines, mainQuest, showLocation, sequentialObjectives, QuestRepeatType.ONE_TIME);
+    }
+
+    public Quest(String id, String name, String description, List<QuestObjective> objectives,
+                 int levelRequirement, List<String> questRequirements,
+                 PlayerClass classRequirement, QuestReward reward,
+                 Integer npcGiverId, List<String> dialogLines,
+                 boolean mainQuest, boolean showLocation, boolean sequentialObjectives,
+                 QuestRepeatType repeatType) {
         this.id = id;
         this.name = name;
         this.description = description;
@@ -66,6 +77,7 @@ public class Quest {
         this.mainQuest = mainQuest;
         this.showLocation = showLocation;
         this.sequentialObjectives = sequentialObjectives;
+        this.repeatType = repeatType == null ? QuestRepeatType.ONE_TIME : repeatType;
     }
 
     public String getId() {
@@ -98,6 +110,10 @@ public class Quest {
 
     public QuestReward getReward() {
         return reward;
+    }
+
+    public QuestRepeatType getRepeatType() {
+        return repeatType;
     }
 
     public Integer getNpcGiverId() {
