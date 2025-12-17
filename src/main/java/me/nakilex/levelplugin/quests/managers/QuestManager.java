@@ -738,9 +738,9 @@ public class QuestManager {
         PlayerQuestProgress progress = map == null ? null : map.get(questId);
         if (progress != null) {
             StringBuilder sb = new StringBuilder("§e" + questId + " progress:");
-            Quest quest = progress.getQuest();
-            for (int i = 0; i < quest.getObjectives().size(); i++) {
-                QuestObjective obj = quest.getObjectives().get(i);
+            Quest progressQuest = progress.getQuest();
+            for (int i = 0; i < progressQuest.getObjectives().size(); i++) {
+                QuestObjective obj = progressQuest.getObjectives().get(i);
                 sb.append(" \u00BB ").append(obj.getTarget()).append(": ")
                         .append(progress.getProgress(i)).append("/")
                         .append(obj.getAmount());
