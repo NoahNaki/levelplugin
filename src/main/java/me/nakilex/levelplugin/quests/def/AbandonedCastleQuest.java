@@ -9,6 +9,7 @@ import me.nakilex.levelplugin.quests.data.QuestObjectiveType;
 import me.nakilex.levelplugin.quests.data.QuestRewardCompat;
 import me.nakilex.levelplugin.quests.data.QuestScript;
 import me.nakilex.levelplugin.quests.data.QuestResetScript;
+import me.nakilex.levelplugin.quests.data.QuestRepeatType;
 import me.nakilex.levelplugin.quests.data.PlayerQuestProgress;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import org.bukkit.Bukkit;
@@ -89,7 +90,8 @@ public class AbandonedCastleQuest extends Quest implements QuestScript, QuestRes
                 ),
                 false,
                 true,
-                true
+                true,
+                QuestRepeatType.ONE_TIME
         );
         ensureListeners(Main.getInstance());
     }
