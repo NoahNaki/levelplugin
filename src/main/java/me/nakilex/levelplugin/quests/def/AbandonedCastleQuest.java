@@ -33,9 +33,9 @@ public class AbandonedCastleQuest extends Quest implements QuestScript, QuestRes
     public static final int NPC_ID = 1650;
 
     private static final String WORLD_NAME = "world";
-    private static final double CASTLE_X = 100.5;
-    private static final double CASTLE_Y = 100;
-    private static final double CASTLE_Z = 100.5;
+    private static final double CASTLE_X = -105.0;
+    private static final double CASTLE_Y = 103.0;
+    private static final double CASTLE_Z = 161.0;
     private static final double CASTLE_RADIUS = 10.0;
     private static final String CRIMSON_KEY = DungeonManager.normalizeKey("Crimson Reliquary");
 
@@ -107,6 +107,10 @@ public class AbandonedCastleQuest extends Quest implements QuestScript, QuestRes
     @Override
     public void onStart(Player player, Main plugin) {
         ensureListeners(plugin);
+        QuestManager questManager = plugin.getQuestManager();
+        if (questManager != null) {
+            questManager.handleTalk(player, INTRO_TARGET);
+        }
     }
 
     @Override

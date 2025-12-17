@@ -133,7 +133,16 @@ public class QuestGUI {
 
     private static ItemStack createQuestItem(Player player, Quest quest, QuestState state,
                                              PlayerQuestProgress progress, QuestManager qm) {
-        String name = state == QuestState.LOCKED ? ChatColor.DARK_GRAY + "???" : state.getColor() + quest.getName();
+        String name;
+        if (state == QuestState.LOCKED) {
+            name = ChatColor.DARK_GRAY + "???";
+        } else {
+            String baseName = state.getColor() + quest.getName();
+            if (quest.getRepeatType() != me.nakilex.levelplugin.quests.data.QuestRepeatType.ONE_TIME) {
+                baseName += ChatColor.GRAY + " (" + ChatColor.DARK_GRAY + quest.getRepeatType().getDisplayName() + ChatColor.GRAY + ")";
+            }
+            name = baseName;
+        }
 
         // Use scroll2 for all active quests unless this one is tracked
         String icon = state.getIconId();
@@ -151,19 +160,9 @@ public class QuestGUI {
             List<String> lore = new ArrayList<>();
             String levelLine = formatLevelRequirement(player, quest);
             String locationLine = quest.isLocationVisible() ? formatLocationLine(quest) : null;
-            String typeLine = ChatColor.GRAY + "Quest Type: " + ChatColor.WHITE + quest.getRepeatType().getDisplayName();
-            long cooldownRemaining = qm.getCooldownRemaining(player.getUniqueId(), quest);
-            boolean showCooldown = quest.getRepeatType().isRepeatable()
-                    && cooldownRemaining > 0 && cooldownRemaining != Long.MAX_VALUE;
 
             if (state != QuestState.LOCKED) {
                 lore.add(levelLine);
-                lore.add(typeLine);
-                if (showCooldown) {
-                    lore.add(ChatColor.GRAY + "Resets in: " + ChatColor.AQUA + qm.formatCooldown(cooldownRemaining));
-                } else if (quest.getRepeatType().isRepeatable()) {
-                    lore.add(ChatColor.GRAY + "Resets: " + ChatColor.AQUA + quest.getRepeatType().getDisplayName());
-                }
                 lore.add(" ");
                 lore.add(ChatColor.GRAY + quest.getDescription());
                 lore.add(" ");
