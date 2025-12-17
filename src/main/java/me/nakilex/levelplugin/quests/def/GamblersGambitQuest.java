@@ -85,6 +85,7 @@ public class GamblersGambitQuest extends Quest implements QuestScript, QuestComp
     private static boolean listenersRegistered;
     private final Map<UUID, Integer> guessTargets = new ConcurrentHashMap<>();
     private final Map<UUID, Long> lastDialogAdvance = new ConcurrentHashMap<>();
+    private final Map<UUID, Long> lastNpcClick = new ConcurrentHashMap<>();
 
     private static List<QuestObjective> createObjectives() {
         return List.of(
@@ -220,6 +221,10 @@ public class GamblersGambitQuest extends Quest implements QuestScript, QuestComp
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
                     "Not quite. The gambler chuckles and shuffles the deck. You'll need to ante up again before taking another shot.");
             questManager.resetQuest(player.getUniqueId(), ID, true);
+            if (questManager.isDebug()) {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                        "[GambitDebug] Wrong guess=" + guess + " target=" + target + " -> quest reset");
+            }
             return;
         }
 
@@ -457,12 +462,24 @@ public class GamblersGambitQuest extends Quest implements QuestScript, QuestComp
                     return;
                 }
                 me.nakilex.levelplugin.npc.dialog.NPCDialogManager dialogManager = Main.getInstance().getDialogManager();
+                if (questManager.isDebug()) {
+                    long now = System.currentTimeMillis();
+                    long since = now - lastNpcClick.getOrDefault(player.getUniqueId(), 0L);
+                    ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                            "[GambitDebug] Right-click captured. Since last=" + since + "ms, hasSession="
+                                    + (dialogManager != null && dialogManager.hasSession(player)));
+                    lastNpcClick.put(player.getUniqueId(), now);
+                }
                 if (dialogManager != null && dialogManager.hasSession(player)) {
                     net.citizensnpcs.api.npc.NPC sessionNpc = dialogManager.getSessionNpc(player);
                     if (sessionNpc != null && sessionNpc.getId() == NPC_ID) {
                         long now = System.currentTimeMillis();
                         Long last = lastDialogAdvance.get(player.getUniqueId());
                         if (last != null && (now - last) < 150) {
+                            if (questManager.isDebug()) {
+                                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                                        "[GambitDebug] Dialog advance blocked (debounce). delta=" + (now - last) + "ms");
+                            }
                             event.setCancelled(true);
                             return;
                         }

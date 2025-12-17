@@ -14,6 +14,7 @@ import me.nakilex.levelplugin.quests.data.PlayerQuestProgress;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
+import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -191,6 +192,11 @@ public class AbandonedCastleQuest extends Quest implements QuestScript, QuestRes
             return false;
         }
 
+        if (questManager.isDebug()) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                    "[CedricDebug] Turn-in triggered. State=" + questManager.getQuestState(player, questManager.getQuestById(ID)));
+        }
+
         if (dialogManager != null) {
             dialogManager.startDialog(player, TURN_IN_DIALOG, npc,
                     () -> questManager.handleTalk(player, RETURN_TARGET));
@@ -211,12 +217,25 @@ public class AbandonedCastleQuest extends Quest implements QuestScript, QuestRes
             return false;
         }
         me.nakilex.levelplugin.quests.gui.QuestState state = questManager.getQuestState(player, questDef);
+        boolean completed = questManager.hasCompleted(player.getUniqueId(), ID);
         if (state == me.nakilex.levelplugin.quests.gui.QuestState.TURN_IN_READY
                 || state == me.nakilex.levelplugin.quests.gui.QuestState.COMPLETED) {
+            if (questManager.isDebug()) {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                        "[CedricDebug] Ready via quest state: " + state + " completed=" + completed);
+            }
             return true;
         }
         boolean cleared = progress.getProgress(CLEAR_INDEX) >= questDef.getObjectives().get(CLEAR_INDEX).getAmount();
         boolean entered = progress.getProgress(ENTER_INDEX) >= questDef.getObjectives().get(ENTER_INDEX).getAmount();
+        if (questManager.isDebug()) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                    "[CedricDebug] Ready check — state=" + state + " entered=" + progress.getProgress(ENTER_INDEX) + "/"
+                            + questDef.getObjectives().get(ENTER_INDEX).getAmount()
+                            + " cleared=" + progress.getProgress(CLEAR_INDEX) + "/"
+                            + questDef.getObjectives().get(CLEAR_INDEX).getAmount()
+                            + " completed=" + completed);
+        }
         return cleared && entered;
     }
 
