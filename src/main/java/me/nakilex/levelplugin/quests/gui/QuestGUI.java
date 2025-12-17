@@ -221,7 +221,6 @@ public class QuestGUI {
                 }
             } else {
                 lore.add(levelLine);
-                lore.add(typeLine);
                 if (locationLine != null) {
                     lore.add(" ");
                     lore.add(locationLine);
