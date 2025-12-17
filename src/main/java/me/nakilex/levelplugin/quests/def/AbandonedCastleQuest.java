@@ -163,6 +163,7 @@ public class AbandonedCastleQuest extends Quest implements QuestScript, QuestRes
                 if (questManager == null) {
                     return;
                 }
+                Quest questDef = questManager.getQuestById(ID);
                 PlayerQuestProgress progress = questManager.getProgress(player.getUniqueId(), ID);
                 if (progress == null) {
                     return;
@@ -177,10 +178,17 @@ public class AbandonedCastleQuest extends Quest implements QuestScript, QuestRes
                     }
                 }
 
-                Quest questDef = questManager.getQuestById(ID);
-                if (questDef != null
-                        && progress.getProgress(CLEAR_INDEX) >= questDef.getObjectives().get(CLEAR_INDEX).getAmount()
-                        && progress.getProgress(ENTER_INDEX) >= questDef.getObjectives().get(ENTER_INDEX).getAmount()) {
+                boolean readyForTurnIn = false;
+                if (questDef != null) {
+                    me.nakilex.levelplugin.quests.gui.QuestState state = questManager.getQuestState(player, questDef);
+                    readyForTurnIn = state == me.nakilex.levelplugin.quests.gui.QuestState.TURN_IN_READY
+                            || state == me.nakilex.levelplugin.quests.gui.QuestState.COMPLETED;
+                    if (!readyForTurnIn) {
+                        readyForTurnIn = progress.getProgress(CLEAR_INDEX) >= questDef.getObjectives().get(CLEAR_INDEX).getAmount()
+                                && progress.getProgress(ENTER_INDEX) >= questDef.getObjectives().get(ENTER_INDEX).getAmount();
+                    }
+                }
+                if (readyForTurnIn) {
                     if (dialogManager != null) {
                         dialogManager.startDialog(player, List.of(
                                 "Cedric|You're back! I was starting to worry you'd vanished like the others.",

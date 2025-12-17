@@ -217,7 +217,9 @@ public class GamblersGambitQuest extends Quest implements QuestScript, QuestComp
         int target = ensureTarget(player.getUniqueId(), progress, questManager);
         if (guess != target) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
-                    "Not quite. Pick another number between 1 and 10.");
+                    "Not quite. The gambler chuckles and shuffles the deck. You'll need to start over.");
+            questManager.resetQuest(player.getUniqueId(), ID, true);
+            questManager.startQuest(player, ID, false);
             return;
         }
 
@@ -450,11 +452,15 @@ public class GamblersGambitQuest extends Quest implements QuestScript, QuestComp
                     return;
                 }
                 Player player = event.getClicker();
+                QuestManager questManager = Main.getInstance().getQuestManager();
+                if (questManager == null || questManager.getProgress(player.getUniqueId(), ID) == null) {
+                    return;
+                }
                 me.nakilex.levelplugin.npc.dialog.NPCDialogManager dialogManager = Main.getInstance().getDialogManager();
                 if (dialogManager != null && dialogManager.hasSession(player)) {
                     net.citizensnpcs.api.npc.NPC sessionNpc = dialogManager.getSessionNpc(player);
                     if (sessionNpc != null && sessionNpc.getId() == NPC_ID) {
-                        dialogManager.advanceDialog(player, Main.getInstance().getQuestManager());
+                        dialogManager.advanceDialog(player, questManager);
                         event.setCancelled(true);
                     }
                 }
