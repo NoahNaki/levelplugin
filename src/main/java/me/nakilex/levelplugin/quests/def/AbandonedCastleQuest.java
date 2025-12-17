@@ -57,7 +57,7 @@ public class AbandonedCastleQuest extends Quest implements QuestScript, QuestRes
         World world = Bukkit.getWorld(WORLD_NAME);
         Location beaconLoc = world == null ? null : new Location(world, CASTLE_X, CASTLE_Y, CASTLE_Z);
         return List.of(
-                new QuestObjective(QuestObjectiveType.TALK, INTRO_TARGET, 1, BeaconTargets.npc(NPC_ID),
+                new QuestObjective(QuestObjectiveType.TALK, INTRO_TARGET, 1, false, BeaconTargets.npc(NPC_ID),
                         "Hear Cedric's warning"),
                 new QuestObjective(QuestObjectiveType.EXPLORE, APPROACH_TARGET, 1, false,
                         beaconLoc == null ? null : BeaconTargets.staticLoc(beaconLoc),
@@ -67,7 +67,7 @@ public class AbandonedCastleQuest extends Quest implements QuestScript, QuestRes
                         "Enter the Crimson Reliquary dungeon"),
                 new QuestObjective(QuestObjectiveType.DUNGEON_COMPLETE, CRIMSON_KEY, 1, false, null,
                         "Clear the Crimson Reliquary"),
-                new QuestObjective(QuestObjectiveType.TALK, RETURN_TARGET, 1, BeaconTargets.npc(NPC_ID),
+                new QuestObjective(QuestObjectiveType.TALK, RETURN_TARGET, 1, false, BeaconTargets.npc(NPC_ID),
                         "Report back to Cedric")
         );
     }
