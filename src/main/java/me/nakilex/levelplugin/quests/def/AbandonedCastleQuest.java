@@ -49,8 +49,7 @@ public class AbandonedCastleQuest extends Quest implements QuestScript, QuestRes
     private static final String ENTER_TARGET = "abandoned_castle_enter";
     private static final String CLEAR_TARGET = "abandoned_castle_clear";
     private static final List<String> TURN_IN_DIALOG = List.of(
-            "Cedric|You're back! I was starting to worry you'd vanished like the others.",
-            "Cedric|What did you find inside the castle?"
+            "Cedric|You're back! I was starting to worry you'd vanished like the others."
     );
 
     private static final int APPROACH_INDEX = 1;
