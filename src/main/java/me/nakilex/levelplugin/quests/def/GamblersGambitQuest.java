@@ -473,19 +473,13 @@ public class GamblersGambitQuest extends Quest implements QuestScript, QuestComp
                 if (dialogManager != null && dialogManager.hasSession(player)) {
                     net.citizensnpcs.api.npc.NPC sessionNpc = dialogManager.getSessionNpc(player);
                     if (sessionNpc != null && sessionNpc.getId() == NPC_ID) {
-                        long now = System.currentTimeMillis();
-                        Long last = lastDialogAdvance.get(player.getUniqueId());
-                        if (last != null && (now - last) < 150) {
-                            if (questManager.isDebug()) {
-                                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
-                                        "[GambitDebug] Dialog advance blocked (debounce). delta=" + (now - last) + "ms");
-                            }
-                            event.setCancelled(true);
-                            return;
+                        // Let NPCClickListener own advancement to avoid double-opening choice dialogs.
+                        if (questManager.isDebug()) {
+                            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                                    "[GambitDebug] Session active; skipping advance here to prevent double handling.");
                         }
-                        lastDialogAdvance.put(player.getUniqueId(), now);
-                        dialogManager.advanceDialog(player, questManager);
                         event.setCancelled(true);
+                        return;
                     }
                 }
             }

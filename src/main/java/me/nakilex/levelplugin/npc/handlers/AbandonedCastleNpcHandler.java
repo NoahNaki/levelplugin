@@ -23,6 +23,17 @@ public class AbandonedCastleNpcHandler extends AbstractQuestNpcHandler {
         if (npc == null || npc.getId() != AbandonedCastleQuest.NPC_ID) {
             return false;
         }
-        return AbandonedCastleQuest.handleCedricTurnIn(player, questManager, npc, dialogManager);
+        if (state == QuestState.TURN_IN_READY || AbandonedCastleQuest.handleCedricTurnIn(player, questManager, npc, dialogManager)) {
+            return true;
+        }
+
+        // Prevent the generic "Complete the quest first" spam once the quest is active
+        if (state == QuestState.ACCEPTED || state == QuestState.IN_PROGRESS) {
+            me.nakilex.levelplugin.utils.ChatMessageUtil.send(player,
+                    me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType.INFO,
+                    "Cedric will debrief you once you've cleared the Crimson Reliquary.");
+            return true;
+        }
+        return false;
     }
 }
