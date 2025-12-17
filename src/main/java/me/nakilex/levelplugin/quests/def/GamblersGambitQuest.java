@@ -18,6 +18,7 @@ import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
+import net.citizensnpcs.api.event.NPCRightClickEvent;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -441,6 +442,22 @@ public class GamblersGambitQuest extends Quest implements QuestScript, QuestComp
                     }
                 }
                 grantDropBonus(player);
+            }
+
+            @EventHandler(priority = org.bukkit.event.EventPriority.LOWEST)
+            public void onNpcInteract(net.citizensnpcs.api.event.NPCRightClickEvent event) {
+                if (event.getNPC() == null || event.getNPC().getId() != NPC_ID) {
+                    return;
+                }
+                Player player = event.getClicker();
+                me.nakilex.levelplugin.npc.dialog.NPCDialogManager dialogManager = Main.getInstance().getDialogManager();
+                if (dialogManager != null && dialogManager.hasSession(player)) {
+                    net.citizensnpcs.api.npc.NPC sessionNpc = dialogManager.getSessionNpc(player);
+                    if (sessionNpc != null && sessionNpc.getId() == NPC_ID) {
+                        dialogManager.advanceDialog(player, Main.getInstance().getQuestManager());
+                        event.setCancelled(true);
+                    }
+                }
             }
         }, Main.getInstance());
     }

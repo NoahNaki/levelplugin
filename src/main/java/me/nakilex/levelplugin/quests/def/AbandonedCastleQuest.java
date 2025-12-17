@@ -12,6 +12,7 @@ import me.nakilex.levelplugin.quests.data.QuestResetScript;
 import me.nakilex.levelplugin.quests.data.QuestRepeatType;
 import me.nakilex.levelplugin.quests.data.PlayerQuestProgress;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
+import net.citizensnpcs.api.CitizensAPI;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -85,7 +86,7 @@ public class AbandonedCastleQuest extends Quest implements QuestScript, QuestRes
                 NPC_ID,
                 List.of(
                         "Cedric|Rumors of some adventurers disappearing once they get near an abandoned castle have been spreading.",
-                        "Cedric|Go check out what could be causing the disturbance at §8[§e100, 100, 100§8]§f.",
+                        "Cedric|Go check out what could be causing the disturbance at §8[§e-105, 103, 161§8]§f.",
                         "Cedric|If you find your way into the Crimson Reliquary inside, make sure you come back in one piece."
                 ),
                 false,
@@ -143,6 +144,51 @@ public class AbandonedCastleQuest extends Quest implements QuestScript, QuestRes
             @EventHandler
             public void onJoin(PlayerJoinEvent event) {
                 refreshObjectiveState(event.getPlayer(), event.getPlayer().getLocation());
+            }
+
+            @EventHandler
+            public void onInteract(org.bukkit.event.player.PlayerInteractEntityEvent event) {
+                if (event.getHand() == org.bukkit.inventory.EquipmentSlot.OFF_HAND) {
+                    return;
+                }
+                if (!CitizensAPI.getNPCRegistry().isNPC(event.getRightClicked())) {
+                    return;
+                }
+                net.citizensnpcs.api.npc.NPC npc = CitizensAPI.getNPCRegistry().getNPC(event.getRightClicked());
+                if (npc.getId() != NPC_ID) {
+                    return;
+                }
+                Player player = event.getPlayer();
+                QuestManager questManager = Main.getInstance().getQuestManager();
+                if (questManager == null) {
+                    return;
+                }
+                PlayerQuestProgress progress = questManager.getProgress(player.getUniqueId(), ID);
+                if (progress == null) {
+                    return;
+                }
+                event.setCancelled(true);
+                me.nakilex.levelplugin.npc.dialog.NPCDialogManager dialogManager = Main.getInstance().getDialogManager();
+                if (dialogManager != null && dialogManager.hasSession(player)) {
+                    net.citizensnpcs.api.npc.NPC sessionNpc = dialogManager.getSessionNpc(player);
+                    if (sessionNpc != null && sessionNpc.getId() == npc.getId()) {
+                        dialogManager.advanceDialog(player, questManager);
+                        return;
+                    }
+                }
+
+                if (progress.getProgress(CLEAR_INDEX) >= quest.getObjectives().get(CLEAR_INDEX).getAmount()
+                        && progress.getProgress(ENTER_INDEX) >= quest.getObjectives().get(ENTER_INDEX).getAmount()) {
+                    if (dialogManager != null) {
+                        dialogManager.startDialog(player, List.of(
+                                "Cedric|You're back! I was starting to worry you'd vanished like the others.",
+                                "Cedric|What did you find inside the castle?"
+                        ), npc, () -> questManager.handleTalk(player, RETURN_TARGET));
+                        dialogManager.advanceDialog(player, questManager);
+                    } else {
+                        questManager.handleTalk(player, RETURN_TARGET);
+                    }
+                }
             }
         }, plugin);
         listenersRegistered = true;
