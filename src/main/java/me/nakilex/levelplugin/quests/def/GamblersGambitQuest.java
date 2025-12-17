@@ -217,9 +217,8 @@ public class GamblersGambitQuest extends Quest implements QuestScript, QuestComp
         int target = ensureTarget(player.getUniqueId(), progress, questManager);
         if (guess != target) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
-                    "Not quite. The gambler chuckles and shuffles the deck. You'll need to start over.");
+                    "Not quite. The gambler chuckles and shuffles the deck. You'll need to ante up again before taking another shot.");
             questManager.resetQuest(player.getUniqueId(), ID, true);
-            questManager.startQuest(player, ID, false);
             return;
         }
 
