@@ -34,7 +34,7 @@ import java.util.UUID;
 public class AbandonedCastleQuest extends Quest implements QuestScript, QuestResetScript {
     public static final String ID = "abandonedcastle";
     public static final String NPC_NAME = "Cedric";
-    public static final int NPC_ID = 1650;
+    public static final int NPC_ID = 2854;
 
     private static final String WORLD_NAME = "world";
     private static final double CASTLE_X = -105.0;
