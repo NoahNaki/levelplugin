@@ -75,12 +75,14 @@ public class NPCDialogManager implements Listener {
         String questId;
         String flagBase;
         String resumeLine;
+        final long openedAt;
 
         ChoiceSession(NPC npc, List<String> options, Consumer<Integer> callback, Listener listener) {
             this.npc = npc;
             this.options = options;
             this.callback = callback;
             this.listener = listener;
+            this.openedAt = System.currentTimeMillis();
         }
     }
 
@@ -344,6 +346,10 @@ public class NPCDialogManager implements Listener {
 
     private void finishChoice(Player player, ChoiceSession cs) {
         if (cs == null) return;
+        if (System.currentTimeMillis() - cs.openedAt < 400) {
+            sendChoice(player, cs);
+            return;
+        }
         HandlerList.unregisterAll(cs.listener);
         choiceSessions.remove(player.getUniqueId());
         player.removePotionEffect(PotionEffectType.SLOWNESS);

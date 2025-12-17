@@ -65,12 +65,8 @@ public class QuestNPCEffectTask extends BukkitRunnable {
         });
 
         Set<NPC> relevant = new HashSet<>();
-        for (int npcId : questManager.getNpcQuestMap().keySet()) {
-            NPC npc = CitizensAPI.getNPCRegistry().getById(npcId);
-            if (npc != null) relevant.add(npc);
-        }
         for (NPC npc : CitizensAPI.getNPCRegistry()) {
-            if (getServiceGlyph(npc.getName().toLowerCase()) != null) {
+            if (questManager.hasQuestForNpc(npc) || getServiceGlyph(npc.getName().toLowerCase()) != null) {
                 relevant.add(npc);
             }
         }
@@ -115,7 +111,7 @@ public class QuestNPCEffectTask extends BukkitRunnable {
     }
 
     private String getGlyph(Player player, NPC npc) {
-        Quest quest = questManager.getQuestByNpc(npc);
+        Quest quest = questManager.getQuestByNpc(npc, player);
         if (quest != null) {
             QuestState state = questManager.getQuestState(player, quest);
             if (state == QuestState.AVAILABLE) {

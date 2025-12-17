@@ -47,6 +47,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.event.player.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
@@ -217,6 +218,13 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
             public void onJoin(PlayerJoinEvent event) {
                 if (instance != null) {
                     instance.refreshGateState(event.getPlayer());
+                }
+            }
+
+            @EventHandler
+            public void onDeath(PlayerDeathEvent event) {
+                if (instance != null) {
+                    instance.despawnActiveMobs(event.getEntity().getUniqueId());
                 }
             }
 
@@ -406,6 +414,7 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
     }
 
     private void clearTracking(UUID playerId) {
+        despawnActiveMobs(playerId);
         Map<String, SiteProgress> map = siteProgress.remove(playerId);
         if (map != null) {
             for (SiteProgress progress : map.values()) {
@@ -657,6 +666,24 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
 
     private void sendRitualMessage(Player player, MessageType type, String body) {
         ChatMessageUtil.send(player, type, ritualHeader() + body);
+    }
+
+    private void despawnActiveMobs(UUID playerId) {
+        Map<String, SiteProgress> map = siteProgress.get(playerId);
+        if (map == null) {
+            return;
+        }
+        for (SiteProgress progress : map.values()) {
+            for (UUID mobId : new java.util.ArrayList<>(progress.activeMobIds())) {
+                Entity mob = Bukkit.getEntity(mobId);
+                if (mob != null) {
+                    mob.remove();
+                }
+                mobOwners.remove(mobId);
+                mobSpawnLocations.remove(mobId);
+            }
+            progress.activeMobIds().clear();
+        }
     }
 
     private void spawnRewardBomb(Player player, String siteKey) {

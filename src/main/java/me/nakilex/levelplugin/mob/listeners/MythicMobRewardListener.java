@@ -15,6 +15,7 @@ import me.nakilex.levelplugin.mob.utils.CombatRewardCalculator;
 import me.nakilex.levelplugin.mob.utils.MobNameUtil;
 import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
 import me.nakilex.levelplugin.debug.DropDebugManager;
+import me.nakilex.levelplugin.quests.def.GamblersGambitQuest;
 import me.nakilex.levelplugin.guild.quests.GuildQuestManager;
 import io.lumine.mythic.api.skills.placeholders.PlaceholderString;
 import me.nakilex.levelplugin.party.Party;
@@ -160,8 +161,10 @@ public class MythicMobRewardListener implements Listener {
             economyManager.addCoins(player, coins);
             itemDropper.dropCustomItems(player, node, modelSet, combatPower, mobLevel, forceDrops);
             itemDropper.maybeDropEssence(player, node);
+            double gearDropBonus = GamblersGambitQuest.resolveDropBonus(player);
+            double effectiveGearChance = gearDropChance + gearDropBonus;
             double roll = ThreadLocalRandom.current().nextDouble() * 100.0;
-            if (forceDrops || roll <= gearDropChance) {
+            if (forceDrops || roll <= effectiveGearChance) {
                 ItemStack loot = lootChestManager.getRandomLootForCombatPower(combatPower, mobLevel, mobType, modelSet);
                 if (loot != null) {
                     ItemUtil.updateTooltip(loot, player);

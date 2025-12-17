@@ -963,6 +963,10 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
             for (Player p : state.participants) {
                 if (p != null && p.isOnline()) {
                     sendDungeonClearMessage(p, seconds, score, state.puzzleComplete);
+                    me.nakilex.levelplugin.quests.managers.QuestManager qm = Main.getInstance().getQuestManager();
+                    if (qm != null) {
+                        qm.handleDungeonComplete(p, KEY);
+                    }
                 }
             }
         }

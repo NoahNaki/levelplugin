@@ -16,6 +16,7 @@ public class CodexManager {
     private final PlayerConfig playerConfig;
     private final Set<String> mobKeys = new HashSet<>();
     private final Set<String> bossKeys = new HashSet<>();
+    private final Set<String> canonicalBossKeys = new HashSet<>();
     // No predefined sets for NPCs or locations; they are tracked dynamically
 
     /** Kill milestones used for per-mob codex levels. */
@@ -34,12 +35,19 @@ public class CodexManager {
     public synchronized void reload(MobRewardsConfig mobCfg, FileConfiguration bossCfg) {
         mobKeys.clear();
         bossKeys.clear();
+        canonicalBossKeys.clear();
 
         if (mobCfg != null && mobCfg.getConfig().isConfigurationSection("mobs")) {
             mobKeys.addAll(mobCfg.getConfig().getConfigurationSection("mobs").getKeys(false));
         }
         if (bossCfg != null && bossCfg.isConfigurationSection("mobs")) {
-            bossKeys.addAll(bossCfg.getConfigurationSection("mobs").getKeys(false));
+            bossCfg.getConfigurationSection("mobs").getKeys(false).forEach(key -> {
+                bossKeys.add(key);
+                String canonical = MobNameUtil.canonicalMobKey(key);
+                if (!canonical.isEmpty()) {
+                    canonicalBossKeys.add(canonical);
+                }
+            });
         }
     }
 
@@ -165,6 +173,22 @@ public class CodexManager {
         all.addAll(mobKeys);
         all.addAll(bossKeys);
         return all;
+    }
+
+    /** Determine whether the given mob key represents a field boss. */
+    public boolean isFieldBoss(String key) {
+        if (key == null || key.isBlank()) {
+            return false;
+        }
+        if (bossKeys.stream().anyMatch(b -> b.equalsIgnoreCase(key))) {
+            return true;
+        }
+
+        String canonical = MobNameUtil.canonicalMobKey(key);
+        if (canonical.isEmpty()) {
+            return false;
+        }
+        return canonicalBossKeys.contains(canonical);
     }
 
     /* ----- NPC Tracking ----- */

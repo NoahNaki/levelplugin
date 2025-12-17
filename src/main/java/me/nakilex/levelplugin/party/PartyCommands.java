@@ -143,7 +143,7 @@ public class PartyCommands implements CommandExecutor {
                 break;
 
             case "leave":
-                if (partyManager.removeMember(playerId, playerId)) {
+                if (partyManager.leaveParty(playerId)) {
                     player.sendMessage(ChatColor.GREEN + "You left the party.");
                     refreshPartyGlow(partyManager.getParty(playerId));
                     me.nakilex.levelplugin.Main.getInstance().getPartyGlowManager().applyGlowScoreboard(player);
@@ -215,6 +215,30 @@ public class PartyCommands implements CommandExecutor {
                     pendingInvites.remove(playerId); // Ensure it's cleaned up afterward
                 } else {
                     player.sendMessage(ChatColor.RED + "No pending invites.");
+                }
+                break;
+
+            case "info":
+                Party infoParty = partyManager.getParty(playerId);
+                if (infoParty == null) {
+                    player.sendMessage(ChatColor.RED + "You are not in a party.");
+                    return true;
+                }
+                UUID leaderId = infoParty.getLeader();
+                String leaderName = leaderId == null ? "Unknown" :
+                        (Bukkit.getOfflinePlayer(leaderId).getName() == null ? "Unknown" :
+                                Bukkit.getOfflinePlayer(leaderId).getName());
+
+                player.sendMessage(ChatColor.GREEN + "Party Info:");
+                player.sendMessage(ChatColor.YELLOW + " Leader: " + ChatColor.WHITE + leaderName);
+                player.sendMessage(ChatColor.YELLOW + " Members: " + ChatColor.WHITE + infoParty.getSize());
+                for (UUID memberId : infoParty.getMembers()) {
+                    String name = Bukkit.getOfflinePlayer(memberId).getName();
+                    if (name == null) {
+                        name = memberId.toString();
+                    }
+                    boolean isLeader = leaderId != null && leaderId.equals(memberId);
+                    player.sendMessage(ChatColor.GRAY + " - " + name + (isLeader ? ChatColor.GOLD + " (Leader)" : ""));
                 }
                 break;
 

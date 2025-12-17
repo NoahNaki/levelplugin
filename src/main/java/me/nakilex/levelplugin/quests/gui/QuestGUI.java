@@ -133,7 +133,16 @@ public class QuestGUI {
 
     private static ItemStack createQuestItem(Player player, Quest quest, QuestState state,
                                              PlayerQuestProgress progress, QuestManager qm) {
-        String name = state == QuestState.LOCKED ? ChatColor.DARK_GRAY + "???" : state.getColor() + quest.getName();
+        String name;
+        if (state == QuestState.LOCKED) {
+            name = ChatColor.DARK_GRAY + "???";
+        } else {
+            String baseName = state.getColor() + quest.getName();
+            if (quest.getRepeatType() != me.nakilex.levelplugin.quests.data.QuestRepeatType.ONE_TIME) {
+                baseName += ChatColor.GRAY + " (" + ChatColor.DARK_GRAY + quest.getRepeatType().getDisplayName() + ChatColor.GRAY + ")";
+            }
+            name = baseName;
+        }
 
         // Use scroll2 for all active quests unless this one is tracked
         String icon = state.getIconId();

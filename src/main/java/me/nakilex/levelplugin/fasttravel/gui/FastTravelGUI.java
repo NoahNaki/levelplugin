@@ -113,8 +113,7 @@ public class FastTravelGUI implements Listener {
                 meta.setDisplayName(col+""+ChatColor.BOLD+formatName(pt.getId()));
                 List<String> lore=new ArrayList<>();
                 if(unlocked){
-                    int cost=(int)player.getLocation().distance(pt.getLocation());
-                    cost = TownPerkManager.getInstance().applyDiscount(guild, TownPerk.FAST_TRAVEL_DISCOUNT, cost);
+                    int cost = calculateTravelCost(player, pt, guild);
                     lore.add(ChatColor.GRAY+"Teleportation Cost:");
                     lore.add(ChatColor.WHITE+""+cost+ChatColor.YELLOW+" <glyph:coins_icon>");
                 } else {
@@ -146,6 +145,13 @@ public class FastTravelGUI implements Listener {
                     return a.getId().compareToIgnoreCase(b.getId());
                 };}
         };
+    }
+
+    private int calculateTravelCost(Player player, ModelGate target, me.nakilex.levelplugin.guild.Guild guild) {
+        double distance = player.getLocation().distance(target.getLocation());
+        int base = (int) Math.max(1, Math.round(distance * 0.5));
+        int discounted = TownPerkManager.getInstance().applyDiscount(guild, TownPerk.FAST_TRAVEL_DISCOUNT, base);
+        return Math.max(1, discounted);
     }
 
     @EventHandler
@@ -183,11 +189,8 @@ public class FastTravelGUI implements Listener {
                     "You cannot fast travel to this location because there is an ongoing siege!");
             return;
         }
-        int cost=(int)player.getLocation().distance(target.getLocation());
-        cost = TownPerkManager.getInstance().applyDiscount(
-                GuildManager.getInstance().getGuild(player.getUniqueId()),
-                TownPerk.FAST_TRAVEL_DISCOUNT,
-                cost);
+        int cost = calculateTravelCost(player, target,
+                GuildManager.getInstance().getGuild(player.getUniqueId()));
         if(economy.getBalance(player)<cost){
             send(player, MessageType.ERROR, "You need "+cost+" coins to travel.");
             return;

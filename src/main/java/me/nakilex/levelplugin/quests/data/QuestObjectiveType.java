@@ -35,5 +35,6 @@ public enum QuestObjectiveType {
     SIEGE_PARTICIPATE,
     DUEL_WIN,
     ARENA_MATCH,
-    DUNGEON_CREATE
+    DUNGEON_CREATE,
+    DUNGEON_COMPLETE
 }

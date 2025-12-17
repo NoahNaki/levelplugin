@@ -20,15 +20,10 @@ public class WayfarersMarkQuest extends Quest implements QuestScript {
     /** Placeholder NPC ID; replace with the real wayfinder NPC when available. */
     public static final int NPC_ID = 9910;
 
-    private static final String INTRO_TARGET = "npc" + NPC_ID + "_intro";
-    private static final String RETURN_TARGET = "npc" + NPC_ID + "_return";
-
     private static List<QuestObjective> createObjectives() {
         return List.of(
-                new QuestObjective(QuestObjectiveType.TALK, INTRO_TARGET, 1, BeaconTargets.npc(NPC_ID)),
                 new QuestObjective(QuestObjectiveType.WAYSTONE_UNLOCK, "ANY", 1),
-                new QuestObjective(QuestObjectiveType.WAYSTONE_USE, "ANY", 1),
-                new QuestObjective(QuestObjectiveType.TALK, RETURN_TARGET, 1, BeaconTargets.npc(NPC_ID))
+                new QuestObjective(QuestObjectiveType.WAYSTONE_USE, "ANY", 1)
         );
     }
 
@@ -42,7 +37,7 @@ public class WayfarersMarkQuest extends Quest implements QuestScript {
                 List.of(),
                 null,
                 QuestRewardCompat.create(200, 90, 0, List.of()),
-                NPC_ID,
+                null,
                 List.of(
                         "Wayfinder|You look like someone who hates walking more than they need to.",
                         "<player>|I'm listening...",
@@ -56,6 +51,6 @@ public class WayfarersMarkQuest extends Quest implements QuestScript {
 
     @Override
     public void onStart(Player player, Main plugin) {
-        plugin.getQuestManager().handleTalk(player, INTRO_TARGET);
+        // No additional start actions required.
     }
 }

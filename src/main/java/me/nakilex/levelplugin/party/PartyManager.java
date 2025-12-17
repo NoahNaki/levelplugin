@@ -141,6 +141,19 @@ public class PartyManager {
     }
 
 
+    /**
+     * Convenience helper to remove a member from their current party,
+     * regardless of whether they are the leader or not.
+     */
+    public boolean leaveParty(UUID member) {
+        UUID leader = playerToParty.get(member);
+        if (leader == null) {
+            return false;
+        }
+        return removeMember(leader, member);
+    }
+
+
     // Get a party by player UUID
     public Party getParty(UUID player) {
         UUID leader = playerToParty.get(player);

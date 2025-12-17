@@ -75,7 +75,12 @@ public class MobCodexGUI implements Listener {
 
     private ItemStack createMobIcon(UUID id, String key) {
         boolean discovered = manager.hasDiscovered(id, key);
-        ItemStack item = new ItemStack(discovered ? Material.SKELETON_SKULL : Material.GRAY_DYE);
+        boolean isFieldBoss = manager.isFieldBoss(key);
+        Material iconMaterial = Material.GRAY_DYE;
+        if (discovered) {
+            iconMaterial = isFieldBoss ? Material.WITHER_SKELETON_SKULL : Material.SKELETON_SKULL;
+        }
+        ItemStack item = new ItemStack(iconMaterial);
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
             if (discovered) {
