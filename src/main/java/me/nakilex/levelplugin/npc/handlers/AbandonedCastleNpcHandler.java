@@ -23,7 +23,13 @@ public class AbandonedCastleNpcHandler extends AbstractQuestNpcHandler {
         if (npc == null || npc.getId() != AbandonedCastleQuest.NPC_ID) {
             return false;
         }
-        if (state == QuestState.TURN_IN_READY || AbandonedCastleQuest.handleCedricTurnIn(player, questManager, npc, dialogManager)) {
+        if (AbandonedCastleQuest.isReadyForTurnIn(player, questManager)) {
+            me.nakilex.levelplugin.Main.getInstance().getLogger().info("[CedricTurnIn] Handler invoked for " + player.getName() + " state=" + state);
+            if (AbandonedCastleQuest.handleCedricTurnIn(player, questManager, npc, dialogManager)) {
+                return true;
+            }
+        }
+        if (state == QuestState.TURN_IN_READY) {
             return true;
         }
 

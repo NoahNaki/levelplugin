@@ -189,12 +189,25 @@ public class AbandonedCastleQuest extends Quest implements QuestScript, QuestRes
         }
 
         if (!isReadyForTurnIn(player, questManager)) {
+            Main.getInstance().getLogger().info("[CedricTurnIn] Blocked for " + player.getName() + " state="
+                    + questManager.getQuestState(player, questManager.getQuestById(ID)));
             return false;
         }
 
         if (questManager.isDebug()) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                     "[CedricDebug] Turn-in triggered. State=" + questManager.getQuestState(player, questManager.getQuestById(ID)));
+        }
+        PlayerQuestProgress progress = questManager.getProgress(player.getUniqueId(), ID);
+        Quest quest = questManager.getQuestById(ID);
+        if (progress != null && quest != null) {
+            String detail = "[CedricTurnIn] ready for " + player.getName()
+                    + " entered=" + progress.getProgress(ENTER_INDEX) + "/" + quest.getObjectives().get(ENTER_INDEX).getAmount()
+                    + " cleared=" + progress.getProgress(CLEAR_INDEX) + "/" + quest.getObjectives().get(CLEAR_INDEX).getAmount();
+            Main.getInstance().getLogger().info(detail);
+            if (questManager.isDebug()) {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO, detail);
+            }
         }
 
         if (dialogManager != null) {
@@ -207,7 +220,7 @@ public class AbandonedCastleQuest extends Quest implements QuestScript, QuestRes
         return true;
     }
 
-    private static boolean isReadyForTurnIn(Player player, QuestManager questManager) {
+    public static boolean isReadyForTurnIn(Player player, QuestManager questManager) {
         if (questManager == null || player == null) {
             return false;
         }
