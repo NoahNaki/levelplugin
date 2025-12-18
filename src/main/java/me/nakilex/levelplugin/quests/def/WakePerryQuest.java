@@ -21,6 +21,8 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
@@ -29,8 +31,10 @@ import org.bukkit.persistence.PersistentDataType;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * Quest to wake Perry using a special White Monster drink.
@@ -74,6 +78,7 @@ public class WakePerryQuest extends Quest implements QuestScript {
     );
 
     private static boolean listenersRegistered;
+    private final Map<UUID, Integer> sleepLineIndex = new HashMap<>();
 
     private static List<QuestObjective> createObjectives() {
         return List.of(
@@ -132,7 +137,19 @@ public class WakePerryQuest extends Quest implements QuestScript {
                     handlePerryClick(player, npc, event);
                 }
             }
+
+            @EventHandler
+            public void onChunkLoad(ChunkLoadEvent event) {
+                syncNpcVisibility();
+            }
+
+            @EventHandler
+            public void onJoin(PlayerJoinEvent event) {
+                Bukkit.getScheduler().runTaskLater(Main.getInstance(), WakePerryQuest.this::syncNpcVisibility, 1L);
+            }
         }, Main.getInstance());
+
+        Bukkit.getScheduler().runTaskLater(Main.getInstance(), this::syncNpcVisibility, 1L);
     }
 
     private void handleShinyClick(Player player, NPC npc, NPCRightClickEvent event) {
@@ -154,7 +171,6 @@ public class WakePerryQuest extends Quest implements QuestScript {
             NPC sessionNpc = dialogManager.getSessionNpc(player);
             if (sessionNpc != null && sessionNpc.getId() == npc.getId()) {
                 event.setCancelled(true);
-                dialogManager.advanceDialog(player, questManager);
             }
             return;
         }
@@ -213,14 +229,13 @@ public class WakePerryQuest extends Quest implements QuestScript {
             NPC sessionNpc = dialogManager.getSessionNpc(player);
             if (sessionNpc != null && sessionNpc.getId() == npc.getId()) {
                 event.setCancelled(true);
-                dialogManager.advanceDialog(player, questManager);
             }
             return;
         }
 
         if (progress == null) {
             event.setCancelled(true);
-            dialogManager.startDialog(player, PERRY_SLEEPING, npc, null);
+            sendSleepingLine(player);
             return;
         }
 
@@ -332,7 +347,7 @@ public class WakePerryQuest extends Quest implements QuestScript {
             if (slot == EquipmentSlot.HAND) {
                 player.getInventory().setItemInMainHand(null);
             } else {
-                player.getInventory().setItemInOffHand(null);
+            player.getInventory().setItemInOffHand(null);
             }
         }
     }
@@ -340,5 +355,29 @@ public class WakePerryQuest extends Quest implements QuestScript {
     @Override
     public void onStart(Player player, Main plugin) {
         giveWhiteMonster(player);
+        syncNpcVisibility();
+    }
+
+    private void sendSleepingLine(Player player) {
+        int idx = sleepLineIndex.getOrDefault(player.getUniqueId(), 0);
+        String line = PERRY_SLEEPING.get(idx % PERRY_SLEEPING.size());
+        player.sendMessage(ChatColor.GRAY + line);
+        sleepLineIndex.put(player.getUniqueId(), (idx + 1) % PERRY_SLEEPING.size());
+    }
+
+    private void syncNpcVisibility() {
+        QuestManager questManager = Main.getInstance().getQuestManager();
+        if (questManager == null) {
+            return;
+        }
+        boolean anyAwake = Bukkit.getOnlinePlayers().stream().anyMatch(p -> {
+            if (questManager.hasCompleted(p.getUniqueId(), ID)) {
+                return true;
+            }
+            PlayerQuestProgress prog = questManager.getProgress(p.getUniqueId(), ID);
+            return prog != null && prog.getProgress(WAKE_INDEX) >= 1;
+        });
+        setNpcVisible(NPC_PERRY_SLEEP_ID, !anyAwake);
+        setNpcVisible(NPC_PERRY_AWAKE_ID, anyAwake);
     }
 }
