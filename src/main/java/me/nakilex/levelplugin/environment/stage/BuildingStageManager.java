@@ -53,6 +53,13 @@ public class BuildingStageManager {
         return buildMap.get(stage);
     }
 
+    /** Highest available stage number for the given building or 0 if none exist. */
+    public int getMaxStage(String building) {
+        var buildMap = stages.get(building.toLowerCase());
+        if (buildMap == null || buildMap.isEmpty()) return 0;
+        return buildMap.keySet().stream().max(Integer::compareTo).orElse(0);
+    }
+
     /** Return all building names defined for a town. */
     public Set<String> getBuildings(String town) {
         var map = placements.get(town.toLowerCase());

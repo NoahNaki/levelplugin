@@ -64,6 +64,20 @@ public class TownStageManager {
         return stagesMap.get(stage);
     }
 
+    /** Highest configured stage for a town across all levels, or {@code null} if none exist. */
+    public TownStage getHighestStage(String town) {
+        if (town == null) return null;
+        var levels = stages.get(town.toLowerCase());
+        if (levels == null || levels.isEmpty()) return null;
+
+        int maxLevel = levels.keySet().stream().max(Integer::compareTo).orElse(0);
+        var stageMap = levels.get(maxLevel);
+        if (stageMap == null || stageMap.isEmpty()) return null;
+
+        int maxStage = stageMap.keySet().stream().max(Integer::compareTo).orElse(0);
+        return stageMap.get(maxStage);
+    }
+
     public void createStage(String name, int level, int stage, Location p1, Location p2, Location origin, int priority) {
         java.util.List<NPCSpawn> npcs = new java.util.ArrayList<>();
         java.util.List<BlockDef> blocks = new java.util.ArrayList<>();
