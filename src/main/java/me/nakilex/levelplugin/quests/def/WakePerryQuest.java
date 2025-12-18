@@ -13,14 +13,16 @@ import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import net.citizensnpcs.api.CitizensAPI;
-import net.citizensnpcs.api.event.NPCRightClickEvent;
 import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.inventory.EquipmentSlot;
@@ -77,6 +79,7 @@ public class WakePerryQuest extends Quest implements QuestScript {
             "Perry|Oh no! I agreed to meet up with Shiny, thank you for waking me up random person"
     );
 
+    private static WakePerryQuest instance;
     private static boolean listenersRegistered;
     private final Map<UUID, Integer> sleepLineIndex = new HashMap<>();
 
@@ -107,6 +110,7 @@ public class WakePerryQuest extends Quest implements QuestScript {
                 true,
                 true
         );
+        instance = this;
         registerListeners();
     }
 
@@ -124,21 +128,6 @@ public class WakePerryQuest extends Quest implements QuestScript {
 
         Bukkit.getPluginManager().registerEvents(new Listener() {
             @EventHandler
-            public void onRightClick(NPCRightClickEvent event) {
-                NPC npc = event.getNPC();
-                Player player = event.getClicker();
-                if (npc == null || player == null) {
-                    return;
-                }
-
-                if (npc.getId() == NPC_SHINY_ID) {
-                    handleShinyClick(player, npc, event);
-                } else if (npc.getId() == NPC_PERRY_SLEEP_ID) {
-                    handlePerryClick(player, npc, event);
-                }
-            }
-
-            @EventHandler
             public void onChunkLoad(ChunkLoadEvent event) {
                 syncNpcVisibility();
             }
@@ -147,47 +136,80 @@ public class WakePerryQuest extends Quest implements QuestScript {
             public void onJoin(PlayerJoinEvent event) {
                 Bukkit.getScheduler().runTaskLater(Main.getInstance(), WakePerryQuest.this::syncNpcVisibility, 1L);
             }
+
+            @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+            public void onInteract(PlayerInteractEvent event) {
+                if (event.getHand() == EquipmentSlot.OFF_HAND) {
+                    return;
+                }
+                if ((event.getAction() == Action.RIGHT_CLICK_AIR || event.getAction() == Action.RIGHT_CLICK_BLOCK)
+                        && isWhiteMonster(event.getItem())) {
+                    event.setCancelled(true);
+                }
+            }
         }, Main.getInstance());
 
         Bukkit.getScheduler().runTaskLater(Main.getInstance(), this::syncNpcVisibility, 1L);
     }
 
-    private void handleShinyClick(Player player, NPC npc, NPCRightClickEvent event) {
+    public static boolean handleNpcInteraction(Player player, NPC npc, EquipmentSlot hand) {
+        if (instance == null) {
+            return false;
+        }
+        return instance.handleClick(player, npc, hand);
+    }
+
+    private boolean handleClick(Player player, NPC npc, EquipmentSlot hand) {
         QuestManager questManager = Main.getInstance().getQuestManager();
         NPCDialogManager dialogManager = Main.getInstance().getDialogManager();
         if (questManager == null || dialogManager == null) {
-            return;
+            return false;
+        }
+        if (npc.getId() != NPC_SHINY_ID && npc.getId() != NPC_PERRY_SLEEP_ID && npc.getId() != NPC_PERRY_AWAKE_ID) {
+            return false;
         }
 
         PlayerQuestProgress progress = questManager.getProgress(player.getUniqueId(), ID);
         boolean completed = questManager.hasCompleted(player.getUniqueId(), ID);
 
         if (dialogManager.resumePendingChoice(player, npc)) {
-            event.setCancelled(true);
-            return;
+            return true;
         }
 
         if (dialogManager.hasSession(player)) {
             NPC sessionNpc = dialogManager.getSessionNpc(player);
             if (sessionNpc != null && sessionNpc.getId() == npc.getId()) {
-                event.setCancelled(true);
+                dialogManager.advanceDialog(player, questManager);
             }
-            return;
+            return true;
         }
 
+        if (npc.getId() == NPC_SHINY_ID) {
+            handleShinyInteraction(player, npc, progress, completed, questManager, dialogManager);
+            return true;
+        }
+
+        if (npc.getId() == NPC_PERRY_SLEEP_ID) {
+            handleSleepingPerry(player, npc, hand, progress, completed, questManager, dialogManager);
+            return true;
+        }
+
+        handleAwakePerry(player, npc, progress, completed, questManager, dialogManager);
+        return true;
+    }
+
+    private void handleShinyInteraction(Player player, NPC npc, PlayerQuestProgress progress, boolean completed,
+                                        QuestManager questManager, NPCDialogManager dialogManager) {
         if (completed) {
-            event.setCancelled(true);
             dialogManager.startDialog(player, List.of("Shiny|Thanks for waking Perry up!"), npc, null);
             return;
         }
 
         if (progress != null) {
-            event.setCancelled(true);
             dialogManager.startDialog(player, SHINY_REMINDER, npc, () -> giveWhiteMonster(player));
             return;
         }
 
-        event.setCancelled(true);
         dialogManager.startDialog(player, SHINY_INTRO, npc, () ->
                 dialogManager.startChoiceDialog(player, npc, List.of("Yes", "No"),
                         null, null, choice -> {
@@ -197,6 +219,66 @@ public class WakePerryQuest extends Quest implements QuestScript {
                                 dialogManager.startDialog(player, SHINY_DECLINE, npc, null);
                             }
                         }));
+    }
+
+    private void handleSleepingPerry(Player player, NPC npc, EquipmentSlot hand, PlayerQuestProgress progress,
+                                     boolean completed, QuestManager questManager, NPCDialogManager dialogManager) {
+        if (progress == null) {
+            sendSleepingLine(player);
+            return;
+        }
+
+        if (progress.getProgress(WAKE_INDEX) >= 1 || completed) {
+            dialogManager.startDialog(player, List.of("Perry|See you around!"), npc, null);
+            return;
+        }
+
+        EquipmentSlot slot = findWhiteMonsterSlot(player, hand);
+        if (slot == null) {
+            sendSleepingLine(player);
+            return;
+        }
+
+        consumeOne(player, slot);
+        swapNpcStates();
+        NPC awake = CitizensAPI.getNPCRegistry().getById(NPC_PERRY_AWAKE_ID);
+        NPC dialogNpc = awake != null ? awake : npc;
+        dialogManager.startDialog(player, PERRY_AWAKE_DIALOG, dialogNpc, () -> {
+            questManager.handleTalk(player, WAKE_TARGET);
+        });
+    }
+
+    private void handleAwakePerry(Player player, NPC npc, PlayerQuestProgress progress, boolean completed,
+                                  QuestManager questManager, NPCDialogManager dialogManager) {
+        if (progress == null && !completed) {
+            sendSleepingLine(player);
+            return;
+        }
+
+        if (progress != null && progress.getProgress(WAKE_INDEX) < 1 && !completed) {
+            dialogManager.startDialog(player, PERRY_AWAKE_DIALOG, npc, () -> questManager.handleTalk(player, WAKE_TARGET));
+            return;
+        }
+
+        dialogManager.startDialog(player, List.of("Perry|Thanks again for the pick-me-up!"), npc, null);
+    }
+
+    private EquipmentSlot findWhiteMonsterSlot(Player player, EquipmentSlot preferred) {
+        ItemStack main = player.getInventory().getItemInMainHand();
+        ItemStack off = player.getInventory().getItemInOffHand();
+        if (preferred == EquipmentSlot.HAND && isWhiteMonster(main)) {
+            return EquipmentSlot.HAND;
+        }
+        if (preferred == EquipmentSlot.OFF_HAND && isWhiteMonster(off)) {
+            return EquipmentSlot.OFF_HAND;
+        }
+        if (isWhiteMonster(main)) {
+            return EquipmentSlot.HAND;
+        }
+        if (isWhiteMonster(off)) {
+            return EquipmentSlot.OFF_HAND;
+        }
+        return null;
     }
 
     private void acceptQuest(Player player, NPC npc,
@@ -213,60 +295,6 @@ public class WakePerryQuest extends Quest implements QuestScript {
         questManager.handleTalk(player, INTRO_TARGET);
         dialogManager.startDialog(player, SHINY_ACCEPT, npc, null);
         giveWhiteMonster(player);
-    }
-
-    private void handlePerryClick(Player player, NPC npc, NPCRightClickEvent event) {
-        QuestManager questManager = Main.getInstance().getQuestManager();
-        NPCDialogManager dialogManager = Main.getInstance().getDialogManager();
-        if (questManager == null || dialogManager == null) {
-            return;
-        }
-
-        PlayerQuestProgress progress = questManager.getProgress(player.getUniqueId(), ID);
-        boolean completed = questManager.hasCompleted(player.getUniqueId(), ID);
-
-        if (dialogManager.hasSession(player)) {
-            NPC sessionNpc = dialogManager.getSessionNpc(player);
-            if (sessionNpc != null && sessionNpc.getId() == npc.getId()) {
-                event.setCancelled(true);
-            }
-            return;
-        }
-
-        if (progress == null) {
-            event.setCancelled(true);
-            sendSleepingLine(player);
-            return;
-        }
-
-        if (progress.getProgress(WAKE_INDEX) >= 1 || completed) {
-            event.setCancelled(true);
-            dialogManager.startDialog(player, List.of("Perry|See you around!"), npc, null);
-            return;
-        }
-
-        ItemStack main = player.getInventory().getItemInMainHand();
-        ItemStack off = player.getInventory().getItemInOffHand();
-        EquipmentSlot slot = null;
-        if (isWhiteMonster(main)) {
-            slot = EquipmentSlot.HAND;
-        } else if (isWhiteMonster(off)) {
-            slot = EquipmentSlot.OFF_HAND;
-        }
-        if (slot == null) {
-            event.setCancelled(true);
-            dialogManager.startDialog(player, PERRY_SLEEPING, npc, null);
-            return;
-        }
-
-        event.setCancelled(true);
-        consumeOne(player, slot);
-        swapNpcStates();
-        NPC awake = CitizensAPI.getNPCRegistry().getById(NPC_PERRY_AWAKE_ID);
-        NPC dialogNpc = awake != null ? awake : npc;
-        dialogManager.startDialog(player, PERRY_AWAKE_DIALOG, dialogNpc, () -> {
-            questManager.handleTalk(player, WAKE_TARGET);
-        });
     }
 
     private void swapNpcStates() {
