@@ -462,6 +462,23 @@ public class QuestManager {
         if (completedAt == null) {
             return 0L;
         }
+
+        if (quest.getRepeatType() == QuestRepeatType.DAILY) {
+            java.time.ZoneId zone = java.time.ZoneId.systemDefault();
+            java.time.LocalDate completedDate = java.time.Instant.ofEpochMilli(completedAt)
+                    .atZone(zone)
+                    .toLocalDate();
+            java.time.LocalDate today = java.time.LocalDate.now(zone);
+            if (completedDate.isEqual(today)) {
+                java.time.Instant reset = today.plusDays(1)
+                        .atStartOfDay(zone)
+                        .toInstant();
+                long remaining = reset.toEpochMilli() - System.currentTimeMillis();
+                return Math.max(remaining, 0L);
+            }
+            return 0L;
+        }
+
         long cooldown = quest.getRepeatType().getCooldownMillis();
         if (cooldown <= 0) {
             return 0L;

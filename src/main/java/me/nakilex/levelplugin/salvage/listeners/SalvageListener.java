@@ -10,6 +10,7 @@ import me.nakilex.levelplugin.salvage.gui.SalvageGUI;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.potions.data.PotionInstance;
+import me.nakilex.levelplugin.player.classes.essence.ClassEssence;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.Sound;
@@ -172,6 +173,12 @@ public class SalvageListener implements Listener {
             PotionInstance pInst = Main.getInstance().getPotionManager().getInstanceFromItem(item);
             if (pInst != null) {
                 totalCoins += SalvageManager.getInstance().getPotionSellPrice(pInst);
+                inv.setItem(i, null);
+                continue;
+            }
+
+            if (ClassEssence.isEssence(item)) {
+                totalCoins += SalvageManager.getInstance().getEssenceSellPrice(item);
                 inv.setItem(i, null);
                 continue;
             }

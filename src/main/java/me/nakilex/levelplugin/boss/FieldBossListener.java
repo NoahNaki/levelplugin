@@ -42,10 +42,14 @@ public class FieldBossListener implements Listener {
     private final Map<String, String> bossKeyMap = new HashMap<>();
     private final Map<UUID, Map<UUID, Double>> damageMap = new ConcurrentHashMap<>();
     private final Map<UUID, Long> bossStartTime = new ConcurrentHashMap<>();
-    private static final java.util.List<PlayerClass> AWAKENED_DROP_POOL = java.util.List.of(
-            PlayerClass.AWAKMAGE,
-            PlayerClass.AWAKWARRIOR,
+    private static final java.util.List<PlayerClass> ESSENCE_DROP_POOL = java.util.List.of(
+            PlayerClass.ARCHER,
             PlayerClass.AWAKARCHER,
+            PlayerClass.MAGE,
+            PlayerClass.AWAKMAGE,
+            PlayerClass.WARRIOR,
+            PlayerClass.AWAKWARRIOR,
+            PlayerClass.ROGUE,
             PlayerClass.AWAKROGUE
     );
 
@@ -277,8 +281,8 @@ public class FieldBossListener implements Listener {
     }
 
     private ItemStack createAwakenedEssenceDrop() {
-        PlayerClass awakened = AWAKENED_DROP_POOL.get(ThreadLocalRandom.current()
-                .nextInt(AWAKENED_DROP_POOL.size()));
+        PlayerClass awakened = ESSENCE_DROP_POOL.get(ThreadLocalRandom.current()
+                .nextInt(ESSENCE_DROP_POOL.size()));
         return ClassEssence.generateEssence(awakened, ItemRarity.RARE, 0);
     }
 
@@ -292,7 +296,9 @@ public class FieldBossListener implements Listener {
             }
 
             if (roll < 0.95) {
-                return ClassEssence.generateEssence();
+                PlayerClass clazz = ESSENCE_DROP_POOL.get(ThreadLocalRandom.current()
+                        .nextInt(ESSENCE_DROP_POOL.size()));
+                return ClassEssence.generateEssence(clazz);
             }
 
             if (gearDrop != null) {

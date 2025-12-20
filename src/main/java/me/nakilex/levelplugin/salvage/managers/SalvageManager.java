@@ -2,7 +2,9 @@ package me.nakilex.levelplugin.salvage.managers;
 
 import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.data.ItemRarity;
+import me.nakilex.levelplugin.player.classes.essence.ClassEssence;
 import me.nakilex.levelplugin.potions.data.PotionInstance;
+import org.bukkit.inventory.ItemStack;
 
 import java.util.EnumMap;
 import java.util.Map;
@@ -88,6 +90,26 @@ public class SalvageManager {
     /** Coins returned for vanilla potions without custom data. */
     public int getVanillaPotionSellPrice() {
         return VANILLA_POTION_COINS;
+    }
+
+    /** Coins returned when salvaging a class essence. */
+    public int getEssenceSellPrice(ItemStack essence) {
+        if (!ClassEssence.isEssence(essence)) {
+            return 0;
+        }
+        ItemRarity rarity = ClassEssence.getRarity(essence);
+        int star = ClassEssence.getStar(essence);
+
+        int base = switch (rarity) {
+            case COMMON -> 25;
+            case UNCOMMON -> 60;
+            case RARE -> 140;
+            case EPIC -> 260;
+            case LEGENDARY -> 420;
+            case MYTHIC, FABLED -> 540;
+            default -> 0;
+        };
+        return Math.max(0, base + (int) Math.round(base * 0.35 * star));
     }
 
 }

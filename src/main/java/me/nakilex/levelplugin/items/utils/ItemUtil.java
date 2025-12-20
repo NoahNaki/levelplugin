@@ -8,6 +8,7 @@ import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.player.mining.managers.MiningManager;
 import me.nakilex.levelplugin.player.classes.essence.ClassEssence;
+import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.items.data.ArmorType;
 import me.nakilex.levelplugin.items.data.WeaponType;
 import me.nakilex.levelplugin.items.data.ItemRarity;
@@ -436,6 +437,11 @@ public class ItemUtil {
         PotionInstance pInst = Main.getInstance().getPotionManager().getInstanceFromItem(stack);
         if (pInst != null) return ItemRarity.fromTier(pInst.getTemplate().getTier());
 
+        ItemRarity essenceRarity = ClassEssence.getRarity(stack);
+        if (essenceRarity != null) {
+            return essenceRarity;
+        }
+
         Material type = stack.getType();
         if (type == Material.POTION || type == Material.SPLASH_POTION || type == Material.LINGERING_POTION) {
             return ItemRarity.COMMON;
@@ -544,6 +550,7 @@ public class ItemUtil {
 
         if (ItemManager.getInstance().getCustomItemFromItemStack(stack) != null) return true;
         if (Main.getInstance().getPotionManager().getInstanceFromItem(stack) != null) return true;
+        if (ClassEssence.isEssence(stack)) return true;
 
         Material type = stack.getType();
         return type == Material.POTION || type == Material.SPLASH_POTION || type == Material.LINGERING_POTION;

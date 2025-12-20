@@ -205,8 +205,8 @@ public class MercenaryExpeditionManager {
     }
 
     private int estimateDuration(int threat, int rooms) {
-        double duration = threat * 1.1 + rooms * 20;
-        return (int) Math.max(600, Math.round(duration));
+        double duration = (threat * 6.0) + (rooms * 120);
+        return (int) Math.max(7200, Math.round(duration));
     }
 
     private ExpeditionRewards generateRewards(Player player, ActiveExpedition expedition) {
@@ -224,9 +224,12 @@ public class MercenaryExpeditionManager {
     }
 
     int rewardFor(int threat, int friendshipLevel) {
-        double reward = Math.max(50, threat * 0.4);
+        double reward = Math.max(150, threat * 2.75);
         if (friendshipLevel >= 5) {
-            reward *= 1.25;
+            reward *= 1.35;
+        }
+        if (friendshipLevel >= 10) {
+            reward *= 1.15;
         }
         return (int) Math.round(reward);
     }

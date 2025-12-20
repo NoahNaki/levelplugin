@@ -10,6 +10,8 @@ import me.nakilex.levelplugin.quests.data.QuestScript;
 import me.nakilex.levelplugin.quests.data.QuestCompletionScript;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.quests.def.SerasSlimeKingQuest;
+import me.nakilex.levelplugin.quests.def.AbandonedCastleQuest;
+import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.entity.Player;
 
 import java.util.List;
@@ -85,6 +87,15 @@ public class SalvagersLessonQuest extends Quest implements QuestScript, QuestCom
         QuestManager questManager = plugin.getQuestManager();
         if (questManager == null) {
             return;
+        }
+
+        boolean hasCastle = questManager.hasCompleted(player.getUniqueId(), AbandonedCastleQuest.ID)
+                || questManager.getProgress(player.getUniqueId(), AbandonedCastleQuest.ID) != null;
+        if (!hasCastle) {
+            questManager.startQuest(player, AbandonedCastleQuest.ID);
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                    "Cedric in the nearby town wants to talk—head over and hear about the abandoned castle.");
+            questManager.setTrackedQuest(player, AbandonedCastleQuest.ID);
         }
     }
 }
