@@ -12,6 +12,7 @@ import me.nakilex.levelplugin.chat.games.ChatGameStatus;
 import me.nakilex.levelplugin.debug.gui.DebugGUI;
 import me.nakilex.levelplugin.debug.AutoCastManager;
 import me.nakilex.levelplugin.debug.DropDebugManager;
+import me.nakilex.levelplugin.environment.EnvironmentManager;
 import me.nakilex.levelplugin.guild.Guild;
 import me.nakilex.levelplugin.mercenary.MercenaryExpeditionManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
@@ -20,6 +21,7 @@ import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
 import me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager;
 import me.nakilex.levelplugin.utils.RewardBombUtil;
 import me.nakilex.levelplugin.utils.ToggleFeedbackUtil;
+import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.guild.siege.GuildSiegeManager;
 import me.nakilex.levelplugin.guild.GuildManager;
 import org.bukkit.ChatColor;
@@ -53,6 +55,7 @@ public class DebugCommand implements TabExecutor {
     private final MercenaryExpeditionManager expeditionManager;
     private final DropDebugManager dropDebugManager;
     private final AutoCastManager autoCastManager;
+    private final EnvironmentManager environmentManager;
 
     public DebugCommand(PlayerToggleManager mobDebugManager,
                         PlayerScoreboardManager scoreboardManager,
@@ -60,7 +63,8 @@ public class DebugCommand implements TabExecutor {
                         ChatGameManager chatGameManager,
                         MercenaryExpeditionManager expeditionManager,
                         DropDebugManager dropDebugManager,
-                        AutoCastManager autoCastManager) {
+                        AutoCastManager autoCastManager,
+                        EnvironmentManager environmentManager) {
         this.mobDebugManager = mobDebugManager;
         this.scoreboardManager = scoreboardManager;
         this.debugGUI = debugGUI;
@@ -68,6 +72,7 @@ public class DebugCommand implements TabExecutor {
         this.expeditionManager = expeditionManager;
         this.dropDebugManager = dropDebugManager;
         this.autoCastManager = autoCastManager;
+        this.environmentManager = environmentManager;
     }
 
     @Override
@@ -79,7 +84,7 @@ public class DebugCommand implements TabExecutor {
                 String statUsage = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|cityowner|autocast|chatgame|expedition|" + statUsage + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|cityowner|citymax|autocast|chatgame|expedition|" + statUsage + ">");
             }
             return true;
         }
@@ -173,6 +178,18 @@ public class DebugCommand implements TabExecutor {
                 } else {
                     sender.sendMessage(ChatColor.RED + "Could not assign ownership. Is the guild name correct?");
                 }
+                return true;
+
+            case "citymax":
+                if (!(sender instanceof Player cityPlayer)) {
+                    sender.sendMessage("Players only.");
+                    return true;
+                }
+                if (!hasTownOwnership(cityPlayer)) {
+                    return true;
+                }
+                EnvironmentManager.TownMaxResult result = environmentManager.maxTownProgress(cityPlayer);
+                cityPlayer.sendMessage(result.message());
                 return true;
 
             case "autocast":
@@ -270,9 +287,24 @@ public class DebugCommand implements TabExecutor {
                 String statUsage2 = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|cityowner|autocast|chatgame|expedition|" + statUsage2 + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|cityowner|citymax|autocast|chatgame|expedition|" + statUsage2 + ">");
                 return true;
         }
+    }
+
+    private boolean hasTownOwnership(Player player) {
+        String owner = GuildSiegeManager.getInstance().getOwnerGuild();
+        if (owner == null) {
+            return true;
+        }
+
+        Guild guild = GuildManager.getInstance().getGuild(player.getUniqueId());
+        if (guild == null || !owner.equalsIgnoreCase(guild.getName())) {
+            ChatFormatter.sendCenteredMessage(player, ChatColor.RED + "Your guild does not control this town.");
+            return false;
+        }
+
+        return true;
     }
 
     private void handleChatGameToggle(CommandSender sender, String[] args) {
@@ -318,7 +350,7 @@ public class DebugCommand implements TabExecutor {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            List<String> subs = new ArrayList<>(List.of("mobinfo", "tps", "siege", "cityowner", "autocast", "hand", "chatgame", "expedition", "rewardbomb", "drops"));
+            List<String> subs = new ArrayList<>(List.of("mobinfo", "tps", "siege", "cityowner", "citymax", "autocast", "hand", "chatgame", "expedition", "rewardbomb", "drops"));
             subs.addAll(Arrays.stream(StatType.values()).map(StatType::getAbbrev).toList());
             return subs.stream()
                     .filter(s -> s.startsWith(args[0].toLowerCase()))

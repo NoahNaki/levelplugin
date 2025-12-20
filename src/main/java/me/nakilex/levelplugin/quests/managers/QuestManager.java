@@ -91,6 +91,7 @@ public class QuestManager {
         Quest essenceWeaverLesson = new me.nakilex.levelplugin.quests.def.EssenceWeaversLessonQuest();
         Quest gamblersGambit = new me.nakilex.levelplugin.quests.def.GamblersGambitQuest();
         Quest abandonedCastle = new me.nakilex.levelplugin.quests.def.AbandonedCastleQuest();
+        Quest wakePerry = new me.nakilex.levelplugin.quests.def.WakePerryQuest();
         registerQuest(nb);
         registerQuest(cultistCulling);
         registerQuest(seras);
@@ -111,6 +112,7 @@ public class QuestManager {
         registerQuest(essenceWeaverLesson);
         registerQuest(gamblersGambit);
         registerQuest(abandonedCastle);
+        registerQuest(wakePerry);
         registerNpcQuest("Seras", me.nakilex.levelplugin.quests.def.SerasQuest.ID);
         registerNpcQuest(me.nakilex.levelplugin.quests.def.MarketBeginningsQuest.NPC_NAME,
                 me.nakilex.levelplugin.quests.def.MarketBeginningsQuest.ID);
@@ -129,6 +131,7 @@ public class QuestManager {
         me.nakilex.levelplugin.quests.def.EssenceWeaversLessonQuest.registerTalkTargets(this);
         me.nakilex.levelplugin.quests.def.GamblersGambitQuest.registerTalkTargets(this);
         me.nakilex.levelplugin.quests.def.AbandonedCastleQuest.registerTalkTargets(this);
+        me.nakilex.levelplugin.quests.def.WakePerryQuest.registerTalkTargets(this);
         // These service/tutorial quests rely on NPC display names so they continue to work even if IDs
         // change between environments.
         registerNpcQuest(me.nakilex.levelplugin.quests.def.SalvagersLessonQuest.NPC_NAME,
