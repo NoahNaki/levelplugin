@@ -200,9 +200,13 @@ public class ProfileSelectionGUI implements Listener {
         ItemMeta confirmMeta = confirm.getItemMeta();
         if (confirmMeta != null) {
             List<String> lore = new ArrayList<>();
-            lore.add(ChatColor.YELLOW + "Warning:");
-            lore.addAll(TooltipUtil.bulletList(
-                    "Transfer guild leadership or disband your guild before deleting this profile."));
+            me.nakilex.levelplugin.guild.Guild guild =
+                    me.nakilex.levelplugin.guild.GuildManager.getInstance().getGuild(player.getUniqueId());
+            if (guild != null && player.getUniqueId().equals(guild.getLeader())) {
+                lore.add(ChatColor.YELLOW + "Warning:");
+                lore.addAll(TooltipUtil.bulletList(
+                        "Transfer guild leadership or disband your guild before deleting this profile."));
+            }
             confirmMeta.setLore(lore);
             confirm.setItemMeta(confirmMeta);
         }

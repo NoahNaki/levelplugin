@@ -137,6 +137,9 @@ public class ProfileManager {
         if (slot < 0 || slot >= list.size()) {
             return;
         }
+        me.nakilex.levelplugin.guild.GuildManager guildManager = me.nakilex.levelplugin.guild.GuildManager.getInstance();
+        guildManager.handleProfileDeletion(uuid);
+
         list.set(slot, null);
         me.nakilex.levelplugin.player.config.PlayerConfig cfg =
                 me.nakilex.levelplugin.Main.getInstance().getPlayerConfig();
