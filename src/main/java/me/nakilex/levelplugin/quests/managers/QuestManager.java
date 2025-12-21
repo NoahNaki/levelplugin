@@ -449,6 +449,11 @@ public class QuestManager {
         return remaining > 0;
     }
 
+    /** Determine if a quest is on cooldown for the player. */
+    public boolean isQuestCooling(UUID playerId, String questId) {
+        return isQuestCooling(playerId, quests.get(questId));
+    }
+
     public long getCooldownRemaining(UUID playerId, Quest quest) {
         if (quest == null) {
             return 0L;

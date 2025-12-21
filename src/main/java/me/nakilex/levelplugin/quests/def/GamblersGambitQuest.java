@@ -4,15 +4,15 @@ import com.nexomc.nexo.api.NexoItems;
 import com.nexomc.nexo.items.ItemBuilder;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.quests.data.BeaconTargets;
+import me.nakilex.levelplugin.quests.data.PlayerQuestProgress;
 import me.nakilex.levelplugin.quests.data.Quest;
+import me.nakilex.levelplugin.quests.data.QuestCompletionScript;
 import me.nakilex.levelplugin.quests.data.QuestObjective;
 import me.nakilex.levelplugin.quests.data.QuestObjectiveType;
+import me.nakilex.levelplugin.quests.data.QuestRepeatType;
+import me.nakilex.levelplugin.quests.data.QuestResetScript;
 import me.nakilex.levelplugin.quests.data.QuestRewardCompat;
 import me.nakilex.levelplugin.quests.data.QuestScript;
-import me.nakilex.levelplugin.quests.data.PlayerQuestProgress;
-import me.nakilex.levelplugin.quests.data.QuestCompletionScript;
-import me.nakilex.levelplugin.quests.data.QuestResetScript;
-import me.nakilex.levelplugin.quests.data.QuestRepeatType;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
@@ -37,13 +37,14 @@ import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
- * Number-guessing side quest run by the gambler NPC.
+ * Rock-paper-scissors side quest run by the gambler NPC.
  */
 public class GamblersGambitQuest extends Quest implements QuestScript, QuestCompletionScript, QuestResetScript {
     public static final String ID = "gamblersgambit";
@@ -58,20 +59,20 @@ public class GamblersGambitQuest extends Quest implements QuestScript, QuestComp
 
     private static final String INTRO_TARGET = "npc" + NPC_ID + "_intro";
     private static final String GUESS_TARGET = "gamblers_gambit_guess";
-    private static final String TARGET_FLAG_PREFIX = "gambit_target_";
     private static final String GUESS_FLAG = "awaiting_guess";
     private static final String CHOICE_FLAG_BASE = "gambit_choice_";
     private static final NamespacedKey REWARD_KEY = new NamespacedKey(Main.getInstance(), "gambit_aquamarine");
     private static final NamespacedKey BONUS_KEY = new NamespacedKey(Main.getInstance(), "gambit_bonus_until");
+    private static final NamespacedKey FAILSTACK_KEY = new NamespacedKey(Main.getInstance(), "gambit_failstack");
 
     private static final List<String> OFFER_DIALOG = List.of(
-            "Gambler|Hey you, you seem like you like to live life on the edge, wanna play a little game for the cheap price of <glyph:coins_icon> 1,000 coins?"
+            "Gambler|Hey you, you seem like you like to live life on the edge, wanna play rock, paper, scissors for the cheap price of <glyph:coins_icon> 1,000 coins?"
     );
     private static final List<String> REPEAT_DIALOG = List.of(
             "Gambler|Come to test your luck again?"
     );
     private static final List<String> ACCEPT_DIALOG = List.of(
-            "Gambler|I'm going to think of a number and you have to guess it, if you get it right, I'll give you a little gift that might come in handy someday.",
+            "Gambler|We'll play rock, paper, scissors. Beat me and I'll hand over a little gift that might come in handy someday.",
             "Gambler|Let's go gambling!!"
     );
     private static final List<String> DECLINE_DIALOG = List.of(
@@ -81,10 +82,12 @@ public class GamblersGambitQuest extends Quest implements QuestScript, QuestComp
             "Gambler|YIPPIEEEE!!"
     );
 
+    private enum Hand { ROCK, PAPER, SCISSORS }
+
+    private static final double[] WIN_CHANCES = {0.33, 0.66, 0.99};
+
     private static GamblersGambitQuest instance;
     private static boolean listenersRegistered;
-    private final Map<UUID, Integer> guessTargets = new ConcurrentHashMap<>();
-    private final Map<UUID, Long> lastDialogAdvance = new ConcurrentHashMap<>();
     private final Map<UUID, Long> lastNpcClick = new ConcurrentHashMap<>();
 
     private static List<QuestObjective> createObjectives() {
@@ -94,7 +97,7 @@ public class GamblersGambitQuest extends Quest implements QuestScript, QuestComp
                         "Pay the entry fee to hear the gambler's offer."),
                 new QuestObjective(QuestObjectiveType.TALK, GUESS_TARGET, 1,
                         false, BeaconTargets.npc(NPC_ID),
-                        "Match the gambler's hidden number between 1 and 10.")
+                        "Win a round of rock, paper, scissors against the gambler.")
         );
     }
 
@@ -170,7 +173,7 @@ public class GamblersGambitQuest extends Quest implements QuestScript, QuestComp
             return;
         }
         questManager.handleTalk(player, INTRO_TARGET);
-        armGuess(player, questManager, false);
+        armGuess(player, questManager, true);
     }
 
     @Override
@@ -204,10 +207,10 @@ public class GamblersGambitQuest extends Quest implements QuestScript, QuestComp
         return questManager.hasFlag(uuid, ID, GUESS_FLAG);
     }
 
-    public void handleGuess(Player player, int guess) {
+    public void handleGuess(Player player, Hand choice) {
         Main plugin = Main.getInstance();
         QuestManager questManager = plugin.getQuestManager();
-        if (questManager == null) {
+        if (player == null || questManager == null) {
             return;
         }
         PlayerQuestProgress progress = questManager.getProgress(player.getUniqueId(), ID);
@@ -215,19 +218,18 @@ public class GamblersGambitQuest extends Quest implements QuestScript, QuestComp
             cleanup(player.getUniqueId(), questManager);
             return;
         }
+        boolean win = ThreadLocalRandom.current().nextDouble() < resolveWinChance(player);
+        Hand gamblerHand = win ? losingHand(choice) : winningHand(choice);
 
-        int target = ensureTarget(player.getUniqueId(), progress, questManager);
-        if (guess != target) {
+        if (!win) {
+            incrementFailStack(player);
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
-                    "Not quite. The gambler chuckles and shuffles the deck. You'll need to ante up again before taking another shot.");
+                    "The gambler throws " + formatHand(gamblerHand) + " and grins. Better luck on the next round.");
             questManager.resetQuest(player.getUniqueId(), ID, true);
-            if (questManager.isDebug()) {
-                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
-                        "[GambitDebug] Wrong guess=" + guess + " target=" + target + " -> quest reset");
-            }
             return;
         }
 
+        resetFailStack(player);
         questManager.removeFlag(player.getUniqueId(), ID, GUESS_FLAG);
 
         NPC npc = CitizensAPI.getNPCRegistry().getById(NPC_ID);
@@ -242,7 +244,8 @@ public class GamblersGambitQuest extends Quest implements QuestScript, QuestComp
                 }
             }.runTask(plugin);
         } else {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, "YIPPIEEEE!!");
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
+                    "You throw " + formatHand(choice) + " while the gambler tosses " + formatHand(gamblerHand) + ". You win!");
             questManager.handleTalk(player, GUESS_TARGET);
         }
         cleanup(player.getUniqueId(), questManager);
@@ -257,69 +260,63 @@ public class GamblersGambitQuest extends Quest implements QuestScript, QuestComp
             cleanup(player.getUniqueId(), questManager);
             return;
         }
-        ensureTarget(player.getUniqueId(), progress, questManager);
         questManager.setFlag(player.getUniqueId(), ID, GUESS_FLAG);
         if (sendPrompt) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
-                    "Type a number between 1 and 10 in chat to match the gambler's pick.");
-        }
-    }
-
-    private int ensureTarget(UUID uuid, PlayerQuestProgress progress, QuestManager questManager) {
-        Integer existing = guessTargets.get(uuid);
-        if (existing != null) {
-            return existing;
-        }
-
-        Integer parsed = parseTargetFlag(progress);
-        if (parsed != null) {
-            guessTargets.put(uuid, parsed);
-            return parsed;
-        }
-
-        int target = ThreadLocalRandom.current().nextInt(1, 11);
-        guessTargets.put(uuid, target);
-        clearTargetFlags(uuid, questManager, progress);
-        questManager.setFlag(uuid, ID, TARGET_FLAG_PREFIX + target);
-        return target;
-    }
-
-    private Integer parseTargetFlag(PlayerQuestProgress progress) {
-        if (progress == null) {
-            return null;
-        }
-        for (String flag : progress.getFlags()) {
-            if (flag != null && flag.startsWith(TARGET_FLAG_PREFIX)) {
-                try {
-                    return Integer.parseInt(flag.substring(TARGET_FLAG_PREFIX.length()));
-                } catch (NumberFormatException ignored) {
-                    // Ignore malformed target flags
-                }
-            }
-        }
-        return null;
-    }
-
-    private void clearTargetFlags(UUID uuid, QuestManager questManager, PlayerQuestProgress progress) {
-        if (questManager == null || progress == null) {
-            return;
-        }
-        List<String> flags = new ArrayList<>(progress.getFlags());
-        for (String flag : flags) {
-            if (flag != null && flag.startsWith(TARGET_FLAG_PREFIX)) {
-                questManager.removeFlag(uuid, ID, flag);
-            }
+                    "Type rock, paper, or scissors in chat to play your hand.");
         }
     }
 
     private void cleanup(UUID uuid, QuestManager questManager) {
-        guessTargets.remove(uuid);
         if (questManager == null) {
             return;
         }
         questManager.removeFlag(uuid, ID, GUESS_FLAG);
-        PlayerQuestProgress progress = questManager.getProgress(uuid, ID);
-        clearTargetFlags(uuid, questManager, progress);
+    }
+
+    private double resolveWinChance(Player player) {
+        int failStack = getFailStack(player);
+        int idx = Math.max(0, Math.min(failStack, WIN_CHANCES.length - 1));
+        return WIN_CHANCES[idx];
+    }
+
+    private int getFailStack(Player player) {
+        if (player == null) {
+            return 0;
+        }
+        Byte stored = player.getPersistentDataContainer().get(FAILSTACK_KEY, PersistentDataType.BYTE);
+        return stored == null ? 0 : Math.max(0, Math.min(stored, (byte) 2));
+    }
+
+    private void incrementFailStack(Player player) {
+        int next = Math.min(getFailStack(player) + 1, 2);
+        player.getPersistentDataContainer().set(FAILSTACK_KEY, PersistentDataType.BYTE, (byte) next);
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                "Your odds improve next time (" + (int) Math.round(resolveWinChance(player) * 100) + "% chance).");
+    }
+
+    private void resetFailStack(Player player) {
+        player.getPersistentDataContainer().set(FAILSTACK_KEY, PersistentDataType.BYTE, (byte) 0);
+    }
+
+    private Hand winningHand(Hand playerChoice) {
+        return switch (playerChoice) {
+            case ROCK -> Hand.PAPER;
+            case PAPER -> Hand.SCISSORS;
+            case SCISSORS -> Hand.ROCK;
+        };
+    }
+
+    private Hand losingHand(Hand playerChoice) {
+        return switch (playerChoice) {
+            case ROCK -> Hand.SCISSORS;
+            case PAPER -> Hand.ROCK;
+            case SCISSORS -> Hand.PAPER;
+        };
+    }
+
+    private String formatHand(Hand hand) {
+        return ChatColor.GOLD + hand.name().substring(0, 1) + hand.name().substring(1).toLowerCase(Locale.ROOT) + ChatColor.RESET;
     }
 
     private void giveReward(Player player) {
@@ -339,7 +336,7 @@ public class GamblersGambitQuest extends Quest implements QuestScript, QuestComp
         ItemMeta meta = stack.getItemMeta();
         if (meta != null) {
             meta.setDisplayName(ChatColor.AQUA + "Highroller's Aquamarine");
-            List<String> lore = new java.util.ArrayList<>();
+            List<String> lore = new ArrayList<>();
             lore.add(ChatColor.GRAY + "A charm said to shimmer brighter after a lucky streak.");
             lore.add(" ");
             lore.addAll(TooltipUtil.bulletList("Consume to gain +10% mob drop chance for 10 minutes."));
@@ -402,14 +399,14 @@ public class GamblersGambitQuest extends Quest implements QuestScript, QuestComp
                 }
 
                 event.setCancelled(true);
-                Integer guess = parseGuess(raw.trim());
-                if (guess == null) {
+                Hand hand = parseHand(raw.trim());
+                if (hand == null) {
                     Bukkit.getScheduler().runTask(Main.getInstance(), () -> ChatMessageUtil.send(
                             event.getPlayer(),
                             ChatMessageUtil.MessageType.INFO,
-                            "The gambler is waiting. Type a number between 1 and 10 to lock in your guess."));
+                            "The gambler is waiting. Type rock, paper, or scissors to lock in your play."));
                 } else {
-                    Bukkit.getScheduler().runTask(Main.getInstance(), () -> quest.handleGuess(event.getPlayer(), guess));
+                    Bukkit.getScheduler().runTask(Main.getInstance(), () -> quest.handleGuess(event.getPlayer(), hand));
                 }
             }
 
@@ -473,11 +470,6 @@ public class GamblersGambitQuest extends Quest implements QuestScript, QuestComp
                 if (dialogManager != null && dialogManager.hasSession(player)) {
                     net.citizensnpcs.api.npc.NPC sessionNpc = dialogManager.getSessionNpc(player);
                     if (sessionNpc != null && sessionNpc.getId() == NPC_ID) {
-                        long now = System.currentTimeMillis();
-                        Long last = lastDialogAdvance.get(player.getUniqueId());
-                        long delta = last == null ? Long.MAX_VALUE : now - last;
-                        Main.getInstance().getLogger().info("[Gambit] NPCRightClick session delta=" + delta + "ms for " + player.getName());
-                        // Do not advance dialog here; just cancel to avoid duplicate choices.
                         event.setCancelled(true);
                         return;
                     }
@@ -486,18 +478,16 @@ public class GamblersGambitQuest extends Quest implements QuestScript, QuestComp
         }, Main.getInstance());
     }
 
-    private static Integer parseGuess(String raw) {
+    private static Hand parseHand(String raw) {
         if (raw == null || raw.isEmpty()) {
             return null;
         }
-        try {
-            int guess = Integer.parseInt(raw);
-            if (guess >= 1 && guess <= 10) {
-                return guess;
-            }
-        } catch (NumberFormatException ignored) {
-            // Ignore
-        }
-        return null;
+        String normalized = raw.trim().toLowerCase(Locale.ROOT);
+        return switch (normalized) {
+            case "rock", "r" -> Hand.ROCK;
+            case "paper", "p" -> Hand.PAPER;
+            case "scissors", "s", "scissor" -> Hand.SCISSORS;
+            default -> null;
+        };
     }
 }

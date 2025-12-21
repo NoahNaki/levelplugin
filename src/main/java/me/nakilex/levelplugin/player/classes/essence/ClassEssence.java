@@ -41,6 +41,17 @@ public final class ClassEssence {
     private static final NamespacedKey NEXT_EXP_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ClassEssence.class), "essence_next_exp");
     private static final NamespacedKey SOULBOUND_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ClassEssence.class), "essence_soulbound");
 
+    private static final List<PlayerClass> CORE_ESSENCE_CLASSES = java.util.List.of(
+            PlayerClass.ARCHER,
+            PlayerClass.AWAKARCHER,
+            PlayerClass.MAGE,
+            PlayerClass.AWAKMAGE,
+            PlayerClass.WARRIOR,
+            PlayerClass.AWAKWARRIOR,
+            PlayerClass.ROGUE,
+            PlayerClass.AWAKROGUE
+    );
+
     private record AttrData(int value, boolean percent) {}
 
     private static final java.util.Map<PlayerClass, String> CLASS_NEXO_IDS = java.util.Map.of(
@@ -95,6 +106,39 @@ public final class ClassEssence {
         Random rand = new Random();
         ItemRarity rarity = rollWeightedRarity(rand);
         return generateEssence(clazz, rarity, 0);
+    }
+
+    /** Generate an essence from the shared combat pool using weighted rarity. */
+    public static ItemStack generateStandardPoolEssence() {
+        return generateStandardPoolEssence(rollWeightedRarity(new Random()), 0);
+    }
+
+    /** Generate an essence from the shared combat pool using explicit rarity and star level. */
+    public static ItemStack generateStandardPoolEssence(ItemRarity rarity, int starLevel) {
+        return generateEssenceFromPool(CORE_ESSENCE_CLASSES, rarity, starLevel);
+    }
+
+    /** Generate an essence from a provided pool using weighted rarity. */
+    public static ItemStack generateEssenceFromPool(Collection<PlayerClass> pool) {
+        return generateEssenceFromPool(pool, rollWeightedRarity(new Random()), 0);
+    }
+
+    /** Generate an essence from a provided pool with explicit rarity and star level. */
+    public static ItemStack generateEssenceFromPool(Collection<PlayerClass> pool, ItemRarity rarity, int starLevel) {
+        if (pool == null || pool.isEmpty()) {
+            return generateEssence();
+        }
+        Random rand = new Random();
+        PlayerClass clazz = pool.stream()
+                .skip(rand.nextInt(pool.size()))
+                .findFirst()
+                .orElse(PlayerClass.MAGE);
+        return generateEssence(clazz, rarity, starLevel);
+    }
+
+    /** Pool of essences used by combat rewards such as bosses and dungeons. */
+    public static List<PlayerClass> getCoreEssencePool() {
+        return CORE_ESSENCE_CLASSES;
     }
 
     /**

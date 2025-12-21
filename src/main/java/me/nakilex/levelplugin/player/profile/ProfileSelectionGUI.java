@@ -196,8 +196,17 @@ public class ProfileSelectionGUI implements Listener {
                 .filler(Material.GRAY_STAINED_GLASS_PANE)
                 .build();
         // Build the confirm items dynamically so Nexo is already initialized
-        inv.setItem(CONFIRM_YES_SLOT,
-                GuiUtil.getNexoItem("check", ChatColor.GREEN + "Confirm"));
+        ItemStack confirm = GuiUtil.getNexoItem("check", ChatColor.GREEN + "Confirm");
+        ItemMeta confirmMeta = confirm.getItemMeta();
+        if (confirmMeta != null) {
+            List<String> lore = new ArrayList<>();
+            lore.add(ChatColor.YELLOW + "Warning:");
+            lore.addAll(TooltipUtil.bulletList(
+                    "Transfer guild leadership or disband your guild before deleting this profile."));
+            confirmMeta.setLore(lore);
+            confirm.setItemMeta(confirmMeta);
+        }
+        inv.setItem(CONFIRM_YES_SLOT, confirm);
         inv.setItem(CONFIRM_NO_SLOT,
                 GuiUtil.getNexoItem("cross", ChatColor.RED + "Cancel"));
         // The edit menu closes when this opens; remove the reference so the
