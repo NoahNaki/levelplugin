@@ -461,6 +461,21 @@ public class PlayerConfig {
         config.set("players." + uuid + ".profiles.unlocked", count);
     }
 
+    public java.util.Set<String> getClearedDungeons(UUID uuid) {
+        java.util.List<String> stored = config.getStringList("players." + uuid + ".cleared_dungeons");
+        return new java.util.LinkedHashSet<>(stored);
+    }
+
+    public void addClearedDungeon(UUID uuid, String dungeonKey) {
+        if (dungeonKey == null || dungeonKey.isBlank()) return;
+        java.util.Set<String> cleared = getClearedDungeons(uuid);
+        String normalized = dungeonKey.toLowerCase(java.util.Locale.ENGLISH);
+        if (cleared.add(normalized)) {
+            config.set("players." + uuid + ".cleared_dungeons", new java.util.ArrayList<>(cleared));
+            saveConfig();
+        }
+    }
+
     /** Allows external classes to persist config changes. */
     public void saveConfigFile() {
         saveConfig();
