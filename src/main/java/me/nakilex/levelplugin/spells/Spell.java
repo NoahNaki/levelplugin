@@ -122,7 +122,7 @@ public class Spell {
     public void castEffect(Player player) {
         UUID pid = player.getUniqueId();
 
-        if (Main.getInstance().getDialogManager().hasSession(player)) {
+        if (Main.getInstance().getDialogManager().isDialogLockActive(player)) {
             return;
         }
 

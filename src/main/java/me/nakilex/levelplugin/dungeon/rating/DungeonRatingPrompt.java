@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.dungeon.rating;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.utils.ChatFormatter;
+import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.conversations.ConversationContext;
 import org.bukkit.conversations.Prompt;
@@ -37,6 +38,8 @@ public class DungeonRatingPrompt extends StringPrompt {
 
         me.nakilex.levelplugin.dungeon.DungeonManager dm = Main.getInstance().getDungeonManager();
         String displayName = dm.getDisplayName(dungeonKey);
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
+                "Rating submitted: " + ChatColor.WHITE + rating + ChatColor.GREEN + " for " + ChatColor.WHITE + displayName + ChatColor.GREEN + ".");
         String expLabel = ChatFormatter.experienceLabel();
         String expColor = ChatFormatter.experienceColor();
         ChatFormatter.sendBoxedCenteredMessages(player, "§a",
