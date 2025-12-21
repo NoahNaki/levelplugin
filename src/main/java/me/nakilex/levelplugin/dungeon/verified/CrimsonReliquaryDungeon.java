@@ -654,7 +654,7 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
             }
         }
         for (Location cyan : markers.miniBossMarkers) {
-            state.mobMarkers.add(new MobMarker(cyan, "Nocsy_Ganon"));
+            state.mobMarkers.add(new MobMarker(cyan, "LRD_eldric"));
         }
         for (Location boss : markers.bossMarkers) {
             state.mobMarkers.add(new MobMarker(boss, "MSO_Demon_General"));
