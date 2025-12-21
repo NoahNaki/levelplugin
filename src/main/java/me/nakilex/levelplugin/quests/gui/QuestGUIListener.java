@@ -112,7 +112,8 @@ public class QuestGUIListener implements Listener {
                 }
             }
         } else if (event.getClick().isLeftClick()) {
-            if (state == QuestState.ACCEPTED || state == QuestState.IN_PROGRESS || state == QuestState.TURN_IN_READY) {
+            if (state == QuestState.ACCEPTED || state == QuestState.IN_PROGRESS || state == QuestState.TURN_IN_READY
+                    || state == QuestState.AVAILABLE) {
                 questManager.setTrackedQuest(player, id);
                 player.sendMessage(ChatColor.GREEN + "Tracking quest: " + ChatColor.WHITE + quest.getName());
                 QuestGUI.openQuestGUI(player, questManager, QuestGUI.pageMap.getOrDefault(player.getUniqueId(),0));

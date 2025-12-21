@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.quests.tasks;
 
 import me.nakilex.levelplugin.quests.data.*;
+import me.nakilex.levelplugin.quests.gui.QuestState;
 import me.nakilex.levelplugin.quests.managers.*;
 import org.bukkit.*;
 import org.bukkit.entity.Player;
@@ -35,7 +36,9 @@ public class QuestBeaconTask extends BukkitRunnable {
 
             // --- pick objective ---------------------------------------------
             Location loc = null;
+            QuestState state = null;
             if (quest != null) {
+                state = questManager.getQuestState(player, quest);
                 int idx = 0;
                 if (progress != null && quest.getId().equals(progress.getQuest().getId())) {
                     // first unfinished objective
@@ -49,6 +52,10 @@ public class QuestBeaconTask extends BukkitRunnable {
                 BeaconTarget target = quest.getObjectives().get(idx).getBeaconTarget();
                 if (target != null) {
                     loc = target.resolve(player);
+                }
+                if (loc == null && state == QuestState.AVAILABLE && quest.getNpcGiverId() != null) {
+                    BeaconTarget npcTarget = BeaconTargets.npc(quest.getNpcGiverId());
+                    loc = npcTarget.resolve(player);
                 }
             }
 

@@ -49,6 +49,12 @@ public class GamblersGambitNpcHandler extends AbstractQuestNpcHandler {
         GamblersGambitQuest script = GamblersGambitQuest.getInstance();
 
         if (state == QuestState.COMPLETED) {
+            if (questManager.isQuestCooling(uuid, quest.getId())) {
+                long remaining = questManager.getCooldownRemaining(uuid, quest);
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                        "This daily wager opens again in " + formatDuration(remaining) + ".");
+                return true;
+            }
             openOfferWithChoice(player, npc, GamblersGambitQuest.getRepeatDialog(), script);
             return true;
         }
@@ -101,9 +107,6 @@ public class GamblersGambitNpcHandler extends AbstractQuestNpcHandler {
             economyManager.deductCoins(player, GamblersGambitQuest.ENTRY_FEE);
             CurrencyMessageUtil.sendLoss(player, CurrencyMessageUtil.Currency.COINS,
                     GamblersGambitQuest.ENTRY_FEE);
-            if (questManager.hasCompleted(uuid, GamblersGambitQuest.ID)) {
-                questManager.resetQuest(uuid, GamblersGambitQuest.ID, true);
-            }
             questManager.startQuest(player, GamblersGambitQuest.ID);
             dialogManager.startDialog(player,
                     GamblersGambitQuest.getAcceptDialog(),
@@ -119,5 +122,15 @@ public class GamblersGambitNpcHandler extends AbstractQuestNpcHandler {
                     npc,
                     null);
         }
+    }
+
+    private String formatDuration(long millis) {
+        java.time.Duration duration = java.time.Duration.ofMillis(Math.max(0, millis));
+        long hours = duration.toHours();
+        long minutes = duration.minusHours(hours).toMinutes();
+        if (hours > 0) {
+            return hours + "h " + minutes + "m";
+        }
+        return minutes + "m";
     }
 }

@@ -976,8 +976,7 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
             return () -> {
                 if (!essenceServed[0]) {
                     essenceServed[0] = true;
-                    PlayerClass awakened = PlayerClass.randomAwakened(ThreadLocalRandom.current());
-                    return ClassEssence.generateEssence(awakened, ItemRarity.RARE, 0);
+                    return ClassEssence.generateStandardPoolEssence(ItemRarity.RARE, 0);
                 }
                 return createFountainReward(state);
             };

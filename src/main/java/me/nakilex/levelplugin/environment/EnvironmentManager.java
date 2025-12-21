@@ -135,6 +135,12 @@ public class EnvironmentManager {
         }
     }
 
+    public record TownMaxResult(boolean success, boolean townUpgraded, int buildingsUpgraded, String message) {
+        public boolean changed() {
+            return townUpgraded || buildingsUpgraded > 0;
+        }
+    }
+
     public EnvironmentManager(PlayerConfig config,
                               TownStageManager stageManager,
                               me.nakilex.levelplugin.environment.stage.BuildingStageManager buildingStageManager) {
@@ -221,6 +227,73 @@ public class EnvironmentManager {
             }
         }
         return true;
+    }
+
+    /** Max out the town level/stage and all building stages for the player. */
+    public TownMaxResult maxTownProgress(Player player) {
+        loadPlayerState(player);
+        UUID base = getBase(player.getUniqueId());
+        EnvironmentState envState = states.get(base);
+        String town = towns.get(base);
+        Location origin = origins.get(base);
+
+        if (envState == null || town == null || origin == null) {
+            return new TownMaxResult(false, false, 0, ChatColor.RED + "You do not have a town to upgrade.");
+        }
+
+        TownStageManager.TownStage highestTownStage = stageManager.getHighestStage(town);
+        if (highestTownStage == null) {
+            return new TownMaxResult(false, false, 0, ChatColor.RED + "No stages are configured for this town.");
+        }
+
+        Map<String, BuildingState> bMap = buildingStates.computeIfAbsent(base, k -> new java.util.HashMap<>());
+        java.util.Set<String> buildingNames = buildingStageManager.getBuildings(town);
+        if (buildingNames.isEmpty()) {
+            return new TownMaxResult(false, false, 0, ChatColor.RED + "No buildings are configured for this town.");
+        }
+
+        boolean townUpgraded = false;
+        int upgradedBuildings = 0;
+
+        if (envState.level != highestTownStage.level || envState.stage != highestTownStage.stage) {
+            int oldLevel = envState.level;
+            int oldStage = envState.stage;
+            envState.level = highestTownStage.level;
+            envState.stage = highestTownStage.stage;
+            envState.invested = 0;
+            stageManager.despawnForStage(player.getUniqueId(), town, oldLevel, oldStage);
+            spawnStructureUpgrade(player, origin, oldLevel, oldStage, envState.level, envState.stage);
+            townUpgraded = true;
+        }
+
+        for (String building : buildingNames) {
+            int targetStage = buildingStageManager.getMaxStage(building);
+            if (targetStage <= 0) continue;
+
+            BuildingState bs = bMap.computeIfAbsent(building.toLowerCase(), k -> new BuildingState(1));
+            int oldStage = bs.stage;
+            if (oldStage < targetStage) {
+                bs.stage = targetStage;
+                bs.invested = 0;
+                Location bOrigin = getBuildingOrigin(town, building, origin);
+                buildingStageManager.despawnForStage(player.getUniqueId(), building, oldStage);
+                spawnBuildingUpgrade(player, building, bOrigin, oldStage, targetStage);
+                upgradedBuildings++;
+            }
+        }
+
+        if (townUpgraded || upgradedBuildings > 0) {
+            invalidateTownChunks(base);
+            saveState(base);
+
+            String status = ChatColor.GREEN + "Maxed town to Level " + envState.level
+                    + ChatColor.GRAY + " Stage " + ChatColor.GREEN + envState.stage
+                    + ChatColor.GRAY + " and upgraded " + ChatColor.GOLD + upgradedBuildings
+                    + ChatColor.GRAY + " building" + (upgradedBuildings == 1 ? "" : "s") + ".";
+            return new TownMaxResult(true, townUpgraded, upgradedBuildings, status);
+        }
+
+        return new TownMaxResult(true, false, 0, ChatColor.YELLOW + "Your town is already fully upgraded.");
     }
 
     /*

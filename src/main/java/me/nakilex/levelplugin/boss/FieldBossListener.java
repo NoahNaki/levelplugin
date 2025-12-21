@@ -11,7 +11,6 @@ import me.nakilex.levelplugin.items.data.ItemRarity;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.mob.utils.MobNameUtil;
-import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.classes.essence.ClassEssence;
 import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.utils.RewardBombUtil;
@@ -42,13 +41,6 @@ public class FieldBossListener implements Listener {
     private final Map<String, String> bossKeyMap = new HashMap<>();
     private final Map<UUID, Map<UUID, Double>> damageMap = new ConcurrentHashMap<>();
     private final Map<UUID, Long> bossStartTime = new ConcurrentHashMap<>();
-    private static final java.util.List<PlayerClass> AWAKENED_DROP_POOL = java.util.List.of(
-            PlayerClass.AWAKMAGE,
-            PlayerClass.AWAKWARRIOR,
-            PlayerClass.AWAKARCHER,
-            PlayerClass.AWAKROGUE
-    );
-
     public FieldBossListener(Main plugin,
                              FileConfiguration bossConfig,
                              ItemManager itemManager,
@@ -277,8 +269,9 @@ public class FieldBossListener implements Listener {
     }
 
     private ItemStack createAwakenedEssenceDrop() {
-        PlayerClass awakened = AWAKENED_DROP_POOL.get(ThreadLocalRandom.current()
-                .nextInt(AWAKENED_DROP_POOL.size()));
+        java.util.List<me.nakilex.levelplugin.player.classes.data.PlayerClass> pool = ClassEssence.getCoreEssencePool();
+        me.nakilex.levelplugin.player.classes.data.PlayerClass awakened = pool.get(ThreadLocalRandom.current()
+                .nextInt(pool.size()));
         return ClassEssence.generateEssence(awakened, ItemRarity.RARE, 0);
     }
 
@@ -292,7 +285,10 @@ public class FieldBossListener implements Listener {
             }
 
             if (roll < 0.95) {
-                return ClassEssence.generateEssence();
+                java.util.List<me.nakilex.levelplugin.player.classes.data.PlayerClass> pool = ClassEssence.getCoreEssencePool();
+                me.nakilex.levelplugin.player.classes.data.PlayerClass clazz = pool.get(ThreadLocalRandom.current()
+                        .nextInt(pool.size()));
+                return ClassEssence.generateEssence(clazz);
             }
 
             if (gearDrop != null) {

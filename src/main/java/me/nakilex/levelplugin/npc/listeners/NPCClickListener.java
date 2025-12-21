@@ -15,6 +15,7 @@ import me.nakilex.levelplugin.quests.def.SharpestSecretQuest;
 import me.nakilex.levelplugin.quests.def.SalvagersLessonQuest;
 import me.nakilex.levelplugin.quests.def.MarketBeginningsQuest;
 import me.nakilex.levelplugin.quests.def.CultistCullingQuest;
+import me.nakilex.levelplugin.quests.def.WakePerryQuest;
 import me.nakilex.levelplugin.npc.handlers.EssenceWeaverLessonNpcHandler;
 import me.nakilex.levelplugin.npc.handlers.ForgeFundamentalsNpcHandler;
 import me.nakilex.levelplugin.npc.handlers.GamblersGambitNpcHandler;
@@ -100,6 +101,10 @@ public class NPCClickListener implements Listener {
         if (CitizensAPI.getNPCRegistry().isNPC(event.getRightClicked())) {
             Player player = event.getPlayer();
             NPC npc = CitizensAPI.getNPCRegistry().getNPC(event.getRightClicked());
+
+            if (WakePerryQuest.handleNpcInteraction(player, npc, event.getHand())) {
+                return;
+            }
 
             String stripped = org.bukkit.ChatColor.stripColor(npc.getName());
             if (npc.getId() == 546) {
