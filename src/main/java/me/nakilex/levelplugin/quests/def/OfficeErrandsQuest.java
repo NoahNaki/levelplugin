@@ -225,10 +225,17 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
                                         cur.getZ() - originMin.getZ());
                                 dest.setYaw(cur.getYaw());
                                 dest.setPitch(cur.getPitch());
+                                plugin.getLogger().info("[OfficeErrands] Teleporting " + player.getName()
+                                        + " to " + dest + " from " + cur);
                                 player.teleport(dest);
                                 Location soundLoc = dest.clone();
                                 Bukkit.getScheduler().runTaskLater(plugin,
-                                        () -> player.playSound(soundLoc, "elevatording", SoundCategory.MASTER, 1f, 1f), 5L);
+                                    () -> {
+                                        plugin.getLogger().info("[OfficeErrands] Playing elevator arrival sound for "
+                                                + player.getName() + " in world "
+                                                + player.getWorld().getName() + " at " + soundLoc);
+                                        player.playSound(soundLoc, "elevatording", SoundCategory.MASTER, 1f, 1f);
+                                    }, 10L);
                                 plugin.getQuestManager().startQuest(player, "newbeginning");
 
                                 Bukkit.getScheduler().runTaskLater(plugin, () -> {

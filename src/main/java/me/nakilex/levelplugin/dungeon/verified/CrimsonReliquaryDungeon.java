@@ -1035,7 +1035,6 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
         ChatFormatter.sendCenteredMessage(player, "");
 
         String expLabel = ChatFormatter.experienceLabel();
-        String expColor = ChatFormatter.experienceColor();
         int totalXp = xp != null ? xp.totalXp() : 0;
         int mobXp = xp != null ? xp.mobXp() : 0;
         int timeBonus = xp != null ? xp.timeBonus() : 0;
@@ -1044,20 +1043,22 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
         double puzzleMult = xp != null ? xp.puzzleMultiplier() : 1.0;
         int coins = xp != null ? xp.coins() : 0;
 
-        player.sendMessage(ChatColor.GRAY + "Run Time: " + ChatColor.RED + seconds + ChatColor.GRAY + "s");
-        player.sendMessage(ChatColor.GRAY + "Score: " + ChatColor.RED + score
-                + (puzzleComplete ? ChatColor.GRAY + " (puzzle bonus)" : ""));
+        ChatFormatter.sendIndentedMessage(player,
+                ChatColor.GRAY + "Run Time: " + ChatColor.WHITE + seconds + ChatColor.GRAY + "s");
+        ChatFormatter.sendIndentedMessage(player,
+                ChatColor.GRAY + "Score: " + ChatColor.WHITE + score
+                        + (puzzleComplete ? ChatColor.GRAY + " (puzzle bonus)" : ""));
         player.sendMessage("");
-        player.sendMessage(ChatColor.GRAY + "XP Gained: " + expColor + totalXp + ChatColor.GRAY
-                + " <glyph:experience_orb_icon> " + expLabel);
-        player.sendMessage(ChatColor.GRAY + "Mobs: " + expColor + mobXp + ChatColor.GRAY
-                + " <glyph:experience_orb_icon>");
-        player.sendMessage(ChatColor.GRAY + "Time cleared: " + formatBonusLine(timeBonus, timeMult)
+        ChatFormatter.sendIndentedMessage(player, ChatColor.GRAY + "XP Gained: " + ChatColor.WHITE + totalXp
+                + ChatColor.GRAY + " <glyph:experience_orb_icon> " + expLabel);
+        ChatFormatter.sendIndentedMessage(player, ChatColor.GRAY + "Mobs: " + ChatColor.WHITE + mobXp
                 + ChatColor.GRAY + " <glyph:experience_orb_icon>");
-        player.sendMessage(ChatColor.GRAY + "Puzzle modifier: " + formatBonusLine(puzzleBonus, puzzleMult)
+        ChatFormatter.sendIndentedMessage(player, ChatColor.GRAY + "Time cleared: " + formatBonusLine(timeBonus, timeMult)
                 + ChatColor.GRAY + " <glyph:experience_orb_icon>");
-        player.sendMessage(ChatColor.GRAY + "Coins: " + ChatColor.GOLD + coins + ChatColor.GRAY
-                + " <glyph:coins_icon>");
+        ChatFormatter.sendIndentedMessage(player, ChatColor.GRAY + "Puzzle modifier: "
+                + formatBonusLine(puzzleBonus, puzzleMult) + ChatColor.GRAY + " <glyph:experience_orb_icon>");
+        ChatFormatter.sendIndentedMessage(player, ChatColor.GRAY + "Coins: " + ChatColor.WHITE + coins
+                + ChatColor.GRAY + " <glyph:coins_icon>");
         ChatFormatter.sendCenteredMessage(player, ChatColor.GRAY + "Great work, challenger.");
         ChatFormatter.constructDivider(player, "§c§l-", 45);
     }
@@ -1065,9 +1066,10 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
     private String formatBonusLine(int bonus, double multiplier) {
         String mult = new java.text.DecimalFormat("0.00").format(multiplier);
         if (bonus == 0) {
-            return ChatColor.GRAY + "x" + mult + ChatColor.GRAY + " (+0 XP)";
+            return ChatColor.GRAY + "x" + ChatColor.WHITE + mult + ChatColor.GRAY + " (+0 XP)";
         }
-        String sign = bonus > 0 ? ChatColor.GREEN + "+" : ChatColor.RED + "";
-        return ChatColor.GRAY + "x" + mult + ChatColor.GRAY + " (" + sign + Math.abs(bonus) + ChatColor.GRAY + " XP)";
+        String sign = bonus > 0 ? ChatColor.GREEN + "+" : ChatColor.RED + "-";
+        return ChatColor.GRAY + "x" + ChatColor.WHITE + mult + ChatColor.GRAY + " (" + sign
+                + ChatColor.WHITE + Math.abs(bonus) + ChatColor.GRAY + " XP)";
     }
 }
