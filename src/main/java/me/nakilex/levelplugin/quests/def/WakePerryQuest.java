@@ -48,6 +48,7 @@ public class WakePerryQuest extends Quest implements QuestScript {
     private static final int NPC_PERRY_AWAKE_ID = 3587;
     private static final String INTRO_TARGET = "npc2925_intro";
     private static final String WAKE_TARGET = "npc2924_awake";
+    private static final String SHINY_CHOICE_FLAG_BASE = "wakeperry_choice_";
     private static final int WAKE_INDEX = 1;
     private static final NamespacedKey WHITE_MONSTER_KEY =
             new NamespacedKey(Main.getInstance(), "white_monster_quest_item");
@@ -82,7 +83,6 @@ public class WakePerryQuest extends Quest implements QuestScript {
     private static WakePerryQuest instance;
     private static boolean listenersRegistered;
     private final Map<UUID, Integer> sleepLineIndex = new HashMap<>();
-    private final Map<UUID, Boolean> shinyChoicePending = new HashMap<>();
 
     private static List<QuestObjective> createObjectives() {
         return List.of(
@@ -210,11 +210,10 @@ public class WakePerryQuest extends Quest implements QuestScript {
             return;
         }
 
-        if (Boolean.TRUE.equals(shinyChoicePending.get(player.getUniqueId()))) {
-            if (!dialogManager.hasSession(player) && !dialogManager.hasChoiceSession(player)) {
-                dialogManager.startChoiceDialog(player, npc, List.of("Yes", "No"), choice -> handleShinyChoice(player, npc,
-                        questManager, dialogManager, choice));
-            }
+        if (questManager.hasFlag(player.getUniqueId(), ID, SHINY_CHOICE_FLAG_BASE + "pending")) {
+            dialogManager.startChoiceDialog(player, npc, List.of("Yes", "No"),
+                    ID, SHINY_CHOICE_FLAG_BASE,
+                    choice -> handleShinyChoice(player, npc, questManager, dialogManager, choice));
             return;
         }
 
@@ -223,15 +222,17 @@ public class WakePerryQuest extends Quest implements QuestScript {
             return;
         }
 
-        shinyChoicePending.put(player.getUniqueId(), true);
         dialogManager.startDialog(player, SHINY_INTRO, npc, () ->
                 dialogManager.startChoiceDialog(player, npc, List.of("Yes", "No"),
-                        null, null, choice -> handleShinyChoice(player, npc, questManager, dialogManager, choice)));
+                        ID, SHINY_CHOICE_FLAG_BASE, choice -> handleShinyChoice(player, npc, questManager, dialogManager, choice)));
     }
 
     private void handleShinyChoice(Player player, NPC npc, QuestManager questManager,
                                    NPCDialogManager dialogManager, Integer choice) {
-        shinyChoicePending.remove(player.getUniqueId());
+        UUID uuid = player.getUniqueId();
+        questManager.removeFlag(uuid, ID, SHINY_CHOICE_FLAG_BASE + "pending");
+        questManager.removeFlag(uuid, ID, SHINY_CHOICE_FLAG_BASE + "0");
+        questManager.removeFlag(uuid, ID, SHINY_CHOICE_FLAG_BASE + "1");
         if (choice == null) {
             return;
         }
