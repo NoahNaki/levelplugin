@@ -366,7 +366,7 @@ public class WakePerryQuest extends Quest implements QuestScript {
             meta.setDisplayName(ChatColor.WHITE + "White Monster");
             List<String> lore = new ArrayList<>(TooltipUtil.questItemLore("A strong pick-me-up from Shiny.", true));
             meta.setLore(lore);
-            meta.addItemFlags(ItemFlag.HIDE_POTION_EFFECTS, ItemFlag.HIDE_ATTRIBUTES);
+            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
             meta.getPersistentDataContainer().set(ItemUtil.SOULBOUND_KEY, PersistentDataType.BYTE, (byte) 1);
             meta.getPersistentDataContainer().set(WHITE_MONSTER_KEY, PersistentDataType.BYTE, (byte) 1);
             drink.setItemMeta(meta);
