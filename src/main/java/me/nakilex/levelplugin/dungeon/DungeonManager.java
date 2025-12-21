@@ -1059,13 +1059,29 @@ public class DungeonManager {
         int timeBonus = timeAdjustedXp - baseXp;
         int puzzleBonus = (int) Math.round(timeAdjustedXp * (puzzleMultiplier - 1));
         int totalXp = Math.max(0, timeAdjustedXp + puzzleBonus);
-        CompletionXp breakdown = new CompletionXp(baseXp, timeBonus, puzzleBonus, totalXp, timeMultiplier, puzzleMultiplier);
+        int coinsAward = totalXp > 0 ? Math.max(25, Math.round(totalXp * 0.35f)) : 0;
+        CompletionXp breakdown = new CompletionXp(baseXp, timeBonus, puzzleBonus, totalXp, coinsAward,
+                timeMultiplier, puzzleMultiplier);
         if (totalXp > 0) {
             lm.addXP(player, totalXp);
-            if (sendDefaultMessage) {
-                player.sendMessage(ChatColor.GREEN + "You gained " + ChatColor.GOLD + totalXp + ChatColor.GREEN
-                        + " XP for clearing the dungeon.");
+        }
+        if (coinsAward > 0 && plugin.getEconomyManager() != null) {
+            plugin.getEconomyManager().addCoins(player, coinsAward);
+        }
+        if (sendDefaultMessage && (totalXp > 0 || coinsAward > 0)) {
+            String expLabel = me.nakilex.levelplugin.utils.ChatFormatter.experienceLabel();
+            String expColor = me.nakilex.levelplugin.utils.ChatFormatter.experienceColor();
+            StringBuilder msg = new StringBuilder(ChatColor.GREEN + "You gained ");
+            if (totalXp > 0) {
+                msg.append(expColor).append(totalXp).append(ChatColor.GRAY)
+                        .append(" <glyph:experience_orb_icon> ").append(expLabel);
             }
+            if (coinsAward > 0) {
+                if (totalXp > 0) msg.append(ChatColor.GREEN).append(" and ");
+                msg.append(ChatColor.GOLD).append(coinsAward).append(ChatColor.GRAY).append(" <glyph:coins_icon> coins");
+            }
+            msg.append(ChatColor.GREEN).append(" for clearing the dungeon.");
+            player.sendMessage(msg.toString());
         }
         return breakdown;
     }
@@ -1084,7 +1100,7 @@ public class DungeonManager {
         }
     }
 
-    public record CompletionXp(int mobXp, int timeBonus, int puzzleBonus, int totalXp,
+    public record CompletionXp(int mobXp, int timeBonus, int puzzleBonus, int totalXp, int coins,
                                double timeMultiplier, double puzzleMultiplier) {
         public int timeAdjustedXp() {
             return mobXp + timeBonus;

@@ -1030,23 +1030,34 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
     private void sendDungeonClearMessage(Player player, long seconds, int score, boolean puzzleComplete,
                                          DungeonManager.CompletionXp xp) {
         ChatFormatter.constructDivider(player, "§c§l-", 45);
+        player.sendMessage("");
         ChatFormatter.sendCenteredMessage(player, "§c§lCRIMSON RELIQUARY CLEARED");
         ChatFormatter.sendCenteredMessage(player, "");
-        ChatFormatter.sendCenteredMessage(player,
-                ChatColor.GRAY + "Run Time: " + ChatColor.RED + seconds + ChatColor.GRAY + "s");
-        ChatFormatter.sendCenteredMessage(player,
-                ChatColor.GRAY + "Score: " + ChatColor.RED + score
-                        + (puzzleComplete ? ChatColor.DARK_GRAY + " (puzzle bonus)" : ""));
-        ChatFormatter.sendCenteredMessage(player, ChatColor.GRAY + "XP Gained: "
-                + ChatColor.GOLD + (xp != null ? xp.totalXp() : 0));
-        ChatFormatter.sendCenteredMessage(player, ChatColor.DARK_GRAY + " - Mobs: "
-                + ChatColor.YELLOW + (xp != null ? xp.mobXp() : 0));
-        ChatFormatter.sendCenteredMessage(player, ChatColor.DARK_GRAY + " - Time cleared: "
-                + ChatColor.YELLOW + formatBonusLine(xp != null ? xp.timeBonus() : 0,
-                xp != null ? xp.timeMultiplier() : 1.0));
-        ChatFormatter.sendCenteredMessage(player, ChatColor.DARK_GRAY + " - Puzzle modifier: "
-                + ChatColor.YELLOW + formatBonusLine(xp != null ? xp.puzzleBonus() : 0,
-                xp != null ? xp.puzzleMultiplier() : 1.0));
+
+        String expLabel = ChatFormatter.experienceLabel();
+        String expColor = ChatFormatter.experienceColor();
+        int totalXp = xp != null ? xp.totalXp() : 0;
+        int mobXp = xp != null ? xp.mobXp() : 0;
+        int timeBonus = xp != null ? xp.timeBonus() : 0;
+        double timeMult = xp != null ? xp.timeMultiplier() : 1.0;
+        int puzzleBonus = xp != null ? xp.puzzleBonus() : 0;
+        double puzzleMult = xp != null ? xp.puzzleMultiplier() : 1.0;
+        int coins = xp != null ? xp.coins() : 0;
+
+        player.sendMessage(ChatColor.GRAY + "Run Time: " + ChatColor.RED + seconds + ChatColor.GRAY + "s");
+        player.sendMessage(ChatColor.GRAY + "Score: " + ChatColor.RED + score
+                + (puzzleComplete ? ChatColor.GRAY + " (puzzle bonus)" : ""));
+        player.sendMessage("");
+        player.sendMessage(ChatColor.GRAY + "XP Gained: " + expColor + totalXp + ChatColor.GRAY
+                + " <glyph:experience_orb_icon> " + expLabel);
+        player.sendMessage(ChatColor.GRAY + "Mobs: " + expColor + mobXp + ChatColor.GRAY
+                + " <glyph:experience_orb_icon>");
+        player.sendMessage(ChatColor.GRAY + "Time cleared: " + formatBonusLine(timeBonus, timeMult)
+                + ChatColor.GRAY + " <glyph:experience_orb_icon>");
+        player.sendMessage(ChatColor.GRAY + "Puzzle modifier: " + formatBonusLine(puzzleBonus, puzzleMult)
+                + ChatColor.GRAY + " <glyph:experience_orb_icon>");
+        player.sendMessage(ChatColor.GRAY + "Coins: " + ChatColor.GOLD + coins + ChatColor.GRAY
+                + " <glyph:coins_icon>");
         ChatFormatter.sendCenteredMessage(player, ChatColor.GRAY + "Great work, challenger.");
         ChatFormatter.constructDivider(player, "§c§l-", 45);
     }
@@ -1054,9 +1065,9 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
     private String formatBonusLine(int bonus, double multiplier) {
         String mult = new java.text.DecimalFormat("0.00").format(multiplier);
         if (bonus == 0) {
-            return "x" + mult + ChatColor.DARK_GRAY + " (+0 XP)";
+            return ChatColor.GRAY + "x" + mult + ChatColor.GRAY + " (+0 XP)";
         }
         String sign = bonus > 0 ? ChatColor.GREEN + "+" : ChatColor.RED + "";
-        return "x" + mult + ChatColor.DARK_GRAY + " (" + sign + bonus + ChatColor.DARK_GRAY + " XP)";
+        return ChatColor.GRAY + "x" + mult + ChatColor.GRAY + " (" + sign + Math.abs(bonus) + ChatColor.GRAY + " XP)";
     }
 }

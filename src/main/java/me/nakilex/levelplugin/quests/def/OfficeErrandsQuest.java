@@ -226,7 +226,9 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
                                 dest.setYaw(cur.getYaw());
                                 dest.setPitch(cur.getPitch());
                                 player.teleport(dest);
-                                player.playSound(dest, "elevatording", SoundCategory.MASTER, 1f, 1f);
+                                Location soundLoc = dest.clone();
+                                Bukkit.getScheduler().runTaskLater(plugin,
+                                        () -> player.playSound(soundLoc, "elevatording", SoundCategory.MASTER, 1f, 1f), 5L);
                                 plugin.getQuestManager().startQuest(player, "newbeginning");
 
                                 Bukkit.getScheduler().runTaskLater(plugin, () -> {
