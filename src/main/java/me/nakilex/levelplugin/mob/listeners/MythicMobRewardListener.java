@@ -149,6 +149,13 @@ public class MythicMobRewardListener implements Listener {
             }
         }
 
+        me.nakilex.levelplugin.dungeon.DungeonManager dungeonManager = Main.getInstance().getDungeonManager();
+        if (dungeonManager != null) {
+            for (Player player : recipients) {
+                dungeonManager.addCombatPowerContribution(player.getUniqueId(), combatPower);
+            }
+        }
+
         for (Player player : recipients) {
             Party party = pm.getParty(player.getUniqueId());
             int partySize = 1;

@@ -9,7 +9,7 @@ import java.util.*;
 public class Guild {
     private final String name;
     private UUID leader;
-    private final Set<UUID> members = new HashSet<>();
+    private final Set<UUID> members = new java.util.LinkedHashSet<>();
     private final Set<String> allies = new HashSet<>();
     private final Set<String> hostiles = new HashSet<>();
     private final Map<UUID, GuildRole> roles = new HashMap<>();
@@ -191,17 +191,35 @@ public class Guild {
     }
 
     public boolean removeMember(UUID id) {
-        if (members.remove(id)) {
-            roles.remove(id);
-            if (id.equals(leader)) {
-                if (!members.isEmpty()) {
-                    leader = members.iterator().next();
-                    roles.put(leader, GuildRole.LEADER);
+        if (!members.remove(id)) return false;
+        roles.remove(id);
+        if (id.equals(leader)) {
+            leader = null;
+        }
+        return true;
+    }
+
+    /** Members in their join order. */
+    public java.util.List<UUID> getMembersInJoinOrder() {
+        return new java.util.ArrayList<>(members);
+    }
+
+    /** Highest ranked non-leader, preferring join order ties. */
+    public java.util.Optional<UUID> findNextLeader(UUID departing) {
+        java.util.List<GuildRole> priority = java.util.Arrays.asList(
+                GuildRole.ADVISOR,
+                GuildRole.VETERAN,
+                GuildRole.MEMBER
+        );
+        for (GuildRole role : priority) {
+            for (UUID member : members) {
+                if (member.equals(departing)) continue;
+                if (getRole(member) == role) {
+                    return java.util.Optional.of(member);
                 }
             }
-            return true;
         }
-        return false;
+        return java.util.Optional.empty();
     }
 
     public void setRole(UUID id, GuildRole role) {

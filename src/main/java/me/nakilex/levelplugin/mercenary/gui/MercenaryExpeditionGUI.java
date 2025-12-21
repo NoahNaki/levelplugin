@@ -6,6 +6,7 @@ import me.nakilex.levelplugin.mercenary.MercenaryAffinityManager;
 import me.nakilex.levelplugin.mercenary.MercenaryExpeditionManager;
 import me.nakilex.levelplugin.mercenary.MercenaryFriendship;
 import me.nakilex.levelplugin.mercenary.gui.MercenaryExpeditionRewardsGUI.RewardView;
+import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.HeadUtil;
@@ -278,9 +279,16 @@ public class MercenaryExpeditionGUI implements Listener {
         String search = searchTerms.getOrDefault(player.getUniqueId(), "").toLowerCase(Locale.ENGLISH);
         int filter = threatFilters.getOrDefault(player.getUniqueId(), 0);
         int sort = sortModes.getOrDefault(player.getUniqueId(), 0);
+        Set<String> clearedDungeons = Collections.emptySet();
+        if (plugin instanceof Main main && main.getPlayerConfig() != null) {
+            clearedDungeons = main.getPlayerConfig().getClearedDungeons(player.getUniqueId());
+        }
 
         List<ExpeditionDefinition> definitions = new ArrayList<>();
         for (ExpeditionDefinition definition : expeditionManager.getExpeditions()) {
+            if (!clearedDungeons.isEmpty() && !clearedDungeons.contains(definition.id().toLowerCase(Locale.ENGLISH))) {
+                continue;
+            }
             if (!search.isEmpty()) {
                 String name = ChatColor.stripColor(definition.displayName()).toLowerCase(Locale.ENGLISH);
                 if (!name.contains(search) && !definition.id().toLowerCase(Locale.ENGLISH).contains(search)) {

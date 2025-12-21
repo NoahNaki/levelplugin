@@ -9,6 +9,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
 import java.util.UUID;
@@ -474,6 +475,7 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
         state.bossPortalLocation = markers.bossMarkers.isEmpty() ? null : markers.bossMarkers.get(0);
         state.trackedInstance = inst;
         activeInstances.put(origin.getWorld(), state);
+        manager.startRun(participants.stream().map(Player::getUniqueId).toList(), KEY, state.startTime);
 
         List<Location> flowerSpots = new ArrayList<>(markers.yellowFlowers);
         Collections.shuffle(flowerSpots);
@@ -776,6 +778,10 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
     private void completePuzzle(InstanceState state) {
         if (state.puzzleComplete) return;
         state.puzzleComplete = true;
+        plugin.getDungeonManager().markPuzzleComplete(state.participants.stream()
+                .filter(java.util.Objects::nonNull)
+                .map(Player::getUniqueId)
+                .toList());
         int coinsAward = ThreadLocalRandom.current().nextInt(300, 601);
         int gemsAward = ThreadLocalRandom.current().nextInt(3, 8);
         for (Player p : state.participants) {

@@ -114,14 +114,29 @@ public class GuildManager {
         Guild g = getGuild(actor);
         if (g == null || !hasPermission(actor, GuildPermission.KICK)) return false;
         if (actor.equals(target)) return false; // cannot kick yourself
+        return removeMemberInternal(g, target);
+    }
+
+    private boolean removeMemberInternal(Guild g, UUID target) {
+        UUID previousLeader = g.getLeader();
+        java.util.Optional<UUID> replacement = previousLeader != null && previousLeader.equals(target)
+                ? g.findNextLeader(target)
+                : java.util.Optional.empty();
+
         if (!g.removeMember(target)) return false;
         playerGuild.remove(target);
         fireEvent(target, g, GuildMembershipEvent.Action.LEAVE);
+
         if (g.getMembers().isEmpty()) {
-            me.nakilex.levelplugin.environment.EnvironmentManager env = me.nakilex.levelplugin.Main.getInstance().getEnvironmentManager();
-            env.neutralizeGuildTown(g);
-            guilds.remove(g.getName());
-            me.nakilex.levelplugin.guild.siege.GuildSiegeManager.getInstance().handleGuildDisband(g.getName(), java.util.Collections.emptySet());
+            disbandGuild(g.getName());
+            return true;
+        }
+
+        if (previousLeader != null && previousLeader.equals(target)) {
+            if (replacement.isPresent()) {
+                g.setRole(replacement.get(), GuildRole.LEADER);
+                me.nakilex.levelplugin.Main.getInstance().getEnvironmentManager().syncGuildTown(g);
+            }
         }
         return true;
     }
@@ -148,6 +163,36 @@ public class GuildManager {
         g.setRole(target, role);
         me.nakilex.levelplugin.Main.getInstance().getEnvironmentManager().syncGuildTown(g);
         return true;
+    }
+
+    /** Remove a player due to profile deletion, transferring leadership when needed. */
+    public void handleProfileDeletion(UUID player) {
+        Guild g = getGuild(player);
+        if (g == null) return;
+
+        boolean wasLeader = player.equals(g.getLeader());
+        UUID replacement = wasLeader ? g.findNextLeader(player).orElse(null) : null;
+
+        if (!g.removeMember(player)) return;
+        playerGuild.remove(player);
+        fireEvent(player, g, GuildMembershipEvent.Action.LEAVE);
+
+        if (g.getMembers().isEmpty()) {
+            disbandGuild(g.getName());
+            return;
+        }
+
+        if (wasLeader) {
+            if (replacement != null) {
+                g.setRole(replacement, GuildRole.LEADER);
+                me.nakilex.levelplugin.Main.getInstance().getEnvironmentManager().syncGuildTown(g);
+            } else {
+                disbandGuild(g.getName());
+                return;
+            }
+        }
+
+        save();
     }
 
     public boolean canManageMemberRole(UUID executor, UUID target) {

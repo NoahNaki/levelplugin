@@ -46,6 +46,7 @@ public class DungeonManager {
     private final Object saveLock = new Object();
     private final DungeonBuilder builder;
     private final me.nakilex.levelplugin.lootchests.managers.LootChestManager lootChestManager;
+    private final Map<java.util.UUID, RunStats> activeRuns = new HashMap<>();
 
     /**
      * Normalize a dungeon name for storage/lookup.
@@ -129,12 +130,15 @@ public class DungeonManager {
                     && (treatAsCompletion || (room != null && room.template == exit));
             if (completed) {
                 sendCompleteMessage(player, getDisplayName(inst.layout));
+                awardCompletionRewards(player, inst.layout);
+                plugin.getPlayerConfig().addClearedDungeon(id, inst.layout);
             } else {
                 sendExitMessage(player, getDisplayName(inst.layout));
             }
             player.teleport(back);
         }
         checkInstance(world);
+        activeRuns.remove(id);
     }
 
     public DungeonManager(Main plugin, me.nakilex.levelplugin.lootchests.managers.LootChestManager lootChestManager) {
@@ -998,7 +1002,72 @@ public class DungeonManager {
         spawnLootChests(dungeon);
         player.sendMessage(ChatColor.GRAY + "[Debug] Spawned in "
                 + (System.currentTimeMillis() - debugStart) + "ms");
+        startRun(java.util.Collections.singleton(player.getUniqueId()), key, System.currentTimeMillis());
         return true;
+    }
+
+    public void startRun(java.util.Collection<java.util.UUID> participants, String layoutKey, long startMillis) {
+        if (participants == null || layoutKey == null) return;
+        long start = startMillis > 0 ? startMillis : System.currentTimeMillis();
+        for (java.util.UUID id : participants) {
+            if (id == null) continue;
+            activeRuns.put(id, new RunStats(layoutKey, start));
+        }
+    }
+
+    public void addCombatPowerContribution(java.util.UUID playerId, int combatPower) {
+        if (playerId == null || combatPower <= 0) return;
+        RunStats stats = activeRuns.get(playerId);
+        if (stats != null) {
+            stats.combatPower += combatPower;
+        }
+    }
+
+    public void markPuzzleComplete(java.util.Collection<java.util.UUID> participants) {
+        if (participants == null) return;
+        for (java.util.UUID id : participants) {
+            RunStats stats = activeRuns.get(id);
+            if (stats != null) {
+                stats.puzzleComplete = true;
+            }
+        }
+    }
+
+    private void awardCompletionRewards(Player player, String layoutKey) {
+        me.nakilex.levelplugin.player.level.managers.LevelManager lm = me.nakilex.levelplugin.player.level.managers.LevelManager.getInstance();
+        RunStats stats = activeRuns.remove(player.getUniqueId());
+        if (lm == null || stats == null || !layoutKey.equalsIgnoreCase(stats.layoutKey)) {
+            return;
+        }
+        long durationSeconds = Math.max(1, (System.currentTimeMillis() - stats.startMillis) / 1000);
+        double timeMultiplier = 1.0;
+        if (durationSeconds <= 600) {
+            timeMultiplier += Math.min(0.5, (600 - durationSeconds) / 1200.0);
+        } else {
+            timeMultiplier -= Math.min(0.5, (durationSeconds - 600) / 1200.0);
+        }
+        double puzzleMultiplier = stats.puzzleComplete ? 1.25 : 1.0;
+        int baseXp = Math.max(0, stats.combatPower);
+        int totalXp = (int) Math.round(baseXp * timeMultiplier * puzzleMultiplier);
+        if (totalXp > 0) {
+            lm.addXP(player, totalXp);
+            player.sendMessage(ChatColor.GREEN + "You gained " + ChatColor.GOLD + totalXp + ChatColor.GREEN
+                    + " XP for clearing the dungeon.");
+        }
+    }
+
+    private static final class RunStats {
+        private final String layoutKey;
+        private final long startMillis;
+        private int combatPower;
+        private boolean puzzleComplete;
+
+        private RunStats(String layoutKey, long startMillis) {
+            this.layoutKey = layoutKey;
+            this.startMillis = startMillis;
+            this.combatPower = 0;
+            this.puzzleComplete = false;
+        }
     }
 
     public Instance createTrackedInstance(Dungeon dungeon, String layoutKey, World world) {

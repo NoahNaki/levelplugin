@@ -87,7 +87,6 @@ public class QuestManager {
         Quest wayfarersMark = new me.nakilex.levelplugin.quests.def.WayfarersMarkQuest();
         Quest marketBeginnings = new me.nakilex.levelplugin.quests.def.MarketBeginningsQuest();
         Quest forgeFundamentals = new me.nakilex.levelplugin.quests.def.ForgeFundamentalsQuest();
-        Quest stonemasonJudeau = new me.nakilex.levelplugin.quests.def.StonemasonJudeauQuest();
         Quest essenceWeaverLesson = new me.nakilex.levelplugin.quests.def.EssenceWeaversLessonQuest();
         Quest gamblersGambit = new me.nakilex.levelplugin.quests.def.GamblersGambitQuest();
         Quest abandonedCastle = new me.nakilex.levelplugin.quests.def.AbandonedCastleQuest();
@@ -108,7 +107,6 @@ public class QuestManager {
         registerQuest(wayfarersMark);
         registerQuest(marketBeginnings);
         registerQuest(forgeFundamentals);
-        registerQuest(stonemasonJudeau);
         registerQuest(essenceWeaverLesson);
         registerQuest(gamblersGambit);
         registerQuest(abandonedCastle);
@@ -126,7 +124,6 @@ public class QuestManager {
         me.nakilex.levelplugin.quests.def.SalvagersLessonQuest.registerTalkTargets(this);
         me.nakilex.levelplugin.quests.def.MarketBeginningsQuest.registerTalkTargets(this);
         me.nakilex.levelplugin.quests.def.ForgeFundamentalsQuest.registerTalkTargets(this);
-        me.nakilex.levelplugin.quests.def.StonemasonJudeauQuest.registerTalkTargets(this);
         me.nakilex.levelplugin.quests.def.CultistCullingQuest.registerTalkTargets(this);
         me.nakilex.levelplugin.quests.def.EssenceWeaversLessonQuest.registerTalkTargets(this);
         me.nakilex.levelplugin.quests.def.GamblersGambitQuest.registerTalkTargets(this);
@@ -138,8 +135,6 @@ public class QuestManager {
                 me.nakilex.levelplugin.quests.def.SalvagersLessonQuest.ID);
         registerNpcQuest(me.nakilex.levelplugin.quests.def.ForgeFundamentalsQuest.NPC_NAME,
                 me.nakilex.levelplugin.quests.def.ForgeFundamentalsQuest.ID);
-        registerNpcQuest(me.nakilex.levelplugin.quests.def.StonemasonJudeauQuest.NPC_NAME,
-                me.nakilex.levelplugin.quests.def.StonemasonJudeauQuest.ID);
         registerNpcQuest(me.nakilex.levelplugin.quests.def.EssenceWeaversLessonQuest.NPC_NAME,
                 me.nakilex.levelplugin.quests.def.EssenceWeaversLessonQuest.ID);
         registerNpcQuest(me.nakilex.levelplugin.quests.def.AbandonedCastleQuest.NPC_NAME,
