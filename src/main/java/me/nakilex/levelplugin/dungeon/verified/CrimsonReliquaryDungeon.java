@@ -1030,8 +1030,8 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
     private void sendDungeonClearMessage(Player player, long seconds, int score, boolean puzzleComplete,
                                          DungeonManager.CompletionXp xp) {
         ChatFormatter.constructDivider(player, "§c§l-", 45);
-        player.sendMessage("");
         ChatFormatter.sendCenteredMessage(player, "§c§lCRIMSON RELIQUARY CLEARED");
+        ChatFormatter.sendCenteredMessage(player, "");
         ChatFormatter.sendCenteredMessage(player, "");
 
         String expLabel = ChatFormatter.experienceLabel();
@@ -1059,6 +1059,7 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
                 + formatBonusLine(puzzleBonus, puzzleMult) + ChatColor.GRAY + " <glyph:experience_orb_icon>");
         ChatFormatter.sendIndentedMessage(player, ChatColor.GRAY + "Coins: " + ChatColor.WHITE + coins
                 + ChatColor.GRAY + " <glyph:coins_icon>");
+        player.sendMessage("");
         ChatFormatter.sendCenteredMessage(player, ChatColor.GRAY + "Great work, challenger.");
         ChatFormatter.constructDivider(player, "§c§l-", 45);
     }
