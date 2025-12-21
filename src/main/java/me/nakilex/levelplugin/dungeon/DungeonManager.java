@@ -1047,7 +1047,7 @@ public class DungeonManager {
             timeMultiplier -= Math.min(0.5, (durationSeconds - 600) / 1200.0);
         }
         double puzzleMultiplier = stats.puzzleComplete ? 1.25 : 1.0;
-        int baseXp = Math.max(0, stats.combatPower);
+        int baseXp = Math.round((float) stats.combatPower / 10);
         int totalXp = (int) Math.round(baseXp * timeMultiplier * puzzleMultiplier);
         if (totalXp > 0) {
             lm.addXP(player, totalXp);
