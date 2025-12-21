@@ -60,6 +60,9 @@ public class NPCDialogManager implements Listener {
     private final Map<UUID, DialogSession> sessions = new HashMap<>();
     private final Map<UUID, String> lastLines = new HashMap<>();
     private final Map<UUID, BukkitTask> resumeTasks = new HashMap<>();
+    private final Map<UUID, Long> dialogCooldowns = new HashMap<>();
+
+    private static final long SKILL_DELAY_MS = 500L;
 
     public NPC getSessionNpc(Player player) {
         DialogSession s = sessions.get(player.getUniqueId());
@@ -109,6 +112,26 @@ public class NPCDialogManager implements Listener {
 
     public boolean hasSession(Player player) {
         return sessions.containsKey(player.getUniqueId());
+    }
+
+    /**
+     * True if the player is currently in dialog or within the short cooldown window
+     * after interacting with an NPC. Used to prevent accidental skill triggers.
+     */
+    public boolean isDialogLockActive(Player player) {
+        if (hasSession(player)) {
+            return true;
+        }
+        UUID id = player.getUniqueId();
+        Long last = dialogCooldowns.get(id);
+        if (last == null) {
+            return false;
+        }
+        if (System.currentTimeMillis() - last < SKILL_DELAY_MS) {
+            return true;
+        }
+        dialogCooldowns.remove(id);
+        return false;
     }
 
     public boolean hasChoiceSession(Player player) {
@@ -276,6 +299,7 @@ public class NPCDialogManager implements Listener {
     private void endDialog(Player player) {
         player.removePotionEffect(PotionEffectType.SLOWNESS);
         player.setInvulnerable(false);
+        recordDialogCooldown(player);
         sessions.remove(player.getUniqueId());
     }
 
@@ -301,6 +325,7 @@ public class NPCDialogManager implements Listener {
         sessions.remove(player.getUniqueId());
         player.removePotionEffect(PotionEffectType.SLOWNESS);
         player.setInvulnerable(false);
+        recordDialogCooldown(player);
         lastLines.remove(player.getUniqueId());
         pendingChoices.remove(player.getUniqueId());
         BukkitTask task = resumeTasks.remove(player.getUniqueId());
@@ -354,6 +379,7 @@ public class NPCDialogManager implements Listener {
         choiceSessions.remove(player.getUniqueId());
         player.removePotionEffect(PotionEffectType.SLOWNESS);
         player.setInvulnerable(false);
+        recordDialogCooldown(player);
         BukkitTask pending = resumeTasks.remove(player.getUniqueId());
         if (pending != null) pending.cancel();
         if (plugin.getQuestManager().isDebug()) {
@@ -369,6 +395,14 @@ public class NPCDialogManager implements Listener {
         if (cs.callback != null) {
             cs.callback.accept(cs.index);
         }
+    }
+
+    /**
+     * Apply the short skill delay used to prevent accidental casts while interacting
+     * with NPC dialogs or menus.
+     */
+    public void recordDialogCooldown(Player player) {
+        dialogCooldowns.put(player.getUniqueId(), System.currentTimeMillis());
     }
 
     /**

@@ -304,7 +304,7 @@ public class ClassSpellListener implements Listener {
 
     private void cast(Player player, List<String> combos, PlayerClass pc, Trigger trigger) {
         if (combos == null || combos.isEmpty()) return;
-        if (Main.getInstance().getDialogManager().hasSession(player)) return;
+        if (Main.getInstance().getDialogManager().isDialogLockActive(player)) return;
         if (applyManualCooldown(player, pc, trigger, combos)) return;
         for (String id : combos) {
             Spell spell = SpellManager.getInstance().getSpellById(pc.name().toLowerCase(), id);
