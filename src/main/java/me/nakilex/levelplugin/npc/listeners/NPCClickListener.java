@@ -102,6 +102,8 @@ public class NPCClickListener implements Listener {
             Player player = event.getPlayer();
             NPC npc = CitizensAPI.getNPCRegistry().getNPC(event.getRightClicked());
 
+            dialogManager.recordDialogCooldown(player);
+
             if (WakePerryQuest.handleNpcInteraction(player, npc, event.getHand())) {
                 return;
             }

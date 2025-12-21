@@ -39,7 +39,7 @@ public class DungeonRatingPrompt extends StringPrompt {
         me.nakilex.levelplugin.dungeon.DungeonManager dm = Main.getInstance().getDungeonManager();
         String displayName = dm.getDisplayName(dungeonKey);
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                "Rating submitted: " + ChatColor.WHITE + rating + ChatColor.GREEN + " for " + ChatColor.WHITE + displayName + ChatColor.GREEN + ".");
+                "Submitted a " + ChatColor.WHITE + rating + ChatColor.GREEN + " for " + ChatColor.WHITE + displayName + ChatColor.GREEN + " and earned a reward!");
         String expLabel = ChatFormatter.experienceLabel();
         String expColor = ChatFormatter.experienceColor();
         ChatFormatter.sendBoxedCenteredMessages(player, "§a",

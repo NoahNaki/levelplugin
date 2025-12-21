@@ -116,7 +116,7 @@ public class NPCDialogManager implements Listener {
 
     /**
      * True if the player is currently in dialog or within the short cooldown window
-     * after finishing one. Used to prevent accidental skill triggers.
+     * after interacting with an NPC. Used to prevent accidental skill triggers.
      */
     public boolean isDialogLockActive(Player player) {
         if (hasSession(player)) {
@@ -397,7 +397,11 @@ public class NPCDialogManager implements Listener {
         }
     }
 
-    private void recordDialogCooldown(Player player) {
+    /**
+     * Apply the short skill delay used to prevent accidental casts while interacting
+     * with NPC dialogs or menus.
+     */
+    public void recordDialogCooldown(Player player) {
         dialogCooldowns.put(player.getUniqueId(), System.currentTimeMillis());
     }
 
