@@ -211,9 +211,7 @@ public class WakePerryQuest extends Quest implements QuestScript {
         }
 
         if (questManager.hasFlag(player.getUniqueId(), ID, SHINY_CHOICE_FLAG_BASE + "pending")) {
-            dialogManager.startChoiceDialog(player, npc, List.of("Yes", "No"),
-                    ID, SHINY_CHOICE_FLAG_BASE,
-                    choice -> handleShinyChoice(player, npc, questManager, dialogManager, choice));
+            openShinyChoice(player, npc, questManager, dialogManager);
             return;
         }
 
@@ -223,8 +221,13 @@ public class WakePerryQuest extends Quest implements QuestScript {
         }
 
         dialogManager.startDialog(player, SHINY_INTRO, npc, () ->
+                openShinyChoice(player, npc, questManager, dialogManager));
+    }
+
+    private void openShinyChoice(Player player, NPC npc, QuestManager questManager, NPCDialogManager dialogManager) {
+        Bukkit.getScheduler().runTaskLater(Main.getInstance(), () ->
                 dialogManager.startChoiceDialog(player, npc, List.of("Yes", "No"),
-                        ID, SHINY_CHOICE_FLAG_BASE, choice -> handleShinyChoice(player, npc, questManager, dialogManager, choice)));
+                        ID, SHINY_CHOICE_FLAG_BASE, choice -> handleShinyChoice(player, npc, questManager, dialogManager, choice)), 1L);
     }
 
     private void handleShinyChoice(Player player, NPC npc, QuestManager questManager,
