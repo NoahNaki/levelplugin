@@ -968,7 +968,9 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
             int score = Math.max(0, baseScore - timePenalty - damagePenalty + puzzleBonus);
             for (Player p : state.participants) {
                 if (p != null && p.isOnline()) {
-                    sendDungeonClearMessage(p, seconds, score, state.puzzleComplete);
+                    DungeonManager.CompletionXp xp = plugin.getDungeonManager()
+                            .awardCompletionRewards(p, KEY, seconds, false);
+                    sendDungeonClearMessage(p, seconds, score, state.puzzleComplete, xp);
                     me.nakilex.levelplugin.quests.managers.QuestManager qm = Main.getInstance().getQuestManager();
                     if (qm != null) {
                         qm.handleDungeonComplete(p, KEY);
@@ -1025,7 +1027,8 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
         }
     }
 
-    private void sendDungeonClearMessage(Player player, long seconds, int score, boolean puzzleComplete) {
+    private void sendDungeonClearMessage(Player player, long seconds, int score, boolean puzzleComplete,
+                                         DungeonManager.CompletionXp xp) {
         ChatFormatter.constructDivider(player, "§c§l-", 45);
         ChatFormatter.sendCenteredMessage(player, "§c§lCRIMSON RELIQUARY CLEARED");
         ChatFormatter.sendCenteredMessage(player, "");
@@ -1034,7 +1037,26 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
         ChatFormatter.sendCenteredMessage(player,
                 ChatColor.GRAY + "Score: " + ChatColor.RED + score
                         + (puzzleComplete ? ChatColor.DARK_GRAY + " (puzzle bonus)" : ""));
+        ChatFormatter.sendCenteredMessage(player, ChatColor.GRAY + "XP Gained: "
+                + ChatColor.GOLD + (xp != null ? xp.totalXp() : 0));
+        ChatFormatter.sendCenteredMessage(player, ChatColor.DARK_GRAY + " - Mobs: "
+                + ChatColor.YELLOW + (xp != null ? xp.mobXp() : 0));
+        ChatFormatter.sendCenteredMessage(player, ChatColor.DARK_GRAY + " - Time cleared: "
+                + ChatColor.YELLOW + formatBonusLine(xp != null ? xp.timeBonus() : 0,
+                xp != null ? xp.timeMultiplier() : 1.0));
+        ChatFormatter.sendCenteredMessage(player, ChatColor.DARK_GRAY + " - Puzzle modifier: "
+                + ChatColor.YELLOW + formatBonusLine(xp != null ? xp.puzzleBonus() : 0,
+                xp != null ? xp.puzzleMultiplier() : 1.0));
         ChatFormatter.sendCenteredMessage(player, ChatColor.GRAY + "Great work, challenger.");
         ChatFormatter.constructDivider(player, "§c§l-", 45);
+    }
+
+    private String formatBonusLine(int bonus, double multiplier) {
+        String mult = new java.text.DecimalFormat("0.00").format(multiplier);
+        if (bonus == 0) {
+            return "x" + mult + ChatColor.DARK_GRAY + " (+0 XP)";
+        }
+        String sign = bonus > 0 ? ChatColor.GREEN + "+" : ChatColor.RED + "";
+        return "x" + mult + ChatColor.DARK_GRAY + " (" + sign + bonus + ChatColor.DARK_GRAY + " XP)";
     }
 }

@@ -8,6 +8,7 @@ import me.nakilex.levelplugin.quests.data.*;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
+import org.bukkit.SoundCategory;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.event.HandlerList;
@@ -225,6 +226,7 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
                                 dest.setYaw(cur.getYaw());
                                 dest.setPitch(cur.getPitch());
                                 player.teleport(dest);
+                                player.playSound(dest, "elevatording", SoundCategory.MASTER, 1f, 1f);
                                 plugin.getQuestManager().startQuest(player, "newbeginning");
 
                                 Bukkit.getScheduler().runTaskLater(plugin, () -> {

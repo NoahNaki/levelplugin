@@ -130,7 +130,7 @@ public class DungeonManager {
                     && (treatAsCompletion || (room != null && room.template == exit));
             if (completed) {
                 sendCompleteMessage(player, getDisplayName(inst.layout));
-                awardCompletionRewards(player, inst.layout);
+                awardCompletionRewards(player, inst.layout, -1L, true);
                 plugin.getPlayerConfig().addClearedDungeon(id, inst.layout);
             } else {
                 sendExitMessage(player, getDisplayName(inst.layout));
@@ -1033,27 +1033,41 @@ public class DungeonManager {
         }
     }
 
-    private void awardCompletionRewards(Player player, String layoutKey) {
+    public CompletionXp awardCompletionRewards(Player player, String layoutKey) {
+        return awardCompletionRewards(player, layoutKey, -1L, true);
+    }
+
+    public CompletionXp awardCompletionRewards(Player player, String layoutKey, long durationSeconds,
+                                               boolean sendDefaultMessage) {
         me.nakilex.levelplugin.player.level.managers.LevelManager lm = me.nakilex.levelplugin.player.level.managers.LevelManager.getInstance();
         RunStats stats = activeRuns.remove(player.getUniqueId());
         if (lm == null || stats == null || !layoutKey.equalsIgnoreCase(stats.layoutKey)) {
-            return;
+            return null;
         }
-        long durationSeconds = Math.max(1, (System.currentTimeMillis() - stats.startMillis) / 1000);
+        long durationSecondsResolved = durationSeconds > 0
+                ? durationSeconds
+                : Math.max(1, (System.currentTimeMillis() - stats.startMillis) / 1000);
         double timeMultiplier = 1.0;
-        if (durationSeconds <= 600) {
-            timeMultiplier += Math.min(0.5, (600 - durationSeconds) / 1200.0);
+        if (durationSecondsResolved <= 600) {
+            timeMultiplier += Math.min(0.5, (600 - durationSecondsResolved) / 1200.0);
         } else {
-            timeMultiplier -= Math.min(0.5, (durationSeconds - 600) / 1200.0);
+            timeMultiplier -= Math.min(0.5, (durationSecondsResolved - 600) / 1200.0);
         }
         double puzzleMultiplier = stats.puzzleComplete ? 1.25 : 1.0;
         int baseXp = Math.round((float) stats.combatPower / 10);
-        int totalXp = (int) Math.round(baseXp * timeMultiplier * puzzleMultiplier);
+        int timeAdjustedXp = (int) Math.round(baseXp * timeMultiplier);
+        int timeBonus = timeAdjustedXp - baseXp;
+        int puzzleBonus = (int) Math.round(timeAdjustedXp * (puzzleMultiplier - 1));
+        int totalXp = Math.max(0, timeAdjustedXp + puzzleBonus);
+        CompletionXp breakdown = new CompletionXp(baseXp, timeBonus, puzzleBonus, totalXp, timeMultiplier, puzzleMultiplier);
         if (totalXp > 0) {
             lm.addXP(player, totalXp);
-            player.sendMessage(ChatColor.GREEN + "You gained " + ChatColor.GOLD + totalXp + ChatColor.GREEN
-                    + " XP for clearing the dungeon.");
+            if (sendDefaultMessage) {
+                player.sendMessage(ChatColor.GREEN + "You gained " + ChatColor.GOLD + totalXp + ChatColor.GREEN
+                        + " XP for clearing the dungeon.");
+            }
         }
+        return breakdown;
     }
 
     private static final class RunStats {
@@ -1067,6 +1081,13 @@ public class DungeonManager {
             this.startMillis = startMillis;
             this.combatPower = 0;
             this.puzzleComplete = false;
+        }
+    }
+
+    public record CompletionXp(int mobXp, int timeBonus, int puzzleBonus, int totalXp,
+                               double timeMultiplier, double puzzleMultiplier) {
+        public int timeAdjustedXp() {
+            return mobXp + timeBonus;
         }
     }
 
