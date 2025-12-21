@@ -29,6 +29,9 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
     /** Per-player listeners for cleanup when the quest resets. */
     private final java.util.Map<java.util.UUID, java.util.List<Listener>> listeners = new java.util.HashMap<>();
 
+    private static final String ELEVATOR_MUSIC_SOUND = "nexo:music.elevatormusic";
+    private static final String ELEVATOR_ARRIVAL_SOUND = "nexo:music.elevatording";
+
     private static List<QuestObjective> createObjectives() {
         return java.util.List.of(
                 new QuestObjective(QuestObjectiveType.TALK, "npc516", 1, BeaconTargets.npc(516))
@@ -179,6 +182,11 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             gates.closeGate(player, gateId);
 
+            Location musicLoc = player.getLocation();
+            plugin.getLogger().info("[OfficeErrands] Starting elevator music for " + player.getName()
+                    + " at " + musicLoc);
+            player.playSound(musicLoc, ELEVATOR_MUSIC_SOUND, SoundCategory.MUSIC, 1f, 1f);
+
             World rWorld = Bukkit.getWorld("redrocks");
             if (rWorld == null) return;
             Location lampLoc = new Location(rWorld, 29, 148, -94);
@@ -228,13 +236,16 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
                                 plugin.getLogger().info("[OfficeErrands] Teleporting " + player.getName()
                                         + " to " + dest + " from " + cur);
                                 player.teleport(dest);
+                                plugin.getLogger().info("[OfficeErrands] Stopping elevator music for "
+                                        + player.getName());
+                                player.stopSound(ELEVATOR_MUSIC_SOUND, SoundCategory.MUSIC);
                                 Location soundLoc = dest.clone();
                                 Bukkit.getScheduler().runTaskLater(plugin,
                                     () -> {
                                         plugin.getLogger().info("[OfficeErrands] Playing elevator arrival sound for "
                                                 + player.getName() + " in world "
                                                 + player.getWorld().getName() + " at " + soundLoc);
-                                        player.playSound(soundLoc, "elevatording", SoundCategory.MASTER, 1f, 1f);
+                                        player.playSound(soundLoc, ELEVATOR_ARRIVAL_SOUND, SoundCategory.MASTER, 1f, 1f);
                                     }, 10L);
                                 plugin.getQuestManager().startQuest(player, "newbeginning");
 
