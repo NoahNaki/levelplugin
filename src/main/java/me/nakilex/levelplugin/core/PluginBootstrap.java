@@ -102,6 +102,7 @@ public class PluginBootstrap {
     private ItemRepairManager itemRepairManager;
     private me.nakilex.levelplugin.items.tools.ToolManager toolManager;
     private me.nakilex.levelplugin.player.mining.managers.MiningManager miningManager;
+    private me.nakilex.levelplugin.player.farming.managers.FarmingManager farmingManager;
     private me.nakilex.levelplugin.player.mining.config.MiningRewardsConfig miningRewardsConfig;
     private SpellManager spellmanager;
     private GlobalBoosterManager boosterManager;
@@ -308,6 +309,7 @@ public class PluginBootstrap {
         upgradeKey = new NamespacedKey(plugin, "upgrade_level");
         levelManager = new LevelManager(plugin);
         miningManager = new me.nakilex.levelplugin.player.mining.managers.MiningManager(plugin);
+        farmingManager = new me.nakilex.levelplugin.player.farming.managers.FarmingManager(plugin);
         miningRewardsConfig = new me.nakilex.levelplugin.player.mining.config.MiningRewardsConfig(plugin);
         boosterManager = new GlobalBoosterManager(plugin, 2.0);
         economyManager = new EconomyManager(plugin);
@@ -670,6 +672,7 @@ public class PluginBootstrap {
     public ItemRepairManager getItemRepairManager() { return itemRepairManager; }
     public me.nakilex.levelplugin.items.tools.ToolManager getToolManager() { return toolManager; }
     public me.nakilex.levelplugin.player.mining.managers.MiningManager getMiningManager() { return miningManager; }
+    public me.nakilex.levelplugin.player.farming.managers.FarmingManager getFarmingManager() { return farmingManager; }
     public me.nakilex.levelplugin.player.mining.config.MiningRewardsConfig getMiningRewardsConfig() { return miningRewardsConfig; }
     public SpellManager getSpellmanager() { return spellmanager; }
     public GlobalBoosterManager getBoosterManager() { return boosterManager; }

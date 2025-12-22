@@ -526,7 +526,7 @@ public class TradingWindow implements Listener {
                 if (stack != null && stack.hasItemMeta()) {
                     boolean isCustomItem = stack.getItemMeta().getPersistentDataContainer()
                             .has(ItemUtil.ITEM_UUID_KEY, PersistentDataType.STRING);
-                    boolean isCustomTool = me.nakilex.levelplugin.items.tools.ToolTier.fromMaterial(stack.getType()) != null;
+                    boolean isCustomTool = me.nakilex.levelplugin.items.tools.ToolManager.getInstance().isToolMaterial(stack.getType());
                     if (isCustomItem || isCustomTool) {
                         ItemUtil.updateTooltip(stack, recipient);
                     }

@@ -2,6 +2,8 @@ package me.nakilex.levelplugin.items.utils;
 
 import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.managers.ItemManager;
+import me.nakilex.levelplugin.items.tools.ToolDiscipline;
+import me.nakilex.levelplugin.items.tools.ToolManager;
 import me.nakilex.levelplugin.items.tools.ToolTier;
 import me.nakilex.levelplugin.salvage.managers.SalvageManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
@@ -736,7 +738,8 @@ public class ItemUtil {
      * Updates the tooltip of a tool item based on the viewer's mining level.
      */
     public static void updateCustomToolTooltip(ItemStack stack, Player viewer) {
-        ToolTier tier = ToolTier.fromMaterial(stack.getType());
+        me.nakilex.levelplugin.items.tools.CustomTool customTool = ToolManager.getInstance().getTool(stack.getType());
+        ToolTier tier = customTool != null ? customTool.getTier() : ToolTier.fromMaterial(stack.getType());
         if (tier == null) return;
         ItemMeta meta = stack.getItemMeta();
         if (meta == null) return;
@@ -748,13 +751,26 @@ public class ItemUtil {
         String rarityGlyph = "<glyph:" + tier.getRarity().name().toLowerCase() + ">";
         lore.add(rarityGlyph + "<glyph:tool>");
         lore.add("");
-        int level = (viewer != null) ? MiningManager.getInstance().getLevel(viewer) : 0;
+        ToolDiscipline discipline = customTool != null ? customTool.getDiscipline() : ToolDiscipline.MINING;
+        int level = 0;
+        String requirementLabel;
+        if (discipline == ToolDiscipline.FARMING) {
+            level = (viewer != null) ? me.nakilex.levelplugin.player.farming.managers.FarmingManager.getInstance().getLevel(viewer) : 0;
+            requirementLabel = "Farming";
+        } else {
+            level = (viewer != null) ? MiningManager.getInstance().getLevel(viewer) : 0;
+            requirementLabel = "Mining";
+        }
         String reqLine = level >= tier.getLevelRequirement()
-                ? ChatColor.GREEN + "✔ " + ChatColor.GRAY + "Mining Lv. Requirement: " + ChatColor.WHITE + tier.getLevelRequirement()
-                : ChatColor.RED + "✘ " + ChatColor.GRAY + "Mining Lv. Requirement: " + ChatColor.WHITE + tier.getLevelRequirement();
+                ? ChatColor.GREEN + "✔ " + ChatColor.GRAY + requirementLabel + " Lv. Requirement: " + ChatColor.WHITE + tier.getLevelRequirement()
+                : ChatColor.RED + "✘ " + ChatColor.GRAY + requirementLabel + " Lv. Requirement: " + ChatColor.WHITE + tier.getLevelRequirement();
         lore.add(reqLine);
         lore.add(" ");
-        lore.add(ChatColor.GRAY + "Mining Speed: " + ChatColor.GREEN + "+" + tier.getMiningSpeed());
+        if (discipline == ToolDiscipline.FARMING) {
+            lore.add(ChatColor.GRAY + "Harvest Yield: " + ChatColor.GREEN + "+" + (int) (tier.getHarvestYield() * 100 - 100) + "%");
+        } else {
+            lore.add(ChatColor.GRAY + "Mining Speed: " + ChatColor.GREEN + "+" + tier.getMiningSpeed());
+        }
         meta.setLore(lore);
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_UNBREAKABLE);
         stack.setItemMeta(meta);
@@ -774,7 +790,7 @@ public class ItemUtil {
         }
         if (stack.hasItemMeta() && stack.getItemMeta().getPersistentDataContainer().has(ITEM_UUID_KEY, PersistentDataType.STRING)) {
             updateCustomItemTooltip(stack, player);
-        } else if (ToolTier.fromMaterial(stack.getType()) != null) {
+        } else if (ToolManager.getInstance().isToolMaterial(stack.getType())) {
             updateCustomToolTooltip(stack, player);
         }
     }
@@ -787,7 +803,7 @@ public class ItemUtil {
             if (stack != null && stack.hasItemMeta()) {
                 boolean custom = stack.getItemMeta().getPersistentDataContainer()
                         .has(ITEM_UUID_KEY, PersistentDataType.STRING);
-                boolean tool = ToolTier.fromMaterial(stack.getType()) != null;
+                boolean tool = ToolManager.getInstance().isToolMaterial(stack.getType());
                 if (custom || tool) {
                     updateTooltip(stack, player);
                 }
@@ -797,7 +813,7 @@ public class ItemUtil {
             if (armor != null && armor.hasItemMeta()) {
                 boolean custom = armor.getItemMeta().getPersistentDataContainer()
                         .has(ITEM_UUID_KEY, PersistentDataType.STRING);
-                boolean tool = ToolTier.fromMaterial(armor.getType()) != null;
+                boolean tool = ToolManager.getInstance().isToolMaterial(armor.getType());
                 if (custom || tool) {
                     updateTooltip(armor, player);
                 }

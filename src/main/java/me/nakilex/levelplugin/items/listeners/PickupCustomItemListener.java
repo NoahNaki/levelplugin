@@ -27,7 +27,7 @@ public class PickupCustomItemListener implements Listener {
         boolean isCustomItem = picked.hasItemMeta()
             && picked.getItemMeta().getPersistentDataContainer()
                 .has(ItemUtil.ITEM_UUID_KEY, PersistentDataType.STRING);
-        boolean isCustomTool = me.nakilex.levelplugin.items.tools.ToolTier.fromMaterial(picked.getType()) != null;
+        boolean isCustomTool = me.nakilex.levelplugin.items.tools.ToolManager.getInstance().isToolMaterial(picked.getType());
 
         if (isCustomItem || isCustomTool) {
 

@@ -25,13 +25,15 @@ public class PlayerJoinListener implements Listener {
 
     private final LevelManager levelManager;
     private final MiningManager miningManager;
+    private final me.nakilex.levelplugin.player.farming.managers.FarmingManager farmingManager;
     private final PlayerConfig playerConfig;
     private final EnvironmentManager environmentManager;
     private final me.nakilex.levelplugin.environment.stage.TownStageManager stageManager;
 
-    public PlayerJoinListener(LevelManager levelManager, MiningManager miningManager, PlayerConfig playerConfig, EnvironmentManager envManager) {
+    public PlayerJoinListener(LevelManager levelManager, MiningManager miningManager, me.nakilex.levelplugin.player.farming.managers.FarmingManager farmingManager, PlayerConfig playerConfig, EnvironmentManager envManager) {
         this.levelManager  = levelManager;
         this.miningManager = miningManager;
+        this.farmingManager = farmingManager;
         this.playerConfig  = playerConfig;
         this.environmentManager = envManager;
         this.stageManager = envManager.getStageManager();
@@ -50,6 +52,7 @@ public class PlayerJoinListener implements Listener {
             StatsManager.getInstance().recalcDerivedStats(player);
             levelManager.initializePlayer(player);
             miningManager.initializePlayer(player);
+            farmingManager.initializePlayer(player);
             environmentManager.loadPlayerState(player);
             stageManager.hideNPCsFrom(player);
             player.setHealthScaled(true);

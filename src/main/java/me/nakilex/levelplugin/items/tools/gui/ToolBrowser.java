@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.items.tools.gui;
 
 import me.nakilex.levelplugin.items.tools.CustomTool;
+import me.nakilex.levelplugin.items.tools.ToolDiscipline;
 import me.nakilex.levelplugin.items.tools.ToolManager;
 import me.nakilex.levelplugin.items.tools.ToolTier;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
@@ -37,7 +38,8 @@ public class ToolBrowser implements CommandExecutor, Listener {
         if (meta != null) {
             ToolTier tier = tool.getTier();
             ChatColor color = tier.getRarity().getColor();
-            meta.setDisplayName(color + "Tier " + tier.getTierName() + " Pickaxe");
+            String suffix = tool.getDiscipline() == ToolDiscipline.MINING ? " Pickaxe" : " Scythe";
+            meta.setDisplayName(color + "Tier " + tier.getTierName() + suffix);
             it.setItemMeta(meta);
             ItemUtil.updateCustomToolTooltip(it, viewer);
         }
@@ -45,10 +47,14 @@ public class ToolBrowser implements CommandExecutor, Listener {
     }
 
     private void open(Player player) {
-        List<CustomTool> tools = ToolManager.getInstance().getTools();
-        Inventory inv = Bukkit.createInventory(null, 9, TITLE);
-        for (int i = 0; i < tools.size() && i < 9; i++) {
-            inv.setItem(i, createToolItem(player, tools.get(i)));
+        List<CustomTool> mining = ToolManager.getInstance().getTools(ToolDiscipline.MINING);
+        List<CustomTool> farming = ToolManager.getInstance().getTools(ToolDiscipline.FARMING);
+        Inventory inv = Bukkit.createInventory(null, 18, TITLE);
+        for (int i = 0; i < mining.size() && i < 9; i++) {
+            inv.setItem(i, createToolItem(player, mining.get(i)));
+        }
+        for (int i = 0; i < farming.size() && i < 9; i++) {
+            inv.setItem(9 + i, createToolItem(player, farming.get(i)));
         }
         player.openInventory(inv);
     }

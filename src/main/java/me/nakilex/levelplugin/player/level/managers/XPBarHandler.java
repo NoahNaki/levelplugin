@@ -64,7 +64,7 @@ public class XPBarHandler {
             if (stack != null && stack.hasItemMeta()) {
                 boolean isCustomItem = stack.getItemMeta().getPersistentDataContainer()
                         .has(ItemUtil.ITEM_UUID_KEY, PersistentDataType.STRING);
-                boolean isCustomTool = me.nakilex.levelplugin.items.tools.ToolTier.fromMaterial(stack.getType()) != null;
+                boolean isCustomTool = me.nakilex.levelplugin.items.tools.ToolManager.getInstance().isToolMaterial(stack.getType());
                 if (isCustomItem || isCustomTool) {
                     ItemUtil.updateTooltip(stack, player);
                 }
@@ -74,7 +74,7 @@ public class XPBarHandler {
             if (armor != null && armor.hasItemMeta()) {
                 boolean isCustomItem = armor.getItemMeta().getPersistentDataContainer()
                         .has(ItemUtil.ITEM_UUID_KEY, PersistentDataType.STRING);
-                boolean isCustomTool = me.nakilex.levelplugin.items.tools.ToolTier.fromMaterial(armor.getType()) != null;
+                boolean isCustomTool = me.nakilex.levelplugin.items.tools.ToolManager.getInstance().isToolMaterial(armor.getType());
                 if (isCustomItem || isCustomTool) {
                     ItemUtil.updateTooltip(armor, player);
                 }

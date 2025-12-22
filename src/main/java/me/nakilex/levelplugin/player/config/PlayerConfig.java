@@ -49,6 +49,7 @@ public class PlayerConfig {
         StatsManager.PlayerStats stats = StatsManager.getInstance().getPlayerStats(uuid);
         LevelManager levelManager = LevelManager.getInstance();
         me.nakilex.levelplugin.player.mining.managers.MiningManager miningManager = me.nakilex.levelplugin.player.mining.managers.MiningManager.getInstance();
+        me.nakilex.levelplugin.player.farming.managers.FarmingManager farmingManager = me.nakilex.levelplugin.player.farming.managers.FarmingManager.getInstance();
 
         String path = "players." + uuid.toString();
         // Use UUID-based lookups so offline players save correctly
@@ -56,6 +57,8 @@ public class PlayerConfig {
         config.set(path + ".xp",    levelManager.getXP(uuid));
         config.set(path + ".mining.level", miningManager.getLevel(uuid));
         config.set(path + ".mining.xp",    miningManager.getXP(uuid));
+        config.set(path + ".farming.level", farmingManager.getLevel(uuid));
+        config.set(path + ".farming.xp",    farmingManager.getXP(uuid));
         config.set(path + ".skill_points", stats.skillPoints);
         config.set(path + ".stats.base_strength", stats.baseStrength);
         config.set(path + ".stats.base_agility", stats.baseAgility);
@@ -114,6 +117,8 @@ public class PlayerConfig {
         int xp = config.getInt(root + ".xp", 0);
         int miningLevel = config.getInt(root + ".mining.level", 1);
         int miningXp = config.getInt(root + ".mining.xp", 0);
+        int farmingLevel = config.getInt(root + ".farming.level", 1);
+        int farmingXp = config.getInt(root + ".farming.xp", 0);
         int skillPoints = config.getInt(root + ".skill_points", 0);
         List<String> unlockedList = config.getStringList(root + ".unlocked_classes");
 
@@ -123,6 +128,9 @@ public class PlayerConfig {
         me.nakilex.levelplugin.player.mining.managers.MiningManager mm = me.nakilex.levelplugin.player.mining.managers.MiningManager.getInstance();
         mm.setLevel(uuid, miningLevel);
         mm.addXP(uuid, miningXp);
+        me.nakilex.levelplugin.player.farming.managers.FarmingManager fm = me.nakilex.levelplugin.player.farming.managers.FarmingManager.getInstance();
+        fm.setLevel(uuid, farmingLevel);
+        fm.addXP(uuid, farmingXp);
 
         StatsManager.PlayerStats stats = StatsManager.getInstance().getPlayerStats(uuid);
         stats.playerClass = playerClass;
