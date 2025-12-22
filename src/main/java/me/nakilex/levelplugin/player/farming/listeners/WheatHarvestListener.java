@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.items.tools.ToolDiscipline;
 import me.nakilex.levelplugin.items.tools.ToolManager;
 import me.nakilex.levelplugin.player.farming.managers.FarmingManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
+import org.bukkit.GameMode;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.Ageable;
@@ -11,6 +12,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.Action;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
 
 public class WheatHarvestListener implements Listener {
@@ -27,8 +30,22 @@ public class WheatHarvestListener implements Listener {
         if (block.getType() != Material.WHEAT) return;
 
         event.setCancelled(true);
-        Player player = event.getPlayer();
+        handleHarvest(event.getPlayer(), block);
+    }
 
+    @EventHandler(ignoreCancelled = true)
+    public void onHarvestInteract(PlayerInteractEvent event) {
+        if (event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
+        Block block = event.getClickedBlock();
+        if (block == null || block.getType() != Material.WHEAT) return;
+        Player player = event.getPlayer();
+        if (player.getGameMode() != GameMode.ADVENTURE) return;
+
+        event.setCancelled(true);
+        handleHarvest(player, block);
+    }
+
+    private void handleHarvest(Player player, Block block) {
         Ageable ageable = (Ageable) block.getBlockData();
         int age = ageable.getAge();
         int maxAge = ageable.getMaximumAge();
