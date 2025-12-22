@@ -62,22 +62,32 @@ public class LifeSkillRewardManager {
 
     private List<LifeSkillReward> createRewardList(String skillName) {
         return List.of(
-                coinReward(1, skillName, 250),
-                giftReward(3, skillName, "blossom_bundle"),
-                statReward(5, skillName, StatType.VIT, 2, "+2 Vitality"),
-                coinReward(8, skillName, 750),
-                giftReward(10, skillName, "heroic_token"),
-                statReward(12, skillName, StatType.STR, 2, "+2 Strength"),
-                coinReward(15, skillName, 1500),
-                statReward(18, skillName, StatType.WIL, 2, "+2 Will"),
-                giftReward(20, skillName, "adventurers_feast"),
-                statReward(24, skillName, StatType.AGI, 3, "+3 Agility"),
-                coinReward(28, skillName, 3000),
-                statReward(32, skillName, StatType.DEX, 3, "+3 Dexterity"),
-                coinReward(36, skillName, 4500),
-                statReward(40, skillName, StatType.VIT, 4, "+4 Vitality"),
-                coinReward(45, skillName, 6000),
-                statReward(50, skillName, StatType.TEC, 4, "+4 Technique")
+                coinReward(10, skillName, 500),
+                giftReward(20, skillName, "blossom_bundle"),
+                statReward(30, skillName, StatType.VIT, 2, "+2 Vitality"),
+                coinReward(40, skillName, 1200),
+                statReward(50, skillName, StatType.STR, 2, "+2 Strength"),
+                giftReward(60, skillName, "heroic_token"),
+                coinReward(70, skillName, 2000),
+                statReward(80, skillName, StatType.WIL, 3, "+3 Will"),
+                giftReward(90, skillName, "adventurers_feast"),
+                statReward(100, skillName, StatType.AGI, 3, "+3 Agility"),
+                coinReward(110, skillName, 3200),
+                statReward(120, skillName, StatType.DEX, 3, "+3 Dexterity"),
+                coinReward(130, skillName, 4500),
+                statReward(140, skillName, StatType.VIT, 4, "+4 Vitality"),
+                giftReward(150, skillName, "blossom_bundle"),
+                coinReward(160, skillName, 6000),
+                statReward(170, skillName, StatType.TEC, 4, "+4 Technique"),
+                giftReward(180, skillName, "heroic_token"),
+                coinReward(190, skillName, 7500),
+                statReward(200, skillName, StatType.STR, 5, "+5 Strength"),
+                giftReward(210, skillName, "adventurers_feast"),
+                coinReward(220, skillName, 9000),
+                statReward(230, skillName, StatType.AGI, 5, "+5 Agility"),
+                coinReward(240, skillName, 10500),
+                statReward(250, skillName, StatType.DEX, 5, "+5 Dexterity"),
+                coinReward(260, skillName, 12000)
         );
     }
 

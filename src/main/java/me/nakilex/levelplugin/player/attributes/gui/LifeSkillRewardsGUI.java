@@ -22,7 +22,7 @@ public final class LifeSkillRewardsGUI {
 
     private static final int[] PATH = {
             0, 9, 18, 27, 28, 29, 20, 11, 2, 3, 4,
-            5, 13, 22, 31, 32, 33, 24, 15, 6, 7, 8,
+            13, 22, 31, 32, 33, 24, 15, 6, 7, 8,
             17, 26, 35, 45, 53
     };
 
