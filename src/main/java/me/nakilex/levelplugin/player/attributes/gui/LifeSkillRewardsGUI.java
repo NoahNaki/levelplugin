@@ -1,5 +1,6 @@
 package me.nakilex.levelplugin.player.attributes.gui;
 
+import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.items.tools.ToolDiscipline;
 import me.nakilex.levelplugin.player.attributes.managers.LifeSkillRewardManager;
 import me.nakilex.levelplugin.player.attributes.managers.LifeSkillRewardManager.LifeSkillReward;
@@ -14,6 +15,9 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.NamespacedKey;
+import org.bukkit.persistence.PersistentDataContainer;
+import org.bukkit.persistence.PersistentDataType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,6 +29,8 @@ public final class LifeSkillRewardsGUI {
             13, 22, 31, 32, 33, 24, 15, 6, 7, 8,
             17, 26, 35
     };
+
+    private static final NamespacedKey LEVEL_KEY = new NamespacedKey(Main.getInstance(), "lifeskill_reward_level");
 
     private LifeSkillRewardsGUI() {}
 
@@ -76,6 +82,15 @@ public final class LifeSkillRewardsGUI {
         return builder.build();
     }
 
+    public static int levelFrom(ItemStack stack) {
+        if (stack == null) return -1;
+        ItemMeta meta = stack.getItemMeta();
+        if (meta == null) return -1;
+        PersistentDataContainer container = meta.getPersistentDataContainer();
+        Integer level = container.get(LEVEL_KEY, PersistentDataType.INTEGER);
+        return level == null ? -1 : level;
+    }
+
     public static int indexForSlot(int slot) {
         for (int i = 0; i < PATH.length; i++) {
             if (PATH[i] == slot) {
@@ -102,6 +117,7 @@ public final class LifeSkillRewardsGUI {
         if (meta != null) {
             String skillName = discipline.name().substring(0, 1).toUpperCase() + discipline.name().substring(1).toLowerCase();
             meta.setDisplayName(reward.displayName());
+            meta.getPersistentDataContainer().set(LEVEL_KEY, PersistentDataType.INTEGER, reward.levelRequired());
             List<String> lore = new ArrayList<>();
             lore.add(ChatColor.GRAY + "Requirement: " + ChatColor.YELLOW + skillName + " "
                     + reward.levelRequired());

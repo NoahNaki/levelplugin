@@ -172,7 +172,10 @@ public class LifeSkillRewardManager {
 
         reward.rewardAction().accept(player);
         saveClaim(uuid, discipline, reward.levelRequired());
-        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, "Reward claimed!");
+        String skillName = discipline.name().substring(0, 1).toUpperCase() + discipline.name().substring(1).toLowerCase();
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.REWARD,
+                "Claimed " + ChatColor.YELLOW + skillName + ChatColor.WHITE + " level " + reward.levelRequired() + " reward: "
+                        + ChatColor.stripColor(reward.displayName()) + ChatColor.WHITE + ".");
         return true;
     }
 

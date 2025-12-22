@@ -72,16 +72,30 @@ public class StatsMenuListener implements Listener {
                 return;
             }
 
-            int rewardIndex = LifeSkillRewardsGUI.indexForSlot(event.getRawSlot());
-            if (rewardIndex < 0) return;
-
             LifeSkillRewardManager rewardManager = LifeSkillRewardManager.getInstance();
             if (rewardManager == null) return;
+
+            int levelRequirement = LifeSkillRewardsGUI.levelFrom(clickedItem);
             java.util.List<me.nakilex.levelplugin.player.attributes.managers.LifeSkillRewardManager.LifeSkillReward> rewards =
                     rewardManager.getRewards(rewardDiscipline);
-            if (rewardIndex >= rewards.size()) return;
 
-            rewardManager.claimReward(player, rewardDiscipline, rewards.get(rewardIndex));
+            me.nakilex.levelplugin.player.attributes.managers.LifeSkillRewardManager.LifeSkillReward reward = null;
+            if (levelRequirement > 0) {
+                for (me.nakilex.levelplugin.player.attributes.managers.LifeSkillRewardManager.LifeSkillReward candidate : rewards) {
+                    if (candidate.levelRequired() == levelRequirement) {
+                        reward = candidate;
+                        break;
+                    }
+                }
+            }
+
+            if (reward == null) {
+                int rewardIndex = LifeSkillRewardsGUI.indexForSlot(event.getRawSlot());
+                if (rewardIndex < 0 || rewardIndex >= rewards.size()) return;
+                reward = rewards.get(rewardIndex);
+            }
+
+            rewardManager.claimReward(player, rewardDiscipline, reward);
             player.openInventory(LifeSkillRewardsGUI.create(player, rewardDiscipline));
             return;
         }
