@@ -129,9 +129,10 @@ public class StatsInventory {
     }
 
     private static ItemStack createCodexButton() {
-        ItemStack codex = GuiUtil.getNexoItem("book", ChatColor.YELLOW + "Codex");
+        ItemStack codex = new ItemStack(Material.SPYGLASS);
         ItemMeta meta = codex.getItemMeta();
         if (meta != null) {
+            meta.setDisplayName(ChatColor.YELLOW + "Codex");
             List<String> lore = new ArrayList<>();
             lore.add(ChatColor.GRAY + "Review discoveries and mercenary affinity.");
             lore.addAll(TooltipUtil.bulletList("Track NPCs, locations, and mobs."));
@@ -144,9 +145,10 @@ public class StatsInventory {
     }
 
     private static ItemStack createLifeSkillButton() {
-        ItemStack lifeSkills = GuiUtil.getNexoItem("book_and_quill", ChatColor.GOLD + "Life Skills");
+        ItemStack lifeSkills = new ItemStack(Material.STONE_PICKAXE);
         ItemMeta meta = lifeSkills.getItemMeta();
         if (meta != null) {
+            meta.setDisplayName(ChatColor.GOLD + "Life Skills");
             List<String> lore = new ArrayList<>();
             lore.add(ChatColor.GRAY + "Review your profession progress.");
             lore.addAll(TooltipUtil.bulletList(

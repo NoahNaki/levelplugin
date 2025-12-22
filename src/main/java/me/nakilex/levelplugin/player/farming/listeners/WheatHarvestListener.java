@@ -4,7 +4,6 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.items.tools.ToolDiscipline;
 import me.nakilex.levelplugin.items.tools.ToolManager;
 import me.nakilex.levelplugin.player.farming.managers.FarmingManager;
-import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.FullInventoryListener;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
@@ -55,7 +54,6 @@ public class WheatHarvestListener implements Listener {
         int age = ageable.getAge();
         int maxAge = ageable.getMaximumAge();
         if (age < maxAge) {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING, "§7This crop isn't fully grown yet.");
             return;
         }
 
