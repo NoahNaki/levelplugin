@@ -22,9 +22,10 @@ public final class LifeSkillRewardsGUI {
 
     private static final int[] PATH = {
             10,11,12,13,14,15,16,
-            25,24,23,22,21,20,19,
-            28,29,30,31,32,33,34,
-            43,42,41,40,39,38,37
+            17,26,35,44,43,42,41,
+            40,31,22,23,24,25,34,
+            33,32,21,20,19,28,29,
+            30,39,38,37
     };
 
     private LifeSkillRewardsGUI() {}
