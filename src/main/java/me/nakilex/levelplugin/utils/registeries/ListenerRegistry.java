@@ -71,6 +71,7 @@ import me.nakilex.levelplugin.environment.UpgradeGUI;
 import me.nakilex.levelplugin.environment.BuildingUpgradeGUI;
 import me.nakilex.levelplugin.environment.listeners.BuildingHologramListener;
 import me.nakilex.levelplugin.environment.listeners.StageBlockInteractListener;
+import me.nakilex.levelplugin.environment.listeners.LeafDecayBlocker;
 import me.nakilex.levelplugin.codex.*;
 import me.nakilex.levelplugin.npc.wandering.WanderingMerchantListener;
 import me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager;
@@ -242,6 +243,7 @@ public class ListenerRegistry {
         pm.registerEvents(stageBlockInteractListener, plugin);
         pm.registerEvents(new me.nakilex.levelplugin.environment.listeners.EnvironmentInventoryListener(plugin.getEnvironmentManager()), plugin);
         pm.registerEvents(new me.nakilex.levelplugin.environment.listeners.EnvironmentDistanceListener(plugin.getEnvironmentManager()), plugin);
+        pm.registerEvents(new LeafDecayBlocker(), plugin);
         pm.registerEvents(new me.nakilex.levelplugin.calendar.WeatherBlockListener(), plugin);
         pm.registerEvents(new WanderingMerchantListener(wmManager), plugin);
         if (plugin.getCustomConfig().getBoolean("features.profiles", true)) {

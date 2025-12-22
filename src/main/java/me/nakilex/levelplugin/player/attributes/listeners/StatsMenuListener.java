@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.player.attributes.listeners;
 
 import me.nakilex.levelplugin.codex.CodexMainGUI;
+import me.nakilex.levelplugin.player.attributes.gui.LifeSkillGUI;
 import me.nakilex.levelplugin.player.attributes.gui.StatsInventory;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import org.bukkit.ChatColor;
@@ -12,6 +13,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -27,6 +29,22 @@ public class StatsMenuListener implements Listener {
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
+        if (event.getView().getTitle().equals(LifeSkillGUI.TITLE)) {
+            event.setCancelled(true);
+            ItemStack clickedItem = event.getCurrentItem();
+            if (clickedItem == null || clickedItem.getType() == Material.AIR) return;
+
+            Player player = (Player) event.getWhoClicked();
+            ItemMeta meta = clickedItem.getItemMeta();
+            if (meta == null || !meta.hasDisplayName()) return;
+            String displayName = ChatColor.stripColor(meta.getDisplayName());
+
+            if (displayName.equalsIgnoreCase("Back to Stats")) {
+                player.openInventory(StatsInventory.getStatsMenu(player, StatsInventory.getPage(player)));
+            }
+            return;
+        }
+
         if (event.getView().getTitle().endsWith("skill points remaining")) {
             event.setCancelled(true); // Prevent item movement
 
@@ -36,7 +54,9 @@ public class StatsMenuListener implements Listener {
             if (clickedItem == null || clickedItem.getType() == Material.AIR) return;
 
             StatsManager statsManager = StatsManager.getInstance();
-            String displayName = ChatColor.stripColor(clickedItem.getItemMeta().getDisplayName());
+            ItemMeta meta = clickedItem.getItemMeta();
+            if (meta == null || !meta.hasDisplayName()) return;
+            String displayName = ChatColor.stripColor(meta.getDisplayName());
 
             // Handle Refund All Skill Points Confirmation
             if (displayName.equalsIgnoreCase("Refund All Skill Points")) {
@@ -63,6 +83,11 @@ public class StatsMenuListener implements Listener {
             if (displayName.equalsIgnoreCase("Codex")) {
                 codexGUI.openFrom(player, viewer ->
                         viewer.openInventory(StatsInventory.getStatsMenu(viewer, StatsInventory.getPage(viewer))));
+                return;
+            }
+
+            if (displayName.equalsIgnoreCase("Life Skills")) {
+                LifeSkillGUI.open(player);
                 return;
             }
 
