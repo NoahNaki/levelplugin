@@ -22,8 +22,8 @@ public final class LifeSkillRewardsGUI {
 
     private static final int[] PATH = {
             10,11,12,13,14,15,16,
-            25,34,33,32,31,30,29,
-            20,21,22,23,24,35,44,
+            25,24,23,22,21,20,19,
+            28,29,30,31,32,33,34,
             43,42,41,40,39,38,37
     };
 
@@ -59,10 +59,16 @@ public final class LifeSkillRewardsGUI {
                 ? MiningManager.getInstance().getLevel(player)
                 : FarmingManager.getInstance().getLevel(player);
 
-        for (int i = 0; i < rewards.size() && i < PATH.length; i++) {
-            LifeSkillReward reward = rewards.get(i);
-            builder.setItem(PATH[i], createRewardItem(player, discipline, reward, level,
-                    rewardManager.isClaimed(player.getUniqueId(), discipline, reward.levelRequired())));
+        for (int i = 0; i < PATH.length; i++) {
+            ItemStack tile;
+            if (i < rewards.size()) {
+                LifeSkillReward reward = rewards.get(i);
+                tile = createRewardItem(player, discipline, reward, level,
+                        rewardManager.isClaimed(player.getUniqueId(), discipline, reward.levelRequired()));
+            } else {
+                tile = createPlaceholder();
+            }
+            builder.setItem(PATH[i], tile);
         }
 
         builder.setItem(45, createBackButton());
@@ -115,6 +121,17 @@ public final class LifeSkillRewardsGUI {
             lore.add(ChatColor.GRAY + "Progress:");
             lore.add(ChatColor.YELLOW + TooltipUtil.progressBar(playerLevel, reward.levelRequired(), 20));
             meta.setLore(lore);
+            stack.setItemMeta(meta);
+        }
+        return stack;
+    }
+
+    private static ItemStack createPlaceholder() {
+        ItemStack stack = new ItemStack(Material.LIGHT_GRAY_STAINED_GLASS_PANE);
+        ItemMeta meta = stack.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(ChatColor.DARK_GRAY + "Future Milestone");
+            meta.setLore(List.of(ChatColor.GRAY + "Progress further to unlock more rewards."));
             stack.setItemMeta(meta);
         }
         return stack;

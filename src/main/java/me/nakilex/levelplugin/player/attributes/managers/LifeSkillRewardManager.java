@@ -3,11 +3,15 @@ package me.nakilex.levelplugin.player.attributes.managers;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.items.tools.ToolDiscipline;
+import me.nakilex.levelplugin.mercenary.MercenaryAffinityManager;
+import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
+import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
 import me.nakilex.levelplugin.player.farming.managers.FarmingManager;
 import me.nakilex.levelplugin.player.mining.managers.MiningManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 
 import java.util.EnumMap;
 import java.util.HashSet;
@@ -32,11 +36,13 @@ public class LifeSkillRewardManager {
     private final EconomyManager economyManager;
     private final MiningManager miningManager;
     private final FarmingManager farmingManager;
+    private final MercenaryAffinityManager affinityManager;
 
     public LifeSkillRewardManager(Main plugin) {
         this.economyManager = plugin.getEconomyManager();
         this.miningManager = plugin.getMiningManager();
         this.farmingManager = plugin.getFarmingManager();
+        this.affinityManager = plugin.getMercenaryAffinityManager();
         instance = this;
 
         initialiseRewards();
@@ -56,38 +62,66 @@ public class LifeSkillRewardManager {
 
     private List<LifeSkillReward> createRewardList(String skillName) {
         return List.of(
-                new LifeSkillReward(1, ChatColor.GOLD + skillName + " Level 1",
-                        List.of(ChatColor.GRAY + "Rewards:",
-                                ChatColor.GREEN + "•" + ChatColor.GRAY + " Access to the Barn",
-                                ChatColor.GREEN + "•" + ChatColor.GRAY + " +100 Coins"),
-                        player -> economyManager.addCoins(player, 100, false)),
-                new LifeSkillReward(5, ChatColor.GOLD + skillName + " Level 5",
-                        List.of(ChatColor.GRAY + "Rewards:",
-                                ChatColor.GREEN + "•" + ChatColor.GRAY + " +250 Coins",
-                                ChatColor.GREEN + "•" + ChatColor.GRAY + " +2 Max Hearts"),
-                        player -> economyManager.addCoins(player, 250, false)),
-                new LifeSkillReward(10, ChatColor.GOLD + skillName + " Level 10",
-                        List.of(ChatColor.GRAY + "Rewards:",
-                                ChatColor.GREEN + "•" + ChatColor.GRAY + " +750 Coins",
-                                ChatColor.GREEN + "•" + ChatColor.GRAY + " +4 Wheat Seeds"),
-                        player -> {
-                            economyManager.addCoins(player, 750, false);
-                            player.getInventory().addItem(new org.bukkit.inventory.ItemStack(org.bukkit.Material.WHEAT_SEEDS, 4));
-                        }),
-                new LifeSkillReward(15, ChatColor.GOLD + skillName + " Level 15",
-                        List.of(ChatColor.GRAY + "Rewards:",
-                                ChatColor.GREEN + "•" + ChatColor.GRAY + " +1,500 Coins",
-                                ChatColor.GREEN + "•" + ChatColor.GRAY + " +1 Rare Fertilizer"),
-                        player -> {
-                            economyManager.addCoins(player, 1500, false);
-                            player.getInventory().addItem(new org.bukkit.inventory.ItemStack(org.bukkit.Material.BONE_MEAL, 1));
-                        }),
-                new LifeSkillReward(20, ChatColor.GOLD + skillName + " Level 20",
-                        List.of(ChatColor.GRAY + "Rewards:",
-                                ChatColor.GREEN + "•" + ChatColor.GRAY + " +3,000 Coins",
-                                ChatColor.GREEN + "•" + ChatColor.GRAY + " +1 Harvest Booster"),
-                        player -> economyManager.addCoins(player, 3000, false))
+                coinReward(1, skillName, 250),
+                giftReward(3, skillName, "blossom_bundle"),
+                statReward(5, skillName, StatType.VIT, 2, "+2 Vitality"),
+                coinReward(8, skillName, 750),
+                giftReward(10, skillName, "heroic_token"),
+                statReward(12, skillName, StatType.STR, 2, "+2 Strength"),
+                coinReward(15, skillName, 1500),
+                statReward(18, skillName, StatType.WIL, 2, "+2 Will"),
+                giftReward(20, skillName, "adventurers_feast"),
+                statReward(24, skillName, StatType.AGI, 3, "+3 Agility"),
+                coinReward(28, skillName, 3000),
+                statReward(32, skillName, StatType.DEX, 3, "+3 Dexterity"),
+                coinReward(36, skillName, 4500),
+                statReward(40, skillName, StatType.VIT, 4, "+4 Vitality"),
+                coinReward(45, skillName, 6000),
+                statReward(50, skillName, StatType.TEC, 4, "+4 Technique")
         );
+    }
+
+    private LifeSkillReward coinReward(int level, String skillName, int coins) {
+        String title = ChatColor.GOLD + skillName + " Level " + level;
+        String rewardLine = ChatColor.GREEN + "• " + ChatColor.WHITE + "+" + coins + " <glyph:coins_icon>";
+        return new LifeSkillReward(level, title, List.of(ChatColor.GRAY + "Rewards:", rewardLine),
+                player -> economyManager.addCoins(player, coins, false));
+    }
+
+    private LifeSkillReward statReward(int level, String skillName, StatType stat, int amount, String label) {
+        String title = ChatColor.GOLD + skillName + " Level " + level;
+        List<String> lore = List.of(
+                ChatColor.GRAY + "Rewards:",
+                ChatColor.GREEN + "• " + ChatColor.WHITE + label
+        );
+        return new LifeSkillReward(level, title, lore,
+                player -> StatsManager.getInstance().addBaseStat(player.getUniqueId(), stat, amount));
+    }
+
+    private LifeSkillReward giftReward(int level, String skillName, String giftId) {
+        String title = ChatColor.GOLD + skillName + " Level " + level;
+        List<String> lore = new java.util.ArrayList<>();
+        lore.add(ChatColor.GRAY + "Rewards:");
+        lore.add(ChatColor.GREEN + "• " + ChatColor.WHITE + "Friendship Gift");
+        lore.add(ChatColor.DARK_GRAY + "   – " + ChatColor.WHITE + prettyGiftName(giftId));
+        return new LifeSkillReward(level, title, lore, player -> {
+            ItemStack gift = affinityManager.createGiftItem(giftId);
+            if (gift != null) {
+                player.getInventory().addItem(gift);
+            }
+        });
+    }
+
+    private String prettyGiftName(String giftId) {
+        String[] parts = giftId.split("_");
+        StringBuilder builder = new StringBuilder();
+        for (String part : parts) {
+            if (part.isBlank()) continue;
+            builder.append(part.substring(0, 1).toUpperCase())
+                    .append(part.substring(1));
+            builder.append(" ");
+        }
+        return builder.toString().trim();
     }
 
     public List<LifeSkillReward> getRewards(ToolDiscipline discipline) {
