@@ -2,8 +2,10 @@ package me.nakilex.levelplugin.player.attributes.listeners;
 
 import me.nakilex.levelplugin.codex.CodexMainGUI;
 import me.nakilex.levelplugin.player.attributes.gui.LifeSkillGUI;
+import me.nakilex.levelplugin.player.attributes.gui.LifeSkillRewardsGUI;
 import me.nakilex.levelplugin.player.attributes.gui.StatsInventory;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
+import me.nakilex.levelplugin.player.attributes.managers.LifeSkillRewardManager;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.Sound;
@@ -17,6 +19,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.HashSet;
 import java.util.Set;
+import me.nakilex.levelplugin.items.tools.ToolDiscipline;
 
 public class StatsMenuListener implements Listener {
 
@@ -41,7 +44,45 @@ public class StatsMenuListener implements Listener {
 
             if (displayName.equalsIgnoreCase("Back to Stats")) {
                 player.openInventory(StatsInventory.getStatsMenu(player, StatsInventory.getPage(player)));
+                return;
             }
+
+            if (displayName.startsWith("Mining")) {
+                LifeSkillRewardsGUI.open(player, ToolDiscipline.MINING);
+                return;
+            }
+
+            if (displayName.startsWith("Farming")) {
+                LifeSkillRewardsGUI.open(player, ToolDiscipline.FARMING);
+                return;
+            }
+            return;
+        }
+
+        ToolDiscipline rewardDiscipline = LifeSkillRewardsGUI.disciplineFromTitle(event.getView().getTitle());
+        if (rewardDiscipline != null) {
+            event.setCancelled(true);
+            Player player = (Player) event.getWhoClicked();
+            ItemStack clickedItem = event.getCurrentItem();
+            if (clickedItem == null || clickedItem.getType() == Material.AIR) return;
+
+            ItemMeta meta = clickedItem.getItemMeta();
+            if (meta != null && meta.hasDisplayName() && ChatColor.stripColor(meta.getDisplayName()).equalsIgnoreCase("Back to Skills")) {
+                LifeSkillGUI.open(player);
+                return;
+            }
+
+            int rewardIndex = LifeSkillRewardsGUI.indexForSlot(event.getRawSlot());
+            if (rewardIndex < 0) return;
+
+            LifeSkillRewardManager rewardManager = LifeSkillRewardManager.getInstance();
+            if (rewardManager == null) return;
+            java.util.List<me.nakilex.levelplugin.player.attributes.managers.LifeSkillRewardManager.LifeSkillReward> rewards =
+                    rewardManager.getRewards(rewardDiscipline);
+            if (rewardIndex >= rewards.size()) return;
+
+            rewardManager.claimReward(player, rewardDiscipline, rewards.get(rewardIndex));
+            player.openInventory(LifeSkillRewardsGUI.create(player, rewardDiscipline));
             return;
         }
 

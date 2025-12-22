@@ -94,6 +94,9 @@ public final class LifeSkillGUI {
                 lore.addAll(extras);
             }
 
+            lore.add("");
+            lore.addAll(TooltipUtil.clickInstructions("to view rewards", null));
+
             meta.setLore(lore);
             stack.setItemMeta(meta);
         }

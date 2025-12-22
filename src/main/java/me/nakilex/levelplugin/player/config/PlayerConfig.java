@@ -1,6 +1,8 @@
 package me.nakilex.levelplugin.player.config;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.items.tools.ToolDiscipline;
+import me.nakilex.levelplugin.player.attributes.managers.LifeSkillRewardManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.battlepass.BattlePassManager;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
@@ -59,6 +61,13 @@ public class PlayerConfig {
         config.set(path + ".mining.xp",    miningManager.getXP(uuid));
         config.set(path + ".farming.level", farmingManager.getLevel(uuid));
         config.set(path + ".farming.xp",    farmingManager.getXP(uuid));
+        LifeSkillRewardManager rewardManager = LifeSkillRewardManager.getInstance();
+        if (rewardManager != null) {
+            for (ToolDiscipline discipline : ToolDiscipline.values()) {
+                config.set(path + ".lifeskills." + discipline.name().toLowerCase() + ".claimed",
+                        new ArrayList<>(rewardManager.getClaimed(uuid, discipline)));
+            }
+        }
         config.set(path + ".skill_points", stats.skillPoints);
         config.set(path + ".stats.base_strength", stats.baseStrength);
         config.set(path + ".stats.base_agility", stats.baseAgility);
@@ -119,6 +128,7 @@ public class PlayerConfig {
         int miningXp = config.getInt(root + ".mining.xp", 0);
         int farmingLevel = config.getInt(root + ".farming.level", 1);
         int farmingXp = config.getInt(root + ".farming.xp", 0);
+        LifeSkillRewardManager rewardManager = LifeSkillRewardManager.getInstance();
         int skillPoints = config.getInt(root + ".skill_points", 0);
         List<String> unlockedList = config.getStringList(root + ".unlocked_classes");
 
@@ -131,6 +141,12 @@ public class PlayerConfig {
         me.nakilex.levelplugin.player.farming.managers.FarmingManager fm = me.nakilex.levelplugin.player.farming.managers.FarmingManager.getInstance();
         fm.setLevel(uuid, farmingLevel);
         fm.addXP(uuid, farmingXp);
+        if (rewardManager != null) {
+            for (ToolDiscipline discipline : ToolDiscipline.values()) {
+                List<Integer> claimed = config.getIntegerList(root + ".lifeskills." + discipline.name().toLowerCase() + ".claimed");
+                rewardManager.setClaimed(uuid, discipline, new HashSet<>(claimed));
+            }
+        }
 
         StatsManager.PlayerStats stats = StatsManager.getInstance().getPlayerStats(uuid);
         stats.playerClass = playerClass;
