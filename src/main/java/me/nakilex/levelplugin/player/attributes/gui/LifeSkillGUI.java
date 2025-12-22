@@ -83,8 +83,10 @@ public final class LifeSkillGUI {
             } else {
                 lore.add(ChatColor.GRAY + "Progress toward the next level:");
                 lore.add(ChatColor.GOLD + TooltipUtil.progressBar(xp, displayRequired, 20));
-                lore.add(ChatColor.WHITE + xp + ChatColor.GRAY + "/" + ChatColor.WHITE + displayRequired
-                        + ChatColor.GRAY + " (" + ChatColor.YELLOW + String.format("%.2f", percent) + "%" + ChatColor.GRAY + ")");
+                String progressLine = ChatColor.WHITE + "" + xp
+                        + ChatColor.GRAY + "/" + ChatColor.WHITE + displayRequired
+                        + ChatColor.GRAY + " (" + ChatColor.YELLOW + String.format("%.2f", percent) + "%" + ChatColor.GRAY + ")";
+                lore.add(progressLine);
             }
 
             if (extras != null && !extras.isEmpty()) {
