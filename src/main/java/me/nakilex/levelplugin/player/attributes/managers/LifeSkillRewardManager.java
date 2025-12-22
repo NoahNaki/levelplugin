@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
  * Centralises life skill reward milestones and claims so both mining and farming
@@ -33,16 +34,18 @@ public class LifeSkillRewardManager {
     private final Map<ToolDiscipline, List<LifeSkillReward>> rewards = new EnumMap<>(ToolDiscipline.class);
     private final Map<ToolDiscipline, Map<UUID, Set<Integer>>> claimed = new EnumMap<>(ToolDiscipline.class);
 
+    private final Main plugin;
     private final EconomyManager economyManager;
     private final MiningManager miningManager;
     private final FarmingManager farmingManager;
-    private final MercenaryAffinityManager affinityManager;
+    private final Supplier<MercenaryAffinityManager> affinitySupplier;
 
     public LifeSkillRewardManager(Main plugin) {
+        this.plugin = plugin;
         this.economyManager = plugin.getEconomyManager();
         this.miningManager = plugin.getMiningManager();
         this.farmingManager = plugin.getFarmingManager();
-        this.affinityManager = plugin.getMercenaryAffinityManager();
+        this.affinitySupplier = plugin::getMercenaryAffinityManager;
         instance = this;
 
         initialiseRewards();
@@ -113,6 +116,12 @@ public class LifeSkillRewardManager {
         lore.add(ChatColor.GREEN + "• " + ChatColor.WHITE + "Friendship Gift");
         lore.add(ChatColor.DARK_GRAY + "   – " + ChatColor.WHITE + prettyGiftName(giftId));
         return new LifeSkillReward(level, title, lore, player -> {
+            MercenaryAffinityManager affinityManager = affinitySupplier.get();
+            if (affinityManager == null) {
+                plugin.getLogger().warning("MercenaryAffinityManager is not ready; skipping gift reward for " + player.getName());
+                return;
+            }
+
             ItemStack gift = affinityManager.createGiftItem(giftId);
             if (gift != null) {
                 player.getInventory().addItem(gift);
