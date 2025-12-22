@@ -104,17 +104,17 @@ public class FarmingRewardsGUI implements Listener, CommandExecutor {
         Runnable reward;
         if (slot == 11) {
             cost = 16;
-            reward = () -> economyManager.deposit(player, 75);
+            reward = () -> economyManager.addCoins(player, 75, false);
         } else if (slot == 13) {
             cost = 32;
             reward = () -> {
-                economyManager.deposit(player, 150);
+                economyManager.addCoins(player, 150, false);
                 player.getInventory().addItem(new ItemStack(Material.WHEAT_SEEDS, 4));
             };
         } else if (slot == 15) {
             cost = 64;
             reward = () -> {
-                economyManager.deposit(player, 350);
+                economyManager.addCoins(player, 350, false);
                 player.getInventory().addItem(new ItemStack(Material.BONE_MEAL, 1));
             };
         } else {
