@@ -22,7 +22,7 @@ import java.text.DecimalFormat;
 
 /** GUI listing playable dungeons. */
 public class DungeonListGUI implements Listener {
-    private static final String TITLE = ChatColor.BLACK + "Dungeons";
+    private static final String TITLE = "Dungeons";
     private static final int SIZE = 54;
     private static final int COMMUNITY_FILTER_SLOT = 3;
     private static final int VERIFIED_FILTER_SLOT = 5;

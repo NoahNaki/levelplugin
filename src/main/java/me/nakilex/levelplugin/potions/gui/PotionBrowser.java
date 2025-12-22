@@ -44,7 +44,7 @@ public class PotionBrowser implements CommandExecutor, Listener {
     }
 
     private String title(int page) {
-        return ChatColor.BLACK + "Potions - Page " + (page + 1);
+        return "Potions - Page " + (page + 1);
     }
 
     private static ItemStack nexoItem(String id, String name) {

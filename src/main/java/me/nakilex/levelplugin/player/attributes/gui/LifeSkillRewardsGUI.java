@@ -29,8 +29,9 @@ public final class LifeSkillRewardsGUI {
     private LifeSkillRewardsGUI() {}
 
     public static String titleFor(ToolDiscipline discipline) {
-        return ChatColor.GOLD + "" + ChatColor.BOLD + discipline.name().substring(0,1).toUpperCase()
-                + discipline.name().substring(1).toLowerCase() + " Skill Rewards";
+        String name = discipline.name().substring(0, 1).toUpperCase()
+                + discipline.name().substring(1).toLowerCase();
+        return name + " Skill Rewards";
     }
 
     public static ToolDiscipline disciplineFromTitle(String title) {

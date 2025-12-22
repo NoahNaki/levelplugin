@@ -118,7 +118,7 @@ public class TradingWindow implements Listener {
     private Inventory createInventory(String partnerName) {
         String formatted = String.format(messageStrings.getTranslation(Translations.DEAL_WITH), partnerName);
         String plainTitle = ChatColor.stripColor(formatted);
-        return GuiBuilder.create(CHEST_SIZE, ChatColor.BLACK + plainTitle)
+        return GuiBuilder.create(CHEST_SIZE, plainTitle)
             .filler(Material.GRAY_STAINED_GLASS_PANE)
             .fillEmptySlots(false)
             .border()

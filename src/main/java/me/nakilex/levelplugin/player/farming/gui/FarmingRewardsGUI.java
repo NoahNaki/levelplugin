@@ -20,7 +20,7 @@ import java.util.Arrays;
 
 public class FarmingRewardsGUI implements Listener, CommandExecutor {
 
-    private static final String TITLE = "§eFarming Rewards";
+    private static final String TITLE = "Farming Rewards";
     private final EconomyManager economyManager;
     private final Main plugin;
 

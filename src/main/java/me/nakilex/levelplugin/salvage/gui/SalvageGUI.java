@@ -18,7 +18,7 @@ import java.util.Arrays;
 public class SalvageGUI {
 
     private static final int GUI_SIZE = 54;
-    private static final String GUI_TITLE = ChatColor.BLACK + "Salvage Items";
+    private static final String GUI_TITLE = "Salvage Items";
     public static final int TOGGLE_SLOT = 9;
 
     public static void openMerchantGUI(Player player) {

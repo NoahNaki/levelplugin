@@ -19,7 +19,7 @@ import java.util.function.Consumer;
 
 /** Main Codex menu providing category selection. */
 public class CodexMainGUI implements Listener {
-    private static final String TITLE = ChatColor.BLACK + "Codex";
+    private static final String TITLE = "Codex";
     private static final int SIZE = 27;
     private static final int BACK_SLOT = 18;
 

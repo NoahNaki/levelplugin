@@ -52,7 +52,7 @@ public class TransmogBrowser implements CommandExecutor, Listener {
     }
 
     private String title(int page) {
-        return ChatColor.BLACK + "Transmogs - Page " + (page + 1);
+        return "Transmogs - Page " + (page + 1);
     }
 
     public void openSelector(Player player, WeaponType wType, ArmorType aType, Consumer<String> cb) {

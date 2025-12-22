@@ -30,9 +30,9 @@ import static me.nakilex.levelplugin.utils.ChatMessageUtil.send;
  */
 public class ClassEssenceUpgradeGUI implements Listener {
 
-    private static final String INVEST_TITLE = ChatColor.BLACK + "Essence: Invest";
-    private static final String STAR_TITLE = ChatColor.BLACK + "Essence: Star Upgrade";
-    private static final String RESEAL_TITLE = ChatColor.BLACK + "Essence: Reseal";
+    private static final String INVEST_TITLE = "Essence: Invest";
+    private static final String STAR_TITLE = "Essence: Star Upgrade";
+    private static final String RESEAL_TITLE = "Essence: Reseal";
 
     private static final int SACRIFICE_SLOT = 11;
     private static final int TARGET_SLOT = 15;

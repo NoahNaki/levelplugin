@@ -41,7 +41,7 @@ import static me.nakilex.levelplugin.utils.ChatMessageUtil.send;
  */
 public class ArenaQueueGUI implements Listener {
     private static final int GUI_SIZE = 27;
-    private static final String TITLE = TextUtil.centerInventoryTitle(ChatColor.BLACK + "Arena Queue");
+    private static final String TITLE = TextUtil.centerInventoryTitle("Arena Queue");
     private static final int TWO_VS_TWO_SLOT = 12;
     private static final int ONE_VS_ONE_SLOT = 14;
 

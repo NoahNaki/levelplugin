@@ -24,7 +24,7 @@ public class MercenaryExpeditionRewardsGUI implements Listener {
     public enum RewardView { EXPEDITIONS }
 
     private static final int SIZE = 54;
-    private static final String TITLE = ChatColor.DARK_AQUA + "Expedition Rewards";
+    private static final String TITLE = "Expedition Rewards";
     private static final int[] LOOT_SLOTS = GuiUtil.PAGED_SLOTS;
 
     private final MercenaryExpeditionManager expeditionManager;

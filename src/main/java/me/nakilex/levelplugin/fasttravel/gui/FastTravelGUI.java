@@ -31,7 +31,7 @@ import static me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
 import static me.nakilex.levelplugin.utils.ChatMessageUtil.send;
 
 public class FastTravelGUI implements Listener {
-    private static final String TITLE = ChatColor.BLACK + "Fast Travel";
+    private static final String TITLE = "Fast Travel";
     private static final int SIZE = 54;
     private static final int[] POINT_SLOTS = {
             10,11,12,13,14,15,16,

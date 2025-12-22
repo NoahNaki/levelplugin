@@ -25,7 +25,7 @@ import java.util.List;
  */
 public class CatacombsGUI implements Listener {
     private static final int SIZE = 27;
-    private static final String TITLE = ChatColor.BLACK + "Catacombs";
+    private static final String TITLE = "Catacombs";
 
     private final CatacombsManager manager;
     private final PlayerConfig playerConfig = Main.getInstance().getPlayerConfig();

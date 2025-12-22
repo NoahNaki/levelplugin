@@ -29,17 +29,17 @@ import java.util.*;
  * Simple GUI for selecting or creating character profiles.
  */
 public class ProfileSelectionGUI implements Listener {
-    private static final String TITLE = ChatColor.BLACK + "Select Profile";
+    private static final String TITLE = "Select Profile";
     private static final int SIZE = 27;
     private static final int[] PROFILE_SLOTS = {10, 12, 14, 16};
     private static final int LOGOUT_SLOT = 22;
     private static final ItemStack LOGOUT_ITEM;
-    private static final String EDIT_TITLE = ChatColor.BLACK + "Edit Profile";
+    private static final String EDIT_TITLE = "Edit Profile";
     private static final int DELETE_SLOT = 11;
     private static final int BACK_SLOT = 15;
     private static final ItemStack DELETE_ITEM;
 
-    private static final String CONFIRM_TITLE = ChatColor.BLACK + "Confirm Delete";
+    private static final String CONFIRM_TITLE = "Confirm Delete";
     private static final int CONFIRM_YES_SLOT = 11;
     private static final int CONFIRM_NO_SLOT = 15;
 

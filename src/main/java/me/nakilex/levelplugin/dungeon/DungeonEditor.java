@@ -26,7 +26,7 @@ public class DungeonEditor implements Listener {
     }
 
     public void open(Player player) {
-        Inventory inv = Bukkit.createInventory(null, 54, ChatColor.DARK_GRAY + "Dungeon Editor");
+        Inventory inv = Bukkit.createInventory(null, 54, "Dungeon Editor");
         ItemStack filler = new ItemStack(Material.WHITE_WOOL);
         ItemMeta m = filler.getItemMeta();
         if (m != null) m.setDisplayName(ChatColor.GRAY + "Empty");
@@ -38,7 +38,7 @@ public class DungeonEditor implements Listener {
     }
 
     private Inventory createSelectInv() {
-        Inventory inv = Bukkit.createInventory(null, 9, ChatColor.DARK_GREEN + "Select Room");
+        Inventory inv = Bukkit.createInventory(null, 9, "Select Room");
         ItemStack entrance = new ItemStack(Material.LIME_WOOL);
         ItemMeta eMeta = entrance.getItemMeta();
         if (eMeta != null) eMeta.setDisplayName(ChatColor.GREEN + "Entrance");

@@ -17,7 +17,7 @@ import java.util.List;
 
 public final class LifeSkillGUI {
 
-    public static final String TITLE = ChatColor.GOLD + "" + ChatColor.BOLD + "Life Skills";
+    public static final String TITLE = "Life Skills";
 
     private LifeSkillGUI() {}
 

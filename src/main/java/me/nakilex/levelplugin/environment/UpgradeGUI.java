@@ -16,7 +16,7 @@ import java.util.Arrays;
 
 /** GUI for investing materials into settlement upgrades. */
 public class UpgradeGUI implements Listener {
-    private static final String TITLE = ChatColor.BLACK + "Settlement Upgrade";
+    private static final String TITLE = "Settlement Upgrade";
     private final EnvironmentManager manager;
 
     public UpgradeGUI(EnvironmentManager manager) {

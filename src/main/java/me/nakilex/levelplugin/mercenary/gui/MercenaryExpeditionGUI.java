@@ -50,7 +50,7 @@ import java.util.UUID;
  */
 public class MercenaryExpeditionGUI implements Listener {
     private static final int SIZE = 54;
-    private static final String TITLE = ChatColor.BLACK + "Mercenary Expeditions";
+    private static final String TITLE = "Mercenary Expeditions";
     private static final int PARTY_TAB_SLOT = 45;
     private static final int DUNGEON_TAB_SLOT = 53;
     private static final int REWARD_SLOT = 49;

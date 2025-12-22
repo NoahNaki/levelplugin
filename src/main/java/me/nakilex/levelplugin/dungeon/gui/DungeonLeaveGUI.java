@@ -19,7 +19,7 @@ import java.util.List;
 
 /** Confirmation GUI shown when a player attempts to leave a dungeon instance. */
 public class DungeonLeaveGUI implements Listener {
-    private static final String TITLE = ChatColor.BLACK + "Leave Dungeon?";
+    private static final String TITLE = "Leave Dungeon?";
     private static final int SIZE = 27;
     private static final int CONFIRM_SLOT = 11;
     private static final int CANCEL_SLOT = 15;

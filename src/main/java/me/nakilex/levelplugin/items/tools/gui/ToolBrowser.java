@@ -24,7 +24,7 @@ import java.util.List;
 
 public class ToolBrowser implements CommandExecutor, Listener {
     private final JavaPlugin plugin;
-    private static final String TITLE = ChatColor.BLACK + "Tools Browser";
+    private static final String TITLE = "Tools Browser";
 
     public ToolBrowser(JavaPlugin plugin) {
         this.plugin = plugin;
