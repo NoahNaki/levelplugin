@@ -21,11 +21,9 @@ import java.util.List;
 public final class LifeSkillRewardsGUI {
 
     private static final int[] PATH = {
-            10,11,12,13,14,15,16,
-            17,26,35,44,43,42,41,
-            40,31,22,23,24,25,34,
-            33,32,21,20,19,28,29,
-            30,39,38,37
+            0, 9, 18, 27, 28, 29, 20, 11, 2, 3, 4,
+            5, 13, 22, 31, 32, 33, 24, 15, 6, 7, 8,
+            17, 26, 35, 45, 53
     };
 
     private LifeSkillRewardsGUI() {}
@@ -72,7 +70,7 @@ public final class LifeSkillRewardsGUI {
             builder.setItem(PATH[i], tile);
         }
 
-        builder.setItem(45, createBackButton());
+        builder.setItem(49, createBackButton());
 
         return builder.build();
     }
