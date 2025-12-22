@@ -1,4 +1,4 @@
-package me.nakilex.levelplugin.player.mining.managers;
+package me.nakilex.levelplugin.player.farming.managers;
 
 import me.nakilex.levelplugin.Main;
 import org.bukkit.Bukkit;
@@ -12,36 +12,33 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * Handles Mining profession XP and levels.
- */
-public class MiningManager {
+public class FarmingManager {
 
-    private static MiningManager instance;
+    private static FarmingManager instance;
 
     private final Main plugin;
-    private final HashMap<UUID, Integer> miningLevels = new HashMap<>();
-    private final HashMap<UUID, Integer> miningXp     = new HashMap<>();
+    private final HashMap<UUID, Integer> farmingLevels = new HashMap<>();
+    private final HashMap<UUID, Integer> farmingXp     = new HashMap<>();
     private final HashMap<UUID, BossBar> xpBars       = new HashMap<>();
     private final Map<UUID, org.bukkit.scheduler.BukkitTask> hideTasks = new HashMap<>();
     private final Map<UUID, Boolean> activeBars = new HashMap<>();
 
     private final int MAX_LEVEL = 100;
-    private final int XP_PER_LEVEL_MULTIPLIER = 75;
+    private final int XP_PER_LEVEL_MULTIPLIER = 60;
 
-    public MiningManager(Main plugin) {
+    public FarmingManager(Main plugin) {
         this.plugin = plugin;
         instance = this;
     }
 
-    public static MiningManager getInstance() {
+    public static FarmingManager getInstance() {
         return instance;
     }
 
     public void initializePlayer(Player player) {
         UUID uuid = player.getUniqueId();
-        miningLevels.putIfAbsent(uuid, 1);
-        miningXp.putIfAbsent(uuid, 0);
+        farmingLevels.putIfAbsent(uuid, 1);
+        farmingXp.putIfAbsent(uuid, 0);
         updateBossBar(player);
     }
 
@@ -53,7 +50,7 @@ public class MiningManager {
     public void addXP(UUID uuid, int amount) {
         if (getLevel(uuid) >= MAX_LEVEL) return;
         int newXP = getXP(uuid) + amount;
-        miningXp.put(uuid, newXP);
+        farmingXp.put(uuid, newXP);
         checkLevelUp(uuid);
     }
 
@@ -76,12 +73,12 @@ public class MiningManager {
             xpNeeded = getXpRequired(level);
         }
 
-        miningLevels.put(uuid, level);
-        miningXp.put(uuid, xp);
+        farmingLevels.put(uuid, level);
+        farmingXp.put(uuid, xp);
 
         Player player = Bukkit.getPlayer(uuid);
         if (player != null) {
-            markMiningActive(player);
+            markFarmingActive(player);
             updateBossBar(player);
             if (leveled) {
                 updatePlayerTooltips(player);
@@ -97,14 +94,14 @@ public class MiningManager {
     }
 
     private void sendLevelUpMessage(Player player, int newLevel, int nextXp) {
-        me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§b§l-", 45);
-        me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§b§lMINING LEVEL UP!");
+        me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§e§l-", 45);
+        me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§e§lFARMING LEVEL UP!");
         me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "");
-        me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§7You are now Mining level §e§l" + newLevel + "§7!");
+        me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§7You are now Farming level §e§l" + newLevel + "§7!");
         if (newLevel < MAX_LEVEL) {
             me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§7You need §e" + nextXp + " XP §7to reach level §e" + (newLevel + 1) + "§7.");
         }
-        me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§b§l-", 45);
+        me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§e§l-", 45);
         player.getWorld().playSound(player.getLocation(), org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 1f, 1f);
         player.getWorld().spawnParticle(org.bukkit.Particle.HAPPY_VILLAGER, player.getLocation(), 20);
     }
@@ -133,7 +130,7 @@ public class MiningManager {
         int required = getXpRequired(level);
         double progress = required <= 0 ? 1.0 : Math.min(1.0, Math.max(0.0, xp / (double) required));
 
-        String title = ChatColor.YELLOW + "" + ChatColor.BOLD + "Mining "
+        String title = ChatColor.GOLD + "" + ChatColor.BOLD + "Farming "
                 + ChatColor.GRAY + "(Lv. " + ChatColor.WHITE + level + ChatColor.GRAY + ") "
                 + ChatColor.DARK_GRAY + "| "
                 + ChatColor.WHITE + xp + ChatColor.GRAY + "/" + ChatColor.WHITE + required;
@@ -147,7 +144,7 @@ public class MiningManager {
         bar.setVisible(visible);
     }
 
-    private void markMiningActive(Player player) {
+    private void markFarmingActive(Player player) {
         UUID uuid = player.getUniqueId();
         activeBars.put(uuid, true);
         org.bukkit.scheduler.BukkitTask existing = hideTasks.remove(uuid);
@@ -173,7 +170,7 @@ public class MiningManager {
     }
 
     public int getLevel(UUID uuid) {
-        return miningLevels.getOrDefault(uuid, 1);
+        return farmingLevels.getOrDefault(uuid, 1);
     }
 
     public int getXP(Player player) {
@@ -182,20 +179,19 @@ public class MiningManager {
     }
 
     public int getXP(UUID uuid) {
-        return miningXp.getOrDefault(uuid, 0);
+        return farmingXp.getOrDefault(uuid, 0);
     }
 
     public void setLevel(UUID uuid, int level) {
-        miningLevels.put(uuid, level);
-        miningXp.put(uuid, 0);
+        farmingLevels.put(uuid, level);
+        farmingXp.put(uuid, 0);
     }
 
-    /** Remove all mining progress for a player. */
     public void clearPlayerData(UUID uuid) {
-        miningLevels.remove(uuid);
-        miningXp.remove(uuid);
+        farmingLevels.remove(uuid);
+        farmingXp.remove(uuid);
         if (plugin.getPlayerConfig() != null) {
-            String path = "players." + uuid + ".mining";
+            String path = "players." + uuid + ".farming";
             plugin.getPlayerConfig().getConfig().set(path, null);
             plugin.getPlayerConfig().saveConfigFile();
         }

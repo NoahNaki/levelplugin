@@ -23,7 +23,7 @@ import java.util.List;
  */
 public class MercenaryGiftBrowserGUI implements Listener {
     private static final int SIZE = 54;
-    private static final String TITLE = ChatColor.DARK_GREEN + "Mercenary Gifts";
+    private static final String TITLE = "Mercenary Gifts";
 
     private final Plugin plugin;
     private final MercenaryAffinityManager affinityManager;

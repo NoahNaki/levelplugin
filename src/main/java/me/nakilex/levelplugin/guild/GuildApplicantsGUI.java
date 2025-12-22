@@ -31,7 +31,7 @@ public class GuildApplicantsGUI implements Listener {
     private GuildMemberGUI memberGUI;
 
     private static final int SIZE = 54;
-    private static final String TITLE = ChatColor.BLACK + "Guild Applicants";
+    private static final String TITLE = "Guild Applicants";
 
     private static final int[] APPLICANT_SLOTS = {
             10,11,12,13,14,15,16,
@@ -48,7 +48,7 @@ public class GuildApplicantsGUI implements Listener {
     private static final int SORT_SLOT = 51;
     private static final int REFRESH_SLOT = 0;
 
-    private static final String CONFIRM_TITLE = ChatColor.BLACK + "Confirm";
+    private static final String CONFIRM_TITLE = "Confirm";
     private static final int CONFIRM_SIZE = 27;
     private static final int CONFIRM_YES_SLOT = 11;
     private static final int CONFIRM_NO_SLOT = 15;

@@ -19,7 +19,7 @@ public class GuildGUI {
 
     private final GuildManager manager;
     private static final int SIZE = 54;
-    private static final String TITLE = ChatColor.BLACK + "Guilds";
+    private static final String TITLE = "Guilds";
 
     public GuildGUI(GuildManager manager) {
         this.manager = manager;

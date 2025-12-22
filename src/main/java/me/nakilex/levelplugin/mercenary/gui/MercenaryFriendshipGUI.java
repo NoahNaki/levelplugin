@@ -60,7 +60,7 @@ public class MercenaryFriendshipGUI implements Listener {
         } else {
             backActions.remove(player.getUniqueId());
         }
-        String title = ChatColor.DARK_GREEN + npcName + ChatColor.GRAY + " Affinity";
+        String title = npcName + " Affinity";
         GuiBuilder builder = GuiBuilder.create(SIZE, title).border();
         MercenaryFriendship friendship = affinityManager.getFriendship(player.getUniqueId(), npcId);
 

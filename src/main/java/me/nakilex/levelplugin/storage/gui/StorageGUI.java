@@ -82,7 +82,7 @@ public class StorageGUI {
      * Nav items will be added/updated dynamically in open().
      */
     private Inventory createBlankPage(int pageNumber) {
-        String title = ChatColor.BLACK + titleBase + " (Page " + pageNumber + ")";
+        String title = titleBase + " (Page " + pageNumber + ")";
         return Bukkit.createInventory(null, PAGE_SIZE, title);
     }
 

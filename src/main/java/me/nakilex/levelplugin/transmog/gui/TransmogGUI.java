@@ -27,7 +27,7 @@ import java.util.*;
 
 /** GUI allowing players to apply unlocked transmogs to an item. */
 public class TransmogGUI implements CommandExecutor, Listener {
-    private static final String TITLE = ChatColor.BLACK + "Transmog";
+    private static final String TITLE = "Transmog";
     private static final int ITEM_SLOT = 11;
     private static final int MODEL_SLOT = 15;
     private static final int CONFIRM_SLOT = 22;

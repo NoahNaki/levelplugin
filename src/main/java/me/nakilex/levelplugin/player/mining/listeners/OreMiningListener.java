@@ -199,12 +199,14 @@ public class OreMiningListener implements Listener {
     }
 
     private boolean isPickaxe(Material mat) {
-        return me.nakilex.levelplugin.items.tools.ToolTier.fromMaterial(mat) != null;
+        me.nakilex.levelplugin.items.tools.CustomTool tool = me.nakilex.levelplugin.items.tools.ToolManager.getInstance().getTool(mat);
+        return tool != null && tool.getDiscipline() == me.nakilex.levelplugin.items.tools.ToolDiscipline.MINING;
     }
 
     private boolean checkPickaxeLevel(Player player, Material mat) {
-        me.nakilex.levelplugin.items.tools.ToolTier tier = me.nakilex.levelplugin.items.tools.ToolTier.fromMaterial(mat);
-        if (tier == null) return true;
+        me.nakilex.levelplugin.items.tools.CustomTool tool = me.nakilex.levelplugin.items.tools.ToolManager.getInstance().getTool(mat);
+        if (tool == null || tool.getDiscipline() != me.nakilex.levelplugin.items.tools.ToolDiscipline.MINING) return true;
+        me.nakilex.levelplugin.items.tools.ToolTier tier = tool.getTier();
         int req = tier.getLevelRequirement();
         if (miningManager.getLevel(player) < req) {
             player.sendMessage("§cYou need Mining level " + req + " to use this pickaxe!");

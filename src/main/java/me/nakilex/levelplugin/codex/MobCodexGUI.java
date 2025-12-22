@@ -24,7 +24,7 @@ import java.util.UUID;
 public class MobCodexGUI implements Listener {
     // Use a unique title so our click listener doesn't interfere with the
     // main codex menu which also uses "Codex" as its title.
-    private static final String TITLE = ChatColor.BLACK + "Codex - Mobs";
+    private static final String TITLE = "Codex - Mobs";
     private static final int SIZE = 54;
 
     private static final int ITEMS_PER_PAGE = GuiUtil.PAGED_SLOTS.length;

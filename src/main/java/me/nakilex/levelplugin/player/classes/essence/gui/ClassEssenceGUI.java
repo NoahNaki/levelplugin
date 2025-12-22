@@ -13,7 +13,7 @@ import org.bukkit.inventory.ItemStack;
 
 public class ClassEssenceGUI {
 
-    public static final String TITLE = ChatColor.BLACK + "Class Essences";
+    public static final String TITLE = "Class Essences";
     private static final int[] ESSENCE_SLOTS = {11, 13, 15};
 
     private ClassEssenceGUI() {}

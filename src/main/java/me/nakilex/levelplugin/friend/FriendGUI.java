@@ -28,7 +28,7 @@ public class FriendGUI implements Listener {
     private final FriendManager manager;
 
     private static final int SIZE = 54;
-    private static final String TITLE = ChatColor.BLACK + "Friends";
+    private static final String TITLE = "Friends";
     private static final int[] FRIEND_SLOTS = {
             10,11,12,13,14,15,16,
             19,20,21,22,23,24,25,

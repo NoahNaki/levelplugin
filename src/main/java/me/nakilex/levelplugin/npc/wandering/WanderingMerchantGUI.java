@@ -35,7 +35,7 @@ public class WanderingMerchantGUI implements Listener {
     public WanderingMerchantGUI(Plugin plugin, List<WanderingMerchantOffer> list) {
         this.plugin = plugin;
         this.economy = Main.getInstance().getEconomyManager();
-        this.inv = GuiBuilder.create(27, ChatColor.DARK_GREEN + "Wandering Merchant")
+        this.inv = GuiBuilder.create(27, "Wandering Merchant")
                 .filler(Material.GRAY_STAINED_GLASS_PANE)
                 .fillEmptySlots(false)
                 .border()

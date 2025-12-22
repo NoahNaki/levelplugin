@@ -27,7 +27,7 @@ import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import java.util.*;
 
 public class AuctionHouseGUI implements Listener {
-    private static final String TITLE = ChatColor.BLACK + "<glyph:judge_gavel_icon> Auction House";
+    private static final String TITLE = "<glyph:judge_gavel_icon> Auction House";
     private static final int SIZE = 54;
     private static final int SELL_SLOT = 49;
     private static final int PREV_PAGE = 45;
@@ -38,11 +38,11 @@ public class AuctionHouseGUI implements Listener {
     private static final int SORT_SLOT = 52;
     private static final int MY_LISTINGS_SLOT = 48;
     private static final int BACK_SLOT = 46;
-    private static final String MY_LISTINGS_TITLE = ChatColor.BLACK + "Your Listings";
+    private static final String MY_LISTINGS_TITLE = "Your Listings";
     private static final int INFO_SLOT = 8;
     private static final int REFRESH_SLOT = 0;
     private static final int CONFIRM_SIZE = 27;
-    private static final String CONFIRM_TITLE = ChatColor.BLACK + "Confirm Purchase";
+    private static final String CONFIRM_TITLE = "Confirm Purchase";
     private static final int[] LISTING_SLOTS = {
             10,11,12,13,14,15,16,
             19,20,21,22,23,24,25,

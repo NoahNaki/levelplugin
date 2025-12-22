@@ -36,9 +36,9 @@ import static me.nakilex.levelplugin.utils.ChatMessageUtil.send;
 public class BlacksmithGUI implements Listener {
 
     private static final int GUI_SIZE = 27;
-    private static final String GUI_TITLE_UPGRADE = ChatColor.BLACK + "<glyph:anvil_icon> Blacksmith: Upgrade";
-    private static final String GUI_TITLE_REPAIR  = ChatColor.BLACK + "<glyph:anvil_icon> Blacksmith: Repair";
-    private static final String GUI_TITLE_REROLL = ChatColor.BLACK + "<glyph:anvil_icon> Blacksmith: Reroll";
+    private static final String GUI_TITLE_UPGRADE = "<glyph:anvil_icon> Blacksmith: Upgrade";
+    private static final String GUI_TITLE_REPAIR  = "<glyph:anvil_icon> Blacksmith: Repair";
+    private static final String GUI_TITLE_REROLL = "<glyph:anvil_icon> Blacksmith: Reroll";
 
     private final EconomyManager economyManager;
     private final ItemUpgradeManager upgradeManager;

@@ -40,7 +40,7 @@ import static me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
 public class BattlePassGUI implements Listener {
 
     private static final int GUI_SIZE = 45;
-    private static final String TITLE = TextUtil.centerInventoryTitle(ChatColor.DARK_PURPLE + "Battle Pass");
+    private static final String TITLE = TextUtil.centerInventoryTitle("Battle Pass");
 
     private static final int[] FREE_ROW = {10, 11, 12, 13, 14, 15, 16};
     private static final int[] PROGRESS_ROW = {19, 20, 21, 22, 23, 24, 25};

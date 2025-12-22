@@ -963,7 +963,7 @@ public class DungeonBuilder implements Listener {
     }
 
     private Inventory createRoomSelect(Session session) {
-        Inventory inv = GuiBuilder.create(27, ChatColor.DARK_GREEN + "Select Room")
+        Inventory inv = GuiBuilder.create(27, "Select Room")
                 .filler(Material.GRAY_STAINED_GLASS_PANE)
                 .build();
 
@@ -1002,7 +1002,7 @@ public class DungeonBuilder implements Listener {
     }
 
     private Inventory createVariantSelect(Session session) {
-        Inventory inv = GuiBuilder.create(27, ChatColor.DARK_GREEN + "Basic Room Variants")
+        Inventory inv = GuiBuilder.create(27, "Basic Room Variants")
                 .filler(Material.GRAY_STAINED_GLASS_PANE)
                 .build();
 
@@ -1019,7 +1019,7 @@ public class DungeonBuilder implements Listener {
     }
 
     private Inventory createCombatVariantSelect(Session session) {
-        Inventory inv = GuiBuilder.create(27, ChatColor.DARK_GREEN + "Combat Variants")
+        Inventory inv = GuiBuilder.create(27, "Combat Variants")
                 .filler(Material.GRAY_STAINED_GLASS_PANE)
                 .build();
 
@@ -1043,7 +1043,7 @@ public class DungeonBuilder implements Listener {
 
         int rows = Math.max(1, (int) Math.ceil(sorted.size() / 9.0));
         int size = rows * 9;
-        Inventory inv = GuiBuilder.create(size, ChatColor.DARK_GREEN + title)
+        Inventory inv = GuiBuilder.create(size, title)
                 .filler(Material.GRAY_STAINED_GLASS_PANE)
                 .build();
 

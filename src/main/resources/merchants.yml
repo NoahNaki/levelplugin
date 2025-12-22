@@ -369,26 +369,62 @@ merchants:
     items:
       - slot: 10
         tool_tier: TIER_I
+        tool_discipline: MINING
         amount: 1
         cost: 50
       - slot: 11
         tool_tier: TIER_II
+        tool_discipline: MINING
         amount: 1
         cost: 150
       - slot: 12
         tool_tier: TIER_III
+        tool_discipline: MINING
         amount: 1
         cost: 350
       - slot: 14
         tool_tier: TIER_IV
+        tool_discipline: MINING
         amount: 1
         cost: 700
       - slot: 15
         tool_tier: TIER_V
+        tool_discipline: MINING
         amount: 1
         cost: 1200
       - slot: 16
         tool_tier: TIER_VI
+        tool_discipline: MINING
+        amount: 1
+        cost: 2000
+      - slot: 19
+        tool_tier: TIER_I
+        tool_discipline: FARMING
+        amount: 1
+        cost: 50
+      - slot: 20
+        tool_tier: TIER_II
+        tool_discipline: FARMING
+        amount: 1
+        cost: 150
+      - slot: 21
+        tool_tier: TIER_III
+        tool_discipline: FARMING
+        amount: 1
+        cost: 350
+      - slot: 23
+        tool_tier: TIER_IV
+        tool_discipline: FARMING
+        amount: 1
+        cost: 700
+      - slot: 24
+        tool_tier: TIER_V
+        tool_discipline: FARMING
+        amount: 1
+        cost: 1200
+      - slot: 25
+        tool_tier: TIER_VI
+        tool_discipline: FARMING
         amount: 1
         cost: 2000
 

@@ -26,7 +26,7 @@ public final class GuildQuestGUI {
 
     private GuildQuestGUI() {}
 
-    public static final String TITLE = ChatColor.BLACK + "Guild Quests";
+    public static final String TITLE = "Guild Quests";
     private static final int[] QUEST_SLOTS = {11, 13, 15};
 
     public static Inventory create(Player viewer, Map<String, GuildQuest> quests) {

@@ -36,7 +36,7 @@ import java.util.UUID;
 
 /** GUI listing NPC discoveries with player head icons. */
 public class NpcCodexGUI implements Listener {
-    private static final String TITLE = ChatColor.BLACK + "Codex - NPCs";
+    private static final String TITLE = "Codex - NPCs";
     private static final int SIZE = 54;
     private static final int ITEMS_PER_PAGE = GuiUtil.PAGED_SLOTS.length;
     private static final int PREV_SLOT = 45;

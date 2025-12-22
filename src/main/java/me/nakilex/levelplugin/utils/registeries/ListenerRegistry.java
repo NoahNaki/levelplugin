@@ -71,6 +71,7 @@ import me.nakilex.levelplugin.environment.UpgradeGUI;
 import me.nakilex.levelplugin.environment.BuildingUpgradeGUI;
 import me.nakilex.levelplugin.environment.listeners.BuildingHologramListener;
 import me.nakilex.levelplugin.environment.listeners.StageBlockInteractListener;
+import me.nakilex.levelplugin.environment.listeners.LeafDecayBlocker;
 import me.nakilex.levelplugin.codex.*;
 import me.nakilex.levelplugin.npc.wandering.WanderingMerchantListener;
 import me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager;
@@ -141,7 +142,8 @@ public class ListenerRegistry {
                 plugin.getDropDebugManager()
         ), plugin);
         pm.registerEvents(new me.nakilex.levelplugin.player.mining.listeners.OreMiningListener(plugin, plugin.getMiningRewardsConfig(), plugin.getMiningManager()), plugin);
-        pm.registerEvents(new PlayerJoinListener(plugin.getLevelManager(), plugin.getMiningManager(), plugin.getPlayerConfig(), plugin.getEnvironmentManager()), plugin);
+        pm.registerEvents(new me.nakilex.levelplugin.player.farming.listeners.WheatHarvestListener(plugin.getFarmingManager()), plugin);
+        pm.registerEvents(new PlayerJoinListener(plugin.getLevelManager(), plugin.getMiningManager(), plugin.getFarmingManager(), plugin.getPlayerConfig(), plugin.getEnvironmentManager()), plugin);
         pm.registerEvents(new PlayerQuitListener(plugin.getPlayerConfig(), plugin.getEnvironmentManager()), plugin);
         pm.registerEvents(new StatsMenuListener(codexGUI), plugin);
         pm.registerEvents(new StatsEffectListener(), plugin);
@@ -241,6 +243,7 @@ public class ListenerRegistry {
         pm.registerEvents(stageBlockInteractListener, plugin);
         pm.registerEvents(new me.nakilex.levelplugin.environment.listeners.EnvironmentInventoryListener(plugin.getEnvironmentManager()), plugin);
         pm.registerEvents(new me.nakilex.levelplugin.environment.listeners.EnvironmentDistanceListener(plugin.getEnvironmentManager()), plugin);
+        pm.registerEvents(new LeafDecayBlocker(), plugin);
         pm.registerEvents(new me.nakilex.levelplugin.calendar.WeatherBlockListener(), plugin);
         pm.registerEvents(new WanderingMerchantListener(wmManager), plugin);
         if (plugin.getCustomConfig().getBoolean("features.profiles", true)) {

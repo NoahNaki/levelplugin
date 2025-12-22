@@ -27,6 +27,10 @@ commands:
     description: Shows your Mining level
     usage: /mininglevel
     permission: none
+  farminglevel:
+    description: Shows your Farming level
+    usage: /farminglevel
+    permission: none
   setmininglevel:
     description: Sets a player's Mining level
     usage: /setmininglevel <player> <level>
@@ -130,6 +134,9 @@ commands:
   salvage:
     description: Opens the Salvage GUI
     usage: /salvage
+  farmrewards:
+    description: Opens the farming rewards exchange
+    usage: /farmrewards
   ps:
     description: Manage personal storage
     usage: /ps <create|open>

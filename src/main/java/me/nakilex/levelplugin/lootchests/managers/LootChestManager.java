@@ -228,10 +228,10 @@ public class LootChestManager {
 
         ChestData data = getChestData(chestId);
         if (data == null) {
-            return Bukkit.createInventory(null, INVENTORY_SIZE, ChatColor.DARK_GREEN + "Loot Chest");
+            return Bukkit.createInventory(null, INVENTORY_SIZE, "Loot Chest");
         }
 
-        Inventory inv = Bukkit.createInventory(null, INVENTORY_SIZE, ChatColor.DARK_GREEN + "Loot Chest");
+        Inventory inv = Bukkit.createInventory(null, INVENTORY_SIZE, "Loot Chest");
         int gearScore = Math.max(50, ItemUtil.calculateTotalGearScore(player));
         LootResult loot = rollLootForPlayer(player, gearScore);
 

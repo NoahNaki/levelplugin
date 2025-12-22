@@ -80,7 +80,7 @@ public class FileHandler {
                 Inventory page = Bukkit.createInventory(
                     null,
                     54,
-                    ChatColor.BLACK + titleBase + " (Page " + pageIndex + ")"
+                    titleBase + " (Page " + pageIndex + ")"
                 );
 
                 for (int slot = 0; slot < items.size(); slot++) {

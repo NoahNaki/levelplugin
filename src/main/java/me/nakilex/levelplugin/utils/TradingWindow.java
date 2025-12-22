@@ -118,7 +118,7 @@ public class TradingWindow implements Listener {
     private Inventory createInventory(String partnerName) {
         String formatted = String.format(messageStrings.getTranslation(Translations.DEAL_WITH), partnerName);
         String plainTitle = ChatColor.stripColor(formatted);
-        return GuiBuilder.create(CHEST_SIZE, ChatColor.BLACK + plainTitle)
+        return GuiBuilder.create(CHEST_SIZE, plainTitle)
             .filler(Material.GRAY_STAINED_GLASS_PANE)
             .fillEmptySlots(false)
             .border()
@@ -526,7 +526,7 @@ public class TradingWindow implements Listener {
                 if (stack != null && stack.hasItemMeta()) {
                     boolean isCustomItem = stack.getItemMeta().getPersistentDataContainer()
                             .has(ItemUtil.ITEM_UUID_KEY, PersistentDataType.STRING);
-                    boolean isCustomTool = me.nakilex.levelplugin.items.tools.ToolTier.fromMaterial(stack.getType()) != null;
+                    boolean isCustomTool = me.nakilex.levelplugin.items.tools.ToolManager.getInstance().isToolMaterial(stack.getType());
                     if (isCustomItem || isCustomTool) {
                         ItemUtil.updateTooltip(stack, recipient);
                     }

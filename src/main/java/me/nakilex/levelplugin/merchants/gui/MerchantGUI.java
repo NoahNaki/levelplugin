@@ -6,6 +6,7 @@ import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.data.StatRange;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.items.tools.CustomTool;
+import me.nakilex.levelplugin.items.tools.ToolDiscipline;
 import me.nakilex.levelplugin.items.tools.ToolManager;
 import me.nakilex.levelplugin.items.tools.ToolTier;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
@@ -257,7 +258,10 @@ public class MerchantGUI implements Listener {
             String tierName = map.containsKey("tool_tier") ? map.get("tool_tier").toString() : null;
             if (tierName != null) {
                 ToolTier tier = ToolTier.valueOf(tierName.toUpperCase());
-                CustomTool tool = ToolManager.getInstance().getTool(tier);
+                ToolDiscipline discipline = map.containsKey("tool_discipline")
+                        ? ToolDiscipline.valueOf(map.get("tool_discipline").toString().toUpperCase())
+                        : ToolDiscipline.MINING;
+                CustomTool tool = ToolManager.getInstance().getTool(tier, discipline);
                 if (tool != null) {
                     merchantItems.put(slot, new MerchantItem(slot, tool, amount, cost, gems, accountLimit));
                 }
@@ -295,7 +299,8 @@ public class MerchantGUI implements Listener {
             String tierName = cs.getString("tool_tier");
             if (tierName != null && !tierName.isBlank()) {
                 ToolTier tier = ToolTier.valueOf(tierName.toUpperCase());
-                CustomTool tool = ToolManager.getInstance().getTool(tier);
+                ToolDiscipline discipline = ToolDiscipline.valueOf(cs.getString("tool_discipline", "MINING").toUpperCase());
+                CustomTool tool = ToolManager.getInstance().getTool(tier, discipline);
                 if (tool != null) {
                     merchantItems.put(slot, new MerchantItem(slot, tool, amount, cost, gems, accountLimit));
                 }

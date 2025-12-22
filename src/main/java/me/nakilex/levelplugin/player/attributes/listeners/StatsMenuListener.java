@@ -1,8 +1,11 @@
 package me.nakilex.levelplugin.player.attributes.listeners;
 
 import me.nakilex.levelplugin.codex.CodexMainGUI;
+import me.nakilex.levelplugin.player.attributes.gui.LifeSkillGUI;
+import me.nakilex.levelplugin.player.attributes.gui.LifeSkillRewardsGUI;
 import me.nakilex.levelplugin.player.attributes.gui.StatsInventory;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
+import me.nakilex.levelplugin.player.attributes.managers.LifeSkillRewardManager;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.Sound;
@@ -12,9 +15,11 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.HashSet;
 import java.util.Set;
+import me.nakilex.levelplugin.items.tools.ToolDiscipline;
 
 public class StatsMenuListener implements Listener {
 
@@ -27,6 +32,74 @@ public class StatsMenuListener implements Listener {
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
+        if (event.getView().getTitle().equals(LifeSkillGUI.TITLE)) {
+            event.setCancelled(true);
+            ItemStack clickedItem = event.getCurrentItem();
+            if (clickedItem == null || clickedItem.getType() == Material.AIR) return;
+
+            Player player = (Player) event.getWhoClicked();
+            ItemMeta meta = clickedItem.getItemMeta();
+            if (meta == null || !meta.hasDisplayName()) return;
+            String displayName = ChatColor.stripColor(meta.getDisplayName());
+
+            if (displayName.equalsIgnoreCase("Back to Stats")) {
+                player.openInventory(StatsInventory.getStatsMenu(player, StatsInventory.getPage(player)));
+                return;
+            }
+
+            if (displayName.startsWith("Mining")) {
+                LifeSkillRewardsGUI.open(player, ToolDiscipline.MINING);
+                return;
+            }
+
+            if (displayName.startsWith("Farming")) {
+                LifeSkillRewardsGUI.open(player, ToolDiscipline.FARMING);
+                return;
+            }
+            return;
+        }
+
+        ToolDiscipline rewardDiscipline = LifeSkillRewardsGUI.disciplineFromTitle(event.getView().getTitle());
+        if (rewardDiscipline != null) {
+            event.setCancelled(true);
+            Player player = (Player) event.getWhoClicked();
+            ItemStack clickedItem = event.getCurrentItem();
+            if (clickedItem == null || clickedItem.getType() == Material.AIR) return;
+
+            ItemMeta meta = clickedItem.getItemMeta();
+            if (meta != null && meta.hasDisplayName() && ChatColor.stripColor(meta.getDisplayName()).equalsIgnoreCase("Back to Skills")) {
+                LifeSkillGUI.open(player);
+                return;
+            }
+
+            LifeSkillRewardManager rewardManager = LifeSkillRewardManager.getInstance();
+            if (rewardManager == null) return;
+
+            int levelRequirement = LifeSkillRewardsGUI.levelFrom(clickedItem);
+            java.util.List<me.nakilex.levelplugin.player.attributes.managers.LifeSkillRewardManager.LifeSkillReward> rewards =
+                    rewardManager.getRewards(rewardDiscipline);
+
+            me.nakilex.levelplugin.player.attributes.managers.LifeSkillRewardManager.LifeSkillReward reward = null;
+            if (levelRequirement > 0) {
+                for (me.nakilex.levelplugin.player.attributes.managers.LifeSkillRewardManager.LifeSkillReward candidate : rewards) {
+                    if (candidate.levelRequired() == levelRequirement) {
+                        reward = candidate;
+                        break;
+                    }
+                }
+            }
+
+            if (reward == null) {
+                int rewardIndex = LifeSkillRewardsGUI.indexForSlot(event.getRawSlot());
+                if (rewardIndex < 0 || rewardIndex >= rewards.size()) return;
+                reward = rewards.get(rewardIndex);
+            }
+
+            rewardManager.claimReward(player, rewardDiscipline, reward);
+            player.openInventory(LifeSkillRewardsGUI.create(player, rewardDiscipline));
+            return;
+        }
+
         if (event.getView().getTitle().endsWith("skill points remaining")) {
             event.setCancelled(true); // Prevent item movement
 
@@ -36,7 +109,9 @@ public class StatsMenuListener implements Listener {
             if (clickedItem == null || clickedItem.getType() == Material.AIR) return;
 
             StatsManager statsManager = StatsManager.getInstance();
-            String displayName = ChatColor.stripColor(clickedItem.getItemMeta().getDisplayName());
+            ItemMeta meta = clickedItem.getItemMeta();
+            if (meta == null || !meta.hasDisplayName()) return;
+            String displayName = ChatColor.stripColor(meta.getDisplayName());
 
             // Handle Refund All Skill Points Confirmation
             if (displayName.equalsIgnoreCase("Refund All Skill Points")) {
@@ -63,6 +138,11 @@ public class StatsMenuListener implements Listener {
             if (displayName.equalsIgnoreCase("Codex")) {
                 codexGUI.openFrom(player, viewer ->
                         viewer.openInventory(StatsInventory.getStatsMenu(viewer, StatsInventory.getPage(viewer))));
+                return;
+            }
+
+            if (displayName.equalsIgnoreCase("Life Skills")) {
+                LifeSkillGUI.open(player);
                 return;
             }
 

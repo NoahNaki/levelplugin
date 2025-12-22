@@ -122,15 +122,17 @@ public class StatsInventory {
         builder.setItem(37, GuiUtil.getNexoItem("arrow_left", ChatColor.GRAY + "Back"));
         builder.setItem(43, GuiUtil.getNexoItem("arrow_right", ChatColor.GRAY + "Forward"));
         builder.setItem(48, createCodexButton());
+        builder.setItem(49, createLifeSkillButton());
         builder.setItem(50, GuiUtil.getNexoItem("settings", ChatColor.AQUA + "Settings"));
 
         return builder.build();
     }
 
     private static ItemStack createCodexButton() {
-        ItemStack codex = GuiUtil.getNexoItem("book", ChatColor.YELLOW + "Codex");
+        ItemStack codex = new ItemStack(Material.SPYGLASS);
         ItemMeta meta = codex.getItemMeta();
         if (meta != null) {
+            meta.setDisplayName(ChatColor.YELLOW + "Codex");
             List<String> lore = new ArrayList<>();
             lore.add(ChatColor.GRAY + "Review discoveries and mercenary affinity.");
             lore.addAll(TooltipUtil.bulletList("Track NPCs, locations, and mobs."));
@@ -140,6 +142,25 @@ public class StatsInventory {
             codex.setItemMeta(meta);
         }
         return codex;
+    }
+
+    private static ItemStack createLifeSkillButton() {
+        ItemStack lifeSkills = new ItemStack(Material.STONE_PICKAXE);
+        ItemMeta meta = lifeSkills.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(ChatColor.GOLD + "Life Skills");
+            List<String> lore = new ArrayList<>();
+            lore.add(ChatColor.GRAY + "Review your profession progress.");
+            lore.addAll(TooltipUtil.bulletList(
+                    "Check mining and farming levels.",
+                    "See progress toward the next tier."
+            ));
+            lore.add("");
+            lore.addAll(TooltipUtil.clickInstructions("to open the life skill log", null));
+            meta.setLore(lore);
+            lifeSkills.setItemMeta(meta);
+        }
+        return lifeSkills;
     }
 
 

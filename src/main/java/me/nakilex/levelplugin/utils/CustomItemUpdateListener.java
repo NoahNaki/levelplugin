@@ -18,7 +18,7 @@ public class CustomItemUpdateListener implements Listener {
                 continue;
             }
             boolean isCustomItem = ItemUtil.getCustomItemId(item) != -1;
-            boolean isCustomTool = me.nakilex.levelplugin.items.tools.ToolTier.fromMaterial(item.getType()) != null;
+            boolean isCustomTool = me.nakilex.levelplugin.items.tools.ToolManager.getInstance().isToolMaterial(item.getType());
             if (isCustomItem || isCustomTool) {
                 // Update the tooltip to reflect the new player level (and class, if applicable)
                 ItemUtil.updateTooltip(item, player);

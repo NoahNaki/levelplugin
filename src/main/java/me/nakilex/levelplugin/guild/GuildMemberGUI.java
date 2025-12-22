@@ -38,7 +38,7 @@ public class GuildMemberGUI implements Listener {
     private final GuildSettingsGUI settingsGUI;
 
     private static final int SIZE = 54;
-    private static final String TITLE = ChatColor.BLACK + "Guild Menu";
+    private static final String TITLE = "Guild Menu";
 
     private static final int[] MEMBER_SLOTS = GuiUtil.PAGED_SLOTS;
     private static final int ITEMS_PER_PAGE = MEMBER_SLOTS.length;
@@ -64,7 +64,7 @@ public class GuildMemberGUI implements Listener {
     private final Map<UUID, UUID> managingTargets = new HashMap<>();
     private final Map<UUID, PendingRoleChange> pendingRoleChanges = new HashMap<>();
 
-    private static final String MANAGE_TITLE = ChatColor.BLACK + "Manage Member";
+    private static final String MANAGE_TITLE = "Manage Member";
     private static final int MANAGE_SIZE = 36;
     private static final int MANAGE_PROMOTE_SLOT = 11;
     private static final int MANAGE_HEAD_SLOT = 13;
@@ -72,7 +72,7 @@ public class GuildMemberGUI implements Listener {
     private static final int MANAGE_DEMOTE_SLOT = 20;
     private static final int MANAGE_BACK_SLOT = 35;
 
-    private static final String CONFIRM_ROLE_TITLE = ChatColor.BLACK + "Confirm Role Change";
+    private static final String CONFIRM_ROLE_TITLE = "Confirm Role Change";
     private static final int CONFIRM_ROLE_SIZE = 27;
     private static final int CONFIRM_ROLE_YES_SLOT = 11;
     private static final int CONFIRM_ROLE_NO_SLOT = 15;

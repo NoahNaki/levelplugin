@@ -21,7 +21,7 @@ import java.util.Map;
 
 /** GUI listing discovered locations. */
 public class LocationCodexGUI implements Listener {
-    private static final String TITLE = ChatColor.BLACK + "Codex - Locations";
+    private static final String TITLE = "Codex - Locations";
 
     private final CodexManager manager;
     private CodexMainGUI mainGui;

@@ -29,7 +29,7 @@ import java.util.*;
 
 public class QuestGUI {
 
-    public static final String GUI_TITLE = ChatColor.BLACK + "Quests";
+    public static final String GUI_TITLE = "Quests";
     private static final int GUI_SIZE = 54;
     private static final int[] QUEST_SLOTS = {
             10,11,12,13,14,15,16,
@@ -50,7 +50,7 @@ public class QuestGUI {
     public static final NamespacedKey QUEST_ID_KEY = new NamespacedKey(Main.getInstance(), "quest_id");
 
     // Confirmation menu constants
-    public static final String CONFIRM_TITLE = ChatColor.BLACK + "Confirm Abandon";
+    public static final String CONFIRM_TITLE = "Confirm Abandon";
     private static final int CONFIRM_SIZE = 27;
     public static final int CONFIRM_YES_SLOT = 11;
     public static final int CONFIRM_NO_SLOT = 15;
