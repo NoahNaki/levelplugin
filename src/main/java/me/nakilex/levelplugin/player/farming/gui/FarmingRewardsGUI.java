@@ -20,7 +20,7 @@ import java.util.Arrays;
 
 public class FarmingRewardsGUI implements Listener, CommandExecutor {
 
-    private static final String TITLE = "§2Farming Rewards";
+    private static final String TITLE = "§eFarming Rewards";
     private final EconomyManager economyManager;
     private final Main plugin;
 
@@ -38,7 +38,7 @@ public class FarmingRewardsGUI implements Listener, CommandExecutor {
             meta.setDisplayName(name);
             meta.setLore(Arrays.asList(
                     "§7Cost: §f" + wheatCost + " Wheat",
-                    "§7Rewards: §a" + rewardText,
+                    "§7Rewards: §e" + rewardText,
                     "",
                     "§eClick to trade"
             ));
@@ -49,9 +49,9 @@ public class FarmingRewardsGUI implements Listener, CommandExecutor {
 
     private void open(Player player) {
         Inventory inv = Bukkit.createInventory(null, 27, TITLE);
-        inv.setItem(11, tradeItem("§aFarmhands' Stipend", 16, "+75 Coins"));
-        inv.setItem(13, tradeItem("§aSeed Fund", 32, "+150 Coins & 4 Seeds"));
-        inv.setItem(15, tradeItem("§aBarn Booster", 64, "+350 Coins & 1 Bone Meal"));
+        inv.setItem(11, tradeItem("§eFarmhands' Stipend", 16, "+75 Coins"));
+        inv.setItem(13, tradeItem("§eSeed Fund", 32, "+150 Coins & 4 Seeds"));
+        inv.setItem(15, tradeItem("§eBarn Booster", 64, "+350 Coins & 1 Bone Meal"));
         player.openInventory(inv);
     }
 

@@ -6,11 +6,13 @@ import me.nakilex.levelplugin.items.tools.ToolManager;
 import me.nakilex.levelplugin.player.farming.managers.FarmingManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.FullInventoryListener;
+import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.Ageable;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Item;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
@@ -70,12 +72,26 @@ public class WheatHarvestListener implements Listener {
 
         int wheatAmount = Math.max(1, (int) Math.round(yieldMultiplier));
         ItemStack wheatDrop = new ItemStack(Material.WHEAT, wheatAmount);
-        Map<Integer, ItemStack> overflow = player.getInventory().addItem(wheatDrop);
-        if (!overflow.isEmpty()) {
-            FullInventoryListener.sendFullInventoryTitle(player, Main.getInstance().getSettingsManager());
-            overflow.values().forEach(item ->
-                    block.getWorld().dropItemNaturally(block.getLocation().add(0.5, 0.2, 0.5), item));
-        }
+        Item dropped = block.getWorld().dropItemNaturally(block.getLocation().add(0.5, 0.2, 0.5), wheatDrop);
+        dropped.setOwner(player.getUniqueId());
+        dropped.setPickupDelay(20);
+
+        Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
+            if (!player.isOnline() || !dropped.isValid()) {
+                if (dropped.isValid()) {
+                    dropped.remove();
+                }
+                return;
+            }
+
+            Map<Integer, ItemStack> overflow = player.getInventory().addItem(dropped.getItemStack());
+            dropped.remove();
+            if (!overflow.isEmpty()) {
+                FullInventoryListener.sendFullInventoryTitle(player, Main.getInstance().getSettingsManager());
+                overflow.values().forEach(item ->
+                        player.getWorld().dropItemNaturally(player.getLocation(), item));
+            }
+        }, 20L);
 
         // Replant seedling
         block.setType(Material.WHEAT);

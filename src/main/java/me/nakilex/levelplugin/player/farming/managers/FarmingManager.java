@@ -94,14 +94,14 @@ public class FarmingManager {
     }
 
     private void sendLevelUpMessage(Player player, int newLevel, int nextXp) {
-        me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§a§l-", 45);
-        me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§a§lFARMING LEVEL UP!");
+        me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§e§l-", 45);
+        me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§e§lFARMING LEVEL UP!");
         me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "");
         me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§7You are now Farming level §e§l" + newLevel + "§7!");
         if (newLevel < MAX_LEVEL) {
             me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§7You need §e" + nextXp + " XP §7to reach level §e" + (newLevel + 1) + "§7.");
         }
-        me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§a§l-", 45);
+        me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§e§l-", 45);
         player.getWorld().playSound(player.getLocation(), org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 1f, 1f);
         player.getWorld().spawnParticle(org.bukkit.Particle.HAPPY_VILLAGER, player.getLocation(), 20);
     }
@@ -119,7 +119,7 @@ public class FarmingManager {
         if (player == null) return;
         UUID uuid = player.getUniqueId();
         BossBar bar = xpBars.computeIfAbsent(uuid, id -> {
-            BossBar created = Bukkit.createBossBar("", BarColor.GREEN, BarStyle.SOLID);
+            BossBar created = Bukkit.createBossBar("", BarColor.YELLOW, BarStyle.SOLID);
             created.addPlayer(player);
             created.setVisible(false);
             return created;
@@ -130,7 +130,7 @@ public class FarmingManager {
         int required = getXpRequired(level);
         double progress = required <= 0 ? 1.0 : Math.min(1.0, Math.max(0.0, xp / (double) required));
 
-        String title = ChatColor.GREEN + "" + ChatColor.BOLD + "Farming "
+        String title = ChatColor.GOLD + "" + ChatColor.BOLD + "Farming "
                 + ChatColor.GRAY + "(Lv. " + ChatColor.WHITE + level + ChatColor.GRAY + ") "
                 + ChatColor.DARK_GRAY + "| "
                 + ChatColor.WHITE + xp + ChatColor.GRAY + "/" + ChatColor.WHITE + required;

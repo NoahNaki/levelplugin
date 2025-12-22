@@ -25,8 +25,8 @@ public class FarmingLevelCommand implements CommandExecutor {
         int xp = farmingManager.getXP(player);
         int needed = level >= farmingManager.getMaxLevel() ? 0 : farmingManager.getXpRequired(level);
 
-        player.sendMessage("§aFarming Level: §f" + level);
-        player.sendMessage("§aXP: §f" + xp + "§7/§f" + (needed == 0 ? "Max" : needed));
+        player.sendMessage("§eFarming Level: §f" + level);
+        player.sendMessage("§eXP: §f" + xp + "§7/§f" + (needed == 0 ? "Max" : needed));
         return true;
     }
 }
