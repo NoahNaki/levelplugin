@@ -17,7 +17,7 @@ public class FullInventoryListener implements Listener {
 
     // Title of the salvage GUI, stripped of color codes
     private static final String SALVAGE_TITLE = "Salvage Items";
-    private final Map<UUID, Long> lastAlert = new HashMap<>();
+    private static final Map<UUID, Long> LAST_ALERT = new HashMap<>();
     private final SettingsManager settingsManager;
 
     public FullInventoryListener(SettingsManager settingsManager) {
@@ -41,7 +41,7 @@ public class FullInventoryListener implements Listener {
         // 2) If inventory is full, cancel pickup and notify
         if (player.getInventory().firstEmpty() == -1) {
             event.setCancelled(true);
-            sendFullInventoryTitle(player);
+            sendFullInventoryTitle(player, settingsManager);
         }
         // else: let the pickup proceed normally
     }
@@ -59,25 +59,25 @@ public class FullInventoryListener implements Listener {
 
         if (player.getInventory().firstEmpty() == -1) {
             event.setCancelled(true);
-            sendFullInventoryTitle(player);
+            sendFullInventoryTitle(player, settingsManager);
         }
     }
 
     /**
      * Sends a big red "Inventory full!" title to the player.
      */
-    private void sendFullInventoryTitle(Player player) {
-        if (!isFullInventoryTitleEnabled(player)) {
+    public static void sendFullInventoryTitle(Player player, SettingsManager settingsManager) {
+        if (!isFullInventoryTitleEnabled(player, settingsManager)) {
             return;
         }
 
         long now = System.currentTimeMillis();
         UUID id = player.getUniqueId();
-        Long last = lastAlert.get(id);
+        Long last = LAST_ALERT.get(id);
         if (last != null && now - last < 10_000) {
             return;
         }
-        lastAlert.put(id, now);
+        LAST_ALERT.put(id, now);
         String title    = ChatColor.RED + "Inventory full!";
         String subtitle = "Visit a nearby salvager to scrap your items!";
         int fadeIn  = 10;  // ticks (0.5s)
@@ -87,7 +87,7 @@ public class FullInventoryListener implements Listener {
         player.sendTitle(title, subtitle, fadeIn, stay, fadeOut);
     }
 
-    private boolean isFullInventoryTitleEnabled(Player player) {
+    private static boolean isFullInventoryTitleEnabled(Player player, SettingsManager settingsManager) {
         if (settingsManager == null) {
             return true;
         }

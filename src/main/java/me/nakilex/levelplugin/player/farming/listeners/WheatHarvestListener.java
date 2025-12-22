@@ -1,9 +1,11 @@
 package me.nakilex.levelplugin.player.farming.listeners;
 
+import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.items.tools.ToolDiscipline;
 import me.nakilex.levelplugin.items.tools.ToolManager;
 import me.nakilex.levelplugin.player.farming.managers.FarmingManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
+import me.nakilex.levelplugin.utils.FullInventoryListener;
 import org.bukkit.GameMode;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -15,6 +17,7 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
+import java.util.Map;
 
 public class WheatHarvestListener implements Listener {
 
@@ -49,14 +52,12 @@ public class WheatHarvestListener implements Listener {
         Ageable ageable = (Ageable) block.getBlockData();
         int age = ageable.getAge();
         int maxAge = ageable.getMaximumAge();
-        float maturity = (float) age / maxAge;
+        if (age < maxAge) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING, "§7This crop isn't fully grown yet.");
+            return;
+        }
 
-        int baseXp = age >= maxAge ? 12 : 1;
-        int xpAward = Math.max(1, baseXp);
-        farmingManager.addXP(player, xpAward);
-
-        double baseYield = age >= maxAge ? 1.0 : 0.15;
-        double maturityYield = Math.max(0.2, baseYield + maturity * 0.5);
+        farmingManager.addXP(player, 12);
 
         double yieldMultiplier = 1.0;
         ItemStack held = player.getInventory().getItemInMainHand();
@@ -67,17 +68,19 @@ public class WheatHarvestListener implements Listener {
             }
         }
 
-        int wheatAmount = Math.max(1, (int) Math.round(maturityYield * yieldMultiplier));
-        block.getWorld().dropItemNaturally(block.getLocation().add(0.5, 0.2, 0.5), new ItemStack(Material.WHEAT, wheatAmount));
+        int wheatAmount = Math.max(1, (int) Math.round(yieldMultiplier));
+        ItemStack wheatDrop = new ItemStack(Material.WHEAT, wheatAmount);
+        Map<Integer, ItemStack> overflow = player.getInventory().addItem(wheatDrop);
+        if (!overflow.isEmpty()) {
+            FullInventoryListener.sendFullInventoryTitle(player, Main.getInstance().getSettingsManager());
+            overflow.values().forEach(item ->
+                    block.getWorld().dropItemNaturally(block.getLocation().add(0.5, 0.2, 0.5), item));
+        }
 
         // Replant seedling
         block.setType(Material.WHEAT);
         Ageable replanted = (Ageable) block.getBlockData();
         replanted.setAge(0);
         block.setBlockData(replanted);
-
-        if (age < maxAge) {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO, "§7The crop was not fully grown. You earned minimal farming XP.");
-        }
     }
 }
