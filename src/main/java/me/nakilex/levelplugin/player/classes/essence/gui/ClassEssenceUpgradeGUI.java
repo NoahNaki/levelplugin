@@ -3,8 +3,10 @@ package me.nakilex.levelplugin.player.classes.essence.gui;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.items.data.ItemRarity;
+import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.classes.essence.ClassEssence;
 import me.nakilex.levelplugin.player.classes.essence.SealingCharm;
+import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.TextUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
@@ -16,6 +18,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -34,6 +37,7 @@ public class ClassEssenceUpgradeGUI implements Listener {
     private static final String STAR_TITLE = "Essence: Star Upgrade";
     private static final String RESEAL_TITLE = "Essence: Reseal";
 
+    private static final int GUI_SIZE = 45;
     private static final int SACRIFICE_SLOT = 11;
     private static final int TARGET_SLOT = 15;
     private static final int STAR_SLOT = 13;
@@ -42,6 +46,9 @@ public class ClassEssenceUpgradeGUI implements Listener {
     private static final int CONFIRM_SLOT = 22;
     private static final int LEFT_ARROW_SLOT = 9;
     private static final int RIGHT_ARROW_SLOT = 17;
+    private static final int INVEST_ALL_SLOT = 31;
+    private static final int INVEST_EQUIPPED_SLOT = 32;
+    private static final int INVEST_INFO_SLOT = 30;
 
     private static final Set<UUID> SWITCHING = new HashSet<>();
 
@@ -111,19 +118,24 @@ public class ClassEssenceUpgradeGUI implements Listener {
     }
 
     public static void openInvest(Player player, ItemStack target) {
-        Inventory gui = GuiBuilder.create(27, INVEST_TITLE)
+        Inventory gui = GuiBuilder.create(GUI_SIZE, INVEST_TITLE)
                 .filler(Material.GRAY_STAINED_GLASS_PANE)
+                .border()
                 .build();
         setNavigationArrows(gui, Mode.INVEST);
         gui.setItem(SACRIFICE_SLOT, null);
         gui.setItem(TARGET_SLOT, target);
         gui.setItem(CONFIRM_SLOT, GuiUtil.getNexoItem("check", ChatColor.GREEN + "Invest"));
+        gui.setItem(INVEST_ALL_SLOT, createInvestAllButton());
+        gui.setItem(INVEST_EQUIPPED_SLOT, createInvestEquippedButton());
+        gui.setItem(INVEST_INFO_SLOT, createInvestInfo());
         player.openInventory(gui);
     }
 
     public static void openStar(Player player, ItemStack target) {
-        Inventory gui = GuiBuilder.create(27, STAR_TITLE)
+        Inventory gui = GuiBuilder.create(GUI_SIZE, STAR_TITLE)
                 .filler(Material.GRAY_STAINED_GLASS_PANE)
+                .border()
                 .build();
         setNavigationArrows(gui, Mode.STAR);
         gui.setItem(STAR_SLOT, target);
@@ -132,8 +144,9 @@ public class ClassEssenceUpgradeGUI implements Listener {
     }
 
     public static void openReseal(Player player, ItemStack essence, ItemStack charms) {
-        Inventory gui = GuiBuilder.create(27, RESEAL_TITLE)
+        Inventory gui = GuiBuilder.create(GUI_SIZE, RESEAL_TITLE)
                 .filler(Material.GRAY_STAINED_GLASS_PANE)
+                .border()
                 .build();
         setNavigationArrows(gui, Mode.RESEAL);
         gui.setItem(RESEAL_ESSENCE_SLOT, essence);
@@ -274,6 +287,17 @@ public class ClassEssenceUpgradeGUI implements Listener {
             e.setCancelled(false);
             return;
         }
+
+        if (slot == INVEST_ALL_SLOT) {
+            investAllDuplicates(player, inv);
+            return;
+        }
+
+        if (slot == INVEST_EQUIPPED_SLOT) {
+            investIntoEquippedEssences(player, inv);
+            return;
+        }
+
         if (slot != CONFIRM_SLOT) return;
 
         ItemStack target = inv.getItem(TARGET_SLOT);
@@ -305,6 +329,160 @@ public class ClassEssenceUpgradeGUI implements Listener {
         } else {
             send(player, MessageType.ERROR, "Essences must match class.");
         }
+    }
+
+    private static ItemStack createInvestAllButton() {
+        ItemStack button = GuiUtil.getNexoItem("arrow_up", ChatColor.GOLD + "Invest All Duplicates");
+        ItemMeta meta = button.getItemMeta();
+        if (meta != null) {
+            meta.setLore(Arrays.asList(
+                    ChatColor.GRAY + "Move every matching essence",
+                    ChatColor.GRAY + "from your inventory into",
+                    ChatColor.GRAY + "the target for EXP.",
+                    "",
+                    ChatColor.YELLOW + "Left Click" + ChatColor.GRAY + " while the target",
+                    ChatColor.GRAY + "slot is filled to consume",
+                    ChatColor.GRAY + "all duplicates."));
+            button.setItemMeta(meta);
+        }
+        return button;
+    }
+
+    private static ItemStack createInvestEquippedButton() {
+        ItemStack button = GuiUtil.getNexoItem("refresh", ChatColor.AQUA + "Fuel Equipped Essences");
+        ItemMeta meta = button.getItemMeta();
+        if (meta != null) {
+            meta.setLore(Arrays.asList(
+                    ChatColor.GRAY + "Finds duplicate essences",
+                    ChatColor.GRAY + "for any equipped class",
+                    ChatColor.GRAY + "and invests them automatically."));
+            button.setItemMeta(meta);
+        }
+        return button;
+    }
+
+    private static ItemStack createInvestInfo() {
+        ItemStack info = GuiUtil.getNexoItem("info", ChatColor.YELLOW + "Investment Tips");
+        ItemMeta meta = info.getItemMeta();
+        if (meta != null) {
+            meta.setLore(Arrays.asList(
+                    ChatColor.GRAY + "Place an essence in the target slot.",
+                    ChatColor.GRAY + "Use the duplicate buttons to consume",
+                    ChatColor.GRAY + "all matching essences from your bag.",
+                    "",
+                    ChatColor.DARK_GRAY + "Prevents equipped essences",
+                    ChatColor.DARK_GRAY + "from being consumed."));
+            info.setItemMeta(meta);
+        }
+        return info;
+    }
+
+    private static void investAllDuplicates(Player player, Inventory inv) {
+        ItemStack target = inv.getItem(TARGET_SLOT);
+        if (target == null || !ClassEssence.isEssence(target)) {
+            send(player, MessageType.ERROR, "Place an essence in the target slot first.");
+            return;
+        }
+
+        PlayerClass clazz = ClassEssence.getClass(target);
+        int expGained = siphonInventoryForClass(player, clazz, target);
+        ItemStack sacrifice = inv.getItem(SACRIFICE_SLOT);
+        if (sacrifice != null && ClassEssence.isEssence(sacrifice)
+                && ClassEssence.getClass(sacrifice) == clazz) {
+            expGained += getInvestValue(sacrifice);
+            inv.setItem(SACRIFICE_SLOT, null);
+        }
+
+        if (expGained <= 0) {
+            send(player, MessageType.ERROR, "No duplicate essences found to invest.");
+            return;
+        }
+
+        ItemRarity upgraded = ClassEssence.addExp(target, expGained);
+        inv.setItem(TARGET_SLOT, target);
+        player.updateInventory();
+
+        String expLabel = me.nakilex.levelplugin.utils.ChatFormatter.experienceLabel();
+        String expColor = me.nakilex.levelplugin.utils.ChatFormatter.experienceColor();
+        send(player, MessageType.SUCCESS,
+                "Invested duplicates (" + expColor + "+" + expGained + ChatColor.RESET
+                        + " <glyph:experience_orb_icon> " + expLabel + ")");
+        if (upgraded != null) {
+            send(player, MessageType.SUCCESS, "Essence rarity increased to "
+                    + upgraded.getColor() + TextUtil.beautifyWords(upgraded.name()));
+        }
+    }
+
+    private static void investIntoEquippedEssences(Player player, Inventory inv) {
+        StatsManager.PlayerStats stats = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
+        int totalExp = 0;
+
+        for (int i = 0; i < stats.essenceSlots.length; i++) {
+            ItemStack essence = stats.essenceSlots[i];
+            if (essence == null || !stats.equippedEssences[i] || !ClassEssence.isEssence(essence)) continue;
+
+            PlayerClass clazz = ClassEssence.getClass(essence);
+            int gained = siphonInventoryForClass(player, clazz, essence);
+            if (gained <= 0) continue;
+
+            ItemRarity upgraded = ClassEssence.addExp(essence, gained);
+            stats.essenceSlots[i] = essence;
+            totalExp += gained;
+            if (upgraded != null) {
+                send(player, MessageType.SUCCESS, clazz.getDisplayName() + " essence rarity increased to "
+                        + upgraded.getColor() + TextUtil.beautifyWords(upgraded.name()));
+            }
+        }
+
+        if (totalExp <= 0) {
+            send(player, MessageType.ERROR, "No duplicate essences found for your equipped slots.");
+            return;
+        }
+
+        player.updateInventory();
+        String expLabel = me.nakilex.levelplugin.utils.ChatFormatter.experienceLabel();
+        String expColor = me.nakilex.levelplugin.utils.ChatFormatter.experienceColor();
+        send(player, MessageType.SUCCESS,
+                ChatColor.GREEN + "Invested " + expColor + totalExp + ChatColor.RESET
+                        + " <glyph:experience_orb_icon> " + expLabel + " into equipped essences.");
+    }
+
+    private static int siphonInventoryForClass(Player player, PlayerClass clazz, ItemStack target) {
+        if (clazz == null) return 0;
+
+        PlayerInventory inventory = player.getInventory();
+        ItemStack[] storage = inventory.getStorageContents();
+        int expGained = 0;
+
+        for (int i = 0; i < storage.length; i++) {
+            ItemStack stack = storage[i];
+            if (!isInvestableDuplicate(stack, clazz, target)) continue;
+            expGained += getInvestValue(stack);
+            storage[i] = null;
+        }
+
+        ItemStack offHand = inventory.getItemInOffHand();
+        if (isInvestableDuplicate(offHand, clazz, target)) {
+            expGained += getInvestValue(offHand);
+            inventory.setItemInOffHand(null);
+        }
+
+        inventory.setStorageContents(storage);
+        return expGained;
+    }
+
+    private static boolean isInvestableDuplicate(ItemStack stack, PlayerClass clazz, ItemStack target) {
+        if (stack == null || stack.getType() == Material.AIR) return false;
+        if (!ClassEssence.isEssence(stack) || ClassEssence.isEquipped(stack)) return false;
+        if (target != null && stack.equals(target)) return false;
+        return ClassEssence.getClass(stack) == clazz;
+    }
+
+    private static int getInvestValue(ItemStack stack) {
+        if (stack == null || !ClassEssence.isEssence(stack)) return 0;
+        ItemRarity sacRarity = ClassEssence.getRarity(stack);
+        int per = ClassEssence.getInvestExp(sacRarity) + ClassEssence.getExp(stack);
+        return per * stack.getAmount();
     }
 
     private static void handleStarClick(Player player, Inventory inv, int slot, InventoryClickEvent e) {

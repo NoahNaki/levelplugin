@@ -279,23 +279,23 @@ public class FieldBossListener implements Listener {
         return () -> {
             ItemStack gearDrop = rollRandomConfiguredDrop(items);
             double roll = ThreadLocalRandom.current().nextDouble();
+            boolean chooseGear = roll < 0.50;
 
-            if (roll < 0.70 && gearDrop != null) {
+            if (chooseGear && gearDrop != null) {
                 return gearDrop.clone();
             }
 
-            if (roll < 0.95) {
-                java.util.List<me.nakilex.levelplugin.player.classes.data.PlayerClass> pool = ClassEssence.getCoreEssencePool();
-                me.nakilex.levelplugin.player.classes.data.PlayerClass clazz = pool.get(ThreadLocalRandom.current()
-                        .nextInt(pool.size()));
-                return ClassEssence.generateEssence(clazz);
+            if (ThreadLocalRandom.current().nextDouble() < 0.10) {
+                return createAwakenedEssenceDrop();
             }
 
-            if (gearDrop != null) {
-                return gearDrop.clone();
-            }
+            java.util.List<me.nakilex.levelplugin.player.classes.data.PlayerClass> pool = ClassEssence.getCoreEssencePool();
+            me.nakilex.levelplugin.player.classes.data.PlayerClass clazz = pool.get(ThreadLocalRandom.current()
+                    .nextInt(pool.size()));
+            ItemStack rolledEssence = ClassEssence.generateEssence(clazz);
+            if (rolledEssence != null) return rolledEssence;
 
-            return createAwakenedEssenceDrop();
+            return gearDrop != null ? gearDrop.clone() : createAwakenedEssenceDrop();
         };
     }
 

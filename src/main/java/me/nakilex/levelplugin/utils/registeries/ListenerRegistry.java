@@ -49,6 +49,7 @@ import me.nakilex.levelplugin.spells.listener.*;
 import me.nakilex.levelplugin.player.classes.gui.SubclassGUI;
 import me.nakilex.levelplugin.player.classes.essence.listener.ClassEssenceMenuListener;
 import me.nakilex.levelplugin.player.classes.essence.listener.ClassEssenceBoundListener;
+import me.nakilex.levelplugin.player.classes.essence.listener.ClassEssenceSwapListener;
 import me.nakilex.levelplugin.player.classes.essence.gui.ClassEssenceUpgradeGUI;
 import me.nakilex.levelplugin.trade.listeners.PlayerRightClicksPlayerListener;
 import me.nakilex.levelplugin.guild.GuildGUIListener;
@@ -206,6 +207,7 @@ public class ListenerRegistry {
         pm.registerEvents(new SubclassGUI(), plugin);
         pm.registerEvents(new ClassEssenceMenuListener(), plugin);
         pm.registerEvents(new ClassEssenceBoundListener(), plugin);
+        pm.registerEvents(new ClassEssenceSwapListener(), plugin);
         pm.registerEvents(new ClassEssenceUpgradeGUI(), plugin);
         pm.registerEvents(new FieldBossListener(plugin, plugin.getBossConfig(), plugin.getItemManager(), plugin.getGemsManager()), plugin);
         pm.registerEvents(new EquipOnJoinListener(), plugin);
