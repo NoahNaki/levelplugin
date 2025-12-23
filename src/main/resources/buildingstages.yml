@@ -33,6 +33,7 @@ stages:
         z: -1145
       npcs:
         - 637;111;8;126;-7.654175;88.799995
+        - 1508;75;8;128;-7.654175;88.799995
       furniture:
         - altar;72;8;128;NORTH
       schematic: blacksmith_2.schem
