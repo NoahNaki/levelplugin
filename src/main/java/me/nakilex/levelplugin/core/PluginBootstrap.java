@@ -208,6 +208,7 @@ public class PluginBootstrap {
     private MercenaryManager mercenaryManager;
     private me.nakilex.levelplugin.mercenary.MercenaryAffinityManager mercenaryAffinityManager;
     private me.nakilex.levelplugin.mercenary.MercenaryExpeditionManager mercenaryExpeditionManager;
+    private me.nakilex.levelplugin.mercenary.board.ExpeditionBoardManager expeditionBoardManager;
     private me.nakilex.levelplugin.mercenary.gui.MercenaryGiftBrowserGUI mercenaryGiftBrowserGUI;
     private me.nakilex.levelplugin.mercenary.gui.MercenaryFriendshipGUI mercenaryFriendshipGUI;
     private me.nakilex.levelplugin.mercenary.gui.MercenaryExpeditionGUI mercenaryExpeditionGUI;
@@ -405,6 +406,7 @@ public class PluginBootstrap {
                 dungeonManager,
                 economyManager,
                 lootChestManager);
+        expeditionBoardManager = new me.nakilex.levelplugin.mercenary.board.ExpeditionBoardManager(plugin);
         mercenaryGiftBrowserGUI = new me.nakilex.levelplugin.mercenary.gui.MercenaryGiftBrowserGUI(plugin, mercenaryAffinityManager);
         mercenaryFriendshipGUI = new me.nakilex.levelplugin.mercenary.gui.MercenaryFriendshipGUI(plugin, mercenaryAffinityManager);
         mercenaryExpeditionRewardsGUI = new me.nakilex.levelplugin.mercenary.gui.MercenaryExpeditionRewardsGUI(plugin, mercenaryExpeditionManager);
@@ -477,6 +479,10 @@ public class PluginBootstrap {
                 new me.nakilex.levelplugin.catacombs.CatacombsCommand(catacombsManager, catacombsGUI);
         plugin.getCommand("catacombs").setExecutor(catacombsCommand);
         plugin.getCommand("catacombs").setTabCompleter(catacombsCommand);
+        me.nakilex.levelplugin.mercenary.board.ExpeditionBoardCommand expeditionBoardCommand =
+                new me.nakilex.levelplugin.mercenary.board.ExpeditionBoardCommand(expeditionBoardManager);
+        plugin.getCommand("expeditionboard").setExecutor(expeditionBoardCommand);
+        plugin.getCommand("expeditionboard").setTabCompleter(expeditionBoardCommand);
         me.nakilex.levelplugin.maintenance.MaintenanceCommand maintenanceCmd =
                 new me.nakilex.levelplugin.maintenance.MaintenanceCommand(maintenanceManager);
         plugin.getCommand("maintenance").setExecutor(maintenanceCmd);
@@ -552,6 +558,9 @@ public class PluginBootstrap {
             chatGameManager,
             dpsDummyManager
         );
+        plugin.getServer().getPluginManager().registerEvents(
+                new me.nakilex.levelplugin.mercenary.board.ExpeditionBoardWandListener(expeditionBoardManager),
+                plugin);
         plugin.getServer().getPluginManager().registerEvents(battlePassGUI, plugin);
         plugin.getServer().getPluginManager().registerEvents(
                 new me.nakilex.levelplugin.guild.siege.GuildSiegeListener(guildSiegeManager),
@@ -776,6 +785,7 @@ public class PluginBootstrap {
     public MercenaryManager getMercenaryManager() { return mercenaryManager; }
     public me.nakilex.levelplugin.mercenary.MercenaryAffinityManager getMercenaryAffinityManager() { return mercenaryAffinityManager; }
     public me.nakilex.levelplugin.mercenary.MercenaryExpeditionManager getMercenaryExpeditionManager() { return mercenaryExpeditionManager; }
+    public me.nakilex.levelplugin.mercenary.board.ExpeditionBoardManager getExpeditionBoardManager() { return expeditionBoardManager; }
     public me.nakilex.levelplugin.mercenary.gui.MercenaryGiftBrowserGUI getMercenaryGiftBrowserGUI() { return mercenaryGiftBrowserGUI; }
     public me.nakilex.levelplugin.mercenary.gui.MercenaryFriendshipGUI getMercenaryFriendshipGUI() { return mercenaryFriendshipGUI; }
     public me.nakilex.levelplugin.mercenary.gui.MercenaryExpeditionGUI getMercenaryExpeditionGUI() { return mercenaryExpeditionGUI; }

@@ -1,0 +1,38 @@
+# Saved expedition board locations. Use /expeditionboard wand to add or remove entries.
+boards:
+  '2':
+    world: world
+    x: -645.0
+    y: 69.0
+    z: -290.0
+    facing: NORTH
+  '3':
+    world: world
+    x: -797.0
+    y: 80.0
+    z: -345.0
+    facing: NORTH
+  '4':
+    world: world
+    x: -1017.0
+    y: 68.0
+    z: -593.0
+    facing: NORTH
+  '5':
+    world: world
+    x: -1204.0
+    y: 68.0
+    z: -755.0
+    facing: NORTH
+  '6':
+    world: world
+    x: 931.0
+    y: 111.0
+    z: -834.0
+    facing: NORTH
+  '7':
+    world: world
+    x: 210.0
+    y: 74.0
+    z: -80.0
+    facing: NORTH

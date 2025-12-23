@@ -152,6 +152,7 @@ public class Main extends JavaPlugin {
     public me.nakilex.levelplugin.booster.GlobalBoosterManager getBoosterManager() { return bootstrap.getBoosterManager(); }
     public me.nakilex.levelplugin.mercenary.MercenaryAffinityManager getMercenaryAffinityManager() { return bootstrap.getMercenaryAffinityManager(); }
     public me.nakilex.levelplugin.mercenary.MercenaryExpeditionManager getMercenaryExpeditionManager() { return bootstrap.getMercenaryExpeditionManager(); }
+    public me.nakilex.levelplugin.mercenary.board.ExpeditionBoardManager getExpeditionBoardManager() { return bootstrap.getExpeditionBoardManager(); }
     public me.nakilex.levelplugin.mercenary.gui.MercenaryGiftBrowserGUI getMercenaryGiftBrowserGUI() { return bootstrap.getMercenaryGiftBrowserGUI(); }
     public me.nakilex.levelplugin.mercenary.gui.MercenaryFriendshipGUI getMercenaryFriendshipGUI() { return bootstrap.getMercenaryFriendshipGUI(); }
     public me.nakilex.levelplugin.mercenary.gui.MercenaryExpeditionGUI getMercenaryExpeditionGUI() { return bootstrap.getMercenaryExpeditionGUI(); }

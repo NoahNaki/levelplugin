@@ -14,6 +14,8 @@ import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.ItemStack;
 
+import java.util.Map;
+
 public class ClassEssenceMenuListener implements Listener {
 
     @EventHandler
