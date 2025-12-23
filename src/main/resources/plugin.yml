@@ -209,6 +209,9 @@ commands:
   expedition:
     description: Manage mercenary expeditions and affinity.
     usage: /expedition <npcId|rewards>
+  expeditionboard:
+    description: Place expedition boards with a wand.
+    usage: /expeditionboard <wand|reload>
   auctionhouse:
     description: Open the auction house, sell items or place bids.
     usage: /auctionhouse [open|sell <start> [bin] [hours]|bid <index> <amount>]
