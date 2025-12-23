@@ -54,7 +54,7 @@ public class EssenceWeaverLessonNpcHandler extends AbstractQuestNpcHandler {
         if (!upgradeTried) {
             player.performCommand("essenceupgrade");
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
-                    "Invest a duplicate essence or attempt a star upgrade, then speak with the Essence Weaver again.");
+                    "Use the essence altar to invest a duplicate or attempt a star upgrade, then speak with the Essence Weaver again. Press F to swap essences mid-fight.");
             return true;
         }
 

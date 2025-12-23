@@ -28,6 +28,7 @@ import me.nakilex.levelplugin.blacksmith.gui.RerollBrowser;
 import me.nakilex.levelplugin.potions.gui.PotionBrowser;
 import me.nakilex.levelplugin.items.listeners.PickupCustomItemListener;
 import me.nakilex.levelplugin.items.managers.ItemManager;
+import me.nakilex.levelplugin.player.classes.essence.gui.ClassEssenceUpgradeGUI;
 import me.nakilex.levelplugin.lootchests.config.ConfigManager;
 import me.nakilex.levelplugin.lootchests.managers.CooldownManager;
 import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
@@ -487,6 +488,7 @@ public class PluginBootstrap {
 
         furnitureGuiMapper = new me.nakilex.levelplugin.nexo.FurnitureGuiMapper();
         furnitureGuiMapper.register("quest_board", player -> mercenaryExpeditionGUI.open(player));
+        furnitureGuiMapper.register("altar", player -> ClassEssenceUpgradeGUI.openInvest(player, null));
         java.util.List.of(
                 "portal_decoration_animated_v1_portal_1",
                 "portal_decoration_animated_v1_portal_2",

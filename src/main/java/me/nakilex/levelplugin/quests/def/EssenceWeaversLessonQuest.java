@@ -33,7 +33,7 @@ public class EssenceWeaversLessonQuest extends Quest implements QuestScript {
         super(
                 ID,
                 "Essence Weaver's Lesson",
-                "Invest duplicate essences or upgrade their stars with the Essence Weaver.",
+                "Use the essence altar to invest duplicates or upgrade stars, then learn to swap with F.",
                 createObjectives(),
                 6,
                 List.of(),
@@ -43,8 +43,8 @@ public class EssenceWeaversLessonQuest extends Quest implements QuestScript {
                 List.of(
                         "Essence Weaver|Power isn't just found, it's coaxed out. Bring me your spare essences.",
                         "<player>|What do I do with them?",
-                        "Essence Weaver|Invest a duplicate or attempt a star upgrade so you feel how essences respond.",
-                        "Essence Weaver|After you try, return and I'll share how to weave their strength wisely."
+                        "Essence Weaver|Right-click the altar to open my loom, invest a duplicate, or attempt a star upgrade.",
+                        "Essence Weaver|Press F to swap essences mid-fight—after you try, return and I'll share more."
                 ),
                 false
         );
@@ -62,7 +62,7 @@ public class EssenceWeaversLessonQuest extends Quest implements QuestScript {
         return List.of(
                 "Essence Weaver|Feel that pull? Essences grow eager when tended.",
                 "<player>|It was riskier than I expected.",
-                "Essence Weaver|Fortune favors patience. Keep investing and the stars will align."
+                "Essence Weaver|Swap with F whenever you need a different edge and keep investing—the stars will align."
         );
     }
 
