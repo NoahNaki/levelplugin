@@ -1,6 +1,11 @@
 package me.nakilex.levelplugin.environment.stage;
 
+import com.nexomc.nexo.api.NexoFurniture;
+import com.nexomc.nexo.mechanics.furniture.FurnitureMechanic;
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.lootchests.utils.LocationUtils;
+import me.nakilex.levelplugin.utils.FurnitureCleanupUtil;
+import me.nakilex.levelplugin.utils.NexoUtil;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
 import net.citizensnpcs.trait.CurrentLocation;
@@ -8,9 +13,11 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Player;
 
 import com.sk89q.worldedit.math.BlockVector3;
@@ -30,6 +37,7 @@ public class BuildingStageManager {
     /** Map of town -> building -> placement offset */
     private final Map<String, Map<String, Placement>> placements = new HashMap<>();
     private final Map<java.util.UUID, Map<String, List<NPC>>> spawnedNPCs = new HashMap<>();
+    private final Map<java.util.UUID, Map<String, List<ItemDisplay>>> spawnedFurniture = new HashMap<>();
     /** Folder containing FAWE schematics for each stage. */
     private final File schemFolder;
     private File file;
@@ -95,7 +103,7 @@ public class BuildingStageManager {
             .computeIfAbsent(building.toLowerCase(), k -> new HashMap<>())
             .put(stage, new BuildingStage(building.toLowerCase(), stage, pos1, pos2,
                     npcs, blocks, schematic, fileName, priority, hx, hy, hz, ox, oy, oz,
-                    null, 0));
+                    null, 0, Collections.emptyList()));
         saveConfig();
     }
 
@@ -169,6 +177,37 @@ public class BuildingStageManager {
             }
             list.add(clone);
         }
+
+        var furnMap = spawnedFurniture.computeIfAbsent(id, k -> new HashMap<>());
+        List<ItemDisplay> furnList = furnMap.computeIfAbsent(key, k -> new ArrayList<>());
+        for (ItemDisplay existing : furnList) {
+            if (existing != null && !existing.isDead()) {
+                NexoFurniture.remove(existing);
+            }
+        }
+        furnList.clear();
+        for (FurnitureSpawn spawn : st.furniture) {
+            FurnitureMechanic mech = NexoFurniture.furnitureMechanic(spawn.id);
+            if (mech == null) {
+                plugin.getLogger().warning("[BuildingStageManager] Unknown furniture '" + spawn.id
+                        + "' for building " + building + " stage " + stage);
+                NexoUtil.logAvailableFurnitureIds(plugin.getLogger());
+                continue;
+            }
+            Location loc = origin.clone().add(
+                    spawn.x - st.ox,
+                    spawn.y - st.oy,
+                    spawn.z - st.oz
+            );
+            Location centered = LocationUtils.centerOnBlock(loc);
+            if (centered == null) continue;
+            FurnitureCleanupUtil.clearNearbyFurnitureEntities(plugin, centered, 4.0, "[BuildingStageManager]");
+            centered.getBlock().setType(Material.AIR, false);
+            ItemDisplay display = NexoFurniture.place(spawn.id, centered, 0f, spawn.facing);
+            if (display != null) {
+                furnList.add(display);
+            }
+        }
     }
 
     public void despawnForStage(UUID viewerId, String building, int stage) {
@@ -183,6 +222,18 @@ public class BuildingStageManager {
             }
         }
         if (map.isEmpty()) spawnedNPCs.remove(viewerId);
+
+        var furnMap = spawnedFurniture.get(viewerId);
+        if (furnMap == null) return;
+        List<ItemDisplay> furnList = furnMap.remove(key);
+        if (furnList != null) {
+            for (ItemDisplay display : furnList) {
+                if (display != null && !display.isDead()) {
+                    NexoFurniture.remove(display);
+                }
+            }
+        }
+        if (furnMap.isEmpty()) spawnedFurniture.remove(viewerId);
     }
 
     public void despawnAll() {
@@ -195,6 +246,16 @@ public class BuildingStageManager {
             }
         }
         spawnedNPCs.clear();
+        for (var map : spawnedFurniture.values()) {
+            for (var list : map.values()) {
+                for (ItemDisplay display : list) {
+                    if (display != null && !display.isDead()) {
+                        NexoFurniture.remove(display);
+                    }
+                }
+            }
+        }
+        spawnedFurniture.clear();
     }
 
     public void hideNPCsFrom(Player viewer) {
@@ -348,6 +409,30 @@ public class BuildingStageManager {
                 }
             }
         }
+        List<FurnitureSpawn> furnitureList = new ArrayList<>();
+        if (config.isList(base + "furniture")) {
+            for (Object o : config.getList(base + "furniture")) {
+                if (!(o instanceof String s)) continue;
+                String[] parts = s.split(";");
+                if (parts.length < 4) continue;
+                String id = parts[0];
+                try {
+                    int dx = Integer.parseInt(parts[1]);
+                    int dy = Integer.parseInt(parts[2]);
+                    int dz = Integer.parseInt(parts[3]);
+                    BlockFace facing = BlockFace.NORTH;
+                    if (parts.length >= 5) {
+                        try {
+                            facing = BlockFace.valueOf(parts[4].toUpperCase());
+                        } catch (IllegalArgumentException ignore) {
+                            facing = BlockFace.NORTH;
+                        }
+                    }
+                    furnitureList.add(new FurnitureSpawn(id, dx, dy, dz, facing));
+                } catch (Exception ignore) {
+                }
+            }
+        }
         String fileName = config.getString(base + "schematic", building.toLowerCase() + "_" + stage + ".schem");
         File schematic = new File(schemFolder, fileName);
         Map<BlockVector3, BlockData> relMap = SchematicUtil.loadSchematic(schematic, plugin.getLogger());
@@ -392,7 +477,7 @@ public class BuildingStageManager {
             .computeIfAbsent(building.toLowerCase(), k -> new HashMap<>())
             .put(stage, new BuildingStage(building.toLowerCase(), stage,
                     pos1, pos2, npcList, blockList, schematic, fileName, priority,
-                    hx, hy, hz, ox, oy, oz, matCost, coinCost));
+                    hx, hy, hz, ox, oy, oz, matCost, coinCost, furnitureList));
     }
 
     private void saveConfig() {
@@ -417,6 +502,11 @@ public class BuildingStageManager {
                             npcLines.add(npc.id + ";" + npc.x + ";" + npc.y + ";" + npc.z + ";" + npc.yaw + ";" + npc.pitch);
                         }
                         config.set(base + "npcs", npcLines);
+                        List<String> furnitureLines = new ArrayList<>();
+                        for (FurnitureSpawn spawn : st.furniture) {
+                            furnitureLines.add(spawn.id + ";" + spawn.x + ";" + spawn.y + ";" + spawn.z + ";" + spawn.facing.name());
+                        }
+                        config.set(base + "furniture", furnitureLines);
                         config.set(base + "blocks", null); // blocks stored as schematic
                         config.set(base + "schematic", st.fileName);
                         config.set(base + "holo.x", st.hx);
@@ -490,6 +580,7 @@ public class BuildingStageManager {
         public final int ox, oy, oz;
         public final java.util.Map<org.bukkit.Material, Integer> materialCost;
         public final int coinCost;
+        public final java.util.List<FurnitureSpawn> furniture;
 
         public BuildingStage(String name, int stage, Location pos1, Location pos2,
                              List<NPCSpawn> npcs, List<BlockDef> blocks,
@@ -497,7 +588,8 @@ public class BuildingStageManager {
                              int hx, int hy, int hz,
                              int ox, int oy, int oz,
                              java.util.Map<org.bukkit.Material, Integer> materialCost,
-                             int coinCost) {
+                             int coinCost,
+                             java.util.List<FurnitureSpawn> furniture) {
             this.name = name;
             this.stage = stage;
             this.pos1 = pos1;
@@ -515,6 +607,21 @@ public class BuildingStageManager {
             this.oz = oz;
             this.materialCost = materialCost == null ? java.util.Collections.emptyMap() : materialCost;
             this.coinCost = coinCost;
+            this.furniture = furniture == null ? java.util.Collections.emptyList() : furniture;
+        }
+    }
+
+    /** Nexo furniture spawn definition relative to stage origin. */
+    public static class FurnitureSpawn {
+        public final String id;
+        public final int x, y, z;
+        public final BlockFace facing;
+        public FurnitureSpawn(String id, int x, int y, int z, BlockFace facing) {
+            this.id = id;
+            this.x = x;
+            this.y = y;
+            this.z = z;
+            this.facing = facing == null ? BlockFace.NORTH : facing;
         }
     }
 
