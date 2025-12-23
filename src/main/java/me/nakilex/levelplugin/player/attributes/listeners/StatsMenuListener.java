@@ -6,6 +6,7 @@ import me.nakilex.levelplugin.player.attributes.gui.LifeSkillRewardsGUI;
 import me.nakilex.levelplugin.player.attributes.gui.StatsInventory;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.attributes.managers.LifeSkillRewardManager;
+import me.nakilex.levelplugin.player.classes.essence.gui.ClassEssenceGUI;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.Sound;
@@ -138,6 +139,11 @@ public class StatsMenuListener implements Listener {
             if (displayName.equalsIgnoreCase("Codex")) {
                 codexGUI.openFrom(player, viewer ->
                         viewer.openInventory(StatsInventory.getStatsMenu(viewer, StatsInventory.getPage(viewer))));
+                return;
+            }
+
+            if (displayName.equalsIgnoreCase("Essences")) {
+                ClassEssenceGUI.open(player);
                 return;
             }
 

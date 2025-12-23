@@ -124,6 +124,7 @@ public class StatsInventory {
         builder.setItem(48, createCodexButton());
         builder.setItem(49, createLifeSkillButton());
         builder.setItem(50, GuiUtil.getNexoItem("settings", ChatColor.AQUA + "Settings"));
+        builder.setItem(40, createEssenceButton());
 
         return builder.build();
     }
@@ -161,6 +162,24 @@ public class StatsInventory {
             lifeSkills.setItemMeta(meta);
         }
         return lifeSkills;
+    }
+
+    private static ItemStack createEssenceButton() {
+        ItemStack essences = GuiUtil.getNexoItem("essence_icon", ChatColor.LIGHT_PURPLE + "Essences");
+        ItemMeta meta = essences.getItemMeta();
+        if (meta != null) {
+            List<String> lore = new ArrayList<>();
+            lore.add(ChatColor.GRAY + "View and swap your class essences.");
+            lore.addAll(TooltipUtil.bulletList(
+                    "Equip or unequip class essences.",
+                    "Invest duplicates for quick upgrades."
+            ));
+            lore.add("");
+            lore.addAll(TooltipUtil.clickInstructions("to open the essence menu", null));
+            meta.setLore(lore);
+            essences.setItemMeta(meta);
+        }
+        return essences;
     }
 
 
