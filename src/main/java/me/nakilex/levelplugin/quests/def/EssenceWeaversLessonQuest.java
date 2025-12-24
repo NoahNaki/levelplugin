@@ -73,7 +73,7 @@ public class EssenceWeaversLessonQuest extends Quest implements QuestScript, Que
 
     @Override
     public void onStart(Player player, Main plugin) {
-        plugin.getQuestManager().handleTalk(player, INTRO_TARGET);
+        // Require the player to talk to the Essence Weaver to progress.
     }
 
     @Override
