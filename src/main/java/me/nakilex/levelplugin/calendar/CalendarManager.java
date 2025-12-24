@@ -144,21 +144,8 @@ public class CalendarManager implements Listener {
     }
 
     private void chooseDailyWeather() {
-        int pick = random.nextInt(4);
-        switch (pick) {
-            case 0:
-                currentWeather = WeatherType.CLEAR;
-                break;
-            case 1:
-                currentWeather = WeatherType.RAIN;
-                break;
-            case 2:
-                currentWeather = WeatherType.SNOW;
-                break;
-            default:
-                currentWeather = WeatherType.STORM;
-                break;
-        }
+        double roll = random.nextDouble();
+        currentWeather = roll < 0.8 ? WeatherType.CLEAR : WeatherType.RAIN;
         applyWeather(currentWeather);
     }
 

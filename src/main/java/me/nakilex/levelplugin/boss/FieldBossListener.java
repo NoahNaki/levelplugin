@@ -174,7 +174,7 @@ public class FieldBossListener implements Listener {
         }
 
         RewardBombUtil.startRewardBomb(plugin, ev.getEntity().getLocation(),
-                createBossRewardBomb(items), 100);
+                createBossRewardBomb(items), 60);
 
         // 6) Delay only the chat output by 5 ticks
         final String fElapsed = elapsed;
@@ -236,12 +236,18 @@ public class FieldBossListener implements Listener {
 //    }
 
     private ItemStack rollConfiguredDrop(Map<String, Object> config, Player owner) {
+        return createDropFromConfig(config, owner, true);
+    }
+
+    private ItemStack createDropFromConfig(Map<String, Object> config, Player owner, boolean applyDropRate) {
         if (config == null) return null;
 
-        Object chance = config.get("drop_rate");
-        double dropPct = chance == null ? 0 : Double.parseDouble(chance.toString());
-        if (ThreadLocalRandom.current().nextDouble(0, 100) > dropPct) {
-            return null;
+        if (applyDropRate) {
+            Object chance = config.get("drop_rate");
+            double dropPct = chance == null ? 0 : Double.parseDouble(chance.toString());
+            if (ThreadLocalRandom.current().nextDouble(0, 100) > dropPct) {
+                return null;
+            }
         }
 
         String qtyRange = String.valueOf(config.getOrDefault("quantity", "1-1"));
@@ -277,9 +283,8 @@ public class FieldBossListener implements Listener {
 
     private java.util.function.Supplier<ItemStack> createBossRewardBomb(List<Map<String, Object>> items) {
         return () -> {
-            ItemStack gearDrop = rollRandomConfiguredDrop(items);
-            double roll = ThreadLocalRandom.current().nextDouble();
-            boolean chooseGear = roll < 0.50;
+            ItemStack gearDrop = rollRandomConfiguredDrop(items, false);
+            boolean chooseGear = ThreadLocalRandom.current().nextDouble() < 0.50;
 
             if (chooseGear && gearDrop != null) {
                 return gearDrop.clone();
@@ -299,7 +304,7 @@ public class FieldBossListener implements Listener {
         };
     }
 
-    private ItemStack rollRandomConfiguredDrop(List<Map<String, Object>> items) {
+    private ItemStack rollRandomConfiguredDrop(List<Map<String, Object>> items, boolean applyDropRate) {
         if (items == null || items.isEmpty()) {
             return null;
         }
@@ -308,7 +313,7 @@ public class FieldBossListener implements Listener {
         Collections.shuffle(shuffled);
 
         for (Map<String, Object> entry : shuffled) {
-            ItemStack drop = rollConfiguredDrop(entry, null);
+            ItemStack drop = createDropFromConfig(entry, null, applyDropRate);
             if (drop != null) {
                 return drop;
             }

@@ -10,8 +10,6 @@ import me.nakilex.levelplugin.quests.data.QuestScript;
 import me.nakilex.levelplugin.quests.data.QuestCompletionScript;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.quests.def.SerasSlimeKingQuest;
-import me.nakilex.levelplugin.quests.def.AbandonedCastleQuest;
-import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.entity.Player;
 
 import java.util.List;
@@ -73,7 +71,8 @@ public class SalvagersLessonQuest extends Quest implements QuestScript, QuestCom
         return List.of(
                 "Salvager|See? Even scraps sparkle once you melt them down.",
                 "<player>|The coins weren't bad either.",
-                "Salvager|Keep bringing me your leftovers. There's profit in every shard."
+                "Salvager|Keep bringing me your leftovers. There's profit in every shard.",
+                "Salvager|I see you've got some essences aswell, those aren't my speciality so I can't help you with that but the person that can is at a nearby town head over there, I'm sure he could take a look at them."
         );
     }
 
@@ -89,13 +88,11 @@ public class SalvagersLessonQuest extends Quest implements QuestScript, QuestCom
             return;
         }
 
-        boolean hasCastle = questManager.hasCompleted(player.getUniqueId(), AbandonedCastleQuest.ID)
-                || questManager.getProgress(player.getUniqueId(), AbandonedCastleQuest.ID) != null;
-        if (!hasCastle) {
-            questManager.startQuest(player, AbandonedCastleQuest.ID);
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
-                    "Cedric in the nearby town wants to talk—head over and hear about the abandoned castle.");
-            questManager.setTrackedQuest(player, AbandonedCastleQuest.ID);
+        boolean hasEssenceWeaver = questManager.hasCompleted(player.getUniqueId(), EssenceWeaversLessonQuest.ID)
+                || questManager.getProgress(player.getUniqueId(), EssenceWeaversLessonQuest.ID) != null;
+        if (!hasEssenceWeaver) {
+            questManager.startQuest(player, EssenceWeaversLessonQuest.ID);
+            questManager.setTrackedQuest(player, EssenceWeaversLessonQuest.ID);
         }
     }
 }
