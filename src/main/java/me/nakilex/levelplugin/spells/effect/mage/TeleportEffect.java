@@ -58,7 +58,10 @@ public class TeleportEffect implements SpellEffect {
         Runnable doTeleport = () -> {
             int count = teleportCount.incrementAndGet();
             Location origin = player.getLocation();
-            Location rawTarget = origin.clone().add(dir.clone().multiply(distance));
+            Location rawTarget = TeleportUtils.resolveLineOfSightTarget(player, dir, distance, 0.5);
+            if (rawTarget == null) {
+                rawTarget = origin.clone().add(dir.clone().multiply(distance));
+            }
             Location safe = findSafeLocation(rawTarget, safeSearchRange, player);
             if (safe == null) {
                 plugin.getLogger().warning("[TeleportEffect] Teleport #" + count + " failed: no safe spot");
