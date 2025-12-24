@@ -1,0 +1,53 @@
+themes:
+  water:
+    bossbar_title: "&bReel in the catch!"
+    bossbar_color: BLUE
+  lava:
+    bossbar_title: "&cHold steady in the heat!"
+    bossbar_color: RED
+  void:
+    bossbar_title: "&5Do not look away..."
+    bossbar_color: PURPLE
+
+feedback:
+  bite:
+    sound: ENTITY_FISHING_BOBBER_SPLASH
+    volume: 0.8
+    pitch: 1.2
+    particle: WATER_SPLASH
+    particle_count: 8
+    particle_offset: 0.2
+    actionbar: "&bSomething bites..."
+  hooked:
+    sound: ENTITY_PLAYER_LEVELUP
+    volume: 0.7
+    pitch: 1.4
+    title: "&bHooked!"
+    subtitle: "&7Right-click in the window"
+    title_fade_in: 4
+    title_stay: 18
+    title_fade_out: 6
+  success:
+    sound: ENTITY_EXPERIENCE_ORB_PICKUP
+    volume: 0.9
+    pitch: 1.2
+    particle: WATER_BUBBLE
+    particle_count: 12
+    particle_offset: 0.2
+    title: "&aNice catch!"
+    subtitle: "&7Added to your inventory"
+    title_fade_in: 4
+    title_stay: 20
+    title_fade_out: 8
+  fail:
+    sound: ENTITY_ITEM_BREAK
+    volume: 0.6
+    pitch: 0.9
+    title: "&cThe fish got away!"
+    subtitle: "&7Try again..."
+    title_fade_in: 2
+    title_stay: 16
+    title_fade_out: 6
+  line:
+    particle: CRIT
+    particle_count: 6

@@ -22,9 +22,12 @@ public class ActionBarTask extends BukkitRunnable {
             if (plugin.getCutsceneManager().isInCutscene(player)) continue;
             CooldownIndicatorManager.Info info = CooldownIndicatorManager.getInstance().get(player);
             if (info != null) {
+                boolean showActionBar = info.actionBarMessage != null && now < info.actionBarExpireAt;
                 boolean showCd = now < info.expireAt && now < info.costExpireAt;
                 boolean showCost = info.cost > 0 && now < info.costExpireAt;
-                if (showCd || showCost) {
+                if (showActionBar) {
+                    player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(info.actionBarMessage));
+                } else if (showCd || showCost) {
                     StringBuilder msg = new StringBuilder();
                     if (showCd) {
                         long remaining = info.expireAt - now;

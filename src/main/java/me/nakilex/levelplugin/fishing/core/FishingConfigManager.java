@@ -24,6 +24,7 @@ public class FishingConfigManager {
     private final MechanismRegistry mechanismRegistry;
     private final File lootFile;
     private final File gameFile;
+    private final File feedbackFile;
     private final Map<FishingMechanism, List<LootEntry>> lootPools = new EnumMap<>(FishingMechanism.class);
     private final Map<String, GameDefinition> gameDefinitions = new HashMap<>();
 
@@ -32,6 +33,12 @@ public class FishingConfigManager {
     private boolean debug;
     private String languageKey = "en";
     private int voidCheckMinY = -64;
+    private final Map<FishingMechanism, me.nakilex.levelplugin.fishing.core.feedback.FishingTheme> themes = new EnumMap<>(FishingMechanism.class);
+    private me.nakilex.levelplugin.fishing.core.feedback.FeedbackPreset bitePreset;
+    private me.nakilex.levelplugin.fishing.core.feedback.FeedbackPreset hookedPreset;
+    private me.nakilex.levelplugin.fishing.core.feedback.FeedbackPreset successPreset;
+    private me.nakilex.levelplugin.fishing.core.feedback.FeedbackPreset failPreset;
+    private me.nakilex.levelplugin.fishing.core.feedback.FeedbackPreset linePreset;
 
     public FishingConfigManager(Main plugin, MechanismRegistry mechanismRegistry) {
         this.plugin = plugin;
@@ -39,10 +46,13 @@ public class FishingConfigManager {
         File dataFolder = new File(plugin.getDataFolder(), "fishing");
         File lootFolder = new File(dataFolder, "loots");
         File gameFolder = new File(dataFolder, "games");
+        File feedbackFolder = new File(dataFolder, "feedback");
         lootFolder.mkdirs();
         gameFolder.mkdirs();
+        feedbackFolder.mkdirs();
         this.lootFile = new File(lootFolder, "default.yml");
         this.gameFile = new File(gameFolder, "timing_bar.yml");
+        this.feedbackFile = new File(feedbackFolder, "feedback.yml");
     }
 
     public void load() {
@@ -50,6 +60,7 @@ public class FishingConfigManager {
         loadSettings();
         loadLoots();
         loadGames();
+        loadFeedback();
     }
 
     public void reload() {
@@ -62,6 +73,9 @@ public class FishingConfigManager {
         }
         if (!gameFile.exists()) {
             plugin.saveResource("fishing/games/timing_bar.yml", false);
+        }
+        if (!feedbackFile.exists()) {
+            plugin.saveResource("fishing/feedback/feedback.yml", false);
         }
     }
 
@@ -130,6 +144,72 @@ public class FishingConfigManager {
             GameDefinition definition = new GameDefinition(key, type, durationTicks, windowMin, windowMax, conditions);
             gameDefinitions.put(key, definition);
         }
+    }
+
+    private void loadFeedback() {
+        themes.clear();
+        FileConfiguration loaded = YamlConfiguration.loadConfiguration(feedbackFile);
+        ConfigurationSection themeSection = loaded.getConfigurationSection("themes");
+        if (themeSection != null) {
+            for (String key : themeSection.getKeys(false)) {
+                FishingMechanism mechanism = mechanismRegistry.get(key);
+                if (mechanism == null) {
+                    continue;
+                }
+                ConfigurationSection section = themeSection.getConfigurationSection(key);
+                if (section == null) {
+                    continue;
+                }
+                String title = section.getString("bossbar_title", "&bReel it in!");
+                String colorName = section.getString("bossbar_color", "BLUE");
+                org.bukkit.boss.BarColor color;
+                try {
+                    color = org.bukkit.boss.BarColor.valueOf(colorName.toUpperCase());
+                } catch (IllegalArgumentException ex) {
+                    color = org.bukkit.boss.BarColor.BLUE;
+                }
+                themes.put(mechanism, new me.nakilex.levelplugin.fishing.core.feedback.FishingTheme(title, color));
+            }
+        }
+        bitePreset = loadPreset(loaded.getConfigurationSection("feedback.bite"));
+        hookedPreset = loadPreset(loaded.getConfigurationSection("feedback.hooked"));
+        successPreset = loadPreset(loaded.getConfigurationSection("feedback.success"));
+        failPreset = loadPreset(loaded.getConfigurationSection("feedback.fail"));
+        linePreset = loadPreset(loaded.getConfigurationSection("feedback.line"));
+    }
+
+    private me.nakilex.levelplugin.fishing.core.feedback.FeedbackPreset loadPreset(ConfigurationSection section) {
+        if (section == null) {
+            return null;
+        }
+        String sound = section.getString("sound");
+        float volume = (float) section.getDouble("volume", 1.0);
+        float pitch = (float) section.getDouble("pitch", 1.0);
+        String particle = section.getString("particle");
+        int particleCount = section.getInt("particle_count", 5);
+        double offset = section.getDouble("particle_offset", 0.2);
+        String title = section.getString("title");
+        String subtitle = section.getString("subtitle");
+        String actionBar = section.getString("actionbar");
+        java.util.List<String> messages = section.getStringList("messages");
+        int fadeIn = section.getInt("title_fade_in", 5);
+        int stay = section.getInt("title_stay", 25);
+        int fadeOut = section.getInt("title_fade_out", 10);
+        return new me.nakilex.levelplugin.fishing.core.feedback.FeedbackPreset(
+                sound,
+                volume,
+                pitch,
+                particle,
+                particleCount,
+                offset,
+                title,
+                subtitle,
+                actionBar,
+                messages,
+                fadeIn,
+                stay,
+                fadeOut
+        );
     }
 
     private LootEntry parseLootEntry(Map<?, ?> map) {
@@ -267,5 +347,29 @@ public class FishingConfigManager {
         FileConfiguration config = plugin.getCustomConfig();
         config.set("fishing.debug", debug);
         plugin.saveCustomConfig();
+    }
+
+    public me.nakilex.levelplugin.fishing.core.feedback.FishingTheme getTheme(FishingMechanism mechanism) {
+        return themes.get(mechanism);
+    }
+
+    public me.nakilex.levelplugin.fishing.core.feedback.FeedbackPreset getBitePreset() {
+        return bitePreset;
+    }
+
+    public me.nakilex.levelplugin.fishing.core.feedback.FeedbackPreset getHookedPreset() {
+        return hookedPreset;
+    }
+
+    public me.nakilex.levelplugin.fishing.core.feedback.FeedbackPreset getSuccessPreset() {
+        return successPreset;
+    }
+
+    public me.nakilex.levelplugin.fishing.core.feedback.FeedbackPreset getFailPreset() {
+        return failPreset;
+    }
+
+    public me.nakilex.levelplugin.fishing.core.feedback.FeedbackPreset getLinePreset() {
+        return linePreset;
     }
 }

@@ -19,9 +19,12 @@ public class CooldownIndicatorManager {
         public long expireAt;
         public int cost;
         public long costExpireAt;
+        public String actionBarMessage;
+        public long actionBarExpireAt;
     }
 
     private static final long COST_DURATION_MS = 1500;
+    private static final long ACTIONBAR_MIN_DURATION_MS = 200;
 
     private final Map<UUID, Info> indicators = new ConcurrentHashMap<>();
 
@@ -36,12 +39,25 @@ public class CooldownIndicatorManager {
         indicators.put(player.getUniqueId(), info);
     }
 
+    /** Display a temporary action bar message without replacing spell cooldowns. */
+    public void showActionBar(Player player, String message, long durationMs) {
+        if (player == null || message == null) {
+            return;
+        }
+        long now = System.currentTimeMillis();
+        Info info = indicators.computeIfAbsent(player.getUniqueId(), id -> new Info());
+        info.actionBarMessage = message;
+        info.actionBarExpireAt = now + Math.max(ACTIONBAR_MIN_DURATION_MS, durationMs);
+    }
+
     /** Return the active info or null if expired/none. */
     public Info get(Player player) {
         Info info = indicators.get(player.getUniqueId());
         if (info == null) return null;
         long now = System.currentTimeMillis();
-        if (now > info.expireAt && now > info.costExpireAt) {
+        boolean cooldownExpired = now > info.expireAt && now > info.costExpireAt;
+        boolean actionBarExpired = now > info.actionBarExpireAt;
+        if (cooldownExpired && actionBarExpired) {
             indicators.remove(player.getUniqueId());
             return null;
         }
@@ -53,4 +69,3 @@ public class CooldownIndicatorManager {
         indicators.remove(player.getUniqueId());
     }
 }
-

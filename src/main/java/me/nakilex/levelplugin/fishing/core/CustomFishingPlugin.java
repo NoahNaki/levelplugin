@@ -22,6 +22,8 @@ import me.nakilex.levelplugin.fishing.core.condition.YRangeCondition;
 import me.nakilex.levelplugin.fishing.core.config.ConfiguredAction;
 import me.nakilex.levelplugin.fishing.core.config.ConfiguredCondition;
 import me.nakilex.levelplugin.fishing.core.event.FishingListener;
+import me.nakilex.levelplugin.fishing.core.feedback.FeedbackService;
+import me.nakilex.levelplugin.fishing.core.feedback.FishingTheme;
 import me.nakilex.levelplugin.fishing.core.game.GameDefinition;
 import me.nakilex.levelplugin.fishing.core.game.TimingBarGame;
 import me.nakilex.levelplugin.fishing.core.loot.LootEntry;
@@ -57,11 +59,13 @@ public class CustomFishingPlugin {
     private final Map<UUID, FishingGame> activeGames = new HashMap<>();
     private final FishingConfigManager configManager;
     private final FishingListener listener;
+    private final FeedbackService feedbackService;
 
     public CustomFishingPlugin(Main plugin) {
         this.plugin = plugin;
         this.configManager = new FishingConfigManager(plugin, mechanismRegistry);
         this.listener = new FishingListener(this);
+        this.feedbackService = new FeedbackService(configManager);
     }
 
     public void enable() {
@@ -98,7 +102,7 @@ public class CustomFishingPlugin {
         actionRegistry.register("xp", new XpAction());
 
         gameRegistry.register("TIMING_BAR", (definition, context, onComplete)
-                -> new TimingBarGame(plugin, context, definition, onComplete));
+                -> new TimingBarGame(plugin, context, definition, feedbackService, getTheme(context.getMechanism()), onComplete));
     }
 
     private void registerRuntime() {
@@ -141,6 +145,7 @@ public class CustomFishingPlugin {
         if (context == null) {
             return;
         }
+        feedbackService.playBite(context);
         startGame(player, context);
     }
 
@@ -193,10 +198,11 @@ public class CustomFishingPlugin {
         if (success) {
             LootEntry loot = resolveLoot(context);
             if (loot != null) {
+                feedbackService.playSuccess(context);
                 executeLootActions(context, loot);
             }
         } else {
-            player.sendMessage(ChatColor.RED + "The fish got away!");
+            feedbackService.playFail(context);
         }
         cleanup(player.getUniqueId());
     }
@@ -225,9 +231,18 @@ public class CustomFishingPlugin {
             cleanup(player.getUniqueId());
             return;
         }
+        feedbackService.playHooked(context);
         activeGames.put(player.getUniqueId(), game);
         game.start();
         debug("Started game " + definition.id() + " for " + player.getName());
+    }
+
+    public FeedbackService getFeedbackService() {
+        return feedbackService;
+    }
+
+    public FishingTheme getTheme(FishingMechanism mechanism) {
+        return configManager.getTheme(mechanism);
     }
 
     private GameDefinition selectGameDefinition(FishingContext context) {

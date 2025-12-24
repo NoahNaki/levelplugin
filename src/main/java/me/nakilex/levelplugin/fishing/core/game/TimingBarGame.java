@@ -3,6 +3,8 @@ package me.nakilex.levelplugin.fishing.core.game;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.fishing.api.FishingContext;
 import me.nakilex.levelplugin.fishing.api.game.FishingGame;
+import me.nakilex.levelplugin.fishing.core.feedback.FeedbackService;
+import me.nakilex.levelplugin.fishing.core.feedback.FishingTheme;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.boss.BarColor;
@@ -19,6 +21,8 @@ public class TimingBarGame implements FishingGame {
     private final FishingContext context;
     private final GameDefinition definition;
     private final Consumer<Boolean> onComplete;
+    private final FeedbackService feedbackService;
+    private final FishingTheme theme;
     private BossBar bossBar;
     private BukkitTask task;
     private boolean completed;
@@ -26,10 +30,17 @@ public class TimingBarGame implements FishingGame {
     private double windowStart;
     private double windowEnd;
 
-    public TimingBarGame(Main plugin, FishingContext context, GameDefinition definition, Consumer<Boolean> onComplete) {
+    public TimingBarGame(Main plugin,
+                         FishingContext context,
+                         GameDefinition definition,
+                         FeedbackService feedbackService,
+                         FishingTheme theme,
+                         Consumer<Boolean> onComplete) {
         this.plugin = plugin;
         this.context = context;
         this.definition = definition;
+        this.feedbackService = feedbackService;
+        this.theme = theme;
         this.onComplete = onComplete;
     }
 
@@ -41,7 +52,10 @@ public class TimingBarGame implements FishingGame {
             return;
         }
         setupWindow();
-        bossBar = Bukkit.createBossBar(ChatColor.AQUA + "Reel in the catch!", BarColor.BLUE, BarStyle.SOLID);
+        String title = theme != null ? feedbackService.formatBossBarTitle(theme.bossBarTitle())
+                : ChatColor.AQUA + "Reel in the catch!";
+        BarColor color = theme != null ? theme.barColor() : BarColor.BLUE;
+        bossBar = Bukkit.createBossBar(title, color, BarStyle.SOLID);
         bossBar.addPlayer(player);
         bossBar.setProgress(1.0);
         bossBar.setVisible(true);
@@ -60,6 +74,10 @@ public class TimingBarGame implements FishingGame {
             double progress = Math.max(0.0, 1.0 - (ticks / (double) duration));
             if (bossBar != null) {
                 bossBar.setProgress(progress);
+            }
+            updateActionBar(player, progress);
+            if (ticks % 10 == 0) {
+                feedbackService.playLineParticles(context);
             }
             if (ticks >= duration) {
                 finish(false);
@@ -109,5 +127,17 @@ public class TimingBarGame implements FishingGame {
             bossBar = null;
         }
         onComplete.accept(success);
+    }
+
+    private void updateActionBar(Player player, double progress) {
+        String message;
+        if (progress >= windowStart && progress <= windowEnd) {
+            message = "&aReel now!";
+        } else if (progress > windowEnd) {
+            message = "&7Get ready...";
+        } else {
+            message = "&cToo late!";
+        }
+        feedbackService.showActionBar(player, message, 200L);
     }
 }
