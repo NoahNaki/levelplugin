@@ -512,7 +512,7 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
             MultiLineHologram holo = new MultiLineHologram(marker.clone().add(0.5, 1.2, 0.5), "crimson_flower_slot");
             holo.spawn(List.of(
                     legacy.serialize(Component.text("Place Flower", NamedTextColor.AQUA)),
-                    legacy.serialize(Component.text("Right-click with a bloom", NamedTextColor.GRAY))));
+                    legacy.serialize(Component.text("Right-click with a flower", NamedTextColor.GRAY))));
             state.placementHolograms.put(marker, holo);
             state.placements.put(marker, null);
         }
