@@ -39,6 +39,8 @@ public class ToolManager {
         addTool(Material.IRON_HOE, ToolTier.TIER_IV, ToolDiscipline.FARMING);
         addTool(Material.DIAMOND_HOE, ToolTier.TIER_V, ToolDiscipline.FARMING);
         addTool(Material.NETHERITE_HOE, ToolTier.TIER_VI, ToolDiscipline.FARMING);
+
+        addTool(Material.FISHING_ROD, ToolTier.TIER_I, ToolDiscipline.FISHING);
     }
 
     private void addTool(Material mat, ToolTier tier, ToolDiscipline discipline) {

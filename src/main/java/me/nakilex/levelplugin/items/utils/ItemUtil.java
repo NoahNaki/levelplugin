@@ -752,24 +752,17 @@ public class ItemUtil {
         lore.add(rarityGlyph + "<glyph:tool>");
         lore.add("");
         ToolDiscipline discipline = customTool != null ? customTool.getDiscipline() : ToolDiscipline.MINING;
-        int level = 0;
-        String requirementLabel;
-        if (discipline == ToolDiscipline.FARMING) {
-            level = (viewer != null) ? me.nakilex.levelplugin.player.farming.managers.FarmingManager.getInstance().getLevel(viewer) : 0;
-            requirementLabel = "Farming";
-        } else {
-            level = (viewer != null) ? MiningManager.getInstance().getLevel(viewer) : 0;
-            requirementLabel = "Mining";
-        }
+        int level = viewer != null ? discipline.getLevel(viewer) : 0;
+        String requirementLabel = discipline.getRequirementLabel();
         String reqLine = level >= tier.getLevelRequirement()
                 ? ChatColor.GREEN + "✔ " + ChatColor.GRAY + requirementLabel + " Lv. Requirement: " + ChatColor.WHITE + tier.getLevelRequirement()
                 : ChatColor.RED + "✘ " + ChatColor.GRAY + requirementLabel + " Lv. Requirement: " + ChatColor.WHITE + tier.getLevelRequirement();
         lore.add(reqLine);
         lore.add(" ");
-        if (discipline == ToolDiscipline.FARMING) {
-            lore.add(ChatColor.GRAY + "Harvest Yield: " + ChatColor.GREEN + "+" + (int) (tier.getHarvestYield() * 100 - 100) + "%");
-        } else {
-            lore.add(ChatColor.GRAY + "Mining Speed: " + ChatColor.GREEN + "+" + tier.getMiningSpeed());
+        switch (discipline) {
+            case FARMING -> lore.add(ChatColor.GRAY + "Harvest Yield: " + ChatColor.GREEN + "+" + (int) (tier.getHarvestYield() * 100 - 100) + "%");
+            case FISHING -> lore.add(ChatColor.GRAY + "Hook Speed: " + ChatColor.GREEN + "+" + tier.getMiningSpeed());
+            case MINING -> lore.add(ChatColor.GRAY + "Mining Speed: " + ChatColor.GREEN + "+" + tier.getMiningSpeed());
         }
         meta.setLore(lore);
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_UNBREAKABLE);

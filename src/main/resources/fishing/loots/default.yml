@@ -1,0 +1,12 @@
+loot-pools:
+  water:
+    - id: fish_cod
+      weight: 50
+      conditions:
+        - type: liquid_type
+          value: WATER
+      actions:
+        - type: give_item
+          material: COD
+        - type: message
+          text: "&aYou caught a cod!"

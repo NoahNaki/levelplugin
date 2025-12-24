@@ -1,0 +1,6 @@
+games:
+  timing_bar_default:
+    type: TIMING_BAR
+    duration_ticks: 60
+    window_min: 0.35
+    window_max: 0.45

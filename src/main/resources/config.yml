@@ -33,6 +33,16 @@ tips:
     - "Want to change the appearance of your gear? use the /transmog feature!"
     - "Type /emotes to get a list of all available emotes!"
 
+fishing:
+  enabled-mechanisms:
+    - WATER
+    - LAVA
+    - VOID
+  default-minigame: timing_bar_default
+  debug: false
+  language-key: en
+  void-check-min-y: -64
+
 quest-settings:
   sharpsecret:
     midnight-orchid:

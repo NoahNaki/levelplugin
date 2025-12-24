@@ -217,6 +217,7 @@ public class PluginBootstrap {
     private me.nakilex.levelplugin.catacombs.CatacombsManager catacombsManager;
     private me.nakilex.levelplugin.catacombs.CatacombsGUI catacombsGUI;
     private me.nakilex.levelplugin.nexo.FurnitureGuiMapper furnitureGuiMapper;
+    private me.nakilex.levelplugin.fishing.core.CustomFishingPlugin customFishingPlugin;
 
     public PluginBootstrap(Main plugin) {
         this.plugin = plugin;
@@ -261,6 +262,8 @@ public class PluginBootstrap {
         npcCodexGUI.setMainGui(codexGUI);
         locationCodexGUI.setMainGui(codexGUI);
         registerCommandsAndListeners();
+        customFishingPlugin = new me.nakilex.levelplugin.fishing.core.CustomFishingPlugin(plugin);
+        customFishingPlugin.enable();
         registerPlaceholders();
         me.nakilex.levelplugin.transmog.gui.TransmogBrowser tBrowser =
                 new me.nakilex.levelplugin.transmog.gui.TransmogBrowser(plugin, transmogManager);
@@ -623,6 +626,7 @@ public class PluginBootstrap {
     public void disable() {
         TaskRegistry.stopTasks();
         if (chatGameManager != null) chatGameManager.stop();
+        if (customFishingPlugin != null) customFishingPlugin.disable();
         if (mercenaryManager != null) mercenaryManager.unbindAll();
         if (economyManager != null) economyManager.saveBalances();
         if (dealMaker != null) dealMaker.closeAllTrades();
@@ -791,6 +795,16 @@ public class PluginBootstrap {
     public me.nakilex.levelplugin.mercenary.gui.MercenaryExpeditionGUI getMercenaryExpeditionGUI() { return mercenaryExpeditionGUI; }
     public me.nakilex.levelplugin.mercenary.gui.MercenaryExpeditionRewardsGUI getMercenaryExpeditionRewardsGUI() { return mercenaryExpeditionRewardsGUI; }
     public me.nakilex.levelplugin.transmog.TransmogManager getTransmogManager() { return transmogManager; }
+    public void saveCustomConfig() {
+        if (customConfigFile == null || customConfig == null) {
+            return;
+        }
+        try {
+            customConfig.save(customConfigFile);
+        } catch (IOException e) {
+            plugin.getLogger().warning("Failed to save config.yml: " + e.getMessage());
+        }
+    }
 
     public void reloadPluginConfig() {
         plugin.reloadConfig();
@@ -848,6 +862,9 @@ public class PluginBootstrap {
         if (chatGameManager != null) {
             chatGameManager.reload();
         }
+        if (customFishingPlugin != null) {
+            customFishingPlugin.reload();
+        }
     }
 
     private void createCustomConfig() {
@@ -902,6 +919,21 @@ public class PluginBootstrap {
                     "You can trade with others using /trade <username>",
                     "You can sell your unwanted items at a Scrapper for <glyph:coins_icon> &6coins & <glyph:purple_orb_icon> &dgems&f!"
             ));
+        }
+        if (!customConfig.contains("fishing.enabled-mechanisms")) {
+            customConfig.set("fishing.enabled-mechanisms", Arrays.asList("WATER", "LAVA", "VOID"));
+        }
+        if (!customConfig.contains("fishing.default-minigame")) {
+            customConfig.set("fishing.default-minigame", "timing_bar_default");
+        }
+        if (!customConfig.contains("fishing.debug")) {
+            customConfig.set("fishing.debug", false);
+        }
+        if (!customConfig.contains("fishing.language-key")) {
+            customConfig.set("fishing.language-key", "en");
+        }
+        if (!customConfig.contains("fishing.void-check-min-y")) {
+            customConfig.set("fishing.void-check-min-y", -64);
         }
         if (!customConfig.contains("leaderboards.level.world")) {
             customConfig.set("leaderboards.level.world", "flatland");

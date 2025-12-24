@@ -64,18 +64,6 @@ public class HorseData {
         this.ownerUUID = ownerUUID;
     }
 
-    /** Pick a value based on weighted probabilities. */
-    private static <T> T pickWeighted(Random random, Map<T, Double> weights) {
-        double r = random.nextDouble();
-        double cumulative = 0;
-        for (var entry : weights.entrySet()) {
-            cumulative += entry.getValue();
-            if (r <= cumulative) return entry.getKey();
-        }
-        // Fallback to first entry if weights don't sum to 1.0
-        return weights.keySet().iterator().next();
-    }
-
     // Method to generate a random horse
     public static HorseData randomHorse(UUID ownerUUID) {
         Random random = new Random();
@@ -92,7 +80,7 @@ public class HorseData {
         colorWeights.put("ZOMBIE", 0.05);
         colorWeights.put("SKELETON", 0.05);
 
-        String pickedType = pickWeighted(random, colorWeights);
+        String pickedType = me.nakilex.levelplugin.utils.WeightUtil.pickWeighted(random, colorWeights);
         boolean isVariant = pickedType.equals("ZOMBIE") || pickedType.equals("SKELETON");
 
         // Weighted stat distribution: make high rolls rare
@@ -103,8 +91,8 @@ public class HorseData {
         statWeights.put(4, 0.08);
         statWeights.put(5, 0.02);
 
-        int baseSpeed = pickWeighted(random, statWeights);
-        int baseJump  = pickWeighted(random, statWeights);
+        int baseSpeed = me.nakilex.levelplugin.utils.WeightUtil.pickWeighted(random, statWeights);
+        int baseJump  = me.nakilex.levelplugin.utils.WeightUtil.pickWeighted(random, statWeights);
 
         return new HorseData(pickedType, isVariant, baseSpeed, baseJump, ownerUUID);
     }

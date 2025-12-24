@@ -53,6 +53,7 @@ public class PlayerJoinListener implements Listener {
             levelManager.initializePlayer(player);
             miningManager.initializePlayer(player);
             farmingManager.initializePlayer(player);
+            me.nakilex.levelplugin.player.fishing.managers.FishingSkillManager.getInstance().initializePlayer(player);
             environmentManager.loadPlayerState(player);
             stageManager.hideNPCsFrom(player);
             player.setHealthScaled(true);

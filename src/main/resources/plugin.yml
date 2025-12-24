@@ -237,6 +237,18 @@ commands:
   genitem:
     description: Gives a procedurally generated item
     usage: /genitem [player] <mobType> <level> [amount]
+  customfishing:
+    description: Manage custom fishing settings
+    usage: /customfishing <reload|debug|simulate>
+    permission: customfishing.admin
+
+permissions:
+  customfishing.admin:
+    description: Access debug and simulate commands for custom fishing
+    default: op
+  customfishing.reload:
+    description: Reload custom fishing configuration
+    default: op
 
   genclass:
     description: Generates a class essence for a player
