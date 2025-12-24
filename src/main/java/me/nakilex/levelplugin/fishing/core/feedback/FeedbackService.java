@@ -65,6 +65,31 @@ public class FeedbackService {
         }
     }
 
+    public void playWindowParticles(FishingContext context) {
+        FeedbackPreset preset = configManager.getWindowPreset();
+        if (preset == null) {
+            return;
+        }
+        Player player = context.getPlayer();
+        if (player == null) {
+            return;
+        }
+        Particle particle = resolveParticle(preset.particle());
+        if (particle == null) {
+            return;
+        }
+        Location center = context.getLocation().clone().add(0, 0.2, 0);
+        int points = Math.max(6, preset.particleCount());
+        double radius = Math.max(0.2, preset.particleOffset());
+        for (int i = 0; i < points; i++) {
+            double angle = (Math.PI * 2.0) * (i / (double) points);
+            double x = Math.cos(angle) * radius;
+            double z = Math.sin(angle) * radius;
+            Location point = center.clone().add(x, 0.0, z);
+            player.getWorld().spawnParticle(particle, point, 1, 0, 0, 0, 0);
+        }
+    }
+
     public String formatBossBarTitle(String raw) {
         return raw == null ? "" : ChatColor.translateAlternateColorCodes('&', ChatUtil.applyEmojis(raw));
     }

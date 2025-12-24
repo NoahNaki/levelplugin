@@ -39,6 +39,7 @@ public class FishingConfigManager {
     private me.nakilex.levelplugin.fishing.core.feedback.FeedbackPreset successPreset;
     private me.nakilex.levelplugin.fishing.core.feedback.FeedbackPreset failPreset;
     private me.nakilex.levelplugin.fishing.core.feedback.FeedbackPreset linePreset;
+    private me.nakilex.levelplugin.fishing.core.feedback.FeedbackPreset windowPreset;
 
     public FishingConfigManager(Main plugin, MechanismRegistry mechanismRegistry) {
         this.plugin = plugin;
@@ -176,6 +177,7 @@ public class FishingConfigManager {
         successPreset = loadPreset(loaded.getConfigurationSection("feedback.success"));
         failPreset = loadPreset(loaded.getConfigurationSection("feedback.fail"));
         linePreset = loadPreset(loaded.getConfigurationSection("feedback.line"));
+        windowPreset = loadPreset(loaded.getConfigurationSection("feedback.window"));
     }
 
     private me.nakilex.levelplugin.fishing.core.feedback.FeedbackPreset loadPreset(ConfigurationSection section) {
@@ -371,5 +373,9 @@ public class FishingConfigManager {
 
     public me.nakilex.levelplugin.fishing.core.feedback.FeedbackPreset getLinePreset() {
         return linePreset;
+    }
+
+    public me.nakilex.levelplugin.fishing.core.feedback.FeedbackPreset getWindowPreset() {
+        return windowPreset;
     }
 }

@@ -79,6 +79,9 @@ public class TimingBarGame implements FishingGame {
             if (ticks % 10 == 0) {
                 feedbackService.playLineParticles(context);
             }
+            if (progress >= windowStart && progress <= windowEnd && ticks % 6 == 0) {
+                feedbackService.playWindowParticles(context);
+            }
             if (ticks >= duration) {
                 finish(false);
             }

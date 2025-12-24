@@ -51,3 +51,7 @@ feedback:
   line:
     particle: CRIT
     particle_count: 6
+  window:
+    particle: VILLAGER_HAPPY
+    particle_count: 8
+    particle_offset: 0.35
