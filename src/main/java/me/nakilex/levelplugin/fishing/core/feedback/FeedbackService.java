@@ -57,9 +57,10 @@ public class FeedbackService {
         Location start = player.getLocation().add(0, 1.2, 0);
         Location end = context.getLocation().clone().add(0, 0.2, 0);
         int points = Math.max(4, preset.particleCount());
+        org.bukkit.util.Vector delta = end.toVector().subtract(start.toVector());
         for (int i = 0; i < points; i++) {
             double t = i / (double) (points - 1);
-            Location point = start.clone().lerp(end, t);
+            Location point = start.clone().add(delta.clone().multiply(t));
             player.getWorld().spawnParticle(particle, point, 1, 0, 0, 0, 0);
         }
     }
