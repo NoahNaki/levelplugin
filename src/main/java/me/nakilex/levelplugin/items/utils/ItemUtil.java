@@ -161,7 +161,7 @@ public class ItemUtil {
         if (level <= 20) return MODEL_SET_11_20;
         if (level <= 30) return MODEL_SET_21_30;
         if (level <= 45) return MODEL_SET_31_45;
-        if (level <= 60) return MODEL_SET_46_60;
+        if (level <= 100) return MODEL_SET_46_60;
         return null;
     }
 
