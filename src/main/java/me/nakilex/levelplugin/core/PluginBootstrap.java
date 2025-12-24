@@ -683,7 +683,7 @@ public class PluginBootstrap {
         if (mythic == null || mythic.getMobManager() == null) {
             return;
         }
-        for (ActiveMob mob : mythic.getMobManager().getActiveMobs().values()) {
+        for (ActiveMob mob : mythic.getMobManager().getActiveMobs()) {
             if (mob == null || mob.getEntity() == null) {
                 continue;
             }
