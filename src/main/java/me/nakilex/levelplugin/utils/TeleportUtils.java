@@ -6,6 +6,9 @@ import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
+import org.bukkit.util.RayTraceResult;
+import org.bukkit.util.Vector;
+import org.bukkit.FluidCollisionMode;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
@@ -60,5 +63,28 @@ public final class TeleportUtils {
         Location target = dest.clone();
         target.getChunk().load();
         Bukkit.getScheduler().runTask(Main.getInstance(), () -> player.teleport(target));
+    }
+
+    /**
+     * Resolve a forward teleport target while clamping to the first blocking
+     * block in the player's line of sight.
+     */
+    public static Location resolveLineOfSightTarget(Player player, Vector direction, double maxDistance, double buffer) {
+        if (player == null || direction == null || maxDistance <= 0) return null;
+        Location origin = player.getLocation();
+        RayTraceResult result = player.getWorld().rayTraceBlocks(
+            origin,
+            direction,
+            maxDistance,
+            FluidCollisionMode.NEVER,
+            true
+        );
+        if (result == null || result.getHitBlock() == null) {
+            return origin.clone().add(direction.clone().multiply(maxDistance));
+        }
+
+        double safeBuffer = Math.max(0.0, buffer);
+        Location hitLocation = result.getHitPosition().toLocation(origin.getWorld());
+        return hitLocation.subtract(direction.clone().multiply(safeBuffer));
     }
 }
