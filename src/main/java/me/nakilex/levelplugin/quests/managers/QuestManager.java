@@ -133,6 +133,8 @@ public class QuestManager {
         // change between environments.
         registerNpcQuest(me.nakilex.levelplugin.quests.def.SalvagersLessonQuest.NPC_NAME,
                 me.nakilex.levelplugin.quests.def.SalvagersLessonQuest.ID);
+        registerNpcQuest(me.nakilex.levelplugin.quests.def.ForgeFundamentalsQuest.NPC_ID,
+                me.nakilex.levelplugin.quests.def.ForgeFundamentalsQuest.ID);
         registerNpcQuest(me.nakilex.levelplugin.quests.def.ForgeFundamentalsQuest.NPC_NAME,
                 me.nakilex.levelplugin.quests.def.ForgeFundamentalsQuest.ID);
         registerNpcQuest(me.nakilex.levelplugin.quests.def.EssenceWeaversLessonQuest.NPC_ID,

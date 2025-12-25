@@ -6,6 +6,7 @@ import me.nakilex.levelplugin.quests.data.BeaconTargets;
 import me.nakilex.levelplugin.quests.data.Quest;
 import me.nakilex.levelplugin.quests.data.QuestObjective;
 import me.nakilex.levelplugin.quests.data.QuestObjectiveType;
+import me.nakilex.levelplugin.quests.data.QuestCompletionScript;
 import me.nakilex.levelplugin.quests.data.QuestRewardCompat;
 import me.nakilex.levelplugin.quests.data.QuestScript;
 import me.nakilex.levelplugin.quests.data.QuestResetScript;
@@ -31,7 +32,7 @@ import java.util.UUID;
 /**
  * Investigation quest that sends players to the abandoned castle and into the Crimson Reliquary.
  */
-public class AbandonedCastleQuest extends Quest implements QuestScript, QuestResetScript {
+public class AbandonedCastleQuest extends Quest implements QuestScript, QuestResetScript, QuestCompletionScript {
     public static final String ID = "abandonedcastle";
     public static final String NPC_NAME = "Cedric";
     public static final int NPC_ID = 2854;
@@ -114,10 +115,6 @@ public class AbandonedCastleQuest extends Quest implements QuestScript, QuestRes
     @Override
     public void onStart(Player player, Main plugin) {
         ensureListeners(plugin);
-        QuestManager questManager = plugin.getQuestManager();
-        if (questManager != null) {
-            questManager.handleTalk(player, INTRO_TARGET);
-        }
     }
 
     @Override
@@ -133,6 +130,22 @@ public class AbandonedCastleQuest extends Quest implements QuestScript, QuestRes
             questManager.saveProgress();
         }
         questManager.removeFlag(player.getUniqueId(), ID, NEAR_FLAG);
+    }
+
+    @Override
+    public void onComplete(Player player, Main plugin) {
+        QuestManager questManager = plugin.getQuestManager();
+        if (questManager == null || player == null) {
+            return;
+        }
+        boolean hasForge = questManager.hasCompleted(player.getUniqueId(), ForgeFundamentalsQuest.ID)
+                || questManager.getProgress(player.getUniqueId(), ForgeFundamentalsQuest.ID) != null;
+        if (!hasForge) {
+            questManager.startQuest(player, ForgeFundamentalsQuest.ID);
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                    "The blacksmith wants a word—head over to the forge.");
+            questManager.setTrackedQuest(player, ForgeFundamentalsQuest.ID);
+        }
     }
 
     private static void ensureListeners(Main plugin) {
