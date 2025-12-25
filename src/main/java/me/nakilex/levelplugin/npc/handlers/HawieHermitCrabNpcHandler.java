@@ -42,30 +42,40 @@ public class HawieHermitCrabNpcHandler extends AbstractQuestNpcHandler {
             return false;
         }
 
-        boolean crabsCleared = progress.getProgress(0) >= quest.getObjectives().get(0).getAmount();
-        boolean crabReturnDone = progress.getProgress(1) >= 1;
-        boolean fishReturnDone = progress.getProgress(2) >= 1;
+        boolean introDone = progress.getProgress(0) >= 1;
+        boolean crabsCleared = progress.getProgress(1) >= quest.getObjectives().get(1).getAmount();
+        boolean fishCaptured = progress.getProgress(2) >= quest.getObjectives().get(2).getAmount();
+        boolean fishReturnDone = progress.getProgress(3) >= 1;
+
+        if (!introDone) {
+            dialogManager.startDialog(player,
+                    quest.getDialogLines(),
+                    npc,
+                    () -> questManager.handleTalk(player, HawieHermitCrabQuest.INTRO_TARGET));
+            return true;
+        }
 
         if (!crabsCleared) {
             player.sendMessage("§cClear the hermit crabs before reporting back.");
             return true;
         }
 
-        if (!crabReturnDone) {
+        if (!fishCaptured) {
             if (player.getInventory().firstEmpty() == -1) {
                 ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
                         "Your inventory is full. Make room before receiving the fishing rod.");
                 return true;
             }
-            CustomTool tool = ToolManager.getInstance().getTool(ToolTier.TIER_I, ToolDiscipline.FISHING);
-            if (tool != null) {
-                ItemStack rod = ToolManager.getInstance().createToolItem(tool, player);
-                player.getInventory().addItem(rod);
-            }
             dialogManager.startDialog(player,
                     HawieHermitCrabQuest.getReturnDialog(),
                     npc,
-                    () -> questManager.handleTalk(player, HawieHermitCrabQuest.CRAB_RETURN_TARGET));
+                    () -> {
+                        CustomTool tool = ToolManager.getInstance().getTool(ToolTier.TIER_I, ToolDiscipline.FISHING);
+                        if (tool != null) {
+                            ItemStack rod = ToolManager.getInstance().createToolItem(tool, player);
+                            player.getInventory().addItem(rod);
+                        }
+                    });
             return true;
         }
 

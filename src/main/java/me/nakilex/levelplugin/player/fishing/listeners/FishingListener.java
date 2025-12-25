@@ -122,6 +122,9 @@ public class FishingListener implements Listener {
             player.getInventory().addItem(fishItem);
         }
         fishingManager.addXP(player, definition.xpReward());
+        if (plugin.getQuestManager() != null) {
+            plugin.getQuestManager().handleCaptureFish(player, definition.id());
+        }
         String sizeLabel = String.format("%.1f cm", size);
         String expColor = ChatFormatter.experienceColor();
         String expLabel = ChatFormatter.experienceLabel();

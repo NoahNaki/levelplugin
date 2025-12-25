@@ -19,13 +19,15 @@ import java.util.List;
  */
 public class HawieHermitCrabQuest extends Quest implements QuestScript, QuestCompletionScript {
     public static final String ID = "hawiehermitcrabs";
-    public static final String CRAB_RETURN_TARGET = "npc1089";
+    public static final String INTRO_TARGET = "npc1089_intro";
     public static final String FISH_RETURN_TARGET = "npc1089_fish";
+    public static final String CAPTURE_TARGET = "ANY";
 
     private static List<QuestObjective> createObjectives() {
         return List.of(
+                new QuestObjective(QuestObjectiveType.TALK, INTRO_TARGET, 1, BeaconTargets.npc(1089)),
                 new QuestObjective(QuestObjectiveType.KILL, "vp1_hermit_crab", 10),
-                new QuestObjective(QuestObjectiveType.TALK, CRAB_RETURN_TARGET, 1, BeaconTargets.npc(1089)),
+                new QuestObjective(QuestObjectiveType.CAPTURE_FISH, CAPTURE_TARGET, 1, BeaconTargets.npc(1089)),
                 new QuestObjective(QuestObjectiveType.TALK, FISH_RETURN_TARGET, 1, BeaconTargets.npc(1089))
         );
     }
@@ -47,7 +49,9 @@ public class HawieHermitCrabQuest extends Quest implements QuestScript, QuestCom
                         "Hawie|Head down the shoreline, smash ten of the Hermit Crabs stirring up the muck, and I'll pay you better than those pests deserve.",
                         "Hawie|Come back alive with good news and maybe we can hear the waves again instead of all that clattering."
                 ),
-                false
+                false,
+                true,
+                true
         );
     }
 
@@ -55,7 +59,7 @@ public class HawieHermitCrabQuest extends Quest implements QuestScript, QuestCom
         if (questManager == null) {
             return;
         }
-        questManager.registerTalkTarget(CRAB_RETURN_TARGET, "Hawie", "Hawie");
+        questManager.registerTalkTarget(INTRO_TARGET, "Hawie", "Hawie");
         questManager.registerTalkTarget(FISH_RETURN_TARGET, "Hawie", "Hawie");
     }
 

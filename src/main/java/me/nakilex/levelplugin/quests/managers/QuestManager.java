@@ -894,6 +894,20 @@ public class QuestManager {
         updateObjective(player, QuestObjectiveType.CONSUME_POTION, potionId, 1);
     }
 
+    public void handleCaptureFish(Player player, String fishId) {
+        if (debug) {
+            plugin.getLogger().info("[QuestDebug] " + player.getName() + " captured fish " + fishId);
+        }
+        updateObjectiveWithAny(player, QuestObjectiveType.CAPTURE_FISH, fishId);
+    }
+
+    public void handleGatherCrops(Player player, String cropId) {
+        if (debug) {
+            plugin.getLogger().info("[QuestDebug] " + player.getName() + " gathered crops " + cropId);
+        }
+        updateObjectiveWithAny(player, QuestObjectiveType.GATHER_CROPS, cropId);
+    }
+
     public void handleAuctionBuy(Player player, String itemId) {
         if (debug) {
             plugin.getLogger().info("[QuestDebug] " + player.getName() + " bought from auction " + itemId);
@@ -1279,6 +1293,10 @@ public class QuestManager {
                 return "Discover " + obj.getTarget();
             case CONSUME_POTION:
                 return "Consume " + obj.getTarget();
+            case CAPTURE_FISH:
+                return "Capture " + obj.getAmount() + " Fish";
+            case GATHER_CROPS:
+                return "Gather " + obj.getTarget();
             case PLAY_TIME:
                 return "Play for " + obj.getAmount() + " minutes";
             case AUCTION_BUY:

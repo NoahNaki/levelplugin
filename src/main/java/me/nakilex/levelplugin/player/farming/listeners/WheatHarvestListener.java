@@ -58,11 +58,14 @@ public class WheatHarvestListener implements Listener {
         }
 
         farmingManager.addXP(player, 12);
+        if (Main.getInstance().getQuestManager() != null) {
+            Main.getInstance().getQuestManager().handleGatherCrops(player, "WHEAT");
+        }
 
         double yieldMultiplier = 1.0;
         ItemStack held = player.getInventory().getItemInMainHand();
         if (held != null) {
-            me.nakilex.levelplugin.items.tools.CustomTool tool = ToolManager.getInstance().getTool(held.getType());
+            me.nakilex.levelplugin.items.tools.CustomTool tool = ToolManager.getInstance().getTool(held);
             if (tool != null && tool.getDiscipline() == ToolDiscipline.FARMING) {
                 yieldMultiplier = tool.getTier().getHarvestYield();
             }
