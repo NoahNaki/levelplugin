@@ -127,12 +127,10 @@ public class FishingListener implements Listener {
         }
         String sizeLabel = String.format("%.1f cm", size);
         String expColor = ChatFormatter.experienceColor();
-        String expLabel = ChatFormatter.experienceLabel();
         String message = ChatColor.GRAY + "You caught a " + ChatColor.WHITE + sizeLabel + " "
                 + definition.displayName() + ChatColor.GRAY + " and earned "
-                + expColor + "+" + definition.xpReward() + " "
-                + ChatColor.GREEN + "<glyph:experience_orb_icon> " + expLabel
-                + ChatColor.GRAY + " Fishing XP.";
+                + expColor + "+" + definition.xpReward() + ChatColor.GRAY
+                + " <glyph:experience_orb_icon> Fishing EXP" + ChatColor.GRAY + ".";
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO, message);
     }
 

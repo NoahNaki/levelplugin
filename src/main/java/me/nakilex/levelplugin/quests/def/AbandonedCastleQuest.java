@@ -44,7 +44,7 @@ public class AbandonedCastleQuest extends Quest implements QuestScript, QuestRes
     private static final double CASTLE_RADIUS = 10.0;
     private static final String CRIMSON_KEY = DungeonManager.normalizeKey("Crimson Reliquary");
 
-    private static final String INTRO_TARGET = "npc" + NPC_ID + "_intro";
+    public static final String INTRO_TARGET = "npc" + NPC_ID + "_intro";
     private static final String RETURN_TARGET = "npc" + NPC_ID + "_return";
     private static final String APPROACH_TARGET = "abandoned_castle_approach";
     private static final String ENTER_TARGET = "abandoned_castle_enter";
