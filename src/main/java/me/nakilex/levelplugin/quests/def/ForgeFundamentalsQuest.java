@@ -17,15 +17,16 @@ import java.util.List;
 public class ForgeFundamentalsQuest extends Quest implements QuestScript {
     public static final String ID = "forgefundamentals";
     public static final String NPC_NAME = "Blacksmith";
+    public static final int NPC_ID = 1501;
 
     private static final String INTRO_TARGET = "npc_blacksmith_intro";
     private static final String RETURN_TARGET = "npc_blacksmith_return";
 
     private static List<QuestObjective> createObjectives() {
         return List.of(
-                new QuestObjective(QuestObjectiveType.TALK, INTRO_TARGET, 1, BeaconTargets.npc(NPC_NAME)),
+                new QuestObjective(QuestObjectiveType.TALK, INTRO_TARGET, 1, BeaconTargets.npc(NPC_ID)),
                 new QuestObjective(QuestObjectiveType.BLACKSMITH_SERVICE, "ANY", 1),
-                new QuestObjective(QuestObjectiveType.TALK, RETURN_TARGET, 1, BeaconTargets.npc(NPC_NAME))
+                new QuestObjective(QuestObjectiveType.TALK, RETURN_TARGET, 1, BeaconTargets.npc(NPC_ID))
         );
     }
 
@@ -68,6 +69,6 @@ public class ForgeFundamentalsQuest extends Quest implements QuestScript {
 
     @Override
     public void onStart(Player player, Main plugin) {
-        plugin.getQuestManager().handleTalk(player, INTRO_TARGET);
+        // Require the player to talk to the Blacksmith to progress.
     }
 }

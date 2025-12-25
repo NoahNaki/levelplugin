@@ -151,7 +151,8 @@ public class FastTravelGUI implements Listener {
         double distance = player.getLocation().distance(target.getLocation());
         int base = (int) Math.max(1, Math.round(distance * 0.5));
         int discounted = TownPerkManager.getInstance().applyDiscount(guild, TownPerk.FAST_TRAVEL_DISCOUNT, base);
-        return Math.max(1, discounted);
+        int reduced = (int) Math.max(1, Math.round(discounted * 0.3));
+        return Math.max(1, reduced);
     }
 
     @EventHandler

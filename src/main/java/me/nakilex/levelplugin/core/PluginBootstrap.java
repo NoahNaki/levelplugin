@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.core;
 
 import io.lumine.mythic.bukkit.BukkitAPIHelper;
 import io.lumine.mythic.bukkit.MythicBukkit;
+import io.lumine.mythic.core.mobs.ActiveMob;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.blacksmith.gui.BlacksmithGUI;
 import me.nakilex.levelplugin.blacksmith.managers.ItemRepairManager;
@@ -622,6 +623,7 @@ public class PluginBootstrap {
 
     public void disable() {
         TaskRegistry.stopTasks();
+        despawnActiveMythicMobs();
         if (chatGameManager != null) chatGameManager.stop();
         if (mercenaryManager != null) mercenaryManager.unbindAll();
         if (economyManager != null) economyManager.saveBalances();
@@ -674,6 +676,22 @@ public class PluginBootstrap {
         if (wanderingMerchantManager != null) wanderingMerchantManager.despawn();
         if (dealMaker != null) dealMaker.closeAllTrades();
         plugin.getLogger().info("LevelPlugin has been disabled!");
+    }
+
+    private void despawnActiveMythicMobs() {
+        var mythic = MythicBukkit.inst();
+        if (mythic == null || mythic.getMobManager() == null) {
+            return;
+        }
+        for (ActiveMob mob : mythic.getMobManager().getActiveMobs()) {
+            if (mob == null || mob.getEntity() == null) {
+                continue;
+            }
+            var entity = mob.getEntity().getBukkitEntity();
+            if (entity != null) {
+                entity.remove();
+            }
+        }
     }
 
     public Map<UUID, List<NPC>> getActiveBowDrones() { return activeBowDrones; }

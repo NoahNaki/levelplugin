@@ -1,12 +1,16 @@
 package me.nakilex.levelplugin.quests.def;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.quests.def.AbandonedCastleQuest;
 import me.nakilex.levelplugin.quests.data.BeaconTargets;
 import me.nakilex.levelplugin.quests.data.Quest;
 import me.nakilex.levelplugin.quests.data.QuestObjective;
 import me.nakilex.levelplugin.quests.data.QuestObjectiveType;
+import me.nakilex.levelplugin.quests.data.QuestCompletionScript;
 import me.nakilex.levelplugin.quests.data.QuestRewardCompat;
 import me.nakilex.levelplugin.quests.data.QuestScript;
+import me.nakilex.levelplugin.quests.managers.QuestManager;
+import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.entity.Player;
 
 import java.util.List;
@@ -14,18 +18,19 @@ import java.util.List;
 /**
  * Teaches players how to invest and upgrade essences.
  */
-public class EssenceWeaversLessonQuest extends Quest implements QuestScript {
+public class EssenceWeaversLessonQuest extends Quest implements QuestScript, QuestCompletionScript {
     public static final String ID = "essenceweaverslesson";
     public static final String NPC_NAME = "Essence Weaver";
+    public static final int NPC_ID = 3769;
 
     private static final String INTRO_TARGET = "npc_essence_weaver_intro";
     private static final String RETURN_TARGET = "npc_essence_weaver_return";
 
     private static List<QuestObjective> createObjectives() {
         return List.of(
-                new QuestObjective(QuestObjectiveType.TALK, INTRO_TARGET, 1, BeaconTargets.npc(NPC_NAME)),
+                new QuestObjective(QuestObjectiveType.TALK, INTRO_TARGET, 1, BeaconTargets.npc(NPC_ID)),
                 new QuestObjective(QuestObjectiveType.UPGRADE, "essence", 1),
-                new QuestObjective(QuestObjectiveType.TALK, RETURN_TARGET, 1, BeaconTargets.npc(NPC_NAME))
+                new QuestObjective(QuestObjectiveType.TALK, RETURN_TARGET, 1, BeaconTargets.npc(NPC_ID))
         );
     }
 
@@ -68,6 +73,23 @@ public class EssenceWeaversLessonQuest extends Quest implements QuestScript {
 
     @Override
     public void onStart(Player player, Main plugin) {
-        plugin.getQuestManager().handleTalk(player, INTRO_TARGET);
+        // Require the player to talk to the Essence Weaver to progress.
+    }
+
+    @Override
+    public void onComplete(Player player, Main plugin) {
+        QuestManager questManager = plugin.getQuestManager();
+        if (questManager == null) {
+            return;
+        }
+
+        boolean hasCastle = questManager.hasCompleted(player.getUniqueId(), AbandonedCastleQuest.ID)
+                || questManager.getProgress(player.getUniqueId(), AbandonedCastleQuest.ID) != null;
+        if (!hasCastle) {
+            questManager.startQuest(player, AbandonedCastleQuest.ID);
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                    "Cedric in the nearby town wants to talk—head over and hear about the abandoned castle.");
+            questManager.setTrackedQuest(player, AbandonedCastleQuest.ID);
+        }
     }
 }
