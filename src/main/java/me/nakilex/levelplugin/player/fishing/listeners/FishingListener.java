@@ -8,7 +8,9 @@ import me.nakilex.levelplugin.player.fishing.config.FishingRewardsConfig;
 import me.nakilex.levelplugin.player.fishing.data.FishDefinition;
 import me.nakilex.levelplugin.player.fishing.managers.FishingManager;
 import me.nakilex.levelplugin.player.fishing.utils.FishingItemUtil;
+import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.boss.BarColor;
@@ -119,6 +121,12 @@ public class FishingListener implements Listener {
             player.getInventory().addItem(fishItem);
         }
         fishingManager.addXP(player, definition.xpReward());
+        String sizeLabel = String.format("%.1f cm", size);
+        String message = "You caught " + definition.rarity().getColor() + definition.displayName()
+                + ChatColor.WHITE + " (" + sizeLabel + ")"
+                + ChatColor.GRAY + " and earned "
+                + ChatColor.YELLOW + definition.xpReward() + " <glyph:experience_orb_icon> XP.";
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.REWARD, message);
     }
 
     private ItemStack resolveRod(Player player) {

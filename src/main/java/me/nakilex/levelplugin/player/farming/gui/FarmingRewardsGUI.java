@@ -3,7 +3,11 @@ package me.nakilex.levelplugin.player.farming.gui;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
+import me.nakilex.levelplugin.utils.GuiUtil;
+import me.nakilex.levelplugin.utils.TooltipUtil;
+import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -16,7 +20,9 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 public class FarmingRewardsGUI implements Listener, CommandExecutor {
 
@@ -36,22 +42,38 @@ public class FarmingRewardsGUI implements Listener, CommandExecutor {
         ItemMeta meta = stack.getItemMeta();
         if (meta != null) {
             meta.setDisplayName(name);
-            meta.setLore(Arrays.asList(
-                    "§7Cost: §f" + wheatCost + " Wheat",
-                    "§7Rewards: §e" + rewardText,
-                    "",
-                    "§eClick to trade"
-            ));
+            List<String> lore = new ArrayList<>();
+            lore.add(ChatColor.GRAY + "Cost: " + ChatColor.WHITE + wheatCost + " Wheat");
+            lore.add(ChatColor.GRAY + "Rewards:");
+            lore.add(ChatColor.GOLD + "• " + ChatColor.WHITE + rewardText);
+            lore.add("");
+            lore.addAll(TooltipUtil.clickInstructions("to trade", null));
+            meta.setLore(lore);
             stack.setItemMeta(meta);
         }
         return stack;
     }
 
     private void open(Player player) {
-        Inventory inv = Bukkit.createInventory(null, 27, TITLE);
-        inv.setItem(11, tradeItem("§eFarmhands' Stipend", 16, "+75 Coins"));
-        inv.setItem(13, tradeItem("§eSeed Fund", 32, "+150 Coins & 4 Seeds"));
-        inv.setItem(15, tradeItem("§eBarn Booster", 64, "+350 Coins & 1 Bone Meal"));
+        Inventory inv = GuiBuilder.create(27, TITLE)
+                .filler(Material.GRAY_STAINED_GLASS_PANE)
+                .border()
+                .build();
+        inv.setItem(11, tradeItem(ChatColor.YELLOW + "Farmhands' Stipend", 16, "+75 <glyph:coins_icon>"));
+        inv.setItem(13, tradeItem(ChatColor.YELLOW + "Seed Fund", 32, "+150 <glyph:coins_icon> & 4 Seeds"));
+        inv.setItem(15, tradeItem(ChatColor.YELLOW + "Barn Booster", 64, "+350 <glyph:coins_icon> & 1 Bone Meal"));
+        ItemStack info = GuiUtil.getNexoItem("info", ChatColor.YELLOW + "Information");
+        ItemMeta infoMeta = info.getItemMeta();
+        if (infoMeta != null) {
+            List<String> lore = new ArrayList<>();
+            lore.add(ChatColor.GRAY + "Trade wheat for farming rewards.");
+            lore.add(ChatColor.GRAY + "Higher tiers pay out more coins.");
+            lore.add("");
+            lore.addAll(TooltipUtil.clickInstructions("to trade rewards", null));
+            infoMeta.setLore(lore);
+            info.setItemMeta(infoMeta);
+        }
+        inv.setItem(8, info);
         player.openInventory(inv);
     }
 

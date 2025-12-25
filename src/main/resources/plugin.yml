@@ -145,6 +145,9 @@ commands:
   farmrewards:
     description: Opens the farming rewards exchange
     usage: /farmrewards
+  fishrewards:
+    description: Opens the fishing rewards exchange
+    usage: /fishrewards
   ps:
     description: Manage personal storage
     usage: /ps <create|open>

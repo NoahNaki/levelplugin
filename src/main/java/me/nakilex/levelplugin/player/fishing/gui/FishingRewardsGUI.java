@@ -1,0 +1,155 @@
+package me.nakilex.levelplugin.player.fishing.gui;
+
+import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.economy.managers.EconomyManager;
+import me.nakilex.levelplugin.player.fishing.utils.FishingItemUtil;
+import me.nakilex.levelplugin.utils.ChatMessageUtil;
+import me.nakilex.levelplugin.utils.GuiUtil;
+import me.nakilex.levelplugin.utils.TooltipUtil;
+import me.nakilex.levelplugin.utils.gui.GuiBuilder;
+import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
+import org.bukkit.Material;
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandExecutor;
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class FishingRewardsGUI implements Listener, CommandExecutor {
+
+    private static final String TITLE = "Fishing Rewards";
+    private final EconomyManager economyManager;
+    private final Main plugin;
+
+    public FishingRewardsGUI(Main plugin, EconomyManager economyManager) {
+        this.plugin = plugin;
+        this.economyManager = economyManager;
+        plugin.getCommand("fishrewards").setExecutor(this);
+        Bukkit.getPluginManager().registerEvents(this, plugin);
+    }
+
+    private void open(Player player) {
+        Inventory inv = GuiBuilder.create(54, TITLE)
+                .filler(Material.GRAY_STAINED_GLASS_PANE)
+                .fillEmptySlots(false)
+                .border()
+                .build();
+
+        ItemStack info = GuiUtil.getNexoItem("info", ChatColor.YELLOW + "Information");
+        ItemMeta infoMeta = info.getItemMeta();
+        if (infoMeta != null) {
+            List<String> lore = new ArrayList<>();
+            lore.add(ChatColor.GRAY + "Place caught fish in the center.");
+            lore.add(ChatColor.GRAY + "Confirm to sell them for coins.");
+            lore.add("");
+            lore.add(ChatColor.GOLD + "Fish Value:");
+            lore.add(ChatColor.GRAY + "  Scales with size and rarity.");
+            lore.add("");
+            lore.addAll(TooltipUtil.clickInstructions("to confirm sale", null));
+            infoMeta.setLore(lore);
+            info.setItemMeta(infoMeta);
+        }
+
+        inv.setItem(8, info);
+        inv.setItem(45, GuiUtil.getNexoItem("cross", ChatColor.RED + "Cancel"));
+        inv.setItem(53, GuiUtil.getNexoItem("check", ChatColor.GREEN + "Confirm Sale"));
+        player.openInventory(inv);
+    }
+
+    @Override
+    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage("Only players can use this command.");
+            return true;
+        }
+        open(player);
+        return true;
+    }
+
+    @EventHandler
+    public void onClick(InventoryClickEvent event) {
+        if (!event.getView().getTitle().equals(TITLE)) return;
+        if (!(event.getWhoClicked() instanceof Player player)) return;
+
+        Inventory top = event.getView().getTopInventory();
+        int rawSlot = event.getRawSlot();
+        ItemStack current = event.getCurrentItem();
+
+        if (rawSlot == 45) {
+            event.setCancelled(true);
+            player.closeInventory();
+            return;
+        }
+        if (rawSlot == 53) {
+            event.setCancelled(true);
+            handleSell(player, top);
+            return;
+        }
+        if (rawSlot == 8) {
+            event.setCancelled(true);
+            return;
+        }
+
+        if (rawSlot < top.getSize()) {
+            ItemStack cursor = event.getCursor();
+            if (cursor != null && cursor.getType() != Material.AIR && !FishingItemUtil.isFish(cursor)) {
+                event.setCancelled(true);
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING, "Only fish can be sold here.");
+                return;
+            }
+            if (current != null && current.getType() != Material.AIR && !FishingItemUtil.isFish(current)) {
+                event.setCancelled(true);
+                return;
+            }
+        } else {
+            if (event.isShiftClick() && current != null && current.getType() != Material.AIR
+                    && !FishingItemUtil.isFish(current)) {
+                event.setCancelled(true);
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING, "Only fish can be sold here.");
+            }
+        }
+    }
+
+    @EventHandler
+    public void onDrag(InventoryDragEvent event) {
+        if (!event.getView().getTitle().equals(TITLE)) return;
+        ItemStack item = event.getOldCursor();
+        if (item == null || item.getType() == Material.AIR) return;
+        if (!FishingItemUtil.isFish(item)) {
+            event.setCancelled(true);
+        }
+    }
+
+    private void handleSell(Player player, Inventory top) {
+        int total = 0;
+        for (int slot = 0; slot < top.getSize(); slot++) {
+            if (slot == 8 || slot == 45 || slot == 53) continue;
+            ItemStack stack = top.getItem(slot);
+            if (stack == null || stack.getType() == Material.AIR) continue;
+            if (!FishingItemUtil.isFish(stack)) continue;
+            int value = FishingItemUtil.getFishValue(stack);
+            total += value * stack.getAmount();
+            top.setItem(slot, null);
+        }
+
+        if (total <= 0) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING, "Place fish in the menu to sell them.");
+            return;
+        }
+
+        economyManager.addCoins(player, total, false);
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
+                "Sold your catch for " + ChatColor.YELLOW + total + " <glyph:coins_icon>.");
+        player.updateInventory();
+    }
+}

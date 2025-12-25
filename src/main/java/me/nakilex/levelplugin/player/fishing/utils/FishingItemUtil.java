@@ -4,7 +4,6 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.items.data.ItemRarity;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.player.fishing.data.FishDefinition;
-import me.nakilex.levelplugin.utils.TextUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -50,7 +49,6 @@ public final class FishingItemUtil {
         lore.add("");
         lore.add(ChatColor.GRAY + "Fish Type: " + ChatColor.WHITE + definition.displayName());
         lore.add(ChatColor.GRAY + "Size: " + ChatColor.WHITE + formatSize(size));
-        lore.add(ChatColor.GRAY + "Rarity: " + rarity.getColor() + TextUtil.beautifyWords(rarity.name()));
         meta.setLore(lore);
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
         stack.setItemMeta(meta);
@@ -61,5 +59,46 @@ public final class FishingItemUtil {
 
     private static String formatSize(double size) {
         return String.format("%.1f cm", size);
+    }
+
+    public static boolean isFish(ItemStack stack) {
+        if (stack == null || !stack.hasItemMeta()) return false;
+        ItemMeta meta = stack.getItemMeta();
+        if (meta == null) return false;
+        return meta.getPersistentDataContainer().has(FISH_ID_KEY, PersistentDataType.STRING);
+    }
+
+    public static int getFishValue(ItemStack stack) {
+        if (stack == null || !stack.hasItemMeta()) return 0;
+        ItemMeta meta = stack.getItemMeta();
+        if (meta == null) return 0;
+        return meta.getPersistentDataContainer().getOrDefault(FISH_VALUE_KEY, PersistentDataType.INTEGER, 0);
+    }
+
+    public static double getFishSize(ItemStack stack) {
+        if (stack == null || !stack.hasItemMeta()) return 0.0;
+        ItemMeta meta = stack.getItemMeta();
+        if (meta == null) return 0.0;
+        return meta.getPersistentDataContainer().getOrDefault(FISH_SIZE_KEY, PersistentDataType.DOUBLE, 0.0);
+    }
+
+    public static ItemRarity getFishRarity(ItemStack stack) {
+        if (stack == null || !stack.hasItemMeta()) return ItemRarity.COMMON;
+        ItemMeta meta = stack.getItemMeta();
+        if (meta == null) return ItemRarity.COMMON;
+        String rarity = meta.getPersistentDataContainer().get(FISH_RARITY_KEY, PersistentDataType.STRING);
+        if (rarity == null) return ItemRarity.COMMON;
+        try {
+            return ItemRarity.valueOf(rarity);
+        } catch (IllegalArgumentException e) {
+            return ItemRarity.COMMON;
+        }
+    }
+
+    public static String getFishDisplayName(ItemStack stack) {
+        if (stack == null || !stack.hasItemMeta()) return "Fish";
+        ItemMeta meta = stack.getItemMeta();
+        if (meta == null || !meta.hasDisplayName()) return "Fish";
+        return meta.getDisplayName();
     }
 }

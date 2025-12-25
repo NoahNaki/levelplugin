@@ -774,6 +774,7 @@ public class ItemUtil {
         } else if (discipline == ToolDiscipline.FISHING) {
             lore.add(ChatColor.GRAY + "Fishing Speed: " + ChatColor.GREEN + "+" + (int) (tier.getFishingSpeed() * 100 - 100) + "%");
             lore.add(ChatColor.GRAY + "Fish Rarity: " + ChatColor.GREEN + "+" + (int) (tier.getFishRarityBonus() * 100 - 100) + "%");
+            meta.setUnbreakable(true);
         } else {
             lore.add(ChatColor.GRAY + "Mining Speed: " + ChatColor.GREEN + "+" + tier.getMiningSpeed());
         }
