@@ -38,7 +38,11 @@ public class ToolBrowser implements CommandExecutor, Listener {
         if (meta != null) {
             ToolTier tier = tool.getTier();
             ChatColor color = tier.getRarity().getColor();
-            String suffix = tool.getDiscipline() == ToolDiscipline.MINING ? " Pickaxe" : " Scythe";
+            String suffix = switch (tool.getDiscipline()) {
+                case MINING -> " Pickaxe";
+                case FARMING -> " Scythe";
+                case FISHING -> " Fishing Rod";
+            };
             meta.setDisplayName(color + "Tier " + tier.getTierName() + suffix);
             it.setItemMeta(meta);
             ItemUtil.updateCustomToolTooltip(it, viewer);
@@ -49,14 +53,18 @@ public class ToolBrowser implements CommandExecutor, Listener {
     private void open(Player player) {
         List<CustomTool> mining = ToolManager.getInstance().getTools(ToolDiscipline.MINING);
         List<CustomTool> farming = ToolManager.getInstance().getTools(ToolDiscipline.FARMING);
-        Inventory inv = Bukkit.createInventory(null, 18, TITLE);
-        for (int i = 0; i < mining.size() && i < 9; i++) {
-            inv.setItem(i, createToolItem(player, mining.get(i)));
-        }
-        for (int i = 0; i < farming.size() && i < 9; i++) {
-            inv.setItem(9 + i, createToolItem(player, farming.get(i)));
-        }
+        List<CustomTool> fishing = ToolManager.getInstance().getTools(ToolDiscipline.FISHING);
+        Inventory inv = Bukkit.createInventory(null, 27, TITLE);
+        fillRow(inv, 0, mining, player);
+        fillRow(inv, 9, farming, player);
+        fillRow(inv, 18, fishing, player);
         player.openInventory(inv);
+    }
+
+    private void fillRow(Inventory inv, int start, List<CustomTool> tools, Player player) {
+        for (int i = 0; i < tools.size() && i < 9; i++) {
+            inv.setItem(start + i, createToolItem(player, tools.get(i)));
+        }
     }
 
     @Override

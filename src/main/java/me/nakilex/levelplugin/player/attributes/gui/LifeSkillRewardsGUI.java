@@ -5,6 +5,7 @@ import me.nakilex.levelplugin.items.tools.ToolDiscipline;
 import me.nakilex.levelplugin.player.attributes.managers.LifeSkillRewardManager;
 import me.nakilex.levelplugin.player.attributes.managers.LifeSkillRewardManager.LifeSkillReward;
 import me.nakilex.levelplugin.player.farming.managers.FarmingManager;
+import me.nakilex.levelplugin.player.fishing.managers.FishingManager;
 import me.nakilex.levelplugin.player.mining.managers.MiningManager;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
@@ -61,9 +62,11 @@ public final class LifeSkillRewardsGUI {
         LifeSkillRewardManager rewardManager = LifeSkillRewardManager.getInstance();
         List<LifeSkillReward> rewards = rewardManager.getRewards(discipline);
 
-        int level = discipline == ToolDiscipline.MINING
-                ? MiningManager.getInstance().getLevel(player)
-                : FarmingManager.getInstance().getLevel(player);
+        int level = switch (discipline) {
+            case MINING -> MiningManager.getInstance().getLevel(player);
+            case FARMING -> FarmingManager.getInstance().getLevel(player);
+            case FISHING -> FishingManager.getInstance().getLevel(player);
+        };
 
         for (int i = 0; i < PATH.length; i++) {
             ItemStack tile;

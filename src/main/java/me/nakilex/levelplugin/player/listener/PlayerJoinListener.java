@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.config.PlayerConfig;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
+import me.nakilex.levelplugin.player.fishing.managers.FishingManager;
 import me.nakilex.levelplugin.player.mining.managers.MiningManager;
 import me.nakilex.levelplugin.environment.EnvironmentManager;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
@@ -26,14 +27,19 @@ public class PlayerJoinListener implements Listener {
     private final LevelManager levelManager;
     private final MiningManager miningManager;
     private final me.nakilex.levelplugin.player.farming.managers.FarmingManager farmingManager;
+    private final FishingManager fishingManager;
     private final PlayerConfig playerConfig;
     private final EnvironmentManager environmentManager;
     private final me.nakilex.levelplugin.environment.stage.TownStageManager stageManager;
 
-    public PlayerJoinListener(LevelManager levelManager, MiningManager miningManager, me.nakilex.levelplugin.player.farming.managers.FarmingManager farmingManager, PlayerConfig playerConfig, EnvironmentManager envManager) {
+    public PlayerJoinListener(LevelManager levelManager, MiningManager miningManager,
+                              me.nakilex.levelplugin.player.farming.managers.FarmingManager farmingManager,
+                              FishingManager fishingManager, PlayerConfig playerConfig,
+                              EnvironmentManager envManager) {
         this.levelManager  = levelManager;
         this.miningManager = miningManager;
         this.farmingManager = farmingManager;
+        this.fishingManager = fishingManager;
         this.playerConfig  = playerConfig;
         this.environmentManager = envManager;
         this.stageManager = envManager.getStageManager();
@@ -53,6 +59,7 @@ public class PlayerJoinListener implements Listener {
             levelManager.initializePlayer(player);
             miningManager.initializePlayer(player);
             farmingManager.initializePlayer(player);
+            fishingManager.initializePlayer(player);
             environmentManager.loadPlayerState(player);
             stageManager.hideNPCsFrom(player);
             player.setHealthScaled(true);

@@ -57,6 +57,10 @@ public class StatsMenuListener implements Listener {
                 LifeSkillRewardsGUI.open(player, ToolDiscipline.FARMING);
                 return;
             }
+            if (displayName.startsWith("Fishing")) {
+                LifeSkillRewardsGUI.open(player, ToolDiscipline.FISHING);
+                return;
+            }
             return;
         }
 

@@ -39,10 +39,16 @@ public class ToolManager {
         addTool(Material.IRON_HOE, ToolTier.TIER_IV, ToolDiscipline.FARMING);
         addTool(Material.DIAMOND_HOE, ToolTier.TIER_V, ToolDiscipline.FARMING);
         addTool(Material.NETHERITE_HOE, ToolTier.TIER_VI, ToolDiscipline.FARMING);
+
+        addTool(Material.FISHING_ROD, ToolTier.TIER_VI, ToolDiscipline.FISHING);
     }
 
     private void addTool(Material mat, ToolTier tier, ToolDiscipline discipline) {
-        String suffix = discipline == ToolDiscipline.MINING ? " Pickaxe" : " Scythe";
+        String suffix = switch (discipline) {
+            case MINING -> " Pickaxe";
+            case FARMING -> " Scythe";
+            case FISHING -> " Fishing Rod";
+        };
         String name = "Tier " + tier.getTierName() + suffix;
         CustomTool tool = new CustomTool(UUID.randomUUID(), name, mat, tier, discipline);
         tools.add(tool);

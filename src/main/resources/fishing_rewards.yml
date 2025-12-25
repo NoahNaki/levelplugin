@@ -1,0 +1,57 @@
+fish:
+  river_carp:
+    display: "River Carp"
+    min_size: 20
+    max_size: 60
+    rarity: COMMON
+    xp: 8
+    value: 12
+    weight: 50
+    min_level: 1
+  silver_trout:
+    display: "Silver Trout"
+    min_size: 30
+    max_size: 75
+    rarity: UNCOMMON
+    xp: 12
+    value: 22
+    weight: 30
+    min_level: 5
+  dusk_eel:
+    display: "Dusk Eel"
+    min_size: 45
+    max_size: 90
+    rarity: RARE
+    xp: 18
+    value: 40
+    weight: 15
+    min_level: 12
+  storm_pike:
+    display: "Storm Pike"
+    min_size: 60
+    max_size: 110
+    rarity: EPIC
+    xp: 26
+    value: 65
+    weight: 4
+    min_level: 20
+  golden_marlin:
+    display: "Golden Marlin"
+    min_size: 80
+    max_size: 140
+    rarity: LEGENDARY
+    xp: 35
+    value: 120
+    weight: 1
+    min_level: 35
+  lava_aurelian:
+    display: "Lava Aurelian"
+    min_size: 90
+    max_size: 150
+    rarity: MYTHIC
+    xp: 50
+    value: 200
+    weight: 1
+    min_level: 50
+    requires_lava: true
+    requires_highest_tier: true

@@ -7,6 +7,7 @@ import me.nakilex.levelplugin.mercenary.MercenaryAffinityManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
 import me.nakilex.levelplugin.player.farming.managers.FarmingManager;
+import me.nakilex.levelplugin.player.fishing.managers.FishingManager;
 import me.nakilex.levelplugin.player.mining.managers.MiningManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.ChatColor;
@@ -38,6 +39,7 @@ public class LifeSkillRewardManager {
     private final EconomyManager economyManager;
     private final MiningManager miningManager;
     private final FarmingManager farmingManager;
+    private final FishingManager fishingManager;
     private final Supplier<MercenaryAffinityManager> affinitySupplier;
 
     public LifeSkillRewardManager(Main plugin) {
@@ -45,6 +47,7 @@ public class LifeSkillRewardManager {
         this.economyManager = plugin.getEconomyManager();
         this.miningManager = plugin.getMiningManager();
         this.farmingManager = plugin.getFarmingManager();
+        this.fishingManager = plugin.getFishingManager();
         this.affinitySupplier = plugin::getMercenaryAffinityManager;
         instance = this;
 
@@ -61,6 +64,7 @@ public class LifeSkillRewardManager {
     private void initialiseRewards() {
         rewards.put(ToolDiscipline.FARMING, createRewardList("Farming"));
         rewards.put(ToolDiscipline.MINING, createRewardList("Mining"));
+        rewards.put(ToolDiscipline.FISHING, createRewardList("Fishing"));
     }
 
     private List<LifeSkillReward> createRewardList(String skillName) {
@@ -192,6 +196,7 @@ public class LifeSkillRewardManager {
         return switch (discipline) {
             case MINING -> miningManager.getLevel(uuid);
             case FARMING -> farmingManager.getLevel(uuid);
+            case FISHING -> fishingManager.getLevel(uuid);
         };
     }
 

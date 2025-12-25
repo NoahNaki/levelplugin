@@ -757,6 +757,9 @@ public class ItemUtil {
         if (discipline == ToolDiscipline.FARMING) {
             level = (viewer != null) ? me.nakilex.levelplugin.player.farming.managers.FarmingManager.getInstance().getLevel(viewer) : 0;
             requirementLabel = "Farming";
+        } else if (discipline == ToolDiscipline.FISHING) {
+            level = (viewer != null) ? me.nakilex.levelplugin.player.fishing.managers.FishingManager.getInstance().getLevel(viewer) : 0;
+            requirementLabel = "Fishing";
         } else {
             level = (viewer != null) ? MiningManager.getInstance().getLevel(viewer) : 0;
             requirementLabel = "Mining";
@@ -768,6 +771,9 @@ public class ItemUtil {
         lore.add(" ");
         if (discipline == ToolDiscipline.FARMING) {
             lore.add(ChatColor.GRAY + "Harvest Yield: " + ChatColor.GREEN + "+" + (int) (tier.getHarvestYield() * 100 - 100) + "%");
+        } else if (discipline == ToolDiscipline.FISHING) {
+            lore.add(ChatColor.GRAY + "Fishing Speed: " + ChatColor.GREEN + "+" + (int) (tier.getFishingSpeed() * 100 - 100) + "%");
+            lore.add(ChatColor.GRAY + "Fish Rarity: " + ChatColor.GREEN + "+" + (int) (tier.getFishRarityBonus() * 100 - 100) + "%");
         } else {
             lore.add(ChatColor.GRAY + "Mining Speed: " + ChatColor.GREEN + "+" + tier.getMiningSpeed());
         }
