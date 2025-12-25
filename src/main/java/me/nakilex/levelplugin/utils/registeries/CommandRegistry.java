@@ -33,7 +33,9 @@ import me.nakilex.levelplugin.player.classes.commands.SealingCharmCommand;
 import me.nakilex.levelplugin.player.level.commands.AddXPCommand;
 import me.nakilex.levelplugin.player.mining.commands.AddMiningXPCommand;
 import me.nakilex.levelplugin.player.mining.commands.MiningLevelCommand;
+import me.nakilex.levelplugin.player.farming.commands.AddFarmingXPCommand;
 import me.nakilex.levelplugin.player.farming.commands.FarmingLevelCommand;
+import me.nakilex.levelplugin.player.fishing.commands.AddFishingXPCommand;
 import me.nakilex.levelplugin.player.mining.commands.SetMiningLevelCommand;
 import me.nakilex.levelplugin.player.level.commands.SetLevelCommand;
 import me.nakilex.levelplugin.player.battlepass.BattlePassManager;
@@ -153,6 +155,14 @@ public class CommandRegistry {
         AddMiningXPCommand addMiningXpCmd = new AddMiningXPCommand(miningManager);
         plugin.getCommand("addminingxp").setExecutor(addMiningXpCmd);
         plugin.getCommand("addminingxp").setTabCompleter(addMiningXpCmd);
+
+        AddFarmingXPCommand addFarmingXpCmd = new AddFarmingXPCommand(plugin.getFarmingManager());
+        plugin.getCommand("addfarmingxp").setExecutor(addFarmingXpCmd);
+        plugin.getCommand("addfarmingxp").setTabCompleter(addFarmingXpCmd);
+
+        AddFishingXPCommand addFishingXpCmd = new AddFishingXPCommand(plugin.getFishingManager());
+        plugin.getCommand("addfishingxp").setExecutor(addFishingXpCmd);
+        plugin.getCommand("addfishingxp").setTabCompleter(addFishingXpCmd);
 
         plugin.getCommand("mininglevel").setExecutor(new MiningLevelCommand(miningManager));
         plugin.getCommand("farminglevel").setExecutor(new FarmingLevelCommand(plugin.getFarmingManager()));

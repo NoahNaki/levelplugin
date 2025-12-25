@@ -122,6 +122,7 @@ public class MerchantGUI implements Listener {
                     meta.setDisplayName(ChatColor.GREEN + tool.getName());
                     stack.setItemMeta(meta);
                 }
+                ToolManager.getInstance().applyToolData(stack, tool);
                 ItemUtil.updateCustomToolTooltip(stack, null);
                 meta = stack.getItemMeta();
                 if (meta != null) {
@@ -439,6 +440,7 @@ public class MerchantGUI implements Listener {
                         meta.setDisplayName(ChatColor.GREEN + tool.getName());
                         purchasedItem.setItemMeta(meta);
                     }
+                    ToolManager.getInstance().applyToolData(purchasedItem, tool);
                     ItemUtil.updateCustomToolTooltip(purchasedItem, player);
                     player.getInventory().addItem(purchasedItem);
                     sendPurchaseMessage(player, purchasedItem.getItemMeta().getDisplayName(), coinCost, gemCost);

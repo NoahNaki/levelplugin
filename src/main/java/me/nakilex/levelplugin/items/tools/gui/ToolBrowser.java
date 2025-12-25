@@ -45,6 +45,7 @@ public class ToolBrowser implements CommandExecutor, Listener {
             };
             meta.setDisplayName(color + "Tier " + tier.getTierName() + suffix);
             it.setItemMeta(meta);
+            ToolManager.getInstance().applyToolData(it, tool);
             ItemUtil.updateCustomToolTooltip(it, viewer);
         }
         return it;

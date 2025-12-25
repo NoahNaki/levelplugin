@@ -738,7 +738,7 @@ public class ItemUtil {
      * Updates the tooltip of a tool item based on the viewer's mining level.
      */
     public static void updateCustomToolTooltip(ItemStack stack, Player viewer) {
-        me.nakilex.levelplugin.items.tools.CustomTool customTool = ToolManager.getInstance().getTool(stack.getType());
+        me.nakilex.levelplugin.items.tools.CustomTool customTool = ToolManager.getInstance().getTool(stack);
         ToolTier tier = customTool != null ? customTool.getTier() : ToolTier.fromMaterial(stack.getType());
         if (tier == null) return;
         ItemMeta meta = stack.getItemMeta();

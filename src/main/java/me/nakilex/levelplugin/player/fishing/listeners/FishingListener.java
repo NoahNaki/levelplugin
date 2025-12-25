@@ -134,7 +134,7 @@ public class FishingListener implements Listener {
 
     private ToolTier resolveTier(ItemStack rod) {
         if (rod == null) return null;
-        CustomTool tool = ToolManager.getInstance().getTool(rod.getType());
+        CustomTool tool = ToolManager.getInstance().getTool(rod);
         return tool != null ? tool.getTier() : ToolTier.fromMaterial(rod.getType());
     }
 
