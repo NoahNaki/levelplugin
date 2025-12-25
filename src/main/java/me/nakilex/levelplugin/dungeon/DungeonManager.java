@@ -679,10 +679,34 @@ public class DungeonManager {
                     if (cell == null) continue;
                     String[] parts = coord.split(",");
                     if (parts.length != 2) continue;
-                    int x = Integer.parseInt(parts[0]);
-                    int y = Integer.parseInt(parts[1]);
-                    RoomType type = RoomType.valueOf(cell.getString("type", "NONE"));
-                    TemplateType t = TemplateType.valueOf(cell.getString("template", "NONE"));
+                    int x;
+                    int y;
+                    try {
+                        x = Integer.parseInt(parts[0].trim());
+                        y = Integer.parseInt(parts[1].trim());
+                    } catch (NumberFormatException ex) {
+                        plugin.getLogger().warning("[Dungeon] Invalid cell coordinates '" + coord
+                                + "' in layout '" + rawKey + "'. Skipping.");
+                        continue;
+                    }
+                    String typeName = cell.getString("type", "NONE");
+                    RoomType type;
+                    try {
+                        type = RoomType.valueOf(typeName);
+                    } catch (IllegalArgumentException ex) {
+                        plugin.getLogger().warning("[Dungeon] Unknown room type '" + typeName
+                                + "' at cell '" + coord + "' in layout '" + rawKey + "'. Using NONE.");
+                        type = RoomType.NONE;
+                    }
+                    String templateName = cell.getString("template", "NONE");
+                    TemplateType t;
+                    try {
+                        t = TemplateType.valueOf(templateName);
+                    } catch (IllegalArgumentException ex) {
+                        plugin.getLogger().warning("[Dungeon] Unknown template type '" + templateName
+                                + "' at cell '" + coord + "' in layout '" + rawKey + "'. Using NONE.");
+                        t = TemplateType.NONE;
+                    }
                     int rot = cell.getInt("rotation", 0);
                     String mob = cell.getString("mob", null);
                     int offX = cell.getInt("offsetX", 0);
