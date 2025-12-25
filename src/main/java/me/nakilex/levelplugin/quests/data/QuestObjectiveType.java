@@ -36,5 +36,7 @@ public enum QuestObjectiveType {
     DUEL_WIN,
     ARENA_MATCH,
     DUNGEON_CREATE,
-    DUNGEON_COMPLETE
+    DUNGEON_COMPLETE,
+    CAPTURE_FISH,
+    GATHER_CROPS
 }

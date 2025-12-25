@@ -218,6 +218,14 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
         }
         idx++; line--;
 
+        if (player.getWorld().hasStorm()) {
+            current[idx] = ChatColor.AQUA + "Fishing Speed: " + ChatColor.WHITE + "+100%";
+            if (!current[idx].equals(prev[idx])) {
+                setLine(board, obj, idx, line, current[idx]);
+            }
+            idx++; line--;
+        }
+
         // Siege status
         if (siegeActive) {
             String cap = siege.getCapturingGuild();

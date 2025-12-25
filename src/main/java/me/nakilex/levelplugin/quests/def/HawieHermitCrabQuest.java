@@ -8,9 +8,7 @@ import me.nakilex.levelplugin.quests.data.QuestObjectiveType;
 import me.nakilex.levelplugin.quests.data.QuestRewardCompat;
 import me.nakilex.levelplugin.quests.data.QuestScript;
 import me.nakilex.levelplugin.quests.data.QuestCompletionScript;
-import me.nakilex.levelplugin.quests.def.SerasSlimeKingQuest;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
-import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.entity.Player;
 
 import java.util.List;
@@ -21,11 +19,18 @@ import java.util.List;
  */
 public class HawieHermitCrabQuest extends Quest implements QuestScript, QuestCompletionScript {
     public static final String ID = "hawiehermitcrabs";
+    public static final String INTRO_TARGET = "npc1089_intro";
+    public static final String RETURN_TARGET = "npc1089_return";
+    public static final String FISH_RETURN_TARGET = "npc1089_fish";
+    public static final String CAPTURE_TARGET = "ANY";
 
     private static List<QuestObjective> createObjectives() {
         return List.of(
+                new QuestObjective(QuestObjectiveType.TALK, INTRO_TARGET, 1, BeaconTargets.npc(1089)),
                 new QuestObjective(QuestObjectiveType.KILL, "vp1_hermit_crab", 10),
-                new QuestObjective(QuestObjectiveType.TALK, "npc1089", 1, BeaconTargets.npc(1089))
+                new QuestObjective(QuestObjectiveType.TALK, RETURN_TARGET, 1, BeaconTargets.npc(1089)),
+                new QuestObjective(QuestObjectiveType.CAPTURE_FISH, CAPTURE_TARGET, 1, BeaconTargets.npc(1089)),
+                new QuestObjective(QuestObjectiveType.TALK, FISH_RETURN_TARGET, 1, BeaconTargets.npc(1089))
         );
     }
 
@@ -46,16 +51,36 @@ public class HawieHermitCrabQuest extends Quest implements QuestScript, QuestCom
                         "Hawie|Head down the shoreline, smash ten of the Hermit Crabs stirring up the muck, and I'll pay you better than those pests deserve.",
                         "Hawie|Come back alive with good news and maybe we can hear the waves again instead of all that clattering."
                 ),
-                false
+                false,
+                true,
+                true
         );
+    }
+
+    public static void registerTalkTargets(QuestManager questManager) {
+        if (questManager == null) {
+            return;
+        }
+        questManager.registerTalkTarget(INTRO_TARGET, "Hawie", "Hawie");
+        questManager.registerTalkTarget(RETURN_TARGET, "Hawie", "Hawie");
+        questManager.registerTalkTarget(FISH_RETURN_TARGET, "Hawie", "Hawie");
     }
 
     public static List<String> getReturnDialog() {
         return List.of(
                 "Hawie|That's the last of the clattering nuisances? Music to my ears!",
                 "<player>|The docks should stay in one piece now.",
-                "Hawie|Good. The docks will stay quiet for a while.",
-                "Hawie|If you're hungry for tougher prey, wander farther from town—only small fry hang around here."
+                "Hawie|Nice, now that the lake is cleared of the hermit crabs the fish should be returning soon.",
+                "Hawie|How about you try it out? Bring me back your first catch."
+        );
+    }
+
+    public static List<String> getFishingReturnDialog() {
+        return List.of(
+                "Hawie|That's a catch worth bragging about.",
+                "<player>|Thanks, say Hawie, do you by any chance know about an Essence Weaver somewhere in these woods?",
+                "Hawie|Essence Weaver you say?",
+                "Hawie|Yeah there's one..."
         );
     }
 
@@ -70,12 +95,11 @@ public class HawieHermitCrabQuest extends Quest implements QuestScript, QuestCom
         if (questManager == null) {
             return;
         }
-        if (!questManager.hasCompleted(player.getUniqueId(), SerasSlimeKingQuest.ID)
-                && questManager.getProgress(player.getUniqueId(), SerasSlimeKingQuest.ID) == null) {
-            questManager.startQuest(player, SerasSlimeKingQuest.ID);
-            ChatMessageUtil.send(player,
-                    ChatMessageUtil.MessageType.INFO,
-                    "Hawie|Seras was looking for you—sounds like that Slime King finally needs dealing with.");
+        boolean hasEssenceWeaver = questManager.hasCompleted(player.getUniqueId(), EssenceWeaversLessonQuest.ID)
+                || questManager.getProgress(player.getUniqueId(), EssenceWeaversLessonQuest.ID) != null;
+        if (!hasEssenceWeaver) {
+            questManager.startQuest(player, EssenceWeaversLessonQuest.ID);
+            questManager.setTrackedQuest(player, EssenceWeaversLessonQuest.ID);
         }
     }
 }

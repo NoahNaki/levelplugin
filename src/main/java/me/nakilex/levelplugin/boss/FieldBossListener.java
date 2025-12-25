@@ -10,6 +10,7 @@ import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.data.ItemRarity;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
+import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
 import me.nakilex.levelplugin.mob.utils.MobNameUtil;
 import me.nakilex.levelplugin.player.classes.essence.ClassEssence;
 import me.nakilex.levelplugin.utils.ChatFormatter;
@@ -166,15 +167,23 @@ public class FieldBossListener implements Listener {
             plugin.getLevelManager().addXP(p, xpAward);
             plugin.getEconomyManager().addCoins(p, coinsAward);
 
-            for (Map<String,Object> m : items) {
-                ItemStack drop = rollConfiguredDrop(m, p);
-                if (drop != null)
-                    p.getWorld().dropItemNaturally(p.getLocation(), drop);
+            if (!items.isEmpty()) {
+                for (Map<String,Object> m : items) {
+                    ItemStack drop = rollConfiguredDrop(m, p);
+                    if (drop != null) {
+                        p.getWorld().dropItemNaturally(p.getLocation(), drop);
+                    }
+                }
+            } else {
+                ItemStack fallback = rollFallbackBossGear(mobId);
+                if (fallback != null) {
+                    p.getWorld().dropItemNaturally(p.getLocation(), fallback);
+                }
             }
         }
 
         RewardBombUtil.startRewardBomb(plugin, ev.getEntity().getLocation(),
-                createBossRewardBomb(items), 60);
+                createBossRewardBomb(items, mobId), 60);
 
         // 6) Delay only the chat output by 5 ticks
         final String fElapsed = elapsed;
@@ -281,9 +290,12 @@ public class FieldBossListener implements Listener {
         return ClassEssence.generateEssence(awakened, ItemRarity.RARE, 0);
     }
 
-    private java.util.function.Supplier<ItemStack> createBossRewardBomb(List<Map<String, Object>> items) {
+    private java.util.function.Supplier<ItemStack> createBossRewardBomb(List<Map<String, Object>> items, String mobId) {
         return () -> {
             ItemStack gearDrop = rollRandomConfiguredDrop(items, false);
+            if (gearDrop == null) {
+                gearDrop = rollFallbackBossGear(mobId);
+            }
             boolean chooseGear = ThreadLocalRandom.current().nextDouble() < 0.50;
 
             if (chooseGear && gearDrop != null) {
@@ -302,6 +314,14 @@ public class FieldBossListener implements Listener {
 
             return gearDrop != null ? gearDrop.clone() : createAwakenedEssenceDrop();
         };
+    }
+
+    private ItemStack rollFallbackBossGear(String mobId) {
+        LootChestManager lootChestManager = plugin.getLootChestManager();
+        if (lootChestManager == null) {
+            return null;
+        }
+        return lootChestManager.getRandomLootForCombatPower(80, mobId, null);
     }
 
     private ItemStack rollRandomConfiguredDrop(List<Map<String, Object>> items, boolean applyDropRate) {

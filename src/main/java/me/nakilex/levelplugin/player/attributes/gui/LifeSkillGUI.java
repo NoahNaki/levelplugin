@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.player.attributes.gui;
 
 import me.nakilex.levelplugin.player.farming.managers.FarmingManager;
+import me.nakilex.levelplugin.player.fishing.managers.FishingManager;
 import me.nakilex.levelplugin.player.mining.managers.MiningManager;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
@@ -32,6 +33,7 @@ public final class LifeSkillGUI {
 
         MiningManager miningManager = MiningManager.getInstance();
         FarmingManager farmingManager = FarmingManager.getInstance();
+        FishingManager fishingManager = FishingManager.getInstance();
 
         builder.setItem(20, createSkillItem(
                 "Mining",
@@ -43,6 +45,19 @@ public final class LifeSkillGUI {
                 TooltipUtil.bulletList(
                         "Improve ore yields and access higher tier nodes.",
                         "Tool bonuses scale with your mining level."
+                )
+        ));
+
+        builder.setItem(22, createSkillItem(
+                "Fishing",
+                Material.FISHING_ROD,
+                fishingManager.getLevel(player),
+                fishingManager.getXP(player),
+                fishingManager.getXpRequired(fishingManager.getLevel(player)),
+                fishingManager.getMaxLevel(),
+                TooltipUtil.bulletList(
+                        "Reel in fish during the bite window.",
+                        "Higher fishing levels unlock rarer pools."
                 )
         ));
 

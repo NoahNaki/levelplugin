@@ -1,0 +1,215 @@
+fish:
+  carp:
+    display: "Carp"
+    min_size: 20
+    max_size: 60
+    rarity: COMMON
+    xp: 8
+    value: 10
+    weight: 40
+    min_level: 1
+    nexo_base: "carp_fish"
+    nexo_silver: "carp_fish_silver_star"
+    nexo_gold: "carp_fish_golden_star"
+  sardine:
+    display: "Sardine"
+    min_size: 15
+    max_size: 45
+    rarity: COMMON
+    xp: 7
+    value: 9
+    weight: 36
+    min_level: 1
+    nexo_base: "sardine_fish"
+    nexo_silver: "sardine_fish_silver_star"
+    nexo_gold: "sardine_fish_golden_star"
+  mullet:
+    display: "Mullet"
+    min_size: 20
+    max_size: 55
+    rarity: COMMON
+    xp: 8
+    value: 11
+    weight: 34
+    min_level: 2
+    nexo_base: "mullet_fish"
+    nexo_silver: "mullet_fish_silver_star"
+    nexo_gold: "mullet_fish_golden_star"
+  perch:
+    display: "Perch"
+    min_size: 18
+    max_size: 52
+    rarity: COMMON
+    xp: 8
+    value: 11
+    weight: 32
+    min_level: 2
+    nexo_base: "perch_fish"
+    nexo_silver: "perch_fish_silver_star"
+    nexo_gold: "perch_fish_golden_star"
+  goldfish:
+    display: "Goldfish"
+    min_size: 18
+    max_size: 50
+    rarity: UNCOMMON
+    xp: 10
+    value: 16
+    weight: 22
+    min_level: 4
+    nexo_base: "gold_fish"
+    nexo_silver: "gold_fish_silver_star"
+    nexo_gold: "gold_fish_golden_star"
+  tuna:
+    display: "Tuna"
+    min_size: 30
+    max_size: 80
+    rarity: UNCOMMON
+    xp: 12
+    value: 20
+    weight: 20
+    min_level: 6
+    nexo_base: "tuna_fish"
+    nexo_silver: "tuna_fish_silver_star"
+    nexo_gold: "tuna_fish_golden_star"
+  pike:
+    display: "Pike"
+    min_size: 35
+    max_size: 90
+    rarity: UNCOMMON
+    xp: 13
+    value: 22
+    weight: 18
+    min_level: 8
+    nexo_base: "pike_fish"
+    nexo_silver: "pike_fish_silver_star"
+    nexo_gold: "pike_fish_golden_star"
+  catfish:
+    display: "Catfish"
+    min_size: 30
+    max_size: 85
+    rarity: UNCOMMON
+    xp: 13
+    value: 24
+    weight: 16
+    min_level: 8
+    nexo_base: "cat_fish"
+    nexo_silver: "cat_fish_silver_star"
+    nexo_gold: "cat_fish_golden_star"
+  sunfish:
+    display: "Sunfish"
+    min_size: 25
+    max_size: 70
+    rarity: UNCOMMON
+    xp: 12
+    value: 21
+    weight: 16
+    min_level: 7
+    nexo_base: "sunfish_fish"
+    nexo_silver: "sunfish_fish_silver_star"
+    nexo_gold: "sunfish_fish_golden_star"
+  red_snapper:
+    display: "Red Snapper"
+    min_size: 32
+    max_size: 90
+    rarity: RARE
+    xp: 16
+    value: 30
+    weight: 10
+    min_level: 12
+    nexo_base: "red_snapper_fish"
+    nexo_silver: "red_snapper_silver_star"
+    nexo_gold: "red_snapper_fish_golden_star"
+  woodskip:
+    display: "Woodskip"
+    min_size: 28
+    max_size: 75
+    rarity: RARE
+    xp: 16
+    value: 32
+    weight: 9
+    min_level: 14
+    nexo_base: "woodskip_fish"
+    nexo_silver: "woodskip_silver_star"
+    nexo_gold: "woodskip_fish_golden_star"
+  sturgeon:
+    display: "Sturgeon"
+    min_size: 40
+    max_size: 95
+    rarity: RARE
+    xp: 18
+    value: 36
+    weight: 8
+    min_level: 15
+    nexo_base: "sturgeon_fish"
+    nexo_silver: "sturgeon_silver_star"
+    nexo_gold: "sturgeon_fish_golden_star"
+  octopus:
+    display: "Octopus"
+    min_size: 45
+    max_size: 110
+    rarity: EPIC
+    xp: 24
+    value: 45
+    weight: 5
+    min_level: 20
+    nexo_base: "octopus_fish"
+    nexo_silver: "octopus_fish_silver_star"
+    nexo_gold: "octopus_fish_golden_star"
+  salmon_void:
+    display: "Void Salmon"
+    min_size: 50
+    max_size: 120
+    rarity: EPIC
+    xp: 26
+    value: 50
+    weight: 4
+    min_level: 22
+    nexo_base: "salmon_void_fish"
+    nexo_silver: "salmon_void_silver_star"
+    nexo_gold: "salmon_void_fish_golden_star"
+  blue_jellyfish:
+    display: "Blue Jellyfish"
+    min_size: 35
+    max_size: 90
+    rarity: EPIC
+    xp: 24
+    value: 48
+    weight: 4
+    min_level: 21
+    nexo_base: "blue_jellyfish"
+    nexo_silver: "blue_jellyfish_silver_star"
+    nexo_gold: "blue_jellyfish_golden_star"
+  pink_jellyfish:
+    display: "Pink Jellyfish"
+    min_size: 35
+    max_size: 90
+    rarity: EPIC
+    xp: 24
+    value: 48
+    weight: 4
+    min_level: 21
+    nexo_base: "pink_jellyfish"
+    nexo_silver: "pink_jellyfish_silver_star"
+    nexo_gold: "pink_jellyfish_golden_star"
+  rainbow:
+    display: "Rainbow Fish"
+    min_size: 55
+    max_size: 130
+    rarity: LEGENDARY
+    xp: 32
+    value: 80
+    weight: 2
+    min_level: 30
+    nexo_base: "rainbow_fish"
+  radioactive:
+    display: "Radioactive Fish"
+    min_size: 60
+    max_size: 140
+    rarity: MYTHIC
+    xp: 45
+    value: 140
+    weight: 1
+    min_level: 45
+    requires_lava: true
+    requires_highest_tier: true
+    nexo_base: "radioactive_fish"

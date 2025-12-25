@@ -252,12 +252,32 @@ public class StatsInventory {
             double percent = next > 0 ? (mXp * 100.0 / next) : 0.0;
             percent = Math.round(percent * 100.0) / 100.0;
 
+            me.nakilex.levelplugin.player.farming.managers.FarmingManager farmingManager =
+                    me.nakilex.levelplugin.player.farming.managers.FarmingManager.getInstance();
+            int fLevel = farmingManager.getLevel(player);
+            int fNext = farmingManager.getXpRequired(fLevel);
+            int fXp = farmingManager.getXP(player);
+            double fPercent = fNext > 0 ? (fXp * 100.0 / fNext) : 0.0;
+            fPercent = Math.round(fPercent * 100.0) / 100.0;
+
+            me.nakilex.levelplugin.player.fishing.managers.FishingManager fishingManager =
+                    me.nakilex.levelplugin.player.fishing.managers.FishingManager.getInstance();
+            int fiLevel = fishingManager.getLevel(player);
+            int fiNext = fishingManager.getXpRequired(fiLevel);
+            int fiXp = fishingManager.getXP(player);
+            double fiPercent = fiNext > 0 ? (fiXp * 100.0 / fiNext) : 0.0;
+            fiPercent = Math.round(fiPercent * 100.0) / 100.0;
+
             lore.add(ChatColor.GRAY + "General information about");
             lore.add(ChatColor.GRAY + "your characters profressions");
             lore.add("");
             lore.add(ChatColor.GOLD + "Gathering Skills:");
             lore.add(ChatColor.GOLD + "- " + ChatColor.GRAY + "Lv. " + mLevel + " Mining "
                 + ChatColor.DARK_GRAY + "[" + ChatColor.DARK_GRAY + String.format("%.2f", percent) + "%]");
+            lore.add(ChatColor.GOLD + "- " + ChatColor.GRAY + "Lv. " + fLevel + " Farming "
+                + ChatColor.DARK_GRAY + "[" + ChatColor.DARK_GRAY + String.format("%.2f", fPercent) + "%]");
+            lore.add(ChatColor.GOLD + "- " + ChatColor.GRAY + "Lv. " + fiLevel + " Fishing "
+                + ChatColor.DARK_GRAY + "[" + ChatColor.DARK_GRAY + String.format("%.2f", fiPercent) + "%]");
         }
 
         lore.add(" ");

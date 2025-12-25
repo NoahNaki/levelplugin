@@ -9,7 +9,6 @@ import me.nakilex.levelplugin.quests.data.QuestRewardCompat;
 import me.nakilex.levelplugin.quests.data.QuestScript;
 import me.nakilex.levelplugin.quests.data.QuestCompletionScript;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
-import me.nakilex.levelplugin.quests.def.SerasSlimeKingQuest;
 import org.bukkit.entity.Player;
 
 import java.util.List;
@@ -88,11 +87,11 @@ public class SalvagersLessonQuest extends Quest implements QuestScript, QuestCom
             return;
         }
 
-        boolean hasEssenceWeaver = questManager.hasCompleted(player.getUniqueId(), EssenceWeaversLessonQuest.ID)
-                || questManager.getProgress(player.getUniqueId(), EssenceWeaversLessonQuest.ID) != null;
-        if (!hasEssenceWeaver) {
-            questManager.startQuest(player, EssenceWeaversLessonQuest.ID);
-            questManager.setTrackedQuest(player, EssenceWeaversLessonQuest.ID);
+        boolean hasHawie = questManager.hasCompleted(player.getUniqueId(), HawieHermitCrabQuest.ID)
+                || questManager.getProgress(player.getUniqueId(), HawieHermitCrabQuest.ID) != null;
+        if (!hasHawie) {
+            questManager.startQuest(player, HawieHermitCrabQuest.ID);
+            questManager.setTrackedQuest(player, HawieHermitCrabQuest.ID);
         }
     }
 }

@@ -365,7 +365,7 @@ merchants:
 
   tool:
     title: "Tool Merchant"
-    size: 27
+    size: 36
     items:
       - slot: 10
         tool_tier: TIER_I
@@ -425,6 +425,36 @@ merchants:
       - slot: 25
         tool_tier: TIER_VI
         tool_discipline: FARMING
+        amount: 1
+        cost: 2000
+      - slot: 28
+        tool_tier: TIER_I
+        tool_discipline: FISHING
+        amount: 1
+        cost: 50
+      - slot: 29
+        tool_tier: TIER_II
+        tool_discipline: FISHING
+        amount: 1
+        cost: 150
+      - slot: 30
+        tool_tier: TIER_III
+        tool_discipline: FISHING
+        amount: 1
+        cost: 350
+      - slot: 32
+        tool_tier: TIER_IV
+        tool_discipline: FISHING
+        amount: 1
+        cost: 700
+      - slot: 33
+        tool_tier: TIER_V
+        tool_discipline: FISHING
+        amount: 1
+        cost: 1200
+      - slot: 34
+        tool_tier: TIER_VI
+        tool_discipline: FISHING
         amount: 1
         cost: 2000
 

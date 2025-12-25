@@ -116,19 +116,13 @@ public class MerchantGUI implements Listener {
                 if (tool == null) {
                     continue;
                 }
-                ItemStack stack = new ItemStack(tool.getMaterial(), mItem.getAmount());
+                ItemStack stack = ToolManager.getInstance().createToolItem(tool, null);
+                stack.setAmount(mItem.getAmount());
                 ItemMeta meta = stack.getItemMeta();
-                if (meta != null) {
-                    meta.setDisplayName(ChatColor.GREEN + tool.getName());
-                    stack.setItemMeta(meta);
-                }
-                ItemUtil.updateCustomToolTooltip(stack, null);
-                meta = stack.getItemMeta();
                 if (meta != null) {
                     List<String> lore = meta.hasLore() ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
                     addPriceStub(lore, mItem);
                     meta.setLore(lore);
-                    meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_UNBREAKABLE);
                     stack.setItemMeta(meta);
                 }
                 inventory.setItem(mItem.getSlot(), stack);
@@ -433,13 +427,8 @@ public class MerchantGUI implements Listener {
             } else if (mItem.isTool()) {
                 CustomTool tool = mItem.getTool();
                 if (tool != null) {
-                    ItemStack purchasedItem = new ItemStack(tool.getMaterial(), mItem.getAmount());
-                    ItemMeta meta = purchasedItem.getItemMeta();
-                    if (meta != null) {
-                        meta.setDisplayName(ChatColor.GREEN + tool.getName());
-                        purchasedItem.setItemMeta(meta);
-                    }
-                    ItemUtil.updateCustomToolTooltip(purchasedItem, player);
+                    ItemStack purchasedItem = ToolManager.getInstance().createToolItem(tool, player);
+                    purchasedItem.setAmount(mItem.getAmount());
                     player.getInventory().addItem(purchasedItem);
                     sendPurchaseMessage(player, purchasedItem.getItemMeta().getDisplayName(), coinCost, gemCost);
                     recordPurchase(player, mItem);

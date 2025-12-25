@@ -144,7 +144,17 @@ public class ListenerRegistry {
         ), plugin);
         pm.registerEvents(new me.nakilex.levelplugin.player.mining.listeners.OreMiningListener(plugin, plugin.getMiningRewardsConfig(), plugin.getMiningManager()), plugin);
         pm.registerEvents(new me.nakilex.levelplugin.player.farming.listeners.WheatHarvestListener(plugin.getFarmingManager()), plugin);
-        pm.registerEvents(new PlayerJoinListener(plugin.getLevelManager(), plugin.getMiningManager(), plugin.getFarmingManager(), plugin.getPlayerConfig(), plugin.getEnvironmentManager()), plugin);
+        pm.registerEvents(new me.nakilex.levelplugin.player.fishing.listeners.FishingListener(
+                plugin,
+                plugin.getFishingRewardsConfig(),
+                plugin.getFishingManager()), plugin);
+        pm.registerEvents(new PlayerJoinListener(
+                plugin.getLevelManager(),
+                plugin.getMiningManager(),
+                plugin.getFarmingManager(),
+                plugin.getFishingManager(),
+                plugin.getPlayerConfig(),
+                plugin.getEnvironmentManager()), plugin);
         pm.registerEvents(new PlayerQuitListener(plugin.getPlayerConfig(), plugin.getEnvironmentManager()), plugin);
         pm.registerEvents(new StatsMenuListener(codexGUI), plugin);
         pm.registerEvents(new StatsEffectListener(), plugin);

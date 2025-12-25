@@ -87,9 +87,11 @@ public class Main extends JavaPlugin {
     public LevelManager getLevelManager() { return bootstrap.getLevelManager(); }
     public me.nakilex.levelplugin.player.mining.managers.MiningManager getMiningManager() { return bootstrap.getMiningManager(); }
     public me.nakilex.levelplugin.player.farming.managers.FarmingManager getFarmingManager() { return bootstrap.getFarmingManager(); }
+    public me.nakilex.levelplugin.player.fishing.managers.FishingManager getFishingManager() { return bootstrap.getFishingManager(); }
     public me.nakilex.levelplugin.player.attributes.managers.LifeSkillRewardManager getLifeSkillRewardManager() { return bootstrap.getLifeSkillRewardManager(); }
     public me.nakilex.levelplugin.items.tools.ToolManager getToolManager() { return bootstrap.getToolManager(); }
     public me.nakilex.levelplugin.player.mining.config.MiningRewardsConfig getMiningRewardsConfig() { return bootstrap.getMiningRewardsConfig(); }
+    public me.nakilex.levelplugin.player.fishing.config.FishingRewardsConfig getFishingRewardsConfig() { return bootstrap.getFishingRewardsConfig(); }
     public me.nakilex.levelplugin.economy.managers.GemsManager getGemsManager() { return bootstrap.getGemsManager(); }
     public ItemManager getItemManager() { return bootstrap.getItemManager(); }
     public me.nakilex.levelplugin.auctionhouse.AuctionHouseManager getAuctionHouseManager() { return bootstrap.getAuctionHouseManager(); }

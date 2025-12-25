@@ -738,7 +738,7 @@ public class ItemUtil {
      * Updates the tooltip of a tool item based on the viewer's mining level.
      */
     public static void updateCustomToolTooltip(ItemStack stack, Player viewer) {
-        me.nakilex.levelplugin.items.tools.CustomTool customTool = ToolManager.getInstance().getTool(stack.getType());
+        me.nakilex.levelplugin.items.tools.CustomTool customTool = ToolManager.getInstance().getTool(stack);
         ToolTier tier = customTool != null ? customTool.getTier() : ToolTier.fromMaterial(stack.getType());
         if (tier == null) return;
         ItemMeta meta = stack.getItemMeta();
@@ -757,6 +757,9 @@ public class ItemUtil {
         if (discipline == ToolDiscipline.FARMING) {
             level = (viewer != null) ? me.nakilex.levelplugin.player.farming.managers.FarmingManager.getInstance().getLevel(viewer) : 0;
             requirementLabel = "Farming";
+        } else if (discipline == ToolDiscipline.FISHING) {
+            level = (viewer != null) ? me.nakilex.levelplugin.player.fishing.managers.FishingManager.getInstance().getLevel(viewer) : 0;
+            requirementLabel = "Fishing";
         } else {
             level = (viewer != null) ? MiningManager.getInstance().getLevel(viewer) : 0;
             requirementLabel = "Mining";
@@ -768,6 +771,10 @@ public class ItemUtil {
         lore.add(" ");
         if (discipline == ToolDiscipline.FARMING) {
             lore.add(ChatColor.GRAY + "Harvest Yield: " + ChatColor.GREEN + "+" + (int) (tier.getHarvestYield() * 100 - 100) + "%");
+        } else if (discipline == ToolDiscipline.FISHING) {
+            lore.add(ChatColor.GRAY + "Fishing Speed: " + ChatColor.GREEN + "+" + (int) (tier.getFishingSpeed() * 100 - 100) + "%");
+            lore.add(ChatColor.GRAY + "Fish Rarity: " + ChatColor.GREEN + "+" + (int) (tier.getFishRarityBonus() * 100 - 100) + "%");
+            meta.setUnbreakable(true);
         } else {
             lore.add(ChatColor.GRAY + "Mining Speed: " + ChatColor.GREEN + "+" + tier.getMiningSpeed());
         }

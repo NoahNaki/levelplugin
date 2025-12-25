@@ -35,6 +35,18 @@ public class AbandonedCastleNpcHandler extends AbstractQuestNpcHandler {
 
         // Prevent the generic "Complete the quest first" spam once the quest is active
         if (state == QuestState.ACCEPTED || state == QuestState.IN_PROGRESS) {
+            me.nakilex.levelplugin.quests.data.PlayerQuestProgress progress =
+                    questManager.getProgress(player.getUniqueId(), AbandonedCastleQuest.ID);
+            if (progress != null && quest != null) {
+                int needed = quest.getObjectives().get(0).getAmount();
+                if (progress.getProgress(0) < needed) {
+                    dialogManager.startDialog(player,
+                            quest.getDialogLines(),
+                            npc,
+                            () -> questManager.handleTalk(player, AbandonedCastleQuest.INTRO_TARGET));
+                    return true;
+                }
+            }
             me.nakilex.levelplugin.utils.ChatMessageUtil.send(player,
                     me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType.INFO,
                     "Cedric will debrief you once you've cleared the Crimson Reliquary.");

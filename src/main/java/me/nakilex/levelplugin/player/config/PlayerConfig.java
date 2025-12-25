@@ -52,6 +52,7 @@ public class PlayerConfig {
         LevelManager levelManager = LevelManager.getInstance();
         me.nakilex.levelplugin.player.mining.managers.MiningManager miningManager = me.nakilex.levelplugin.player.mining.managers.MiningManager.getInstance();
         me.nakilex.levelplugin.player.farming.managers.FarmingManager farmingManager = me.nakilex.levelplugin.player.farming.managers.FarmingManager.getInstance();
+        me.nakilex.levelplugin.player.fishing.managers.FishingManager fishingManager = me.nakilex.levelplugin.player.fishing.managers.FishingManager.getInstance();
 
         String path = "players." + uuid.toString();
         // Use UUID-based lookups so offline players save correctly
@@ -61,6 +62,8 @@ public class PlayerConfig {
         config.set(path + ".mining.xp",    miningManager.getXP(uuid));
         config.set(path + ".farming.level", farmingManager.getLevel(uuid));
         config.set(path + ".farming.xp",    farmingManager.getXP(uuid));
+        config.set(path + ".fishing.level", fishingManager.getLevel(uuid));
+        config.set(path + ".fishing.xp",    fishingManager.getXP(uuid));
         LifeSkillRewardManager rewardManager = LifeSkillRewardManager.getInstance();
         if (rewardManager != null) {
             for (ToolDiscipline discipline : ToolDiscipline.values()) {
@@ -128,6 +131,8 @@ public class PlayerConfig {
         int miningXp = config.getInt(root + ".mining.xp", 0);
         int farmingLevel = config.getInt(root + ".farming.level", 1);
         int farmingXp = config.getInt(root + ".farming.xp", 0);
+        int fishingLevel = config.getInt(root + ".fishing.level", 1);
+        int fishingXp = config.getInt(root + ".fishing.xp", 0);
         LifeSkillRewardManager rewardManager = LifeSkillRewardManager.getInstance();
         int skillPoints = config.getInt(root + ".skill_points", 0);
         List<String> unlockedList = config.getStringList(root + ".unlocked_classes");
@@ -141,6 +146,9 @@ public class PlayerConfig {
         me.nakilex.levelplugin.player.farming.managers.FarmingManager fm = me.nakilex.levelplugin.player.farming.managers.FarmingManager.getInstance();
         fm.setLevel(uuid, farmingLevel);
         fm.addXP(uuid, farmingXp);
+        me.nakilex.levelplugin.player.fishing.managers.FishingManager fim = me.nakilex.levelplugin.player.fishing.managers.FishingManager.getInstance();
+        fim.setLevel(uuid, fishingLevel);
+        fim.addXP(uuid, fishingXp);
         if (rewardManager != null) {
             for (ToolDiscipline discipline : ToolDiscipline.values()) {
                 List<Integer> claimed = config.getIntegerList(root + ".lifeskills." + discipline.name().toLowerCase() + ".claimed");

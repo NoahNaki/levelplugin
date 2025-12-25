@@ -19,6 +19,14 @@ commands:
     description: Grants Mining XP to a player
     usage: /addminingxp <player> <amount>
     permission: none
+  addfarmingxp:
+    description: Grants Farming XP to a player
+    usage: /addfarmingxp <player> <amount>
+    permission: none
+  addfishingxp:
+    description: Grants Fishing XP to a player
+    usage: /addfishingxp <player> <amount>
+    permission: none
   toolsbrowser:
     description: Browse custom tools
     usage: /toolsbrowser
@@ -137,6 +145,9 @@ commands:
   farmrewards:
     description: Opens the farming rewards exchange
     usage: /farmrewards
+  fishrewards:
+    description: Opens the fishing rewards exchange
+    usage: /fishrewards
   ps:
     description: Manage personal storage
     usage: /ps <create|open>

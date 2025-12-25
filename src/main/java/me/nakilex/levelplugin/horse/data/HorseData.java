@@ -66,14 +66,7 @@ public class HorseData {
 
     /** Pick a value based on weighted probabilities. */
     private static <T> T pickWeighted(Random random, Map<T, Double> weights) {
-        double r = random.nextDouble();
-        double cumulative = 0;
-        for (var entry : weights.entrySet()) {
-            cumulative += entry.getValue();
-            if (r <= cumulative) return entry.getKey();
-        }
-        // Fallback to first entry if weights don't sum to 1.0
-        return weights.keySet().iterator().next();
+        return me.nakilex.levelplugin.utils.RandomUtil.pickWeighted(random, weights);
     }
 
     // Method to generate a random horse
