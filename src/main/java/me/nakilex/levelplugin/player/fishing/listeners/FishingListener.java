@@ -8,6 +8,7 @@ import me.nakilex.levelplugin.player.fishing.config.FishingRewardsConfig;
 import me.nakilex.levelplugin.player.fishing.data.FishDefinition;
 import me.nakilex.levelplugin.player.fishing.managers.FishingManager;
 import me.nakilex.levelplugin.player.fishing.utils.FishingItemUtil;
+import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -122,11 +123,13 @@ public class FishingListener implements Listener {
         }
         fishingManager.addXP(player, definition.xpReward());
         String sizeLabel = String.format("%.1f cm", size);
-        String message = "You caught " + definition.rarity().getColor() + definition.displayName()
-                + ChatColor.WHITE + " (" + sizeLabel + ")"
-                + ChatColor.GRAY + " and earned "
-                + ChatColor.YELLOW + definition.xpReward() + " <glyph:experience_orb_icon> XP.";
-        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.REWARD, message);
+        String expColor = ChatFormatter.experienceColor();
+        String expLabel = ChatFormatter.experienceLabel();
+        String message = ChatColor.GRAY + "You caught " + ChatColor.WHITE + sizeLabel + ChatColor.GRAY + " and earned "
+                + expColor + "+" + definition.xpReward() + " "
+                + ChatColor.GREEN + "<glyph:experience_orb_icon> " + expLabel
+                + ChatColor.GRAY + " Fishing XP.";
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO, message);
     }
 
     private ItemStack resolveRod(Player player) {

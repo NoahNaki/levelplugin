@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.player.fishing.utils;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.items.data.ItemRarity;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
+import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.player.fishing.data.FishDefinition;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -28,13 +29,16 @@ public final class FishingItemUtil {
     private FishingItemUtil() {}
 
     public static ItemStack createFishItem(FishDefinition definition, double size) {
-        ItemStack stack = new ItemStack(Material.COD);
+        ItemRarity rarity = definition.rarity();
+        String nexoId = selectNexoId(definition, size);
+        ItemStack stack = nexoId != null
+                ? GuiUtil.getNexoItem(nexoId, rarity.getColor() + definition.displayName())
+                : new ItemStack(Material.COD);
         ItemMeta meta = stack.getItemMeta();
         if (meta == null) {
             return stack;
         }
 
-        ItemRarity rarity = definition.rarity();
         meta.setDisplayName(rarity.getColor() + definition.displayName());
 
         PersistentDataContainer container = meta.getPersistentDataContainer();
@@ -59,6 +63,24 @@ public final class FishingItemUtil {
 
     private static String formatSize(double size) {
         return String.format("%.1f cm", size);
+    }
+
+    private static String selectNexoId(FishDefinition definition, double size) {
+        String base = definition.baseNexoId();
+        if (base == null || base.isBlank()) {
+            return null;
+        }
+        double min = definition.minSize();
+        double max = Math.max(min, definition.maxSize());
+        double range = Math.max(1.0, max - min);
+        double normalized = (size - min) / range;
+        if (normalized >= 0.8 && definition.goldNexoId() != null && !definition.goldNexoId().isBlank()) {
+            return definition.goldNexoId();
+        }
+        if (normalized >= 0.5 && definition.silverNexoId() != null && !definition.silverNexoId().isBlank()) {
+            return definition.silverNexoId();
+        }
+        return base;
     }
 
     public static boolean isFish(ItemStack stack) {

@@ -3,10 +3,7 @@ package me.nakilex.levelplugin.items.tools.gui;
 import me.nakilex.levelplugin.items.tools.CustomTool;
 import me.nakilex.levelplugin.items.tools.ToolDiscipline;
 import me.nakilex.levelplugin.items.tools.ToolManager;
-import me.nakilex.levelplugin.items.tools.ToolTier;
-import me.nakilex.levelplugin.items.utils.ItemUtil;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -17,7 +14,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.List;
@@ -33,22 +29,7 @@ public class ToolBrowser implements CommandExecutor, Listener {
     }
 
     private ItemStack createToolItem(Player viewer, CustomTool tool) {
-        ItemStack it = new ItemStack(tool.getMaterial());
-        ItemMeta meta = it.getItemMeta();
-        if (meta != null) {
-            ToolTier tier = tool.getTier();
-            ChatColor color = tier.getRarity().getColor();
-            String suffix = switch (tool.getDiscipline()) {
-                case MINING -> " Pickaxe";
-                case FARMING -> " Scythe";
-                case FISHING -> " Fishing Rod";
-            };
-            meta.setDisplayName(color + "Tier " + tier.getTierName() + suffix);
-            it.setItemMeta(meta);
-            ToolManager.getInstance().applyToolData(it, tool);
-            ItemUtil.updateCustomToolTooltip(it, viewer);
-        }
-        return it;
+        return ToolManager.getInstance().createToolItem(tool, viewer);
     }
 
     private void open(Player player) {

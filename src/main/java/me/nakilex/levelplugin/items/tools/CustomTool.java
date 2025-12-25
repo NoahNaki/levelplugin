@@ -10,13 +10,19 @@ public class CustomTool {
     private final Material material;
     private final ToolTier tier;
     private final ToolDiscipline discipline;
+    private final String nexoId;
 
     public CustomTool(UUID uuid, String name, Material material, ToolTier tier, ToolDiscipline discipline) {
+        this(uuid, name, material, tier, discipline, null);
+    }
+
+    public CustomTool(UUID uuid, String name, Material material, ToolTier tier, ToolDiscipline discipline, String nexoId) {
         this.uuid = uuid;
         this.name = name;
         this.material = material;
         this.tier = tier;
         this.discipline = discipline;
+        this.nexoId = nexoId;
     }
 
     public UUID getUuid() { return uuid; }
@@ -24,4 +30,5 @@ public class CustomTool {
     public Material getMaterial() { return material; }
     public ToolTier getTier() { return tier; }
     public ToolDiscipline getDiscipline() { return discipline; }
+    public String getNexoId() { return nexoId; }
 }

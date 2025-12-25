@@ -13,6 +13,7 @@ import me.nakilex.levelplugin.quests.def.SerasQuest;
 import me.nakilex.levelplugin.quests.def.SerasSlimeKingQuest;
 import me.nakilex.levelplugin.quests.def.SharpestSecretQuest;
 import me.nakilex.levelplugin.quests.def.SalvagersLessonQuest;
+import me.nakilex.levelplugin.quests.def.HawieHermitCrabQuest;
 import me.nakilex.levelplugin.quests.def.MarketBeginningsQuest;
 import me.nakilex.levelplugin.quests.def.CultistCullingQuest;
 import me.nakilex.levelplugin.quests.def.WakePerryQuest;
@@ -121,6 +122,21 @@ public class NPCClickListener implements Listener {
                     return;
                 }
                 SalvageGUI.openMerchantGUI(player);
+                return;
+            }
+
+            if (npc.getId() == 1089 && questManager.hasCompleted(player.getUniqueId(), HawieHermitCrabQuest.ID)) {
+                player.performCommand("fishrewards");
+                return;
+            }
+
+            if (isNpcName(npc, "Fisherman")) {
+                player.performCommand("fishrewards");
+                return;
+            }
+
+            if (isNpcName(npc, "Farmer") || isNpcName(npc, "Baker")) {
+                player.performCommand("farmrewards");
                 return;
             }
             if (stripped.equalsIgnoreCase("Starter Merchant")) {

@@ -93,8 +93,11 @@ public class FishingRewardsConfig {
             int minLevel = node.getInt("min_level", 1);
             boolean requiresLava = node.getBoolean("requires_lava", false);
             boolean requiresHighestTier = node.getBoolean("requires_highest_tier", false);
+            String baseNexoId = node.getString("nexo_base");
+            String silverNexoId = node.getString("nexo_silver");
+            String goldNexoId = node.getString("nexo_gold");
             fish.add(new FishDefinition(key, display, minSize, maxSize, rarity, xp, value, weight,
-                    minLevel, requiresLava, requiresHighestTier));
+                    minLevel, requiresLava, requiresHighestTier, baseNexoId, silverNexoId, goldNexoId));
         }
     }
 }

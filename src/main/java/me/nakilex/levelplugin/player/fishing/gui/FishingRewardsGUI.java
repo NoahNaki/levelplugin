@@ -28,6 +28,11 @@ import java.util.List;
 public class FishingRewardsGUI implements Listener, CommandExecutor {
 
     private static final String TITLE = "Fishing Rewards";
+    private static final int INFO_SLOT = 8;
+    private static final int CANCEL_SLOT = 45;
+    private static final int WITHDRAW_SLOT = 46;
+    private static final int DEPOSIT_SLOT = 52;
+    private static final int CONFIRM_SLOT = 53;
     private final EconomyManager economyManager;
     private final Main plugin;
 
@@ -60,9 +65,11 @@ public class FishingRewardsGUI implements Listener, CommandExecutor {
             info.setItemMeta(infoMeta);
         }
 
-        inv.setItem(8, info);
-        inv.setItem(45, GuiUtil.getNexoItem("cross", ChatColor.RED + "Cancel"));
-        inv.setItem(53, GuiUtil.getNexoItem("check", ChatColor.GREEN + "Confirm Sale"));
+        inv.setItem(INFO_SLOT, info);
+        inv.setItem(CANCEL_SLOT, GuiUtil.getNexoItem("cross", ChatColor.RED + "Cancel"));
+        inv.setItem(WITHDRAW_SLOT, GuiUtil.getNexoItem("arrow_down", ChatColor.YELLOW + "Return All"));
+        inv.setItem(DEPOSIT_SLOT, GuiUtil.getNexoItem("arrow_up", ChatColor.YELLOW + "Deposit All"));
+        inv.setItem(CONFIRM_SLOT, GuiUtil.getNexoItem("check", ChatColor.GREEN + "Confirm Sale"));
         player.openInventory(inv);
     }
 
@@ -85,18 +92,28 @@ public class FishingRewardsGUI implements Listener, CommandExecutor {
         int rawSlot = event.getRawSlot();
         ItemStack current = event.getCurrentItem();
 
-        if (rawSlot == 45) {
+        if (rawSlot == CANCEL_SLOT) {
             event.setCancelled(true);
             player.closeInventory();
             return;
         }
-        if (rawSlot == 53) {
+        if (rawSlot == CONFIRM_SLOT) {
             event.setCancelled(true);
             handleSell(player, top);
             return;
         }
-        if (rawSlot == 8) {
+        if (rawSlot == INFO_SLOT) {
             event.setCancelled(true);
+            return;
+        }
+        if (rawSlot == WITHDRAW_SLOT) {
+            event.setCancelled(true);
+            withdrawAll(player, top);
+            return;
+        }
+        if (rawSlot == DEPOSIT_SLOT) {
+            event.setCancelled(true);
+            depositAll(player, top);
             return;
         }
 
@@ -133,7 +150,7 @@ public class FishingRewardsGUI implements Listener, CommandExecutor {
     private void handleSell(Player player, Inventory top) {
         int total = 0;
         for (int slot = 0; slot < top.getSize(); slot++) {
-            if (slot == 8 || slot == 45 || slot == 53) continue;
+            if (isControlSlot(slot)) continue;
             ItemStack stack = top.getItem(slot);
             if (stack == null || stack.getType() == Material.AIR) continue;
             if (!FishingItemUtil.isFish(stack)) continue;
@@ -151,5 +168,64 @@ public class FishingRewardsGUI implements Listener, CommandExecutor {
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
                 "Sold your catch for " + ChatColor.YELLOW + total + " <glyph:coins_icon>.");
         player.updateInventory();
+    }
+
+    private void depositAll(Player player, Inventory top) {
+        ItemStack[] contents = player.getInventory().getContents();
+        boolean moved = false;
+        for (int i = 0; i < contents.length; i++) {
+            ItemStack stack = contents[i];
+            if (stack == null || stack.getType() == Material.AIR) continue;
+            if (!FishingItemUtil.isFish(stack)) continue;
+            int slot = findEmptySlot(top);
+            if (slot == -1) {
+                break;
+            }
+            top.setItem(slot, stack);
+            contents[i] = null;
+            moved = true;
+        }
+        player.getInventory().setContents(contents);
+        if (!moved) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING, "You have no fish to deposit.");
+        }
+    }
+
+    private void withdrawAll(Player player, Inventory top) {
+        boolean moved = false;
+        for (int slot = 0; slot < top.getSize(); slot++) {
+            if (isControlSlot(slot)) continue;
+            ItemStack stack = top.getItem(slot);
+            if (stack == null || stack.getType() == Material.AIR) continue;
+            if (!FishingItemUtil.isFish(stack)) continue;
+            java.util.Map<Integer, ItemStack> leftover = player.getInventory().addItem(stack);
+            if (leftover.isEmpty()) {
+                top.setItem(slot, null);
+                moved = true;
+            } else {
+                top.setItem(slot, leftover.values().iterator().next());
+                break;
+            }
+        }
+        if (!moved) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING, "No fish to withdraw.");
+        }
+        player.updateInventory();
+    }
+
+    private boolean isControlSlot(int slot) {
+        return slot == INFO_SLOT || slot == CANCEL_SLOT || slot == CONFIRM_SLOT
+                || slot == WITHDRAW_SLOT || slot == DEPOSIT_SLOT;
+    }
+
+    private int findEmptySlot(Inventory top) {
+        for (int slot = 0; slot < top.getSize(); slot++) {
+            if (isControlSlot(slot)) continue;
+            ItemStack stack = top.getItem(slot);
+            if (stack == null || stack.getType() == Material.AIR) {
+                return slot;
+            }
+        }
+        return -1;
     }
 }

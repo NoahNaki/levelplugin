@@ -13,6 +13,9 @@ public record FishDefinition(
         double weight,
         int minLevel,
         boolean requiresLava,
-        boolean requiresHighestTier
+        boolean requiresHighestTier,
+        String baseNexoId,
+        String silverNexoId,
+        String goldNexoId
 ) {
 }

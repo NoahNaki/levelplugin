@@ -129,6 +129,7 @@ public class QuestManager {
         me.nakilex.levelplugin.quests.def.GamblersGambitQuest.registerTalkTargets(this);
         me.nakilex.levelplugin.quests.def.AbandonedCastleQuest.registerTalkTargets(this);
         me.nakilex.levelplugin.quests.def.WakePerryQuest.registerTalkTargets(this);
+        me.nakilex.levelplugin.quests.def.HawieHermitCrabQuest.registerTalkTargets(this);
         // These service/tutorial quests rely on NPC display names so they continue to work even if IDs
         // change between environments.
         registerNpcQuest(me.nakilex.levelplugin.quests.def.SalvagersLessonQuest.NPC_NAME,
