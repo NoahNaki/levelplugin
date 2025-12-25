@@ -13,6 +13,7 @@ import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
+import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -307,7 +308,13 @@ public class ClassEssenceUpgradeGUI implements Listener {
                 ClassEssence.getClass(target) == ClassEssence.getClass(sacrifice)) {
             ItemRarity sacRarity = ClassEssence.getRarity(sacrifice);
             int amount = ClassEssence.getInvestExp(sacRarity) + ClassEssence.getExp(sacrifice);
-            ItemRarity upgraded = ClassEssence.addExp(target, amount);
+            int adjusted = computeStackAdjustedExp(target, amount);
+            if (adjusted <= 0) {
+                send(player, MessageType.ERROR, "Split your essence stack to invest.");
+                return;
+            }
+            notifyStackSplit(player, target, adjusted);
+            ItemRarity upgraded = ClassEssence.addExp(target, adjusted);
             inv.setItem(TARGET_SLOT, target);
             if (sacrifice.getAmount() > 1) {
                 ItemStack remainder = sacrifice.clone();
@@ -319,13 +326,14 @@ public class ClassEssenceUpgradeGUI implements Listener {
             String expLabel = me.nakilex.levelplugin.utils.ChatFormatter.experienceLabel();
             String expColor = me.nakilex.levelplugin.utils.ChatFormatter.experienceColor();
             send(player, MessageType.SUCCESS,
-                    "Invested essence (" + expColor + "+" + amount + ChatColor.RESET
+                    "Invested essence (" + expColor + "+" + adjusted + ChatColor.RESET
                             + " <glyph:experience_orb_icon> " + expLabel + ")");
             if (upgraded != null) {
                 send(player, MessageType.SUCCESS, "Essence rarity increased to "
                         + upgraded.getColor() + TextUtil.beautifyWords(upgraded.name()));
             }
             Main.getInstance().getQuestManager().handleUpgrade(player, "essence");
+            playInvestSound(player);
         } else {
             send(player, MessageType.ERROR, "Essences must match class.");
         }
@@ -385,11 +393,23 @@ public class ClassEssenceUpgradeGUI implements Listener {
         }
 
         PlayerClass clazz = ClassEssence.getClass(target);
-        int expGained = siphonInventoryForClass(player, clazz, target);
         ItemStack sacrifice = inv.getItem(SACRIFICE_SLOT);
+        int sacrificeExp = 0;
         if (sacrifice != null && ClassEssence.isEssence(sacrifice)
                 && ClassEssence.getClass(sacrifice) == clazz) {
-            expGained += getInvestValue(sacrifice);
+            sacrificeExp = getInvestValue(sacrifice);
+        }
+        int availableExp = tallyInventoryForClass(player, clazz, target);
+        int potentialExp = availableExp + sacrificeExp;
+        int adjusted = computeStackAdjustedExp(target, potentialExp);
+        if (adjusted <= 0) {
+            send(player, MessageType.ERROR, "Split your essence stack to invest.");
+            return;
+        }
+        int expGained = siphonInventoryForClass(player, clazz, target);
+        if (sacrifice != null && ClassEssence.isEssence(sacrifice)
+                && ClassEssence.getClass(sacrifice) == clazz) {
+            expGained += sacrificeExp;
             inv.setItem(SACRIFICE_SLOT, null);
         }
 
@@ -398,19 +418,27 @@ public class ClassEssenceUpgradeGUI implements Listener {
             return;
         }
 
-        ItemRarity upgraded = ClassEssence.addExp(target, expGained);
+        adjusted = computeStackAdjustedExp(target, expGained);
+        if (adjusted <= 0) {
+            send(player, MessageType.ERROR, "Split your essence stack to invest.");
+            return;
+        }
+        notifyStackSplit(player, target, adjusted);
+        ItemRarity upgraded = ClassEssence.addExp(target, adjusted);
         inv.setItem(TARGET_SLOT, target);
         player.updateInventory();
 
         String expLabel = me.nakilex.levelplugin.utils.ChatFormatter.experienceLabel();
         String expColor = me.nakilex.levelplugin.utils.ChatFormatter.experienceColor();
         send(player, MessageType.SUCCESS,
-                "Invested duplicates (" + expColor + "+" + expGained + ChatColor.RESET
+                "Invested duplicates (" + expColor + "+" + adjusted + ChatColor.RESET
                         + " <glyph:experience_orb_icon> " + expLabel + ")");
         if (upgraded != null) {
             send(player, MessageType.SUCCESS, "Essence rarity increased to "
                     + upgraded.getColor() + TextUtil.beautifyWords(upgraded.name()));
         }
+        Main.getInstance().getQuestManager().handleUpgrade(player, "essence");
+        playInvestSound(player);
     }
 
     private static void investIntoEquippedEssences(Player player, Inventory inv) {
@@ -422,12 +450,22 @@ public class ClassEssenceUpgradeGUI implements Listener {
             if (essence == null || !stats.equippedEssences[i] || !ClassEssence.isEssence(essence)) continue;
 
             PlayerClass clazz = ClassEssence.getClass(essence);
+            int availableExp = tallyInventoryForClass(player, clazz, essence);
+            int adjusted = computeStackAdjustedExp(essence, availableExp);
+            if (adjusted <= 0) {
+                continue;
+            }
             int gained = siphonInventoryForClass(player, clazz, essence);
             if (gained <= 0) continue;
 
-            ItemRarity upgraded = ClassEssence.addExp(essence, gained);
+            adjusted = computeStackAdjustedExp(essence, gained);
+            if (adjusted <= 0) {
+                continue;
+            }
+            notifyStackSplit(player, essence, adjusted);
+            ItemRarity upgraded = ClassEssence.addExp(essence, adjusted);
             stats.essenceSlots[i] = essence;
-            totalExp += gained;
+            totalExp += adjusted;
             if (upgraded != null) {
                 send(player, MessageType.SUCCESS, clazz.getDisplayName() + " essence rarity increased to "
                         + upgraded.getColor() + TextUtil.beautifyWords(upgraded.name()));
@@ -445,6 +483,23 @@ public class ClassEssenceUpgradeGUI implements Listener {
         send(player, MessageType.SUCCESS,
                 ChatColor.GREEN + "Invested " + expColor + totalExp + ChatColor.RESET
                         + " <glyph:experience_orb_icon> " + expLabel + " into equipped essences.");
+        Main.getInstance().getQuestManager().handleUpgrade(player, "essence");
+        playInvestSound(player);
+    }
+
+    private static int tallyInventoryForClass(Player player, PlayerClass clazz, ItemStack target) {
+        if (clazz == null) return 0;
+        int exp = 0;
+        PlayerInventory inventory = player.getInventory();
+        for (ItemStack stack : inventory.getStorageContents()) {
+            if (!isInvestableDuplicate(stack, clazz, target)) continue;
+            exp += getInvestValue(stack);
+        }
+        ItemStack offHand = inventory.getItemInOffHand();
+        if (isInvestableDuplicate(offHand, clazz, target)) {
+            exp += getInvestValue(offHand);
+        }
+        return exp;
     }
 
     private static int siphonInventoryForClass(Player player, PlayerClass clazz, ItemStack target) {
@@ -483,6 +538,25 @@ public class ClassEssenceUpgradeGUI implements Listener {
         ItemRarity sacRarity = ClassEssence.getRarity(stack);
         int per = ClassEssence.getInvestExp(sacRarity) + ClassEssence.getExp(stack);
         return per * stack.getAmount();
+    }
+
+    private static int computeStackAdjustedExp(ItemStack target, int expGained) {
+        if (target == null || expGained <= 0) return 0;
+        int stackSize = Math.max(1, target.getAmount());
+        if (stackSize <= 1) {
+            return expGained;
+        }
+        return expGained / stackSize;
+    }
+
+    private static void notifyStackSplit(Player player, ItemStack target, int perEssence) {
+        if (target == null || player == null) return;
+        if (target.getAmount() <= 1) return;
+        send(player, MessageType.INFO, "Investment split across stack: " + perEssence + " each.");
+    }
+
+    private static void playInvestSound(Player player) {
+        player.playSound(player.getLocation(), Sound.BLOCK_ENCHANTMENT_TABLE_USE, 0.8f, 1.2f);
     }
 
     private static void handleStarClick(Player player, Inventory inv, int slot, InventoryClickEvent e) {

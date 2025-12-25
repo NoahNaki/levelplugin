@@ -20,6 +20,7 @@ import java.util.List;
 public class HawieHermitCrabQuest extends Quest implements QuestScript, QuestCompletionScript {
     public static final String ID = "hawiehermitcrabs";
     public static final String INTRO_TARGET = "npc1089_intro";
+    public static final String RETURN_TARGET = "npc1089_return";
     public static final String FISH_RETURN_TARGET = "npc1089_fish";
     public static final String CAPTURE_TARGET = "ANY";
 
@@ -27,6 +28,7 @@ public class HawieHermitCrabQuest extends Quest implements QuestScript, QuestCom
         return List.of(
                 new QuestObjective(QuestObjectiveType.TALK, INTRO_TARGET, 1, BeaconTargets.npc(1089)),
                 new QuestObjective(QuestObjectiveType.KILL, "vp1_hermit_crab", 10),
+                new QuestObjective(QuestObjectiveType.TALK, RETURN_TARGET, 1, BeaconTargets.npc(1089)),
                 new QuestObjective(QuestObjectiveType.CAPTURE_FISH, CAPTURE_TARGET, 1, BeaconTargets.npc(1089)),
                 new QuestObjective(QuestObjectiveType.TALK, FISH_RETURN_TARGET, 1, BeaconTargets.npc(1089))
         );
@@ -60,6 +62,7 @@ public class HawieHermitCrabQuest extends Quest implements QuestScript, QuestCom
             return;
         }
         questManager.registerTalkTarget(INTRO_TARGET, "Hawie", "Hawie");
+        questManager.registerTalkTarget(RETURN_TARGET, "Hawie", "Hawie");
         questManager.registerTalkTarget(FISH_RETURN_TARGET, "Hawie", "Hawie");
     }
 
@@ -75,8 +78,9 @@ public class HawieHermitCrabQuest extends Quest implements QuestScript, QuestCom
     public static List<String> getFishingReturnDialog() {
         return List.of(
                 "Hawie|That's a catch worth bragging about.",
-                "<player>|An essence weaver you say?",
-                "Hawie|Yeah there's one that lives in the town up ahead. Just keep following this path and you'll come across him eventually."
+                "<player>|Thanks, say Hawie, do you by any chance know about an Essence Weaver somewhere in these woods?",
+                "Hawie|Essence Weaver you say?",
+                "Hawie|Yeah there's one..."
         );
     }
 

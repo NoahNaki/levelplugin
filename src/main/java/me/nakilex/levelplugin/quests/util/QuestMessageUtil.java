@@ -4,10 +4,15 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.quests.data.QuestReward;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
+import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.ChatFormatter;
+import me.nakilex.levelplugin.utils.TextUtil;
 import org.bukkit.ChatColor;
+import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 
 /**
  * Utility for emitting quest completion messages with reward breakdowns.
@@ -76,5 +81,26 @@ public final class QuestMessageUtil {
         }
         ChatFormatter.constructDivider(player, " ", 45);
         player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
+    }
+
+    /**
+     * Send a standardized message indicating a quest or dialog granted an item.
+     */
+    public static void sendQuestItemReceived(Player player, ItemStack item) {
+        if (player == null || item == null || item.getType() == Material.AIR) {
+            return;
+        }
+        String name = getItemDisplayName(item);
+        String amount = item.getAmount() > 1 ? (item.getAmount() + "x ") : "";
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.REWARD,
+                "You received " + amount + name + ChatColor.GOLD + ".");
+    }
+
+    private static String getItemDisplayName(ItemStack item) {
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null && meta.hasDisplayName()) {
+            return meta.getDisplayName();
+        }
+        return ChatColor.WHITE + TextUtil.beautifyWords(item.getType().name());
     }
 }

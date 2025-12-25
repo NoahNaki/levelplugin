@@ -128,7 +128,8 @@ public class FishingListener implements Listener {
         String sizeLabel = String.format("%.1f cm", size);
         String expColor = ChatFormatter.experienceColor();
         String expLabel = ChatFormatter.experienceLabel();
-        String message = ChatColor.GRAY + "You caught " + ChatColor.WHITE + sizeLabel + ChatColor.GRAY + " and earned "
+        String message = ChatColor.GRAY + "You caught a " + ChatColor.WHITE + sizeLabel + " "
+                + definition.displayName() + ChatColor.GRAY + " and earned "
                 + expColor + "+" + definition.xpReward() + " "
                 + ChatColor.GREEN + "<glyph:experience_orb_icon> " + expLabel
                 + ChatColor.GRAY + " Fishing XP.";

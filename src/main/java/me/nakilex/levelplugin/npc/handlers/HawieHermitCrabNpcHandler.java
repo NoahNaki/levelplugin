@@ -10,6 +10,7 @@ import me.nakilex.levelplugin.items.tools.ToolTier;
 import me.nakilex.levelplugin.player.fishing.utils.FishingItemUtil;
 import me.nakilex.levelplugin.quests.def.HawieHermitCrabQuest;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
+import me.nakilex.levelplugin.quests.util.QuestMessageUtil;
 import me.nakilex.levelplugin.quests.gui.QuestState;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import net.citizensnpcs.api.npc.NPC;
@@ -44,8 +45,9 @@ public class HawieHermitCrabNpcHandler extends AbstractQuestNpcHandler {
 
         boolean introDone = progress.getProgress(0) >= 1;
         boolean crabsCleared = progress.getProgress(1) >= quest.getObjectives().get(1).getAmount();
-        boolean fishCaptured = progress.getProgress(2) >= quest.getObjectives().get(2).getAmount();
-        boolean fishReturnDone = progress.getProgress(3) >= 1;
+        boolean returnDone = progress.getProgress(2) >= 1;
+        boolean fishCaptured = progress.getProgress(3) >= quest.getObjectives().get(3).getAmount();
+        boolean fishReturnDone = progress.getProgress(4) >= 1;
 
         if (!introDone) {
             dialogManager.startDialog(player,
@@ -60,7 +62,7 @@ public class HawieHermitCrabNpcHandler extends AbstractQuestNpcHandler {
             return true;
         }
 
-        if (!fishCaptured) {
+        if (!returnDone) {
             if (player.getInventory().firstEmpty() == -1) {
                 ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
                         "Your inventory is full. Make room before receiving the fishing rod.");
@@ -74,8 +76,16 @@ public class HawieHermitCrabNpcHandler extends AbstractQuestNpcHandler {
                         if (tool != null) {
                             ItemStack rod = ToolManager.getInstance().createToolItem(tool, player);
                             player.getInventory().addItem(rod);
+                            QuestMessageUtil.sendQuestItemReceived(player, rod);
                         }
+                        questManager.handleTalk(player, HawieHermitCrabQuest.RETURN_TARGET);
                     });
+            return true;
+        }
+
+        if (!fishCaptured) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                    "Catch a fish from the lake, then bring it back to Hawie.");
             return true;
         }
 
