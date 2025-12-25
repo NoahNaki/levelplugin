@@ -110,7 +110,7 @@ public class GamblersGambitQuest extends Quest implements QuestScript, QuestComp
                 10,
                 List.of(),
                 null,
-                QuestRewardCompat.create(200, 0, 0, List.of()),
+                QuestRewardCompat.create(2000, 2000, 0, List.of()),
                 NPC_ID,
                 OFFER_DIALOG,
                 false,
@@ -291,8 +291,6 @@ public class GamblersGambitQuest extends Quest implements QuestScript, QuestComp
     private void incrementFailStack(Player player) {
         int next = Math.min(getFailStack(player) + 1, 2);
         player.getPersistentDataContainer().set(FAILSTACK_KEY, PersistentDataType.BYTE, (byte) next);
-        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
-                "Your odds improve next time (" + (int) Math.round(resolveWinChance(player) * 100) + "% chance).");
     }
 
     private void resetFailStack(Player player) {
