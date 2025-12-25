@@ -62,11 +62,12 @@ public class FishingListener implements Listener {
         BossBar bar = Bukkit.createBossBar("Reel in!", BarColor.BLUE, BarStyle.SOLID);
         bar.addPlayer(player);
         bar.setVisible(true);
-        FishingSession session = new FishingSession(bar, System.currentTimeMillis() + BITE_WINDOW_MS);
+        long windowMs = computeWindowMs(player);
+        FishingSession session = new FishingSession(bar, System.currentTimeMillis() + windowMs, windowMs);
         sessions.put(uuid, session);
         session.task = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             long remaining = session.expiresAtMs - System.currentTimeMillis();
-            double progress = Math.max(0.0, Math.min(1.0, remaining / (double) BITE_WINDOW_MS));
+            double progress = Math.max(0.0, Math.min(1.0, remaining / (double) session.windowMs));
             bar.setProgress(progress);
             if (remaining <= 0) {
                 clearSession(uuid);
@@ -91,8 +92,8 @@ public class FishingListener implements Listener {
     }
 
     private void handleCatch(PlayerFishEvent event, Player player, UUID uuid) {
-        Boolean success = lastResult.remove(uuid);
-        if (success == null || !success) {
+        boolean success = resolveSuccess(uuid);
+        if (!success) {
             event.setCancelled(true);
             player.getWorld().playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BASS, 0.9f, 0.7f);
             return;
@@ -138,6 +139,31 @@ public class FishingListener implements Listener {
         return tool != null ? tool.getTier() : ToolTier.fromMaterial(rod.getType());
     }
 
+    private long computeWindowMs(Player player) {
+        ItemStack rod = resolveRod(player);
+        ToolTier tier = resolveTier(rod);
+        double speedMultiplier = tier != null ? tier.getFishingSpeed() : 1.0;
+        if (player.getWorld().hasStorm()) {
+            speedMultiplier *= 2.0;
+        }
+        long window = Math.round(BITE_WINDOW_MS * speedMultiplier);
+        return Math.max(500L, window);
+    }
+
+    private boolean resolveSuccess(UUID uuid) {
+        Boolean stored = lastResult.remove(uuid);
+        if (stored != null) {
+            return stored;
+        }
+        FishingSession session = sessions.get(uuid);
+        if (session == null) {
+            return false;
+        }
+        boolean success = System.currentTimeMillis() <= session.expiresAtMs;
+        clearSession(uuid);
+        return success;
+    }
+
     private double rollSize(FishDefinition definition) {
         int min = definition.minSize();
         int max = Math.max(min, definition.maxSize());
@@ -157,11 +183,13 @@ public class FishingListener implements Listener {
     private static class FishingSession {
         private final BossBar bar;
         private final long expiresAtMs;
+        private final long windowMs;
         private org.bukkit.scheduler.BukkitTask task;
 
-        private FishingSession(BossBar bar, long expiresAtMs) {
+        private FishingSession(BossBar bar, long expiresAtMs, long windowMs) {
             this.bar = bar;
             this.expiresAtMs = expiresAtMs;
+            this.windowMs = windowMs;
         }
     }
 }
