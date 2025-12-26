@@ -682,6 +682,7 @@ public class PluginBootstrap {
         if (townStageManager != null) townStageManager.despawnAll();
         if (buildingStageManager != null) buildingStageManager.despawnAll();
         if (wanderingMerchantManager != null) wanderingMerchantManager.despawn();
+        if (beaconManager != null) beaconManager.removeAll();
         if (beaconEntityDebugManager != null) beaconEntityDebugManager.removeAll();
         if (dealMaker != null) dealMaker.closeAllTrades();
         plugin.getLogger().info("LevelPlugin has been disabled!");
@@ -911,6 +912,9 @@ public class PluginBootstrap {
         }
         if (!customConfig.contains("debug.instant-expeditions")) {
             customConfig.set("debug.instant-expeditions", false);
+        }
+        if (!customConfig.contains("debug.beacon-entity")) {
+            customConfig.set("debug.beacon-entity", false);
         }
         if (!customConfig.contains("debug.mob-gear-drop-rate")) {
             customConfig.set("debug.mob-gear-drop-rate", 8.0);

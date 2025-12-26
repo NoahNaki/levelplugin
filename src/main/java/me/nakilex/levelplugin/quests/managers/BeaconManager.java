@@ -28,6 +28,14 @@ public class BeaconManager implements Listener {
     private static final double BASE_HIDE_OFFSET = -0.9;
 
     private final Map<UUID, ItemDisplay> activeBeacons = new HashMap<>();
+    private final boolean debugEnabled;
+
+    public BeaconManager() {
+        Main plugin = Main.getInstance();
+        this.debugEnabled = plugin != null
+                && plugin.getCustomConfig() != null
+                && plugin.getCustomConfig().getBoolean("debug.beacon-entity", false);
+    }
 
     /**
      * Draw a constant beacon for {@code player}.
@@ -71,6 +79,15 @@ public class BeaconManager implements Listener {
         }
     }
 
+    public void removeAll() {
+        for (ItemDisplay display : activeBeacons.values()) {
+            if (display != null && !display.isDead()) {
+                NexoFurniture.remove(display);
+            }
+        }
+        activeBeacons.clear();
+    }
+
     private Location resolveBeaconLocation(Location location) {
         Location anchor = shouldCenterOnBlock(location)
                 ? LocationUtils.centerOnBlock(location)
@@ -85,7 +102,15 @@ public class BeaconManager implements Listener {
         if (adjusted.getY() < minY) {
             adjusted.setY(minY);
         }
-        return LocationUtils.firstAirAbove(adjusted, 6);
+        Location resolved = LocationUtils.firstAirAbove(adjusted, 6);
+        if (debugEnabled && resolved != null && resolved.getWorld() != null) {
+            Material blockType = resolved.getBlock().getType();
+            if (!blockType.isAir()) {
+                Main.getInstance().getLogger().info("[BeaconManager] Beacon still inside block "
+                        + blockType + " at " + LocationUtils.blockLocationString(resolved));
+            }
+        }
+        return resolved;
     }
 
     private boolean shouldCenterOnBlock(Location location) {
