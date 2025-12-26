@@ -74,7 +74,7 @@ public class BeaconManager implements Listener {
     private Location resolveBeaconLocation(Location location) {
         Location centered = LocationUtils.centerOnBlock(location);
         if (centered == null) return null;
-        Location surface = LocationUtils.aboveSurface(centered);
+        Location surface = LocationUtils.surfaceBelow(centered);
         if (surface == null) return null;
         Location adjusted = surface.clone().add(0, BASE_HIDE_OFFSET, 0);
         World world = adjusted.getWorld();
