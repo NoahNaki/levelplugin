@@ -76,7 +76,7 @@ public class BeaconManager implements Listener {
         if (centered == null) return null;
         Location surface = LocationUtils.surfaceBelow(centered);
         if (surface == null) return null;
-        Location adjusted = surface.clone().add(0, BASE_HIDE_OFFSET, 0);
+        Location adjusted = surface.clone().add(0, 1 + BASE_HIDE_OFFSET, 0);
         World world = adjusted.getWorld();
         if (world == null) return null;
         double minY = world.getMinHeight();
