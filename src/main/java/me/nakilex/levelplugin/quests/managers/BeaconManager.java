@@ -225,6 +225,15 @@ public class BeaconManager implements Listener {
             return null;
         }
         Block hit = trace.getHitBlock();
+        Location obstacleAnchor = LocationUtils.centerOnBlock(hit.getLocation());
+        Location obstacleVisibleAnchor = nudgeTowardViewer(obstacleAnchor, eye, 0.6);
+        Location obstacleSurface = LocationUtils.aboveSurface(obstacleVisibleAnchor);
+        Location obstacleAdjusted = obstacleSurface.clone().add(0, 1 + BASE_HIDE_OFFSET, 0);
+        Location obstacleResolved = LocationUtils.firstAirAbove(obstacleAdjusted, 12);
+        if (obstacleResolved != null) {
+            ensureAirBlock(obstacleResolved);
+            return obstacleResolved;
+        }
         int highestAtTarget = target.getWorld().getHighestBlockYAt(target);
         int highestAtHit = target.getWorld().getHighestBlockYAt(hit.getLocation());
         int elevatedY = Math.max(highestAtTarget, highestAtHit) + 3;
@@ -236,6 +245,22 @@ public class BeaconManager implements Listener {
         }
         ensureAirBlock(elevated);
         return elevated;
+    }
+
+    private Location nudgeTowardViewer(Location base, Location viewer, double distance) {
+        if (base == null || viewer == null || base.getWorld() == null || viewer.getWorld() == null) {
+            return base;
+        }
+        if (!base.getWorld().equals(viewer.getWorld())) {
+            return base;
+        }
+        org.bukkit.util.Vector direction = viewer.toVector().subtract(base.toVector());
+        direction.setY(0);
+        if (direction.lengthSquared() < 0.0001) {
+            return base;
+        }
+        direction.normalize().multiply(distance);
+        return base.clone().add(direction);
     }
 
     private void ensureAirBlock(Location location) {
