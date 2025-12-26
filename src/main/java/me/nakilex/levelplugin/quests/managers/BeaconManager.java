@@ -4,20 +4,18 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.block.Block;
-import org.bukkit.entity.Display;
-import org.bukkit.entity.EntityType;
+import org.bukkit.Material;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.Listener;
 import org.bukkit.util.RayTraceResult;
-import com.nexomc.nexo.api.NexoItems;
-import com.nexomc.nexo.items.ItemBuilder;
+import com.nexomc.nexo.api.NexoFurniture;
+import com.nexomc.nexo.mechanics.furniture.FurnitureMechanic;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.lootchests.utils.LocationUtils;
 import me.nakilex.levelplugin.utils.NexoUtil;
-import org.bukkit.inventory.ItemStack;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -67,7 +65,7 @@ public class BeaconManager implements Listener {
         ItemDisplay display = activeBeacons.get(player.getUniqueId());
         if (display == null || display.isDead() || !display.getWorld().equals(target.getWorld())) {
             if (display != null && !display.isDead()) {
-                display.remove();
+                NexoFurniture.remove(display);
             }
             display = spawnBeacon(target);
             if (display != null) {
@@ -82,14 +80,14 @@ public class BeaconManager implements Listener {
         if (player == null) return;
         ItemDisplay display = activeBeacons.remove(player.getUniqueId());
         if (display != null && !display.isDead()) {
-            display.remove();
+            NexoFurniture.remove(display);
         }
     }
 
     public void removeAll() {
         for (ItemDisplay display : activeBeacons.values()) {
             if (display != null && !display.isDead()) {
-                display.remove();
+                NexoFurniture.remove(display);
             }
         }
         activeBeacons.clear();
@@ -143,19 +141,19 @@ public class BeaconManager implements Listener {
     }
 
     private ItemDisplay spawnBeacon(Location location) {
-        ItemBuilder builder = NexoItems.itemFromId(FURNITURE_ID);
-        if (builder == null) {
-            Main.getInstance().getLogger().warning("[BeaconManager] Unknown Nexo item '" + FURNITURE_ID + "'.");
-            NexoUtil.logAvailableItemIds(Main.getInstance().getLogger());
+        FurnitureMechanic mechanic = NexoFurniture.furnitureMechanic(FURNITURE_ID);
+        if (mechanic == null) {
+            Main.getInstance().getLogger().warning("[BeaconManager] Unknown furniture '" + FURNITURE_ID + "'.");
+            NexoUtil.logAvailableFurnitureIds(Main.getInstance().getLogger());
             return null;
         }
-        ItemStack item = builder.build();
         Location spawn = location.clone().subtract(0, BASE_HIDE_OFFSET, 0);
-        ItemDisplay display = (ItemDisplay) spawn.getWorld().spawnEntity(spawn, EntityType.ITEM_DISPLAY);
-        display.setItemStack(item);
-        display.setBillboard(Display.Billboard.FIXED);
-        display.setTeleportDuration(2);
-        display.teleport(location);
+        ensureAirBlock(spawn);
+        ItemDisplay display = NexoFurniture.place(FURNITURE_ID, spawn, 0f, null);
+        if (display != null) {
+            display.setTeleportDuration(2);
+            display.teleport(location);
+        }
         return display;
     }
 
@@ -232,9 +230,20 @@ public class BeaconManager implements Listener {
         Location elevated = new Location(target.getWorld(), target.getX(), elevatedY + BASE_HIDE_OFFSET, target.getZ());
         Location elevatedResolved = LocationUtils.firstAirAbove(elevated, 20);
         if (elevatedResolved != null) {
+            ensureAirBlock(elevatedResolved);
             return elevatedResolved;
         }
+        ensureAirBlock(elevated);
         return elevated;
+    }
+
+    private void ensureAirBlock(Location location) {
+        if (location == null || location.getWorld() == null) {
+            return;
+        }
+        if (!location.getBlock().getType().isAir()) {
+            location.getBlock().setType(Material.AIR, false);
+        }
     }
 
     private Location enforceMinimumDistance(Player player, Location target, Location destination) {
