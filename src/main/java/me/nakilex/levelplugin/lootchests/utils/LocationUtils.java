@@ -159,6 +159,30 @@ public class LocationUtils {
     }
 
     /**
+     * Returns the first air block at or above the given location, up to a
+     * maximum number of steps. Keeps the original X/Z precision.
+     *
+     * @param location base location to check
+     * @param maxSteps maximum vertical steps to search
+     * @return a location in air, or the original location if none found
+     */
+    public static Location firstAirAbove(Location location, int maxSteps) {
+        if (location == null || location.getWorld() == null) {
+            return location;
+        }
+        World world = location.getWorld();
+        int baseY = location.getBlockY();
+        int maxY = world.getMaxHeight() - 1;
+        int steps = Math.max(0, maxSteps);
+        for (int i = 0; i <= steps && baseY + i <= maxY; i++) {
+            if (world.getBlockAt(location.getBlockX(), baseY + i, location.getBlockZ()).getType().isAir()) {
+                return location.clone().add(0, i, 0);
+            }
+        }
+        return location;
+    }
+
+    /**
      * Returns a location positioned just above the first solid block found
      * when searching downward from the provided coordinates. The resulting
      * location is centered on the block for consistency with entity spawning.

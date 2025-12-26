@@ -85,7 +85,7 @@ public class BeaconManager implements Listener {
         if (adjusted.getY() < minY) {
             adjusted.setY(minY);
         }
-        return adjusted;
+        return LocationUtils.firstAirAbove(adjusted, 6);
     }
 
     private boolean shouldCenterOnBlock(Location location) {
