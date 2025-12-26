@@ -28,14 +28,7 @@ public class BeaconManager implements Listener {
     private static final double BASE_HIDE_OFFSET = -0.9;
 
     private final Map<UUID, ItemDisplay> activeBeacons = new HashMap<>();
-    private final boolean debugEnabled;
-
-    public BeaconManager() {
-        Main plugin = Main.getInstance();
-        this.debugEnabled = plugin != null
-                && plugin.getCustomConfig() != null
-                && plugin.getCustomConfig().getBoolean("debug.beacon-entity", false);
-    }
+    private final Map<UUID, Long> debugThrottle = new HashMap<>();
 
     /**
      * Draw a constant beacon for {@code player}.
@@ -51,8 +44,10 @@ public class BeaconManager implements Listener {
         World world = location.getWorld();
         if (world == null) return;
 
-        Location target = resolveBeaconLocation(location);
+        Location target = resolveBeaconLocation(player, location);
         if (target == null || target.getWorld() == null) {
+            debug(player, "Resolved beacon location is null for target "
+                    + LocationUtils.blockLocationString(location));
             removeBeam(player);
             return;
         }
@@ -88,7 +83,7 @@ public class BeaconManager implements Listener {
         activeBeacons.clear();
     }
 
-    private Location resolveBeaconLocation(Location location) {
+    private Location resolveBeaconLocation(Player player, Location location) {
         Location anchor = shouldCenterOnBlock(location)
                 ? LocationUtils.centerOnBlock(location)
                 : location.clone();
@@ -103,13 +98,23 @@ public class BeaconManager implements Listener {
             adjusted.setY(minY);
         }
         Location resolved = LocationUtils.firstAirAbove(adjusted, 6);
-        if (debugEnabled && resolved != null && resolved.getWorld() != null) {
-            Material blockType = resolved.getBlock().getType();
-            if (!blockType.isAir()) {
-                Main.getInstance().getLogger().info("[BeaconManager] Beacon still inside block "
-                        + blockType + " at " + LocationUtils.blockLocationString(resolved));
+        if (resolved != null && resolved.getBlock().getType().isAir()) {
+            return resolved;
+        }
+        Location surfaceFallback = LocationUtils.aboveSurface(anchor);
+        if (surfaceFallback != null) {
+            Location fallbackAdjusted = surfaceFallback.clone().add(0, 1 + BASE_HIDE_OFFSET, 0);
+            Location fallbackResolved = LocationUtils.firstAirAbove(fallbackAdjusted, 12);
+            if (fallbackResolved != null) {
+                debug(player, "Fallback to surfaceAbove for beacon target "
+                        + LocationUtils.blockLocationString(location)
+                        + " resolved=" + LocationUtils.blockLocationString(fallbackResolved));
+                return fallbackResolved;
             }
         }
+        debug(player, "Beacon placement still inside block for target "
+                + LocationUtils.blockLocationString(location)
+                + " resolved=" + LocationUtils.blockLocationString(resolved));
         return resolved;
     }
 
@@ -140,5 +145,25 @@ public class BeaconManager implements Listener {
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
         removeBeam(event.getPlayer());
+    }
+
+    private void debug(Player player, String message) {
+        if (!isDebugEnabled() || player == null) {
+            return;
+        }
+        long now = System.currentTimeMillis();
+        long last = debugThrottle.getOrDefault(player.getUniqueId(), 0L);
+        if (now - last < 5000L) {
+            return;
+        }
+        debugThrottle.put(player.getUniqueId(), now);
+        Main.getInstance().getLogger().info("[BeaconManager] " + player.getName() + ": " + message);
+    }
+
+    private boolean isDebugEnabled() {
+        Main plugin = Main.getInstance();
+        return plugin != null
+                && plugin.getCustomConfig() != null
+                && plugin.getCustomConfig().getBoolean("debug.beacon-entity", false);
     }
 }
