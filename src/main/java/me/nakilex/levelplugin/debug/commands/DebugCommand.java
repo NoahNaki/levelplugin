@@ -11,6 +11,7 @@ import me.nakilex.levelplugin.chat.games.ChatGameManager;
 import me.nakilex.levelplugin.chat.games.ChatGameStatus;
 import me.nakilex.levelplugin.debug.gui.DebugGUI;
 import me.nakilex.levelplugin.debug.AutoCastManager;
+import me.nakilex.levelplugin.debug.BeaconEntityDebugManager;
 import me.nakilex.levelplugin.debug.DropDebugManager;
 import me.nakilex.levelplugin.environment.EnvironmentManager;
 import me.nakilex.levelplugin.guild.Guild;
@@ -56,6 +57,7 @@ public class DebugCommand implements TabExecutor {
     private final DropDebugManager dropDebugManager;
     private final AutoCastManager autoCastManager;
     private final EnvironmentManager environmentManager;
+    private final BeaconEntityDebugManager beaconEntityDebugManager;
 
     public DebugCommand(PlayerToggleManager mobDebugManager,
                         PlayerScoreboardManager scoreboardManager,
@@ -64,7 +66,8 @@ public class DebugCommand implements TabExecutor {
                         MercenaryExpeditionManager expeditionManager,
                         DropDebugManager dropDebugManager,
                         AutoCastManager autoCastManager,
-                        EnvironmentManager environmentManager) {
+                        EnvironmentManager environmentManager,
+                        BeaconEntityDebugManager beaconEntityDebugManager) {
         this.mobDebugManager = mobDebugManager;
         this.scoreboardManager = scoreboardManager;
         this.debugGUI = debugGUI;
@@ -73,6 +76,7 @@ public class DebugCommand implements TabExecutor {
         this.dropDebugManager = dropDebugManager;
         this.autoCastManager = autoCastManager;
         this.environmentManager = environmentManager;
+        this.beaconEntityDebugManager = beaconEntityDebugManager;
     }
 
     @Override
@@ -84,7 +88,7 @@ public class DebugCommand implements TabExecutor {
                 String statUsage = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|cityowner|citymax|autocast|chatgame|expedition|" + statUsage + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|cityowner|citymax|autocast|chatgame|expedition|beaconentity|" + statUsage + ">");
             }
             return true;
         }
@@ -220,6 +224,21 @@ public class DebugCommand implements TabExecutor {
                 pRb.sendMessage(ChatColor.YELLOW + "Reward bomb triggered for testing.");
                 return true;
 
+            case "beaconentity":
+                if (!(sender instanceof Player beaconPlayer)) {
+                    sender.sendMessage(ChatColor.RED + "Players only.");
+                    return true;
+                }
+                BeaconEntityDebugManager.ToggleOutcome toggle = beaconEntityDebugManager.toggle(beaconPlayer);
+                if (!toggle.success()) {
+                    if (toggle.errorMessage() != null) {
+                        beaconPlayer.sendMessage(toggle.errorMessage());
+                    }
+                    return true;
+                }
+                ToggleFeedbackUtil.sendToggle(beaconPlayer, "Beacon entity", toggle.enabled());
+                return true;
+
             case "hand":
                 if (!(sender instanceof Player p4)) {
                     sender.sendMessage("Players only.");
@@ -287,7 +306,7 @@ public class DebugCommand implements TabExecutor {
                 String statUsage2 = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|cityowner|citymax|autocast|chatgame|expedition|" + statUsage2 + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|cityowner|citymax|autocast|chatgame|expedition|beaconentity|" + statUsage2 + ">");
                 return true;
         }
     }
@@ -350,7 +369,8 @@ public class DebugCommand implements TabExecutor {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            List<String> subs = new ArrayList<>(List.of("mobinfo", "tps", "siege", "cityowner", "citymax", "autocast", "hand", "chatgame", "expedition", "rewardbomb", "drops"));
+            List<String> subs = new ArrayList<>(List.of("mobinfo", "tps", "siege", "cityowner", "citymax", "autocast",
+                    "hand", "chatgame", "expedition", "rewardbomb", "drops", "beaconentity"));
             subs.addAll(Arrays.stream(StatType.values()).map(StatType::getAbbrev).toList());
             return subs.stream()
                     .filter(s -> s.startsWith(args[0].toLowerCase()))

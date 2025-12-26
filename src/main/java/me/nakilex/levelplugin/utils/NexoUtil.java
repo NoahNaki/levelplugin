@@ -17,7 +17,7 @@ public final class NexoUtil {
      * useful for debugging when a specific furniture ID cannot be found.
      */
     public static void logAvailableFurnitureIds(Logger logger) {
-        Set<String> ids = getRegisteredFurnitureIds();
+        Set<String> ids = getRegisteredIds(NexoFurniture.class);
         if (ids.isEmpty()) {
             logger.warning("[NexoUtil] No furniture IDs detected in NexoFurniture registry.");
             return;
@@ -30,9 +30,13 @@ public final class NexoUtil {
      * back to an empty set if the registry cannot be introspected.
      */
     public static Set<String> getRegisteredFurnitureIds() {
+        return getRegisteredIds(NexoFurniture.class);
+    }
+
+    private static Set<String> getRegisteredIds(Class<?> registryClass) {
         Set<String> ids = new HashSet<>();
         try {
-            for (java.lang.reflect.Field field : NexoFurniture.class.getDeclaredFields()) {
+            for (java.lang.reflect.Field field : registryClass.getDeclaredFields()) {
                 Class<?> type = field.getType();
                 if (!Map.class.isAssignableFrom(type) && !Set.class.isAssignableFrom(type)) {
                     continue;
