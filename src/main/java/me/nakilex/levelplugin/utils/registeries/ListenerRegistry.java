@@ -61,6 +61,7 @@ import me.nakilex.levelplugin.quests.gui.QuestGUIListener;
 import me.nakilex.levelplugin.npc.listeners.NPCDialogMoveListener;
 import me.nakilex.levelplugin.dungeon.DungeonMobSpawnListener;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
+import me.nakilex.levelplugin.debug.BeaconEntityDebugManager;
 import me.nakilex.levelplugin.fasttravel.listeners.WaystoneListener;
 import me.nakilex.levelplugin.fasttravel.listeners.ExplorationListener;
 import me.nakilex.levelplugin.fasttravel.listeners.FastTravelRespawnListener;
@@ -121,7 +122,8 @@ public class ListenerRegistry {
                                         ArenaMatchManager arenaMatchManager,
                                         ArenaTeamMatchManager arenaTeamMatchManager,
                                         ChatGameManager chatGameManager,
-                                        DpsDummyManager dpsDummyManager) {
+                                        DpsDummyManager dpsDummyManager,
+                                        BeaconEntityDebugManager beaconEntityDebugManager) {
 
 
         PluginManager pm = plugin.getServer().getPluginManager();
@@ -258,6 +260,7 @@ public class ListenerRegistry {
         pm.registerEvents(new LeafDecayBlocker(), plugin);
         pm.registerEvents(new me.nakilex.levelplugin.calendar.WeatherBlockListener(), plugin);
         pm.registerEvents(new WanderingMerchantListener(wmManager), plugin);
+        pm.registerEvents(beaconEntityDebugManager, plugin);
         if (plugin.getCustomConfig().getBoolean("features.profiles", true)) {
             pm.registerEvents(new me.nakilex.levelplugin.player.profile.ProfileSelectionGUI(), plugin);
         }

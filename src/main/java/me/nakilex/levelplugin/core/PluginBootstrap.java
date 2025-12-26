@@ -155,6 +155,7 @@ public class PluginBootstrap {
     private PlayerToggleManager mobDebugToggleManager;
     private me.nakilex.levelplugin.debug.DropDebugManager dropDebugManager;
     private me.nakilex.levelplugin.debug.AutoCastManager autoCastManager;
+    private me.nakilex.levelplugin.debug.BeaconEntityDebugManager beaconEntityDebugManager;
     private DpsDummyManager dpsDummyManager;
     private ManaCostTracker manaTracker;
     private FileConfiguration bossConfig;
@@ -311,6 +312,7 @@ public class PluginBootstrap {
         mobDebugToggleManager = new PlayerToggleManager();
         dropDebugManager = new me.nakilex.levelplugin.debug.DropDebugManager(plugin);
         autoCastManager = new me.nakilex.levelplugin.debug.AutoCastManager();
+        beaconEntityDebugManager = new me.nakilex.levelplugin.debug.BeaconEntityDebugManager(plugin);
         dpsDummyManager = new DpsDummyManager(plugin, mythicHelper);
         upgradeKey = new NamespacedKey(plugin, "upgrade_level");
         levelManager = new LevelManager(plugin);
@@ -478,7 +480,8 @@ public class PluginBootstrap {
             mercenaryManager,
             battlePassManager,
             chatGameManager,
-            dpsDummyManager
+            dpsDummyManager,
+            beaconEntityDebugManager
         );
         me.nakilex.levelplugin.catacombs.CatacombsCommand catacombsCommand =
                 new me.nakilex.levelplugin.catacombs.CatacombsCommand(catacombsManager, catacombsGUI);
@@ -561,7 +564,8 @@ public class PluginBootstrap {
             arenaMatchManager,
             arenaTeamMatchManager,
             chatGameManager,
-            dpsDummyManager
+            dpsDummyManager,
+            beaconEntityDebugManager
         );
         plugin.getServer().getPluginManager().registerEvents(
                 new me.nakilex.levelplugin.mercenary.board.ExpeditionBoardWandListener(expeditionBoardManager),
@@ -678,6 +682,7 @@ public class PluginBootstrap {
         if (townStageManager != null) townStageManager.despawnAll();
         if (buildingStageManager != null) buildingStageManager.despawnAll();
         if (wanderingMerchantManager != null) wanderingMerchantManager.despawn();
+        if (beaconEntityDebugManager != null) beaconEntityDebugManager.removeAll();
         if (dealMaker != null) dealMaker.closeAllTrades();
         plugin.getLogger().info("LevelPlugin has been disabled!");
     }
@@ -757,6 +762,7 @@ public class PluginBootstrap {
     public PlayerToggleManager getMobDebugToggleManager() { return mobDebugToggleManager; }
     public me.nakilex.levelplugin.debug.DropDebugManager getDropDebugManager() { return dropDebugManager; }
     public me.nakilex.levelplugin.debug.AutoCastManager getAutoCastManager() { return autoCastManager; }
+    public me.nakilex.levelplugin.debug.BeaconEntityDebugManager getBeaconEntityDebugManager() { return beaconEntityDebugManager; }
     public ManaCostTracker getManaTracker() { return manaTracker; }
     public FileConfiguration getBossConfig() { return bossConfig; }
     public File getBossConfigFile() { return bossConfigFile; }

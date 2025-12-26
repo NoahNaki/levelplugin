@@ -22,6 +22,7 @@ import me.nakilex.levelplugin.mob.commands.DpsDummyCommand;
 import me.nakilex.levelplugin.mob.commands.ToggleCommand;
 import me.nakilex.levelplugin.mob.dps.DpsDummyManager;
 import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
+import me.nakilex.levelplugin.debug.BeaconEntityDebugManager;
 import me.nakilex.levelplugin.debug.commands.DebugCommand;
 import me.nakilex.levelplugin.player.attributes.commands.AddPointsCommand;
 import me.nakilex.levelplugin.player.attributes.commands.StatsCommand;
@@ -141,7 +142,8 @@ public class CommandRegistry {
                                         MercenaryManager mercManager,
                                         BattlePassManager battlePassManager,
                                         ChatGameManager chatGameManager,
-                                        DpsDummyManager dpsDummyManager) {
+                                        DpsDummyManager dpsDummyManager,
+                                        BeaconEntityDebugManager beaconEntityDebugManager) {
 
 
         AddPointsCommand addPointsCmd = new AddPointsCommand();
@@ -294,7 +296,8 @@ public class CommandRegistry {
                 plugin.getMercenaryExpeditionManager(),
                 plugin.getDropDebugManager(),
                 plugin.getAutoCastManager(),
-                plugin.getEnvironmentManager());
+                plugin.getEnvironmentManager(),
+                beaconEntityDebugManager);
         plugin.getCommand("debug").setExecutor(debugCmd);
         plugin.getCommand("debug").setTabCompleter(debugCmd);
 
