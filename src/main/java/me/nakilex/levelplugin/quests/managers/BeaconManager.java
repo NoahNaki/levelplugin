@@ -5,7 +5,9 @@ import org.bukkit.World;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.Block;
+import org.bukkit.Color;
 import org.bukkit.Material;
+import org.bukkit.Particle;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -30,6 +32,11 @@ public class BeaconManager implements Listener {
     private static final String FURNITURE_ID = "base_beacon_magenta_inventory";
     private static final double BASE_HIDE_OFFSET = -0.9;
     private static final double MIN_PLAYER_DISTANCE = 40.0;
+    private static final double VISUAL_BEAM_HEIGHT = 36.0;
+    private static final double VISUAL_BEAM_STEP = 1.5;
+    private static final double VISUAL_BEAM_OFFSET = 0.35;
+    private static final Particle.DustOptions VISUAL_BEAM_DUST =
+            new Particle.DustOptions(Color.fromRGB(125, 255, 125), 1.2f);
 
     private final Map<UUID, ItemDisplay> activeBeacons = new HashMap<>();
     private final Map<UUID, Long> debugThrottle = new HashMap<>();
@@ -61,6 +68,10 @@ public class BeaconManager implements Listener {
         Location clampedTarget = enforceMinimumDistance(player, target, location);
         if (clampedTarget != null) {
             target = clampedTarget;
+        }
+        Location visualTarget = resolveVisualBeamLocation(player, target);
+        if (visualTarget != null) {
+            spawnVisualBeam(player, visualTarget);
         }
 
         ItemDisplay display = activeBeacons.get(player.getUniqueId());
@@ -245,6 +256,51 @@ public class BeaconManager implements Listener {
         }
         ensureAirBlock(elevated);
         return elevated;
+    }
+
+    private Location resolveVisualBeamLocation(Player player, Location target) {
+        if (player == null || target == null || target.getWorld() == null) {
+            return null;
+        }
+        Location eye = player.getEyeLocation();
+        if (eye.getWorld() == null || !eye.getWorld().equals(target.getWorld())) {
+            return null;
+        }
+        double distance = eye.distance(target);
+        if (distance < 0.1) {
+            return target;
+        }
+        RayTraceResult trace = eye.getWorld().rayTraceBlocks(
+                eye,
+                target.toVector().subtract(eye.toVector()).normalize(),
+                distance,
+                FluidCollisionMode.NEVER,
+                true);
+        if (trace == null || trace.getHitPosition() == null) {
+            return target;
+        }
+        org.bukkit.util.Vector direction = eye.toVector().subtract(trace.getHitPosition()).setY(0);
+        if (direction.lengthSquared() < 0.0001) {
+            return target;
+        }
+        direction.normalize().multiply(VISUAL_BEAM_OFFSET);
+        Location visible = trace.getHitPosition().toLocation(target.getWorld()).add(direction);
+        Location adjusted = LocationUtils.firstAirAbove(visible, 2);
+        if (adjusted != null && adjusted.getWorld() != null) {
+            return adjusted;
+        }
+        return visible;
+    }
+
+    private void spawnVisualBeam(Player player, Location base) {
+        if (player == null || base == null || base.getWorld() == null) {
+            return;
+        }
+        int steps = (int) Math.ceil(VISUAL_BEAM_HEIGHT / VISUAL_BEAM_STEP);
+        for (int i = 0; i <= steps; i++) {
+            Location point = base.clone().add(0, i * VISUAL_BEAM_STEP, 0);
+            player.spawnParticle(Particle.REDSTONE, point, 1, 0, 0, 0, 0, VISUAL_BEAM_DUST);
+        }
     }
 
     private Location nudgeTowardViewer(Location base, Location viewer, double distance) {
