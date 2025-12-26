@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.quests.managers;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.FluidCollisionMode;
+import org.bukkit.block.BlockFace;
 import org.bukkit.block.Block;
 import org.bukkit.Material;
 import org.bukkit.entity.ItemDisplay;
@@ -149,7 +150,7 @@ public class BeaconManager implements Listener {
         }
         Location spawn = location.clone().subtract(0, BASE_HIDE_OFFSET, 0);
         ensureAirBlock(spawn);
-        ItemDisplay display = NexoFurniture.place(FURNITURE_ID, spawn, 0f, null);
+        ItemDisplay display = NexoFurniture.place(FURNITURE_ID, spawn, 0f, BlockFace.NORTH);
         if (display != null) {
             display.setTeleportDuration(2);
             display.teleport(location);
