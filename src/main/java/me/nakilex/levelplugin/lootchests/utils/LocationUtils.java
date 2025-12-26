@@ -167,6 +167,18 @@ public class LocationUtils {
      * @return location one block above the discovered surface
      */
     public static Location surfaceBelow(Location location) {
+        return surfaceBelow(location, true);
+    }
+
+    /**
+     * Returns a location positioned just above the first solid block found
+     * when searching downward from the provided coordinates.
+     *
+     * @param location starting point for the downward search
+     * @param centerOnBlock whether to center X/Z on the block coordinates
+     * @return location one block above the discovered surface
+     */
+    public static Location surfaceBelow(Location location, boolean centerOnBlock) {
         if (location == null || location.getWorld() == null) {
             return location;
         }
@@ -178,7 +190,9 @@ public class LocationUtils {
         while (y > minY && world.getBlockAt(x, y - 1, z).getType().isAir()) {
             y--;
         }
-        return new Location(world, x + 0.5, y, z + 0.5, location.getYaw(), location.getPitch());
+        double xPos = centerOnBlock ? x + 0.5 : location.getX();
+        double zPos = centerOnBlock ? z + 0.5 : location.getZ();
+        return new Location(world, xPos, y, zPos, location.getYaw(), location.getPitch());
     }
 
     /**

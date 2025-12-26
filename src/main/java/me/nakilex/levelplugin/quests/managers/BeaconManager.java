@@ -72,9 +72,11 @@ public class BeaconManager implements Listener {
     }
 
     private Location resolveBeaconLocation(Location location) {
-        Location centered = LocationUtils.centerOnBlock(location);
-        if (centered == null) return null;
-        Location surface = LocationUtils.surfaceBelow(centered);
+        Location anchor = shouldCenterOnBlock(location)
+                ? LocationUtils.centerOnBlock(location)
+                : location.clone();
+        if (anchor == null) return null;
+        Location surface = LocationUtils.surfaceBelow(anchor, false);
         if (surface == null) return null;
         Location adjusted = surface.clone().add(0, 1 + BASE_HIDE_OFFSET, 0);
         World world = adjusted.getWorld();
@@ -84,6 +86,12 @@ public class BeaconManager implements Listener {
             adjusted.setY(minY);
         }
         return adjusted;
+    }
+
+    private boolean shouldCenterOnBlock(Location location) {
+        double xDelta = Math.abs(location.getX() - Math.rint(location.getX()));
+        double zDelta = Math.abs(location.getZ() - Math.rint(location.getZ()));
+        return xDelta < 1.0e-6 && zDelta < 1.0e-6;
     }
 
     private ItemDisplay spawnBeacon(Location location) {
