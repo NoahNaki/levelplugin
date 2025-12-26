@@ -1,18 +1,20 @@
 package me.nakilex.levelplugin.debug;
 
-import com.nexomc.nexo.api.NexoFurniture;
-import com.nexomc.nexo.mechanics.furniture.FurnitureMechanic;
+import com.nexomc.nexo.api.NexoItems;
+import com.nexomc.nexo.items.ItemBuilder;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.lootchests.utils.LocationUtils;
 import me.nakilex.levelplugin.utils.NexoUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
-import org.bukkit.block.BlockFace;
+import org.bukkit.entity.Display;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
 
@@ -43,12 +45,12 @@ public class BeaconEntityDebugManager implements Listener {
             remove(player);
             return new ToggleOutcome(true, false, null);
         }
-        FurnitureMechanic mechanic = NexoFurniture.furnitureMechanic(FURNITURE_ID);
-        if (mechanic == null) {
-            plugin.getLogger().warning("[BeaconEntityDebug] Unknown furniture '" + FURNITURE_ID + "'.");
-            NexoUtil.logAvailableFurnitureIds(plugin.getLogger());
+        ItemBuilder builder = NexoItems.itemFromId(FURNITURE_ID);
+        if (builder == null) {
+            plugin.getLogger().warning("[BeaconEntityDebug] Unknown Nexo item '" + FURNITURE_ID + "'.");
+            NexoUtil.logAvailableItemIds(plugin.getLogger());
             return new ToggleOutcome(false, false,
-                    ChatColor.RED + "Nexo furniture '" + FURNITURE_ID + "' is not registered.");
+                    ChatColor.RED + "Nexo item '" + FURNITURE_ID + "' is not registered.");
         }
         BeaconState state = new BeaconState();
         state.display = spawnBeacon(player);
@@ -68,7 +70,7 @@ public class BeaconEntityDebugManager implements Listener {
             state.task.cancel();
         }
         if (state.display != null && !state.display.isDead()) {
-            NexoFurniture.remove(state.display);
+            state.display.remove();
         }
     }
 
@@ -80,7 +82,7 @@ public class BeaconEntityDebugManager implements Listener {
             } else {
                 BeaconState state = active.remove(id);
                 if (state != null && state.display != null && !state.display.isDead()) {
-                    NexoFurniture.remove(state.display);
+                    state.display.remove();
                 }
                 if (state != null && state.task != null) {
                     state.task.cancel();
@@ -112,7 +114,16 @@ public class BeaconEntityDebugManager implements Listener {
     private ItemDisplay spawnBeacon(Player player) {
         Location target = getBeaconTarget(player);
         if (target == null) return null;
-        return NexoFurniture.place(FURNITURE_ID, target, 0f, BlockFace.NORTH);
+        ItemBuilder builder = NexoItems.itemFromId(FURNITURE_ID);
+        if (builder == null) {
+            return null;
+        }
+        ItemStack item = builder.build();
+        ItemDisplay display = (ItemDisplay) target.getWorld().spawnEntity(target, EntityType.ITEM_DISPLAY);
+        display.setItemStack(item);
+        display.setBillboard(Display.Billboard.FIXED);
+        display.setTeleportDuration(2);
+        return display;
     }
 
     private Location getBeaconTarget(Player player) {

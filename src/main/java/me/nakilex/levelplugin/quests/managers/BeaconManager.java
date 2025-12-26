@@ -2,21 +2,22 @@ package me.nakilex.levelplugin.quests.managers;
 
 import org.bukkit.Location;
 import org.bukkit.World;
-import org.bukkit.block.BlockFace;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.block.Block;
+import org.bukkit.entity.Display;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.Listener;
-import org.bukkit.Material;
 import org.bukkit.util.RayTraceResult;
-import com.nexomc.nexo.api.NexoFurniture;
-import com.nexomc.nexo.mechanics.furniture.FurnitureMechanic;
+import com.nexomc.nexo.api.NexoItems;
+import com.nexomc.nexo.items.ItemBuilder;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.lootchests.utils.LocationUtils;
 import me.nakilex.levelplugin.utils.NexoUtil;
+import org.bukkit.inventory.ItemStack;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -66,7 +67,7 @@ public class BeaconManager implements Listener {
         ItemDisplay display = activeBeacons.get(player.getUniqueId());
         if (display == null || display.isDead() || !display.getWorld().equals(target.getWorld())) {
             if (display != null && !display.isDead()) {
-                NexoFurniture.remove(display);
+                display.remove();
             }
             display = spawnBeacon(target);
             if (display != null) {
@@ -81,14 +82,14 @@ public class BeaconManager implements Listener {
         if (player == null) return;
         ItemDisplay display = activeBeacons.remove(player.getUniqueId());
         if (display != null && !display.isDead()) {
-            NexoFurniture.remove(display);
+            display.remove();
         }
     }
 
     public void removeAll() {
         for (ItemDisplay display : activeBeacons.values()) {
             if (display != null && !display.isDead()) {
-                NexoFurniture.remove(display);
+                display.remove();
             }
         }
         activeBeacons.clear();
@@ -142,21 +143,19 @@ public class BeaconManager implements Listener {
     }
 
     private ItemDisplay spawnBeacon(Location location) {
-        FurnitureMechanic mechanic = NexoFurniture.furnitureMechanic(FURNITURE_ID);
-        if (mechanic == null) {
-            Main.getInstance().getLogger().warning("[BeaconManager] Unknown furniture '" + FURNITURE_ID + "'.");
-            NexoUtil.logAvailableFurnitureIds(Main.getInstance().getLogger());
+        ItemBuilder builder = NexoItems.itemFromId(FURNITURE_ID);
+        if (builder == null) {
+            Main.getInstance().getLogger().warning("[BeaconManager] Unknown Nexo item '" + FURNITURE_ID + "'.");
+            NexoUtil.logAvailableItemIds(Main.getInstance().getLogger());
             return null;
         }
+        ItemStack item = builder.build();
         Location spawn = location.clone().subtract(0, BASE_HIDE_OFFSET, 0);
-        if (spawn.getBlock().getType() != Material.AIR) {
-            spawn.getBlock().setType(Material.AIR, false);
-        }
-        ItemDisplay display = NexoFurniture.place(FURNITURE_ID, spawn, 0f, BlockFace.NORTH);
-        if (display != null) {
-            display.setTeleportDuration(2);
-            display.teleport(location);
-        }
+        ItemDisplay display = (ItemDisplay) spawn.getWorld().spawnEntity(spawn, EntityType.ITEM_DISPLAY);
+        display.setItemStack(item);
+        display.setBillboard(Display.Billboard.FIXED);
+        display.setTeleportDuration(2);
+        display.teleport(location);
         return display;
     }
 
@@ -227,21 +226,15 @@ public class BeaconManager implements Listener {
             return null;
         }
         Block hit = trace.getHitBlock();
-        Location hitLoc = hit.getLocation().add(0, 1 + BASE_HIDE_OFFSET, 0);
-        Location aboveHit = LocationUtils.firstAirAbove(hitLoc, 12);
-        if (aboveHit != null && aboveHit.getBlock().getType().isAir()) {
-            return aboveHit;
+        int highestAtTarget = target.getWorld().getHighestBlockYAt(target);
+        int highestAtHit = target.getWorld().getHighestBlockYAt(hit.getLocation());
+        int elevatedY = Math.max(highestAtTarget, highestAtHit) + 3;
+        Location elevated = new Location(target.getWorld(), target.getX(), elevatedY + BASE_HIDE_OFFSET, target.getZ());
+        Location elevatedResolved = LocationUtils.firstAirAbove(elevated, 20);
+        if (elevatedResolved != null) {
+            return elevatedResolved;
         }
-        Location surface = LocationUtils.aboveSurface(hit.getLocation());
-        if (surface == null) {
-            return null;
-        }
-        Location surfaceAdjusted = surface.clone().add(0, 1 + BASE_HIDE_OFFSET, 0);
-        Location surfaceResolved = LocationUtils.firstAirAbove(surfaceAdjusted, 12);
-        if (surfaceResolved != null && surfaceResolved.getBlock().getType().isAir()) {
-            return surfaceResolved;
-        }
-        return null;
+        return elevated;
     }
 
     private Location enforceMinimumDistance(Player player, Location target, Location destination) {
