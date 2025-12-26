@@ -104,6 +104,10 @@ public class BeaconManager implements Listener {
         }
         Location resolved = LocationUtils.firstAirAbove(adjusted, 6);
         if (resolved != null && resolved.getBlock().getType().isAir()) {
+            Location losAdjusted = adjustForObstruction(player, resolved);
+            if (losAdjusted != null) {
+                return losAdjusted;
+            }
             return resolved;
         }
         Location surfaceFallback = LocationUtils.aboveSurface(anchor);
@@ -111,9 +115,10 @@ public class BeaconManager implements Listener {
             Location fallbackAdjusted = surfaceFallback.clone().add(0, 1 + BASE_HIDE_OFFSET, 0);
             Location fallbackResolved = LocationUtils.firstAirAbove(fallbackAdjusted, 12);
             if (fallbackResolved != null) {
-                debug(player, "Fallback to surfaceAbove for beacon target "
-                        + LocationUtils.blockLocationString(location)
-                        + " resolved=" + LocationUtils.blockLocationString(fallbackResolved));
+                Location losAdjusted = adjustForObstruction(player, fallbackResolved);
+                if (losAdjusted != null) {
+                    return losAdjusted;
+                }
                 return fallbackResolved;
             }
         }
@@ -191,6 +196,45 @@ public class BeaconManager implements Listener {
                     + " at " + LocationUtils.blockLocationString(hit.getLocation())
                     + " target=" + LocationUtils.blockLocationString(target));
         }
+    }
+
+    private Location adjustForObstruction(Player player, Location target) {
+        if (player == null || target == null || target.getWorld() == null) {
+            return null;
+        }
+        Location eye = player.getEyeLocation();
+        if (!eye.getWorld().equals(target.getWorld())) {
+            return null;
+        }
+        double distance = eye.distance(target);
+        if (distance < 0.1) {
+            return null;
+        }
+        RayTraceResult trace = eye.getWorld().rayTraceBlocks(
+                eye,
+                target.toVector().subtract(eye.toVector()).normalize(),
+                distance,
+                FluidCollisionMode.NEVER,
+                true);
+        if (trace == null || trace.getHitBlock() == null) {
+            return null;
+        }
+        Block hit = trace.getHitBlock();
+        Location hitLoc = hit.getLocation().add(0, 1 + BASE_HIDE_OFFSET, 0);
+        Location aboveHit = LocationUtils.firstAirAbove(hitLoc, 12);
+        if (aboveHit != null && aboveHit.getBlock().getType().isAir()) {
+            return aboveHit;
+        }
+        Location surface = LocationUtils.aboveSurface(hit.getLocation());
+        if (surface == null) {
+            return null;
+        }
+        Location surfaceAdjusted = surface.clone().add(0, 1 + BASE_HIDE_OFFSET, 0);
+        Location surfaceResolved = LocationUtils.firstAirAbove(surfaceAdjusted, 12);
+        if (surfaceResolved != null && surfaceResolved.getBlock().getType().isAir()) {
+            return surfaceResolved;
+        }
+        return null;
     }
 
     private boolean isDebugEnabled() {
