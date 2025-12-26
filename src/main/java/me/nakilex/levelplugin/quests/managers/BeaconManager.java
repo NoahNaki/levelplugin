@@ -29,7 +29,7 @@ public class BeaconManager implements Listener {
 
     private static final String FURNITURE_ID = "base_beacon_magenta_inventory";
     private static final double BASE_HIDE_OFFSET = -0.9;
-    private static final double MIN_PLAYER_DISTANCE = 12.0;
+    private static final double MIN_PLAYER_DISTANCE = 40.0;
 
     private final Map<UUID, ItemDisplay> activeBeacons = new HashMap<>();
     private final Map<UUID, Long> debugThrottle = new HashMap<>();
@@ -154,6 +154,7 @@ public class BeaconManager implements Listener {
         }
         ItemDisplay display = NexoFurniture.place(FURNITURE_ID, spawn, 0f, BlockFace.NORTH);
         if (display != null) {
+            display.setTeleportDuration(2);
             display.teleport(location);
         }
         return display;
