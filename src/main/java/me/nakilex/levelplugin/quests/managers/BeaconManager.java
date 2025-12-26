@@ -3,12 +3,15 @@ package me.nakilex.levelplugin.quests.managers;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.BlockFace;
+import org.bukkit.FluidCollisionMode;
+import org.bukkit.block.Block;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.Listener;
 import org.bukkit.Material;
+import org.bukkit.util.RayTraceResult;
 import com.nexomc.nexo.api.NexoFurniture;
 import com.nexomc.nexo.mechanics.furniture.FurnitureMechanic;
 import me.nakilex.levelplugin.Main;
@@ -51,6 +54,8 @@ public class BeaconManager implements Listener {
             removeBeam(player);
             return;
         }
+
+        debugLineOfSight(player, target);
 
         ItemDisplay display = activeBeacons.get(player.getUniqueId());
         if (display == null || display.isDead() || !display.getWorld().equals(target.getWorld())) {
@@ -114,7 +119,8 @@ public class BeaconManager implements Listener {
         }
         debug(player, "Beacon placement still inside block for target "
                 + LocationUtils.blockLocationString(location)
-                + " resolved=" + LocationUtils.blockLocationString(resolved));
+                + " resolved=" + LocationUtils.blockLocationString(resolved)
+                + " adjusted=" + LocationUtils.blockLocationString(adjusted));
         return resolved;
     }
 
@@ -158,6 +164,33 @@ public class BeaconManager implements Listener {
         }
         debugThrottle.put(player.getUniqueId(), now);
         Main.getInstance().getLogger().info("[BeaconManager] " + player.getName() + ": " + message);
+    }
+
+    private void debugLineOfSight(Player player, Location target) {
+        if (!isDebugEnabled() || player == null || target == null || target.getWorld() == null) {
+            return;
+        }
+        Location eye = player.getEyeLocation();
+        if (!eye.getWorld().equals(target.getWorld())) {
+            debug(player, "Beacon target is in different world: " + target.getWorld().getName());
+            return;
+        }
+        double distance = eye.distance(target);
+        if (distance < 0.1) {
+            return;
+        }
+        RayTraceResult trace = eye.getWorld().rayTraceBlocks(
+                eye,
+                target.toVector().subtract(eye.toVector()).normalize(),
+                distance,
+                FluidCollisionMode.NEVER,
+                true);
+        if (trace != null && trace.getHitBlock() != null) {
+            Block hit = trace.getHitBlock();
+            debug(player, "Line of sight blocked by " + hit.getType()
+                    + " at " + LocationUtils.blockLocationString(hit.getLocation())
+                    + " target=" + LocationUtils.blockLocationString(target));
+        }
     }
 
     private boolean isDebugEnabled() {
