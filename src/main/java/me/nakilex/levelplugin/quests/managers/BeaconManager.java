@@ -29,6 +29,7 @@ public class BeaconManager implements Listener {
 
     private static final String FURNITURE_ID = "base_beacon_magenta_inventory";
     private static final double BASE_HIDE_OFFSET = -0.9;
+    private static final double MIN_PLAYER_DISTANCE = 12.0;
 
     private final Map<UUID, ItemDisplay> activeBeacons = new HashMap<>();
     private final Map<UUID, Long> debugThrottle = new HashMap<>();
@@ -56,6 +57,11 @@ public class BeaconManager implements Listener {
         }
 
         debugLineOfSight(player, target);
+
+        Location clampedTarget = enforceMinimumDistance(player, target, location);
+        if (clampedTarget != null) {
+            target = clampedTarget;
+        }
 
         ItemDisplay display = activeBeacons.get(player.getUniqueId());
         if (display == null || display.isDead() || !display.getWorld().equals(target.getWorld())) {
@@ -235,6 +241,26 @@ public class BeaconManager implements Listener {
             return surfaceResolved;
         }
         return null;
+    }
+
+    private Location enforceMinimumDistance(Player player, Location target, Location destination) {
+        if (player == null || target == null || target.getWorld() == null || destination == null) {
+            return null;
+        }
+        Location playerLoc = player.getLocation();
+        if (!playerLoc.getWorld().equals(target.getWorld()) || !playerLoc.getWorld().equals(destination.getWorld())) {
+            return null;
+        }
+        double destDistance = playerLoc.distance(destination);
+        if (destDistance <= MIN_PLAYER_DISTANCE) {
+            return null;
+        }
+        double distance = playerLoc.distance(target);
+        if (distance >= MIN_PLAYER_DISTANCE || distance < 0.1) {
+            return null;
+        }
+        return playerLoc.clone()
+                .add(target.toVector().subtract(playerLoc.toVector()).normalize().multiply(MIN_PLAYER_DISTANCE));
     }
 
     private boolean isDebugEnabled() {
