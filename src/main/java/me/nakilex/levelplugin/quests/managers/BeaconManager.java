@@ -1,51 +1,111 @@
 package me.nakilex.levelplugin.quests.managers;
 
-import org.bukkit.Color;
-import org.bukkit.DyeColor;
 import org.bukkit.Location;
-import org.bukkit.Particle;
 import org.bukkit.World;
+import org.bukkit.block.BlockFace;
+import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.Listener;
+import org.bukkit.Material;
+import com.nexomc.nexo.api.NexoFurniture;
+import com.nexomc.nexo.mechanics.furniture.FurnitureMechanic;
+import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.lootchests.utils.LocationUtils;
+import me.nakilex.levelplugin.utils.NexoUtil;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 
 /**
- * Client-side, lime-green, rectangular beacon beam.
+ * Quest waypoint beacon using a Nexo furniture entity.
  */
 public class BeaconManager implements Listener {
 
+    private static final String FURNITURE_ID = "base_beacon_magenta_inventory";
+    private static final double BASE_HIDE_OFFSET = -0.9;
+
+    private final Map<UUID, ItemDisplay> activeBeacons = new HashMap<>();
+
     /**
-     * Draw a constant rectangular lime beam for {@code player}.
+     * Draw a constant beacon for {@code player}.
      *
      * @param player   viewer
      * @param location centre of the block that defines the X/Z of the column
      */
     public void showBeam(Player player, Location location) {
-        if (player == null || location == null) return;
+        if (player == null || location == null) {
+            return;
+        }
 
         World world = location.getWorld();
         if (world == null) return;
 
-        Color rgb = DyeColor.LIME.getColor();
-        Particle.DustOptions dust = new Particle.DustOptions(rgb, 1.8f); // slimmer line
+        Location target = resolveBeaconLocation(location);
+        if (target == null || target.getWorld() == null) {
+            removeBeam(player);
+            return;
+        }
 
-        int minY = world.getMinHeight();
-        int maxY = world.getMaxHeight() - 1;    // safety – never above build height
-
-        double baseX = location.getX() + 0.5;   // block centre
-        double baseZ = location.getZ() + 0.5;
-
-        // Offsets so the four lines form a square “frame”
-        double off = 0.25;
-
-        for (double y = minY; y <= maxY; y += 1) {       // 1-block increments ⇒ fewer particles
-            // NW, NE, SW, SE corners of the block
-            player.spawnParticle(Particle.DUST, baseX - off, y, baseZ - off, 0, 0, 0, 0, 1, dust, true);
-            player.spawnParticle(Particle.DUST, baseX + off, y, baseZ - off, 0, 0, 0, 0, 1, dust, true);
-            player.spawnParticle(Particle.DUST, baseX - off, y, baseZ + off, 0, 0, 0, 0, 1, dust, true);
-            player.spawnParticle(Particle.DUST, baseX + off, y, baseZ + off, 0, 0, 0, 0, 1, dust, true);
+        ItemDisplay display = activeBeacons.get(player.getUniqueId());
+        if (display == null || display.isDead() || !display.getWorld().equals(target.getWorld())) {
+            if (display != null && !display.isDead()) {
+                NexoFurniture.remove(display);
+            }
+            display = spawnBeacon(target);
+            if (display != null) {
+                activeBeacons.put(player.getUniqueId(), display);
+            }
+        } else {
+            display.teleport(target);
         }
     }
 
-    // still stateless
-    public void removeBeam(Player ignored) {}
+    public void removeBeam(Player player) {
+        if (player == null) return;
+        ItemDisplay display = activeBeacons.remove(player.getUniqueId());
+        if (display != null && !display.isDead()) {
+            NexoFurniture.remove(display);
+        }
+    }
+
+    private Location resolveBeaconLocation(Location location) {
+        Location centered = LocationUtils.centerOnBlock(location);
+        if (centered == null) return null;
+        Location surface = LocationUtils.aboveSurface(centered);
+        if (surface == null) return null;
+        Location adjusted = surface.clone().add(0, BASE_HIDE_OFFSET, 0);
+        World world = adjusted.getWorld();
+        if (world == null) return null;
+        double minY = world.getMinHeight();
+        if (adjusted.getY() < minY) {
+            adjusted.setY(minY);
+        }
+        return adjusted;
+    }
+
+    private ItemDisplay spawnBeacon(Location location) {
+        FurnitureMechanic mechanic = NexoFurniture.furnitureMechanic(FURNITURE_ID);
+        if (mechanic == null) {
+            Main.getInstance().getLogger().warning("[BeaconManager] Unknown furniture '" + FURNITURE_ID + "'.");
+            NexoUtil.logAvailableFurnitureIds(Main.getInstance().getLogger());
+            return null;
+        }
+        Location spawn = location.clone().subtract(0, BASE_HIDE_OFFSET, 0);
+        if (spawn.getBlock().getType() != Material.AIR) {
+            spawn.getBlock().setType(Material.AIR, false);
+        }
+        ItemDisplay display = NexoFurniture.place(FURNITURE_ID, spawn, 0f, BlockFace.NORTH);
+        if (display != null) {
+            display.teleport(location);
+        }
+        return display;
+    }
+
+    @EventHandler
+    public void onQuit(PlayerQuitEvent event) {
+        removeBeam(event.getPlayer());
+    }
 }
