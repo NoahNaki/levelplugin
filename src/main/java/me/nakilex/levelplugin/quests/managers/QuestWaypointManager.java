@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Handles the quest waypoint indicators: hologram pointer, trail particles, and beacon marker.
@@ -46,7 +47,14 @@ public class QuestWaypointManager implements Listener {
     private static final int BEACON_STEP = 2;
     private static final int TRAIL_POINT_COUNT = 25;
     private static final double TRAIL_POINT_SPACING = 0.5;
-    private static final long PATH_REFRESH_MS = 3000L;
+    private static final Particle TRAIL_PARTICLE_NORMAL = Particle.END_ROD;
+    private static final Particle TRAIL_PARTICLE_HIGHLIGHT = Particle.FIREWORKS_SPARK;
+    private static final double TRAIL_PARTICLE_SPREAD = 0.02;
+    private static final int TRAIL_HIGHLIGHT_DISTANCE = 5;
+    private static final double TRAIL_HIGHLIGHT_MULTIPLIER = 1.5;
+    private static final double TRAIL_INVALIDATION_DISTANCE_SQ = 30 * 30;
+    private static final double TRAIL_RETAIN_DISTANCE_SQ = 24 * 24;
+    private static final double TRAIL_CALCULATE_AHEAD_DISTANCE_SQ = 18 * 18;
     private static final int PATH_MAX_RADIUS = 80;
     private static final int PATH_MAX_EXPANSIONS = 4500;
     private static final int PATH_MAX_DISTANCE = 120;
@@ -92,10 +100,7 @@ public class QuestWaypointManager implements Listener {
             spawnBeaconParticles(player, targetLoc);
         }
 
-        if (shouldRecomputePath(player, state, target)) {
-            recomputePath(player, state, target);
-        }
-
+        updateTrail(player, state, target);
         spawnTrailParticles(player, state);
     }
 
@@ -130,8 +135,12 @@ public class QuestWaypointManager implements Listener {
     private void clearTrail(PlayerWaypointState state) {
         if (state != null) {
             state.pathPoints = Collections.emptyList();
-            state.pathStart = null;
             state.pathTargetKey = null;
+            if (state.pathFuture != null) {
+                state.pathFuture.cancel(true);
+            }
+            state.pathFuture = CompletableFuture.completedFuture(null);
+            state.highlightCounter = 0;
         }
     }
 
@@ -220,57 +229,119 @@ public class QuestWaypointManager implements Listener {
         return nameLine + "\n" + ChatColor.GRAY + objective + " " + ChatColor.YELLOW + distText;
     }
 
-    private boolean shouldRecomputePath(Player player, PlayerWaypointState state, PathTarget target) {
-        if (state == null || target == null || target.location() == null) {
-            return false;
-        }
-        if (state.pathComputeInProgress) {
-            return false;
+    private void updateTrail(Player player, PlayerWaypointState state, PathTarget target) {
+        if (player == null || state == null || target == null || target.location() == null) {
+            return;
         }
         PathTargetKey key = target.key();
         if (state.pathTargetKey == null || !state.pathTargetKey.equals(key)) {
-            return true;
+            state.pathPoints = new ArrayList<>();
+            state.pathTargetKey = key;
         }
-        if (state.pathPoints == null || state.pathPoints.isEmpty()) {
-            return true;
-        }
-        if (System.currentTimeMillis() - state.lastPathComputeMs > PATH_REFRESH_MS) {
-            return true;
-        }
-        if (state.pathStart != null) {
-            return state.pathStart.distanceSquared(player.getLocation()) > 16;
-        }
-        return true;
-    }
 
-    private void recomputePath(Player player, PlayerWaypointState state, PathTarget target) {
-        if (player == null || target == null || target.location() == null) {
+        if (!state.pathFuture.isDone()) {
             return;
         }
-        state.pathComputeInProgress = true;
-        state.lastPathComputeMs = System.currentTimeMillis();
-        state.pathTargetKey = target.key();
-        Location start = player.getLocation().clone();
-        Location goal = target.location().clone();
-        UUID playerId = player.getUniqueId();
 
+        if (shouldInvalidateTrail(player, target.location(), state.pathPoints)) {
+            state.pathPoints.clear();
+        }
+
+        if (state.pathPoints.isEmpty()) {
+            startPathCompute(player, state, player.getLocation(), target.location(), false);
+            return;
+        }
+
+        Location last = state.pathPoints.get(state.pathPoints.size() - 1);
+        if (!blockEquals(last, target.location())
+                && player.getLocation().distanceSquared(last) < TRAIL_CALCULATE_AHEAD_DISTANCE_SQ) {
+            startPathCompute(player, state, last, target.location(), true);
+        }
+    }
+
+    private boolean shouldInvalidateTrail(Player player, Location target, List<Location> trail) {
+        if (trail == null || trail.isEmpty()) {
+            return true;
+        }
+        if (player.getWorld() != trail.get(0).getWorld()) {
+            return true;
+        }
+        boolean allFar = true;
+        Location playerLoc = player.getLocation();
+        for (Location loc : trail) {
+            if (playerLoc.distanceSquared(loc) < TRAIL_INVALIDATION_DISTANCE_SQ) {
+                allFar = false;
+                break;
+            }
+        }
+        if (allFar) {
+            return true;
+        }
+        return trail.size() == 1 && !blockEquals(trail.get(0), target);
+    }
+
+    private void startPathCompute(Player player,
+                                  PlayerWaypointState state,
+                                  Location start,
+                                  Location goal,
+                                  boolean append) {
+        if (player == null || state == null || start == null || goal == null) {
+            return;
+        }
+        UUID playerId = player.getUniqueId();
+        PathTargetKey key = state.pathTargetKey;
+        state.pathFuture = new CompletableFuture<>();
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             StandablePath path = pathfinder.findPath(start, goal, pathSettings);
             List<Location> points = buildPathPoints(path);
             Bukkit.getScheduler().runTask(plugin, () -> {
-                Player online = Bukkit.getPlayer(playerId);
                 PlayerWaypointState current = states.get(playerId);
-                if (online == null || current == null) {
+                if (current == null || !Objects.equals(current.pathTargetKey, key)) {
+                    state.pathFuture.complete(null);
                     return;
                 }
-                current.pathComputeInProgress = false;
-                if (!Objects.equals(current.pathTargetKey, target.key())) {
-                    return;
+                if (append) {
+                    pruneTrailBehindPlayer(Bukkit.getPlayer(playerId), current.pathPoints);
+                    appendTrailPoints(current, points);
+                } else {
+                    current.pathPoints = new ArrayList<>(points);
                 }
-                current.pathPoints = points;
-                current.pathStart = start;
+                state.pathFuture.complete(null);
             });
         });
+    }
+
+    private void pruneTrailBehindPlayer(Player player, List<Location> trail) {
+        if (player == null || trail == null || trail.isEmpty()) {
+            return;
+        }
+        Location playerLoc = player.getLocation();
+        int lastIndex = -1;
+        for (int i = 0; i < trail.size(); i++) {
+            Location loc = trail.get(i);
+            if (playerLoc.distanceSquared(loc) >= TRAIL_RETAIN_DISTANCE_SQ) {
+                lastIndex = i;
+            }
+        }
+        if (lastIndex > 0) {
+            trail.subList(0, lastIndex).clear();
+        }
+    }
+
+    private void appendTrailPoints(PlayerWaypointState state, List<Location> points) {
+        if (state == null || points == null || points.isEmpty()) {
+            return;
+        }
+        if (state.pathPoints.isEmpty()) {
+            state.pathPoints = new ArrayList<>(points);
+            return;
+        }
+        for (int i = 0; i < points.size(); i++) {
+            if (i == 0) {
+                continue;
+            }
+            state.pathPoints.add(points.get(i));
+        }
     }
 
     private List<Location> buildPathPoints(StandablePath path) {
@@ -292,8 +363,12 @@ public class QuestWaypointManager implements Listener {
         int endIndex = Math.min(state.pathPoints.size(), startIndex + TRAIL_POINT_COUNT);
         for (int i = startIndex; i < endIndex; i++) {
             Location loc = state.pathPoints.get(i);
-            player.spawnParticle(Particle.END_ROD, loc, 1, 0, 0, 0, 0);
+            boolean highlight = ((i - state.highlightCounter) % TRAIL_HIGHLIGHT_DISTANCE) == 0;
+            int amount = highlight ? (int) Math.ceil(1 * TRAIL_HIGHLIGHT_MULTIPLIER) : 1;
+            Particle particle = highlight ? TRAIL_PARTICLE_HIGHLIGHT : TRAIL_PARTICLE_NORMAL;
+            player.spawnParticle(particle, loc, amount, TRAIL_PARTICLE_SPREAD, TRAIL_PARTICLE_SPREAD, TRAIL_PARTICLE_SPREAD, 0);
         }
+        state.highlightCounter = (state.highlightCounter + 1) % TRAIL_HIGHLIGHT_DISTANCE;
     }
 
     private int findClosestIndex(List<Location> points, Location playerLoc) {
@@ -356,13 +431,22 @@ public class QuestWaypointManager implements Listener {
         player.hideEntity(plugin, display);
     }
 
+    private boolean blockEquals(Location a, Location b) {
+        if (a == null || b == null || a.getWorld() == null || b.getWorld() == null) {
+            return false;
+        }
+        return a.getWorld().equals(b.getWorld())
+                && a.getBlockX() == b.getBlockX()
+                && a.getBlockY() == b.getBlockY()
+                && a.getBlockZ() == b.getBlockZ();
+    }
+
     private static class PlayerWaypointState {
         private ItemDisplay pointerItem;
         private TextDisplay pointerText;
-        private List<Location> pathPoints = Collections.emptyList();
-        private Location pathStart;
+        private List<Location> pathPoints = new ArrayList<>();
         private PathTargetKey pathTargetKey;
-        private long lastPathComputeMs;
-        private boolean pathComputeInProgress;
+        private CompletableFuture<Void> pathFuture = CompletableFuture.completedFuture(null);
+        private int highlightCounter;
     }
 }
