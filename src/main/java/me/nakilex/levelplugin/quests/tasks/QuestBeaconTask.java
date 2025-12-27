@@ -2,11 +2,15 @@ package me.nakilex.levelplugin.quests.tasks;
 
 import me.nakilex.levelplugin.quests.data.*;
 import me.nakilex.levelplugin.quests.gui.QuestState;
-import me.nakilex.levelplugin.quests.managers.*;
+import me.nakilex.levelplugin.quests.managers.QuestManager;
+import me.nakilex.levelplugin.utils.ChatUtil;
+import me.nakilex.levelplugin.waypoints.WaypointDisplayManager;
 import org.bukkit.*;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.util.Vector;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Runs once a tick to keep the rectangular lime beacon “solid”.
@@ -14,11 +18,11 @@ import org.bukkit.util.Vector;
 public class QuestBeaconTask extends BukkitRunnable {
 
     private final QuestManager  questManager;
-    private final BeaconManager beaconManager;
+    private final WaypointDisplayManager waypointDisplayManager;
 
-    public QuestBeaconTask(QuestManager questManager, BeaconManager beaconManager) {
-        this.questManager  = questManager;
-        this.beaconManager = beaconManager;
+    public QuestBeaconTask(QuestManager questManager, WaypointDisplayManager waypointDisplayManager) {
+        this.questManager = questManager;
+        this.waypointDisplayManager = waypointDisplayManager;
     }
 
     @Override
@@ -37,8 +41,11 @@ public class QuestBeaconTask extends BukkitRunnable {
             // --- pick objective ---------------------------------------------
             Location loc = null;
             QuestState state = null;
-            if (quest != null) {
+            String questName = null;
+            String objectiveLabel = null;
+            if (quest != null && quest.isLocationVisible()) {
                 state = questManager.getQuestState(player, quest);
+                questName = quest.getName();
                 int idx = 0;
                 if (progress != null && quest.getId().equals(progress.getQuest().getId())) {
                     // first unfinished objective
@@ -49,39 +56,35 @@ public class QuestBeaconTask extends BukkitRunnable {
                         }
                     }
                 }
-                BeaconTarget target = quest.getObjectives().get(idx).getBeaconTarget();
+                QuestObjective objective = quest.getObjectives().get(idx);
+                BeaconTarget target = objective.getBeaconTarget();
                 if (target != null) {
                     loc = target.resolve(player);
                 }
+                objectiveLabel = objective.getDescription();
                 if (loc == null && state == QuestState.AVAILABLE && quest.getNpcGiverId() != null) {
                     BeaconTarget npcTarget = BeaconTargets.npc(quest.getNpcGiverId());
                     loc = npcTarget.resolve(player);
+                    objectiveLabel = "Speak with the quest giver";
                 }
             }
 
             if (loc != null && loc.getWorld() != null && loc.getWorld().equals(player.getWorld())) {
-                Location pLoc = player.getLocation();
-                double dist = pLoc.distance(loc);
-
-                // hide beam when player is close enough
-                if (dist < 10) {
-                    beaconManager.removeBeam(player);
-                    continue;
-                }
-
-                // --- dynamic “lead” distance --------------------------------
-                Location target = loc;
-                if (dist > 64) {                       // far away – point ahead of the player
-                    double lead = Math.min(80, dist * 0.6); // between 40 and 80 m
-                    Vector dir = loc.toVector().subtract(pLoc.toVector()).setY(0).normalize();
-                    target = pLoc.clone().add(dir.multiply(lead));
-                    target.setY(pLoc.getY());          // keep beam foot at eye-level terrain
-                }
-
-                beaconManager.showBeam(player, target); // rectangular, lime, full height
+                waypointDisplayManager.update(player, loc, buildHologramLines(questName, objectiveLabel));
             } else {
-                beaconManager.removeBeam(player);
+                waypointDisplayManager.clear(player);
             }
         }
+    }
+
+    private List<String> buildHologramLines(String questName, String objectiveLabel) {
+        List<String> lines = new ArrayList<>();
+        if (questName != null && !questName.isBlank()) {
+            lines.add(ChatColor.GOLD + ChatUtil.applyEmojis(questName));
+        }
+        if (objectiveLabel != null && !objectiveLabel.isBlank()) {
+            lines.add(ChatColor.YELLOW + ChatUtil.applyEmojis(objectiveLabel));
+        }
+        return lines;
     }
 }
