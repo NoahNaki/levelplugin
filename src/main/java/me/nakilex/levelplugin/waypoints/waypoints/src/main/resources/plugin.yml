@@ -1,0 +1,72 @@
+name: Waypoints
+authors:
+  - Md5Lukas
+main: de.md5lukas.waypoints.WaypointsPlugin
+version: ${version}
+
+website: https://github.com/Sytm/waypoints
+
+api-version: "${apiVersion}"
+folia-supported: true
+
+softdepend:
+  - Vault
+  - dynmap
+  - ProtocolLib
+  - squaremap
+  - BlueMap
+  - Pl3xMap
+  - Geyser-Spigot
+
+permissions:
+  waypoints.*:
+    default: op
+    children:
+      - waypoints.command.scripting
+      - waypoints.command.use
+      - waypoints.command.other
+      - waypoints.command.statistics
+      - waypoints.command.reload
+      - waypoints.unlimited
+      - waypoints.temporaryWaypoint
+      - waypoints.temporaryWaypoint.others
+      - waypoints.modify.private
+      - waypoints.modify.public
+      - waypoints.modify.permission
+      - waypoints.modify.anywhere
+      - waypoints.modify.other
+      - waypoints.teleport.private
+      - waypoints.teleport.public
+      - waypoints.teleport.permission
+      - waypoints.tracking.enabled
+      - waypoints.tracking.trackAll
+      - waypoints.updateNotification
+
+  waypoints.command.scripting: { }
+  waypoints.command.use:
+    default: true
+  waypoints.command.other: { }
+  waypoints.command.statistics: { }
+
+  waypoints.unlimited: { }
+  waypoints.temporaryWaypoint:
+    default: true
+  waypoints.temporaryWaypoint.others:
+    default: true
+
+  waypoints.modify.private:
+    default: true
+  waypoints.modify.public: { }
+  waypoints.modify.permission: { }
+  waypoints.modify.anywhere: { }
+  waypoints.modify.other: { }
+
+  waypoints.teleport.private: { }
+  waypoints.teleport.public: { }
+  waypoints.teleport.permission: { }
+
+  waypoints.tracking.enabled:
+    default: true
+  waypoints.tracking.trackAll: { }
+
+  waypoints.updateNotification: { }
