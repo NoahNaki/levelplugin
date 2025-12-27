@@ -132,6 +132,7 @@ public class Main extends JavaPlugin {
     public me.nakilex.levelplugin.dungeon.DungeonManager getDungeonManager() { return bootstrap.getDungeonManager(); }
     public me.nakilex.levelplugin.world.WorldManager getWorldManager() { return bootstrap.getWorldManager(); }
     public me.nakilex.levelplugin.quests.managers.BeaconManager getBeaconManager() { return bootstrap.getBeaconManager(); }
+    public me.nakilex.levelplugin.quests.managers.QuestWaypointManager getQuestWaypointManager() { return bootstrap.getQuestWaypointManager(); }
     public me.nakilex.levelplugin.quests.managers.QuestManager getQuestManager() { return bootstrap.getQuestManager(); }
     public me.nakilex.levelplugin.player.battlepass.BattlePassManager getBattlePassManager() { return bootstrap.getBattlePassManager(); }
     public me.nakilex.levelplugin.player.battlepass.gui.BattlePassGUI getBattlePassGUI() { return bootstrap.getBattlePassGUI(); }

@@ -173,6 +173,7 @@ public class PluginBootstrap {
     private me.nakilex.levelplugin.npc.dialog.NPCDialogManager dialogManager;
     private me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager scoreboardManager;
     private me.nakilex.levelplugin.quests.managers.BeaconManager beaconManager;
+    private me.nakilex.levelplugin.quests.managers.QuestWaypointManager questWaypointManager;
     private me.nakilex.levelplugin.fasttravel.FastTravelManager fastTravelManager;
     private me.nakilex.levelplugin.fasttravel.gui.FastTravelGUI fastTravelGUI;
     private me.nakilex.levelplugin.music.LocationMusicManager locationMusicManager;
@@ -374,6 +375,7 @@ public class PluginBootstrap {
         ignoreManager = new IgnoreManager(plugin);
         friendRequestListener = new FriendRequestListener(friendManager);
         beaconManager = new me.nakilex.levelplugin.quests.managers.BeaconManager();
+        questWaypointManager = new me.nakilex.levelplugin.quests.managers.QuestWaypointManager(plugin, beaconManager);
         fastTravelManager = new me.nakilex.levelplugin.fasttravel.FastTravelManager(plugin);
         modelGateManager = new me.nakilex.levelplugin.fakeblock.ModelGateManager(plugin);
         fastTravelGUI = new me.nakilex.levelplugin.fasttravel.gui.FastTravelGUI(fastTravelManager, economyManager, modelGateManager);
@@ -578,6 +580,7 @@ public class PluginBootstrap {
                 new me.nakilex.levelplugin.guild.GuildMembershipListener(),
                 plugin);
         plugin.getServer().getPluginManager().registerEvents(beaconManager, plugin);
+        plugin.getServer().getPluginManager().registerEvents(questWaypointManager, plugin);
         if (chatGameManager != null) {
             chatGameManager.start();
         }
@@ -683,6 +686,7 @@ public class PluginBootstrap {
         if (buildingStageManager != null) buildingStageManager.despawnAll();
         if (wanderingMerchantManager != null) wanderingMerchantManager.despawn();
         if (beaconManager != null) beaconManager.removeAll();
+        if (questWaypointManager != null) questWaypointManager.removeAll();
         if (beaconEntityDebugManager != null) beaconEntityDebugManager.removeAll();
         if (dealMaker != null) dealMaker.closeAllTrades();
         plugin.getLogger().info("LevelPlugin has been disabled!");
@@ -779,6 +783,7 @@ public class PluginBootstrap {
     public me.nakilex.levelplugin.npc.dialog.NPCDialogManager getDialogManager() { return dialogManager; }
     public me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager getScoreboardManager() { return scoreboardManager; }
     public me.nakilex.levelplugin.quests.managers.BeaconManager getBeaconManager() { return beaconManager; }
+    public me.nakilex.levelplugin.quests.managers.QuestWaypointManager getQuestWaypointManager() { return questWaypointManager; }
     public me.nakilex.levelplugin.fasttravel.FastTravelManager getFastTravelManager() { return fastTravelManager; }
     public me.nakilex.levelplugin.fasttravel.gui.FastTravelGUI getFastTravelGUI() { return fastTravelGUI; }
     public me.nakilex.levelplugin.music.LocationMusicManager getLocationMusicManager() { return locationMusicManager; }
@@ -936,6 +941,54 @@ public class PluginBootstrap {
                     "You can trade with others using /trade <username>",
                     "You can sell your unwanted items at a Scrapper for <glyph:coins_icon> &6coins & <glyph:purple_orb_icon> &dgems&f!"
             ));
+        }
+        if (!customConfig.contains("quest-tracking.indicators.bossbar")) {
+            customConfig.set("quest-tracking.indicators.bossbar", true);
+        }
+        if (!customConfig.contains("quest-tracking.indicators.beacon")) {
+            customConfig.set("quest-tracking.indicators.beacon", true);
+        }
+        if (!customConfig.contains("quest-tracking.indicators.trail")) {
+            customConfig.set("quest-tracking.indicators.trail", true);
+        }
+        if (!customConfig.contains("quest-tracking.indicators.hologram")) {
+            customConfig.set("quest-tracking.indicators.hologram", true);
+        }
+        if (!customConfig.contains("quest-tracking.indicators.blinking-block")) {
+            customConfig.set("quest-tracking.indicators.blinking-block", true);
+        }
+        if (!customConfig.contains("quest-tracking.indicators.compass")) {
+            customConfig.set("quest-tracking.indicators.compass", true);
+        }
+        if (!customConfig.contains("quest-tracking.indicators.actionbar")) {
+            customConfig.set("quest-tracking.indicators.actionbar", true);
+        }
+        if (!customConfig.contains("quest-tracking.indicators.particles")) {
+            customConfig.set("quest-tracking.indicators.particles", true);
+        }
+        if (!customConfig.contains("quest-tracking.distances.beacon-hide")) {
+            customConfig.set("quest-tracking.distances.beacon-hide", 10.0);
+        }
+        if (!customConfig.contains("quest-tracking.distances.beacon-lead-start")) {
+            customConfig.set("quest-tracking.distances.beacon-lead-start", 64.0);
+        }
+        if (!customConfig.contains("quest-tracking.distances.beacon-lead-factor")) {
+            customConfig.set("quest-tracking.distances.beacon-lead-factor", 0.6);
+        }
+        if (!customConfig.contains("quest-tracking.distances.beacon-lead-max")) {
+            customConfig.set("quest-tracking.distances.beacon-lead-max", 80.0);
+        }
+        if (!customConfig.contains("quest-tracking.distances.hologram-range")) {
+            customConfig.set("quest-tracking.distances.hologram-range", 96.0);
+        }
+        if (!customConfig.contains("quest-tracking.distances.blinking-block-range")) {
+            customConfig.set("quest-tracking.distances.blinking-block-range", 12.0);
+        }
+        if (!customConfig.contains("quest-tracking.distances.trail-range")) {
+            customConfig.set("quest-tracking.distances.trail-range", 48.0);
+        }
+        if (!customConfig.contains("quest-tracking.distances.particles-range")) {
+            customConfig.set("quest-tracking.distances.particles-range", 48.0);
         }
         if (!customConfig.contains("leaderboards.level.world")) {
             customConfig.set("leaderboards.level.world", "flatland");

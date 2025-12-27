@@ -10,9 +10,8 @@ import me.nakilex.levelplugin.horse.utils.HorseSaverTask;
 import me.nakilex.levelplugin.scoreboard.ScoreboardTask;
 import me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager;
 import me.nakilex.levelplugin.quests.tasks.QuestNPCEffectTask;
-import me.nakilex.levelplugin.quests.tasks.QuestBeaconTask;
+import me.nakilex.levelplugin.quests.tasks.QuestWaypointTask;
 import me.nakilex.levelplugin.quests.tasks.QuestPlayTimeTask;
-import me.nakilex.levelplugin.quests.managers.BeaconManager;
 import me.nakilex.levelplugin.world.LeafParticleTask;
 import me.nakilex.levelplugin.leaderboards.LeaderboardUpdateTask;
 import me.nakilex.levelplugin.leaderboards.LeaderboardManager;
@@ -59,8 +58,7 @@ public class TaskRegistry {
 
         questNpcTask = new QuestNPCEffectTask(plugin.getQuestManager());
         questNpcTask.runTaskTimer(plugin, 20L, 20L);
-        BeaconManager beaconMgr = plugin.getBeaconManager();
-        new QuestBeaconTask(plugin.getQuestManager(), beaconMgr).runTaskTimer(plugin, 10L, 20L);
+        new QuestWaypointTask(plugin.getQuestManager(), plugin.getQuestWaypointManager()).runTaskTimer(plugin, 10L, 20L);
         new QuestPlayTimeTask(plugin.getQuestManager()).runTaskTimer(plugin, 1200L, 1200L);
 
         // Notify players about unused skill points every minute
