@@ -172,7 +172,7 @@ public class PluginBootstrap {
     private BattlePassGUI battlePassGUI;
     private me.nakilex.levelplugin.npc.dialog.NPCDialogManager dialogManager;
     private me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager scoreboardManager;
-    private me.nakilex.levelplugin.quests.managers.BeaconManager beaconManager;
+    private me.nakilex.levelplugin.quests.managers.QuestWaypointManager waypointManager;
     private me.nakilex.levelplugin.fasttravel.FastTravelManager fastTravelManager;
     private me.nakilex.levelplugin.fasttravel.gui.FastTravelGUI fastTravelGUI;
     private me.nakilex.levelplugin.music.LocationMusicManager locationMusicManager;
@@ -373,7 +373,7 @@ public class PluginBootstrap {
         visibilityManager = new PlayerVisibilityManager(plugin, friendManager, settingsManager);
         ignoreManager = new IgnoreManager(plugin);
         friendRequestListener = new FriendRequestListener(friendManager);
-        beaconManager = new me.nakilex.levelplugin.quests.managers.BeaconManager();
+        waypointManager = new me.nakilex.levelplugin.quests.managers.QuestWaypointManager(plugin);
         fastTravelManager = new me.nakilex.levelplugin.fasttravel.FastTravelManager(plugin);
         modelGateManager = new me.nakilex.levelplugin.fakeblock.ModelGateManager(plugin);
         fastTravelGUI = new me.nakilex.levelplugin.fasttravel.gui.FastTravelGUI(fastTravelManager, economyManager, modelGateManager);
@@ -577,7 +577,7 @@ public class PluginBootstrap {
         plugin.getServer().getPluginManager().registerEvents(
                 new me.nakilex.levelplugin.guild.GuildMembershipListener(),
                 plugin);
-        plugin.getServer().getPluginManager().registerEvents(beaconManager, plugin);
+        plugin.getServer().getPluginManager().registerEvents(waypointManager, plugin);
         if (chatGameManager != null) {
             chatGameManager.start();
         }
@@ -682,7 +682,7 @@ public class PluginBootstrap {
         if (townStageManager != null) townStageManager.despawnAll();
         if (buildingStageManager != null) buildingStageManager.despawnAll();
         if (wanderingMerchantManager != null) wanderingMerchantManager.despawn();
-        if (beaconManager != null) beaconManager.removeAll();
+        if (waypointManager != null) waypointManager.clearAll();
         if (beaconEntityDebugManager != null) beaconEntityDebugManager.removeAll();
         if (dealMaker != null) dealMaker.closeAllTrades();
         plugin.getLogger().info("LevelPlugin has been disabled!");
@@ -778,7 +778,7 @@ public class PluginBootstrap {
     public BattlePassGUI getBattlePassGUI() { return battlePassGUI; }
     public me.nakilex.levelplugin.npc.dialog.NPCDialogManager getDialogManager() { return dialogManager; }
     public me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager getScoreboardManager() { return scoreboardManager; }
-    public me.nakilex.levelplugin.quests.managers.BeaconManager getBeaconManager() { return beaconManager; }
+    public me.nakilex.levelplugin.quests.managers.QuestWaypointManager getWaypointManager() { return waypointManager; }
     public me.nakilex.levelplugin.fasttravel.FastTravelManager getFastTravelManager() { return fastTravelManager; }
     public me.nakilex.levelplugin.fasttravel.gui.FastTravelGUI getFastTravelGUI() { return fastTravelGUI; }
     public me.nakilex.levelplugin.music.LocationMusicManager getLocationMusicManager() { return locationMusicManager; }
