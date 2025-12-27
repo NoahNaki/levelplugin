@@ -4,10 +4,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.lootchests.utils.LocationUtils;
 import me.nakilex.levelplugin.utils.MultiLineHologram;
 import net.kyori.adventure.text.Component;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.Location;
-import org.bukkit.Material;
+import org.bukkit.*;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
@@ -224,7 +221,7 @@ public class QuestWaypointManager implements Listener {
                 continue;
             }
             Location point = surface.clone().add(0, 0.15, 0);
-            player.getWorld().spawnParticle(org.bukkit.Particle.VILLAGER_HAPPY, point, 2, 0.15, 0, 0.15, 0);
+            player.getWorld().spawnParticle(Particle.HAPPY_VILLAGER, point, 2, 0.15, 0, 0.15, 0);
         }
     }
 
