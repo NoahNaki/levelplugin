@@ -1,0 +1,701 @@
+# Formatted with: https://docs.advntr.dev/minimessage/format.html
+# These translations have been provided by SnowCutieOwO
+
+prefix: "<aqua><bold>Waypoints <yellow><bold>><reset> "
+scriptPrefix: "<aqua><bold>Waypoints<green>Script <yellow><bold>><reset> "
+
+worlds:
+  world: "主世界"
+  world_nether: "地狱"
+  world_the_end: "末地"
+
+update:
+  error: "<red>检查新版本信息失败"
+  upToDate: "<green>你当前使用的 Waypoints 为最新版本"
+  outdated: |
+    <gray>Waypoints 有新版本 <yellow><latest></yellow> 可用.
+    可以在这里检查更新: <yellow><link></yellow>
+
+command:
+  notAPlayer: "<red>你必须是玩家才可执行此命令."
+
+  script:
+    help:
+      header: "<gray><underlined>帮助界面"
+      deselectWaypoint: "<gray> - <yellow>/<label> deselectWaypoint <玩家名称> <gray><bold>|<reset><gray> 为玩家删除选择的路径点"
+      selectWaypoint: "<gray> - <yellow>/<label> selectWaypoint <玩家名称> <Waypoint-UUID> <gray><bold>|<reset><gray> 为玩家设置一个将要去到的路径点"
+      temporaryWaypoint: "<gray> - <yellow>/<label> temporaryWaypoint <玩家名称> <X> <Y> <Z> [光柱颜色] <gray><bold>|<reset><gray> 为玩家创建临时路径点"
+      uuid: "<gray> - <yellow>/<label> uuid <名称> <gray><bold>|<reset><gray> 通过关键词搜索路径点并返回其 UUID"
+
+    selectWaypoint:
+      # uuid: ID of the waypoint that could not be found
+      waypointNotFound: "<red>找不到 UUID 为 <yellow><uuid><red> 的路径点."
+
+    temporaryWaypoint:
+      beaconColorNotFound: "<red>所提供的信标颜色不存在."
+
+    uuid:
+      noMatch: "<red>指定关键词没有对应搜索结果."
+      header: "<gray>路径点: (点击可将 UUID 复制至剪贴板)"
+      result: "<gray> - 名称: <yellow><name><gray> 文件夹: <yellow><folder>"
+
+  help:
+    header: "<gray><underlined>帮助界面"
+    gui: "<gray> - <yellow>/<label> <gray><bold>|<reset><gray> 打开路径点 GUI"
+    help: "<gray> - <yellow>/<label> help <gray><bold>|<reset><gray> 显示该帮助界面"
+    select: "<gray> - <yellow>/<label> select <路径点名称> <gray><bold>|<reset><gray> 选中路径点"
+    deselect: "<gray> - <yellow>/<label> deselect <gray><bold>|<reset><gray> 取消选择当前选中的路径点"
+    teleport: "<gray> - <yellow>/<label> teleport <路径点名称> <gray><bold>|<reset><gray> 传送至对应路径点"
+    set:
+      private: "<gray> - <yellow>/<label> set <路径点名称> <gray><bold>|<reset><gray> 创建一个新的路径点"
+      public: "<gray> - <yellow>/<label> setPublic <路径点名称> <gray><bold>|<reset><gray> 创建一个新的公开路径点"
+      permission: "<gray> - <yellow>/<label> setPermission <Permission> <路径点名称> <gray><bold>|<reset><gray> 创建一个新的权限路径点"
+      temporary: "<gray> - <yellow>/<label> setTemporary <X> <Y> <Z> <gray><bold>|<reset><gray> 标记一个未保存的路径点"
+    other: "<gray> - <yellow>/<label> other <Name> <gray><bold>|<reset><gray> 查看其他玩家的路径点"
+    statistics: "<gray> - <yellow>/<label> statistics <gray><bold>|<reset><gray> 查看数据库统计信息"
+    reload: "<gray> - <yellow>/<label> reload <gray><bold>|<reset><gray> 重载配置文件"
+
+  search:
+    prefix:
+      public: "开放"
+      permission: "权限"
+    notFound:
+      waypoint: "&c对应关键词没有搜索结果."
+    # Set the text of the tooltip here.
+    # name: Name of the waypoint
+    # createdAt: Date at which the waypoint was created
+    # world: World where the waypoint is located at
+    # x, y, z: Coordinates of the waypoint
+    # block_x, block_y, block_z: Coordinates of the block nearest to the waypoint
+    # distance: Distance in blocks to the player
+    tooltip: "<created_at:'dd.MM.uuuu kk:mm'>"
+
+  select:
+    selected: "<gray>路径点 <yellow><name> <gray>已被选中."
+
+  deselect:
+    done: "<gray>已取消选择当前路径点."
+
+  other:
+    playerNoWaypoints: "<red>指定玩家无现有路径点."
+
+  statistics:
+    # db_file_size: Size of the database in SI Units
+    # total_waypoints: Total amount of waypoints
+    # private_waypoints: Amount of private waypoints
+    # death_waypoints: Amount of death waypoints
+    # public_waypoints: Amount of public waypoints
+    # permission_waypoints: Amount of permission waypoints
+    # total_folders: Total amount of folders
+    # private_folders: Amount of private folders
+    # public_folders: Amount of public folders
+    # permission_folders: Amount of permission folders
+    message: |
+      <gray>数据库统计
+      <gray>文件大小: <yellow><db_file_size>
+
+      <gray>总路径点数: <yellow><total_waypoints>
+      <gray>私有路径点数: <yellow><private_waypoints>
+      <gray>死亡路径点数: <yellow><death_waypoints>
+      <gray>公开路径点数: <yellow><public_waypoints>
+      <gray>权限路径点数: <yellow><permission_waypoints>
+
+      <gray>总路径点组数: <yellow><total_folders>
+      <gray>私有路径点组数: <yellow><private_folders>
+      <gray>公开路径点组数: <yellow><public_folders>
+      <gray>权限路径点组数: <yellow><permission_folders>
+
+  reload:
+    finished: "<gray>配置文件已成功重载."
+
+text:
+  duration:
+    addSpaces: false
+
+    second: "秒"
+    seconds: "秒"
+
+    minute: "分"
+    minutes: "分"
+
+    hour: "时"
+    hours: "时"
+
+    day: "天"
+    days: "天"
+
+  worldNotFound: "未知"
+
+  distance:
+    otherWorld: "未知"
+
+  sortOptions:
+    type_ascending: "种类"
+    type_descending: "种类 (降序)"
+    name_ascending: "名称"
+    name_descending: "名称 (降序)"
+    created_ascending: "创建时间"
+    created_descending: "创建时间 (降序)"
+
+  beaconColors:
+    clear: "<gray>无颜色"
+    light_gray: "<gray>淡灰"
+    gray: "<gray>灰"
+    pink: "<gray>粉"
+    lime: "<gray>黄绿"
+    yellow: "<gray>黄"
+    light_blue: "<gray>淡蓝"
+    magenta: "<gray>品红"
+    orange: "<gray>橙"
+    white: "<gray>白"
+    black: "<gray>黑"
+    red: "<gray>红"
+    green: "<gray>绿"
+    brown: "<gray>棕"
+    blue: "<gray>蓝"
+    cyan: "<gray>青"
+    purple: "<gray>紫"
+
+message:
+  waypoint:
+    create:
+      worldUnavailable: "<red>当前世界不可使用路径点."
+      coordinates:
+        outOfBounds: "<red>创建路径点的位置过远."
+        invalidFormat: |
+          <red>指定坐标需为以下格式:
+          <green>102 35 -238
+    limitReached:
+      private: "<red>你不能再创建更多的路径点了."
+      public: "<red>你不能再创建更多的私有路径点了."
+    nameDuplicate:
+      private: "<red>私有路径点不允许重名."
+      public: "<red>公开路径点不允许重名."
+      permission: "<red>权限路径点不允许重名."
+    setSuccess:
+      private: "<gray>路径点已成功创建."
+      public: "<gray>公开路径点已成功创建."
+      permission: "<gray>权限路径点已成功创建."
+    # name: Name of the waypoint
+    getUuid: "<gray>点击此消息可获取路径点 <yellow><name> <gray>的 UUID."
+    newIconInvalid: "<red>尝试用作路径点图标的物品未在允许列表内."
+
+  folder:
+    limitReached:
+      private: "<red>你不能再创建更多的路径点组了."
+      public: "<red>你不能再创建更多的公开路径点组了."
+    nameDuplicate:
+      private: "<red>私有路径点组不允许重名."
+      public: "<red>公开路径点组不允许重名."
+      permission: "<red>权限路径点组不允许重名."
+    createSuccess:
+      private: "<gray>私有路径点组已成功创建."
+      public: "<gray>公开路径点组已成功创建."
+      permission: "<gray>权限路径点组已成功创建."
+    newIconInvalid: "<red>尝试用作路径点组图标的物品未在允许列表内."
+
+  allowedIcons:
+    whitelist: "<red>你只能设置下列物品为图标: <yellow><items>"
+    blacklist: "<red>你不能以下列物品为图标: <yellow><items>"
+
+  temporaryWaypoints:
+    blocked: "<red>玩家 <yellow><name></yellow> 已拒绝接收临时传送点的信息."
+
+  teleport:
+    # remaining_cooldown: Time left until player can teleport again
+    onCooldown: "<red>你仍需等待 <yellow><remaining_cooldown><red> 秒后才可以再次传送."
+    notAllowed: "<red>你不能传送至该路径点."
+    notEnough:
+      # current_level: Level of the player
+      # required_level: Level required for teleportation
+      xp: |
+        <red>你没有足够的等级用于传送.
+        <red>需要等级: <yellow><required_level>
+      xpPoints: |
+        <red>你没有足够的经验值用于传送.
+        <red>当前经验值: <yellow><current_points>
+        <red>需要经验值: <yellow><required_points>
+      # current_balance: Vault balance of the player
+      # required_balance: Vault balance required for teleportation
+      balance: |
+        <red>你没有足够的钱用于传送.
+        <red>需要金币: <green><required_balance>
+    standStill:
+      # duration: Amount of time the player needs to stand still
+      notice: "<gray>你需要在 <yellow><duration><gray> 秒内保持禁止."
+      moved: "<red>传送过程中出现移动, 传送请求已取消."
+
+  tracking:
+    playerNoLongerOnline: "<red>玩家不在线."
+    trackableRequired: "<red>若要追踪其他玩家, 你自己必须取消隐身状态."
+    notification: "<gray>玩家 <yellow><name><gray> 正在追踪你."
+    request:
+      sent: "<gray>定位共享请求已发送至 <yellow><to><gray>. 该请求在 <yellow><valid_for><gray> 内有效."
+      request: |
+        <yellow><from><gray> 想要获取你的位置. 该请求将会在 <yellow><valid_for><gray> 后过期.
+        <gray>[<green><accept>接受请求</accept><gray>]
+#      geyser:
+#        title: "You have received a tracking request"
+#        message: |
+#          <from> wants to track your location.
+#          This request will expire in <valid_for>.
+#        accept: "Accept request"
+#        decline: "Decline request"
+
+  sharing:
+    alreadyShared: "<red>你已经正在与玩家 <yellow><name></yellow> 分享路径点."
+    success: "<gray>成功与玩家 <yellow><name></yellow> 分享路径点."
+
+pointers:
+  actionBar:
+    # current: Translated name of the world the player is in
+    # correct: Translated name of the world the waypoint is in
+    wrongWorld: "<red>你当前位于世界 <green><current><red>, 但路径点在世界 <green><correct>"
+    # distance: Distance to the waypoint in blocks
+    # height_difference: Height difference between player and waypoint. Positive when to high, negative when to low
+    distance: "<gray>你距离你的目的地还有 <yellow><distance::'.0'><gray> 格远"
+
+  hologram:
+    # Set the text of the floating hologram here.
+    # name: Name of the waypoint
+    # createdAt: Date at which the waypoint was created
+    # world: World where the waypoint is located at
+    # x, y, z: Coordinates of the waypoint
+    # block_x, block_y, block_z: Coordinates of the block nearest to the waypoint
+    private: "<dark_purple><name><br>(<distance:'.0'>m)"
+    death: "<red>死亡位置 <created_at:'dd.MM.uuuu kk:mm'><br>(<distance:'.0'>m)"
+    public: "<aqua><name><br>(<distance:'.0'>m)"
+    permission: "<light_purple><name><br>(<distance:'.0'>m)"
+    temporary: "<dark_purple>临时路径点<br>(<distance:'.0'>m)"
+    playerTracking: "<blue><name> <reset><blue><br>(<distance:'.0'>m)"
+
+integrations:
+  maps:
+    label: "公开路径点"
+
+inventory:
+  title:
+    self: "<dark_gray>你的路径点"
+    # name: Name of the other player
+    other: "<dark_gray>玩家 <blue><name> <dark_gray>的路径点"
+    public: "<dark_gray>公开路径点"
+    permission: "<dark_gray>权限路径点"
+    # folder: Name of the folder
+    folder: "<dark_gray>路径组 <gold><folder>"
+    settings: "<dark_gray>设置"
+    # waypoint: Name of the waypoint
+    waypoint: "<dark_gray>路径点 <gold><waypoint>"
+    playerTracking: "<dark_gray>定位分享"
+    sharing:
+      # waypoint: Name of the waypoint
+      selectPlayer: "<dark_gray>选择与玩家分享路径点 <gold><waypoint></gold> with"
+      sharedWaypoints: "<dark_gray>与你共享的路径点"
+      # waypoint: Name of the waypoint
+      sharedWith: "<dark_gray>你共享过路径点 <gold><waypoint></gold> 的玩家"
+    confirm: "<dark_gray>确认操作?"
+    selectFolder: "<dark_gray>选中了 <gold><waypoint></gold> 所在路径组"
+    selectBeaconColor: "<dark_gray>将光柱颜色设置为了 <gold><waypoint>"
+
+  general:
+    previous:
+      displayName: "<yellow>前一页"
+      description: ""
+    next:
+      displayName: "<yellow>后一页"
+      description: ""
+    back:
+      displayName: "<yellow>返回"
+      description: ""
+
+  background:
+    private:
+      displayName: "<black>-"
+      description: ""
+    death:
+      displayName: "<black>-"
+      description: ""
+    public:
+      displayName: "<black>-"
+      description: ""
+    permission:
+      displayName: "<black>-"
+      description: ""
+
+  overview:
+    cycleSort:
+      displayName: "<yellow>排序选择"
+      description: ""
+      activeColor: "<gold>"
+      inactiveColor: "<gray>"
+
+    settings:
+      displayName: "<yellow>设置"
+      description: |
+        <gray>设置全局路径点与导航的可见性
+
+    deselect:
+      displayName: "<yellow>取消选择所有路径点"
+      description: "<gray>导航消息将不再提醒"
+      selected: "<gray>当前选中如下路径点:"
+      names:
+        waypoint:
+          private: "<dark_purple><path>"
+          death: "<red>死亡地点 <created_at:'dd.MM.uuuu kk:mm'>"
+          public: "<aqua>开放路径点/<path>"
+          permission: "<light_purple>权限路径点/<path>"
+          temporary: "<dark_purple>临时路径点"
+        playerTracking: "<blue>玩家: <name>"
+        unknown: "<red>未知"
+
+    setWaypoint:
+      displayName: "<yellow>创建一个新的路径点"
+      description: |
+        <gray>路径点将会创建在当前的路径点组内
+        
+        <gray>若按下 <yellow>shift+左键<gray>, 你可使用坐标创建路径点, 例如:
+        <green>102 35 -238
+    createFolder:
+      displayName: "<yellow>创建新路径点组"
+      description: ""
+
+  settings:
+    toggleGlobals:
+      visible:
+        displayName: "<yellow>全局路径点可见"
+        description: "<gray>点击隐藏"
+      hidden:
+        displayName: "<yellow>全局路径点隐藏"
+        description: "<gray>点击显示"
+    temporaryWaypoints:
+      receivable:
+        displayName: "<yellow>接收临时路径点"
+        description: |
+         <gray>其他玩家可通过如下命令与你共享临时路径点:
+         <green>/waypoints setTemporary X Y Z <名称>
+
+         <gray>点此屏蔽
+      blocked:
+        displayName: "<yellow>屏蔽临时路径点"
+        description: |
+          <gray>其他玩家可通过如下命令与你共享临时路径点:
+          <green>/waypoints setTemporary X Y Z <名称>
+  
+          <gray>点此解除屏蔽
+    pointers:
+      title:
+        displayName: "<yellow>自定义导航样式"
+        description: ""
+      on:
+        displayName: "<bold><green><name>"
+        description: ""
+      off:
+        displayName: "<bold><red><name>"
+        description: ""
+      actionBar:
+        name: "ActionBar"
+        description: |
+          <gray>在 ActionBar 中显示目标路径点的方向
+      beacon:
+        name: "信标"
+        description: |
+          <gray>进入路径点范围后，路径点会显示指定颜色的信标
+      blinkingBlock:
+        name: "闪烁方块"
+        description: |
+          <gray>进入路径点范围后，路径点实际位置会出现闪烁方块
+      bossBar:
+        name: "BossBar"
+        description: |
+          <gray>在 BossBar 中显示目标路径点的方向及其他位置
+      compass:
+        name: "指南针"
+        description: |
+          <gray>物品栏中出现指向路径点的指南针
+      hologram:
+        name: "悬浮字"
+        description: |
+          <gray>附近显示一个指向目标路径点方向及距离的悬浮字
+      particle:
+        name: "粒子指南针"
+        description: |
+          <gray>在脚下生成粒子效果指向目标路径点
+      trail:
+        name: "粒子轨迹"
+        description: |
+          <gray>在你的面前生成导航至目标路径点的路径
+
+  # amount: Amount of waypoints in this global folder visible for the player
+  listing:
+    public:
+      displayName: "<aqua>公开路径点"
+      description: "<gray>数量: <gold><amount>"
+    permission:
+      displayName: "<light_purple>权限路径点"
+      description: "<gray>你可见的: <gold><amount>"
+    tracking:
+      displayName: "<green>玩家"
+      description: "<gray>追踪其他玩家"
+    shared:
+      displayName: "<aqua>共享路径点"
+      description: |
+        <gray>与其他玩家共享的路径点
+
+  waypoint:
+    # name: Name of the waypoint
+    # createdAt: Date at which the waypoint was created
+    # world: World where the waypoint is located at
+    # x, y, z: Coordinates of the waypoint
+    # block_x, block_y, block_z: Coordinates of the block nearest to the waypoint
+    # distance: Distance in blocks to the player
+    icon:
+      description: &waypointDescription |
+        <gray>世界: <gold><world>
+        <gray>X: <gold><block_x>
+        <gray>Y: <gold><block_y>
+        <gray>Z: <gold><block_z>
+        <gray>距离: <gold><distance:'.0'>
+
+        <gray>创建时间: <gold><created_at:'dd.MM.uuuu kk:mm'>
+
+      customDescription: &waypointCustomDescription |
+        <light_purple><italic><description1>
+        <light_purple><italic><description2>
+
+      private:
+        displayName: "<dark_purple><name>"
+        description: *waypointDescription
+        customDescription: *waypointCustomDescription
+      death:
+        displayName: "<red>死亡位置 <created_at:'dd.MM.uuuu kk:mm'>"
+        description: |
+          <gray>世界: <gold><world>
+          <gray>X: <gold><block_x>
+          <gray>Y: <gold><block_y>
+          <gray>Z: <gold><block_z>
+          <gray>距离: <gold><distance:'.0'>
+      public:
+        displayName: "<aqua><name>"
+        description: *waypointDescription
+        customDescription: *waypointCustomDescription
+        owner: "<gray>拥有者: <gold><owner>"
+      permission:
+        displayName: "<light_purple><name>"
+        description: *waypointDescription
+        customDescription: *waypointCustomDescription
+
+    select:
+      displayName: "<yellow>选择路径点"
+      description: "<gray>点击设置该路径点为你的目的地"
+    deselect:
+      displayName: "<yellow>取消选择该路径点"
+      description: ""
+    delete:
+      displayName: "<dark_red>删除路径点"
+      description: ""
+      question:
+        displayName: "<gray>你真的要删除路径点 <yellow><name> <gray>吗?"
+        description: ""
+      confirm:
+        displayName: "<red>是的, 删除 <yellow><name><red>!"
+        description: ""
+      cancel:
+        displayName: "<green>不是, 不要删除 <yellow><name><green>."
+        description: ""
+    rename:
+      displayName: "<yellow>重命名路径点"
+      description: ""
+    editIcon:
+      displayName: "<yellow>编辑图标"
+      description: |
+        <gray>点此将路径点图标改为主手持有的物品.
+
+        <gray>若要修改路径组图标, 请在打开后再次点击图标.
+
+        <gray>两种情况下均可使用 Shift+左键 的方式重置图标.
+    editDescription:
+      displayName: "<yellow>编辑描述"
+      description: "<gray>所作改动会<bold>自动</bold>保存"
+    moveToFolder:
+      displayName: "<yellow>将路径点移动至路径点组"
+      description: |
+        <gray>将路径点移动至路径点组内, 或移出路径点组
+    teleport:
+      displayName: "<yellow>传送至该路径点"
+      description: ""
+      # levels: The amount of levels required for teleportation
+      xpLevel: "<gray>你需要 <yellow><levels><gray> 级来传送至该路径点."
+      # points: The amount of experience points required for teleportation
+      xpPoints: |
+        <gray>你需要 <yellow><points><gray> 点经验值来传送至该路径点.
+      # balance: The amount of balance required for teleportation
+      balance: "<gray>你需要 <yellow><balance><gray> 金币来传送至该路径点."
+      mustVisit: |
+        <red>传送至该路径点前需要实际到达过此地.
+    selectBeaconColor:
+      displayName: "<yellow>修改信标颜色"
+      description: ""
+    getUuid:
+      displayName: "<yellow>获取路径点 UUID"
+      description: "<gray>向聊天栏发送该路径点的 UUID"
+    share:
+      displayName: "<yellow>共享路径点"
+      description: |
+        <gray>与其他玩家共享路径点, 或再次点击取消共享.
+    editPermission:
+      displayName: "<yellow>修改所需权限"
+      description: "<gray>当前所需权限为 <yellow><permission>"
+    make:
+      public:
+        displayName: "<yellow>修改为公开路径点"
+        description: ""
+        question:
+          displayName: "<gray>你确定要开放路径点 <yellow><name><gray> 吗?"
+          description: ""
+        confirm:
+          displayName: "<red>是的, 我要开放路径点 <yellow><name><red>!"
+          description: ""
+        cancel:
+          displayName: "<green>不是, 我不想开放路径点 <yellow><name><green>."
+          description: ""
+      permission:
+        displayName: "<yellow>修改为权限路径点"
+        description: ""
+        question:
+          displayName: "<gray>你确定要将路径点 <yellow><name><gray> 修改为权限路径点吗?"
+          description: ""
+        confirm:
+          displayName: "<red>是的, 我要将路径点 <yellow><name><red> 修改为权限路径点!"
+          description: ""
+        cancel:
+          displayName: "<green>不是, 我不想将路径点 <yellow><name><green> 修改为权限路径点."
+          description: ""
+    changeMapIcon:
+      displayName: "<yellow>修改卫星地图上的显示图标"
+      description: ""
+
+    create:
+      enterName: "在此输入名称"
+      enterCoordinates: "在此输入坐标"
+      enterPermission: "在此输入权限"
+
+    edit:
+      enterName: "输入新名称"
+      enterPermission: "输入新权限"
+      enterWebMapIcon: "输入网页地图图标"
+
+  folder:
+    # name: Name of the folder
+    # created_at: Date at which the folder was created
+    # amount: Amount of waypoints visible to the player
+    icon:
+      customDescription: &folderCustomDescription |
+        <light_purple><italic><description1>
+        <light_purple><italic><description2>
+
+      private:
+        displayName: "<dark_purple><name>"
+        description: "<gray>路径点组中的路径点数: <gold><amount>"
+        customDescription: *folderCustomDescription
+      death:
+        displayName: "<red>Deaths"
+        description: "<gray>路径点组中的路径点数: <gold><amount>"
+      public:
+        displayName: "<aqua><name>"
+        description: "<gray>路径点组中的路径点数: <gold><amount>"
+        customDescription: *folderCustomDescription
+        owner: "<gray>拥有者: <gold><owner>"
+      permission:
+        displayName: "<light_purple><name>"
+        description: "<gray>路径点组中的路径点数: <gold><amount>"
+        customDescription: *folderCustomDescription
+
+    delete:
+      displayName: "<dark_red>删除路径点组"
+      description: ""
+      question:
+        displayName: "<gray>你真的要删除路径点组 <yellow><name> <gray>吗?"
+        description: ""
+      confirm:
+        displayName: "<red>是, 删除路径点组 <yellow><name><red>!"
+        description: ""
+      cancel:
+        displayName: "<green>否, 不要删除路径点组 <yellow><name><green>."
+        description: ""
+      deathName: "死亡地点"
+    rename:
+      displayName: "<yellow>重命名路径点组"
+      description: ""
+    editDescription:
+      displayName: "<yellow>编辑描述"
+      description: "<gray>所作改动会<bold>自动</bold>保存"
+
+    create:
+      enterName: "在此输入名称"
+
+    edit:
+      enterName: "在此输入名称"
+
+  selectFolder:
+    noFolder:
+      displayName: "<yellow>无路径点组"
+      description: "<gray>将此路径点移动至根目录下"
+
+  selectBeaconColor:
+    moveLeft:
+      displayName: "<yellow>移动至左侧"
+      description: ""
+    moveRight:
+      displayName: "<yellow>移动至右侧"
+      description: ""
+
+  confirm:
+    background:
+      displayName: "<black>-"
+      description: ""
+
+  playerList:
+    refresh:
+      displayName: "<gray>更新玩家列表"
+      description: ""
+
+  tracking:
+    background:
+      displayName: "<black>-"
+      description: ""
+    trackable:
+      enabled:
+        displayName: "<gray>自身可见"
+        description: "<gray>其他玩家可追踪你"
+      disabled:
+        displayName: "<gray>自身隐藏"
+        description: "<gray>其他玩家不可追踪你"
+
+    # name: Name of the player
+    # world: World where the player is located at
+    # x, y, z: Coordinates of the player
+    # block_x, block_y, block_z: Coordinates of the block nearest to the player
+    # distance: Distance in blocks to the player
+    player:
+      displayName: "<green><name>"
+      description: |
+        <gray>世界: <gold><world>
+        <gray>距离: <gold><distance:'.0'>
+
+  sharing:
+    player:
+      select:
+        displayName: "<aqua><name>"
+        description: ""
+      delete:
+        displayName: "<aqua><name>"
+        description: |
+          <gray>点此撤回 <yellow><name></yellow> 的访问权限
+    viewSharing:
+      displayName: "<yellow>共享"
+      description: |
+        <gray>浏览能够进入路径点的玩家并进行管理.
+    sharedBy: |
+
+      <gray>此路径点是玩家 <yellow><name></yellow> 共享给你的.
+      <gray>Shift+左键点击取消共享.
+    unknownPlayer: "<red>未知"
