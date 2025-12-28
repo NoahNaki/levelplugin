@@ -94,6 +94,7 @@ import me.nakilex.levelplugin.utils.commands.CenterTooltipCommand;
 import me.nakilex.levelplugin.utils.commands.EmptyTabCompleter;
 import me.nakilex.levelplugin.pathfinding.PathfindingCommand;
 import me.nakilex.levelplugin.pathfinding.PathfindingManager;
+import me.nakilex.levelplugin.pathfinding.DungeonExpeditionManager;
 import me.nakilex.levelplugin.pathfinding.MercenaryCommand;
 import me.nakilex.levelplugin.chat.ChatModerationCommand;
 import me.nakilex.levelplugin.chat.games.ChatGameManager;
@@ -143,7 +144,8 @@ public class CommandRegistry {
                                         BattlePassManager battlePassManager,
                                         ChatGameManager chatGameManager,
                                         DpsDummyManager dpsDummyManager,
-                                        BeaconEntityDebugManager beaconEntityDebugManager) {
+                                        BeaconEntityDebugManager beaconEntityDebugManager,
+                                        DungeonExpeditionManager dungeonExpeditionManager) {
 
 
         AddPointsCommand addPointsCmd = new AddPointsCommand();
@@ -294,6 +296,7 @@ public class CommandRegistry {
                 debugGUI,
                 chatGameManager,
                 plugin.getMercenaryExpeditionManager(),
+                dungeonExpeditionManager,
                 plugin.getDropDebugManager(),
                 plugin.getAutoCastManager(),
                 plugin.getEnvironmentManager(),

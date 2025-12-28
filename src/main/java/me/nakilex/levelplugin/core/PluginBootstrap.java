@@ -217,6 +217,7 @@ public class PluginBootstrap {
     private me.nakilex.levelplugin.mercenary.gui.MercenaryFriendshipGUI mercenaryFriendshipGUI;
     private me.nakilex.levelplugin.mercenary.gui.MercenaryExpeditionGUI mercenaryExpeditionGUI;
     private me.nakilex.levelplugin.mercenary.gui.MercenaryExpeditionRewardsGUI mercenaryExpeditionRewardsGUI;
+    private me.nakilex.levelplugin.pathfinding.DungeonExpeditionManager dungeonExpeditionManager;
     private me.nakilex.levelplugin.transmog.TransmogManager transmogManager;
     private me.nakilex.levelplugin.catacombs.CatacombsManager catacombsManager;
     private me.nakilex.levelplugin.catacombs.CatacombsGUI catacombsGUI;
@@ -406,6 +407,7 @@ public class PluginBootstrap {
         wanderingMerchantManager = new me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager(plugin);
         pathfindingManager = new PathfindingManager(plugin);
         mercenaryManager = new MercenaryManager(plugin);
+        dungeonExpeditionManager = new me.nakilex.levelplugin.pathfinding.DungeonExpeditionManager(plugin, dungeonManager);
         mercenaryAffinityManager = new me.nakilex.levelplugin.mercenary.MercenaryAffinityManager(plugin);
         mercenaryExpeditionManager = new me.nakilex.levelplugin.mercenary.MercenaryExpeditionManager(
                 plugin,
@@ -481,7 +483,8 @@ public class PluginBootstrap {
             battlePassManager,
             chatGameManager,
             dpsDummyManager,
-            beaconEntityDebugManager
+            beaconEntityDebugManager,
+            dungeonExpeditionManager
         );
         me.nakilex.levelplugin.catacombs.CatacombsCommand catacombsCommand =
                 new me.nakilex.levelplugin.catacombs.CatacombsCommand(catacombsManager, catacombsGUI);
