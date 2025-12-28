@@ -1,13 +1,15 @@
 package me.nakilex.levelplugin.waypoints.engine;
 
-import me.nakilex.levelplugin.waypoints.engine.util.ErrorLogger;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class Pathetic {
 
   private static final String PROPERTIES_FILE = "pathetic.properties";
+  private static final Logger LOGGER = Logger.getLogger(Pathetic.class.getName());
 
   private static String engineVersion;
 
@@ -23,7 +25,8 @@ public class Pathetic {
 
       engineVersion = properties.getProperty("engine.version");
     } catch (IOException e) {
-      throw ErrorLogger.logFatalError("Error loading engine version", e);
+      LOGGER.log(Level.SEVERE, "Error loading engine version", e);
+      throw new IllegalStateException("Error loading engine version", e);
     }
   }
 

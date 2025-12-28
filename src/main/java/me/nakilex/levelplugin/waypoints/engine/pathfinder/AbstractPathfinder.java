@@ -23,7 +23,6 @@ import me.nakilex.levelplugin.waypoints.engine.pathfinder.processing.EvaluationC
 import me.nakilex.levelplugin.waypoints.engine.pathfinder.processing.SearchContextImpl;
 import me.nakilex.levelplugin.waypoints.engine.result.PathImpl;
 import me.nakilex.levelplugin.waypoints.engine.result.PathfinderResultImpl;
-import me.nakilex.levelplugin.waypoints.engine.util.ErrorLogger;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -36,6 +35,8 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Provides a skeletal implementation of the {@link Pathfinder} interface, defining common behavior
@@ -54,6 +55,7 @@ public abstract class AbstractPathfinder implements Pathfinder {
   private static final double TIE_BREAKER_WEIGHT = 1e-6;
   private static final ExecutorService PATHING_EXECUTOR_SERVICE =
       Executors.newWorkStealingPool(Math.max(1, Runtime.getRuntime().availableProcessors() / 2));
+  private static final Logger LOGGER = Logger.getLogger(AbstractPathfinder.class.getName());
 
   static {
     Runtime.getRuntime().addShutdownHook(new Thread(AbstractPathfinder::shutdownExecutor));
@@ -235,7 +237,7 @@ public abstract class AbstractPathfinder implements Pathfinder {
 
       return determinePostLoopResult(currentDepth, start, target, bestFallbackNode);
     } catch (Exception e) {
-      ErrorLogger.logFatalErrorWithStacktrace("Pathfinding algorithm failed", e);
+      LOGGER.log(Level.SEVERE, "Pathfinding algorithm failed", e);
       return new PathfinderResultImpl(
           PathState.FAILED, new PathImpl(start, target, EMPTY_PATH_POSITIONS));
     } finally {
@@ -248,7 +250,7 @@ public abstract class AbstractPathfinder implements Pathfinder {
         }
       }
       if (!finalizeErrors.isEmpty()) {
-        ErrorLogger.logFatalError("Errors during processor finalization: " + finalizeErrors, null);
+        LOGGER.log(Level.SEVERE, "Errors during processor finalization: {0}", finalizeErrors);
       }
       performAlgorithmCleanup();
     }
@@ -290,7 +292,7 @@ public abstract class AbstractPathfinder implements Pathfinder {
 
   private PathfinderResult handlePathingException(
       PathPosition originalStart, PathPosition originalTarget, Throwable throwable) {
-    ErrorLogger.logFatalError("Pathfinding execution failed (async or wrapped sync)", throwable);
+    LOGGER.log(Level.SEVERE, "Pathfinding execution failed (async or wrapped sync)", throwable);
     return new PathfinderResultImpl(
         PathState.FAILED, new PathImpl(originalStart, originalTarget, EMPTY_PATH_POSITIONS));
   }

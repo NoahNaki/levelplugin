@@ -4,7 +4,6 @@ import me.nakilex.levelplugin.waypoints.api.pathing.result.Path;
 import me.nakilex.levelplugin.waypoints.api.util.NumberUtils;
 import me.nakilex.levelplugin.waypoints.api.util.ParameterizedSupplier;
 import me.nakilex.levelplugin.waypoints.api.wrapper.PathPosition;
-import me.nakilex.levelplugin.waypoints.engine.util.ErrorLogger;
 import java.util.ArrayDeque;
 import java.util.Deque;
 
@@ -259,7 +258,7 @@ public final class PathUtils {
   /** Validates that epsilon is in the range (0.0, 1.0]. */
   private static void validateEpsilon(double epsilon) {
     if (epsilon <= 0.0 || epsilon > 1.0) {
-      throw ErrorLogger.logFatalError("Epsilon must be in (0.0, 1.0]");
+      throw new IllegalArgumentException("Epsilon must be in (0.0, 1.0]");
     }
   }
 }
