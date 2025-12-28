@@ -105,7 +105,7 @@ public class QuestPathTask extends BukkitRunnable {
             Location point = new Location(
                     world,
                     position.getCenteredX(),
-                    position.getFlooredY() + 0.15,
+                    position.getY() + 0.15,
                     position.getCenteredZ());
             points.add(point);
         }

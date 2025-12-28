@@ -8,6 +8,8 @@ import me.nakilex.levelplugin.waypoints.api.wrapper.PathPosition;
 import me.nakilex.levelplugin.waypoints.engine.factory.AStarPathfinderFactory;
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.block.Block;
+import me.nakilex.levelplugin.lootchests.utils.LocationUtils;
 
 import java.util.Optional;
 
@@ -40,17 +42,39 @@ public class BukkitPathfindingService {
         if (start == null || target == null) {
             return Optional.empty();
         }
-        World world = start.getWorld();
-        if (world == null || !world.equals(target.getWorld())) {
+        Location resolvedStart = resolveWalkableLocation(start);
+        Location resolvedTarget = resolveWalkableLocation(target);
+        if (resolvedStart == null || resolvedTarget == null) {
             return Optional.empty();
         }
-        PathPosition startPos = new PathPosition(start.getX(), start.getY(), start.getZ());
-        PathPosition targetPos = new PathPosition(target.getX(), target.getY(), target.getZ());
+        World world = resolvedStart.getWorld();
+        if (world == null || !world.equals(resolvedTarget.getWorld())) {
+            return Optional.empty();
+        }
+        PathPosition startPos = new PathPosition(resolvedStart.getX(), resolvedStart.getY(), resolvedStart.getZ());
+        PathPosition targetPos = new PathPosition(resolvedTarget.getX(), resolvedTarget.getY(), resolvedTarget.getZ());
         BukkitPathfindingContext context = new BukkitPathfindingContext(world, false);
         PathfinderResult result = pathfinder.findPath(startPos, targetPos, context).toCompletableFuture().join();
-        if (result == null || result.getPath() == null || result.getPath().length() == 0) {
+        if (result == null || !result.successful() || result.getPath() == null || result.getPath().length() == 0) {
             return Optional.empty();
         }
         return Optional.of(result.getPath());
+    }
+
+    private Location resolveWalkableLocation(Location location) {
+        if (location == null || location.getWorld() == null) {
+            return null;
+        }
+        Location surface = LocationUtils.surfaceBelow(location, true);
+        Location candidate = LocationUtils.firstAirAbove(surface, 3);
+        if (candidate == null || candidate.getWorld() == null) {
+            return null;
+        }
+        Block feet = candidate.getBlock();
+        Block head = candidate.clone().add(0, 1, 0).getBlock();
+        if (!feet.isPassable() || !head.isPassable()) {
+            return null;
+        }
+        return candidate;
     }
 }
