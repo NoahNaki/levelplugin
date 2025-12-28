@@ -121,7 +121,7 @@ public class DungeonExpeditionManager implements Listener {
             PathNpc profile = squad.get(i);
             double offsetX = (i % 2 == 0 ? -spacing : spacing);
             double offsetZ = (i / 2 == 0 ? -spacing : spacing);
-            List<Location> path = offsetPath(route.path(), offsetX, offsetZ);
+            List<Location> path = offsetPath(route.path(), offsetX, offsetZ, 1);
             NPC npc = CitizensAPI.getNPCRegistry().createNPC(profile.type(), profile.name());
             PathFollower follower = new PathFollower(plugin, npc, path, profile, false, null);
             follower.start();
@@ -141,10 +141,15 @@ public class DungeonExpeditionManager implements Listener {
         ChatMessageUtil.send(player, MessageType.SUCCESS, "Mercenaries deployed. Showing their path trails.");
     }
 
-    private List<Location> offsetPath(List<Location> path, double offsetX, double offsetZ) {
+    private List<Location> offsetPath(List<Location> path, double offsetX, double offsetZ, int fixedIndex) {
         List<Location> offset = new ArrayList<>(path.size());
-        for (Location point : path) {
-            offset.add(point.clone().add(offsetX, 0, offsetZ));
+        for (int i = 0; i < path.size(); i++) {
+            Location point = path.get(i);
+            if (i == fixedIndex) {
+                offset.add(point.clone());
+            } else {
+                offset.add(point.clone().add(offsetX, 0, offsetZ));
+            }
         }
         return offset;
     }
