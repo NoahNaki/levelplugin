@@ -44,6 +44,15 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
                 <version>3.2.4</version>
+                <configuration>
+                    <createDependencyReducedPom>false</createDependencyReducedPom>
+                    <artifactSet>
+                        <includes>
+                            <include>de.bsommerfeld.pathetic:api</include>
+                            <include>de.bsommerfeld.pathetic:engine</include>
+                        </includes>
+                    </artifactSet>
+                </configuration>
                 <executions>
                     <execution>
                         <phase>package</phase>
@@ -102,12 +111,12 @@
         <dependency>
             <groupId>de.bsommerfeld.pathetic</groupId>
             <artifactId>engine</artifactId>
-            <version>LATEST</version>
+            <version>5.4.0</version>
         </dependency>
         <dependency>
             <groupId>de.bsommerfeld.pathetic</groupId>
             <artifactId>api</artifactId>
-            <version>LATEST</version>
+            <version>5.4.0</version>
         </dependency>
         <dependency>
             <groupId>com.comphenix.protocol</groupId>
