@@ -92,7 +92,7 @@ public class PathFollower implements Listener {
             return;
         }
         ensureChunkLoaded(points.get(1));
-        npc.getNavigator().setTarget(points.get(1), true);
+        npc.getNavigator().setTarget(points.get(1));
         plugin.getLogger().info("[PathfindingDebug] Moving to point 1");
         task = Bukkit.getScheduler().runTaskTimer(plugin, this::tick, 10L, 10L);
     }
@@ -151,10 +151,10 @@ public class PathFollower implements Listener {
                 return;
             }
             ensureChunkLoaded(points.get(index));
-            npc.getNavigator().setTarget(points.get(index), true);
+            npc.getNavigator().setTarget(points.get(index));
             plugin.getLogger().info("[PathfindingDebug] Moving to point " + index);
         } else if (!npc.getNavigator().isNavigating()) {
-            npc.getNavigator().setTarget(current, true);
+            npc.getNavigator().setTarget(current);
         }
     }
 
@@ -168,7 +168,7 @@ public class PathFollower implements Listener {
             return;
         }
         if (!completed && points != null && index < points.size()) {
-            npc.getNavigator().setTarget(points.get(index), true);
+            npc.getNavigator().setTarget(points.get(index));
         }
     }
 
