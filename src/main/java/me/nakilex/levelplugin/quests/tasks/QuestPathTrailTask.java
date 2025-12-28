@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.quests.tasks;
 
 import de.bsommerfeld.pathetic.api.pathing.result.Path;
+import de.bsommerfeld.pathetic.api.pathing.result.PathState;
 import de.bsommerfeld.pathetic.api.pathing.result.PathfinderResult;
 import de.bsommerfeld.pathetic.api.wrapper.PathPosition;
 import me.nakilex.levelplugin.Main;
@@ -52,13 +53,18 @@ public class QuestPathTrailTask extends BukkitRunnable {
                 continue;
             }
 
-            Location targetLocation = target.location();
-            if (targetLocation.getWorld() == null || !targetLocation.getWorld().equals(player.getWorld())) {
+            Location targetLocation = pathfinderService.normalizeLocation(target.location());
+            if (targetLocation == null || targetLocation.getWorld() == null
+                    || !targetLocation.getWorld().equals(player.getWorld())) {
                 trails.remove(player.getUniqueId());
                 continue;
             }
 
-            Location start = player.getLocation();
+            Location start = pathfinderService.normalizeLocation(player.getLocation());
+            if (start == null) {
+                trails.remove(player.getUniqueId());
+                continue;
+            }
             if (start.distanceSquared(targetLocation) < MIN_TARGET_DISTANCE_SQUARED) {
                 trails.remove(player.getUniqueId());
                 continue;
@@ -102,7 +108,7 @@ public class QuestPathTrailTask extends BukkitRunnable {
 
     private void applyResult(World world, PathfinderResult result, TrailState state) {
         state.pending = false;
-        if (result == null) {
+        if (result == null || result.getPathState() != PathState.FOUND) {
             state.update(Collections.emptyList());
             return;
         }

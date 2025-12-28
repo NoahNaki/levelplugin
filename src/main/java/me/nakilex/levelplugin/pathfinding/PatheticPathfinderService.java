@@ -10,6 +10,7 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import me.nakilex.levelplugin.lootchests.utils.LocationUtils;
 
 import java.util.concurrent.CompletionStage;
 
@@ -35,9 +36,31 @@ public class PatheticPathfinderService {
         if (world == null || start == null || target == null) {
             return java.util.concurrent.CompletableFuture.completedFuture(null);
         }
-        PathPosition from = toPathPosition(start);
-        PathPosition to = toPathPosition(target);
+        Location normalizedStart = normalizeLocation(start);
+        Location normalizedTarget = normalizeLocation(target);
+        if (normalizedStart == null || normalizedTarget == null) {
+            return java.util.concurrent.CompletableFuture.completedFuture(null);
+        }
+        PathPosition from = toPathPosition(normalizedStart);
+        PathPosition to = toPathPosition(normalizedTarget);
         return pathfinder.findPath(from, to, new WorldContext(world));
+    }
+
+    public Location normalizeLocation(Location location) {
+        if (location == null || location.getWorld() == null) {
+            return location;
+        }
+        World world = location.getWorld();
+        Block block = world.getBlockAt(location);
+        Block above = block.getRelative(BlockFace.UP);
+        Block below = block.getRelative(BlockFace.DOWN);
+        boolean passable = block.isPassable() && above.isPassable();
+        boolean grounded = below.getType().isSolid() || below.isLiquid();
+        if (passable && grounded) {
+            return location;
+        }
+        Location surface = LocationUtils.surfaceBelow(location, false);
+        return LocationUtils.firstAirAbove(surface, 6);
     }
 
     private PathPosition toPathPosition(Location location) {
