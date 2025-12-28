@@ -59,6 +59,8 @@ public class DungeonExpeditionManager implements Listener {
 
         dungeonManager.startInstance(player, reliquary.getKey());
         ChatMessageUtil.send(player, MessageType.INFO, "Starting Crimson Reliquary expedition...");
+        plugin.getLogger().info("[DungeonExpedition] Requested expedition for "
+                + player.getName() + " layout=" + reliquary.getKey());
 
         new BukkitRunnable() {
             int attempts = 0;
@@ -85,6 +87,8 @@ public class DungeonExpeditionManager implements Listener {
                     }
                     return;
                 }
+                plugin.getLogger().info("[DungeonExpedition] Route ready: points=" + routeOpt.get().path().size()
+                        + " spawn=" + formatLocation(routeOpt.get().spawn()));
                 spawnMercenaries(player, routeOpt.get());
                 cancel();
             }
@@ -123,6 +127,9 @@ public class DungeonExpeditionManager implements Listener {
             follower.start();
             followers.add(follower);
             debugPaths.add(new PathDebug(path, colors.get(i % colors.size())));
+            plugin.getLogger().info("[DungeonExpedition] Spawned mercenary " + profile.name()
+                    + " pathPoints=" + path.size()
+                    + " start=" + formatLocation(path.get(0)));
         }
 
         BukkitTask particleTask = startPathDebugParticles(player.getUniqueId(), debugPaths);
@@ -186,6 +193,14 @@ public class DungeonExpeditionManager implements Listener {
     }
 
     private record PathDebug(List<Location> path, Particle.DustOptions dust) {
+    }
+
+    private String formatLocation(Location location) {
+        if (location == null || location.getWorld() == null) {
+            return "null";
+        }
+        return location.getWorld().getName() + ":"
+                + location.getBlockX() + "," + location.getBlockY() + "," + location.getBlockZ();
     }
 
     private static final class ExpeditionRun {

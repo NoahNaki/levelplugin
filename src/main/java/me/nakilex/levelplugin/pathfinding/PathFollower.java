@@ -31,6 +31,8 @@ public class PathFollower implements Listener {
     private int index = 1;
     private LivingEntity combatTarget;
     private boolean completed;
+    private int tickCount;
+    private static final int DEBUG_TICK_INTERVAL = 40;
 
     public PathFollower(Plugin plugin,
                         NPC npc,
@@ -70,6 +72,9 @@ public class PathFollower implements Listener {
             cleanup();
             return;
         }
+        plugin.getLogger().info("[PathfindingDebug] Starting follower for " + profile.name()
+                + " points=" + points.size()
+                + " start=" + formatLocation(points.get(0)));
         ensureChunkLoaded(points.get(0));
         if (!npc.isSpawned()) {
             npc.spawn(points.get(0));
@@ -106,6 +111,10 @@ public class PathFollower implements Listener {
             cleanup();
             return;
         }
+        tickCount++;
+        if (tickCount % DEBUG_TICK_INTERVAL == 0) {
+            logDebugState("tick");
+        }
 
         if (combatTarget != null) {
             if (combatTarget.isDead() || !combatTarget.isValid()) {
@@ -116,11 +125,11 @@ public class PathFollower implements Listener {
                     profile.handleCombat(npc, combatTarget, cooldowns);
                     return;
                 }
-                combatTarget = null;
-                if (!completed) {
-                    npc.getNavigator().setTarget(points.get(index));
-                }
-                return;
+            combatTarget = null;
+            if (!completed) {
+                npc.getNavigator().setTarget(points.get(index));
+            }
+            return;
             }
             profile.handleCombat(npc, combatTarget, cooldowns);
             return;
@@ -155,6 +164,7 @@ public class PathFollower implements Listener {
             plugin.getLogger().info("[PathfindingDebug] Moving to point " + index);
         } else if (!npc.getNavigator().isNavigating()) {
             npc.getNavigator().setTarget(current);
+            plugin.getLogger().info("[PathfindingDebug] Reissuing target for point " + index);
         }
     }
 
@@ -213,6 +223,28 @@ public class PathFollower implements Listener {
         }
         entity.teleport(location, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.PLUGIN);
         return true;
+    }
+
+    private void logDebugState(String reason) {
+        if (npc.getEntity() == null) {
+            plugin.getLogger().info("[PathfindingDebug] " + reason + " npc entity missing");
+            return;
+        }
+        Location loc = npc.getEntity().getLocation();
+        plugin.getLogger().info("[PathfindingDebug] " + reason
+                + " npc=" + npc.getId()
+                + " idx=" + index + "/" + (points == null ? 0 : points.size())
+                + " navigating=" + npc.getNavigator().isNavigating()
+                + " loc=" + formatLocation(loc)
+                + " target=" + (index < (points == null ? 0 : points.size()) ? formatLocation(points.get(index)) : "none"));
+    }
+
+    private String formatLocation(Location location) {
+        if (location == null || location.getWorld() == null) {
+            return "null";
+        }
+        return location.getWorld().getName() + ":"
+                + location.getBlockX() + "," + location.getBlockY() + "," + location.getBlockZ();
     }
 
     private void cleanup() {
