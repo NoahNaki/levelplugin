@@ -30,16 +30,16 @@ public class QuestPathTask extends BukkitRunnable {
     private static final double REPATH_PLAYER_DISTANCE = 8.0;
     private static final double REPATH_TARGET_DISTANCE = 4.0;
     private static final long REPATH_INTERVAL_MS = 4000L;
-    private static final double INTERPOLATION_STEP = 0.45;
+    private static final double INTERPOLATION_STEP = 0.25;
     private static final int MAX_PARTICLE_POINTS = 1000;
     private static final int SKIP_POINTS = 0;
-    private static final int SMOOTH_SAMPLES_PER_SEGMENT = 6;
+    private static final int SMOOTH_SAMPLES_PER_SEGMENT = 12;
     private static final int PARTICLE_COUNT = 1;
     private static final double PARTICLE_SPREAD = 0.0;
     private static final double PARTICLE_HEIGHT_OFFSET = 1.0;
     private static final int PARTICLE_STRIDE = 2;
     private static final Particle.DustOptions PATH_DUST = new Particle.DustOptions(
-            Color.fromRGB(255, 165, 0), 1.2f);
+            Color.fromRGB(255, 0, 255), 1.2f);
 
     private final QuestManager questManager;
     private final BukkitPathfindingService pathfindingService;
