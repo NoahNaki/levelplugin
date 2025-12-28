@@ -8,6 +8,8 @@ import net.citizensnpcs.api.ai.event.NavigationStuckEvent;
 import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.World;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
@@ -63,21 +65,34 @@ public class PathFollower implements Listener {
             cleanup();
             return;
         }
+        if (!ensureSameWorld(points.get(0))) {
+            plugin.getLogger().warning("[PathfindingDebug] Path has no valid world; aborting.");
+            cleanup();
+            return;
+        }
+        ensureChunkLoaded(points.get(0));
         if (!npc.isSpawned()) {
             npc.spawn(points.get(0));
+            if (!npc.isSpawned()) {
+                plugin.getLogger().warning("[PathfindingDebug] Failed to spawn NPC at " + points.get(0));
+                cleanup();
+                return;
+            }
         } else {
             npc.teleport(points.get(0), org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.PLUGIN);
         }
 
         var params = npc.getNavigator().getDefaultParameters();
         params.baseSpeed(params.baseSpeed() * profile.speedMultiplier());
+        params.range(64);
         profile.equip(npc);
 
         if (points.size() <= 1) {
             completePath();
             return;
         }
-        npc.getNavigator().setTarget(points.get(1));
+        ensureChunkLoaded(points.get(1));
+        npc.getNavigator().setTarget(points.get(1), true);
         plugin.getLogger().info("[PathfindingDebug] Moving to point 1");
         task = Bukkit.getScheduler().runTaskTimer(plugin, this::tick, 10L, 10L);
     }
@@ -124,15 +139,22 @@ public class PathFollower implements Listener {
         }
 
         Location current = points.get(index);
+        if (!ensureSameWorld(current)) {
+            plugin.getLogger().warning("[PathfindingDebug] Path point world mismatch; stopping path.");
+            completePath();
+            return;
+        }
+        ensureChunkLoaded(current);
         if (npc.getEntity().getLocation().distanceSquared(current) < 1) {
             if (++index >= points.size()) {
                 completePath();
                 return;
             }
-            npc.getNavigator().setTarget(points.get(index));
+            ensureChunkLoaded(points.get(index));
+            npc.getNavigator().setTarget(points.get(index), true);
             plugin.getLogger().info("[PathfindingDebug] Moving to point " + index);
         } else if (!npc.getNavigator().isNavigating()) {
-            npc.getNavigator().setTarget(current);
+            npc.getNavigator().setTarget(current, true);
         }
     }
 
@@ -146,7 +168,7 @@ public class PathFollower implements Listener {
             return;
         }
         if (!completed && points != null && index < points.size()) {
-            npc.getNavigator().setTarget(points.get(index));
+            npc.getNavigator().setTarget(points.get(index), true);
         }
     }
 
@@ -165,6 +187,32 @@ public class PathFollower implements Listener {
         if (cleanupOnComplete) {
             cleanup();
         }
+    }
+
+    private void ensureChunkLoaded(Location location) {
+        if (location == null || location.getWorld() == null) {
+            return;
+        }
+        var chunk = location.getChunk();
+        if (!chunk.isLoaded()) {
+            chunk.load(true);
+        }
+    }
+
+    private boolean ensureSameWorld(Location location) {
+        if (location == null || location.getWorld() == null) {
+            return false;
+        }
+        Entity entity = npc.getEntity();
+        if (entity == null) {
+            return true;
+        }
+        World entityWorld = entity.getWorld();
+        if (entityWorld == null || entityWorld.equals(location.getWorld())) {
+            return true;
+        }
+        entity.teleport(location, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.PLUGIN);
+        return true;
     }
 
     private void cleanup() {
