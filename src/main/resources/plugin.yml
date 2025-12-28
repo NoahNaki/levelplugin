@@ -5,6 +5,9 @@ author: Nakilex
 api-version: 1.19
 description: A simple MMORPG leveling system plugin for Minecraft
 depend: [ProtocolLib, Citizens, Vault, MythicMobs, PlaceholderAPI, Nexo]
+libraries:
+  - de.bsommerfeld.pathetic:api:5.4.0
+  - de.bsommerfeld.pathetic:engine:5.4.0
 
 commands:
   addpoints:
