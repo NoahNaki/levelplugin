@@ -578,10 +578,14 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
         if (spawn != null) {
             path.add(spawn.clone());
         }
+        if (!markers.bossMarkers.isEmpty()) {
+            Location boss = markers.bossMarkers.get(0).clone();
+            path.add(boss);
+        }
         List<Location> targets = new ArrayList<>();
         targets.addAll(markers.normalMarkers);
         targets.addAll(markers.miniBossMarkers);
-        Location current = spawn;
+        Location current = path.size() > 1 ? path.get(1) : spawn;
         while (!targets.isEmpty()) {
             Location next = targets.get(0);
             if (current != null) {
@@ -598,9 +602,6 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
             Location nextPoint = next.clone();
             path.add(nextPoint);
             current = nextPoint;
-        }
-        if (!markers.bossMarkers.isEmpty()) {
-            path.add(markers.bossMarkers.get(0).clone());
         }
         return path;
     }
