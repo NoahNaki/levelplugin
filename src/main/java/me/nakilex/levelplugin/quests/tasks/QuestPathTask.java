@@ -29,12 +29,13 @@ public class QuestPathTask extends BukkitRunnable {
     private static final double REPATH_PLAYER_DISTANCE = 4.0;
     private static final double REPATH_TARGET_DISTANCE = 2.0;
     private static final long REPATH_INTERVAL_MS = 2500L;
-    private static final double INTERPOLATION_STEP = 0.5;
-    private static final int MAX_PARTICLE_POINTS = 400;
+    private static final double INTERPOLATION_STEP = 0.35;
+    private static final int MAX_PARTICLE_POINTS = 1200;
     private static final int SKIP_POINTS = 0;
-    private static final int SMOOTH_ITERATIONS = 3;
-    private static final int PARTICLE_COUNT = 4;
-    private static final double PARTICLE_SPREAD = 0.08;
+    private static final int SMOOTH_ITERATIONS = 5;
+    private static final int PARTICLE_COUNT = 1;
+    private static final double PARTICLE_SPREAD = 0.0;
+    private static final double PARTICLE_HEIGHT_OFFSET = 1.0;
 
     private final QuestManager questManager;
     private final BukkitPathfindingService pathfindingService;
@@ -96,7 +97,7 @@ public class QuestPathTask extends BukkitRunnable {
             points.add(new Location(
                     target.getWorld(),
                     target.getBlockX() + 0.5,
-                    target.getY() + 0.15,
+                    target.getY() + PARTICLE_HEIGHT_OFFSET,
                     target.getBlockZ() + 0.5));
         }
         return new QuestPathCache(start.clone(), target.clone(), now, points);
@@ -115,7 +116,7 @@ public class QuestPathTask extends BukkitRunnable {
             Location point = new Location(
                     world,
                     position.getCenteredX(),
-                    position.getY() + 0.15,
+                    position.getY() + PARTICLE_HEIGHT_OFFSET,
                     position.getCenteredZ());
             points.add(point);
         }
