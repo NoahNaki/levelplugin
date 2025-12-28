@@ -100,6 +100,16 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
+            <groupId>de.bsommerfeld.pathetic</groupId>
+            <artifactId>engine</artifactId>
+            <version>LATEST</version>
+        </dependency>
+        <dependency>
+            <groupId>de.bsommerfeld.pathetic</groupId>
+            <artifactId>api</artifactId>
+            <version>LATEST</version>
+        </dependency>
+        <dependency>
             <groupId>com.comphenix.protocol</groupId>
             <artifactId>ProtocolLib</artifactId>
             <version>4.8.0</version>

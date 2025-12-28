@@ -1,8 +1,8 @@
 package me.nakilex.levelplugin.quests.tasks;
 
-import me.nakilex.levelplugin.quests.data.*;
-import me.nakilex.levelplugin.quests.gui.QuestState;
-import me.nakilex.levelplugin.quests.managers.*;
+import me.nakilex.levelplugin.quests.managers.BeaconManager;
+import me.nakilex.levelplugin.quests.managers.QuestManager;
+import me.nakilex.levelplugin.quests.util.QuestTargetResolver;
 import org.bukkit.*;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -24,40 +24,8 @@ public class QuestBeaconTask extends BukkitRunnable {
     @Override
     public void run() {
         for (Player player : Bukkit.getOnlinePlayers()) {
-
-            // --- pick quest -------------------------------------------------
-            PlayerQuestProgress progress = questManager.getProgress(player.getUniqueId());
-            Quest quest = progress != null ? progress.getQuest() : null;
-
-            String tracked = questManager.getTrackedQuest(player.getUniqueId());
-            if (tracked != null && (quest == null || !quest.getId().equals(tracked))) {
-                quest = questManager.getQuest(tracked);
-            }
-
-            // --- pick objective ---------------------------------------------
-            Location loc = null;
-            QuestState state = null;
-            if (quest != null) {
-                state = questManager.getQuestState(player, quest);
-                int idx = 0;
-                if (progress != null && quest.getId().equals(progress.getQuest().getId())) {
-                    // first unfinished objective
-                    for (int i = 0; i < quest.getObjectives().size(); i++) {
-                        if (progress.getProgress(i) < quest.getObjectives().get(i).getAmount()) {
-                            idx = i;
-                            break;
-                        }
-                    }
-                }
-                BeaconTarget target = quest.getObjectives().get(idx).getBeaconTarget();
-                if (target != null) {
-                    loc = target.resolve(player);
-                }
-                if (loc == null && state == QuestState.AVAILABLE && quest.getNpcGiverId() != null) {
-                    BeaconTarget npcTarget = BeaconTargets.npc(quest.getNpcGiverId());
-                    loc = npcTarget.resolve(player);
-                }
-            }
+            QuestTargetResolver.QuestTarget target = QuestTargetResolver.resolve(player, questManager);
+            Location loc = target != null ? target.location() : null;
 
             if (loc != null && loc.getWorld() != null && loc.getWorld().equals(player.getWorld())) {
                 Location pLoc = player.getLocation();
