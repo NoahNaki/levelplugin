@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.waypoints.bukkit;
 
 import me.nakilex.levelplugin.waypoints.api.pathing.Pathfinder;
+import me.nakilex.levelplugin.waypoints.api.pathing.NeighborStrategies;
 import me.nakilex.levelplugin.waypoints.api.pathing.configuration.PathfinderConfiguration;
 import me.nakilex.levelplugin.waypoints.api.pathing.result.Path;
 import me.nakilex.levelplugin.waypoints.api.pathing.result.PathfinderResult;
@@ -11,6 +12,7 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import me.nakilex.levelplugin.lootchests.utils.LocationUtils;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -34,6 +36,8 @@ public class BukkitPathfindingService {
                 .maxIterations(maxIterations)
                 .maxLength(maxLength)
                 .async(false)
+                .neighborStrategy(NeighborStrategies.DIAGONAL_3D)
+                .nodeValidationProcessors(List.of(new BukkitTraversalValidator()))
                 .build();
         this.pathfinder = new AStarPathfinderFactory().createPathfinder(configuration);
     }
