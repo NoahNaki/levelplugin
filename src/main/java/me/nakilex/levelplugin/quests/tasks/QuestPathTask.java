@@ -25,13 +25,13 @@ import java.util.UUID;
  * Spawns a particle trail along the quest path so players can follow it.
  */
 public class QuestPathTask extends BukkitRunnable {
-    private static final Particle PATH_PARTICLE = Particle.REDSTONE;
+    private static final Particle PATH_PARTICLE = Particle.DUST;
     private static final double CLOSE_DISTANCE = 8.0;
     private static final double REPATH_PLAYER_DISTANCE = 8.0;
     private static final double REPATH_TARGET_DISTANCE = 4.0;
     private static final long REPATH_INTERVAL_MS = 4000L;
     private static final double INTERPOLATION_STEP = 0.45;
-    private static final int MAX_PARTICLE_POINTS = 2000;
+    private static final int MAX_PARTICLE_POINTS = 1000;
     private static final int SKIP_POINTS = 0;
     private static final int SMOOTH_SAMPLES_PER_SEGMENT = 6;
     private static final int PARTICLE_COUNT = 1;

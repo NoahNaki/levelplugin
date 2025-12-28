@@ -41,6 +41,7 @@ public class BukkitNavigationPointProvider implements NavigationPointProvider {
         }
 
         boolean passable = feet.isPassable() && head.isPassable();
-        return () -> standable && passable;
+        boolean finalStandable = standable;
+        return () -> finalStandable && passable;
     }
 }
