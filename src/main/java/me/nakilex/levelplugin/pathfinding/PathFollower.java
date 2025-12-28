@@ -86,18 +86,26 @@ public class PathFollower implements Listener {
         } else {
             npc.teleport(points.get(0), org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.PLUGIN);
         }
+        npc.getNavigator().cancelNavigation();
 
         var params = npc.getNavigator().getDefaultParameters();
         params.baseSpeed(params.baseSpeed() * profile.speedMultiplier());
         params.range(64);
+        params.stuckAction(null);
         profile.equip(npc);
+        if (npc.getEntity() instanceof LivingEntity living) {
+            living.setRemoveWhenFarAway(false);
+            living.setPersistent(true);
+        }
 
         if (points.size() <= 1) {
             completePath();
             return;
         }
         ensureChunkLoaded(points.get(1));
-        npc.getNavigator().setTarget(points.get(1));
+        if (!npc.getNavigator().setTarget(points.get(1))) {
+            plugin.getLogger().warning("[PathfindingDebug] Failed to set target point 1 " + formatLocation(points.get(1)));
+        }
         plugin.getLogger().info("[PathfindingDebug] Moving to point 1");
         task = Bukkit.getScheduler().runTaskTimer(plugin, this::tick, 10L, 10L);
     }
@@ -160,10 +168,16 @@ public class PathFollower implements Listener {
                 return;
             }
             ensureChunkLoaded(points.get(index));
-            npc.getNavigator().setTarget(points.get(index));
+            if (!npc.getNavigator().setTarget(points.get(index))) {
+                plugin.getLogger().warning("[PathfindingDebug] Failed to advance to point " + index
+                        + " target=" + formatLocation(points.get(index)));
+            }
             plugin.getLogger().info("[PathfindingDebug] Moving to point " + index);
         } else if (!npc.getNavigator().isNavigating()) {
-            npc.getNavigator().setTarget(current);
+            if (!npc.getNavigator().setTarget(current)) {
+                plugin.getLogger().warning("[PathfindingDebug] Failed to reissue point " + index
+                        + " target=" + formatLocation(current));
+            }
             plugin.getLogger().info("[PathfindingDebug] Reissuing target for point " + index);
         }
     }

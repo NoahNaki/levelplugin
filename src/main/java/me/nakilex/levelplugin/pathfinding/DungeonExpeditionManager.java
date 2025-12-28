@@ -130,6 +130,10 @@ public class DungeonExpeditionManager implements Listener {
             plugin.getLogger().info("[DungeonExpedition] Spawned mercenary " + profile.name()
                     + " pathPoints=" + path.size()
                     + " start=" + formatLocation(path.get(0)));
+            if (path.size() > 1) {
+                plugin.getLogger().info("[DungeonExpedition] " + profile.name() + " point1="
+                        + formatLocation(path.get(1)));
+            }
         }
 
         BukkitTask particleTask = startPathDebugParticles(player.getUniqueId(), debugPaths);
