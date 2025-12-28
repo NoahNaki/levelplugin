@@ -19,8 +19,8 @@ import java.util.Optional;
  * Shared pathfinding adapter for Bukkit worlds using the waypoints engine.
  */
 public class BukkitPathfindingService {
-    private static final int DEFAULT_MAX_ITERATIONS = 1800;
-    private static final int DEFAULT_MAX_LENGTH = 320;
+    private static final int DEFAULT_MAX_ITERATIONS = 4000;
+    private static final int DEFAULT_MAX_LENGTH = 600;
 
     private final Pathfinder pathfinder;
     private final BukkitNavigationPointProvider provider;
