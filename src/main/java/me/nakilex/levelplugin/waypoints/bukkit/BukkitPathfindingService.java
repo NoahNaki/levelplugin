@@ -59,7 +59,7 @@ public class BukkitPathfindingService {
         PathPosition targetPos = new PathPosition(resolvedTarget.getX(), resolvedTarget.getY(), resolvedTarget.getZ());
         BukkitPathfindingContext context = new BukkitPathfindingContext(world, false);
         PathfinderResult result = pathfinder.findPath(startPos, targetPos, context).toCompletableFuture().join();
-        if (result == null || !result.successful() || result.getPath() == null || result.getPath().length() == 0) {
+        if (result == null || result.getPath() == null || result.getPath().length() == 0) {
             return Optional.empty();
         }
         return Optional.of(result.getPath());
