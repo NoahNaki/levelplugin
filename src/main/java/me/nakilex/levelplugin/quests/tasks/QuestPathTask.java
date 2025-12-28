@@ -29,9 +29,13 @@ public class QuestPathTask extends BukkitRunnable {
     private static final double REPATH_PLAYER_DISTANCE = 4.0;
     private static final double REPATH_TARGET_DISTANCE = 2.0;
     private static final long REPATH_INTERVAL_MS = 2500L;
-    private static final double INTERPOLATION_STEP = 1.4;
-    private static final int MAX_PARTICLE_POINTS = 70;
+    private static final double INTERPOLATION_STEP = 0.7;
+    private static final int MAX_PARTICLE_POINTS = 200;
     private static final int SKIP_POINTS = 0;
+    private static final int SMOOTH_ITERATIONS = 2;
+    private static final double SMOOTH_WEIGHT = 0.6;
+    private static final int PARTICLE_COUNT = 2;
+    private static final double PARTICLE_SPREAD = 0.05;
 
     private final QuestManager questManager;
     private final BukkitPathfindingService pathfindingService;
@@ -89,6 +93,7 @@ public class QuestPathTask extends BukkitRunnable {
         }
 
         List<Location> points = toParticleLocations(start.getWorld(), path);
+        points = smoothPoints(points, SMOOTH_ITERATIONS, SMOOTH_WEIGHT);
         if (points.isEmpty() && path.length() > 0 && target.getWorld() != null) {
             points.add(new Location(
                     target.getWorld(),
@@ -121,7 +126,7 @@ public class QuestPathTask extends BukkitRunnable {
 
     private void renderParticles(Player player, List<Location> points) {
         for (Location point : points) {
-            player.spawnParticle(PATH_PARTICLE, point, 1, 0, 0, 0, 0);
+            player.spawnParticle(PATH_PARTICLE, point, PARTICLE_COUNT, PARTICLE_SPREAD, PARTICLE_SPREAD, PARTICLE_SPREAD, 0);
         }
     }
 
@@ -150,6 +155,29 @@ public class QuestPathTask extends BukkitRunnable {
 
     private void clearCache(UUID playerId) {
         cachedPaths.remove(playerId);
+    }
+
+    private List<Location> smoothPoints(List<Location> points, int iterations, double weight) {
+        if (points == null || points.size() < 3) {
+            return points == null ? List.of() : points;
+        }
+        List<Location> current = new ArrayList<>(points);
+        for (int iter = 0; iter < iterations; iter++) {
+            List<Location> next = new ArrayList<>(current.size());
+            next.add(current.get(0));
+            for (int i = 1; i < current.size() - 1; i++) {
+                Location prev = current.get(i - 1);
+                Location curr = current.get(i);
+                Location nextLoc = current.get(i + 1);
+                double x = (prev.getX() + nextLoc.getX()) * (1.0 - weight) * 0.5 + curr.getX() * weight;
+                double y = (prev.getY() + nextLoc.getY()) * (1.0 - weight) * 0.5 + curr.getY() * weight;
+                double z = (prev.getZ() + nextLoc.getZ()) * (1.0 - weight) * 0.5 + curr.getZ() * weight;
+                next.add(new Location(curr.getWorld(), x, y, z));
+            }
+            next.add(current.get(current.size() - 1));
+            current = next;
+        }
+        return current;
     }
 
     private record QuestPathCache(Location start, Location target, long computedAt, List<Location> points) {
