@@ -103,9 +103,7 @@ public class PathFollower implements Listener {
             return;
         }
         ensureChunkLoaded(points.get(1));
-        if (!npc.getNavigator().setTarget(points.get(1))) {
-            plugin.getLogger().warning("[PathfindingDebug] Failed to set target point 1 " + formatLocation(points.get(1)));
-        }
+        npc.getNavigator().setTarget(points.get(1));
         plugin.getLogger().info("[PathfindingDebug] Moving to point 1");
         task = Bukkit.getScheduler().runTaskTimer(plugin, this::tick, 10L, 10L);
     }
@@ -168,16 +166,10 @@ public class PathFollower implements Listener {
                 return;
             }
             ensureChunkLoaded(points.get(index));
-            if (!npc.getNavigator().setTarget(points.get(index))) {
-                plugin.getLogger().warning("[PathfindingDebug] Failed to advance to point " + index
-                        + " target=" + formatLocation(points.get(index)));
-            }
+            npc.getNavigator().setTarget(points.get(index));
             plugin.getLogger().info("[PathfindingDebug] Moving to point " + index);
         } else if (!npc.getNavigator().isNavigating()) {
-            if (!npc.getNavigator().setTarget(current)) {
-                plugin.getLogger().warning("[PathfindingDebug] Failed to reissue point " + index
-                        + " target=" + formatLocation(current));
-            }
+            npc.getNavigator().setTarget(current);
             plugin.getLogger().info("[PathfindingDebug] Reissuing target for point " + index);
         }
     }
