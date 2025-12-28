@@ -1,6 +1,6 @@
-package de.bsommerfeld.pathetic.engine.util;
+package me.nakilex.levelplugin.waypoints.engine.util;
 
-import de.bsommerfeld.pathetic.api.wrapper.PathPosition;
+import me.nakilex.levelplugin.waypoints.api.wrapper.PathPosition;
 
 /**
  * Utility class to pack 3D grid coordinates (Region Indices or Block Positions) into a single

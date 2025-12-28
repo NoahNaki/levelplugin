@@ -1,7 +1,7 @@
-package de.bsommerfeld.pathetic.api.pathing.heuristic;
+package me.nakilex.levelplugin.waypoints.api.pathing.heuristic;
 
-import de.bsommerfeld.pathetic.api.pathing.PathfindingProgress;
-import de.bsommerfeld.pathetic.api.wrapper.PathPosition;
+import me.nakilex.levelplugin.waypoints.api.pathing.PathfindingProgress;
+import me.nakilex.levelplugin.waypoints.api.wrapper.PathPosition;
 
 /** An immutable context object used for heuristic calculations providing the essentials. */
 public class HeuristicContext {

@@ -1,7 +1,7 @@
-package de.bsommerfeld.pathetic.api.pathing.processing;
+package me.nakilex.levelplugin.waypoints.api.pathing.processing;
 
-import de.bsommerfeld.pathetic.api.pathing.processing.context.EvaluationContext;
-import de.bsommerfeld.pathetic.api.pathing.processing.context.SearchContext; // Assuming this exists
+import me.nakilex.levelplugin.waypoints.api.pathing.processing.context.EvaluationContext;
+import me.nakilex.levelplugin.waypoints.api.pathing.processing.context.SearchContext; // Assuming this exists
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;

@@ -1,10 +1,10 @@
-package de.bsommerfeld.pathetic.engine.factory;
+package me.nakilex.levelplugin.waypoints.engine.factory;
 
-import de.bsommerfeld.pathetic.api.factory.PathfinderFactory;
-import de.bsommerfeld.pathetic.api.pathing.Pathfinder;
-import de.bsommerfeld.pathetic.api.pathing.configuration.PathfinderConfiguration;
-import de.bsommerfeld.pathetic.api.provider.NavigationPointProvider;
-import de.bsommerfeld.pathetic.engine.pathfinder.AStarPathfinder;
+import me.nakilex.levelplugin.waypoints.api.factory.PathfinderFactory;
+import me.nakilex.levelplugin.waypoints.api.pathing.Pathfinder;
+import me.nakilex.levelplugin.waypoints.api.pathing.configuration.PathfinderConfiguration;
+import me.nakilex.levelplugin.waypoints.api.provider.NavigationPointProvider;
+import me.nakilex.levelplugin.waypoints.engine.pathfinder.AStarPathfinder;
 
 public class AStarPathfinderFactory implements PathfinderFactory {
 

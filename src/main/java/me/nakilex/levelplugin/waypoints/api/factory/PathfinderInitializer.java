@@ -1,7 +1,7 @@
-package de.bsommerfeld.pathetic.api.factory;
+package me.nakilex.levelplugin.waypoints.api.factory;
 
-import de.bsommerfeld.pathetic.api.pathing.Pathfinder;
-import de.bsommerfeld.pathetic.api.pathing.configuration.PathfinderConfiguration;
+import me.nakilex.levelplugin.waypoints.api.pathing.Pathfinder;
+import me.nakilex.levelplugin.waypoints.api.pathing.configuration.PathfinderConfiguration;
 
 /**
  * An interface for initializing {@link Pathfinder} instances.

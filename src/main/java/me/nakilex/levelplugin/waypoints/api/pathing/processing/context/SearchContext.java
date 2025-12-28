@@ -1,10 +1,10 @@
-package de.bsommerfeld.pathetic.api.pathing.processing.context;
+package me.nakilex.levelplugin.waypoints.api.pathing.processing.context;
 
-import de.bsommerfeld.pathetic.api.pathing.configuration.PathfinderConfiguration;
-import de.bsommerfeld.pathetic.api.pathing.context.EnvironmentContext;
-import de.bsommerfeld.pathetic.api.pathing.processing.Processor;
-import de.bsommerfeld.pathetic.api.provider.NavigationPointProvider;
-import de.bsommerfeld.pathetic.api.wrapper.PathPosition;
+import me.nakilex.levelplugin.waypoints.api.pathing.configuration.PathfinderConfiguration;
+import me.nakilex.levelplugin.waypoints.api.pathing.context.EnvironmentContext;
+import me.nakilex.levelplugin.waypoints.api.pathing.processing.Processor;
+import me.nakilex.levelplugin.waypoints.api.provider.NavigationPointProvider;
+import me.nakilex.levelplugin.waypoints.api.wrapper.PathPosition;
 import java.util.Map;
 
 /**

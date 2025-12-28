@@ -1,7 +1,7 @@
-package de.bsommerfeld.pathetic.api.pathing.hook;
+package me.nakilex.levelplugin.waypoints.api.pathing.hook;
 
-import de.bsommerfeld.pathetic.api.wrapper.Depth;
-import de.bsommerfeld.pathetic.api.wrapper.PathPosition;
+import me.nakilex.levelplugin.waypoints.api.wrapper.Depth;
+import me.nakilex.levelplugin.waypoints.api.wrapper.PathPosition;
 
 import java.util.Objects;
 

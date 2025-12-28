@@ -1,10 +1,10 @@
-package de.bsommerfeld.pathetic.engine.pathfinder.processing;
+package me.nakilex.levelplugin.waypoints.engine.pathfinder.processing;
 
-import de.bsommerfeld.pathetic.api.pathing.heuristic.IHeuristicStrategy;
-import de.bsommerfeld.pathetic.api.pathing.processing.context.EvaluationContext;
-import de.bsommerfeld.pathetic.api.pathing.processing.context.SearchContext;
-import de.bsommerfeld.pathetic.api.wrapper.PathPosition;
-import de.bsommerfeld.pathetic.engine.Node;
+import me.nakilex.levelplugin.waypoints.api.pathing.heuristic.IHeuristicStrategy;
+import me.nakilex.levelplugin.waypoints.api.pathing.processing.context.EvaluationContext;
+import me.nakilex.levelplugin.waypoints.api.pathing.processing.context.SearchContext;
+import me.nakilex.levelplugin.waypoints.api.wrapper.PathPosition;
+import me.nakilex.levelplugin.waypoints.engine.Node;
 import java.util.Objects;
 
 public class EvaluationContextImpl implements EvaluationContext {

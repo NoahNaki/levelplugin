@@ -1,6 +1,6 @@
-package de.bsommerfeld.pathetic.api.wrapper;
+package me.nakilex.levelplugin.waypoints.api.wrapper;
 
-import de.bsommerfeld.pathetic.api.util.NumberUtils;
+import me.nakilex.levelplugin.waypoints.api.util.NumberUtils;
 
 /**
  * Represents a 3D vector within a pathfinding context. This class encapsulates the x, y, and z

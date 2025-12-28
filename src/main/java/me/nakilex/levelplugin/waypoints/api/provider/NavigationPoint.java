@@ -1,4 +1,4 @@
-package de.bsommerfeld.pathetic.api.provider;
+package me.nakilex.levelplugin.waypoints.api.provider;
 
 /**
  * Represents information about a position in the pathfinding environment.

@@ -1,4 +1,4 @@
-package de.bsommerfeld.pathetic.api.pathing.processing;
+package me.nakilex.levelplugin.waypoints.api.pathing.processing;
 
 /**
  * Represents a cost value used in pathfinding. This class ensures that cost values can be handled

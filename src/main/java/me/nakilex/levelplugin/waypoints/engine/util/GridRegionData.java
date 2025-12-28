@@ -1,9 +1,9 @@
-package de.bsommerfeld.pathetic.engine.util;
+package me.nakilex.levelplugin.waypoints.engine.util;
 
 import com.google.common.hash.BloomFilter;
 import com.google.common.hash.Funnel;
-import de.bsommerfeld.pathetic.api.pathing.configuration.PathfinderConfiguration;
-import de.bsommerfeld.pathetic.api.wrapper.PathPosition;
+import me.nakilex.levelplugin.waypoints.api.pathing.configuration.PathfinderConfiguration;
+import me.nakilex.levelplugin.waypoints.api.wrapper.PathPosition;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongSet;
 

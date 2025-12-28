@@ -1,4 +1,4 @@
-package de.bsommerfeld.pathetic.api.util;
+package me.nakilex.levelplugin.waypoints.api.util;
 
 /** Utility class for common number operations. */
 public final class NumberUtils {

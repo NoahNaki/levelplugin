@@ -1,4 +1,4 @@
-package de.bsommerfeld.pathetic.api.pathing.result;
+package me.nakilex.levelplugin.waypoints.api.pathing.result;
 
 /**
  * The result of a pathfinding operation.

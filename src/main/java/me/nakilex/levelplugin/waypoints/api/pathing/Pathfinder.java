@@ -1,9 +1,9 @@
-package de.bsommerfeld.pathetic.api.pathing;
+package me.nakilex.levelplugin.waypoints.api.pathing;
 
-import de.bsommerfeld.pathetic.api.pathing.context.EnvironmentContext;
-import de.bsommerfeld.pathetic.api.pathing.hook.PathfinderHook;
-import de.bsommerfeld.pathetic.api.pathing.result.PathfinderResult;
-import de.bsommerfeld.pathetic.api.wrapper.PathPosition;
+import me.nakilex.levelplugin.waypoints.api.pathing.context.EnvironmentContext;
+import me.nakilex.levelplugin.waypoints.api.pathing.hook.PathfinderHook;
+import me.nakilex.levelplugin.waypoints.api.pathing.result.PathfinderResult;
+import me.nakilex.levelplugin.waypoints.api.wrapper.PathPosition;
 import java.util.concurrent.CompletionStage;
 
 /**
@@ -45,9 +45,9 @@ public interface Pathfinder {
    *
    * <p><strong>Cooperative Abortion:</strong> The actual termination depends on the pathfinding
    * algorithm's main loop checking the abort flag. The operation will complete with {@link
-   * de.bsommerfeld.pathetic.api.pathing.result.PathState#ABORTED} as soon as possible.
+   * me.nakilex.levelplugin.waypoints.api.pathing.result.PathState#ABORTED} as soon as possible.
    *
-   * @see de.bsommerfeld.pathetic.api.pathing.result.PathState#ABORTED
+   * @see me.nakilex.levelplugin.waypoints.api.pathing.result.PathState#ABORTED
    */
   void abort();
 

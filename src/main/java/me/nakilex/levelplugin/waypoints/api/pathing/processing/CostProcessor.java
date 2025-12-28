@@ -1,6 +1,6 @@
-package de.bsommerfeld.pathetic.api.pathing.processing;
+package me.nakilex.levelplugin.waypoints.api.pathing.processing;
 
-import de.bsommerfeld.pathetic.api.pathing.processing.context.EvaluationContext;
+import me.nakilex.levelplugin.waypoints.api.pathing.processing.context.EvaluationContext;
 
 /**
  * A processor that calculates a specific cost contribution for traversing to a node (PathPosition).

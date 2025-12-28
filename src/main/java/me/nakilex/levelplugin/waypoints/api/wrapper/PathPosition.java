@@ -1,6 +1,6 @@
-package de.bsommerfeld.pathetic.api.wrapper;
+package me.nakilex.levelplugin.waypoints.api.wrapper;
 
-import de.bsommerfeld.pathetic.api.util.NumberUtils;
+import me.nakilex.levelplugin.waypoints.api.util.NumberUtils;
 
 /**
  * Represents a position. This class encapsulates the coordinates (x, y, z) of a point in the

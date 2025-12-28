@@ -1,9 +1,9 @@
-package de.bsommerfeld.pathetic.engine;
+package me.nakilex.levelplugin.waypoints.engine;
 
-import de.bsommerfeld.pathetic.api.pathing.heuristic.HeuristicContext;
-import de.bsommerfeld.pathetic.api.pathing.heuristic.HeuristicWeights;
-import de.bsommerfeld.pathetic.api.pathing.heuristic.IHeuristicStrategy;
-import de.bsommerfeld.pathetic.api.wrapper.PathPosition;
+import me.nakilex.levelplugin.waypoints.api.pathing.heuristic.HeuristicContext;
+import me.nakilex.levelplugin.waypoints.api.pathing.heuristic.HeuristicWeights;
+import me.nakilex.levelplugin.waypoints.api.pathing.heuristic.IHeuristicStrategy;
+import me.nakilex.levelplugin.waypoints.api.wrapper.PathPosition;
 import java.util.Objects;
 
 /**

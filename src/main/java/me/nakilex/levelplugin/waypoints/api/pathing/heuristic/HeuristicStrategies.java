@@ -1,4 +1,4 @@
-package de.bsommerfeld.pathetic.api.pathing.heuristic;
+package me.nakilex.levelplugin.waypoints.api.pathing.heuristic;
 
 /**
  * A util class to provide the two predefined {@link IHeuristicStrategy}s of Pathetic.

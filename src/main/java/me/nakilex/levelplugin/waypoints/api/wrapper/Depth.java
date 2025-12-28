@@ -1,4 +1,4 @@
-package de.bsommerfeld.pathetic.api.wrapper;
+package me.nakilex.levelplugin.waypoints.api.wrapper;
 
 /**
  * Represents the depth of a pathfinding node or element. This class provides methods to get and
