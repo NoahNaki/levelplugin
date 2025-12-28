@@ -1,6 +1,6 @@
-package de.bsommerfeld.pathetic.api.pathing.heuristic;
+package me.nakilex.levelplugin.waypoints.api.pathing.heuristic;
 
-import de.bsommerfeld.pathetic.api.wrapper.PathPosition;
+import me.nakilex.levelplugin.waypoints.api.wrapper.PathPosition;
 
 /**
  * Defines the contract for heuristic strategies used in pathfinding algorithms.

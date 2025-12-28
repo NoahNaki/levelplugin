@@ -1,4 +1,4 @@
-package de.bsommerfeld.pathetic.engine.util;
+package me.nakilex.levelplugin.waypoints.engine.util;
 
 import java.util.Collection;
 import java.util.Iterator;

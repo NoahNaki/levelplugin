@@ -1,8 +1,8 @@
-package de.bsommerfeld.pathetic.engine.result;
+package me.nakilex.levelplugin.waypoints.engine.result;
 
-import de.bsommerfeld.pathetic.api.pathing.result.Path;
-import de.bsommerfeld.pathetic.api.pathing.result.PathState;
-import de.bsommerfeld.pathetic.api.pathing.result.PathfinderResult;
+import me.nakilex.levelplugin.waypoints.api.pathing.result.Path;
+import me.nakilex.levelplugin.waypoints.api.pathing.result.PathState;
+import me.nakilex.levelplugin.waypoints.api.pathing.result.PathfinderResult;
 
 public class PathfinderResultImpl implements PathfinderResult {
 

@@ -1,4 +1,4 @@
-package de.bsommerfeld.pathetic.api.pathing.result;
+package me.nakilex.levelplugin.waypoints.api.pathing.result;
 
 /**
  * The state of a finished pathfinding process. Finished does not mean successful, it just means

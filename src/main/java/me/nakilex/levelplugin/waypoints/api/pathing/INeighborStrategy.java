@@ -1,7 +1,7 @@
-package de.bsommerfeld.pathetic.api.pathing;
+package me.nakilex.levelplugin.waypoints.api.pathing;
 
-import de.bsommerfeld.pathetic.api.wrapper.PathPosition;
-import de.bsommerfeld.pathetic.api.wrapper.PathVector;
+import me.nakilex.levelplugin.waypoints.api.wrapper.PathPosition;
+import me.nakilex.levelplugin.waypoints.api.wrapper.PathVector;
 
 /**
  * A functional interface to provide an offset as a {@link Iterable} consisting of {@link

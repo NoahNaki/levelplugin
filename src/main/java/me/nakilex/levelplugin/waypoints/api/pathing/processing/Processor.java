@@ -1,6 +1,6 @@
-package de.bsommerfeld.pathetic.api.pathing.processing;
+package me.nakilex.levelplugin.waypoints.api.pathing.processing;
 
-import de.bsommerfeld.pathetic.api.pathing.processing.context.SearchContext;
+import me.nakilex.levelplugin.waypoints.api.pathing.processing.context.SearchContext;
 
 /**
  * Base interface for pathfinding processors. It defines lifecycle methods that can be implemented

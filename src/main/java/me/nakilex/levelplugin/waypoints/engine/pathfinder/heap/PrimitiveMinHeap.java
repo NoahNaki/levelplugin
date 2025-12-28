@@ -1,4 +1,4 @@
-package de.bsommerfeld.pathetic.engine.pathfinder.heap;
+package me.nakilex.levelplugin.waypoints.engine.pathfinder.heap;
 
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import java.util.NoSuchElementException;

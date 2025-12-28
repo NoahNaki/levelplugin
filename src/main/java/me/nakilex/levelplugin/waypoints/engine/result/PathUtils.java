@@ -1,10 +1,10 @@
-package de.bsommerfeld.pathetic.engine.result;
+package me.nakilex.levelplugin.waypoints.engine.result;
 
-import de.bsommerfeld.pathetic.api.pathing.result.Path;
-import de.bsommerfeld.pathetic.api.util.NumberUtils;
-import de.bsommerfeld.pathetic.api.util.ParameterizedSupplier;
-import de.bsommerfeld.pathetic.api.wrapper.PathPosition;
-import de.bsommerfeld.pathetic.engine.util.ErrorLogger;
+import me.nakilex.levelplugin.waypoints.api.pathing.result.Path;
+import me.nakilex.levelplugin.waypoints.api.util.NumberUtils;
+import me.nakilex.levelplugin.waypoints.api.util.ParameterizedSupplier;
+import me.nakilex.levelplugin.waypoints.api.wrapper.PathPosition;
+import me.nakilex.levelplugin.waypoints.engine.util.ErrorLogger;
 import java.util.ArrayDeque;
 import java.util.Deque;
 

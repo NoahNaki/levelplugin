@@ -1,6 +1,6 @@
-package de.bsommerfeld.pathetic.api.pathing;
+package me.nakilex.levelplugin.waypoints.api.pathing;
 
-import de.bsommerfeld.pathetic.api.wrapper.PathVector;
+import me.nakilex.levelplugin.waypoints.api.wrapper.PathVector;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;

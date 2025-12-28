@@ -1,4 +1,4 @@
-package de.bsommerfeld.pathetic.api.pathing.hook;
+package me.nakilex.levelplugin.waypoints.api.pathing.hook;
 
 /**
  * Interface for hooks that are called during the pathfinding process.

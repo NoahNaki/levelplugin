@@ -1,8 +1,8 @@
-package de.bsommerfeld.pathetic.engine.result;
+package me.nakilex.levelplugin.waypoints.engine.result;
 
-import de.bsommerfeld.pathetic.api.pathing.result.Path;
-import de.bsommerfeld.pathetic.api.wrapper.PathPosition;
-import de.bsommerfeld.pathetic.engine.util.Iterables;
+import me.nakilex.levelplugin.waypoints.api.pathing.result.Path;
+import me.nakilex.levelplugin.waypoints.api.wrapper.PathPosition;
+import me.nakilex.levelplugin.waypoints.engine.util.Iterables;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;

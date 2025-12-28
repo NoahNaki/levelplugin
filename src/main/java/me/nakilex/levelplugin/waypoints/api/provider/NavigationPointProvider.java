@@ -1,7 +1,7 @@
-package de.bsommerfeld.pathetic.api.provider;
+package me.nakilex.levelplugin.waypoints.api.provider;
 
-import de.bsommerfeld.pathetic.api.pathing.context.EnvironmentContext;
-import de.bsommerfeld.pathetic.api.wrapper.PathPosition;
+import me.nakilex.levelplugin.waypoints.api.pathing.context.EnvironmentContext;
+import me.nakilex.levelplugin.waypoints.api.wrapper.PathPosition;
 
 /**
  * The NavigationPointProvider interface defines methods for retrieving navigation point data at

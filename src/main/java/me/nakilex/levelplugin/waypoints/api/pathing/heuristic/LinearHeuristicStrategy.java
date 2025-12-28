@@ -1,8 +1,8 @@
-package de.bsommerfeld.pathetic.api.pathing.heuristic;
+package me.nakilex.levelplugin.waypoints.api.pathing.heuristic;
 
-import de.bsommerfeld.pathetic.api.pathing.PathfindingProgress;
-import de.bsommerfeld.pathetic.api.pathing.calc.DistanceCalculator;
-import de.bsommerfeld.pathetic.api.wrapper.PathPosition;
+import me.nakilex.levelplugin.waypoints.api.pathing.PathfindingProgress;
+import me.nakilex.levelplugin.waypoints.api.pathing.calc.DistanceCalculator;
+import me.nakilex.levelplugin.waypoints.api.wrapper.PathPosition;
 
 /**
  * A linear heuristic strategy combining multiple distance metrics for pathfinding.

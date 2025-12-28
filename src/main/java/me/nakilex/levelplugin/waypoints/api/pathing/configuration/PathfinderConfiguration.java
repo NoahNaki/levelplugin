@@ -1,13 +1,13 @@
-package de.bsommerfeld.pathetic.api.pathing.configuration;
+package me.nakilex.levelplugin.waypoints.api.pathing.configuration;
 
-import de.bsommerfeld.pathetic.api.pathing.INeighborStrategy;
-import de.bsommerfeld.pathetic.api.pathing.NeighborStrategies;
-import de.bsommerfeld.pathetic.api.pathing.heuristic.HeuristicStrategies;
-import de.bsommerfeld.pathetic.api.pathing.heuristic.HeuristicWeights;
-import de.bsommerfeld.pathetic.api.pathing.heuristic.IHeuristicStrategy;
-import de.bsommerfeld.pathetic.api.pathing.processing.CostProcessor;
-import de.bsommerfeld.pathetic.api.pathing.processing.ValidationProcessor;
-import de.bsommerfeld.pathetic.api.provider.NavigationPointProvider;
+import me.nakilex.levelplugin.waypoints.api.pathing.INeighborStrategy;
+import me.nakilex.levelplugin.waypoints.api.pathing.NeighborStrategies;
+import me.nakilex.levelplugin.waypoints.api.pathing.heuristic.HeuristicStrategies;
+import me.nakilex.levelplugin.waypoints.api.pathing.heuristic.HeuristicWeights;
+import me.nakilex.levelplugin.waypoints.api.pathing.heuristic.IHeuristicStrategy;
+import me.nakilex.levelplugin.waypoints.api.pathing.processing.CostProcessor;
+import me.nakilex.levelplugin.waypoints.api.pathing.processing.ValidationProcessor;
+import me.nakilex.levelplugin.waypoints.api.provider.NavigationPointProvider;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;

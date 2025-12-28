@@ -1,6 +1,6 @@
-package de.bsommerfeld.pathetic.engine;
+package me.nakilex.levelplugin.waypoints.engine;
 
-import de.bsommerfeld.pathetic.engine.util.ErrorLogger;
+import me.nakilex.levelplugin.waypoints.engine.util.ErrorLogger;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;

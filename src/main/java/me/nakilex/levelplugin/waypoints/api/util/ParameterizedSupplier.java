@@ -1,4 +1,4 @@
-package de.bsommerfeld.pathetic.api.util;
+package me.nakilex.levelplugin.waypoints.api.util;
 
 /**
  * A functional interface representing a supplier that accepts a parameter and returns a result.

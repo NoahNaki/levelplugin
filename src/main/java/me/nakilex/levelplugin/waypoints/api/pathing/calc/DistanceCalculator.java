@@ -1,6 +1,6 @@
-package de.bsommerfeld.pathetic.api.pathing.calc;
+package me.nakilex.levelplugin.waypoints.api.pathing.calc;
 
-import de.bsommerfeld.pathetic.api.pathing.PathfindingProgress;
+import me.nakilex.levelplugin.waypoints.api.pathing.PathfindingProgress;
 
 /**
  * Computes a distance metric for the current state of a pathfinding operation.

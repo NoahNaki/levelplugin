@@ -1,6 +1,6 @@
-package de.bsommerfeld.pathetic.engine.util;
+package me.nakilex.levelplugin.waypoints.engine.util;
 
-import de.bsommerfeld.pathetic.engine.Pathetic;
+import me.nakilex.levelplugin.waypoints.engine.Pathetic;
 import org.tinylog.Logger;
 
 public class ErrorLogger {
