@@ -24,8 +24,8 @@ public class QuestBeaconTask extends BukkitRunnable {
     @Override
     public void run() {
         for (Player player : Bukkit.getOnlinePlayers()) {
-            QuestTargetResolver.QuestTarget target = QuestTargetResolver.resolve(player, questManager);
-            Location loc = target != null ? target.location() : null;
+            QuestTargetResolver.QuestTarget questTarget = QuestTargetResolver.resolve(player, questManager);
+            Location loc = questTarget != null ? questTarget.location() : null;
 
             if (loc != null && loc.getWorld() != null && loc.getWorld().equals(player.getWorld())) {
                 Location pLoc = player.getLocation();
@@ -38,15 +38,15 @@ public class QuestBeaconTask extends BukkitRunnable {
                 }
 
                 // --- dynamic “lead” distance --------------------------------
-                Location target = loc;
+                Location beaconTarget = loc;
                 if (dist > 64) {                       // far away – point ahead of the player
                     double lead = Math.min(80, dist * 0.6); // between 40 and 80 m
                     Vector dir = loc.toVector().subtract(pLoc.toVector()).setY(0).normalize();
-                    target = pLoc.clone().add(dir.multiply(lead));
-                    target.setY(pLoc.getY());          // keep beam foot at eye-level terrain
+                    beaconTarget = pLoc.clone().add(dir.multiply(lead));
+                    beaconTarget.setY(pLoc.getY());          // keep beam foot at eye-level terrain
                 }
 
-                beaconManager.showBeam(player, target); // rectangular, lime, full height
+                beaconManager.showBeam(player, beaconTarget); // rectangular, lime, full height
             } else {
                 beaconManager.removeBeam(player);
             }
