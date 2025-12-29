@@ -123,6 +123,7 @@ public class DungeonExpeditionManager implements Listener {
             double offsetZ = (i / 2 == 0 ? -spacing : spacing);
             List<Location> path = offsetPath(route.path(), offsetX, offsetZ, 1);
             NPC npc = CitizensAPI.getNPCRegistry().createNPC(profile.type(), profile.name());
+            forceLoadTargetChunk(path);
             PathFollower follower = new PathFollower(plugin, npc, path, profile, false, null);
             follower.start();
             followers.add(follower);
@@ -202,6 +203,24 @@ public class DungeonExpeditionManager implements Listener {
     }
 
     private record PathDebug(List<Location> path, Particle.DustOptions dust) {
+    }
+
+    private void forceLoadTargetChunk(List<Location> path) {
+        if (path == null || path.size() < 2) {
+            return;
+        }
+        Location target = path.get(1);
+        if (target == null || target.getWorld() == null) {
+            return;
+        }
+        var chunk = target.getChunk();
+        if (!chunk.isLoaded()) {
+            chunk.load(true);
+        }
+        chunk.addPluginChunkTicket(plugin);
+        chunk.setForceLoaded(true);
+        plugin.getLogger().info("[DungeonExpedition] Preloaded point1 chunk "
+                + chunk.getX() + "," + chunk.getZ() + " for " + formatLocation(target));
     }
 
     private String formatLocation(Location location) {
