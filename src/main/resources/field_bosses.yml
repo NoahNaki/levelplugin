@@ -29,3 +29,8 @@ mobs:
     exp: 15000
     coins: "2000-5000"
     gems: 20
+
+  LRD_eldric:
+    exp: 1000
+    coins: "2000-5000"
+    gems: 0
