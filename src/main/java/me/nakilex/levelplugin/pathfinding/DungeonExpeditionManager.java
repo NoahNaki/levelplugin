@@ -107,10 +107,7 @@ public class DungeonExpeditionManager implements Listener {
         }
 
         List<PathNpc> squad = List.of(
-                new WarriorMercenary(),
-                new RogueMercenary(),
-                new MageMercenary(),
-                new ArcherMercenary()
+                new WarriorMercenary()
         );
 
         List<PathFollower> followers = new ArrayList<>();
@@ -121,7 +118,7 @@ public class DungeonExpeditionManager implements Listener {
                 new Particle.DustOptions(Color.fromRGB(117, 255, 153), 1.2f),
                 new Particle.DustOptions(Color.fromRGB(255, 198, 92), 1.2f)
         );
-        double spacing = 0.8;
+        double spacing = 0.0;
         for (int i = 0; i < squad.size(); i++) {
             PathNpc profile = squad.get(i);
             double offsetX = (i % 2 == 0 ? -spacing : spacing);
