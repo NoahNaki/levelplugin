@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.quests.def;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.quests.def.AbandonedCastleQuest;
+import me.nakilex.levelplugin.quests.def.HawieHermitCrabQuest;
 import me.nakilex.levelplugin.quests.data.BeaconTargets;
 import me.nakilex.levelplugin.quests.data.Quest;
 import me.nakilex.levelplugin.quests.data.QuestObjective;
@@ -39,7 +40,7 @@ public class EssenceWeaversLessonQuest extends Quest implements QuestScript, Que
                 "Use the essence altar to invest duplicates, then swap to another class with F.",
                 createObjectives(),
                 6,
-                List.of(),
+                List.of(HawieHermitCrabQuest.ID),
                 null,
                 QuestRewardCompat.create(230, 130, 0, List.of()),
                 null,

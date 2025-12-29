@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.quests.def;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.dungeon.DungeonManager;
 import me.nakilex.levelplugin.quests.data.BeaconTargets;
+import me.nakilex.levelplugin.quests.def.EssenceWeaversLessonQuest;
 import me.nakilex.levelplugin.quests.data.Quest;
 import me.nakilex.levelplugin.quests.data.QuestObjective;
 import me.nakilex.levelplugin.quests.data.QuestObjectiveType;
@@ -87,7 +88,7 @@ public class AbandonedCastleQuest extends Quest implements QuestScript, QuestRes
                 "Investigate the disappearances near the abandoned castle and delve into the Crimson Reliquary.",
                 createObjectives(),
                 15,
-                List.of(),
+                List.of(EssenceWeaversLessonQuest.ID),
                 null,
                 QuestRewardCompat.create(15000, 5600, 0, List.of()),
                 NPC_ID,
