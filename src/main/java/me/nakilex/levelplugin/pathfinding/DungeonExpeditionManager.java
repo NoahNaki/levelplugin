@@ -115,6 +115,9 @@ public class DungeonExpeditionManager implements Listener {
         int npcId = resolveRandomMercenaryId();
         PathNpc profile = resolveRandomProfile(npcId);
         int gearScore = affinityManager == null ? 0 : affinityManager.getGearScore(npcId);
+        if (gearScore <= 0) {
+            gearScore = 1000;
+        }
 
         List<PathFollower> followers = new ArrayList<>();
         List<PathDebug> debugPaths = new ArrayList<>();

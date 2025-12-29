@@ -273,6 +273,10 @@ public class PathFollower implements Listener {
         if (gearScore <= 0) {
             return;
         }
+        if (living instanceof org.bukkit.entity.Player player) {
+            applyPlayerStats(player, gearScore);
+            return;
+        }
         org.bukkit.attribute.AttributeInstance attack = living.getAttribute(org.bukkit.attribute.Attribute.GENERIC_ATTACK_DAMAGE);
         if (attack != null) {
             double base = Math.max(1.0, attack.getBaseValue());
@@ -286,6 +290,20 @@ public class PathFollower implements Listener {
             health.setBaseValue(base + bonus);
             living.setHealth(Math.min(health.getBaseValue(), health.getValue()));
         }
+    }
+
+    private void applyPlayerStats(org.bukkit.entity.Player player, int gearScore) {
+        player.setGameMode(org.bukkit.GameMode.SURVIVAL);
+        me.nakilex.levelplugin.player.attributes.managers.StatsManager statsManager =
+                me.nakilex.levelplugin.player.attributes.managers.StatsManager.getInstance();
+        statsManager.resetPlayer(player.getUniqueId());
+        int total = Math.max(1, gearScore / 20);
+        int vit = Math.max(1, total / 2);
+        int str = Math.max(1, total - vit);
+        var stats = statsManager.getPlayerStats(player.getUniqueId());
+        statsManager.setBaseStat(stats, me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType.VIT, vit);
+        statsManager.setBaseStat(stats, me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType.STR, str);
+        statsManager.recalcDerivedStats(player);
     }
 
     private double resolveRange(Location start, List<Location> points) {

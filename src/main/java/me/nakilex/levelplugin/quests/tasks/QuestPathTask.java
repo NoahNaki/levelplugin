@@ -53,6 +53,9 @@ public class QuestPathTask extends BukkitRunnable {
     @Override
     public void run() {
         for (Player player : Bukkit.getOnlinePlayers()) {
+            if (me.nakilex.levelplugin.player.profile.ProfileSelectionGUI.isSelecting(player)) {
+                continue;
+            }
             QuestNavigationUtil.QuestTrackingInfo tracking = QuestNavigationUtil.resolveTracking(player, questManager);
             if (tracking == null || tracking.location() == null) {
                 clearCache(player.getUniqueId());
