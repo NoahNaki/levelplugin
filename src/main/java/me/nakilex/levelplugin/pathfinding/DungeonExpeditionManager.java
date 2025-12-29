@@ -7,6 +7,8 @@ import me.nakilex.levelplugin.pathfinding.npc.MageMercenary;
 import me.nakilex.levelplugin.pathfinding.npc.PathNpc;
 import me.nakilex.levelplugin.pathfinding.npc.RogueMercenary;
 import me.nakilex.levelplugin.pathfinding.npc.WarriorMercenary;
+import me.nakilex.levelplugin.mercenary.MercenaryAffinityManager;
+import me.nakilex.levelplugin.mercenary.MercenaryRole;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
 import me.nakilex.levelplugin.waypoints.bukkit.BukkitPathfindingService;
@@ -32,18 +34,22 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class DungeonExpeditionManager implements Listener {
     private static final String RELIQUARY_KEY = "crimson reliquary";
     private static final double PATH_INTERPOLATION_STEP = 0.35;
+    private static final double PATH_POINT_DISTANCE = 20.0;
     private final Plugin plugin;
     private final DungeonManager dungeonManager;
     private final BukkitPathfindingService pathfindingService = new BukkitPathfindingService();
+    private final MercenaryAffinityManager affinityManager;
     private final Map<UUID, ExpeditionRun> activeRuns = new HashMap<>();
 
-    public DungeonExpeditionManager(Plugin plugin, DungeonManager dungeonManager) {
+    public DungeonExpeditionManager(Plugin plugin, DungeonManager dungeonManager, MercenaryAffinityManager affinityManager) {
         this.plugin = plugin;
         this.dungeonManager = dungeonManager;
+        this.affinityManager = affinityManager;
         Bukkit.getPluginManager().registerEvents(this, plugin);
     }
 
@@ -106,9 +112,9 @@ public class DungeonExpeditionManager implements Listener {
             return;
         }
 
-        List<PathNpc> squad = List.of(
-                new WarriorMercenary()
-        );
+        int npcId = resolveRandomMercenaryId();
+        PathNpc profile = resolveRandomProfile(npcId);
+        int gearScore = affinityManager == null ? 0 : affinityManager.getGearScore(npcId);
 
         List<PathFollower> followers = new ArrayList<>();
         List<PathDebug> debugPaths = new ArrayList<>();
@@ -118,27 +124,23 @@ public class DungeonExpeditionManager implements Listener {
                 new Particle.DustOptions(Color.fromRGB(117, 255, 153), 1.2f),
                 new Particle.DustOptions(Color.fromRGB(255, 198, 92), 1.2f)
         );
-        double spacing = 0.0;
-        for (int i = 0; i < squad.size(); i++) {
-            PathNpc profile = squad.get(i);
-            double offsetX = (i % 2 == 0 ? -spacing : spacing);
-            double offsetZ = (i / 2 == 0 ? -spacing : spacing);
-            Location start = route.spawn().clone().add(offsetX, 0, offsetZ);
-            Location target = route.path().size() > 1 ? route.path().get(1) : route.spawn();
-            List<Location> path = buildPathfindingRoute(start, target, route.path());
-            NPC npc = CitizensAPI.getNPCRegistry().createNPC(profile.type(), profile.name());
-            forceLoadTargetChunk(path);
-            PathFollower follower = new PathFollower(plugin, npc, path, profile, false, null);
-            follower.start();
-            followers.add(follower);
-            debugPaths.add(new PathDebug(path, colors.get(i % colors.size())));
-            plugin.getLogger().info("[DungeonExpedition] Spawned mercenary " + profile.name()
-                    + " pathPoints=" + path.size()
-                    + " start=" + formatLocation(path.get(0)));
-            if (path.size() > 1) {
-                plugin.getLogger().info("[DungeonExpedition] " + profile.name() + " point1="
-                        + formatLocation(path.get(1)));
-            }
+        Location start = route.spawn().clone();
+        Location target = route.path().size() > 1 ? route.path().get(1) : route.spawn();
+        List<Location> path = buildPathfindingRoute(start, target, route.path());
+        NPC npc = spawnMercenaryNpc(npcId, profile, start);
+        forceLoadTargetChunk(path);
+        PathFollower follower = new PathFollower(plugin, npc, path, profile, false, null, gearScore);
+        follower.start();
+        followers.add(follower);
+        debugPaths.add(new PathDebug(path, colors.get(0)));
+        plugin.getLogger().info("[DungeonExpedition] Spawned mercenary " + profile.name()
+                + " npcId=" + npcId
+                + " gearScore=" + gearScore
+                + " pathPoints=" + path.size()
+                + " start=" + formatLocation(path.get(0)));
+        if (path.size() > 1) {
+            plugin.getLogger().info("[DungeonExpedition] " + profile.name() + " point1="
+                    + formatLocation(path.get(1)));
         }
 
         BukkitTask particleTask = startPathDebugParticles(player.getUniqueId(), debugPaths);
@@ -153,6 +155,7 @@ public class DungeonExpeditionManager implements Listener {
         return pathfindingService.findPath(start, target)
                 .map(path -> PathUtils.interpolate(path, PATH_INTERPOLATION_STEP))
                 .map(path -> PathLocationUtils.toLocations(start.getWorld(), path, 0.0, true, 0))
+                .map(points -> PathLocationUtils.downsampleByDistance(points, PATH_POINT_DISTANCE))
                 .filter(list -> !list.isEmpty())
                 .orElseGet(() -> fallbackPath == null ? List.of() : fallbackPath);
     }
@@ -205,6 +208,35 @@ public class DungeonExpeditionManager implements Listener {
     }
 
     private record PathDebug(List<Location> path, Particle.DustOptions dust) {
+    }
+
+    private int resolveRandomMercenaryId() {
+        if (affinityManager == null || affinityManager.getMercenaryIds().isEmpty()) {
+            return -1;
+        }
+        List<Integer> ids = new ArrayList<>(affinityManager.getMercenaryIds());
+        return ids.get(ThreadLocalRandom.current().nextInt(ids.size()));
+    }
+
+    private PathNpc resolveRandomProfile(int npcId) {
+        if (affinityManager == null || npcId <= 0) {
+            return new WarriorMercenary();
+        }
+        MercenaryRole role = affinityManager.getRole(npcId);
+        return switch (role) {
+            case SUPPORT -> new MageMercenary();
+            case TANK -> new WarriorMercenary();
+            case DPS -> ThreadLocalRandom.current().nextBoolean() ? new RogueMercenary() : new ArcherMercenary();
+        };
+    }
+
+    private NPC spawnMercenaryNpc(int npcId, PathNpc profile, Location start) {
+        NPC template = npcId > 0 ? CitizensAPI.getNPCRegistry().getById(npcId) : null;
+        NPC npc = template != null ? template.copy() : CitizensAPI.getNPCRegistry().createNPC(profile.type(), profile.name());
+        npc.setBukkitEntityType(profile.type());
+        npc.spawn(start);
+        npc.setProtected(false);
+        return npc;
     }
 
     private void forceLoadTargetChunk(List<Location> path) {

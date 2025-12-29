@@ -407,7 +407,10 @@ public class PluginBootstrap {
         wanderingMerchantManager = new me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager(plugin);
         pathfindingManager = new PathfindingManager(plugin);
         mercenaryManager = new MercenaryManager(plugin);
-        dungeonExpeditionManager = new me.nakilex.levelplugin.pathfinding.DungeonExpeditionManager(plugin, dungeonManager);
+        dungeonExpeditionManager = new me.nakilex.levelplugin.pathfinding.DungeonExpeditionManager(
+                plugin,
+                dungeonManager,
+                mercenaryAffinityManager);
         mercenaryAffinityManager = new me.nakilex.levelplugin.mercenary.MercenaryAffinityManager(plugin);
         mercenaryExpeditionManager = new me.nakilex.levelplugin.mercenary.MercenaryExpeditionManager(
                 plugin,

@@ -35,4 +35,29 @@ public final class PathLocationUtils {
         }
         return points;
     }
+
+    public static List<Location> downsampleByDistance(List<Location> points, double minDistance) {
+        if (points == null || points.size() <= 1 || minDistance <= 0) {
+            return points == null ? List.of() : points;
+        }
+        List<Location> sampled = new ArrayList<>();
+        Location last = null;
+        double minDistanceSq = minDistance * minDistance;
+        for (Location point : points) {
+            if (point == null) {
+                continue;
+            }
+            if (last == null || last.distanceSquared(point) >= minDistanceSq) {
+                sampled.add(point);
+                last = point;
+            }
+        }
+        if (!points.isEmpty()) {
+            Location tail = points.get(points.size() - 1);
+            if (!sampled.isEmpty() && !sampled.get(sampled.size() - 1).equals(tail)) {
+                sampled.add(tail);
+            }
+        }
+        return sampled;
+    }
 }

@@ -26,6 +26,7 @@ public class PathFollower implements Listener {
     private final PathNpc profile;
     private final boolean cleanupOnComplete;
     private final Runnable onComplete;
+    private final int gearScore;
     private final CooldownManager cooldowns = CooldownManager.getInstance();
     private BukkitTask task;
     private int index = 1;
@@ -40,14 +41,25 @@ public class PathFollower implements Listener {
                         List<Location> points,
                         PathNpc profile,
                         boolean cleanupOnComplete,
-                        Runnable onComplete) {
+                        Runnable onComplete,
+                        int gearScore) {
         this.plugin = plugin;
         this.npc = npc;
         this.points = points;
         this.profile = profile;
         this.cleanupOnComplete = cleanupOnComplete;
         this.onComplete = onComplete;
+        this.gearScore = Math.max(0, gearScore);
         Bukkit.getPluginManager().registerEvents(this, plugin);
+    }
+
+    public PathFollower(Plugin plugin,
+                        NPC npc,
+                        List<Location> points,
+                        PathNpc profile,
+                        boolean cleanupOnComplete,
+                        Runnable onComplete) {
+        this(plugin, npc, points, profile, cleanupOnComplete, onComplete, 0);
     }
 
     public static PathFollower spawnNpc(Plugin plugin,
@@ -56,7 +68,7 @@ public class PathFollower implements Listener {
                                         boolean cleanupOnComplete,
                                         Runnable onComplete) {
         NPC npc = CitizensAPI.getNPCRegistry().createNPC(profile.type(), profile.name());
-        return new PathFollower(plugin, npc, points, profile, cleanupOnComplete, onComplete);
+        return new PathFollower(plugin, npc, points, profile, cleanupOnComplete, onComplete, 0);
     }
 
     public NPC getNpc() {
@@ -97,6 +109,7 @@ public class PathFollower implements Listener {
         if (npc.getEntity() instanceof LivingEntity living) {
             living.setRemoveWhenFarAway(false);
             living.setPersistent(true);
+            applyCombatStats(living, gearScore);
         }
 
         if (points.size() <= 1) {
@@ -254,6 +267,25 @@ public class PathFollower implements Listener {
         }
         return location.getWorld().getName() + ":"
                 + location.getBlockX() + "," + location.getBlockY() + "," + location.getBlockZ();
+    }
+
+    private void applyCombatStats(LivingEntity living, int gearScore) {
+        if (gearScore <= 0) {
+            return;
+        }
+        org.bukkit.attribute.AttributeInstance attack = living.getAttribute(org.bukkit.attribute.Attribute.GENERIC_ATTACK_DAMAGE);
+        if (attack != null) {
+            double base = Math.max(1.0, attack.getBaseValue());
+            double bonus = Math.max(0.0, gearScore / 75.0);
+            attack.setBaseValue(base + bonus);
+        }
+        org.bukkit.attribute.AttributeInstance health = living.getAttribute(org.bukkit.attribute.Attribute.GENERIC_MAX_HEALTH);
+        if (health != null) {
+            double base = Math.max(1.0, health.getBaseValue());
+            double bonus = Math.max(0.0, gearScore / 15.0);
+            health.setBaseValue(base + bonus);
+            living.setHealth(Math.min(health.getBaseValue(), health.getValue()));
+        }
     }
 
     private double resolveRange(Location start, List<Location> points) {
