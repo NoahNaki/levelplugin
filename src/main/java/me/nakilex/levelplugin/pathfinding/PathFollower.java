@@ -90,7 +90,7 @@ public class PathFollower implements Listener {
 
         var params = npc.getNavigator().getDefaultParameters();
         params.baseSpeed(params.baseSpeed() * profile.speedMultiplier());
-        params.range(64);
+        params.range(resolveRange(points.get(0), points));
         params.stuckAction(null);
         profile.equip(npc);
         if (npc.getEntity() instanceof LivingEntity living) {
@@ -237,12 +237,14 @@ public class PathFollower implements Listener {
             return;
         }
         Location loc = npc.getEntity().getLocation();
+        Location target = (index < (points == null ? 0 : points.size())) ? points.get(index) : null;
         plugin.getLogger().info("[PathfindingDebug] " + reason
                 + " npc=" + npc.getId()
                 + " idx=" + index + "/" + (points == null ? 0 : points.size())
                 + " navigating=" + npc.getNavigator().isNavigating()
                 + " loc=" + formatLocation(loc)
-                + " target=" + (index < (points == null ? 0 : points.size()) ? formatLocation(points.get(index)) : "none"));
+                + " target=" + (target != null ? formatLocation(target) : "none")
+                + " dist=" + (target != null ? String.format("%.1f", loc.distance(target)) : "n/a"));
     }
 
     private String formatLocation(Location location) {
@@ -251,6 +253,19 @@ public class PathFollower implements Listener {
         }
         return location.getWorld().getName() + ":"
                 + location.getBlockX() + "," + location.getBlockY() + "," + location.getBlockZ();
+    }
+
+    private double resolveRange(Location start, List<Location> points) {
+        if (start == null || points == null || points.isEmpty()) {
+            return 64;
+        }
+        double max = 64;
+        for (Location point : points) {
+            if (point != null && point.getWorld() != null && point.getWorld().equals(start.getWorld())) {
+                max = Math.max(max, start.distance(point));
+            }
+        }
+        return Math.max(64, max + 16);
     }
 
     private void cleanup() {
