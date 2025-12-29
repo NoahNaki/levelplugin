@@ -7,6 +7,7 @@ import me.nakilex.levelplugin.player.attributes.gui.StatsInventory;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.attributes.managers.LifeSkillRewardManager;
 import me.nakilex.levelplugin.player.classes.essence.gui.ClassEssenceGUI;
+import me.nakilex.levelplugin.player.fishing.gui.FishingCatalogGUI;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.Sound;
@@ -68,6 +69,10 @@ public class StatsMenuListener implements Listener {
         if (rewardDiscipline != null) {
             event.setCancelled(true);
             Player player = (Player) event.getWhoClicked();
+            if (rewardDiscipline == ToolDiscipline.FISHING && event.getRawSlot() == 53) {
+                FishingCatalogGUI.getInstance().open(player);
+                return;
+            }
             ItemStack clickedItem = event.getCurrentItem();
             if (clickedItem == null || clickedItem.getType() == Material.AIR) return;
 

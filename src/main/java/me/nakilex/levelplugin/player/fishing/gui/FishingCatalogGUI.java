@@ -2,6 +2,8 @@ package me.nakilex.levelplugin.player.fishing.gui;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.items.data.ItemRarity;
+import me.nakilex.levelplugin.items.tools.ToolDiscipline;
+import me.nakilex.levelplugin.player.attributes.gui.LifeSkillRewardsGUI;
 import me.nakilex.levelplugin.player.fishing.config.FishingRewardsConfig;
 import me.nakilex.levelplugin.player.fishing.data.FishDefinition;
 import me.nakilex.levelplugin.player.fishing.managers.FishingManager;
@@ -35,18 +37,26 @@ public class FishingCatalogGUI implements Listener {
     private static final int BACK_SLOT = 49;
     private static final int NEXT_SLOT = 53;
 
+    private static FishingCatalogGUI instance;
+
     private final Main plugin;
     private final FishingRewardsConfig rewardsConfig;
     private final FishingManager fishingManager;
-    private final FishingRewardsGUI rewardsGUI;
     private final Map<UUID, Integer> pageMap = new java.util.HashMap<>();
 
-    public FishingCatalogGUI(Main plugin, FishingRewardsConfig rewardsConfig, FishingRewardsGUI rewardsGUI) {
+    private FishingCatalogGUI(Main plugin, FishingRewardsConfig rewardsConfig) {
         this.plugin = plugin;
         this.rewardsConfig = rewardsConfig;
-        this.rewardsGUI = rewardsGUI;
         this.fishingManager = FishingManager.getInstance();
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
+    }
+
+    public static FishingCatalogGUI getInstance() {
+        if (instance == null) {
+            Main plugin = Main.getInstance();
+            instance = new FishingCatalogGUI(plugin, plugin.getFishingRewardsConfig());
+        }
+        return instance;
     }
 
     public void open(Player player) {
@@ -172,7 +182,7 @@ public class FishingCatalogGUI implements Listener {
         event.setCancelled(true);
         int rawSlot = event.getRawSlot();
         if (rawSlot == BACK_SLOT || rawSlot == INFO_SLOT) {
-            rewardsGUI.open(player);
+            LifeSkillRewardsGUI.open(player, ToolDiscipline.FISHING);
             return;
         }
         if (rawSlot == PREV_SLOT) {

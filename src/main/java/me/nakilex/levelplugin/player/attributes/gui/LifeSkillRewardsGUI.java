@@ -81,6 +81,9 @@ public final class LifeSkillRewardsGUI {
         }
 
         builder.setItem(49, createBackButton());
+        if (discipline == ToolDiscipline.FISHING) {
+            builder.setItem(53, createCatalogButton());
+        }
 
         return builder.build();
     }
@@ -168,5 +171,20 @@ public final class LifeSkillRewardsGUI {
             back.setItemMeta(meta);
         }
         return back;
+    }
+
+    private static ItemStack createCatalogButton() {
+        ItemStack item = GuiUtil.getNexoItem("info", ChatColor.AQUA + "Fishing Catalog");
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            List<String> lore = new ArrayList<>();
+            lore.add(ChatColor.GRAY + "Browse every fish you've caught.");
+            lore.add(ChatColor.GRAY + "Unknown entries reveal on discovery.");
+            lore.add("");
+            lore.addAll(TooltipUtil.clickInstructions("to open the catalog", null));
+            meta.setLore(lore);
+            item.setItemMeta(meta);
+        }
+        return item;
     }
 }

@@ -28,6 +28,7 @@ import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.mob.utils.MythicMobModifier;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.classes.essence.ClassEssence;
+import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.utils.*;
 import me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
 import net.citizensnpcs.api.CitizensAPI;
@@ -457,6 +458,21 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
         return Math.max(state.highestAverageGearScore, state.averageGearScore);
     }
 
+    private int calculateAveragePlayerLevel(List<Player> participants) {
+        if (participants == null || participants.isEmpty()) {
+            return 0;
+        }
+        int total = 0;
+        int counted = 0;
+        for (Player p : participants) {
+            if (p != null && p.isOnline()) {
+                total += LevelManager.getInstance().getLevel(p);
+                counted++;
+            }
+        }
+        return counted == 0 ? 0 : total / counted;
+    }
+
     private int determineLootTier(DungeonManager manager) {
         return Math.min(8, Math.max(1, manager.getThreatLevel(KEY)));
     }
@@ -857,17 +873,24 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
     private ItemStack createFountainReward(InstanceState state) {
         me.nakilex.levelplugin.lootchests.managers.LootChestManager lootManager = plugin.getDungeonManager().getLootChestManager();
         int peakGearScore = Math.max(updatePeakAverageGearScore(state), state.lootTier * 40);
+        int averageLevel = calculateAveragePlayerLevel(state.participants);
         int tier = state.lootTier <= 0 ? 1 : state.lootTier;
 
         if (lootManager != null) {
-            ItemStack scaledLoot = lootManager.getRandomLootForCombatPower(Math.max(50, peakGearScore), "dungeon", null);
+            Integer levelRequirement = averageLevel > 0 ? averageLevel : null;
+            ItemStack scaledLoot = lootManager.getRandomLootForCombatPower(
+                    Math.max(50, peakGearScore),
+                    levelRequirement,
+                    "dungeon",
+                    null);
             if (scaledLoot != null) {
                 return scaledLoot;
             }
         }
 
-        int minLevel = Math.max(1, (tier * 8));
-        int maxLevel = minLevel + 9;
+        int baseLevel = averageLevel > 0 ? averageLevel : (tier * 8);
+        int minLevel = Math.max(1, baseLevel - 2);
+        int maxLevel = Math.max(minLevel, baseLevel + 4);
         int roll = ThreadLocalRandom.current().nextInt(3);
         return switch (roll) {
             case 0 -> {
