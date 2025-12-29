@@ -9,6 +9,9 @@ import me.nakilex.levelplugin.pathfinding.npc.RogueMercenary;
 import me.nakilex.levelplugin.pathfinding.npc.WarriorMercenary;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
+import me.nakilex.levelplugin.waypoints.bukkit.BukkitPathfindingService;
+import me.nakilex.levelplugin.waypoints.bukkit.PathLocationUtils;
+import me.nakilex.levelplugin.waypoints.engine.result.PathUtils;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.Bukkit;
@@ -32,8 +35,10 @@ import java.util.UUID;
 
 public class DungeonExpeditionManager implements Listener {
     private static final String RELIQUARY_KEY = "crimson reliquary";
+    private static final double PATH_INTERPOLATION_STEP = 0.35;
     private final Plugin plugin;
     private final DungeonManager dungeonManager;
+    private final BukkitPathfindingService pathfindingService = new BukkitPathfindingService();
     private final Map<UUID, ExpeditionRun> activeRuns = new HashMap<>();
 
     public DungeonExpeditionManager(Plugin plugin, DungeonManager dungeonManager) {
@@ -121,7 +126,9 @@ public class DungeonExpeditionManager implements Listener {
             PathNpc profile = squad.get(i);
             double offsetX = (i % 2 == 0 ? -spacing : spacing);
             double offsetZ = (i / 2 == 0 ? -spacing : spacing);
-            List<Location> path = offsetPath(route.path(), offsetX, offsetZ, 1);
+            Location start = route.spawn().clone().add(offsetX, 0, offsetZ);
+            Location target = route.path().size() > 1 ? route.path().get(1) : route.spawn();
+            List<Location> path = buildPathfindingRoute(start, target, route.path());
             NPC npc = CitizensAPI.getNPCRegistry().createNPC(profile.type(), profile.name());
             forceLoadTargetChunk(path);
             PathFollower follower = new PathFollower(plugin, npc, path, profile, false, null);
@@ -142,17 +149,15 @@ public class DungeonExpeditionManager implements Listener {
         ChatMessageUtil.send(player, MessageType.SUCCESS, "Mercenaries deployed. Showing their path trails.");
     }
 
-    private List<Location> offsetPath(List<Location> path, double offsetX, double offsetZ, int fixedIndex) {
-        List<Location> offset = new ArrayList<>(path.size());
-        for (int i = 0; i < path.size(); i++) {
-            Location point = path.get(i);
-            if (i == fixedIndex) {
-                offset.add(point.clone());
-            } else {
-                offset.add(point.clone().add(offsetX, 0, offsetZ));
-            }
+    private List<Location> buildPathfindingRoute(Location start, Location target, List<Location> fallbackPath) {
+        if (start == null || target == null) {
+            return fallbackPath == null ? List.of() : fallbackPath;
         }
-        return offset;
+        return pathfindingService.findPath(start, target)
+                .map(path -> PathUtils.interpolate(path, PATH_INTERPOLATION_STEP))
+                .map(path -> PathLocationUtils.toLocations(start.getWorld(), path, 0.0, true, 0))
+                .filter(list -> !list.isEmpty())
+                .orElseGet(() -> fallbackPath == null ? List.of() : fallbackPath);
     }
 
     private CrimsonReliquaryDungeon resolveReliquary() {

@@ -1,16 +1,15 @@
 package me.nakilex.levelplugin.quests.tasks;
 
 import me.nakilex.levelplugin.waypoints.api.pathing.result.Path;
-import me.nakilex.levelplugin.waypoints.api.wrapper.PathPosition;
 import me.nakilex.levelplugin.waypoints.engine.result.PathUtils;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.quests.util.QuestNavigationUtil;
 import me.nakilex.levelplugin.waypoints.bukkit.BukkitPathfindingService;
+import me.nakilex.levelplugin.waypoints.bukkit.PathLocationUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Color;
 import org.bukkit.Particle;
-import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
@@ -93,7 +92,7 @@ public class QuestPathTask extends BukkitRunnable {
         }
 
         Path path = PathUtils.interpolate(pathResult.get(), INTERPOLATION_STEP);
-        List<Location> points = toParticleLocations(start.getWorld(), path);
+        List<Location> points = PathLocationUtils.toLocations(start.getWorld(), path, PARTICLE_HEIGHT_OFFSET, true, SKIP_POINTS);
         points = smoothCatmullRom(points, SMOOTH_SAMPLES_PER_SEGMENT);
         points = smoothChaikin(points, CHAIKIN_ITERATIONS);
         points = limitPointCount(points, MAX_PARTICLE_POINTS);
@@ -105,26 +104,6 @@ public class QuestPathTask extends BukkitRunnable {
                     target.getBlockZ() + 0.5));
         }
         return new QuestPathCache(start.clone(), target.clone(), now, points);
-    }
-
-    private List<Location> toParticleLocations(World world, Path path) {
-        List<Location> points = new ArrayList<>();
-        if (world == null || path == null) {
-            return points;
-        }
-        int index = 0;
-        for (PathPosition position : path) {
-            if (index++ < SKIP_POINTS) {
-                continue;
-            }
-            Location point = new Location(
-                    world,
-                    position.getCenteredX(),
-                    position.getY() + PARTICLE_HEIGHT_OFFSET,
-                    position.getCenteredZ());
-            points.add(point);
-        }
-        return points;
     }
 
     private void renderParticles(Player player, List<Location> points) {
