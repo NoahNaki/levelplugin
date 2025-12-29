@@ -7,6 +7,7 @@ import net.md_5.bungee.api.chat.*;
 import org.bukkit.World;
 import org.bukkit.World.Environment;
 import org.bukkit.WorldType;
+import org.bukkit.GameRule;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -152,6 +153,32 @@ public class WorldCommand implements CommandExecutor, TabCompleter {
                 sender.sendMessage(ChatColor.GRAY + "Players: " + world.getPlayers().size());
                 return true;
             }
+            case "gamerule" -> {
+                if (args.length < 3) {
+                    sender.sendMessage(ChatColor.RED + "Usage: /world gamerule <rule> <true|false>");
+                    return true;
+                }
+                GameRule<?> rule = GameRule.getByName(args[1]);
+                if (rule == null) {
+                    sender.sendMessage(ChatColor.RED + "Unknown gamerule: " + args[1]);
+                    return true;
+                }
+                if (rule.getType() != Boolean.class) {
+                    sender.sendMessage(ChatColor.RED + "Only boolean gamerules are supported.");
+                    return true;
+                }
+                String valueToken = args[2].toLowerCase(Locale.ROOT);
+                if (!valueToken.equals("true") && !valueToken.equals("false")) {
+                    sender.sendMessage(ChatColor.RED + "Usage: /world gamerule <rule> <true|false>");
+                    return true;
+                }
+                @SuppressWarnings("unchecked")
+                GameRule<Boolean> boolRule = (GameRule<Boolean>) rule;
+                boolean value = Boolean.parseBoolean(valueToken);
+                manager.applyBooleanGameRuleToAll(boolRule, value);
+                sender.sendMessage(ChatColor.YELLOW + "Set " + rule.getName() + " to " + value + " for all worlds.");
+                return true;
+            }
             case "list" -> {
                 if (sender instanceof Player p) {
                     TextComponent base = new TextComponent(ChatColor.GREEN + "Worlds: ");
@@ -186,7 +213,7 @@ public class WorldCommand implements CommandExecutor, TabCompleter {
         if (args.length == 0) return List.of();
 
         if (args.length == 1) {
-            List<String> subs = List.of("create", "import", "delete", "unload", "tp", "spawn", "setspawn", "info", "list");
+            List<String> subs = List.of("create", "import", "delete", "unload", "tp", "spawn", "setspawn", "info", "gamerule", "list");
             return filter(args[0], subs);
         }
 
@@ -198,6 +225,18 @@ public class WorldCommand implements CommandExecutor, TabCompleter {
             case "create" -> {
                 if (args.length == 3) {
                     return filter(args[2], List.of("void", "flatland", "nether", "end"));
+                }
+            }
+            case "gamerule" -> {
+                if (args.length == 2) {
+                    List<String> rules = new ArrayList<>();
+                    for (GameRule<?> rule : GameRule.values()) {
+                        rules.add(rule.getName());
+                    }
+                    return filter(args[1], rules);
+                }
+                if (args.length == 3) {
+                    return filter(args[2], List.of("true", "false"));
                 }
             }
             case "import" -> {

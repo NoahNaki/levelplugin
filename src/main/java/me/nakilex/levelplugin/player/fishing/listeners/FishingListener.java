@@ -14,6 +14,8 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.Sound;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
@@ -105,8 +107,7 @@ public class FishingListener implements Listener {
         ItemStack rod = resolveRod(player);
         ToolTier tier = resolveTier(rod);
         boolean highestTier = tier != null && tier.isHighestTier();
-        boolean inLava = event.getHook() != null
-                && event.getHook().getLocation().getBlock().getType() == Material.LAVA;
+        boolean inLava = event.getHook() != null && isLavaHook(event.getHook().getLocation());
 
         FishDefinition definition = rewardsConfig.rollFish(
                 fishingManager.getLevel(player),
@@ -183,6 +184,21 @@ public class FishingListener implements Listener {
         int max = Math.max(min, definition.maxSize());
         double size = min + (random.nextDouble() * (max - min));
         return Math.round(size * 10.0) / 10.0;
+    }
+
+    private boolean isLavaHook(org.bukkit.Location hookLocation) {
+        if (hookLocation == null) return false;
+        Block block = hookLocation.getBlock();
+        if (isLavaBlock(block)) {
+            return true;
+        }
+        return isLavaBlock(block.getRelative(BlockFace.DOWN));
+    }
+
+    private boolean isLavaBlock(Block block) {
+        if (block == null) return false;
+        Material type = block.getType();
+        return type == Material.LAVA || type == Material.LAVA_CAULDRON;
     }
 
     private void clearSession(UUID uuid) {

@@ -13,7 +13,9 @@ import me.nakilex.levelplugin.quests.data.*;
 import me.nakilex.levelplugin.quests.gui.QuestState;
 import me.nakilex.levelplugin.quests.data.QuestResetScript;
 import me.nakilex.levelplugin.utils.NpcNameUtil;
+import me.nakilex.levelplugin.quests.util.QuestNavigationUtil;
 import me.nakilex.levelplugin.quests.util.QuestServiceAccessTracker;
+import me.nakilex.levelplugin.utils.MobUtil;
 import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
@@ -584,6 +586,17 @@ public class QuestManager {
     public void setTrackedQuest(Player player, String questId) {
         trackedQuests.put(player.getUniqueId(), questId);
         saveProgress();
+        if (player == null) {
+            return;
+        }
+        QuestNavigationUtil.QuestTrackingInfo tracking = QuestNavigationUtil.resolveTracking(player, this);
+        if (tracking == null || tracking.location() == null) {
+            return;
+        }
+        if (!player.getWorld().equals(tracking.location().getWorld())) {
+            return;
+        }
+        MobUtil.faceEntity(player, tracking.location());
     }
 
     public String getTrackedQuest(UUID player) {
