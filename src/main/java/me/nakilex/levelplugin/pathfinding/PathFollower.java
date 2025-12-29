@@ -35,7 +35,7 @@ public class PathFollower implements Listener {
     private int tickCount;
     private static final int DEBUG_TICK_INTERVAL = 40;
     private static final double ARRIVAL_DISTANCE_SQ = 4.0;
-    private static final double NAV_SPEED_BOOST = 1.75;
+    private static final double NAV_SPEED_BOOST = 3.0;
 
     public PathFollower(Plugin plugin,
                         NPC npc,
@@ -313,8 +313,8 @@ public class PathFollower implements Listener {
         if (speed == null) {
             return;
         }
-        double base = 0.2;
-        double bonus = Math.min(0.2, gearScore / 5000.0);
+        double base = 0.25;
+        double bonus = Math.min(0.35, gearScore / 2500.0);
         speed.setBaseValue(base + bonus);
     }
 
