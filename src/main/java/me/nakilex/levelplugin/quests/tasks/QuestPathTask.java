@@ -1,16 +1,15 @@
 package me.nakilex.levelplugin.quests.tasks;
 
 import me.nakilex.levelplugin.waypoints.api.pathing.result.Path;
-import me.nakilex.levelplugin.waypoints.api.wrapper.PathPosition;
 import me.nakilex.levelplugin.waypoints.engine.result.PathUtils;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.quests.util.QuestNavigationUtil;
 import me.nakilex.levelplugin.waypoints.bukkit.BukkitPathfindingService;
+import me.nakilex.levelplugin.waypoints.bukkit.PathLocationUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Color;
 import org.bukkit.Particle;
-import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
@@ -30,10 +29,11 @@ public class QuestPathTask extends BukkitRunnable {
     private static final double REPATH_PLAYER_DISTANCE = 8.0;
     private static final double REPATH_TARGET_DISTANCE = 4.0;
     private static final long REPATH_INTERVAL_MS = 4000L;
-    private static final double INTERPOLATION_STEP = 0.45;
+    private static final double INTERPOLATION_STEP = 0.25;
     private static final int MAX_PARTICLE_POINTS = 1000;
     private static final int SKIP_POINTS = 0;
-    private static final int SMOOTH_SAMPLES_PER_SEGMENT = 6;
+    private static final int SMOOTH_SAMPLES_PER_SEGMENT = 10;
+    private static final int CHAIKIN_ITERATIONS = 2;
     private static final int PARTICLE_COUNT = 1;
     private static final double PARTICLE_SPREAD = 0.0;
     private static final double PARTICLE_HEIGHT_OFFSET = 1.0;
@@ -53,6 +53,9 @@ public class QuestPathTask extends BukkitRunnable {
     @Override
     public void run() {
         for (Player player : Bukkit.getOnlinePlayers()) {
+            if (me.nakilex.levelplugin.player.profile.ProfileSelectionGUI.isSelecting(player)) {
+                continue;
+            }
             QuestNavigationUtil.QuestTrackingInfo tracking = QuestNavigationUtil.resolveTracking(player, questManager);
             if (tracking == null || tracking.location() == null) {
                 clearCache(player.getUniqueId());
@@ -92,8 +95,9 @@ public class QuestPathTask extends BukkitRunnable {
         }
 
         Path path = PathUtils.interpolate(pathResult.get(), INTERPOLATION_STEP);
-        List<Location> points = toParticleLocations(start.getWorld(), path);
+        List<Location> points = PathLocationUtils.toLocations(start.getWorld(), path, PARTICLE_HEIGHT_OFFSET, true, SKIP_POINTS);
         points = smoothCatmullRom(points, SMOOTH_SAMPLES_PER_SEGMENT);
+        points = smoothChaikin(points, CHAIKIN_ITERATIONS);
         points = limitPointCount(points, MAX_PARTICLE_POINTS);
         if (points.isEmpty() && path.length() > 0 && target.getWorld() != null) {
             points.add(new Location(
@@ -103,26 +107,6 @@ public class QuestPathTask extends BukkitRunnable {
                     target.getBlockZ() + 0.5));
         }
         return new QuestPathCache(start.clone(), target.clone(), now, points);
-    }
-
-    private List<Location> toParticleLocations(World world, Path path) {
-        List<Location> points = new ArrayList<>();
-        if (world == null || path == null) {
-            return points;
-        }
-        int index = 0;
-        for (PathPosition position : path) {
-            if (index++ < SKIP_POINTS) {
-                continue;
-            }
-            Location point = new Location(
-                    world,
-                    position.getCenteredX(),
-                    position.getY() + PARTICLE_HEIGHT_OFFSET,
-                    position.getCenteredZ());
-            points.add(point);
-        }
-        return points;
     }
 
     private void renderParticles(Player player, List<Location> points) {
@@ -206,6 +190,40 @@ public class QuestPathTask extends BukkitRunnable {
                 + (2 * p0.getZ() - 5 * p1.getZ() + 4 * p2.getZ() - p3.getZ()) * t2
                 + (-p0.getZ() + 3 * p1.getZ() - 3 * p2.getZ() + p3.getZ()) * t3);
         return new Location(p1.getWorld(), x, y, z);
+    }
+
+    private List<Location> smoothChaikin(List<Location> points, int iterations) {
+        if (points == null || points.size() < 3 || iterations <= 0) {
+            return points == null ? List.of() : points;
+        }
+        List<Location> result = new ArrayList<>(points);
+        for (int i = 0; i < iterations; i++) {
+            result = chaikinOnce(result);
+        }
+        return result;
+    }
+
+    private List<Location> chaikinOnce(List<Location> points) {
+        if (points.size() < 3) {
+            return points;
+        }
+        List<Location> smoothed = new ArrayList<>();
+        smoothed.add(points.get(0));
+        for (int i = 0; i < points.size() - 1; i++) {
+            Location p0 = points.get(i);
+            Location p1 = points.get(i + 1);
+            smoothed.add(lerp(p0, p1, 0.25));
+            smoothed.add(lerp(p0, p1, 0.75));
+        }
+        smoothed.add(points.get(points.size() - 1));
+        return smoothed;
+    }
+
+    private Location lerp(Location start, Location end, double t) {
+        double x = start.getX() + (end.getX() - start.getX()) * t;
+        double y = start.getY() + (end.getY() - start.getY()) * t;
+        double z = start.getZ() + (end.getZ() - start.getZ()) * t;
+        return new Location(start.getWorld(), x, y, z);
     }
 
     private List<Location> limitPointCount(List<Location> points, int maxPoints) {

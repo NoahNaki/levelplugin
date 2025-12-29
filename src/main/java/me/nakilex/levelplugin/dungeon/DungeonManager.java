@@ -790,6 +790,10 @@ public class DungeonManager {
         return null;
     }
 
+    public VerifiedDungeonDefinition getVerifiedDefinition(String key) {
+        return getVerifiedDungeon(key);
+    }
+
     public void saveLayouts() {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             long start = System.currentTimeMillis();
