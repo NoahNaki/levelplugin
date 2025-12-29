@@ -10,6 +10,7 @@ import me.nakilex.levelplugin.spells.effect.SpellEffect;
 import me.nakilex.levelplugin.spells.managers.CooldownManager;
 import me.nakilex.levelplugin.spells.managers.SpellManager;
 import me.nakilex.levelplugin.spells.registry.EffectRegistry;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -260,6 +261,9 @@ public class Spell {
         ps.setCurrentMana(ps.getCurrentMana() - intCost);
         recordSpellCast(player);
         Main.getInstance().getQuestManager().handleCast(player, id);
+        if ("blade_dance".equalsIgnoreCase(id) && intCost > 0) {
+            applyIFrame(player, 20L);
+        }
 
         // 6) Start cooldown (ctx.getFinalCooldown returns 0 if applyCooldown==false)
         long cdMs = ctx.getFinalCooldown();
@@ -269,5 +273,16 @@ public class Spell {
         }
     }
 
+    private void applyIFrame(Player player, long durationTicks) {
+        if (player == null || player.isInvulnerable()) {
+            return;
+        }
+        player.setInvulnerable(true);
+        Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
+            if (player.isOnline() && player.isInvulnerable()) {
+                player.setInvulnerable(false);
+            }
+        }, durationTicks);
+    }
 
 }
