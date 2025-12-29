@@ -30,20 +30,23 @@ public class FishingRewardsGUI implements Listener, CommandExecutor {
     private static final String TITLE = "Fishing Rewards";
     private static final int INFO_SLOT = 8;
     private static final int CANCEL_SLOT = 45;
+    private static final int CATALOG_SLOT = 47;
     private static final int WITHDRAW_SLOT = 46;
     private static final int DEPOSIT_SLOT = 52;
     private static final int CONFIRM_SLOT = 53;
     private final EconomyManager economyManager;
     private final Main plugin;
+    private final FishingCatalogGUI catalogGUI;
 
     public FishingRewardsGUI(Main plugin, EconomyManager economyManager) {
         this.plugin = plugin;
         this.economyManager = economyManager;
+        this.catalogGUI = new FishingCatalogGUI(plugin, plugin.getFishingRewardsConfig(), this);
         plugin.getCommand("fishrewards").setExecutor(this);
         Bukkit.getPluginManager().registerEvents(this, plugin);
     }
 
-    private void open(Player player) {
+    public void open(Player player) {
         Inventory inv = GuiBuilder.create(54, TITLE)
                 .filler(Material.GRAY_STAINED_GLASS_PANE)
                 .fillEmptySlots(false)
@@ -68,6 +71,7 @@ public class FishingRewardsGUI implements Listener, CommandExecutor {
         inv.setItem(INFO_SLOT, info);
         inv.setItem(CANCEL_SLOT, GuiUtil.getNexoItem("cross", ChatColor.RED + "Cancel"));
         inv.setItem(WITHDRAW_SLOT, GuiUtil.getNexoItem("arrow_down", ChatColor.YELLOW + "Return All"));
+        inv.setItem(CATALOG_SLOT, createCatalogItem());
         inv.setItem(DEPOSIT_SLOT, GuiUtil.getNexoItem("arrow_up", ChatColor.YELLOW + "Deposit All"));
         inv.setItem(CONFIRM_SLOT, GuiUtil.getNexoItem("check", ChatColor.GREEN + "Confirm Sale"));
         player.openInventory(inv);
@@ -104,6 +108,11 @@ public class FishingRewardsGUI implements Listener, CommandExecutor {
         }
         if (rawSlot == INFO_SLOT) {
             event.setCancelled(true);
+            return;
+        }
+        if (rawSlot == CATALOG_SLOT) {
+            event.setCancelled(true);
+            catalogGUI.open(player);
             return;
         }
         if (rawSlot == WITHDRAW_SLOT) {
@@ -215,7 +224,22 @@ public class FishingRewardsGUI implements Listener, CommandExecutor {
 
     private boolean isControlSlot(int slot) {
         return slot == INFO_SLOT || slot == CANCEL_SLOT || slot == CONFIRM_SLOT
-                || slot == WITHDRAW_SLOT || slot == DEPOSIT_SLOT;
+                || slot == WITHDRAW_SLOT || slot == DEPOSIT_SLOT || slot == CATALOG_SLOT;
+    }
+
+    private ItemStack createCatalogItem() {
+        ItemStack item = GuiUtil.getNexoItem("info", ChatColor.AQUA + "Fishing Catalog");
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            List<String> lore = new ArrayList<>();
+            lore.add(ChatColor.GRAY + "Browse every fish you've caught.");
+            lore.add(ChatColor.GRAY + "Unknown entries reveal on discovery.");
+            lore.add("");
+            lore.addAll(TooltipUtil.clickInstructions("to open the catalog", null));
+            meta.setLore(lore);
+            item.setItemMeta(meta);
+        }
+        return item;
     }
 
     private int findEmptySlot(Inventory top) {

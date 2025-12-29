@@ -64,6 +64,7 @@ public class PlayerConfig {
         config.set(path + ".farming.xp",    farmingManager.getXP(uuid));
         config.set(path + ".fishing.level", fishingManager.getLevel(uuid));
         config.set(path + ".fishing.xp",    fishingManager.getXP(uuid));
+        config.set(path + ".fishing.discovered", new ArrayList<>(fishingManager.getDiscoveredFish(uuid)));
         LifeSkillRewardManager rewardManager = LifeSkillRewardManager.getInstance();
         if (rewardManager != null) {
             for (ToolDiscipline discipline : ToolDiscipline.values()) {
@@ -133,6 +134,7 @@ public class PlayerConfig {
         int farmingXp = config.getInt(root + ".farming.xp", 0);
         int fishingLevel = config.getInt(root + ".fishing.level", 1);
         int fishingXp = config.getInt(root + ".fishing.xp", 0);
+        List<String> discoveredFish = config.getStringList(root + ".fishing.discovered");
         LifeSkillRewardManager rewardManager = LifeSkillRewardManager.getInstance();
         int skillPoints = config.getInt(root + ".skill_points", 0);
         List<String> unlockedList = config.getStringList(root + ".unlocked_classes");
@@ -149,6 +151,7 @@ public class PlayerConfig {
         me.nakilex.levelplugin.player.fishing.managers.FishingManager fim = me.nakilex.levelplugin.player.fishing.managers.FishingManager.getInstance();
         fim.setLevel(uuid, fishingLevel);
         fim.addXP(uuid, fishingXp);
+        fim.setDiscoveredFish(uuid, new HashSet<>(discoveredFish));
         if (rewardManager != null) {
             for (ToolDiscipline discipline : ToolDiscipline.values()) {
                 List<Integer> claimed = config.getIntegerList(root + ".lifeskills." + discipline.name().toLowerCase() + ".claimed");
