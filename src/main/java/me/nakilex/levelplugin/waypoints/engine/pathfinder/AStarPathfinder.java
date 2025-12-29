@@ -1,0 +1,348 @@
+package me.nakilex.levelplugin.waypoints.engine.pathfinder;
+
+import me.nakilex.levelplugin.waypoints.api.pathing.configuration.PathfinderConfiguration;
+import me.nakilex.levelplugin.waypoints.api.pathing.processing.Cost;
+import me.nakilex.levelplugin.waypoints.api.pathing.processing.CostProcessor;
+import me.nakilex.levelplugin.waypoints.api.pathing.processing.ValidationProcessor;
+import me.nakilex.levelplugin.waypoints.api.pathing.processing.context.EvaluationContext;
+import me.nakilex.levelplugin.waypoints.api.pathing.processing.context.SearchContext;
+import me.nakilex.levelplugin.waypoints.api.wrapper.PathPosition;
+import me.nakilex.levelplugin.waypoints.api.wrapper.PathVector;
+import me.nakilex.levelplugin.waypoints.engine.Node;
+import me.nakilex.levelplugin.waypoints.engine.pathfinder.heap.PrimitiveMinHeap;
+import me.nakilex.levelplugin.waypoints.engine.pathfinder.processing.EvaluationContextImpl;
+import me.nakilex.levelplugin.waypoints.engine.util.GridRegionData;
+import me.nakilex.levelplugin.waypoints.engine.util.RegionKey;
+import it.unimi.dsi.fastutil.longs.Long2DoubleMap;
+import it.unimi.dsi.fastutil.longs.Long2DoubleOpenHashMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+
+/**
+ * An A* pathfinding algorithm that uses a heuristic to guide the search toward the target. It
+ * balances the actual cost from the start (G-cost) with the estimated cost to the target (H-cost).
+ *
+ * <p>This implementation uses:
+ *
+ * <ul>
+ *   <li>A primitive min-heap for the open set (priority queue).
+ *   <li>Addressable heap handles for efficient G-cost updates (decrease-key).
+ *   <li>A grid-based closed set with Bloom filters ({@link GridRegionData}) to quickly check
+ *       expanded nodes.
+ * </ul>
+ *
+ * <p>Thread-safety: Each pathfinding operation gets its own {@link PathfindingSession}, ensuring
+ * thread-safety for concurrent requests.
+ */
+public final class AStarPathfinder extends AbstractPathfinder {
+
+  private final ThreadLocal<PathfindingSession> currentSession = new ThreadLocal<>();
+
+  public AStarPathfinder(PathfinderConfiguration configuration) {
+    super(configuration);
+  }
+
+  @Override
+  protected void insertStartNode(Node node, double fCost, PrimitiveMinHeap openSet) {
+    PathfindingSession session = getSessionOrThrow();
+    long packedPos = RegionKey.pack(node.getPosition());
+
+    openSet.insertOrUpdate(packedPos, fCost);
+    session.openSetNodes.put(packedPos, node);
+  }
+
+  @Override
+  protected Node extractBestNode(PrimitiveMinHeap openSet) {
+    PathfindingSession session = getSessionOrThrow();
+
+    long packedPos = openSet.extractMin();
+    Node node = session.openSetNodes.get(packedPos);
+    session.openSetNodes.remove(packedPos);
+
+    return node;
+  }
+
+  @Override
+  protected void initializeSearch() {
+    currentSession.set(new PathfindingSession());
+  }
+
+  /**
+   * Processes the successors of the current node, checking if they're in the open or closed set,
+   * calculating costs, validating traversability, and updating the open set as needed.
+   *
+   * @param start The starting position of the pathfinding request.
+   * @param target The target position of the pathfinding request.
+   * @param currentNode The node being expanded.
+   * @param openSet The priority queue holding nodes to explore.
+   * @param searchContext The context for the current search.
+   */
+  @Override
+  protected void processSuccessors(
+      PathPosition start,
+      PathPosition target,
+      Node currentNode,
+      PrimitiveMinHeap openSet,
+      SearchContext searchContext) {
+
+    PathfindingSession session = getSessionOrThrow();
+    Iterable<PathVector> offsets = neighborStrategy.getOffsets(currentNode.getPosition());
+
+    for (PathVector offset : offsets) {
+      PathPosition neighborPos = currentNode.getPosition().add(offset);
+      long packedPos = RegionKey.pack(neighborPos);
+
+      // Check if neighbor is in the open set
+      if (openSet.contains(packedPos)) {
+        Node existing = session.openSetNodes.get(packedPos);
+        updateExistingNode(existing, packedPos, currentNode, searchContext, openSet);
+        continue;
+      }
+
+      // Check if neighbor is in the closed set
+      GridRegionData regionData = session.getOrCreateRegionData(neighborPos);
+      if (regionData.getBloomFilter().mightContain(neighborPos)
+          && regionData.getRegionalExaminedPositions().contains(packedPos)) {
+
+        /*
+         * This block handles the edge case where we find a path to a node,
+         * that has already been fully processed (is in the closed set).
+         *
+         * Normally (with consistent heuristics), the first time,
+         * we close a node, we have found the shortest path to it.
+         *
+         * However, if the heuristic is inconsistent (or weights change dynamically),
+         * we might find a "shorter" path later.
+         *
+         * Since this functionality can have a performance impact (in comparison to the rest of the Pathfinder),
+         * we hide this behind a configuration flag, so the user can decide whether this should be active.
+         */
+
+        boolean shouldReopen = false;
+        if (pathfinderConfiguration.shouldReopenClosedNodes()) {
+          double oldCost = session.closedSetGCosts.get(packedPos);
+
+          /*
+           * We have to create a temp node here to calculate the costs.
+           * That's sadly necessary, since CostProcessors need the context.
+           * But since this only happens with closed nodes, the allocations stay in line.
+           */
+          Node tempNeighbor = createNeighborNode(neighborPos, start, target, currentNode);
+          EvaluationContext context =
+              new EvaluationContextImpl(
+                  searchContext,
+                  tempNeighbor,
+                  currentNode,
+                  pathfinderConfiguration.getHeuristicStrategy());
+
+          double newGCost = calculateGCost(context);
+
+          // Is this path significantly better?
+          if (Double.isNaN(oldCost) || newGCost + Math.ulp(newGCost) < oldCost) {
+            // Update the value for future comparison
+            session.closedSetGCosts.put(packedPos, newGCost);
+
+            // And mark this node for reopening
+            shouldReopen = true;
+          }
+        }
+
+        if (!shouldReopen) continue;
+
+        // Once we got here, the node will be processed as "new" node
+        // and with that effectively reopened.
+      }
+
+      // Process as a new node
+      Node neighbor = createNeighborNode(neighborPos, start, target, currentNode);
+      neighbor.setParent(currentNode);
+      EvaluationContext context =
+          new EvaluationContextImpl(
+              searchContext, neighbor, currentNode, pathfinderConfiguration.getHeuristicStrategy());
+
+      if (!isValidByCustomProcessors(context)) {
+        continue;
+      }
+
+      /*
+       * --------------------------------------------------------------------------------
+       * Calculates the G-cost for the new neighbor and adds it to the open set.
+       *
+       * This block handles three main tasks:
+       *  1. Figures out the transition cost (G) from the current node to the neighbor.
+       *  2. Computes the total estimated cost (F = G + H) for prioritization.
+       *  3. Inserts the node into the open set with a small tie-breaker
+       *     to make pathfinding smoother when multiple nodes have the same F-cost.
+       *
+       * What's the tie-breaker about?
+       * -----------------------------
+       * If multiple nodes have the same F-cost, A* might pick them randomly, which can
+       * lead to jagged or inconsistent paths. To smooth things out, we give a tiny
+       * advantage to nodes closer to the goal (smaller H). We do this by subtracting
+       * a small value (TIE_BREAKER_WEIGHT * (H / (|F| + 1))) from F. This ensures
+       * nodes closer to the goal get expanded first, without messing up correctness
+       * or optimality—the bias is super small!
+       *
+       * Note on numerics:
+       * -----------------
+       * To handle floating-point inaccuracies or problematic values (like NaN/Infinity),
+       * we include a safety check and use Math.ulp for precise comparisons that adapt
+       * to the magnitude of the values.
+       * --------------------------------------------------------------------------------
+       */
+      double gCost = calculateGCost(context);
+      neighbor.setGCost(gCost);
+      double fCost = neighbor.getFCost();
+      double heapKey = calculateHeapKey(neighbor, fCost);
+
+      openSet.insertOrUpdate(packedPos, heapKey);
+      session.openSetNodes.put(packedPos, neighbor);
+    }
+  }
+
+  private void updateExistingNode(
+      Node existing,
+      long packedPos,
+      Node currentNode,
+      SearchContext searchContext,
+      PrimitiveMinHeap openSet) {
+
+    EvaluationContext context =
+        new EvaluationContextImpl(
+            searchContext, existing, currentNode, pathfinderConfiguration.getHeuristicStrategy());
+
+    double newG = calculateGCost(context);
+    double tol = Math.ulp(Math.max(Math.abs(newG), Math.abs(existing.getGCost())));
+    if (newG + tol >= existing.getGCost()) return;
+
+    if (!isValidByCustomProcessors(context)) {
+      return;
+    }
+
+    existing.setParent(currentNode);
+    existing.setGCost(newG);
+
+    double newF = existing.getFCost();
+    double newKey = calculateHeapKey(existing, newF);
+
+    double oldKey = openSet.getCost(packedPos);
+
+    // We only call the heap once the key actually decreased
+    if (newKey + Math.ulp(newKey) < oldKey) {
+      // O(log n)
+      openSet.insertOrUpdate(packedPos, newKey);
+
+    }
+    // edge-case handling
+    else if (Math.abs(newKey - oldKey) <= Math.ulp(newKey)) {
+      /*
+       * Sometimes a tiny nudging helps to maintain consistency,
+       * but usually insertOrUpdate catches that.
+       *
+       * Since our heap strictly checks <, we can force it here
+       */
+      openSet.insertOrUpdate(packedPos, oldKey - Math.ulp(oldKey));
+    }
+  }
+
+  private Node createNeighborNode(
+      PathPosition position, PathPosition start, PathPosition target, Node parent) {
+    return new Node(
+        position,
+        start,
+        target,
+        pathfinderConfiguration.getHeuristicWeights(),
+        pathfinderConfiguration.getHeuristicStrategy(),
+        parent.getDepth() + 1);
+  }
+
+  private boolean isValidByCustomProcessors(EvaluationContext context) {
+    if (validationProcessors == null || validationProcessors.isEmpty()) {
+      return true;
+    }
+    for (ValidationProcessor validator : validationProcessors) {
+      if (!validator.isValid(context)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private double calculateGCost(EvaluationContext context) {
+    double baseCost = context.getBaseTransitionCost();
+    double additionalCost = 0.0;
+
+    if (costProcessors != null && !costProcessors.isEmpty()) {
+      for (CostProcessor processor : costProcessors) {
+        Cost contribution = processor.calculateCostContribution(context);
+        additionalCost += (contribution != null) ? contribution.getValue() : Cost.ZERO.getValue();
+      }
+    }
+
+    double transitionCost = baseCost + additionalCost;
+    if (transitionCost < 0) {
+      transitionCost = 0;
+    }
+    return context.getPathCostToPreviousPosition() + transitionCost;
+  }
+
+  @Override
+  protected void markNodeAsExpanded(Node node) {
+    PathfindingSession session = getSessionOrThrow();
+    PathPosition position = node.getPosition();
+
+    long packedPos = RegionKey.pack(position);
+    session.openSetNodes.remove(packedPos);
+
+    if (pathfinderConfiguration.shouldReopenClosedNodes())
+      session.closedSetGCosts.put(packedPos, node.getGCost());
+
+    GridRegionData regionData = session.getOrCreateRegionData(position);
+    regionData.getBloomFilter().put(position);
+    regionData.getRegionalExaminedPositions().add(packedPos);
+  }
+
+  @Override
+  protected void performAlgorithmCleanup() {
+    currentSession.remove();
+  }
+
+  private PathfindingSession getSessionOrThrow() {
+    PathfindingSession session = currentSession.get();
+    if (session == null) {
+      throw new IllegalStateException(
+          "Pathfinding session not initialized. Call initializeSearch() first.");
+    }
+    return session;
+  }
+
+  /**
+   * Manages state for a single pathfinding operation, ensuring thread-safety via isolation.
+   *
+   * @apiNote This class is not thread-safe and is used within a ThreadLocal. If used elsewhere,
+   *     developers must synchronize access to shared resources.
+   */
+  private class PathfindingSession {
+    private final Long2ObjectMap<GridRegionData> visitedRegions = new Long2ObjectOpenHashMap<>();
+    private final Long2ObjectMap<Node> openSetNodes = new Long2ObjectOpenHashMap<>();
+
+    private final Long2DoubleMap closedSetGCosts = new Long2DoubleOpenHashMap();
+
+    PathfindingSession() {
+      this.closedSetGCosts.defaultReturnValue(Double.NaN);
+    }
+
+    GridRegionData getOrCreateRegionData(PathPosition position) {
+      int cellSize = pathfinderConfiguration.getGridCellSize();
+
+      int rX = Math.floorDiv(position.getFlooredX(), cellSize);
+      int rY = Math.floorDiv(position.getFlooredY(), cellSize);
+      int rZ = Math.floorDiv(position.getFlooredZ(), cellSize);
+
+      long regionKey = RegionKey.pack(rX, rY, rZ);
+
+      return visitedRegions.computeIfAbsent(
+          regionKey, (long k) -> new GridRegionData(pathfinderConfiguration));
+    }
+  }
+}

@@ -156,7 +156,9 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
         final Map<Location, MultiLineHologram> pluckHolograms = new HashMap<>();
         final Map<Location, MultiLineHologram> placementHolograms = new HashMap<>();
         final List<Location> rewardFountains = new ArrayList<>();
+        final List<Location> expeditionPath = new ArrayList<>();
         Location bossPortalLocation;
+        Location spawnLocation;
         final List<Player> participants = new ArrayList<>();
         final List<MobMarker> mobMarkers = new ArrayList<>();
         final List<NPC> npcs = new ArrayList<>();
@@ -170,6 +172,10 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
         double damageTaken;
         boolean bossDefeated;
         boolean puzzleComplete;
+        boolean ready;
+    }
+
+    public record ExpeditionRoute(Location spawn, List<Location> path) {
     }
 
     private record NpcPlacement(int x, int y, int z, int id) { }
@@ -267,6 +273,14 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
         pasteTemplateAsync(template, world, origin, spawn, markers,
                 () -> teleportParticipantsEarly(participants, prevStates, spawn),
                 () -> finalizeInstance(manager, inst, origin, spawn, participants, markers, prevStates));
+    }
+
+    public java.util.Optional<ExpeditionRoute> getExpeditionRoute(World world) {
+        InstanceState state = activeInstances.get(world);
+        if (state == null || !state.ready || state.spawnLocation == null || state.expeditionPath.isEmpty()) {
+            return java.util.Optional.empty();
+        }
+        return java.util.Optional.of(new ExpeditionRoute(state.spawnLocation.clone(), List.copyOf(state.expeditionPath)));
     }
 
     private void seedMarkersFromTemplate(RoomTemplate template, Location origin, TemplateMarkers markers) {
@@ -474,6 +488,8 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
         state.exitPortalRegion = createExitPortalBounds(origin);
         state.bossPortalLocation = markers.bossMarkers.isEmpty() ? null : markers.bossMarkers.get(0);
         state.trackedInstance = inst;
+        state.spawnLocation = spawn.clone();
+        state.expeditionPath.addAll(buildExpeditionPath(spawn, markers));
         activeInstances.put(origin.getWorld(), state);
         manager.startRun(participants.stream().map(Player::getUniqueId).toList(), KEY, state.startTime);
 
@@ -554,6 +570,40 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
                 ChatMessageUtil.send(p, MessageType.SUCCESS, "Crimson Reliquary is ready.");
             }
         }
+        state.ready = true;
+    }
+
+    private List<Location> buildExpeditionPath(Location spawn, TemplateMarkers markers) {
+        List<Location> path = new ArrayList<>();
+        if (spawn != null) {
+            path.add(spawn.clone());
+        }
+        if (!markers.bossMarkers.isEmpty()) {
+            Location boss = markers.bossMarkers.get(0).clone();
+            path.add(boss);
+        }
+        List<Location> targets = new ArrayList<>();
+        targets.addAll(markers.normalMarkers);
+        targets.addAll(markers.miniBossMarkers);
+        Location current = path.size() > 1 ? path.get(1) : spawn;
+        while (!targets.isEmpty()) {
+            Location next = targets.get(0);
+            if (current != null) {
+                double best = current.distanceSquared(next);
+                for (Location candidate : targets) {
+                    double dist = current.distanceSquared(candidate);
+                    if (dist < best) {
+                        best = dist;
+                        next = candidate;
+                    }
+                }
+            }
+            targets.remove(next);
+            Location nextPoint = next.clone();
+            path.add(nextPoint);
+            current = nextPoint;
+        }
+        return path;
     }
 
     private ItemStack createFlowerItem(FlowerType type) {
