@@ -28,14 +28,14 @@ public class QuestPathTask extends BukkitRunnable {
     private static final double CLOSE_DISTANCE = 8.0;
     private static final double REPATH_PLAYER_DISTANCE = 8.0;
     private static final double REPATH_TARGET_DISTANCE = 4.0;
-    private static final long REPATH_INTERVAL_MS = 4000L;
+    private static final long REPATH_INTERVAL_MS = 6000L;
     private static final double INTERPOLATION_STEP = 0.25;
-    private static final int MAX_PARTICLE_POINTS = 1000;
+    private static final int MAX_PARTICLE_POINTS = 700;
     private static final int SKIP_POINTS = 0;
     private static final int SMOOTH_SAMPLES_PER_SEGMENT = 10;
     private static final int CHAIKIN_ITERATIONS = 2;
     private static final int PARTICLE_COUNT = 1;
-    private static final double PARTICLE_SPREAD = 0.0;
+    private static final double PARTICLE_SPREAD = 0.1;
     private static final double PARTICLE_HEIGHT_OFFSET = 1.0;
     private static final int PARTICLE_STRIDE = 2;
     private static final Particle.DustOptions PATH_DUST = new Particle.DustOptions(
