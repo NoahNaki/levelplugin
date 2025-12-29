@@ -103,8 +103,8 @@ public class PathFollower implements Listener {
         npc.getNavigator().cancelNavigation();
 
         var params = npc.getNavigator().getDefaultParameters();
-        params.baseSpeed(params.baseSpeed() * profile.speedMultiplier() * NAV_SPEED_BOOST);
-        params.range(resolveRange(points.get(0), points));
+        params.baseSpeed((float) (params.baseSpeed() * profile.speedMultiplier() * NAV_SPEED_BOOST));
+        params.range((float) resolveRange(points.get(0), points));
         params.stuckAction(null);
         profile.equip(npc);
         if (npc.getEntity() instanceof LivingEntity living) {
@@ -278,13 +278,17 @@ public class PathFollower implements Listener {
             applyPlayerStats(player, gearScore);
             return;
         }
-        org.bukkit.attribute.AttributeInstance attack = living.getAttribute(org.bukkit.attribute.Attribute.GENERIC_ATTACK_DAMAGE);
+        org.bukkit.attribute.Attribute attackAttr = me.nakilex.levelplugin.utils.AttributeUtil
+                .resolve("GENERIC_ATTACK_DAMAGE", "ATTACK_DAMAGE");
+        org.bukkit.attribute.AttributeInstance attack = attackAttr == null ? null : living.getAttribute(attackAttr);
         if (attack != null) {
             double base = Math.max(1.0, attack.getBaseValue());
             double bonus = Math.max(0.0, gearScore / 75.0);
             attack.setBaseValue(base + bonus);
         }
-        org.bukkit.attribute.AttributeInstance health = living.getAttribute(org.bukkit.attribute.Attribute.GENERIC_MAX_HEALTH);
+        org.bukkit.attribute.Attribute healthAttr = me.nakilex.levelplugin.utils.AttributeUtil
+                .resolve("GENERIC_MAX_HEALTH", "MAX_HEALTH");
+        org.bukkit.attribute.AttributeInstance health = healthAttr == null ? null : living.getAttribute(healthAttr);
         if (health != null) {
             double base = Math.max(1.0, health.getBaseValue());
             double bonus = Math.max(0.0, gearScore / 15.0);
@@ -309,7 +313,9 @@ public class PathFollower implements Listener {
     }
 
     private void applyMovementSpeed(org.bukkit.entity.Player player, int gearScore) {
-        org.bukkit.attribute.AttributeInstance speed = player.getAttribute(org.bukkit.attribute.Attribute.GENERIC_MOVEMENT_SPEED);
+        org.bukkit.attribute.Attribute speedAttr = me.nakilex.levelplugin.utils.AttributeUtil
+                .resolve("GENERIC_MOVEMENT_SPEED", "MOVEMENT_SPEED");
+        org.bukkit.attribute.AttributeInstance speed = speedAttr == null ? null : player.getAttribute(speedAttr);
         if (speed == null) {
             return;
         }
