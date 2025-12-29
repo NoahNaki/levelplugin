@@ -137,14 +137,16 @@ public class QuestGUI {
             return false;
         });
 
-        Comparator<Quest> comp = switch (sort) {
-            case 1 -> Comparator.comparing(q -> questManager.getQuestState(player, q).ordinal());
-            case 2 -> Comparator.comparing(Quest::getLevelRequirement)
+        Comparator<Quest> comp;
+        switch (sort) {
+            case 1 -> comp = Comparator.comparingInt((Quest q) -> questManager.getQuestState(player, q).ordinal());
+            case 2 -> comp = Comparator.comparingInt(Quest::getLevelRequirement)
                     .thenComparing(Quest::getName, String.CASE_INSENSITIVE_ORDER);
-            case 3 -> Comparator.comparingInt(q -> STORY_ORDER_INDEX.getOrDefault(q.getId(), Integer.MAX_VALUE))
+            case 3 -> comp = Comparator.comparingInt(
+                            (Quest q) -> STORY_ORDER_INDEX.getOrDefault(q.getId(), Integer.MAX_VALUE))
                     .thenComparing(Quest::getName, String.CASE_INSENSITIVE_ORDER);
-            default -> Comparator.comparing(Quest::getName, String.CASE_INSENSITIVE_ORDER);
-        };
+            default -> comp = Comparator.comparing(Quest::getName, String.CASE_INSENSITIVE_ORDER);
+        }
         list.sort(comp);
 
         int start = page * ITEMS_PER_PAGE;
