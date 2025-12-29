@@ -33,6 +33,7 @@ public class PathFollower implements Listener {
     private boolean completed;
     private int tickCount;
     private static final int DEBUG_TICK_INTERVAL = 40;
+    private static final double ARRIVAL_DISTANCE_SQ = 4.0;
 
     public PathFollower(Plugin plugin,
                         NPC npc,
@@ -105,7 +106,7 @@ public class PathFollower implements Listener {
         ensureChunkLoaded(points.get(1));
         npc.getNavigator().setTarget(points.get(1));
         plugin.getLogger().info("[PathfindingDebug] Moving to point 1");
-        task = Bukkit.getScheduler().runTaskTimer(plugin, this::tick, 10L, 10L);
+        task = Bukkit.getScheduler().runTaskTimer(plugin, this::tick, 5L, 5L);
     }
 
     public void stop() {
@@ -160,7 +161,7 @@ public class PathFollower implements Listener {
             return;
         }
         ensureChunkLoaded(current);
-        if (npc.getEntity().getLocation().distanceSquared(current) < 1) {
+        if (npc.getEntity().getLocation().distanceSquared(current) < ARRIVAL_DISTANCE_SQ) {
             if (++index >= points.size()) {
                 completePath();
                 return;
