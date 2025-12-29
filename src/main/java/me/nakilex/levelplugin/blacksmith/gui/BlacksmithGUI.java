@@ -14,6 +14,7 @@ import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
 import me.nakilex.levelplugin.guild.GuildManager;
 import me.nakilex.levelplugin.guild.TownPerk;
 import me.nakilex.levelplugin.guild.TownPerkManager;
+import me.nakilex.levelplugin.utils.GuiUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -276,7 +277,7 @@ public class BlacksmithGUI implements Listener {
         String title = event.getView().getTitle();
 
 // Allow placing item/placeholder in reroll slots
-        if (title.equals(GUI_TITLE_REROLL) && (rawSlot == 11 || rawSlot == 15)) {
+        if (GuiUtil.titleMatches(title, GUI_TITLE_REROLL) && (rawSlot == 11 || rawSlot == 15)) {
             event.setCancelled(false);
             Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
                 Inventory updatedGui = openInventories.get(player.getUniqueId());
@@ -285,7 +286,7 @@ public class BlacksmithGUI implements Listener {
             return;
         }
 
-        if (title.equals(GUI_TITLE_REROLL) && rawSlot == 13) {
+        if (GuiUtil.titleMatches(title, GUI_TITLE_REROLL) && rawSlot == 13) {
             if (event.getCursor() == null || event.getCursor().getType().isAir()) {
                 event.setCancelled(false); // allow taking result item
             } else {
@@ -295,7 +296,7 @@ public class BlacksmithGUI implements Listener {
         }
 
 // Allow placing into slot 13 only manually on upgrade/repair
-        if (event.getRawSlot() == 13 && !title.equals(GUI_TITLE_REROLL)) {
+        if (event.getRawSlot() == 13 && !GuiUtil.titleMatches(title, GUI_TITLE_REROLL)) {
             event.setCancelled(false);
             Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
                 Inventory updatedGui = openInventories.get(player.getUniqueId());
@@ -311,14 +312,14 @@ public class BlacksmithGUI implements Listener {
             event.getAction() == InventoryAction.PLACE_ONE ||
             event.getAction() == InventoryAction.SWAP_WITH_CURSOR ||
             event.getAction() == InventoryAction.HOTBAR_SWAP) {
-            if (title.equals(GUI_TITLE_REROLL) && (event.getSlot() == 11 || event.getSlot() == 15)) {
+            if (GuiUtil.titleMatches(title, GUI_TITLE_REROLL) && (event.getSlot() == 11 || event.getSlot() == 15)) {
                 event.setCancelled(false);
                 Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
                     Inventory updatedGui = openInventories.get(player.getUniqueId());
                     if (updatedGui != null) updateActionButton(player, updatedGui, title);
                 }, 1L);
                 return;
-            } else if (!title.equals(GUI_TITLE_REROLL) && event.getSlot() == 13) {
+            } else if (!GuiUtil.titleMatches(title, GUI_TITLE_REROLL) && event.getSlot() == 13) {
                 event.setCancelled(false);
                 return;
             }
@@ -339,10 +340,10 @@ public class BlacksmithGUI implements Listener {
 
 
         if (rawSlot == 9 || rawSlot == 17) {
-            ItemStack carriedItem = title.equals(GUI_TITLE_REROLL) ? gui.getItem(11) : gui.getItem(13);
-            ItemStack placeholder = title.equals(GUI_TITLE_REROLL) ? gui.getItem(15) : null;
+            ItemStack carriedItem = GuiUtil.titleMatches(title, GUI_TITLE_REROLL) ? gui.getItem(11) : gui.getItem(13);
+            ItemStack placeholder = GuiUtil.titleMatches(title, GUI_TITLE_REROLL) ? gui.getItem(15) : null;
             String newTitle;
-            if (title.equals(GUI_TITLE_UPGRADE)) {
+            if (GuiUtil.titleMatches(title, GUI_TITLE_UPGRADE)) {
                 if (rawSlot == 9) {
                     newTitle = GUI_TITLE_REROLL;
                     openRerollGUI(player);
@@ -350,7 +351,7 @@ public class BlacksmithGUI implements Listener {
                     newTitle = GUI_TITLE_REPAIR;
                     openRepairGUI(player);
                 }
-            } else if (title.equals(GUI_TITLE_REPAIR)) {
+            } else if (GuiUtil.titleMatches(title, GUI_TITLE_REPAIR)) {
                 if (rawSlot == 9) {
                     newTitle = GUI_TITLE_UPGRADE;
                     openUpgradeGUI(player);
@@ -371,7 +372,7 @@ public class BlacksmithGUI implements Listener {
             Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
                 Inventory newGui = openInventories.get(player.getUniqueId());
                 if (newGui != null) {
-                    if (newTitle.equals(GUI_TITLE_REROLL)) {
+                    if (GuiUtil.titleMatches(newTitle, GUI_TITLE_REROLL)) {
                         newGui.setItem(11, carriedItem);
                         newGui.setItem(15, placeholder);
                     } else {
@@ -384,19 +385,19 @@ public class BlacksmithGUI implements Listener {
         }
 
 
-        if (rawSlot == 0 && title.equals(GUI_TITLE_REPAIR)) {
+        if (rawSlot == 0 && GuiUtil.titleMatches(title, GUI_TITLE_REPAIR)) {
             handleRepairAllClick(player);
             gui.setItem(0, createRepairAllButton(calculateTotalRepairCost(player)));
             return;
         }
 
         if (rawSlot == 22) {
-            ItemStack item = title.equals(GUI_TITLE_REROLL) ? gui.getItem(11) : gui.getItem(13);
+            ItemStack item = GuiUtil.titleMatches(title, GUI_TITLE_REROLL) ? gui.getItem(11) : gui.getItem(13);
             if (item == null || item.getType().isAir()) return;
             CustomItem ci = itemManager.getCustomItemFromItemStack(item);
             if (ci == null) return;
 
-            if (title.equals(GUI_TITLE_UPGRADE)) {
+            if (GuiUtil.titleMatches(title, GUI_TITLE_UPGRADE)) {
                 if (ci.getUpgradeLevel() >= 5) {
                     send(player, MessageType.ERROR, "Item has reached the maximum upgrade level.");
                     return;
@@ -430,7 +431,7 @@ public class BlacksmithGUI implements Listener {
                             nextCost,
                             upgradeManager.getSuccessChance(ci)));
                 }
-            } else if (title.equals(GUI_TITLE_REPAIR)) {
+            } else if (GuiUtil.titleMatches(title, GUI_TITLE_REPAIR)) {
                 int cost = TownPerkManager.getInstance().applyDiscount(
                         GuildManager.getInstance().getGuild(player.getUniqueId()),
                         TownPerk.BLACKSMITH_DISCOUNT,
@@ -448,7 +449,7 @@ public class BlacksmithGUI implements Listener {
                     Main.getInstance().getQuestManager().handleRepair(player, String.valueOf(ci.getId()));
                 }
                 gui.setItem(22, createRepairButton(0));
-            } else if (title.equals(GUI_TITLE_REROLL)) {
+            } else if (GuiUtil.titleMatches(title, GUI_TITLE_REROLL)) {
                 ItemStack placeholder = gui.getItem(15);
                 if (placeholder == null || placeholder.getType().isAir()) {
                     send(player, MessageType.WARNING, "Place a stat placeholder on the right.");
@@ -530,12 +531,12 @@ public class BlacksmithGUI implements Listener {
     }
 
     private void updateActionButton(Player player, Inventory gui, String title) {
-        ItemStack current = title.equals(GUI_TITLE_REROLL) ? gui.getItem(11) : gui.getItem(13);
+        ItemStack current = GuiUtil.titleMatches(title, GUI_TITLE_REROLL) ? gui.getItem(11) : gui.getItem(13);
         if (current == null || current.getType().isAir()) {
-            if (title.equals(GUI_TITLE_REROLL)) {
+            if (GuiUtil.titleMatches(title, GUI_TITLE_REROLL)) {
                 gui.setItem(22, createRerollButton(0));
             } else {
-                gui.setItem(22, title.equals(GUI_TITLE_UPGRADE)
+                gui.setItem(22, GuiUtil.titleMatches(title, GUI_TITLE_UPGRADE)
                     ? createUpgradeButton(0, 0)
                     : createRepairButton(0));
             }
@@ -544,17 +545,17 @@ public class BlacksmithGUI implements Listener {
 
         CustomItem ci = itemManager.getCustomItemFromItemStack(current);
         if (ci == null) {
-            if (title.equals(GUI_TITLE_REROLL)) {
+            if (GuiUtil.titleMatches(title, GUI_TITLE_REROLL)) {
                 gui.setItem(22, createRerollButton(0));
             } else {
-                gui.setItem(22, title.equals(GUI_TITLE_UPGRADE)
+                gui.setItem(22, GuiUtil.titleMatches(title, GUI_TITLE_UPGRADE)
                     ? createUpgradeButton(0, 0)
                     : createRepairButton(0));
             }
             return;
         }
 
-        if (title.equals(GUI_TITLE_UPGRADE)) {
+        if (GuiUtil.titleMatches(title, GUI_TITLE_UPGRADE)) {
             if (ci.getUpgradeLevel() >= 5) {
                 gui.setItem(22, createUpgradeButton(-1, 0));
             } else {
@@ -564,20 +565,20 @@ public class BlacksmithGUI implements Listener {
                         upgradeManager.getUpgradeCost(ci));
                 gui.setItem(22, createUpgradeButton(cost, upgradeManager.getSuccessChance(ci)));
             }
-        } else if (title.equals(GUI_TITLE_REPAIR)) {
+        } else if (GuiUtil.titleMatches(title, GUI_TITLE_REPAIR)) {
             int cost = TownPerkManager.getInstance().applyDiscount(
                     GuildManager.getInstance().getGuild(player.getUniqueId()),
                     TownPerk.BLACKSMITH_DISCOUNT,
                     repairManager.getRepairCost(ci));
             gui.setItem(22, createRepairButton(cost));
-        } else if (title.equals(GUI_TITLE_REROLL)) {
+        } else if (GuiUtil.titleMatches(title, GUI_TITLE_REROLL)) {
             int cost = TownPerkManager.getInstance().applyDiscount(
                     GuildManager.getInstance().getGuild(player.getUniqueId()),
                     TownPerk.BLACKSMITH_DISCOUNT,
                     rerollManager.getRerollCost(ci));
             gui.setItem(22, createRerollButton(cost));
         } else {
-            gui.setItem(22, title.equals(GUI_TITLE_UPGRADE)
+            gui.setItem(22, GuiUtil.titleMatches(title, GUI_TITLE_UPGRADE)
                 ? createUpgradeButton(0,0)
                 : createRepairButton(0));
         }
@@ -615,7 +616,7 @@ public class BlacksmithGUI implements Listener {
         Inventory gui = openInventories.get(player.getUniqueId());
         if (gui == null || !event.getInventory().equals(gui)) return;
         String title = event.getView().getTitle();
-        if (title.equals(GUI_TITLE_REROLL)) {
+        if (GuiUtil.titleMatches(title, GUI_TITLE_REROLL)) {
             ItemStack left = gui.getItem(11);
             ItemStack result = gui.getItem(13);
             ItemStack placeholder = gui.getItem(15);

@@ -1,5 +1,6 @@
 package me.nakilex.levelplugin.quests.managers;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.FluidCollisionMode;
@@ -9,6 +10,7 @@ import org.bukkit.Material;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.Listener;
 import org.bukkit.util.RayTraceResult;
@@ -71,9 +73,11 @@ public class BeaconManager implements Listener {
             display = spawnBeacon(target);
             if (display != null) {
                 activeBeacons.put(player.getUniqueId(), display);
+                applyVisibility(player, display);
             }
         } else {
             display.teleport(target);
+            applyVisibility(player, display);
         }
     }
 
@@ -161,6 +165,36 @@ public class BeaconManager implements Listener {
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
         removeBeam(event.getPlayer());
+    }
+
+    @EventHandler
+    public void onJoin(PlayerJoinEvent event) {
+        Player viewer = event.getPlayer();
+        for (Map.Entry<UUID, ItemDisplay> entry : activeBeacons.entrySet()) {
+            ItemDisplay display = entry.getValue();
+            if (display == null || display.isDead()) {
+                continue;
+            }
+            if (entry.getKey().equals(viewer.getUniqueId())) {
+                viewer.showEntity(Main.getInstance(), display);
+            } else {
+                viewer.hideEntity(Main.getInstance(), display);
+            }
+        }
+    }
+
+    private void applyVisibility(Player owner, ItemDisplay display) {
+        if (owner == null || display == null) {
+            return;
+        }
+        Main plugin = Main.getInstance();
+        owner.showEntity(plugin, display);
+        for (Player other : Bukkit.getOnlinePlayers()) {
+            if (other.getUniqueId().equals(owner.getUniqueId())) {
+                continue;
+            }
+            other.hideEntity(plugin, display);
+        }
     }
 
     private void debug(Player player, String message) {

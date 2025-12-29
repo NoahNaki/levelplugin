@@ -1,7 +1,9 @@
 package me.nakilex.levelplugin.player.classes.essence.listener;
 
+import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.classes.essence.ClassEssence;
+import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -53,14 +55,20 @@ public class ClassEssenceSwapListener implements Listener {
             return;
         }
 
+        PlayerClass previousClass = null;
         if (currentIdx >= 0) {
             ItemStack equipped = ps.essenceSlots[currentIdx];
             if (equipped != null && ClassEssence.isEssence(equipped)) {
+                previousClass = ClassEssence.getClass(equipped);
                 ClassEssenceEquipHelper.unequip(player, ps, currentIdx, equipped);
             }
         }
 
         ClassEssenceEquipHelper.equip(player, ps, nextIdx, nextEssence, null);
+        PlayerClass nextClass = ClassEssence.getClass(nextEssence);
+        if (previousClass != null && nextClass != null && previousClass != nextClass) {
+            Main.getInstance().getQuestManager().handleEssenceSwap(player);
+        }
     }
 
     private int findNext(StatsManager.PlayerStats ps, int currentIdx) {
@@ -75,4 +83,3 @@ public class ClassEssenceSwapListener implements Listener {
         return -1;
     }
 }
-
