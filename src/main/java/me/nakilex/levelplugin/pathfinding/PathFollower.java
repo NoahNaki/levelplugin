@@ -35,6 +35,7 @@ public class PathFollower implements Listener {
     private int tickCount;
     private static final int DEBUG_TICK_INTERVAL = 40;
     private static final double ARRIVAL_DISTANCE_SQ = 4.0;
+    private static final double NAV_SPEED_BOOST = 1.75;
 
     public PathFollower(Plugin plugin,
                         NPC npc,
@@ -102,7 +103,7 @@ public class PathFollower implements Listener {
         npc.getNavigator().cancelNavigation();
 
         var params = npc.getNavigator().getDefaultParameters();
-        params.baseSpeed(params.baseSpeed() * profile.speedMultiplier());
+        params.baseSpeed(params.baseSpeed() * profile.speedMultiplier() * NAV_SPEED_BOOST);
         params.range(resolveRange(points.get(0), points));
         params.stuckAction(null);
         profile.equip(npc);
@@ -294,6 +295,7 @@ public class PathFollower implements Listener {
 
     private void applyPlayerStats(org.bukkit.entity.Player player, int gearScore) {
         player.setGameMode(org.bukkit.GameMode.SURVIVAL);
+        applyMovementSpeed(player, gearScore);
         me.nakilex.levelplugin.player.attributes.managers.StatsManager statsManager =
                 me.nakilex.levelplugin.player.attributes.managers.StatsManager.getInstance();
         statsManager.resetPlayer(player.getUniqueId());
@@ -304,6 +306,16 @@ public class PathFollower implements Listener {
         statsManager.setBaseStat(stats, me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType.VIT, vit);
         statsManager.setBaseStat(stats, me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType.STR, str);
         statsManager.recalcDerivedStats(player);
+    }
+
+    private void applyMovementSpeed(org.bukkit.entity.Player player, int gearScore) {
+        org.bukkit.attribute.AttributeInstance speed = player.getAttribute(org.bukkit.attribute.Attribute.GENERIC_MOVEMENT_SPEED);
+        if (speed == null) {
+            return;
+        }
+        double base = 0.2;
+        double bonus = Math.min(0.2, gearScore / 5000.0);
+        speed.setBaseValue(base + bonus);
     }
 
     private double resolveRange(Location start, List<Location> points) {
