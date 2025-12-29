@@ -34,7 +34,7 @@ public class EssenceWeaverLessonNpcHandler extends AbstractQuestNpcHandler {
         PlayerQuestProgress progress = questManager.getProgress(player.getUniqueId(), quest.getId());
         boolean introDone = progress != null && progress.getProgress(0) >= 1;
         boolean upgradeTried = progress != null && progress.getProgress(1) >= 1;
-        boolean returned = progress != null && progress.getProgress(2) >= 1;
+        boolean swapped = progress != null && progress.getProgress(2) >= 1;
 
         if (!introDone && progress != null) {
             dialogManager.startDialog(player,
@@ -46,7 +46,7 @@ public class EssenceWeaverLessonNpcHandler extends AbstractQuestNpcHandler {
             return true;
         }
 
-        if (returned || questManager.hasCompleted(player.getUniqueId(), EssenceWeaversLessonQuest.ID)) {
+        if (questManager.hasCompleted(player.getUniqueId(), EssenceWeaversLessonQuest.ID)) {
             player.performCommand("essenceupgrade");
             return true;
         }
@@ -54,14 +54,17 @@ public class EssenceWeaverLessonNpcHandler extends AbstractQuestNpcHandler {
         if (!upgradeTried) {
             player.performCommand("essenceupgrade");
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
-                    "Use the essence altar to invest a duplicate or attempt a star upgrade, then speak with the Essence Weaver again. Press F to swap essences mid-fight.");
+                    "Use the essence altar to invest a duplicate or attempt a star upgrade. Then press F to swap to another essence.");
             return true;
         }
 
-        dialogManager.startDialog(player,
-                EssenceWeaversLessonQuest.getReturnDialog(),
-                npc,
-                () -> questManager.handleTalk(player, "npc_essence_weaver_return"));
+        if (!swapped) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                    "Press F to swap to another essence and complete your training.");
+            return true;
+        }
+
+        player.performCommand("essenceupgrade");
         return true;
     }
 }

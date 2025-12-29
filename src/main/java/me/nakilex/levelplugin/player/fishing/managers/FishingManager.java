@@ -26,6 +26,7 @@ public class FishingManager {
     private final HashMap<UUID, BossBar> xpBars       = new HashMap<>();
     private final Map<UUID, org.bukkit.scheduler.BukkitTask> hideTasks = new HashMap<>();
     private final Map<UUID, Boolean> activeBars = new HashMap<>();
+    private final Map<UUID, java.util.Set<String>> discoveredFish = new HashMap<>();
 
     private final int MAX_LEVEL = 100;
     private final int XP_PER_LEVEL_MULTIPLIER = 75;
@@ -43,6 +44,7 @@ public class FishingManager {
         UUID uuid = player.getUniqueId();
         fishingLevels.putIfAbsent(uuid, 1);
         fishingXp.putIfAbsent(uuid, 0);
+        discoveredFish.putIfAbsent(uuid, new java.util.HashSet<>());
         updateBossBar(player);
     }
 
@@ -191,10 +193,47 @@ public class FishingManager {
         fishingXp.put(uuid, 0);
     }
 
+    public boolean discoverFish(UUID uuid, String fishId) {
+        if (uuid == null || fishId == null || fishId.isBlank()) {
+            return false;
+        }
+        java.util.Set<String> discovered = discoveredFish.computeIfAbsent(uuid, k -> new java.util.HashSet<>());
+        boolean added = discovered.add(fishId.toLowerCase());
+        if (added && plugin.getPlayerConfig() != null) {
+            plugin.getPlayerConfig().savePlayerData(uuid);
+        }
+        return added;
+    }
+
+    public boolean isFishDiscovered(UUID uuid, String fishId) {
+        if (uuid == null || fishId == null) {
+            return false;
+        }
+        return discoveredFish.getOrDefault(uuid, java.util.Collections.emptySet())
+                .contains(fishId.toLowerCase());
+    }
+
+    public java.util.Set<String> getDiscoveredFish(UUID uuid) {
+        return new java.util.HashSet<>(discoveredFish.getOrDefault(uuid, java.util.Collections.emptySet()));
+    }
+
+    public void setDiscoveredFish(UUID uuid, java.util.Collection<String> fishIds) {
+        java.util.Set<String> set = new java.util.HashSet<>();
+        if (fishIds != null) {
+            for (String id : fishIds) {
+                if (id != null && !id.isBlank()) {
+                    set.add(id.toLowerCase());
+                }
+            }
+        }
+        discoveredFish.put(uuid, set);
+    }
+
     /** Remove all fishing progress for a player. */
     public void clearPlayerData(UUID uuid) {
         fishingLevels.remove(uuid);
         fishingXp.remove(uuid);
+        discoveredFish.remove(uuid);
         if (plugin.getPlayerConfig() != null) {
             String path = "players." + uuid + ".fishing";
             plugin.getPlayerConfig().getConfig().set(path, null);

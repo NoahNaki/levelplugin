@@ -25,6 +25,9 @@ public class DoubleJumpListener implements Listener {
     private boolean canDoubleJump(PlayerClass pc) {
         return pc == PlayerClass.ARCHER
             || pc == PlayerClass.ROGUE
+            || pc == PlayerClass.AWAKARCHER
+            || pc == PlayerClass.AWAKROGUE
+            || pc == PlayerClass.AWAKWARRIOR
             || pc == PlayerClass.DEADEYE
             || pc == PlayerClass.PHOENIXHUNTER;
     }

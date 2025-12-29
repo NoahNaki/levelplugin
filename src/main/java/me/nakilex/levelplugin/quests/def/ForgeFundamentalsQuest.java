@@ -7,6 +7,7 @@ import me.nakilex.levelplugin.quests.data.QuestObjective;
 import me.nakilex.levelplugin.quests.data.QuestObjectiveType;
 import me.nakilex.levelplugin.quests.data.QuestRewardCompat;
 import me.nakilex.levelplugin.quests.data.QuestScript;
+import me.nakilex.levelplugin.quests.def.AbandonedCastleQuest;
 import org.bukkit.entity.Player;
 
 import java.util.List;
@@ -37,7 +38,7 @@ public class ForgeFundamentalsQuest extends Quest implements QuestScript {
                 "Learn how to repair, reroll, or upgrade gear at the blacksmith.",
                 createObjectives(),
                 17,
-                List.of(),
+                List.of(AbandonedCastleQuest.ID),
                 null,
                 QuestRewardCompat.create(2100, 1200, 0, List.of()),
                 NPC_ID,

@@ -125,7 +125,7 @@ public class DungeonExpeditionManager implements Listener {
                 new Particle.DustOptions(Color.fromRGB(77, 197, 255), 1.2f),
                 new Particle.DustOptions(Color.fromRGB(231, 120, 255), 1.2f),
                 new Particle.DustOptions(Color.fromRGB(117, 255, 153), 1.2f),
-                new Particle.DustOptions(Color.fromRGB(255, 198, 92), 1.2f)
+                new Particle.DustOptions(Color.fromRGB(117, 255, 153), 1.2f)
         );
         Location start = route.spawn().clone();
         Location target = route.path().size() > 1 ? route.path().get(1) : route.spawn();

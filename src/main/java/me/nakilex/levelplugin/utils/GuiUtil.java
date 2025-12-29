@@ -11,10 +11,12 @@ import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 
 /** Utility helpers for basic GUI elements. */
 public final class GuiUtil {
     private GuiUtil() {}
+    private static final Pattern GLYPH_PATTERN = Pattern.compile("<glyph:[^>]+>");
 
     /**
      * Standard 28-slot layout used by paginated menus. The pattern spans
@@ -160,5 +162,19 @@ public final class GuiUtil {
     /** Convenience wrapper using green/white colors and '-' characters. */
     public static String createProgressBar(double progress, int length) {
         return createProgressBar(progress, length, ChatColor.GREEN, ChatColor.WHITE, "-");
+    }
+
+    /**
+     * Normalize inventory titles by stripping color codes and glyph placeholders.
+     */
+    public static String normalizeTitle(String title) {
+        if (title == null) return "";
+        String stripped = ChatColor.stripColor(title);
+        return GLYPH_PATTERN.matcher(stripped).replaceAll("").trim();
+    }
+
+    /** Compare titles after normalization to avoid glyph/color mismatches. */
+    public static boolean titleMatches(String title, String expected) {
+        return normalizeTitle(title).equalsIgnoreCase(normalizeTitle(expected));
     }
 }

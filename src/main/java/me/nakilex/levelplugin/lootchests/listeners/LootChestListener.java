@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.lootchests.listeners;
 
 import com.nexomc.nexo.api.events.furniture.NexoFurnitureInteractEvent;
 import com.nexomc.nexo.mechanics.furniture.FurnitureMechanic;
+import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
 import me.nakilex.levelplugin.player.battlepass.BattlePassManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
@@ -45,6 +46,7 @@ public class LootChestListener implements Listener {
 
         // 4) Identify player
         Player player = event.getPlayer();
+        Main.getInstance().getDialogManager().recordDialogCooldown(player);
 
         // 5) Build the custom loot GUI
         Inventory lootGui = lootChestManager.buildLootInventory(chestId, player);

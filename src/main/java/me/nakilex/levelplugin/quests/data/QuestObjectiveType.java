@@ -13,6 +13,7 @@ public enum QuestObjectiveType {
     TALK,
     EXPLORE,
     SELECT_CLASS,
+    ESSENCE_SWAP,
     ENCHANT,
     DISCOVER,
     CONSUME_POTION,

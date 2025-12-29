@@ -530,6 +530,9 @@ public class SpellGUI {
 
         lore.add(ChatColor.GRAY + "Usage: " + ChatColor.YELLOW + usage);
         lore.add(ChatColor.GRAY + "Required Rank: " + ChatColor.YELLOW + spell.getLevelReq());
+        if (spell.getBaseDamage() > 0) {
+            lore.add(ChatColor.GRAY + "Damage: " + ChatColor.RED + formatDamage(spell.getBaseDamage()));
+        }
 
         if (unlocked) {
             lore.add(ChatColor.DARK_GRAY + "" + ChatColor.STRIKETHROUGH + "--------------------");
@@ -542,5 +545,12 @@ public class SpellGUI {
         meta.setLore(lore);
         item.setItemMeta(meta);
         return item;
+    }
+
+    private static String formatDamage(double damage) {
+        if (Math.abs(damage - Math.rint(damage)) < 0.0001) {
+            return String.format(Locale.US, "%.0f", damage);
+        }
+        return String.format(Locale.US, "%.1f", damage);
     }
 }

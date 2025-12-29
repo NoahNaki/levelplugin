@@ -43,7 +43,7 @@ public class FishingRewardsGUI implements Listener, CommandExecutor {
         Bukkit.getPluginManager().registerEvents(this, plugin);
     }
 
-    private void open(Player player) {
+    public void open(Player player) {
         Inventory inv = GuiBuilder.create(54, TITLE)
                 .filler(Material.GRAY_STAINED_GLASS_PANE)
                 .fillEmptySlots(false)

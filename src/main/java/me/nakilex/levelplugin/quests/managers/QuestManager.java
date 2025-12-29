@@ -873,6 +873,13 @@ public class QuestManager {
         updateObjective(player, QuestObjectiveType.SELECT_CLASS, "ANY", 1);
     }
 
+    public void handleEssenceSwap(Player player) {
+        if (debug) {
+            plugin.getLogger().info("[QuestDebug] " + player.getName() + " swapped essences");
+        }
+        updateObjective(player, QuestObjectiveType.ESSENCE_SWAP, "ANY", 1);
+    }
+
     public void handleEnchant(Player player) {
         if (debug) {
             plugin.getLogger().info("[QuestDebug] " + player.getName() + " enchanted an item");
@@ -1287,6 +1294,8 @@ public class QuestManager {
                 return "Explore " + obj.getTarget();
             case SELECT_CLASS:
                 return "Select a class";
+            case ESSENCE_SWAP:
+                return "Swap to another essence";
             case ENCHANT:
                 return "Enchant an item";
             case DISCOVER:

@@ -122,6 +122,7 @@ public class FishingListener implements Listener {
             player.getInventory().addItem(fishItem);
         }
         fishingManager.addXP(player, definition.xpReward());
+        fishingManager.discoverFish(player.getUniqueId(), definition.id());
         if (plugin.getQuestManager() != null) {
             plugin.getQuestManager().handleCaptureFish(player, definition.id());
         }

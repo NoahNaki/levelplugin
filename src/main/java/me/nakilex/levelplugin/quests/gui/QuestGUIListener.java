@@ -71,14 +71,21 @@ public class QuestGUIListener implements Listener {
             }
             if (stripped.startsWith("Filter")) {
                 int mode = QuestGUI.filterMap.getOrDefault(player.getUniqueId(), 0);
-                mode = (mode + 1) % 4;
+                mode = event.getClick() == ClickType.RIGHT ? (mode + 3) % 4 : (mode + 1) % 4;
                 QuestGUI.filterMap.put(player.getUniqueId(), mode);
+                QuestGUI.openQuestGUI(player, questManager, QuestGUI.pageMap.getOrDefault(player.getUniqueId(),0));
+                return;
+            }
+            if (stripped.startsWith("Repeat Filter")) {
+                int mode = QuestGUI.repeatFilterMap.getOrDefault(player.getUniqueId(), 0);
+                mode = event.getClick() == ClickType.RIGHT ? (mode + 2) % 3 : (mode + 1) % 3;
+                QuestGUI.repeatFilterMap.put(player.getUniqueId(), mode);
                 QuestGUI.openQuestGUI(player, questManager, QuestGUI.pageMap.getOrDefault(player.getUniqueId(),0));
                 return;
             }
             if (stripped.startsWith("Sort")) {
                 int mode = QuestGUI.sortMap.getOrDefault(player.getUniqueId(), 0);
-                mode = (mode + 1) % 3;
+                mode = event.getClick() == ClickType.RIGHT ? (mode + 3) % 4 : (mode + 1) % 4;
                 QuestGUI.sortMap.put(player.getUniqueId(), mode);
                 QuestGUI.openQuestGUI(player, questManager, QuestGUI.pageMap.getOrDefault(player.getUniqueId(),0));
                 return;

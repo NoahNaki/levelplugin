@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.quests.def;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.quests.def.AbandonedCastleQuest;
+import me.nakilex.levelplugin.quests.def.HawieHermitCrabQuest;
 import me.nakilex.levelplugin.quests.data.BeaconTargets;
 import me.nakilex.levelplugin.quests.data.Quest;
 import me.nakilex.levelplugin.quests.data.QuestObjective;
@@ -24,13 +25,11 @@ public class EssenceWeaversLessonQuest extends Quest implements QuestScript, Que
     public static final int NPC_ID = 3769;
 
     private static final String INTRO_TARGET = "npc_essence_weaver_intro";
-    private static final String RETURN_TARGET = "npc_essence_weaver_return";
-
     private static List<QuestObjective> createObjectives() {
         return List.of(
                 new QuestObjective(QuestObjectiveType.TALK, INTRO_TARGET, 1, BeaconTargets.npc(NPC_ID)),
                 new QuestObjective(QuestObjectiveType.UPGRADE, "essence", 1),
-                new QuestObjective(QuestObjectiveType.TALK, RETURN_TARGET, 1, BeaconTargets.npc(NPC_ID))
+                new QuestObjective(QuestObjectiveType.ESSENCE_SWAP, "ANY", 1)
         );
     }
 
@@ -38,10 +37,10 @@ public class EssenceWeaversLessonQuest extends Quest implements QuestScript, Que
         super(
                 ID,
                 "Essence Weaver's Lesson",
-                "Use the essence altar to invest duplicates or upgrade stars, then learn to swap with F.",
+                "Use the essence altar to invest duplicates, then swap to another class with F.",
                 createObjectives(),
                 6,
-                List.of(),
+                List.of(HawieHermitCrabQuest.ID),
                 null,
                 QuestRewardCompat.create(230, 130, 0, List.of()),
                 null,
@@ -49,7 +48,7 @@ public class EssenceWeaversLessonQuest extends Quest implements QuestScript, Que
                         "Essence Weaver|Power isn't just found, it's coaxed out. Bring me your spare essences.",
                         "<player>|What do I do with them?",
                         "Essence Weaver|Right-click the altar to open my loom, invest a duplicate, or attempt a star upgrade.",
-                        "Essence Weaver|Press F to swap essences mid-fight—after you try, return and I'll share more."
+                        "Essence Weaver|Press F to swap essences mid-fight—feel the shift and the lesson is complete."
                 ),
                 false
         );
@@ -60,15 +59,6 @@ public class EssenceWeaversLessonQuest extends Quest implements QuestScript, Que
             return;
         }
         questManager.registerTalkTarget(INTRO_TARGET, NPC_NAME, NPC_NAME);
-        questManager.registerTalkTarget(RETURN_TARGET, NPC_NAME, NPC_NAME);
-    }
-
-    public static List<String> getReturnDialog() {
-        return List.of(
-                "Essence Weaver|Feel that pull? Essences grow eager when tended.",
-                "<player>|It was riskier than I expected.",
-                "Essence Weaver|Swap with F whenever you need a different edge and keep investing—the stars will align."
-        );
     }
 
     @Override

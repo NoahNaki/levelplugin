@@ -284,10 +284,41 @@ public class FieldBossListener implements Listener {
     }
 
     private ItemStack createAwakenedEssenceDrop() {
-        java.util.List<me.nakilex.levelplugin.player.classes.data.PlayerClass> pool = ClassEssence.getCoreEssencePool();
-        me.nakilex.levelplugin.player.classes.data.PlayerClass awakened = pool.get(ThreadLocalRandom.current()
-                .nextInt(pool.size()));
-        return ClassEssence.generateEssence(awakened, ItemRarity.RARE, 0);
+        ItemRarity rarity = rollFieldBossEssenceRarity();
+        me.nakilex.levelplugin.player.classes.data.PlayerClass awakened = getRandomAwakenedEssenceClass();
+        return ClassEssence.generateEssence(awakened, rarity, 0);
+    }
+
+    private ItemStack createFieldBossEssenceDrop() {
+        ItemRarity rarity = rollFieldBossEssenceRarity();
+        me.nakilex.levelplugin.player.classes.data.PlayerClass clazz = ThreadLocalRandom.current().nextDouble() < 0.10
+                ? getRandomAwakenedEssenceClass()
+                : getRandomBaseEssenceClass();
+        return ClassEssence.generateEssence(clazz, rarity, 0);
+    }
+
+    private me.nakilex.levelplugin.player.classes.data.PlayerClass getRandomAwakenedEssenceClass() {
+        me.nakilex.levelplugin.player.classes.data.PlayerClass[] awakened = {
+                me.nakilex.levelplugin.player.classes.data.PlayerClass.AWAKARCHER,
+                me.nakilex.levelplugin.player.classes.data.PlayerClass.AWAKWARRIOR,
+                me.nakilex.levelplugin.player.classes.data.PlayerClass.AWAKROGUE,
+                me.nakilex.levelplugin.player.classes.data.PlayerClass.AWAKMAGE
+        };
+        return awakened[ThreadLocalRandom.current().nextInt(awakened.length)];
+    }
+
+    private me.nakilex.levelplugin.player.classes.data.PlayerClass getRandomBaseEssenceClass() {
+        me.nakilex.levelplugin.player.classes.data.PlayerClass[] base = {
+                me.nakilex.levelplugin.player.classes.data.PlayerClass.ARCHER,
+                me.nakilex.levelplugin.player.classes.data.PlayerClass.WARRIOR,
+                me.nakilex.levelplugin.player.classes.data.PlayerClass.ROGUE,
+                me.nakilex.levelplugin.player.classes.data.PlayerClass.MAGE
+        };
+        return base[ThreadLocalRandom.current().nextInt(base.length)];
+    }
+
+    private ItemRarity rollFieldBossEssenceRarity() {
+        return ThreadLocalRandom.current().nextDouble() < 0.01 ? ItemRarity.UNCOMMON : ItemRarity.COMMON;
     }
 
     private java.util.function.Supplier<ItemStack> createBossRewardBomb(List<Map<String, Object>> items, String mobId) {
@@ -301,15 +332,7 @@ public class FieldBossListener implements Listener {
             if (chooseGear && gearDrop != null) {
                 return gearDrop.clone();
             }
-
-            if (ThreadLocalRandom.current().nextDouble() < 0.10) {
-                return createAwakenedEssenceDrop();
-            }
-
-            java.util.List<me.nakilex.levelplugin.player.classes.data.PlayerClass> pool = ClassEssence.getCoreEssencePool();
-            me.nakilex.levelplugin.player.classes.data.PlayerClass clazz = pool.get(ThreadLocalRandom.current()
-                    .nextInt(pool.size()));
-            ItemStack rolledEssence = ClassEssence.generateEssence(clazz);
+            ItemStack rolledEssence = createFieldBossEssenceDrop();
             if (rolledEssence != null) return rolledEssence;
 
             return gearDrop != null ? gearDrop.clone() : createAwakenedEssenceDrop();
