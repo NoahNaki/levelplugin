@@ -78,6 +78,7 @@ public class ClassSpellListener implements Listener {
     private static final String ATTACK_COOLDOWN_KEY = "basic_attack";
     private static final int SWING_LOCK_AMPLIFIER = 4;
     private static final int MAX_HASTE_AMPLIFIER = 3;
+    private static final int MIN_SWING_TICKS = 6;
     static {
         for (PlayerClass pc : PlayerClass.values()) {
             if (ClassUtil.isArcherFamily(pc)) {
@@ -374,10 +375,12 @@ public class ClassSpellListener implements Listener {
         if (player.getAttackCooldown() < 1.0) return false;
         StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
         double cooldown = 1.0 / ps.attackSpeed;
+        double minSwingSeconds = MIN_SWING_TICKS / 20.0;
         Double min = BASIC_ATTACK_MIN_COOLDOWNS.get(pc);
         if (min != null) {
             cooldown = Math.max(cooldown, min);
         }
+        cooldown = Math.max(cooldown, minSwingSeconds);
         CooldownManager cd = CooldownManager.getInstance();
         UUID id = player.getUniqueId();
         if (cd.isOnCooldown(id, ATTACK_COOLDOWN_KEY)) {
