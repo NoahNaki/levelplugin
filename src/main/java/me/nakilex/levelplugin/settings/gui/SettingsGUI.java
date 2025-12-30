@@ -161,6 +161,15 @@ public class SettingsGUI implements Listener {
             ));
         }
 
+        // Quest tracking particles toggle
+        if (filter == Filter.ALL || filter == Filter.VISUAL) {
+            gui.setItem(30, GuiUtil.createToggleItem(
+                    playerSettings.isQuestTrackingParticlesEnabled(),
+                    "§bQuest Path Particles",
+                    "§eClick to toggle"
+            ));
+        }
+
         gui.setItem(FILTER_SLOT, createFilterItem(filter));
 
         // Filler border
@@ -333,6 +342,10 @@ public class SettingsGUI implements Listener {
             if (boosterManager != null) {
                 boosterManager.refreshBossBar(player);
             }
+        } else if (slot == 30) {
+            settings.toggleQuestTrackingParticles();
+            updateSettingItem(event.getInventory(), 30,
+                settings.isQuestTrackingParticlesEnabled(), "§bQuest Path Particles", "");
         }
     }
 }

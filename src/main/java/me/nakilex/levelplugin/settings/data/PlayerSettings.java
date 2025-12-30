@@ -17,6 +17,7 @@ public class PlayerSettings {
     private boolean skillPointReminder = true;
     private boolean fullInventoryTitle = true;
     private boolean boosterBossBarEnabled = true;
+    private boolean questTrackingParticles = true;
 
     public boolean isDmgChatEnabled() {
         return dmgChat;
@@ -125,5 +126,13 @@ public class PlayerSettings {
 
     public void toggleBoosterBossBar() {
         boosterBossBarEnabled = !boosterBossBarEnabled;
+    }
+
+    public boolean isQuestTrackingParticlesEnabled() {
+        return questTrackingParticles;
+    }
+
+    public void toggleQuestTrackingParticles() {
+        questTrackingParticles = !questTrackingParticles;
     }
 }

@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.ChatColor;
+import org.bukkit.Bukkit;
 import org.bukkit.conversations.ConversationContext;
 import org.bukkit.conversations.Prompt;
 import org.bukkit.conversations.StringPrompt;
@@ -33,21 +34,26 @@ public class DungeonRatingPrompt extends StringPrompt {
             return this;
         }
         double rating = Double.parseDouble(input);
-        Main.getInstance().getDungeonRatingManager().addRating(dungeonKey, rating);
-        Main.getInstance().getLevelManager().addXP(player, 100);
+        Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
+            if (!player.isOnline()) {
+                return;
+            }
+            Main.getInstance().getDungeonRatingManager().addRating(dungeonKey, rating);
+            Main.getInstance().getLevelManager().addXP(player, 100);
 
-        me.nakilex.levelplugin.dungeon.DungeonManager dm = Main.getInstance().getDungeonManager();
-        String displayName = dm.getDisplayName(dungeonKey);
-        String success = ChatMessageUtil.format(ChatMessageUtil.MessageType.SUCCESS,
-                "Submitted a " + ChatColor.WHITE + rating + ChatColor.GREEN + " for " + ChatColor.WHITE + displayName + ChatColor.GREEN + " and earned a reward!");
-        player.sendMessage(success);
-        String expLabel = ChatFormatter.experienceLabel();
-        String expColor = ChatFormatter.experienceColor();
-        ChatFormatter.sendBoxedCenteredMessages(player, "§a",
-                "§aThank you for your rating!",
-                "§7Registered §f" + rating + "§7 for §f" + displayName,
-                "§7You earned " + expColor + "+100 <glyph:experience_orb_icon> " + expLabel);
-        dm.clearPendingRating(player.getUniqueId());
+            me.nakilex.levelplugin.dungeon.DungeonManager dm = Main.getInstance().getDungeonManager();
+            String displayName = dm.getDisplayName(dungeonKey);
+            String success = ChatMessageUtil.format(ChatMessageUtil.MessageType.SUCCESS,
+                    "Submitted a " + ChatColor.WHITE + rating + ChatColor.GREEN + " for " + ChatColor.WHITE + displayName + ChatColor.GREEN + " and earned a reward!");
+            player.sendMessage(success);
+            String expLabel = ChatFormatter.experienceLabel();
+            String expColor = ChatFormatter.experienceColor();
+            ChatFormatter.sendBoxedCenteredMessages(player, "§a",
+                    "§aThank you for your rating!",
+                    "§7Registered §f" + rating + "§7 for §f" + displayName,
+                    "§7You earned " + expColor + "+100 <glyph:experience_orb_icon> " + expLabel);
+            dm.clearPendingRating(player.getUniqueId());
+        });
         return Prompt.END_OF_CONVERSATION;
     }
 }

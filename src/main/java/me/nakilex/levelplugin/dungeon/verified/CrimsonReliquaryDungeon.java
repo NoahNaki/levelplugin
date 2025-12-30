@@ -633,6 +633,7 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
                     .collect(Collectors.toList()));
             meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
             meta.getPersistentDataContainer().set(ItemUtil.SOULBOUND_KEY, PersistentDataType.BYTE, (byte) 1);
+            meta.getPersistentDataContainer().set(ItemUtil.DUNGEON_ITEM_KEY, PersistentDataType.BYTE, (byte) 1);
             meta.getPersistentDataContainer().set(DUNGEON_FLOWER_KEY, PersistentDataType.STRING, type.name());
             stack.setItemMeta(meta);
         }
