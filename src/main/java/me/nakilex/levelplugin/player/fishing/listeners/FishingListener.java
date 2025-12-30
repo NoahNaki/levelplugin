@@ -54,7 +54,7 @@ public class FishingListener implements Listener {
         UUID uuid = player.getUniqueId();
 
         switch (event.getState()) {
-            case BITE -> startSession(player, uuid);
+            case BITE -> startSession(player, uuid, event.getHook() != null ? event.getHook().getLocation() : null);
             case REEL_IN -> handleReel(player, uuid);
             case CAUGHT_FISH -> handleCatch(event, player, uuid);
             default -> {
@@ -62,7 +62,7 @@ public class FishingListener implements Listener {
         }
     }
 
-    private void startSession(Player player, UUID uuid) {
+    private void startSession(Player player, UUID uuid, org.bukkit.Location hookLocation) {
         clearSession(uuid);
         BossBar bar = Bukkit.createBossBar("Reel in!", BarColor.BLUE, BarStyle.SOLID);
         bar.addPlayer(player);
@@ -70,6 +70,7 @@ public class FishingListener implements Listener {
         long windowMs = computeWindowMs(player);
         FishingSession session = new FishingSession(bar, System.currentTimeMillis() + windowMs, windowMs);
         sessions.put(uuid, session);
+        logLavaFishingCheck(player, hookLocation);
         session.task = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             long remaining = session.expiresAtMs - System.currentTimeMillis();
             double progress = Math.max(0.0, Math.min(1.0, remaining / (double) session.windowMs));
@@ -193,6 +194,21 @@ public class FishingListener implements Listener {
             return true;
         }
         return isLavaBlock(block.getRelative(BlockFace.DOWN));
+    }
+
+    private void logLavaFishingCheck(Player player, org.bukkit.Location hookLocation) {
+        if (player == null) return;
+        boolean inLava = isLavaHook(hookLocation);
+        String hookBlock = hookLocation != null ? hookLocation.getBlock().getType().name() : "unknown";
+        String belowBlock = hookLocation != null ? hookLocation.getBlock().getRelative(BlockFace.DOWN).getType().name() : "unknown";
+        plugin.getLogger().info(String.format(
+                "[Fishing] Lava check for %s: inLava=%s hook=%s below=%s",
+                player.getName(),
+                inLava,
+                hookBlock,
+                belowBlock));
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                ChatColor.GRAY + "Lava fishing check: " + (inLava ? ChatColor.GREEN + "IN LAVA" : ChatColor.RED + "NOT IN LAVA"));
     }
 
     private boolean isLavaBlock(Block block) {
