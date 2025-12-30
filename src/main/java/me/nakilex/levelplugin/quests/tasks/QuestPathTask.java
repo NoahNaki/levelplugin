@@ -39,7 +39,7 @@ public class QuestPathTask extends BukkitRunnable {
     private static final double PARTICLE_HEIGHT_OFFSET = 1.0;
     private static final int PARTICLE_STRIDE = 2;
     private static final Particle.DustOptions PATH_DUST = new Particle.DustOptions(
-            Color.fromRGB(117, 255, 153), 1.2f);
+            Color.fromRGB(0, 255, 60), 1.2f);
 
     private final QuestManager questManager;
     private final BukkitPathfindingService pathfindingService;

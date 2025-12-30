@@ -8,6 +8,7 @@ import org.bukkit.World;
 import org.bukkit.WorldCreator;
 import org.bukkit.WorldType;
 import org.bukkit.World.Environment;
+import org.bukkit.GameRule;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
@@ -66,6 +67,9 @@ public class WorldManager {
                 importWorld(w);
             }
         }
+        for (World world : Bukkit.getWorlds()) {
+            applyBooleanGameRulesFromPrimary(world);
+        }
     }
 
     public synchronized void reload() {
@@ -94,6 +98,7 @@ public class WorldManager {
         }
         World world = Bukkit.createWorld(wc);
         if (world != null) {
+            applyBooleanGameRulesFromPrimary(world);
             persistentWorlds.add(name.toLowerCase());
             save();
         }
@@ -105,6 +110,7 @@ public class WorldManager {
         wc.generateStructures(false);
         World world = Bukkit.createWorld(wc);
         if (world != null) {
+            applyBooleanGameRulesFromPrimary(world);
             persistentWorlds.add(name.toLowerCase());
             save();
         }
@@ -177,5 +183,30 @@ public class WorldManager {
 
     public void ensureWorldsLoaded(String... names) {
         ensureWorldsLoaded(Arrays.asList(names));
+    }
+
+    public void applyBooleanGameRuleToAll(GameRule<Boolean> rule, boolean value) {
+        if (rule == null) return;
+        for (World world : Bukkit.getWorlds()) {
+            world.setGameRule(rule, value);
+        }
+    }
+
+    public void applyBooleanGameRulesFromPrimary(World target) {
+        World primary = Bukkit.getWorld("world");
+        if (primary == null || target == null || primary.equals(target)) {
+            return;
+        }
+        for (GameRule<?> rule : GameRule.values()) {
+            if (rule.getType() != Boolean.class) {
+                continue;
+            }
+            @SuppressWarnings("unchecked")
+            GameRule<Boolean> boolRule = (GameRule<Boolean>) rule;
+            Boolean value = primary.getGameRuleValue(boolRule);
+            if (value != null) {
+                target.setGameRule(boolRule, value);
+            }
+        }
     }
 }

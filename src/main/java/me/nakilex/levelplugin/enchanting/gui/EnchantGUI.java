@@ -3,6 +3,9 @@ package me.nakilex.levelplugin.enchanting.gui;
 import me.nakilex.levelplugin.enchanting.managers.EnchantManager;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.items.data.CustomItem;
+import me.nakilex.levelplugin.items.tools.FarmingToolEnchant;
+import me.nakilex.levelplugin.items.tools.ToolDiscipline;
+import me.nakilex.levelplugin.items.tools.ToolManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.Main;
@@ -58,9 +61,9 @@ public class EnchantGUI implements Listener {
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
             meta.setLore(Arrays.asList(
-                    ChatColor.GRAY + "Place a custom item in the center.",
+                    ChatColor.GRAY + "Place a custom item or farming tool in the center.",
                     ChatColor.GRAY + "Click " + ChatColor.LIGHT_PURPLE + "Enchant" + ChatColor.GRAY + " to add",
-                    ChatColor.GRAY + "a random prefix giving +20 to one stat.",
+                    ChatColor.GRAY + "a random prefix or farming enchant.",
                     ChatColor.GRAY + "Cost doubles every enchant.")
             );
             item.setItemMeta(meta);
@@ -114,9 +117,11 @@ public class EnchantGUI implements Listener {
             ItemStack item = gui.getItem(13);
             if (item == null || item.getType().isAir()) return;
             CustomItem ci = ItemManager.getInstance().getCustomItemFromItemStack(item);
-            if (ci == null) return;
+            me.nakilex.levelplugin.items.tools.CustomTool tool = ToolManager.getInstance().getTool(item);
+            boolean isFarmingTool = tool != null && tool.getDiscipline() == ToolDiscipline.FARMING;
+            if (ci == null && !isFarmingTool) return;
             boolean freeEnchant = SharpestSecretQuest.shouldReceiveFreeEnchant(p.getUniqueId());
-            int baseCost = manager.getEnchantCost(ci);
+            int baseCost = ci != null ? manager.getEnchantCost(ci) : manager.getEnchantCost(item);
             int discountedCost = TownPerkManager.getInstance().applyDiscount(
                     GuildManager.getInstance().getGuild(p.getUniqueId()),
                     TownPerk.ENCHANTING_DISCOUNT,
@@ -139,10 +144,20 @@ public class EnchantGUI implements Listener {
                     return;
                 }
             }
-            String prefix = manager.enchant(p, item, ci);
-            gui.setItem(13, item);
-            ItemUtil.updateTooltip(item, p);
-            p.sendMessage(ChatColor.GREEN + "Item enchanted with " + ChatColor.LIGHT_PURPLE + prefix + ChatColor.GREEN + "!");
+            if (ci != null) {
+                String prefix = manager.enchant(p, item, ci);
+                gui.setItem(13, item);
+                ItemUtil.updateTooltip(item, p);
+                p.sendMessage(ChatColor.GREEN + "Item enchanted with " + ChatColor.LIGHT_PURPLE + prefix + ChatColor.GREEN + "!");
+            } else if (isFarmingTool) {
+                FarmingToolEnchant enchant = manager.enchantFarmingTool(p, item);
+                gui.setItem(13, item);
+                ItemUtil.updateCustomToolTooltip(item, p);
+                if (enchant != null) {
+                    p.sendMessage(ChatColor.GREEN + "Tool enchanted with " + ChatColor.LIGHT_PURPLE
+                            + enchant.getDisplayName() + ChatColor.GREEN + "!");
+                }
+            }
             if (freeEnchant) {
                 ChatMessageUtil.send(p, ChatMessageUtil.MessageType.SUCCESS,
                         "Osiris covers your first enchant.");
@@ -174,11 +189,13 @@ public class EnchantGUI implements Listener {
             return;
         }
         CustomItem ci = ItemManager.getInstance().getCustomItemFromItemStack(stack);
-        if (ci == null) {
+        me.nakilex.levelplugin.items.tools.CustomTool tool = ToolManager.getInstance().getTool(stack);
+        boolean isFarmingTool = tool != null && tool.getDiscipline() == ToolDiscipline.FARMING;
+        if (ci == null && !isFarmingTool) {
             gui.setItem(22, createButton(p, 0, freeEnchant));
             return;
         }
-        int baseCost = manager.getEnchantCost(ci);
+        int baseCost = ci != null ? manager.getEnchantCost(ci) : manager.getEnchantCost(stack);
         int cost = freeEnchant ? 0 : TownPerkManager.getInstance().applyDiscount(
                 GuildManager.getInstance().getGuild(p.getUniqueId()),
                 TownPerk.ENCHANTING_DISCOUNT,

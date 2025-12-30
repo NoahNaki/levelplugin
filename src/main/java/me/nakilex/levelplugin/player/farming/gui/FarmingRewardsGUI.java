@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.player.farming.gui;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
+import me.nakilex.levelplugin.player.farming.data.FarmingCrop;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
@@ -16,17 +17,22 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 public class FarmingRewardsGUI implements Listener, CommandExecutor {
 
     private static final String TITLE = "Farming Rewards";
+    private static final int INFO_SLOT = 8;
+    private static final int CANCEL_SLOT = 45;
+    private static final int WITHDRAW_SLOT = 46;
+    private static final int DEPOSIT_SLOT = 52;
+    private static final int CONFIRM_SLOT = 53;
     private final EconomyManager economyManager;
     private final Main plugin;
 
@@ -37,70 +43,36 @@ public class FarmingRewardsGUI implements Listener, CommandExecutor {
         Bukkit.getPluginManager().registerEvents(this, plugin);
     }
 
-    private ItemStack tradeItem(String name, int wheatCost, String rewardText) {
-        ItemStack stack = new ItemStack(Material.WHEAT);
-        ItemMeta meta = stack.getItemMeta();
-        if (meta != null) {
-            meta.setDisplayName(name);
-            List<String> lore = new ArrayList<>();
-            lore.add(ChatColor.GRAY + "Cost: " + ChatColor.WHITE + wheatCost + " Wheat");
-            lore.add(ChatColor.GRAY + "Rewards:");
-            lore.add(ChatColor.GOLD + "• " + ChatColor.WHITE + rewardText);
-            lore.add("");
-            lore.addAll(TooltipUtil.clickInstructions("to trade", null));
-            meta.setLore(lore);
-            stack.setItemMeta(meta);
-        }
-        return stack;
-    }
-
     private void open(Player player) {
-        Inventory inv = GuiBuilder.create(27, TITLE)
+        Inventory inv = GuiBuilder.create(54, TITLE)
                 .filler(Material.GRAY_STAINED_GLASS_PANE)
+                .fillEmptySlots(false)
                 .border()
                 .build();
-        inv.setItem(11, tradeItem(ChatColor.YELLOW + "Farmhands' Stipend", 16, "+75 <glyph:coins_icon>"));
-        inv.setItem(13, tradeItem(ChatColor.YELLOW + "Seed Fund", 32, "+150 <glyph:coins_icon> & 4 Seeds"));
-        inv.setItem(15, tradeItem(ChatColor.YELLOW + "Barn Booster", 64, "+350 <glyph:coins_icon> & 1 Bone Meal"));
+
         ItemStack info = GuiUtil.getNexoItem("info", ChatColor.YELLOW + "Information");
         ItemMeta infoMeta = info.getItemMeta();
         if (infoMeta != null) {
             List<String> lore = new ArrayList<>();
-            lore.add(ChatColor.GRAY + "Trade wheat for farming rewards.");
-            lore.add(ChatColor.GRAY + "Higher tiers pay out more coins.");
+            lore.add(ChatColor.GRAY + "Place harvested crops in the center.");
+            lore.add(ChatColor.GRAY + "Confirm to sell them for coins.");
             lore.add("");
-            lore.addAll(TooltipUtil.clickInstructions("to trade rewards", null));
+            lore.add(ChatColor.GOLD + "Crop Value:");
+            for (FarmingCrop crop : FarmingCrop.values()) {
+                lore.add(ChatColor.GRAY + "  " + formatCropName(crop) + ": "
+                        + ChatColor.YELLOW + crop.getSellValue() + " <glyph:coins_icon>");
+            }
+            lore.add("");
+            lore.addAll(TooltipUtil.clickInstructions("to confirm sale", null));
             infoMeta.setLore(lore);
             info.setItemMeta(infoMeta);
         }
-        inv.setItem(8, info);
+        inv.setItem(INFO_SLOT, info);
+        inv.setItem(CANCEL_SLOT, GuiUtil.getNexoItem("cross", ChatColor.RED + "Cancel"));
+        inv.setItem(WITHDRAW_SLOT, GuiUtil.getNexoItem("arrow_down", ChatColor.YELLOW + "Return All"));
+        inv.setItem(DEPOSIT_SLOT, GuiUtil.getNexoItem("arrow_up", ChatColor.YELLOW + "Deposit All"));
+        inv.setItem(CONFIRM_SLOT, GuiUtil.getNexoItem("check", ChatColor.GREEN + "Confirm Sale"));
         player.openInventory(inv);
-    }
-
-    private int countWheat(Player player) {
-        return Arrays.stream(player.getInventory().getContents())
-                .filter(it -> it != null && it.getType() == Material.WHEAT)
-                .mapToInt(ItemStack::getAmount)
-                .sum();
-    }
-
-    private boolean takeWheat(Player player, int amount) {
-        int remaining = amount;
-        ItemStack[] contents = player.getInventory().getContents();
-        for (int i = 0; i < contents.length && remaining > 0; i++) {
-            ItemStack stack = contents[i];
-            if (stack != null && stack.getType() == Material.WHEAT) {
-                if (stack.getAmount() <= remaining) {
-                    remaining -= stack.getAmount();
-                    contents[i] = null;
-                } else {
-                    stack.setAmount(stack.getAmount() - remaining);
-                    remaining = 0;
-                }
-            }
-        }
-        player.getInventory().setContents(contents);
-        return remaining <= 0;
     }
 
     @Override
@@ -116,44 +88,150 @@ public class FarmingRewardsGUI implements Listener, CommandExecutor {
     @EventHandler
     public void onClick(InventoryClickEvent event) {
         if (!event.getView().getTitle().equals(TITLE)) return;
-        event.setCancelled(true);
         if (!(event.getWhoClicked() instanceof Player player)) return;
-        ItemStack clicked = event.getCurrentItem();
-        if (clicked == null || clicked.getType() != Material.WHEAT) return;
 
-        int slot = event.getRawSlot();
-        int cost;
-        Runnable reward;
-        if (slot == 11) {
-            cost = 16;
-            reward = () -> economyManager.addCoins(player, 75, false);
-        } else if (slot == 13) {
-            cost = 32;
-            reward = () -> {
-                economyManager.addCoins(player, 150, false);
-                player.getInventory().addItem(new ItemStack(Material.WHEAT_SEEDS, 4));
-            };
-        } else if (slot == 15) {
-            cost = 64;
-            reward = () -> {
-                economyManager.addCoins(player, 350, false);
-                player.getInventory().addItem(new ItemStack(Material.BONE_MEAL, 1));
-            };
-        } else {
+        Inventory top = event.getView().getTopInventory();
+        int rawSlot = event.getRawSlot();
+        ItemStack current = event.getCurrentItem();
+
+        if (rawSlot == CANCEL_SLOT) {
+            event.setCancelled(true);
+            player.closeInventory();
+            return;
+        }
+        if (rawSlot == CONFIRM_SLOT) {
+            event.setCancelled(true);
+            handleSell(player, top);
+            return;
+        }
+        if (rawSlot == INFO_SLOT) {
+            event.setCancelled(true);
+            return;
+        }
+        if (rawSlot == WITHDRAW_SLOT) {
+            event.setCancelled(true);
+            withdrawAll(player, top);
+            return;
+        }
+        if (rawSlot == DEPOSIT_SLOT) {
+            event.setCancelled(true);
+            depositAll(player, top);
             return;
         }
 
-        int owned = countWheat(player);
-        if (owned < cost) {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
-                    "You need " + cost + " wheat to purchase this reward.");
+        if (rawSlot < top.getSize()) {
+            ItemStack cursor = event.getCursor();
+            if (cursor != null && cursor.getType() != Material.AIR && FarmingCrop.fromItem(cursor.getType()) == null) {
+                event.setCancelled(true);
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING, "Only crops can be sold here.");
+                return;
+            }
+            if (current != null && current.getType() != Material.AIR
+                    && FarmingCrop.fromItem(current.getType()) == null) {
+                event.setCancelled(true);
+                return;
+            }
+        } else if (event.isShiftClick() && current != null && current.getType() != Material.AIR
+                && FarmingCrop.fromItem(current.getType()) == null) {
+            event.setCancelled(true);
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING, "Only crops can be sold here.");
+        }
+    }
+
+    @EventHandler
+    public void onDrag(InventoryDragEvent event) {
+        if (!event.getView().getTitle().equals(TITLE)) return;
+        ItemStack item = event.getOldCursor();
+        if (item == null || item.getType() == Material.AIR) return;
+        if (FarmingCrop.fromItem(item.getType()) == null) {
+            event.setCancelled(true);
+        }
+    }
+
+    private void handleSell(Player player, Inventory top) {
+        int total = 0;
+        for (int slot = 0; slot < top.getSize(); slot++) {
+            if (isControlSlot(slot)) continue;
+            ItemStack stack = top.getItem(slot);
+            if (stack == null || stack.getType() == Material.AIR) continue;
+            FarmingCrop crop = FarmingCrop.fromItem(stack.getType());
+            if (crop == null) continue;
+            total += crop.getSellValue() * stack.getAmount();
+            top.setItem(slot, null);
+        }
+
+        if (total <= 0) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING, "Place crops in the menu to sell them.");
             return;
         }
 
-        if (takeWheat(player, cost)) {
-            reward.run();
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, "Trade complete! Enjoy your rewards.");
-            player.updateInventory();
+        economyManager.addCoins(player, total, false);
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
+                "Sold your harvest for " + ChatColor.YELLOW + total + " <glyph:coins_icon>.");
+        player.updateInventory();
+    }
+
+    private void depositAll(Player player, Inventory top) {
+        ItemStack[] contents = player.getInventory().getContents();
+        boolean moved = false;
+        for (int i = 0; i < contents.length; i++) {
+            ItemStack stack = contents[i];
+            if (stack == null || stack.getType() == Material.AIR) continue;
+            if (FarmingCrop.fromItem(stack.getType()) == null) continue;
+            int slot = findEmptySlot(top);
+            if (slot == -1) {
+                break;
+            }
+            top.setItem(slot, stack);
+            contents[i] = null;
+            moved = true;
         }
+        player.getInventory().setContents(contents);
+        if (!moved) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING, "You have no crops to deposit.");
+        }
+    }
+
+    private void withdrawAll(Player player, Inventory top) {
+        boolean moved = false;
+        for (int slot = 0; slot < top.getSize(); slot++) {
+            if (isControlSlot(slot)) continue;
+            ItemStack stack = top.getItem(slot);
+            if (stack == null || stack.getType() == Material.AIR) continue;
+            if (FarmingCrop.fromItem(stack.getType()) == null) continue;
+            java.util.Map<Integer, ItemStack> leftover = player.getInventory().addItem(stack);
+            if (leftover.isEmpty()) {
+                top.setItem(slot, null);
+                moved = true;
+            } else {
+                top.setItem(slot, leftover.values().iterator().next());
+                break;
+            }
+        }
+        if (!moved) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING, "No crops to withdraw.");
+        }
+        player.updateInventory();
+    }
+
+    private int findEmptySlot(Inventory top) {
+        for (int slot = 0; slot < top.getSize(); slot++) {
+            if (isControlSlot(slot)) continue;
+            ItemStack stack = top.getItem(slot);
+            if (stack == null || stack.getType() == Material.AIR) {
+                return slot;
+            }
+        }
+        return -1;
+    }
+
+    private boolean isControlSlot(int slot) {
+        return slot == INFO_SLOT || slot == CANCEL_SLOT || slot == CONFIRM_SLOT
+                || slot == WITHDRAW_SLOT || slot == DEPOSIT_SLOT;
+    }
+
+    private String formatCropName(FarmingCrop crop) {
+        String raw = crop.getItemMaterial().name().toLowerCase().replace('_', ' ');
+        return raw.substring(0, 1).toUpperCase() + raw.substring(1);
     }
 }

@@ -27,7 +27,7 @@ public class MiningManager {
     private final Map<UUID, Boolean> activeBars = new HashMap<>();
 
     private final int MAX_LEVEL = 100;
-    private final int XP_PER_LEVEL_MULTIPLIER = 75;
+    private final int XP_PER_LEVEL_MULTIPLIER = 200;
 
     public MiningManager(Main plugin) {
         this.plugin = plugin;

@@ -94,7 +94,8 @@ public final class FishingItemUtil {
         if (stack == null || !stack.hasItemMeta()) return 0;
         ItemMeta meta = stack.getItemMeta();
         if (meta == null) return 0;
-        return meta.getPersistentDataContainer().getOrDefault(FISH_VALUE_KEY, PersistentDataType.INTEGER, 0);
+        int base = meta.getPersistentDataContainer().getOrDefault(FISH_VALUE_KEY, PersistentDataType.INTEGER, 0);
+        return base * 5;
     }
 
     public static double getFishSize(ItemStack stack) {

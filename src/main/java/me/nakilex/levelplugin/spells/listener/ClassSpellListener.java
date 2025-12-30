@@ -9,6 +9,7 @@ import me.nakilex.levelplugin.spells.Spell;
 import me.nakilex.levelplugin.spells.managers.SpellManager;
 import me.nakilex.levelplugin.spells.managers.CooldownManager;
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -361,6 +362,9 @@ public class ClassSpellListener implements Listener {
     @EventHandler
     public void onLeftClick(PlayerAnimationEvent event) {
         Player p = event.getPlayer();
+        if (p.getInventory().getItemInMainHand().getType() == Material.FISHING_ROD) {
+            return;
+        }
         PlayerClass pc = getClass(p);
         Triggers tr = MAP.get(pc);
         if (tr == null) return;

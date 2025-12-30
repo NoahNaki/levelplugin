@@ -76,6 +76,7 @@ public class SerasSlimeKingQuest extends Quest implements QuestScript, QuestComp
         if (!questManager.hasCompleted(player.getUniqueId(), SalvagersLessonQuest.ID)
                 && questManager.getProgress(player.getUniqueId(), SalvagersLessonQuest.ID) == null) {
             questManager.startQuest(player, SalvagersLessonQuest.ID);
+            questManager.setTrackedQuest(player, SalvagersLessonQuest.ID);
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                     "Seras|The salvager is looking for help—talk to him to learn how to scrap your gear.");
         }

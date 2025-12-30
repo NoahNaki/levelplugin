@@ -6,6 +6,7 @@ import me.nakilex.levelplugin.items.tools.ToolDiscipline;
 import me.nakilex.levelplugin.mercenary.MercenaryAffinityManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
+import me.nakilex.levelplugin.player.config.PlayerConfig;
 import me.nakilex.levelplugin.player.farming.managers.FarmingManager;
 import me.nakilex.levelplugin.player.fishing.managers.FishingManager;
 import me.nakilex.levelplugin.player.mining.managers.MiningManager;
@@ -14,19 +15,14 @@ import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-import java.util.EnumMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
  * Centralises life skill reward milestones and claims so both mining and farming
  * can share the same structures. Rewards are defined once per discipline and
- * can be persisted through {@link me.nakilex.levelplugin.player.config.PlayerConfig}.
+ * can be persisted through {@link PlayerConfig}.
  */
 public class LifeSkillRewardManager {
 
@@ -53,7 +49,7 @@ public class LifeSkillRewardManager {
 
         initialiseRewards();
         for (ToolDiscipline discipline : ToolDiscipline.values()) {
-            claimed.put(discipline, new java.util.HashMap<>());
+            claimed.put(discipline, new HashMap<>());
         }
     }
 
@@ -68,7 +64,8 @@ public class LifeSkillRewardManager {
     }
 
     private List<LifeSkillReward> createRewardList(String skillName) {
-        return List.of(
+        List<LifeSkillReward> list = new ArrayList<>();
+        list.addAll(List.of(
                 coinReward(1, skillName, 200),
                 giftReward(2, skillName, "blossom_bundle"),
                 statReward(3, skillName, StatType.VIT, 1, "+1 Vitality"),
@@ -93,7 +90,27 @@ public class LifeSkillRewardManager {
                 coinReward(22, skillName, 1600),
                 statReward(23, skillName, StatType.AGI, 3, "+3 Agility"),
                 coinReward(24, skillName, 1800)
-        );
+        ));
+
+        List<StatType> statCycle = List.of(StatType.VIT, StatType.STR, StatType.AGI, StatType.DEX, StatType.WIL, StatType.TEC);
+        String[] gifts = {"blossom_bundle", "heroic_token", "adventurers_feast"};
+        int statIndex = 0;
+        int giftIndex = 0;
+        for (int level = 25; level <= 100; level++) {
+            if (level % 15 == 0) {
+                list.add(giftReward(level, skillName, gifts[giftIndex++ % gifts.length]));
+                continue;
+            }
+            if (level % 5 == 0) {
+                StatType stat = statCycle.get(statIndex++ % statCycle.size());
+                int amount = level >= 50 ? 3 : 2;
+                list.add(statReward(level, skillName, stat, amount, "+" + amount + " " + statLabel(stat)));
+                continue;
+            }
+            int coins = 1800 + (level - 24) * 100;
+            list.add(coinReward(level, skillName, coins));
+        }
+        return list;
     }
 
     private LifeSkillReward coinReward(int level, String skillName, int coins) {
@@ -115,7 +132,7 @@ public class LifeSkillRewardManager {
 
     private LifeSkillReward giftReward(int level, String skillName, String giftId) {
         String title = ChatColor.GOLD + skillName + " Level " + level;
-        List<String> lore = new java.util.ArrayList<>();
+        List<String> lore = new ArrayList<>();
         lore.add(ChatColor.GRAY + "Rewards:");
         lore.add(ChatColor.GREEN + "• " + ChatColor.WHITE + "Friendship Gift");
         lore.add(ChatColor.DARK_GRAY + "   – " + ChatColor.WHITE + prettyGiftName(giftId));
@@ -131,6 +148,18 @@ public class LifeSkillRewardManager {
                 player.getInventory().addItem(gift);
             }
         });
+    }
+
+    private String statLabel(StatType stat) {
+        return switch (stat) {
+            case VIT -> "Vitality";
+            case STR -> "Strength";
+            case AGI -> "Agility";
+            case INT -> "Intelligence";
+            case DEX -> "Dexterity";
+            case WIL -> "Will";
+            case TEC -> "Technique";
+        };
     }
 
     private String prettyGiftName(String giftId) {
@@ -156,7 +185,7 @@ public class LifeSkillRewardManager {
     }
 
     public void setClaimed(UUID uuid, ToolDiscipline discipline, Set<Integer> claimedLevels) {
-        claimed.computeIfAbsent(discipline, d -> new java.util.HashMap<>()).put(uuid, new HashSet<>(claimedLevels));
+        claimed.computeIfAbsent(discipline, d -> new HashMap<>()).put(uuid, new HashSet<>(claimedLevels));
     }
 
     public Set<Integer> getClaimed(UUID uuid, ToolDiscipline discipline) {
@@ -164,7 +193,7 @@ public class LifeSkillRewardManager {
     }
 
     public void saveClaim(UUID uuid, ToolDiscipline discipline, int levelRequired) {
-        claimed.computeIfAbsent(discipline, d -> new java.util.HashMap<>())
+        claimed.computeIfAbsent(discipline, d -> new HashMap<>())
                 .computeIfAbsent(uuid, u -> new HashSet<>())
                 .add(levelRequired);
     }

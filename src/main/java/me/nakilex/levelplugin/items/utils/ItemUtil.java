@@ -771,6 +771,11 @@ public class ItemUtil {
         lore.add(" ");
         if (discipline == ToolDiscipline.FARMING) {
             lore.add(ChatColor.GRAY + "Harvest Yield: " + ChatColor.GREEN + "+" + (int) (tier.getHarvestYield() * 100 - 100) + "%");
+            me.nakilex.levelplugin.items.tools.FarmingToolEnchant enchant =
+                    ToolManager.getInstance().getFarmingEnchant(stack);
+            if (enchant != null) {
+                lore.add(ChatColor.GRAY + "Enchant: " + ChatColor.LIGHT_PURPLE + enchant.getDisplayName());
+            }
         } else if (discipline == ToolDiscipline.FISHING) {
             lore.add(ChatColor.GRAY + "Fishing Speed: " + ChatColor.GREEN + "+" + (int) (tier.getFishingSpeed() * 100 - 100) + "%");
             lore.add(ChatColor.GRAY + "Fish Rarity: " + ChatColor.GREEN + "+" + (int) (tier.getFishRarityBonus() * 100 - 100) + "%");
