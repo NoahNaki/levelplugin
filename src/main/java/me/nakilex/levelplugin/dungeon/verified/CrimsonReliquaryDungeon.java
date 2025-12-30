@@ -264,6 +264,7 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
 
         world.setGameRule(org.bukkit.GameRule.DO_MOB_SPAWNING, false);
         world.setSpawnLocation(spawn);
+        inst.setSpawnLocation(spawn);
 
         TemplateMarkers markers = new TemplateMarkers();
         Map<Player, PlayerState> prevStates = captureStates(participants);

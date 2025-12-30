@@ -925,6 +925,8 @@ public class DungeonManager {
         long pasteStart = System.currentTimeMillis();
 
         Instance inst = new Instance(dungeon, keyName);
+        world.setSpawnLocation(origin);
+        inst.setSpawnLocation(origin);
         java.util.List<Player> participants = new java.util.ArrayList<>();
         me.nakilex.levelplugin.party.PartyManager pm = plugin.getPartyManager();
         me.nakilex.levelplugin.party.Party party = pm.getParty(player.getUniqueId());
@@ -1137,6 +1139,9 @@ public class DungeonManager {
 
     public Instance createTrackedInstance(Dungeon dungeon, String layoutKey, World world) {
         Instance inst = new Instance(dungeon, layoutKey);
+        if (world != null) {
+            inst.setSpawnLocation(world.getSpawnLocation());
+        }
         instances.put(world, inst);
         return inst;
     }
@@ -1296,6 +1301,7 @@ public class DungeonManager {
         private final String layout;
         private final Map<java.util.UUID, Location> returnLocations = new HashMap<>();
         private final java.util.List<Integer> chestIds = new java.util.ArrayList<>();
+        private Location spawnLocation;
         org.bukkit.scheduler.BukkitTask removalTask;
         Instance(Dungeon d, String layout) { this.dungeon = d; this.layout = layout; }
 
@@ -1303,6 +1309,8 @@ public class DungeonManager {
         public String getLayout() { return layout; }
         public Map<java.util.UUID, Location> getReturnLocations() { return returnLocations; }
         public java.util.List<Integer> getChestIds() { return chestIds; }
+        public Location getSpawnLocation() { return spawnLocation; }
+        public void setSpawnLocation(Location spawnLocation) { this.spawnLocation = spawnLocation; }
         public void addReturnLocation(java.util.UUID id, Location loc) { returnLocations.put(id, loc); }
         public void addChestId(int id) { chestIds.add(id); }
     }
@@ -1338,6 +1346,29 @@ public class DungeonManager {
         }
 
         @org.bukkit.event.EventHandler
+        public void onDeath(org.bukkit.event.entity.PlayerDeathEvent event) {
+            Player player = event.getEntity();
+            Instance inst = instances.get(player.getWorld());
+            if (inst == null) return;
+            plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                if (player.isOnline()) {
+                    player.spigot().respawn();
+                }
+            }, 1L);
+        }
+
+        @org.bukkit.event.EventHandler
+        public void onRespawn(org.bukkit.event.player.PlayerRespawnEvent event) {
+            Player player = event.getPlayer();
+            Instance inst = instances.get(player.getWorld());
+            if (inst == null) return;
+            Location spawn = resolveInstanceSpawn(inst, player.getWorld());
+            if (spawn != null) {
+                event.setRespawnLocation(spawn);
+            }
+        }
+
+        @org.bukkit.event.EventHandler
         public void onJoin(org.bukkit.event.player.PlayerJoinEvent e) {
             plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
                 World w = e.getPlayer().getWorld();
@@ -1349,6 +1380,17 @@ public class DungeonManager {
             }, 1L);
         }
 
+    }
+
+    private Location resolveInstanceSpawn(Instance inst, World world) {
+        if (inst == null) return null;
+        if (inst.getSpawnLocation() != null) {
+            return inst.getSpawnLocation().clone();
+        }
+        if (world != null) {
+            return world.getSpawnLocation();
+        }
+        return null;
     }
 
     private void sendCompleteMessage(Player player, String layout) {

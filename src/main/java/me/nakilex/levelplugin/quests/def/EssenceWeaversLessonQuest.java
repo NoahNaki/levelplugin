@@ -48,7 +48,7 @@ public class EssenceWeaversLessonQuest extends Quest implements QuestScript, Que
                         "Essence Weaver|Power isn't just found, it's coaxed out. Bring me your spare essences.",
                         "<player>|What do I do with them?",
                         "Essence Weaver|Right-click the altar to open my loom, invest a duplicate, or attempt a star upgrade.",
-                        "Essence Weaver|Press F to swap essences mid-fight—feel the shift and the lesson is complete."
+                        "Essence Weaver|Press your Swap Offhand key (default: F) to swap essences mid-fight—feel the shift and the lesson is complete."
                 ),
                 false
         );

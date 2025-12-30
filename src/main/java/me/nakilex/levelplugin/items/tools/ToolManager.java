@@ -25,6 +25,8 @@ public class ToolManager {
     private final Map<Material, CustomTool> materialLookup = new HashMap<>();
     private final NamespacedKey toolTierKey = new NamespacedKey(Main.getInstance(), "tool_tier");
     private final NamespacedKey toolDisciplineKey = new NamespacedKey(Main.getInstance(), "tool_discipline");
+    private final NamespacedKey farmingEnchantKey = new NamespacedKey(Main.getInstance(), "farming_enchant");
+    private final NamespacedKey farmingEnchantCountKey = new NamespacedKey(Main.getInstance(), "farming_enchant_count");
 
     public ToolManager() {
         instance = this;
@@ -137,6 +139,44 @@ public class ToolManager {
         PersistentDataContainer container = meta.getPersistentDataContainer();
         container.set(toolTierKey, PersistentDataType.STRING, tool.getTier().name());
         container.set(toolDisciplineKey, PersistentDataType.STRING, tool.getDiscipline().name());
+        stack.setItemMeta(meta);
+    }
+
+    public FarmingToolEnchant getFarmingEnchant(ItemStack stack) {
+        if (stack == null || !stack.hasItemMeta()) return null;
+        ItemMeta meta = stack.getItemMeta();
+        if (meta == null) return null;
+        String value = meta.getPersistentDataContainer().get(farmingEnchantKey, PersistentDataType.STRING);
+        return FarmingToolEnchant.fromKey(value);
+    }
+
+    public int getFarmingEnchantCount(ItemStack stack) {
+        if (stack == null || !stack.hasItemMeta()) return 0;
+        ItemMeta meta = stack.getItemMeta();
+        if (meta == null) return 0;
+        return meta.getPersistentDataContainer().getOrDefault(farmingEnchantCountKey, PersistentDataType.INTEGER, 0);
+    }
+
+    public void setFarmingEnchant(ItemStack stack, FarmingToolEnchant enchant) {
+        if (stack == null || !stack.hasItemMeta()) return;
+        ItemMeta meta = stack.getItemMeta();
+        if (meta == null) return;
+        PersistentDataContainer container = meta.getPersistentDataContainer();
+        if (enchant != null) {
+            container.set(farmingEnchantKey, PersistentDataType.STRING, enchant.getKey());
+        } else {
+            container.remove(farmingEnchantKey);
+        }
+        stack.setItemMeta(meta);
+    }
+
+    public void incrementFarmingEnchantCount(ItemStack stack) {
+        if (stack == null || !stack.hasItemMeta()) return;
+        ItemMeta meta = stack.getItemMeta();
+        if (meta == null) return;
+        PersistentDataContainer container = meta.getPersistentDataContainer();
+        int current = container.getOrDefault(farmingEnchantCountKey, PersistentDataType.INTEGER, 0);
+        container.set(farmingEnchantCountKey, PersistentDataType.INTEGER, current + 1);
         stack.setItemMeta(meta);
     }
 

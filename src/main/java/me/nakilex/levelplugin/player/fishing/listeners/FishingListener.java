@@ -14,6 +14,8 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.Sound;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
@@ -28,16 +30,21 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class FishingListener implements Listener {
 
     private static final long BITE_WINDOW_MS = 2000L;
+    private static final int LAVA_BITE_MIN_TICKS = 20;
+    private static final int LAVA_BITE_MAX_TICKS = 50;
 
     private final Main plugin;
     private final FishingRewardsConfig rewardsConfig;
     private final FishingManager fishingManager;
     private final Map<UUID, FishingSession> sessions = new HashMap<>();
     private final Map<UUID, Boolean> lastResult = new HashMap<>();
+    private final Map<UUID, Boolean> lastRewarded = new HashMap<>();
+    private final Map<UUID, org.bukkit.scheduler.BukkitTask> lavaBiteTasks = new HashMap<>();
     private final Random random = new Random();
 
     public FishingListener(Main plugin, FishingRewardsConfig rewardsConfig, FishingManager fishingManager) {
@@ -52,7 +59,11 @@ public class FishingListener implements Listener {
         UUID uuid = player.getUniqueId();
 
         switch (event.getState()) {
-            case BITE -> startSession(player, uuid);
+            case FISHING -> handleCast(player, uuid, event.getHook() != null ? event.getHook().getLocation() : null);
+            case BITE -> startSession(player, uuid,
+                    event.getHook() != null ? event.getHook().getLocation() : null,
+                    event.getHook() != null && isLavaHook(event.getHook().getLocation()),
+                    false);
             case REEL_IN -> handleReel(player, uuid);
             case CAUGHT_FISH -> handleCatch(event, player, uuid);
             default -> {
@@ -60,13 +71,30 @@ public class FishingListener implements Listener {
         }
     }
 
-    private void startSession(Player player, UUID uuid) {
+    private void handleCast(Player player, UUID uuid, org.bukkit.Location hookLocation) {
+        clearLavaTask(uuid);
+        boolean inLava = isLavaHook(hookLocation);
+        logLavaFishingCheck(player, hookLocation, inLava);
+        if (!inLava) {
+            return;
+        }
+        int delay = ThreadLocalRandom.current().nextInt(LAVA_BITE_MIN_TICKS, LAVA_BITE_MAX_TICKS + 1);
+        lavaBiteTasks.put(uuid, Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            if (!player.isOnline()) {
+                return;
+            }
+            startSession(player, uuid, hookLocation, true, true);
+        }, delay));
+    }
+
+    private void startSession(Player player, UUID uuid, org.bukkit.Location hookLocation,
+                              boolean inLava, boolean rewardOnReel) {
         clearSession(uuid);
         BossBar bar = Bukkit.createBossBar("Reel in!", BarColor.BLUE, BarStyle.SOLID);
         bar.addPlayer(player);
         bar.setVisible(true);
         long windowMs = computeWindowMs(player);
-        FishingSession session = new FishingSession(bar, System.currentTimeMillis() + windowMs, windowMs);
+        FishingSession session = new FishingSession(bar, System.currentTimeMillis() + windowMs, windowMs, inLava, rewardOnReel);
         sessions.put(uuid, session);
         session.task = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             long remaining = session.expiresAtMs - System.currentTimeMillis();
@@ -79,6 +107,7 @@ public class FishingListener implements Listener {
     }
 
     private void handleReel(Player player, UUID uuid) {
+        clearLavaTask(uuid);
         FishingSession session = sessions.get(uuid);
         if (session == null) {
             lastResult.put(uuid, false);
@@ -89,12 +118,22 @@ public class FishingListener implements Listener {
         clearSession(uuid);
         if (success) {
             player.getWorld().playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.9f, 1.2f);
+            if (session.inLava && session.rewardOnReel) {
+                awardCatch(player, session.inLava);
+                lastRewarded.put(uuid, true);
+                Bukkit.getScheduler().runTaskLater(plugin, () -> lastRewarded.remove(uuid), 40L);
+            }
         } else {
             player.getWorld().playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BASS, 0.9f, 0.8f);
         }
     }
 
     private void handleCatch(PlayerFishEvent event, Player player, UUID uuid) {
+        clearLavaTask(uuid);
+        if (lastRewarded.remove(uuid) != null) {
+            event.setCancelled(true);
+            return;
+        }
         boolean success = resolveSuccess(uuid);
         if (!success) {
             event.setCancelled(true);
@@ -102,11 +141,19 @@ public class FishingListener implements Listener {
             return;
         }
 
+        ItemStack fishItem = awardCatch(player, event.getHook() != null && isLavaHook(event.getHook().getLocation()));
+
+        if (event.getCaught() instanceof Item item) {
+            item.setItemStack(fishItem);
+        } else {
+            player.getInventory().addItem(fishItem);
+        }
+    }
+
+    private ItemStack awardCatch(Player player, boolean inLava) {
         ItemStack rod = resolveRod(player);
         ToolTier tier = resolveTier(rod);
         boolean highestTier = tier != null && tier.isHighestTier();
-        boolean inLava = event.getHook() != null
-                && event.getHook().getLocation().getBlock().getType() == Material.LAVA;
 
         FishDefinition definition = rewardsConfig.rollFish(
                 fishingManager.getLevel(player),
@@ -116,11 +163,6 @@ public class FishingListener implements Listener {
         double size = rollSize(definition);
         ItemStack fishItem = FishingItemUtil.createFishItem(definition, size);
 
-        if (event.getCaught() instanceof Item item) {
-            item.setItemStack(fishItem);
-        } else {
-            player.getInventory().addItem(fishItem);
-        }
         fishingManager.addXP(player, definition.xpReward());
         fishingManager.discoverFish(player.getUniqueId(), definition.id());
         if (plugin.getQuestManager() != null) {
@@ -133,8 +175,8 @@ public class FishingListener implements Listener {
                 + expColor + "+" + definition.xpReward() + ChatColor.GRAY
                 + " <glyph:experience_orb_icon> Fishing EXP" + ChatColor.GRAY + ".";
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO, message);
+        return fishItem;
     }
-
     private ItemStack resolveRod(Player player) {
         ItemStack main = player.getInventory().getItemInMainHand();
         if (main != null && main.getType() == Material.FISHING_ROD) {
@@ -185,6 +227,35 @@ public class FishingListener implements Listener {
         return Math.round(size * 10.0) / 10.0;
     }
 
+    private boolean isLavaHook(org.bukkit.Location hookLocation) {
+        if (hookLocation == null) return false;
+        Block block = hookLocation.getBlock();
+        if (isLavaBlock(block)) {
+            return true;
+        }
+        return isLavaBlock(block.getRelative(BlockFace.DOWN));
+    }
+
+    private void logLavaFishingCheck(Player player, org.bukkit.Location hookLocation, boolean inLava) {
+        if (player == null) return;
+        String hookBlock = hookLocation != null ? hookLocation.getBlock().getType().name() : "unknown";
+        String belowBlock = hookLocation != null ? hookLocation.getBlock().getRelative(BlockFace.DOWN).getType().name() : "unknown";
+        plugin.getLogger().info(String.format(
+                "[Fishing] Lava check for %s: inLava=%s hook=%s below=%s",
+                player.getName(),
+                inLava,
+                hookBlock,
+                belowBlock));
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                ChatColor.GRAY + "Lava fishing check: " + (inLava ? ChatColor.GREEN + "IN LAVA" : ChatColor.RED + "NOT IN LAVA"));
+    }
+
+    private boolean isLavaBlock(Block block) {
+        if (block == null) return false;
+        Material type = block.getType();
+        return type == Material.LAVA || type == Material.LAVA_CAULDRON;
+    }
+
     private void clearSession(UUID uuid) {
         FishingSession session = sessions.remove(uuid);
         if (session == null) return;
@@ -194,16 +265,28 @@ public class FishingListener implements Listener {
         session.bar.removeAll();
     }
 
+    private void clearLavaTask(UUID uuid) {
+        org.bukkit.scheduler.BukkitTask task = lavaBiteTasks.remove(uuid);
+        if (task != null) {
+            task.cancel();
+        }
+    }
+
     private static class FishingSession {
         private final BossBar bar;
         private final long expiresAtMs;
         private final long windowMs;
+        private final boolean inLava;
+        private final boolean rewardOnReel;
         private org.bukkit.scheduler.BukkitTask task;
 
-        private FishingSession(BossBar bar, long expiresAtMs, long windowMs) {
+        private FishingSession(BossBar bar, long expiresAtMs, long windowMs,
+                               boolean inLava, boolean rewardOnReel) {
             this.bar = bar;
             this.expiresAtMs = expiresAtMs;
             this.windowMs = windowMs;
+            this.inLava = inLava;
+            this.rewardOnReel = rewardOnReel;
         }
     }
 }
