@@ -197,11 +197,14 @@ public class StatsInventory {
         List<String> lore = new ArrayList<>();
         lore.add(ChatColor.GRAY + description);
         lore.add("");
-        lore.add(ChatColor.WHITE + "Base: " + ChatColor.YELLOW + baseValue);
-        lore.add(ChatColor.WHITE + "Bonus: " + ChatColor.GREEN + bonusValue);
-        lore.add(ChatColor.WHITE + "Total: " + ChatColor.GOLD + (baseValue + bonusValue));
+        lore.add(ChatColor.DARK_GRAY + "Stat Breakdown");
+        lore.add(ChatColor.GRAY + "• Base: " + ChatColor.WHITE + baseValue);
+        lore.add(ChatColor.GRAY + "• Bonus: " + ChatColor.GREEN + "+" + bonusValue);
+        lore.add(ChatColor.GRAY + "• Total: " + ChatColor.YELLOW + (baseValue + bonusValue));
+        lore.add("");
+        lore.add(ChatColor.GOLD + "Perks");
         for (String line : effectDetails) {
-            lore.add(ChatColor.WHITE + line);
+            lore.add(ChatColor.GRAY + "• " + line);
         }
         lore.add("");
         lore.addAll(TooltipUtil.clickInstructions("to invest a point", "to remove a point"));
