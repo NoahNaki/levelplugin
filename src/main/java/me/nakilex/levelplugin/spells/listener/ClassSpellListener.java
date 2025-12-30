@@ -26,6 +26,8 @@ import org.bukkit.event.player.PlayerAnimationEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerToggleSneakEvent;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitTask;
 
@@ -461,15 +463,19 @@ public class ClassSpellListener implements Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onRightClick(PlayerInteractEvent event) {
-        if (event.getHand() == null || event.getHand().ordinal() != 0) return;
+        if (event.getHand() != EquipmentSlot.HAND) return;
         if (event.getAction() != Action.RIGHT_CLICK_AIR && event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
         Player p = event.getPlayer();
         PlayerClass pc = getClass(p);
         Triggers tr = MAP.get(pc);
         if (tr == null) return;
-        boolean weapon = WeaponType.matchType(event.getItem()) != null;
+        ItemStack held = event.getItem();
+        if (held == null || held.getType() == Material.AIR) {
+            held = p.getInventory().getItemInMainHand();
+        }
+        boolean weapon = WeaponType.matchType(held) != null;
         if (!weapon) return;
         if (shouldSkipRightClickCast(event)) return;
 
@@ -486,9 +492,9 @@ public class ClassSpellListener implements Listener {
         cast(p, tr.right, pc, Trigger.RIGHT);
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onNpcInteract(PlayerInteractEntityEvent event) {
-        if (event.getHand() == org.bukkit.inventory.EquipmentSlot.OFF_HAND) return;
+        if (event.getHand() != EquipmentSlot.HAND) return;
         if (!CitizensAPI.getNPCRegistry().isNPC(event.getRightClicked())) return;
         recentNpcInteractions.put(event.getPlayer().getUniqueId(), System.currentTimeMillis());
     }
