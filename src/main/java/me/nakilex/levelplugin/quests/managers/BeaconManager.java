@@ -29,7 +29,7 @@ import java.util.UUID;
  */
 public class BeaconManager implements Listener {
 
-    private static final String FURNITURE_ID = "base_beacon_magenta_inventory";
+    private static final String FURNITURE_ID = "base_beacon_lime_inventory";
     private static final double BASE_HIDE_OFFSET = -0.9;
     private static final double MIN_PLAYER_DISTANCE = 40.0;
 

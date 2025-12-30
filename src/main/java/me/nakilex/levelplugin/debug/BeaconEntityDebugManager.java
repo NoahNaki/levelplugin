@@ -23,7 +23,7 @@ import java.util.UUID;
  * Debug helper that spawns a Nexo beacon furniture entity in front of players and keeps it updated.
  */
 public class BeaconEntityDebugManager implements Listener {
-    private static final String FURNITURE_ID = "base_beacon_magenta_inventory";
+    private static final String FURNITURE_ID = "base_beacon_lime_inventory";
     private static final double FOLLOW_DISTANCE = 20.0;
 
     private final Main plugin;
