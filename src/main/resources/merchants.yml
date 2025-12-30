@@ -365,7 +365,7 @@ merchants:
 
   tool:
     title: "Tool Merchant"
-    size: 36
+    size: 46
     items:
       - slot: 10
         tool_tier: TIER_I
