@@ -1,28 +1,35 @@
 package me.nakilex.levelplugin.spells.listener;
 
+import com.nexomc.nexo.api.NexoFurniture;
+import com.nexomc.nexo.mechanics.furniture.FurnitureMechanic;
 import io.lumine.mythic.bukkit.MythicBukkit;
-import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
-import me.nakilex.levelplugin.player.attributes.managers.CooldownIndicatorManager;
-import me.nakilex.levelplugin.player.classes.data.PlayerClass;
-import me.nakilex.levelplugin.player.classes.data.ClassUtil;
-import me.nakilex.levelplugin.spells.Spell;
-import me.nakilex.levelplugin.spells.managers.SpellManager;
-import me.nakilex.levelplugin.spells.managers.CooldownManager;
-import me.nakilex.levelplugin.utils.PotionEffectUtil;
-import org.bukkit.Bukkit;
-import org.bukkit.Material;
-import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.Listener;
-import org.bukkit.event.EventPriority;
-import org.bukkit.event.block.Action;
-import org.bukkit.event.player.PlayerAnimationEvent;
-import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.event.player.PlayerToggleSneakEvent;
-import org.bukkit.potion.PotionEffectType;
-import org.bukkit.scheduler.BukkitTask;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.items.data.WeaponType;
+import me.nakilex.levelplugin.player.attributes.managers.CooldownIndicatorManager;
+import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
+import me.nakilex.levelplugin.player.classes.data.ClassUtil;
+import me.nakilex.levelplugin.player.classes.data.PlayerClass;
+import me.nakilex.levelplugin.spells.Spell;
+import me.nakilex.levelplugin.spells.managers.CooldownManager;
+import me.nakilex.levelplugin.spells.managers.SpellManager;
+import me.nakilex.levelplugin.utils.PotionEffectUtil;
+import net.citizensnpcs.api.CitizensAPI;
+import org.bukkit.Bukkit;
+import org.bukkit.Material;
+import org.bukkit.block.Block;
+import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
+import org.bukkit.event.player.PlayerAnimationEvent;
+import org.bukkit.event.player.PlayerInteractEntityEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerToggleSneakEvent;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.potion.PotionEffectType;
+import org.bukkit.scheduler.BukkitTask;
 
 import java.util.*;
 
@@ -42,6 +49,8 @@ public class ClassSpellListener implements Listener {
     private final Set<UUID> pendingSneak = new HashSet<>();
     /** Sneak releases scheduled to fire after a short delay */
     private final Map<UUID, BukkitTask> pendingUnsneak = new HashMap<>();
+    /** NPC interactions to avoid spell casts on the same click */
+    private final Map<UUID, Long> recentNpcInteractions = new HashMap<>();
 
     private enum Trigger { LEFT, LEFT_SNEAK, RIGHT, RIGHT_SNEAK, SNEAK_START, SNEAK_END }
 
@@ -76,10 +85,17 @@ public class ClassSpellListener implements Listener {
     private static final EnumSet<PlayerClass> BOW_CLASSES = EnumSet.noneOf(PlayerClass.class);
     private static final Map<PlayerClass, Map<Trigger, Double>> MANUAL_TRIGGER_COOLDOWNS = new EnumMap<>(PlayerClass.class);
     private static final Map<PlayerClass, Double> BASIC_ATTACK_MIN_COOLDOWNS = new EnumMap<>(PlayerClass.class);
+    private static final EnumSet<Material> DUNGEON_FLOWERS = EnumSet.of(
+            Material.POPPY,
+            Material.DANDELION,
+            Material.BLUE_ORCHID,
+            Material.ALLIUM
+    );
     private static final String ATTACK_COOLDOWN_KEY = "basic_attack";
     private static final int SWING_LOCK_AMPLIFIER = 4;
     private static final int MAX_HASTE_AMPLIFIER = 3;
     private static final int MIN_SWING_TICKS = 6;
+    private static final long NPC_INTERACT_GRACE_MS = 250L;
     static {
         for (PlayerClass pc : PlayerClass.values()) {
             if (ClassUtil.isArcherFamily(pc)) {
@@ -395,6 +411,33 @@ public class ClassSpellListener implements Listener {
         return true;
     }
 
+    private boolean consumeRecentNpcInteraction(Player player) {
+        Long last = recentNpcInteractions.remove(player.getUniqueId());
+        if (last == null) return false;
+        return System.currentTimeMillis() - last <= NPC_INTERACT_GRACE_MS;
+    }
+
+    private boolean isDungeonFlowerBlock(Block block) {
+        if (block == null) return false;
+        if (!DUNGEON_FLOWERS.contains(block.getType())) return false;
+        return Main.getInstance().getDungeonManager().isInstanceWorld(block.getWorld());
+    }
+
+    private boolean isLootChestBlock(Block block) {
+        if (block == null) return false;
+        FurnitureMechanic mechanic = NexoFurniture.furnitureMechanic(block);
+        if (mechanic == null) return false;
+        return mechanic.getItemID().equalsIgnoreCase(Main.getInstance().getLootChestManager().getCrateModelId());
+    }
+
+    private boolean shouldSkipRightClickCast(PlayerInteractEvent event) {
+        if (consumeRecentNpcInteraction(event.getPlayer())) return true;
+        if (event.getAction() != Action.RIGHT_CLICK_BLOCK) return false;
+        Block clicked = event.getClickedBlock();
+        if (clicked == null) return false;
+        return isDungeonFlowerBlock(clicked) || isLootChestBlock(clicked);
+    }
+
     @EventHandler
     public void onLeftClick(PlayerAnimationEvent event) {
         Player p = event.getPlayer();
@@ -420,16 +463,21 @@ public class ClassSpellListener implements Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onRightClick(PlayerInteractEvent event) {
-        if (event.getHand() == null || event.getHand().ordinal() != 0) return;
+        if (event.getHand() != EquipmentSlot.HAND) return;
         if (event.getAction() != Action.RIGHT_CLICK_AIR && event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
         Player p = event.getPlayer();
         PlayerClass pc = getClass(p);
         Triggers tr = MAP.get(pc);
         if (tr == null) return;
-        boolean weapon = WeaponType.matchType(event.getItem()) != null;
+        ItemStack held = event.getItem();
+        if (held == null || held.getType() == Material.AIR) {
+            held = p.getInventory().getItemInMainHand();
+        }
+        boolean weapon = WeaponType.matchType(held) != null;
         if (!weapon) return;
+        if (shouldSkipRightClickCast(event)) return;
 
         event.setCancelled(true);
 
@@ -442,6 +490,13 @@ public class ClassSpellListener implements Listener {
         if (BOW_CLASSES.contains(pc) && !tryBasicAttack(p, pc)) return;
 
         cast(p, tr.right, pc, Trigger.RIGHT);
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onNpcInteract(PlayerInteractEntityEvent event) {
+        if (event.getHand() != EquipmentSlot.HAND) return;
+        if (!CitizensAPI.getNPCRegistry().isNPC(event.getRightClicked())) return;
+        recentNpcInteractions.put(event.getPlayer().getUniqueId(), System.currentTimeMillis());
     }
 
     @EventHandler
