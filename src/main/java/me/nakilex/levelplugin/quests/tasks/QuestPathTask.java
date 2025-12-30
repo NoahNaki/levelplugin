@@ -1,5 +1,7 @@
 package me.nakilex.levelplugin.quests.tasks;
 
+import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.settings.managers.SettingsManager;
 import me.nakilex.levelplugin.waypoints.api.pathing.result.Path;
 import me.nakilex.levelplugin.waypoints.engine.result.PathUtils;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
@@ -52,8 +54,14 @@ public class QuestPathTask extends BukkitRunnable {
 
     @Override
     public void run() {
+        SettingsManager settingsManager = Main.getInstance().getSettingsManager();
         for (Player player : Bukkit.getOnlinePlayers()) {
             if (me.nakilex.levelplugin.player.profile.ProfileSelectionGUI.isSelecting(player)) {
+                continue;
+            }
+            if (settingsManager != null
+                    && !settingsManager.getSettings(player).isQuestTrackingParticlesEnabled()) {
+                clearCache(player.getUniqueId());
                 continue;
             }
             QuestNavigationUtil.QuestTrackingInfo tracking = QuestNavigationUtil.resolveTracking(player, questManager);

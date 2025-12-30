@@ -1,8 +1,9 @@
 package me.nakilex.levelplugin.storage.events;
 
+import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.storage.gui.StorageGUI;
+import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -10,6 +11,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
+import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
@@ -50,6 +52,11 @@ public class StorageEvents implements Listener {
         Inventory top = event.getView().getTopInventory();
         if (trackedInventories.containsKey(top)) {
             StorageGUI gui = trackedInventories.get(top);
+            if (event.getWhoClicked() instanceof Player player
+                    && shouldBlockDungeonItem(event, top, player)) {
+                event.setCancelled(true);
+                return;
+            }
             if (!gui.allowsSoulbound() && event.getClickedInventory() != top) {
                 ItemStack cursor = event.getCursor();
                 ItemStack current = event.getCurrentItem();
@@ -57,7 +64,8 @@ public class StorageEvents implements Listener {
                     me.nakilex.levelplugin.items.utils.ItemUtil.isSoulbound(current)) {
                     event.setCancelled(true);
                     if (event.getWhoClicked() instanceof Player p) {
-                        p.sendMessage(ChatColor.RED + "Soulbound items cannot be stored here.");
+                        ChatMessageUtil.send(p, ChatMessageUtil.MessageType.ERROR,
+                                "Soulbound items cannot be stored here.");
                     }
                     return;
                 }
@@ -74,6 +82,11 @@ public class StorageEvents implements Listener {
         Inventory top = event.getView().getTopInventory();
         if (trackedInventories.containsKey(top)) {
             StorageGUI gui = trackedInventories.get(top);
+            if (event.getWhoClicked() instanceof Player player
+                    && shouldBlockDungeonItem(event, top, player)) {
+                event.setCancelled(true);
+                return;
+            }
             if (!gui.allowsSoulbound() && me.nakilex.levelplugin.items.utils.ItemUtil.isSoulbound(event.getOldCursor())) {
                 event.setCancelled(true);
                 return;
@@ -101,5 +114,56 @@ public class StorageEvents implements Listener {
                 unregisterInventory(closedInventory);
             }
         }
+    }
+
+    private boolean shouldBlockDungeonItem(InventoryClickEvent event, Inventory top, Player player) {
+        Inventory clicked = event.getClickedInventory();
+        if (clicked == null) {
+            return false;
+        }
+
+        if (clicked.equals(top)) {
+            if (ItemUtil.isDungeonItem(event.getCursor())) {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                        "Dungeon items cannot be stored here.");
+                return true;
+            }
+            if (event.getAction() == InventoryAction.HOTBAR_SWAP
+                    || event.getAction() == InventoryAction.HOTBAR_MOVE_AND_READD) {
+                int hotbar = event.getHotbarButton();
+                if (hotbar >= 0) {
+                    ItemStack hotbarItem = player.getInventory().getItem(hotbar);
+                    if (ItemUtil.isDungeonItem(hotbarItem)) {
+                        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                                "Dungeon items cannot be stored here.");
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        if (event.getAction() == InventoryAction.MOVE_TO_OTHER_INVENTORY
+                && clicked.equals(event.getView().getBottomInventory())) {
+            if (ItemUtil.isDungeonItem(event.getCurrentItem())) {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                        "Dungeon items cannot be stored here.");
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private boolean shouldBlockDungeonItem(InventoryDragEvent event, Inventory top, Player player) {
+        for (var entry : event.getNewItems().entrySet()) {
+            int rawSlot = entry.getKey();
+            if (rawSlot < top.getSize() && ItemUtil.isDungeonItem(entry.getValue())) {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                        "Dungeon items cannot be stored here.");
+                return true;
+            }
+        }
+        return false;
     }
 }

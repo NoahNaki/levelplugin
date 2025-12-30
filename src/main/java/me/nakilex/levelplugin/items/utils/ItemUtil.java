@@ -58,6 +58,7 @@ public class ItemUtil {
      */
     public static final NamespacedKey NEXO_MODEL_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "nexo_model");
     public static final NamespacedKey SOULBOUND_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "soulbound");
+    public static final NamespacedKey DUNGEON_ITEM_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "dungeon_item");
 
     private static final int PREFIX_BONUS = 20;
     private static final java.util.Map<String, StatsManager.StatType> PREFIX_MAP = new java.util.HashMap<>();
@@ -418,6 +419,25 @@ public class ItemUtil {
         if (stack.getItemMeta().hasLore()) {
             for (String line : stack.getItemMeta().getLore()) {
                 if (ChatColor.stripColor(line).equalsIgnoreCase("Soulbound")) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public static boolean isDungeonItem(ItemStack stack) {
+        if (stack == null || !stack.hasItemMeta()) return false;
+        ItemMeta meta = stack.getItemMeta();
+        if (meta == null) return false;
+
+        if (meta.getPersistentDataContainer().has(DUNGEON_ITEM_KEY, PersistentDataType.BYTE)) {
+            return true;
+        }
+
+        if (meta.hasLore()) {
+            for (String line : meta.getLore()) {
+                if (ChatColor.stripColor(line).equalsIgnoreCase("Dungeon Item")) {
                     return true;
                 }
             }
