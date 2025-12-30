@@ -1,8 +1,8 @@
 # field_bosses.yml
 mobs:
   Slime_King:
-    exp: 4000
-    coins: "2000-6000"
+    exp: 2000
+    coins: "1000-3000"
     gems: 10
 
   Dreadlands-LostVein-the_nyx:

@@ -76,7 +76,6 @@ public class FishingListener implements Listener {
     private void handleCast(Player player, UUID uuid, org.bukkit.Location hookLocation) {
         clearLavaTask(uuid);
         boolean inLava = isLavaFishingArea(player, hookLocation);
-        logLavaFishingCheck(player, hookLocation, inLava);
         if (!inLava) {
             return;
         }
@@ -272,20 +271,6 @@ public class FishingListener implements Listener {
             }
         }
         return false;
-    }
-
-    private void logLavaFishingCheck(Player player, org.bukkit.Location hookLocation, boolean inLava) {
-        if (player == null) return;
-        String hookBlock = hookLocation != null ? hookLocation.getBlock().getType().name() : "unknown";
-        String belowBlock = hookLocation != null ? hookLocation.getBlock().getRelative(BlockFace.DOWN).getType().name() : "unknown";
-        plugin.getLogger().info(String.format(
-                "[Fishing] Lava check for %s: inLava=%s hook=%s below=%s",
-                player.getName(),
-                inLava,
-                hookBlock,
-                belowBlock));
-        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
-                ChatColor.GRAY + "Lava fishing check: " + (inLava ? ChatColor.GREEN + "IN LAVA" : ChatColor.RED + "NOT IN LAVA"));
     }
 
     private boolean isLavaBlock(Block block) {
