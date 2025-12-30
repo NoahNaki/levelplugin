@@ -31,6 +31,11 @@ public final class LifeSkillRewardsGUI {
             17, 26, 35
     };
 
+    private static final int PREVIOUS_SLOT = 45;
+    private static final int NEXT_SLOT = 53;
+    private static final int BACK_SLOT = 49;
+    private static final int FISHING_CATALOG_SLOT = 50;
+
     private static final NamespacedKey LEVEL_KEY = new NamespacedKey(Main.getInstance(), "lifeskill_reward_level");
 
     private LifeSkillRewardsGUI() {}
@@ -42,25 +47,48 @@ public final class LifeSkillRewardsGUI {
     }
 
     public static ToolDiscipline disciplineFromTitle(String title) {
+        String base = baseTitle(title);
         for (ToolDiscipline discipline : ToolDiscipline.values()) {
-            if (titleFor(discipline).equals(title)) {
+            if (titleFor(discipline).equals(base)) {
                 return discipline;
             }
         }
         return null;
     }
 
+    public static int pageFromTitle(String title) {
+        if (title == null) return 0;
+        int idx = title.lastIndexOf(" (Page ");
+        if (idx < 0) return 0;
+        int end = title.indexOf(")", idx);
+        if (end < 0) return 0;
+        String pageLabel = title.substring(idx + 7, end).trim();
+        String[] parts = pageLabel.split("/");
+        String pageStr = parts.length > 0 ? parts[0].trim() : pageLabel;
+        try {
+            return Math.max(0, Integer.parseInt(pageStr) - 1);
+        } catch (NumberFormatException ignored) {
+            return 0;
+        }
+    }
+
     public static void open(Player player, ToolDiscipline discipline) {
-        player.openInventory(create(player, discipline));
+        player.openInventory(create(player, discipline, 0));
     }
 
     public static Inventory create(Player player, ToolDiscipline discipline) {
-        GuiBuilder builder = GuiBuilder.create(54, titleFor(discipline))
-                .filler(Material.GRAY_STAINED_GLASS_PANE)
-                .border();
+        return create(player, discipline, 0);
+    }
 
+    public static Inventory create(Player player, ToolDiscipline discipline, int page) {
         LifeSkillRewardManager rewardManager = LifeSkillRewardManager.getInstance();
         List<LifeSkillReward> rewards = rewardManager.getRewards(discipline);
+        int maxPage = Math.max(0, (rewards.size() - 1) / PATH.length);
+        int clampedPage = Math.max(0, Math.min(page, maxPage));
+
+        GuiBuilder builder = GuiBuilder.create(54, titleFor(discipline) + formatPageSuffix(clampedPage, maxPage))
+                .filler(Material.GRAY_STAINED_GLASS_PANE)
+                .border();
 
         int level = switch (discipline) {
             case MINING -> MiningManager.getInstance().getLevel(player);
@@ -68,10 +96,12 @@ public final class LifeSkillRewardsGUI {
             case FISHING -> FishingManager.getInstance().getLevel(player);
         };
 
+        int startIndex = clampedPage * PATH.length;
         for (int i = 0; i < PATH.length; i++) {
             ItemStack tile;
-            if (i < rewards.size()) {
-                LifeSkillReward reward = rewards.get(i);
+            int rewardIndex = startIndex + i;
+            if (rewardIndex < rewards.size()) {
+                LifeSkillReward reward = rewards.get(rewardIndex);
                 tile = createRewardItem(player, discipline, reward, level,
                         rewardManager.isClaimed(player.getUniqueId(), discipline, reward.levelRequired()));
             } else {
@@ -80,9 +110,15 @@ public final class LifeSkillRewardsGUI {
             builder.setItem(PATH[i], tile);
         }
 
-        builder.setItem(49, createBackButton());
+        if (clampedPage > 0) {
+            builder.setItem(PREVIOUS_SLOT, createPreviousButton());
+        }
+        if (clampedPage < maxPage) {
+            builder.setItem(NEXT_SLOT, createNextButton());
+        }
+        builder.setItem(BACK_SLOT, createBackButton());
         if (discipline == ToolDiscipline.FISHING) {
-            builder.setItem(53, createCatalogButton());
+            builder.setItem(FISHING_CATALOG_SLOT, createCatalogButton());
         }
 
         return builder.build();
@@ -104,6 +140,26 @@ public final class LifeSkillRewardsGUI {
             }
         }
         return -1;
+    }
+
+    public static int pageSize() {
+        return PATH.length;
+    }
+
+    public static int previousSlot() {
+        return PREVIOUS_SLOT;
+    }
+
+    public static int nextSlot() {
+        return NEXT_SLOT;
+    }
+
+    public static int backSlot() {
+        return BACK_SLOT;
+    }
+
+    public static int fishingCatalogSlot() {
+        return FISHING_CATALOG_SLOT;
     }
 
     private static ItemStack createRewardItem(Player player, ToolDiscipline discipline, LifeSkillReward reward,
@@ -173,6 +229,34 @@ public final class LifeSkillRewardsGUI {
         return back;
     }
 
+    private static ItemStack createPreviousButton() {
+        ItemStack prev = GuiUtil.getNexoItem("arrow_left", ChatColor.GREEN + "Previous Page");
+        ItemMeta meta = prev.getItemMeta();
+        if (meta != null) {
+            List<String> lore = new ArrayList<>();
+            lore.add(ChatColor.GRAY + "Return to the previous page.");
+            lore.add("");
+            lore.addAll(TooltipUtil.clickInstructions("to go back", null));
+            meta.setLore(lore);
+            prev.setItemMeta(meta);
+        }
+        return prev;
+    }
+
+    private static ItemStack createNextButton() {
+        ItemStack next = GuiUtil.getNexoItem("arrow_right", ChatColor.GREEN + "Next Page");
+        ItemMeta meta = next.getItemMeta();
+        if (meta != null) {
+            List<String> lore = new ArrayList<>();
+            lore.add(ChatColor.GRAY + "Move to the next page.");
+            lore.add("");
+            lore.addAll(TooltipUtil.clickInstructions("to continue", null));
+            meta.setLore(lore);
+            next.setItemMeta(meta);
+        }
+        return next;
+    }
+
     private static ItemStack createCatalogButton() {
         ItemStack item = GuiUtil.getNexoItem("info", ChatColor.AQUA + "Fishing Catalog");
         ItemMeta meta = item.getItemMeta();
@@ -186,5 +270,15 @@ public final class LifeSkillRewardsGUI {
             item.setItemMeta(meta);
         }
         return item;
+    }
+
+    private static String baseTitle(String title) {
+        if (title == null) return "";
+        int idx = title.lastIndexOf(" (Page ");
+        return idx > 0 ? title.substring(0, idx) : title;
+    }
+
+    private static String formatPageSuffix(int page, int maxPage) {
+        return " (Page " + (page + 1) + "/" + (maxPage + 1) + ")";
     }
 }

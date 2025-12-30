@@ -69,7 +69,17 @@ public class StatsMenuListener implements Listener {
         if (rewardDiscipline != null) {
             event.setCancelled(true);
             Player player = (Player) event.getWhoClicked();
-            if (rewardDiscipline == ToolDiscipline.FISHING && event.getRawSlot() == 53) {
+            int page = LifeSkillRewardsGUI.pageFromTitle(event.getView().getTitle());
+            if (event.getRawSlot() == LifeSkillRewardsGUI.previousSlot()) {
+                player.openInventory(LifeSkillRewardsGUI.create(player, rewardDiscipline, Math.max(0, page - 1)));
+                return;
+            }
+            if (event.getRawSlot() == LifeSkillRewardsGUI.nextSlot()) {
+                player.openInventory(LifeSkillRewardsGUI.create(player, rewardDiscipline, page + 1));
+                return;
+            }
+            if (rewardDiscipline == ToolDiscipline.FISHING
+                    && event.getRawSlot() == LifeSkillRewardsGUI.fishingCatalogSlot()) {
                 FishingCatalogGUI.getInstance().open(player);
                 return;
             }
@@ -77,7 +87,9 @@ public class StatsMenuListener implements Listener {
             if (clickedItem == null || clickedItem.getType() == Material.AIR) return;
 
             ItemMeta meta = clickedItem.getItemMeta();
-            if (meta != null && meta.hasDisplayName() && ChatColor.stripColor(meta.getDisplayName()).equalsIgnoreCase("Back to Skills")) {
+            if (event.getRawSlot() == LifeSkillRewardsGUI.backSlot()
+                    || (meta != null && meta.hasDisplayName()
+                    && ChatColor.stripColor(meta.getDisplayName()).equalsIgnoreCase("Back to Skills"))) {
                 LifeSkillGUI.open(player);
                 return;
             }
@@ -101,12 +113,14 @@ public class StatsMenuListener implements Listener {
 
             if (reward == null) {
                 int rewardIndex = LifeSkillRewardsGUI.indexForSlot(event.getRawSlot());
-                if (rewardIndex < 0 || rewardIndex >= rewards.size()) return;
-                reward = rewards.get(rewardIndex);
+                int pageStart = page * LifeSkillRewardsGUI.pageSize();
+                int resolvedIndex = rewardIndex < 0 ? -1 : pageStart + rewardIndex;
+                if (resolvedIndex < 0 || resolvedIndex >= rewards.size()) return;
+                reward = rewards.get(resolvedIndex);
             }
 
             rewardManager.claimReward(player, rewardDiscipline, reward);
-            player.openInventory(LifeSkillRewardsGUI.create(player, rewardDiscipline));
+            player.openInventory(LifeSkillRewardsGUI.create(player, rewardDiscipline, page));
             return;
         }
 

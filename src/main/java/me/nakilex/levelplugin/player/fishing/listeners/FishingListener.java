@@ -121,7 +121,8 @@ public class FishingListener implements Listener {
         if (success) {
             player.getWorld().playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.9f, 1.2f);
             if (session.inLava && session.rewardOnReel) {
-                awardCatch(player, session.inLava);
+                ItemStack fishItem = awardCatch(player, session.inLava);
+                giveFishItem(player, fishItem);
                 lastRewarded.put(uuid, true);
                 Bukkit.getScheduler().runTaskLater(plugin, () -> lastRewarded.remove(uuid), 40L);
             }
@@ -148,7 +149,7 @@ public class FishingListener implements Listener {
         if (event.getCaught() instanceof Item item) {
             item.setItemStack(fishItem);
         } else {
-            player.getInventory().addItem(fishItem);
+            giveFishItem(player, fishItem);
         }
     }
 
@@ -178,6 +179,17 @@ public class FishingListener implements Listener {
                 + " <glyph:experience_orb_icon> Fishing EXP" + ChatColor.GRAY + ".";
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO, message);
         return fishItem;
+    }
+
+    private void giveFishItem(Player player, ItemStack fishItem) {
+        if (player == null || fishItem == null) {
+            return;
+        }
+        Map<Integer, ItemStack> overflow = player.getInventory().addItem(fishItem);
+        if (!overflow.isEmpty()) {
+            overflow.values().forEach(item ->
+                    player.getWorld().dropItemNaturally(player.getLocation(), item));
+        }
     }
     private ItemStack resolveRod(Player player) {
         ItemStack main = player.getInventory().getItemInMainHand();

@@ -68,7 +68,8 @@ public class LifeSkillRewardManager {
     }
 
     private List<LifeSkillReward> createRewardList(String skillName) {
-        return List.of(
+        List<LifeSkillReward> list = new java.util.ArrayList<>();
+        list.addAll(List.of(
                 coinReward(1, skillName, 200),
                 giftReward(2, skillName, "blossom_bundle"),
                 statReward(3, skillName, StatType.VIT, 1, "+1 Vitality"),
@@ -93,7 +94,27 @@ public class LifeSkillRewardManager {
                 coinReward(22, skillName, 1600),
                 statReward(23, skillName, StatType.AGI, 3, "+3 Agility"),
                 coinReward(24, skillName, 1800)
-        );
+        ));
+
+        List<StatType> statCycle = List.of(StatType.VIT, StatType.STR, StatType.AGI, StatType.DEX, StatType.WIL, StatType.TEC);
+        String[] gifts = {"blossom_bundle", "heroic_token", "adventurers_feast"};
+        int statIndex = 0;
+        int giftIndex = 0;
+        for (int level = 25; level <= 100; level++) {
+            if (level % 15 == 0) {
+                list.add(giftReward(level, skillName, gifts[giftIndex++ % gifts.length]));
+                continue;
+            }
+            if (level % 5 == 0) {
+                StatType stat = statCycle.get(statIndex++ % statCycle.size());
+                int amount = level >= 50 ? 3 : 2;
+                list.add(statReward(level, skillName, stat, amount, "+" + amount + " " + statLabel(stat)));
+                continue;
+            }
+            int coins = 1800 + (level - 24) * 100;
+            list.add(coinReward(level, skillName, coins));
+        }
+        return list;
     }
 
     private LifeSkillReward coinReward(int level, String skillName, int coins) {
@@ -131,6 +152,17 @@ public class LifeSkillRewardManager {
                 player.getInventory().addItem(gift);
             }
         });
+    }
+
+    private String statLabel(StatType stat) {
+        return switch (stat) {
+            case VIT -> "Vitality";
+            case STR -> "Strength";
+            case AGI -> "Agility";
+            case DEX -> "Dexterity";
+            case WIL -> "Will";
+            case TEC -> "Technique";
+        };
     }
 
     private String prettyGiftName(String giftId) {
