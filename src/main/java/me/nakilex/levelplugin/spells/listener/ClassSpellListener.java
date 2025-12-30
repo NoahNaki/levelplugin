@@ -8,6 +8,7 @@ import me.nakilex.levelplugin.player.classes.data.ClassUtil;
 import me.nakilex.levelplugin.spells.Spell;
 import me.nakilex.levelplugin.spells.managers.SpellManager;
 import me.nakilex.levelplugin.spells.managers.CooldownManager;
+import me.nakilex.levelplugin.utils.PotionEffectUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -17,6 +18,7 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerAnimationEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerToggleSneakEvent;
+import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitTask;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.items.data.WeaponType;
@@ -74,6 +76,9 @@ public class ClassSpellListener implements Listener {
     private static final Map<PlayerClass, Map<Trigger, Double>> MANUAL_TRIGGER_COOLDOWNS = new EnumMap<>(PlayerClass.class);
     private static final Map<PlayerClass, Double> BASIC_ATTACK_MIN_COOLDOWNS = new EnumMap<>(PlayerClass.class);
     private static final String ATTACK_COOLDOWN_KEY = "basic_attack";
+    private static final int SWING_LOCK_AMPLIFIER = 4;
+    private static final int MAX_HASTE_AMPLIFIER = 3;
+    private static final int MIN_SWING_TICKS = 6;
     static {
         for (PlayerClass pc : PlayerClass.values()) {
             if (ClassUtil.isArcherFamily(pc)) {
@@ -343,18 +348,48 @@ public class ClassSpellListener implements Listener {
         return StatsManager.getInstance().getPlayerStats(player.getUniqueId()).playerClass;
     }
 
+    private void applySwingCooldownLock(Player player, long remainingMs) {
+        int lockTicks = msToTicks(remainingMs);
+        PotionEffectUtil.applyHiddenEffect(player, PotionEffectType.MINING_FATIGUE, lockTicks, SWING_LOCK_AMPLIFIER);
+        PotionEffectUtil.removeEffect(player, PotionEffectType.HASTE);
+    }
+
+    private void applySwingReadyBoost(Player player, double attackSpeed, int cooldownTicks) {
+        PotionEffectUtil.removeEffect(player, PotionEffectType.MINING_FATIGUE);
+        int hasteTicks = Math.max(4, Math.min(10, cooldownTicks / 4));
+        int hasteAmplifier = Math.max(0, Math.min(MAX_HASTE_AMPLIFIER, (int) Math.floor(attackSpeed * 2) - 1));
+        PotionEffectUtil.applyHiddenEffect(player, PotionEffectType.HASTE, hasteTicks, hasteAmplifier);
+        Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
+            if (!player.isOnline()) {
+                return;
+            }
+            PotionEffectUtil.applyHiddenEffect(player, PotionEffectType.MINING_FATIGUE, cooldownTicks, SWING_LOCK_AMPLIFIER);
+        });
+    }
+
+    private int msToTicks(long ms) {
+        return (int) Math.max(1, Math.ceil(ms / 50.0));
+    }
+
     private boolean tryBasicAttack(Player player, PlayerClass pc) {
         if (player.getAttackCooldown() < 1.0) return false;
         StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
         double cooldown = 1.0 / ps.attackSpeed;
+        double minSwingSeconds = MIN_SWING_TICKS / 20.0;
         Double min = BASIC_ATTACK_MIN_COOLDOWNS.get(pc);
         if (min != null) {
             cooldown = Math.max(cooldown, min);
         }
+        cooldown = Math.max(cooldown, minSwingSeconds);
         CooldownManager cd = CooldownManager.getInstance();
         UUID id = player.getUniqueId();
-        if (cd.isOnCooldown(id, ATTACK_COOLDOWN_KEY)) return false;
+        if (cd.isOnCooldown(id, ATTACK_COOLDOWN_KEY)) {
+            applySwingCooldownLock(player, cd.getRemainingTime(id, ATTACK_COOLDOWN_KEY));
+            return false;
+        }
         cd.setCooldown(id, ATTACK_COOLDOWN_KEY, cooldown);
+        int cooldownTicks = msToTicks((long) (cooldown * 1000.0));
+        applySwingReadyBoost(player, ps.attackSpeed, cooldownTicks);
         player.resetCooldown();
         return true;
     }
