@@ -127,6 +127,9 @@ mobs:
   skeleton_mage:
     model_set: default
 
+  lp_spider_skeleton:
+    model_set: default
+
 
 
 
