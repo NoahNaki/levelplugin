@@ -22,8 +22,10 @@ import org.bukkit.boss.BossBar;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerFishEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.HashMap;
@@ -62,7 +64,7 @@ public class FishingListener implements Listener {
             case FISHING -> handleCast(player, uuid, event.getHook() != null ? event.getHook().getLocation() : null);
             case BITE -> startSession(player, uuid,
                     event.getHook() != null ? event.getHook().getLocation() : null,
-                    event.getHook() != null && isLavaHook(event.getHook().getLocation()),
+                    isLavaFishingArea(player, event.getHook() != null ? event.getHook().getLocation() : null),
                     false);
             case REEL_IN -> handleReel(player, uuid);
             case CAUGHT_FISH -> handleCatch(event, player, uuid);
@@ -73,7 +75,7 @@ public class FishingListener implements Listener {
 
     private void handleCast(Player player, UUID uuid, org.bukkit.Location hookLocation) {
         clearLavaTask(uuid);
-        boolean inLava = isLavaHook(hookLocation);
+        boolean inLava = isLavaFishingArea(player, hookLocation);
         logLavaFishingCheck(player, hookLocation, inLava);
         if (!inLava) {
             return;
@@ -141,7 +143,7 @@ public class FishingListener implements Listener {
             return;
         }
 
-        ItemStack fishItem = awardCatch(player, event.getHook() != null && isLavaHook(event.getHook().getLocation()));
+        ItemStack fishItem = awardCatch(player, isLavaFishingArea(player, event.getHook() != null ? event.getHook().getLocation() : null));
 
         if (event.getCaught() instanceof Item item) {
             item.setItemStack(fishItem);
@@ -236,6 +238,30 @@ public class FishingListener implements Listener {
         return isLavaBlock(block.getRelative(BlockFace.DOWN));
     }
 
+    private boolean isLavaFishingArea(Player player, org.bukkit.Location hookLocation) {
+        if (player == null) return false;
+        if (isLavaHook(hookLocation)) {
+            return true;
+        }
+        return isNearLava(player.getLocation(), 4, 2)
+                || (hookLocation != null && isNearLava(hookLocation, 2, 2));
+    }
+
+    private boolean isNearLava(org.bukkit.Location origin, int radius, int vertical) {
+        if (origin == null || origin.getWorld() == null) return false;
+        Block base = origin.getBlock();
+        for (int dx = -radius; dx <= radius; dx++) {
+            for (int dy = -vertical; dy <= vertical; dy++) {
+                for (int dz = -radius; dz <= radius; dz++) {
+                    if (isLavaBlock(base.getRelative(dx, dy, dz))) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
     private void logLavaFishingCheck(Player player, org.bukkit.Location hookLocation, boolean inLava) {
         if (player == null) return;
         String hookBlock = hookLocation != null ? hookLocation.getBlock().getType().name() : "unknown";
@@ -263,6 +289,25 @@ public class FishingListener implements Listener {
             session.task.cancel();
         }
         session.bar.removeAll();
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onRodReel(PlayerInteractEvent event) {
+        switch (event.getAction()) {
+            case RIGHT_CLICK_AIR, RIGHT_CLICK_BLOCK -> {
+            }
+            default -> {
+                return;
+            }
+        }
+        if (event.getItem() == null || event.getItem().getType() != Material.FISHING_ROD) {
+            return;
+        }
+        UUID uuid = event.getPlayer().getUniqueId();
+        if (!sessions.containsKey(uuid)) {
+            return;
+        }
+        handleReel(event.getPlayer(), uuid);
     }
 
     private void clearLavaTask(UUID uuid) {

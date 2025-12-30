@@ -29,7 +29,7 @@ public class FishingManager {
     private final Map<UUID, java.util.Set<String>> discoveredFish = new HashMap<>();
 
     private final int MAX_LEVEL = 100;
-    private final int XP_PER_LEVEL_MULTIPLIER = 75;
+    private final int XP_PER_LEVEL_MULTIPLIER = 200;
 
     public FishingManager(Main plugin) {
         this.plugin = plugin;

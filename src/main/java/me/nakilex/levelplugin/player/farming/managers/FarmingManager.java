@@ -24,7 +24,7 @@ public class FarmingManager {
     private final Map<UUID, Boolean> activeBars = new HashMap<>();
 
     private final int MAX_LEVEL = 100;
-    private final int XP_PER_LEVEL_MULTIPLIER = 60;
+    private final int XP_PER_LEVEL_MULTIPLIER = 200;
 
     public FarmingManager(Main plugin) {
         this.plugin = plugin;
