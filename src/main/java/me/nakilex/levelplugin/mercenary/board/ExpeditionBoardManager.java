@@ -17,6 +17,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.scheduler.BukkitTask;
 
 import java.io.File;
 import java.io.IOException;
@@ -41,6 +42,7 @@ public class ExpeditionBoardManager {
 
     private final List<ExpeditionBoardLocation> boards = new ArrayList<>();
     private final Map<Integer, Location> placedBoards = new HashMap<>();
+    private BukkitTask pendingSpawnTask;
 
     public ExpeditionBoardManager(Plugin plugin) {
         this.plugin = plugin;
@@ -53,7 +55,7 @@ public class ExpeditionBoardManager {
     public void reload() {
         loadConfig();
         loadBoardsFromConfig();
-        spawnAll();
+        scheduleSpawnAll(20L);
     }
 
     public ItemStack createWand() {
@@ -132,6 +134,11 @@ public class ExpeditionBoardManager {
     }
 
     private void spawnAll() {
+        if (NexoFurniture.furnitureMechanic(FURNITURE_ID) == null) {
+            logger.warning("[ExpeditionBoardManager] Furniture ID '" + FURNITURE_ID + "' is missing. Retrying spawn shortly.");
+            scheduleSpawnAll(20L);
+            return;
+        }
         clearPlacedBoards();
         for (ExpeditionBoardLocation board : boards) {
             spawnBoard(board);
@@ -160,6 +167,16 @@ public class ExpeditionBoardManager {
         Location centered = LocationUtils.centerOnBlock(location);
         NexoFurniture.place(FURNITURE_ID, centered, 0f, board.facing());
         placedBoards.put(board.id(), location.getBlock().getLocation());
+    }
+
+    private void scheduleSpawnAll(long delayTicks) {
+        if (pendingSpawnTask != null) {
+            pendingSpawnTask.cancel();
+        }
+        pendingSpawnTask = plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            pendingSpawnTask = null;
+            spawnAll();
+        }, delayTicks);
     }
 
     private void removeBoardEntities(ExpeditionBoardLocation board) {
