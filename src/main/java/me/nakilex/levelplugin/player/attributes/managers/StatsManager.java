@@ -27,7 +27,7 @@ public class StatsManager {
     public static final double HEALTH_PER_VITALITY = 0.4;
     public static final double HEALTH_PER_STRENGTH = 0.1;
     private static final double REGEN_STAT_DIVISOR = 25.0;
-    private static final int[] ESSENCE_SLOT_UNLOCK_LEVELS = {1, 25, 50};
+    private static final int ESSENCE_SLOT_THREE_LEVEL = 50;
 
     public StatsManager() {}
 
@@ -44,25 +44,41 @@ public class StatsManager {
     }
 
     public int getUnlockedEssenceSlots(Player player) {
-        int level = getLevel(player);
-        int unlocked = 0;
-        for (int requirement : ESSENCE_SLOT_UNLOCK_LEVELS) {
-            if (level >= requirement) {
-                unlocked++;
-            }
+        PlayerStats stats = getPlayerStats(player.getUniqueId());
+        int unlocked = 1;
+        if (stats.secondEssenceSlotUnlocked) {
+            unlocked++;
         }
-        return Math.min(unlocked, ESSENCE_SLOT_UNLOCK_LEVELS.length);
+        if (getLevel(player) >= ESSENCE_SLOT_THREE_LEVEL) {
+            unlocked++;
+        }
+        return Math.min(unlocked, stats.essenceSlots.length);
     }
 
     public boolean isEssenceSlotUnlocked(Player player, int slotIndex) {
-        return getLevel(player) >= getEssenceSlotUnlockLevel(slotIndex);
+        PlayerStats stats = getPlayerStats(player.getUniqueId());
+        return switch (slotIndex) {
+            case 0 -> true;
+            case 1 -> stats.secondEssenceSlotUnlocked;
+            case 2 -> getLevel(player) >= ESSENCE_SLOT_THREE_LEVEL;
+            default -> false;
+        };
     }
 
     public int getEssenceSlotUnlockLevel(int slotIndex) {
-        if (slotIndex < 0 || slotIndex >= ESSENCE_SLOT_UNLOCK_LEVELS.length) {
-            return Integer.MAX_VALUE;
+        if (slotIndex == 2) {
+            return ESSENCE_SLOT_THREE_LEVEL;
         }
-        return ESSENCE_SLOT_UNLOCK_LEVELS[slotIndex];
+        return Integer.MAX_VALUE;
+    }
+
+    public void unlockSecondEssenceSlot(UUID uuid) {
+        PlayerStats stats = getPlayerStats(uuid);
+        stats.secondEssenceSlotUnlocked = true;
+    }
+
+    public boolean hasSecondEssenceSlotUnlocked(UUID uuid) {
+        return getPlayerStats(uuid).secondEssenceSlotUnlocked;
     }
 
     public Set<Integer> getEquippedItems(UUID playerUuid) {
@@ -375,6 +391,7 @@ public class StatsManager {
         // Up to three slotted class essences for this player
         public final org.bukkit.inventory.ItemStack[] essenceSlots = new org.bukkit.inventory.ItemStack[3];
         public final boolean[] equippedEssences = new boolean[3];
+        public boolean secondEssenceSlotUnlocked = false;
 
         public PlayerStats() {
             unlockedClasses.add(playerClass);

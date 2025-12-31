@@ -19,6 +19,14 @@ public class PlayerSettings {
     private boolean fullInventoryTitle = true;
     private boolean boosterBossBarEnabled = true;
     private boolean questTrackingParticles = true;
+    private static final ItemRarity[] LOOT_PICKUP_RARITIES = {
+            ItemRarity.COMMON,
+            ItemRarity.UNCOMMON,
+            ItemRarity.RARE,
+            ItemRarity.EPIC,
+            ItemRarity.LEGENDARY
+    };
+
     private ItemRarity lootPickupRarity = ItemRarity.COMMON;
 
     public boolean isDmgChatEnabled() {
@@ -142,9 +150,19 @@ public class PlayerSettings {
         return lootPickupRarity;
     }
 
+    public ItemRarity[] getLootPickupRarities() {
+        return LOOT_PICKUP_RARITIES.clone();
+    }
+
     public void cycleLootPickupRarity(boolean forward) {
-        ItemRarity[] rarities = ItemRarity.values();
-        int idx = lootPickupRarity.ordinal();
+        ItemRarity[] rarities = LOOT_PICKUP_RARITIES;
+        int idx = 0;
+        for (int i = 0; i < rarities.length; i++) {
+            if (rarities[i] == lootPickupRarity) {
+                idx = i;
+                break;
+            }
+        }
         idx = forward ? idx + 1 : idx - 1;
         if (idx < 0) {
             idx = rarities.length - 1;

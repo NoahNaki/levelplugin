@@ -108,6 +108,7 @@ public class PlayerConfig {
             equippedList.add(equipped);
         }
         config.set(path + ".essences.equipped", equippedList);
+        config.set(path + ".essences.slot2_unlocked", stats.secondEssenceSlotUnlocked);
 
         BattlePassManager battlePass = Main.getInstance().getBattlePassManager();
         if (battlePass != null) {
@@ -198,6 +199,7 @@ public class PlayerConfig {
         for (int i = 0; i < Math.min(stats.equippedEssences.length, equipped.size()); i++) {
             stats.equippedEssences[i] = equipped.get(i);
         }
+        stats.secondEssenceSlotUnlocked = config.getBoolean(root + ".essences.slot2_unlocked", false);
 
         BattlePassManager battlePass = Main.getInstance().getBattlePassManager();
         if (battlePass != null) {

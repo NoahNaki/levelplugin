@@ -152,10 +152,7 @@ public class LevelManager {
 
     private void handleEssenceSlotUnlock(Player player, int newLevel) {
         StatsManager statsManager = StatsManager.getInstance();
-        if (newLevel == statsManager.getEssenceSlotUnlockLevel(1)) {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                    "You unlocked your second Essence Slot!");
-        } else if (newLevel == statsManager.getEssenceSlotUnlockLevel(2)) {
+        if (newLevel == statsManager.getEssenceSlotUnlockLevel(2)) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
                     "You unlocked your third Essence Slot!");
         }

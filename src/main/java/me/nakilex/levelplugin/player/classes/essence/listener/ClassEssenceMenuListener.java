@@ -44,9 +44,15 @@ public class ClassEssenceMenuListener implements Listener {
         StatsManager.PlayerStats ps = statsManager.getPlayerStats(player.getUniqueId());
 
         if (!statsManager.isEssenceSlotUnlocked(player, idx)) {
-            int required = statsManager.getEssenceSlotUnlockLevel(idx);
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
-                    "Reach level " + ChatColor.YELLOW + required + ChatColor.RED + " to unlock this Essence Slot.");
+            if (idx == 1) {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                        "Complete " + ChatColor.YELLOW + "Essence Weaver's Lesson"
+                                + ChatColor.RED + " to unlock this Essence Slot.");
+            } else {
+                int required = statsManager.getEssenceSlotUnlockLevel(idx);
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                        "Reach level " + ChatColor.YELLOW + required + ChatColor.RED + " to unlock this Essence Slot.");
+            }
             return;
         }
 

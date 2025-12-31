@@ -6,7 +6,9 @@ import me.nakilex.levelplugin.party.PartyManager;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
+import me.nakilex.levelplugin.quests.def.EssenceWeaversLessonQuest;
 import me.nakilex.levelplugin.utils.ChatFormatter;
+import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.quests.util.QuestMessageUtil;
 import me.nakilex.levelplugin.mob.utils.MobNameUtil;
 import me.nakilex.levelplugin.quests.data.*;
@@ -891,6 +893,25 @@ public class QuestManager {
             plugin.getLogger().info("[QuestDebug] " + player.getName() + " swapped essences");
         }
         updateObjective(player, QuestObjectiveType.ESSENCE_SWAP, "ANY", 1);
+        maybeUnlockSecondEssenceSlot(player);
+    }
+
+    private void maybeUnlockSecondEssenceSlot(Player player) {
+        if (player == null) {
+            return;
+        }
+        UUID playerId = player.getUniqueId();
+        StatsManager statsManager = StatsManager.getInstance();
+        if (statsManager.hasSecondEssenceSlotUnlocked(playerId)) {
+            return;
+        }
+        PlayerQuestProgress progress = getProgress(playerId, EssenceWeaversLessonQuest.ID);
+        if (progress == null) {
+            return;
+        }
+        statsManager.unlockSecondEssenceSlot(playerId);
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
+                "You unlocked your second Essence Slot!");
     }
 
     public void handleEnchant(Player player) {

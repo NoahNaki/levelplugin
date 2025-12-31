@@ -175,7 +175,7 @@ public class SettingsGUI implements Listener {
         }
 
         if (filter == Filter.ALL || filter == Filter.COMBAT) {
-            gui.setItem(LOOT_FILTER_SLOT, createLootPickupFilterItem(playerSettings.getLootPickupRarity()));
+            gui.setItem(LOOT_FILTER_SLOT, createLootPickupFilterItem(playerSettings));
         }
 
         gui.setItem(FILTER_SLOT, createFilterItem(filter));
@@ -248,7 +248,8 @@ public class SettingsGUI implements Listener {
         return it;
     }
 
-    private ItemStack createLootPickupFilterItem(ItemRarity rarity) {
+    private ItemStack createLootPickupFilterItem(PlayerSettings settings) {
+        ItemRarity rarity = settings.getLootPickupRarity();
         ItemStack it = GuiUtil.getRarityArrowItem(rarity, ChatColor.AQUA + "Loot Pickup Filter");
         ItemMeta meta = it.getItemMeta();
         if (meta != null) {
@@ -257,7 +258,7 @@ public class SettingsGUI implements Listener {
             lore.add(ChatColor.DARK_GRAY + "Pick up armor & weapons");
             lore.add(ChatColor.DARK_GRAY + "of this rarity or higher.");
             lore.add(" ");
-            ItemRarity[] rarities = ItemRarity.values();
+            ItemRarity[] rarities = settings.getLootPickupRarities();
             for (ItemRarity entry : rarities) {
                 String label = entry.getColor() + formatRarityLabel(entry);
                 lore.add(TooltipUtil.selectionLine(entry == rarity, label));
@@ -386,7 +387,7 @@ public class SettingsGUI implements Listener {
             if (event.isLeftClick() || event.isRightClick()) {
                 settings.cycleLootPickupRarity(event.isLeftClick());
                 event.getInventory().setItem(LOOT_FILTER_SLOT,
-                        createLootPickupFilterItem(settings.getLootPickupRarity()));
+                        createLootPickupFilterItem(settings));
             }
         }
     }
