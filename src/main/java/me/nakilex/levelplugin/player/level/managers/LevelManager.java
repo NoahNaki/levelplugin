@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.booster.BoosterType;
 import me.nakilex.levelplugin.booster.GlobalBoosterManager;
+import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
@@ -101,6 +102,7 @@ public class LevelManager {
                 applyLevelUpBenefits(player, level);
                 StatsManager.getInstance().addSkillPoints(uuid, 3);
                 XPBarHandler.handleLevelUpEvent(player, level, xpNeeded);
+                handleEssenceSlotUnlock(player, level);
             }
 
             xpNeeded = getXpRequired(level);
@@ -146,6 +148,14 @@ public class LevelManager {
     private void applyLevelUpBenefits(Player player, int newLevel) {
         double newMaxHealth = player.getMaxHealth() + 1.0;
         player.setMaxHealth(Math.min(newMaxHealth, 40.0));
+    }
+
+    private void handleEssenceSlotUnlock(Player player, int newLevel) {
+        StatsManager statsManager = StatsManager.getInstance();
+        if (newLevel == statsManager.getEssenceSlotUnlockLevel(2)) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
+                    "You unlocked your third Essence Slot!");
+        }
     }
 
     // --- Getters & Setters ---

@@ -86,6 +86,19 @@ public final class TooltipUtil {
     }
 
     /**
+     * Generate a standard selection line for filter/sort menus.
+     *
+     * @param selected whether this option is the active selection
+     * @param label    display text for the option
+     * @return formatted selection line
+     */
+    public static String selectionLine(boolean selected, String label) {
+        ChatColor color = selected ? ChatColor.WHITE : ChatColor.GRAY;
+        ChatColor bullet = selected ? ChatColor.GREEN : ChatColor.DARK_GRAY;
+        return bullet + "- " + color + label;
+    }
+
+    /**
      * Generate standard lore for quest items so they share the same divider and
      * label styling everywhere.
      *

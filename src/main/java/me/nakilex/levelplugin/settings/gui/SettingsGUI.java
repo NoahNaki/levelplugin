@@ -8,8 +8,11 @@ import me.nakilex.levelplugin.leaderboards.LeaderboardType;
 import me.nakilex.levelplugin.player.attributes.gui.StatsInventory;
 import me.nakilex.levelplugin.mob.managers.ChatToggleManager;
 import me.nakilex.levelplugin.utils.GuiUtil;
+import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.ToggleFeedbackUtil;
+import me.nakilex.levelplugin.items.data.ItemRarity;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -28,6 +31,7 @@ public class SettingsGUI implements Listener {
 
     private static final int GUI_SIZE = 45;
     private static final int FILTER_SLOT = 36;
+    private static final int LOOT_FILTER_SLOT = 32;
 
     private final SettingsManager settingsManager;
     private final Map<UUID, Filter> filters = new HashMap<>();
@@ -170,6 +174,10 @@ public class SettingsGUI implements Listener {
             ));
         }
 
+        if (filter == Filter.ALL || filter == Filter.COMBAT) {
+            gui.setItem(LOOT_FILTER_SLOT, createLootPickupFilterItem(playerSettings));
+        }
+
         gui.setItem(FILTER_SLOT, createFilterItem(filter));
 
         // Filler border
@@ -238,6 +246,35 @@ public class SettingsGUI implements Listener {
             it.setItemMeta(meta);
         }
         return it;
+    }
+
+    private ItemStack createLootPickupFilterItem(PlayerSettings settings) {
+        ItemRarity rarity = settings.getLootPickupRarity();
+        ItemStack it = GuiUtil.getRarityArrowItem(rarity, ChatColor.AQUA + "Loot Pickup Filter");
+        ItemMeta meta = it.getItemMeta();
+        if (meta != null) {
+            List<String> lore = new ArrayList<>();
+            lore.add(ChatColor.GRAY + "");
+            lore.add(ChatColor.DARK_GRAY + "Pick up armor & weapons");
+            lore.add(ChatColor.DARK_GRAY + "of this rarity or higher.");
+            lore.add(" ");
+            ItemRarity[] rarities = settings.getLootPickupRarities();
+            for (ItemRarity entry : rarities) {
+                String label = entry.getColor() + formatRarityLabel(entry);
+                lore.add(TooltipUtil.selectionLine(entry == rarity, label));
+            }
+            lore.add(" ");
+            lore.add(ChatColor.WHITE + "Left-Click " + ChatColor.GRAY + "to go forward");
+            lore.add(ChatColor.WHITE + "Right-Click " + ChatColor.GRAY + "to go backward");
+            meta.setLore(lore);
+            it.setItemMeta(meta);
+        }
+        return it;
+    }
+
+    private String formatRarityLabel(ItemRarity rarity) {
+        String name = rarity.name().toLowerCase(Locale.ROOT);
+        return name.substring(0, 1).toUpperCase(Locale.ROOT) + name.substring(1);
     }
 
     @EventHandler
@@ -346,6 +383,12 @@ public class SettingsGUI implements Listener {
             settings.toggleQuestTrackingParticles();
             updateSettingItem(event.getInventory(), 30,
                 settings.isQuestTrackingParticlesEnabled(), "§bQuest Path Particles", "");
+        } else if (slot == LOOT_FILTER_SLOT) {
+            if (event.isLeftClick() || event.isRightClick()) {
+                settings.cycleLootPickupRarity(event.isLeftClick());
+                event.getInventory().setItem(LOOT_FILTER_SLOT,
+                        createLootPickupFilterItem(settings));
+            }
         }
     }
 }

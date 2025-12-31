@@ -3,7 +3,7 @@ package me.nakilex.levelplugin.player.classes.essence.listener;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.classes.essence.ClassEssence;
 import me.nakilex.levelplugin.player.classes.essence.gui.ClassEssenceGUI;
-import me.nakilex.levelplugin.utils.GuiUtil;
+import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -40,7 +40,21 @@ public class ClassEssenceMenuListener implements Listener {
         if (idx == -1) return;
 
         Player player = (Player) event.getWhoClicked();
-        StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
+        StatsManager statsManager = StatsManager.getInstance();
+        StatsManager.PlayerStats ps = statsManager.getPlayerStats(player.getUniqueId());
+
+        if (!statsManager.isEssenceSlotUnlocked(player, idx)) {
+            if (idx == 1) {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                        "Complete " + ChatColor.YELLOW + "Essence Weaver's Lesson"
+                                + ChatColor.RED + " to unlock this Essence Slot.");
+            } else {
+                int required = statsManager.getEssenceSlotUnlockLevel(idx);
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                        "Reach level " + ChatColor.YELLOW + required + ChatColor.RED + " to unlock this Essence Slot.");
+            }
+            return;
+        }
 
         ItemStack current = event.getCurrentItem();
         ItemStack cursor = event.getCursor();
@@ -76,8 +90,15 @@ public class ClassEssenceMenuListener implements Listener {
     public void onClose(InventoryCloseEvent event) {
         if (!ClassEssenceGUI.TITLE.equals(event.getView().getTitle())) return;
         Player player = (Player) event.getPlayer();
-        StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
-        for (int i = 0; i < 3; i++) {
+        StatsManager statsManager = StatsManager.getInstance();
+        StatsManager.PlayerStats ps = statsManager.getPlayerStats(player.getUniqueId());
+        int unlockedSlots = statsManager.getUnlockedEssenceSlots(player);
+        for (int i = 0; i < ps.essenceSlots.length; i++) {
+            if (i >= unlockedSlots) {
+                ps.essenceSlots[i] = null;
+                ps.equippedEssences[i] = false;
+                continue;
+            }
             ItemStack item = event.getInventory().getItem(ClassEssenceGUI.slotFromIndex(i));
             if (item != null && ClassEssence.isEssence(item)) {
                 ClassEssence.updateLore(item);

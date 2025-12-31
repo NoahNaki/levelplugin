@@ -1,5 +1,6 @@
 package me.nakilex.levelplugin.settings.data;
 
+import me.nakilex.levelplugin.items.data.ItemRarity;
 import me.nakilex.levelplugin.settings.data.PlayerVisibility;
 
 public class PlayerSettings {
@@ -18,6 +19,15 @@ public class PlayerSettings {
     private boolean fullInventoryTitle = true;
     private boolean boosterBossBarEnabled = true;
     private boolean questTrackingParticles = true;
+    private static final ItemRarity[] LOOT_PICKUP_RARITIES = {
+            ItemRarity.COMMON,
+            ItemRarity.UNCOMMON,
+            ItemRarity.RARE,
+            ItemRarity.EPIC,
+            ItemRarity.LEGENDARY
+    };
+
+    private ItemRarity lootPickupRarity = ItemRarity.COMMON;
 
     public boolean isDmgChatEnabled() {
         return dmgChat;
@@ -134,5 +144,38 @@ public class PlayerSettings {
 
     public void toggleQuestTrackingParticles() {
         questTrackingParticles = !questTrackingParticles;
+    }
+
+    public ItemRarity getLootPickupRarity() {
+        return lootPickupRarity;
+    }
+
+    public ItemRarity[] getLootPickupRarities() {
+        return LOOT_PICKUP_RARITIES.clone();
+    }
+
+    public void cycleLootPickupRarity(boolean forward) {
+        ItemRarity[] rarities = LOOT_PICKUP_RARITIES;
+        int idx = 0;
+        for (int i = 0; i < rarities.length; i++) {
+            if (rarities[i] == lootPickupRarity) {
+                idx = i;
+                break;
+            }
+        }
+        idx = forward ? idx + 1 : idx - 1;
+        if (idx < 0) {
+            idx = rarities.length - 1;
+        } else if (idx >= rarities.length) {
+            idx = 0;
+        }
+        lootPickupRarity = rarities[idx];
+    }
+
+    public boolean isLootPickupAllowed(ItemRarity rarity) {
+        if (rarity == null || lootPickupRarity == null) {
+            return true;
+        }
+        return rarity.ordinal() >= lootPickupRarity.ordinal();
     }
 }

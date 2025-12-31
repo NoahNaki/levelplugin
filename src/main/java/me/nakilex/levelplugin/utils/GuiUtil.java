@@ -7,6 +7,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import me.nakilex.levelplugin.items.data.ItemRarity;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
 
 import java.util.ArrayList;
@@ -51,6 +52,29 @@ public final class GuiUtil {
             item.setItemMeta(meta);
         }
         return item;
+    }
+
+    /**
+     * Build a rarity arrow item using the salvage GUI arrow icons.
+     */
+    public static ItemStack getRarityArrowItem(ItemRarity rarity, String name) {
+        return getNexoItem(getRarityArrowId(rarity), name);
+    }
+
+    /**
+     * Map an item rarity to a Nexo arrow icon id.
+     */
+    public static String getRarityArrowId(ItemRarity rarity) {
+        if (rarity == null) {
+            return "arrow_common";
+        }
+        return switch (rarity) {
+            case COMMON -> "arrow_common";
+            case UNCOMMON -> "arrow_uncommon";
+            case RARE -> "arrow_rare";
+            case EPIC -> "arrow_epic";
+            case LEGENDARY, MYTHIC, FABLED -> "arrow_legendary";
+        };
     }
 
     /**

@@ -1,6 +1,10 @@
 package me.nakilex.levelplugin.items.listeners;
 
+import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
+import me.nakilex.levelplugin.settings.data.PlayerSettings;
+import me.nakilex.levelplugin.settings.managers.SettingsManager;
+import me.nakilex.levelplugin.items.data.ItemRarity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -22,6 +26,17 @@ public class PickupCustomItemListener implements Listener {
         if (!(event.getEntity() instanceof Player)) return;
         Player player = (Player) event.getEntity();
         ItemStack picked = event.getItem().getItemStack();
+
+        SettingsManager settingsManager = Main.getInstance().getSettingsManager();
+        if (settingsManager != null) {
+            PlayerSettings settings = settingsManager.getSettings(player);
+            ItemRarity rarity = ItemUtil.getCustomItemRarity(picked);
+            if (rarity != null && ItemUtil.isWeaponOrArmor(picked)
+                    && !settings.isLootPickupAllowed(rarity)) {
+                event.setCancelled(true);
+                return;
+            }
+        }
 
         // only care about your CustomItems or custom mining tools
         boolean isCustomItem = picked.hasItemMeta()

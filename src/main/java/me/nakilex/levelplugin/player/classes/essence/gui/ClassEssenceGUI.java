@@ -22,8 +22,14 @@ public class ClassEssenceGUI {
         Inventory inv = GuiBuilder.create(27, TITLE)
                 .filler(Material.GRAY_STAINED_GLASS_PANE)
                 .build();
-        StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
+        StatsManager statsManager = StatsManager.getInstance();
+        StatsManager.PlayerStats ps = statsManager.getPlayerStats(player.getUniqueId());
+        int unlockedSlots = statsManager.getUnlockedEssenceSlots(player);
         for (int i = 0; i < ESSENCE_SLOTS.length; i++) {
+            if (i >= unlockedSlots) {
+                inv.setItem(ESSENCE_SLOTS[i], GuiUtil.getNexoItem("lock", ChatColor.RED + "Locked"));
+                continue;
+            }
             ItemStack essence = ps.essenceSlots[i];
             if (essence != null) {
                 if (ps.equippedEssences[i]) {
