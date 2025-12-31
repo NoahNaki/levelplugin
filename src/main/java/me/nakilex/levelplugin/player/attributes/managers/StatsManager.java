@@ -27,6 +27,7 @@ public class StatsManager {
     public static final double HEALTH_PER_VITALITY = 0.4;
     public static final double HEALTH_PER_STRENGTH = 0.1;
     private static final double REGEN_STAT_DIVISOR = 25.0;
+    private static final int[] ESSENCE_SLOT_UNLOCK_LEVELS = {1, 25, 50};
 
     public StatsManager() {}
 
@@ -40,6 +41,28 @@ public class StatsManager {
             return 1;
         }
         return levelManager.getLevel(player);
+    }
+
+    public int getUnlockedEssenceSlots(Player player) {
+        int level = getLevel(player);
+        int unlocked = 0;
+        for (int requirement : ESSENCE_SLOT_UNLOCK_LEVELS) {
+            if (level >= requirement) {
+                unlocked++;
+            }
+        }
+        return Math.min(unlocked, ESSENCE_SLOT_UNLOCK_LEVELS.length);
+    }
+
+    public boolean isEssenceSlotUnlocked(Player player, int slotIndex) {
+        return getLevel(player) >= getEssenceSlotUnlockLevel(slotIndex);
+    }
+
+    public int getEssenceSlotUnlockLevel(int slotIndex) {
+        if (slotIndex < 0 || slotIndex >= ESSENCE_SLOT_UNLOCK_LEVELS.length) {
+            return Integer.MAX_VALUE;
+        }
+        return ESSENCE_SLOT_UNLOCK_LEVELS[slotIndex];
     }
 
     public Set<Integer> getEquippedItems(UUID playerUuid) {

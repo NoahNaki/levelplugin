@@ -6,6 +6,7 @@ import me.nakilex.levelplugin.storage.data.FileHandler;
 import me.nakilex.levelplugin.storage.events.StorageEvents;
 import com.nexomc.nexo.api.NexoItems;
 import com.nexomc.nexo.items.ItemBuilder;
+import me.nakilex.levelplugin.utils.TooltipUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -315,9 +316,7 @@ public class StorageGUI {
     }
 
     private static String rangeLine(int index, int current, String label) {
-        ChatColor color = (index == current) ? ChatColor.WHITE : ChatColor.GRAY;
-        ChatColor bullet = (index == current) ? ChatColor.GREEN : ChatColor.DARK_GRAY;
-        return bullet + "- " + color + label;
+        return TooltipUtil.selectionLine(index == current, label);
     }
 
     private ItemStack createSortButton(int mode) {

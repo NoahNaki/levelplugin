@@ -564,6 +564,52 @@ public class ItemUtil {
     }
 
     /**
+     * Resolve the original template material for a custom item, falling back
+     * to the current material when no template is stored.
+     */
+    public static Material getTemplateMaterial(ItemStack stack) {
+        if (stack == null) return null;
+        Material material = stack.getType();
+        if (!stack.hasItemMeta()) {
+            return material;
+        }
+        ItemMeta meta = stack.getItemMeta();
+        if (meta == null) {
+            return material;
+        }
+        PersistentDataContainer pdc = meta.getPersistentDataContainer();
+        if (pdc.has(TEMPLATE_MATERIAL_KEY, PersistentDataType.STRING)) {
+            String stored = pdc.get(TEMPLATE_MATERIAL_KEY, PersistentDataType.STRING);
+            if (stored != null) {
+                try {
+                    material = Material.valueOf(stored);
+                } catch (IllegalArgumentException ignored) {
+                }
+            }
+        }
+        return material;
+    }
+
+    /**
+     * Check whether the stack represents a weapon or armor item.
+     */
+    public static boolean isWeaponOrArmor(ItemStack stack) {
+        Material material = getTemplateMaterial(stack);
+        if (material == null) return false;
+        ItemStack probe = new ItemStack(material);
+        return WeaponType.matchType(probe) != null || ArmorType.matchType(probe) != null;
+    }
+
+    /**
+     * Return the rarity for a custom item stack, or null if not a custom item.
+     */
+    public static ItemRarity getCustomItemRarity(ItemStack stack) {
+        if (stack == null) return null;
+        CustomItem item = ItemManager.getInstance().getCustomItemFromItemStack(stack);
+        return item != null ? item.getRarity() : null;
+    }
+
+    /**
      * Checks whether an ItemStack can be placed into the salvage GUI.
      * Accepts any custom item or potion (including vanilla potions).
      */

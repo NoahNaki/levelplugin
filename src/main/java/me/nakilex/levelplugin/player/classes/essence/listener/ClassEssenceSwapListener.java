@@ -20,10 +20,13 @@ public class ClassEssenceSwapListener implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onSwap(PlayerSwapHandItemsEvent event) {
         Player player = event.getPlayer();
-        StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
+        StatsManager statsManager = StatsManager.getInstance();
+        StatsManager.PlayerStats ps = statsManager.getPlayerStats(player.getUniqueId());
+        int unlockedSlots = statsManager.getUnlockedEssenceSlots(player);
 
         int totalEssences = 0;
-        for (ItemStack essence : ps.essenceSlots) {
+        for (int i = 0; i < unlockedSlots; i++) {
+            ItemStack essence = ps.essenceSlots[i];
             if (essence != null && ClassEssence.isEssence(essence)) {
                 totalEssences++;
             }
@@ -36,14 +39,14 @@ public class ClassEssenceSwapListener implements Listener {
         event.setCancelled(true);
 
         int currentIdx = -1;
-        for (int i = 0; i < ps.equippedEssences.length; i++) {
+        for (int i = 0; i < unlockedSlots; i++) {
             if (ps.equippedEssences[i]) {
                 currentIdx = i;
                 break;
             }
         }
 
-        int nextIdx = findNext(ps, currentIdx);
+        int nextIdx = findNext(ps, currentIdx, unlockedSlots);
         if (nextIdx < 0 || nextIdx == currentIdx) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "No other essences to swap to.");
             return;
@@ -71,8 +74,8 @@ public class ClassEssenceSwapListener implements Listener {
         }
     }
 
-    private int findNext(StatsManager.PlayerStats ps, int currentIdx) {
-        int count = ps.essenceSlots.length;
+    private int findNext(StatsManager.PlayerStats ps, int currentIdx, int unlockedSlots) {
+        int count = Math.max(0, unlockedSlots);
         for (int offset = 1; offset <= count; offset++) {
             int check = (currentIdx + offset + count) % count;
             ItemStack stack = ps.essenceSlots[check];

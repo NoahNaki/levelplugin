@@ -166,6 +166,7 @@ public class MythicMobRewardListener implements Listener {
             int awardedExp = ExperienceUtil.applyPartyBonus(scaledExp, partySize);
             levelManager.addXP(player, awardedExp);
             economyManager.addCoins(player, coins);
+            var settings = Main.getInstance().getSettingsManager().getSettings(player);
             itemDropper.dropCustomItems(player, node, modelSet, combatPower, mobLevel, forceDrops);
             itemDropper.maybeDropEssence(player, node);
             double gearDropBonus = GamblersGambitQuest.resolveDropBonus(player);
@@ -175,12 +176,17 @@ public class MythicMobRewardListener implements Listener {
                 ItemStack loot = lootChestManager.getRandomLootForCombatPower(combatPower, mobLevel, mobType, modelSet);
                 if (loot != null) {
                     ItemUtil.updateTooltip(loot, player);
-                    player.getInventory().addItem(loot).values()
-                            .forEach(i -> player.getWorld().dropItemNaturally(player.getLocation(), i));
+                    var rarity = ItemUtil.getCustomItemRarity(loot);
+                    if (rarity != null && ItemUtil.isWeaponOrArmor(loot)
+                            && !settings.isLootPickupAllowed(rarity)) {
+                        player.getWorld().dropItemNaturally(player.getLocation(), loot);
+                    } else {
+                        player.getInventory().addItem(loot).values()
+                                .forEach(i -> player.getWorld().dropItemNaturally(player.getLocation(), i));
+                    }
                 }
             }
             itemDropper.maybeDropRerollScroll(player);
-            var settings = Main.getInstance().getSettingsManager().getSettings(player);
             if (settings.isDropDetailsEnabled()) {
                 RewardHologramUtil.showRewardHologram(deathLoc, awardedExp, coins);
             }

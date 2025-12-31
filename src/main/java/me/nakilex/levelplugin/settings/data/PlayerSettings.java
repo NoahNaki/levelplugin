@@ -1,5 +1,6 @@
 package me.nakilex.levelplugin.settings.data;
 
+import me.nakilex.levelplugin.items.data.ItemRarity;
 import me.nakilex.levelplugin.settings.data.PlayerVisibility;
 
 public class PlayerSettings {
@@ -18,6 +19,7 @@ public class PlayerSettings {
     private boolean fullInventoryTitle = true;
     private boolean boosterBossBarEnabled = true;
     private boolean questTrackingParticles = true;
+    private ItemRarity lootPickupRarity = ItemRarity.COMMON;
 
     public boolean isDmgChatEnabled() {
         return dmgChat;
@@ -134,5 +136,28 @@ public class PlayerSettings {
 
     public void toggleQuestTrackingParticles() {
         questTrackingParticles = !questTrackingParticles;
+    }
+
+    public ItemRarity getLootPickupRarity() {
+        return lootPickupRarity;
+    }
+
+    public void cycleLootPickupRarity(boolean forward) {
+        ItemRarity[] rarities = ItemRarity.values();
+        int idx = lootPickupRarity.ordinal();
+        idx = forward ? idx + 1 : idx - 1;
+        if (idx < 0) {
+            idx = rarities.length - 1;
+        } else if (idx >= rarities.length) {
+            idx = 0;
+        }
+        lootPickupRarity = rarities[idx];
+    }
+
+    public boolean isLootPickupAllowed(ItemRarity rarity) {
+        if (rarity == null || lootPickupRarity == null) {
+            return true;
+        }
+        return rarity.ordinal() >= lootPickupRarity.ordinal();
     }
 }
