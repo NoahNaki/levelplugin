@@ -169,7 +169,7 @@ public class LevelManager {
             return;
         }
         String classKey = stats.playerClass.name().toLowerCase();
-        Map<String, Spell> spells = SpellManager.getInstance().getSpells(classKey);
+        Map<String, Spell> spells = SpellManager.getInstance().getSpellsByClass(classKey);
         if (spells == null || spells.isEmpty()) {
             return;
         }
