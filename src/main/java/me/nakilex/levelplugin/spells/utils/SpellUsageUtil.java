@@ -99,7 +99,7 @@ public final class SpellUsageUtil {
         SPELL_USAGE.put("fireball", "Left Click");
         SPELL_USAGE.put("blink", "Right Click");
         SPELL_USAGE.put("meteor", "Sneak + Right Click");
-        SPELL_USAGE.put("frost_nova", "Sneak");
+        SPELL_USAGE.put("frost_nova", "Sneak + Sneak");
         SPELL_USAGE.put("inferno_chains", "Sneak + Left Click");
 
         SPELL_USAGE.put("dragonian_slash", "Left Click");

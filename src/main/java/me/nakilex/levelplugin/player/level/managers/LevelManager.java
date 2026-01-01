@@ -7,6 +7,7 @@ import me.nakilex.levelplugin.booster.GlobalBoosterManager;
 import me.nakilex.levelplugin.spells.Spell;
 import me.nakilex.levelplugin.spells.managers.SpellManager;
 import me.nakilex.levelplugin.spells.utils.SpellUsageUtil;
+import me.nakilex.levelplugin.utils.ChatUtil;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -177,9 +178,9 @@ public class LevelManager {
             if (spell.getLevelReq() == newLevel) {
                 String usage = SpellUsageUtil.getUsageLabel(spell);
                 ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                        "New spell unlocked: " + spell.getDisplayName() + "!");
+                        ChatUtil.applyEmojis("New spell unlocked: " + spell.getDisplayName() + "!"));
                 ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
-                        "Cast it with " + usage + ".");
+                        ChatUtil.applyEmojis("Cast it with " + usage + "."));
             }
         }
     }

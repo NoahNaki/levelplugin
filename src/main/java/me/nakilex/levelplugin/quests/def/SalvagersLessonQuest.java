@@ -20,6 +20,7 @@ public class SalvagersLessonQuest extends Quest implements QuestScript, QuestCom
     public static final String ID = "salvagerslesson";
 
     public static final String NPC_NAME = "Salvager";
+    public static final int NPC_ID = 1086;
 
     public static final int TALK_INTRO_INDEX = 0;
     public static final int SALVAGE_INDEX = 1;
@@ -31,9 +32,9 @@ public class SalvagersLessonQuest extends Quest implements QuestScript, QuestCom
 
     private static List<QuestObjective> createObjectives() {
         return List.of(
-                new QuestObjective(QuestObjectiveType.TALK, INTRO_TARGET, 1, BeaconTargets.npc(NPC_NAME)),
-                new QuestObjective(QuestObjectiveType.SALVAGE, "ANY", SALVAGE_AMOUNT, BeaconTargets.npc(NPC_NAME)),
-                new QuestObjective(QuestObjectiveType.TALK, RETURN_TARGET, 1, BeaconTargets.npc(NPC_NAME))
+                new QuestObjective(QuestObjectiveType.TALK, INTRO_TARGET, 1, BeaconTargets.npc(NPC_ID)),
+                new QuestObjective(QuestObjectiveType.SALVAGE, "ANY", SALVAGE_AMOUNT, BeaconTargets.npc(NPC_ID)),
+                new QuestObjective(QuestObjectiveType.TALK, RETURN_TARGET, 1, BeaconTargets.npc(NPC_ID))
         );
     }
 

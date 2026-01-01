@@ -369,7 +369,7 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
             }
             QuestObjective currentObj = quest.getObjectives().get(progIndex);
             String desc = questManager.describeObjective(currentObj);
-            List<String> wrapped = wrapText(desc, 24);
+            List<String> wrapped = wrapText(desc, 18);
             for (int i = 0; i < wrapped.size(); i++) {
                 String prefix = i == 0 ? ChatColor.GRAY + "- " : ChatColor.GRAY + "  ";
                 questLines.add(prefix + wrapped.get(i));
@@ -401,7 +401,7 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
                     QuestObjective o = gq.getObjective();
                     String desc2 = questManager.describeObjective(o);
                     int total = gq.getTotalContribution();
-                    List<String> wrapped = wrapText(desc2, 24);
+                    List<String> wrapped = wrapText(desc2, 18);
                     for (int i = 0; i < wrapped.size(); i++) {
                         String prefix = i == 0 ? ChatColor.GRAY + "- " : ChatColor.GRAY + "  ";
                         guildLines.add(prefix + wrapped.get(i));
