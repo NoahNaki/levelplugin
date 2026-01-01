@@ -61,7 +61,8 @@ public class QuestGUI {
             "hawiehermitcrabs",
             "essenceweaverslesson",
             "abandonedcastle",
-            "forgefundamentals"
+            "forgefundamentals",
+            "fieldworkfavor"
     );
     private static final Map<String, Integer> STORY_ORDER_INDEX = new HashMap<>();
 

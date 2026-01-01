@@ -16,8 +16,10 @@ import me.nakilex.levelplugin.quests.def.SalvagersLessonQuest;
 import me.nakilex.levelplugin.quests.def.HawieHermitCrabQuest;
 import me.nakilex.levelplugin.quests.def.MarketBeginningsQuest;
 import me.nakilex.levelplugin.quests.def.CultistCullingQuest;
+import me.nakilex.levelplugin.quests.def.FieldworkFavorQuest;
 import me.nakilex.levelplugin.quests.def.WakePerryQuest;
 import me.nakilex.levelplugin.npc.handlers.EssenceWeaverLessonNpcHandler;
+import me.nakilex.levelplugin.npc.handlers.FieldworkFavorNpcHandler;
 import me.nakilex.levelplugin.npc.handlers.ForgeFundamentalsNpcHandler;
 import me.nakilex.levelplugin.npc.handlers.GamblersGambitNpcHandler;
 import me.nakilex.levelplugin.npc.handlers.HawieHermitCrabNpcHandler;
@@ -130,14 +132,25 @@ public class NPCClickListener implements Listener {
                 return;
             }
 
+            if (npc.getId() == FieldworkFavorQuest.NPC_ID
+                    && questManager.hasCompleted(player.getUniqueId(), FieldworkFavorQuest.ID)) {
+                player.performCommand("farmrewards");
+                return;
+            }
+
             if (isNpcName(npc, "Fisherman")) {
                 player.performCommand("fishrewards");
                 return;
             }
 
             if (isNpcName(npc, "Farmer") || isNpcName(npc, "Baker")) {
-                player.performCommand("farmrewards");
-                return;
+                if (npc.getId() == FieldworkFavorQuest.NPC_ID
+                        && !questManager.hasCompleted(player.getUniqueId(), FieldworkFavorQuest.ID)) {
+                    // Allow the quest handler to run before opening farm rewards.
+                } else {
+                    player.performCommand("farmrewards");
+                    return;
+                }
             }
             if (stripped.equalsIgnoreCase("Starter Merchant")) {
                 PlayerQuestProgress prog = questManager.getProgress(player.getUniqueId(), "newbeginning");
@@ -370,6 +383,7 @@ public class NPCClickListener implements Listener {
                 .register(new GamblersGambitNpcHandler(questManager, dialogManager, economyManager))
                 .register(new AbandonedCastleNpcHandler(questManager, dialogManager))
                 .register(new HawieHermitCrabNpcHandler(questManager, dialogManager))
+                .register(new FieldworkFavorNpcHandler(questManager, dialogManager))
                 .register(new MarketBeginningsNpcHandler(questManager, dialogManager, auctionGUI))
                 .register(new SalvagersLessonNpcHandler(questManager, dialogManager))
                 .register(new SerasQuestNpcHandler(questManager, dialogManager))

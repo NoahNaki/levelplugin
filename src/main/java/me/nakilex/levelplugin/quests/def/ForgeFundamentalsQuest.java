@@ -6,8 +6,12 @@ import me.nakilex.levelplugin.quests.data.Quest;
 import me.nakilex.levelplugin.quests.data.QuestObjective;
 import me.nakilex.levelplugin.quests.data.QuestObjectiveType;
 import me.nakilex.levelplugin.quests.data.QuestRewardCompat;
+import me.nakilex.levelplugin.quests.data.QuestCompletionScript;
 import me.nakilex.levelplugin.quests.data.QuestScript;
 import me.nakilex.levelplugin.quests.def.AbandonedCastleQuest;
+import me.nakilex.levelplugin.quests.def.FieldworkFavorQuest;
+import me.nakilex.levelplugin.quests.managers.QuestManager;
+import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.entity.Player;
 
 import java.util.List;
@@ -15,7 +19,7 @@ import java.util.List;
 /**
  * Walks players through the Blacksmith GUI.
  */
-public class ForgeFundamentalsQuest extends Quest implements QuestScript {
+public class ForgeFundamentalsQuest extends Quest implements QuestScript, QuestCompletionScript {
     public static final String ID = "forgefundamentals";
     public static final String NPC_NAME = "Blacksmith";
     public static final int NPC_ID = 1501;
@@ -71,5 +75,21 @@ public class ForgeFundamentalsQuest extends Quest implements QuestScript {
     @Override
     public void onStart(Player player, Main plugin) {
         // Require the player to talk to the Blacksmith to progress.
+    }
+
+    @Override
+    public void onComplete(Player player, Main plugin) {
+        QuestManager questManager = plugin.getQuestManager();
+        if (questManager == null || player == null) {
+            return;
+        }
+        boolean hasFieldwork = questManager.hasCompleted(player.getUniqueId(), FieldworkFavorQuest.ID)
+                || questManager.getProgress(player.getUniqueId(), FieldworkFavorQuest.ID) != null;
+        if (!hasFieldwork) {
+            questManager.startQuest(player, FieldworkFavorQuest.ID);
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                    "A nearby farmer needs help—lend a hand in the fields.");
+            questManager.setTrackedQuest(player, FieldworkFavorQuest.ID);
+        }
     }
 }
