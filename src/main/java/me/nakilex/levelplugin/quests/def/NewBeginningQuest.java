@@ -30,13 +30,16 @@ import java.util.List;
  * Intro quest that plays a short conversation with Piwan.
  */
 public class NewBeginningQuest extends Quest implements QuestScript, QuestCompletionScript, QuestResetScript {
+    private static final int PIWAN_NPC_ID = 546;
+    private static final int STARTER_MERCHANT_NPC_ID = 547;
+
     private static List<QuestObjective> createObjectives() {
         return List.of(
-                new QuestObjective(QuestObjectiveType.TALK, "npc546_done", 1),
-                new QuestObjective(QuestObjectiveType.BUY, "starter_armor", 1),
-                new QuestObjective(QuestObjectiveType.TALK, "npc546_again", 1),
+                new QuestObjective(QuestObjectiveType.TALK, "npc546_done", 1, BeaconTargets.npc(PIWAN_NPC_ID)),
+                new QuestObjective(QuestObjectiveType.BUY, "starter_armor", 1, BeaconTargets.npc(STARTER_MERCHANT_NPC_ID)),
+                new QuestObjective(QuestObjectiveType.TALK, "npc546_again", 1, BeaconTargets.npc(PIWAN_NPC_ID)),
                 new QuestObjective(QuestObjectiveType.SELECT_CLASS, "ANY", 1),
-                new QuestObjective(QuestObjectiveType.TALK, "npc546_final", 1)
+                new QuestObjective(QuestObjectiveType.TALK, "npc546_final", 1, BeaconTargets.npc(PIWAN_NPC_ID))
         );
     }
 

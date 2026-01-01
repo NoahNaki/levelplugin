@@ -213,7 +213,9 @@ public class CommandRegistry {
         HorseCommand horseCommand = new HorseCommand(horseManager, horseGUI);
         plugin.getCommand("horse").setExecutor(horseCommand);
         plugin.getCommand("horse").setTabCompleter(horseCommand);
-        plugin.getCommand("party").setExecutor(new PartyCommands(partyManager));
+        PartyCommands partyCommands = new PartyCommands(partyManager);
+        plugin.getCommand("party").setExecutor(partyCommands);
+        plugin.getCommand("party").setTabCompleter(partyCommands);
         me.nakilex.levelplugin.guild.GuildCommand guildCmd = new me.nakilex.levelplugin.guild.GuildCommand(guildManager, guildGui, guildMemberGui);
         plugin.getCommand("guild").setExecutor(guildCmd);
         plugin.getCommand("guild").setTabCompleter(guildCmd);

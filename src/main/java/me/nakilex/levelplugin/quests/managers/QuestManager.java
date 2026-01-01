@@ -410,6 +410,18 @@ public class QuestManager {
         return quests.get(id);
     }
 
+    public String findNpcNameForQuest(String questId) {
+        if (questId == null) {
+            return null;
+        }
+        for (Map.Entry<String, List<String>> entry : npcQuestNameMap.entrySet()) {
+            if (entry.getValue() != null && entry.getValue().contains(questId)) {
+                return entry.getKey();
+            }
+        }
+        return null;
+    }
+
     public Collection<Quest> getQuests() {
         return quests.values();
     }

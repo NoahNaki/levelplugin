@@ -14,6 +14,7 @@ import java.util.List;
 
 import me.nakilex.levelplugin.quests.data.Quest;
 import me.nakilex.levelplugin.quests.data.QuestRepeatType;
+import me.nakilex.levelplugin.quests.gui.QuestState;
 import me.nakilex.levelplugin.utils.CommandUtil;
 
 public class QuestCommand implements TabExecutor {
@@ -73,6 +74,29 @@ public class QuestCommand implements TabExecutor {
             return true;
         }
 
+        if (sub.equals("track") && args.length >= 3) {
+            Player target = Bukkit.getPlayer(args[1]);
+            if (target == null) {
+                sender.sendMessage("Player not found: " + args[1]);
+                return true;
+            }
+            Quest quest = questManager.getQuestById(args[2]);
+            if (quest == null) {
+                sender.sendMessage("Quest not found: " + args[2]);
+                return true;
+            }
+            QuestState state = questManager.getQuestState(target, quest);
+            if (state != QuestState.AVAILABLE && state != QuestState.ACCEPTED
+                    && state != QuestState.IN_PROGRESS && state != QuestState.TURN_IN_READY) {
+                sender.sendMessage("Quest is not available or accepted for " + target.getName() + ".");
+                return true;
+            }
+            questManager.setTrackedQuest(target, quest.getId());
+            sender.sendMessage("Tracking quest " + quest.getId() + " for " + target.getName());
+            target.sendMessage("§aTracking quest: §f" + quest.getName());
+            return true;
+        }
+
         if (sub.equals("debug")) {
             boolean enabled = questManager.toggleDebug();
             sender.sendMessage("Quest debug mode " + (enabled ? "enabled" : "disabled"));
@@ -91,14 +115,14 @@ public class QuestCommand implements TabExecutor {
             return true;
         }
 
-        sender.sendMessage("Usage: /quest [start|reset|complete|status|debug|resetdailies|resetweeklies]");
+        sender.sendMessage("Usage: /quest [start|reset|complete|status|track|debug|resetdailies|resetweeklies]");
         return true;
     }
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            return CommandUtil.filterStartingWith(List.of("start", "reset", "complete", "status", "debug",
+            return CommandUtil.filterStartingWith(List.of("start", "reset", "complete", "status", "track", "debug",
                     "resetdailies", "resetweeklies"), args[0]);
         }
         String sub = args[0].toLowerCase();
@@ -110,6 +134,7 @@ public class QuestCommand implements TabExecutor {
                 case "reset":
                 case "complete":
                 case "status":
+                case "track":
                     return CommandUtil.onlinePlayerNames(args[1]);
                 default:
                     break;
@@ -122,6 +147,20 @@ public class QuestCommand implements TabExecutor {
                 case "status":
                     return CommandUtil.filterStartingWith(questManager.getQuests().stream()
                             .map(Quest::getId).toList(), args[2]);
+                case "track":
+                    Player target = Bukkit.getPlayer(args[1]);
+                    if (target == null) {
+                        return Collections.emptyList();
+                    }
+                    List<String> trackable = questManager.getQuests().stream()
+                            .filter(quest -> {
+                                QuestState state = questManager.getQuestState(target, quest);
+                                return state == QuestState.AVAILABLE || state == QuestState.ACCEPTED
+                                        || state == QuestState.IN_PROGRESS || state == QuestState.TURN_IN_READY;
+                            })
+                            .map(Quest::getId)
+                            .toList();
+                    return CommandUtil.filterStartingWith(trackable, args[2]);
                 default:
                     break;
             }

@@ -114,9 +114,7 @@ public class TradeCommand implements TabExecutor {
                                 if (isWithinDistance(p, target, MAX_DISTANCE)) {
                                     boolean success = dm.makeTradeOffer(p, target);
                                     if (success) {
-                                        p.sendMessage(Main.PREFIX + String.format(
-                                            messageStrings.getTranslation(Translations.TRADE_REQUEST_SENT),
-                                            target.getName()));
+                                        return true;
                                     }
                                 } else {
                                     p.sendMessage(Main.PREFIX

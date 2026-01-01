@@ -930,7 +930,7 @@ public class DungeonManager {
         java.util.List<Player> participants = new java.util.ArrayList<>();
         me.nakilex.levelplugin.party.PartyManager pm = plugin.getPartyManager();
         me.nakilex.levelplugin.party.Party party = pm.getParty(player.getUniqueId());
-        if (party != null && party.isLeader(player.getUniqueId())) {
+        if (party != null) {
             for (java.util.UUID id : party.getMembers()) {
                 Player mem = Bukkit.getPlayer(id);
                 if (mem != null && mem.isOnline()) {

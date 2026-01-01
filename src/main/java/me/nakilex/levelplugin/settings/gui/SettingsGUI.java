@@ -117,7 +117,8 @@ public class SettingsGUI implements Listener {
         }
 
         if (filter == Filter.ALL || filter == Filter.SOCIAL) {
-            gui.setItem(21, createVisibilityItem(playerSettings.getPlayerVisibility()));
+            gui.setItem(21, createVisibilityItem(playerSettings.getPlayerVisibility(),
+                    isOfficeErrandsLocked(player)));
         }
 
         // Auto-skip Cutscenes toggle
@@ -203,7 +204,7 @@ public class SettingsGUI implements Listener {
         return item;
     }
 
-    private ItemStack createVisibilityItem(PlayerVisibility vis) {
+    private ItemStack createVisibilityItem(PlayerVisibility vis, boolean locked) {
         Material mat;
         String status;
         switch (vis) {
@@ -211,6 +212,14 @@ public class SettingsGUI implements Listener {
             case FRIENDS_ONLY -> { mat = Material.GREEN_DYE; status = "Friends"; }
             case HIDE_ALL -> { mat = Material.GRAY_DYE; status = "None"; }
             default -> { mat = Material.GRAY_DYE; status = "Unknown"; }
+        }
+        if (locked) {
+            return createItem(mat, "§bPlayer Visibility",
+                    "",
+                    "§7Status: §f" + status,
+                    "§cLocked during Office Errands",
+                    "",
+                    "§7Complete the quest to change.");
         }
         return createItem(mat, "§bPlayer Visibility",
                 "",
@@ -228,8 +237,8 @@ public class SettingsGUI implements Listener {
         inventory.setItem(slot, GuiUtil.createToggleItem(enabled, name, lore));
     }
 
-    private void updateVisibilityItem(Inventory inv, PlayerVisibility vis) {
-        inv.setItem(21, createVisibilityItem(vis));
+    private void updateVisibilityItem(Inventory inv, PlayerVisibility vis, boolean locked) {
+        inv.setItem(21, createVisibilityItem(vis, locked));
     }
 
     private ItemStack createFilterItem(Filter filter) {
@@ -275,6 +284,17 @@ public class SettingsGUI implements Listener {
     private String formatRarityLabel(ItemRarity rarity) {
         String name = rarity.name().toLowerCase(Locale.ROOT);
         return name.substring(0, 1).toUpperCase(Locale.ROOT) + name.substring(1);
+    }
+
+    private boolean isOfficeErrandsLocked(Player player) {
+        me.nakilex.levelplugin.Main main = me.nakilex.levelplugin.Main.getInstance();
+        if (main == null || main.getQuestManager() == null) {
+            return false;
+        }
+        return main.getQuestManager().getProgress(player.getUniqueId(),
+                me.nakilex.levelplugin.quests.def.OfficeErrandsQuest.ID) != null
+                && !main.getQuestManager().hasCompleted(player.getUniqueId(),
+                me.nakilex.levelplugin.quests.def.OfficeErrandsQuest.ID);
     }
 
     @EventHandler
@@ -351,8 +371,15 @@ public class SettingsGUI implements Listener {
                 main.getLeaderboardManager().updateType(LeaderboardType.BALANCE);
             }
         } else if (slot == 21) {
+            if (isOfficeErrandsLocked(player)) {
+                me.nakilex.levelplugin.utils.ChatMessageUtil.send(player,
+                        me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType.ERROR,
+                        "Player visibility is locked during Office Errands.");
+                updateVisibilityItem(event.getInventory(), settings.getPlayerVisibility(), true);
+                return;
+            }
             settings.cyclePlayerVisibility();
-            updateVisibilityItem(event.getInventory(), settings.getPlayerVisibility());
+            updateVisibilityItem(event.getInventory(), settings.getPlayerVisibility(), false);
             me.nakilex.levelplugin.Main.getInstance()
                 .getPlayerVisibilityManager().updatePlayer(player);
         } else if (slot == 22) {

@@ -182,8 +182,12 @@ public class FieldBossListener implements Listener {
             }
         }
 
-        RewardBombUtil.startRewardBomb(plugin, ev.getEntity().getLocation(),
-                createBossRewardBomb(items, mobId), 60);
+        for (var entry : record.entrySet()) {
+            Player p = Bukkit.getPlayer(entry.getKey());
+            if (p == null) continue;
+            RewardBombUtil.startRewardBomb(plugin, ev.getEntity().getLocation(),
+                    createBossRewardBomb(items, mobId), 60, p);
+        }
 
         // 6) Delay only the chat output by 5 ticks
         final String fElapsed = elapsed;

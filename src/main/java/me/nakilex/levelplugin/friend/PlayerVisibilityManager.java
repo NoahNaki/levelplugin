@@ -1,6 +1,8 @@
 package me.nakilex.levelplugin.friend;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.quests.def.OfficeErrandsQuest;
+import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.settings.data.PlayerSettings;
 import me.nakilex.levelplugin.settings.data.PlayerVisibility;
 import me.nakilex.levelplugin.settings.managers.SettingsManager;
@@ -29,6 +31,14 @@ public class PlayerVisibilityManager implements Listener {
     }
 
     public void apply(Player viewer) {
+        if (shouldForceHidden(viewer)) {
+            for (Player target : Bukkit.getOnlinePlayers()) {
+                if (!target.equals(viewer)) {
+                    viewer.hidePlayer(plugin, target);
+                }
+            }
+            return;
+        }
         PlayerSettings settings = settingsManager.getSettings(viewer);
         PlayerVisibility vis = settings.getPlayerVisibility();
         for (Player target : Bukkit.getOnlinePlayers()) {
@@ -45,6 +55,18 @@ public class PlayerVisibilityManager implements Listener {
                 case SHOW_ALL -> viewer.showPlayer(plugin, target);
             }
         }
+    }
+
+    private boolean shouldForceHidden(Player viewer) {
+        if (viewer == null) {
+            return false;
+        }
+        QuestManager questManager = plugin.getQuestManager();
+        if (questManager == null) {
+            return false;
+        }
+        return questManager.getProgress(viewer.getUniqueId(), OfficeErrandsQuest.ID) != null
+                && !questManager.hasCompleted(viewer.getUniqueId(), OfficeErrandsQuest.ID);
     }
 
     @EventHandler

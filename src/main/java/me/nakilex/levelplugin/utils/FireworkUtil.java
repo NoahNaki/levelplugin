@@ -3,15 +3,21 @@ package me.nakilex.levelplugin.utils;
 import org.bukkit.Color;
 import org.bukkit.FireworkEffect;
 import org.bukkit.Location;
+import org.bukkit.NamespacedKey;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Firework;
 import org.bukkit.inventory.meta.FireworkMeta;
+import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.concurrent.ThreadLocalRandom;
 
 /** Utility for spawning decorative fireworks. */
 public final class FireworkUtil {
     private FireworkUtil() {}
+
+    private static final NamespacedKey DECORATIVE_KEY = new NamespacedKey(
+            JavaPlugin.getProvidingPlugin(FireworkUtil.class), "decorative_firework");
 
     /**
      * Launch a decorative firework with randomized color, type, and size.
@@ -36,6 +42,7 @@ public final class FireworkUtil {
         meta.setPower(rand.nextInt(3) + 1); // 1-3 power levels
         firework.setFireworkMeta(meta);
         firework.setSilent(true);
+        markDecorative(firework);
     }
 
     /**
@@ -54,5 +61,19 @@ public final class FireworkUtil {
             Location offset = center.clone().add(dx, 0, dz);
             launchFirework(offset);
         }
+    }
+
+    public static boolean isDecorative(Firework firework) {
+        if (firework == null) {
+            return false;
+        }
+        return firework.getPersistentDataContainer().has(DECORATIVE_KEY, PersistentDataType.BYTE);
+    }
+
+    private static void markDecorative(Firework firework) {
+        if (firework == null) {
+            return;
+        }
+        firework.getPersistentDataContainer().set(DECORATIVE_KEY, PersistentDataType.BYTE, (byte) 1);
     }
 }

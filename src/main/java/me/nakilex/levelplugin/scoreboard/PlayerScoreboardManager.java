@@ -355,17 +355,9 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
         }
 
         if (hasQuest) {
-            current[idx] = ChatColor.GREEN + "Quest: " + ChatColor.WHITE + quest.getName();
-            if (!current[idx].equals(prev[idx])) {
-                setLine(board, obj, idx, line, current[idx]);
-            }
-            idx++; line--;
-
-            current[idx] = ChatColor.GREEN + "Progress:";
-            if (!current[idx].equals(prev[idx])) {
-                setLine(board, obj, idx, line, current[idx]);
-            }
-            idx++; line--;
+            List<String> questLines = new ArrayList<>();
+            questLines.add(ChatColor.GREEN + "Quest: " + ChatColor.WHITE + quest.getName());
+            questLines.add(ChatColor.GREEN + "Progress:");
 
             int progIndex = 0;
             int progValue = 0;
@@ -377,11 +369,21 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
             }
             QuestObjective currentObj = quest.getObjectives().get(progIndex);
             String desc = questManager.describeObjective(currentObj);
-            current[idx] = ChatColor.GRAY + "- " + desc + ": " + ChatColor.WHITE + progValue + "/" + currentObj.getAmount();
-            if (!current[idx].equals(prev[idx])) {
-                setLine(board, obj, idx, line, current[idx]);
+            List<String> wrapped = wrapText(desc, 24);
+            for (int i = 0; i < wrapped.size(); i++) {
+                String prefix = i == 0 ? ChatColor.GRAY + "- " : ChatColor.GRAY + "  ";
+                questLines.add(prefix + wrapped.get(i));
             }
-            idx++; line--;
+            questLines.add(ChatColor.GRAY + "  " + ChatColor.WHITE + progValue + "/" + currentObj.getAmount());
+
+            for (String text : questLines) {
+                current[idx] = text;
+                if (!current[idx].equals(prev[idx])) {
+                    setLine(board, obj, idx, line, current[idx]);
+                }
+                idx++; line--;
+                if (line <= 1) break;
+            }
         }
 
         if (hasGuildQuest) {
@@ -392,26 +394,28 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
                     if (q.getId().equals(gTrackedId) && q.isAccepted()) { gq = q; break; }
                 }
                 if (gq != null) {
-                    current[idx] = ChatColor.RED + "Guild Quest: " + ChatColor.WHITE + gq.getName();
-                    if (!current[idx].equals(prev[idx])) {
-                        setLine(board, obj, idx, line, current[idx]);
-                    }
-                    idx++; line--;
-
-                    current[idx] = ChatColor.RED + "Progress:";
-                    if (!current[idx].equals(prev[idx])) {
-                        setLine(board, obj, idx, line, current[idx]);
-                    }
-                    idx++; line--;
+                    List<String> guildLines = new ArrayList<>();
+                    guildLines.add(ChatColor.RED + "Guild Quest: " + ChatColor.WHITE + gq.getName());
+                    guildLines.add(ChatColor.RED + "Progress:");
 
                     QuestObjective o = gq.getObjective();
                     String desc2 = questManager.describeObjective(o);
                     int total = gq.getTotalContribution();
-                    current[idx] = ChatColor.GRAY + "- " + desc2 + ": " + ChatColor.WHITE + total + "/" + o.getAmount();
-                    if (!current[idx].equals(prev[idx])) {
-                        setLine(board, obj, idx, line, current[idx]);
+                    List<String> wrapped = wrapText(desc2, 24);
+                    for (int i = 0; i < wrapped.size(); i++) {
+                        String prefix = i == 0 ? ChatColor.GRAY + "- " : ChatColor.GRAY + "  ";
+                        guildLines.add(prefix + wrapped.get(i));
                     }
-                    idx++; line--;
+                    guildLines.add(ChatColor.GRAY + "  " + ChatColor.WHITE + total + "/" + o.getAmount());
+
+                    for (String text : guildLines) {
+                        current[idx] = text;
+                        if (!current[idx].equals(prev[idx])) {
+                            setLine(board, obj, idx, line, current[idx]);
+                        }
+                        idx++; line--;
+                        if (line <= 1) break;
+                    }
                 }
             }
         }
@@ -472,5 +476,29 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
         long minutes = seconds / 60;
         long remSeconds = seconds % 60;
         return minutes + ":" + String.format("%02d", remSeconds);
+    }
+
+    private static List<String> wrapText(String text, int maxLength) {
+        if (text == null || text.isBlank()) {
+            return List.of("");
+        }
+        List<String> lines = new ArrayList<>();
+        StringBuilder current = new StringBuilder();
+        for (String word : text.split("\\s+")) {
+            if (current.length() == 0) {
+                current.append(word);
+                continue;
+            }
+            if (current.length() + 1 + word.length() > maxLength) {
+                lines.add(current.toString());
+                current = new StringBuilder(word);
+            } else {
+                current.append(' ').append(word);
+            }
+        }
+        if (current.length() > 0) {
+            lines.add(current.toString());
+        }
+        return lines;
     }
 }

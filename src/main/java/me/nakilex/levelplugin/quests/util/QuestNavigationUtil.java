@@ -41,6 +41,12 @@ public final class QuestNavigationUtil {
         if (location == null && state == QuestState.AVAILABLE && quest.getNpcGiverId() != null) {
             location = BeaconTargets.npc(quest.getNpcGiverId()).resolve(player);
         }
+        if (location == null && state == QuestState.AVAILABLE) {
+            String npcName = questManager.findNpcNameForQuest(quest.getId());
+            if (npcName != null) {
+                location = BeaconTargets.npc(npcName).resolve(player);
+            }
+        }
 
         return new QuestTrackingInfo(quest, state, objectiveIndex, location);
     }

@@ -229,7 +229,7 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
         List<Player> participants = new ArrayList<>();
         me.nakilex.levelplugin.party.PartyManager pm = plugin.getPartyManager();
         me.nakilex.levelplugin.party.Party party = pm.getParty(player.getUniqueId());
-        if (party != null && party.isLeader(player.getUniqueId())) {
+        if (party != null) {
             for (UUID id : party.getMembers()) {
                 Player mem = Bukkit.getPlayer(id);
                 if (mem != null && mem.isOnline()) {

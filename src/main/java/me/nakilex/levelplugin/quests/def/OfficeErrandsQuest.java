@@ -25,6 +25,7 @@ import net.citizensnpcs.api.npc.NPC;
 import java.util.List;
 
 public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompletionScript, QuestResetScript {
+    public static final String ID = "officeerrands";
 
     /** Per-player listeners for cleanup when the quest resets. */
     private final java.util.Map<java.util.UUID, java.util.List<Listener>> listeners = new java.util.HashMap<>();
@@ -46,7 +47,7 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
 
     public OfficeErrandsQuest() {
         super(
-                "officeerrands",
+                ID,
                 "Office Errands",
                 "Help around the office.",
                 createObjectives(),
@@ -63,6 +64,9 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
 
     @Override
     public void onStart(Player player, Main plugin) {
+        if (plugin.getPlayerVisibilityManager() != null) {
+            plugin.getPlayerVisibilityManager().updatePlayer(player);
+        }
         World world = Bukkit.getWorld("redrocks");
         if (world == null) {
             // Lazily load the quest world if it isn't already present
@@ -296,6 +300,8 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
     }
     @Override
     public void onComplete(Player player, Main plugin) {
-        // Quest completion handled on teleport
+        if (plugin.getPlayerVisibilityManager() != null) {
+            plugin.getPlayerVisibilityManager().updatePlayer(player);
+        }
     }
 }
