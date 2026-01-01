@@ -91,6 +91,7 @@ public class QuestManager {
         Quest wayfarersMark = new me.nakilex.levelplugin.quests.def.WayfarersMarkQuest();
         Quest marketBeginnings = new me.nakilex.levelplugin.quests.def.MarketBeginningsQuest();
         Quest forgeFundamentals = new me.nakilex.levelplugin.quests.def.ForgeFundamentalsQuest();
+        Quest fieldworkFavor = new me.nakilex.levelplugin.quests.def.FieldworkFavorQuest();
         Quest essenceWeaverLesson = new me.nakilex.levelplugin.quests.def.EssenceWeaversLessonQuest();
         Quest gamblersGambit = new me.nakilex.levelplugin.quests.def.GamblersGambitQuest();
         Quest abandonedCastle = new me.nakilex.levelplugin.quests.def.AbandonedCastleQuest();
@@ -111,6 +112,7 @@ public class QuestManager {
         registerQuest(wayfarersMark);
         registerQuest(marketBeginnings);
         registerQuest(forgeFundamentals);
+        registerQuest(fieldworkFavor);
         registerQuest(essenceWeaverLesson);
         registerQuest(gamblersGambit);
         registerQuest(abandonedCastle);
@@ -128,6 +130,7 @@ public class QuestManager {
         me.nakilex.levelplugin.quests.def.SalvagersLessonQuest.registerTalkTargets(this);
         me.nakilex.levelplugin.quests.def.MarketBeginningsQuest.registerTalkTargets(this);
         me.nakilex.levelplugin.quests.def.ForgeFundamentalsQuest.registerTalkTargets(this);
+        me.nakilex.levelplugin.quests.def.FieldworkFavorQuest.registerTalkTargets(this);
         me.nakilex.levelplugin.quests.def.CultistCullingQuest.registerTalkTargets(this);
         me.nakilex.levelplugin.quests.def.EssenceWeaversLessonQuest.registerTalkTargets(this);
         me.nakilex.levelplugin.quests.def.GamblersGambitQuest.registerTalkTargets(this);
