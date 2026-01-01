@@ -26,7 +26,7 @@ public class StatsManager {
     public static final double BASE_HEALTH = 20.0;
     public static final double HEALTH_PER_VITALITY = 0.4;
     public static final double HEALTH_PER_STRENGTH = 0.1;
-    private static final double REGEN_STAT_DIVISOR = 25.0;
+    private static final double REGEN_STAT_DIVISOR = 120.0;
     private static final int ESSENCE_SLOT_THREE_LEVEL = 50;
 
     public StatsManager() {}
@@ -309,10 +309,10 @@ public class StatsManager {
         for (Player player : Bukkit.getOnlinePlayers()) {
             PlayerStats ps = getPlayerStats(player.getUniqueId());
 
-            double baseRegenPerSec = 1.0;
+            double baseRegenPerSec = 0.10;
             double regenFromStats = (ps.baseVitality + ps.bonusVitality
                     + ps.baseStrength + ps.bonusStrength) / REGEN_STAT_DIVISOR;
-            double regenFromMaxHealth = player.getMaxHealth() / 100.0;
+            double regenFromMaxHealth = player.getMaxHealth() / 600.0;
 
             double totalRegen = baseRegenPerSec + regenFromStats + regenFromMaxHealth;
             double newHealth = player.getHealth() + totalRegen;

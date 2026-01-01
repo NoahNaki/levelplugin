@@ -4,14 +4,18 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
-import org.bukkit.command.CommandExecutor;
+import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
-public class PartyCommands implements CommandExecutor {
+import me.nakilex.levelplugin.utils.CommandUtil;
+
+public class PartyCommands implements TabExecutor {
 
     private final PartyManager partyManager;
     private final Map<UUID, Long> inviteCooldowns = new HashMap<>();
@@ -248,5 +252,30 @@ public class PartyCommands implements CommandExecutor {
                 break;
         }
         return true;
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        if (!(sender instanceof Player player)) {
+            return List.of();
+        }
+        if (args.length == 1) {
+            return CommandUtil.filterStartingWith(List.of(
+                    "create", "invite", "kick", "leave", "list", "promote", "accept", "deny", "info"
+            ), args[0]);
+        }
+        if (args.length == 2 && args[0].equalsIgnoreCase("invite")) {
+            return CommandUtil.filterStartingWith(getRegionPlayerNames(player), args[1]);
+        }
+        return List.of();
+    }
+
+    private List<String> getRegionPlayerNames(Player player) {
+        return Bukkit.getOnlinePlayers().stream()
+                .filter(target -> !target.equals(player))
+                .filter(target -> target.getWorld().equals(player.getWorld()))
+                .filter(target -> target.getLocation().distanceSquared(player.getLocation()) <= 100 * 100)
+                .map(Player::getName)
+                .collect(Collectors.toList());
     }
 }

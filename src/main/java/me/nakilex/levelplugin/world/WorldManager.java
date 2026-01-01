@@ -166,6 +166,45 @@ public class WorldManager {
         return world != null && Bukkit.unloadWorld(world, true);
     }
 
+    /**
+     * Clone a world folder (including entities) under a new name.
+     */
+    public boolean cloneWorld(String sourceName, String targetName) {
+        if (sourceName == null || targetName == null) {
+            return false;
+        }
+        if (Bukkit.getWorld(targetName) != null) {
+            return false;
+        }
+        File sourceFolder = new File(plugin.getServer().getWorldContainer(), sourceName);
+        if (!sourceFolder.exists()) {
+            return false;
+        }
+        File targetFolder = new File(plugin.getServer().getWorldContainer(), targetName);
+        if (targetFolder.exists()) {
+            return false;
+        }
+
+        World sourceWorld = Bukkit.getWorld(sourceName);
+        if (sourceWorld != null) {
+            sourceWorld.save();
+        }
+
+        try {
+            FileUtil.copyDirectory(sourceFolder, targetFolder);
+        } catch (IOException | RuntimeException e) {
+            if (e instanceof RuntimeException re && re.getCause() instanceof IOException io) {
+                io.printStackTrace();
+            } else {
+                e.printStackTrace();
+            }
+            return false;
+        }
+
+        World cloned = importWorld(targetName);
+        return cloned != null;
+    }
+
     public void ensureWorldsLoaded(Collection<String> names) {
         boolean changed = false;
         for (String name : names) {

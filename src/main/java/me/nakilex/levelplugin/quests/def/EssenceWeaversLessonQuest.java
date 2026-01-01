@@ -11,6 +11,7 @@ import me.nakilex.levelplugin.quests.data.QuestCompletionScript;
 import me.nakilex.levelplugin.quests.data.QuestRewardCompat;
 import me.nakilex.levelplugin.quests.data.QuestScript;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
+import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.entity.Player;
 
@@ -65,7 +66,12 @@ public class EssenceWeaversLessonQuest extends Quest implements QuestScript, Que
 
     @Override
     public void onStart(Player player, Main plugin) {
-        // Require the player to talk to the Essence Weaver to progress.
+        StatsManager statsManager = StatsManager.getInstance();
+        if (!statsManager.hasSecondEssenceSlotUnlocked(player.getUniqueId())) {
+            statsManager.unlockSecondEssenceSlot(player.getUniqueId());
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
+                    "You unlocked your second Essence Slot!");
+        }
     }
 
     @Override

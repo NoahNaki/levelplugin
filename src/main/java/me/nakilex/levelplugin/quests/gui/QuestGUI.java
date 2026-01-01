@@ -210,7 +210,9 @@ public class QuestGUI {
             if (state != QuestState.LOCKED) {
                 lore.add(levelLine);
                 lore.add(" ");
-                lore.add(ChatColor.GRAY + quest.getDescription());
+                for (String line : wrapText(quest.getDescription(), 28)) {
+                    lore.add(ChatColor.GRAY + line);
+                }
                 lore.add(" ");
                 if (locationLine != null) {
                     lore.add(locationLine);
@@ -231,7 +233,12 @@ public class QuestGUI {
                     }
                     QuestObjective obj = quest.getObjectives().get(objIndex);
                     String desc = qm.describeObjective(obj);
-                    lore.add(ChatColor.WHITE + desc + ChatColor.GRAY + " (" + objProgress + "/" + obj.getAmount() + ")");
+                    List<String> wrapped = wrapText(desc, 28);
+                    for (int i = 0; i < wrapped.size(); i++) {
+                        String prefix = i == 0 ? ChatColor.WHITE.toString() : ChatColor.WHITE + "  ";
+                        lore.add(prefix + wrapped.get(i));
+                    }
+                    lore.add(ChatColor.GRAY + "(" + objProgress + "/" + obj.getAmount() + ")");
                 }
 
                 lore.add(" ");
@@ -279,6 +286,30 @@ public class QuestGUI {
             item.setItemMeta(meta);
         }
         return item;
+    }
+
+    private static List<String> wrapText(String text, int maxLength) {
+        if (text == null || text.isBlank()) {
+            return List.of("");
+        }
+        List<String> lines = new ArrayList<>();
+        StringBuilder current = new StringBuilder();
+        for (String word : text.split("\\s+")) {
+            if (current.length() == 0) {
+                current.append(word);
+                continue;
+            }
+            if (current.length() + 1 + word.length() > maxLength) {
+                lines.add(current.toString());
+                current = new StringBuilder(word);
+            } else {
+                current.append(' ').append(word);
+            }
+        }
+        if (current.length() > 0) {
+            lines.add(current.toString());
+        }
+        return lines;
     }
 
     private static String formatLevelRequirement(Player player, Quest quest) {

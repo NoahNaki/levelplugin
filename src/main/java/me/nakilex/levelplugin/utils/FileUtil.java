@@ -1,6 +1,10 @@
 package me.nakilex.levelplugin.utils;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 
 /** Utility methods for basic file operations. */
 public final class FileUtil {
@@ -20,5 +24,29 @@ public final class FileUtil {
             }
         }
         dir.delete();
+    }
+
+    /**
+     * Recursively copy a directory and its contents to the destination.
+     */
+    public static void copyDirectory(File source, File target) throws IOException {
+        if (source == null || target == null) {
+            return;
+        }
+        Path sourcePath = source.toPath();
+        Path targetPath = target.toPath();
+        Files.walk(sourcePath).forEach(path -> {
+            try {
+                Path relative = sourcePath.relativize(path);
+                Path dest = targetPath.resolve(relative);
+                if (Files.isDirectory(path)) {
+                    Files.createDirectories(dest);
+                } else {
+                    Files.copy(path, dest, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES);
+                }
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
 }

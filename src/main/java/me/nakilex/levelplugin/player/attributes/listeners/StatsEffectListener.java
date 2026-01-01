@@ -12,6 +12,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
 
 import java.util.Map;
 import java.util.Random;
@@ -169,5 +170,20 @@ public class StatsEffectListener implements Listener {
 
             event.setDamage(incoming);
         }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onFireTick(EntityDamageEvent event) {
+        if (event.getCause() != EntityDamageEvent.DamageCause.FIRE_TICK) {
+            return;
+        }
+        if (!(event.getEntity() instanceof Player player)) {
+            return;
+        }
+        double maxHealth = player.getMaxHealth();
+        if (maxHealth <= 0) {
+            return;
+        }
+        event.setDamage(maxHealth * 0.10);
     }
 }

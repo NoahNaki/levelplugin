@@ -168,6 +168,7 @@ public class ListenerRegistry {
         pm.registerEvents(new ItemNameDisplayListener(), plugin);
         pm.registerEvents(new StaticItemListener(), plugin);
         pm.registerEvents(new ItemDropProtectionListener(plugin), plugin);
+        pm.registerEvents(new FireworkDamageListener(), plugin);
         pm.registerEvents(blacksmithGUI, plugin);
         pm.registerEvents(horseGUI, plugin);
         pm.registerEvents(new NPCClickListener(

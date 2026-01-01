@@ -47,6 +47,9 @@ commands:
     description: Opens the stats GUI
     usage: /stats
     aliases: [s]
+  viewprofile:
+    description: View a player's class and stat details
+    usage: /viewprofile <player>
   additem:
     description: Gives a custom item to a player
     usage: /additem <item_id> <player> <amount>
@@ -343,7 +346,7 @@ commands:
     usage: /clearchat
   chat:
     description: Switch chat channels
-    usage: /chat <guild|party|region>
+    usage: /chat <guild|party|region|global|staff>
   roll:
     description: Roll a number between 1 and 100
     usage: /roll

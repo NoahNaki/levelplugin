@@ -58,6 +58,19 @@ public class WorldCommand implements CommandExecutor, TabCompleter {
                 }
                 return true;
             }
+            case "clone", "copy" -> {
+                if (args.length < 3) {
+                    sender.sendMessage(ChatColor.RED + "Usage: /world " + sub + " <source> <target>");
+                    return true;
+                }
+                boolean ok = manager.cloneWorld(args[1], args[2]);
+                if (ok) {
+                    sender.sendMessage(ChatColor.YELLOW + "World cloned: " + args[1] + " -> " + args[2]);
+                } else {
+                    sender.sendMessage(ChatColor.RED + "Failed to clone world.");
+                }
+                return true;
+            }
             case "import" -> {
                 if (args.length < 2) {
                     sender.sendMessage(ChatColor.RED + "Usage: /world import <name>");
@@ -213,7 +226,7 @@ public class WorldCommand implements CommandExecutor, TabCompleter {
         if (args.length == 0) return List.of();
 
         if (args.length == 1) {
-            List<String> subs = List.of("create", "import", "delete", "unload", "tp", "spawn", "setspawn", "info", "gamerule", "list");
+            List<String> subs = List.of("create", "clone", "copy", "import", "delete", "unload", "tp", "spawn", "setspawn", "info", "gamerule", "list");
             return filter(args[0], subs);
         }
 
@@ -221,6 +234,11 @@ public class WorldCommand implements CommandExecutor, TabCompleter {
         switch (sub) {
             case "tp", "spawn", "setspawn", "info", "unload", "delete" -> {
                 return filter(args[1], manager.listWorlds().stream().map(World::getName).collect(Collectors.toList()));
+            }
+            case "clone", "copy" -> {
+                if (args.length == 2) {
+                    return filter(args[1], manager.listWorlds().stream().map(World::getName).collect(Collectors.toList()));
+                }
             }
             case "create" -> {
                 if (args.length == 3) {

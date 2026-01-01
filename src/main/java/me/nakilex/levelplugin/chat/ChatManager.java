@@ -98,6 +98,24 @@ public class ChatManager {
                     }
                 }
             }
+            case GLOBAL -> {
+                for (Player target : Bukkit.getOnlinePlayers()) {
+                    target.sendMessage(base);
+                }
+            }
+            case STAFF -> {
+                if (!player.hasPermission("levelplugin.staffchat")) {
+                    player.sendMessage(ChatColor.RED + "You do not have permission to use staff chat.");
+                    setChannel(player.getUniqueId(), ChatChannel.REGION);
+                    return;
+                }
+                Component prefix = Component.text("[Staff] ", NamedTextColor.DARK_AQUA);
+                for (Player target : Bukkit.getOnlinePlayers()) {
+                    if (target.hasPermission("levelplugin.staffchat")) {
+                        target.sendMessage(prefix.append(base));
+                    }
+                }
+            }
             case REGION -> {
                 for (Player target : Bukkit.getOnlinePlayers()) {
                     if (target.getWorld().equals(player.getWorld()) &&
