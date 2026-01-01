@@ -21,12 +21,15 @@ public class StatsManager {
     private LevelManager levelManager; // Reference to the actual LevelManager
     private final Map<UUID, PlayerStats> statsMap = new HashMap<>();
     private final Map<UUID, Set<Integer>> equippedItemsMap = new HashMap<>();
+    private final Map<UUID, Long> lastCombatAt = new HashMap<>();
 
     // ——— Health Scaling Constants ———
     public static final double BASE_HEALTH = 20.0;
     public static final double HEALTH_PER_VITALITY = 0.4;
     public static final double HEALTH_PER_STRENGTH = 0.1;
     private static final double REGEN_STAT_DIVISOR = 120.0;
+    private static final double COMBAT_REGEN_MULTIPLIER = 0.30;
+    private static final long COMBAT_TIMEOUT_MS = 6_000L;
     private static final int ESSENCE_SLOT_THREE_LEVEL = 50;
 
     public StatsManager() {}
@@ -101,6 +104,24 @@ public class StatsManager {
 
     public PlayerStats getPlayerStats(UUID uuid) {
         return statsMap.computeIfAbsent(uuid, k -> new PlayerStats());
+    }
+
+    public void markCombat(UUID uuid) {
+        if (uuid == null) {
+            return;
+        }
+        lastCombatAt.put(uuid, System.currentTimeMillis());
+    }
+
+    public boolean isInCombat(UUID uuid) {
+        if (uuid == null) {
+            return false;
+        }
+        Long lastHit = lastCombatAt.get(uuid);
+        if (lastHit == null) {
+            return false;
+        }
+        return System.currentTimeMillis() - lastHit <= COMBAT_TIMEOUT_MS;
     }
 
 
@@ -315,6 +336,9 @@ public class StatsManager {
             double regenFromMaxHealth = player.getMaxHealth() / 600.0;
 
             double totalRegen = baseRegenPerSec + regenFromStats + regenFromMaxHealth;
+            if (isInCombat(player.getUniqueId())) {
+                totalRegen *= COMBAT_REGEN_MULTIPLIER;
+            }
             double newHealth = player.getHealth() + totalRegen;
             player.setHealth(Math.min(newHealth, player.getMaxHealth()));
         }

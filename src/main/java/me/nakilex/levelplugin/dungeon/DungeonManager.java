@@ -190,6 +190,7 @@ public class DungeonManager {
             world.setKeepSpawnInMemory(false);
             world.setAutoSave(false);
             world.setDifficulty(difficulty);
+            plugin.getWorldManager().applyBooleanGameRulesFromPrimary(world);
             world.setGameRule(org.bukkit.GameRule.DO_MOB_SPAWNING, false);
         }
         return world;
