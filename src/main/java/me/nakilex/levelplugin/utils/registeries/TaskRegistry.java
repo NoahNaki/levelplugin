@@ -32,8 +32,8 @@ public class TaskRegistry {
                                   me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager merchantManager) {
         // Register all tasks
         new ActionBarTask(plugin).runTaskTimer(plugin, 1L, 1L);
-        new HealthRegenTask().runTaskTimer(plugin, 20L, 20L);
-        new ManaRegenTask().runTaskTimer(plugin, 20L, 20L);
+        new HealthRegenTask().runTaskTimer(plugin, 1L, 1L);
+        new ManaRegenTask().runTaskTimer(plugin, 1L, 1L);
         new HorseSaverTask(horseManager, horseConfigManager).runTaskTimer(plugin, 20L, 20L);
 
         PlayerScoreboardManager sbManager = plugin.getScoreboardManager();

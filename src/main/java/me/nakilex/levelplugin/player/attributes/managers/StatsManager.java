@@ -21,12 +21,16 @@ public class StatsManager {
     private LevelManager levelManager; // Reference to the actual LevelManager
     private final Map<UUID, PlayerStats> statsMap = new HashMap<>();
     private final Map<UUID, Set<Integer>> equippedItemsMap = new HashMap<>();
+    private final Map<UUID, Long> lastCombatAt = new HashMap<>();
 
     // ——— Health Scaling Constants ———
     public static final double BASE_HEALTH = 20.0;
     public static final double HEALTH_PER_VITALITY = 0.4;
     public static final double HEALTH_PER_STRENGTH = 0.1;
     private static final double REGEN_STAT_DIVISOR = 120.0;
+    private static final double COMBAT_REGEN_MULTIPLIER = 0.30;
+    private static final long COMBAT_TIMEOUT_MS = 6_000L;
+    private static final double REGEN_TICKS_PER_SECOND = 20.0;
     private static final int ESSENCE_SLOT_THREE_LEVEL = 50;
 
     public StatsManager() {}
@@ -101,6 +105,24 @@ public class StatsManager {
 
     public PlayerStats getPlayerStats(UUID uuid) {
         return statsMap.computeIfAbsent(uuid, k -> new PlayerStats());
+    }
+
+    public void markCombat(UUID uuid) {
+        if (uuid == null) {
+            return;
+        }
+        lastCombatAt.put(uuid, System.currentTimeMillis());
+    }
+
+    public boolean isInCombat(UUID uuid) {
+        if (uuid == null) {
+            return false;
+        }
+        Long lastHit = lastCombatAt.get(uuid);
+        if (lastHit == null) {
+            return false;
+        }
+        return System.currentTimeMillis() - lastHit <= COMBAT_TIMEOUT_MS;
     }
 
 
@@ -308,6 +330,10 @@ public class StatsManager {
     public void regenHealthForAllPlayers() {
         for (Player player : Bukkit.getOnlinePlayers()) {
             PlayerStats ps = getPlayerStats(player.getUniqueId());
+            if (player.getHealth() >= player.getMaxHealth()) {
+                ps.healthRegenBuffer = 0.0;
+                continue;
+            }
 
             double baseRegenPerSec = 0.10;
             double regenFromStats = (ps.baseVitality + ps.bonusVitality
@@ -315,8 +341,15 @@ public class StatsManager {
             double regenFromMaxHealth = player.getMaxHealth() / 600.0;
 
             double totalRegen = baseRegenPerSec + regenFromStats + regenFromMaxHealth;
-            double newHealth = player.getHealth() + totalRegen;
-            player.setHealth(Math.min(newHealth, player.getMaxHealth()));
+            if (isInCombat(player.getUniqueId())) {
+                totalRegen *= COMBAT_REGEN_MULTIPLIER;
+            }
+            double perTickRegen = totalRegen / REGEN_TICKS_PER_SECOND;
+            int wholeRegen = consumeRegenBuffer(ps, perTickRegen, RegenBuffer.HEALTH);
+            if (wholeRegen > 0) {
+                double newHealth = player.getHealth() + wholeRegen;
+                player.setHealth(Math.min(newHealth, player.getMaxHealth()));
+            }
         }
     }
 
@@ -326,16 +359,42 @@ public class StatsManager {
     public void regenManaForAllPlayers() {
         for (Player player : Bukkit.getOnlinePlayers()) {
             PlayerStats ps = getPlayerStats(player.getUniqueId());
+            if (ps.currentMana >= ps.maxMana) {
+                ps.manaRegenBuffer = 0.0;
+                continue;
+            }
 
             double baseRegenPerSec = 2.5;
             double willBonus = (ps.baseWill + ps.bonusWill) * 0.25;
             double totalRegen = baseRegenPerSec + willBonus;
 
-            ps.currentMana += totalRegen;
-            if (ps.currentMana > ps.maxMana) {
-                ps.currentMana = ps.maxMana;
+            double perTickRegen = totalRegen / REGEN_TICKS_PER_SECOND;
+            int wholeRegen = consumeRegenBuffer(ps, perTickRegen, RegenBuffer.MANA);
+            if (wholeRegen > 0) {
+                ps.currentMana = Math.min(ps.maxMana, ps.currentMana + wholeRegen);
             }
         }
+    }
+
+    private int consumeRegenBuffer(PlayerStats ps, double amount, RegenBuffer buffer) {
+        if (amount <= 0) {
+            return 0;
+        }
+        double stored = buffer == RegenBuffer.MANA ? ps.manaRegenBuffer : ps.healthRegenBuffer;
+        stored += amount;
+        int whole = (int) Math.floor(stored);
+        stored -= whole;
+        if (buffer == RegenBuffer.MANA) {
+            ps.manaRegenBuffer = stored;
+        } else {
+            ps.healthRegenBuffer = stored;
+        }
+        return whole;
+    }
+
+    private enum RegenBuffer {
+        HEALTH,
+        MANA
     }
 
     // Handle stats application for manual equipping
@@ -383,6 +442,8 @@ public class StatsManager {
         public int currentMana = 50;
         public double attackSpeed = 0.5; // attacks per second
         public int skillPoints = 0;
+        public double healthRegenBuffer = 0.0;
+        public double manaRegenBuffer = 0.0;
 
         public PlayerClass playerClass = PlayerClass.VILLAGER;
 

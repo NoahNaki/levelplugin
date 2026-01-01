@@ -172,6 +172,29 @@ public class StatsEffectListener implements Listener {
         }
     }
 
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onCombatTag(EntityDamageByEntityEvent event) {
+        Player attacker = resolveCombatAttacker(event.getDamager());
+        if (attacker != null) {
+            StatsManager.getInstance().markCombat(attacker.getUniqueId());
+        }
+
+        if (event.getEntity() instanceof Player victim) {
+            StatsManager.getInstance().markCombat(victim.getUniqueId());
+        }
+    }
+
+    private Player resolveCombatAttacker(Entity damager) {
+        if (damager instanceof Player player) {
+            return player;
+        }
+        if (damager instanceof org.bukkit.entity.Projectile projectile
+                && projectile.getShooter() instanceof Player shooter) {
+            return shooter;
+        }
+        return null;
+    }
+
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onFireTick(EntityDamageEvent event) {
         if (event.getCause() != EntityDamageEvent.DamageCause.FIRE_TICK) {
@@ -184,6 +207,6 @@ public class StatsEffectListener implements Listener {
         if (maxHealth <= 0) {
             return;
         }
-        event.setDamage(maxHealth * 0.10);
+        event.setDamage(maxHealth * 0.15);
     }
 }
