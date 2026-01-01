@@ -164,7 +164,14 @@ public class FastTravelManager {
         for (FastTravelPoint pt : points.values()) {
             if (!pt.isTown()) continue;
             if (!isUnlocked(player, pt.getName())) continue;
-            double d = from.distanceSquared(pt.getLocation());
+            Location target = pt.getLocation();
+            if (target == null || target.getWorld() == null || from.getWorld() == null) {
+                continue;
+            }
+            if (!from.getWorld().equals(target.getWorld())) {
+                continue;
+            }
+            double d = from.distanceSquared(target);
             if (d < best) { best = d; bestLoc = pt.getLocation(); }
         }
         return bestLoc;
