@@ -32,7 +32,7 @@ public class ChatCommand implements TabExecutor {
         }
 
         if (args.length != 1) {
-            player.sendMessage(ChatColor.RED + "Usage: /chat <guild|party|region>");
+            player.sendMessage(ChatColor.RED + "Usage: /chat <guild|party|region|global|staff>");
             return true;
         }
 
@@ -58,7 +58,19 @@ public class ChatCommand implements TabExecutor {
                 ChatManager.setChannel(player.getUniqueId(), ChatChannel.REGION);
                 player.sendMessage(ChatColor.GREEN + "Now chatting in region channel.");
             }
-            default -> player.sendMessage(ChatColor.RED + "Usage: /chat <guild|party|region>");
+            case "global" -> {
+                ChatManager.setChannel(player.getUniqueId(), ChatChannel.GLOBAL);
+                player.sendMessage(ChatColor.GREEN + "Now chatting in global channel.");
+            }
+            case "staff" -> {
+                if (!player.hasPermission("levelplugin.staffchat")) {
+                    player.sendMessage(ChatColor.RED + "You do not have permission to use staff chat.");
+                    return true;
+                }
+                ChatManager.setChannel(player.getUniqueId(), ChatChannel.STAFF);
+                player.sendMessage(ChatColor.GREEN + "Now chatting in staff channel.");
+            }
+            default -> player.sendMessage(ChatColor.RED + "Usage: /chat <guild|party|region|global|staff>");
         }
         return true;
     }
@@ -66,7 +78,7 @@ public class ChatCommand implements TabExecutor {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            return Arrays.stream(new String[]{"guild", "party", "region"})
+            return Arrays.stream(new String[]{"guild", "party", "region", "global", "staff"})
                     .filter(opt -> opt.startsWith(args[0].toLowerCase()))
                     .toList();
         }

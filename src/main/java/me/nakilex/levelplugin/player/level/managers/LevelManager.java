@@ -7,7 +7,7 @@ import me.nakilex.levelplugin.booster.GlobalBoosterManager;
 import me.nakilex.levelplugin.spells.Spell;
 import me.nakilex.levelplugin.spells.managers.SpellManager;
 import me.nakilex.levelplugin.spells.utils.SpellUsageUtil;
-import me.nakilex.levelplugin.utils.ChatUtil;
+import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -177,10 +177,12 @@ public class LevelManager {
         for (Spell spell : spells.values()) {
             if (spell.getLevelReq() == newLevel) {
                 String usage = SpellUsageUtil.getUsageLabel(spell);
-                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                        ChatUtil.applyEmojis("New spell unlocked: " + spell.getDisplayName() + "!"));
-                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
-                        ChatUtil.applyEmojis("Cast it with " + usage + "."));
+                ChatFormatter.constructDivider(player, "§b§l-", 45);
+                ChatFormatter.sendCenteredMessage(player, "§b§lNEW SPELL UNLOCKED!");
+                ChatFormatter.sendCenteredMessage(player, "");
+                ChatFormatter.sendCenteredMessage(player, "§7" + spell.getDisplayName());
+                ChatFormatter.sendCenteredMessage(player, "§7Cast with §e" + usage + "§7.");
+                ChatFormatter.constructDivider(player, "§b§l-", 45);
             }
         }
     }

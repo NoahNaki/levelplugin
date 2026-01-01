@@ -46,6 +46,7 @@ import me.nakilex.levelplugin.player.battlepass.command.BattlePassXpCommand;
 import me.nakilex.levelplugin.booster.BoosterCommand;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.player.commands.WipeProfileCommand;
+import me.nakilex.levelplugin.player.commands.ViewProfileCommand;
 import me.nakilex.levelplugin.potions.commands.AddPotionCommand;
 import me.nakilex.levelplugin.lootchests.commands.LootChestCommand;
 import me.nakilex.levelplugin.salvage.commands.SalvageCommand;
@@ -178,6 +179,9 @@ public class CommandRegistry {
         plugin.getCommand("setmininglevel").setExecutor(setMiningLevelCmd);
         plugin.getCommand("setmininglevel").setTabCompleter(setMiningLevelCmd);
         plugin.getCommand("stats").setExecutor(new StatsCommand());
+        ViewProfileCommand viewProfileCmd = new ViewProfileCommand(levelManager);
+        plugin.getCommand("viewprofile").setExecutor(viewProfileCmd);
+        plugin.getCommand("viewprofile").setTabCompleter(viewProfileCmd);
         AddItemCommand addItemCmd = new AddItemCommand();
         plugin.getCommand("additem").setExecutor(addItemCmd);
         plugin.getCommand("additem").setTabCompleter(addItemCmd);

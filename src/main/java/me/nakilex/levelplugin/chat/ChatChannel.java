@@ -3,5 +3,7 @@ package me.nakilex.levelplugin.chat;
 public enum ChatChannel {
     REGION,
     GUILD,
-    PARTY
+    PARTY,
+    GLOBAL,
+    STAFF
 }

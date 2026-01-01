@@ -1,6 +1,10 @@
 package me.nakilex.levelplugin.spells.gui;
 
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
+import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
+import me.nakilex.levelplugin.player.attributes.listeners.StatsEffectListener;
+import me.nakilex.levelplugin.player.classes.managers.PlayerClassManager;
+import me.nakilex.levelplugin.player.classes.data.ClassUtil;
 import me.nakilex.levelplugin.spells.Spell;
 import me.nakilex.levelplugin.spells.managers.SpellManager;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
@@ -401,9 +405,8 @@ public class SpellGUI {
 
         lore.add(ChatColor.GRAY + "Usage: " + ChatColor.YELLOW + usage);
         lore.add(ChatColor.GRAY + "Required Rank: " + ChatColor.YELLOW + spell.getLevelReq());
-        if (spell.getBaseDamage() > 0) {
-            lore.add(ChatColor.GRAY + "Damage: " + ChatColor.RED + formatDamage(spell.getBaseDamage()));
-        }
+        double scaledDamage = computeScaledDamage(player, spell);
+        lore.add(ChatColor.GRAY + "Damage: " + ChatColor.RED + formatDamage(scaledDamage));
 
         if (unlocked) {
             lore.add(ChatColor.DARK_GRAY + "" + ChatColor.STRIKETHROUGH + "--------------------");
@@ -423,5 +426,27 @@ public class SpellGUI {
             return String.format(Locale.US, "%.0f", damage);
         }
         return String.format(Locale.US, "%.1f", damage);
+    }
+
+    private static double computeScaledDamage(Player player, Spell spell) {
+        if (player == null || spell == null) {
+            return 0.0;
+        }
+        StatsManager.PlayerStats stats = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
+        double baseDamage = spell.getBaseDamage();
+        if (stats == null) {
+            return baseDamage;
+        }
+        boolean isMage = ClassUtil.isMageFamily(PlayerClassManager.getInstance().getPlayerClass(player));
+        int totalStat = isMage
+                ? stats.baseIntelligence + stats.bonusIntelligence
+                : stats.baseStrength + stats.bonusStrength;
+        double scaled = baseDamage + totalStat * 0.5;
+        int totalTech = stats.baseTechnique + stats.bonusTechnique;
+        scaled *= (1.0 + totalTech * 0.003);
+        double multiplier = "BASIC_ATTACK".equalsIgnoreCase(spell.getCombo())
+                ? StatsEffectListener.BASIC_ATTACK_MULTIPLIER
+                : StatsEffectListener.SPELL_DAMAGE_MULTIPLIER;
+        return scaled * multiplier;
     }
 }
