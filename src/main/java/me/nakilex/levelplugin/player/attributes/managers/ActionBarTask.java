@@ -44,9 +44,12 @@ public class ActionBarTask extends BukkitRunnable {
                            .append(ChatColor.DARK_GRAY).append("]");
                     }
                     player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(msg.toString()));
-                } else {
-                    player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(""));
+                    continue;
                 }
+            }
+            if (StatsManager.getInstance().isInCombat(player.getUniqueId())) {
+                player.spigot().sendMessage(ChatMessageType.ACTION_BAR,
+                        new TextComponent(ChatColor.RED + "In Combat"));
             } else {
                 player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(""));
             }
