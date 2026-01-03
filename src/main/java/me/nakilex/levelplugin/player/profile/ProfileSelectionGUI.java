@@ -366,7 +366,9 @@ public class ProfileSelectionGUI implements Listener {
         // they are selecting it for the first time, start the intro quest.
         Integer pending = FIRST_PROFILE_SLOT.get(player.getUniqueId());
         if (pending != null && pending == index) {
-            Main.getInstance().getQuestManager().startQuest(player, "officeerrands");
+            QuestManager questManager = Main.getInstance().getQuestManager();
+            questManager.resetQuest(player.getUniqueId(), "officeerrands");
+            questManager.startQuest(player, "officeerrands");
             FIRST_PROFILE_SLOT.remove(player.getUniqueId());
         }
 

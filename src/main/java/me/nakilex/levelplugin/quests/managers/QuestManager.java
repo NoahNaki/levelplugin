@@ -362,6 +362,18 @@ public class QuestManager {
             if (tracked != null) {
                 trackedQuests.put(uuid, tracked);
             }
+            ensureTrackedQuest(uuid);
+        }
+    }
+
+    private void ensureTrackedQuest(UUID uuid) {
+        Map<String, PlayerQuestProgress> map = activeQuests.get(uuid);
+        if (map == null || map.isEmpty()) {
+            return;
+        }
+        String tracked = trackedQuests.get(uuid);
+        if (tracked == null || !map.containsKey(tracked)) {
+            trackedQuests.put(uuid, map.keySet().iterator().next());
         }
     }
 
