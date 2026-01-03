@@ -62,6 +62,7 @@ public class ProfileManager {
         list.set(slot, p);
         me.nakilex.levelplugin.player.config.PlayerConfig cfg =
                 me.nakilex.levelplugin.Main.getInstance().getPlayerConfig();
+        cfg.clearProfileData(uuid, slot);
         cfg.setProfileName(uuid, slot, name);
         cfg.setProfilePlayTime(uuid, slot, 0);
         cfg.saveConfigFile();
@@ -143,12 +144,15 @@ public class ProfileManager {
         if (partyManager != null) {
             partyManager.leaveParty(uuid);
         }
+        Integer active = activeSlot.get(uuid);
+        if (active != null && active == slot) {
+            activeSlot.remove(uuid);
+        }
 
         list.set(slot, null);
         me.nakilex.levelplugin.player.config.PlayerConfig cfg =
                 me.nakilex.levelplugin.Main.getInstance().getPlayerConfig();
         cfg.clearProfileData(uuid, slot);
-        wipePlayer(player);
         cfg.saveConfigFile();
     }
 

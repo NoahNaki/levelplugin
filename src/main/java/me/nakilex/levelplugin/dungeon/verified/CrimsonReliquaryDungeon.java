@@ -652,15 +652,9 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
         }
         base.getBlock().setType(type.block, false);
 
-        // Remove any placement armor stands nearby to avoid duplicate holograms lingering.
-        base.getWorld().getNearbyEntities(base.clone().add(0.5, 0.5, 0.5), 0.75, 1.5, 0.75, ent ->
-                ent instanceof ArmorStand && ent.getScoreboardTags().contains("dungeon_flower_slot"))
-                .forEach(org.bukkit.entity.Entity::remove);
-
-        MultiLineHologram holo = state.placementHolograms.remove(base);
-        if (holo != null) holo.despawn();
         held.setAmount(held.getAmount() - 1);
         state.placements.put(base, type);
+        updatePlacementHologram(base, state, true);
         ChatMessageUtil.send(player, MessageType.SUCCESS, "Flower placed.");
         base.getWorld().spawnParticle(Particle.END_ROD, base.clone().add(0.5, 1.1, 0.5), 16, 0.2, 0.35, 0.2, 0.01);
         base.getWorld().playSound(base, Sound.BLOCK_BEACON_POWER_SELECT, 0.8f, 1.4f);
@@ -679,19 +673,12 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
         if (placed == null) {
             return false;
         }
-        if (!player.isSneaking()) {
-            return false;
-        }
         base.getBlock().setType(Material.AIR, false);
         ItemStack reward = createFlowerItem(placed);
         Map<Integer, ItemStack> overflow = player.getInventory().addItem(reward);
         overflow.values().forEach(item -> base.getWorld().dropItemNaturally(player.getLocation(), item));
         state.placements.put(base, null);
-        MultiLineHologram existing = state.placementHolograms.remove(base);
-        if (existing != null) {
-            existing.despawn();
-        }
-        setupPlacementSlot(base, state);
+        updatePlacementHologram(base, state, false);
         ChatMessageUtil.send(player, MessageType.INFO, "You retrieve the placed flower.");
         return true;
     }
@@ -701,18 +688,48 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
             return;
         }
         marker.getBlock().setType(Material.AIR, false);
+        ensurePlacementMarker(marker);
+        updatePlacementHologram(marker, state, false);
+        state.placements.put(marker, null);
+    }
+
+    private void ensurePlacementMarker(Location marker) {
+        if (marker == null || marker.getWorld() == null) {
+            return;
+        }
+        boolean hasMarker = marker.getWorld().getNearbyEntities(marker.clone().add(0.5, 0.1, 0.5), 0.4, 0.8, 0.4, ent ->
+                ent instanceof ArmorStand && ent.getScoreboardTags().contains("dungeon_flower_slot"))
+                .stream()
+                .findFirst()
+                .isPresent();
+        if (hasMarker) {
+            return;
+        }
         marker.getWorld().spawn(marker.clone().add(0.5, 0.1, 0.5), ArmorStand.class, as -> {
             as.setVisible(false);
             as.setGravity(false);
             as.setMarker(false);
             as.addScoreboardTag("dungeon_flower_slot");
         });
-        MultiLineHologram holo = new MultiLineHologram(marker.clone().add(0.5, 1.2, 0.5), "crimson_flower_slot");
-        holo.spawn(List.of(
-                legacy.serialize(Component.text("Place Flower", NamedTextColor.AQUA)),
-                legacy.serialize(Component.text("Right-click with a flower", NamedTextColor.GRAY))));
-        state.placementHolograms.put(marker, holo);
-        state.placements.put(marker, null);
+    }
+
+    private void updatePlacementHologram(Location marker, InstanceState state, boolean placed) {
+        if (marker == null || state == null) {
+            return;
+        }
+        MultiLineHologram holo = state.placementHolograms.get(marker);
+        if (holo == null) {
+            holo = new MultiLineHologram(marker.clone().add(0.5, 1.2, 0.5), "crimson_flower_slot");
+            state.placementHolograms.put(marker, holo);
+        }
+        List<String> lines = placed
+                ? List.of(
+                    legacy.serialize(Component.text("Flower Placed", NamedTextColor.AQUA)),
+                    legacy.serialize(Component.text("Right-click to remove the flower", NamedTextColor.GRAY)))
+                : List.of(
+                    legacy.serialize(Component.text("Place Flower", NamedTextColor.AQUA)),
+                    legacy.serialize(Component.text("Right-click with a flower", NamedTextColor.GRAY)));
+        holo.setLines(lines);
     }
 
     private org.bukkit.block.BlockFace getFacingFromData(BlockData data) {

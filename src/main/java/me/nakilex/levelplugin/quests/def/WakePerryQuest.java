@@ -265,7 +265,7 @@ public class WakePerryQuest extends Quest implements QuestScript {
         }
 
         consumeOne(player, slot);
-        swapNpcStates();
+        syncNpcVisibilityForPlayer(player);
         NPC awake = CitizensAPI.getNPCRegistry().getById(NPC_PERRY_AWAKE_ID);
         NPC dialogNpc = awake != null ? awake : npc;
         questManager.handleTalk(player, WAKE_TARGET);
@@ -321,23 +321,40 @@ public class WakePerryQuest extends Quest implements QuestScript {
         giveWhiteMonster(player);
     }
 
-    private void swapNpcStates() {
-        setNpcVisible(NPC_PERRY_SLEEP_ID, false);
-        setNpcVisible(NPC_PERRY_AWAKE_ID, true);
-    }
-
-    private void setNpcVisible(int npcId, boolean visible) {
-        NPC npc = CitizensAPI.getNPCRegistry().getById(npcId);
-        if (npc == null) {
+    private void setNpcVisible(Player player, NPC npc, boolean visible) {
+        if (player == null || npc == null) {
+            return;
+        }
+        if (!npc.isSpawned() && npc.getStoredLocation() != null) {
+            npc.spawn(npc.getStoredLocation());
+        }
+        if (!npc.isSpawned() || npc.getEntity() == null) {
             return;
         }
         if (visible) {
-            if (!npc.isSpawned() && npc.getStoredLocation() != null) {
-                npc.spawn(npc.getStoredLocation());
-            }
-        } else if (npc.isSpawned()) {
-            npc.despawn();
+            player.showEntity(Main.getInstance(), npc.getEntity());
+        } else {
+            player.hideEntity(Main.getInstance(), npc.getEntity());
         }
+    }
+
+    private void syncNpcVisibilityForPlayer(Player player) {
+        QuestManager questManager = Main.getInstance().getQuestManager();
+        if (questManager == null || player == null) {
+            return;
+        }
+        NPC sleeping = CitizensAPI.getNPCRegistry().getById(NPC_PERRY_SLEEP_ID);
+        NPC awake = CitizensAPI.getNPCRegistry().getById(NPC_PERRY_AWAKE_ID);
+        if (sleeping == null || awake == null) {
+            return;
+        }
+        boolean shouldShowAwake = questManager.hasCompleted(player.getUniqueId(), ID);
+        PlayerQuestProgress prog = questManager.getProgress(player.getUniqueId(), ID);
+        if (prog != null && prog.getProgress(WAKE_INDEX) >= 1) {
+            shouldShowAwake = true;
+        }
+        setNpcVisible(player, sleeping, !shouldShowAwake);
+        setNpcVisible(player, awake, shouldShowAwake);
     }
 
     private void giveWhiteMonster(Player player) {
@@ -441,14 +458,8 @@ public class WakePerryQuest extends Quest implements QuestScript {
         if (questManager == null) {
             return;
         }
-        boolean anyAwake = Bukkit.getOnlinePlayers().stream().anyMatch(p -> {
-            if (questManager.hasCompleted(p.getUniqueId(), ID)) {
-                return true;
-            }
-            PlayerQuestProgress prog = questManager.getProgress(p.getUniqueId(), ID);
-            return prog != null && prog.getProgress(WAKE_INDEX) >= 1;
-        });
-        setNpcVisible(NPC_PERRY_SLEEP_ID, !anyAwake);
-        setNpcVisible(NPC_PERRY_AWAKE_ID, anyAwake);
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            syncNpcVisibilityForPlayer(player);
+        }
     }
 }

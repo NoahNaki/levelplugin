@@ -18,7 +18,9 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
@@ -45,6 +47,7 @@ public class StorageGUI {
     private boolean confirmUnlock = false;
     private int sortMode = 0;
     private int filterMode = 5;
+    private final Map<Inventory, List<ItemStack>> hiddenItems = new HashMap<>();
 
     private static final int PAGE_SIZE     = 54;  // double chest size
     private static final int NAV_NEXT_SLOT = 53;
@@ -261,6 +264,9 @@ public class StorageGUI {
     /** Persists all pages to disk under this owner's UUID. */
     public void saveToDisk() {
         FileHandler fileHandler = new FileHandler();
+        for (Inventory page : pages) {
+            restoreHiddenItems(page);
+        }
         fileHandler.saveStorage(ownerKey, pages, folder, prefix);
     }
 
@@ -415,12 +421,8 @@ public class StorageGUI {
 
     /** Apply current sort and filter settings to a page before showing it. */
     private void applySortAndFilter(Inventory inv) {
-        List<ItemStack> items = new ArrayList<>();
+        List<ItemStack> items = collectStoredItems(inv);
         for (int slot : STORAGE_SLOTS) {
-            ItemStack it = inv.getItem(slot);
-            if (it != null && it.getType() != Material.AIR) {
-                items.add(it);
-            }
             inv.setItem(slot, null);
         }
 
@@ -440,11 +442,44 @@ public class StorageGUI {
                     nonMatches.add(item);
                 }
             }
-            items.clear();
-            items.addAll(matches);
-            items.addAll(nonMatches);
+            hiddenItems.put(inv, nonMatches);
+            items = matches;
+        } else {
+            hiddenItems.remove(inv);
         }
 
+        int idx = 0;
+        for (int slot : STORAGE_SLOTS) {
+            if (idx >= items.size()) break;
+            inv.setItem(slot, items.get(idx++));
+        }
+    }
+
+    private List<ItemStack> collectStoredItems(Inventory inv) {
+        List<ItemStack> items = new ArrayList<>();
+        for (int slot : STORAGE_SLOTS) {
+            ItemStack it = inv.getItem(slot);
+            if (it != null && it.getType() != Material.AIR) {
+                items.add(it);
+            }
+        }
+        List<ItemStack> hidden = hiddenItems.get(inv);
+        if (hidden != null) {
+            items.addAll(hidden);
+        }
+        return items;
+    }
+
+    private void restoreHiddenItems(Inventory inv) {
+        List<ItemStack> hidden = hiddenItems.get(inv);
+        if (hidden == null || hidden.isEmpty()) {
+            return;
+        }
+        List<ItemStack> items = collectStoredItems(inv);
+        hiddenItems.remove(inv);
+        for (int slot : STORAGE_SLOTS) {
+            inv.setItem(slot, null);
+        }
         int idx = 0;
         for (int slot : STORAGE_SLOTS) {
             if (idx >= items.size()) break;
