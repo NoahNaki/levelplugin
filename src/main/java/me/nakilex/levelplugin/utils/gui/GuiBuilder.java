@@ -19,12 +19,22 @@ public final class GuiBuilder {
     private boolean fillEmpty = true;
 
     private GuiBuilder(int size, String title) {
-        this.inventory = Bukkit.createInventory(null, size, title);
+        this.inventory = Bukkit.createInventory(null, normalizeSize(size), title);
     }
 
     /** Create a builder for the given size and title. */
     public static GuiBuilder create(int size, String title) {
         return new GuiBuilder(size, title);
+    }
+
+    public static int normalizeSize(int size) {
+        int clamped = Math.max(9, Math.min(54, size));
+        int remainder = clamped % 9;
+        if (remainder == 0) {
+            return clamped;
+        }
+        int rounded = clamped + (9 - remainder);
+        return Math.min(54, rounded);
     }
 
     /** Specify the material used for filler panes. */
