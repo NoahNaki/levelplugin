@@ -64,7 +64,7 @@ public class StableKeeperNpcHandler extends AbstractQuestNpcHandler {
 
         if (reportDone && !horseBought) {
             horseGUI.openHorseMenu(player);
-            player.sendMessage("§ePick a horse from the stable, then talk to the Stable Keeper again.");
+            player.sendMessage("§eClaim a horse from the stable, then talk to the Stable Keeper again.");
             return true;
         }
 

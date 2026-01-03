@@ -97,6 +97,20 @@ public class MythicMobRewardListener implements Listener {
             participants = Collections.emptySet();
         }
 
+        me.nakilex.levelplugin.quests.managers.QuestManager questManager = Main.getInstance().getQuestManager();
+        if (questManager != null && !participants.isEmpty()) {
+            Player killer = event.getEntity().getKiller();
+            for (Player participant : participants) {
+                if (participant == null) {
+                    continue;
+                }
+                if (killer != null && participant.getUniqueId().equals(killer.getUniqueId())) {
+                    continue;
+                }
+                questManager.handleKill(participant, rawMobType, false);
+            }
+        }
+
         ConfigurationSection node = mobRewardsConfig.getMobSection(rawMobType);
         Entity baseEntity = mythicMob.getEntity().getBukkitEntity();
         boolean numericHpName = baseEntity instanceof LivingEntity living && MobNameUtil.hasNumericHealth(living);

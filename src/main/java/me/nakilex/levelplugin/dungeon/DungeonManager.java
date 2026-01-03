@@ -7,6 +7,7 @@ import me.nakilex.levelplugin.mob.utils.MythicMobModifier;
 import me.nakilex.levelplugin.lootchests.utils.LocationUtils;
 import me.nakilex.levelplugin.dungeon.verified.VerifiedDungeonDefinition;
 import me.nakilex.levelplugin.dungeon.verified.CrimsonReliquaryDungeon;
+import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import me.nakilex.levelplugin.utils.FileUtil;
@@ -881,6 +882,13 @@ public class DungeonManager {
     }
 
     public void startInstance(Player player, String name) {
+        me.nakilex.levelplugin.party.PartyManager partyManager = plugin.getPartyManager();
+        me.nakilex.levelplugin.party.Party party = partyManager == null ? null : partyManager.getParty(player.getUniqueId());
+        if (party != null && partyHasActiveInstance(party)) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                    "Your party is already inside a dungeon. Finish that run before starting another.");
+            return;
+        }
         String keyName = normalizeKey(name);
         VerifiedDungeonDefinition verified = getVerifiedDungeon(keyName);
         if (verified != null) {
@@ -1045,6 +1053,19 @@ public class DungeonManager {
                 + (System.currentTimeMillis() - debugStart) + "ms");
         startRun(java.util.Collections.singleton(player.getUniqueId()), key, System.currentTimeMillis());
         return true;
+    }
+
+    private boolean partyHasActiveInstance(me.nakilex.levelplugin.party.Party party) {
+        if (party == null) {
+            return false;
+        }
+        for (java.util.UUID id : party.getMembers()) {
+            Player member = Bukkit.getPlayer(id);
+            if (member != null && member.isOnline() && isInstanceWorld(member.getWorld())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public void startRun(java.util.Collection<java.util.UUID> participants, String layoutKey, long startMillis) {

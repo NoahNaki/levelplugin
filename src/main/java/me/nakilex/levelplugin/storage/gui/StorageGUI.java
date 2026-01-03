@@ -431,7 +431,18 @@ public class StorageGUI {
         }
 
         if (filterMode != 5) {
-            items.removeIf(it -> !matchesLevelFilter(it, filterMode));
+            List<ItemStack> matches = new ArrayList<>();
+            List<ItemStack> nonMatches = new ArrayList<>();
+            for (ItemStack item : items) {
+                if (matchesLevelFilter(item, filterMode)) {
+                    matches.add(item);
+                } else {
+                    nonMatches.add(item);
+                }
+            }
+            items.clear();
+            items.addAll(matches);
+            items.addAll(nonMatches);
         }
 
         int idx = 0;

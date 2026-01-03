@@ -268,8 +268,8 @@ public class WakePerryQuest extends Quest implements QuestScript {
         swapNpcStates();
         NPC awake = CitizensAPI.getNPCRegistry().getById(NPC_PERRY_AWAKE_ID);
         NPC dialogNpc = awake != null ? awake : npc;
-        startAutoDialog(player, dialogNpc, PERRY_AWAKE_DIALOG, () -> questManager.handleTalk(player, WAKE_TARGET),
-                dialogManager, questManager);
+        questManager.handleTalk(player, WAKE_TARGET);
+        startAutoDialog(player, dialogNpc, PERRY_AWAKE_DIALOG, null, dialogManager, questManager);
     }
 
     private void handleAwakePerry(Player player, NPC npc, PlayerQuestProgress progress, boolean completed,

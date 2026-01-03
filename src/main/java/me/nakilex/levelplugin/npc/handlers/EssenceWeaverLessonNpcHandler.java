@@ -6,9 +6,13 @@ import me.nakilex.levelplugin.quests.data.Quest;
 import me.nakilex.levelplugin.quests.def.EssenceWeaversLessonQuest;
 import me.nakilex.levelplugin.quests.gui.QuestState;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
+import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
+import me.nakilex.levelplugin.player.classes.data.PlayerClass;
+import me.nakilex.levelplugin.player.classes.essence.ClassEssence;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 
 /**
  * Handles the Essence Weaver tutorial interactions.
@@ -40,9 +44,12 @@ public class EssenceWeaverLessonNpcHandler extends AbstractQuestNpcHandler {
             dialogManager.startDialog(player,
                     quest.getDialogLines(),
                     npc,
-                    () -> questManager.handleTalk(player, EssenceWeaversLessonQuest.NPC_NAME.equalsIgnoreCase(npc.getName())
-                            ? "npc_essence_weaver_intro"
-                            : "npc" + npc.getId()));
+                    () -> {
+                        questManager.handleTalk(player, EssenceWeaversLessonQuest.NPC_NAME.equalsIgnoreCase(npc.getName())
+                                ? "npc_essence_weaver_intro"
+                                : "npc" + npc.getId());
+                        ensureIntroEssence(player);
+                    });
             return true;
         }
 
@@ -66,5 +73,30 @@ public class EssenceWeaverLessonNpcHandler extends AbstractQuestNpcHandler {
 
         player.performCommand("essenceupgrade");
         return true;
+    }
+
+    private void ensureIntroEssence(Player player) {
+        if (player == null) {
+            return;
+        }
+        StatsManager.PlayerStats stats = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
+        if (stats != null && stats.essenceSlots != null) {
+            for (ItemStack stack : stats.essenceSlots) {
+                if (stack != null && ClassEssence.isEssence(stack)) {
+                    return;
+                }
+            }
+        }
+        for (ItemStack stack : player.getInventory().getContents()) {
+            if (stack != null && ClassEssence.isEssence(stack)) {
+                return;
+            }
+        }
+        PlayerClass clazz = stats != null ? stats.playerClass : null;
+        ItemStack essence = clazz != null ? ClassEssence.generateEssence(clazz) : ClassEssence.generateEssence();
+        player.getInventory().addItem(essence).values()
+                .forEach(item -> player.getWorld().dropItemNaturally(player.getLocation(), item));
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                "Essence Weaver|Take this essence to begin your training.");
     }
 }

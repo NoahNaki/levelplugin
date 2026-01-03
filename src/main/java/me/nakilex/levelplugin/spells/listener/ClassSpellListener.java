@@ -130,7 +130,6 @@ public class ClassSpellListener implements Listener {
         t.rightSneak = List.of("meteor");
         t.right = List.of("blink");
         t.sneakStart = List.of("frost_nova");
-        t.sneakPrep = List.of("Frost_Nova");
         MAP.put(PlayerClass.MAGE, t);
 
         // Warrior class
