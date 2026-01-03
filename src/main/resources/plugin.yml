@@ -265,6 +265,12 @@ commands:
     description: Admin command to distribute sealing charms
     usage: /sealingcharm give <player> <amount>
     permission: levelplugin.admin
+  enddialog:
+    description: End a stuck NPC dialog session for a player
+    usage: /enddialog <player>
+  dungeonfinder:
+    description: Open the dungeon finder menu
+    usage: /dungeonfinder
   enchant:
     description: Opens the enchanting GUI
     usage: /enchant

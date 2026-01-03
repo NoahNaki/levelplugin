@@ -92,6 +92,7 @@ import me.nakilex.levelplugin.environment.stage.TownPosCommand;
 import me.nakilex.levelplugin.environment.stage.StageSelectionListener;
 import me.nakilex.levelplugin.utils.commands.CenterGuiCommand;
 import me.nakilex.levelplugin.utils.commands.CenterTooltipCommand;
+import me.nakilex.levelplugin.utils.commands.EndDialogCommand;
 import me.nakilex.levelplugin.utils.commands.EmptyTabCompleter;
 import me.nakilex.levelplugin.pathfinding.PathfindingCommand;
 import me.nakilex.levelplugin.pathfinding.PathfindingManager;
@@ -103,6 +104,7 @@ import me.nakilex.levelplugin.commands.LevelPluginCommand;
 import me.nakilex.levelplugin.chat.ChatCommand;
 import me.nakilex.levelplugin.chat.EmotesCommand;
 import me.nakilex.levelplugin.chat.RollCommand;
+import me.nakilex.levelplugin.dungeon.commands.DungeonFinderCommand;
 import org.bukkit.command.PluginCommand;
 import me.nakilex.levelplugin.pathfinding.MercenaryManager;
 
@@ -199,6 +201,10 @@ public class CommandRegistry {
         SealingCharmCommand sealingCharmCmd = new SealingCharmCommand();
         plugin.getCommand("sealingcharm").setExecutor(sealingCharmCmd);
         plugin.getCommand("sealingcharm").setTabCompleter(sealingCharmCmd);
+        EndDialogCommand endDialogCommand = new EndDialogCommand();
+        plugin.getCommand("enddialog").setExecutor(endDialogCommand);
+        plugin.getCommand("enddialog").setTabCompleter(endDialogCommand);
+        plugin.getCommand("dungeonfinder").setExecutor(new DungeonFinderCommand());
         SetLevelCommand setLevelCmd = new SetLevelCommand(plugin);
         plugin.getCommand("setlevel").setExecutor(setLevelCmd);
         plugin.getCommand("setlevel").setTabCompleter(setLevelCmd);

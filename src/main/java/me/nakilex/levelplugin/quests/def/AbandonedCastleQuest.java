@@ -87,7 +87,7 @@ public class AbandonedCastleQuest extends Quest implements QuestScript, QuestRes
                 "Abandoned Castle",
                 "Investigate the disappearances near the abandoned castle and delve into the Crimson Reliquary.",
                 createObjectives(),
-                15,
+                12,
                 List.of(EssenceWeaversLessonQuest.ID),
                 null,
                 QuestRewardCompat.create(15000, 5600, 0, List.of()),

@@ -64,6 +64,9 @@ public class TeleportEffect implements SpellEffect {
             }
             Location safe = findSafeLocation(rawTarget, safeSearchRange, player);
             if (safe == null) {
+                safe = findNearbySafeLocation(rawTarget, Math.max(3, (int) Math.ceil(safeSearchRange)), player);
+            }
+            if (safe == null) {
                 plugin.getLogger().warning("[TeleportEffect] Teleport #" + count + " failed: no safe spot");
                 return;
             }
@@ -147,6 +150,27 @@ public class TeleportEffect implements SpellEffect {
             Location temp = target.clone().add(0, dy, 0);
             if (isLocationTpSafe(temp)) {
                 return temp;
+            }
+        }
+        return null;
+    }
+
+    private Location findNearbySafeLocation(Location target, int radius, Player player) {
+        if (target == null || target.getWorld() == null) {
+            return null;
+        }
+        for (int r = 0; r <= radius; r++) {
+            for (int dx = -r; dx <= r; dx++) {
+                for (int dz = -r; dz <= r; dz++) {
+                    if (Math.abs(dx) != r && Math.abs(dz) != r) {
+                        continue;
+                    }
+                    Location candidate = target.clone().add(dx, 0, dz);
+                    Location safe = findSafeLocation(candidate, 2, player);
+                    if (safe != null) {
+                        return safe;
+                    }
+                }
             }
         }
         return null;

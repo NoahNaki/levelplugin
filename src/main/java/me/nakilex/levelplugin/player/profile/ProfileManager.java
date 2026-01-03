@@ -139,6 +139,10 @@ public class ProfileManager {
         }
         me.nakilex.levelplugin.guild.GuildManager guildManager = me.nakilex.levelplugin.guild.GuildManager.getInstance();
         guildManager.handleProfileDeletion(uuid);
+        me.nakilex.levelplugin.party.PartyManager partyManager = me.nakilex.levelplugin.Main.getInstance().getPartyManager();
+        if (partyManager != null) {
+            partyManager.leaveParty(uuid);
+        }
 
         list.set(slot, null);
         me.nakilex.levelplugin.player.config.PlayerConfig cfg =

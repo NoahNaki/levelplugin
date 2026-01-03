@@ -397,6 +397,13 @@ public class ProfileSelectionGUI implements Listener {
             me.nakilex.levelplugin.items.listeners.StaticItemListener.giveStaticItems(player);
         }
         if (armor.length > 0) player.getInventory().setArmorContents(armor);
+        me.nakilex.levelplugin.player.attributes.managers.StatsManager statsManager =
+                me.nakilex.levelplugin.player.attributes.managers.StatsManager.getInstance();
+        statsManager.recalcDerivedStats(player);
+        me.nakilex.levelplugin.player.attributes.managers.StatsManager.PlayerStats ps =
+                statsManager.getPlayerStats(player.getUniqueId());
+        player.setHealth(player.getMaxHealth());
+        ps.currentMana = ps.maxMana;
         stopSelection(player);
         player.closeInventory();
         BetterHudUtil.addHud(player);
