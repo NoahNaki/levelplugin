@@ -268,9 +268,8 @@ public class WakePerryQuest extends Quest implements QuestScript {
         swapNpcStates();
         NPC awake = CitizensAPI.getNPCRegistry().getById(NPC_PERRY_AWAKE_ID);
         NPC dialogNpc = awake != null ? awake : npc;
-        dialogManager.startDialog(player, PERRY_AWAKE_DIALOG, dialogNpc, () -> {
-            questManager.handleTalk(player, WAKE_TARGET);
-        });
+        startAutoDialog(player, dialogNpc, PERRY_AWAKE_DIALOG, () -> questManager.handleTalk(player, WAKE_TARGET),
+                dialogManager, questManager);
     }
 
     private void handleAwakePerry(Player player, NPC npc, PlayerQuestProgress progress, boolean completed,
@@ -416,6 +415,25 @@ public class WakePerryQuest extends Quest implements QuestScript {
         String line = PERRY_SLEEPING.get(idx % PERRY_SLEEPING.size());
         player.sendMessage(ChatColor.GRAY + line);
         sleepLineIndex.put(player.getUniqueId(), (idx + 1) % PERRY_SLEEPING.size());
+    }
+
+    private void startAutoDialog(Player player, NPC npc, List<String> lines, Runnable finish,
+                                 NPCDialogManager dialogManager, QuestManager questManager) {
+        dialogManager.startDialog(player, lines, npc, finish);
+        Bukkit.getScheduler().runTaskTimer(Main.getInstance(), new org.bukkit.scheduler.BukkitRunnable() {
+            @Override
+            public void run() {
+                if (player == null || !player.isOnline()) {
+                    cancel();
+                    return;
+                }
+                if (!dialogManager.hasSession(player)) {
+                    cancel();
+                    return;
+                }
+                dialogManager.advanceDialog(player, questManager);
+            }
+        }, 20L, 40L);
     }
 
     private void syncNpcVisibility() {

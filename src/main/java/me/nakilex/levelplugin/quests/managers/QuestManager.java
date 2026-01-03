@@ -371,6 +371,7 @@ public class QuestManager {
         Set<UUID> all = new HashSet<>();
         all.addAll(completedQuests.keySet());
         all.addAll(activeQuests.keySet());
+        all.addAll(trackedQuests.keySet());
         for (UUID uuid : all) {
             ConfigurationSection sec = root.createSection(uuid.toString());
             Set<String> completed = completedQuests.get(uuid);
@@ -1189,7 +1190,7 @@ public class QuestManager {
                         continue;
                     }
                 }
-                if (obj.getType() == type && obj.getTarget().equalsIgnoreCase(target)) {
+                if (obj.getType() == type && targetsMatch(type, obj.getTarget(), target)) {
                     progress.incrementProgress(i, amount, obj.isAllowOverflow(), obj.getAmount());
                     if (debug) {
                         plugin.getLogger().info("[QuestDebug] " + player.getName() + " progressed " + quest.getId()
@@ -1205,6 +1206,21 @@ public class QuestManager {
                 }
             }
         }
+    }
+
+    private boolean targetsMatch(QuestObjectiveType type, String objectiveTarget, String target) {
+        if (objectiveTarget == null || target == null) {
+            return false;
+        }
+        if (objectiveTarget.equalsIgnoreCase(target)) {
+            return true;
+        }
+        if (type != QuestObjectiveType.KILL) {
+            return false;
+        }
+        String objectiveKey = MobNameUtil.canonicalMobKey(objectiveTarget);
+        String targetKey = MobNameUtil.canonicalMobKey(target);
+        return !objectiveKey.isBlank() && objectiveKey.equalsIgnoreCase(targetKey);
     }
 
     private void finalizeQuestCompletion(UUID playerId, Quest quest,

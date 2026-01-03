@@ -584,6 +584,7 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
                 p.setInvulnerable(st.invulnerable);
                 p.setAllowFlight(st.allowFlight);
                 p.setFlying(st.allowFlight && st.flying);
+                manager.disableInstanceFlight(p);
                 ChatMessageUtil.send(p, MessageType.SUCCESS, "Crimson Reliquary is ready.");
             }
         }
@@ -937,6 +938,10 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
 
     private void spawnBossExitPortal(InstanceState state) {
         if (state == null || state.bossPortalLocation == null) return;
+        if (!state.bossPortalLocation.getChunk().isLoaded()) {
+            state.bossPortalLocation.getChunk().load();
+        }
+        state.bossPortalLocation.getBlock().setType(Material.AIR, false);
         FurnitureMechanic existing = NexoFurniture.furnitureMechanic(state.bossPortalLocation.getBlock());
         if (existing != null && "portal_decoration_animated_v1_portal_5".equalsIgnoreCase(existing.getItemID())) {
             return;
