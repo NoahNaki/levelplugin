@@ -437,7 +437,7 @@ public class WakePerryQuest extends Quest implements QuestScript {
     private void startAutoDialog(Player player, NPC npc, List<String> lines, Runnable finish,
                                  NPCDialogManager dialogManager, QuestManager questManager) {
         dialogManager.startDialog(player, lines, npc, finish);
-        Bukkit.getScheduler().runTaskTimer(Main.getInstance(), new org.bukkit.scheduler.BukkitRunnable() {
+        new org.bukkit.scheduler.BukkitRunnable() {
             @Override
             public void run() {
                 if (player == null || !player.isOnline()) {
@@ -450,7 +450,7 @@ public class WakePerryQuest extends Quest implements QuestScript {
                 }
                 dialogManager.advanceDialog(player, questManager);
             }
-        }, 20L, 40L);
+        }.runTaskTimer(Main.getInstance(), 20L, 40L);
     }
 
     private void syncNpcVisibility() {
