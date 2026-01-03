@@ -367,7 +367,14 @@ public class ProfileSelectionGUI implements Listener {
         Integer pending = FIRST_PROFILE_SLOT.get(player.getUniqueId());
         if (pending != null && pending == index) {
             QuestManager questManager = Main.getInstance().getQuestManager();
-            questManager.resetQuest(player.getUniqueId(), "officeerrands");
+            long existingProfiles = pm.getProfiles(player.getUniqueId()).stream()
+                    .filter(java.util.Objects::nonNull)
+                    .count();
+            if (existingProfiles <= 1) {
+                questManager.clearPlayerData(player.getUniqueId());
+            } else {
+                questManager.resetQuest(player.getUniqueId(), "officeerrands", true);
+            }
             questManager.startQuest(player, "officeerrands");
             FIRST_PROFILE_SLOT.remove(player.getUniqueId());
         }
