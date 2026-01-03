@@ -947,9 +947,9 @@ public class DungeonManager {
         inst.setSpawnLocation(origin);
         java.util.List<Player> participants = new java.util.ArrayList<>();
         me.nakilex.levelplugin.party.PartyManager pm = plugin.getPartyManager();
-        me.nakilex.levelplugin.party.Party party = pm.getParty(player.getUniqueId());
-        if (party != null) {
-            for (java.util.UUID id : party.getMembers()) {
+        me.nakilex.levelplugin.party.Party activeParty = pm.getParty(player.getUniqueId());
+        if (activeParty != null) {
+            for (java.util.UUID id : activeParty.getMembers()) {
                 Player mem = Bukkit.getPlayer(id);
                 if (mem != null && mem.isOnline()) {
                     participants.add(mem);
