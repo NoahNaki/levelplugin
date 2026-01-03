@@ -314,10 +314,10 @@ public class ProfileSelectionGUI implements Listener {
         if (e.getRawSlot() == CONFIRM_YES_SLOT) {
             if (slotIndex >= 0) {
                 ProfileManager pm = ProfileManager.getInstance();
+                Integer active = pm.getActiveSlot(player.getUniqueId());
                 pm.deleteProfile(player, slotIndex);
                 player.sendMessage(ChatColor.RED + "Profile deleted.");
 
-                Integer active = pm.getActiveSlot(player.getUniqueId());
                 if (active != null && active == slotIndex) {
                     pm.clearActiveSlot(player.getUniqueId());
 
@@ -347,12 +347,9 @@ public class ProfileSelectionGUI implements Listener {
             player.sendMessage(ChatColor.RED + "This profile is locked.");
             return;
         }
-        List<PlayerProfile> existing = pm.getProfiles(player.getUniqueId());
-        boolean firstCreation = existing.stream().allMatch(Objects::isNull);
-
         PlayerProfile prof = pm.getProfile(player.getUniqueId(), index);
         if (prof == null) {
-            promptForName(player, index, firstCreation);
+            promptForName(player, index);
             return;
         }
 
@@ -410,6 +407,13 @@ public class ProfileSelectionGUI implements Listener {
 
     }
 
+    public static void markNewProfile(Player player, int slotIndex) {
+        if (player == null || slotIndex < 0) {
+            return;
+        }
+        FIRST_PROFILE_SLOT.put(player.getUniqueId(), slotIndex);
+    }
+
     private void handleEdit(Player player, int index) {
         ProfileManager pm = ProfileManager.getInstance();
         PlayerProfile prof = pm.getProfile(player.getUniqueId(), index);
@@ -420,7 +424,7 @@ public class ProfileSelectionGUI implements Listener {
         openEdit(player, index);
     }
 
-    private static void promptForName(Player player, int index, boolean firstCreation) {
+    private static void promptForName(Player player, int index) {
         NAMING.add(player.getUniqueId());
         PENDING_SLOT.put(player.getUniqueId(), index);
         player.closeInventory();
@@ -442,9 +446,7 @@ public class ProfileSelectionGUI implements Listener {
                         pm.createProfile(player.getUniqueId(), index, input.trim());
                         player.getInventory().clear();
                         me.nakilex.levelplugin.items.listeners.StaticItemListener.giveStaticItems(player);
-                        if (firstCreation) {
-                            FIRST_PROFILE_SLOT.put(player.getUniqueId(), index);
-                        }
+                        markNewProfile(player, index);
                         return Prompt.END_OF_CONVERSATION;
                     }
                 })

@@ -586,6 +586,28 @@ public class QuestManager {
     }
 
     /**
+     * Get progress for a tracked quest, or fall back to any active quest
+     * if nothing is currently tracked.
+     */
+    public PlayerQuestProgress getTrackedOrAnyProgress(UUID player) {
+        Map<String, PlayerQuestProgress> map = activeQuests.get(player);
+        if (map == null || map.isEmpty()) {
+            return null;
+        }
+        String tracked = trackedQuests.get(player);
+        PlayerQuestProgress progress = tracked != null ? map.get(tracked) : null;
+        if (progress != null) {
+            return progress;
+        }
+        Map.Entry<String, PlayerQuestProgress> entry = map.entrySet().iterator().next();
+        if (tracked == null) {
+            trackedQuests.put(player, entry.getKey());
+            saveProgress();
+        }
+        return entry.getValue();
+    }
+
+    /**
      * Get progress for a specific quest, if the player has it active.
      */
     public PlayerQuestProgress getProgress(UUID player, String questId) {

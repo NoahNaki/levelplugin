@@ -408,7 +408,10 @@ public class StorageGUI {
         me.nakilex.levelplugin.items.data.CustomItem ci =
             me.nakilex.levelplugin.items.managers.ItemManager.getInstance()
                 .getCustomItemFromItemStack(item);
-        int level = ci != null ? ci.getLevelRequirement() : 0;
+        if (ci == null) {
+            return false;
+        }
+        int level = ci.getLevelRequirement();
         return switch (filter) {
             case 0 -> level >= 1 && level <= 19;
             case 1 -> level >= 20 && level <= 39;
