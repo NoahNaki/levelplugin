@@ -33,25 +33,25 @@ gates:
     closed: true
   frostford:
     world: world
-    x: 954.0
-    y: 72.0
+    x: 953.0
+    y: 71.0
     z: 488.0
     open_model: base_beacon_blue_inventory
     closed_model: base_beacon_inert
     closed: true
   tolga_village:
     world: world
-    x: 488.0
-    y: 71.0
-    z: -3.0
+    x: 487.0
+    y: 70.0
+    z: -4.0
     open_model: base_beacon_blue_inventory
     closed_model: base_beacon_inert
     closed: true
   rinford:
     world: world
-    x: -173.0
-    y: 79.0
-    z: 781.0
+    x: -175.0
+    y: 78.0
+    z: 779.0
     open_model: base_beacon_blue_inventory
     closed_model: base_beacon_inert
     closed: true

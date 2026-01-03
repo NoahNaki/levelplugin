@@ -133,6 +133,9 @@ mobs:
   lp_spider_armored:
     model_set: default
 
+  slime_triple:
+    model_set: default
+
 
 
 
