@@ -37,8 +37,21 @@ public class QuestCommand implements TabExecutor {
 
         String sub = args[0].toLowerCase();
 
-        if (sub.equals("start") && args.length >= 2 && sender instanceof Player p) {
-            questManager.startQuest(p, args[1]);
+        if (sub.equals("start") && args.length >= 2) {
+            Player target = null;
+            if (args.length >= 3) {
+                target = Bukkit.getPlayer(args[2]);
+                if (target == null) {
+                    sender.sendMessage("Player not found: " + args[2]);
+                    return true;
+                }
+            } else if (sender instanceof Player p) {
+                target = p;
+            } else {
+                sender.sendMessage("Usage: /quest start <questId> <player>");
+                return true;
+            }
+            questManager.startQuest(target, args[1]);
             return true;
         }
 
@@ -142,6 +155,8 @@ public class QuestCommand implements TabExecutor {
         }
         if (args.length == 3) {
             switch (sub) {
+                case "start":
+                    return CommandUtil.onlinePlayerNames(args[2]);
                 case "reset":
                 case "complete":
                 case "status":

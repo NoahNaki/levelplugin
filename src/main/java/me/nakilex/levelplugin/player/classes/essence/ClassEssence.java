@@ -57,14 +57,14 @@ public final class ClassEssence {
     private static final java.util.Map<PlayerClass, String> CLASS_NEXO_IDS = java.util.Map.of(
             PlayerClass.MAGE, "riptide",
             PlayerClass.WARRIOR, "sharpness",
-            PlayerClass.CLERIC, "smite",
+            //PlayerClass.CLERIC, "smite",
             PlayerClass.ROGUE, "protection",
             PlayerClass.ARCHER, "projectile_protection",
             PlayerClass.AWAKMAGE, "channeling",
             PlayerClass.AWAKROGUE, "unbreaking",
             PlayerClass.AWAKWARRIOR, "sweeping_edge",
-            PlayerClass.AWAKARCHER, "piercing",
-            PlayerClass.AWAKCLERIC, "mending"
+            PlayerClass.AWAKARCHER, "piercing"
+            //PlayerClass.AWAKCLERIC, "mending"
     );
 
     private ClassEssence() {}

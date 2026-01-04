@@ -296,7 +296,9 @@ public class SpellManager {
             6.0,
             MythicSkillConfig.getCooldownSeconds("Ravaging_Dash_CAST"), 3,
             WeaponType.SWORD.getMaterials(),
-            "MYTHIC_RAVAGING_DASH", 0.0
+            "MYTHIC_RAVAGING_DASH", 0.0,
+            false,
+            true
         ));
         awakrogueMap.put("LLL", new Spell(
             "crimson_arc", "Crimson Arc", "LLL",

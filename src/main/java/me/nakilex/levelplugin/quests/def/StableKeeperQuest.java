@@ -48,7 +48,7 @@ public class StableKeeperQuest extends Quest implements QuestScript, QuestComple
     private static final Map<Integer, List<String>> STAGE_DIALOGS = Map.of(
             TALK_REPORT_INDEX, List.of(
                     "Stable Keeper|Finally, some breathing room. The hens are already venturing back to the troughs.",
-                    "Stable Keeper|You've earned a mount. Step into my tack room and use the reroll stable to pick a horse.",
+                    "Stable Keeper|You've earned a mount. Step into my tack room and use the reroll stable to claim a horse.",
                     "Stable Keeper|I'll waive the fee this once—call it gratitude. After you've chosen a horse, report back for your reward."),
             TALK_FINAL_INDEX, List.of(
                     "Stable Keeper|That horse suits you. It even stopped eyeing me like a snack.",
@@ -77,7 +77,9 @@ public class StableKeeperQuest extends Quest implements QuestScript, QuestComple
                         "Stable Keeper|Hunt down the wild roosters hiding near the tree line and cull five of them for me.",
                         "Stable Keeper|Bring me back some peace and I'll let you pick out a horse for free."
                 ),
-                false
+                false,
+                true,
+                true
         );
     }
 

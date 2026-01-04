@@ -362,6 +362,18 @@ public class QuestManager {
             if (tracked != null) {
                 trackedQuests.put(uuid, tracked);
             }
+            ensureTrackedQuest(uuid);
+        }
+    }
+
+    private void ensureTrackedQuest(UUID uuid) {
+        Map<String, PlayerQuestProgress> map = activeQuests.get(uuid);
+        if (map == null || map.isEmpty()) {
+            return;
+        }
+        String tracked = trackedQuests.get(uuid);
+        if (tracked == null || !map.containsKey(tracked)) {
+            trackedQuests.put(uuid, map.keySet().iterator().next());
         }
     }
 
@@ -371,6 +383,7 @@ public class QuestManager {
         Set<UUID> all = new HashSet<>();
         all.addAll(completedQuests.keySet());
         all.addAll(activeQuests.keySet());
+        all.addAll(trackedQuests.keySet());
         for (UUID uuid : all) {
             ConfigurationSection sec = root.createSection(uuid.toString());
             Set<String> completed = completedQuests.get(uuid);
@@ -582,6 +595,28 @@ public class QuestManager {
         if (tracked == null) return null;
         Map<String, PlayerQuestProgress> map = activeQuests.get(player);
         return map == null ? null : map.get(tracked);
+    }
+
+    /**
+     * Get progress for a tracked quest, or fall back to any active quest
+     * if nothing is currently tracked.
+     */
+    public PlayerQuestProgress getTrackedOrAnyProgress(UUID player) {
+        Map<String, PlayerQuestProgress> map = activeQuests.get(player);
+        if (map == null || map.isEmpty()) {
+            return null;
+        }
+        String tracked = trackedQuests.get(player);
+        PlayerQuestProgress progress = tracked != null ? map.get(tracked) : null;
+        if (progress != null) {
+            return progress;
+        }
+        Map.Entry<String, PlayerQuestProgress> entry = map.entrySet().iterator().next();
+        if (tracked == null) {
+            trackedQuests.put(player, entry.getKey());
+            saveProgress();
+        }
+        return entry.getValue();
     }
 
     /**
@@ -1189,7 +1224,7 @@ public class QuestManager {
                         continue;
                     }
                 }
-                if (obj.getType() == type && obj.getTarget().equalsIgnoreCase(target)) {
+                if (obj.getType() == type && targetsMatch(type, obj.getTarget(), target)) {
                     progress.incrementProgress(i, amount, obj.isAllowOverflow(), obj.getAmount());
                     if (debug) {
                         plugin.getLogger().info("[QuestDebug] " + player.getName() + " progressed " + quest.getId()
@@ -1205,6 +1240,21 @@ public class QuestManager {
                 }
             }
         }
+    }
+
+    private boolean targetsMatch(QuestObjectiveType type, String objectiveTarget, String target) {
+        if (objectiveTarget == null || target == null) {
+            return false;
+        }
+        if (objectiveTarget.equalsIgnoreCase(target)) {
+            return true;
+        }
+        if (type != QuestObjectiveType.KILL) {
+            return false;
+        }
+        String objectiveKey = MobNameUtil.canonicalMobKey(objectiveTarget);
+        String targetKey = MobNameUtil.canonicalMobKey(target);
+        return !objectiveKey.isBlank() && objectiveKey.equalsIgnoreCase(targetKey);
     }
 
     private void finalizeQuestCompletion(UUID playerId, Quest quest,

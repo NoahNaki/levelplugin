@@ -47,6 +47,7 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.TextDisplay;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
@@ -535,19 +536,7 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
         int placementCount = Math.min(4, placementSpots.size());
         for (int i = 0; i < placementCount; i++) {
             Location marker = placementSpots.get(i);
-            marker.getBlock().setType(Material.AIR, false);
-            marker.getWorld().spawn(marker.clone().add(0.5, 0.1, 0.5), ArmorStand.class, as -> {
-                as.setVisible(false);
-                as.setGravity(false);
-                as.setMarker(false);
-                as.addScoreboardTag("dungeon_flower_slot");
-            });
-            MultiLineHologram holo = new MultiLineHologram(marker.clone().add(0.5, 1.2, 0.5), "crimson_flower_slot");
-            holo.spawn(List.of(
-                    legacy.serialize(Component.text("Place Flower", NamedTextColor.AQUA)),
-                    legacy.serialize(Component.text("Right-click with a flower", NamedTextColor.GRAY))));
-            state.placementHolograms.put(marker, holo);
-            state.placements.put(marker, null);
+            setupPlacementSlot(marker, state);
         }
 
         for (Location brown : markers.brownRewards) {
@@ -584,6 +573,7 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
                 p.setInvulnerable(st.invulnerable);
                 p.setAllowFlight(st.allowFlight);
                 p.setFlying(st.allowFlight && st.flying);
+                manager.disableInstanceFlight(p);
                 ChatMessageUtil.send(p, MessageType.SUCCESS, "Crimson Reliquary is ready.");
             }
         }
@@ -662,15 +652,9 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
         }
         base.getBlock().setType(type.block, false);
 
-        // Remove any placement armor stands nearby to avoid duplicate holograms lingering.
-        base.getWorld().getNearbyEntities(base.clone().add(0.5, 0.5, 0.5), 0.75, 1.5, 0.75, ent ->
-                ent instanceof ArmorStand && ent.getScoreboardTags().contains("dungeon_flower_slot"))
-                .forEach(org.bukkit.entity.Entity::remove);
-
-        MultiLineHologram holo = state.placementHolograms.remove(base);
-        if (holo != null) holo.despawn();
         held.setAmount(held.getAmount() - 1);
         state.placements.put(base, type);
+        updatePlacementHologram(base, state, true);
         ChatMessageUtil.send(player, MessageType.SUCCESS, "Flower placed.");
         base.getWorld().spawnParticle(Particle.END_ROD, base.clone().add(0.5, 1.1, 0.5), 16, 0.2, 0.35, 0.2, 0.01);
         base.getWorld().playSound(base, Sound.BLOCK_BEACON_POWER_SELECT, 0.8f, 1.4f);
@@ -679,6 +663,73 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
         if (filled >= required && distinct >= Math.min(required, FlowerType.values().length)) {
             completePuzzle(state);
         }
+    }
+
+    private boolean tryRemovePlacedFlower(Player player, InstanceState state, Location base) {
+        if (player == null || state == null || base == null) {
+            return false;
+        }
+        FlowerType placed = state.placements.get(base);
+        if (placed == null) {
+            return false;
+        }
+        base.getBlock().setType(Material.AIR, false);
+        ItemStack reward = createFlowerItem(placed);
+        Map<Integer, ItemStack> overflow = player.getInventory().addItem(reward);
+        overflow.values().forEach(item -> base.getWorld().dropItemNaturally(player.getLocation(), item));
+        state.placements.put(base, null);
+        updatePlacementHologram(base, state, false);
+        ChatMessageUtil.send(player, MessageType.INFO, "You retrieve the placed flower.");
+        return true;
+    }
+
+    private void setupPlacementSlot(Location marker, InstanceState state) {
+        if (marker == null || state == null) {
+            return;
+        }
+        marker.getBlock().setType(Material.AIR, false);
+        ensurePlacementMarker(marker);
+        updatePlacementHologram(marker, state, false);
+        state.placements.put(marker, null);
+    }
+
+    private void ensurePlacementMarker(Location marker) {
+        if (marker == null || marker.getWorld() == null) {
+            return;
+        }
+        boolean hasMarker = marker.getWorld().getNearbyEntities(marker.clone().add(0.5, 0.1, 0.5), 0.4, 0.8, 0.4, ent ->
+                ent instanceof ArmorStand && ent.getScoreboardTags().contains("dungeon_flower_slot"))
+                .stream()
+                .findFirst()
+                .isPresent();
+        if (hasMarker) {
+            return;
+        }
+        marker.getWorld().spawn(marker.clone().add(0.5, 0.1, 0.5), ArmorStand.class, as -> {
+            as.setVisible(false);
+            as.setGravity(false);
+            as.setMarker(false);
+            as.addScoreboardTag("dungeon_flower_slot");
+        });
+    }
+
+    private void updatePlacementHologram(Location marker, InstanceState state, boolean placed) {
+        if (marker == null || state == null) {
+            return;
+        }
+        MultiLineHologram holo = state.placementHolograms.get(marker);
+        if (holo == null) {
+            holo = new MultiLineHologram(marker.clone().add(0.5, 1.2, 0.5), "crimson_flower_slot");
+            state.placementHolograms.put(marker, holo);
+        }
+        List<String> lines = placed
+                ? List.of(
+                    legacy.serialize(Component.text("Flower Placed", NamedTextColor.AQUA)),
+                    legacy.serialize(Component.text("Right-click to remove the flower", NamedTextColor.GRAY)))
+                : List.of(
+                    legacy.serialize(Component.text("Place Flower", NamedTextColor.AQUA)),
+                    legacy.serialize(Component.text("Right-click with a flower", NamedTextColor.GRAY)));
+        holo.setLines(lines);
     }
 
     private org.bukkit.block.BlockFace getFacingFromData(BlockData data) {
@@ -937,16 +988,61 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
 
     private void spawnBossExitPortal(InstanceState state) {
         if (state == null || state.bossPortalLocation == null) return;
-        FurnitureMechanic existing = NexoFurniture.furnitureMechanic(state.bossPortalLocation.getBlock());
+        Location target = findBossPortalLocation(state.bossPortalLocation, 10);
+        if (target == null) {
+            plugin.getLogger().warning("[Dungeon] Unable to find clear space for boss exit portal.");
+            return;
+        }
+        if (!target.getChunk().isLoaded()) {
+            target.getChunk().load();
+        }
+        clearPortalEntities(target);
+        target.getBlock().setType(Material.AIR, false);
+        FurnitureMechanic existing = NexoFurniture.furnitureMechanic(target.getBlock());
         if (existing != null && "portal_decoration_animated_v1_portal_5".equalsIgnoreCase(existing.getItemID())) {
             return;
         }
-        FurnitureMechanic target = NexoFurniture.furnitureMechanic("portal_decoration_animated_v1_portal_5");
-        if (target == null) {
+        FurnitureMechanic mechanic = NexoFurniture.furnitureMechanic("portal_decoration_animated_v1_portal_5");
+        if (mechanic == null) {
             plugin.getLogger().warning("[Dungeon] Unable to spawn boss exit portal furniture (missing mechanic)");
             return;
         }
-        NexoFurniture.place(target.getItemID(), state.bossPortalLocation, 0f, BlockFace.NORTH);
+        NexoFurniture.place(mechanic.getItemID(), target, 0f, BlockFace.NORTH);
+    }
+
+    private Location findBossPortalLocation(Location base, int radius) {
+        if (base == null || base.getWorld() == null) {
+            return null;
+        }
+        for (int r = 0; r <= radius; r++) {
+            for (int dx = -r; dx <= r; dx++) {
+                for (int dz = -r; dz <= r; dz++) {
+                    if (Math.abs(dx) != r && Math.abs(dz) != r) {
+                        continue;
+                    }
+                    Location candidate = base.clone().add(dx, 0, dz);
+                    if (isPortalSpotClear(candidate)) {
+                        return candidate;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    private boolean isPortalSpotClear(Location loc) {
+        if (loc == null || loc.getWorld() == null) {
+            return false;
+        }
+        return loc.getBlock().isPassable() && loc.clone().add(0, 1, 0).getBlock().isPassable();
+    }
+
+    private void clearPortalEntities(Location loc) {
+        loc.getWorld().getNearbyEntities(loc, 0.6, 1.4, 0.6).forEach(entity -> {
+            if (entity instanceof ArmorStand || entity instanceof TextDisplay) {
+                entity.remove();
+            }
+        });
     }
 
     private class InteractionListener implements Listener {
@@ -963,6 +1059,9 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
             if (type == null) {
                 if (state.placements.containsKey(loc)) {
                     event.setCancelled(true);
+                    if (tryRemovePlacedFlower(event.getPlayer(), state, loc)) {
+                        return;
+                    }
                     attemptPlaceFlower(event.getPlayer(), state, loc, event.getClickedBlock());
                 }
                 return;
@@ -981,6 +1080,9 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
 
             // If the clicked block is also a placement slot (e.g., flower pot under a hologram), process placement too.
             if (state.placements.containsKey(loc)) {
+                if (tryRemovePlacedFlower(event.getPlayer(), state, loc)) {
+                    return;
+                }
                 attemptPlaceFlower(event.getPlayer(), state, loc, event.getClickedBlock());
             }
         }
@@ -994,6 +1096,9 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
             if (state == null) return;
             event.setCancelled(true);
             Location base = event.getRightClicked().getLocation().getBlock().getLocation();
+            if (tryRemovePlacedFlower(event.getPlayer(), state, base)) {
+                return;
+            }
             attemptPlaceFlower(event.getPlayer(), state, base, null);
         }
 

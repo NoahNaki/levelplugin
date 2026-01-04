@@ -85,6 +85,7 @@ public class ClassSpellListener implements Listener {
     private static final EnumSet<PlayerClass> BOW_CLASSES = EnumSet.noneOf(PlayerClass.class);
     private static final Map<PlayerClass, Map<Trigger, Double>> MANUAL_TRIGGER_COOLDOWNS = new EnumMap<>(PlayerClass.class);
     private static final Map<PlayerClass, Double> BASIC_ATTACK_MIN_COOLDOWNS = new EnumMap<>(PlayerClass.class);
+    private static final EnumSet<PlayerClass> INSTANT_SNEAK_START = EnumSet.of(PlayerClass.MAGE);
     private static final EnumSet<Material> DUNGEON_FLOWERS = EnumSet.of(
             Material.POPPY,
             Material.DANDELION,
@@ -130,7 +131,6 @@ public class ClassSpellListener implements Listener {
         t.rightSneak = List.of("meteor");
         t.right = List.of("blink");
         t.sneakStart = List.of("frost_nova");
-        t.sneakPrep = List.of("Frost_Nova");
         MAP.put(PlayerClass.MAGE, t);
 
         // Warrior class
@@ -507,6 +507,10 @@ public class ClassSpellListener implements Listener {
         if (tr == null) return;
         if (event.isSneaking()) {
             UUID id = p.getUniqueId();
+            if (INSTANT_SNEAK_START.contains(pc)) {
+                cast(p, tr.sneakStart, pc, Trigger.SNEAK_START);
+                return;
+            }
             cancelHoldTask(id);
             // cancel any pending unsneak cast if player crouches again quickly
             BukkitTask pending = pendingUnsneak.remove(id);

@@ -314,10 +314,10 @@ public class ProfileSelectionGUI implements Listener {
         if (e.getRawSlot() == CONFIRM_YES_SLOT) {
             if (slotIndex >= 0) {
                 ProfileManager pm = ProfileManager.getInstance();
+                Integer active = pm.getActiveSlot(player.getUniqueId());
                 pm.deleteProfile(player, slotIndex);
                 player.sendMessage(ChatColor.RED + "Profile deleted.");
 
-                Integer active = pm.getActiveSlot(player.getUniqueId());
                 if (active != null && active == slotIndex) {
                     pm.clearActiveSlot(player.getUniqueId());
 
@@ -347,12 +347,9 @@ public class ProfileSelectionGUI implements Listener {
             player.sendMessage(ChatColor.RED + "This profile is locked.");
             return;
         }
-        List<PlayerProfile> existing = pm.getProfiles(player.getUniqueId());
-        boolean firstCreation = existing.stream().allMatch(Objects::isNull);
-
         PlayerProfile prof = pm.getProfile(player.getUniqueId(), index);
         if (prof == null) {
-            promptForName(player, index, firstCreation);
+            promptForName(player, index);
             return;
         }
 
@@ -369,7 +366,16 @@ public class ProfileSelectionGUI implements Listener {
         // they are selecting it for the first time, start the intro quest.
         Integer pending = FIRST_PROFILE_SLOT.get(player.getUniqueId());
         if (pending != null && pending == index) {
-            Main.getInstance().getQuestManager().startQuest(player, "officeerrands");
+            QuestManager questManager = Main.getInstance().getQuestManager();
+            long existingProfiles = pm.getProfiles(player.getUniqueId()).stream()
+                    .filter(java.util.Objects::nonNull)
+                    .count();
+            if (existingProfiles <= 1) {
+                questManager.clearPlayerData(player.getUniqueId());
+            } else {
+                questManager.resetQuest(player.getUniqueId(), "officeerrands", true);
+            }
+            questManager.startQuest(player, "officeerrands");
             FIRST_PROFILE_SLOT.remove(player.getUniqueId());
         }
 
@@ -397,10 +403,24 @@ public class ProfileSelectionGUI implements Listener {
             me.nakilex.levelplugin.items.listeners.StaticItemListener.giveStaticItems(player);
         }
         if (armor.length > 0) player.getInventory().setArmorContents(armor);
+        me.nakilex.levelplugin.player.attributes.managers.StatsManager statsManager =
+                me.nakilex.levelplugin.player.attributes.managers.StatsManager.getInstance();
+        statsManager.recalcDerivedStats(player);
+        me.nakilex.levelplugin.player.attributes.managers.StatsManager.PlayerStats ps =
+                statsManager.getPlayerStats(player.getUniqueId());
+        player.setHealth(player.getMaxHealth());
+        ps.currentMana = ps.maxMana;
         stopSelection(player);
         player.closeInventory();
         BetterHudUtil.addHud(player);
 
+    }
+
+    public static void markNewProfile(Player player, int slotIndex) {
+        if (player == null || slotIndex < 0) {
+            return;
+        }
+        FIRST_PROFILE_SLOT.put(player.getUniqueId(), slotIndex);
     }
 
     private void handleEdit(Player player, int index) {
@@ -413,7 +433,7 @@ public class ProfileSelectionGUI implements Listener {
         openEdit(player, index);
     }
 
-    private static void promptForName(Player player, int index, boolean firstCreation) {
+    private static void promptForName(Player player, int index) {
         NAMING.add(player.getUniqueId());
         PENDING_SLOT.put(player.getUniqueId(), index);
         player.closeInventory();
@@ -435,9 +455,7 @@ public class ProfileSelectionGUI implements Listener {
                         pm.createProfile(player.getUniqueId(), index, input.trim());
                         player.getInventory().clear();
                         me.nakilex.levelplugin.items.listeners.StaticItemListener.giveStaticItems(player);
-                        if (firstCreation) {
-                            FIRST_PROFILE_SLOT.put(player.getUniqueId(), index);
-                        }
+                        markNewProfile(player, index);
                         return Prompt.END_OF_CONVERSATION;
                     }
                 })

@@ -93,6 +93,15 @@ public class TaskRegistry {
                 if (target != null) merchantManager.spawnNear(target);
             }
         }.runTaskTimer(plugin, 1200L, 1200L);
+
+        new org.bukkit.scheduler.BukkitRunnable() {
+            @Override
+            public void run() {
+                if (plugin.getDungeonManager() != null) {
+                    plugin.getDungeonManager().runInstanceHeartbeat();
+                }
+            }
+        }.runTaskTimer(plugin, 1200L, 1200L);
     }
 
     public static void stopTasks() {

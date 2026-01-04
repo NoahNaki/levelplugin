@@ -160,7 +160,7 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
         me.nakilex.levelplugin.guild.siege.GuildSiegeManager siege = plugin.getGuildSiegeManager();
         boolean siegeActive = siege != null && siege.isActive(id);
 
-        PlayerQuestProgress progress = questManager.getProgress(id);
+        PlayerQuestProgress progress = questManager.getTrackedOrAnyProgress(id);
         Quest quest = progress != null ? progress.getQuest() : null;
         String trackedId = questManager.getTrackedQuest(id);
         if (trackedId != null && (quest == null || !quest.getId().equals(trackedId))) {

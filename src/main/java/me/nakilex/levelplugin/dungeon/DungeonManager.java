@@ -7,6 +7,7 @@ import me.nakilex.levelplugin.mob.utils.MythicMobModifier;
 import me.nakilex.levelplugin.lootchests.utils.LocationUtils;
 import me.nakilex.levelplugin.dungeon.verified.VerifiedDungeonDefinition;
 import me.nakilex.levelplugin.dungeon.verified.CrimsonReliquaryDungeon;
+import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import me.nakilex.levelplugin.utils.FileUtil;
@@ -47,6 +48,7 @@ public class DungeonManager {
     private final DungeonBuilder builder;
     private final me.nakilex.levelplugin.lootchests.managers.LootChestManager lootChestManager;
     private final Map<java.util.UUID, RunStats> activeRuns = new HashMap<>();
+    private final java.util.Set<java.util.UUID> pendingRespawns = new java.util.HashSet<>();
 
     /**
      * Normalize a dungeon name for storage/lookup.
@@ -174,6 +176,14 @@ public class DungeonManager {
     public int getStep() { return step; }
     public Main getPlugin() { return plugin; }
     public me.nakilex.levelplugin.lootchests.managers.LootChestManager getLootChestManager() { return lootChestManager; }
+
+    public void disableInstanceFlight(Player player) {
+        if (player == null) {
+            return;
+        }
+        player.setFlying(false);
+        player.setAllowFlight(false);
+    }
 
     /** Create a void world used for temporary dungeon sessions. */
     public World createVoidWorld(String worldName) {
@@ -872,6 +882,13 @@ public class DungeonManager {
     }
 
     public void startInstance(Player player, String name) {
+        me.nakilex.levelplugin.party.PartyManager partyManager = plugin.getPartyManager();
+        me.nakilex.levelplugin.party.Party party = partyManager == null ? null : partyManager.getParty(player.getUniqueId());
+        if (party != null && partyHasActiveInstance(party)) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                    "Your party is already inside a dungeon. Finish that run before starting another.");
+            return;
+        }
         String keyName = normalizeKey(name);
         VerifiedDungeonDefinition verified = getVerifiedDungeon(keyName);
         if (verified != null) {
@@ -930,9 +947,9 @@ public class DungeonManager {
         inst.setSpawnLocation(origin);
         java.util.List<Player> participants = new java.util.ArrayList<>();
         me.nakilex.levelplugin.party.PartyManager pm = plugin.getPartyManager();
-        me.nakilex.levelplugin.party.Party party = pm.getParty(player.getUniqueId());
-        if (party != null) {
-            for (java.util.UUID id : party.getMembers()) {
+        me.nakilex.levelplugin.party.Party activeParty = pm.getParty(player.getUniqueId());
+        if (activeParty != null) {
+            for (java.util.UUID id : activeParty.getMembers()) {
                 Player mem = Bukkit.getPlayer(id);
                 if (mem != null && mem.isOnline()) {
                     participants.add(mem);
@@ -975,6 +992,7 @@ public class DungeonManager {
                             p.setInvulnerable(st.invul);
                             p.setAllowFlight(st.allowFlight);
                             p.setFlying(st.allowFlight && st.flying);
+                            disableInstanceFlight(p);
                         }
                     }
                     return;
@@ -1035,6 +1053,19 @@ public class DungeonManager {
                 + (System.currentTimeMillis() - debugStart) + "ms");
         startRun(java.util.Collections.singleton(player.getUniqueId()), key, System.currentTimeMillis());
         return true;
+    }
+
+    private boolean partyHasActiveInstance(me.nakilex.levelplugin.party.Party party) {
+        if (party == null) {
+            return false;
+        }
+        for (java.util.UUID id : party.getMembers()) {
+            Player member = Bukkit.getPlayer(id);
+            if (member != null && member.isOnline() && isInstanceWorld(member.getWorld())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public void startRun(java.util.Collection<java.util.UUID> participants, String layoutKey, long startMillis) {
@@ -1351,6 +1382,7 @@ public class DungeonManager {
             Player player = event.getEntity();
             Instance inst = instances.get(player.getWorld());
             if (inst == null) return;
+            pendingRespawns.add(player.getUniqueId());
             plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
                 if (player.isOnline()) {
                     player.spigot().respawn();
@@ -1361,6 +1393,9 @@ public class DungeonManager {
         @org.bukkit.event.EventHandler
         public void onRespawn(org.bukkit.event.player.PlayerRespawnEvent event) {
             Player player = event.getPlayer();
+            if (!pendingRespawns.remove(player.getUniqueId())) {
+                return;
+            }
             Instance inst = instances.get(player.getWorld());
             if (inst == null) return;
             Location spawn = resolveInstanceSpawn(inst, player.getWorld());
@@ -1419,6 +1454,72 @@ public class DungeonManager {
         Instance inst = instances.get(world);
         if (inst != null && inst.returnLocations.isEmpty()) {
             removeWorld(world);
+        }
+    }
+
+    public void runInstanceHeartbeat() {
+        if (instances.isEmpty()) {
+            return;
+        }
+        for (Map.Entry<World, Instance> entry : new java.util.ArrayList<>(instances.entrySet())) {
+            World world = entry.getKey();
+            Instance inst = entry.getValue();
+            if (world == null || inst == null) {
+                continue;
+            }
+            pruneExitedPlayers(world, inst);
+            refreshInstancePortals(inst);
+            if (world.getPlayers().isEmpty()) {
+                removeWorld(world);
+            }
+        }
+    }
+
+    private void pruneExitedPlayers(World world, Instance inst) {
+        if (world == null || inst == null) {
+            return;
+        }
+        java.util.Iterator<Map.Entry<java.util.UUID, Location>> iterator = inst.returnLocations.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<java.util.UUID, Location> entry = iterator.next();
+            java.util.UUID id = entry.getKey();
+            Player player = Bukkit.getPlayer(id);
+            if (player == null || !player.isOnline()) {
+                continue;
+            }
+            if (!world.equals(player.getWorld())) {
+                iterator.remove();
+                activeRuns.remove(id);
+            }
+        }
+    }
+
+    private void refreshInstancePortals(Instance inst) {
+        Dungeon dungeon = inst == null ? null : inst.getDungeon();
+        if (dungeon == null) {
+            return;
+        }
+        for (Dungeon.RoomInstance room : dungeon.getRooms()) {
+            if (room == null || room.template == null) {
+                continue;
+            }
+            for (RoomTemplate.Marker marker : room.template.getPortals()) {
+                int[] vec = RoomTemplate.rotate(marker.x - (int) Math.round(room.template.getCenterX()),
+                        marker.z - (int) Math.round(room.template.getCenterZ()), room.rotation);
+                int wx = room.center.getBlockX() + vec[0];
+                int wy = room.center.getBlockY() + (marker.y - room.template.getConnectorMinY());
+                int wz = room.center.getBlockZ() + vec[1];
+                World world = room.center.getWorld();
+                if (world == null) {
+                    continue;
+                }
+                if (!world.isChunkLoaded(wx >> 4, wz >> 4)) {
+                    continue;
+                }
+                if (world.getBlockAt(wx, wy, wz).getType() != Material.NETHER_PORTAL) {
+                    world.getBlockAt(wx, wy, wz).setType(Material.NETHER_PORTAL, false);
+                }
+            }
         }
     }
 

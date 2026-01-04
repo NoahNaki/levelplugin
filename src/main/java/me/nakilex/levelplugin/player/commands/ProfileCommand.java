@@ -51,6 +51,7 @@ public class ProfileCommand implements CommandExecutor, TabCompleter {
                     return true;
                 }
                 pm.createProfile(player.getUniqueId(), slot, args[1]);
+                ProfileSelectionGUI.markNewProfile(player, slot);
                 player.sendMessage(ChatColor.GREEN + "Profile created in slot " + (slot + 1) + ".");
                 return true;
 
@@ -64,8 +65,17 @@ public class ProfileCommand implements CommandExecutor, TabCompleter {
                     player.sendMessage(ChatColor.RED + "Slot must be 1-4.");
                     return true;
                 }
+                Integer active = pm.getActiveSlot(player.getUniqueId());
                 pm.deleteProfile(player, del);
                 player.sendMessage(ChatColor.GREEN + "Profile deleted.");
+                if (active != null && active.equals(del)) {
+                    pm.clearActiveSlot(player.getUniqueId());
+                    org.bukkit.World lobbyWorld = org.bukkit.Bukkit.getWorld("world");
+                    if (lobbyWorld != null) {
+                        player.teleport(new org.bukkit.Location(lobbyWorld, 217, 6, 80));
+                    }
+                    ProfileSelectionGUI.startSelection(player);
+                }
                 return true;
 
             case "select":
@@ -181,4 +191,3 @@ public class ProfileCommand implements CommandExecutor, TabCompleter {
         return result;
     }
 }
-
