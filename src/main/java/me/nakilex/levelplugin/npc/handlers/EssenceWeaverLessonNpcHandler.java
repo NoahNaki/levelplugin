@@ -8,6 +8,7 @@ import me.nakilex.levelplugin.quests.gui.QuestState;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
+import me.nakilex.levelplugin.player.classes.data.ClassUtil;
 import me.nakilex.levelplugin.player.classes.essence.ClassEssence;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
@@ -16,6 +17,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
+import me.nakilex.levelplugin.items.data.ItemRarity;
 
 import java.util.HashSet;
 import java.util.List;
@@ -98,18 +100,26 @@ public class EssenceWeaverLessonNpcHandler extends AbstractQuestNpcHandler {
                 "Essence Weaver|Take these essences to begin your training.");
     }
 
+    private static final List<PlayerClass> BASE_ESSENCE_CLASSES = List.of(
+            PlayerClass.WARRIOR,
+            PlayerClass.ROGUE,
+            PlayerClass.MAGE,
+            PlayerClass.ARCHER,
+            PlayerClass.CLERIC
+    );
+
     private Set<PlayerClass> getOwnedEssenceClasses(Player player, StatsManager.PlayerStats stats) {
         Set<PlayerClass> owned = new HashSet<>();
         if (stats != null && stats.essenceSlots != null) {
             for (ItemStack stack : stats.essenceSlots) {
-                PlayerClass clazz = ClassEssence.getClass(stack);
+                PlayerClass clazz = normalizeToBaseClass(ClassEssence.getClass(stack));
                 if (clazz != null) {
                     owned.add(clazz);
                 }
             }
         }
         for (ItemStack stack : player.getInventory().getContents()) {
-            PlayerClass clazz = ClassEssence.getClass(stack);
+            PlayerClass clazz = normalizeToBaseClass(ClassEssence.getClass(stack));
             if (clazz != null) {
                 owned.add(clazz);
             }
@@ -122,20 +132,21 @@ public class EssenceWeaverLessonNpcHandler extends AbstractQuestNpcHandler {
             return owned.iterator().next();
         }
         if (stats != null && stats.playerClass != null) {
-            return stats.playerClass;
+            PlayerClass normalized = normalizeToBaseClass(stats.playerClass);
+            if (normalized != null) {
+                return normalized;
+            }
         }
-        List<PlayerClass> pool = ClassEssence.getCoreEssencePool();
-        return pool.isEmpty() ? PlayerClass.MAGE : pool.get(0);
+        return BASE_ESSENCE_CLASSES.isEmpty() ? PlayerClass.MAGE : BASE_ESSENCE_CLASSES.get(0);
     }
 
     private PlayerClass selectMissingClass(Set<PlayerClass> owned, PlayerClass ownedClass) {
-        List<PlayerClass> pool = ClassEssence.getCoreEssencePool();
-        for (PlayerClass clazz : pool) {
+        for (PlayerClass clazz : BASE_ESSENCE_CLASSES) {
             if (!owned.contains(clazz) && clazz != ownedClass) {
                 return clazz;
             }
         }
-        for (PlayerClass clazz : pool) {
+        for (PlayerClass clazz : BASE_ESSENCE_CLASSES) {
             if (clazz != ownedClass) {
                 return clazz;
             }
@@ -143,11 +154,33 @@ public class EssenceWeaverLessonNpcHandler extends AbstractQuestNpcHandler {
         return ownedClass;
     }
 
+    private PlayerClass normalizeToBaseClass(PlayerClass clazz) {
+        if (clazz == null) {
+            return null;
+        }
+        if (ClassUtil.isWarriorFamily(clazz)) {
+            return PlayerClass.WARRIOR;
+        }
+        if (ClassUtil.isRogueFamily(clazz)) {
+            return PlayerClass.ROGUE;
+        }
+        if (ClassUtil.isMageFamily(clazz)) {
+            return PlayerClass.MAGE;
+        }
+        if (ClassUtil.isArcherFamily(clazz)) {
+            return PlayerClass.ARCHER;
+        }
+        if (clazz == PlayerClass.CLERIC) {
+            return PlayerClass.CLERIC;
+        }
+        return null;
+    }
+
     private void giveQuestEssence(Player player, PlayerClass clazz) {
         if (player == null || clazz == null) {
             return;
         }
-        ItemStack essence = ClassEssence.generateEssence(clazz);
+        ItemStack essence = ClassEssence.generateEssence(clazz, ItemRarity.COMMON, 0);
         markQuestEssence(essence);
         player.getInventory().addItem(essence).values()
                 .forEach(item -> player.getWorld().dropItemNaturally(player.getLocation(), item));

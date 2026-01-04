@@ -403,15 +403,44 @@ public class StorageGUI {
         return ci != null ? ci.getRarity().ordinal() : 0;
     }
 
-    private boolean matchesLevelFilter(ItemStack item, int filter) {
-        if (filter == 5) return true;
+    private Integer getItemLevelRequirement(ItemStack item) {
         me.nakilex.levelplugin.items.data.CustomItem ci =
             me.nakilex.levelplugin.items.managers.ItemManager.getInstance()
                 .getCustomItemFromItemStack(item);
-        if (ci == null) {
+        if (ci != null) {
+            return ci.getLevelRequirement();
+        }
+        if (item == null || !item.hasItemMeta()) {
+            return null;
+        }
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null || !meta.hasLore()) {
+            return null;
+        }
+        for (String line : meta.getLore()) {
+            String stripped = ChatColor.stripColor(line);
+            if (stripped == null) continue;
+            int idx = stripped.indexOf("Level Requirement:");
+            if (idx >= 0) {
+                String[] parts = stripped.substring(idx).split(" ");
+                for (String part : parts) {
+                    try {
+                        return Integer.parseInt(part);
+                    } catch (NumberFormatException ignored) {
+                        // keep searching
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    private boolean matchesLevelFilter(ItemStack item, int filter) {
+        if (filter == 5) return true;
+        Integer level = getItemLevelRequirement(item);
+        if (level == null) {
             return false;
         }
-        int level = ci.getLevelRequirement();
         return switch (filter) {
             case 0 -> level >= 1 && level <= 19;
             case 1 -> level >= 20 && level <= 39;
