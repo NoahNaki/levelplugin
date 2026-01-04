@@ -717,14 +717,14 @@ public class BattlePassManager implements BattlePassProvider {
                 BattlePassRewardDefinition.builder()
                         .displayName("Cleric's Boon")
                         .coins(1600)
-                        .directItem(PlayerClass.AWAKCLERIC.getDisplayName() + " Essence", 1,
-                                essence(PlayerClass.AWAKCLERIC, ItemRarity.UNCOMMON, 0))
+                        .directItem(PlayerClass.AWAKROGUE.getDisplayName() + " Essence", 1,
+                                essence(PlayerClass.AWAKROGUE, ItemRarity.UNCOMMON, 0))
                         .build(),
                 BattlePassRewardDefinition.builder()
                         .displayName("Awakened Cleric's Cache")
                         .gems(22)
-                        .directItem(PlayerClass.AWAKCLERIC.getDisplayName() + " Essence", 1,
-                                essence(PlayerClass.AWAKCLERIC, ItemRarity.RARE, 0))
+                        .directItem(PlayerClass.AWAKROGUE.getDisplayName() + " Essence", 1,
+                                essence(PlayerClass.AWAKROGUE, ItemRarity.RARE, 0))
                         .build()));
 
         defs.add(new TierDefinition(tier++,

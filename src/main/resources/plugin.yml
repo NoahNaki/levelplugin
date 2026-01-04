@@ -88,6 +88,7 @@ commands:
   blacksmith:
     description: Opens the Blacksmith GUI.
     usage: /blacksmith
+    permission: none
   horse:
     description: Manage your horse
     usage: /horse [reroll]
@@ -98,6 +99,7 @@ commands:
   catacombs:
     description: Enter the instanced Catacombs run
     usage: /catacombs [exit]
+    permission: none
   party:
     description: Manage your party
     usage: /party <subcommand>
@@ -145,12 +147,15 @@ commands:
   salvage:
     description: Opens the Salvage GUI
     usage: /salvage
+    permission: none
   farmrewards:
     description: Opens the farming rewards exchange
     usage: /farmrewards
+    permission: none
   fishrewards:
     description: Opens the fishing rewards exchange
     usage: /fishrewards
+    permission: none
   ps:
     description: Manage personal storage
     usage: /ps <create|open>
@@ -189,9 +194,11 @@ commands:
   giftbrowser:
     description: Browse mercenary gifts for testing.
     usage: /giftbrowser
+    permission: none
   potionbrowser:
     description: Browse and obtain potions.
     usage: /potionbrowser
+    permission: none
   battlepass:
     description: View the battle pass rewards and your progress.
     usage: /battlepass
@@ -214,9 +221,11 @@ commands:
   rerollbrowser:
     description: Browse reroll placeholder items.
     usage: /rerollbrowser
+    permission: none
   transmogbrowser:
     description: Browse unlocked transmogs.
     usage: /transmogbrowser
+    permission: none
   transmog:
     description: Open the transmog menu.
     usage: /transmog
@@ -245,16 +254,18 @@ commands:
   wipeprofile:
     description: Wipe a player's profile
     usage: /wipeprofile <player>
+    permission: none
   profile:
     description: Manage player profiles
     usage: /profile [create|delete|select|update|unlock|lock]
   genitem:
     description: Gives a procedurally generated item
     usage: /genitem [player] <mobType> <level> [amount]
-
+    permission: none
   genclass:
     description: Generates a class essence for a player
     usage: /genclass <player> <class> <rarity> <star level>
+    permission: none
   essence:
     description: Opens the class essence GUI
     usage: /essence
