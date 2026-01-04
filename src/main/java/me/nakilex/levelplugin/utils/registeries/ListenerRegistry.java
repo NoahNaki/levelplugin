@@ -222,7 +222,7 @@ public class ListenerRegistry {
         pm.registerEvents(new ClassEssenceBoundListener(), plugin);
         pm.registerEvents(new ClassEssenceSwapListener(), plugin);
         pm.registerEvents(new ClassEssenceUpgradeGUI(), plugin);
-        pm.registerEvents(new FieldBossListener(plugin, plugin.getBossConfig(), plugin.getItemManager(), plugin.getGemsManager()), plugin);
+        pm.registerEvents(new FieldBossListener(plugin, plugin.getBossConfig(), plugin.getGemsManager()), plugin);
         pm.registerEvents(new EquipOnJoinListener(), plugin);
         pm.registerEvents(new PlayerDeathListener(plugin), plugin);
         pm.registerEvents(new FullInventoryListener(plugin.getSettingsManager()), plugin);

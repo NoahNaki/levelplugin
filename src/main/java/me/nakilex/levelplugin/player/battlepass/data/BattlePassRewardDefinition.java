@@ -1,7 +1,5 @@
 package me.nakilex.levelplugin.player.battlepass.data;
 
-import me.nakilex.levelplugin.items.data.CustomItem;
-import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.quests.data.QuestReward;
 import me.nakilex.levelplugin.utils.NumberUtil;
 import org.bukkit.ChatColor;
@@ -94,7 +92,6 @@ public final class BattlePassRewardDefinition {
      * Produce coloured tooltip lines summarising the reward contents.
      */
     public List<String> tooltipLines(BattlePassRewardContext context) {
-        ItemManager itemManager = context != null ? context.itemManager() : null;
         List<String> lines = new ArrayList<>();
         if (coins > 0) {
             lines.add(ChatColor.GRAY + "• " + ChatColor.GOLD + NumberUtil.formatCommas(coins)
@@ -108,13 +105,9 @@ public final class BattlePassRewardDefinition {
             lines.add(ChatColor.GRAY + "• " + ChatColor.AQUA + NumberUtil.formatCommas(xp) + ChatColor.GRAY + " XP");
         }
         for (Map.Entry<Integer, Integer> entry : itemIds.entrySet()) {
-            if (itemManager == null) continue;
-            CustomItem template = itemManager.getTemplateById(entry.getKey());
-            if (template == null) continue;
-            String name = template.getName();
             int amount = entry.getValue();
             String suffix = amount > 1 ? ChatColor.GRAY + " x" + amount : "";
-            lines.add(ChatColor.GRAY + "• " + ChatColor.WHITE + name + suffix);
+            lines.add(ChatColor.GRAY + "• " + ChatColor.WHITE + "Legacy item reward (" + entry.getKey() + ")" + suffix);
         }
         for (DirectItemGrant grant : directItems) {
             String suffix = grant.amount() > 1 ? ChatColor.GRAY + " x" + grant.amount() : "";
@@ -128,7 +121,6 @@ public final class BattlePassRewardDefinition {
      * Produce plain-text summary segments suitable for chat messages.
      */
     public List<String> plainSummary(BattlePassRewardContext context) {
-        ItemManager itemManager = context != null ? context.itemManager() : null;
         List<String> segments = new ArrayList<>();
         if (coins > 0) {
             segments.add(NumberUtil.formatCommas(coins) + " Coins");
@@ -140,10 +132,7 @@ public final class BattlePassRewardDefinition {
             segments.add(NumberUtil.formatCommas(xp) + " XP");
         }
         for (Map.Entry<Integer, Integer> entry : itemIds.entrySet()) {
-            if (itemManager == null) continue;
-            CustomItem template = itemManager.getTemplateById(entry.getKey());
-            if (template == null) continue;
-            StringBuilder sb = new StringBuilder(template.getName());
+            StringBuilder sb = new StringBuilder("Legacy item reward (" + entry.getKey() + ")");
             if (entry.getValue() > 1) {
                 sb.append(" x").append(entry.getValue());
             }
@@ -165,7 +154,6 @@ public final class BattlePassRewardDefinition {
      * the GUI can apply its own styling.
      */
     public String resolveDisplayName(BattlePassRewardContext context) {
-        ItemManager itemManager = context != null ? context.itemManager() : null;
         if (displayName != null && !displayName.isBlank()) {
             return displayName;
         }
@@ -175,12 +163,9 @@ public final class BattlePassRewardDefinition {
         if (gems > 0) {
             return NumberUtil.formatCommas(gems) + " Gems";
         }
-        if (!itemIds.isEmpty() && itemManager != null) {
+        if (!itemIds.isEmpty()) {
             Integer first = itemIds.keySet().iterator().next();
-            CustomItem template = itemManager.getTemplateById(first);
-            if (template != null) {
-                return template.getName();
-            }
+            return "Legacy item reward (" + first + ")";
         }
         if (!directItems.isEmpty()) {
             DirectItemGrant grant = directItems.get(0);

@@ -22,6 +22,7 @@ import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.quests.data.PlayerQuestProgress;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.items.data.CustomItem;
+import me.nakilex.levelplugin.items.data.ItemRarity;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 
 import java.util.List;
@@ -363,25 +364,20 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
     /** Give the starting weapon based on the player's chosen class. */
     private void giveClassWeapon(Player player) {
         PlayerClass pc = StatsManager.getInstance().getPlayerStats(player.getUniqueId()).playerClass;
-        int id;
-        switch (pc) {
-            case WARRIOR -> id = 1;
-            case ROGUE -> id = 2;
-            case MAGE -> id = 3;
-            default -> id = 4; // ARCHER or others
+        CustomItem instance = null;
+        for (int i = 0; i < 10; i++) {
+            CustomItem candidate = ItemManager.getInstance()
+                    .generateItemWithMaxRarity(pc.name(), 1, ItemRarity.COMMON);
+            if (candidate != null
+                    && me.nakilex.levelplugin.items.data.WeaponType.matchType(
+                        new ItemStack(candidate.getMaterial())) != null) {
+                instance = candidate;
+                break;
+            }
         }
-
-        CustomItem template = ItemManager.getInstance().getCustomItem(id);
-        if (template == null) return;
-
-        CustomItem instance = new CustomItem(
-                template.getId(), template.getBaseName(), template.getRarity(),
-                template.getLevelRequirement(), template.getClassRequirement(),
-                template.getMaterial(), template.getHpRange(), template.getDefRange(),
-                template.getStrRange(), template.getAgiRange(), template.getIntelRange(),
-                template.getDexRange(), template.getWilRange(), template.getTecRange()
-        );
-        ItemManager.getInstance().addInstance(instance);
+        if (instance == null) {
+            instance = ItemManager.getInstance().generateItemWithMaxRarity(pc.name(), 1, ItemRarity.COMMON);
+        }
         player.getInventory().addItem(ItemUtil.createItemStackFromCustomItem(instance, 1, player));
     }
 

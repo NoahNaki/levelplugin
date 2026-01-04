@@ -254,9 +254,7 @@ public class QuestGUI {
                     if (r.getCoins() > 0) lore.add(ChatColor.GREEN + "- " + ChatColor.GRAY + r.getCoins() + " <glyph:coins_icon>");
                     if (r.getGems() > 0) lore.add(ChatColor.GREEN + "- " + ChatColor.GRAY + r.getGems() + " " + ChatColor.LIGHT_PURPLE + "<glyph:purple_orb_icon>");
                     for (int id : r.getItemIds()) {
-                        me.nakilex.levelplugin.items.data.CustomItem tpl = me.nakilex.levelplugin.Main.getInstance().getItemManager().getTemplateById(id);
-                        String in = tpl != null ? tpl.getBaseName() : ("Item " + id);
-                        lore.add(ChatColor.GREEN + "- " + ChatColor.GRAY + in);
+                        lore.add(ChatColor.GREEN + "- " + ChatColor.GRAY + "Legacy item reward (" + id + ")");
                     }
                     for (var cls : r.getUnlockClasses()) {
                         String pretty = cls.name().substring(0,1) + cls.name().substring(1).toLowerCase();

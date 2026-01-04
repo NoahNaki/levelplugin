@@ -93,35 +93,14 @@ public class ItemConfig {
                 int wilValue   = config.getInt(base + "wil",   0);
                 int tecValue   = config.getInt(base + "tec",   0);
 
-                CustomItem template = ItemManager.getInstance().getTemplateById(id);
-                StatRange hpRange;
-                StatRange defRange;
-                StatRange strRange;
-                StatRange agiRange;
-                StatRange intelRange;
-                StatRange dexRange;
-                StatRange wilRange;
-                StatRange tecRange;
-                if (template != null) {
-                    hpRange    = template.getHpRange();
-                    defRange   = template.getDefRange();
-                    strRange   = template.getStrRange();
-                    agiRange   = template.getAgiRange();
-                    intelRange = template.getIntelRange();
-                    dexRange   = template.getDexRange();
-                    wilRange   = template.getWilRange();
-                    tecRange   = template.getTecRange();
-                } else {
-                    // Fallback if template is missing
-                    hpRange    = new StatRange(hpValue,    hpValue);
-                    defRange   = new StatRange(defValue,   defValue);
-                    strRange   = new StatRange(strValue,   strValue);
-                    agiRange   = new StatRange(agiValue,   agiValue);
-                    intelRange = new StatRange(intelValue, intelValue);
-                    dexRange   = new StatRange(dexValue,   dexValue);
-                    wilRange   = new StatRange(wilValue,   wilValue);
-                    tecRange   = new StatRange(tecValue,   tecValue);
-                }
+                StatRange hpRange    = new StatRange(hpValue,    hpValue);
+                StatRange defRange   = new StatRange(defValue,   defValue);
+                StatRange strRange   = new StatRange(strValue,   strValue);
+                StatRange agiRange   = new StatRange(agiValue,   agiValue);
+                StatRange intelRange = new StatRange(intelValue, intelValue);
+                StatRange dexRange   = new StatRange(dexValue,   dexValue);
+                StatRange wilRange   = new StatRange(wilValue,   wilValue);
+                StatRange tecRange   = new StatRange(tecValue,   tecValue);
 
                 CustomItem instance = new CustomItem(
                     uuid, id, baseName, rarity, lvlReq, clsReq, material,

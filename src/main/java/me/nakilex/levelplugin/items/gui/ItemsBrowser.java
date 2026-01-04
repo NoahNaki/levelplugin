@@ -1,16 +1,9 @@
 package me.nakilex.levelplugin.items.gui;
 
-import me.nakilex.levelplugin.items.data.CustomItem;
-import me.nakilex.levelplugin.items.data.StatRange;
-import me.nakilex.levelplugin.items.managers.ItemManager;
-import me.nakilex.levelplugin.items.utils.ItemUtil;
-import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
-import me.nakilex.levelplugin.utils.GuiUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.command.Command;
-import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -20,12 +13,9 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.persistence.PersistentDataContainer;
-import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 public class ItemsBrowser implements CommandExecutor, Listener {
@@ -136,138 +126,11 @@ public class ItemsBrowser implements CommandExecutor, Listener {
             if (i < 9 || i >= 45 || i % 9 == 0 || i % 9 == 8) gui.setItem(i, filler);
         }
 
-        // 2) Grab and sort all template IDs
-        List<Integer> ids = new ArrayList<>(ItemManager.getInstance().getAllTemplates().keySet());
-        Collections.sort(ids);
+        ItemStack info = createMenuItem(Material.BARRIER, ChatColor.RED + "Legacy Items Disabled",
+                ChatColor.GRAY + "Item templates from items.yml",
+                ChatColor.GRAY + "are no longer supported.");
+        gui.setItem(22, info);
 
-        int tFilter = typeFilters.getOrDefault(player.getUniqueId(), 2);
-        int rFilter = rarityFilters.getOrDefault(player.getUniqueId(), me.nakilex.levelplugin.items.data.ItemRarity.values().length);
-        int lFilter = levelFilters.getOrDefault(player.getUniqueId(), 5);
-
-        List<CustomItem> templates = new ArrayList<>();
-        for (int id : ids) {
-            CustomItem tpl = ItemManager.getInstance().getTemplateById(id);
-            if (tpl == null) continue;
-            if (rFilter < me.nakilex.levelplugin.items.data.ItemRarity.values().length && tpl.getRarity() != me.nakilex.levelplugin.items.data.ItemRarity.values()[rFilter])
-                continue;
-            if (lFilter < 5) {
-                int lvl = tpl.getLevelRequirement();
-                int min = lFilter*20 + 1; int max = lFilter==4?999: min+19;
-                if (lvl < min || lvl > max) continue;
-            }
-            boolean isWeapon = me.nakilex.levelplugin.items.data.WeaponType.matchType(new ItemStack(tpl.getMaterial())) != null;
-            if (tFilter == 0 && isWeapon) continue;
-            if (tFilter == 1 && !isWeapon) continue;
-            templates.add(tpl);
-        }
-
-        int start = page * PAGE_SIZE;
-
-        // 3) Build the 4×7 grid of previews
-        for (int i = 0; i < PAGE_SIZE; i++) {
-            int idx = start + i;
-            if (idx >= templates.size()) break;
-
-            CustomItem tpl = templates.get(idx);
-            if (tpl == null) continue;
-
-            // a) Create the ItemStack preview from the template material
-            ItemStack preview = new ItemStack(tpl.getMaterial(), 1);
-            ItemMeta pm = preview.getItemMeta();
-            if (pm == null) continue;
-
-            // b) Apply display/lore
-            ChatColor col = tpl.getRarity().getColor();
-            pm.setDisplayName(col + tpl.getBaseName());
-
-                // c) Build lore
-                List<String> lore = new ArrayList<>();
-                lore.add(""); // spacer
-
-                // — Level Requirement with ✔/✘
-                int playerLvl = StatsManager.getInstance().getLevel(player);
-                boolean lvlOk = playerLvl >= tpl.getLevelRequirement();
-                lore.add((lvlOk ? ChatColor.GREEN + "✔ " : ChatColor.RED + "✘ ")
-                        + ChatColor.GRAY + "Level Requirement: "
-                        + ChatColor.WHITE + tpl.getLevelRequirement());
-
-                lore.add(""); // divider before Gear Score
-
-                int minGs = tpl.getHpRange().getMin() + tpl.getDefRange().getMin()
-                        + tpl.getStrRange().getMin() + tpl.getAgiRange().getMin()
-                        + tpl.getIntelRange().getMin() + tpl.getDexRange().getMin();
-                int maxGs = tpl.getHpRange().getMax() + tpl.getDefRange().getMax()
-                        + tpl.getStrRange().getMax() + tpl.getAgiRange().getMax()
-                        + tpl.getIntelRange().getMax() + tpl.getDexRange().getMax();
-                String gsDisplay = (minGs == maxGs)
-                        ? String.valueOf(minGs)
-                        : (minGs + "-" + maxGs);
-                lore.add(ChatColor.GRAY + "Gear Score: "
-                        + ChatColor.LIGHT_PURPLE + ChatColor.BOLD + gsDisplay);
-                lore.add(""); // divider after Gear Score
-
-                // — Stat RANGES (numbers in white)
-                StatRange s;
-                s = tpl.getHpRange();
-                if (!(s.getMin()==0 && s.getMax()==0))
-                    lore.add(GuiUtil.formatStatName(StatsManager.StatType.VIT) + ": "
-                            + ChatColor.RED + "+" + s);
-                s = tpl.getDefRange();
-                if (!(s.getMin()==0 && s.getMax()==0))
-                    lore.add(ChatColor.GRAY  + "⛂ " + ChatColor.GRAY + "Defence: "
-                            + ChatColor.GREEN + "+" + s);
-                s = tpl.getStrRange();
-                if (!(s.getMin()==0 && s.getMax()==0))
-                    lore.add(GuiUtil.formatStatName(StatsManager.StatType.STR) + ": "
-                            + ChatColor.GREEN + "+" + s);
-                s = tpl.getAgiRange();
-                if (!(s.getMin()==0 && s.getMax()==0))
-                    lore.add(GuiUtil.formatStatName(StatsManager.StatType.AGI) + ": "
-                            + ChatColor.GREEN + "+" + s);
-                s = tpl.getIntelRange();
-                if (!(s.getMin()==0 && s.getMax()==0))
-                    lore.add(GuiUtil.formatStatName(StatsManager.StatType.INT) + ": "
-                            + ChatColor.GREEN + "+" + s);
-                s = tpl.getDexRange();
-                if (!(s.getMin()==0 && s.getMax()==0))
-                    lore.add(GuiUtil.formatStatName(StatsManager.StatType.DEX) + ": "
-                            + ChatColor.GREEN + "+" + s);
-
-                lore.add(""); // spacer
-
-                // — Rarity
-                lore.add(col + "" + ChatColor.BOLD + tpl.getRarity().name());
-
-                // d) Apply lore & flags
-                pm.setLore(lore);
-                pm.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_UNBREAKABLE);
-                pm.setUnbreakable(true);
-
-                // e) Stamp the template ID (so clicking gives the right item)
-                pm.getPersistentDataContainer()
-                        .set(ItemUtil.ITEM_ID_KEY, PersistentDataType.INTEGER, tpl.getId());
-                pm.getPersistentDataContainer()
-                        .set(ItemUtil.UPGRADE_LEVEL_KEY, PersistentDataType.INTEGER, 0);
-
-                preview.setItemMeta(pm);
-
-            // f) Compute final slot and place
-            int row = 1 + (i / 7);
-            int colIndex = 1 + (i % 7);
-            gui.setItem(row * COLS + colIndex, preview);
-        }
-
-        // 4) Pagination buttons
-        ItemStack prev = getNexoItem("arrow_left", ChatColor.GREEN + "Previous Page");
-        gui.setItem(SIZE - COLS, prev);
-        ItemStack next = getNexoItem("arrow_right", ChatColor.GREEN + "Next Page");
-        gui.setItem(SIZE - 1, next);
-
-        gui.setItem(TYPE_FILTER_SLOT, createTypeButton(tFilter));
-        gui.setItem(RARITY_FILTER_SLOT, createRarityButton(rFilter));
-        gui.setItem(LEVEL_FILTER_SLOT, createLevelButton(lFilter));
-
-        // 5) Finally open
         player.openInventory(gui);
     }
 
@@ -281,7 +144,7 @@ public class ItemsBrowser implements CommandExecutor, Listener {
             sender.sendMessage(ChatColor.RED + "Only players can browse items.");
             return true;
         }
-        openPage((Player) sender, 0);
+        sender.sendMessage(ChatColor.RED + "Legacy items browser is disabled.");
         return true;
     }
 
@@ -294,78 +157,6 @@ public class ItemsBrowser implements CommandExecutor, Listener {
         ItemStack clicked = e.getCurrentItem();
         if (clicked == null || !clicked.hasItemMeta()) return;
 
-        String name = clicked.getItemMeta().getDisplayName();
-        String stripped = ChatColor.stripColor(e.getView().getTitle());
-        int currentPage = Integer.parseInt(stripped.split(" ")[stripped.split(" ").length - 1]) - 1;
-        int tFilter = typeFilters.getOrDefault(player.getUniqueId(), 2);
-        int rFilter = rarityFilters.getOrDefault(player.getUniqueId(), me.nakilex.levelplugin.items.data.ItemRarity.values().length);
-        int lFilter = levelFilters.getOrDefault(player.getUniqueId(), 5);
-        int total = 0;
-        for (CustomItem ci : ItemManager.getInstance().getAllTemplates().values()) {
-            if (rFilter < me.nakilex.levelplugin.items.data.ItemRarity.values().length && ci.getRarity() != me.nakilex.levelplugin.items.data.ItemRarity.values()[rFilter]) continue;
-            if (lFilter < 5) {
-                int lvl = ci.getLevelRequirement();
-                int min = lFilter*20 + 1; int max = lFilter==4?999:min+19;
-                if (lvl < min || lvl > max) continue;
-            }
-            boolean isWeapon = me.nakilex.levelplugin.items.data.WeaponType.matchType(new ItemStack(ci.getMaterial())) != null;
-            if (tFilter == 0 && isWeapon) continue;
-            if (tFilter == 1 && !isWeapon) continue;
-            total++;
-        }
-        int maxPage = (Math.max(total,1) - 1) / PAGE_SIZE;
-
-        if (e.getRawSlot() == TYPE_FILTER_SLOT) {
-            int f = typeFilters.getOrDefault(player.getUniqueId(), 2);
-            if (e.getClick() == org.bukkit.event.inventory.ClickType.RIGHT) f--; else f++;
-            if (f < 0) f = 2; if (f > 2) f = 0;
-            typeFilters.put(player.getUniqueId(), f);
-            openPage(player, 0);
-            return;
-        }
-
-        if (e.getRawSlot() == RARITY_FILTER_SLOT) {
-            int f = rarityFilters.getOrDefault(player.getUniqueId(), me.nakilex.levelplugin.items.data.ItemRarity.values().length);
-            if (e.getClick() == org.bukkit.event.inventory.ClickType.RIGHT) f--; else f++;
-            int max = me.nakilex.levelplugin.items.data.ItemRarity.values().length;
-            if (f < 0) f = max; if (f > max) f = 0;
-            rarityFilters.put(player.getUniqueId(), f);
-            openPage(player, 0);
-            return;
-        }
-
-        if (e.getRawSlot() == LEVEL_FILTER_SLOT) {
-            int f = levelFilters.getOrDefault(player.getUniqueId(), 5);
-            if (e.getClick() == org.bukkit.event.inventory.ClickType.RIGHT) f--; else f++;
-            if (f < 0) f = 5; if (f > 5) f = 0;
-            levelFilters.put(player.getUniqueId(), f);
-            openPage(player, 0);
-            return;
-        }
-
-
-        // Next Page?
-        if (name.equals(ChatColor.GREEN + "Next Page")) {
-            int nextPage = currentPage < maxPage ? currentPage + 1 : 0;
-            openPage(player, nextPage);
-            return;
-        }
-
-        // Previous Page?
-        if (name.equals(ChatColor.GREEN + "Previous Page")) {
-            int prevPage = currentPage > 0 ? currentPage - 1 : maxPage;
-            openPage(player, prevPage);
-            return;
-        }
-
-        // Otherwise, if this is one of our item-templates, give it
-        int templateId = ItemUtil.getCustomItemId(clicked);
-        if (templateId != -1) {
-            CustomItem instance = ItemManager.getInstance().rollNewInstance(templateId);
-            ItemStack toGive = ItemUtil.createItemStackFromCustomItem(instance, 1, player);
-            player.getInventory().addItem(toGive);
-            player.sendMessage(ChatColor.GREEN + "You received: "
-                    + toGive.getItemMeta().getDisplayName());
-        }
+        player.sendMessage(ChatColor.RED + "Legacy items browser is disabled.");
     }
 }
