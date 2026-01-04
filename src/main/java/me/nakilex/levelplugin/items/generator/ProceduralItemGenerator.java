@@ -39,7 +39,7 @@ public class ProceduralItemGenerator {
     /** Extra bonus applied to one random armor stat for variety. */
     private static final double DOMINANT_BONUS = 0.10;
     /** Base coefficient used when scaling health for armor pieces. */
-    private static final double HP_COEFF = 1.5;
+    public static final double ARMOR_HP_COEFF = 1.5;
     /** Rarity growth factor ensuring higher rarities always outrank lower ones. */
     private static final double RARITY_STEP = 1.4;
 
@@ -140,7 +140,7 @@ public class ProceduralItemGenerator {
         int hp = 0, def, str, agi, intel, dex, wil, tec;
 
         if (createArmor) {
-            hp  = scaleStat(level, rarity, HP_COEFF);
+            hp  = scaleStat(level, rarity, ARMOR_HP_COEFF);
             def = scaleStat(level, rarity, 1.0);
             str   = scaleStat(level, rarity, 1.0);
             agi   = scaleStat(level, rarity, 1.0);
@@ -261,7 +261,7 @@ public class ProceduralItemGenerator {
      * Build a rollable range around a target value so generated items
      * can be rerolled later on. The range is roughly ±5% of the value.
      */
-    private StatRange createRange(int value) {
+    private static StatRange createRange(int value) {
         if (value <= 0) {
             return new StatRange(0, 0);
         }
@@ -333,7 +333,7 @@ public class ProceduralItemGenerator {
         return chosen;
     }
 
-    private int getStatSlotsForRarity(ItemRarity rarity) {
+    public static int getStatSlotsForRarity(ItemRarity rarity) {
         if (rarity == null) return 1;
         return switch (rarity) {
             case COMMON -> 1;
@@ -494,6 +494,12 @@ public class ProceduralItemGenerator {
     private int scaleStat(int level, ItemRarity rarity, double coeff) {
         double value = coeff * level * rarityMultiplier(rarity);
         return (int) Math.ceil(value);
+    }
+
+    public static StatRange buildTemplateRange(int level, ItemRarity rarity, double coeff) {
+        int safeLevel = Math.max(1, Math.min(level, 100));
+        int value = (int) Math.ceil(coeff * safeLevel * Math.pow(RARITY_STEP, rarity.ordinal()));
+        return createRange(value);
     }
 
     private enum GearStat {

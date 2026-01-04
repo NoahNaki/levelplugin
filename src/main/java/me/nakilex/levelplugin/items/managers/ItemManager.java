@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.items.managers;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.items.data.CustomItem;
+import me.nakilex.levelplugin.items.data.ArmorType;
 import me.nakilex.levelplugin.items.data.StatRange;
 import me.nakilex.levelplugin.items.data.ItemRarity;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
@@ -20,7 +21,12 @@ import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Random;
+import java.util.UUID;
+import java.util.Map;
 
 public class ItemManager {
 
@@ -119,6 +125,19 @@ public class ItemManager {
                 StatRange tecRange   = StatRange.fromString(
                     itemsConfig.getString(path + "tec", "0-0"));
 
+                TemplateRanges normalized = normalizeTemplateRanges(
+                        levelReq,
+                        rarity,
+                        material,
+                        hpRange,
+                        defRange,
+                        strRange,
+                        agiRange,
+                        intelRange,
+                        dexRange,
+                        wilRange,
+                        tecRange);
+
                 // Build the template (rolls will happen when creating instances)
                 CustomItem template = new CustomItem(
                     numericId,
@@ -127,14 +146,14 @@ public class ItemManager {
                     levelReq,
                     classReq,
                     material,
-                    hpRange,
-                    defRange,
-                    strRange,
-                    agiRange,
-                    intelRange,
-                    dexRange,
-                    wilRange,
-                    tecRange
+                    normalized.hpRange(),
+                    normalized.defRange(),
+                    normalized.strRange(),
+                    normalized.agiRange(),
+                    normalized.intelRange(),
+                    normalized.dexRange(),
+                    normalized.wilRange(),
+                    normalized.tecRange()
                 );
 
                 templatesMap.put(numericId, template);
@@ -148,6 +167,91 @@ public class ItemManager {
         Main.getInstance().getLogger()
             .info("Loaded " + templatesMap.size() + " custom item templates from items.yml.");
     }
+
+    private TemplateRanges normalizeTemplateRanges(int levelRequirement,
+                                                   ItemRarity rarity,
+                                                   Material material,
+                                                   StatRange hpRange,
+                                                   StatRange defRange,
+                                                   StatRange strRange,
+                                                   StatRange agiRange,
+                                                   StatRange intelRange,
+                                                   StatRange dexRange,
+                                                   StatRange wilRange,
+                                                   StatRange tecRange) {
+        boolean isArmor = ArmorType.fromMaterial(material) != null;
+        StatRange safeHpRange = isArmor ? hpRange : new StatRange(0, 0);
+        int desired = me.nakilex.levelplugin.items.generator.ProceduralItemGenerator.getStatSlotsForRarity(rarity);
+        List<StatSlot> missing = new ArrayList<>();
+
+        int count = 0;
+        if (isRangeNonZero(safeHpRange)) count++;
+        else if (isArmor) missing.add(StatSlot.HP);
+        if (isRangeNonZero(defRange)) count++; else missing.add(StatSlot.DEF);
+        if (isRangeNonZero(strRange)) count++; else missing.add(StatSlot.STR);
+        if (isRangeNonZero(agiRange)) count++; else missing.add(StatSlot.AGI);
+        if (isRangeNonZero(intelRange)) count++; else missing.add(StatSlot.INT);
+        if (isRangeNonZero(dexRange)) count++; else missing.add(StatSlot.DEX);
+        if (isRangeNonZero(wilRange)) count++; else missing.add(StatSlot.WIL);
+        if (isRangeNonZero(tecRange)) count++; else missing.add(StatSlot.TEC);
+
+        if (isArmor && rarity == ItemRarity.COMMON && !isRangeNonZero(safeHpRange)) {
+            safeHpRange = me.nakilex.levelplugin.items.generator.ProceduralItemGenerator
+                    .buildTemplateRange(levelRequirement, rarity,
+                            me.nakilex.levelplugin.items.generator.ProceduralItemGenerator.ARMOR_HP_COEFF);
+            count++;
+            missing.remove(StatSlot.HP);
+        }
+
+        if (count < desired && !missing.isEmpty()) {
+            java.util.Collections.shuffle(missing, new Random());
+            int toAdd = Math.min(desired - count, missing.size());
+            for (int i = 0; i < toAdd; i++) {
+                StatSlot slot = missing.get(i);
+                StatRange generated = me.nakilex.levelplugin.items.generator.ProceduralItemGenerator
+                        .buildTemplateRange(levelRequirement, rarity,
+                                slot == StatSlot.HP
+                                        ? me.nakilex.levelplugin.items.generator.ProceduralItemGenerator.ARMOR_HP_COEFF
+                                        : 1.0);
+                switch (slot) {
+                    case HP -> safeHpRange = generated;
+                    case DEF -> defRange = generated;
+                    case STR -> strRange = generated;
+                    case AGI -> agiRange = generated;
+                    case INT -> intelRange = generated;
+                    case DEX -> dexRange = generated;
+                    case WIL -> wilRange = generated;
+                    case TEC -> tecRange = generated;
+                }
+            }
+        }
+
+        return new TemplateRanges(safeHpRange, defRange, strRange, agiRange, intelRange, dexRange, wilRange, tecRange);
+    }
+
+    private boolean isRangeNonZero(StatRange range) {
+        return range != null && (range.getMin() > 0 || range.getMax() > 0);
+    }
+
+    private enum StatSlot {
+        HP,
+        DEF,
+        STR,
+        AGI,
+        INT,
+        DEX,
+        WIL,
+        TEC
+    }
+
+    private record TemplateRanges(StatRange hpRange,
+                                  StatRange defRange,
+                                  StatRange strRange,
+                                  StatRange agiRange,
+                                  StatRange intelRange,
+                                  StatRange dexRange,
+                                  StatRange wilRange,
+                                  StatRange tecRange) {}
 
     /** Returns a new map of templates, keyed by numeric ID */
     public Map<Integer, CustomItem> getAllTemplates() {
