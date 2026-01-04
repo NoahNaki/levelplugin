@@ -864,6 +864,22 @@ public class QuestManager {
             plugin.getLogger().info("[QuestDebug] " + player.getName() + " bought " + itemId);
         }
         updateObjective(player, QuestObjectiveType.BUY, itemId, 1);
+
+        try {
+            int id = Integer.parseInt(itemId);
+            me.nakilex.levelplugin.items.data.CustomItem tpl = plugin.getItemManager().getTemplateById(id);
+            if (tpl != null) {
+                String classReq = tpl.getClassRequirement();
+                PlayerClass playerClass = StatsManager.getInstance().getPlayerStats(player.getUniqueId()).playerClass;
+                if (classReq != null && playerClass.name().equalsIgnoreCase(classReq)) {
+                    updateObjective(player, QuestObjectiveType.BUY, "class_weapon", 1);
+                }
+                if (id >= 16 && id <= 19) {
+                    updateObjective(player, QuestObjectiveType.BUY, "starter_armor", 1);
+                }
+            }
+        } catch (NumberFormatException ignore) {
+        }
     }
 
     public void handleUpgrade(Player player, String itemId) {
@@ -1318,8 +1334,13 @@ public class QuestManager {
         }
         if (!reward.getItemIds().isEmpty()) {
             for (int id : reward.getItemIds()) {
-                plugin.getLogger().warning("[QuestRewards] Skipping legacy item template id " + id
-                        + " (items.yml templates are disabled).");
+                me.nakilex.levelplugin.items.data.CustomItem tpl = plugin.getItemManager().getTemplateById(id);
+                if (tpl != null) {
+                    me.nakilex.levelplugin.items.data.CustomItem inst = plugin.getItemManager().rollNewInstance(id);
+                    player.getInventory().addItem(
+                        me.nakilex.levelplugin.items.utils.ItemUtil.createItemStackFromCustomItem(inst, 1, player)
+                    );
+                }
             }
         }
 

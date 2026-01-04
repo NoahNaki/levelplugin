@@ -2,6 +2,9 @@ package me.nakilex.levelplugin.merchants.gui;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
+import me.nakilex.levelplugin.items.data.CustomItem;
+import me.nakilex.levelplugin.items.data.StatRange;
+import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.items.tools.CustomTool;
 import me.nakilex.levelplugin.items.tools.ToolDiscipline;
 import me.nakilex.levelplugin.items.tools.ToolManager;
@@ -96,7 +99,8 @@ public class MerchantGUI implements Listener {
     }
 
     /**
-     * Build each slot’s ItemStack with a default “unaffordable” price line.
+     * Build each slot’s ItemStack using the template’s StatRange values
+     * and a default “unaffordable” price line.
      */
     private void populateMerchantItems() {
         for (MerchantItem mItem : merchantItems.values()) {
@@ -123,17 +127,51 @@ public class MerchantGUI implements Listener {
                 }
                 inventory.setItem(mItem.getSlot(), stack);
             } else {
-                ItemStack stack = new ItemStack(Material.BARRIER);
+                CustomItem tpl = ItemManager.getInstance().getTemplateById(mItem.getItemId());
+                if (tpl == null) continue;
+
+                // Base stack using the template's rolled stats.
+                ItemStack stack = ItemUtil.createItemStackFromCustomItem(tpl, mItem.getAmount(), null);
                 ItemMeta meta = stack.getItemMeta();
-                if (meta != null) {
-                    meta.setDisplayName(ChatColor.RED + "Legacy Item Disabled");
-                    List<String> lore = new ArrayList<>();
-                    lore.add(ChatColor.GRAY + "Item templates from items.yml");
-                    lore.add(ChatColor.GRAY + "are no longer supported.");
-                    addPriceStub(lore, mItem);
-                    meta.setLore(lore);
-                    stack.setItemMeta(meta);
+                if (meta == null || !meta.hasLore()) {
+                    inventory.setItem(mItem.getSlot(), stack);
+                    continue;
                 }
+
+                List<String> lore = meta.getLore();
+
+                // 1) Rewrite each stat line to show the RANGE (white numbers)
+                for (int i = 0; i < lore.size(); i++) {
+                    String line = lore.get(i);
+                    if (line.contains("<glyph:str>")) {
+                        lore.set(i, GuiUtil.formatStatName(StatsManager.StatType.STR) + ": "
+                                + ChatColor.GREEN + "+" + tpl.getStrRange());
+                    } else if (line.contains("<glyph:vit>")) {
+                        lore.set(i, GuiUtil.formatStatName(StatsManager.StatType.VIT) + ": "
+                                + ChatColor.RED + "+" + tpl.getHpRange());
+                    } else if (line.contains("⛂")) {
+                        lore.set(i, ChatColor.GRAY  + "⛂ " + ChatColor.GRAY + "Defence: "
+                                + ChatColor.GREEN + "+" + tpl.getDefRange());
+                    } else if (line.contains("<glyph:agi>")) {
+                        lore.set(i, GuiUtil.formatStatName(StatsManager.StatType.AGI) + ": "
+                                + ChatColor.GREEN + "+" + tpl.getAgiRange());
+                    } else if (line.contains("<glyph:int>")) {
+                        lore.set(i, GuiUtil.formatStatName(StatsManager.StatType.INT) + ": "
+                                + ChatColor.GREEN + "+" + tpl.getIntelRange());
+                    } else if (line.contains("<glyph:dex>")) {
+                        lore.set(i, GuiUtil.formatStatName(StatsManager.StatType.DEX) + ": "
+                                + ChatColor.GREEN + "+" + tpl.getDexRange());
+                    }
+                }
+
+                // 2) Remove any old currency stubs, then re‐add fresh stubs
+                lore.removeIf(l -> l.equalsIgnoreCase("Price:") || l.startsWith("✘") || l.startsWith("✔"));
+                lore.removeIf(l -> l.equalsIgnoreCase("Gems:")  || l.startsWith("✘") || l.startsWith("✔"));
+
+                addPriceStub(lore, mItem);
+
+                meta.setLore(lore);
+                stack.setItemMeta(meta);
                 inventory.setItem(mItem.getSlot(), stack);
             }
         }
@@ -347,11 +385,6 @@ public class MerchantGUI implements Listener {
             int coinBalance = economyManager.getBalance(player);
             int gemBalance = Main.getInstance().getGemsManager().getTotalUnits(player);
 
-            if (!mItem.isEssence() && !mItem.isTool()) {
-                send(player, MessageType.ERROR, "Legacy item templates are no longer supported.");
-                return;
-            }
-
             // Check coin requirement
             if (coinBalance < coinCost) {
                 send(player, MessageType.ERROR, "You don't have enough coins!");
@@ -401,7 +434,16 @@ public class MerchantGUI implements Listener {
                     recordPurchase(player, mItem);
                 }
             } else {
-                send(player, MessageType.ERROR, "Legacy item templates are no longer supported.");
+                CustomItem template = ItemManager.getInstance().getTemplateById(mItem.getItemId());
+                if (template != null) {
+
+                    CustomItem newInstance = ItemManager.getInstance().rollNewInstance(template.getId());
+                    ItemStack purchasedItem = ItemUtil.createItemStackFromCustomItem(newInstance, mItem.getAmount(), player);
+                    player.getInventory().addItem(purchasedItem);
+                    Main.getInstance().getQuestManager().handleBuy(player, String.valueOf(mItem.getItemId()));
+                    sendPurchaseMessage(player, purchasedItem.getItemMeta().getDisplayName(), coinCost, gemCost);
+                    recordPurchase(player, mItem);
+                }
             }
         }
     }
@@ -480,6 +522,8 @@ public class MerchantGUI implements Listener {
                     stack.setItemMeta(meta);
                 }
             } else {
+                CustomItem tpl = ItemManager.getInstance().getTemplateById(mItem.getItemId());
+
                 // ── 1) Level Requirement ─────────────────────────
                 int lvlIdx = -1;
                 for (int i = 0; i < lore.size(); i++) {
@@ -488,8 +532,13 @@ public class MerchantGUI implements Listener {
                         break;
                     }
                 }
-                if (lvlIdx != -1) {
-                    lore.set(lvlIdx, ChatColor.GRAY + "Level Requirement: " + ChatColor.WHITE + "-");
+                if (lvlIdx != -1 && tpl != null) {
+                    boolean ok = lvl >= tpl.getLevelRequirement();
+                    lore.set(lvlIdx,
+                        (ok ? ChatColor.GREEN + "✔ " : ChatColor.RED + "✘ ")
+                            + ChatColor.GRAY + "Level Requirement: "
+                            + ChatColor.WHITE + tpl.getLevelRequirement()
+                    );
                 }
 
 

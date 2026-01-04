@@ -6,7 +6,10 @@ import io.lumine.mythic.bukkit.events.MythicMobDeathEvent;
 import io.lumine.mythic.core.mobs.ActiveMob;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.economy.managers.GemsManager;
+import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.data.ItemRarity;
+import me.nakilex.levelplugin.items.managers.ItemManager;
+import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
 import me.nakilex.levelplugin.mob.utils.MobNameUtil;
 import me.nakilex.levelplugin.player.classes.essence.ClassEssence;
@@ -33,6 +36,7 @@ import java.util.concurrent.ThreadLocalRandom;
 public class FieldBossListener implements Listener {
     private final Main plugin;
     private final FileConfiguration cfg;
+    private final ItemManager itemManager;
     private final GemsManager gemsManager;
 
     private final Map<String, String> bossKeyMap = new HashMap<>();
@@ -40,9 +44,11 @@ public class FieldBossListener implements Listener {
     private final Map<UUID, Long> bossStartTime = new ConcurrentHashMap<>();
     public FieldBossListener(Main plugin,
                              FileConfiguration bossConfig,
+                             ItemManager itemManager,
                              GemsManager gemsManager) {
         this.plugin      = plugin;
         this.cfg         = bossConfig;
+        this.itemManager = itemManager;
         this.gemsManager = gemsManager;
 
         if (cfg.isConfigurationSection("mobs")) {
@@ -266,8 +272,11 @@ public class FieldBossListener implements Listener {
         String itemId = String.valueOf(config.get("itemid"));
         ItemStack drop = null;
         if (itemId != null && itemId.matches("\\d+")) {
-            plugin.getLogger().warning("[FieldBoss] Legacy item template id " + itemId
-                    + " is no longer supported for drops.");
+            int cid = Integer.parseInt(itemId);
+            CustomItem inst = itemManager.rollNewInstance(cid);
+            if (inst != null) {
+                drop = ItemUtil.createItemStackFromCustomItem(inst, qty, owner);
+            }
         }
         if (drop == null && itemId != null) {
             Material mat = Material.matchMaterial(itemId.toUpperCase(Locale.ROOT));
@@ -339,7 +348,7 @@ public class FieldBossListener implements Listener {
         if (lootChestManager == null) {
             return null;
         }
-        return lootChestManager.getRandomLootForCombatPower(80, mobId, null);
+        return lootChestManager.getRandomLootForCombatPower(80, mobId, null, false);
     }
 
     private ItemStack rollRandomConfiguredDrop(List<Map<String, Object>> items, boolean applyDropRate) {

@@ -935,7 +935,8 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
                     Math.max(50, peakGearScore),
                     levelRequirement,
                     "dungeon",
-                    null);
+                    null,
+                    false);
             if (scaledLoot != null) {
                 return scaledLoot;
             }

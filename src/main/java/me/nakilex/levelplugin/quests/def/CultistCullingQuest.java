@@ -720,7 +720,7 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
         double roll = ThreadLocalRandom.current().nextDouble();
 
         if (roll < 0.35 && loot != null) {
-            ItemStack gear = loot.getRandomLootForCombatPower(site.combatPower(), site.level(), site.mobId(), null);
+            ItemStack gear = loot.getRandomLootForCombatPower(site.combatPower(), site.level(), site.mobId(), null, false);
             if (gear != null) {
                 ItemUtil.updateTooltip(gear, player);
             }

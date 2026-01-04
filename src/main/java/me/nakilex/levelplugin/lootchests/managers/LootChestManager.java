@@ -4,7 +4,10 @@ import com.nexomc.nexo.api.NexoFurniture;
 import com.nexomc.nexo.mechanics.furniture.FurnitureMechanic;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.environment.stage.BuildingStageManager;
+import me.nakilex.levelplugin.items.data.ArmorType;
 import me.nakilex.levelplugin.items.data.CustomItem;
+import me.nakilex.levelplugin.items.data.ItemRarity;
+import me.nakilex.levelplugin.items.generator.ProceduralItemGenerator;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.lootchests.config.ConfigManager;
@@ -17,6 +20,7 @@ import me.nakilex.levelplugin.mob.utils.CombatRewardCalculator;
 import me.nakilex.levelplugin.potions.data.PotionInstance;
 import me.nakilex.levelplugin.potions.data.PotionTemplate;
 import me.nakilex.levelplugin.potions.managers.PotionManager;
+import me.nakilex.levelplugin.salvage.managers.SalvageManager;
 import me.nakilex.levelplugin.utils.FurnitureCleanupUtil;
 import me.nakilex.levelplugin.utils.NexoUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
@@ -849,12 +853,20 @@ public class LootChestManager {
     }
 
     public ItemStack getRandomLootForCombatPower(double combatPower, String mobType, String modelSet) {
-        return getRandomLootForCombatPower(combatPower, null, mobType, modelSet);
+        return getRandomLootForCombatPower(combatPower, null, mobType, modelSet, true);
     }
 
     public ItemStack getRandomLootForCombatPower(double combatPower, Integer levelRequirement, String mobType, String modelSet) {
+        return getRandomLootForCombatPower(combatPower, levelRequirement, mobType, modelSet, true);
+    }
+
+    public ItemStack getRandomLootForCombatPower(double combatPower, String mobType, String modelSet, boolean allowTemplates) {
+        return getRandomLootForCombatPower(combatPower, null, mobType, modelSet, allowTemplates);
+    }
+
+    public ItemStack getRandomLootForCombatPower(double combatPower, Integer levelRequirement, String mobType, String modelSet, boolean allowTemplates) {
         CombatRewardCalculator.GearTarget target = CombatRewardCalculator.rollGearTarget((int) Math.round(combatPower));
-        return generateLootForTarget(target, mobType, modelSet, levelRequirement);
+        return generateLootForTarget(target, mobType, modelSet, levelRequirement, allowTemplates);
     }
 
     public ItemStack getRandomLootForTier(int tier, String mobType, String modelSet) {
@@ -868,20 +880,87 @@ public class LootChestManager {
         return getRandomLootForCombatPower(gearScore, mobType, modelSet);
     }
 
-    private ItemStack generateLootForTarget(CombatRewardCalculator.GearTarget target, String mobType, String modelSet, Integer levelRequirement) {
+    private ItemStack generateLootForTarget(CombatRewardCalculator.GearTarget target, String mobType, String modelSet, Integer levelRequirement, boolean allowTemplates) {
         if (target == null) {
             return null;
         }
 
-        CustomItem generated = levelRequirement != null
-                ? ItemManager.getInstance().generateItemForGearScore(
-                        mobType, target.targetGearScore(), target.rarity(), levelRequirement)
-                : ItemManager.getInstance().generateItemForGearScore(
-                        mobType, target.targetGearScore(), target.rarity());
-        String nexo = modelSet != null
-                ? Main.getInstance().getModelSetManager().getModelId(modelSet, generated.getMaterial())
-                : null;
-        return ItemUtil.createItemStackFromCustomItem(generated, 1, null, nexo);
+        if (!allowTemplates) {
+            CustomItem generated = levelRequirement != null
+                    ? ItemManager.getInstance().generateItemForGearScore(
+                            mobType, target.targetGearScore(), target.rarity(), levelRequirement)
+                    : ItemManager.getInstance().generateItemForGearScore(
+                            mobType, target.targetGearScore(), target.rarity());
+            String nexo = modelSet != null
+                    ? Main.getInstance().getModelSetManager().getModelId(modelSet, generated.getMaterial())
+                    : null;
+            return ItemUtil.createItemStackFromCustomItem(generated, 1, null, nexo);
+        }
+
+        // 30% chance to roll a procedural item instead of template
+        if (Math.random() < 0.3) {
+            CustomItem generated = levelRequirement != null
+                    ? ItemManager.getInstance().generateItemForGearScore(
+                            mobType, target.targetGearScore(), target.rarity(), levelRequirement)
+                    : ItemManager.getInstance().generateItemForGearScore(
+                            mobType, target.targetGearScore(), target.rarity());
+            String nexo = modelSet != null
+                    ? Main.getInstance().getModelSetManager().getModelId(modelSet, generated.getMaterial())
+                    : null;
+            return ItemUtil.createItemStackFromCustomItem(generated, 1, null, nexo);
+        }
+
+        // Gather matching custom items
+        List<CustomItem> matching = new ArrayList<>();
+        for (CustomItem cItem : ItemManager.getInstance().getAllTemplates().values()) {
+            if (cItem.getRarity().ordinal() > ItemRarity.RARE.ordinal()) {
+                continue; // enforce rare and below
+            }
+            int score = SalvageManager.getInstance().getTotalStats(cItem);
+            double diff = Math.abs(score - target.targetGearScore());
+            double allowance = target.targetGearScore() * 0.25;
+            if (diff <= allowance) {
+                matching.add(cItem);
+            }
+        }
+
+        CustomItem template;
+        if (!matching.isEmpty()) {
+            template = matching.get(random.nextInt(matching.size()));
+        } else {
+            template = levelRequirement != null
+                    ? ItemManager.getInstance().generateItemForGearScore(
+                            mobType, target.targetGearScore(), target.rarity(), levelRequirement)
+                    : ItemManager.getInstance().generateItemForGearScore(
+                            mobType, target.targetGearScore(), target.rarity());
+        }
+
+        Material material = template.getMaterial();
+        ArmorType armorSlot = ArmorType.fromMaterial(material);
+        if (levelRequirement != null && armorSlot != null) {
+            material = ProceduralItemGenerator.resolveArmorMaterial(levelRequirement, armorSlot);
+        }
+
+        CustomItem newInstance = new CustomItem(
+            template.getId(),
+            template.getBaseName(),
+            template.getRarity(),
+            levelRequirement != null ? levelRequirement : template.getLevelRequirement(),
+            template.getClassRequirement(),
+            material,
+            template.getHpRange(),
+            template.getDefRange(),
+            template.getStrRange(),
+            template.getAgiRange(),
+            template.getIntelRange(),
+            template.getDexRange(),
+            template.getWilRange(),
+            template.getTecRange()
+        );
+        ItemManager.getInstance().addInstance(newInstance);
+
+        String nexo = modelSet != null ? Main.getInstance().getModelSetManager().getModelId(modelSet, newInstance.getMaterial()) : null;
+        return ItemUtil.createItemStackFromCustomItem(newInstance, 1, null, nexo);
 
     }
 
