@@ -39,6 +39,10 @@ public class TipBroadcastTask extends BukkitRunnable {
 
         // Send to each online player, centered
         for (Player player : plugin.getServer().getOnlinePlayers()) {
+            if (plugin.getSettingsManager() != null
+                    && !plugin.getSettingsManager().getSettings(player).isTipsEnabled()) {
+                continue;
+            }
             ChatFormatter.sendCenteredMessage(player, formatted);
         }
 

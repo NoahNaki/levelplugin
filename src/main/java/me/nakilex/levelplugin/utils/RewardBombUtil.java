@@ -17,6 +17,8 @@ public final class RewardBombUtil {
     private RewardBombUtil() {
     }
 
+    private static final int DROP_INTERVAL_TICKS = 12;
+
     /**
      * Spawns a short fountain of rewards from the target location.
      *
@@ -59,7 +61,7 @@ public final class RewardBombUtil {
                     cancel();
                     return;
                 }
-                lived += 6;
+                lived += DROP_INTERVAL_TICKS;
                 ItemStack item = reward.get();
                 if (item != null) {
                     Vector vel = new Vector(
@@ -67,13 +69,20 @@ public final class RewardBombUtil {
                             0.5 + randomRange(0.1, 0.25),
                             randomRange(-0.35, 0.35));
                     Item drop = origin.getWorld().dropItem(origin.clone().add(0.5, 1, 0.5), item);
-                    if (owner != null) drop.setOwner(owner.getUniqueId());
+                    if (owner != null) {
+                        drop.setOwner(owner.getUniqueId());
+                        for (Player viewer : origin.getWorld().getPlayers()) {
+                            if (!viewer.getUniqueId().equals(owner.getUniqueId())) {
+                                viewer.hideEntity(plugin, drop);
+                            }
+                        }
+                    }
                     drop.setVelocity(vel);
                 }
                 origin.getWorld().spawnParticle(Particle.ENCHANT, origin.clone().add(0.5, 1.1, 0.5), 18, 0.4, 0.4, 0.4, 0.1);
                 origin.getWorld().playSound(origin, Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.6f, 1.1f);
             }
-        }.runTaskTimer(plugin, 0L, 6L);
+        }.runTaskTimer(plugin, 0L, DROP_INTERVAL_TICKS);
     }
 
     private static double randomRange(double min, double max) {

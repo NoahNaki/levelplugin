@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.Locale;
 
 /**
@@ -195,7 +196,18 @@ public class ProceduralItemGenerator {
             }
         }
 
-        String dominant = getDominantStat(str, agi, intel, dex, def);
+        GearStat dominantStat = getDominantStatType(hp, def, str, agi, intel, dex, wil, tec);
+        EnumSet<GearStat> chosen = selectStatsForRarity(rarity, dominantStat, hp, def, str, agi, intel, dex, wil, tec);
+        hp = chosen.contains(GearStat.HP) ? hp : 0;
+        def = chosen.contains(GearStat.DEF) ? def : 0;
+        str = chosen.contains(GearStat.STR) ? str : 0;
+        agi = chosen.contains(GearStat.AGI) ? agi : 0;
+        intel = chosen.contains(GearStat.INT) ? intel : 0;
+        dex = chosen.contains(GearStat.DEX) ? dex : 0;
+        wil = chosen.contains(GearStat.WIL) ? wil : 0;
+        tec = chosen.contains(GearStat.TEC) ? tec : 0;
+
+        String dominant = getDominantStatKey(hp, def, str, agi, intel, dex, wil, tec);
         String name = buildName(safeMobType, baseDisplay, rarity, dominant);
         Material material = createArmor ? resolveArmorMaterial(level, armorSlot) : pickWeaponMaterial(clazz, level);
 
@@ -258,14 +270,71 @@ public class ProceduralItemGenerator {
         return new StatRange(min, max);
     }
 
-    private String getDominantStat(int str, int agi, int intel, int dex, int def) {
-        int max = str;
-        String key = "strength";
-        if (agi > max) { max = agi; key = "agility"; }
-        if (intel > max) { max = intel; key = "intelligence"; }
-        if (dex > max) { max = dex; key = "dexterity"; }
-        if (def > max) { key = "defense"; }
-        return key;
+    private String getDominantStatKey(int hp, int def, int str, int agi, int intel, int dex, int wil, int tec) {
+        GearStat dominant = getDominantStatType(hp, def, str, agi, intel, dex, wil, tec);
+        if (dominant == null) {
+            return "default";
+        }
+        return switch (dominant) {
+            case HP -> "vitality";
+            case DEF -> "defense";
+            case STR -> "strength";
+            case AGI -> "agility";
+            case INT -> "intelligence";
+            case DEX -> "dexterity";
+            case WIL -> "will";
+            case TEC -> "technique";
+        };
+    }
+
+    private GearStat getDominantStatType(int hp, int def, int str, int agi, int intel, int dex, int wil, int tec) {
+        GearStat dominant = null;
+        int max = 0;
+        int[] values = {hp, def, str, agi, intel, dex, wil, tec};
+        GearStat[] stats = GearStat.values();
+        for (int i = 0; i < values.length; i++) {
+            if (values[i] > max) {
+                max = values[i];
+                dominant = stats[i];
+            }
+        }
+        return dominant;
+    }
+
+    private EnumSet<GearStat> selectStatsForRarity(ItemRarity rarity,
+                                                   GearStat dominant,
+                                                   int hp, int def, int str, int agi, int intel, int dex, int wil, int tec) {
+        List<GearStat> available = new ArrayList<>();
+        if (hp > 0) available.add(GearStat.HP);
+        if (def > 0) available.add(GearStat.DEF);
+        if (str > 0) available.add(GearStat.STR);
+        if (agi > 0) available.add(GearStat.AGI);
+        if (intel > 0) available.add(GearStat.INT);
+        if (dex > 0) available.add(GearStat.DEX);
+        if (wil > 0) available.add(GearStat.WIL);
+        if (tec > 0) available.add(GearStat.TEC);
+        if (available.isEmpty()) {
+            return EnumSet.noneOf(GearStat.class);
+        }
+
+        int slots = Math.min(getStatSlotsForRarity(rarity), available.size());
+        Collections.shuffle(available, random);
+        EnumSet<GearStat> chosen = EnumSet.noneOf(GearStat.class);
+        if (dominant != null && available.contains(dominant)) {
+            chosen.add(dominant);
+        }
+        for (GearStat stat : available) {
+            if (chosen.size() >= slots) break;
+            chosen.add(stat);
+        }
+        return chosen;
+    }
+
+    private int getStatSlotsForRarity(ItemRarity rarity) {
+        if (rarity == null) {
+            return 1;
+        }
+        return Math.max(1, rarity.ordinal() + 1);
     }
 
     private String normalizeMobType(String mobType) {
@@ -417,5 +486,16 @@ public class ProceduralItemGenerator {
     private int scaleStat(int level, ItemRarity rarity, double coeff) {
         double value = coeff * level * rarityMultiplier(rarity);
         return (int) Math.ceil(value);
+    }
+
+    private enum GearStat {
+        HP,
+        DEF,
+        STR,
+        AGI,
+        INT,
+        DEX,
+        WIL,
+        TEC
     }
 }

@@ -232,7 +232,7 @@ public class DebugCommand implements TabExecutor {
                     return true;
                 }
                 RewardBombUtil.startRewardBomb(Main.getInstance(), target.getLocation(),
-                        me.nakilex.levelplugin.debug.DebugRewardUtil::rollDebugReward, 100);
+                        me.nakilex.levelplugin.debug.DebugRewardUtil::rollDebugReward, 100, pRb);
                 pRb.sendMessage(ChatColor.YELLOW + "Reward bomb triggered for testing.");
                 return true;
 
