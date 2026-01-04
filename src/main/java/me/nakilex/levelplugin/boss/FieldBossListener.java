@@ -348,7 +348,7 @@ public class FieldBossListener implements Listener {
         if (lootChestManager == null) {
             return null;
         }
-        return lootChestManager.getRandomLootForCombatPower(80, mobId, null);
+        return lootChestManager.getRandomLootForCombatPower(80, mobId, null, false);
     }
 
     private ItemStack rollRandomConfiguredDrop(List<Map<String, Object>> items, boolean applyDropRate) {

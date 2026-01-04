@@ -157,6 +157,15 @@ public class SettingsGUI implements Listener {
             ));
         }
 
+        // Tips toggle
+        if (filter == Filter.ALL || filter == Filter.VISUAL) {
+            gui.setItem(26, GuiUtil.createToggleItem(
+                    playerSettings.isTipsEnabled(),
+                    "§bTips",
+                    "§eClick to toggle"
+            ));
+        }
+
         // Booster Boss Bar toggle
         if (filter == Filter.ALL || filter == Filter.VISUAL) {
             gui.setItem(31, GuiUtil.createToggleItem(
@@ -398,6 +407,12 @@ public class SettingsGUI implements Listener {
             settings.toggleFullInventoryTitle();
             updateSettingItem(event.getInventory(), 25,
                 settings.isFullInventoryTitleEnabled(), "§bFull Inventory Title", "");
+        } else if (slot == 26) {
+            settings.toggleTipsEnabled();
+            boolean enabled = settings.isTipsEnabled();
+            ToggleFeedbackUtil.sendToggle(player, "Tips", enabled);
+            updateSettingItem(event.getInventory(), 26,
+                enabled, "§bTips", "");
         } else if (slot == 31) {
             settings.toggleBoosterBossBar();
             updateSettingItem(event.getInventory(), 31,

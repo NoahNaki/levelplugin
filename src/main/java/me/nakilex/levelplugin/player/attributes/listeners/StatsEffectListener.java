@@ -104,7 +104,7 @@ public class StatsEffectListener implements Listener {
             }
 
             // Technique scaling (overall damage)
-            finalDamage *= (1.0 + totalTec * 0.003);
+            finalDamage *= (1.0 + totalTec * 0.001);
 
             // Dex → crit (diminishing returns)
             int totalDexterity = ps.baseDexterity + ps.bonusDexterity;

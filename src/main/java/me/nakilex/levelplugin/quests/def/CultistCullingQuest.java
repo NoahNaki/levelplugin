@@ -137,7 +137,7 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
                 "Halt the cult's scattered rituals and report back to a covert contact.",
                 createObjectives(),
                 REQUIRED_LEVEL,
-                List.of(SerasQuest.ID),
+                List.of(SerasSlimeKingQuest.ID),
                 null,
                 QuestRewardCompat.create(1200, 600, 0, List.of()),
                 NPC_ID,
@@ -720,7 +720,7 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
         double roll = ThreadLocalRandom.current().nextDouble();
 
         if (roll < 0.35 && loot != null) {
-            ItemStack gear = loot.getRandomLootForCombatPower(site.combatPower(), site.level(), site.mobId(), null);
+            ItemStack gear = loot.getRandomLootForCombatPower(site.combatPower(), site.level(), site.mobId(), null, false);
             if (gear != null) {
                 ItemUtil.updateTooltip(gear, player);
             }

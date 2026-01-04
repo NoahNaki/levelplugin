@@ -187,7 +187,7 @@ public class MythicMobRewardListener implements Listener {
             double effectiveGearChance = gearDropChance + gearDropBonus;
             double roll = ThreadLocalRandom.current().nextDouble() * 100.0;
             if (forceDrops || roll <= effectiveGearChance) {
-                ItemStack loot = lootChestManager.getRandomLootForCombatPower(combatPower, mobLevel, mobType, modelSet);
+                ItemStack loot = lootChestManager.getRandomLootForCombatPower(combatPower, mobLevel, mobType, modelSet, false);
                 if (loot != null) {
                     ItemUtil.updateTooltip(loot, player);
                     var rarity = ItemUtil.getCustomItemRarity(loot);

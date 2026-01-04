@@ -19,6 +19,7 @@ public class PlayerSettings {
     private boolean fullInventoryTitle = true;
     private boolean boosterBossBarEnabled = true;
     private boolean questTrackingParticles = true;
+    private boolean tipsEnabled = true;
     private static final ItemRarity[] LOOT_PICKUP_RARITIES = {
             ItemRarity.COMMON,
             ItemRarity.UNCOMMON,
@@ -144,6 +145,14 @@ public class PlayerSettings {
 
     public void toggleQuestTrackingParticles() {
         questTrackingParticles = !questTrackingParticles;
+    }
+
+    public boolean isTipsEnabled() {
+        return tipsEnabled;
+    }
+
+    public void toggleTipsEnabled() {
+        tipsEnabled = !tipsEnabled;
     }
 
     public ItemRarity getLootPickupRarity() {

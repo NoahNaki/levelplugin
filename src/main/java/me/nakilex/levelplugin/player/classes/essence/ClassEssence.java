@@ -381,7 +381,15 @@ public final class ClassEssence {
 
     /** Calculate the gear score for an essence. */
     public static int getGearScore(ItemStack stack) {
-        return getAttributes(stack).values().stream().mapToInt(a -> a.value).sum();
+        double total = 0.0;
+        for (Map.Entry<StatType, AttrData> entry : getAttributes(stack).entrySet()) {
+            double value = entry.getValue().value;
+            if (entry.getKey() == StatType.VIT) {
+                value *= 0.5;
+            }
+            total += value;
+        }
+        return (int) Math.round(total);
     }
 
     /** Apply attribute bonuses of an essence to a player. */

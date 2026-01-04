@@ -108,12 +108,12 @@ public class StatsInventory {
             }
         ));
 
-        double atkSpeed = 0.5 * (1.0 + 0.01 * (ps.baseTechnique + ps.bonusTechnique));
+        double atkSpeed = 0.5 * (1.0 + 0.0075 * (ps.baseTechnique + ps.bonusTechnique));
         builder.setItem(22, createStatBook(
             "Technique", StatType.TEC, ps.baseTechnique, ps.bonusTechnique, ps.skillPoints,
             "Amplifies attack speed and all damage.",
             new String[]{
-                "+1% atk speed & +0.3 dmg per point.",
+                "+0.75% atk speed & +0.1 dmg per point.",
                 "Current atk speed: " + ChatColor.YELLOW + String.format("%.2f", atkSpeed) + " attacks/s"
             }
         ));
