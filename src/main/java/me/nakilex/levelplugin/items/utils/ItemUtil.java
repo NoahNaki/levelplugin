@@ -123,7 +123,6 @@ public class ItemUtil {
     /** Append stat lines to lore following the standard display order. */
     private static void addStatLines(List<String> lore, CustomItem cItem,
                                     StatsManager.StatType prefixStat) {
-        int def = cItem.getDef();
         for (StatsManager.StatType type : StatsManager.StatType.DISPLAY_ORDER) {
             int val = cItem.getStat(type);
             if (val != 0) {
@@ -132,10 +131,6 @@ public class ItemUtil {
                     line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
                 }
                 lore.add(line);
-            }
-            if (type == StatsManager.StatType.VIT && def != 0) {
-                lore.add(ChatColor.GRAY + "⛂ " + ChatColor.GRAY + "Defence: "
-                        + ChatColor.GREEN + "+" + def);
             }
         }
     }

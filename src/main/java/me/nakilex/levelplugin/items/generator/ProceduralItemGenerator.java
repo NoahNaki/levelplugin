@@ -196,10 +196,11 @@ public class ProceduralItemGenerator {
             }
         }
 
-        GearStat dominantStat = getDominantStatType(hp, def, str, agi, intel, dex, wil, tec);
+        GearStat dominantStat = getDominantStatType(hp + def, str, agi, intel, dex, wil, tec);
         EnumSet<GearStat> chosen = selectStatsForRarity(rarity, dominantStat, hp, def, str, agi, intel, dex, wil, tec);
-        hp = chosen.contains(GearStat.HP) ? hp : 0;
-        def = chosen.contains(GearStat.DEF) ? def : 0;
+        boolean keepVitality = chosen.contains(GearStat.VIT);
+        hp = keepVitality ? hp : 0;
+        def = keepVitality ? def : 0;
         str = chosen.contains(GearStat.STR) ? str : 0;
         agi = chosen.contains(GearStat.AGI) ? agi : 0;
         intel = chosen.contains(GearStat.INT) ? intel : 0;
@@ -271,13 +272,12 @@ public class ProceduralItemGenerator {
     }
 
     private String getDominantStatKey(int hp, int def, int str, int agi, int intel, int dex, int wil, int tec) {
-        GearStat dominant = getDominantStatType(hp, def, str, agi, intel, dex, wil, tec);
+        GearStat dominant = getDominantStatType(hp + def, str, agi, intel, dex, wil, tec);
         if (dominant == null) {
             return "default";
         }
         return switch (dominant) {
-            case HP -> "vitality";
-            case DEF -> "defense";
+            case VIT -> "vitality";
             case STR -> "strength";
             case AGI -> "agility";
             case INT -> "intelligence";
@@ -287,29 +287,27 @@ public class ProceduralItemGenerator {
         };
     }
 
-    private GearStat getDominantStatType(int hp, int def, int str, int agi, int intel, int dex, int wil, int tec) {
-        GearStat dominant = null;
-        int max = 0;
-        int[] values = {hp, def, str, agi, intel, dex, wil, tec};
-        GearStat[] stats = GearStat.values();
-        for (int i = 0; i < values.length; i++) {
-            if (values[i] > max) {
-                max = values[i];
-                dominant = stats[i];
-            }
-        }
+    private GearStat getDominantStatType(int vit, int str, int agi, int intel, int dex, int wil, int tec) {
+        GearStat dominant = GearStat.VIT;
+        int max = vit;
+        if (str > max) { max = str; dominant = GearStat.STR; }
+        if (agi > max) { max = agi; dominant = GearStat.AGI; }
+        if (intel > max) { max = intel; dominant = GearStat.INT; }
+        if (dex > max) { max = dex; dominant = GearStat.DEX; }
+        if (wil > max) { max = wil; dominant = GearStat.WIL; }
+        if (tec > max) { max = tec; dominant = GearStat.TEC; }
         return dominant;
     }
 
     private EnumSet<GearStat> selectStatsForRarity(ItemRarity rarity,
                                                    GearStat dominant,
                                                    int hp, int def, int str, int agi, int intel, int dex, int wil, int tec) {
-        if (rarity == ItemRarity.COMMON && hp > 0) {
-            return EnumSet.of(GearStat.HP);
+        boolean hasVitality = hp > 0 || def > 0;
+        if (rarity == ItemRarity.COMMON && hasVitality) {
+            return EnumSet.of(GearStat.VIT);
         }
         List<GearStat> available = new ArrayList<>();
-        if (hp > 0) available.add(GearStat.HP);
-        if (def > 0) available.add(GearStat.DEF);
+        if (hasVitality) available.add(GearStat.VIT);
         if (str > 0) available.add(GearStat.STR);
         if (agi > 0) available.add(GearStat.AGI);
         if (intel > 0) available.add(GearStat.INT);
@@ -503,8 +501,7 @@ public class ProceduralItemGenerator {
     }
 
     private enum GearStat {
-        HP,
-        DEF,
+        VIT,
         STR,
         AGI,
         INT,

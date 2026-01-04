@@ -185,9 +185,12 @@ public class ItemManager {
         List<StatSlot> missing = new ArrayList<>();
 
         int count = 0;
-        if (isRangeNonZero(safeHpRange)) count++;
-        else if (isArmor) missing.add(StatSlot.HP);
-        if (isRangeNonZero(defRange)) count++; else missing.add(StatSlot.DEF);
+        boolean hasVitality = isRangeNonZero(safeHpRange) || isRangeNonZero(defRange);
+        if (hasVitality) {
+            count++;
+        } else if (isArmor) {
+            missing.add(StatSlot.HP);
+        }
         if (isRangeNonZero(strRange)) count++; else missing.add(StatSlot.STR);
         if (isRangeNonZero(agiRange)) count++; else missing.add(StatSlot.AGI);
         if (isRangeNonZero(intelRange)) count++; else missing.add(StatSlot.INT);
@@ -195,7 +198,7 @@ public class ItemManager {
         if (isRangeNonZero(wilRange)) count++; else missing.add(StatSlot.WIL);
         if (isRangeNonZero(tecRange)) count++; else missing.add(StatSlot.TEC);
 
-        if (isArmor && rarity == ItemRarity.COMMON && !isRangeNonZero(safeHpRange)) {
+        if (isArmor && rarity == ItemRarity.COMMON && !hasVitality) {
             safeHpRange = me.nakilex.levelplugin.items.generator.ProceduralItemGenerator
                     .buildTemplateRange(levelRequirement, rarity,
                             me.nakilex.levelplugin.items.generator.ProceduralItemGenerator.ARMOR_HP_COEFF);
@@ -215,7 +218,6 @@ public class ItemManager {
                                         : 1.0);
                 switch (slot) {
                     case HP -> safeHpRange = generated;
-                    case DEF -> defRange = generated;
                     case STR -> strRange = generated;
                     case AGI -> agiRange = generated;
                     case INT -> intelRange = generated;
@@ -235,7 +237,6 @@ public class ItemManager {
 
     private enum StatSlot {
         HP,
-        DEF,
         STR,
         AGI,
         INT,
