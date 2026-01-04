@@ -304,6 +304,9 @@ public class ProceduralItemGenerator {
     private EnumSet<GearStat> selectStatsForRarity(ItemRarity rarity,
                                                    GearStat dominant,
                                                    int hp, int def, int str, int agi, int intel, int dex, int wil, int tec) {
+        if (rarity == ItemRarity.COMMON && hp > 0) {
+            return EnumSet.of(GearStat.HP);
+        }
         List<GearStat> available = new ArrayList<>();
         if (hp > 0) available.add(GearStat.HP);
         if (def > 0) available.add(GearStat.DEF);
@@ -318,11 +321,11 @@ public class ProceduralItemGenerator {
         }
 
         int slots = Math.min(getStatSlotsForRarity(rarity), available.size());
-        Collections.shuffle(available, random);
         EnumSet<GearStat> chosen = EnumSet.noneOf(GearStat.class);
-        if (dominant != null && available.contains(dominant)) {
+        if (dominant != null && available.remove(dominant)) {
             chosen.add(dominant);
         }
+        Collections.shuffle(available, random);
         for (GearStat stat : available) {
             if (chosen.size() >= slots) break;
             chosen.add(stat);
@@ -331,10 +334,15 @@ public class ProceduralItemGenerator {
     }
 
     private int getStatSlotsForRarity(ItemRarity rarity) {
-        if (rarity == null) {
-            return 1;
-        }
-        return Math.max(1, rarity.ordinal() + 1);
+        if (rarity == null) return 1;
+        return switch (rarity) {
+            case COMMON -> 1;
+            case UNCOMMON -> 2;
+            case RARE -> 3;
+            case EPIC -> 4;
+            case LEGENDARY -> 5;
+            case MYTHIC, FABLED -> 6;
+        };
     }
 
     private String normalizeMobType(String mobType) {

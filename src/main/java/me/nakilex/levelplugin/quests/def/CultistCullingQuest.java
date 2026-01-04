@@ -137,7 +137,7 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
                 "Halt the cult's scattered rituals and report back to a covert contact.",
                 createObjectives(),
                 REQUIRED_LEVEL,
-                List.of(SerasQuest.ID),
+                List.of(SerasSlimeKingQuest.ID),
                 null,
                 QuestRewardCompat.create(1200, 600, 0, List.of()),
                 NPC_ID,

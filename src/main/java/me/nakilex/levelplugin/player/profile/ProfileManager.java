@@ -138,11 +138,16 @@ public class ProfileManager {
         if (slot < 0 || slot >= list.size()) {
             return;
         }
+        boolean wasActive = Objects.equals(activeSlot.get(uuid), slot);
         me.nakilex.levelplugin.guild.GuildManager guildManager = me.nakilex.levelplugin.guild.GuildManager.getInstance();
         guildManager.handleProfileDeletion(uuid);
         me.nakilex.levelplugin.party.PartyManager partyManager = me.nakilex.levelplugin.Main.getInstance().getPartyManager();
         if (partyManager != null) {
             partyManager.leaveParty(uuid);
+        }
+        if (wasActive) {
+            wipePlayer(player);
+            clearActiveSlot(uuid);
         }
         list.set(slot, null);
         me.nakilex.levelplugin.player.config.PlayerConfig cfg =

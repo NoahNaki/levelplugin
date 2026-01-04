@@ -97,7 +97,12 @@ public class CustomItem {
         this.material         = material;
         this.soulbound        = soulbound;
 
-        this.hpRange    = hpRange;
+        StatRange safeHpRange = hpRange;
+        if (ArmorType.fromMaterial(material) == null) {
+            safeHpRange = new StatRange(0, 0);
+        }
+
+        this.hpRange    = safeHpRange;
         this.defRange   = defRange;
         this.strRange   = strRange;
         this.agiRange   = agiRange;
@@ -107,7 +112,7 @@ public class CustomItem {
         this.tecRange   = tecRange;
 
         // Roll each stat once and store as the mutable base
-        this.baseHp    = hpRange.roll();
+        this.baseHp    = safeHpRange.roll();
         this.baseDef   = defRange.roll();
         this.baseStr   = strRange.roll();
         this.baseAgi   = agiRange.roll();
