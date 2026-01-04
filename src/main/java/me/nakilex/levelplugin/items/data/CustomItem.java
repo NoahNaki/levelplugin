@@ -227,7 +227,7 @@ public class CustomItem {
     /** Retrieve the total value for the given stat type. */
     public int getStat(StatType type) {
         return switch (type) {
-            case VIT -> getHp() + getDef();
+            case VIT -> getHp();
             case STR -> getStr();
             case AGI -> getAgi();
             case INT -> getIntel();
