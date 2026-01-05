@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.player.classes.listeners;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.classes.managers.PlayerClassManager;
+import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.utils.ChatFormatter;
 import org.bukkit.ChatColor;
 import org.bukkit.Sound;
@@ -11,6 +12,8 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
+
+import java.util.UUID;
 
 public class ClassMenuListener implements Listener {
 

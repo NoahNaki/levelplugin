@@ -235,7 +235,7 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
                             Location cur = player.getLocation();
 
                             Location originMin = new Location(triggerLoc.getWorld(), 27, 142, -95);
-                            Location destMin = new Location(Bukkit.getWorld("world"), 102, 67, -97);
+                            Location destMin = new Location(Bukkit.getWorld("world"), 102, 68, -97);
                             World destWorld = destMin.getWorld();
 
                             if (destWorld != null) {
