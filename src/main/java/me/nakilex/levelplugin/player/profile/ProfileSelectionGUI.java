@@ -123,7 +123,13 @@ public class ProfileSelectionGUI implements Listener {
         showOthers(player);
         Main.getInstance().getPlayerVisibilityManager().apply(player);
         var sbManager = Main.getInstance().getScoreboardManager();
-        if (sbManager != null) sbManager.createBoard(player);
+        if (sbManager != null) {
+            if (sbManager.getBoard(player) == null) {
+                sbManager.createBoard(player);
+            } else {
+                sbManager.updateBoard(player);
+            }
+        }
     }
 
     /** Called when a player quits to clear any temporary state. */
@@ -447,7 +453,11 @@ public class ProfileSelectionGUI implements Listener {
             Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
                 if (player.isOnline()) {
                     questManager.ensureTrackedQuestFor(player.getUniqueId());
-                    sbManager.createBoard(player);
+                    if (sbManager.getBoard(player) == null) {
+                        sbManager.createBoard(player);
+                    } else {
+                        sbManager.updateBoard(player);
+                    }
                 }
             }, delay);
         }
