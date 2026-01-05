@@ -447,7 +447,7 @@ public class ProfileSelectionGUI implements Listener {
             Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
                 if (player.isOnline()) {
                     questManager.ensureTrackedQuestFor(player.getUniqueId());
-                    sbManager.updateBoard(player);
+                    sbManager.createBoard(player);
                 }
             }, delay);
         }
