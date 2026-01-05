@@ -453,6 +453,7 @@ public class SharpestSecretQuest extends Quest implements QuestScript, QuestComp
             questManager.handleDiscover(player, ORCHID_DISCOVERY_TARGET);
         }
         giveMidnightOrchid(player);
+        questManager.setTrackedQuest(player, ID);
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
                 "You carefully pluck the Midnight Orchid, its glow lingering in your palm.");
     }

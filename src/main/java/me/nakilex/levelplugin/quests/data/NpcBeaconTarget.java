@@ -36,15 +36,49 @@ public class NpcBeaconTarget implements BeaconTarget {
         }
 
         if (normalizedName != null) {
+            Location viewerLocation = viewer != null ? viewer.getLocation() : null;
+            NPC highestSameWorld = null;
+            Location highestSameWorldLocation = null;
+            NPC highestOverall = null;
+            Location highestOverallLocation = null;
+            NPC nearestNpc = null;
+            Location nearestLocation = null;
+            double nearestDistance = Double.MAX_VALUE;
             for (NPC npc : CitizensAPI.getNPCRegistry()) {
                 String npcNormalized = NpcNameUtil.normalize(npc.getName());
                 if (npcNormalized == null || !normalizedName.equals(npcNormalized)) {
                     continue;
                 }
                 Location active = getSpawnedOrStoredLocation(npc);
-                if (active != null) {
-                    return active;
+                if (active == null) {
+                    continue;
                 }
+                if (highestOverall == null || npc.getId() > highestOverall.getId()) {
+                    highestOverall = npc;
+                    highestOverallLocation = active;
+                }
+                if (viewerLocation != null && viewerLocation.getWorld() != null
+                        && viewerLocation.getWorld().equals(active.getWorld())) {
+                    double dist = viewerLocation.distanceSquared(active);
+                    if (dist < nearestDistance) {
+                        nearestDistance = dist;
+                        nearestNpc = npc;
+                        nearestLocation = active;
+                    }
+                    if (highestSameWorld == null || npc.getId() > highestSameWorld.getId()) {
+                        highestSameWorld = npc;
+                        highestSameWorldLocation = active;
+                    }
+                }
+            }
+            if (highestSameWorldLocation != null) {
+                return highestSameWorldLocation;
+            }
+            if (nearestLocation != null) {
+                return nearestLocation;
+            }
+            if (highestOverallLocation != null) {
+                return highestOverallLocation;
             }
         }
         return null;
@@ -57,4 +91,3 @@ public class NpcBeaconTarget implements BeaconTarget {
         return npc.getStoredLocation();
     }
 }
-
