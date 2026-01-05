@@ -8,7 +8,7 @@ debug:
   chunk-loading: false
   mythic-skill-damage: false
   force-mob-drops: false
-  mob-gear-drop-rate: 8.0
+  mob-gear-drop-rate: 10.0
   instant-expeditions: false
 
 # Chat game rotation interval in minutes

@@ -70,6 +70,9 @@ public class TeleportEffect implements SpellEffect {
                 plugin.getLogger().warning("[TeleportEffect] Teleport #" + count + " failed: no safe spot");
                 return;
             }
+            Location facing = origin.clone();
+            safe.setYaw(facing.getYaw());
+            safe.setPitch(facing.getPitch());
 
             double actualDist = origin.distance(safe);
             plugin.getLogger().info(String.format(

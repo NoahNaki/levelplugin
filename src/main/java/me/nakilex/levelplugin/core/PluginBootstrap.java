@@ -778,6 +778,17 @@ public class PluginBootstrap {
     public me.nakilex.levelplugin.enchanting.managers.EnchantManager getEnchantManager() { return enchantManager; }
     public me.nakilex.levelplugin.enchanting.gui.EnchantGUI getEnchantGUI() { return enchantGUI; }
     public TipsConfigManager getTipsCfg() { return tipsCfg; }
+
+    public void saveCustomConfig() {
+        if (customConfig == null || customConfigFile == null) {
+            return;
+        }
+        try {
+            customConfig.save(customConfigFile);
+        } catch (java.io.IOException ex) {
+            plugin.getLogger().log(java.util.logging.Level.SEVERE, "Failed to save custom config!", ex);
+        }
+    }
     public BroadcastManager getBroadcastMgr() { return broadcastMgr; }
     public me.nakilex.levelplugin.quests.managers.QuestManager getQuestManager() { return questManager; }
     public BattlePassManager getBattlePassManager() { return battlePassManager; }
@@ -923,7 +934,7 @@ public class PluginBootstrap {
             customConfig.set("debug.beacon-entity", false);
         }
         if (!customConfig.contains("debug.mob-gear-drop-rate")) {
-            customConfig.set("debug.mob-gear-drop-rate", 8.0);
+            customConfig.set("debug.mob-gear-drop-rate", 10.0);
         }
         if (!customConfig.contains("chat-games.interval-minutes")) {
             customConfig.set("chat-games.interval-minutes", 15);

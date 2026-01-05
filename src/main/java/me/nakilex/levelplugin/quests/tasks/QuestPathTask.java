@@ -28,8 +28,11 @@ import java.util.UUID;
 public class QuestPathTask extends BukkitRunnable {
     private static final Particle PATH_PARTICLE = Particle.DUST;
     private static final double CLOSE_DISTANCE = 8.0;
+    private static final double CLOSE_DISTANCE_SQ = CLOSE_DISTANCE * CLOSE_DISTANCE;
     private static final double REPATH_PLAYER_DISTANCE = 8.0;
     private static final double REPATH_TARGET_DISTANCE = 4.0;
+    private static final double REPATH_PLAYER_DISTANCE_SQ = REPATH_PLAYER_DISTANCE * REPATH_PLAYER_DISTANCE;
+    private static final double REPATH_TARGET_DISTANCE_SQ = REPATH_TARGET_DISTANCE * REPATH_TARGET_DISTANCE;
     private static final long REPATH_INTERVAL_MS = 6000L;
     private static final double INTERPOLATION_STEP = 0.25;
     private static final int MAX_PARTICLE_POINTS = 700;
@@ -77,7 +80,7 @@ public class QuestPathTask extends BukkitRunnable {
                 continue;
             }
 
-            if (playerLoc.distance(target) < CLOSE_DISTANCE) {
+            if (playerLoc.distanceSquared(target) < CLOSE_DISTANCE_SQ) {
                 clearCache(player.getUniqueId());
                 continue;
             }
@@ -90,7 +93,7 @@ public class QuestPathTask extends BukkitRunnable {
             }
 
             if (cache != null && !cache.points().isEmpty()) {
-                renderParticles(player, cache.points());
+                renderParticles(player, cache.points(), resolveStride(Bukkit.getOnlinePlayers().size()));
             }
         }
     }
@@ -117,10 +120,10 @@ public class QuestPathTask extends BukkitRunnable {
         return new QuestPathCache(start.clone(), target.clone(), now, points);
     }
 
-    private void renderParticles(Player player, List<Location> points) {
+    private void renderParticles(Player player, List<Location> points, int stride) {
         int index = 0;
         for (Location point : points) {
-            if (index++ % PARTICLE_STRIDE != 0) {
+            if (index++ % stride != 0) {
                 continue;
             }
             player.spawnParticle(
@@ -145,10 +148,18 @@ public class QuestPathTask extends BukkitRunnable {
         if (cache.computedAt() + REPATH_INTERVAL_MS < System.currentTimeMillis()) {
             return true;
         }
-        if (cache.start().distanceSquared(playerLoc) > REPATH_PLAYER_DISTANCE * REPATH_PLAYER_DISTANCE) {
+        if (cache.start().distanceSquared(playerLoc) > REPATH_PLAYER_DISTANCE_SQ) {
             return true;
         }
-        return cache.target().distanceSquared(target) > REPATH_TARGET_DISTANCE * REPATH_TARGET_DISTANCE;
+        return cache.target().distanceSquared(target) > REPATH_TARGET_DISTANCE_SQ;
+    }
+
+    private int resolveStride(int onlinePlayers) {
+        if (onlinePlayers <= 10) {
+            return PARTICLE_STRIDE;
+        }
+        int extra = Math.min(4, onlinePlayers / 10);
+        return PARTICLE_STRIDE + extra;
     }
 
     private boolean isSameWorld(Location first, Location second) {

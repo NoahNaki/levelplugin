@@ -12,6 +12,7 @@ import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.spells.Spell;
 import me.nakilex.levelplugin.spells.managers.CooldownManager;
 import me.nakilex.levelplugin.spells.managers.SpellManager;
+import me.nakilex.levelplugin.spells.utils.MythicSkillConfig;
 import me.nakilex.levelplugin.utils.PotionEffectUtil;
 import net.citizensnpcs.api.CitizensAPI;
 import org.bukkit.Bukkit;
@@ -226,6 +227,10 @@ public class ClassSpellListener implements Listener {
         t.rightSneak = List.of("shot_of_destruction");
         t.sneakStart = List.of("volley_of_arrows");
         MAP.put(PlayerClass.AWAKARCHER, t);
+        MANUAL_TRIGGER_COOLDOWNS.put(PlayerClass.AWAKARCHER, Map.of(
+                Trigger.RIGHT_SNEAK,
+                Math.max(1.0, (double) MythicSkillConfig.getCooldownSeconds("Shot_Of_Destruction_CAST"))
+        ));
 
         // Awakened Mage class
         t = new Triggers();
@@ -358,6 +363,23 @@ public class ClassSpellListener implements Listener {
             return true;
         }
         cd.setCooldown(id, key, seconds);
+        return false;
+    }
+
+    private boolean canQueueSneakSpell(Player player, PlayerClass pc, Triggers tr) {
+        if (player == null || tr == null || tr.sneakStart == null || tr.sneakStart.isEmpty()) {
+            return false;
+        }
+        int level = me.nakilex.levelplugin.player.level.managers.LevelManager.getInstance().getLevel(player);
+        for (String id : tr.sneakStart) {
+            Spell spell = SpellManager.getInstance().getSpellById(pc.name().toLowerCase(), id);
+            if (spell == null) {
+                return true;
+            }
+            if (level >= spell.getLevelReq()) {
+                return true;
+            }
+        }
         return false;
     }
 
@@ -533,7 +555,7 @@ public class ClassSpellListener implements Listener {
             }
 
             if (pc != PlayerClass.WITCH) {
-                if (!doubleSneak && !tr.sneakStart.isEmpty()) {
+                if (!doubleSneak && canQueueSneakSpell(p, pc, tr)) {
                     pendingSneak.add(id);
                 }
                 for (String skill : tr.sneakPrep) {

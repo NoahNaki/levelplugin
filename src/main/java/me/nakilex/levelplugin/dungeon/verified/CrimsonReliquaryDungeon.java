@@ -91,6 +91,7 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
     private final LegacyComponentSerializer legacy = LegacyComponentSerializer.legacySection();
     private final Map<World, InstanceState> activeInstances = new HashMap<>();
     private volatile RoomTemplate cachedTemplate;
+    private java.util.concurrent.CompletableFuture<RoomTemplate> templateFuture;
 
     public CrimsonReliquaryDungeon(Main plugin) {
         this.plugin = plugin;
@@ -203,20 +204,67 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
         if (cachedTemplate != null) {
             return cachedTemplate;
         }
+        if (templateFuture != null) {
+            if (templateFuture.isDone()) {
+                try {
+                    cachedTemplate = templateFuture.get();
+                } catch (Exception ex) {
+                    plugin.getLogger().warning("[Dungeon] Failed to load Crimson Reliquary template: " + ex.getMessage());
+                    templateFuture = null;
+                }
+                return cachedTemplate;
+            }
+            return null;
+        }
         plugin.getWorldManager().ensureWorldsLoaded(SOURCE_WORLD);
         World source = Bukkit.getWorld(SOURCE_WORLD);
         if (source == null) {
             return null;
         }
-        cachedTemplate = RoomTemplate.capture(source, MIN_X, MIN_Y, MIN_Z, MAX_X, MAX_Y, MAX_Z, false);
-        return cachedTemplate;
+        templateFuture = loadTemplateAsync(source);
+        return null;
+    }
+
+    private java.util.concurrent.CompletableFuture<RoomTemplate> loadTemplateAsync(World source) {
+        int minChunkX = Math.floorDiv(Math.min(MIN_X, MAX_X), 16);
+        int maxChunkX = Math.floorDiv(Math.max(MIN_X, MAX_X), 16);
+        int minChunkZ = Math.floorDiv(Math.min(MIN_Z, MAX_Z), 16);
+        int maxChunkZ = Math.floorDiv(Math.max(MIN_Z, MAX_Z), 16);
+
+        List<java.util.concurrent.CompletableFuture<org.bukkit.Chunk>> futures = new ArrayList<>();
+        for (int cx = minChunkX; cx <= maxChunkX; cx++) {
+            for (int cz = minChunkZ; cz <= maxChunkZ; cz++) {
+                futures.add(source.getChunkAtAsync(cx, cz, true));
+            }
+        }
+
+        java.util.concurrent.CompletableFuture<RoomTemplate> future = new java.util.concurrent.CompletableFuture<>();
+        java.util.concurrent.CompletableFuture.allOf(futures.toArray(new java.util.concurrent.CompletableFuture[0]))
+                .whenComplete((ignored, err) -> {
+                    if (err != null) {
+                        future.completeExceptionally(err);
+                        return;
+                    }
+                    Bukkit.getScheduler().runTask(plugin, () -> {
+                        try {
+                            future.complete(RoomTemplate.capture(
+                                    source, MIN_X, MIN_Y, MIN_Z, MAX_X, MAX_Y, MAX_Z, false));
+                        } catch (Exception ex) {
+                            future.completeExceptionally(ex);
+                        }
+                    });
+                });
+        return future;
     }
 
     @Override
     public void startInstance(DungeonManager manager, Player player) {
         RoomTemplate template = getTemplate();
         if (template == null) {
-            player.sendMessage(Component.text("Verified dungeon template world is missing (flatland).", NamedTextColor.RED));
+            String message = templateFuture != null
+                    ? "Crimson Reliquary is still loading. Please try again in a moment."
+                    : "Verified dungeon template world is missing (flatland).";
+            player.sendMessage(Component.text(message, NamedTextColor.RED));
             return;
         }
 
@@ -1196,6 +1244,9 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
             World to = event.getTo().getWorld();
             if (from != null && to != from && activeInstances.containsKey(from)) {
                 removeDungeonItems(event.getPlayer());
+            }
+            if (to != null && activeInstances.containsKey(to)) {
+                plugin.getDungeonManager().disableInstanceFlight(event.getPlayer());
             }
         }
 

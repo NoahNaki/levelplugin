@@ -844,7 +844,7 @@ public class SpellManager {
         mageMap.put("LRR", new Spell(
             "frost_nova", "Frost Nova", "LRR",
             8.0,
-            MythicSkillConfig.getCooldownSeconds("Frost_Nova"), 5,
+            Math.max(3L, MythicSkillConfig.getCooldownSeconds("Frost_Nova")), 5,
             WeaponType.WAND.getMaterials(),
             "MYTHIC_FROST_NOVA", 5.0
         ));

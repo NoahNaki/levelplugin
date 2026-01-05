@@ -9,6 +9,7 @@ import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.inventory.ItemStack;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -325,6 +326,78 @@ public class StatsManager {
         ps.attackSpeed = 0.5 * (1.0 + 0.0075 * (ps.baseTechnique + ps.bonusTechnique));
         AttributeInstance atkAttr = player.getAttribute(Attribute.ATTACK_SPEED);
         if (atkAttr != null) atkAttr.setBaseValue(ps.attackSpeed * 8.0);
+    }
+
+    public void refreshWeaponStatsForClass(Player player) {
+        if (player == null) {
+            return;
+        }
+        UUID puuid = player.getUniqueId();
+        Set<Integer> equipped = getEquippedItems(puuid);
+        int playerLevel = LevelManager.getInstance().getLevel(player);
+
+        ItemStack weapon = player.getInventory().getItemInMainHand();
+        if (weapon == null || weapon.getType().isAir()) {
+            recalcDerivedStats(player);
+            return;
+        }
+
+        me.nakilex.levelplugin.items.data.CustomItem ci =
+                me.nakilex.levelplugin.items.managers.ItemManager.getInstance().getCustomItemFromItemStack(weapon);
+        me.nakilex.levelplugin.items.data.WeaponType wt =
+                me.nakilex.levelplugin.items.data.WeaponType.matchType(weapon);
+        if (ci == null || wt == null) {
+            recalcDerivedStats(player);
+            return;
+        }
+
+        int id = ci.getId();
+        int reqLevel = ci.getLevelRequirement();
+        String clsReqRaw = ci.getClassRequirement();
+
+        me.nakilex.levelplugin.player.classes.data.PlayerClass reqClass =
+                me.nakilex.levelplugin.player.classes.data.PlayerClass.fromString(clsReqRaw);
+        if (reqClass == null) reqClass = me.nakilex.levelplugin.player.classes.data.PlayerClass.VILLAGER;
+
+        me.nakilex.levelplugin.player.classes.data.PlayerClass currentClass =
+                getPlayerStats(puuid).playerClass;
+
+        boolean meetsClassReq = (reqClass == me.nakilex.levelplugin.player.classes.data.PlayerClass.VILLAGER
+                || reqClass == currentClass);
+        boolean meetsLevelReq = (playerLevel >= reqLevel);
+        boolean wasApplied = equipped.contains(id);
+
+        if (wasApplied && (!meetsClassReq || !meetsLevelReq)) {
+            removeWeaponStats(player, ci, weapon);
+            equipped.remove(id);
+        } else if (!wasApplied && meetsClassReq && meetsLevelReq) {
+            addWeaponStats(player, ci, weapon);
+            equipped.add(id);
+        }
+
+        recalcDerivedStats(player);
+    }
+
+    private void addWeaponStats(Player player, me.nakilex.levelplugin.items.data.CustomItem ci, ItemStack stack) {
+        PlayerStats ps = getPlayerStats(player.getUniqueId());
+        ps.bonusVitality     += ci.getHp() + ci.getDef();
+        ps.bonusStrength     += ci.getStr();
+        ps.bonusAgility      += ci.getAgi();
+        ps.bonusIntelligence += ci.getIntel();
+        ps.bonusDexterity    += ci.getDex();
+        ps.bonusWill         += ci.getWil();
+        ps.bonusTechnique    += ci.getTec();
+    }
+
+    private void removeWeaponStats(Player player, me.nakilex.levelplugin.items.data.CustomItem ci, ItemStack stack) {
+        PlayerStats ps = getPlayerStats(player.getUniqueId());
+        ps.bonusVitality     -= ci.getHp() + ci.getDef();
+        ps.bonusStrength     -= ci.getStr();
+        ps.bonusAgility      -= ci.getAgi();
+        ps.bonusIntelligence -= ci.getIntel();
+        ps.bonusDexterity    -= ci.getDex();
+        ps.bonusWill         -= ci.getWil();
+        ps.bonusTechnique    -= ci.getTec();
     }
 
     public void regenHealthForAllPlayers() {

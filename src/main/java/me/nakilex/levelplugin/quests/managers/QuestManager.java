@@ -655,6 +655,10 @@ public class QuestManager {
         return trackedQuests.get(player);
     }
 
+    public void ensureTrackedQuestFor(UUID playerId) {
+        ensureTrackedQuest(playerId);
+    }
+
     /** Mark a quest-specific flag for the given player. */
     public void setFlag(UUID player, String questId, String flag) {
         Map<String, PlayerQuestProgress> map = activeQuests.get(player);

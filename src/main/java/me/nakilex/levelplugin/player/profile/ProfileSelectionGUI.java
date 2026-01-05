@@ -123,7 +123,13 @@ public class ProfileSelectionGUI implements Listener {
         showOthers(player);
         Main.getInstance().getPlayerVisibilityManager().apply(player);
         var sbManager = Main.getInstance().getScoreboardManager();
-        if (sbManager != null) sbManager.createBoard(player);
+        if (sbManager != null) {
+            if (sbManager.getBoard(player) == null) {
+                sbManager.createBoard(player);
+            } else {
+                sbManager.updateBoard(player);
+            }
+        }
     }
 
     /** Called when a player quits to clear any temporary state. */
@@ -359,6 +365,7 @@ public class ProfileSelectionGUI implements Listener {
             stopSelection(player);
             player.closeInventory();
             BetterHudUtil.addHud(player);
+            resyncScoreboardAfterHud(player);
             return;
         }
 
@@ -410,9 +417,11 @@ public class ProfileSelectionGUI implements Listener {
                 statsManager.getPlayerStats(player.getUniqueId());
         player.setHealth(player.getMaxHealth());
         ps.currentMana = ps.maxMana;
+        qm.ensureTrackedQuestFor(player.getUniqueId());
         stopSelection(player);
         player.closeInventory();
         BetterHudUtil.addHud(player);
+        resyncScoreboardAfterHud(player);
 
     }
 
@@ -433,10 +442,38 @@ public class ProfileSelectionGUI implements Listener {
         openEdit(player, index);
     }
 
+    private static void resyncScoreboardAfterHud(Player player) {
+        var sbManager = Main.getInstance().getScoreboardManager();
+        if (sbManager == null) {
+            return;
+        }
+        QuestManager questManager = Main.getInstance().getQuestManager();
+        long[] delays = {2L, 20L};
+        for (long delay : delays) {
+            Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
+                if (player.isOnline()) {
+                    questManager.ensureTrackedQuestFor(player.getUniqueId());
+                    if (sbManager.getBoard(player) == null) {
+                        sbManager.createBoard(player);
+                    } else {
+                        sbManager.updateBoard(player);
+                    }
+                }
+            }, delay);
+        }
+    }
+
     private static void promptForName(Player player, int index) {
         NAMING.add(player.getUniqueId());
         PENDING_SLOT.put(player.getUniqueId(), index);
         player.closeInventory();
+        player.sendTitle(
+                ChatColor.GOLD + "ENTER PROFILE NAME",
+                ChatColor.GRAY + "Type the name in chat.",
+                10,
+                120,
+                10
+        );
 
         ConversationFactory factory = new ConversationFactory(Main.getInstance())
                 .withFirstPrompt(new StringPrompt() {

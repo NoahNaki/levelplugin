@@ -23,11 +23,11 @@ public class ForgeFundamentalsNpcHandler extends AbstractQuestNpcHandler {
     public boolean handle(Player player, NPC npc, Quest quest, QuestState state,
                           QuestManager questManager, NPCDialogManager dialogManager) {
         if (state == QuestState.AVAILABLE) {
-            dialogManager.startDialog(player, quest, npc);
+            player.performCommand("blacksmith");
             return true;
         }
         if (state == QuestState.LOCKED) {
-            questManager.meetsRequirements(player, quest);
+            player.performCommand("blacksmith");
             return true;
         }
 

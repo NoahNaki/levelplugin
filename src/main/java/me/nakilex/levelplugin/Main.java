@@ -101,6 +101,11 @@ public class Main extends JavaPlugin {
     public me.nakilex.levelplugin.utils.registeries.ListenerRegistry getListenerRegistry() { return null; }
     public me.nakilex.levelplugin.spells.registry.EffectRegistry getEffectRegistry() { return null; }
     public me.nakilex.levelplugin.environment.EnvironmentManager getEnvironmentManager() { return bootstrap.getEnvironmentManager(); }
+    public void saveCustomConfig() {
+        if (bootstrap != null) {
+            bootstrap.saveCustomConfig();
+        }
+    }
     public me.nakilex.levelplugin.environment.stage.TownStageManager getTownStageManager() { return bootstrap.getTownStageManager(); }
     public me.nakilex.levelplugin.environment.stage.BuildingStageManager getBuildingStageManager() { return bootstrap.getBuildingStageManager(); }
     public me.nakilex.levelplugin.leaderboards.LeaderboardManager getLeaderboardManager() { return bootstrap.getLeaderboardManager(); }
