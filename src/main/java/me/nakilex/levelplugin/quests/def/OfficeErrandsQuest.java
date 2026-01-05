@@ -32,10 +32,16 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
 
     private static final String ELEVATOR_MUSIC_SOUND = "nexo:music.elevatormusic";
     private static final String ELEVATOR_ARRIVAL_SOUND = "nexo:music.elevatording";
+    private static final String ELEVATOR_TARGET = "officeerrands_elevator";
 
     private static List<QuestObjective> createObjectives() {
+        World world = Bukkit.getWorld("redrocks");
+        Location elevatorLoc = world == null ? null : new Location(world, 29.0, 142.0, -93.0);
         return java.util.List.of(
-                new QuestObjective(QuestObjectiveType.TALK, "npc516", 1, BeaconTargets.npc(516))
+                new QuestObjective(QuestObjectiveType.TALK, "npc516", 1, BeaconTargets.npc(516)),
+                new QuestObjective(QuestObjectiveType.DISCOVER, ELEVATOR_TARGET, 1,
+                        BeaconTargets.staticLoc(elevatorLoc),
+                        "Enter the elevator." )
         );
     }
 
@@ -58,7 +64,8 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
                 null,
                 java.util.List.of(),
                 true,
-                false
+                false,
+                true
         );
     }
 
@@ -145,6 +152,7 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
                     Location loc = player.getLocation();
                     if (loc.getBlockX() >= 27 && loc.getBlockX() <= 31
                             && loc.getBlockZ() >= -95 && loc.getBlockZ() <= -90) {
+                        plugin.getQuestManager().handleDiscover(player, ELEVATOR_TARGET);
                         startElevatorTeleport(player, loc, plugin, gates, gateId, worldGateId, roomGateId);
                     }
                 });
@@ -170,6 +178,7 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
                 int minX = 27, maxX = 31, minZ = -95, maxZ = -90; // elevator bounds
                 org.bukkit.Location to = e.getTo();
                 if (to.getBlockX() >= minX && to.getBlockX() <= maxX && to.getBlockZ() >= minZ && to.getBlockZ() <= maxZ) {
+                    plugin.getQuestManager().handleDiscover(player, ELEVATOR_TARGET);
                     HandlerList.unregisterAll(this);
                     startElevatorTeleport(player, to, plugin, gates, gateId, worldGateId, roomGateId);
                 }

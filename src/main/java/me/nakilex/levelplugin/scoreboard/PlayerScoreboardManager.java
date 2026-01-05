@@ -53,6 +53,7 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
 
     @org.bukkit.event.EventHandler
     public void onJoin(org.bukkit.event.player.PlayerJoinEvent event) {
+        questManager.ensureTrackedQuestFor(event.getPlayer().getUniqueId());
         updateBoard(event.getPlayer());
         org.bukkit.entity.Player player = event.getPlayer();
         org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, () -> {

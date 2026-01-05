@@ -85,7 +85,8 @@ public class StatsInventory {
             "Improves crit chance and subtracts from enemy dodge based on your DEX.",
             new String[]{
                 "Crit chance: " + ChatColor.YELLOW + String.format("%.2f", critPercent) + "% (DR formula).",
-                "Accuracy: subtracts " + totalDexterity + " Agility points from the target before dodge."
+                "Accuracy: subtracts " + totalDexterity + " Agility points",
+                "from the target before dodge."
             }
         ));
 

@@ -181,7 +181,7 @@ public class LevelManager {
                         "§b§lNEW SPELL UNLOCKED",
                         "§f" + spell.getDisplayName() + " §7- Open the /spells menu to view all your spells.",
                         10,
-                        60,
+                        120,
                         10
                 );
                 ChatFormatter.constructDivider(player, "§b§l-", 45);

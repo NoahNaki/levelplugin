@@ -437,6 +437,13 @@ public class ProfileSelectionGUI implements Listener {
         NAMING.add(player.getUniqueId());
         PENDING_SLOT.put(player.getUniqueId(), index);
         player.closeInventory();
+        player.sendTitle(
+                ChatColor.GOLD + "ENTER PROFILE NAME",
+                ChatColor.GRAY + "Type the name in chat.",
+                10,
+                120,
+                10
+        );
 
         ConversationFactory factory = new ConversationFactory(Main.getInstance())
                 .withFirstPrompt(new StringPrompt() {

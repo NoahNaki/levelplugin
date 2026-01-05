@@ -62,7 +62,13 @@ public class ClassEssenceMenuListener implements Listener {
 
         if (click.isLeftClick()) {
             if (current == null && cursor != null && ClassEssence.isEssence(cursor)) {
+                if (cursor.getAmount() > 1) {
+                    ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                            "Only one essence can be placed in a slot. Split the stack first.");
+                    return;
+                }
                 ItemStack placed = cursor.clone();
+                placed.setAmount(1);
                 ClassEssence.addSlotTips(placed);
                 ps.essenceSlots[idx] = placed;
                 event.getView().setItem(event.getRawSlot(), placed);

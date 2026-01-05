@@ -44,6 +44,7 @@ public class ClassEssenceUpgradeGUI implements Listener {
     private static final int STAR_SLOT = 13;
     private static final int RESEAL_CHARM_SLOT = 11;
     private static final int RESEAL_ESSENCE_SLOT = 13;
+    private static final int INVEST_ARROW_SLOT = 13;
     private static final int CONFIRM_SLOT = 22;
     private static final int LEFT_ARROW_SLOT = 9;
     private static final int RIGHT_ARROW_SLOT = 17;
@@ -126,6 +127,7 @@ public class ClassEssenceUpgradeGUI implements Listener {
         setNavigationArrows(gui, Mode.INVEST);
         gui.setItem(SACRIFICE_SLOT, null);
         gui.setItem(TARGET_SLOT, target);
+        gui.setItem(INVEST_ARROW_SLOT, createInvestArrow());
         gui.setItem(CONFIRM_SLOT, GuiUtil.getNexoItem("check", ChatColor.GREEN + "Invest"));
         gui.setItem(INVEST_ALL_SLOT, createInvestAllButton());
         gui.setItem(INVEST_EQUIPPED_SLOT, createInvestEquippedButton());
@@ -383,6 +385,16 @@ public class ClassEssenceUpgradeGUI implements Listener {
             info.setItemMeta(meta);
         }
         return info;
+    }
+
+    private static ItemStack createInvestArrow() {
+        ItemStack arrow = GuiUtil.getNexoItem("arrow_right", ChatColor.GRAY + "Invest into");
+        ItemMeta meta = arrow.getItemMeta();
+        if (meta != null) {
+            meta.setLore(List.of(ChatColor.GRAY + "Sacrifice essence feeds the target."));
+            arrow.setItemMeta(meta);
+        }
+        return arrow;
     }
 
     private static void investAllDuplicates(Player player, Inventory inv) {

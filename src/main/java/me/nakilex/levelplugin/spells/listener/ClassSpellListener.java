@@ -133,6 +133,10 @@ public class ClassSpellListener implements Listener {
         t.right = List.of("blink");
         t.sneakStart = List.of("frost_nova");
         MAP.put(PlayerClass.MAGE, t);
+        MANUAL_TRIGGER_COOLDOWNS.put(PlayerClass.MAGE, Map.of(
+                Trigger.SNEAK_START,
+                Math.max(1.0, (double) MythicSkillConfig.getCooldownSeconds("Frost_Nova"))
+        ));
 
         // Warrior class
         t = new Triggers();
