@@ -359,6 +359,7 @@ public class ProfileSelectionGUI implements Listener {
             stopSelection(player);
             player.closeInventory();
             BetterHudUtil.addHud(player);
+            resyncScoreboardAfterHud(player);
             return;
         }
 
@@ -414,6 +415,7 @@ public class ProfileSelectionGUI implements Listener {
         stopSelection(player);
         player.closeInventory();
         BetterHudUtil.addHud(player);
+        resyncScoreboardAfterHud(player);
 
     }
 
@@ -432,6 +434,18 @@ public class ProfileSelectionGUI implements Listener {
             return;
         }
         openEdit(player, index);
+    }
+
+    private static void resyncScoreboardAfterHud(Player player) {
+        var sbManager = Main.getInstance().getScoreboardManager();
+        if (sbManager == null) {
+            return;
+        }
+        Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
+            if (player.isOnline()) {
+                sbManager.updateBoard(player);
+            }
+        }, 2L);
     }
 
     private static void promptForName(Player player, int index) {
