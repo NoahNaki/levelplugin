@@ -177,11 +177,19 @@ public class LevelManager {
         for (Spell spell : spells.values()) {
             if (spell.getLevelReq() == newLevel) {
                 String usage = SpellUsageUtil.getUsageLabel(spell);
+                player.sendTitle(
+                        "§b§lNEW SPELL UNLOCKED",
+                        "§f" + spell.getDisplayName() + " §7- Open the /spells menu to view all your spells.",
+                        10,
+                        60,
+                        10
+                );
                 ChatFormatter.constructDivider(player, "§b§l-", 45);
                 ChatFormatter.sendCenteredMessage(player, "§b§lNEW SPELL UNLOCKED!");
                 ChatFormatter.sendCenteredMessage(player, "");
                 ChatFormatter.sendCenteredMessage(player, "§7" + spell.getDisplayName());
                 ChatFormatter.sendCenteredMessage(player, "§7Cast with §e" + usage + "§7.");
+                ChatFormatter.sendCenteredMessage(player, "§7Open the §e/spells §7menu to view all your spells.");
                 ChatFormatter.constructDivider(player, "§b§l-", 45);
             }
         }

@@ -1197,6 +1197,9 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
             if (from != null && to != from && activeInstances.containsKey(from)) {
                 removeDungeonItems(event.getPlayer());
             }
+            if (to != null && activeInstances.containsKey(to)) {
+                plugin.getDungeonManager().disableInstanceFlight(event.getPlayer());
+            }
         }
 
         @EventHandler

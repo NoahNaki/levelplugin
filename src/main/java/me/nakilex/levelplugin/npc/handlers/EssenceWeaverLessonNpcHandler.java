@@ -92,9 +92,9 @@ public class EssenceWeaverLessonNpcHandler extends AbstractQuestNpcHandler {
         Set<PlayerClass> ownedClasses = getOwnedEssenceClasses(player, stats);
         PlayerClass owned = selectOwnedClass(stats, ownedClasses);
         PlayerClass missing = selectMissingClass(ownedClasses, owned);
-        giveQuestEssence(player, owned);
+        giveQuestEssence(player, owned, 2);
         if (missing != null) {
-            giveQuestEssence(player, missing);
+            giveQuestEssence(player, missing, 2);
         }
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                 "Essence Weaver|Take these essences to begin your training.");
@@ -176,12 +176,13 @@ public class EssenceWeaverLessonNpcHandler extends AbstractQuestNpcHandler {
         return null;
     }
 
-    private void giveQuestEssence(Player player, PlayerClass clazz) {
-        if (player == null || clazz == null) {
+    private void giveQuestEssence(Player player, PlayerClass clazz, int amount) {
+        if (player == null || clazz == null || amount <= 0) {
             return;
         }
         ItemStack essence = ClassEssence.generateEssence(clazz, ItemRarity.COMMON, 0);
         markQuestEssence(essence);
+        essence.setAmount(Math.min(amount, essence.getMaxStackSize()));
         player.getInventory().addItem(essence).values()
                 .forEach(item -> player.getWorld().dropItemNaturally(player.getLocation(), item));
     }
