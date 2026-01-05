@@ -441,11 +441,16 @@ public class ProfileSelectionGUI implements Listener {
         if (sbManager == null) {
             return;
         }
-        Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
-            if (player.isOnline()) {
-                sbManager.updateBoard(player);
-            }
-        }, 2L);
+        QuestManager questManager = Main.getInstance().getQuestManager();
+        long[] delays = {2L, 20L};
+        for (long delay : delays) {
+            Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
+                if (player.isOnline()) {
+                    questManager.ensureTrackedQuestFor(player.getUniqueId());
+                    sbManager.updateBoard(player);
+                }
+            }, delay);
+        }
     }
 
     private static void promptForName(Player player, int index) {
