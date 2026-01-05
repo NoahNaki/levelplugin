@@ -1,13 +1,8 @@
 package me.nakilex.levelplugin.player.classes.listeners;
 
-import me.nakilex.levelplugin.items.data.CustomItem;
-import me.nakilex.levelplugin.items.data.WeaponType;
-import me.nakilex.levelplugin.items.managers.ItemManager;
-import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.classes.managers.PlayerClassManager;
-import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.utils.ChatFormatter;
 import org.bukkit.ChatColor;
 import org.bukkit.Sound;
@@ -16,11 +11,6 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.persistence.PersistentDataType;
-import org.bukkit.persistence.PersistentDataContainer;
-
-import java.util.Set;
-import java.util.UUID;
 
 public class ClassMenuListener implements Listener {
 
@@ -100,54 +90,9 @@ public class ClassMenuListener implements Listener {
         }
 
         // After setting class, handle weapon stats and refresh tooltips
-        handleWeaponStatAdjustment(player);
+        StatsManager.getInstance().refreshWeaponStatsForClass(player);
         refreshInventoryTooltips(player);
         player.updateInventory();
-    }
-
-
-
-    /**
-     * Handles applying or removing weapon stats after a class change.
-     */
-    private void handleWeaponStatAdjustment(Player player) {
-        UUID puuid = player.getUniqueId();
-        StatsManager statsMgr = StatsManager.getInstance();
-        Set<Integer> equipped = statsMgr.getEquippedItems(puuid);
-        int playerLevel = LevelManager.getInstance().getLevel(player);
-
-        ItemStack weapon = player.getInventory().getItemInMainHand();
-        if (weapon == null || weapon.getType().isAir()) return;
-
-        CustomItem ci = ItemManager.getInstance().getCustomItemFromItemStack(weapon);
-        WeaponType wt = WeaponType.matchType(weapon);
-        if (ci == null || wt == null) return;
-
-        int id = ci.getId();
-        int reqLevel = ci.getLevelRequirement();
-        String clsReqRaw = ci.getClassRequirement();
-
-        PlayerClass reqClass = PlayerClass.fromString(clsReqRaw);
-        if (reqClass == null) reqClass = PlayerClass.VILLAGER;
-
-        PlayerClass currentClass = StatsManager.getInstance().getPlayerStats(puuid).playerClass;
-
-
-        boolean meetsClassReq = (reqClass == PlayerClass.VILLAGER || reqClass == currentClass);
-        boolean meetsLevelReq = (playerLevel >= reqLevel);
-        boolean wasApplied = equipped.contains(id);
-
-        if (wasApplied && (!meetsClassReq || !meetsLevelReq)) {
-            removeWeaponStats(player, ci, weapon);
-            equipped.remove(id);
-            player.sendMessage(ChatColor.RED + "You no longer meet the requirements for " + ci.getBaseName() + "!");
-        } else if (!wasApplied && meetsClassReq && meetsLevelReq) {
-            addWeaponStats(player, ci, weapon);
-            equipped.add(id);
-            player.sendMessage(ChatColor.GREEN + "Stats applied for " + ci.getBaseName() + "!");
-        }
-
-        statsMgr.recalcDerivedStats(player);
     }
 
 
@@ -159,25 +104,4 @@ public class ClassMenuListener implements Listener {
     }
 
 
-    private void addWeaponStats(Player player, CustomItem ci, ItemStack stack) {
-        StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
-        ps.bonusVitality     += ci.getHp() + ci.getDef();
-        ps.bonusStrength     += ci.getStr();
-        ps.bonusAgility      += ci.getAgi();
-        ps.bonusIntelligence += ci.getIntel();
-        ps.bonusDexterity    += ci.getDex();
-        ps.bonusWill         += ci.getWil();
-        ps.bonusTechnique    += ci.getTec();
-    }
-
-    private void removeWeaponStats(Player player, CustomItem ci, ItemStack stack) {
-        StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
-        ps.bonusVitality     -= ci.getHp() + ci.getDef();
-        ps.bonusStrength     -= ci.getStr();
-        ps.bonusAgility      -= ci.getAgi();
-        ps.bonusIntelligence -= ci.getIntel();
-        ps.bonusDexterity    -= ci.getDex();
-        ps.bonusWill         -= ci.getWil();
-        ps.bonusTechnique    -= ci.getTec();
-    }
 }

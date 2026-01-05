@@ -58,6 +58,7 @@ final class ClassEssenceEquipHelper {
         ps.playerClass = essenceClass;
         ps.unlockedClasses.add(essenceClass);
         PlayerClassManager.getInstance().setPlayerClass(player, essenceClass);
+        StatsManager.getInstance().refreshWeaponStatsForClass(player);
         ItemUtil.refreshTooltips(player);
 
         ChatFormatter.constructDivider(player, "§6§l-", 45);
@@ -93,6 +94,7 @@ final class ClassEssenceEquipHelper {
 
         ps.playerClass = PlayerClass.VILLAGER;
         PlayerClassManager.getInstance().setPlayerClass(player, PlayerClass.VILLAGER);
+        StatsManager.getInstance().refreshWeaponStatsForClass(player);
         ItemUtil.refreshTooltips(player);
 
         ChatFormatter.constructDivider(player, "§6§l-", 45);
@@ -112,4 +114,3 @@ final class ClassEssenceEquipHelper {
         ChatFormatter.constructDivider(player, "§6§l-", 45);
     }
 }
-
