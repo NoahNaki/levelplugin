@@ -50,7 +50,7 @@ public class TypeRacerGame extends AbstractChatGame {
         if (phrase == null) {
             return Optional.empty();
         }
-        if (phrase.equals(message)) {
+        if (phrase.equalsIgnoreCase(message)) {
             return Optional.of(new ChatGameResult(
                     player.getUniqueId(),
                     player.getName(),
