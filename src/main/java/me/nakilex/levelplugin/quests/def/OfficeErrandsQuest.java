@@ -40,8 +40,9 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
         return java.util.List.of(
                 new QuestObjective(QuestObjectiveType.TALK, "npc516", 1, BeaconTargets.npc(516)),
                 new QuestObjective(QuestObjectiveType.DISCOVER, ELEVATOR_TARGET, 1,
+                        false,
                         BeaconTargets.staticLoc(elevatorLoc),
-                        "Enter the elevator." )
+                        "Enter the elevator.")
         );
     }
 
