@@ -16,7 +16,7 @@ public class DropDebugManager {
         this.main = main;
         FileConfiguration cfg = main.getCustomConfig();
         forceMobDrops = cfg != null && cfg.getBoolean("debug.force-mob-drops", false);
-        double configuredDropRate = cfg != null ? cfg.getDouble("debug.mob-gear-drop-rate", 8.0) : 8.0;
+        double configuredDropRate = cfg != null ? cfg.getDouble("debug.mob-gear-drop-rate", 10.0) : 10.0;
         globalGearDropRate = clampChance(configuredDropRate);
     }
 
@@ -34,7 +34,7 @@ public class DropDebugManager {
         FileConfiguration cfg = main.getCustomConfig();
         if (cfg != null) {
             cfg.set("debug.force-mob-drops", enabled);
-            main.saveConfig();
+            main.saveCustomConfig();
         }
     }
 
@@ -47,7 +47,7 @@ public class DropDebugManager {
         FileConfiguration cfg = main.getCustomConfig();
         if (cfg != null) {
             cfg.set("debug.mob-gear-drop-rate", globalGearDropRate);
-            main.saveConfig();
+            main.saveCustomConfig();
         }
     }
 
