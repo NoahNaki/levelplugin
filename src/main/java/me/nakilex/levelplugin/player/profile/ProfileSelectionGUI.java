@@ -410,6 +410,7 @@ public class ProfileSelectionGUI implements Listener {
                 statsManager.getPlayerStats(player.getUniqueId());
         player.setHealth(player.getMaxHealth());
         ps.currentMana = ps.maxMana;
+        qm.ensureTrackedQuestFor(player.getUniqueId());
         stopSelection(player);
         player.closeInventory();
         BetterHudUtil.addHud(player);
