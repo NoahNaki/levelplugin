@@ -276,7 +276,7 @@ public class ServerSelectionManager {
                     ? countPlayers(alphaWorld)
                     : countPlayers(buildWorld);
             selector.updateTop(org.bukkit.ChatColor.YELLOW + "CLICK TO JOIN");
-            selector.updateBottom(org.bukkit.ChatColor.GRAY + count + " playing");
+            selector.updateBottom("" + org.bukkit.ChatColor.GRAY + count + " playing");
         });
     }
 
