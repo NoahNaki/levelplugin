@@ -307,6 +307,17 @@ public class StorageGUI {
         return filteredViews.containsKey(inventory);
     }
 
+    public boolean removeFromFilteredSource(Inventory filteredInventory, ItemStack item, int amount) {
+        if (item == null || amount <= 0) {
+            return false;
+        }
+        Inventory source = filteredViews.get(filteredInventory);
+        if (source == null) {
+            return false;
+        }
+        return removeFromInventory(source, item, amount);
+    }
+
     public void cleanupView(Inventory inventory) {
         filteredViews.remove(inventory);
     }
@@ -495,5 +506,30 @@ public class StorageGUI {
             }
         }
         return items;
+    }
+
+    private boolean removeFromInventory(Inventory inventory, ItemStack item, int amount) {
+        int remaining = amount;
+        for (int slot : STORAGE_SLOTS) {
+            ItemStack stored = inventory.getItem(slot);
+            if (stored == null || stored.getType() == Material.AIR) {
+                continue;
+            }
+            if (!stored.isSimilar(item)) {
+                continue;
+            }
+            int storedAmount = stored.getAmount();
+            if (storedAmount > remaining) {
+                stored.setAmount(storedAmount - remaining);
+                inventory.setItem(slot, stored);
+                return true;
+            }
+            inventory.setItem(slot, null);
+            remaining -= storedAmount;
+            if (remaining <= 0) {
+                return true;
+            }
+        }
+        return false;
     }
 }
