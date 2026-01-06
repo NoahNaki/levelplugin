@@ -72,6 +72,7 @@ import me.nakilex.levelplugin.utils.DealMaker;
 import me.nakilex.levelplugin.utils.NakiPlaceholderExpansion;
 import me.nakilex.levelplugin.utils.EntityTextDisplay;
 import me.nakilex.levelplugin.utils.MetadataTrait;
+import me.nakilex.levelplugin.utils.HologramUtil;
 import me.nakilex.levelplugin.utils.registeries.CommandRegistry;
 import me.nakilex.levelplugin.utils.registeries.ListenerRegistry;
 import me.nakilex.levelplugin.utils.registeries.TaskRegistry;
@@ -240,6 +241,7 @@ public class PluginBootstrap {
         setupCustomConfig();
         playerConfig = new PlayerConfig(plugin);
         initializeManagers();
+        HologramUtil.removeMobHolograms();
         playerConfig.loadAllPlayers();
         itemConfig = new ItemConfig(plugin);
         itemConfig.loadItems();
@@ -685,6 +687,7 @@ public class PluginBootstrap {
             environmentManager.removeAllHolograms();
             environmentManager.saveAll();
         }
+        HologramUtil.removeMobHolograms();
         EntityTextDisplay.removeAllDisplays();
         if (guildSiegeManager != null) {
             guildSiegeManager.cleanup();

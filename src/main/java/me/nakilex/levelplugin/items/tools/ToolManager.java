@@ -5,6 +5,7 @@ import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
@@ -130,6 +131,25 @@ public class ToolManager {
             }
         }
         return getTool(stack.getType());
+    }
+
+    public int getPlayerLevel(Player player, ToolDiscipline discipline) {
+        if (player == null || discipline == null) {
+            return 0;
+        }
+        return switch (discipline) {
+            case FARMING -> Main.getInstance().getFarmingManager().getLevel(player);
+            case FISHING -> Main.getInstance().getFishingManager().getLevel(player);
+            case MINING -> Main.getInstance().getMiningManager().getLevel(player);
+        };
+    }
+
+    public boolean meetsLevelRequirement(Player player, CustomTool tool) {
+        if (player == null || tool == null) {
+            return true;
+        }
+        int level = getPlayerLevel(player, tool.getDiscipline());
+        return level >= tool.getTier().getLevelRequirement();
     }
 
     public void applyToolData(ItemStack stack, CustomTool tool) {

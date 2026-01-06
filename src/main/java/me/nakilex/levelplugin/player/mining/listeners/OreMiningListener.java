@@ -208,7 +208,7 @@ public class OreMiningListener implements Listener {
         if (tool == null || tool.getDiscipline() != me.nakilex.levelplugin.items.tools.ToolDiscipline.MINING) return true;
         me.nakilex.levelplugin.items.tools.ToolTier tier = tool.getTier();
         int req = tier.getLevelRequirement();
-        if (miningManager.getLevel(player) < req) {
+        if (!me.nakilex.levelplugin.items.tools.ToolManager.getInstance().meetsLevelRequirement(player, tool)) {
             player.sendMessage("§cYou need Mining level " + req + " to use this pickaxe!");
             return false;
         }

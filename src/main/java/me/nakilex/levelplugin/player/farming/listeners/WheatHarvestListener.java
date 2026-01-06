@@ -68,6 +68,11 @@ public class WheatHarvestListener implements Listener {
         ItemStack held = player.getInventory().getItemInMainHand();
         me.nakilex.levelplugin.items.tools.CustomTool tool = held != null ? ToolManager.getInstance().getTool(held) : null;
         boolean isFarmingTool = tool != null && tool.getDiscipline() == ToolDiscipline.FARMING;
+        if (isFarmingTool && !ToolManager.getInstance().meetsLevelRequirement(player, tool)) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                    "You need Farming level " + tool.getTier().getLevelRequirement() + " to use this scythe.");
+            return;
+        }
         FarmingToolEnchant enchant = isFarmingTool ? ToolManager.getInstance().getFarmingEnchant(held) : null;
         boolean reaping = enchant == FarmingToolEnchant.REAPING;
         boolean bountiful = enchant == FarmingToolEnchant.BOUNTIFUL;

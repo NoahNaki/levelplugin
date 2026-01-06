@@ -5,6 +5,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.ArmorStand;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.TextDisplay;
@@ -19,6 +20,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  * pool to minimise flashes; now leverages lightweight TextDisplay entities.
  */
 public class HologramUtil {
+    public static final String MOB_HOLOGRAM_TAG_PREFIX = "mob_hologram:";
 
     private static final int POOL_SIZE = 50;
     private static final int LIFETIME_TICKS = 10;
@@ -28,6 +30,31 @@ public class HologramUtil {
 
     private static final Queue<ArmorStand> pool = new ConcurrentLinkedQueue<>();
     private static boolean initialized = false;
+
+    public static String mobHologramTag(String suffix) {
+        if (suffix == null || suffix.isBlank()) {
+            return MOB_HOLOGRAM_TAG_PREFIX.substring(0, MOB_HOLOGRAM_TAG_PREFIX.length() - 1);
+        }
+        return MOB_HOLOGRAM_TAG_PREFIX + suffix;
+    }
+
+    public static void removeMobHolograms() {
+        MultiLineHologram.removeAll(MOB_HOLOGRAM_TAG_PREFIX);
+        for (World world : Bukkit.getWorlds()) {
+            for (Entity entity : world.getEntities()) {
+                if (entity instanceof ArmorStand stand) {
+                    String name = stand.getCustomName();
+                    if (stand.isMarker()
+                            && stand.isCustomNameVisible()
+                            && name != null
+                            && (name.contains("<glyph:experience_orb_icon>")
+                            || name.contains("<glyph:coins_icon>"))) {
+                        stand.remove();
+                    }
+                }
+            }
+        }
+    }
 
     /**
      * Call once at plugin startup (or will auto‑init on first use).
@@ -76,6 +103,7 @@ public class HologramUtil {
         display.setText(text);
         display.setShadowRadius(0);
         display.setShadowStrength(0);
+        display.addScoreboardTag(mobHologramTag("damage"));
 
         // Hide from everyone except viewer (after one tick to ensure spawn packet)
         Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {

@@ -74,6 +74,10 @@ public class DungeonCommand implements CommandExecutor, TabCompleter {
                 Main.getInstance().getDungeonListGUI().open(player);
                 return true;
             }
+            case "leave" -> {
+                manager.getPlugin().getDungeonLeaveGUI().open(player);
+                return true;
+            }
             case "delete" -> {
                 if (args.length < 2) {
                     player.sendMessage(ChatColor.RED + "Usage: /dungeon delete <name>");
@@ -114,7 +118,7 @@ public class DungeonCommand implements CommandExecutor, TabCompleter {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            return CommandUtil.simpleSuggestions(args[0], "create", "edit", "undo", "play", "list", "delete", "rate");
+            return CommandUtil.simpleSuggestions(args[0], "create", "edit", "undo", "play", "list", "leave", "delete", "rate");
         }
         if (args.length >= 2) {
             String sub = args[0].toLowerCase(Locale.ROOT);
