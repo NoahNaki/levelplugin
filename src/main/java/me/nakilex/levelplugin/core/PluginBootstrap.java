@@ -697,6 +697,7 @@ public class PluginBootstrap {
         if (wanderingMerchantManager != null) wanderingMerchantManager.despawn();
         if (beaconManager != null) beaconManager.removeAll();
         if (beaconEntityDebugManager != null) beaconEntityDebugManager.removeAll();
+        if (serverSelectionManager != null) serverSelectionManager.shutdown();
         if (dealMaker != null) dealMaker.closeAllTrades();
         plugin.getLogger().info("LevelPlugin has been disabled!");
     }

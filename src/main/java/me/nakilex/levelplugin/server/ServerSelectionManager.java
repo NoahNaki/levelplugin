@@ -5,19 +5,33 @@ import me.nakilex.levelplugin.items.listeners.StaticItemListener;
 import me.nakilex.levelplugin.player.profile.ProfileEntryUtil;
 import me.nakilex.levelplugin.utils.BetterHudUtil;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
+import me.nakilex.levelplugin.utils.EntityTextDisplay;
 import me.nakilex.levelplugin.utils.WorldExclusionUtil;
 import me.nakilex.levelplugin.world.WorldManager;
 import org.bukkit.Bukkit;
-import org.bukkit.World;
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitTask;
+import net.citizensnpcs.api.CitizensAPI;
+import net.citizensnpcs.api.npc.NPC;
+
+import java.util.HashMap;
+import java.util.Map;
 
 
 public class ServerSelectionManager {
+    private static final String SELECTOR_DATA_KEY = "server_selector";
+    private static final double HOLOGRAM_TOP_OFFSET = 0.9;
+    private static final double HOLOGRAM_BOTTOM_OFFSET = 0.45;
+
     private final Main plugin;
     private final WorldManager worldManager;
     private final ServerSelectorGUI selectorGUI;
+    private final Map<String, SelectorNpc> selectorNpcs = new HashMap<>();
+    private BukkitTask selectorTask;
 
     private String hubWorld;
     private String alphaWorld;
@@ -39,6 +53,7 @@ public class ServerSelectionManager {
         buildWorld = getConfigValue(config, "server.build-world", "flatland");
         buildPermission = getConfigValue(config, "server.build-permission", "group.staff");
         buildMinWeight = config != null ? config.getInt("server.build-min-weight", 51) : 51;
+        spawnHubSelectors();
     }
 
     public ServerSelectorGUI getSelectorGUI() {
@@ -113,6 +128,34 @@ public class ServerSelectionManager {
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                 "Connected to the build server.");
         return true;
+    }
+
+    public boolean handleSelectorClick(Player player, NPC npc) {
+        if (player == null || npc == null) {
+            return false;
+        }
+        String target = npc.data().get(SELECTOR_DATA_KEY);
+        if (target == null || target.isBlank()) {
+            return false;
+        }
+        if ("alpha".equalsIgnoreCase(target)) {
+            sendToAlpha(player);
+            return true;
+        }
+        if ("build".equalsIgnoreCase(target)) {
+            sendToBuild(player);
+            return true;
+        }
+        return false;
+    }
+
+    public void shutdown() {
+        if (selectorTask != null) {
+            selectorTask.cancel();
+            selectorTask = null;
+        }
+        selectorNpcs.values().forEach(SelectorNpc::destroy);
+        selectorNpcs.clear();
     }
 
     public boolean canAccessBuild(Player player) {
@@ -195,6 +238,58 @@ public class ServerSelectionManager {
         return teleportToWorld(player, alphaWorld);
     }
 
+    private void spawnHubSelectors() {
+        shutdown();
+        for (NPC npc : CitizensAPI.getNPCRegistry()) {
+            String value = npc.data().get(SELECTOR_DATA_KEY);
+            if (value != null && !value.isBlank()) {
+                npc.destroy();
+            }
+        }
+        worldManager.ensureWorldsLoaded(hubWorld);
+        World world = Bukkit.getWorld(hubWorld);
+        if (world == null) {
+            plugin.getLogger().warning("[ServerSelection] Hub world '" + hubWorld + "' not loaded.");
+            return;
+        }
+        selectorNpcs.put("alpha", createSelectorNpc("alpha", "Alpha Test",
+                new Location(world, -35, 67, 3)));
+        selectorNpcs.put("build", createSelectorNpc("build", "Development Server",
+                new Location(world, -45, 67, 3)));
+        updateSelectorHolograms();
+        selectorTask = Bukkit.getScheduler().runTaskTimer(plugin, this::updateSelectorHolograms, 20L, 40L);
+    }
+
+    private SelectorNpc createSelectorNpc(String key, String name, Location location) {
+        NPC npc = CitizensAPI.getNPCRegistry().createNPC(EntityType.VILLAGER, name);
+        npc.data().set(SELECTOR_DATA_KEY, key);
+        npc.spawn(location);
+        SelectorNpc selector = new SelectorNpc(npc);
+        selector.updateTop(org.bukkit.ChatColor.YELLOW + "CLICK TO JOIN");
+        selector.updateBottom(org.bukkit.ChatColor.GRAY + "0 playing");
+        return selector;
+    }
+
+    private void updateSelectorHolograms() {
+        selectorNpcs.forEach((key, selector) -> {
+            int count = "alpha".equalsIgnoreCase(key)
+                    ? countPlayers(alphaWorld)
+                    : countPlayers(buildWorld);
+            selector.updateTop(org.bukkit.ChatColor.YELLOW + "CLICK TO JOIN");
+            selector.updateBottom(org.bukkit.ChatColor.GRAY + count + " playing");
+        });
+    }
+
+    private int countPlayers(String worldName) {
+        if (worldName == null) {
+            return 0;
+        }
+        return (int) Bukkit.getOnlinePlayers().stream()
+                .filter(player -> player.getWorld() != null
+                        && worldName.equalsIgnoreCase(player.getWorld().getName()))
+                .count();
+    }
+
     private boolean isWorld(World world, String target) {
         if (world == null || target == null) {
             return false;
@@ -211,5 +306,53 @@ public class ServerSelectionManager {
             return fallback;
         }
         return value;
+    }
+
+    private static final class SelectorNpc {
+        private final NPC npc;
+        private EntityTextDisplay top;
+        private EntityTextDisplay bottom;
+
+        private SelectorNpc(NPC npc) {
+            this.npc = npc;
+        }
+
+        private void updateTop(String text) {
+            if (npc == null || npc.getEntity() == null) {
+                return;
+            }
+            if (top == null) {
+                top = new EntityTextDisplay(Main.getInstance(),
+                        (org.bukkit.entity.LivingEntity) npc.getEntity(),
+                        HOLOGRAM_TOP_OFFSET);
+            }
+            top.update(text);
+        }
+
+        private void updateBottom(String text) {
+            if (npc == null || npc.getEntity() == null) {
+                return;
+            }
+            if (bottom == null) {
+                bottom = new EntityTextDisplay(Main.getInstance(),
+                        (org.bukkit.entity.LivingEntity) npc.getEntity(),
+                        HOLOGRAM_BOTTOM_OFFSET);
+            }
+            bottom.update(text);
+        }
+
+        private void destroy() {
+            if (top != null) {
+                top.remove();
+                top = null;
+            }
+            if (bottom != null) {
+                bottom.remove();
+                bottom = null;
+            }
+            if (npc != null) {
+                npc.destroy();
+            }
+        }
     }
 }

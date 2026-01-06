@@ -104,6 +104,10 @@ public class NPCClickListener implements Listener {
         if (CitizensAPI.getNPCRegistry().isNPC(event.getRightClicked())) {
             Player player = event.getPlayer();
             NPC npc = CitizensAPI.getNPCRegistry().getNPC(event.getRightClicked());
+            var serverSelection = Main.getInstance().getServerSelectionManager();
+            if (serverSelection != null && serverSelection.handleSelectorClick(player, npc)) {
+                return;
+            }
 
             dialogManager.recordDialogCooldown(player);
 
