@@ -7,14 +7,21 @@ import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.spells.managers.SpellContextManager;
 import org.bukkit.entity.Player;
 
+import java.util.Arrays;
+import java.util.List;
+
 /**
  * Simple effect that triggers a MythicMobs skill by name.
  */
 public class MythicSkillEffect implements SpellEffect {
-    private final String skill;
+    private final List<String> skills;
 
     public MythicSkillEffect(String skill) {
-        this.skill = skill;
+        this.skills = List.of(skill);
+    }
+
+    public MythicSkillEffect(String... skills) {
+        this.skills = Arrays.asList(skills);
     }
 
     @Override
@@ -37,19 +44,25 @@ public class MythicSkillEffect implements SpellEffect {
                 false);
 
         me.nakilex.levelplugin.Main.getPlugin().getLogger().info(
-                "[MythicSkillEffect] skill=" + skill + " cast by " + caster.getName());
+                "[MythicSkillEffect] skills=" + skills + " cast by " + caster.getName());
 
         // Cast skill normally; damage & stat scaling handled in StatsEffectListener
-        boolean success;
-        try {
-            success = MythicBukkit.inst().getAPIHelper().castSkill(caster, skill);
-        } catch (NoSuchMethodError e) {
-            success = MythicBukkit.inst().getAPIHelper().castSkill(caster, skill);
+        boolean success = false;
+        for (String skill : skills) {
+            boolean castResult;
+            try {
+                castResult = MythicBukkit.inst().getAPIHelper().castSkill(caster, skill);
+            } catch (NoSuchMethodError e) {
+                castResult = MythicBukkit.inst().getAPIHelper().castSkill(caster, skill);
+            }
+            success = success || castResult;
+            me.nakilex.levelplugin.Main.getPlugin().getLogger().info(
+                    "[MythicSkillEffect] result=" + castResult
+                            + " skill=" + skill
+                            + " sneaking=" + caster.isSneaking());
         }
         me.nakilex.levelplugin.Main.getPlugin().getLogger().info(
-                "[MythicSkillEffect] result=" + success
-                        + " skill=" + skill
-                        + " sneaking=" + caster.isSneaking());
+                "[MythicSkillEffect] success=" + success + " skills=" + skills);
         SpellCastContextCompat.markSuccess(ctx, success);
     }
 }

@@ -47,7 +47,7 @@ public class StorageGUI {
     private boolean confirmUnlock = false;
     private int sortMode = 0;
     private int filterMode = 5;
-    private final Map<Inventory, List<ItemStack>> hiddenItems = new HashMap<>();
+    private final Map<Inventory, Inventory> filteredViews = new HashMap<>();
 
     private static final int PAGE_SIZE     = 54;  // double chest size
     private static final int NAV_NEXT_SLOT = 53;
@@ -128,7 +128,9 @@ public class StorageGUI {
      * Opens the current page for the player, refreshing nav tooltips first.
      */
     public void open(Player player) {
-        Inventory inv = pages.get(currentPage);
+        Inventory source = pages.get(currentPage);
+        sortSourceItems(source);
+        Inventory inv = filterMode == 5 ? source : buildFilteredInventory(source);
 
         // set filler border
         for (int i = 0; i < PAGE_SIZE; i++) {
@@ -138,7 +140,6 @@ public class StorageGUI {
         }
 
         updateNavigationItems(inv);
-        applySortAndFilter(inv);
         inv.setItem(SORT_SLOT, createSortButton(sortMode));
         inv.setItem(FILTER_SLOT, createFilterButton(filterMode));
         inv.setItem(INFO_SLOT, createInfoItem());
@@ -148,11 +149,6 @@ public class StorageGUI {
         // refreshing the same inventory.
         player.openInventory(inv);
         storageEvents.registerInventory(this, inv);
-        Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
-            if (player.isOnline() && player.getOpenInventory().getTopInventory().equals(inv)) {
-                player.updateInventory();
-            }
-        }, 1L);
     }
 
     /**
@@ -271,9 +267,6 @@ public class StorageGUI {
     /** Persists all pages to disk under this owner's UUID. */
     public void saveToDisk() {
         FileHandler fileHandler = new FileHandler();
-        for (Inventory page : pages) {
-            restoreHiddenItems(page);
-        }
         fileHandler.saveStorage(ownerKey, pages, folder, prefix);
     }
 
@@ -310,9 +303,16 @@ public class StorageGUI {
         return filterMode != 5;
     }
 
-    public boolean hasHiddenItems(Inventory inventory) {
-        List<ItemStack> hidden = hiddenItems.get(inventory);
-        return hidden != null && !hidden.isEmpty();
+    public boolean isFilteredView(Inventory inventory) {
+        return filteredViews.containsKey(inventory);
+    }
+
+    public void cleanupView(Inventory inventory) {
+        filteredViews.remove(inventory);
+    }
+
+    public boolean isStorageSlot(int slot) {
+        return STORAGE_SLOTS.contains(slot);
     }
 
     private static ItemStack createFiller() {
@@ -438,58 +438,52 @@ public class StorageGUI {
         };
     }
 
-    /** Apply current sort and filter settings to a page before showing it. */
-    private void applySortAndFilter(Inventory inv) {
+    private void sortSourceItems(Inventory inv) {
+        if (sortMode == 0) {
+            return;
+        }
         List<ItemStack> items = collectStoredItems(inv);
         for (int slot : STORAGE_SLOTS) {
             inv.setItem(slot, null);
         }
-
-        Main.getInstance().getLogger().info(
-                "[StorageGUI] applySortAndFilter owner=" + ownerKey
-                        + " page=" + (currentPage + 1)
-                        + " sort=" + sortMode
-                        + " filter=" + filterMode
-                        + " items=" + items.size());
-
         if (sortMode == 1) {
             items.sort(java.util.Comparator.comparingInt(this::getRarityOrdinal).reversed());
         } else if (sortMode == 2) {
             items.sort(java.util.Comparator.comparingInt(this::getRarityOrdinal));
         }
-
-        if (filterMode != 5) {
-            List<ItemStack> matches = new ArrayList<>();
-            List<ItemStack> nonMatches = new ArrayList<>();
-            int unknownLevels = 0;
-            for (ItemStack item : items) {
-                Integer level = getItemLevelRequirement(item);
-                boolean match = matchesLevelFilter(level, filterMode);
-                if (level == null) {
-                    unknownLevels++;
-                }
-                if (match) {
-                    matches.add(item);
-                } else {
-                    nonMatches.add(item);
-                }
-            }
-            Main.getInstance().getLogger().info(
-                    "[StorageGUI] filterResults owner=" + ownerKey
-                            + " matches=" + matches.size()
-                            + " hidden=" + nonMatches.size()
-                            + " unknownLevels=" + unknownLevels);
-            hiddenItems.put(inv, nonMatches);
-            items = matches;
-        } else {
-            hiddenItems.remove(inv);
-        }
-
         int idx = 0;
         for (int slot : STORAGE_SLOTS) {
             if (idx >= items.size()) break;
             inv.setItem(slot, items.get(idx++));
         }
+    }
+
+    private Inventory buildFilteredInventory(Inventory source) {
+        Inventory filtered = Bukkit.createInventory(null, PAGE_SIZE, source.getTitle());
+        filteredViews.put(filtered, source);
+        List<ItemStack> items = collectStoredItems(source);
+        List<ItemStack> matches = new ArrayList<>();
+        int unknownLevels = 0;
+        for (ItemStack item : items) {
+            Integer level = getItemLevelRequirement(item);
+            if (level == null) {
+                unknownLevels++;
+            }
+            if (matchesLevelFilter(level, filterMode)) {
+                matches.add(item);
+            }
+        }
+        Main.getInstance().getLogger().info(
+                "[StorageGUI] filterResults owner=" + ownerKey
+                        + " matches=" + matches.size()
+                        + " total=" + items.size()
+                        + " unknownLevels=" + unknownLevels);
+        int idx = 0;
+        for (int slot : STORAGE_SLOTS) {
+            if (idx >= matches.size()) break;
+            filtered.setItem(slot, matches.get(idx++));
+        }
+        return filtered;
     }
 
     private List<ItemStack> collectStoredItems(Inventory inv) {
@@ -500,27 +494,6 @@ public class StorageGUI {
                 items.add(it);
             }
         }
-        List<ItemStack> hidden = hiddenItems.get(inv);
-        if (hidden != null) {
-            items.addAll(hidden);
-        }
         return items;
-    }
-
-    private void restoreHiddenItems(Inventory inv) {
-        List<ItemStack> hidden = hiddenItems.get(inv);
-        if (hidden == null || hidden.isEmpty()) {
-            return;
-        }
-        List<ItemStack> items = collectStoredItems(inv);
-        hiddenItems.remove(inv);
-        for (int slot : STORAGE_SLOTS) {
-            inv.setItem(slot, null);
-        }
-        int idx = 0;
-        for (int slot : STORAGE_SLOTS) {
-            if (idx >= items.size()) break;
-            inv.setItem(slot, items.get(idx++));
-        }
     }
 }
