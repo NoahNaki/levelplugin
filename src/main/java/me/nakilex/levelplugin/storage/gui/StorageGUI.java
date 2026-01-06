@@ -299,6 +299,15 @@ public class StorageGUI {
         return currentPage;
     }
 
+    public boolean isFilterActive() {
+        return filterMode != 5;
+    }
+
+    public boolean hasHiddenItems(Inventory inventory) {
+        List<ItemStack> hidden = hiddenItems.get(inventory);
+        return hidden != null && !hidden.isEmpty();
+    }
+
     private static ItemStack createFiller() {
         ItemStack glass = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
         ItemMeta meta = glass.getItemMeta();

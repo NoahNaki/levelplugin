@@ -46,7 +46,7 @@ public class StatsInventory {
 
         builder.setItem(19, createStatBook(
             "Strength", StatType.STR, ps.baseStrength, ps.bonusStrength, ps.skillPoints,
-            "Boosts melee damage and adds a bit of health.",
+            List.of("Boosts melee damage and adds a bit of health."),
             new String[]{
                 String.format("Each point: +%.2f melee dmg & +%.2f HP.", 0.5, StatsManager.HEALTH_PER_STRENGTH),
                 String.format("HP bonus: %s%.2f HP", ChatColor.YELLOW,
@@ -59,7 +59,7 @@ public class StatsInventory {
 
         builder.setItem(20, createStatBook(
             "Agility", StatType.AGI, ps.baseAgility, ps.bonusAgility, ps.skillPoints,
-            "Improves your speed and dodge chance.",
+            List.of("Improves your speed and dodge chance."),
             new String[]{
                 "Dodge chance scales with total Agility.",
                 "A successful dodge reduces damage by 90%.",
@@ -70,7 +70,7 @@ public class StatsInventory {
 
         builder.setItem(21, createStatBook(
             "Intelligence", StatType.INT, ps.baseIntelligence, ps.bonusIntelligence, ps.skillPoints,
-            "Improves magical prowess and max mana.",
+            List.of("Improves magical prowess and max mana."),
             new String[]{
                 "Each point: +0.5 magic dmg & +1 Mana.",
                 "Current max mana: " + ChatColor.YELLOW + ps.maxMana
@@ -82,7 +82,10 @@ public class StatsInventory {
         critPercent = Math.round(critPercent * 100.0) / 100.0;
         builder.setItem(23, createStatBook(
             "Dexterity", StatType.DEX, ps.baseDexterity, ps.bonusDexterity, ps.skillPoints,
-            "Improves crit chance and subtracts from enemy dodge based on your DEX.",
+            List.of(
+                "Improves crit chance and subtracts from enemy dodge",
+                "based on your DEX."
+            ),
             new String[]{
                 "Crit chance: " + ChatColor.YELLOW + String.format("%.2f", critPercent) + "% (DR formula).",
                 "Accuracy: subtracts " + totalDexterity + " Agility points",
@@ -92,7 +95,7 @@ public class StatsInventory {
 
         builder.setItem(24, createStatBook(
             "Vitality", StatType.VIT, ps.baseVitality, ps.bonusVitality, ps.skillPoints,
-            "Increases max health and reduces damage taken.",
+            List.of("Increases max health and reduces damage taken."),
             new String[]{
                 String.format("Each point grants %.2f HP and defense.", StatsManager.HEALTH_PER_VITALITY),
                 String.format("Current HP bonus: %s%.2f HP.", ChatColor.YELLOW,
@@ -102,7 +105,7 @@ public class StatsInventory {
 
         builder.setItem(25, createStatBook(
             "Will", StatType.WIL, ps.baseWill, ps.bonusWill, ps.skillPoints,
-            "Boosts mana and mana regeneration.",
+            List.of("Boosts mana and mana regeneration."),
             new String[]{
                 "Each point: +3 max mana & +0.25 mana/sec.",
                 "Current max mana: " + ChatColor.YELLOW + ps.maxMana
@@ -112,7 +115,7 @@ public class StatsInventory {
         double atkSpeed = 0.5 * (1.0 + 0.0075 * (ps.baseTechnique + ps.bonusTechnique));
         builder.setItem(22, createStatBook(
             "Technique", StatType.TEC, ps.baseTechnique, ps.bonusTechnique, ps.skillPoints,
-            "Amplifies attack speed and all damage.",
+            List.of("Amplifies attack speed and all damage."),
             new String[]{
                 "+0.75% atk speed & +0.1 dmg per point.",
                 "Current atk speed: " + ChatColor.YELLOW + String.format("%.2f", atkSpeed) + " attacks/s"
@@ -186,7 +189,7 @@ public class StatsInventory {
 
     private static ItemStack createStatBook(
         String statName, StatType statType, int baseValue, int bonusValue, int skillPoints,
-        String description, String[] effectDetails
+        List<String> description, String[] effectDetails
     ) {
         ItemStack book = new ItemStack(Material.ENCHANTED_BOOK);
         ItemMeta meta = book.getItemMeta();
@@ -196,7 +199,9 @@ public class StatsInventory {
 
         meta.setDisplayName(ChatColor.LIGHT_PURPLE + "Upgrade " + ChatColor.GREEN + statName);
         List<String> lore = new ArrayList<>();
-        lore.add(ChatColor.GRAY + description);
+        for (String line : description) {
+            lore.add(ChatColor.GRAY + line);
+        }
         lore.add("");
         lore.add(ChatColor.DARK_GRAY + "Stat Breakdown");
         lore.add(ChatColor.GRAY + "• Base: " + ChatColor.WHITE + baseValue);

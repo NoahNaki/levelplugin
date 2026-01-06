@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.storage.gui.StorageGUI;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -57,6 +58,11 @@ public class StorageEvents implements Listener {
                 event.setCancelled(true);
                 return;
             }
+            if (event.getWhoClicked() instanceof Player player
+                    && shouldBlockFilteredInsert(event, top, gui, player)) {
+                event.setCancelled(true);
+                return;
+            }
             if (!gui.allowsSoulbound() && event.getClickedInventory() != top) {
                 ItemStack cursor = event.getCursor();
                 ItemStack current = event.getCurrentItem();
@@ -84,6 +90,11 @@ public class StorageEvents implements Listener {
             StorageGUI gui = trackedInventories.get(top);
             if (event.getWhoClicked() instanceof Player player
                     && shouldBlockDungeonItem(event, top, player)) {
+                event.setCancelled(true);
+                return;
+            }
+            if (event.getWhoClicked() instanceof Player player
+                    && shouldBlockFilteredInsert(event, top, gui, player)) {
                 event.setCancelled(true);
                 return;
             }
@@ -161,6 +172,67 @@ public class StorageEvents implements Listener {
             if (rawSlot < top.getSize() && ItemUtil.isDungeonItem(entry.getValue())) {
                 ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
                         "Dungeon items cannot be stored here.");
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean shouldBlockFilteredInsert(InventoryClickEvent event, Inventory top, StorageGUI gui, Player player) {
+        if (!gui.isFilterActive() || !gui.hasHiddenItems(top)) {
+            return false;
+        }
+        Inventory clicked = event.getClickedInventory();
+        if (clicked == null) {
+            return false;
+        }
+        ItemStack cursor = event.getCursor();
+        ItemStack current = event.getCurrentItem();
+        boolean hasCursorItem = cursor != null && cursor.getType() != Material.AIR;
+        boolean hasCurrentItem = current != null && current.getType() != Material.AIR;
+
+        if (clicked.equals(top)) {
+            boolean hasHotbarItem = false;
+            if (event.getAction() == InventoryAction.HOTBAR_SWAP
+                    || event.getAction() == InventoryAction.HOTBAR_MOVE_AND_READD) {
+                int hotbar = event.getHotbarButton();
+                if (hotbar >= 0) {
+                    ItemStack hotbarItem = player.getInventory().getItem(hotbar);
+                    hasHotbarItem = hotbarItem != null && hotbarItem.getType() != Material.AIR;
+                }
+            }
+            boolean shouldBlock = switch (event.getAction()) {
+                case PLACE_ALL, PLACE_ONE, PLACE_SOME, SWAP_WITH_CURSOR -> hasCursorItem;
+                case HOTBAR_SWAP, HOTBAR_MOVE_AND_READD -> hasHotbarItem;
+                default -> false;
+            };
+            if (shouldBlock) {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                        "Disable the filter to store more items.");
+            }
+            return shouldBlock;
+        }
+
+        if (clicked.equals(event.getView().getBottomInventory())
+                && event.getAction() == InventoryAction.MOVE_TO_OTHER_INVENTORY
+                && hasCurrentItem) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                    "Disable the filter to store more items.");
+            return true;
+        }
+
+        return false;
+    }
+
+    private boolean shouldBlockFilteredInsert(InventoryDragEvent event, Inventory top, StorageGUI gui, Player player) {
+        if (!gui.isFilterActive() || !gui.hasHiddenItems(top)) {
+            return false;
+        }
+        for (var entry : event.getNewItems().entrySet()) {
+            int rawSlot = entry.getKey();
+            if (rawSlot < top.getSize() && entry.getValue() != null && entry.getValue().getType() != Material.AIR) {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                        "Disable the filter to store more items.");
                 return true;
             }
         }
