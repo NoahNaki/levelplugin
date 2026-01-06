@@ -148,6 +148,11 @@ public class StorageGUI {
         // refreshing the same inventory.
         player.openInventory(inv);
         storageEvents.registerInventory(this, inv);
+        Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
+            if (player.isOnline() && player.getOpenInventory().getTopInventory().equals(inv)) {
+                player.updateInventory();
+            }
+        }, 1L);
     }
 
     /**
