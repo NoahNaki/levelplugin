@@ -288,7 +288,7 @@ public class ServerSelectionManager {
             npc.getEntity().setCustomNameVisible(false);
         }
         LookClose lookClose = npc.getOrAddTrait(LookClose.class);
-        lookClose.setLookClose(true);
+        lookClose.lookClose(true);
         SelectorNpc selector = new SelectorNpc(npc);
         selector.updateTop(org.bukkit.ChatColor.YELLOW + "CLICK TO JOIN");
         selector.updateMiddle(org.bukkit.ChatColor.AQUA + label);
