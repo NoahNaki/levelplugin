@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.items.listeners.StaticItemListener;
 import me.nakilex.levelplugin.player.config.PlayerConfig;
 import me.nakilex.levelplugin.utils.BetterHudUtil;
+import me.nakilex.levelplugin.utils.WorldExclusionUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -79,7 +80,9 @@ public final class ProfileEntryUtil {
             if (armor.length > 0) {
                 player.getInventory().setArmorContents(armor);
             }
-            BetterHudUtil.addHud(player);
+            if (!WorldExclusionUtil.isExcluded(player)) {
+                BetterHudUtil.addHud(player);
+            }
         } else {
             Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
                 if (!player.isOnline()) {

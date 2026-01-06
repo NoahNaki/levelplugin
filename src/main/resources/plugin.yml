@@ -327,7 +327,7 @@ commands:
     usage: /cutscene <play id [player]|list|reload|record id|addframe [duration]|stop|cancel|skip [player]>
   dungeon:
     description: Manage custom dungeons
-    usage: /dungeon <create|play|delete|undo|list>
+    usage: /dungeon <create|play|delete|undo|list|leave>
   codex:
     description: Open the discovery codex
     usage: /codex

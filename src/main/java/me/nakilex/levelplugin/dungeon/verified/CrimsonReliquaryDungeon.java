@@ -66,6 +66,7 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.BoundingBox;
 
 public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
@@ -177,6 +178,7 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
         boolean bossDefeated;
         boolean puzzleComplete;
         boolean ready;
+        BukkitTask portalSpawnTask;
     }
 
     public record ExpeditionRoute(Location spawn, List<Location> path) {
@@ -1066,28 +1068,63 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
         }
     }
 
-    private void spawnBossExitPortal(InstanceState state) {
-        if (state == null || state.bossPortalLocation == null) return;
+    private boolean spawnBossExitPortal(InstanceState state, boolean logFailure) {
+        if (state == null || state.bossPortalLocation == null) return false;
         Location target = findBossPortalLocation(state.bossPortalLocation, 10);
         if (target == null) {
-            plugin.getLogger().warning("[Dungeon] Unable to find clear space for boss exit portal.");
-            return;
+            if (logFailure) {
+                plugin.getLogger().warning("[Dungeon] Unable to find clear space for boss exit portal.");
+            }
+            return false;
         }
         if (!target.getChunk().isLoaded()) {
             target.getChunk().load();
         }
         clearPortalEntities(target);
         target.getBlock().setType(Material.AIR, false);
+        NexoFurniture.remove(target);
         FurnitureMechanic existing = NexoFurniture.furnitureMechanic(target.getBlock());
         if (existing != null && "portal_decoration_animated_v1_portal_5".equalsIgnoreCase(existing.getItemID())) {
-            return;
+            return true;
         }
         FurnitureMechanic mechanic = NexoFurniture.furnitureMechanic("portal_decoration_animated_v1_portal_5");
         if (mechanic == null) {
             plugin.getLogger().warning("[Dungeon] Unable to spawn boss exit portal furniture (missing mechanic)");
-            return;
+            return false;
         }
-        NexoFurniture.place(mechanic.getItemID(), target, 0f, BlockFace.NORTH);
+        var display = NexoFurniture.place(mechanic.getItemID(), target, 0f, BlockFace.NORTH);
+        if (display == null) {
+            if (logFailure) {
+                plugin.getLogger().warning("[Dungeon] Unable to spawn boss exit portal furniture at " + target);
+            }
+            return false;
+        }
+        return true;
+    }
+
+    private void queueBossExitPortalSpawn(InstanceState state) {
+        if (state == null) return;
+        if (state.portalSpawnTask != null) {
+            state.portalSpawnTask.cancel();
+        }
+        state.portalSpawnTask = new BukkitRunnable() {
+            int attempts = 0;
+            final int maxAttempts = 6;
+
+            @Override
+            public void run() {
+                attempts++;
+                if (spawnBossExitPortal(state, attempts >= maxAttempts)) {
+                    cancel();
+                    state.portalSpawnTask = null;
+                    return;
+                }
+                if (attempts >= maxAttempts) {
+                    cancel();
+                    state.portalSpawnTask = null;
+                }
+            }
+        }.runTaskTimer(plugin, 0L, 20L);
     }
 
     private Location findBossPortalLocation(Location base, int radius) {
@@ -1138,6 +1175,7 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
             FlowerType type = state.pluckable.get(loc);
             if (type == null) {
                 if (state.placements.containsKey(loc)) {
+                    plugin.getDialogManager().recordDialogCooldown(event.getPlayer());
                     event.setCancelled(true);
                     if (tryRemovePlacedFlower(event.getPlayer(), state, loc)) {
                         return;
@@ -1146,6 +1184,7 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
                 }
                 return;
             }
+            plugin.getDialogManager().recordDialogCooldown(event.getPlayer());
             event.setCancelled(true);
             ItemStack reward = createFlowerItem(type);
             Map<Integer, ItemStack> overflow = event.getPlayer().getInventory().addItem(reward);
@@ -1174,6 +1213,7 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
             World world = event.getRightClicked().getWorld();
             InstanceState state = activeInstances.get(world);
             if (state == null) return;
+            plugin.getDialogManager().recordDialogCooldown(event.getPlayer());
             event.setCancelled(true);
             Location base = event.getRightClicked().getLocation().getBlock().getLocation();
             if (tryRemovePlacedFlower(event.getPlayer(), state, base)) {
@@ -1217,7 +1257,7 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
             }
             RewardBombUtil.startRewardBomb(plugin, event.getEntity().getLocation(),
                     createBossRewardBombSupplier(state), 120);
-            spawnBossExitPortal(state);
+            queueBossExitPortalSpawn(state);
             long durationMs = System.currentTimeMillis() - state.startTime;
             long seconds = Math.max(1, durationMs / 1000);
             double damage = state.damageTaken;

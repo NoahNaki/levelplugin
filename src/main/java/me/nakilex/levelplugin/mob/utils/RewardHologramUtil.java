@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.mob.utils;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.utils.ChatFormatter;
+import me.nakilex.levelplugin.utils.HologramUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.entity.ArmorStand;
@@ -33,6 +34,7 @@ public final class RewardHologramUtil {
             as.setMarker(true);
             as.setCustomNameVisible(true);
             as.setCustomName(xpLine);
+            as.addScoreboardTag(HologramUtil.mobHologramTag("reward"));
         });
         String coinLine = ChatColor.GRAY + "[" + amountColor + "+" + coins + " "
                 + ChatColor.GOLD + "<glyph:coins_icon>" + ChatColor.GRAY + "]";
@@ -43,6 +45,7 @@ public final class RewardHologramUtil {
             as.setMarker(true);
             as.setCustomNameVisible(true);
             as.setCustomName(coinLine);
+            as.addScoreboardTag(HologramUtil.mobHologramTag("reward"));
         });
         new BukkitRunnable() {
             @Override

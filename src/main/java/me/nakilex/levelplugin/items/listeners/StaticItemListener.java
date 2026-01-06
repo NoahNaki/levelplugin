@@ -116,6 +116,7 @@ public class StaticItemListener implements Listener {
             ServerSelectionManager manager = main.getServerSelectionManager();
             if (manager != null && manager.isHubWorld(player.getWorld())) {
                 giveHubItems(player);
+                me.nakilex.levelplugin.utils.BetterHudUtil.removeHud(player);
                 return;
             }
         }

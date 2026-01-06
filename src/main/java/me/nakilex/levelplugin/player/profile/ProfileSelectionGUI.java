@@ -114,6 +114,7 @@ public class ProfileSelectionGUI implements Listener {
             player.getInventory().setArmorContents(null);
         }
 
+        me.nakilex.levelplugin.items.listeners.StaticItemListener.clearStaticItems(player);
         me.nakilex.levelplugin.items.listeners.StaticItemListener.giveStaticItems(player);
         open(player);
     }

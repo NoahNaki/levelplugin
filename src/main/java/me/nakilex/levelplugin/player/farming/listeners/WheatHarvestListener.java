@@ -33,6 +33,9 @@ public class WheatHarvestListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onHarvest(BlockBreakEvent event) {
+        if (me.nakilex.levelplugin.utils.WorldExclusionUtil.isExcluded(event.getPlayer())) {
+            return;
+        }
         Block block = event.getBlock();
         FarmingCrop crop = FarmingCrop.fromBlock(block);
         if (crop == null) return;
@@ -48,6 +51,9 @@ public class WheatHarvestListener implements Listener {
         FarmingCrop crop = FarmingCrop.fromBlock(block);
         if (block == null || crop == null) return;
         Player player = event.getPlayer();
+        if (me.nakilex.levelplugin.utils.WorldExclusionUtil.isExcluded(player)) {
+            return;
+        }
         if (player.getGameMode() != GameMode.ADVENTURE) return;
 
         event.setCancelled(true);
@@ -68,6 +74,16 @@ public class WheatHarvestListener implements Listener {
         ItemStack held = player.getInventory().getItemInMainHand();
         me.nakilex.levelplugin.items.tools.CustomTool tool = held != null ? ToolManager.getInstance().getTool(held) : null;
         boolean isFarmingTool = tool != null && tool.getDiscipline() == ToolDiscipline.FARMING;
+        if (!isFarmingTool) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                    "Hold a farming scythe to harvest crops.");
+            return;
+        }
+        if (isFarmingTool && !ToolManager.getInstance().meetsLevelRequirement(player, tool)) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                    "You need Farming level " + tool.getTier().getLevelRequirement() + " to use this scythe.");
+            return;
+        }
         FarmingToolEnchant enchant = isFarmingTool ? ToolManager.getInstance().getFarmingEnchant(held) : null;
         boolean reaping = enchant == FarmingToolEnchant.REAPING;
         boolean bountiful = enchant == FarmingToolEnchant.BOUNTIFUL;
