@@ -22,8 +22,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import static me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
 import static me.nakilex.levelplugin.utils.ChatMessageUtil.send;
@@ -415,40 +413,7 @@ public class StorageGUI {
     }
 
     private Integer getItemLevelRequirement(ItemStack item) {
-        me.nakilex.levelplugin.items.data.CustomItem ci =
-            me.nakilex.levelplugin.items.managers.ItemManager.getInstance()
-                .getCustomItemFromItemStack(item);
-        if (ci != null) {
-            return ci.getLevelRequirement();
-        }
-        if (item == null || !item.hasItemMeta()) {
-            return null;
-        }
-        ItemMeta meta = item.getItemMeta();
-        if (meta == null || !meta.hasLore()) {
-            return null;
-        }
-        Pattern levelPattern = Pattern.compile("(\\d+)");
-        for (String line : meta.getLore()) {
-            String stripped = ChatColor.stripColor(line);
-            if (stripped == null) continue;
-            String lower = stripped.toLowerCase();
-            if (!lower.contains("requirement")) {
-                continue;
-            }
-            if (!lower.contains("level") && !lower.contains("lv.")) {
-                continue;
-            }
-            Matcher matcher = levelPattern.matcher(stripped);
-            if (matcher.find()) {
-                try {
-                    return Integer.parseInt(matcher.group(1));
-                } catch (NumberFormatException ignored) {
-                    // keep searching
-                }
-            }
-        }
-        return null;
+        return me.nakilex.levelplugin.items.utils.ItemUtil.getLevelRequirement(item);
     }
 
     private boolean matchesLevelFilter(ItemStack item, int filter) {

@@ -50,8 +50,6 @@ public class ClassSpellListener implements Listener {
     private final Set<UUID> pendingSneak = new HashSet<>();
     /** Sneak releases scheduled to fire after a short delay */
     private final Map<UUID, BukkitTask> pendingUnsneak = new HashMap<>();
-    /** Double-sneak casts that should fire on release instead of press */
-    private final Set<UUID> pendingDoubleSneakRelease = new HashSet<>();
     /** NPC interactions to avoid spell casts on the same click */
     private final Map<UUID, Long> recentNpcInteractions = new HashMap<>();
 
@@ -531,6 +529,13 @@ public class ClassSpellListener implements Listener {
         if (tr == null) return;
         if (event.isSneaking()) {
             UUID id = p.getUniqueId();
+            if (pc == PlayerClass.MAGE) {
+                Long last = lastUnsneak.get(id);
+                if (last != null && System.currentTimeMillis() - last <= 600) {
+                    cast(p, tr.sneakEnd, pc, Trigger.SNEAK_END);
+                }
+                return;
+            }
             if (INSTANT_SNEAK_START.contains(pc)) {
                 cast(p, tr.sneakStart, pc, Trigger.SNEAK_START);
                 return;
@@ -551,11 +556,7 @@ public class ClassSpellListener implements Listener {
                 long now = System.currentTimeMillis();
                 Long last = lastUnsneak.get(id);
                 if (last != null && now - last <= 500) {
-                    if (pc == PlayerClass.MAGE) {
-                        pendingDoubleSneakRelease.add(id);
-                    } else {
-                        cast(p, tr.sneakEnd, pc, Trigger.SNEAK_END);
-                    }
+                    cast(p, tr.sneakEnd, pc, Trigger.SNEAK_END);
                     doubleSneak = true;
                 }
             }
@@ -617,11 +618,6 @@ public class ClassSpellListener implements Listener {
         } else {
             UUID id = p.getUniqueId();
             cancelHoldTask(id);
-            if (pendingDoubleSneakRelease.remove(id)) {
-                cast(p, tr.sneakEnd, pc, Trigger.SNEAK_END);
-                lastUnsneak.put(id, System.currentTimeMillis());
-                return;
-            }
             boolean castSneak = pendingSneak.remove(id);
             if (castSneak) {
                 BukkitTask old = pendingUnsneak.remove(id);
