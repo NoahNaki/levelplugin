@@ -33,6 +33,9 @@ public class WheatHarvestListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onHarvest(BlockBreakEvent event) {
+        if (me.nakilex.levelplugin.utils.WorldExclusionUtil.isExcluded(event.getPlayer())) {
+            return;
+        }
         Block block = event.getBlock();
         FarmingCrop crop = FarmingCrop.fromBlock(block);
         if (crop == null) return;
@@ -48,6 +51,9 @@ public class WheatHarvestListener implements Listener {
         FarmingCrop crop = FarmingCrop.fromBlock(block);
         if (block == null || crop == null) return;
         Player player = event.getPlayer();
+        if (me.nakilex.levelplugin.utils.WorldExclusionUtil.isExcluded(player)) {
+            return;
+        }
         if (player.getGameMode() != GameMode.ADVENTURE) return;
 
         event.setCancelled(true);

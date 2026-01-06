@@ -156,6 +156,12 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
 
     public void updateBoard(Player player) {
         UUID id = player.getUniqueId();
+        if (me.nakilex.levelplugin.utils.WorldExclusionUtil.isExcluded(player)) {
+            if (boards.containsKey(id)) {
+                removeBoard(player);
+            }
+            return;
+        }
 
         // Determine if we should show a board at all
         me.nakilex.levelplugin.guild.siege.GuildSiegeManager siege = plugin.getGuildSiegeManager();

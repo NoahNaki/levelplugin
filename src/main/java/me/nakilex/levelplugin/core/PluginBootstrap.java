@@ -969,9 +969,21 @@ public class PluginBootstrap {
         if (!customConfig.contains("server.build-min-weight")) {
             customConfig.set("server.build-min-weight", 51);
         }
-        if (!customConfig.contains("levelplugin.excluded-worlds")) {
-            customConfig.set("levelplugin.excluded-worlds", java.util.List.of("flatland"));
+        java.util.List<String> excluded = customConfig.getStringList("levelplugin.excluded-worlds");
+        if (excluded == null || excluded.isEmpty()) {
+            excluded = new java.util.ArrayList<>(java.util.List.of("flatland"));
+        } else {
+            excluded = new java.util.ArrayList<>(excluded);
         }
+        String buildWorld = customConfig.getString("server.build-world", "flatland");
+        if (buildWorld != null && !buildWorld.isBlank()) {
+            String lowered = buildWorld.toLowerCase(java.util.Locale.ROOT);
+            boolean exists = excluded.stream().anyMatch(name -> name != null && name.equalsIgnoreCase(lowered));
+            if (!exists) {
+                excluded.add(buildWorld);
+            }
+        }
+        customConfig.set("levelplugin.excluded-worlds", excluded);
         if (!customConfig.contains("tips.delay")) {
             customConfig.set("tips.delay", 120);
         }
