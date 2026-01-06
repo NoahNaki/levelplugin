@@ -2,13 +2,10 @@ package me.nakilex.levelplugin.player.listener;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
-import me.nakilex.levelplugin.player.config.PlayerConfig;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.player.fishing.managers.FishingManager;
 import me.nakilex.levelplugin.player.mining.managers.MiningManager;
 import me.nakilex.levelplugin.environment.EnvironmentManager;
-import me.nakilex.levelplugin.economy.managers.EconomyManager;
-import me.nakilex.levelplugin.utils.BetterHudUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
@@ -16,9 +13,8 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
-import me.nakilex.levelplugin.player.profile.ProfileSelectionGUI;
-import me.nakilex.levelplugin.player.profile.ProfileManager;
-import me.nakilex.levelplugin.items.listeners.StaticItemListener;
+import me.nakilex.levelplugin.player.profile.ProfileEntryUtil;
+import me.nakilex.levelplugin.server.ServerSelectionManager;
 
 import java.util.UUID;
 
@@ -28,21 +24,22 @@ public class PlayerJoinListener implements Listener {
     private final MiningManager miningManager;
     private final me.nakilex.levelplugin.player.farming.managers.FarmingManager farmingManager;
     private final FishingManager fishingManager;
-    private final PlayerConfig playerConfig;
     private final EnvironmentManager environmentManager;
     private final me.nakilex.levelplugin.environment.stage.TownStageManager stageManager;
+    private final ServerSelectionManager serverSelectionManager;
 
     public PlayerJoinListener(LevelManager levelManager, MiningManager miningManager,
                               me.nakilex.levelplugin.player.farming.managers.FarmingManager farmingManager,
-                              FishingManager fishingManager, PlayerConfig playerConfig,
-                              EnvironmentManager envManager) {
+                              FishingManager fishingManager,
+                              EnvironmentManager envManager,
+                              ServerSelectionManager serverSelectionManager) {
         this.levelManager  = levelManager;
         this.miningManager = miningManager;
         this.farmingManager = farmingManager;
         this.fishingManager = fishingManager;
-        this.playerConfig  = playerConfig;
         this.environmentManager = envManager;
         this.stageManager = envManager.getStageManager();
+        this.serverSelectionManager = serverSelectionManager;
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
@@ -65,11 +62,8 @@ public class PlayerJoinListener implements Listener {
             player.setHealthScaled(true);
             player.setHealthScale(20.0);
 
-            // Teleport to profile lobby in world
-            org.bukkit.World lobbyWorld = org.bukkit.Bukkit.getWorld("world");
-            if (lobbyWorld != null) {
-                org.bukkit.Location lobby = new org.bukkit.Location(lobbyWorld, 217, 6, 80);
-                player.teleport(lobby);
+            if (serverSelectionManager != null) {
+                serverSelectionManager.handleJoin(player);
             }
 
             me.nakilex.levelplugin.quests.managers.QuestManager qm = Main.getInstance().getQuestManager();
@@ -125,36 +119,8 @@ public class PlayerJoinListener implements Listener {
         }, 2L);  // 2 ticks
 
         // Delay profile menu so gravity settles the player
-        boolean profilesEnabled = Main.getInstance().getCustomConfig()
-                .getBoolean("features.profiles", true);
-        if (!profilesEnabled) {
-            ProfileManager pm = ProfileManager.getInstance();
-            if (pm.getProfile(pid, 0) == null) {
-                pm.createProfile(pid, 0, "Profile 1");
-            }
-            pm.setActiveSlot(pid, 0);
-            me.nakilex.levelplugin.player.config.PlayerConfig cfg =
-                    Main.getInstance().getPlayerConfig();
-            org.bukkit.Location loc = cfg.getProfileLocation(pid, 0);
-            if (loc != null) player.teleport(loc);
-            player.getInventory().clear();
-            player.getInventory().setArmorContents(null);
-            org.bukkit.inventory.ItemStack[] contents =
-                    cfg.getProfileInventory(pid, 0);
-            org.bukkit.inventory.ItemStack[] armor = cfg.getProfileArmor(pid, 0);
-            if (contents.length > 0) {
-                player.getInventory().setContents(contents);
-            } else {
-                StaticItemListener.giveStaticItems(player);
-            }
-            if (armor.length > 0) player.getInventory().setArmorContents(armor);
-            BetterHudUtil.addHud(player);
-        } else {
-            Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
-                if (!player.isOnline()) return;
-                ProfileManager.getInstance().clearActiveSlot(pid);
-                ProfileSelectionGUI.startSelection(player);
-            }, 30L);  // ~1.5 seconds
+        if (serverSelectionManager == null) {
+            ProfileEntryUtil.handleProfileEntry(player);
         }
     }
 }

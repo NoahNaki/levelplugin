@@ -77,6 +77,7 @@ import me.nakilex.levelplugin.environment.listeners.LeafDecayBlocker;
 import me.nakilex.levelplugin.codex.*;
 import me.nakilex.levelplugin.npc.wandering.WanderingMerchantListener;
 import me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager;
+import me.nakilex.levelplugin.server.ServerSelectionManager;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.PluginManager;
 
@@ -119,11 +120,12 @@ public class ListenerRegistry {
                                         LocationCodexGUI locationCodexGUI,
                                         me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager wmManager,
                                         ArenaQueueGUI arenaQueueGUI,
-                                        ArenaMatchManager arenaMatchManager,
-                                        ArenaTeamMatchManager arenaTeamMatchManager,
-                                        ChatGameManager chatGameManager,
+                                         ArenaMatchManager arenaMatchManager,
+                                         ArenaTeamMatchManager arenaTeamMatchManager,
+                                         ChatGameManager chatGameManager,
                                         DpsDummyManager dpsDummyManager,
-                                        BeaconEntityDebugManager beaconEntityDebugManager) {
+                                        BeaconEntityDebugManager beaconEntityDebugManager,
+                                        ServerSelectionManager serverSelectionManager) {
 
 
         PluginManager pm = plugin.getServer().getPluginManager();
@@ -155,8 +157,8 @@ public class ListenerRegistry {
                 plugin.getMiningManager(),
                 plugin.getFarmingManager(),
                 plugin.getFishingManager(),
-                plugin.getPlayerConfig(),
-                plugin.getEnvironmentManager()), plugin);
+                plugin.getEnvironmentManager(),
+                serverSelectionManager), plugin);
         pm.registerEvents(new PlayerQuitListener(plugin.getPlayerConfig(), plugin.getEnvironmentManager()), plugin);
         pm.registerEvents(new StatsMenuListener(codexGUI), plugin);
         pm.registerEvents(new StatsEffectListener(), plugin);
@@ -262,6 +264,9 @@ public class ListenerRegistry {
         pm.registerEvents(new me.nakilex.levelplugin.calendar.WeatherBlockListener(), plugin);
         pm.registerEvents(new WanderingMerchantListener(wmManager), plugin);
         pm.registerEvents(beaconEntityDebugManager, plugin);
+        if (serverSelectionManager != null) {
+            pm.registerEvents(serverSelectionManager.getSelectorGUI(), plugin);
+        }
         if (plugin.getCustomConfig().getBoolean("features.profiles", true)) {
             pm.registerEvents(new me.nakilex.levelplugin.player.profile.ProfileSelectionGUI(), plugin);
         }

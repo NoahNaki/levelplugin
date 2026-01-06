@@ -188,6 +188,7 @@ public class PluginBootstrap {
     private me.nakilex.levelplugin.dungeon.rating.DungeonRatingManager dungeonRatingManager;
     private me.nakilex.levelplugin.dungeon.DungeonManager dungeonManager;
     private me.nakilex.levelplugin.world.WorldManager worldManager;
+    private me.nakilex.levelplugin.server.ServerSelectionManager serverSelectionManager;
     private me.nakilex.levelplugin.environment.EnvironmentManager environmentManager;
     private me.nakilex.levelplugin.environment.UpgradeGUI upgradeGUI;
     private me.nakilex.levelplugin.environment.BuildingUpgradeGUI buildingUpgradeGUI;
@@ -302,7 +303,11 @@ public class PluginBootstrap {
         // worlds to be loaded. Ensure the necessary worlds are available
         // before other managers are initialized.
         worldManager = new me.nakilex.levelplugin.world.WorldManager(plugin);
-        worldManager.ensureWorldsLoaded("flatland", "redrocks");
+        String hubWorld = customConfig != null
+                ? customConfig.getString("server.hub-world", "hub")
+                : "hub";
+        worldManager.ensureWorldsLoaded("flatland", "redrocks", hubWorld);
+        serverSelectionManager = new me.nakilex.levelplugin.server.ServerSelectionManager(plugin);
 
         itemManager = new ItemManager(plugin);
         toolManager = new me.nakilex.levelplugin.items.tools.ToolManager();
@@ -487,7 +492,8 @@ public class PluginBootstrap {
             chatGameManager,
             dpsDummyManager,
             beaconEntityDebugManager,
-            dungeonExpeditionManager
+            dungeonExpeditionManager,
+            serverSelectionManager
         );
         me.nakilex.levelplugin.catacombs.CatacombsCommand catacombsCommand =
                 new me.nakilex.levelplugin.catacombs.CatacombsCommand(catacombsManager, catacombsGUI);
@@ -571,7 +577,8 @@ public class PluginBootstrap {
             arenaTeamMatchManager,
             chatGameManager,
             dpsDummyManager,
-            beaconEntityDebugManager
+            beaconEntityDebugManager,
+            serverSelectionManager
         );
         plugin.getServer().getPluginManager().registerEvents(
                 new me.nakilex.levelplugin.mercenary.board.ExpeditionBoardWandListener(expeditionBoardManager),
@@ -809,6 +816,7 @@ public class PluginBootstrap {
     public me.nakilex.levelplugin.catacombs.CatacombsManager getCatacombsManager() { return catacombsManager; }
     public me.nakilex.levelplugin.catacombs.CatacombsGUI getCatacombsGUI() { return catacombsGUI; }
     public me.nakilex.levelplugin.world.WorldManager getWorldManager() { return worldManager; }
+    public me.nakilex.levelplugin.server.ServerSelectionManager getServerSelectionManager() { return serverSelectionManager; }
     public me.nakilex.levelplugin.environment.EnvironmentManager getEnvironmentManager() { return environmentManager; }
     public me.nakilex.levelplugin.environment.UpgradeGUI getUpgradeGUI() { return upgradeGUI; }
     public me.nakilex.levelplugin.environment.BuildingUpgradeGUI getBuildingUpgradeGUI() { return buildingUpgradeGUI; }
@@ -887,6 +895,9 @@ public class PluginBootstrap {
         if (worldManager != null) {
             worldManager.reload();
         }
+        if (serverSelectionManager != null) {
+            serverSelectionManager.reload();
+        }
         if (pathfindingManager != null) {
             pathfindingManager.reload();
         }
@@ -938,6 +949,24 @@ public class PluginBootstrap {
         }
         if (!customConfig.contains("chat-games.interval-minutes")) {
             customConfig.set("chat-games.interval-minutes", 15);
+        }
+        if (!customConfig.contains("server.hub-world")) {
+            customConfig.set("server.hub-world", "hub");
+        }
+        if (!customConfig.contains("server.alpha-world")) {
+            customConfig.set("server.alpha-world", "world");
+        }
+        if (!customConfig.contains("server.build-world")) {
+            customConfig.set("server.build-world", "flatland");
+        }
+        if (!customConfig.contains("server.build-permission")) {
+            customConfig.set("server.build-permission", "group.staff");
+        }
+        if (!customConfig.contains("server.build-min-weight")) {
+            customConfig.set("server.build-min-weight", 51);
+        }
+        if (!customConfig.contains("levelplugin.excluded-worlds")) {
+            customConfig.set("levelplugin.excluded-worlds", java.util.List.of("flatland"));
         }
         if (!customConfig.contains("tips.delay")) {
             customConfig.set("tips.delay", 120);

@@ -14,6 +14,7 @@ import me.nakilex.levelplugin.spells.managers.CooldownManager;
 import me.nakilex.levelplugin.spells.managers.SpellManager;
 import me.nakilex.levelplugin.spells.utils.MythicSkillConfig;
 import me.nakilex.levelplugin.utils.PotionEffectUtil;
+import me.nakilex.levelplugin.utils.WorldExclusionUtil;
 import net.citizensnpcs.api.CitizensAPI;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -465,6 +466,9 @@ public class ClassSpellListener implements Listener {
     @EventHandler
     public void onLeftClick(PlayerAnimationEvent event) {
         Player p = event.getPlayer();
+        if (WorldExclusionUtil.isExcluded(p)) {
+            return;
+        }
         if (p.getInventory().getItemInMainHand().getType() == Material.FISHING_ROD) {
             return;
         }
@@ -492,6 +496,9 @@ public class ClassSpellListener implements Listener {
         if (event.getHand() != EquipmentSlot.HAND) return;
         if (event.getAction() != Action.RIGHT_CLICK_AIR && event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
         Player p = event.getPlayer();
+        if (WorldExclusionUtil.isExcluded(p)) {
+            return;
+        }
         PlayerClass pc = getClass(p);
         Triggers tr = MAP.get(pc);
         if (tr == null) return;
@@ -526,6 +533,9 @@ public class ClassSpellListener implements Listener {
     @EventHandler
     public void onToggleSneak(PlayerToggleSneakEvent event) {
         Player p = event.getPlayer();
+        if (WorldExclusionUtil.isExcluded(p)) {
+            return;
+        }
         PlayerClass pc = getClass(p);
         Triggers tr = MAP.get(pc);
         if (tr == null) return;

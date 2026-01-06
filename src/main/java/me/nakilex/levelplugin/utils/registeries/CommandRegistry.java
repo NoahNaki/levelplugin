@@ -104,6 +104,9 @@ import me.nakilex.levelplugin.commands.LevelPluginCommand;
 import me.nakilex.levelplugin.chat.ChatCommand;
 import me.nakilex.levelplugin.chat.EmotesCommand;
 import me.nakilex.levelplugin.chat.RollCommand;
+import me.nakilex.levelplugin.server.ConnectCommand;
+import me.nakilex.levelplugin.server.HubCommand;
+import me.nakilex.levelplugin.server.ServerSelectionManager;
 import org.bukkit.command.PluginCommand;
 import me.nakilex.levelplugin.pathfinding.MercenaryManager;
 
@@ -147,7 +150,8 @@ public class CommandRegistry {
                                         ChatGameManager chatGameManager,
                                         DpsDummyManager dpsDummyManager,
                                         BeaconEntityDebugManager beaconEntityDebugManager,
-                                        DungeonExpeditionManager dungeonExpeditionManager) {
+                                        DungeonExpeditionManager dungeonExpeditionManager,
+                                        ServerSelectionManager serverSelectionManager) {
 
 
         AddPointsCommand addPointsCmd = new AddPointsCommand();
@@ -379,6 +383,13 @@ public class CommandRegistry {
         plugin.getCommand("emotes").setTabCompleter(emotesCommand);
 
         plugin.getCommand("roll").setExecutor(new RollCommand());
+
+        if (serverSelectionManager != null) {
+            ConnectCommand connectCommand = new ConnectCommand(serverSelectionManager);
+            plugin.getCommand("connect").setExecutor(connectCommand);
+            plugin.getCommand("connect").setTabCompleter(connectCommand);
+            plugin.getCommand("hub").setExecutor(new HubCommand(serverSelectionManager));
+        }
 
         ChatModerationCommand chatCmd = new ChatModerationCommand();
         plugin.getCommand("mute").setExecutor(chatCmd);
