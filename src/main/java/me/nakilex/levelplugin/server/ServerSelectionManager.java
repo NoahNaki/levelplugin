@@ -97,6 +97,7 @@ public class ServerSelectionManager {
         }
         ProfileEntryUtil.clearInventory(player);
         StaticItemListener.giveHubItems(player);
+        BetterHudUtil.removeHud(player);
         if (notify) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                     "Connected to the hub.");

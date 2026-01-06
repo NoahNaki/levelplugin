@@ -8,18 +8,22 @@ merchants:
         item_id: 16   # Common Leather Helmet
         amount: 1
         cost: 30      # max stats = 27 → price > 27
+        account_limit: 1
       - slot: 12
         item_id: 17   # Common Leather Chestplate
         amount: 1
         cost: 60      # max stats = 54 → price > 54
+        account_limit: 1
       - slot: 14
         item_id: 18   # Common Leather Leggings
         amount: 1
         cost: 40      # max stats = 38 → price > 38
+        account_limit: 1
       - slot: 16
         item_id: 19   # Common Leather Boots
         amount: 1
         cost: 25      # max stats = 21 → price > 21
+        account_limit: 1
 
   uncommon_gear_shop:
     title: "Uncommon Gear Shop"
