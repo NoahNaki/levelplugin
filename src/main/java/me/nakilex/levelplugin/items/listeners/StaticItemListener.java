@@ -1,29 +1,32 @@
 package me.nakilex.levelplugin.items.listeners;
 
+import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.player.profile.ProfileEntryUtil;
+import me.nakilex.levelplugin.server.ServerSelectionManager;
+import me.nakilex.levelplugin.utils.TooltipUtil;
+import me.nakilex.levelplugin.utils.WorldExclusionUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerSwapHandItemsEvent;
-import org.bukkit.event.block.Action;
 import org.bukkit.inventory.EquipmentSlot;
-import me.nakilex.levelplugin.utils.TooltipUtil;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
-import java.util.Arrays;
-import java.util.Collections;
 
 public class StaticItemListener implements Listener {
 
     private static final ItemStack STATIC_ITEM;           // Nether Star (Stats Viewer)
     private static final ItemStack STATIC_HORSE_SADDLE;   // Saddle (Horse Spawner)
     private static final ItemStack STATIC_QUEST_BOOK;     // Book (Quest Log)
+    private static final ItemStack STATIC_COMPASS;        // Compass (Server Selector)
 
     static {
         // --- Stats Viewer (Nether Star) ---
@@ -52,6 +55,15 @@ public class StaticItemListener implements Listener {
             bookMeta.setLore(TooltipUtil.clickInstructions(null, "to view your quests."));
             STATIC_QUEST_BOOK.setItemMeta(bookMeta);
         }
+
+        // --- Server Selector (Compass) ---
+        STATIC_COMPASS = new ItemStack(Material.COMPASS);
+        ItemMeta compassMeta = STATIC_COMPASS.getItemMeta();
+        if (compassMeta != null) {
+            compassMeta.setDisplayName(ChatColor.AQUA + "Server Selector");
+            compassMeta.setLore(TooltipUtil.clickInstructions(null, "to choose a server."));
+            STATIC_COMPASS.setItemMeta(compassMeta);
+        }
     }
 
     /**
@@ -61,7 +73,8 @@ public class StaticItemListener implements Listener {
         if (item == null) return false;
         return item.isSimilar(STATIC_ITEM)
                 || item.isSimilar(STATIC_HORSE_SADDLE)
-                || item.isSimilar(STATIC_QUEST_BOOK);
+                || item.isSimilar(STATIC_QUEST_BOOK)
+                || item.isSimilar(STATIC_COMPASS);
     }
 
     /**
@@ -73,10 +86,46 @@ public class StaticItemListener implements Listener {
         player.getInventory().setItem(8, STATIC_ITEM.clone());
     }
 
+    public static void giveHubItems(Player player) {
+        ProfileEntryUtil.clearInventory(player);
+        player.getInventory().setItem(4, STATIC_COMPASS.clone());
+    }
+
+    public static void clearStaticItems(Player player) {
+        if (player == null) {
+            return;
+        }
+        for (int i = 0; i < player.getInventory().getSize(); i++) {
+            ItemStack item = player.getInventory().getItem(i);
+            if (isStaticItem(item)) {
+                player.getInventory().setItem(i, null);
+            }
+        }
+    }
+
+    public static void applyWorldLoadout(Player player) {
+        if (player == null) {
+            return;
+        }
+        if (WorldExclusionUtil.isExcluded(player)) {
+            clearStaticItems(player);
+            return;
+        }
+        Main main = Main.getInstance();
+        if (main != null) {
+            ServerSelectionManager manager = main.getServerSelectionManager();
+            if (manager != null && manager.isHubWorld(player.getWorld())) {
+                giveHubItems(player);
+                return;
+            }
+        }
+        giveStaticItems(player);
+    }
+
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player p = event.getPlayer();
-        giveStaticItems(p);
+        applyWorldLoadout(p);
     }
 
     @EventHandler
@@ -85,7 +134,8 @@ public class StaticItemListener implements Listener {
         if (curr != null && (
             curr.isSimilar(STATIC_ITEM) ||
                 curr.isSimilar(STATIC_HORSE_SADDLE) ||
-                curr.isSimilar(STATIC_QUEST_BOOK)
+                curr.isSimilar(STATIC_QUEST_BOOK) ||
+                curr.isSimilar(STATIC_COMPASS)
         )) {
             event.setCancelled(true);
         }
@@ -97,6 +147,7 @@ public class StaticItemListener implements Listener {
         if (dropped.isSimilar(STATIC_ITEM)
             || dropped.isSimilar(STATIC_HORSE_SADDLE)
             || dropped.isSimilar(STATIC_QUEST_BOOK)
+            || dropped.isSimilar(STATIC_COMPASS)
             || me.nakilex.levelplugin.items.utils.ItemUtil.isSoulbound(dropped)) {
             event.setCancelled(true);
         }
@@ -109,11 +160,13 @@ public class StaticItemListener implements Listener {
         if ((m != null && (
             m.isSimilar(STATIC_ITEM) ||
                 m.isSimilar(STATIC_HORSE_SADDLE) ||
-                m.isSimilar(STATIC_QUEST_BOOK)))
+                m.isSimilar(STATIC_QUEST_BOOK) ||
+                m.isSimilar(STATIC_COMPASS)))
             || (o != null && (
             o.isSimilar(STATIC_ITEM) ||
                 o.isSimilar(STATIC_HORSE_SADDLE) ||
-                o.isSimilar(STATIC_QUEST_BOOK)))) {
+                o.isSimilar(STATIC_QUEST_BOOK) ||
+                o.isSimilar(STATIC_COMPASS)))) {
             event.setCancelled(true);
         }
     }
@@ -136,6 +189,13 @@ public class StaticItemListener implements Listener {
 
         } else if (inHand != null && inHand.isSimilar(STATIC_QUEST_BOOK)) {
             player.performCommand("quest");
+            event.setCancelled(true);
+
+        } else if (inHand != null && inHand.isSimilar(STATIC_COMPASS)) {
+            Main main = Main.getInstance();
+            if (main != null && main.getServerSelectionManager() != null) {
+                main.getServerSelectionManager().openSelector(player);
+            }
             event.setCancelled(true);
 
         }

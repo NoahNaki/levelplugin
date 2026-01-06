@@ -360,14 +360,7 @@ public class ProfileSelectionGUI implements Listener {
         }
 
         Integer active = pm.getActiveSlot(player.getUniqueId());
-        if (active != null && active == index) {
-            player.sendMessage(ChatColor.YELLOW + "Selected character " + prof.getName());
-            stopSelection(player);
-            player.closeInventory();
-            BetterHudUtil.addHud(player);
-            resyncScoreboardAfterHud(player);
-            return;
-        }
+        boolean sameActive = active != null && active == index;
 
         // If this is the first profile the player ever created and
         // they are selecting it for the first time, start the intro quest.
@@ -399,17 +392,7 @@ public class ProfileSelectionGUI implements Listener {
             qm.startQuest(player, "officeerrands");
         }
 
-        // Load inventory and armor for this profile
-        player.getInventory().clear();
-        player.getInventory().setArmorContents(null);
-        org.bukkit.inventory.ItemStack[] contents = cfg.getProfileInventory(player.getUniqueId(), index);
-        org.bukkit.inventory.ItemStack[] armor = cfg.getProfileArmor(player.getUniqueId(), index);
-        if (contents.length > 0) {
-            player.getInventory().setContents(contents);
-        } else {
-            me.nakilex.levelplugin.items.listeners.StaticItemListener.giveStaticItems(player);
-        }
-        if (armor.length > 0) player.getInventory().setArmorContents(armor);
+        loadProfileInventory(player, cfg, index);
         me.nakilex.levelplugin.player.attributes.managers.StatsManager statsManager =
                 me.nakilex.levelplugin.player.attributes.managers.StatsManager.getInstance();
         statsManager.recalcDerivedStats(player);
@@ -423,6 +406,22 @@ public class ProfileSelectionGUI implements Listener {
         BetterHudUtil.addHud(player);
         resyncScoreboardAfterHud(player);
 
+    }
+
+    private static void loadProfileInventory(Player player,
+                                             me.nakilex.levelplugin.player.config.PlayerConfig cfg,
+                                             int index) {
+        player.getInventory().clear();
+        player.getInventory().setArmorContents(null);
+        player.getInventory().setItemInOffHand(null);
+        org.bukkit.inventory.ItemStack[] contents = cfg.getProfileInventory(player.getUniqueId(), index);
+        org.bukkit.inventory.ItemStack[] armor = cfg.getProfileArmor(player.getUniqueId(), index);
+        if (contents.length > 0) {
+            player.getInventory().setContents(contents);
+        } else {
+            me.nakilex.levelplugin.items.listeners.StaticItemListener.giveStaticItems(player);
+        }
+        if (armor.length > 0) player.getInventory().setArmorContents(armor);
     }
 
     public static void markNewProfile(Player player, int slotIndex) {

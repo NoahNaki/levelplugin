@@ -49,6 +49,7 @@ public class DungeonManager {
     private final me.nakilex.levelplugin.lootchests.managers.LootChestManager lootChestManager;
     private final Map<java.util.UUID, RunStats> activeRuns = new HashMap<>();
     private final java.util.Set<java.util.UUID> pendingRespawns = new java.util.HashSet<>();
+    private final java.util.Map<java.util.UUID, Location> pendingRespawnLocations = new java.util.HashMap<>();
 
     /**
      * Normalize a dungeon name for storage/lookup.
@@ -1383,6 +1384,10 @@ public class DungeonManager {
             Instance inst = instances.get(player.getWorld());
             if (inst == null) return;
             pendingRespawns.add(player.getUniqueId());
+            Location spawn = resolveInstanceSpawn(inst, player.getWorld());
+            if (spawn != null) {
+                pendingRespawnLocations.put(player.getUniqueId(), spawn.clone());
+            }
             plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
                 if (player.isOnline()) {
                     player.spigot().respawn();
@@ -1396,11 +1401,16 @@ public class DungeonManager {
             if (!pendingRespawns.remove(player.getUniqueId())) {
                 return;
             }
-            Instance inst = instances.get(player.getWorld());
-            if (inst == null) return;
-            Location spawn = resolveInstanceSpawn(inst, player.getWorld());
+            Location spawn = pendingRespawnLocations.remove(player.getUniqueId());
             if (spawn != null) {
                 event.setRespawnLocation(spawn);
+                return;
+            }
+            Instance inst = instances.get(player.getWorld());
+            if (inst == null) return;
+            Location fallback = resolveInstanceSpawn(inst, player.getWorld());
+            if (fallback != null) {
+                event.setRespawnLocation(fallback);
             }
         }
 

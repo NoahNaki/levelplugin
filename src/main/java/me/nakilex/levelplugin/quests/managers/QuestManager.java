@@ -1007,7 +1007,7 @@ public class QuestManager {
         if (debug) {
             plugin.getLogger().info("[QuestDebug] " + player.getName() + " bought from auction " + itemId);
         }
-        updateObjective(player, QuestObjectiveType.AUCTION_BUY, itemId, 1);
+        updateObjectiveWithAny(player, QuestObjectiveType.AUCTION_BUY, itemId);
         QuestServiceAccessTracker.markInteraction(player.getUniqueId(),
                 QuestServiceAccessTracker.Service.AUCTION);
     }

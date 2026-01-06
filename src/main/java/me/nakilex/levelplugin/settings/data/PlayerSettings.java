@@ -20,6 +20,7 @@ public class PlayerSettings {
     private boolean boosterBossBarEnabled = true;
     private boolean questTrackingParticles = true;
     private boolean tipsEnabled = true;
+    private boolean chatGamesEnabled = true;
     private static final ItemRarity[] LOOT_PICKUP_RARITIES = {
             ItemRarity.COMMON,
             ItemRarity.UNCOMMON,
@@ -153,6 +154,14 @@ public class PlayerSettings {
 
     public void toggleTipsEnabled() {
         tipsEnabled = !tipsEnabled;
+    }
+
+    public boolean isChatGamesEnabled() {
+        return chatGamesEnabled;
+    }
+
+    public void toggleChatGamesEnabled() {
+        chatGamesEnabled = !chatGamesEnabled;
     }
 
     public ItemRarity getLootPickupRarity() {

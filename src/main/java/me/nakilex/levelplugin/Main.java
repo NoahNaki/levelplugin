@@ -136,6 +136,7 @@ public class Main extends JavaPlugin {
     public me.nakilex.levelplugin.dungeon.rating.DungeonRatingManager getDungeonRatingManager() { return bootstrap.getDungeonRatingManager(); }
     public me.nakilex.levelplugin.dungeon.DungeonManager getDungeonManager() { return bootstrap.getDungeonManager(); }
     public me.nakilex.levelplugin.world.WorldManager getWorldManager() { return bootstrap.getWorldManager(); }
+    public me.nakilex.levelplugin.server.ServerSelectionManager getServerSelectionManager() { return bootstrap.getServerSelectionManager(); }
     public me.nakilex.levelplugin.quests.managers.BeaconManager getBeaconManager() { return bootstrap.getBeaconManager(); }
     public me.nakilex.levelplugin.quests.managers.QuestManager getQuestManager() { return bootstrap.getQuestManager(); }
     public me.nakilex.levelplugin.player.battlepass.BattlePassManager getBattlePassManager() { return bootstrap.getBattlePassManager(); }

@@ -17,6 +17,9 @@ import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
+import me.nakilex.levelplugin.utils.WorldExclusionUtil;
+import me.nakilex.levelplugin.settings.managers.SettingsManager;
+import me.nakilex.levelplugin.settings.data.PlayerSettings;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -193,6 +196,9 @@ public class ChatGameManager {
         lines.add(ChatColor.GRAY + "First correct answer wins!");
         String[] payload = lines.toArray(String[]::new);
         for (Player player : Bukkit.getOnlinePlayers()) {
+            if (!shouldShowTo(player)) {
+                continue;
+            }
             ChatFormatter.sendBoxedCenteredMessages(player, "§b", payload);
         }
     }
@@ -251,14 +257,37 @@ public class ChatGameManager {
             summary += ChatColor.GRAY + "!";
         }
         for (Player player : Bukkit.getOnlinePlayers()) {
+            if (!shouldShowTo(player)) {
+                continue;
+            }
             ChatFormatter.sendCenteredMessage(player, header);
             ChatFormatter.sendCenteredMessage(player, " ");
             ChatFormatter.sendCenteredMessage(player, summary);
         }
         if (result.solution() != null) {
-            ChatMessageUtil.broadcast(MessageType.INFO,
-                    ChatColor.GRAY + "Answer: " + ChatColor.AQUA + result.solution());
+            String message = ChatColor.GRAY + "Answer: " + ChatColor.AQUA + result.solution();
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                if (!shouldShowTo(player)) {
+                    continue;
+                }
+                ChatMessageUtil.send(player, MessageType.INFO, message);
+            }
         }
+    }
+
+    private boolean shouldShowTo(Player player) {
+        if (player == null) {
+            return false;
+        }
+        if (WorldExclusionUtil.isExcluded(player)) {
+            return false;
+        }
+        SettingsManager settingsManager = plugin.getSettingsManager();
+        if (settingsManager == null) {
+            return true;
+        }
+        PlayerSettings settings = settingsManager.getSettings(player);
+        return settings == null || settings.isChatGamesEnabled();
     }
 
     private String formatReward(ChatGameReward reward) {

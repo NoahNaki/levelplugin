@@ -175,6 +175,12 @@ commands:
   settings:
     description: Opens the settings menu
     usage: /settings
+  connect:
+    description: Open the server selector or connect to a server
+    usage: /connect [alpha|build|hub]
+  hub:
+    description: Return to the hub
+    usage: /hub
   addgems:
     description: Adjust a player's gems (can be negative)
     usage: /addgems <player|@everyone> <amount>

@@ -90,6 +90,7 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
     private final Main plugin;
     private final LegacyComponentSerializer legacy = LegacyComponentSerializer.legacySection();
     private final Map<World, InstanceState> activeInstances = new HashMap<>();
+    private final Set<UUID> pendingStarts = Collections.synchronizedSet(new HashSet<>());
     private volatile RoomTemplate cachedTemplate;
     private java.util.concurrent.CompletableFuture<RoomTemplate> templateFuture;
 
@@ -261,10 +262,13 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
     public void startInstance(DungeonManager manager, Player player) {
         RoomTemplate template = getTemplate();
         if (template == null) {
-            String message = templateFuture != null
-                    ? "Crimson Reliquary is still loading. Please try again in a moment."
-                    : "Verified dungeon template world is missing (flatland).";
-            player.sendMessage(Component.text(message, NamedTextColor.RED));
+            if (templateFuture != null) {
+                queueStartInstance(manager, player);
+                return;
+            }
+            player.sendMessage(Component.text(
+                    "Verified dungeon template world is missing (flatland).",
+                    NamedTextColor.RED));
             return;
         }
 
@@ -324,6 +328,33 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
         pasteTemplateAsync(template, world, origin, spawn, markers,
                 () -> teleportParticipantsEarly(participants, prevStates, spawn),
                 () -> finalizeInstance(manager, inst, origin, spawn, participants, markers, prevStates));
+    }
+
+    private void queueStartInstance(DungeonManager manager, Player player) {
+        if (player == null || manager == null || templateFuture == null) {
+            return;
+        }
+        UUID playerId = player.getUniqueId();
+        if (!pendingStarts.add(playerId)) {
+            ChatMessageUtil.send(player, MessageType.INFO,
+                    "Crimson Reliquary is still preparing. Please wait...");
+            return;
+        }
+        ChatMessageUtil.send(player, MessageType.INFO,
+                "Preparing Crimson Reliquary instance. Please wait...");
+        templateFuture.whenComplete((template, err) -> Bukkit.getScheduler().runTask(plugin, () -> {
+            pendingStarts.remove(playerId);
+            if (err != null || template == null) {
+                if (player.isOnline()) {
+                    ChatMessageUtil.send(player, MessageType.ERROR,
+                            "Crimson Reliquary failed to load. Please try again later.");
+                }
+                return;
+            }
+            if (player.isOnline()) {
+                startInstance(manager, player);
+            }
+        }));
     }
 
     public java.util.Optional<ExpeditionRoute> getExpeditionRoute(World world) {

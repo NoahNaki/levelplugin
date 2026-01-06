@@ -19,7 +19,7 @@ import java.util.List;
 public class FieldworkFavorQuest extends Quest implements QuestScript {
     public static final String ID = "fieldworkfavor";
     public static final String NPC_NAME = "Farmer";
-    public static final int NPC_ID = 4154;
+    public static final int NPC_ID = 4990;
     public static final String INTRO_TARGET = "npc" + NPC_ID + "_intro";
     public static final String RETURN_TARGET = "npc" + NPC_ID + "_return";
     private static final String WHEAT_TARGET = FarmingCrop.WHEAT.getQuestId();

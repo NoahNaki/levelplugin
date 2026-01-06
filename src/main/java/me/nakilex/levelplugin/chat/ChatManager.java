@@ -99,8 +99,9 @@ public class ChatManager {
                 }
             }
             case GLOBAL -> {
+                Component prefix = Component.text("[Global] ", NamedTextColor.GRAY);
                 for (Player target : Bukkit.getOnlinePlayers()) {
-                    target.sendMessage(base);
+                    target.sendMessage(prefix.append(base));
                 }
             }
             case STAFF -> {

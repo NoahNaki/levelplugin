@@ -32,6 +32,7 @@ public class SettingsGUI implements Listener {
     private static final int GUI_SIZE = 45;
     private static final int FILTER_SLOT = 36;
     private static final int LOOT_FILTER_SLOT = 32;
+    private static final int CHAT_GAMES_SLOT = 27;
 
     private final SettingsManager settingsManager;
     private final Map<UUID, Filter> filters = new HashMap<>();
@@ -162,6 +163,15 @@ public class SettingsGUI implements Listener {
             gui.setItem(26, GuiUtil.createToggleItem(
                     playerSettings.isTipsEnabled(),
                     "§bTips",
+                    "§eClick to toggle"
+            ));
+        }
+
+        // Chat games toggle
+        if (filter == Filter.ALL || filter == Filter.SOCIAL) {
+            gui.setItem(CHAT_GAMES_SLOT, GuiUtil.createToggleItem(
+                    playerSettings.isChatGamesEnabled(),
+                    "§bChat Games",
                     "§eClick to toggle"
             ));
         }
@@ -413,6 +423,12 @@ public class SettingsGUI implements Listener {
             ToggleFeedbackUtil.sendToggle(player, "Tips", enabled);
             updateSettingItem(event.getInventory(), 26,
                 enabled, "§bTips", "");
+        } else if (slot == CHAT_GAMES_SLOT) {
+            settings.toggleChatGamesEnabled();
+            boolean enabled = settings.isChatGamesEnabled();
+            ToggleFeedbackUtil.sendToggle(player, "Chat games", enabled);
+            updateSettingItem(event.getInventory(), CHAT_GAMES_SLOT,
+                enabled, "§bChat Games", "");
         } else if (slot == 31) {
             settings.toggleBoosterBossBar();
             updateSettingItem(event.getInventory(), 31,
