@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.items.listeners;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.player.profile.ProfileEntryUtil;
 import me.nakilex.levelplugin.server.ServerSelectionManager;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.WorldExclusionUtil;
@@ -86,7 +87,7 @@ public class StaticItemListener implements Listener {
     }
 
     public static void giveHubItems(Player player) {
-        giveStaticItems(player);
+        ProfileEntryUtil.clearInventory(player);
         player.getInventory().setItem(4, STATIC_COMPASS.clone());
     }
 

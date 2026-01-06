@@ -24,7 +24,8 @@ import java.util.Map;
 
 public class ServerSelectionManager {
     private static final String SELECTOR_DATA_KEY = "server_selector";
-    private static final double HOLOGRAM_TOP_OFFSET = 0.9;
+    private static final double HOLOGRAM_TOP_OFFSET = 0.95;
+    private static final double HOLOGRAM_MIDDLE_OFFSET = 0.7;
     private static final double HOLOGRAM_BOTTOM_OFFSET = 0.45;
 
     private final Main plugin;
@@ -75,11 +76,14 @@ public class ServerSelectionManager {
         if (player == null) {
             return false;
         }
+        ProfileEntryUtil.saveActiveProfile(player);
+        ProfileEntryUtil.clearActiveSlot(player);
         if (!teleportToWorld(player, hubWorld)) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
                     "Hub world is unavailable.");
             return false;
         }
+        ProfileEntryUtil.clearInventory(player);
         StaticItemListener.giveHubItems(player);
         if (notify) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
@@ -115,11 +119,14 @@ public class ServerSelectionManager {
                     "You do not have access to the build server.");
             return false;
         }
+        ProfileEntryUtil.saveActiveProfile(player);
+        ProfileEntryUtil.clearActiveSlot(player);
         if (!teleportToWorld(player, buildWorld)) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
                     "Build world is unavailable.");
             return false;
         }
+        ProfileEntryUtil.clearInventory(player);
         StaticItemListener.clearStaticItems(player);
         BetterHudUtil.removeHud(player);
         if (plugin.getScoreboardManager() != null) {
@@ -162,12 +169,10 @@ public class ServerSelectionManager {
         if (player == null) {
             return false;
         }
-        if (buildPermission != null && !buildPermission.isBlank()
-                && player.hasPermission(buildPermission)) {
-            return true;
-        }
+        boolean hasPermission = buildPermission == null || buildPermission.isBlank()
+                || player.hasPermission(buildPermission);
         Integer weight = LuckPermsWeightUtil.getWeight(player);
-        return weight != null && weight >= buildMinWeight;
+        return hasPermission && weight != null && weight >= buildMinWeight;
     }
 
     public boolean isHubWorld(World world) {
@@ -260,12 +265,16 @@ public class ServerSelectionManager {
         selectorTask = Bukkit.getScheduler().runTaskTimer(plugin, this::updateSelectorHolograms, 20L, 40L);
     }
 
-    private SelectorNpc createSelectorNpc(String key, String name, Location location) {
-        NPC npc = CitizensAPI.getNPCRegistry().createNPC(EntityType.VILLAGER, name);
+    private SelectorNpc createSelectorNpc(String key, String label, Location location) {
+        NPC npc = CitizensAPI.getNPCRegistry().createNPC(EntityType.VILLAGER, "");
         npc.data().set(SELECTOR_DATA_KEY, key);
         npc.spawn(location);
+        if (npc.getEntity() != null) {
+            npc.getEntity().setCustomNameVisible(false);
+        }
         SelectorNpc selector = new SelectorNpc(npc);
         selector.updateTop(org.bukkit.ChatColor.YELLOW + "CLICK TO JOIN");
+        selector.updateMiddle(org.bukkit.ChatColor.AQUA + label);
         selector.updateBottom(org.bukkit.ChatColor.GRAY + "0 playing");
         return selector;
     }
@@ -276,7 +285,8 @@ public class ServerSelectionManager {
                     ? countPlayers(alphaWorld)
                     : countPlayers(buildWorld);
             selector.updateTop(org.bukkit.ChatColor.YELLOW + "CLICK TO JOIN");
-            selector.updateBottom("" + org.bukkit.ChatColor.GRAY + count + " playing");
+            selector.updateMiddle(selector.getLabel());
+            selector.updateBottom(String.valueOf(org.bukkit.ChatColor.GRAY) + count + " playing");
         });
     }
 
@@ -311,7 +321,9 @@ public class ServerSelectionManager {
     private static final class SelectorNpc {
         private final NPC npc;
         private EntityTextDisplay top;
+        private EntityTextDisplay middle;
         private EntityTextDisplay bottom;
+        private String label = "";
 
         private SelectorNpc(NPC npc) {
             this.npc = npc;
@@ -341,10 +353,31 @@ public class ServerSelectionManager {
             bottom.update(text);
         }
 
+        private void updateMiddle(String text) {
+            if (npc == null || npc.getEntity() == null) {
+                return;
+            }
+            label = text;
+            if (middle == null) {
+                middle = new EntityTextDisplay(Main.getInstance(),
+                        (org.bukkit.entity.LivingEntity) npc.getEntity(),
+                        HOLOGRAM_MIDDLE_OFFSET);
+            }
+            middle.update(text);
+        }
+
+        private String getLabel() {
+            return label;
+        }
+
         private void destroy() {
             if (top != null) {
                 top.remove();
                 top = null;
+            }
+            if (middle != null) {
+                middle.remove();
+                middle = null;
             }
             if (bottom != null) {
                 bottom.remove();

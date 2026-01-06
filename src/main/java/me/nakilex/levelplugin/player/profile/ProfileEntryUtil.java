@@ -15,6 +15,40 @@ public final class ProfileEntryUtil {
     private ProfileEntryUtil() {
     }
 
+    public static void saveActiveProfile(Player player) {
+        if (player == null) {
+            return;
+        }
+        boolean profilesEnabled = Main.getInstance().getCustomConfig()
+                .getBoolean("features.profiles", true);
+        ProfileManager pm = ProfileManager.getInstance();
+        if (profilesEnabled) {
+            pm.saveActiveProfile(player);
+        } else {
+            pm.saveProfile(player, 0);
+        }
+    }
+
+    public static void clearInventory(Player player) {
+        if (player == null) {
+            return;
+        }
+        player.getInventory().clear();
+        player.getInventory().setArmorContents(null);
+        player.getInventory().setItemInOffHand(null);
+    }
+
+    public static void clearActiveSlot(Player player) {
+        if (player == null) {
+            return;
+        }
+        boolean profilesEnabled = Main.getInstance().getCustomConfig()
+                .getBoolean("features.profiles", true);
+        if (profilesEnabled) {
+            ProfileManager.getInstance().clearActiveSlot(player.getUniqueId());
+        }
+    }
+
     public static void handleProfileEntry(Player player) {
         if (player == null) {
             return;
@@ -34,8 +68,7 @@ public final class ProfileEntryUtil {
             if (loc != null) {
                 player.teleport(loc);
             }
-            player.getInventory().clear();
-            player.getInventory().setArmorContents(null);
+            clearInventory(player);
             ItemStack[] contents = cfg.getProfileInventory(pid, 0);
             ItemStack[] armor = cfg.getProfileArmor(pid, 0);
             if (contents.length > 0) {
