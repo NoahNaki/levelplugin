@@ -83,8 +83,8 @@ public class StatsInventory {
         builder.setItem(23, createStatBook(
             "Dexterity", StatType.DEX, ps.baseDexterity, ps.bonusDexterity, ps.skillPoints,
             List.of(
-                "Improves crit chance and subtracts from enemy dodge",
-                "based on your DEX."
+                "Improves crit chance and subtracts",
+                "from enemy dodge based on your DEX."
             ),
             new String[]{
                 "Crit chance: " + ChatColor.YELLOW + String.format("%.2f", critPercent) + "% (DR formula).",

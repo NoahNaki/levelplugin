@@ -22,6 +22,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
 import static me.nakilex.levelplugin.utils.ChatMessageUtil.send;
@@ -426,18 +428,23 @@ public class StorageGUI {
         if (meta == null || !meta.hasLore()) {
             return null;
         }
+        Pattern levelPattern = Pattern.compile("(\\d+)");
         for (String line : meta.getLore()) {
             String stripped = ChatColor.stripColor(line);
             if (stripped == null) continue;
-            int idx = stripped.indexOf("Level Requirement:");
-            if (idx >= 0) {
-                String[] parts = stripped.substring(idx).split(" ");
-                for (String part : parts) {
-                    try {
-                        return Integer.parseInt(part);
-                    } catch (NumberFormatException ignored) {
-                        // keep searching
-                    }
+            String lower = stripped.toLowerCase();
+            if (!lower.contains("requirement")) {
+                continue;
+            }
+            if (!lower.contains("level") && !lower.contains("lv.")) {
+                continue;
+            }
+            Matcher matcher = levelPattern.matcher(stripped);
+            if (matcher.find()) {
+                try {
+                    return Integer.parseInt(matcher.group(1));
+                } catch (NumberFormatException ignored) {
+                    // keep searching
                 }
             }
         }
