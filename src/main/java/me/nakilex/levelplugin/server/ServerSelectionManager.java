@@ -17,6 +17,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
+import net.citizensnpcs.trait.SkinTrait;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -27,6 +28,16 @@ public class ServerSelectionManager {
     private static final double HOLOGRAM_TOP_OFFSET = 0.95;
     private static final double HOLOGRAM_MIDDLE_OFFSET = 0.7;
     private static final double HOLOGRAM_BOTTOM_OFFSET = 0.45;
+    private static final SkinData ALPHA_SKIN = new SkinData(
+            "alpha_selector",
+            "ewogICJ0aW1lc3RhbXAiIDogMTczNjYzNTQ3NjUwOSwKICAicHJvZmlsZUlkIiA6ICI2NDU4Mjc0MjEyNDg0MDY0YTRkMDBlNDdjZWM4ZjcyZSIsCiAgInByb2ZpbGVOYW1lIiA6ICJUaDNtMXMiLAogICJzaWduYXR1cmVSZXF1aXJlZCIgOiB0cnVlLAogICJ0ZXh0dXJlcyIgOiB7CiAgICAiU0tJTiIgOiB7CiAgICAgICJ1cmwiIDogImh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNWY0NThjNTMxNzY4ZDhmM2VjZDljNDNkOWU0YTMyMGE0Y2E5ZmQ2ZmI3ODdhYmUzNGY1YmNhOTdjNTI4M2E4OSIKICAgIH0KICB9Cn0=",
+            "MKkxhnGY0TsM20zEj2C8BhGoUfD8CelEgv9j+PctofPh4FmQ6CzfQIZ8b+N0noNPhV3Zz+kKDEaurlsWek/0sqvNs3lqPhI+6zlXGx0AAuKf0XnFEFRFpzRkHBk9RiCJ4aHenpu81bDAptkA+DGZBKddUMOSIQwPtZnDp1dG51C8iSIHg9Y8ka+y7czfUYZN0S84T8Mzew64u7ms0r4oS8bBuY1erXnCiaY3RZURkl0b2yY+JZeCXeiRFEwL5opxVrONktJ72dTqBK73Y4L+wVRJ4SeufVuRUTDCVoVpv4Ky9nkeOgpyWcxdJDODAs5tVsVObRJoZla5FAjKwHw3ta5C3D3JWnIiEXRG9L631TK6EiOvWlSTgRo7rxhNvVzBJ2SXrWDi5YVg3Io479C8oMBY4HLasK4grJ8UjfV93B7rO9IzCrqp+C4/E13jdJfcslD5i2ehbOl+1iuhOjBetYUa+WX8qH+lg6m2rMcNt6J0Jken00CQgnTlbLR9g8ljOnlbu3pfp5wVuVg7KJwZvKHoY2YQzPL7EswfzGFRN1/Pi9s8a6iX1rHo+xF1hCIEE669hdyMJdKM8hiqGLZy7dNTSwEc4iIHxENkbHVjaAyK+XeZrW2o02YNJcOXpisGxygItdxL/NkwvrcmBBwmTKMNumXlOi2QUdc+3ksGEAA="
+    );
+    private static final SkinData BUILD_SKIN = new SkinData(
+            "build_selector",
+            "ewogICJ0aW1lc3RhbXAiIDogMTc2NjYzNjMyMTUwMSwKICAicHJvZmlsZUlkIiA6ICJkYjZiYWRlN2NjMzI0MjM4YjU3OTQ4NzMxNTBkNjA1MiIsCiAgInByb2ZpbGVOYW1lIiA6ICJRdWFudHVtQmxvY2tlciIsCiAgInNpZ25hdHVyZVJlcXVpcmVkIiA6IHRydWUsCiAgInRleHR1cmVzIiA6IHsKICAgICJTS0lOIiA6IHsKICAgICAgInVybCIgOiAiaHR0cDovL3RleHR1cmVzLm1pbmVjcmFmdC5uZXQvdGV4dHVyZS85ZGRmOWFlODI4YTQ3ZTM2M2VmMzJiMTY3YWI5OWFkZjFhMjQ5ZDhhMGQ1MzI5ZDY2NzU0MjUwMTY2NzExMGE4IgogICAgfQogIH0KfQ==",
+            "f+UDzGc+cgLQyW5c0N/q1R3OyBx7G4n3jorlgBN36TxcaPjazLJ/TnBBhIKkf2XwGsquTqhjHCnKIC402JQNZrxwZllz98b3EVEtbDvpBLDK1FIgoUvjs77kC3x2LjfwebdhokWinc4LOO6lNxh1QCd5+cTXflB/x7EZ8lfaoePeX4zAHmrJf/VFd3j+886Z2elO4s1xsGbbgGTWy1vI+JggdJIhRULJI/5A8BTzhoAW+ECFaVYP4FyzX6Ev1Bv4YOrVHCejwv78UwtoQ+Pxpn+IqkHdUhuNpm77m4Y2CwM10vJDVWedtUL6NhqbVvbTUFFEG6pD+sDWZZNPT3pCcZmF1nqXT1oNIakVArVKG8l+0/EXJ3oBmD3QTBf8YxfuHhB/U+VtnXsmm9y23t/lfdqgHfPdRRzCa7ta95+pNjNC3ZV9/Ww2Axrykt1s7DO6ZLY6IyNLtsUUC9eE52Y9YcxUynTydVLN4RIHsHI3q+TH6GQz2KOW6m8928FrmbJuZMfcoQEzG0VpyANTXlI4eX7vjcXACt+wKll5Vphf1jBPowk3RP/JcuMuw3IMEOpo0pA4B1Gsv9WFsSlGD1JqAmyS3Y70MN40KczicTBL84QhQRfXASa5tvHA19L2lqtbi0huUq4JsWsgan+8IhdzRPyuf9EyQXrRLlB+ZstqVNw="
+    );
 
     private final Main plugin;
     private final WorldManager worldManager;
@@ -169,10 +180,11 @@ public class ServerSelectionManager {
         if (player == null) {
             return false;
         }
-        boolean hasPermission = buildPermission == null || buildPermission.isBlank()
-                || player.hasPermission(buildPermission);
+        boolean hasPermission = buildPermission != null && !buildPermission.isBlank()
+                && player.hasPermission(buildPermission);
         Integer weight = LuckPermsWeightUtil.getWeight(player);
-        return hasPermission && weight != null && weight >= buildMinWeight;
+        boolean hasWeight = weight != null && weight >= buildMinWeight;
+        return hasPermission || hasWeight;
     }
 
     public boolean isHubWorld(World world) {
@@ -258,16 +270,17 @@ public class ServerSelectionManager {
             return;
         }
         selectorNpcs.put("alpha", createSelectorNpc("alpha", "Alpha Test",
-                new Location(world, -35, 67, 3)));
+                centeredLocation(world, -35, 67, 3)));
         selectorNpcs.put("build", createSelectorNpc("build", "Development Server",
-                new Location(world, -45, 67, 3)));
+                centeredLocation(world, -45, 67, 3)));
         updateSelectorHolograms();
         selectorTask = Bukkit.getScheduler().runTaskTimer(plugin, this::updateSelectorHolograms, 20L, 40L);
     }
 
     private SelectorNpc createSelectorNpc(String key, String label, Location location) {
-        NPC npc = CitizensAPI.getNPCRegistry().createNPC(EntityType.VILLAGER, "");
+        NPC npc = CitizensAPI.getNPCRegistry().createNPC(EntityType.PLAYER, "");
         npc.data().set(SELECTOR_DATA_KEY, key);
+        applySelectorSkin(npc, key);
         npc.spawn(location);
         if (npc.getEntity() != null) {
             npc.getEntity().setCustomNameVisible(false);
@@ -305,6 +318,19 @@ public class ServerSelectionManager {
             return false;
         }
         return world.getName().equalsIgnoreCase(target);
+    }
+
+    private Location centeredLocation(World world, double x, double y, double z) {
+        return new Location(world, x + 0.5, y, z + 0.5);
+    }
+
+    private void applySelectorSkin(NPC npc, String key) {
+        if (npc == null) {
+            return;
+        }
+        SkinData skin = "alpha".equalsIgnoreCase(key) ? ALPHA_SKIN : BUILD_SKIN;
+        SkinTrait trait = npc.getOrAddTrait(SkinTrait.class);
+        trait.setSkinPersistent(skin.name(), skin.signature(), skin.value());
     }
 
     private String getConfigValue(FileConfiguration config, String key, String fallback) {
@@ -388,4 +414,6 @@ public class ServerSelectionManager {
             }
         }
     }
+
+    private record SkinData(String name, String value, String signature) {}
 }
