@@ -51,23 +51,14 @@ public class StorageEvents implements Listener {
         Inventory top = event.getView().getTopInventory();
         if (trackedInventories.containsKey(top)) {
             StorageGUI gui = trackedInventories.get(top);
-            if (gui.isFilteredView(top)
-                    && gui.isStorageSlot(event.getRawSlot())
-                    && event.getRawSlot() < top.getSize()) {
-                event.setCancelled(true);
-                if (event.getWhoClicked() instanceof Player player) {
-                    ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
-                            "Disable the filter to move items.");
+            if (gui.isFilteredView(top)) {
+                if (handleFilteredClick(event, gui, top)) {
+                    return;
                 }
-                return;
             }
             if (event.getWhoClicked() instanceof Player player
                     && shouldBlockDungeonItem(event, top, player)) {
                 event.setCancelled(true);
-                return;
-            }
-            if (gui.isFilteredView(top)) {
-                gui.handleClick(event);
                 return;
             }
             if (!gui.allowsSoulbound() && event.getClickedInventory() != top) {
@@ -175,6 +166,103 @@ public class StorageEvents implements Listener {
         }
 
         return false;
+    }
+
+    private boolean handleFilteredClick(InventoryClickEvent event, StorageGUI gui, Inventory top) {
+        int rawSlot = event.getRawSlot();
+        if (rawSlot < 0 || rawSlot >= top.getSize()) {
+            return false;
+        }
+
+        if (!gui.isStorageSlot(rawSlot)) {
+            gui.handleClick(event);
+            return true;
+        }
+
+        Inventory clicked = event.getClickedInventory();
+        if (clicked == null) {
+            return false;
+        }
+
+        InventoryAction action = event.getAction();
+        if (clicked.equals(top)) {
+            if (isFilteredStorageInsertAction(action)) {
+                cancelFilteredInsert(event);
+                return true;
+            }
+            if (isFilteredStorageTakeAction(action)) {
+                ItemStack current = event.getCurrentItem();
+                int removeAmount = getFilteredRemovalAmount(action, current, event.getCursor());
+                if (removeAmount > 0 && current != null) {
+                    gui.removeFromFilteredSource(top, current, removeAmount);
+                }
+                return false;
+            }
+            cancelFilteredInsert(event);
+            return true;
+        }
+
+        if (action == InventoryAction.MOVE_TO_OTHER_INVENTORY || isFilteredStorageInsertAction(action)) {
+            cancelFilteredInsert(event);
+            return true;
+        }
+
+        return false;
+    }
+
+    private boolean isFilteredStorageTakeAction(InventoryAction action) {
+        return switch (action) {
+            case PICKUP_ALL,
+                 PICKUP_HALF,
+                 PICKUP_ONE,
+                 PICKUP_SOME,
+                 MOVE_TO_OTHER_INVENTORY,
+                 DROP_ALL_SLOT,
+                 DROP_ONE_SLOT -> true;
+            default -> false;
+        };
+    }
+
+    private boolean isFilteredStorageInsertAction(InventoryAction action) {
+        return switch (action) {
+            case PLACE_ALL,
+                 PLACE_ONE,
+                 PLACE_SOME,
+                 SWAP_WITH_CURSOR,
+                 HOTBAR_SWAP,
+                 HOTBAR_MOVE_AND_READD,
+                 COLLECT_TO_CURSOR -> true;
+            default -> false;
+        };
+    }
+
+    private int getFilteredRemovalAmount(InventoryAction action, ItemStack current, ItemStack cursor) {
+        if (current == null) {
+            return 0;
+        }
+        return switch (action) {
+            case PICKUP_ONE, DROP_ONE_SLOT -> 1;
+            case PICKUP_HALF -> (current.getAmount() + 1) / 2;
+            case PICKUP_SOME -> {
+                int cursorAmount = 0;
+                if (cursor != null && cursor.isSimilar(current)) {
+                    cursorAmount = cursor.getAmount();
+                }
+                int maxStack = current.getMaxStackSize();
+                int remaining = Math.max(0, maxStack - cursorAmount);
+                yield Math.min(current.getAmount(), remaining);
+            }
+            case PICKUP_ALL, MOVE_TO_OTHER_INVENTORY, DROP_ALL_SLOT -> current.getAmount();
+            default -> 0;
+        };
+    }
+
+    private void cancelFilteredInsert(InventoryClickEvent event) {
+        event.setCancelled(true);
+        if (event.getWhoClicked() instanceof Player player) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                    "Disable the filter to move items.");
+        }
     }
 
     private boolean shouldBlockDungeonItem(InventoryDragEvent event, Inventory top, Player player) {
