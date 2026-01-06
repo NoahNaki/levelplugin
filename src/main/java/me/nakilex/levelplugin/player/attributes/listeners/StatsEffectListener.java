@@ -207,6 +207,6 @@ public class StatsEffectListener implements Listener {
         if (maxHealth <= 0) {
             return;
         }
-        event.setDamage(maxHealth * 0.08);
+        event.setDamage(maxHealth * 0.03);
     }
 }
