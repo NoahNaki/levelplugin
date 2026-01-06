@@ -3,7 +3,6 @@ package me.nakilex.levelplugin.storage.events;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.storage.gui.StorageGUI;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
-import org.bukkit.Bukkit;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -52,9 +51,23 @@ public class StorageEvents implements Listener {
         Inventory top = event.getView().getTopInventory();
         if (trackedInventories.containsKey(top)) {
             StorageGUI gui = trackedInventories.get(top);
+            if (gui.isFilteredView(top)
+                    && gui.isStorageSlot(event.getRawSlot())
+                    && event.getRawSlot() < top.getSize()) {
+                event.setCancelled(true);
+                if (event.getWhoClicked() instanceof Player player) {
+                    ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                            "Disable the filter to move items.");
+                }
+                return;
+            }
             if (event.getWhoClicked() instanceof Player player
                     && shouldBlockDungeonItem(event, top, player)) {
                 event.setCancelled(true);
+                return;
+            }
+            if (gui.isFilteredView(top)) {
+                gui.handleClick(event);
                 return;
             }
             if (!gui.allowsSoulbound() && event.getClickedInventory() != top) {
@@ -82,6 +95,14 @@ public class StorageEvents implements Listener {
         Inventory top = event.getView().getTopInventory();
         if (trackedInventories.containsKey(top)) {
             StorageGUI gui = trackedInventories.get(top);
+            if (gui.isFilteredView(top)) {
+                event.setCancelled(true);
+                if (event.getWhoClicked() instanceof Player player) {
+                    ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                            "Disable the filter to move items.");
+                }
+                return;
+            }
             if (event.getWhoClicked() instanceof Player player
                     && shouldBlockDungeonItem(event, top, player)) {
                 event.setCancelled(true);
@@ -108,6 +129,7 @@ public class StorageEvents implements Listener {
 
                 // Optionally save the player's storage on close
                 StorageGUI gui = trackedInventories.get(closedInventory);
+                gui.cleanupView(closedInventory);
                 gui.saveToDisk(); // Or pass to PersonalStorage for saving
 
                 // Unregister this inventory to free up references
@@ -166,4 +188,5 @@ public class StorageEvents implements Listener {
         }
         return false;
     }
+
 }

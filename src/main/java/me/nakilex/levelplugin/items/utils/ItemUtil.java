@@ -38,7 +38,10 @@ import me.nakilex.levelplugin.utils.GuiUtil;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class ItemUtil {
 
@@ -59,6 +62,9 @@ public class ItemUtil {
     public static final NamespacedKey NEXO_MODEL_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "nexo_model");
     public static final NamespacedKey SOULBOUND_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "soulbound");
     public static final NamespacedKey DUNGEON_ITEM_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "dungeon_item");
+
+    private static final Pattern LEVEL_REQUIREMENT_PATTERN = Pattern.compile("(?i)(?:level|lvl|lv)\\.?\\s*(?:requirement|req)?\\s*:?\\s*(\\d+)");
+    private static final Pattern LAST_NUMBER_PATTERN = Pattern.compile("(\\d+)(?!.*\\d)");
 
     private static final int PREFIX_BONUS = 20;
     private static final java.util.Map<String, StatsManager.StatType> PREFIX_MAP = new java.util.HashMap<>();
@@ -768,6 +774,59 @@ public class ItemUtil {
         if (stack == null || !stack.hasItemMeta()) return 0;
         ItemMeta meta = stack.getItemMeta();
         return meta.getPersistentDataContainer().getOrDefault(UPGRADE_LEVEL_KEY, PersistentDataType.INTEGER, 0);
+    }
+
+    public static Integer getLevelRequirement(ItemStack stack) {
+        if (stack == null) {
+            return null;
+        }
+        CustomItem custom = ItemManager.getInstance().getCustomItemFromItemStack(stack);
+        if (custom != null) {
+            return custom.getLevelRequirement();
+        }
+        int templateId = getCustomItemId(stack);
+        if (templateId >= 0) {
+            CustomItem template = ItemManager.getInstance().getTemplateById(templateId);
+            if (template != null) {
+                return template.getLevelRequirement();
+            }
+        }
+        if (!stack.hasItemMeta()) {
+            return null;
+        }
+        ItemMeta meta = stack.getItemMeta();
+        if (meta == null || !meta.hasLore()) {
+            return null;
+        }
+        for (String line : meta.getLore()) {
+            String stripped = ChatColor.stripColor(line);
+            if (stripped == null) {
+                continue;
+            }
+            String lower = stripped.toLowerCase(Locale.ROOT);
+            if (!lower.contains("level") && !lower.contains("lv") && !lower.contains("lvl")) {
+                continue;
+            }
+            Matcher matcher = LEVEL_REQUIREMENT_PATTERN.matcher(stripped);
+            if (matcher.find()) {
+                try {
+                    return Integer.parseInt(matcher.group(1));
+                } catch (NumberFormatException ignored) {
+                    // keep searching
+                }
+            }
+            if (lower.contains("requirement") || lower.contains("req")) {
+                Matcher fallback = LAST_NUMBER_PATTERN.matcher(stripped);
+                if (fallback.find()) {
+                    try {
+                        return Integer.parseInt(fallback.group(1));
+                    } catch (NumberFormatException ignored) {
+                        // keep searching
+                    }
+                }
+            }
+        }
+        return null;
     }
 
     public static void updateDurability(ItemStack stack, int durability) {

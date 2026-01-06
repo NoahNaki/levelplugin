@@ -50,6 +50,8 @@ public class ClassSpellListener implements Listener {
     private final Set<UUID> pendingSneak = new HashSet<>();
     /** Sneak releases scheduled to fire after a short delay */
     private final Map<UUID, BukkitTask> pendingUnsneak = new HashMap<>();
+    private final Map<UUID, Long> mageDoubleSneakPending = new HashMap<>();
+    private static final long DOUBLE_SNEAK_WINDOW_MS = 600L;
     /** NPC interactions to avoid spell casts on the same click */
     private final Map<UUID, Long> recentNpcInteractions = new HashMap<>();
 
@@ -86,7 +88,7 @@ public class ClassSpellListener implements Listener {
     private static final EnumSet<PlayerClass> BOW_CLASSES = EnumSet.noneOf(PlayerClass.class);
     private static final Map<PlayerClass, Map<Trigger, Double>> MANUAL_TRIGGER_COOLDOWNS = new EnumMap<>(PlayerClass.class);
     private static final Map<PlayerClass, Double> BASIC_ATTACK_MIN_COOLDOWNS = new EnumMap<>(PlayerClass.class);
-    private static final EnumSet<PlayerClass> INSTANT_SNEAK_START = EnumSet.of(PlayerClass.MAGE);
+    private static final EnumSet<PlayerClass> INSTANT_SNEAK_START = EnumSet.noneOf(PlayerClass.class);
     private static final EnumSet<Material> DUNGEON_FLOWERS = EnumSet.of(
             Material.POPPY,
             Material.DANDELION,
@@ -131,7 +133,7 @@ public class ClassSpellListener implements Listener {
         t.left = List.of("fireball");
         t.rightSneak = List.of("meteor");
         t.right = List.of("blink");
-        t.sneakStart = List.of("frost_nova");
+        t.sneakEnd = List.of("frost_nova");
         MAP.put(PlayerClass.MAGE, t);
 
         // Warrior class
@@ -529,6 +531,18 @@ public class ClassSpellListener implements Listener {
         if (tr == null) return;
         if (event.isSneaking()) {
             UUID id = p.getUniqueId();
+            if (pc == PlayerClass.MAGE) {
+                Long last = lastUnsneak.get(id);
+                long now = System.currentTimeMillis();
+                if (last != null && now - last <= DOUBLE_SNEAK_WINDOW_MS) {
+                    mageDoubleSneakPending.put(id, now);
+                    Main.getPlugin().getLogger().info(
+                            "[ClassSpellListener] mage double-sneak detected for " + p.getName());
+                } else {
+                    mageDoubleSneakPending.remove(id);
+                }
+                return;
+            }
             if (INSTANT_SNEAK_START.contains(pc)) {
                 cast(p, tr.sneakStart, pc, Trigger.SNEAK_START);
                 return;
@@ -611,6 +625,25 @@ public class ClassSpellListener implements Listener {
         } else {
             UUID id = p.getUniqueId();
             cancelHoldTask(id);
+            if (pc == PlayerClass.MAGE) {
+                if (mageDoubleSneakPending.remove(id) != null) {
+                    Main.getPlugin().getLogger().info(
+                            "[ClassSpellListener] mage double-sneak cast queued for " + p.getName());
+                    Bukkit.getScheduler().runTaskLater(
+                            Main.getPlugin(),
+                            () -> {
+                                if (p.isOnline() && !p.isSneaking()) {
+                                    Main.getPlugin().getLogger().info(
+                                            "[ClassSpellListener] mage double-sneak cast firing for " + p.getName());
+                                    cast(p, tr.sneakEnd, pc, Trigger.SNEAK_END);
+                                }
+                            },
+                            2L
+                    );
+                }
+                lastUnsneak.put(id, System.currentTimeMillis());
+                return;
+            }
             boolean castSneak = pendingSneak.remove(id);
             if (castSneak) {
                 BukkitTask old = pendingUnsneak.remove(id);
