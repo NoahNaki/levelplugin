@@ -459,7 +459,7 @@ public class StorageGUI {
     }
 
     private Inventory buildFilteredInventory(Inventory source) {
-        Inventory filtered = Bukkit.createInventory(null, PAGE_SIZE, source.getTitle());
+        Inventory filtered = createBlankPage(currentPage + 1);
         filteredViews.put(filtered, source);
         List<ItemStack> items = collectStoredItems(source);
         List<ItemStack> matches = new ArrayList<>();
