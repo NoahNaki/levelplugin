@@ -46,6 +46,10 @@ public class MythicSkillEffect implements SpellEffect {
         } catch (NoSuchMethodError e) {
             success = MythicBukkit.inst().getAPIHelper().castSkill(caster, skill);
         }
+        me.nakilex.levelplugin.Main.getPlugin().getLogger().info(
+                "[MythicSkillEffect] result=" + success
+                        + " skill=" + skill
+                        + " sneaking=" + caster.isSneaking());
         SpellCastContextCompat.markSuccess(ctx, success);
     }
 }

@@ -536,6 +536,8 @@ public class ClassSpellListener implements Listener {
                 long now = System.currentTimeMillis();
                 if (last != null && now - last <= DOUBLE_SNEAK_WINDOW_MS) {
                     mageDoubleSneakPending.put(id, now);
+                    Main.getPlugin().getLogger().info(
+                            "[ClassSpellListener] mage double-sneak detected for " + p.getName());
                 } else {
                     mageDoubleSneakPending.remove(id);
                 }
@@ -625,10 +627,14 @@ public class ClassSpellListener implements Listener {
             cancelHoldTask(id);
             if (pc == PlayerClass.MAGE) {
                 if (mageDoubleSneakPending.remove(id) != null) {
+                    Main.getPlugin().getLogger().info(
+                            "[ClassSpellListener] mage double-sneak cast queued for " + p.getName());
                     Bukkit.getScheduler().runTaskLater(
                             Main.getPlugin(),
                             () -> {
                                 if (p.isOnline() && !p.isSneaking()) {
+                                    Main.getPlugin().getLogger().info(
+                                            "[ClassSpellListener] mage double-sneak cast firing for " + p.getName());
                                     cast(p, tr.sneakEnd, pc, Trigger.SNEAK_END);
                                 }
                             },

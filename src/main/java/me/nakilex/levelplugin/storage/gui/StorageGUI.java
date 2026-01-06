@@ -183,6 +183,8 @@ public class StorageGUI {
             event.setCancelled(true);
             if (event.isLeftClick()) filterMode++; else filterMode--;
             if (filterMode > 5) filterMode = 0; if (filterMode < 0) filterMode = 5;
+            Main.getInstance().getLogger().info(
+                    "[StorageGUI] filterMode owner=" + ownerKey + " newMode=" + filterMode);
             open((Player) event.getWhoClicked());
         }
         else if (slot == INFO_SLOT || slot < 9 || slot >= 45 || slot % 9 == 0 || slot % 9 == 8) {
@@ -416,9 +418,8 @@ public class StorageGUI {
         return me.nakilex.levelplugin.items.utils.ItemUtil.getLevelRequirement(item);
     }
 
-    private boolean matchesLevelFilter(ItemStack item, int filter) {
+    private boolean matchesLevelFilter(Integer level, int filter) {
         if (filter == 5) return true;
-        Integer level = getItemLevelRequirement(item);
         if (level == null) {
             return false;
         }
@@ -439,6 +440,13 @@ public class StorageGUI {
             inv.setItem(slot, null);
         }
 
+        Main.getInstance().getLogger().info(
+                "[StorageGUI] applySortAndFilter owner=" + ownerKey
+                        + " page=" + (currentPage + 1)
+                        + " sort=" + sortMode
+                        + " filter=" + filterMode
+                        + " items=" + items.size());
+
         if (sortMode == 1) {
             items.sort(java.util.Comparator.comparingInt(this::getRarityOrdinal).reversed());
         } else if (sortMode == 2) {
@@ -448,13 +456,24 @@ public class StorageGUI {
         if (filterMode != 5) {
             List<ItemStack> matches = new ArrayList<>();
             List<ItemStack> nonMatches = new ArrayList<>();
+            int unknownLevels = 0;
             for (ItemStack item : items) {
-                if (matchesLevelFilter(item, filterMode)) {
+                Integer level = getItemLevelRequirement(item);
+                boolean match = matchesLevelFilter(level, filterMode);
+                if (level == null) {
+                    unknownLevels++;
+                }
+                if (match) {
                     matches.add(item);
                 } else {
                     nonMatches.add(item);
                 }
             }
+            Main.getInstance().getLogger().info(
+                    "[StorageGUI] filterResults owner=" + ownerKey
+                            + " matches=" + matches.size()
+                            + " hidden=" + nonMatches.size()
+                            + " unknownLevels=" + unknownLevels);
             hiddenItems.put(inv, nonMatches);
             items = matches;
         } else {
