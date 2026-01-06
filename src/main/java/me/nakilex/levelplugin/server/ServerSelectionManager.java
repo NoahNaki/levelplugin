@@ -18,6 +18,7 @@ import org.bukkit.scheduler.BukkitTask;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
 import net.citizensnpcs.trait.SkinTrait;
+import net.citizensnpcs.trait.LookClose;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -285,6 +286,8 @@ public class ServerSelectionManager {
         if (npc.getEntity() != null) {
             npc.getEntity().setCustomNameVisible(false);
         }
+        LookClose lookClose = npc.getOrAddTrait(LookClose.class);
+        lookClose.setLookClose(true);
         SelectorNpc selector = new SelectorNpc(npc);
         selector.updateTop(org.bukkit.ChatColor.YELLOW + "CLICK TO JOIN");
         selector.updateMiddle(org.bukkit.ChatColor.AQUA + label);
