@@ -784,6 +784,13 @@ public class ItemUtil {
         if (custom != null) {
             return custom.getLevelRequirement();
         }
+        int templateId = getCustomItemId(stack);
+        if (templateId >= 0) {
+            CustomItem template = ItemManager.getInstance().getTemplateById(templateId);
+            if (template != null) {
+                return template.getLevelRequirement();
+            }
+        }
         if (!stack.hasItemMeta()) {
             return null;
         }
