@@ -141,8 +141,8 @@ public class MiningManager {
                 atMax,
                 required,
                 "Mining",
-                ChatColor.AQUA,
-                BarColor.BLUE
+                ChatColor.GRAY,
+                BarColor.WHITE
         );
     }
 

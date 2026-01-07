@@ -212,8 +212,8 @@ public class FarmingManager {
                 atMax,
                 required,
                 "Farming",
-                ChatColor.AQUA,
-                BarColor.BLUE
+                ChatColor.YELLOW,
+                BarColor.YELLOW
         );
     }
 

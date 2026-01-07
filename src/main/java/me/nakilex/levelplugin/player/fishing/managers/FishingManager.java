@@ -144,7 +144,7 @@ public class FishingManager {
                 atMax,
                 required,
                 "Fishing",
-                ChatColor.AQUA,
+                ChatColor.BLUE,
                 BarColor.BLUE
         );
     }
