@@ -322,7 +322,7 @@ public class CustomItem {
 
     /**
      * Increases upgradeLevel by 1 (up to 5) and then scales base stats
-     * by (1 + 0.1×upgradeLevel + rarityBonus).
+     * by (1 + 0.04×upgradeLevel + rarityBonus).
      */
     public void applyUpgrade() {
         if (upgradeLevel < 5) {
@@ -384,7 +384,7 @@ public class CustomItem {
 
     /** Multiplies each base stat by the combined upgrade & rarity multiplier. */
     public void increaseStats() {
-        double multiplier = 1.0 + (upgradeLevel * 0.1) + getRarityMultiplier();
+        double multiplier = 1.0 + (upgradeLevel * 0.04) + getRarityMultiplier();
         baseHp    = (int)(baseHp    * multiplier);
         baseDef   = (int)(baseDef   * multiplier);
         baseStr   = (int)(baseStr   * multiplier);
@@ -398,12 +398,12 @@ public class CustomItem {
     private double getRarityMultiplier() {
         switch (rarity) {
             case COMMON:    return 0.0;
-            case UNCOMMON:  return 0.007;
-            case RARE:      return 0.01;
-            case EPIC:      return 0.02;
-            case LEGENDARY: return 0.03;
-            case MYTHIC:    return 0.05;
-            case FABLED:    return 0.04; // if you want custom ratio
+            case UNCOMMON:  return 0.003;
+            case RARE:      return 0.005;
+            case EPIC:      return 0.01;
+            case LEGENDARY: return 0.015;
+            case MYTHIC:    return 0.02;
+            case FABLED:    return 0.018; // if you want custom ratio
             default:        return 0.0;
         }
     }

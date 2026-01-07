@@ -189,8 +189,9 @@ public class BattlePassGUI implements Listener {
 
     private ItemStack createProgressPane(BattlePassEntry entry, BattlePassView view) {
         boolean unlocked = entry.tier() <= view.currentTier();
-        Material material = unlocked ? Material.LIME_STAINED_GLASS_PANE : Material.GRAY_STAINED_GLASS_PANE;
-        ItemStack pane = GuiUtil.createFiller(material);
+        ItemStack pane = unlocked
+                ? GuiUtil.getNexoItem("check", ChatColor.GREEN + "Tier " + entry.tier() + " Progress")
+                : GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
         ItemMeta meta = pane.getItemMeta();
         if (meta != null) {
             meta.setDisplayName((unlocked ? ChatColor.GREEN : ChatColor.DARK_GRAY) + "Tier " + entry.tier() + " Progress");

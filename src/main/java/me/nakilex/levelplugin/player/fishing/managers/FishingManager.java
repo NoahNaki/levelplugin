@@ -131,6 +131,10 @@ public class FishingManager {
     private void updateBossBar(Player player) {
         if (player == null) return;
         UUID uuid = player.getUniqueId();
+        int level = getLevel(uuid);
+        int xp = getXP(uuid);
+        boolean atMax = level >= MAX_LEVEL;
+        int required = atMax ? getXpRequired(MAX_LEVEL) : getXpRequired(level);
         BossBar bar = xpBars.computeIfAbsent(uuid, id -> {
             BossBar created = Bukkit.createBossBar("", BarColor.BLUE, BarStyle.SOLID);
             created.addPlayer(player);
@@ -138,11 +142,13 @@ public class FishingManager {
             return created;
         });
 
-        int level = getLevel(uuid);
-        int xp = getXP(uuid);
-        boolean atMax = level >= MAX_LEVEL;
-        int required = atMax ? getXpRequired(MAX_LEVEL) : getXpRequired(level);
         double progress = atMax ? 1.0 : required <= 0 ? 1.0 : Math.min(1.0, Math.max(0.0, xp / (double) required));
+        boolean showBar = activeBars.getOrDefault(uuid, false);
+        if (!showBar) {
+            bar.removePlayer(player);
+            bar.setVisible(false);
+            return;
+        }
         String progressLabel = atMax ? (ChatColor.GREEN + "MAX") : (ChatColor.WHITE + String.valueOf(xp)
                 + ChatColor.GRAY + "/" + ChatColor.WHITE + required);
 
@@ -156,8 +162,7 @@ public class FishingManager {
         if (!bar.getPlayers().contains(player)) {
             bar.addPlayer(player);
         }
-        boolean visible = activeBars.getOrDefault(uuid, false);
-        bar.setVisible(visible);
+        bar.setVisible(true);
     }
 
     private void markFishingActive(Player player) {
@@ -167,15 +172,12 @@ public class FishingManager {
         if (existing != null) {
             existing.cancel();
         }
-        BossBar bar = xpBars.get(uuid);
-        if (bar != null) {
-            bar.setVisible(true);
-        }
+        updateBossBar(player);
         hideTasks.put(uuid, Bukkit.getScheduler().runTaskLater(plugin, () -> {
             activeBars.put(uuid, false);
-            BossBar b = xpBars.get(uuid);
-            if (b != null) {
-                b.setVisible(false);
+            Player online = Bukkit.getPlayer(uuid);
+            if (online != null) {
+                updateBossBar(online);
             }
         }, 20L * 6));
     }

@@ -2,6 +2,8 @@ package me.nakilex.levelplugin.salvage.managers;
 
 import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.data.ItemRarity;
+import me.nakilex.levelplugin.items.tools.CustomTool;
+import me.nakilex.levelplugin.items.tools.ToolTier;
 import me.nakilex.levelplugin.player.classes.essence.ClassEssence;
 import me.nakilex.levelplugin.potions.data.PotionInstance;
 import org.bukkit.inventory.ItemStack;
@@ -23,6 +25,17 @@ public class SalvageManager {
         GEM_MULTIPLIERS.put(ItemRarity.LEGENDARY, 2);
         GEM_MULTIPLIERS.put(ItemRarity.MYTHIC,    3);
         GEM_MULTIPLIERS.put(ItemRarity.FABLED,    4);
+    }
+
+    private static final Map<ToolTier, Integer> TOOL_SALVAGE_SCORES;
+    static {
+        TOOL_SALVAGE_SCORES = new EnumMap<>(ToolTier.class);
+        TOOL_SALVAGE_SCORES.put(ToolTier.TIER_I, 5);
+        TOOL_SALVAGE_SCORES.put(ToolTier.TIER_II, 10);
+        TOOL_SALVAGE_SCORES.put(ToolTier.TIER_III, 15);
+        TOOL_SALVAGE_SCORES.put(ToolTier.TIER_IV, 25);
+        TOOL_SALVAGE_SCORES.put(ToolTier.TIER_V, 40);
+        TOOL_SALVAGE_SCORES.put(ToolTier.TIER_VI, 60);
     }
 
     private static SalvageManager instance;
@@ -58,7 +71,7 @@ public class SalvageManager {
 
     public int getSellPrice(CustomItem cItem) {
         int totalStats = getTotalStats(cItem);
-        return totalStats * COINS_PER_STAT_POINT;
+        return getCoinRewardFromScore(totalStats);
     }
 
     /**
@@ -66,17 +79,20 @@ public class SalvageManager {
      * Rarity below EPIC yields 0.
      */
     public int getGemReward(CustomItem cItem) {
-        // sum stats just like coins
         int totalStats = getTotalStats(cItem);
+        return getGemRewardFromScore(totalStats, cItem.getRarity());
+    }
 
-        int multiplier = GEM_MULTIPLIERS.getOrDefault(cItem.getRarity(), 0);
-        int rawGems    = totalStats * multiplier;
+    public int getToolSellPrice(CustomTool tool) {
+        int score = getToolSalvageScore(tool);
+        return getCoinRewardFromScore(score);
+    }
 
-        // Divide by a larger number to make gems much rarer.
-        // We still guarantee at least 1 gem for epic+.
-        return multiplier > 0
-            ? Math.max(1, rawGems / 10)
-            : 0;
+    public int getToolGemReward(CustomTool tool) {
+        if (tool == null) {
+            return 0;
+        }
+        return getGemRewardFromScore(getToolSalvageScore(tool), tool.getTier().getRarity());
     }
 
     /**
@@ -112,4 +128,23 @@ public class SalvageManager {
         return Math.max(0, base + (int) Math.round(base * 0.35 * star));
     }
 
+    private int getCoinRewardFromScore(int score) {
+        return Math.max(0, score) * COINS_PER_STAT_POINT;
+    }
+
+    private int getGemRewardFromScore(int score, ItemRarity rarity) {
+        int multiplier = GEM_MULTIPLIERS.getOrDefault(rarity, 0);
+        int rawGems = Math.max(0, score) * multiplier;
+
+        return multiplier > 0
+                ? Math.max(1, rawGems / 10)
+                : 0;
+    }
+
+    private int getToolSalvageScore(CustomTool tool) {
+        if (tool == null) {
+            return 0;
+        }
+        return TOOL_SALVAGE_SCORES.getOrDefault(tool.getTier(), 0);
+    }
 }

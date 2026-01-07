@@ -113,6 +113,17 @@ public class GemExchangeGUI implements Listener {
             return;
         }
         int rem = fromAmt;
+        int unitValue;
+        if (toMat == Material.MEDIUM_AMETHYST_BUD)      unitValue = 1;
+        else if (toMat == Material.AMETHYST_SHARD)      unitValue = 64;
+        else /* AMETHYST_CLUSTER */                     unitValue = 4096;
+
+        ItemStack pretty = gemsManager.createCurrencyItem(toMat, toAmt, unitValue);
+        if (!gemsManager.canFit(p, pretty)) {
+            send(p, MessageType.ERROR, "You need at least one free inventory slot.");
+            return;
+        }
+
         for (var entry : map.entrySet()) {
             ItemStack stack = entry.getValue();
             int amt = stack.getAmount();
@@ -127,13 +138,11 @@ public class GemExchangeGUI implements Listener {
 
             if (rem == 0) break;
         }
-        int unitValue;
-        if (toMat == Material.MEDIUM_AMETHYST_BUD)      unitValue = 1;
-        else if (toMat == Material.AMETHYST_SHARD)      unitValue = 64;
-        else /* AMETHYST_CLUSTER */                     unitValue = 4096;
 
-        ItemStack pretty = gemsManager.createCurrencyItem(toMat, toAmt, unitValue);
-        p.getInventory().addItem(pretty);
+        Map<Integer, ItemStack> overflow = p.getInventory().addItem(pretty);
+        if (!overflow.isEmpty()) {
+            overflow.values().forEach(item -> p.getWorld().dropItemNaturally(p.getLocation(), item));
+        }
         send(p, MessageType.SUCCESS,
                 "Converted " + fromAmt + " " + fromMat.name().toLowerCase().replace('_',' ') + " into " + toAmt + " " + toMat.name().toLowerCase().replace('_',' ') + "!");
 

@@ -453,8 +453,8 @@ public class ItemUtil {
 
     /**
      * Determine the rarity of an ItemStack. Supports custom items,
-     * custom potions, and vanilla potion types. Returns {@code null}
-     * when the stack is not recognized.
+     * tools, custom potions, essences, and vanilla potion types.
+     * Returns {@code null} when the stack is not recognized.
      */
     public static ItemRarity getItemRarity(ItemStack stack) {
         if (stack == null || stack.getType() == Material.AIR) return null;
@@ -464,6 +464,11 @@ public class ItemUtil {
 
         PotionInstance pInst = Main.getInstance().getPotionManager().getInstanceFromItem(stack);
         if (pInst != null) return ItemRarity.fromTier(pInst.getTemplate().getTier());
+
+        me.nakilex.levelplugin.items.tools.CustomTool tool = ToolManager.getInstance().getTool(stack);
+        if (tool != null) {
+            return tool.getTier().getRarity();
+        }
 
         ItemRarity essenceRarity = ClassEssence.getRarity(stack);
         if (essenceRarity != null) {
@@ -617,12 +622,13 @@ public class ItemUtil {
 
     /**
      * Checks whether an ItemStack can be placed into the salvage GUI.
-     * Accepts any custom item or potion (including vanilla potions).
+     * Accepts custom items, tools, essences, and potions (including vanilla).
      */
     public static boolean isSalvageable(ItemStack stack) {
         if (stack == null || stack.getType() == Material.AIR) return false;
 
         if (ItemManager.getInstance().getCustomItemFromItemStack(stack) != null) return true;
+        if (ToolManager.getInstance().getTool(stack) != null) return true;
         if (Main.getInstance().getPotionManager().getInstanceFromItem(stack) != null) return true;
         if (ClassEssence.isEssence(stack)) return true;
 
@@ -900,6 +906,7 @@ public class ItemUtil {
                     ToolManager.getInstance().getFarmingEnchant(stack);
             if (enchant != null) {
                 lore.add(ChatColor.GRAY + "Enchant: " + ChatColor.LIGHT_PURPLE + enchant.getDisplayName());
+                lore.addAll(me.nakilex.levelplugin.utils.TooltipUtil.bulletList(enchant.getDescription()));
             }
         } else if (discipline == ToolDiscipline.FISHING) {
             lore.add(ChatColor.GRAY + "Fishing Speed: " + ChatColor.GREEN + "+" + (int) (tier.getFishingSpeed() * 100 - 100) + "%");

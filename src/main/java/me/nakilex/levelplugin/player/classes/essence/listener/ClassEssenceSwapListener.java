@@ -4,7 +4,9 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.classes.essence.ClassEssence;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
+import me.nakilex.levelplugin.server.ServerSelectionManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
+import me.nakilex.levelplugin.utils.WorldExclusionUtil;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -20,6 +22,16 @@ public class ClassEssenceSwapListener implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onSwap(PlayerSwapHandItemsEvent event) {
         Player player = event.getPlayer();
+        ServerSelectionManager serverSelectionManager = Main.getInstance().getServerSelectionManager();
+        if (serverSelectionManager != null && serverSelectionManager.isHubWorld(player.getWorld())) {
+            return;
+        }
+        if (WorldExclusionUtil.isExcluded(player)) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                    "You cannot swap essences in this area.");
+            event.setCancelled(true);
+            return;
+        }
         StatsManager statsManager = StatsManager.getInstance();
         StatsManager.PlayerStats ps = statsManager.getPlayerStats(player.getUniqueId());
         int unlockedSlots = statsManager.getUnlockedEssenceSlots(player);

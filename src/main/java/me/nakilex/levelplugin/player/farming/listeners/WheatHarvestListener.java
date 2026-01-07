@@ -22,10 +22,13 @@ import org.bukkit.inventory.ItemStack;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class WheatHarvestListener implements Listener {
 
     private final FarmingManager farmingManager;
+    private static final double ABUNDANCE_CHANCE = 0.03;
+    private static final int ABUNDANCE_RADIUS = 5;
 
     public WheatHarvestListener(FarmingManager farmingManager) {
         this.farmingManager = farmingManager;
@@ -87,12 +90,19 @@ public class WheatHarvestListener implements Listener {
         FarmingToolEnchant enchant = isFarmingTool ? ToolManager.getInstance().getFarmingEnchant(held) : null;
         boolean reaping = enchant == FarmingToolEnchant.REAPING;
         boolean bountiful = enchant == FarmingToolEnchant.BOUNTIFUL;
+        boolean abundance = enchant == FarmingToolEnchant.ABUNDANCE;
+        boolean consistency = enchant == FarmingToolEnchant.CONSISTENCY;
 
         double baseYield = isFarmingTool ? tool.getTier().getHarvestYield() : 1.0;
         double yieldMultiplier = bountiful ? baseYield * 2.0 : baseYield;
 
         Set<Block> targets = new HashSet<>();
-        if (reaping) {
+        if (abundance && ThreadLocalRandom.current().nextDouble() < ABUNDANCE_CHANCE) {
+            collectCircleTargets(block, targets, ABUNDANCE_RADIUS);
+        } else if (consistency) {
+            int size = farmingManager.getConsistencySize(player);
+            collectSquareTargets(block, targets, size);
+        } else if (reaping) {
             for (int dx = -1; dx <= 1; dx++) {
                 for (int dz = -1; dz <= 1; dz++) {
                     Block nearby = block.getRelative(dx, 0, dz);
@@ -106,6 +116,7 @@ public class WheatHarvestListener implements Listener {
             targets.add(block);
         }
 
+        int harvested = 0;
         for (Block target : targets) {
             FarmingCrop targetCrop = FarmingCrop.fromBlock(target);
             if (targetCrop == null || !targetCrop.isMature(target)) {
@@ -122,6 +133,7 @@ public class WheatHarvestListener implements Listener {
             if (Main.getInstance().getQuestManager() != null) {
                 Main.getInstance().getQuestManager().handleGatherCrops(player, targetCrop.getQuestId());
             }
+            harvested++;
 
             int amount = Math.max(1, (int) Math.round(yieldMultiplier));
             ItemStack drop = new ItemStack(targetCrop.getItemMaterial(), amount);
@@ -132,7 +144,43 @@ public class WheatHarvestListener implements Listener {
                         player.getWorld().dropItemNaturally(player.getLocation(), item));
             }
 
-            Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> targetCrop.replant(target), 1L);
+            Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
+                targetCrop.replant(target);
+            }, 1L);
+        }
+        if (consistency && harvested > 0) {
+            farmingManager.recordConsistencyHarvest(player, harvested);
         }
     }
+
+    private void collectCircleTargets(Block center, Set<Block> targets, int radius) {
+        for (int dx = -radius; dx <= radius; dx++) {
+            for (int dz = -radius; dz <= radius; dz++) {
+                if ((dx * dx) + (dz * dz) > radius * radius) {
+                    continue;
+                }
+                Block nearby = center.getRelative(dx, 0, dz);
+                FarmingCrop nearbyCrop = FarmingCrop.fromBlock(nearby);
+                if (nearbyCrop != null && nearbyCrop.isMature(nearby)) {
+                    targets.add(nearby);
+                }
+            }
+        }
+    }
+
+    private void collectSquareTargets(Block center, Set<Block> targets, int size) {
+        int clamped = Math.max(1, Math.min(6, size));
+        int start = -((clamped - 1) / 2);
+        int end = start + clamped - 1;
+        for (int dx = start; dx <= end; dx++) {
+            for (int dz = start; dz <= end; dz++) {
+                Block nearby = center.getRelative(dx, 0, dz);
+                FarmingCrop nearbyCrop = FarmingCrop.fromBlock(nearby);
+                if (nearbyCrop != null && nearbyCrop.isMature(nearby)) {
+                    targets.add(nearby);
+                }
+            }
+        }
+    }
+
 }

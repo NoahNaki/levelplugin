@@ -5,6 +5,8 @@ import me.nakilex.levelplugin.economy.managers.GemsManager;
 import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.data.ItemRarity;
 import me.nakilex.levelplugin.items.managers.ItemManager;
+import me.nakilex.levelplugin.items.tools.CustomTool;
+import me.nakilex.levelplugin.items.tools.ToolManager;
 import me.nakilex.levelplugin.salvage.managers.SalvageManager;
 import me.nakilex.levelplugin.salvage.gui.SalvageGUI;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
@@ -179,6 +181,14 @@ public class SalvageListener implements Listener {
 
             if (ClassEssence.isEssence(item)) {
                 totalCoins += SalvageManager.getInstance().getEssenceSellPrice(item);
+                inv.setItem(i, null);
+                continue;
+            }
+
+            CustomTool tool = ToolManager.getInstance().getTool(item);
+            if (tool != null) {
+                totalCoins += SalvageManager.getInstance().getToolSellPrice(tool);
+                totalGems += SalvageManager.getInstance().getToolGemReward(tool);
                 inv.setItem(i, null);
                 continue;
             }

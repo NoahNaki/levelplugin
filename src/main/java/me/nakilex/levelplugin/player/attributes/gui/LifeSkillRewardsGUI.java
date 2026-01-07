@@ -165,16 +165,14 @@ public final class LifeSkillRewardsGUI {
     private static ItemStack createRewardItem(Player player, ToolDiscipline discipline, LifeSkillReward reward,
                                               int playerLevel, boolean claimed) {
         boolean available = playerLevel >= reward.levelRequired();
-        Material material;
+        ItemStack stack;
         if (claimed) {
-            material = Material.YELLOW_STAINED_GLASS_PANE;
+            stack = new ItemStack(Material.YELLOW_STAINED_GLASS_PANE);
         } else if (available) {
-            material = Material.LIME_STAINED_GLASS_PANE;
+            stack = GuiUtil.getNexoItem("check", reward.displayName());
         } else {
-            material = Material.RED_STAINED_GLASS_PANE;
+            stack = new ItemStack(Material.RED_STAINED_GLASS_PANE);
         }
-
-        ItemStack stack = new ItemStack(material);
         ItemMeta meta = stack.getItemMeta();
         if (meta != null) {
             String skillName = discipline.name().substring(0, 1).toUpperCase() + discipline.name().substring(1).toLowerCase();

@@ -755,6 +755,17 @@ public class DungeonBuilder implements Listener {
         if (info == null) return;
         Location base = info.location;
         TemplateType type = manager.identifyTemplate(templ);
+        if (type == TemplateType.DECOR_CHEST && s.hasPlacedAny(TemplateType.DECOR_CHEST)) {
+            ChatMessageUtil.send(s.player, MessageType.ERROR,
+                    "You can only place one chest decor room per dungeon.");
+            return;
+        }
+        if ((type == TemplateType.TREASURE_LEFT || type == TemplateType.TREASURE_T_RIGHT)
+                && s.hasPlacedAny(TemplateType.TREASURE_LEFT, TemplateType.TREASURE_T_RIGHT)) {
+            ChatMessageUtil.send(s.player, MessageType.ERROR,
+                    "You can only place one treasure room per dungeon.");
+            return;
+        }
         int baseCost = getBaseRoomCost(templ);
         boolean unlocked = type != null && isTemplateUnlocked(s.player.getUniqueId(), type);
         int cost = baseCost > 0 && !unlocked ? baseCost : 0;
@@ -1330,6 +1341,21 @@ public class DungeonBuilder implements Listener {
                 org.bukkit.Bukkit.getScheduler().runTaskLater(manager.getPlugin(),
                         () -> manager.getPlugin().getWorldManager().deleteWorld(dungeon.getWorld().getName()), 1L);
             }
+        }
+
+        boolean hasPlacedAny(TemplateType... types) {
+            if (types == null || types.length == 0) {
+                return false;
+            }
+            java.util.Set<TemplateType> matches = java.util.EnumSet.noneOf(TemplateType.class);
+            java.util.Collections.addAll(matches, types);
+            for (Dungeon.RoomInstance room : dungeon.getRooms()) {
+                TemplateType placed = manager.identifyTemplate(room.template);
+                if (matches.contains(placed)) {
+                    return true;
+                }
+            }
+            return false;
         }
 
         DungeonLayout buildLayout() {

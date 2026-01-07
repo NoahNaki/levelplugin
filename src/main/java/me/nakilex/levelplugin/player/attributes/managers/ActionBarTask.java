@@ -51,7 +51,13 @@ public class ActionBarTask extends BukkitRunnable {
                 player.spigot().sendMessage(ChatMessageType.ACTION_BAR,
                         new TextComponent(ChatColor.RED + "In Combat"));
             } else {
-                player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(""));
+                String consistency = me.nakilex.levelplugin.player.farming.managers.FarmingManager.getInstance()
+                        .getConsistencyIndicator(player);
+                if (consistency != null) {
+                    player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(consistency));
+                } else {
+                    player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(""));
+                }
             }
         }
     }

@@ -36,7 +36,7 @@ public class SalvageGUI {
         if (infoMeta != null) {
             infoMeta.setLore(Arrays.asList(
                 ChatColor.GRAY + "  Place ꐗ unwanted items into the center.",
-                ChatColor.GRAY + "  Only valid custom items can be salvaged.",
+                ChatColor.GRAY + "  Custom items, tools, potions, and essences can be salvaged.",
                 "",
                 ChatColor.GREEN + "✔ Confirm Salvage:",
                 ChatColor.GRAY + "  Converts all valid items into coins/gems.",

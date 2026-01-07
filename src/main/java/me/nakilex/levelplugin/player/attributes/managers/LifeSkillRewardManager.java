@@ -11,6 +11,7 @@ import me.nakilex.levelplugin.player.farming.managers.FarmingManager;
 import me.nakilex.levelplugin.player.fishing.managers.FishingManager;
 import me.nakilex.levelplugin.player.mining.managers.MiningManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
+import me.nakilex.levelplugin.utils.ChatFormatter;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -200,25 +201,79 @@ public class LifeSkillRewardManager {
 
     public boolean claimReward(Player player, ToolDiscipline discipline, LifeSkillReward reward) {
         UUID uuid = player.getUniqueId();
-        if (isClaimed(uuid, discipline, reward.levelRequired())) {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING, "You've already claimed this reward.");
+        if (reward == null) {
             return false;
         }
+        return claimRewardsUpTo(player, discipline, reward.levelRequired());
+    }
 
+    public boolean claimRewardsUpTo(Player player, ToolDiscipline discipline, int targetLevel) {
+        UUID uuid = player.getUniqueId();
         int currentLevel = getLevel(discipline, uuid);
-        if (currentLevel < reward.levelRequired()) {
+        if (currentLevel < targetLevel) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
-                    "Reach level " + reward.levelRequired() + " to claim this reward.");
+                    "Reach level " + targetLevel + " to claim this reward.");
             return false;
         }
 
-        reward.rewardAction().accept(player);
-        saveClaim(uuid, discipline, reward.levelRequired());
+        List<LifeSkillReward> rewardsForSkill = getRewards(discipline);
+        List<LifeSkillReward> newlyClaimed = new ArrayList<>();
+        for (LifeSkillReward reward : rewardsForSkill) {
+            if (reward.levelRequired() > targetLevel || reward.levelRequired() > currentLevel) {
+                continue;
+            }
+            if (isClaimed(uuid, discipline, reward.levelRequired())) {
+                continue;
+            }
+            reward.rewardAction().accept(player);
+            saveClaim(uuid, discipline, reward.levelRequired());
+            newlyClaimed.add(reward);
+        }
+
+        if (newlyClaimed.isEmpty()) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING, "You've already claimed these rewards.");
+            return false;
+        }
+
+        newlyClaimed.sort(Comparator.comparingInt(LifeSkillReward::levelRequired));
         String skillName = discipline.name().substring(0, 1).toUpperCase() + discipline.name().substring(1).toLowerCase();
-        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.REWARD,
-                "Claimed " + ChatColor.YELLOW + skillName + ChatColor.WHITE + " level " + reward.levelRequired() + " reward: "
-                        + ChatColor.stripColor(reward.displayName()) + ChatColor.WHITE + ".");
+        String message = "Claimed " + ChatColor.YELLOW + skillName + ChatColor.WHITE
+                + " rewards for level " + ChatColor.YELLOW + targetLevel + ChatColor.WHITE;
+        if (newlyClaimed.size() > 1) {
+            message += " (including previous levels)";
+        }
+        message += ".";
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.REWARD, message);
+        ChatFormatter.sendIndentedMessage(player, ChatColor.GREEN + "Rewards:");
+        for (String line : buildRewardLines(newlyClaimed)) {
+            ChatFormatter.sendIndentedMessage(player, line);
+        }
         return true;
+    }
+
+    private List<String> buildRewardLines(List<LifeSkillReward> rewards) {
+        List<String> lines = new ArrayList<>();
+        for (LifeSkillReward reward : rewards) {
+            for (String line : reward.lore()) {
+                if (line == null || line.isBlank()) {
+                    continue;
+                }
+                String stripped = ChatColor.stripColor(line).trim();
+                if (stripped.equalsIgnoreCase("Rewards:")) {
+                    continue;
+                }
+                if (stripped.isEmpty()) {
+                    continue;
+                }
+                if (stripped.startsWith("–")) {
+                    lines.add(ChatColor.DARK_GRAY + "  " + line.trim());
+                    continue;
+                }
+                String cleaned = line.replace("• ", "").replace("•", "").trim();
+                lines.add(ChatColor.GREEN + "- " + cleaned);
+            }
+        }
+        return lines;
     }
 
     private int getLevel(ToolDiscipline discipline, UUID uuid) {
