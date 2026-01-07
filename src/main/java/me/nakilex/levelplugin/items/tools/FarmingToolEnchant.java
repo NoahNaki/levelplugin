@@ -5,7 +5,7 @@ import java.util.Locale;
 public enum FarmingToolEnchant {
     REAPING("Reaping", "Harvests a 3x3 area."),
     BOUNTIFUL("Bountiful", "Doubles crop yield."),
-    ABUNDANCE("Abundance", "5% chance to harvest a 10x10 circle."),
+    ABUNDANCE("Abundance", "3% chance to harvest a 10x10 circle."),
     CONSISTENCY("Consistency", "Harvest size grows every 100 crops without stopping.", "Resets after 3s of no harvesting.");
 
     private final String displayName;

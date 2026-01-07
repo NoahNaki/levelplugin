@@ -73,6 +73,7 @@ import me.nakilex.levelplugin.utils.NakiPlaceholderExpansion;
 import me.nakilex.levelplugin.utils.EntityTextDisplay;
 import me.nakilex.levelplugin.utils.MetadataTrait;
 import me.nakilex.levelplugin.utils.HologramUtil;
+import me.nakilex.levelplugin.utils.MultiLineHologram;
 import me.nakilex.levelplugin.utils.registeries.CommandRegistry;
 import me.nakilex.levelplugin.utils.registeries.ListenerRegistry;
 import me.nakilex.levelplugin.utils.registeries.TaskRegistry;
@@ -687,6 +688,7 @@ public class PluginBootstrap {
             environmentManager.removeAllHolograms();
             environmentManager.saveAll();
         }
+        MultiLineHologram.removeAll("farming_special_crop");
         HologramUtil.removeMobHolograms();
         EntityTextDisplay.removeAllDisplays();
         if (guildSiegeManager != null) {

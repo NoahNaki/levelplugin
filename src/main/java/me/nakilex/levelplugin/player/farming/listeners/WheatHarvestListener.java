@@ -150,11 +150,14 @@ public class WheatHarvestListener implements Listener {
                         player.getWorld().dropItemNaturally(player.getLocation(), item));
             }
 
-            clearSpecialCrop(target.getLocation());
+            boolean special = clearSpecialCrop(target.getLocation());
             Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
                 targetCrop.replant(target);
                 maybeSpawnSpecialCrop(target);
             }, 1L);
+            if (special) {
+                spawnSpecialCropBurst(player, target.getLocation(), targetCrop);
+            }
         }
         if (consistency && harvested > 0) {
             farmingManager.recordConsistencyHarvest(player, harvested);
@@ -206,11 +209,30 @@ public class WheatHarvestListener implements Listener {
         specialCrops.put(loc, holo);
     }
 
-    private void clearSpecialCrop(Location loc) {
-        if (loc == null) return;
+    private boolean clearSpecialCrop(Location loc) {
+        if (loc == null) return false;
         MultiLineHologram holo = specialCrops.remove(loc);
         if (holo != null) {
             holo.despawn();
+            return true;
+        }
+        return false;
+    }
+
+    private void spawnSpecialCropBurst(Player player, Location loc, FarmingCrop crop) {
+        if (loc == null || crop == null || player == null) return;
+        var world = loc.getWorld();
+        if (world == null) return;
+        Location center = loc.clone().add(0.5, 1.0, 0.5);
+        world.spawnParticle(org.bukkit.Particle.EXPLOSION_LARGE, center, 1, 0, 0, 0, 0);
+        world.spawnParticle(org.bukkit.Particle.VILLAGER_HAPPY, center, 18, 0.35, 0.35, 0.35, 0.05);
+        world.spawnParticle(org.bukkit.Particle.ITEM_CRACK, center, 24, 0.35, 0.35, 0.35, 0.1,
+                new ItemStack(crop.getItemMaterial()));
+        int extra = ThreadLocalRandom.current().nextInt(2, 5);
+        ItemStack bonus = new ItemStack(crop.getItemMaterial(), extra);
+        Map<Integer, ItemStack> overflow = player.getInventory().addItem(bonus);
+        if (!overflow.isEmpty()) {
+            overflow.values().forEach(item -> world.dropItemNaturally(center, item));
         }
     }
 }
