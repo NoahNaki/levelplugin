@@ -3,8 +3,8 @@ package me.nakilex.levelplugin.player.farming.managers;
 import me.nakilex.levelplugin.Main;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
-import me.nakilex.levelplugin.utils.LifeSkillBossBarUtil;
 import org.bukkit.boss.BarColor;
+import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
 import org.bukkit.entity.Player;
 
@@ -199,12 +199,38 @@ public class FarmingManager {
     private void updateBossBar(Player player) {
         if (player == null) return;
         UUID uuid = player.getUniqueId();
+        BossBar bar = xpBars.computeIfAbsent(uuid, id -> {
+            BossBar created = Bukkit.createBossBar("", BarColor.YELLOW, BarStyle.SOLID);
+            created.addPlayer(player);
+            created.setVisible(false);
+            return created;
+        });
+
         int level = getLevel(uuid);
         int xp = getXP(uuid);
         boolean atMax = level >= MAX_LEVEL;
         int required = atMax ? getXpRequired(MAX_LEVEL) : getXpRequired(level);
-        LifeSkillBossBarUtil.updateBossBar(player, xpBars, activeBars, BarColor.YELLOW, ChatColor.GOLD,
-                "Farming", level, xp, required, atMax);
+        double progress = atMax ? 1.0 : required <= 0 ? 1.0 : Math.min(1.0, Math.max(0.0, xp / (double) required));
+        boolean showBar = activeBars.getOrDefault(uuid, false);
+        if (!showBar) {
+            bar.removePlayer(player);
+            bar.setVisible(false);
+            return;
+        }
+        String progressLabel = atMax ? (ChatColor.GREEN + "MAX") : (ChatColor.WHITE + String.valueOf(xp)
+                + ChatColor.GRAY + "/" + ChatColor.WHITE + required);
+
+        String title = ChatColor.GOLD + "" + ChatColor.BOLD + "Farming "
+                + ChatColor.GRAY + "(Lv. " + ChatColor.WHITE + level + ChatColor.GRAY + ") "
+                + ChatColor.DARK_GRAY + "| "
+                + progressLabel;
+
+        bar.setTitle(title);
+        bar.setProgress(progress);
+        if (!bar.getPlayers().contains(player)) {
+            bar.addPlayer(player);
+        }
+        bar.setVisible(true);
     }
 
     private void markFarmingActive(Player player) {

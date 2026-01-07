@@ -7,9 +7,7 @@ import me.nakilex.levelplugin.items.tools.ToolManager;
 import me.nakilex.levelplugin.player.farming.data.FarmingCrop;
 import me.nakilex.levelplugin.player.farming.managers.FarmingManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
-import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.FullInventoryListener;
-import me.nakilex.levelplugin.utils.MultiLineHologram;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Material;
@@ -22,17 +20,12 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
 import java.util.HashSet;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
-import org.bukkit.Location;
 
 public class WheatHarvestListener implements Listener {
 
     private final FarmingManager farmingManager;
-    private final Map<Location, MultiLineHologram> specialCrops = new HashMap<>();
-    private static final double SPECIAL_CROP_CHANCE = 0.005;
     private static final double ABUNDANCE_CHANCE = 0.03;
     private static final int ABUNDANCE_RADIUS = 5;
 
@@ -150,14 +143,9 @@ public class WheatHarvestListener implements Listener {
                         player.getWorld().dropItemNaturally(player.getLocation(), item));
             }
 
-            boolean special = clearSpecialCrop(target.getLocation());
             Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
                 targetCrop.replant(target);
-                maybeSpawnSpecialCrop(target);
             }, 1L);
-            if (special) {
-                spawnSpecialCropBurst(player, target.getLocation(), targetCrop);
-            }
         }
         if (consistency && harvested > 0) {
             farmingManager.recordConsistencyHarvest(player, harvested);
@@ -194,56 +182,4 @@ public class WheatHarvestListener implements Listener {
         }
     }
 
-    private void maybeSpawnSpecialCrop(Block block) {
-        if (block == null) return;
-        FarmingCrop crop = FarmingCrop.fromBlock(block);
-        if (crop == null) return;
-        if (ThreadLocalRandom.current().nextDouble() >= SPECIAL_CROP_CHANCE) {
-            return;
-        }
-        Location loc = block.getLocation();
-        clearSpecialCrop(loc);
-        MultiLineHologram holo = new MultiLineHologram(loc.clone().add(0.5, 1.2, 0.5), "farming_special_crop");
-        String stars = GuiUtil.glyphStars(1);
-        holo.spawn(java.util.List.of("§6" + stars + " §eSpecial Crop §6" + stars));
-        specialCrops.put(loc, holo);
-    }
-
-    private boolean clearSpecialCrop(Location loc) {
-        if (loc == null) return false;
-        MultiLineHologram holo = specialCrops.remove(loc);
-        if (holo != null) {
-            holo.despawn();
-            return true;
-        }
-        return false;
-    }
-
-    private void spawnSpecialCropBurst(Player player, Location loc, FarmingCrop crop) {
-        if (loc == null || crop == null || player == null) return;
-        var world = loc.getWorld();
-        if (world == null) return;
-        Location center = loc.clone().add(0.5, 1.0, 0.5);
-        world.playSound(center, org.bukkit.Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.9f, 1.4f);
-        world.spawnParticle(org.bukkit.Particle.VILLAGER_HAPPY, center, 18, 0.35, 0.35, 0.35, 0.05);
-        int visualCount = ThreadLocalRandom.current().nextInt(3, 7);
-        java.util.List<org.bukkit.entity.Item> visuals = new java.util.ArrayList<>();
-        for (int i = 0; i < visualCount; i++) {
-            ItemStack stack = new ItemStack(crop.getItemMaterial(), 1);
-            org.bukkit.entity.Item item = world.dropItem(center, stack);
-            item.setPickupDelay(Integer.MAX_VALUE);
-            item.setVelocity(new org.bukkit.util.Vector(
-                    ThreadLocalRandom.current().nextDouble(-0.25, 0.25),
-                    ThreadLocalRandom.current().nextDouble(0.15, 0.35),
-                    ThreadLocalRandom.current().nextDouble(-0.25, 0.25)
-            ));
-            visuals.add(item);
-        }
-        ItemStack bonus = new ItemStack(crop.getItemMaterial(), visualCount);
-        Map<Integer, ItemStack> overflow = player.getInventory().addItem(bonus);
-        if (!overflow.isEmpty()) {
-            overflow.values().forEach(item -> world.dropItemNaturally(center, item));
-        }
-        Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> visuals.forEach(org.bukkit.entity.Item::remove), 40L);
-    }
 }
