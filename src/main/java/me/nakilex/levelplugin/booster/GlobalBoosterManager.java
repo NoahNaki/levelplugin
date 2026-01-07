@@ -1,7 +1,6 @@
 package me.nakilex.levelplugin.booster;
 
 import me.nakilex.levelplugin.Main;
-import me.nakilex.levelplugin.settings.managers.SettingsManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
 import org.bukkit.Bukkit;
@@ -102,7 +101,7 @@ public class GlobalBoosterManager {
     private void updateBossBars(Collection<? extends Player> players) {
         for (Player player : players) {
             Map<BoosterType, BossBar> playerBars = boosterBars.computeIfAbsent(player.getUniqueId(), id -> new EnumMap<>(BoosterType.class));
-            boolean wantsBar = wantsBossBar(player);
+            boolean wantsBar = true;
 
             for (BoosterType type : BoosterType.values()) {
                 BoosterState state = activeBoosters.get(type);
@@ -140,9 +139,7 @@ public class GlobalBoosterManager {
     }
 
     private boolean wantsBossBar(Player player) {
-        SettingsManager settingsManager = plugin.getSettingsManager();
-        if (settingsManager == null) return true;
-        return settingsManager.getSettings(player).isBoosterBossBarEnabled();
+        return true;
     }
 
     private String formatTime(Duration duration) {

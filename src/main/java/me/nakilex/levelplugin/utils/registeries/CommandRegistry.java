@@ -25,6 +25,7 @@ import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
 import me.nakilex.levelplugin.debug.BeaconEntityDebugManager;
 import me.nakilex.levelplugin.debug.commands.DebugCommand;
 import me.nakilex.levelplugin.player.attributes.commands.AddPointsCommand;
+import me.nakilex.levelplugin.player.attributes.commands.LifeSkillCommand;
 import me.nakilex.levelplugin.player.attributes.commands.StatsCommand;
 import me.nakilex.levelplugin.player.classes.commands.ClassCommand;
 import me.nakilex.levelplugin.player.classes.commands.GenClassCommand;
@@ -162,17 +163,21 @@ public class CommandRegistry {
         plugin.getCommand("addxp").setExecutor(addXpCmd);
         plugin.getCommand("addxp").setTabCompleter(addXpCmd);
 
-        AddMiningXPCommand addMiningXpCmd = new AddMiningXPCommand(miningManager);
+        AddMiningXPCommand addMiningXpCmd = new AddMiningXPCommand();
         plugin.getCommand("addminingxp").setExecutor(addMiningXpCmd);
         plugin.getCommand("addminingxp").setTabCompleter(addMiningXpCmd);
 
-        AddFarmingXPCommand addFarmingXpCmd = new AddFarmingXPCommand(plugin.getFarmingManager());
+        AddFarmingXPCommand addFarmingXpCmd = new AddFarmingXPCommand();
         plugin.getCommand("addfarmingxp").setExecutor(addFarmingXpCmd);
         plugin.getCommand("addfarmingxp").setTabCompleter(addFarmingXpCmd);
 
-        AddFishingXPCommand addFishingXpCmd = new AddFishingXPCommand(plugin.getFishingManager());
+        AddFishingXPCommand addFishingXpCmd = new AddFishingXPCommand();
         plugin.getCommand("addfishingxp").setExecutor(addFishingXpCmd);
         plugin.getCommand("addfishingxp").setTabCompleter(addFishingXpCmd);
+
+        LifeSkillCommand lifeSkillCommand = new LifeSkillCommand(plugin);
+        plugin.getCommand("lifeskill").setExecutor(lifeSkillCommand);
+        plugin.getCommand("lifeskill").setTabCompleter(lifeSkillCommand);
 
         plugin.getCommand("mininglevel").setExecutor(new MiningLevelCommand(miningManager));
         plugin.getCommand("farminglevel").setExecutor(new FarmingLevelCommand(plugin.getFarmingManager()));

@@ -217,9 +217,9 @@ public class FarmingManager {
         }
         hideTasks.put(uuid, Bukkit.getScheduler().runTaskLater(plugin, () -> {
             activeBars.put(uuid, false);
-            BossBar b = xpBars.get(uuid);
-            if (b != null) {
-                b.setVisible(false);
+            Player online = Bukkit.getPlayer(uuid);
+            if (online != null) {
+                updateBossBar(online);
             }
         }, 20L * 6));
     }

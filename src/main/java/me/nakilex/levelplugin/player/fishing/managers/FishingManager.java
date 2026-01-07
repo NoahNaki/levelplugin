@@ -143,6 +143,10 @@ public class FishingManager {
         boolean atMax = level >= MAX_LEVEL;
         int required = atMax ? getXpRequired(MAX_LEVEL) : getXpRequired(level);
         double progress = atMax ? 1.0 : required <= 0 ? 1.0 : Math.min(1.0, Math.max(0.0, xp / (double) required));
+        boolean showBar = activeBars.getOrDefault(uuid, false) || xp > 0;
+        if (!atMax && showBar && progress < 0.02) {
+            progress = 0.02;
+        }
         String progressLabel = atMax ? (ChatColor.GREEN + "MAX") : (ChatColor.WHITE + String.valueOf(xp)
                 + ChatColor.GRAY + "/" + ChatColor.WHITE + required);
 
@@ -156,7 +160,7 @@ public class FishingManager {
         if (!bar.getPlayers().contains(player)) {
             bar.addPlayer(player);
         }
-        boolean visible = activeBars.getOrDefault(uuid, false);
+        boolean visible = showBar;
         bar.setVisible(visible);
     }
 
@@ -173,9 +177,9 @@ public class FishingManager {
         }
         hideTasks.put(uuid, Bukkit.getScheduler().runTaskLater(plugin, () -> {
             activeBars.put(uuid, false);
-            BossBar b = xpBars.get(uuid);
-            if (b != null) {
-                b.setVisible(false);
+            Player online = Bukkit.getPlayer(uuid);
+            if (online != null) {
+                updateBossBar(online);
             }
         }, 20L * 6));
     }

@@ -204,7 +204,7 @@ public class WheatHarvestListener implements Listener {
         Location loc = block.getLocation();
         clearSpecialCrop(loc);
         MultiLineHologram holo = new MultiLineHologram(loc.clone().add(0.5, 1.2, 0.5), "farming_special_crop");
-        String stars = GuiUtil.glyphStars(2);
+        String stars = GuiUtil.glyphStars(1);
         holo.spawn(java.util.List.of("§6" + stars + " §eSpecial Crop §6" + stars));
         specialCrops.put(loc, holo);
     }
@@ -224,15 +224,25 @@ public class WheatHarvestListener implements Listener {
         var world = loc.getWorld();
         if (world == null) return;
         Location center = loc.clone().add(0.5, 1.0, 0.5);
-        world.spawnParticle(org.bukkit.Particle.EXPLOSION_LARGE, center, 1, 0, 0, 0, 0);
         world.spawnParticle(org.bukkit.Particle.VILLAGER_HAPPY, center, 18, 0.35, 0.35, 0.35, 0.05);
-        world.spawnParticle(org.bukkit.Particle.ITEM_CRACK, center, 24, 0.35, 0.35, 0.35, 0.1,
-                new ItemStack(crop.getItemMaterial()));
-        int extra = ThreadLocalRandom.current().nextInt(2, 5);
-        ItemStack bonus = new ItemStack(crop.getItemMaterial(), extra);
+        int visualCount = ThreadLocalRandom.current().nextInt(3, 7);
+        java.util.List<org.bukkit.entity.Item> visuals = new java.util.ArrayList<>();
+        for (int i = 0; i < visualCount; i++) {
+            ItemStack stack = new ItemStack(crop.getItemMaterial(), 1);
+            org.bukkit.entity.Item item = world.dropItem(center, stack);
+            item.setPickupDelay(Integer.MAX_VALUE);
+            item.setVelocity(new org.bukkit.util.Vector(
+                    ThreadLocalRandom.current().nextDouble(-0.25, 0.25),
+                    ThreadLocalRandom.current().nextDouble(0.15, 0.35),
+                    ThreadLocalRandom.current().nextDouble(-0.25, 0.25)
+            ));
+            visuals.add(item);
+        }
+        ItemStack bonus = new ItemStack(crop.getItemMaterial(), visualCount);
         Map<Integer, ItemStack> overflow = player.getInventory().addItem(bonus);
         if (!overflow.isEmpty()) {
             overflow.values().forEach(item -> world.dropItemNaturally(center, item));
         }
+        Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> visuals.forEach(org.bukkit.entity.Item::remove), 40L);
     }
 }
