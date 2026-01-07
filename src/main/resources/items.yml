@@ -215,56 +215,28 @@ items:
     level_requirement: 1
     class_requirement: ANY
     material: LEATHER_HELMET
-    hp: 5-15
-    def: 1-4
-    str: 0-0
-    agi: 0-0
-    intel: 0-0
-    dex: 0-0
-    wil: 0-0
-    tec: 0-0
+    hp: 15
   17:
     name: Common Leather Chestplate
     rarity: COMMON
     level_requirement: 1
     class_requirement: ANY
     material: LEATHER_CHESTPLATE
-    hp: 10-40
-    def: 2-6
-    str: 0-0
-    agi: 0-0
-    intel: 0-0
-    dex: 0-0
-    wil: 0-0
-    tec: 0-0
+    hp: 25
   18:
     name: Common Leather Leggings
     rarity: COMMON
     level_requirement: 1
     class_requirement: ANY
     material: LEATHER_LEGGINGS
-    hp: 6-25
-    def: 2-5
-    str: 0-0
-    agi: 0-0
-    intel: 0-0
-    dex: 0-0
-    wil: 0-0
-    tec: 0-0
+    hp: 25
   19:
     name: Common Leather Boots
     rarity: COMMON
     level_requirement: 1
     class_requirement: ANY
     material: LEATHER_BOOTS
-    hp: 4-10
-    def: 1-3
-    str: 0-0
-    agi: 0-0
-    intel: 0-0
-    dex: 0-0
-    wil: 0-0
-    tec: 0-0
+    hp: 10
   20:
     name: Common Leather Boots
     rarity: COMMON
