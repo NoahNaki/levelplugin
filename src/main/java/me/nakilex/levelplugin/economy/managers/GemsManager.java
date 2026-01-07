@@ -9,6 +9,7 @@ import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class GemsManager {
@@ -103,6 +104,39 @@ public class GemsManager {
     public void addUnits(Player player, int units) {
         int current = getTotalUnits(player);
         setTotalUnits(player, current + units);
+    }
+
+    public boolean canFit(Player player, ItemStack stack) {
+        if (player == null || stack == null || stack.getType() == Material.AIR) {
+            return false;
+        }
+        return canFit(player.getInventory(), stack);
+    }
+
+    public boolean canFit(PlayerInventory inv, ItemStack stack) {
+        if (inv == null || stack == null || stack.getType() == Material.AIR) {
+            return false;
+        }
+        int remaining = stack.getAmount();
+        int maxStack = stack.getMaxStackSize();
+        List<ItemStack> slots = new ArrayList<>(Arrays.asList(inv.getStorageContents()));
+        slots.addAll(Arrays.asList(inv.getExtraContents()));
+        for (ItemStack existing : slots) {
+            if (remaining <= 0) {
+                return true;
+            }
+            if (existing == null || existing.getType() == Material.AIR) {
+                remaining -= Math.min(maxStack, remaining);
+                continue;
+            }
+            if (existing.isSimilar(stack)) {
+                int space = maxStack - existing.getAmount();
+                if (space > 0) {
+                    remaining -= Math.min(space, remaining);
+                }
+            }
+        }
+        return remaining <= 0;
     }
 
     /** Deduct units; throws if insufficient. */
