@@ -224,6 +224,7 @@ public class WheatHarvestListener implements Listener {
         var world = loc.getWorld();
         if (world == null) return;
         Location center = loc.clone().add(0.5, 1.0, 0.5);
+        world.playSound(center, org.bukkit.Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.9f, 1.4f);
         world.spawnParticle(org.bukkit.Particle.VILLAGER_HAPPY, center, 18, 0.35, 0.35, 0.35, 0.05);
         int visualCount = ThreadLocalRandom.current().nextInt(3, 7);
         java.util.List<org.bukkit.entity.Item> visuals = new java.util.ArrayList<>();

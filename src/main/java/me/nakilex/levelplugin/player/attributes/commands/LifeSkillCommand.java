@@ -115,6 +115,26 @@ public class LifeSkillCommand implements TabExecutor {
         return true;
     }
 
+    public static TabExecutor legacyHandler(ToolDiscipline discipline) {
+        return new TabExecutor() {
+            @Override
+            public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+                return handleLegacyAddXp(sender, discipline, args);
+            }
+
+            @Override
+            public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+                if (args.length == 1) {
+                    return CommandUtil.onlinePlayerNames(args[0]);
+                }
+                if (args.length == 2) {
+                    return CommandUtil.numberOptions(args[1], 1, 5, 10, 25, 50, 100, 250, 500, 1000);
+                }
+                return Collections.emptyList();
+            }
+        };
+    }
+
     private static void grantXp(CommandSender sender, ToolDiscipline discipline, Player target, int amount) {
         switch (discipline) {
             case MINING -> MiningManager.getInstance().addXP(target, amount);

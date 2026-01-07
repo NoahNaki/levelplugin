@@ -184,6 +184,11 @@ public class FarmingManager {
         int required = atMax ? getXpRequired(MAX_LEVEL) : getXpRequired(level);
         double progress = atMax ? 1.0 : required <= 0 ? 1.0 : Math.min(1.0, Math.max(0.0, xp / (double) required));
         boolean showBar = activeBars.getOrDefault(uuid, false) || xp > 0;
+        if (!showBar) {
+            bar.removePlayer(player);
+            bar.setVisible(false);
+            return;
+        }
         if (!atMax && showBar && progress < 0.02) {
             progress = 0.02;
         }
@@ -200,8 +205,7 @@ public class FarmingManager {
         if (!bar.getPlayers().contains(player)) {
             bar.addPlayer(player);
         }
-        boolean visible = showBar;
-        bar.setVisible(visible);
+        bar.setVisible(true);
     }
 
     private void markFarmingActive(Player player) {

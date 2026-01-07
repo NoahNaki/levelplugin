@@ -33,11 +33,8 @@ import me.nakilex.levelplugin.player.classes.commands.EssenceCommand;
 import me.nakilex.levelplugin.player.classes.commands.EssenceUpgradeCommand;
 import me.nakilex.levelplugin.player.classes.commands.SealingCharmCommand;
 import me.nakilex.levelplugin.player.level.commands.AddXPCommand;
-import me.nakilex.levelplugin.player.mining.commands.AddMiningXPCommand;
 import me.nakilex.levelplugin.player.mining.commands.MiningLevelCommand;
-import me.nakilex.levelplugin.player.farming.commands.AddFarmingXPCommand;
 import me.nakilex.levelplugin.player.farming.commands.FarmingLevelCommand;
-import me.nakilex.levelplugin.player.fishing.commands.AddFishingXPCommand;
 import me.nakilex.levelplugin.player.mining.commands.SetMiningLevelCommand;
 import me.nakilex.levelplugin.player.level.commands.SetLevelCommand;
 import me.nakilex.levelplugin.player.battlepass.BattlePassManager;
@@ -163,21 +160,21 @@ public class CommandRegistry {
         plugin.getCommand("addxp").setExecutor(addXpCmd);
         plugin.getCommand("addxp").setTabCompleter(addXpCmd);
 
-        AddMiningXPCommand addMiningXpCmd = new AddMiningXPCommand();
-        plugin.getCommand("addminingxp").setExecutor(addMiningXpCmd);
-        plugin.getCommand("addminingxp").setTabCompleter(addMiningXpCmd);
-
-        AddFarmingXPCommand addFarmingXpCmd = new AddFarmingXPCommand();
-        plugin.getCommand("addfarmingxp").setExecutor(addFarmingXpCmd);
-        plugin.getCommand("addfarmingxp").setTabCompleter(addFarmingXpCmd);
-
-        AddFishingXPCommand addFishingXpCmd = new AddFishingXPCommand();
-        plugin.getCommand("addfishingxp").setExecutor(addFishingXpCmd);
-        plugin.getCommand("addfishingxp").setTabCompleter(addFishingXpCmd);
-
         LifeSkillCommand lifeSkillCommand = new LifeSkillCommand(plugin);
         plugin.getCommand("lifeskill").setExecutor(lifeSkillCommand);
         plugin.getCommand("lifeskill").setTabCompleter(lifeSkillCommand);
+
+        var miningLegacy = LifeSkillCommand.legacyHandler(me.nakilex.levelplugin.items.tools.ToolDiscipline.MINING);
+        plugin.getCommand("addminingxp").setExecutor(miningLegacy);
+        plugin.getCommand("addminingxp").setTabCompleter(miningLegacy);
+
+        var farmingLegacy = LifeSkillCommand.legacyHandler(me.nakilex.levelplugin.items.tools.ToolDiscipline.FARMING);
+        plugin.getCommand("addfarmingxp").setExecutor(farmingLegacy);
+        plugin.getCommand("addfarmingxp").setTabCompleter(farmingLegacy);
+
+        var fishingLegacy = LifeSkillCommand.legacyHandler(me.nakilex.levelplugin.items.tools.ToolDiscipline.FISHING);
+        plugin.getCommand("addfishingxp").setExecutor(fishingLegacy);
+        plugin.getCommand("addfishingxp").setTabCompleter(fishingLegacy);
 
         plugin.getCommand("mininglevel").setExecutor(new MiningLevelCommand(miningManager));
         plugin.getCommand("farminglevel").setExecutor(new FarmingLevelCommand(plugin.getFarmingManager()));
