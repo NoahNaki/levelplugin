@@ -27,6 +27,8 @@ public class FarmingManager {
     private final int MAX_LEVEL = 100;
     private final int XP_PER_LEVEL_MULTIPLIER = 1200;
     private static final long CONSISTENCY_TIMEOUT_MS = 3000L;
+    private static final int CONSISTENCY_STEP = 150;
+    private static final int CONSISTENCY_MAX_SIZE = 6;
 
     public FarmingManager(Main plugin) {
         this.plugin = plugin;
@@ -106,7 +108,7 @@ public class FarmingManager {
         if (player == null) return 1;
         ConsistencyState state = getConsistencyState(player.getUniqueId());
         if (state == null) return 1;
-        return Math.max(1, 1 + (state.harvested / 100));
+        return Math.max(1, Math.min(CONSISTENCY_MAX_SIZE, state.size));
     }
 
     public void recordConsistencyHarvest(Player player, int amount) {
@@ -114,18 +116,22 @@ public class FarmingManager {
         UUID uuid = player.getUniqueId();
         ConsistencyState state = consistencyStates.computeIfAbsent(uuid, id -> new ConsistencyState());
         long now = System.currentTimeMillis();
-        if (now - state.lastHarvestAt > CONSISTENCY_TIMEOUT_MS) {
-            state.harvested = 0;
+        applyConsistencyDecay(state, now);
+        state.harvestedSinceIncrease += amount;
+        while (state.harvestedSinceIncrease >= CONSISTENCY_STEP && state.size < CONSISTENCY_MAX_SIZE) {
+            state.harvestedSinceIncrease -= CONSISTENCY_STEP;
+            state.size++;
+            playConsistencyLevelUpSound(player, state.size);
         }
-        state.harvested += amount;
         state.lastHarvestAt = now;
+        state.lastDecayAt = now;
     }
 
     public String getConsistencyIndicator(Player player) {
         if (player == null) return null;
         ConsistencyState state = getConsistencyState(player.getUniqueId());
         if (state == null) return null;
-        int size = Math.max(1, 1 + (state.harvested / 100));
+        int size = Math.max(1, Math.min(CONSISTENCY_MAX_SIZE, state.size));
         return ChatColor.LIGHT_PURPLE + "Consistency "
                 + ChatColor.YELLOW + size + "x" + size;
     }
@@ -134,16 +140,38 @@ public class FarmingManager {
         ConsistencyState state = consistencyStates.get(uuid);
         if (state == null) return null;
         long now = System.currentTimeMillis();
-        if (now - state.lastHarvestAt > CONSISTENCY_TIMEOUT_MS) {
-            consistencyStates.remove(uuid);
-            return null;
-        }
+        applyConsistencyDecay(state, now);
         return state;
     }
 
+    private void applyConsistencyDecay(ConsistencyState state, long now) {
+        if (state.size <= 1) {
+            return;
+        }
+        long sinceDecay = now - state.lastDecayAt;
+        if (sinceDecay < CONSISTENCY_TIMEOUT_MS) {
+            return;
+        }
+        int steps = (int) (sinceDecay / CONSISTENCY_TIMEOUT_MS);
+        state.size = Math.max(1, state.size - steps);
+        state.harvestedSinceIncrease = 0;
+        state.lastDecayAt += steps * CONSISTENCY_TIMEOUT_MS;
+    }
+
+    private void playConsistencyLevelUpSound(Player player, int size) {
+        if (player == null) return;
+        float base = 0.6f + ((size - 1) * 0.12f);
+        for (int i = 0; i < 3; i++) {
+            float pitch = Math.min(2.0f, base + (i * 0.08f));
+            player.getWorld().playSound(player.getLocation(), org.bukkit.Sound.BLOCK_NOTE_BLOCK_PLING, 0.8f, pitch);
+        }
+    }
+
     private static class ConsistencyState {
-        private int harvested;
+        private int size = 1;
+        private int harvestedSinceIncrease;
         private long lastHarvestAt;
+        private long lastDecayAt;
     }
 
     private void sendLevelUpMessage(Player player, int newLevel, int nextXp) {

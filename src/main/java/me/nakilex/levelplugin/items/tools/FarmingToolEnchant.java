@@ -6,7 +6,8 @@ public enum FarmingToolEnchant {
     REAPING("Reaping", "Harvests a 3x3 area."),
     BOUNTIFUL("Bountiful", "Doubles crop yield."),
     ABUNDANCE("Abundance", "3% chance to harvest a 10x10 circle."),
-    CONSISTENCY("Consistency", "Harvest size grows every 100 crops without stopping.", "Resets after 3s of no harvesting.");
+    CONSISTENCY("Consistency", "Harvest size grows every 150 crops (up to 6x6).",
+            "Each 3s without harvesting reduces the size by 1.");
 
     private final String displayName;
     private final String[] description;

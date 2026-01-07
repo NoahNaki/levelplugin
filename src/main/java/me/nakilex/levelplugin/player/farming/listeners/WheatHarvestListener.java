@@ -180,7 +180,7 @@ public class WheatHarvestListener implements Listener {
     }
 
     private void collectSquareTargets(Block center, Set<Block> targets, int size) {
-        int clamped = Math.max(1, size);
+        int clamped = Math.max(1, Math.min(6, size));
         int start = -((clamped - 1) / 2);
         int end = start + clamped - 1;
         for (int dx = start; dx <= end; dx++) {
