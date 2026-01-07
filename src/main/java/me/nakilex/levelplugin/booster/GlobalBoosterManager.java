@@ -123,7 +123,8 @@ public class GlobalBoosterManager {
 
                 bar.setTitle(buildTitle(type, state.remaining()));
                 bar.setColor(type == BoosterType.COIN ? BarColor.YELLOW : BarColor.GREEN);
-                bar.setProgress(state.progress());
+                double progress = Math.max(0.01, state.progress());
+                bar.setProgress(progress);
                 if (!bar.getPlayers().contains(player)) {
                     bar.addPlayer(player);
                 }

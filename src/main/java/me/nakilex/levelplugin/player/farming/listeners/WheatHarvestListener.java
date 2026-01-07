@@ -33,7 +33,7 @@ public class WheatHarvestListener implements Listener {
     private final FarmingManager farmingManager;
     private final Map<Location, MultiLineHologram> specialCrops = new HashMap<>();
     private static final double SPECIAL_CROP_CHANCE = 0.005;
-    private static final double ABUNDANCE_CHANCE = 0.05;
+    private static final double ABUNDANCE_CHANCE = 0.03;
     private static final int ABUNDANCE_RADIUS = 5;
 
     public WheatHarvestListener(FarmingManager farmingManager) {

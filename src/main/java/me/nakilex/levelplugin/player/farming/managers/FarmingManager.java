@@ -183,6 +183,9 @@ public class FarmingManager {
         boolean atMax = level >= MAX_LEVEL;
         int required = atMax ? getXpRequired(MAX_LEVEL) : getXpRequired(level);
         double progress = atMax ? 1.0 : required <= 0 ? 1.0 : Math.min(1.0, Math.max(0.0, xp / (double) required));
+        if (!atMax && xp > 0 && progress < 0.02) {
+            progress = 0.02;
+        }
         String progressLabel = atMax ? (ChatColor.GREEN + "MAX") : (ChatColor.WHITE + String.valueOf(xp)
                 + ChatColor.GRAY + "/" + ChatColor.WHITE + required);
 
