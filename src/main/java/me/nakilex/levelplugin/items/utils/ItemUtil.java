@@ -900,6 +900,7 @@ public class ItemUtil {
                     ToolManager.getInstance().getFarmingEnchant(stack);
             if (enchant != null) {
                 lore.add(ChatColor.GRAY + "Enchant: " + ChatColor.LIGHT_PURPLE + enchant.getDisplayName());
+                lore.addAll(me.nakilex.levelplugin.utils.TooltipUtil.bulletList(enchant.getDescription()));
             }
         } else if (discipline == ToolDiscipline.FISHING) {
             lore.add(ChatColor.GRAY + "Fishing Speed: " + ChatColor.GREEN + "+" + (int) (tier.getFishingSpeed() * 100 - 100) + "%");

@@ -22,9 +22,11 @@ public class FarmingManager {
     private final HashMap<UUID, BossBar> xpBars       = new HashMap<>();
     private final Map<UUID, org.bukkit.scheduler.BukkitTask> hideTasks = new HashMap<>();
     private final Map<UUID, Boolean> activeBars = new HashMap<>();
+    private final Map<UUID, ConsistencyState> consistencyStates = new HashMap<>();
 
     private final int MAX_LEVEL = 100;
-    private final int XP_PER_LEVEL_MULTIPLIER = 200;
+    private final int XP_PER_LEVEL_MULTIPLIER = 1200;
+    private static final long CONSISTENCY_TIMEOUT_MS = 3000L;
 
     public FarmingManager(Main plugin) {
         this.plugin = plugin;
@@ -98,6 +100,50 @@ public class FarmingManager {
 
     public int getXpRequired(int level) {
         return level * XP_PER_LEVEL_MULTIPLIER;
+    }
+
+    public int getConsistencySize(Player player) {
+        if (player == null) return 1;
+        ConsistencyState state = getConsistencyState(player.getUniqueId());
+        if (state == null) return 1;
+        return Math.max(1, 1 + (state.harvested / 100));
+    }
+
+    public void recordConsistencyHarvest(Player player, int amount) {
+        if (player == null || amount <= 0) return;
+        UUID uuid = player.getUniqueId();
+        ConsistencyState state = consistencyStates.computeIfAbsent(uuid, id -> new ConsistencyState());
+        long now = System.currentTimeMillis();
+        if (now - state.lastHarvestAt > CONSISTENCY_TIMEOUT_MS) {
+            state.harvested = 0;
+        }
+        state.harvested += amount;
+        state.lastHarvestAt = now;
+    }
+
+    public String getConsistencyIndicator(Player player) {
+        if (player == null) return null;
+        ConsistencyState state = getConsistencyState(player.getUniqueId());
+        if (state == null) return null;
+        int size = Math.max(1, 1 + (state.harvested / 100));
+        return ChatColor.LIGHT_PURPLE + "Consistency "
+                + ChatColor.YELLOW + size + "x" + size;
+    }
+
+    private ConsistencyState getConsistencyState(UUID uuid) {
+        ConsistencyState state = consistencyStates.get(uuid);
+        if (state == null) return null;
+        long now = System.currentTimeMillis();
+        if (now - state.lastHarvestAt > CONSISTENCY_TIMEOUT_MS) {
+            consistencyStates.remove(uuid);
+            return null;
+        }
+        return state;
+    }
+
+    private static class ConsistencyState {
+        private int harvested;
+        private long lastHarvestAt;
     }
 
     private void sendLevelUpMessage(Player player, int newLevel, int nextXp) {

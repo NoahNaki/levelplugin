@@ -77,6 +77,7 @@ import me.nakilex.levelplugin.environment.listeners.LeafDecayBlocker;
 import me.nakilex.levelplugin.codex.*;
 import me.nakilex.levelplugin.npc.wandering.WanderingMerchantListener;
 import me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager;
+import me.nakilex.levelplugin.server.LevelPluginCommandGuard;
 import me.nakilex.levelplugin.server.ServerSelectionManager;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.PluginManager;
@@ -152,6 +153,7 @@ public class ListenerRegistry {
                 plugin,
                 plugin.getFishingRewardsConfig(),
                 plugin.getFishingManager()), plugin);
+        pm.registerEvents(new LevelPluginCommandGuard(plugin, serverSelectionManager), plugin);
         pm.registerEvents(new PlayerJoinListener(
                 plugin.getLevelManager(),
                 plugin.getMiningManager(),

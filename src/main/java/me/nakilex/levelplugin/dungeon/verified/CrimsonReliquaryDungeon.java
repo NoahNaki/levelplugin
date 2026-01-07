@@ -1068,19 +1068,21 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
         }
     }
 
-    private boolean spawnBossExitPortal(InstanceState state, boolean logFailure) {
-        if (state == null || state.bossPortalLocation == null) return false;
-        Location target = findBossPortalLocation(state.bossPortalLocation, 10);
-        if (target == null) {
-            if (logFailure) {
-                plugin.getLogger().warning("[Dungeon] Unable to find clear space for boss exit portal.");
+        private boolean spawnBossExitPortal(InstanceState state, boolean logFailure) {
+            if (state == null || state.bossPortalLocation == null) return false;
+            Location target = findBossPortalLocation(state.bossPortalLocation, 10);
+            if (target == null) {
+                if (logFailure) {
+                    plugin.getLogger().warning("[Dungeon] Unable to find clear space for boss exit portal.");
+                }
+                return false;
             }
-            return false;
-        }
-        if (!target.getChunk().isLoaded()) {
-            target.getChunk().load();
-        }
-        clearPortalEntities(target);
+            plugin.getLogger().info("[DungeonDebug] Boss exit portal target resolved at "
+                    + formatLocation(target) + " (base " + formatLocation(state.bossPortalLocation) + ").");
+            if (!target.getChunk().isLoaded()) {
+                target.getChunk().load();
+            }
+            clearPortalEntities(target);
         target.getBlock().setType(Material.AIR, false);
         NexoFurniture.remove(target);
         FurnitureMechanic existing = NexoFurniture.furnitureMechanic(target.getBlock());
@@ -1102,22 +1104,24 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
         return true;
     }
 
-    private void queueBossExitPortalSpawn(InstanceState state) {
-        if (state == null) return;
-        if (state.portalSpawnTask != null) {
-            state.portalSpawnTask.cancel();
-        }
-        state.portalSpawnTask = new BukkitRunnable() {
-            int attempts = 0;
-            final int maxAttempts = 6;
+        private void queueBossExitPortalSpawn(InstanceState state) {
+            if (state == null) return;
+            if (state.portalSpawnTask != null) {
+                state.portalSpawnTask.cancel();
+            }
+            state.portalSpawnTask = new BukkitRunnable() {
+                int attempts = 0;
+                final int maxAttempts = 6;
 
-            @Override
-            public void run() {
-                attempts++;
-                if (spawnBossExitPortal(state, attempts >= maxAttempts)) {
-                    cancel();
-                    state.portalSpawnTask = null;
-                    return;
+                @Override
+                public void run() {
+                    attempts++;
+                    plugin.getLogger().info("[DungeonDebug] Boss exit portal spawn attempt " + attempts
+                            + " at base " + formatLocation(state.bossPortalLocation) + ".");
+                    if (spawnBossExitPortal(state, attempts >= maxAttempts)) {
+                        cancel();
+                        state.portalSpawnTask = null;
+                        return;
                 }
                 if (attempts >= maxAttempts) {
                     cancel();
@@ -1152,6 +1156,13 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
             return false;
         }
         return loc.getBlock().isPassable() && loc.clone().add(0, 1, 0).getBlock().isPassable();
+    }
+
+    private String formatLocation(Location loc) {
+        if (loc == null || loc.getWorld() == null) {
+            return "unknown";
+        }
+        return loc.getWorld().getName() + "@" + loc.getBlockX() + "," + loc.getBlockY() + "," + loc.getBlockZ();
     }
 
     private void clearPortalEntities(Location loc) {
@@ -1255,6 +1266,9 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
             if (state.trackedInstance != null) {
                 state.trackedInstance.getDungeon().setBossDefeated(true);
             }
+            plugin.getLogger().info("[DungeonDebug] Boss defeated. World=" + event.getEntity().getWorld().getName()
+                    + " bossLocation=" + formatLocation(event.getEntity().getLocation())
+                    + " portalMarker=" + formatLocation(state.bossPortalLocation));
             RewardBombUtil.startRewardBomb(plugin, event.getEntity().getLocation(),
                     createBossRewardBombSupplier(state), 120);
             queueBossExitPortalSpawn(state);
