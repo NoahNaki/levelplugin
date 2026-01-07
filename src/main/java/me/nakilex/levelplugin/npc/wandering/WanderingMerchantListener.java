@@ -15,6 +15,8 @@ import org.bukkit.event.player.PlayerInteractEntityEvent;
 /** Handles interactions with the wandering merchant NPC. */
 public class WanderingMerchantListener implements Listener {
     private final WanderingMerchantManager manager;
+    private final java.util.Map<java.util.UUID, Long> recentInteractions = new java.util.HashMap<>();
+    private static final long INTERACT_SUPPRESSION_MS = 200L;
 
     public WanderingMerchantListener(WanderingMerchantManager manager) {
         this.manager = manager;
@@ -25,6 +27,7 @@ public class WanderingMerchantListener implements Listener {
         if (!manager.isActive()) return;
         if (e.getRightClicked().equals(manager.getMerchant())) {
             e.setCancelled(true);
+            recentInteractions.put(e.getPlayer().getUniqueId(), System.currentTimeMillis());
             manager.openShop(e.getPlayer());
         }
     }
@@ -33,6 +36,13 @@ public class WanderingMerchantListener implements Listener {
     public void onDamage(EntityDamageByEntityEvent e) {
         if (!manager.isActive()) return;
         if (!e.getEntity().equals(manager.getMerchant())) return;
+        if (e.getDamager() instanceof Player player) {
+            Long last = recentInteractions.get(player.getUniqueId());
+            if (last != null && System.currentTimeMillis() - last < INTERACT_SUPPRESSION_MS) {
+                e.setCancelled(true);
+                return;
+            }
+        }
         manager.recordHit();
 
         if (e.getEntity() instanceof org.bukkit.entity.LivingEntity le) {
