@@ -684,6 +684,7 @@ public class PluginBootstrap {
         if (auctionHouseManager != null) auctionHouseManager.saveAuctionsSync();
         if (lootChestManager != null) lootChestManager.removeAllChests();
         if (dpsDummyManager != null) dpsDummyManager.shutdown();
+        if (customMobManager != null) customMobManager.getSpawnerManager().shutdown();
         if (dungeonManager != null) {
             dungeonManager.cleanupInstances();
             dungeonManager.cleanupOldInstanceWorlds();

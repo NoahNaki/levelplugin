@@ -159,6 +159,7 @@ public class ListenerRegistry {
         if (customMobManager != null) {
             pm.registerEvents(customMobManager.getNameManager(), plugin);
             pm.registerEvents(new CustomMobRewardListener(customMobManager, dmgTracker, rewardService), plugin);
+            pm.registerEvents(customMobManager.getSpawnerManager(), plugin);
         }
         if (mythicEnabled) {
             pm.registerEvents(new me.nakilex.levelplugin.player.mining.listeners.OreMiningListener(

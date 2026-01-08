@@ -34,6 +34,8 @@ public class CustomMobRewardListener implements Listener {
         if (instanceOpt.isEmpty()) {
             return;
         }
+        event.getDrops().clear();
+        event.setDroppedExp(0);
         CustomMobInstance instance = instanceOpt.get();
         Set<Player> participants = tracker.getParticipantsAndClear(entity.getUniqueId());
         if (participants.isEmpty() && entity.getKiller() instanceof Player killer) {

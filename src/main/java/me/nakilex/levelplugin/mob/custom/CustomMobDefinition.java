@@ -10,12 +10,34 @@ import java.util.List;
 public record CustomMobDefinition(String id,
                                   EntityType entityType,
                                   String displayName,
-                                  int level,
+                                  LevelRange levelRange,
                                   Double baseHealth,
                                   CustomMobStats stats,
                                   List<String> models,
                                   CustomMobOptions options,
                                   boolean boss) {
+
+    public record LevelRange(int min, int max) {
+        public LevelRange {
+            if (min < 1) {
+                min = 1;
+            }
+            if (max < min) {
+                max = min;
+            }
+        }
+
+        public int pickLevel(java.util.Random random) {
+            if (min == max) {
+                return min;
+            }
+            return min + random.nextInt(max - min + 1);
+        }
+
+        public String format() {
+            return min == max ? String.valueOf(min) : min + "-" + max;
+        }
+    }
 
     public record CustomMobOptions(Double movementSpeed,
                                    Double followRange,
@@ -37,7 +59,7 @@ public record CustomMobDefinition(String id,
             type = EntityType.ZOMBIE;
         }
         String display = cfg.getString("display", id);
-        int level = cfg.getInt("level", 1);
+        LevelRange levelRange = parseLevelRange(cfg);
         Double health = cfg.contains("health") ? cfg.getDouble("health") : null;
         List<String> models = cfg.getStringList("models");
         if (models == null || models.isEmpty()) {
@@ -51,13 +73,42 @@ public record CustomMobDefinition(String id,
                 id,
                 type,
                 ChatColor.translateAlternateColorCodes('&', display),
-                level,
+                levelRange,
                 health,
                 stats,
                 models,
                 options,
                 boss
         );
+    }
+
+    private static LevelRange parseLevelRange(ConfigurationSection cfg) {
+        if (cfg == null) {
+            return new LevelRange(1, 1);
+        }
+        if (cfg.isConfigurationSection("level-range")) {
+            ConfigurationSection range = cfg.getConfigurationSection("level-range");
+            int min = range != null ? range.getInt("min", cfg.getInt("level", 1)) : cfg.getInt("level", 1);
+            int max = range != null ? range.getInt("max", min) : min;
+            return new LevelRange(min, max);
+        }
+        if (cfg.contains("level-min") || cfg.contains("level-max")) {
+            int min = cfg.getInt("level-min", cfg.getInt("level", 1));
+            int max = cfg.getInt("level-max", min);
+            return new LevelRange(min, max);
+        }
+        String rangeText = cfg.getString("level-range");
+        if (rangeText != null && rangeText.contains("-")) {
+            String[] parts = rangeText.split("-", 2);
+            try {
+                int min = Integer.parseInt(parts[0].trim());
+                int max = Integer.parseInt(parts[1].trim());
+                return new LevelRange(min, max);
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        int level = cfg.getInt("level", 1);
+        return new LevelRange(level, level);
     }
 
     private static CustomMobStats parseStats(ConfigurationSection stats) {

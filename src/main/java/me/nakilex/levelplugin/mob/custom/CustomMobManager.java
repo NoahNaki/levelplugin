@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.mob.custom;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.utils.AttributeUtil;
 import me.nakilex.levelplugin.utils.ModelEngineUtil;
+import me.nakilex.levelplugin.mob.custom.spawner.CustomMobSpawnerManager;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.attribute.Attribute;
@@ -17,6 +18,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Random;
 import java.util.UUID;
 
 public class CustomMobManager {
@@ -30,17 +32,24 @@ public class CustomMobManager {
 
     private final Main plugin;
     private final CustomMobNameManager nameManager;
+    private final CustomMobSpawnerManager spawnerManager;
     private final Map<String, CustomMobDefinition> definitions = new HashMap<>();
     private final Map<UUID, CustomMobInstance> activeMobs = new HashMap<>();
+    private final Random random = new Random();
 
     public CustomMobManager(Main plugin) {
         this.plugin = plugin;
         this.nameManager = new CustomMobNameManager(plugin, this);
+        this.spawnerManager = new CustomMobSpawnerManager(plugin, this);
         loadDefinitions();
     }
 
     public CustomMobNameManager getNameManager() {
         return nameManager;
+    }
+
+    public CustomMobSpawnerManager getSpawnerManager() {
+        return spawnerManager;
     }
 
     public List<String> getMobIds() {
@@ -77,8 +86,12 @@ public class CustomMobManager {
     }
 
     public List<LivingEntity> spawn(String id, Location location, int amount) {
+        return spawn(id, location, amount, null);
+    }
+
+    public List<LivingEntity> spawn(String id, Location location, int amount, Integer levelOverride) {
         Optional<CustomMobDefinition> defOpt = getDefinition(id);
-        if (defOpt.isEmpty()) {
+        if (defOpt.isEmpty() || location == null || location.getWorld() == null) {
             return List.of();
         }
         CustomMobDefinition definition = defOpt.get();
@@ -92,8 +105,11 @@ public class CustomMobManager {
                 }
                 continue;
             }
+            int level = levelOverride != null
+                    ? Math.max(1, levelOverride)
+                    : definition.levelRange().pickLevel(random);
             applyDefinition(entity, definition);
-            CustomMobInstance instance = new CustomMobInstance(definition, entity);
+            CustomMobInstance instance = new CustomMobInstance(definition, entity, level);
             activeMobs.put(entity.getUniqueId(), instance);
             nameManager.track(instance);
             spawned.add(entity);
