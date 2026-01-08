@@ -326,7 +326,11 @@ public class PluginBootstrap {
         dropDebugManager = new me.nakilex.levelplugin.debug.DropDebugManager(plugin);
         autoCastManager = new me.nakilex.levelplugin.debug.AutoCastManager();
         beaconEntityDebugManager = new me.nakilex.levelplugin.debug.BeaconEntityDebugManager(plugin);
-        dpsDummyManager = new DpsDummyManager(plugin, mythicHelper);
+        if (mythicHelper != null) {
+            dpsDummyManager = new DpsDummyManager(plugin, mythicHelper);
+        } else {
+            dpsDummyManager = null;
+        }
         upgradeKey = new NamespacedKey(plugin, "upgrade_level");
         levelManager = new LevelManager(plugin);
         miningManager = new me.nakilex.levelplugin.player.mining.managers.MiningManager(plugin);

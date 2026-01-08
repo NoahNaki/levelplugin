@@ -217,7 +217,9 @@ public class ListenerRegistry {
             pm.registerEvents(new me.nakilex.levelplugin.mob.listeners.MythicSkillDamageScaler(), plugin);
             pm.registerEvents(new DamageChatListener(), plugin);
         }
-        pm.registerEvents(dpsDummyManager, plugin);
+        if (dpsDummyManager != null) {
+            pm.registerEvents(dpsDummyManager, plugin);
+        }
         pm.registerEvents(new FallDamageDisabler(), plugin);
         pm.registerEvents(new HungerDisabler(), plugin);
         pm.registerEvents(new CropTrampleListener(), plugin);

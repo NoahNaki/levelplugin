@@ -76,7 +76,10 @@ public class QuestManager {
         Quest office = new me.nakilex.levelplugin.quests.def.OfficeErrandsQuest();
         registerQuest(office);
         Quest nb = new me.nakilex.levelplugin.quests.def.NewBeginningQuest();
-        Quest cultistCulling = new me.nakilex.levelplugin.quests.def.CultistCullingQuest();
+        Quest cultistCulling = null;
+        if (Bukkit.getPluginManager().isPluginEnabled("MythicMobs")) {
+            cultistCulling = new me.nakilex.levelplugin.quests.def.CultistCullingQuest();
+        }
         Quest seras = new me.nakilex.levelplugin.quests.def.SerasQuest();
         Quest serasPartTwo = new me.nakilex.levelplugin.quests.def.SerasSlimeKingQuest();
         Quest hawieCrabs = new me.nakilex.levelplugin.quests.def.HawieHermitCrabQuest();
@@ -97,7 +100,9 @@ public class QuestManager {
         Quest abandonedCastle = new me.nakilex.levelplugin.quests.def.AbandonedCastleQuest();
         Quest wakePerry = new me.nakilex.levelplugin.quests.def.WakePerryQuest();
         registerQuest(nb);
-        registerQuest(cultistCulling);
+        if (cultistCulling != null) {
+            registerQuest(cultistCulling);
+        }
         registerQuest(seras);
         registerQuest(serasPartTwo);
         registerQuest(hawieCrabs);
@@ -124,14 +129,18 @@ public class QuestManager {
                 me.nakilex.levelplugin.quests.def.SharpestSecretQuest.ID);
         registerNpcQuest(me.nakilex.levelplugin.quests.def.SharpestSecretQuest.NPC_OSIRIS_NAME,
                 me.nakilex.levelplugin.quests.def.SharpestSecretQuest.ID);
-        registerNpcQuest(me.nakilex.levelplugin.quests.def.CultistCullingQuest.getContactNpcId(),
-                me.nakilex.levelplugin.quests.def.CultistCullingQuest.ID);
+        if (cultistCulling != null) {
+            registerNpcQuest(me.nakilex.levelplugin.quests.def.CultistCullingQuest.getContactNpcId(),
+                    me.nakilex.levelplugin.quests.def.CultistCullingQuest.ID);
+        }
         me.nakilex.levelplugin.quests.def.SharpestSecretQuest.registerTalkTargets(this);
         me.nakilex.levelplugin.quests.def.SalvagersLessonQuest.registerTalkTargets(this);
         me.nakilex.levelplugin.quests.def.MarketBeginningsQuest.registerTalkTargets(this);
         me.nakilex.levelplugin.quests.def.ForgeFundamentalsQuest.registerTalkTargets(this);
         me.nakilex.levelplugin.quests.def.FieldworkFavorQuest.registerTalkTargets(this);
-        me.nakilex.levelplugin.quests.def.CultistCullingQuest.registerTalkTargets(this);
+        if (cultistCulling != null) {
+            me.nakilex.levelplugin.quests.def.CultistCullingQuest.registerTalkTargets(this);
+        }
         me.nakilex.levelplugin.quests.def.EssenceWeaversLessonQuest.registerTalkTargets(this);
         me.nakilex.levelplugin.quests.def.GamblersGambitQuest.registerTalkTargets(this);
         me.nakilex.levelplugin.quests.def.AbandonedCastleQuest.registerTalkTargets(this);

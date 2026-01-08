@@ -287,9 +287,11 @@ public class CommandRegistry {
         ToggleCommand toggleCmd = new ToggleCommand(plugin);
         plugin.getCommand("toggle").setExecutor(toggleCmd);
         plugin.getCommand("toggle").setTabCompleter(toggleCmd);
-        DpsDummyCommand dummyCmd = new DpsDummyCommand(dpsDummyManager);
-        plugin.getCommand("dpsdummy").setExecutor(dummyCmd);
-        plugin.getCommand("dpsdummy").setTabCompleter(dummyCmd);
+        if (dpsDummyManager != null) {
+            DpsDummyCommand dummyCmd = new DpsDummyCommand(dpsDummyManager);
+            plugin.getCommand("dpsdummy").setExecutor(dummyCmd);
+            plugin.getCommand("dpsdummy").setTabCompleter(dummyCmd);
+        }
         plugin.getCommand("skipsong").setExecutor(new SkipSongCommand(plugin));
         AuctionCommand auctionCmd = new AuctionCommand(auctionMgr, auctionGui);
         plugin.getCommand("auctionhouse").setExecutor(auctionCmd);
