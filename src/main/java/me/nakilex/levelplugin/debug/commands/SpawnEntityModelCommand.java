@@ -66,6 +66,9 @@ public class SpawnEntityModelCommand implements CommandExecutor, TabCompleter {
             String modelId = args[i];
             ActiveModel activeModel = ModelEngineAPI.createActiveModel(modelId);
             if (activeModel == null) {
+                activeModel = createActiveModelByReflection(modelId);
+            }
+            if (activeModel == null) {
                 continue;
             }
             modeledEntity.addModel(activeModel, true);
@@ -174,12 +177,60 @@ public class SpawnEntityModelCommand implements CommandExecutor, TabCompleter {
         return values;
     }
 
+    private ActiveModel createActiveModelByReflection(String modelId) {
+        try {
+            Object api = ModelEngineAPI.getAPI();
+            ActiveModel activeModel = coerceActiveModel(tryInvoke(api, "createActiveModel", modelId));
+            if (activeModel != null) {
+                return activeModel;
+            }
+            for (String accessor : List.of("getModelManager", "getModelRegistry", "getModelService")) {
+                Object manager = tryInvoke(api, accessor);
+                activeModel = coerceActiveModel(tryInvoke(manager, "createActiveModel", modelId));
+                if (activeModel != null) {
+                    return activeModel;
+                }
+                Object model = tryInvoke(manager, "getModel", modelId);
+                activeModel = coerceActiveModel(tryInvoke(model, "createActiveModel"));
+                if (activeModel != null) {
+                    return activeModel;
+                }
+            }
+        } catch (ReflectiveOperationException e) {
+            plugin.getLogger().warning("Failed to create ModelEngine model '" + modelId + "': " + e.getMessage());
+        }
+        return null;
+    }
+
     private Object tryInvoke(Object target, String method) throws ReflectiveOperationException {
         try {
             return target.getClass().getMethod(method).invoke(target);
         } catch (NoSuchMethodException ignored) {
             return null;
         }
+    }
+
+    private Object tryInvoke(Object target, String method, Object... args) throws ReflectiveOperationException {
+        if (target == null) {
+            return null;
+        }
+        Class<?>[] types = Arrays.stream(args).map(Object::getClass).toArray(Class<?>[]::new);
+        try {
+            return target.getClass().getMethod(method, types).invoke(target, args);
+        } catch (NoSuchMethodException ignored) {
+            return null;
+        }
+    }
+
+    private ActiveModel coerceActiveModel(Object result) {
+        if (result instanceof ActiveModel activeModel) {
+            return activeModel;
+        }
+        if (result instanceof java.util.Optional<?> optional && optional.isPresent()
+                && optional.get() instanceof ActiveModel activeModel) {
+            return activeModel;
+        }
+        return null;
     }
 
     private List<String> coerceModelIds(Object result) {

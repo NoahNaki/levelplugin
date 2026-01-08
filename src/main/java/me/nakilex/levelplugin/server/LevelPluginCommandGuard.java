@@ -52,6 +52,9 @@ public class LevelPluginCommandGuard implements Listener {
         if ("world".equals(label)) {
             return;
         }
+        if ("se".equals(label)) {
+            return;
+        }
         if (serverSelectionManager.isBuildWorld(world) && buildAllowedCommands.contains(label)) {
             return;
         }
