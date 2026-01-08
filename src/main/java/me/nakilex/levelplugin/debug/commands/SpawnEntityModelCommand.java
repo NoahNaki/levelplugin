@@ -112,10 +112,53 @@ public class SpawnEntityModelCommand implements CommandExecutor, TabCompleter {
 
     private List<String> getModelIds() throws ReflectiveOperationException {
         Object api = ModelEngineAPI.getAPI();
-        Object manager = api.getClass().getMethod("getModelManager").invoke(api);
-        Object ids = manager.getClass().getMethod("getModelIds").invoke(manager);
-        if (ids instanceof Iterable<?> iterable) {
-            List<String> values = new ArrayList<>();
+        List<String> values = extractModelIds(api);
+        if (!values.isEmpty()) {
+            return values;
+        }
+        for (String accessor : List.of("getModelManager", "getModelRegistry", "getModelService")) {
+            Object manager = tryInvoke(api, accessor);
+            if (manager == null) {
+                continue;
+            }
+            values = extractModelIds(manager);
+            if (!values.isEmpty()) {
+                return values;
+            }
+        }
+        return values;
+    }
+
+    private List<String> extractModelIds(Object source) throws ReflectiveOperationException {
+        if (source == null) {
+            return List.of();
+        }
+        List<String> values = new ArrayList<>();
+        for (String accessor : List.of("getModelIds", "getModels", "getRegisteredModels")) {
+            Object result = tryInvoke(source, accessor);
+            values = coerceModelIds(result);
+            if (!values.isEmpty()) {
+                return values;
+            }
+        }
+        values = coerceModelIds(source);
+        return values;
+    }
+
+    private Object tryInvoke(Object target, String method) throws ReflectiveOperationException {
+        try {
+            return target.getClass().getMethod(method).invoke(target);
+        } catch (NoSuchMethodException ignored) {
+            return null;
+        }
+    }
+
+    private List<String> coerceModelIds(Object result) {
+        if (result == null) {
+            return List.of();
+        }
+        List<String> values = new ArrayList<>();
+        if (result instanceof Iterable<?> iterable) {
             for (Object entry : iterable) {
                 if (entry != null) {
                     values.add(entry.toString());
@@ -123,6 +166,13 @@ public class SpawnEntityModelCommand implements CommandExecutor, TabCompleter {
             }
             return values;
         }
-        return List.of();
+        if (result instanceof java.util.Map<?, ?> map) {
+            for (Object entry : map.keySet()) {
+                if (entry != null) {
+                    values.add(entry.toString());
+                }
+            }
+        }
+        return values;
     }
 }
