@@ -25,6 +25,7 @@ import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
 import me.nakilex.levelplugin.mob.managers.MythicMobNameManager;
 import me.nakilex.levelplugin.mob.custom.CustomMobManager;
 import me.nakilex.levelplugin.mob.custom.CustomMobRewardListener;
+import me.nakilex.levelplugin.mob.custom.gui.CustomMobAdminGUI;
 import me.nakilex.levelplugin.mob.utils.MobRewardService;
 import me.nakilex.levelplugin.npc.listeners.NPCClickListener;
 import me.nakilex.levelplugin.npc.listeners.NPCCommandListener;
@@ -157,6 +158,7 @@ public class ListenerRegistry {
             pm.registerEvents(customMobManager.getNameManager(), plugin);
             pm.registerEvents(new CustomMobRewardListener(customMobManager, dmgTracker, rewardService), plugin);
             pm.registerEvents(customMobManager.getSpawnerManager(), plugin);
+            pm.registerEvents(customMobManager.getAdminGui(), plugin);
         }
         if (mythicEnabled) {
             pm.registerEvents(new me.nakilex.levelplugin.player.mining.listeners.OreMiningListener(

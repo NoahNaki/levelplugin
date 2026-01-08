@@ -427,4 +427,28 @@ public class CustomMobSpawnerManager implements Listener {
                 .sorted(String.CASE_INSENSITIVE_ORDER)
                 .collect(Collectors.toList());
     }
+
+    public boolean moveSpawner(String name, Location location) {
+        if (location == null) {
+            return false;
+        }
+        Optional<CustomMobSpawner> spawnerOpt = getSpawner(name);
+        if (spawnerOpt.isEmpty()) {
+            return false;
+        }
+        CustomMobSpawner spawner = spawnerOpt.get();
+        if (location.getWorld() == null) {
+            return false;
+        }
+        spawner.setWorld(location.getWorld().getName());
+        spawner.setX(location.getX());
+        spawner.setY(location.getY());
+        spawner.setZ(location.getZ());
+        save();
+        return true;
+    }
+
+    public void removeActiveMob(UUID uuid) {
+        spawners.values().forEach(spawner -> spawner.getActiveMobs().remove(uuid));
+    }
 }

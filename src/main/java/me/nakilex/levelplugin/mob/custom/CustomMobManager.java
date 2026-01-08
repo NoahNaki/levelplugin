@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.utils.AttributeUtil;
 import me.nakilex.levelplugin.utils.ModelEngineUtil;
 import me.nakilex.levelplugin.mob.custom.spawner.CustomMobSpawnerManager;
+import me.nakilex.levelplugin.mob.custom.gui.CustomMobAdminGUI;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.attribute.Attribute;
@@ -33,6 +34,7 @@ public class CustomMobManager {
     private final Main plugin;
     private final CustomMobNameManager nameManager;
     private final CustomMobSpawnerManager spawnerManager;
+    private final CustomMobAdminGUI adminGui;
     private final Map<String, CustomMobDefinition> definitions = new HashMap<>();
     private final Map<UUID, CustomMobInstance> activeMobs = new HashMap<>();
     private final Random random = new Random();
@@ -41,6 +43,7 @@ public class CustomMobManager {
         this.plugin = plugin;
         this.nameManager = new CustomMobNameManager(plugin, this);
         this.spawnerManager = new CustomMobSpawnerManager(plugin, this);
+        this.adminGui = new CustomMobAdminGUI(plugin, this, spawnerManager);
         loadDefinitions();
     }
 
@@ -50,6 +53,10 @@ public class CustomMobManager {
 
     public CustomMobSpawnerManager getSpawnerManager() {
         return spawnerManager;
+    }
+
+    public CustomMobAdminGUI getAdminGui() {
+        return adminGui;
     }
 
     public List<String> getMobIds() {
@@ -121,6 +128,7 @@ public class CustomMobManager {
         CustomMobInstance instance = activeMobs.remove(uuid);
         if (instance != null) {
             nameManager.untrack(uuid);
+            spawnerManager.removeActiveMob(uuid);
         }
     }
 
