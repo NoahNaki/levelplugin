@@ -58,7 +58,6 @@ public class Main extends JavaPlugin {
     @Override
     public FileConfiguration getConfig() { return super.getConfig(); }
     public PlayerConfig getPlayerConfig() { return bootstrap.getPlayerConfig(); }
-    public me.nakilex.levelplugin.spells.managers.SpellManager getSpellManager() { return bootstrap.getSpellmanager(); }
     public FileConfiguration getCustomConfig() { return bootstrap.getCustomConfig(); }
     public PartyManager getPartyManager() { return bootstrap.getPartyManager(); }
     public me.nakilex.levelplugin.arena.ArenaQueueManager getArenaQueueManager() { return bootstrap.getArenaQueueManager(); }
@@ -79,7 +78,6 @@ public class Main extends JavaPlugin {
     public ItemConfig getItemConfig() { return bootstrap.getItemConfig(); }
     public me.nakilex.levelplugin.lootchests.managers.LootChestManager getLootChestManager() { return bootstrap.getLootChestManager(); }
     public MessageStrings getMessageStrings() { return bootstrap.getMessageStrings(); }
-    public me.nakilex.levelplugin.spells.managers.ManaCostTracker getManaTracker() { return bootstrap.getManaTracker(); }
     public void reloadConfigValues() {
         if (bootstrap != null) {
             bootstrap.reloadPluginConfig();
@@ -100,7 +98,6 @@ public class Main extends JavaPlugin {
     public MobRewardsConfig getMobRewardsConfig() { return bootstrap.getMobRewardsConfig(); }
     public me.nakilex.levelplugin.utils.registeries.CommandRegistry getCommandRegistry() { return null; }
     public me.nakilex.levelplugin.utils.registeries.ListenerRegistry getListenerRegistry() { return null; }
-    public me.nakilex.levelplugin.spells.registry.EffectRegistry getEffectRegistry() { return null; }
     public me.nakilex.levelplugin.environment.EnvironmentManager getEnvironmentManager() { return bootstrap.getEnvironmentManager(); }
     public void saveCustomConfig() {
         if (bootstrap != null) {
@@ -125,7 +122,6 @@ public class Main extends JavaPlugin {
 
     public PlayerToggleManager getMobDebugToggleManager() { return bootstrap.getMobDebugToggleManager(); }
     public me.nakilex.levelplugin.debug.DropDebugManager getDropDebugManager() { return bootstrap.getDropDebugManager(); }
-    public me.nakilex.levelplugin.debug.AutoCastManager getAutoCastManager() { return bootstrap.getAutoCastManager(); }
     public me.nakilex.levelplugin.debug.BeaconEntityDebugManager getBeaconEntityDebugManager() { return bootstrap.getBeaconEntityDebugManager(); }
     public me.nakilex.levelplugin.fasttravel.FastTravelManager getFastTravelManager() { return bootstrap.getFastTravelManager(); }
     public me.nakilex.levelplugin.fasttravel.gui.FastTravelGUI getFastTravelGUI() { return bootstrap.getFastTravelGUI(); }

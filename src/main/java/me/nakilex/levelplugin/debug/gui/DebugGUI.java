@@ -8,7 +8,6 @@ import java.util.Map;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.chat.games.ChatGameManager;
 import me.nakilex.levelplugin.chat.games.ChatGameStatus;
-import me.nakilex.levelplugin.debug.AutoCastManager;
 import me.nakilex.levelplugin.debug.DropDebugManager;
 import me.nakilex.levelplugin.lootchests.managers.CooldownManager;
 import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
@@ -47,7 +46,6 @@ public class DebugGUI implements Listener {
     private static final int DROP_RATE_SLOT = 27;
     private static final int CHEST_RESPAWN_SLOT = 25;
     private static final int FORCE_DROP_SLOT = 29;
-    private static final int AUTOCAST_SLOT = 31;
     private static final int REWARD_BOMB_SLOT = 33;
     private static final int[] CHAT_GAME_SLOTS = {28, 30, 32, 34, 22, 24};
 
@@ -55,7 +53,6 @@ public class DebugGUI implements Listener {
     private final PlayerScoreboardManager scoreboardManager;
     private final MercenaryExpeditionManager expeditionManager;
     private final DropDebugManager dropDebugManager;
-    private final AutoCastManager autoCastManager;
     private final ChatGameManager chatGameManager;
     private final CooldownManager cooldownManager;
     private final Map<Integer, String> chatGameSlots = new HashMap<>();
@@ -66,13 +63,11 @@ public class DebugGUI implements Listener {
                     ChatGameManager chatGameManager,
                     MercenaryExpeditionManager expeditionManager,
                     DropDebugManager dropDebugManager,
-                    AutoCastManager autoCastManager,
                     CooldownManager cooldownManager) {
         this.mobDebugManager = mobDebugManager;
         this.scoreboardManager = scoreboardManager;
         this.expeditionManager = expeditionManager;
         this.dropDebugManager = dropDebugManager;
-        this.autoCastManager = autoCastManager;
         this.chatGameManager = chatGameManager;
         this.cooldownManager = cooldownManager;
     }
@@ -111,11 +106,6 @@ public class DebugGUI implements Listener {
                 "§bGuaranteed Mob Drops",
                 "§7Force MythicMob loot and chests",
                 "§7to drop every time."));
-        builder.setItem(AUTOCAST_SLOT, GuiUtil.createToggleItem(
-                autoCastManager.isAutoCasting(player),
-                "§bMage Autocast",
-                "§7Auto-cast Fireball using TEC",
-                "§7Requires Mage class."));
         builder.setItem(REWARD_BOMB_SLOT, createActionItem(
                 Material.TNT,
                 "§dReward Bomb",
@@ -181,17 +171,6 @@ public class DebugGUI implements Listener {
                     "§7Force MythicMob loot and chests",
                     "§7to drop every time."));
             ToggleFeedbackUtil.sendToggle(player, "Guaranteed mob drops", enabled);
-        } else if (slot == AUTOCAST_SLOT) {
-            AutoCastManager.ToggleOutcome outcome = autoCastManager.toggleMageFireball(player);
-            if (!outcome.success()) {
-                ChatMessageUtil.send(player, MessageType.ERROR, outcome.errorMessage());
-                return;
-            }
-            inv.setItem(AUTOCAST_SLOT, GuiUtil.createToggleItem(outcome.enabled(),
-                    "§bMage Autocast",
-                    "§7Auto-cast Fireball using TEC",
-                    "§7Requires Mage class."));
-            ToggleFeedbackUtil.sendToggle(player, "Mage autocast", outcome.enabled());
         } else if (slot == REWARD_BOMB_SLOT) {
             var target = player.getTargetBlockExact(20);
             if (target == null) {

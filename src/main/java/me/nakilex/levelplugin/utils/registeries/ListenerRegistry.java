@@ -47,9 +47,6 @@ import me.nakilex.levelplugin.potions.managers.PotionManager;
 import me.nakilex.levelplugin.salvage.listeners.SalvageListener;
 import me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager;
 import me.nakilex.levelplugin.settings.gui.SettingsGUI;
-import me.nakilex.levelplugin.spells.listener.ClassSpellListener;
-import me.nakilex.levelplugin.spells.gui.SpellGUIListener;
-import me.nakilex.levelplugin.spells.listener.*;
 import me.nakilex.levelplugin.player.classes.gui.SubclassGUI;
 import me.nakilex.levelplugin.player.classes.essence.listener.ClassEssenceMenuListener;
 import me.nakilex.levelplugin.player.classes.essence.listener.ClassEssenceBoundListener;
@@ -104,7 +101,6 @@ public class ListenerRegistry {
                                          SettingsGUI settingsGUI,
                                          me.nakilex.levelplugin.debug.gui.DebugGUI debugGUI,
                                          FileConfiguration bossConfig,
-                                        MeteorListener meteorListener,
                                         GemsManager gemsManager,
                                        me.nakilex.levelplugin.enchanting.gui.EnchantGUI enchantGUI,
                                        AuctionHouseGUI auctionGUI,
@@ -219,8 +215,6 @@ public class ListenerRegistry {
         if (mythicEnabled) {
             pm.registerEvents(new MythicMobNameManager(plugin), plugin);
             pm.registerEvents(new MythicMobDamageListener(), plugin);
-            pm.registerEvents(new me.nakilex.levelplugin.mob.listeners.MythicSkillDamageScaler(), plugin);
-            pm.registerEvents(new DamageChatListener(), plugin);
         }
         if (dpsDummyManager != null) {
             pm.registerEvents(dpsDummyManager, plugin);
@@ -232,7 +226,6 @@ public class ListenerRegistry {
         pm.registerEvents(new PickupCustomItemListener(plugin), plugin);
         pm.registerEvents(new CustomItemUpdateListener(), plugin);
         pm.registerEvents(new SalvageListener(economyManager, gemsManager), plugin);
-        pm.registerEvents(new SpellGUIListener(), plugin);
         pm.registerEvents(new DoubleJumpListener(), plugin);
         pm.registerEvents(new DamageIndicatorListener(dmgToggleManager), plugin);
         new DamageIndicatorPacketBlocker(plugin);
@@ -240,9 +233,6 @@ public class ListenerRegistry {
         pm.registerEvents(debugGUI, plugin);
         pm.registerEvents(new GuildGUIListener(), plugin);
         pm.registerEvents(new GuildQuestGUIListener(), plugin);
-        pm.registerEvents(new MeteorListener(), plugin);
-        pm.registerEvents(new ShockwaveListener(), plugin);
-        pm.registerEvents(new ClassSpellListener(), plugin);
         pm.registerEvents(new SubclassGUI(), plugin);
         pm.registerEvents(new ClassEssenceMenuListener(), plugin);
         pm.registerEvents(new ClassEssenceBoundListener(), plugin);

@@ -2,7 +2,7 @@ package me.nakilex.levelplugin.pathfinding.npc;
 
 import io.lumine.mythic.bukkit.BukkitAdapter;
 import io.lumine.mythic.bukkit.MythicBukkit;
-import me.nakilex.levelplugin.spells.managers.CooldownManager;
+import me.nakilex.levelplugin.utils.cooldowns.CooldownManager;
 import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.EntityType;

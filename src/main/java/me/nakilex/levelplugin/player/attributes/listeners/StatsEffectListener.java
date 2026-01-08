@@ -3,7 +3,6 @@ package me.nakilex.levelplugin.player.attributes.listeners;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.PlayerStats;
 import me.nakilex.levelplugin.mob.utils.SweepAttack;
-import me.nakilex.levelplugin.spells.managers.SpellContextManager;
 import me.nakilex.levelplugin.player.classes.managers.PlayerClassManager;
 import me.nakilex.levelplugin.player.classes.data.ClassUtil;
 import org.bukkit.entity.Entity;
@@ -23,12 +22,8 @@ public class StatsEffectListener implements Listener {
 
     private final Random random = new Random();
 
-    // Basic attacks still trail spells but shouldn't feel useless
-    // 0.20 ~= half of the original 0.4 scaling
+    // Basic attacks scaling
     public static final double BASIC_ATTACK_MULTIPLIER = 0.60;
-
-    // Slightly boost spell damage so they retain the edge over basics
-    public static final double SPELL_DAMAGE_MULTIPLIER = 1.10;
 
     // Track whether each player's last hit was a crit
     private static final Map<UUID, Boolean> lastCritMap = new ConcurrentHashMap<>();
@@ -45,7 +40,6 @@ public class StatsEffectListener implements Listener {
     /**
      * Records whether the player's last hit should be treated as a critical
      * strike so other systems (chat logs, damage popups, etc.) can query it.
-     * Used by spells that determine crit chance outside of this listener.
      */
     public static void recordCrit(Player player, boolean isCrit) {
         if (player != null) {
@@ -60,12 +54,9 @@ public class StatsEffectListener implements Listener {
 
         // Determine if a player is responsible for the damage
         Player player = null;
-        SpellContextManager.Context ctx = null; // may hold basic-attack flag
         if (damager instanceof Player p) {
             boolean sweeping = p.hasMetadata(SweepAttack.SWEEP_META);
-            ctx = SpellContextManager.peek(p.getUniqueId());
-            boolean basic = ctx != null && ctx.basicAttack;
-            if (!sweeping && !basic && p.getAttackCooldown() < 1.0f) {
+            if (!sweeping && p.getAttackCooldown() < 1.0f) {
                 event.setCancelled(true);
                 return;
             }
@@ -76,17 +67,11 @@ public class StatsEffectListener implements Listener {
                 player = null;
             } else {
                 player = shooter;
-                ctx = SpellContextManager.peek(shooter.getUniqueId());
             }
         }
 
         // ── Outgoing damage (when the damager is a player or their projectile) ──
         if (player != null && !player.hasMetadata(SweepAttack.SWEEP_META)) {
-            if (ctx != null && ctx.preScaledDamage) {
-                recordCrit(player, ctx.isCrit);
-                return;
-            }
-
             PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
 
             double finalDamage = event.getDamage();
@@ -111,17 +96,10 @@ public class StatsEffectListener implements Listener {
             double critChance = (double) totalDexterity / (totalDexterity + 100.0);
             critChance = Math.max(0.0, Math.min(1.0, critChance));
 
-            if (ctx == null) {
-                ctx = SpellContextManager.peek(player.getUniqueId());
-            }
-            boolean isCrit = (ctx != null) ? ctx.isCrit : random.nextDouble() < critChance;
+            boolean isCrit = random.nextDouble() < critChance;
             if (isCrit) finalDamage *= 2;
 
-            // Apply type-based multiplier to keep spells ahead of basics
-            double scale = (ctx == null || ctx.basicAttack)
-                ? BASIC_ATTACK_MULTIPLIER
-                : SPELL_DAMAGE_MULTIPLIER;
-            finalDamage *= scale;
+            finalDamage *= BASIC_ATTACK_MULTIPLIER;
 
 //            me.nakilex.levelplugin.Main.getPlugin().getLogger().info(
 //                "[StatsEffect] dmg=" + event.getDamage() + "->" + finalDamage +

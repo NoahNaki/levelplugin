@@ -53,7 +53,6 @@ import me.nakilex.levelplugin.lootchests.commands.LootChestCommand;
 import me.nakilex.levelplugin.salvage.commands.SalvageCommand;
 import me.nakilex.levelplugin.settings.commands.SettingsCommand;
 import me.nakilex.levelplugin.settings.gui.SettingsGUI;
-import me.nakilex.levelplugin.spells.commands.SpellCommand;
 import me.nakilex.levelplugin.storage.StorageManager;
 import me.nakilex.levelplugin.storage.commands.StorageCommand;
 import me.nakilex.levelplugin.tips.BroadcastManager;
@@ -265,7 +264,6 @@ public class CommandRegistry {
         plugin.getCommand("merchant").setTabCompleter(merchantCommand);
         plugin.getCommand("salvage").setExecutor(new SalvageCommand(plugin));
         plugin.getCommand("enchant").setExecutor(new me.nakilex.levelplugin.enchanting.commands.EnchantCommand(enchantGUI));
-        plugin.getCommand("spells").setExecutor(new SpellCommand());
         BattlePassCommand battlePassCommand = new BattlePassCommand(battlePassManager);
         plugin.getCommand("battlepass").setExecutor(battlePassCommand);
         plugin.getCommand("battlepass").setTabCompleter(new EmptyTabCompleter());
@@ -320,7 +318,6 @@ public class CommandRegistry {
                 plugin.getMercenaryExpeditionManager(),
                 dungeonExpeditionManager,
                 plugin.getDropDebugManager(),
-                plugin.getAutoCastManager(),
                 plugin.getEnvironmentManager(),
                 beaconEntityDebugManager);
         plugin.getCommand("debug").setExecutor(debugCmd);

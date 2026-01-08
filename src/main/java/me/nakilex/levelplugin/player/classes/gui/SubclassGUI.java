@@ -5,8 +5,6 @@ import com.nexomc.nexo.items.ItemBuilder;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.utils.ChatFormatter;
-import me.nakilex.levelplugin.spells.managers.SpellManager;
-import me.nakilex.levelplugin.spells.Spell;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -145,18 +143,6 @@ public class SubclassGUI implements Listener {
             Map.entry(PlayerClass.ABYSSION, new Rating(4,4,3,3))
     );
 
-    private static Map<String, String> SPELL_USAGE;
-
-    static {
-        try {
-            var f = me.nakilex.levelplugin.spells.gui.SpellGUI.class.getDeclaredField("SPELL_USAGE");
-            f.setAccessible(true);
-            SPELL_USAGE = (Map<String, String>) f.get(null);
-        } catch (Exception e) {
-            SPELL_USAGE = Collections.emptyMap();
-        }
-    }
-
     private static final Map<PlayerClass, String> CLASS_SUMMARY = Map.ofEntries(
             Map.entry(PlayerClass.WARRIOR, "Close range fighter with charge and hook combos."),
             Map.entry(PlayerClass.ROGUE, "Swift rogue with high mobility skills."),
@@ -225,28 +211,9 @@ public class SubclassGUI implements Listener {
                 lore.add(" ");
             }
 
-            Map<String, Spell> spellMap = SpellManager.getInstance()
-                    .getSpellsByClass(pc.name().toLowerCase());
-            List<Spell> spells = new ArrayList<>(spellMap.values());
-            if (spells.isEmpty()) {
-                lore.add(" ");
-                lore.add(ChatColor.YELLOW.toString() + ChatColor.BOLD + "Basic Attack" + ChatColor.RESET
-                        + ChatColor.WHITE + " - " + ChatColor.GRAY + "Left Click");
-            } else {
-                spells.sort(Comparator.comparingInt(Spell::getLevelReq));
-                lore.add(" ");
-                for (Spell sp : spells) {
-                    String usage;
-                    if ("BASIC_ATTACK".equalsIgnoreCase(sp.getCombo())) {
-                        usage = "Left Click";
-                    } else {
-                        usage = SPELL_USAGE.getOrDefault(sp.getId(),
-                                sp.getCombo().replace("L", "Left").replace("R", "Right"));
-                    }
-                    lore.add(ChatColor.YELLOW.toString() + ChatColor.BOLD + sp.getDisplayName()
-                            + ChatColor.RESET + ChatColor.WHITE + " - " + ChatColor.GRAY + usage);
-                }
-            }
+            lore.add(" ");
+            lore.add(ChatColor.YELLOW.toString() + ChatColor.BOLD + "Basic Attack" + ChatColor.RESET
+                    + ChatColor.WHITE + " - " + ChatColor.GRAY + "Left Click");
 
             Rating r = rating(pc);
             lore.add(" ");
@@ -406,4 +373,3 @@ public class SubclassGUI implements Listener {
         }
     }
 }
-

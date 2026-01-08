@@ -55,10 +55,6 @@ import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.potions.managers.PotionManager;
 import me.nakilex.levelplugin.settings.gui.SettingsGUI;
 import me.nakilex.levelplugin.settings.managers.SettingsManager;
-import me.nakilex.levelplugin.spells.listener.MeteorListener;
-import me.nakilex.levelplugin.spells.managers.ManaCostTracker;
-import me.nakilex.levelplugin.spells.managers.SpellManager;
-import me.nakilex.levelplugin.spells.registry.EffectRegistry;
 import me.nakilex.levelplugin.storage.StorageManager;
 import me.nakilex.levelplugin.storage.events.StorageEvents;
 import me.nakilex.levelplugin.tips.BroadcastManager;
@@ -112,7 +108,6 @@ public class PluginBootstrap {
     private me.nakilex.levelplugin.player.attributes.managers.LifeSkillRewardManager lifeSkillRewardManager;
     private me.nakilex.levelplugin.player.mining.config.MiningRewardsConfig miningRewardsConfig;
     private me.nakilex.levelplugin.player.fishing.config.FishingRewardsConfig fishingRewardsConfig;
-    private SpellManager spellmanager;
     private GlobalBoosterManager boosterManager;
     private HorseManager horseManager;
     private PartyManager partyManager;
@@ -158,10 +153,8 @@ public class PluginBootstrap {
     private PlayerToggleManager dmgNumberToggleManager;
     private PlayerToggleManager mobDebugToggleManager;
     private me.nakilex.levelplugin.debug.DropDebugManager dropDebugManager;
-    private me.nakilex.levelplugin.debug.AutoCastManager autoCastManager;
     private me.nakilex.levelplugin.debug.BeaconEntityDebugManager beaconEntityDebugManager;
     private DpsDummyManager dpsDummyManager;
-    private ManaCostTracker manaTracker;
     private FileConfiguration bossConfig;
     private File bossConfigFile;
     private GemsManager gemsManager;
@@ -206,7 +199,6 @@ public class PluginBootstrap {
     private SettingsManager settingsManager;
     private SettingsGUI settingsGUI;
     private me.nakilex.levelplugin.debug.gui.DebugGUI debugGUI;
-    private MeteorListener meteorListener;
     private CodexManager codexManager;
     private CodexMainGUI codexGUI;
     private MobCodexGUI mobCodexGUI;
@@ -239,7 +231,6 @@ public class PluginBootstrap {
             return;
         }
 
-        manaTracker = new ManaCostTracker(1.5, 4_000L);
         loadConfigFiles();
         setupCustomConfig();
         playerConfig = new PlayerConfig(plugin);
@@ -324,7 +315,6 @@ public class PluginBootstrap {
         dmgNumberToggleManager = new PlayerToggleManager();
         mobDebugToggleManager = new PlayerToggleManager();
         dropDebugManager = new me.nakilex.levelplugin.debug.DropDebugManager(plugin);
-        autoCastManager = new me.nakilex.levelplugin.debug.AutoCastManager();
         beaconEntityDebugManager = new me.nakilex.levelplugin.debug.BeaconEntityDebugManager(plugin);
         if (mythicHelper != null) {
             dpsDummyManager = new DpsDummyManager(plugin, mythicHelper);
@@ -343,7 +333,6 @@ public class PluginBootstrap {
         lifeSkillRewardManager = new me.nakilex.levelplugin.player.attributes.managers.LifeSkillRewardManager(plugin);
         itemUpgradeManager = new ItemUpgradeManager(plugin);
         itemRepairManager = new ItemRepairManager();
-        spellmanager = new SpellManager(plugin);
         partyManager = new PartyManager();
         arenaRatingManager = new ArenaRatingManager(playerConfig);
         arenaQueueManager = new ArenaQueueManager(arenaRatingManager, partyManager);
@@ -460,7 +449,6 @@ public class PluginBootstrap {
                 chatGameManager,
                 mercenaryExpeditionManager,
                 dropDebugManager,
-                autoCastManager,
                 lootChestManager.getCooldownManager());
         this.storageManager = new StorageManager();
         this.guildVaultManager = new me.nakilex.levelplugin.guild.GuildVaultManager(storageEvents, guildMemberGUI);
@@ -563,7 +551,6 @@ public class PluginBootstrap {
             settingsGUI,
             debugGUI,
             bossConfig,
-            meteorListener,
             gemsManager,
             enchantGUI,
             auctionHouseGUI,
@@ -750,7 +737,6 @@ public class PluginBootstrap {
     public me.nakilex.levelplugin.player.attributes.managers.LifeSkillRewardManager getLifeSkillRewardManager() { return lifeSkillRewardManager; }
     public me.nakilex.levelplugin.player.mining.config.MiningRewardsConfig getMiningRewardsConfig() { return miningRewardsConfig; }
     public me.nakilex.levelplugin.player.fishing.config.FishingRewardsConfig getFishingRewardsConfig() { return fishingRewardsConfig; }
-    public SpellManager getSpellmanager() { return spellmanager; }
     public GlobalBoosterManager getBoosterManager() { return boosterManager; }
     public HorseManager getHorseManager() { return horseManager; }
     public PartyManager getPartyManager() { return partyManager; }
@@ -795,9 +781,7 @@ public class PluginBootstrap {
     public PlayerToggleManager getDmgNumberToggleManager() { return dmgNumberToggleManager; }
     public PlayerToggleManager getMobDebugToggleManager() { return mobDebugToggleManager; }
     public me.nakilex.levelplugin.debug.DropDebugManager getDropDebugManager() { return dropDebugManager; }
-    public me.nakilex.levelplugin.debug.AutoCastManager getAutoCastManager() { return autoCastManager; }
     public me.nakilex.levelplugin.debug.BeaconEntityDebugManager getBeaconEntityDebugManager() { return beaconEntityDebugManager; }
-    public ManaCostTracker getManaTracker() { return manaTracker; }
     public FileConfiguration getBossConfig() { return bossConfig; }
     public File getBossConfigFile() { return bossConfigFile; }
     public GemsManager getGemsManager() { return gemsManager; }
@@ -849,7 +833,6 @@ public class PluginBootstrap {
     public SettingsManager getSettingsManager() { return settingsManager; }
     public SettingsGUI getSettingsGUI() { return settingsGUI; }
     public me.nakilex.levelplugin.debug.gui.DebugGUI getDebugGUI() { return debugGUI; }
-    public MeteorListener getMeteorListener() { return meteorListener; }
     public me.nakilex.levelplugin.cutscene.CutsceneManager getCutsceneManager() { return cutsceneManager; }
     public me.nakilex.levelplugin.calendar.CalendarManager getCalendarManager() { return calendarManager; }
     public CodexManager getCodexManager() { return codexManager; }
