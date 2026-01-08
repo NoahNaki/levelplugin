@@ -243,7 +243,9 @@ public class ListenerRegistry {
         pm.registerEvents(new ClassEssenceBoundListener(), plugin);
         pm.registerEvents(new ClassEssenceSwapListener(), plugin);
         pm.registerEvents(new ClassEssenceUpgradeGUI(), plugin);
-        pm.registerEvents(new FieldBossListener(plugin, plugin.getBossConfig(), plugin.getItemManager(), plugin.getGemsManager()), plugin);
+        if (mythicEnabled) {
+            pm.registerEvents(new FieldBossListener(plugin, plugin.getBossConfig(), plugin.getItemManager(), plugin.getGemsManager()), plugin);
+        }
         pm.registerEvents(new EquipOnJoinListener(), plugin);
         pm.registerEvents(new PlayerDeathListener(plugin), plugin);
         pm.registerEvents(new FullInventoryListener(plugin.getSettingsManager()), plugin);
@@ -270,11 +272,13 @@ public class ListenerRegistry {
         pm.registerEvents(mobCodexGUI, plugin);
         pm.registerEvents(npcCodexGUI, plugin);
         pm.registerEvents(locationCodexGUI, plugin);
-        pm.registerEvents(new me.nakilex.levelplugin.codex.CodexListener(
-                plugin.getMobRewardsConfig(),
-                plugin.getBossConfig(),
-                plugin.getCodexManager()), plugin);
-        pm.registerEvents(new DungeonMobSpawnListener(plugin.getDungeonManager(), plugin), plugin);
+        if (mythicEnabled) {
+            pm.registerEvents(new me.nakilex.levelplugin.codex.CodexListener(
+                    plugin.getMobRewardsConfig(),
+                    plugin.getBossConfig(),
+                    plugin.getCodexManager()), plugin);
+            pm.registerEvents(new DungeonMobSpawnListener(plugin.getDungeonManager(), plugin), plugin);
+        }
         pm.registerEvents(hologramListener, plugin);
         pm.registerEvents(stageBlockInteractListener, plugin);
         pm.registerEvents(new me.nakilex.levelplugin.environment.listeners.EnvironmentInventoryListener(plugin.getEnvironmentManager()), plugin);

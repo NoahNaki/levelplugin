@@ -91,7 +91,7 @@ public class DungeonMobSpawnListener implements Listener {
         }
         String canonical = MobNameUtil.canonicalMobKey(key);
         final String spawnKey = key;
-        Optional<io.lumine.mythic.api.mobs.MythicMob> resolved = MobNameUtil.resolveMythicMob(spawnKey);
+        Optional<String> resolved = MobNameUtil.resolveMythicInternalName(spawnKey);
         String overrides = String.format("hp=%s dmg=%s move=%s atk=%s",
                 hp == null ? "-" : String.format("%.2f", hp),
                 dmg == null ? "-" : String.format("%.2f", dmg),
@@ -108,10 +108,10 @@ public class DungeonMobSpawnListener implements Listener {
                 overrides));
 
         resolved.ifPresentOrElse(
-                mythicMob -> plugin.getLogger().info(String.format(
+                internalName -> plugin.getLogger().info(String.format(
                         "[DungeonSpawn] Resolved combat mob '%s' to Mythic internal '%s'",
                         spawnKey,
-                        mythicMob.getInternalName())),
+                        internalName)),
                 () -> plugin.getLogger().warning(String.format(
                         "[DungeonSpawn] MythicMob definition for '%s' could not be resolved",
                         spawnKey))
@@ -145,16 +145,16 @@ public class DungeonMobSpawnListener implements Listener {
 
         String mobId = room.mob;
         String canonical = MobNameUtil.canonicalMobKey(mobId);
-        Optional<io.lumine.mythic.api.mobs.MythicMob> resolved = MobNameUtil.resolveMythicMob(mobId);
+        Optional<String> resolved = MobNameUtil.resolveMythicInternalName(mobId);
         Main.getInstance().getLogger().info(String.format(
                 "[DungeonBoss] Attempting to spawn '%s' (canonical='%s')",
                 mobId,
                 canonical));
         resolved.ifPresentOrElse(
-                mythicMob -> Main.getInstance().getLogger().info(String.format(
+                internalName -> Main.getInstance().getLogger().info(String.format(
                         "[DungeonBoss] Resolved boss '%s' to Mythic internal '%s'",
                         mobId,
-                        mythicMob.getInternalName())),
+                        internalName)),
                 () -> Main.getInstance().getLogger().warning(String.format(
                         "[DungeonBoss] MythicMob definition for '%s' could not be resolved",
                         mobId))

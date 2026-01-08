@@ -38,7 +38,7 @@ public static ActiveMob spawnModifiedMob(
         Double moveSpeed,
         Double attackSpeed
 ) {
-    var mobOptional = MobNameUtil.resolveMythicMob(mobName);
+    var mobOptional = MobNameUtil.resolveMythicInternalName(mobName);
     String locationString = LocationUtils.blockLocationString(loc);
     if (mobOptional.isEmpty()) {
         Main.getInstance().getLogger().warning(String.format(
@@ -47,7 +47,7 @@ public static ActiveMob spawnModifiedMob(
                 locationString));
         return null;
     }
-    String internalName = mobOptional.get().getInternalName();
+    String internalName = mobOptional.get();
     ActiveMob active = MythicBukkit.inst().getMobManager().spawnMob(internalName, loc, 1.0);
     if (active == null) {
         Main.getInstance().getLogger().warning(String.format(
