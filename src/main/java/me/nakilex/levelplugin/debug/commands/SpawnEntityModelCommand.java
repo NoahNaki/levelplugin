@@ -87,6 +87,7 @@ public class SpawnEntityModelCommand implements CommandExecutor, TabCompleter {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "Failed to create a modeled entity.");
             return true;
         }
+        modeledEntity.setBaseEntityVisible(false);
 
         List<String> appliedModels = new ArrayList<>();
         List<String> failedModels = new ArrayList<>();
@@ -112,8 +113,14 @@ public class SpawnEntityModelCommand implements CommandExecutor, TabCompleter {
             }
             var added = modeledEntity.addModel(activeModel, true);
             if (added.isEmpty()) {
-                failedModels.add(modelId);
-                continue;
+                ActiveModel retryModel = ModelEngineAPI.createActiveModel(resolvedId);
+                if (retryModel == null) {
+                    retryModel = createActiveModelByReflection(resolvedId);
+                }
+                if (retryModel == null || modeledEntity.addModel(retryModel, true).isEmpty()) {
+                    failedModels.add(modelId);
+                    continue;
+                }
             }
             appliedModels.add(modelId);
         }
