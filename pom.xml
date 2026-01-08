@@ -85,6 +85,10 @@
             <url>https://maven.enginehub.org/repo/</url>
         </repository>
         <repository>
+            <id>modelengine-repo</id>
+            <url>https://repo.ticxo.com/repository/maven-public/</url>
+        </repository>
+        <repository>
             <id>placeholderapi</id>
             <url>https://repo.extendedclip.com/content/repositories/placeholderapi/</url>
         </repository>
@@ -138,6 +142,12 @@
             <groupId>it.unimi.dsi</groupId>
             <artifactId>fastutil</artifactId>
             <version>8.5.13</version>
+        </dependency>
+        <dependency>
+            <groupId>com.ticxo.modelengine</groupId>
+            <artifactId>ModelEngine</artifactId>
+            <version>R4.0.0</version>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 </project>

@@ -2,7 +2,9 @@ package me.nakilex.levelplugin.world;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.lootchests.utils.LocationUtils;
+import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import net.md_5.bungee.api.chat.*;
 import org.bukkit.World;
 import org.bukkit.World.Environment;
@@ -86,8 +88,25 @@ public class WorldCommand implements CommandExecutor, TabCompleter {
                     sender.sendMessage(ChatColor.RED + "Usage: /world delete <name>");
                     return true;
                 }
-                boolean ok = manager.deleteWorld(args[1]);
-                if (ok) sender.sendMessage(ChatColor.YELLOW + "World deleted: " + args[1]);
+                String worldName = args[1];
+                if (sender instanceof Player player && player.getWorld().getName().equalsIgnoreCase(worldName)) {
+                    boolean sentToHub = false;
+                    var selectionManager = Main.getInstance().getServerSelectionManager();
+                    if (selectionManager != null) {
+                        sentToHub = selectionManager.sendToHub(player, true);
+                    }
+                    if (!sentToHub) {
+                        World fallback = Bukkit.getWorlds().isEmpty() ? null : Bukkit.getWorlds().get(0);
+                        if (fallback != null) {
+                            player.teleport(fallback.getSpawnLocation());
+                        } else {
+                            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                                    "Unable to teleport out of the world before deletion.");
+                        }
+                    }
+                }
+                boolean ok = manager.deleteWorld(worldName);
+                if (ok) sender.sendMessage(ChatColor.YELLOW + "World deleted: " + worldName);
                 else sender.sendMessage(ChatColor.RED + "Failed to delete world.");
                 return true;
             }

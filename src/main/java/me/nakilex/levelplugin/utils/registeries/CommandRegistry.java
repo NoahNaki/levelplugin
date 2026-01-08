@@ -24,6 +24,7 @@ import me.nakilex.levelplugin.mob.dps.DpsDummyManager;
 import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
 import me.nakilex.levelplugin.debug.BeaconEntityDebugManager;
 import me.nakilex.levelplugin.debug.commands.DebugCommand;
+import me.nakilex.levelplugin.debug.commands.SpawnEntityModelCommand;
 import me.nakilex.levelplugin.player.attributes.commands.AddPointsCommand;
 import me.nakilex.levelplugin.player.attributes.commands.LifeSkillCommand;
 import me.nakilex.levelplugin.player.attributes.commands.StatsCommand;
@@ -319,6 +320,9 @@ public class CommandRegistry {
                 beaconEntityDebugManager);
         plugin.getCommand("debug").setExecutor(debugCmd);
         plugin.getCommand("debug").setTabCompleter(debugCmd);
+        SpawnEntityModelCommand spawnEntityModelCommand = new SpawnEntityModelCommand(plugin);
+        plugin.getCommand("se").setExecutor(spawnEntityModelCommand);
+        plugin.getCommand("se").setTabCompleter(spawnEntityModelCommand);
 
         LevelPluginCommand levelPluginCommand = new LevelPluginCommand(plugin);
         plugin.getCommand("levelplugin").setExecutor(levelPluginCommand);
