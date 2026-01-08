@@ -63,6 +63,9 @@ public class SpawnEntityModelCommand implements CommandExecutor, TabCompleter {
 
         List<String> appliedModels = new ArrayList<>();
         List<String> failedModels = new ArrayList<>();
+        List<String> blueprintOnlyModels = new ArrayList<>();
+        List<String> modelEngineIds = getModelIdsSafely();
+        List<String> blueprintIds = getBlueprintModelIds();
         for (int i = 1; i < args.length; i++) {
             String modelId = args[i];
             ActiveModel activeModel = ModelEngineAPI.createActiveModel(modelId);
@@ -71,6 +74,11 @@ public class SpawnEntityModelCommand implements CommandExecutor, TabCompleter {
             }
             if (activeModel == null) {
                 failedModels.add(modelId);
+                if (!modelEngineIds.isEmpty()
+                        && !containsIgnoreCase(modelEngineIds, modelId)
+                        && containsIgnoreCase(blueprintIds, modelId)) {
+                    blueprintOnlyModels.add(modelId);
+                }
                 continue;
             }
             var added = modeledEntity.addModel(activeModel, true);
@@ -85,6 +93,11 @@ public class SpawnEntityModelCommand implements CommandExecutor, TabCompleter {
             entity.remove();
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
                     "No valid ModelEngine models were applied.");
+            if (!blueprintOnlyModels.isEmpty()) {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                        "Blueprints are not loaded as models: " + String.join(", ", blueprintOnlyModels)
+                                + ". Import them in ModelEngine to create actual model IDs.");
+            }
             if (!failedModels.isEmpty()) {
                 ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
                         "Failed to resolve: " + String.join(", ", failedModels)
@@ -96,6 +109,11 @@ public class SpawnEntityModelCommand implements CommandExecutor, TabCompleter {
         modeledEntity.registerSelf();
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
                 "Spawned " + type.name().toLowerCase(Locale.ROOT) + " with models: " + String.join(", ", appliedModels));
+        if (!blueprintOnlyModels.isEmpty()) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                    "Blueprints not loaded as models: " + String.join(", ", blueprintOnlyModels)
+                            + ". Import them in ModelEngine to create actual model IDs.");
+        }
         if (!failedModels.isEmpty()) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
                     "Some models failed to apply: " + String.join(", ", failedModels)
@@ -153,6 +171,15 @@ public class SpawnEntityModelCommand implements CommandExecutor, TabCompleter {
             }
         }
         return values;
+    }
+
+    private List<String> getModelIdsSafely() {
+        try {
+            return getModelIds();
+        } catch (ReflectiveOperationException e) {
+            plugin.getLogger().warning("Failed to fetch ModelEngine model ids: " + e.getMessage());
+            return List.of();
+        }
     }
 
     private List<String> getBlueprintModelIds() {
@@ -271,5 +298,17 @@ public class SpawnEntityModelCommand implements CommandExecutor, TabCompleter {
             }
         }
         return values;
+    }
+
+    private boolean containsIgnoreCase(List<String> values, String token) {
+        if (values == null || token == null) {
+            return false;
+        }
+        for (String value : values) {
+            if (value != null && value.equalsIgnoreCase(token)) {
+                return true;
+            }
+        }
+        return false;
     }
 }
