@@ -7,7 +7,9 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.World;
+import me.nakilex.levelplugin.utils.AttributeUtil;
 import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -273,8 +275,9 @@ public class CustomMobSpawnerManager implements Listener {
                 if (dist > spawner.getLeashRange()) {
                     living.teleport(center);
                     if (spawner.isHealOnLeash()) {
-                        Attribute maxHealthAttr = living.getAttribute(Attribute.GENERIC_MAX_HEALTH);
-                        double max = maxHealthAttr != null ? maxHealthAttr.getValue() : living.getMaxHealth();
+                        Attribute maxHealthAttr = AttributeUtil.resolve("GENERIC_MAX_HEALTH", "MAX_HEALTH");
+                        AttributeInstance maxHealthInst = maxHealthAttr != null ? living.getAttribute(maxHealthAttr) : null;
+                        double max = maxHealthInst != null ? maxHealthInst.getValue() : living.getHealth();
                         living.setHealth(max);
                     }
                     if (spawner.isResetThreatOnLeash() && living instanceof Mob mob) {
