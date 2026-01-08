@@ -35,6 +35,7 @@ import me.nakilex.levelplugin.lootchests.managers.CooldownManager;
 import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
 import me.nakilex.levelplugin.mob.config.MobRewardsConfig;
 import me.nakilex.levelplugin.mob.dps.DpsDummyManager;
+import me.nakilex.levelplugin.mob.custom.CustomMobManager;
 import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
 import me.nakilex.levelplugin.party.PartyManager;
 import me.nakilex.levelplugin.party.PartyGlowManager;
@@ -148,6 +149,7 @@ public class PluginBootstrap {
     private NamespacedKey upgradeKey;
     private MobRewardsConfig mobRewardsConfig;
     private me.nakilex.levelplugin.mob.config.ModelSetManager modelSetManager;
+    private CustomMobManager customMobManager;
     private StorageEvents storageEvents;
     private StorageManager storageManager;
     private me.nakilex.levelplugin.guild.GuildVaultManager guildVaultManager;
@@ -260,6 +262,7 @@ public class PluginBootstrap {
                 environmentManager);
         CitizensAPI.getTraitFactory().registerTrait(net.citizensnpcs.api.trait.TraitInfo.create(MetadataTrait.class).withName("MetadataTrait"));
         mobRewardsConfig = new MobRewardsConfig(plugin);
+        customMobManager = new CustomMobManager(plugin);
         GuildQuestManager.getInstance().reloadMobCategories();
         codexManager = new CodexManager(playerConfig, mobRewardsConfig, bossConfig);
         mobCodexGUI = new MobCodexGUI(codexManager, null);
@@ -296,11 +299,12 @@ public class PluginBootstrap {
     }
 
     private void initializeManagers() {
-        // Resolve the MythicMobs API helper once at startup so other
-        // components can safely query MythicMob data without null checks.
-        // MythicBukkit#inst() will throw if the plugin is missing, which is
-        // acceptable since LevelPlugin depends on MythicMobs.
-        mythicHelper = MythicBukkit.inst().getAPIHelper();
+        if (Bukkit.getPluginManager().isPluginEnabled("MythicMobs")) {
+            mythicHelper = MythicBukkit.inst().getAPIHelper();
+        } else {
+            mythicHelper = null;
+            plugin.getLogger().info("MythicMobs is not enabled; Mythic-only features will be skipped.");
+        }
 
         // World-dependent managers like gates or fast travel require target
         // worlds to be loaded. Ensure the necessary worlds are available
@@ -322,7 +326,11 @@ public class PluginBootstrap {
         dropDebugManager = new me.nakilex.levelplugin.debug.DropDebugManager(plugin);
         autoCastManager = new me.nakilex.levelplugin.debug.AutoCastManager();
         beaconEntityDebugManager = new me.nakilex.levelplugin.debug.BeaconEntityDebugManager(plugin);
-        dpsDummyManager = new DpsDummyManager(plugin, mythicHelper);
+        if (mythicHelper != null) {
+            dpsDummyManager = new DpsDummyManager(plugin, mythicHelper);
+        } else {
+            dpsDummyManager = null;
+        }
         upgradeKey = new NamespacedKey(plugin, "upgrade_level");
         levelManager = new LevelManager(plugin);
         miningManager = new me.nakilex.levelplugin.player.mining.managers.MiningManager(plugin);
@@ -496,7 +504,8 @@ public class PluginBootstrap {
             dpsDummyManager,
             beaconEntityDebugManager,
             dungeonExpeditionManager,
-            serverSelectionManager
+            serverSelectionManager,
+            customMobManager
         );
         me.nakilex.levelplugin.catacombs.CatacombsCommand catacombsCommand =
                 new me.nakilex.levelplugin.catacombs.CatacombsCommand(catacombsManager, catacombsGUI);
@@ -581,7 +590,8 @@ public class PluginBootstrap {
             chatGameManager,
             dpsDummyManager,
             beaconEntityDebugManager,
-            serverSelectionManager
+            serverSelectionManager,
+            customMobManager
         );
         plugin.getServer().getPluginManager().registerEvents(
                 new me.nakilex.levelplugin.mercenary.board.ExpeditionBoardWandListener(expeditionBoardManager),
@@ -622,8 +632,7 @@ public class PluginBootstrap {
     }
 
     private boolean validateDependencies() {
-        return ensureDependency("Citizens", null)
-                && ensureDependency("MythicMobs", "io.lumine.mythic.bukkit.MythicBukkit");
+        return ensureDependency("Citizens", null);
     }
 
     private boolean ensureDependency(String pluginName, String requiredClassName) {
@@ -675,6 +684,7 @@ public class PluginBootstrap {
         if (auctionHouseManager != null) auctionHouseManager.saveAuctionsSync();
         if (lootChestManager != null) lootChestManager.removeAllChests();
         if (dpsDummyManager != null) dpsDummyManager.shutdown();
+        if (customMobManager != null) customMobManager.getSpawnerManager().shutdown();
         if (dungeonManager != null) {
             dungeonManager.cleanupInstances();
             dungeonManager.cleanupOldInstanceWorlds();
@@ -708,6 +718,9 @@ public class PluginBootstrap {
     }
 
     private void despawnActiveMythicMobs() {
+        if (!Bukkit.getPluginManager().isPluginEnabled("MythicMobs")) {
+            return;
+        }
         var mythic = MythicBukkit.inst();
         if (mythic == null || mythic.getMobManager() == null) {
             return;
@@ -772,6 +785,7 @@ public class PluginBootstrap {
     public NamespacedKey getUpgradeKey() { return upgradeKey; }
     public MobRewardsConfig getMobRewardsConfig() { return mobRewardsConfig; }
     public me.nakilex.levelplugin.mob.config.ModelSetManager getModelSetManager() { return modelSetManager; }
+    public CustomMobManager getCustomMobManager() { return customMobManager; }
     public StorageEvents getStorageEvents() { return storageEvents; }
     public StorageManager getStorageManager() { return storageManager; }
     public me.nakilex.levelplugin.guild.GuildVaultManager getGuildVaultManager() { return guildVaultManager; }

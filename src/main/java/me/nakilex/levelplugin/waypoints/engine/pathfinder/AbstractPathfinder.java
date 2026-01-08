@@ -186,8 +186,8 @@ public abstract class AbstractPathfinder implements Pathfinder {
         }
       }
 
-      // TODO: bsommerfeld 24.11.2025: Magic number, we can turn this into a configurable later
-      PrimitiveMinHeap openSet = new PrimitiveMinHeap(1024);
+      PrimitiveMinHeap openSet =
+          new PrimitiveMinHeap(pathfinderConfiguration.getOpenSetInitialCapacity());
 
       double startKey;
       try {

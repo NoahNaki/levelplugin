@@ -106,6 +106,14 @@ public class PathfinderConfiguration {
   private final int bloomFilterSize;
 
   /**
+   * The initial capacity of the open set heap used during pathfinding. This controls the initial
+   * allocation size for the priority queue used by the A* algorithm.
+   *
+   * <p>Default: 1024
+   */
+  private final int openSetInitialCapacity;
+
+  /**
    * The false positive probability of the Bloom filter used in the GridRegionData. A lower FPP
    * means a smaller chance of incorrectly identifying a position as being in the region, but it
    * also requires a larger Bloom filter.
@@ -140,6 +148,7 @@ public class PathfinderConfiguration {
       INeighborStrategy neighborStrategy,
       int gridCellSize,
       int bloomFilterSize,
+      int openSetInitialCapacity,
       double bloomFilterFpp,
       IHeuristicStrategy heuristicStrategy,
       boolean reopenClosedNodes) {
@@ -154,6 +163,7 @@ public class PathfinderConfiguration {
     this.neighborStrategy = neighborStrategy;
     this.gridCellSize = gridCellSize;
     this.bloomFilterSize = bloomFilterSize;
+    this.openSetInitialCapacity = openSetInitialCapacity;
     this.bloomFilterFpp = bloomFilterFpp;
     this.heuristicStrategy = heuristicStrategy;
     this.reopenClosedNodes = reopenClosedNodes;
@@ -182,6 +192,7 @@ public class PathfinderConfiguration {
         .neighborStrategy(pathfinderConfiguration.neighborStrategy)
         .gridCellSize(pathfinderConfiguration.gridCellSize)
         .bloomFilterSize(pathfinderConfiguration.bloomFilterSize)
+        .openSetInitialCapacity(pathfinderConfiguration.openSetInitialCapacity)
         .bloomFilterFpp(pathfinderConfiguration.bloomFilterFpp)
         .heuristicStrategy(pathfinderConfiguration.heuristicStrategy)
         .reopenClosedNodes(pathfinderConfiguration.reopenClosedNodes)
@@ -236,6 +247,10 @@ public class PathfinderConfiguration {
     return bloomFilterSize;
   }
 
+  public int getOpenSetInitialCapacity() {
+    return openSetInitialCapacity;
+  }
+
   public double getBloomFilterFpp() {
     return bloomFilterFpp;
   }
@@ -273,6 +288,8 @@ public class PathfinderConfiguration {
         + gridCellSize
         + ", bloomFilterSize="
         + bloomFilterSize
+        + ", openSetInitialCapacity="
+        + openSetInitialCapacity
         + ", bloomFilterFpp="
         + bloomFilterFpp
         + ", heuristicMode="
@@ -293,6 +310,7 @@ public class PathfinderConfiguration {
         && fallback == that.fallback
         && gridCellSize == that.gridCellSize
         && bloomFilterSize == that.bloomFilterSize
+        && openSetInitialCapacity == that.openSetInitialCapacity
         && Double.compare(that.bloomFilterFpp, bloomFilterFpp) == 0
         && reopenClosedNodes == that.reopenClosedNodes
         && Objects.equals(provider, that.provider)
@@ -317,6 +335,7 @@ public class PathfinderConfiguration {
         neighborStrategy,
         gridCellSize,
         bloomFilterSize,
+        openSetInitialCapacity,
         bloomFilterFpp,
         heuristicStrategy,
         reopenClosedNodes);
@@ -334,6 +353,7 @@ public class PathfinderConfiguration {
     private INeighborStrategy neighborStrategy = NeighborStrategies.VERTICAL_AND_HORIZONTAL;
     private int gridCellSize = 12;
     private int bloomFilterSize = 1000;
+    private int openSetInitialCapacity = 1024;
     private double bloomFilterFpp = 0.01;
     private IHeuristicStrategy heuristicStrategy = HeuristicStrategies.LINEAR;
     private boolean reopenClosedNodes = false;
@@ -402,6 +422,12 @@ public class PathfinderConfiguration {
       return this;
     }
 
+    public PathfinderConfiguration.PathfinderConfigurationBuilder openSetInitialCapacity(
+        int openSetInitialCapacity) {
+      this.openSetInitialCapacity = openSetInitialCapacity;
+      return this;
+    }
+
     public PathfinderConfiguration.PathfinderConfigurationBuilder bloomFilterFpp(
         double bloomFilterFpp) {
       this.bloomFilterFpp = bloomFilterFpp;
@@ -433,6 +459,7 @@ public class PathfinderConfiguration {
           this.neighborStrategy,
           this.gridCellSize,
           this.bloomFilterSize,
+          this.openSetInitialCapacity,
           this.bloomFilterFpp,
           this.heuristicStrategy,
           this.reopenClosedNodes);

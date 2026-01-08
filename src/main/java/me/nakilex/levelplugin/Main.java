@@ -7,6 +7,7 @@ import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.items.config.ItemConfig;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
+import me.nakilex.levelplugin.mob.custom.CustomMobManager;
 import me.nakilex.levelplugin.party.PartyGlowManager;
 import me.nakilex.levelplugin.party.PartyManager;
 import me.nakilex.levelplugin.player.config.PlayerConfig;
@@ -118,6 +119,7 @@ public class Main extends JavaPlugin {
     public me.nakilex.levelplugin.friend.IgnoreManager getIgnoreManager() { return bootstrap.getIgnoreManager(); }
     public me.nakilex.levelplugin.friend.FriendRequestListener getFriendRequestListener() { return bootstrap.getFriendRequestListener(); }
     public me.nakilex.levelplugin.mob.config.ModelSetManager getModelSetManager() { return bootstrap.getModelSetManager(); }
+    public CustomMobManager getCustomMobManager() { return bootstrap.getCustomMobManager(); }
     public me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager getScoreboardManager() { return bootstrap.getScoreboardManager(); }
     public PlayerToggleManager getDmgNumberToggleManager() { return bootstrap.getDmgNumberToggleManager(); }
 

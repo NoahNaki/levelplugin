@@ -23,6 +23,10 @@ import me.nakilex.levelplugin.mob.dps.DpsDummyManager;
 import me.nakilex.levelplugin.mob.listeners.*;
 import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
 import me.nakilex.levelplugin.mob.managers.MythicMobNameManager;
+import me.nakilex.levelplugin.mob.custom.CustomMobManager;
+import me.nakilex.levelplugin.mob.custom.CustomMobRewardListener;
+import me.nakilex.levelplugin.mob.custom.gui.CustomMobAdminGUI;
+import me.nakilex.levelplugin.mob.utils.MobRewardService;
 import me.nakilex.levelplugin.npc.listeners.NPCClickListener;
 import me.nakilex.levelplugin.npc.listeners.NPCCommandListener;
 import me.nakilex.levelplugin.npc.dialog.NPCDialogManager;
@@ -79,6 +83,7 @@ import me.nakilex.levelplugin.npc.wandering.WanderingMerchantListener;
 import me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager;
 import me.nakilex.levelplugin.server.LevelPluginCommandGuard;
 import me.nakilex.levelplugin.server.ServerSelectionManager;
+import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.PluginManager;
 
@@ -126,7 +131,8 @@ public class ListenerRegistry {
                                          ChatGameManager chatGameManager,
                                         DpsDummyManager dpsDummyManager,
                                         BeaconEntityDebugManager beaconEntityDebugManager,
-                                        ServerSelectionManager serverSelectionManager) {
+                                        ServerSelectionManager serverSelectionManager,
+                                        CustomMobManager customMobManager) {
 
 
         PluginManager pm = plugin.getServer().getPluginManager();
@@ -136,8 +142,8 @@ public class ListenerRegistry {
         pm.registerEvents(dmgTracker, plugin);
         BattlePassManager battlePassManager = plugin.getBattlePassManager();
 
-        pm.registerEvents(new MythicMobRewardListener(
-                dmgTracker,
+        MobRewardService rewardService = new MobRewardService(
+                plugin,
                 mobRewardsConfig,
                 plugin.getLevelManager(),
                 economyManager,
@@ -146,8 +152,20 @@ public class ListenerRegistry {
                 mobDebugToggleManager,
                 battlePassManager,
                 plugin.getDropDebugManager()
-        ), plugin);
-        pm.registerEvents(new me.nakilex.levelplugin.player.mining.listeners.OreMiningListener(plugin, plugin.getMiningRewardsConfig(), plugin.getMiningManager()), plugin);
+        );
+        boolean mythicEnabled = Bukkit.getPluginManager().isPluginEnabled("MythicMobs");
+        if (customMobManager != null) {
+            pm.registerEvents(customMobManager.getNameManager(), plugin);
+            pm.registerEvents(new CustomMobRewardListener(customMobManager, dmgTracker, rewardService), plugin);
+            pm.registerEvents(customMobManager.getSpawnerManager(), plugin);
+            pm.registerEvents(customMobManager.getAdminGui(), plugin);
+        }
+        if (mythicEnabled) {
+            pm.registerEvents(new me.nakilex.levelplugin.player.mining.listeners.OreMiningListener(
+                    plugin,
+                    plugin.getMiningRewardsConfig(),
+                    plugin.getMiningManager()), plugin);
+        }
         pm.registerEvents(new me.nakilex.levelplugin.player.farming.listeners.WheatHarvestListener(plugin.getFarmingManager()), plugin);
         pm.registerEvents(new me.nakilex.levelplugin.player.fishing.listeners.FishingListener(
                 plugin,
@@ -198,10 +216,15 @@ public class ListenerRegistry {
         pm.registerEvents(new LootChestChunkListener(lootChestManager), plugin);
         pm.registerEvents(new LootChestWandListener(lootChestManager), plugin);
         pm.registerEvents(new PotionUseListener(potionManager, plugin), plugin);
-        pm.registerEvents(new MythicMobNameManager(plugin), plugin);
-        pm.registerEvents(new MythicMobDamageListener(), plugin);
-        pm.registerEvents(new me.nakilex.levelplugin.mob.listeners.MythicSkillDamageScaler(), plugin);
-        pm.registerEvents(dpsDummyManager, plugin);
+        if (mythicEnabled) {
+            pm.registerEvents(new MythicMobNameManager(plugin), plugin);
+            pm.registerEvents(new MythicMobDamageListener(), plugin);
+            pm.registerEvents(new me.nakilex.levelplugin.mob.listeners.MythicSkillDamageScaler(), plugin);
+            pm.registerEvents(new DamageChatListener(), plugin);
+        }
+        if (dpsDummyManager != null) {
+            pm.registerEvents(dpsDummyManager, plugin);
+        }
         pm.registerEvents(new FallDamageDisabler(), plugin);
         pm.registerEvents(new HungerDisabler(), plugin);
         pm.registerEvents(new CropTrampleListener(), plugin);
@@ -213,7 +236,6 @@ public class ListenerRegistry {
         pm.registerEvents(new DoubleJumpListener(), plugin);
         pm.registerEvents(new DamageIndicatorListener(dmgToggleManager), plugin);
         new DamageIndicatorPacketBlocker(plugin);
-        pm.registerEvents(new DamageChatListener(), plugin);
         pm.registerEvents(settingsGUI, plugin);
         pm.registerEvents(debugGUI, plugin);
         pm.registerEvents(new GuildGUIListener(), plugin);
@@ -226,7 +248,9 @@ public class ListenerRegistry {
         pm.registerEvents(new ClassEssenceBoundListener(), plugin);
         pm.registerEvents(new ClassEssenceSwapListener(), plugin);
         pm.registerEvents(new ClassEssenceUpgradeGUI(), plugin);
-        pm.registerEvents(new FieldBossListener(plugin, plugin.getBossConfig(), plugin.getItemManager(), plugin.getGemsManager()), plugin);
+        if (mythicEnabled) {
+            pm.registerEvents(new FieldBossListener(plugin, plugin.getBossConfig(), plugin.getItemManager(), plugin.getGemsManager()), plugin);
+        }
         pm.registerEvents(new EquipOnJoinListener(), plugin);
         pm.registerEvents(new PlayerDeathListener(plugin), plugin);
         pm.registerEvents(new FullInventoryListener(plugin.getSettingsManager()), plugin);
@@ -253,11 +277,13 @@ public class ListenerRegistry {
         pm.registerEvents(mobCodexGUI, plugin);
         pm.registerEvents(npcCodexGUI, plugin);
         pm.registerEvents(locationCodexGUI, plugin);
-        pm.registerEvents(new me.nakilex.levelplugin.codex.CodexListener(
-                plugin.getMobRewardsConfig(),
-                plugin.getBossConfig(),
-                plugin.getCodexManager()), plugin);
-        pm.registerEvents(new DungeonMobSpawnListener(plugin.getDungeonManager(), plugin), plugin);
+        if (mythicEnabled) {
+            pm.registerEvents(new me.nakilex.levelplugin.codex.CodexListener(
+                    plugin.getMobRewardsConfig(),
+                    plugin.getBossConfig(),
+                    plugin.getCodexManager()), plugin);
+            pm.registerEvents(new DungeonMobSpawnListener(plugin.getDungeonManager(), plugin), plugin);
+        }
         pm.registerEvents(hologramListener, plugin);
         pm.registerEvents(stageBlockInteractListener, plugin);
         pm.registerEvents(new me.nakilex.levelplugin.environment.listeners.EnvironmentInventoryListener(plugin.getEnvironmentManager()), plugin);

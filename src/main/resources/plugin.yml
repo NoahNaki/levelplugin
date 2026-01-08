@@ -4,7 +4,8 @@ version: 1.0
 author: Nakilex
 api-version: 1.19
 description: A simple MMORPG leveling system plugin for Minecraft
-depend: [ProtocolLib, Citizens, Vault, MythicMobs, PlaceholderAPI, Nexo, ModelEngine]
+depend: [ProtocolLib, Citizens, Vault, PlaceholderAPI, Nexo, ModelEngine]
+softdepend: [MythicMobs]
 
 commands:
   addpoints:
@@ -298,6 +299,10 @@ commands:
   se:
     description: Spawn an entity with ModelEngine models for testing
     usage: /se <entity> <model...> | /se list
+  custommob:
+    description: Manage custom mobs
+    usage: /custommob <list|spawn|info|reload|gui|kill|killall|spawner>
+    aliases: [cm]
   levelplugin:
     description: LevelPlugin administration command
     usage: /<command> reload

@@ -3,7 +3,6 @@ package me.nakilex.levelplugin.dungeon;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.dungeon.TemplateType;
 import me.nakilex.levelplugin.mob.utils.MobNameUtil;
-import me.nakilex.levelplugin.mob.utils.MythicMobModifier;
 import me.nakilex.levelplugin.lootchests.utils.LocationUtils;
 import me.nakilex.levelplugin.dungeon.verified.VerifiedDungeonDefinition;
 import me.nakilex.levelplugin.dungeon.verified.CrimsonReliquaryDungeon;

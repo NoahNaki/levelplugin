@@ -1,8 +1,6 @@
 package me.nakilex.levelplugin.mob.utils;
 
-import io.lumine.mythic.api.mobs.MythicMob;
-import io.lumine.mythic.api.skills.placeholders.PlaceholderString;
-import io.lumine.mythic.bukkit.MythicBukkit;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.LivingEntity;
 
@@ -15,6 +13,9 @@ import java.util.Optional;
 
 /** Utility methods to convert between MythicMob internal IDs and human-friendly names. */
 public final class MobNameUtil {
+    private static final String MYTHIC_PLUGIN = "MythicMobs";
+    private static final String MYTHIC_BUKKIT_CLASS = "io.lumine.mythic.bukkit.MythicBukkit";
+
     private MobNameUtil() {}
 
     /**
@@ -46,14 +47,11 @@ public final class MobNameUtil {
         if (mobId == null || mobId.isEmpty()) {
             return mobId;
         }
-        Optional<MythicMob> opt = resolveMythicMob(mobId);
+        Optional<Object> opt = resolveMythicMobHandle(mobId);
         if (opt.isPresent()) {
-            PlaceholderString name = opt.get().getDisplayName();
-            if (name != null) {
-                String result = name.get();
-                if (result != null && !result.isEmpty()) {
-                    return result;
-                }
+            String result = extractDisplayName(opt.get());
+            if (result != null && !result.isEmpty()) {
+                return result;
             }
         }
         return toPrettyName(mobId);
@@ -65,17 +63,33 @@ public final class MobNameUtil {
      * files often use lower-case keys copied straight from Mythic. This helper keeps the lookup
      * tolerant so we can still resolve the correct display name even when the cases differ.
      */
-    public static Optional<MythicMob> resolveMythicMob(String mobId) {
+    public static Optional<String> resolveMythicInternalName(String mobId) {
+        return resolveMythicMobHandle(mobId)
+                .map(MobNameUtil::extractInternalName)
+                .filter(name -> name != null && !name.isBlank());
+    }
+
+    private static Optional<Object> resolveMythicMobHandle(String mobId) {
         if (mobId == null || mobId.isEmpty()) {
             return Optional.empty();
         }
 
-        MythicBukkit mythic = MythicBukkit.inst();
-        if (mythic == null || mythic.getMobManager() == null) {
+        if (!Bukkit.getPluginManager().isPluginEnabled(MYTHIC_PLUGIN)) {
             return Optional.empty();
         }
 
-        var manager = mythic.getMobManager();
+        Object manager;
+        try {
+            Class<?> mythicClass = Class.forName(MYTHIC_BUKKIT_CLASS);
+            Object mythic = mythicClass.getMethod("inst").invoke(null);
+            manager = mythic.getClass().getMethod("getMobManager").invoke(mythic);
+        } catch (ReflectiveOperationException | RuntimeException ex) {
+            return Optional.empty();
+        }
+        if (manager == null) {
+            return Optional.empty();
+        }
+
         String normalized = mobId.replace(' ', '_');
         LinkedHashSet<String> candidates = new LinkedHashSet<>();
         candidates.add(mobId);
@@ -113,9 +127,14 @@ public final class MobNameUtil {
             if (candidate == null || candidate.isEmpty()) {
                 continue;
             }
-            Optional<MythicMob> found = manager.getMythicMob(candidate);
-            if (found.isPresent()) {
-                return found;
+            try {
+                Object result = manager.getClass()
+                        .getMethod("getMythicMob", String.class)
+                        .invoke(manager, candidate);
+                if (result instanceof Optional<?> optional && optional.isPresent()) {
+                    return Optional.of(optional.get());
+                }
+            } catch (ReflectiveOperationException | RuntimeException ignored) {
             }
         }
 
@@ -136,9 +155,7 @@ public final class MobNameUtil {
             return "";
         }
 
-        String base = resolveMythicMob(mobId)
-                .map(MythicMob::getInternalName)
-                .orElse(null);
+        String base = resolveMythicInternalName(mobId).orElse(null);
         if (base == null || base.isBlank()) {
             String plain = getPlainDisplayName(mobId);
             base = (plain == null || plain.isBlank()) ? mobId : plain;
@@ -157,6 +174,28 @@ public final class MobNameUtil {
             builder.append(token.toLowerCase(Locale.ROOT));
         }
         return builder.toString();
+    }
+
+    private static String extractDisplayName(Object mob) {
+        try {
+            Object placeholder = mob.getClass().getMethod("getDisplayName").invoke(mob);
+            if (placeholder == null) {
+                return null;
+            }
+            Object value = placeholder.getClass().getMethod("get").invoke(placeholder);
+            return value != null ? value.toString() : null;
+        } catch (ReflectiveOperationException | RuntimeException ex) {
+            return null;
+        }
+    }
+
+    private static String extractInternalName(Object mob) {
+        try {
+            Object name = mob.getClass().getMethod("getInternalName").invoke(mob);
+            return name != null ? name.toString() : null;
+        } catch (ReflectiveOperationException | RuntimeException ex) {
+            return null;
+        }
     }
 
     private static List<String> tokenize(String input) {
@@ -245,4 +284,3 @@ public final class MobNameUtil {
                 + ChatColor.RED + (int) currentHP + "/" + (int) maxHP + " \u2764";
     }
 }
-

@@ -20,8 +20,10 @@ import me.nakilex.levelplugin.mob.commands.DmgChatCommand;
 import me.nakilex.levelplugin.mob.commands.DmgNumberCommand;
 import me.nakilex.levelplugin.mob.commands.DpsDummyCommand;
 import me.nakilex.levelplugin.mob.commands.ToggleCommand;
+import me.nakilex.levelplugin.mob.commands.CustomMobCommand;
 import me.nakilex.levelplugin.mob.dps.DpsDummyManager;
 import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
+import me.nakilex.levelplugin.mob.custom.CustomMobManager;
 import me.nakilex.levelplugin.debug.BeaconEntityDebugManager;
 import me.nakilex.levelplugin.debug.commands.DebugCommand;
 import me.nakilex.levelplugin.debug.commands.SpawnEntityModelCommand;
@@ -150,7 +152,8 @@ public class CommandRegistry {
                                         DpsDummyManager dpsDummyManager,
                                         BeaconEntityDebugManager beaconEntityDebugManager,
                                         DungeonExpeditionManager dungeonExpeditionManager,
-                                        ServerSelectionManager serverSelectionManager) {
+                                        ServerSelectionManager serverSelectionManager,
+                                        CustomMobManager customMobManager) {
 
 
         AddPointsCommand addPointsCmd = new AddPointsCommand();
@@ -284,9 +287,11 @@ public class CommandRegistry {
         ToggleCommand toggleCmd = new ToggleCommand(plugin);
         plugin.getCommand("toggle").setExecutor(toggleCmd);
         plugin.getCommand("toggle").setTabCompleter(toggleCmd);
-        DpsDummyCommand dummyCmd = new DpsDummyCommand(dpsDummyManager);
-        plugin.getCommand("dpsdummy").setExecutor(dummyCmd);
-        plugin.getCommand("dpsdummy").setTabCompleter(dummyCmd);
+        if (dpsDummyManager != null) {
+            DpsDummyCommand dummyCmd = new DpsDummyCommand(dpsDummyManager);
+            plugin.getCommand("dpsdummy").setExecutor(dummyCmd);
+            plugin.getCommand("dpsdummy").setTabCompleter(dummyCmd);
+        }
         plugin.getCommand("skipsong").setExecutor(new SkipSongCommand(plugin));
         AuctionCommand auctionCmd = new AuctionCommand(auctionMgr, auctionGui);
         plugin.getCommand("auctionhouse").setExecutor(auctionCmd);
@@ -323,6 +328,9 @@ public class CommandRegistry {
         SpawnEntityModelCommand spawnEntityModelCommand = new SpawnEntityModelCommand(plugin);
         plugin.getCommand("se").setExecutor(spawnEntityModelCommand);
         plugin.getCommand("se").setTabCompleter(spawnEntityModelCommand);
+        CustomMobCommand customMobCommand = new CustomMobCommand(customMobManager);
+        plugin.getCommand("custommob").setExecutor(customMobCommand);
+        plugin.getCommand("custommob").setTabCompleter(customMobCommand);
 
         LevelPluginCommand levelPluginCommand = new LevelPluginCommand(plugin);
         plugin.getCommand("levelplugin").setExecutor(levelPluginCommand);
