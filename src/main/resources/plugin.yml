@@ -297,7 +297,7 @@ commands:
     usage: /debug [mobinfo|tps|siege|autocast|drops|hand|chatgame|expedition]
   se:
     description: Spawn an entity with ModelEngine models for testing
-    usage: /se <entity> <model...>
+    usage: /se <entity> <model...> | /se list
   levelplugin:
     description: LevelPlugin administration command
     usage: /<command> reload

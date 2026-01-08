@@ -39,6 +39,33 @@ public class SpawnEntityModelCommand implements CommandExecutor, TabCompleter {
             ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.ERROR, "Only players can use this command.");
             return true;
         }
+        if (args.length >= 1 && args[0].equalsIgnoreCase("list")) {
+            if (!Bukkit.getPluginManager().isPluginEnabled("ModelEngine")) {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "ModelEngine is not enabled on this server.");
+                return true;
+            }
+            List<String> modelEngineIds = getModelIdsSafely();
+            List<String> blueprintIds = getBlueprintModelIds();
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                    "ModelEngine models (" + modelEngineIds.size() + "):");
+            if (modelEngineIds.isEmpty()) {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                        "No models are loaded by ModelEngine.");
+            } else {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                        String.join(", ", modelEngineIds));
+            }
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                    "Blueprint files (" + blueprintIds.size() + "):");
+            if (blueprintIds.isEmpty()) {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                        "No .bbmodel files found in the blueprints folder.");
+            } else {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                        String.join(", ", blueprintIds));
+            }
+            return true;
+        }
         if (args.length < 2) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "Usage: /se <entity> <model...>");
             return true;
@@ -132,7 +159,9 @@ public class SpawnEntityModelCommand implements CommandExecutor, TabCompleter {
                     .filter(EntityType::isAlive)
                     .map(type -> type.name().toLowerCase(Locale.ROOT))
                     .toList();
-            return CommandUtil.filterStartingWith(entityOptions, args[0]);
+            List<String> options = new ArrayList<>(entityOptions);
+            options.add("list");
+            return CommandUtil.filterStartingWith(options, args[0]);
         }
         if (args.length >= 2 && Bukkit.getPluginManager().isPluginEnabled("ModelEngine")) {
             try {
