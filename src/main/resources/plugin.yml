@@ -4,7 +4,7 @@ version: 1.0
 author: Nakilex
 api-version: 1.19
 description: A simple MMORPG leveling system plugin for Minecraft
-depend: [ProtocolLib, Citizens, Vault, MythicMobs, PlaceholderAPI, Nexo]
+depend: [ProtocolLib, Citizens, Vault, MythicMobs, PlaceholderAPI, Nexo, ModelEngine]
 
 commands:
   addpoints:
@@ -295,6 +295,9 @@ commands:
   debug:
     descri ption: Developer debug tools
     usage: /debug [mobinfo|tps|siege|autocast|drops|hand|chatgame|expedition]
+  se:
+    description: Spawn an entity with ModelEngine models for testing
+    usage: /se <entity> <model...>
   levelplugin:
     description: LevelPlugin administration command
     usage: /<command> reload
@@ -340,7 +343,7 @@ commands:
     usage: /wm <spawn|despawn>
   world:
     description: Manage worlds
-    usage: /world <create|import|delete|unload|tp|spawn|setspawn|list|info>
+    usage: /world <create|import|delete|unload|tp|spawn|setspawn|list|info|edit>
   centertooltip:
     description: Give an item with a centered tooltip
     usage: /centertooltip
