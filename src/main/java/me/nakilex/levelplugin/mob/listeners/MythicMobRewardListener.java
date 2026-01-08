@@ -4,83 +4,30 @@ import io.lumine.mythic.bukkit.BukkitAPIHelper;
 import io.lumine.mythic.bukkit.MythicBukkit;
 import io.lumine.mythic.core.mobs.ActiveMob;
 import me.nakilex.levelplugin.Main;
-import me.nakilex.levelplugin.economy.managers.EconomyManager;
-import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
-import me.nakilex.levelplugin.mob.config.MobRewardsConfig;
-import me.nakilex.levelplugin.mob.config.ModelSetManager;
-import me.nakilex.levelplugin.mob.utils.ItemDropper;
-import me.nakilex.levelplugin.mob.utils.RewardHologramUtil;
 import me.nakilex.levelplugin.mob.utils.CombatPowerUtil;
-import me.nakilex.levelplugin.mob.utils.CombatRewardCalculator;
 import me.nakilex.levelplugin.mob.utils.MobNameUtil;
-import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
-import me.nakilex.levelplugin.debug.DropDebugManager;
-import me.nakilex.levelplugin.quests.def.GamblersGambitQuest;
-import me.nakilex.levelplugin.guild.quests.GuildQuestManager;
+import me.nakilex.levelplugin.mob.utils.MobRewardService;
 import io.lumine.mythic.api.skills.placeholders.PlaceholderString;
-import me.nakilex.levelplugin.party.Party;
-import me.nakilex.levelplugin.party.PartyManager;
-import me.nakilex.levelplugin.player.battlepass.BattlePassManager;
-import me.nakilex.levelplugin.player.level.managers.LevelManager;
-import me.nakilex.levelplugin.items.utils.ItemUtil;
-import me.nakilex.levelplugin.utils.ExperienceUtil;
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDeathEvent;
-import org.bukkit.inventory.ItemStack;
-import me.nakilex.levelplugin.utils.ChatFormatter;
-import org.bukkit.ChatColor;
-
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Awards XP, coins and loot to players that participated in killing MythicMobs.
  */
 public class MythicMobRewardListener implements Listener {
     private final BukkitAPIHelper mythicHelper = MythicBukkit.inst().getAPIHelper();
-    private final MobRewardsConfig mobRewardsConfig;
-    private final LevelManager levelManager;
-    private final EconomyManager economyManager;
-    private final LootChestManager lootChestManager;
-    private final ModelSetManager modelSetManager;
     private final MythicMobDamageTracker tracker;
-    private final BattlePassManager battlePassManager;
-    private final ItemDropper itemDropper;
-    private final PlayerToggleManager debugToggle;
-    private final DropDebugManager dropDebugManager;
+    private final MobRewardService rewardService;
 
     public MythicMobRewardListener(MythicMobDamageTracker tracker,
-                                   MobRewardsConfig mobRewardsConfig,
-                                   LevelManager levelManager,
-                                   EconomyManager economyManager,
-                                   LootChestManager lootChestManager,
-                                   ModelSetManager modelSetManager,
-                                   PlayerToggleManager debugToggle,
-                                   BattlePassManager battlePassManager,
-                                   DropDebugManager dropDebugManager) {
+                                   MobRewardService rewardService) {
         this.tracker = tracker;
-        this.mobRewardsConfig = mobRewardsConfig;
-        this.levelManager = levelManager;
-        this.economyManager = economyManager;
-        this.lootChestManager = lootChestManager;
-        this.modelSetManager = modelSetManager;
-        this.itemDropper = new ItemDropper(modelSetManager);
-        this.debugToggle = debugToggle;
-        this.battlePassManager = battlePassManager;
-        this.dropDebugManager = dropDebugManager;
+        this.rewardService = rewardService;
     }
 
     @EventHandler
@@ -93,179 +40,31 @@ public class MythicMobRewardListener implements Listener {
         if (participants.isEmpty() && event.getEntity().getKiller() instanceof Player killer) {
             participants = Set.of(killer);
         }
-        if (participants.isEmpty()) {
-            participants = Collections.emptySet();
-        }
-
-        me.nakilex.levelplugin.quests.managers.QuestManager questManager = Main.getInstance().getQuestManager();
-        if (questManager != null && !participants.isEmpty()) {
-            Player killer = event.getEntity().getKiller();
-            for (Player participant : participants) {
-                if (participant == null) {
-                    continue;
-                }
-                if (killer != null && participant.getUniqueId().equals(killer.getUniqueId())) {
-                    continue;
-                }
-                questManager.handleKill(participant, rawMobType, false);
-            }
-        }
-
-        ConfigurationSection node = mobRewardsConfig.getMobSection(rawMobType);
         Entity baseEntity = mythicMob.getEntity().getBukkitEntity();
-        boolean numericHpName = baseEntity instanceof LivingEntity living && MobNameUtil.hasNumericHealth(living);
-        if (node == null) {
-            for (Player player : participants) {
-                if (debugToggle.isEnabled(player)) {
-                    sendDebugInfo(player, rawMobType, mythicMob, baseEntity, numericHpName);
-                    player.sendMessage(ChatColor.RED + "[MobDebug] No rewards configured");
-                }
-            }
+        if (!(baseEntity instanceof LivingEntity livingEntity)) {
             return;
         }
+        boolean numericHpName = MobNameUtil.hasNumericHealth(livingEntity);
 
-        String mobType = node.getName();
-
-        int combatPower = CombatPowerUtil.getCombatPower(mythicMob);
-        int mobLevel = (int) Math.round(mythicMob.getLevel());
-        int exp = CombatRewardCalculator.calculateXpReward(combatPower);
-        int coins = CombatRewardCalculator.calculateCoinReward(combatPower);
-        boolean forceDrops = dropDebugManager != null && dropDebugManager.isForceMobDrops();
-        double gearDropChance = dropDebugManager != null
-                ? dropDebugManager.resolveDropChance(node)
-                : node.getDouble("drop_override", node.getDouble("tier_chance", 12.0));
-        String modelSet = node.getString("model_set", "default");
-
-        Location deathLoc = event.getEntity().getLocation();
-        PartyManager pm = Main.getInstance().getPartyManager();
-        Set<Player> recipients = new HashSet<>();
-        for (Player participant : participants) {
-            Party party = pm.getParty(participant.getUniqueId());
-            if (party != null) {
-                for (UUID memberId : party.getMembers()) {
-                    Player member = Bukkit.getPlayer(memberId);
-                    if (member != null && member.getWorld().equals(deathLoc.getWorld())
-                            && member.getLocation().distanceSquared(deathLoc) <= 10000) {
-                        recipients.add(member);
-                    }
-                }
-            } else if (participant.getWorld().equals(deathLoc.getWorld())
-                    && participant.getLocation().distanceSquared(deathLoc) <= 10000) {
-                recipients.add(participant);
-            }
-        }
-
-        Map<Party, List<Player>> nearbyPartyMembers = new HashMap<>();
-        for (Player p : recipients) {
-            Party party = pm.getParty(p.getUniqueId());
-            if (party != null) {
-                nearbyPartyMembers.computeIfAbsent(party, k -> new java.util.ArrayList<>()).add(p);
-            }
-        }
-
-        me.nakilex.levelplugin.dungeon.DungeonManager dungeonManager = Main.getInstance().getDungeonManager();
-        if (dungeonManager != null) {
-            for (Player player : recipients) {
-                dungeonManager.addCombatPowerContribution(player.getUniqueId(), combatPower);
-            }
-        }
-
-        for (Player player : recipients) {
-            Party party = pm.getParty(player.getUniqueId());
-            int partySize = 1;
-            if (party != null) {
-                partySize = nearbyPartyMembers.getOrDefault(party, List.of()).size();
-            }
-            int scaledExp = ExperienceUtil.scaleExperience(exp, levelManager.getLevel(player), mythicMob.getLevel());
-            int awardedExp = ExperienceUtil.applyPartyBonus(scaledExp, partySize);
-            levelManager.addXP(player, awardedExp);
-            economyManager.addCoins(player, coins);
-            var settings = Main.getInstance().getSettingsManager().getSettings(player);
-            itemDropper.dropCustomItems(player, node, modelSet, combatPower, mobLevel, forceDrops);
-            itemDropper.maybeDropEssence(player, node);
-            double gearDropBonus = GamblersGambitQuest.resolveDropBonus(player);
-            double effectiveGearChance = gearDropChance + gearDropBonus;
-            double roll = ThreadLocalRandom.current().nextDouble() * 100.0;
-            if (forceDrops || roll <= effectiveGearChance) {
-                ItemStack loot = lootChestManager.getRandomLootForCombatPower(combatPower, mobLevel, mobType, modelSet, false);
-                if (loot != null) {
-                    ItemUtil.updateTooltip(loot, player);
-                    var rarity = ItemUtil.getCustomItemRarity(loot);
-                    if (rarity != null && ItemUtil.isWeaponOrArmor(loot)
-                            && !settings.isLootPickupAllowed(rarity)) {
-                        player.getWorld().dropItemNaturally(player.getLocation(), loot);
-                    } else {
-                        player.getInventory().addItem(loot).values()
-                                .forEach(i -> player.getWorld().dropItemNaturally(player.getLocation(), i));
-                    }
-                }
-            }
-            itemDropper.maybeDropRerollScroll(player);
-            if (settings.isDropDetailsEnabled()) {
-                RewardHologramUtil.showRewardHologram(deathLoc, awardedExp, coins);
-            }
-            if (settings.isDropDetailsChatEnabled()) {
-                String expLabel = ChatFormatter.experienceLabel();
-                String expColor = ChatFormatter.experienceColor();
-                player.sendMessage(ChatColor.GOLD + "You received "
-                        + expColor + "+" + awardedExp + " <glyph:experience_orb_icon> " + expLabel
-                        + ChatColor.GOLD + " and "
-                        + me.nakilex.levelplugin.utils.CurrencyMessageUtil.formatAmount(
-                                me.nakilex.levelplugin.utils.CurrencyMessageUtil.Currency.COINS, coins)
-                        + ChatColor.GOLD + "!");
-            }
-            GuildQuestManager.getInstance().handleKill(player, mobType);
-            maybeAwardBattlePassXp(player, mobType, combatPower, awardedExp);
-            if (debugToggle.isEnabled(player)) {
-                sendDebugInfo(player, rawMobType, mythicMob, baseEntity, numericHpName);
-                String expColor = ChatFormatter.experienceColor();
-                player.sendMessage(ChatColor.YELLOW + "[MobDebug] Exp: " + expColor + awardedExp
-                        + ChatColor.GRAY + ", Coins: " + coins);
-            }
-        }
-    }
-
-    private void maybeAwardBattlePassXp(Player player, String mobType, int combatPower, int awardedExp) {
-        if (battlePassManager == null || player == null) {
-            return;
-        }
-        int battlePassXp = calculateBattlePassXp(combatPower, awardedExp);
-        if (battlePassXp <= 0) {
-            return;
-        }
-        String displayName = ChatColor.stripColor(MobNameUtil.getDisplayName(mobType));
-        if (displayName == null || displayName.isBlank()) {
-            displayName = MobNameUtil.toPrettyName(mobType);
-        }
-        battlePassManager.addProgress(
-                player,
-                battlePassXp,
-                "for defeating " + ChatColor.GOLD + displayName
-        );
-    }
-
-    private int calculateBattlePassXp(int combatPower, int awardedExp) {
-        int base = Math.max(25, awardedExp / 4);
-        base += Math.min(200, Math.max(0, combatPower / 5));
-        return Math.min(base, 500);
-    }
-
-    private void sendDebugInfo(Player player,
-                               String rawMobType,
-                               ActiveMob mythicMob,
-                               Entity baseEntity,
-                               boolean numericHpName) {
         PlaceholderString name = mythicMob.getType().getDisplayName();
         String display = name != null ? name.get() : rawMobType;
-        player.sendMessage(ChatColor.YELLOW + "[MobDebug] ID: " + rawMobType
-                + ChatColor.GRAY + " Display: " + ChatColor.WHITE + display);
-        player.sendMessage(ChatColor.YELLOW + "[MobDebug] Template Entity: "
-                + ChatColor.WHITE + mythicMob.getType().getEntityType().name());
-        player.sendMessage(ChatColor.YELLOW + "[MobDebug] Bukkit Entity: "
-                + ChatColor.WHITE + baseEntity.getType()
-                + ChatColor.GRAY + " (" + baseEntity.getClass().getSimpleName() + ")");
-        int power = CombatPowerUtil.getCombatPower(mythicMob);
-        player.sendMessage(ChatColor.YELLOW + "[MobDebug] Combat Power: " + ChatColor.AQUA + power);
-        player.sendMessage(ChatColor.YELLOW + "[MobDebug] Numeric HP: " + ChatColor.WHITE + numericHpName);
+        int combatPower = CombatPowerUtil.getCombatPower(mythicMob);
+        int mobLevel = (int) Math.round(mythicMob.getLevel());
+
+        MobRewardService.DebugInfo debugInfo = new MobRewardService.DebugInfo(
+                mythicMob.getType().getEntityType().name(),
+                baseEntity.getType() + " (" + baseEntity.getClass().getSimpleName() + ")",
+                numericHpName
+        );
+        MobRewardService.MobRewardContext context = new MobRewardService.MobRewardContext(
+                rawMobType,
+                display,
+                mobLevel,
+                combatPower,
+                livingEntity,
+                participants,
+                debugInfo
+        );
+        rewardService.awardRewards(context);
     }
 }

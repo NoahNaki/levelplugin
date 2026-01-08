@@ -298,6 +298,9 @@ commands:
   se:
     description: Spawn an entity with ModelEngine models for testing
     usage: /se <entity> <model...> | /se list
+  custommob:
+    description: Manage custom mobs
+    usage: /custommob <list|spawn|info|reload>
   levelplugin:
     description: LevelPlugin administration command
     usage: /<command> reload

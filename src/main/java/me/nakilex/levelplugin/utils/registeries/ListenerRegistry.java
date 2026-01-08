@@ -23,6 +23,9 @@ import me.nakilex.levelplugin.mob.dps.DpsDummyManager;
 import me.nakilex.levelplugin.mob.listeners.*;
 import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
 import me.nakilex.levelplugin.mob.managers.MythicMobNameManager;
+import me.nakilex.levelplugin.mob.custom.CustomMobManager;
+import me.nakilex.levelplugin.mob.custom.CustomMobRewardListener;
+import me.nakilex.levelplugin.mob.utils.MobRewardService;
 import me.nakilex.levelplugin.npc.listeners.NPCClickListener;
 import me.nakilex.levelplugin.npc.listeners.NPCCommandListener;
 import me.nakilex.levelplugin.npc.dialog.NPCDialogManager;
@@ -126,7 +129,8 @@ public class ListenerRegistry {
                                          ChatGameManager chatGameManager,
                                         DpsDummyManager dpsDummyManager,
                                         BeaconEntityDebugManager beaconEntityDebugManager,
-                                        ServerSelectionManager serverSelectionManager) {
+                                        ServerSelectionManager serverSelectionManager,
+                                        CustomMobManager customMobManager) {
 
 
         PluginManager pm = plugin.getServer().getPluginManager();
@@ -136,8 +140,8 @@ public class ListenerRegistry {
         pm.registerEvents(dmgTracker, plugin);
         BattlePassManager battlePassManager = plugin.getBattlePassManager();
 
-        pm.registerEvents(new MythicMobRewardListener(
-                dmgTracker,
+        MobRewardService rewardService = new MobRewardService(
+                plugin,
                 mobRewardsConfig,
                 plugin.getLevelManager(),
                 economyManager,
@@ -146,7 +150,12 @@ public class ListenerRegistry {
                 mobDebugToggleManager,
                 battlePassManager,
                 plugin.getDropDebugManager()
-        ), plugin);
+        );
+        pm.registerEvents(new MythicMobRewardListener(dmgTracker, rewardService), plugin);
+        if (customMobManager != null) {
+            pm.registerEvents(customMobManager.getNameManager(), plugin);
+            pm.registerEvents(new CustomMobRewardListener(customMobManager, dmgTracker, rewardService), plugin);
+        }
         pm.registerEvents(new me.nakilex.levelplugin.player.mining.listeners.OreMiningListener(plugin, plugin.getMiningRewardsConfig(), plugin.getMiningManager()), plugin);
         pm.registerEvents(new me.nakilex.levelplugin.player.farming.listeners.WheatHarvestListener(plugin.getFarmingManager()), plugin);
         pm.registerEvents(new me.nakilex.levelplugin.player.fishing.listeners.FishingListener(

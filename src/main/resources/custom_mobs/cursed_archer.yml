@@ -1,0 +1,21 @@
+id: cursed_archer
+type: VINDICATOR
+display: "&fCursed Archer"
+level: 12
+health: 100
+boss: false
+
+models:
+  - cursed_archer
+
+stats:
+  vitality: 30
+  strength: 12
+  technique: 18
+
+options:
+  movement-speed: 0.25
+  follow-range: 40
+  knockback-resistance: 0.8
+  silent: true
+  despawn: false

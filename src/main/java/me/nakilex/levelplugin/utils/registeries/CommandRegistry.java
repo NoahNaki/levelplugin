@@ -20,8 +20,10 @@ import me.nakilex.levelplugin.mob.commands.DmgChatCommand;
 import me.nakilex.levelplugin.mob.commands.DmgNumberCommand;
 import me.nakilex.levelplugin.mob.commands.DpsDummyCommand;
 import me.nakilex.levelplugin.mob.commands.ToggleCommand;
+import me.nakilex.levelplugin.mob.commands.CustomMobCommand;
 import me.nakilex.levelplugin.mob.dps.DpsDummyManager;
 import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
+import me.nakilex.levelplugin.mob.custom.CustomMobManager;
 import me.nakilex.levelplugin.debug.BeaconEntityDebugManager;
 import me.nakilex.levelplugin.debug.commands.DebugCommand;
 import me.nakilex.levelplugin.debug.commands.SpawnEntityModelCommand;
@@ -150,7 +152,8 @@ public class CommandRegistry {
                                         DpsDummyManager dpsDummyManager,
                                         BeaconEntityDebugManager beaconEntityDebugManager,
                                         DungeonExpeditionManager dungeonExpeditionManager,
-                                        ServerSelectionManager serverSelectionManager) {
+                                        ServerSelectionManager serverSelectionManager,
+                                        CustomMobManager customMobManager) {
 
 
         AddPointsCommand addPointsCmd = new AddPointsCommand();
@@ -323,6 +326,9 @@ public class CommandRegistry {
         SpawnEntityModelCommand spawnEntityModelCommand = new SpawnEntityModelCommand(plugin);
         plugin.getCommand("se").setExecutor(spawnEntityModelCommand);
         plugin.getCommand("se").setTabCompleter(spawnEntityModelCommand);
+        CustomMobCommand customMobCommand = new CustomMobCommand(customMobManager);
+        plugin.getCommand("custommob").setExecutor(customMobCommand);
+        plugin.getCommand("custommob").setTabCompleter(customMobCommand);
 
         LevelPluginCommand levelPluginCommand = new LevelPluginCommand(plugin);
         plugin.getCommand("levelplugin").setExecutor(levelPluginCommand);

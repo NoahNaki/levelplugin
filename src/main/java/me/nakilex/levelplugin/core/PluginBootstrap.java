@@ -35,6 +35,7 @@ import me.nakilex.levelplugin.lootchests.managers.CooldownManager;
 import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
 import me.nakilex.levelplugin.mob.config.MobRewardsConfig;
 import me.nakilex.levelplugin.mob.dps.DpsDummyManager;
+import me.nakilex.levelplugin.mob.custom.CustomMobManager;
 import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
 import me.nakilex.levelplugin.party.PartyManager;
 import me.nakilex.levelplugin.party.PartyGlowManager;
@@ -148,6 +149,7 @@ public class PluginBootstrap {
     private NamespacedKey upgradeKey;
     private MobRewardsConfig mobRewardsConfig;
     private me.nakilex.levelplugin.mob.config.ModelSetManager modelSetManager;
+    private CustomMobManager customMobManager;
     private StorageEvents storageEvents;
     private StorageManager storageManager;
     private me.nakilex.levelplugin.guild.GuildVaultManager guildVaultManager;
@@ -260,6 +262,7 @@ public class PluginBootstrap {
                 environmentManager);
         CitizensAPI.getTraitFactory().registerTrait(net.citizensnpcs.api.trait.TraitInfo.create(MetadataTrait.class).withName("MetadataTrait"));
         mobRewardsConfig = new MobRewardsConfig(plugin);
+        customMobManager = new CustomMobManager(plugin);
         GuildQuestManager.getInstance().reloadMobCategories();
         codexManager = new CodexManager(playerConfig, mobRewardsConfig, bossConfig);
         mobCodexGUI = new MobCodexGUI(codexManager, null);
@@ -496,7 +499,8 @@ public class PluginBootstrap {
             dpsDummyManager,
             beaconEntityDebugManager,
             dungeonExpeditionManager,
-            serverSelectionManager
+            serverSelectionManager,
+            customMobManager
         );
         me.nakilex.levelplugin.catacombs.CatacombsCommand catacombsCommand =
                 new me.nakilex.levelplugin.catacombs.CatacombsCommand(catacombsManager, catacombsGUI);
@@ -581,7 +585,8 @@ public class PluginBootstrap {
             chatGameManager,
             dpsDummyManager,
             beaconEntityDebugManager,
-            serverSelectionManager
+            serverSelectionManager,
+            customMobManager
         );
         plugin.getServer().getPluginManager().registerEvents(
                 new me.nakilex.levelplugin.mercenary.board.ExpeditionBoardWandListener(expeditionBoardManager),
@@ -772,6 +777,7 @@ public class PluginBootstrap {
     public NamespacedKey getUpgradeKey() { return upgradeKey; }
     public MobRewardsConfig getMobRewardsConfig() { return mobRewardsConfig; }
     public me.nakilex.levelplugin.mob.config.ModelSetManager getModelSetManager() { return modelSetManager; }
+    public CustomMobManager getCustomMobManager() { return customMobManager; }
     public StorageEvents getStorageEvents() { return storageEvents; }
     public StorageManager getStorageManager() { return storageManager; }
     public me.nakilex.levelplugin.guild.GuildVaultManager getGuildVaultManager() { return guildVaultManager; }

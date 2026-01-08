@@ -20,24 +20,37 @@ public final class CombatPowerUtil {
     public static int getCombatPower(ActiveMob mob) {
         if (mob == null || mob.getEntity() == null) return 0;
         LivingEntity ent = (LivingEntity) mob.getEntity().getBukkitEntity();
+        return getCombatPower(ent, mob.getLevel());
+    }
+
+    /**
+     * Calculate a simple combat power rating for the given living entity.
+     *
+     * @param entity living entity to inspect
+     * @param level  level to include in the power calculation
+     * @return combat power value
+     */
+    public static int getCombatPower(LivingEntity entity, double level) {
+        if (entity == null) {
+            return 0;
+        }
         Attribute hpAttr = AttributeUtil.resolve("GENERIC_MAX_HEALTH", "MAX_HEALTH");
         Attribute dmgAttr = AttributeUtil.resolve("GENERIC_ATTACK_DAMAGE", "ATTACK_DAMAGE");
         Attribute moveAttr = AttributeUtil.resolve("GENERIC_MOVEMENT_SPEED", "MOVEMENT_SPEED");
         Attribute atkAttr = AttributeUtil.resolve("GENERIC_ATTACK_SPEED", "ATTACK_SPEED");
 
-        double hp = hpAttr != null && ent.getAttribute(hpAttr) != null
-                ? ent.getAttribute(hpAttr).getBaseValue()
-                : ent.getMaxHealth();
-        double dmg = dmgAttr != null && ent.getAttribute(dmgAttr) != null
-                ? ent.getAttribute(dmgAttr).getBaseValue()
+        double hp = hpAttr != null && entity.getAttribute(hpAttr) != null
+                ? entity.getAttribute(hpAttr).getBaseValue()
+                : entity.getMaxHealth();
+        double dmg = dmgAttr != null && entity.getAttribute(dmgAttr) != null
+                ? entity.getAttribute(dmgAttr).getBaseValue()
                 : 0;
-        double move = moveAttr != null && ent.getAttribute(moveAttr) != null
-                ? ent.getAttribute(moveAttr).getBaseValue()
+        double move = moveAttr != null && entity.getAttribute(moveAttr) != null
+                ? entity.getAttribute(moveAttr).getBaseValue()
                 : 0;
-        double atk = atkAttr != null && ent.getAttribute(atkAttr) != null
-                ? ent.getAttribute(atkAttr).getBaseValue()
+        double atk = atkAttr != null && entity.getAttribute(atkAttr) != null
+                ? entity.getAttribute(atkAttr).getBaseValue()
                 : 0;
-        double level = mob.getLevel();
         double power = hp + dmg * 10 + move * 100 + atk * 20 + level * 5;
         return (int) Math.round(power);
     }

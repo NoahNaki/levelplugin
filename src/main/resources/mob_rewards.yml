@@ -136,7 +136,8 @@ mobs:
   slime_triple:
     model_set: default
 
-
+  forest_slime:
+    model_set: default
 
 
 
