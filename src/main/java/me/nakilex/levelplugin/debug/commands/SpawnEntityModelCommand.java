@@ -66,17 +66,19 @@ public class SpawnEntityModelCommand implements CommandExecutor, TabCompleter {
         List<String> blueprintOnlyModels = new ArrayList<>();
         List<String> modelEngineIds = getModelIdsSafely();
         List<String> blueprintIds = getBlueprintModelIds();
+        modeledEntity.registerSelf();
         for (int i = 1; i < args.length; i++) {
             String modelId = args[i];
-            ActiveModel activeModel = ModelEngineAPI.createActiveModel(modelId);
+            String resolvedId = resolveModelId(modelId, modelEngineIds);
+            ActiveModel activeModel = ModelEngineAPI.createActiveModel(resolvedId);
             if (activeModel == null) {
-                activeModel = createActiveModelByReflection(modelId);
+                activeModel = createActiveModelByReflection(resolvedId);
             }
             if (activeModel == null) {
                 failedModels.add(modelId);
                 if (!modelEngineIds.isEmpty()
-                        && !containsIgnoreCase(modelEngineIds, modelId)
-                        && containsIgnoreCase(blueprintIds, modelId)) {
+                        && !containsIgnoreCase(modelEngineIds, resolvedId)
+                        && containsIgnoreCase(blueprintIds, resolvedId)) {
                     blueprintOnlyModels.add(modelId);
                 }
                 continue;
@@ -90,6 +92,7 @@ public class SpawnEntityModelCommand implements CommandExecutor, TabCompleter {
         }
 
         if (appliedModels.isEmpty()) {
+            modeledEntity.destroy();
             entity.remove();
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
                     "No valid ModelEngine models were applied.");
@@ -106,7 +109,6 @@ public class SpawnEntityModelCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        modeledEntity.registerSelf();
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
                 "Spawned " + type.name().toLowerCase(Locale.ROOT) + " with models: " + String.join(", ", appliedModels));
         if (!blueprintOnlyModels.isEmpty()) {
@@ -298,6 +300,18 @@ public class SpawnEntityModelCommand implements CommandExecutor, TabCompleter {
             }
         }
         return values;
+    }
+
+    private String resolveModelId(String modelId, List<String> modelEngineIds) {
+        if (modelId == null || modelEngineIds == null) {
+            return modelId;
+        }
+        for (String candidate : modelEngineIds) {
+            if (candidate != null && candidate.equalsIgnoreCase(modelId)) {
+                return candidate;
+            }
+        }
+        return modelId;
     }
 
     private boolean containsIgnoreCase(List<String> values, String token) {
