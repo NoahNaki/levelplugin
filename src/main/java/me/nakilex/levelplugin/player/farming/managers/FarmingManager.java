@@ -48,6 +48,7 @@ public class FarmingManager {
 
     public void addXP(Player player, int amount) {
         if (player == null) return;
+        markFarmingActive(player);
         addXP(player.getUniqueId(), amount);
     }
 

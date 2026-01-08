@@ -54,6 +54,7 @@ public class ArenaTeamMatchManager implements Listener {
     private final Map<UUID, ArenaTeamMatch> matchesByPlayer = new HashMap<>();
     private final Map<ArenaTeamMatch, BukkitTask> countdownTasks = new HashMap<>();
     private final Map<ArenaTeamMatch, BukkitTask> timeoutTasks = new HashMap<>();
+    private final Map<UUID, Location> returnLocations = new HashMap<>();
 
     private static final long MATCH_TIMEOUT_TICKS = 20L * 8 * 60; // 8 minutes
 
@@ -125,6 +126,9 @@ public class ArenaTeamMatchManager implements Listener {
         ArenaTeamMatch match = new ArenaTeamMatch(teamOneIds, teamTwoIds, instance);
         registerMatch(match);
         combatTracker.beginTracking(match.allPlayers());
+
+        rememberReturnLocations(teamOne);
+        rememberReturnLocations(teamTwo);
 
         prepareTeam(teamOne);
         prepareTeam(teamTwo);
@@ -530,9 +534,23 @@ public class ArenaTeamMatchManager implements Listener {
         player.setGameMode(GameMode.SURVIVAL);
         player.setAllowFlight(false);
         player.setFlying(false);
+        Location returnLocation = returnLocations.remove(player.getUniqueId());
+        if (returnLocation != null && returnLocation.getWorld() != null) {
+            player.teleport(returnLocation);
+            return;
+        }
         Location fallback = Bukkit.getWorlds().isEmpty() ? null : Bukkit.getWorlds().get(0).getSpawnLocation();
         if (fallback != null) {
             player.teleport(fallback);
+        }
+    }
+
+    private void rememberReturnLocations(List<Player> players) {
+        for (Player player : players) {
+            if (player == null) {
+                continue;
+            }
+            returnLocations.put(player.getUniqueId(), player.getLocation().clone());
         }
     }
 

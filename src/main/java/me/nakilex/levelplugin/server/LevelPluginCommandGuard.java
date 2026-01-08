@@ -32,7 +32,7 @@ public class LevelPluginCommandGuard implements Listener {
         }
         Player player = event.getPlayer();
         World world = player.getWorld();
-        if (serverSelectionManager.isAlphaWorld(world) || isDungeonInstance(world)) {
+        if (serverSelectionManager.isAlphaWorld(world) || isDungeonInstance(world) || isArenaInstance(world)) {
             return;
         }
         String message = event.getMessage();
@@ -43,6 +43,9 @@ public class LevelPluginCommandGuard implements Listener {
         int colon = label.indexOf(':');
         if (colon >= 0 && colon < label.length() - 1) {
             label = label.substring(colon + 1);
+        }
+        if ("hub".equals(label)) {
+            return;
         }
         if (!guardedCommands.contains(label)) {
             return;
@@ -87,5 +90,13 @@ public class LevelPluginCommandGuard implements Listener {
         }
         var dungeonManager = Main.getInstance().getDungeonManager();
         return dungeonManager != null && dungeonManager.isInstanceWorld(world);
+    }
+
+    private boolean isArenaInstance(World world) {
+        if (world == null) {
+            return false;
+        }
+        var arenaManager = Main.getInstance().getArenaInstanceManager();
+        return arenaManager != null && arenaManager.isInstanceWorld(world);
     }
 }

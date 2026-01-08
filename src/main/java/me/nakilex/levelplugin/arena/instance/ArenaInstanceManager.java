@@ -196,6 +196,13 @@ public class ArenaInstanceManager {
         return Collections.unmodifiableCollection(activeInstances.values());
     }
 
+    public boolean isInstanceWorld(World world) {
+        if (world == null) {
+            return false;
+        }
+        return activeInstances.containsKey(world.getName());
+    }
+
     public boolean isTemplateLoaded() {
         return templateLoaded;
     }

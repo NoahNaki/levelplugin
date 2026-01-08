@@ -50,6 +50,7 @@ public class ArenaMatchManager implements Listener {
     private final Map<UUID, ArenaMatch> matchesByPlayer = new HashMap<>();
     private final Map<ArenaMatch, BukkitTask> countdownTasks = new HashMap<>();
     private final Map<ArenaMatch, BukkitTask> timeoutTasks = new HashMap<>();
+    private final Map<UUID, Location> returnLocations = new HashMap<>();
 
     private static final long MATCH_TIMEOUT_TICKS = 20L * 8 * 60; // 8 minutes
 
@@ -133,6 +134,9 @@ public class ArenaMatchManager implements Listener {
         matchesByPlayer.put(secondId, match);
 
         combatTracker.beginTracking(List.of(firstId, secondId));
+
+        rememberReturnLocation(one);
+        rememberReturnLocation(two);
 
         preparePlayer(one);
         preparePlayer(two);
@@ -373,6 +377,7 @@ public class ArenaMatchManager implements Listener {
         teleportOut(playerOne);
         teleportOut(playerTwo);
 
+
         if (playerOne != null) {
             scoreboardManager.updateBoard(playerOne);
         }
@@ -443,10 +448,22 @@ public class ArenaMatchManager implements Listener {
             return;
         }
         preparePlayer(player);
+        Location returnLocation = returnLocations.remove(player.getUniqueId());
+        if (returnLocation != null && returnLocation.getWorld() != null) {
+            player.teleport(returnLocation);
+            return;
+        }
         Location fallback = Bukkit.getWorlds().isEmpty() ? null : Bukkit.getWorlds().get(0).getSpawnLocation();
         if (fallback != null) {
             player.teleport(fallback);
         }
+    }
+
+    private void rememberReturnLocation(Player player) {
+        if (player == null) {
+            return;
+        }
+        returnLocations.put(player.getUniqueId(), player.getLocation().clone());
     }
 
     private void cancelTask(BukkitTask task) {

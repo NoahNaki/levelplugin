@@ -43,6 +43,9 @@ public class TipBroadcastTask extends BukkitRunnable {
                     && !plugin.getSettingsManager().getSettings(player).isTipsEnabled()) {
                 continue;
             }
+            if (player.getWorld() == null || !"world".equalsIgnoreCase(player.getWorld().getName())) {
+                continue;
+            }
             ChatFormatter.sendCenteredMessage(player, formatted);
         }
 
