@@ -153,9 +153,6 @@ public class ListenerRegistry {
                 plugin.getDropDebugManager()
         );
         boolean mythicEnabled = Bukkit.getPluginManager().isPluginEnabled("MythicMobs");
-        if (mythicEnabled) {
-            pm.registerEvents(new MythicMobRewardListener(dmgTracker, rewardService), plugin);
-        }
         if (customMobManager != null) {
             pm.registerEvents(customMobManager.getNameManager(), plugin);
             pm.registerEvents(new CustomMobRewardListener(customMobManager, dmgTracker, rewardService), plugin);

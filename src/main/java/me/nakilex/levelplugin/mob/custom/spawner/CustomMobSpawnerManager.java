@@ -113,6 +113,7 @@ public class CustomMobSpawnerManager implements Listener {
                 "resetthreatonleash",
                 "showflames",
                 "breakable",
+                "fieldboss",
                 "conditions"
         );
     }
@@ -165,6 +166,7 @@ public class CustomMobSpawnerManager implements Listener {
                 case "resetthreatonleash" -> spawner.setResetThreatOnLeash(Boolean.parseBoolean(value));
                 case "showflames" -> spawner.setShowFlames(Boolean.parseBoolean(value));
                 case "breakable" -> spawner.setBreakable(Boolean.parseBoolean(value));
+                case "fieldboss" -> spawner.setFieldBoss(Boolean.parseBoolean(value));
                 case "conditions" -> {
                     List<String> list = value.isBlank()
                             ? Collections.emptyList()
@@ -243,6 +245,9 @@ public class CustomMobSpawnerManager implements Listener {
                         spawner.getMobLevel());
                 if (!spawned.isEmpty()) {
                     LivingEntity entity = spawned.get(0);
+                    if (spawner.isFieldBoss()) {
+                        entity.addScoreboardTag("field_boss");
+                    }
                     spawner.getActiveMobs().add(entity.getUniqueId());
                 }
             }
@@ -348,6 +353,7 @@ public class CustomMobSpawnerManager implements Listener {
             spawner.setResetThreatOnLeash(spawnerCfg.getBoolean("ResetThreatOnLeash", spawner.isResetThreatOnLeash()));
             spawner.setShowFlames(spawnerCfg.getBoolean("ShowFlames", spawner.isShowFlames()));
             spawner.setBreakable(spawnerCfg.getBoolean("Breakable", spawner.isBreakable()));
+            spawner.setFieldBoss(spawnerCfg.getBoolean("FieldBoss", spawner.isFieldBoss()));
             spawner.setConditions(spawnerCfg.getStringList("Conditions"));
             spawners.put(name.toLowerCase(Locale.ROOT), spawner);
         }
@@ -384,6 +390,7 @@ public class CustomMobSpawnerManager implements Listener {
             entry.set("ResetThreatOnLeash", spawner.isResetThreatOnLeash());
             entry.set("ShowFlames", spawner.isShowFlames());
             entry.set("Breakable", spawner.isBreakable());
+            entry.set("FieldBoss", spawner.isFieldBoss());
             entry.set("Conditions", spawner.getConditions());
             entry.set("ActiveMobs", spawner.getActiveMobs().size());
         }
@@ -406,6 +413,7 @@ public class CustomMobSpawnerManager implements Listener {
         lines.add("UseTimer: " + spawner.isUseTimer());
         lines.add("Cooldown: " + spawner.getCooldown() + " | Warmup: " + spawner.getWarmup());
         lines.add("CheckForPlayers: " + spawner.isCheckForPlayers() + " (" + spawner.getActivationRange() + " blocks)");
+        lines.add("FieldBoss: " + spawner.isFieldBoss());
         return lines;
     }
 

@@ -33,6 +33,7 @@ public class CustomMobSpawner {
     private boolean resetThreatOnLeash;
     private boolean showFlames;
     private boolean breakable;
+    private boolean fieldBoss;
     private List<String> conditions;
     private final Set<UUID> activeMobs = new HashSet<>();
 
@@ -61,6 +62,7 @@ public class CustomMobSpawner {
         this.resetThreatOnLeash = false;
         this.showFlames = false;
         this.breakable = false;
+        this.fieldBoss = false;
         this.conditions = new ArrayList<>();
     }
 
@@ -250,6 +252,14 @@ public class CustomMobSpawner {
 
     public void setBreakable(boolean breakable) {
         this.breakable = breakable;
+    }
+
+    public boolean isFieldBoss() {
+        return fieldBoss;
+    }
+
+    public void setFieldBoss(boolean fieldBoss) {
+        this.fieldBoss = fieldBoss;
     }
 
     public List<String> getConditions() {

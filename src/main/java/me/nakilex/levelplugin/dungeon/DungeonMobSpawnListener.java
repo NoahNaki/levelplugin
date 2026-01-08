@@ -1,9 +1,8 @@
 package me.nakilex.levelplugin.dungeon;
 
-import io.lumine.mythic.bukkit.events.MythicMobDeathEvent;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.mob.utils.MobNameUtil;
-import me.nakilex.levelplugin.mob.utils.MythicMobModifier;
+import me.nakilex.levelplugin.mob.custom.CustomMobManager;
 import me.nakilex.levelplugin.lootchests.utils.LocationUtils;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.ConfigurationSection;
@@ -16,6 +15,8 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.LivingEntity;
+import org.bukkit.event.entity.EntityDeathEvent;
 
 import java.util.Optional;
 
@@ -27,10 +28,12 @@ public class DungeonMobSpawnListener implements Listener {
     private final Set<Dungeon.RoomInstance> triggered = new HashSet<>();
     private final FileConfiguration config;
     private final Main plugin;
+    private final CustomMobManager customMobManager;
 
     public DungeonMobSpawnListener(DungeonManager manager, Main plugin) {
         this.manager = manager;
         this.plugin = plugin;
+        this.customMobManager = plugin.getCustomMobManager();
         File file = new File(plugin.getDataFolder(), "dungeon_mobs.yml");
         if (!file.exists()) {
             plugin.saveResource("dungeon_mobs.yml", false);
@@ -113,7 +116,7 @@ public class DungeonMobSpawnListener implements Listener {
                         spawnKey,
                         internalName)),
                 () -> plugin.getLogger().warning(String.format(
-                        "[DungeonSpawn] MythicMob definition for '%s' could not be resolved",
+                        "[DungeonSpawn] Mob definition for '%s' could not be resolved",
                         spawnKey))
         );
         int spawned = 0;
@@ -121,14 +124,23 @@ public class DungeonMobSpawnListener implements Listener {
             double x = room.minX + 1 + Math.random() * (room.maxX - room.minX - 1);
             double z = room.minZ + 1 + Math.random() * (room.maxZ - room.minZ - 1);
             Location spawn = new Location(room.center.getWorld(), x + 0.5, room.center.getY(), z + 0.5);
-            var mob = MythicMobModifier.spawnModifiedMob(spawnKey, spawn, hp, dmg, move, atk);
-            if (mob == null) {
+            if (customMobManager == null || customMobManager.getDefinition(spawnKey).isEmpty()) {
                 plugin.getLogger().warning(String.format(
-                        "[DungeonSpawn] MythicMob '%s' failed to spawn at %s",
+                        "[DungeonSpawn] Custom mob '%s' failed to spawn at %s",
                         key,
                         LocationUtils.blockLocationString(spawn)));
-            } else {
+                continue;
+            }
+            var mobs = customMobManager.spawn(spawnKey, spawn, 1);
+            if (!mobs.isEmpty()) {
+                LivingEntity entity = mobs.get(0);
+                entity.addScoreboardTag("dungeon_mob");
                 spawned++;
+            } else {
+                plugin.getLogger().warning(String.format(
+                        "[DungeonSpawn] Custom mob '%s' failed to spawn at %s",
+                        key,
+                        LocationUtils.blockLocationString(spawn)));
             }
         }
         plugin.getLogger().info(String.format(
@@ -156,24 +168,29 @@ public class DungeonMobSpawnListener implements Listener {
                         mobId,
                         internalName)),
                 () -> Main.getInstance().getLogger().warning(String.format(
-                        "[DungeonBoss] MythicMob definition for '%s' could not be resolved",
+                        "[DungeonBoss] Mob definition for '%s' could not be resolved",
                         mobId))
         );
-        var mob = MythicMobModifier.spawnModifiedMob(mobId, room.bossSpawn, null, null, null, null);
-        if (mob != null) {
-            mob.getEntity().getBukkitEntity().addScoreboardTag("dungeon_boss");
+        if (customMobManager == null || customMobManager.getDefinition(mobId).isEmpty()) {
+            Main.getInstance().getLogger().warning("[DungeonBoss] Custom mob '" + mobId + "' could not be spawned");
+            return;
+        }
+        var mobs = customMobManager.spawn(mobId, room.bossSpawn, 1);
+        if (!mobs.isEmpty()) {
+            LivingEntity entity = mobs.get(0);
+            entity.addScoreboardTag("dungeon_boss");
             plugin.getLogger().info(String.format(
                     "[DungeonSpawn] Spawned boss '%s' at %s",
                     mobId,
                     LocationUtils.blockLocationString(room.bossSpawn)));
         } else {
-            Main.getInstance().getLogger().warning("[DungeonBoss] MythicMob '" + mobId + "' could not be spawned");
+            Main.getInstance().getLogger().warning("[DungeonBoss] Custom mob '" + mobId + "' could not be spawned");
         }
     }
 
     @EventHandler
-    public void onBossDeath(MythicMobDeathEvent event) {
-        Entity entity = MythicMobModifier.toBukkitEntity(event.getEntity());
+    public void onBossDeath(EntityDeathEvent event) {
+        Entity entity = event.getEntity();
         if (entity == null || !entity.getScoreboardTags().contains("dungeon_boss")) return;
         Location loc = entity.getLocation();
         for (Dungeon dungeon : manager.getActiveDungeons()) {

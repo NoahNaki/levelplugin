@@ -11,7 +11,7 @@ public final class MythicEventUtil {
     private MythicEventUtil() {}
 
     public static Player resolvePlayer(Object casterObj) {
-        var entity = MythicMobModifier.toBukkitEntity(casterObj);
+        var entity = toBukkitEntity(casterObj);
         return entity instanceof Player p ? p : null;
     }
 
@@ -91,6 +91,28 @@ public final class MythicEventUtil {
             Object maybe = event.getClass().getMethod("getAttacker").invoke(event);
             if (maybe instanceof Entity e) return e;
         } catch (Exception ignore) {
+        }
+
+        return null;
+    }
+
+    private static Entity toBukkitEntity(Object obj) {
+        if (obj instanceof Entity e) return e;
+        if (obj == null) return null;
+
+        try {
+            Object bukkit = obj.getClass().getMethod("getBukkitEntity").invoke(obj);
+            if (bukkit instanceof Entity e) return e;
+        } catch (Exception ignored) {
+        }
+
+        try {
+            Object inner = obj.getClass().getMethod("getEntity").invoke(obj);
+            if (inner != null) {
+                Object bukkit = inner.getClass().getMethod("getBukkitEntity").invoke(inner);
+                if (bukkit instanceof Entity e) return e;
+            }
+        } catch (Exception ignored) {
         }
 
         return null;

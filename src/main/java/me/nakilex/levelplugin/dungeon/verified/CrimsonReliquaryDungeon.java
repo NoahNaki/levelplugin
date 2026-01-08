@@ -25,7 +25,7 @@ import me.nakilex.levelplugin.dungeon.DungeonManager;
 import me.nakilex.levelplugin.dungeon.RoomTemplate;
 import me.nakilex.levelplugin.items.data.ItemRarity;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
-import me.nakilex.levelplugin.mob.utils.MythicMobModifier;
+import me.nakilex.levelplugin.mob.custom.CustomMobManager;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.classes.essence.ClassEssence;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
@@ -913,14 +913,12 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
                     }
 
                     marker.ticksWaited++;
-                    var mob = MythicMobModifier.spawnModifiedMob(marker.mobId, marker.loc, null, null, null, null);
-                    if (mob != null) {
-                        var entity = mob.getEntity().getBukkitEntity();
+                    var spawned = spawnCustomMob(marker.mobId, marker.loc);
+                    if (!spawned.isEmpty()) {
+                        org.bukkit.entity.LivingEntity entity = spawned.get(0);
                         entity.addScoreboardTag(DUNGEON_MOB_TAG);
-                        if (entity instanceof org.bukkit.entity.LivingEntity living) {
-                            living.setRemoveWhenFarAway(false);
-                            living.setPersistent(true);
-                        }
+                        entity.setRemoveWhenFarAway(false);
+                        entity.setPersistent(true);
                         if (marker.mobId.equals("MSO_Demon_General")) {
                             entity.addScoreboardTag("dungeon_boss");
                         }
@@ -952,6 +950,15 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
                 }
             }
         }.runTaskTimer(plugin, 10L, 10L);
+    }
+
+    private java.util.List<org.bukkit.entity.LivingEntity> spawnCustomMob(String mobId, Location location) {
+        CustomMobManager manager = plugin.getCustomMobManager();
+        if (manager == null || manager.getDefinition(mobId).isEmpty()) {
+            plugin.getLogger().warning("[Dungeon] Custom mob '" + mobId + "' is not configured.");
+            return java.util.List.of();
+        }
+        return manager.spawn(mobId, location, 1);
     }
 
     private boolean isDungeonFlower(ItemStack stack) {
