@@ -91,8 +91,10 @@ public class SpawnEntityModelCommand implements CommandExecutor, TabCompleter {
         }
         if (args.length >= 2 && Bukkit.getPluginManager().isPluginEnabled("ModelEngine")) {
             try {
-                List<String> models = new ArrayList<>(ModelEngineAPI.getAPI().getModelManager().getModelIds());
-                return CommandUtil.filterStartingWith(models, args[args.length - 1]);
+                List<String> models = getModelIds();
+                if (!models.isEmpty()) {
+                    return CommandUtil.filterStartingWith(models, args[args.length - 1]);
+                }
             } catch (Exception e) {
                 plugin.getLogger().warning("Failed to fetch ModelEngine models: " + e.getMessage());
             }
@@ -106,5 +108,21 @@ public class SpawnEntityModelCommand implements CommandExecutor, TabCompleter {
         } catch (IllegalArgumentException ex) {
             return null;
         }
+    }
+
+    private List<String> getModelIds() throws ReflectiveOperationException {
+        Object api = ModelEngineAPI.getAPI();
+        Object manager = api.getClass().getMethod("getModelManager").invoke(api);
+        Object ids = manager.getClass().getMethod("getModelIds").invoke(manager);
+        if (ids instanceof Iterable<?> iterable) {
+            List<String> values = new ArrayList<>();
+            for (Object entry : iterable) {
+                if (entry != null) {
+                    values.add(entry.toString());
+                }
+            }
+            return values;
+        }
+        return List.of();
     }
 }
