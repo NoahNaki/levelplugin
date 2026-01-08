@@ -10,7 +10,6 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.chat.games.ChatGameManager;
 import me.nakilex.levelplugin.chat.games.ChatGameStatus;
 import me.nakilex.levelplugin.debug.gui.DebugGUI;
-import me.nakilex.levelplugin.debug.AutoCastManager;
 import me.nakilex.levelplugin.debug.BeaconEntityDebugManager;
 import me.nakilex.levelplugin.debug.DropDebugManager;
 import me.nakilex.levelplugin.environment.EnvironmentManager;
@@ -57,7 +56,6 @@ public class DebugCommand implements TabExecutor {
     private final MercenaryExpeditionManager expeditionManager;
     private final DungeonExpeditionManager dungeonExpeditionManager;
     private final DropDebugManager dropDebugManager;
-    private final AutoCastManager autoCastManager;
     private final EnvironmentManager environmentManager;
     private final BeaconEntityDebugManager beaconEntityDebugManager;
 
@@ -68,7 +66,6 @@ public class DebugCommand implements TabExecutor {
                         MercenaryExpeditionManager expeditionManager,
                         DungeonExpeditionManager dungeonExpeditionManager,
                         DropDebugManager dropDebugManager,
-                        AutoCastManager autoCastManager,
                         EnvironmentManager environmentManager,
                         BeaconEntityDebugManager beaconEntityDebugManager) {
         this.mobDebugManager = mobDebugManager;
@@ -78,7 +75,6 @@ public class DebugCommand implements TabExecutor {
         this.expeditionManager = expeditionManager;
         this.dungeonExpeditionManager = dungeonExpeditionManager;
         this.dropDebugManager = dropDebugManager;
-        this.autoCastManager = autoCastManager;
         this.environmentManager = environmentManager;
         this.beaconEntityDebugManager = beaconEntityDebugManager;
     }
@@ -92,7 +88,7 @@ public class DebugCommand implements TabExecutor {
                 String statUsage = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|cityowner|citymax|autocast|chatgame|expedition|dungeonexpedition|beaconentity|" + statUsage + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|" + statUsage + ">");
             }
             return true;
         }
@@ -206,19 +202,6 @@ public class DebugCommand implements TabExecutor {
                 }
                 EnvironmentManager.TownMaxResult result = environmentManager.maxTownProgress(cityPlayer);
                 cityPlayer.sendMessage(result.message());
-                return true;
-
-            case "autocast":
-                if (!(sender instanceof Player p3)) {
-                    sender.sendMessage("Players only.");
-                    return true;
-                }
-                AutoCastManager.ToggleOutcome outcome = autoCastManager.toggleMageFireball(p3);
-                if (!outcome.success()) {
-                    p3.sendMessage(outcome.errorMessage());
-                    return true;
-                }
-                ToggleFeedbackUtil.sendToggle(p3, "Mage autocast", outcome.enabled());
                 return true;
 
             case "rewardbomb":

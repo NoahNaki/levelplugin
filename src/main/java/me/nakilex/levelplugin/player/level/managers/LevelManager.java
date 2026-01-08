@@ -4,9 +4,6 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.booster.BoosterType;
 import me.nakilex.levelplugin.booster.GlobalBoosterManager;
-import me.nakilex.levelplugin.spells.Spell;
-import me.nakilex.levelplugin.spells.managers.SpellManager;
-import me.nakilex.levelplugin.spells.utils.SpellUsageUtil;
 import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.Bukkit;
@@ -108,7 +105,6 @@ public class LevelManager {
                 StatsManager.getInstance().addSkillPoints(uuid, 3);
                 XPBarHandler.handleLevelUpEvent(player, level, xpNeeded);
                 handleEssenceSlotUnlock(player, level);
-                handleSpellUnlocks(player, level);
             }
 
             xpNeeded = getXpRequired(level);
@@ -161,37 +157,6 @@ public class LevelManager {
         if (newLevel == statsManager.getEssenceSlotUnlockLevel(2)) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
                     "You unlocked your third Essence Slot!");
-        }
-    }
-
-    private void handleSpellUnlocks(Player player, int newLevel) {
-        StatsManager.PlayerStats stats = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
-        if (stats == null || stats.playerClass == null) {
-            return;
-        }
-        String classKey = stats.playerClass.name().toLowerCase();
-        Map<String, Spell> spells = SpellManager.getInstance().getSpellsByClass(classKey);
-        if (spells == null || spells.isEmpty()) {
-            return;
-        }
-        for (Spell spell : spells.values()) {
-            if (spell.getLevelReq() == newLevel) {
-                String usage = SpellUsageUtil.getUsageLabel(spell);
-                player.sendTitle(
-                        "§b§lNEW SPELL UNLOCKED",
-                        "§f" + spell.getDisplayName() + " §7- Open the /spells menu to view all your spells.",
-                        10,
-                        120,
-                        10
-                );
-                ChatFormatter.constructDivider(player, "§b§l-", 45);
-                ChatFormatter.sendCenteredMessage(player, "§b§lNEW SPELL UNLOCKED!");
-                ChatFormatter.sendCenteredMessage(player, "");
-                ChatFormatter.sendCenteredMessage(player, "§7" + spell.getDisplayName());
-                ChatFormatter.sendCenteredMessage(player, "§7Cast with §e" + usage + "§7.");
-                ChatFormatter.sendCenteredMessage(player, "§7Open the §e/spells §7menu to view all your spells.");
-                ChatFormatter.constructDivider(player, "§b§l-", 45);
-            }
         }
     }
 

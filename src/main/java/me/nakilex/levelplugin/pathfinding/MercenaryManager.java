@@ -2,7 +2,7 @@ package me.nakilex.levelplugin.pathfinding;
 
 import me.nakilex.levelplugin.pathfinding.npc.RogueMercenary;
 import me.nakilex.levelplugin.pathfinding.npc.PathNpc;
-import me.nakilex.levelplugin.spells.managers.CooldownManager;
+import me.nakilex.levelplugin.utils.cooldowns.CooldownManager;
 import me.nakilex.levelplugin.utils.MobUtil;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;

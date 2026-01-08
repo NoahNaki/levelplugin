@@ -1,11 +1,11 @@
-package me.nakilex.levelplugin.spells.managers;
+package me.nakilex.levelplugin.utils.cooldowns;
 
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Tracks spell cooldowns per player.
+ * Generic cooldown tracker keyed by player and action id.
  */
 public class CooldownManager {
     private static CooldownManager instance;
@@ -21,34 +21,34 @@ public class CooldownManager {
     }
 
     /**
-     * @return true if the given spell is still on cooldown for the player.
+     * @return true if the given action is still on cooldown for the player.
      */
-    public boolean isOnCooldown(UUID playerId, String spellId) {
+    public boolean isOnCooldown(UUID playerId, String actionId) {
         Map<String, Long> playerMap = cooldowns.get(playerId);
         if (playerMap == null) return false;
-        Long expires = playerMap.get(spellId);
+        Long expires = playerMap.get(actionId);
         return expires != null && expires > System.currentTimeMillis();
     }
 
     /**
      * @return milliseconds remaining on cooldown, or 0 if none.
      */
-    public long getRemainingTime(UUID playerId, String spellId) {
+    public long getRemainingTime(UUID playerId, String actionId) {
         Map<String, Long> playerMap = cooldowns.get(playerId);
         if (playerMap == null) return 0;
-        Long expires = playerMap.get(spellId);
+        Long expires = playerMap.get(actionId);
         if (expires == null) return 0;
         long rem = expires - System.currentTimeMillis();
         return Math.max(0, rem);
     }
 
     /**
-     * Sets a cooldown for the given spell and player.
+     * Sets a cooldown for the given action and player.
      * @param seconds duration in seconds
      */
-    public void setCooldown(UUID playerId, String spellId, double seconds) {
+    public void setCooldown(UUID playerId, String actionId, double seconds) {
         long expiresAt = System.currentTimeMillis() + (long)(seconds * 1000L);
         cooldowns.computeIfAbsent(playerId, k -> new ConcurrentHashMap<>())
-            .put(spellId, expiresAt);
+            .put(actionId, expiresAt);
     }
 }
