@@ -3,7 +3,6 @@ package me.nakilex.levelplugin.world;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import me.nakilex.levelplugin.lootchests.utils.LocationUtils;
-import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import net.md_5.bungee.api.chat.*;
 import org.bukkit.World;
 import org.bukkit.World.Environment;
@@ -167,41 +166,6 @@ public class WorldCommand implements CommandExecutor, TabCompleter {
                 sender.sendMessage(ChatColor.GRAY + "Players: " + world.getPlayers().size());
                 return true;
             }
-            case "edit" -> {
-                if (args.length < 4) {
-                    ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.ERROR,
-                            "Usage: /world edit <world> maxbuildheight <height>");
-                    return true;
-                }
-                World world = Bukkit.getWorld(args[1]);
-                if (world == null) {
-                    ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.ERROR, "World not found.");
-                    return true;
-                }
-                String setting = args[2].toLowerCase(Locale.ROOT);
-                if (!setting.equals("maxbuildheight")) {
-                    ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.ERROR,
-                            "Usage: /world edit <world> maxbuildheight <height>");
-                    return true;
-                }
-                int height;
-                try {
-                    height = Integer.parseInt(args[3]);
-                } catch (NumberFormatException e) {
-                    ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.ERROR, "Height must be a number.");
-                    return true;
-                }
-                boolean applied = manager.setMaxBuildHeight(world, height);
-                if (applied) {
-                    ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.SUCCESS,
-                            "Updated max build height for " + world.getName() + " to " + manager.getConfiguredMaxBuildHeight(world) + ".");
-                } else {
-                    ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.WARNING,
-                            "Saved max build height for " + world.getName() + " to " + manager.getConfiguredMaxBuildHeight(world)
-                                    + ". Runtime changes are not supported on this server.");
-                }
-                return true;
-            }
             case "gamerule" -> {
                 if (args.length < 3) {
                     sender.sendMessage(ChatColor.RED + "Usage: /world gamerule <rule> <true|false>");
@@ -262,7 +226,7 @@ public class WorldCommand implements CommandExecutor, TabCompleter {
         if (args.length == 0) return List.of();
 
         if (args.length == 1) {
-            List<String> subs = List.of("create", "clone", "copy", "import", "delete", "unload", "tp", "spawn", "setspawn", "info", "edit", "gamerule", "list");
+            List<String> subs = List.of("create", "clone", "copy", "import", "delete", "unload", "tp", "spawn", "setspawn", "info", "gamerule", "list");
             return filter(args[0], subs);
         }
 
@@ -274,14 +238,6 @@ public class WorldCommand implements CommandExecutor, TabCompleter {
             case "clone", "copy" -> {
                 if (args.length == 2) {
                     return filter(args[1], manager.listWorlds().stream().map(World::getName).collect(Collectors.toList()));
-                }
-            }
-            case "edit" -> {
-                if (args.length == 2) {
-                    return filter(args[1], manager.listWorlds().stream().map(World::getName).collect(Collectors.toList()));
-                }
-                if (args.length == 3) {
-                    return filter(args[2], List.of("maxbuildheight"));
                 }
             }
             case "create" -> {

@@ -16,10 +16,15 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.stream.Stream;
 
 public class SpawnEntityModelCommand implements CommandExecutor, TabCompleter {
     private final Main plugin;
@@ -92,6 +97,7 @@ public class SpawnEntityModelCommand implements CommandExecutor, TabCompleter {
         if (args.length >= 2 && Bukkit.getPluginManager().isPluginEnabled("ModelEngine")) {
             try {
                 List<String> models = getModelIds();
+                models.addAll(getBlueprintModelIds());
                 if (!models.isEmpty()) {
                     return CommandUtil.filterStartingWith(models, args[args.length - 1]);
                 }
@@ -127,6 +133,29 @@ public class SpawnEntityModelCommand implements CommandExecutor, TabCompleter {
             }
         }
         return values;
+    }
+
+    private List<String> getBlueprintModelIds() {
+        var modelEnginePlugin = Bukkit.getPluginManager().getPlugin("ModelEngine");
+        if (modelEnginePlugin == null) {
+            return List.of();
+        }
+        File blueprintsDir = new File(modelEnginePlugin.getDataFolder(), "blueprints");
+        if (!blueprintsDir.exists() || !blueprintsDir.isDirectory()) {
+            return List.of();
+        }
+        Set<String> ids = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+        try (Stream<java.nio.file.Path> paths = java.nio.file.Files.list(blueprintsDir.toPath())) {
+            paths.filter(path -> path.getFileName() != null)
+                    .map(path -> path.getFileName().toString())
+                    .filter(name -> name.toLowerCase(Locale.ROOT).endsWith(".bbmodel"))
+                    .map(name -> name.substring(0, name.length() - ".bbmodel".length()))
+                    .filter(name -> !name.isBlank())
+                    .forEach(ids::add);
+        } catch (IOException e) {
+            plugin.getLogger().warning("Failed to read ModelEngine blueprints: " + e.getMessage());
+        }
+        return new ArrayList<>(ids);
     }
 
     private List<String> extractModelIds(Object source) throws ReflectiveOperationException {

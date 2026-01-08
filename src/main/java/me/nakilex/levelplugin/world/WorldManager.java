@@ -31,7 +31,6 @@ public class WorldManager {
     private final Main plugin;
     private final Map<String, Location> spawns = new HashMap<>();
     private final Set<String> persistentWorlds = new HashSet<>();
-    private final Map<String, Integer> maxBuildHeights = new HashMap<>();
     private File file;
     private FileConfiguration config;
 
@@ -43,7 +42,6 @@ public class WorldManager {
     private void load() {
         spawns.clear();
         persistentWorlds.clear();
-        maxBuildHeights.clear();
         file = new File(plugin.getDataFolder(), "worlds.yml");
         if (!file.exists()) {
             try { file.createNewFile(); } catch (IOException e) { e.printStackTrace(); }
@@ -69,17 +67,8 @@ public class WorldManager {
                 importWorld(w);
             }
         }
-        if (config.isConfigurationSection("max-build-height")) {
-            for (String worldName : config.getConfigurationSection("max-build-height").getKeys(false)) {
-                int height = config.getInt("max-build-height." + worldName);
-                if (height > 0) {
-                    maxBuildHeights.put(worldName.toLowerCase(), height);
-                }
-            }
-        }
         for (World world : Bukkit.getWorlds()) {
             applyBooleanGameRulesFromPrimary(world);
-            applyConfiguredMaxBuildHeight(world);
         }
     }
 
@@ -96,9 +85,6 @@ public class WorldManager {
             config.set(path + ".z", loc.getZ());
             config.set(path + ".yaw", loc.getYaw());
             config.set(path + ".pitch", loc.getPitch());
-        }
-        for (Map.Entry<String, Integer> entry : maxBuildHeights.entrySet()) {
-            config.set("max-build-height." + entry.getKey(), entry.getValue());
         }
         config.set("worlds", new java.util.ArrayList<>(persistentWorlds));
         try { config.save(file); } catch (IOException e) { e.printStackTrace(); }
@@ -260,44 +246,6 @@ public class WorldManager {
             if (value != null) {
                 target.setGameRule(boolRule, value);
             }
-        }
-    }
-
-    public Integer getConfiguredMaxBuildHeight(World world) {
-        if (world == null) {
-            return null;
-        }
-        return maxBuildHeights.get(world.getName().toLowerCase());
-    }
-
-    public boolean setMaxBuildHeight(World world, int height) {
-        if (world == null) {
-            return false;
-        }
-        int clamped = Math.max(world.getMinHeight() + 1, height);
-        maxBuildHeights.put(world.getName().toLowerCase(), clamped);
-        save();
-        return applyMaxBuildHeight(world, clamped);
-    }
-
-    private void applyConfiguredMaxBuildHeight(World world) {
-        Integer height = getConfiguredMaxBuildHeight(world);
-        if (height == null) {
-            return;
-        }
-        applyMaxBuildHeight(world, height);
-    }
-
-    private boolean applyMaxBuildHeight(World world, int height) {
-        try {
-            var method = world.getClass().getMethod("setMaxHeight", int.class);
-            method.invoke(world, height);
-            return true;
-        } catch (NoSuchMethodException ignored) {
-            return false;
-        } catch (ReflectiveOperationException e) {
-            plugin.getLogger().warning("Failed to apply max build height for " + world.getName() + ": " + e.getMessage());
-            return false;
         }
     }
 }
