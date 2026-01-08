@@ -160,7 +160,12 @@ public class ListenerRegistry {
             pm.registerEvents(customMobManager.getNameManager(), plugin);
             pm.registerEvents(new CustomMobRewardListener(customMobManager, dmgTracker, rewardService), plugin);
         }
-        pm.registerEvents(new me.nakilex.levelplugin.player.mining.listeners.OreMiningListener(plugin, plugin.getMiningRewardsConfig(), plugin.getMiningManager()), plugin);
+        if (mythicEnabled) {
+            pm.registerEvents(new me.nakilex.levelplugin.player.mining.listeners.OreMiningListener(
+                    plugin,
+                    plugin.getMiningRewardsConfig(),
+                    plugin.getMiningManager()), plugin);
+        }
         pm.registerEvents(new me.nakilex.levelplugin.player.farming.listeners.WheatHarvestListener(plugin.getFarmingManager()), plugin);
         pm.registerEvents(new me.nakilex.levelplugin.player.fishing.listeners.FishingListener(
                 plugin,
