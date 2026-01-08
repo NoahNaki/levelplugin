@@ -70,8 +70,12 @@ public class AutoCastManager {
                         .getSpellById(ps.playerClass.name().toLowerCase(), skillId);
                 if (spell != null) {
                     spell.castEffect(player);
-                } else {
+                } else if (Bukkit.getPluginManager().isPluginEnabled("MythicMobs")) {
                     MythicBukkit.inst().getAPIHelper().castSkill(player, skillId);
+                } else {
+                    player.sendMessage("MythicMobs is not enabled; cannot autocast skill " + skillId + ".");
+                    cancel(player);
+                    return;
                 }
                 cd.setCooldown(id, COOLDOWN_KEY, cooldown);
             }

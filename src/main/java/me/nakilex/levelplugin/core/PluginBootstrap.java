@@ -299,11 +299,12 @@ public class PluginBootstrap {
     }
 
     private void initializeManagers() {
-        // Resolve the MythicMobs API helper once at startup so other
-        // components can safely query MythicMob data without null checks.
-        // MythicBukkit#inst() will throw if the plugin is missing, which is
-        // acceptable since LevelPlugin depends on MythicMobs.
-        mythicHelper = MythicBukkit.inst().getAPIHelper();
+        if (Bukkit.getPluginManager().isPluginEnabled("MythicMobs")) {
+            mythicHelper = MythicBukkit.inst().getAPIHelper();
+        } else {
+            mythicHelper = null;
+            plugin.getLogger().info("MythicMobs is not enabled; Mythic-only features will be skipped.");
+        }
 
         // World-dependent managers like gates or fast travel require target
         // worlds to be loaded. Ensure the necessary worlds are available
@@ -627,8 +628,7 @@ public class PluginBootstrap {
     }
 
     private boolean validateDependencies() {
-        return ensureDependency("Citizens", null)
-                && ensureDependency("MythicMobs", "io.lumine.mythic.bukkit.MythicBukkit");
+        return ensureDependency("Citizens", null);
     }
 
     private boolean ensureDependency(String pluginName, String requiredClassName) {
@@ -713,6 +713,9 @@ public class PluginBootstrap {
     }
 
     private void despawnActiveMythicMobs() {
+        if (!Bukkit.getPluginManager().isPluginEnabled("MythicMobs")) {
+            return;
+        }
         var mythic = MythicBukkit.inst();
         if (mythic == null || mythic.getMobManager() == null) {
             return;
