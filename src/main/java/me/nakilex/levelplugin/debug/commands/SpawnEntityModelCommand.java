@@ -63,7 +63,7 @@ public class SpawnEntityModelCommand implements CommandExecutor, TabCompleter {
             if (activeModel == null) {
                 continue;
             }
-            modeledEntity.addActiveModel(activeModel);
+            modeledEntity.addModel(activeModel, true);
             appliedModels.add(modelId);
         }
 
@@ -73,7 +73,7 @@ public class SpawnEntityModelCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        ModelEngineAPI.getModelManager().addModeledEntity(modeledEntity);
+        modeledEntity.registerSelf();
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
                 "Spawned " + type.name().toLowerCase(Locale.ROOT) + " with models: " + String.join(", ", appliedModels));
         return true;
@@ -91,7 +91,7 @@ public class SpawnEntityModelCommand implements CommandExecutor, TabCompleter {
         }
         if (args.length >= 2 && Bukkit.getPluginManager().isPluginEnabled("ModelEngine")) {
             try {
-                List<String> models = new ArrayList<>(ModelEngineAPI.getModelManager().getModelIds());
+                List<String> models = new ArrayList<>(ModelEngineAPI.getAPI().getModelManager().getModelIds());
                 return CommandUtil.filterStartingWith(models, args[args.length - 1]);
             } catch (Exception e) {
                 plugin.getLogger().warning("Failed to fetch ModelEngine models: " + e.getMessage());
