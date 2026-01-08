@@ -35,6 +35,8 @@ public final class LifeSkillBossBarUtil {
             created.setVisible(false);
             return created;
         });
+        bar.setColor(barColor);
+        bar.setStyle(BarStyle.SOLID);
 
         double progress = atMax ? 1.0 : required <= 0 ? 1.0 : Math.min(1.0, Math.max(0.0, xp / (double) required));
         boolean showBar = activeBars.getOrDefault(uuid, false);
