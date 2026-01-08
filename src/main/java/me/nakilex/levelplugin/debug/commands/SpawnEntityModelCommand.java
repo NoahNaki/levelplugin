@@ -62,6 +62,7 @@ public class SpawnEntityModelCommand implements CommandExecutor, TabCompleter {
         }
 
         List<String> appliedModels = new ArrayList<>();
+        List<String> failedModels = new ArrayList<>();
         for (int i = 1; i < args.length; i++) {
             String modelId = args[i];
             ActiveModel activeModel = ModelEngineAPI.createActiveModel(modelId);
@@ -69,21 +70,37 @@ public class SpawnEntityModelCommand implements CommandExecutor, TabCompleter {
                 activeModel = createActiveModelByReflection(modelId);
             }
             if (activeModel == null) {
+                failedModels.add(modelId);
                 continue;
             }
-            modeledEntity.addModel(activeModel, true);
+            var added = modeledEntity.addModel(activeModel, true);
+            if (added.isEmpty()) {
+                failedModels.add(modelId);
+                continue;
+            }
             appliedModels.add(modelId);
         }
 
         if (appliedModels.isEmpty()) {
             entity.remove();
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "No valid ModelEngine models were provided.");
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                    "No valid ModelEngine models were applied.");
+            if (!failedModels.isEmpty()) {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                        "Failed to resolve: " + String.join(", ", failedModels)
+                                + ". Make sure models are loaded by ModelEngine (not just blueprints).");
+            }
             return true;
         }
 
         modeledEntity.registerSelf();
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
                 "Spawned " + type.name().toLowerCase(Locale.ROOT) + " with models: " + String.join(", ", appliedModels));
+        if (!failedModels.isEmpty()) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                    "Some models failed to apply: " + String.join(", ", failedModels)
+                            + ". Check ModelEngine logs for load errors.");
+        }
         return true;
     }
 
