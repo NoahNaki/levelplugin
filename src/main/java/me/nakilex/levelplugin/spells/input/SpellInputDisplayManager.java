@@ -53,18 +53,27 @@ public class SpellInputDisplayManager {
             return "";
         }
         DisplayState state = states.get(player.getUniqueId());
-        if (state == null || state.inputs.isEmpty()) {
+        if (state == null) {
+            String empty = formatEmpty();
             if (debug) {
-                sendDebug(player, "");
+                sendDebug(player, empty);
             }
-            return "";
+            return empty;
+        }
+        if (state.inputs.isEmpty()) {
+            String empty = formatEmpty();
+            if (debug) {
+                sendDebug(player, empty);
+            }
+            return empty;
         }
         if (System.currentTimeMillis() - state.lastInputAt > COMBO_TIMEOUT_MS) {
             state.inputs.clear();
+            String empty = formatEmpty();
             if (debug) {
-                sendDebug(player, "");
+                sendDebug(player, empty);
             }
-            return "";
+            return empty;
         }
         String display = formatInputs(state.inputs);
         if (debug) {
@@ -118,6 +127,10 @@ public class SpellInputDisplayManager {
             sb.append(input == null ? EMPTY_TOKEN : (input == SpellClickInput.RIGHT ? RIGHT_GLYPH : LEFT_GLYPH));
         }
         return sb.toString();
+    }
+
+    private String formatEmpty() {
+        return formatInputs(new ArrayDeque<>(0));
     }
 
     private SpellClickInput getInputAt(Deque<SpellClickInput> inputs, int index) {
