@@ -4,7 +4,9 @@ import java.util.Locale;
 
 public enum HudSplitType {
     UP,
-    DOWN;
+    DOWN,
+    LEFT,
+    RIGHT;
 
     public static HudSplitType from(String value) {
         if (value == null) {

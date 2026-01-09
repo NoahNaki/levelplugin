@@ -303,16 +303,15 @@ public class HudManager {
         if (def.getSplitType() == HudSplitType.DOWN) {
             index = split - index;
         }
+        if (index <= 0) {
+            return "";
+        }
         List<HudGlyph> frames = assetRegistry.getBarFrames(assetId.toLowerCase(Locale.ROOT));
         if (frames.isEmpty()) {
             return "";
         }
-        if (index < 0) {
-            index = 0;
-        } else if (index >= frames.size()) {
-            index = frames.size() - 1;
-        }
-        return String.valueOf(frames.get(index).codepoint());
+        int frameIndex = Math.min(index, frames.size()) - 1;
+        return String.valueOf(frames.get(frameIndex).codepoint());
     }
 
     private double readNumber(Player player, String token) {
@@ -332,13 +331,14 @@ public class HudManager {
     private HudAssetRegistry buildAssetRegistry(Map<String, HudImageDefinition> images) {
         HudAssetRegistry registry = new HudAssetRegistry();
         HudGlyphAllocator allocator = new HudGlyphAllocator();
+        me.nakilex.levelplugin.hud.assets.HudTextureResolver resolver = new me.nakilex.levelplugin.hud.assets.HudTextureResolver();
         for (HudImageDefinition definition : images.values()) {
             registry.registerDefinition(definition);
             if (definition.getType() == HudImageType.LISTENER) {
-                int frames = definition.getSplit() > 0 ? definition.getSplit() + 1 : definition.getFrames().size();
+                int frames = definition.getSplit() > 0 ? definition.getSplit() : definition.getFrames().size();
                 List<HudGlyph> glyphs = new ArrayList<>();
-                for (int index = 0; index < frames; index++) {
-                    String texture = resolveFrameTexture(definition, index);
+                for (int index = 1; index <= frames; index++) {
+                    String texture = resolveFrameTexture(definition, index, resolver);
                     if (texture == null || texture.isBlank()) {
                         continue;
                     }
@@ -350,7 +350,8 @@ public class HudManager {
                 registry.registerBarFrames(definition.getId(), glyphs);
             } else {
                 if (definition.getTexture() != null && !definition.getTexture().isBlank()) {
-                    registry.registerGlyph(definition.getId(), new HudGlyph(allocator.next(), definition.getTexture()));
+                    String texture = resolver.resolveSingle(definition.getTexture());
+                    registry.registerGlyph(definition.getId(), new HudGlyph(allocator.next(), texture));
                 } else {
                     plugin.getLogger().warning("HUD image '" + definition.getId() + "' is missing a texture path.");
                 }
@@ -359,22 +360,19 @@ public class HudManager {
         return registry;
     }
 
-    private String resolveFrameTexture(HudImageDefinition definition, int index) {
+    private String resolveFrameTexture(HudImageDefinition definition,
+                                       int index,
+                                       me.nakilex.levelplugin.hud.assets.HudTextureResolver resolver) {
         if (definition.getFrames().size() > index) {
             return definition.getFrames().get(index);
         }
         if (definition.getFrames().isEmpty() && definition.getSplit() > 0) {
-            return definition.getTexture();
+            return resolver.resolveBarFrame(definition, index);
         }
         if (definition.getTexture() == null || definition.getTexture().isBlank()) {
             return "";
         }
-        String base = definition.getTexture();
-        String suffix = "_frame_" + index + ".png";
-        if (base.endsWith(".png")) {
-            base = base.substring(0, base.length() - 4);
-        }
-        return base + suffix;
+        return resolver.resolveBarFrame(definition, index);
     }
 
     private void logTextureSample(Map<String, HudImageDefinition> images) {
