@@ -7,6 +7,7 @@ import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.classes.managers.PlayerClassManager;
 import me.nakilex.levelplugin.player.profile.ProfileManager;
 import me.nakilex.levelplugin.player.profile.PlayerProfile;
+import me.nakilex.levelplugin.spells.input.SpellInputDisplayManager;
 import org.bukkit.entity.Player;
 
 import java.util.HashMap;
@@ -21,6 +22,7 @@ import java.util.function.Function;
 public class NakiPlaceholderExpansion extends PlaceholderExpansion {
     private final Main plugin;
     private final Map<String, Function<Player, String>> placeholders = new HashMap<>();
+    private final SpellInputDisplayManager spellInputDisplayManager = SpellInputDisplayManager.getInstance();
 
     public NakiPlaceholderExpansion(Main plugin) {
         this.plugin = plugin;
@@ -45,6 +47,7 @@ public class NakiPlaceholderExpansion extends PlaceholderExpansion {
         placeholders.put("seasondate", p -> plugin.getCalendarManager().getSeasonDate(false));
         placeholders.put("left_mouse_click", p -> "[papi:rf_lmb]");
         placeholders.put("right_mouse_click", p -> "[papi:rf_rmb]");
+        placeholders.put("mouse_input_combo", spellInputDisplayManager::getMouseComboDisplay);
     }
 
     @Override

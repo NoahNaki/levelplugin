@@ -9,7 +9,7 @@ public class SpellComboTracker {
     private static final List<String> ARCHER_COMBOS = List.of("LLR", "LLL", "LRL", "LRR");
 
     private final long comboTimeoutMs;
-    private final Deque<ClickInput> inputs = new ArrayDeque<>(3);
+    private final Deque<SpellClickInput> inputs = new ArrayDeque<>(3);
     private long lastInputAt;
     private String lastSequence;
 
@@ -17,7 +17,7 @@ public class SpellComboTracker {
         this.comboTimeoutMs = comboTimeoutMs;
     }
 
-    public SpellInputType recordClick(ClickInput input, boolean archerFamily) {
+    public SpellInputType recordClick(SpellClickInput input, boolean archerFamily) {
         long now = System.currentTimeMillis();
         if (now - lastInputAt > comboTimeoutMs) {
             inputs.clear();
@@ -43,18 +43,13 @@ public class SpellComboTracker {
 
     public String getSequence() {
         StringBuilder sb = new StringBuilder(3);
-        for (ClickInput input : inputs) {
-            sb.append(input == ClickInput.RIGHT ? 'R' : 'L');
+        for (SpellClickInput input : inputs) {
+            sb.append(input == SpellClickInput.RIGHT ? 'R' : 'L');
         }
         return sb.toString();
     }
 
     public String getLastSequence() {
         return lastSequence;
-    }
-
-    public enum ClickInput {
-        LEFT,
-        RIGHT
     }
 }

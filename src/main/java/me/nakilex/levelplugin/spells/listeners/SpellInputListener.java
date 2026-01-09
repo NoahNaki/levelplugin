@@ -6,6 +6,8 @@ import me.nakilex.levelplugin.player.classes.managers.PlayerClassManager;
 import me.nakilex.levelplugin.settings.data.PlayerSettings;
 import me.nakilex.levelplugin.settings.managers.SettingsManager;
 import me.nakilex.levelplugin.spells.input.SpellComboTracker;
+import me.nakilex.levelplugin.spells.input.SpellClickInput;
+import me.nakilex.levelplugin.spells.input.SpellInputDisplayManager;
 import me.nakilex.levelplugin.spells.input.SpellInputEvent;
 import me.nakilex.levelplugin.spells.input.SpellInputMode;
 import me.nakilex.levelplugin.spells.input.SpellInputType;
@@ -29,6 +31,7 @@ public class SpellInputListener implements Listener {
     private final SettingsManager settingsManager;
     private final Map<UUID, SpellComboTracker> comboTrackers = new HashMap<>();
     private final Map<UUID, SneakState> sneakStates = new HashMap<>();
+    private final SpellInputDisplayManager displayManager = SpellInputDisplayManager.getInstance();
 
     public SpellInputListener(SettingsManager settingsManager) {
         this.settingsManager = settingsManager;
@@ -80,16 +83,18 @@ public class SpellInputListener implements Listener {
         UUID playerId = event.getPlayer().getUniqueId();
         comboTrackers.remove(playerId);
         sneakStates.remove(playerId);
+        displayManager.clear(event.getPlayer());
     }
 
     private void handleComboClick(Player player, boolean leftClick, boolean archerFamily) {
         if (isBasicAttackClick(leftClick, archerFamily)) {
             dispatch(player, SpellInputType.BASIC_ATTACK, SpellInputMode.MOUSE_COMBO, leftClick ? "L" : "R");
         }
+        displayManager.recordClick(player, leftClick ? SpellClickInput.LEFT : SpellClickInput.RIGHT);
         SpellComboTracker tracker = comboTrackers.computeIfAbsent(player.getUniqueId(),
                 id -> new SpellComboTracker(COMBO_TIMEOUT_MS));
         SpellInputType result = tracker.recordClick(
-                leftClick ? SpellComboTracker.ClickInput.LEFT : SpellComboTracker.ClickInput.RIGHT,
+                leftClick ? SpellClickInput.LEFT : SpellClickInput.RIGHT,
                 archerFamily);
         if (result != null) {
             dispatch(player, result, SpellInputMode.MOUSE_COMBO, tracker.getLastSequence());
