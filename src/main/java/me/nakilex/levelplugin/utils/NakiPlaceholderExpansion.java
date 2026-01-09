@@ -43,6 +43,8 @@ public class NakiPlaceholderExpansion extends PlaceholderExpansion {
         placeholders.put("currentxp", p -> String.valueOf(plugin.getLevelManager().getXP(p)));
         placeholders.put("xpnextlevel", p -> String.valueOf(plugin.getLevelManager().getXpNeededForNextLevel(p)));
         placeholders.put("seasondate", p -> plugin.getCalendarManager().getSeasonDate(false));
+        placeholders.put("left_mouse_click", p -> "[papi:rf_lmb]");
+        placeholders.put("right_mouse_click", p -> "[papi:rf_rmb]");
     }
 
     @Override
@@ -77,4 +79,3 @@ public class NakiPlaceholderExpansion extends PlaceholderExpansion {
         return handler != null ? handler.apply(player) : null;
     }
 }
-

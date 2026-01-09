@@ -47,6 +47,7 @@ import me.nakilex.levelplugin.potions.managers.PotionManager;
 import me.nakilex.levelplugin.salvage.listeners.SalvageListener;
 import me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager;
 import me.nakilex.levelplugin.settings.gui.SettingsGUI;
+import me.nakilex.levelplugin.spells.listeners.SpellInputListener;
 import me.nakilex.levelplugin.player.classes.gui.SubclassGUI;
 import me.nakilex.levelplugin.player.classes.essence.listener.ClassEssenceMenuListener;
 import me.nakilex.levelplugin.player.classes.essence.listener.ClassEssenceBoundListener;
@@ -229,6 +230,7 @@ public class ListenerRegistry {
         pm.registerEvents(new DoubleJumpListener(), plugin);
         pm.registerEvents(new DamageIndicatorListener(dmgToggleManager), plugin);
         new DamageIndicatorPacketBlocker(plugin);
+        pm.registerEvents(new SpellInputListener(plugin.getSettingsManager()), plugin);
         pm.registerEvents(settingsGUI, plugin);
         pm.registerEvents(debugGUI, plugin);
         pm.registerEvents(new GuildGUIListener(), plugin);
