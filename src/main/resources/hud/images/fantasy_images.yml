@@ -10,7 +10,7 @@ air_bar_image:
   type: listener
   texture: air_bar.png
   split: 25
-  split-type: up
+  split-type: left
   current: papi:player_remaining_air
   max: papi:player_max_air
 
@@ -34,7 +34,7 @@ hp_bar_image:
   type: listener
   texture: hp_bar.png
   split: 25
-  split-type: up
+  split-type: left
   current: papi:player_health
   max: papi:player_max_health
 
@@ -46,7 +46,7 @@ mana_bar_image:
   type: listener
   texture: mana_bar.png
   split: 25
-  split-type: up
+  split-type: left
   current: papi:naki_currentMana
   max: papi:naki_maxMana
 
@@ -58,7 +58,7 @@ stamina_bar_image:
   type: listener
   texture: stamina_bar.png
   split: 25
-  split-type: up
+  split-type: left
   current: papi:player_food_level
   max: 20
 
@@ -70,7 +70,7 @@ armor_bar_image:
   type: listener
   texture: mini_armor_bar.png
   split: 25
-  split-type: up
+  split-type: left
   current: papi:player_armor
   max: 20
 
