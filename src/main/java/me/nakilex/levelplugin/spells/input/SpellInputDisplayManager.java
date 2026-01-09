@@ -17,6 +17,7 @@ public class SpellInputDisplayManager {
     private static final int MAX_INPUTS = 3;
     private static final String LEFT_GLYPH = "[papi:rf_lmb]";
     private static final String RIGHT_GLYPH = "[papi:rf_rmb]";
+    private static final String EMPTY_TOKEN = ChatColor.GRAY + "empty";
     private static final long DEBUG_THROTTLE_MS = 1_000L;
 
     public static SpellInputDisplayManager getInstance() {
@@ -95,19 +96,39 @@ public class SpellInputDisplayManager {
         lastDebugAt.remove(player.getUniqueId());
     }
 
+    public void clearInputs(Player player) {
+        if (player == null) {
+            return;
+        }
+        DisplayState state = states.get(player.getUniqueId());
+        if (state != null) {
+            state.inputs.clear();
+        }
+    }
+
     private String formatInputs(Deque<SpellClickInput> inputs) {
         StringBuilder sb = new StringBuilder();
-        int index = 0;
-        for (SpellClickInput input : inputs) {
+        for (int index = 0; index < MAX_INPUTS; index++) {
             if (index == 1) {
                 sb.append(ChatColor.GRAY).append(" - ");
             } else if (index == 2) {
                 sb.append(ChatColor.GRAY).append(" ");
             }
-            sb.append(input == SpellClickInput.RIGHT ? RIGHT_GLYPH : LEFT_GLYPH);
-            index++;
+            SpellClickInput input = inputs.size() > index ? getInputAt(inputs, index) : null;
+            sb.append(input == null ? EMPTY_TOKEN : (input == SpellClickInput.RIGHT ? RIGHT_GLYPH : LEFT_GLYPH));
         }
         return sb.toString();
+    }
+
+    private SpellClickInput getInputAt(Deque<SpellClickInput> inputs, int index) {
+        int i = 0;
+        for (SpellClickInput input : inputs) {
+            if (i == index) {
+                return input;
+            }
+            i++;
+        }
+        return null;
     }
 
     private String formatSequence(Deque<SpellClickInput> inputs) {

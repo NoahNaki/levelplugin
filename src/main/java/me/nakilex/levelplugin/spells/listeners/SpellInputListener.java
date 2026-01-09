@@ -98,6 +98,7 @@ public class SpellInputListener implements Listener {
                 archerFamily);
         if (result != null) {
             dispatch(player, result, SpellInputMode.MOUSE_COMBO, tracker.getLastSequence());
+            displayManager.clearInputs(player);
         }
     }
 
