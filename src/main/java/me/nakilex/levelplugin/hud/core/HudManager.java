@@ -77,10 +77,12 @@ public class HudManager {
         placeholderCache.setTtlMs(config.getPlaceholderCacheTtlMs());
         this.assetRegistry = buildAssetRegistry(config.getImages());
         HudPackBuilder packBuilder = new HudPackBuilder(plugin);
+        java.nio.file.Path resolvedRoot = resolveSourceTextureRoot();
         plugin.getLogger().info("HUD sourceTexturesFolder: " + config.getSourceTexturesFolder());
+        plugin.getLogger().info("HUD resolvedSourceTexturesFolder: " + resolvedRoot);
         plugin.getLogger().info("HUD imagesConfigPath: " + config.getImagesConfigPath());
         logTextureSample(config.getImages());
-        List<String> missing = packBuilder.collectMissingTextures(config.getSourceTexturesFolder(), assetRegistry);
+        List<String> missing = packBuilder.collectMissingTextures(resolvedRoot.toString(), assetRegistry);
         if (!missing.isEmpty()) {
             plugin.getLogger().warning("HUD textures missing from source folder (" + missing.size() + "). Example: " + missing.get(0));
         }
@@ -176,8 +178,11 @@ public class HudManager {
             return;
         }
         HudPackBuilder packBuilder = new HudPackBuilder(plugin);
+        java.nio.file.Path resolvedRoot = resolveSourceTextureRoot();
+        ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.INFO,
+                "HUD resolvedSourceTexturesFolder: " + resolvedRoot);
         List<String> missing = packBuilder.collectMissingTextures(
-                config.getSourceTexturesFolder(), assetRegistry);
+                resolvedRoot.toString(), assetRegistry);
         if (missing.isEmpty()) {
             ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.SUCCESS, "All HUD textures found in pack.");
             return;
@@ -186,7 +191,8 @@ public class HudManager {
                 "Missing HUD textures: " + missing.size());
         int limit = Math.min(5, missing.size());
         for (int i = 0; i < limit; i++) {
-            ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.WARNING, "- " + missing.get(i));
+            java.nio.file.Path fullPath = resolvedRoot.resolve(missing.get(i)).normalize();
+            ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.WARNING, "- " + fullPath);
         }
         if (missing.size() > limit) {
             ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.WARNING, "... and more");
@@ -383,6 +389,15 @@ public class HudManager {
                 break;
             }
         }
+    }
+
+    private java.nio.file.Path resolveSourceTextureRoot() {
+        String configured = config.getSourceTexturesFolder();
+        java.nio.file.Path root = java.nio.file.Paths.get(configured);
+        if (!root.isAbsolute()) {
+            root = Bukkit.getWorldContainer().toPath().resolve(root);
+        }
+        return root.toAbsolutePath().normalize();
     }
 
     private class HudPlayerListener implements Listener {
