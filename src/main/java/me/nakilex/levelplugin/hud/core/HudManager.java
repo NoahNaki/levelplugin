@@ -76,7 +76,15 @@ public class HudManager {
         this.config = configLoader.load();
         placeholderCache.setTtlMs(config.getPlaceholderCacheTtlMs());
         this.assetRegistry = buildAssetRegistry(config.getImages());
-        new HudPackBuilder(plugin).build(config.getOutputFolder(), config.getNamespace(), assetRegistry);
+        HudPackBuilder packBuilder = new HudPackBuilder(plugin);
+        plugin.getLogger().info("HUD sourceTexturesFolder: " + config.getSourceTexturesFolder());
+        plugin.getLogger().info("HUD imagesConfigPath: " + config.getImagesConfigPath());
+        logTextureSample(config.getImages());
+        List<String> missing = packBuilder.collectMissingTextures(config.getSourceTexturesFolder(), assetRegistry);
+        if (!missing.isEmpty()) {
+            plugin.getLogger().warning("HUD textures missing from source folder (" + missing.size() + "). Example: " + missing.get(0));
+        }
+        packBuilder.build(config.getOutputFolder(), config.getNamespace(), assetRegistry);
         int bossBarLines = config.isMergeBossBar() ? 1 : config.getBossbarLines();
         this.renderer = new HudBossBarRenderer(bossBarLines, config.getLineHeightPx(),
                 config.getCanvasWidthPx(), config.isMergeBossBar());
@@ -169,7 +177,7 @@ public class HudManager {
         }
         HudPackBuilder packBuilder = new HudPackBuilder(plugin);
         List<String> missing = packBuilder.collectMissingTextures(
-                config.getOutputFolder(), config.getNamespace(), assetRegistry);
+                config.getSourceTexturesFolder(), assetRegistry);
         if (missing.isEmpty()) {
             ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.SUCCESS, "All HUD textures found in pack.");
             return;
@@ -349,6 +357,9 @@ public class HudManager {
         if (definition.getFrames().size() > index) {
             return definition.getFrames().get(index);
         }
+        if (definition.getFrames().isEmpty() && definition.getSplit() > 0) {
+            return definition.getTexture();
+        }
         if (definition.getTexture() == null || definition.getTexture().isBlank()) {
             return "";
         }
@@ -358,6 +369,20 @@ public class HudManager {
             base = base.substring(0, base.length() - 4);
         }
         return base + suffix;
+    }
+
+    private void logTextureSample(Map<String, HudImageDefinition> images) {
+        int count = 0;
+        for (HudImageDefinition definition : images.values()) {
+            if (definition.getTexture() == null || definition.getTexture().isBlank()) {
+                continue;
+            }
+            plugin.getLogger().info("HUD texture sample: " + definition.getTexture());
+            count++;
+            if (count >= 5) {
+                break;
+            }
+        }
     }
 
     private class HudPlayerListener implements Listener {

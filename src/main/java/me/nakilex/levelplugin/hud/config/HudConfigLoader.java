@@ -49,14 +49,17 @@ public class HudConfigLoader {
         boolean mergeBossBar = config.getBoolean("hud.bossbar.merge", true);
         String namespace = config.getString("hud.namespace", "betterhud");
         String outputFolder = config.getString("hud.output-folder", "Nexo/pack/external_packs/BetterHud");
+        String sourceTexturesFolder = config.getString("hud.source-textures-folder",
+                "plugins/Nexo/pack/external_packs/BetterHud/assets/betterhud/textures");
         List<String> defaultModules = config.getStringList("hud.default-modules");
+        String imagesConfigPath = new File(plugin.getDataFolder(), IMAGES_FOLDER).getAbsolutePath();
 
         Map<String, HudModule> modules = loadModules();
         Map<String, HudLayout> layouts = loadLayouts();
         Map<String, HudImageDefinition> images = loadImages();
 
         return new HudConfig(updateTicks, cacheTtl, canvasWidth, lineHeight, bossbarLines, mergeBossBar,
-                namespace, outputFolder, defaultModules, modules, layouts, images);
+                namespace, outputFolder, sourceTexturesFolder, imagesConfigPath, defaultModules, modules, layouts, images);
     }
 
     private void ensureDefaults() {

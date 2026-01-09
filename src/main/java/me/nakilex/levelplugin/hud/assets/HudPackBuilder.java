@@ -22,7 +22,6 @@ public class HudPackBuilder {
         if (outputFolder == null || namespace == null || registry == null) {
             return;
         }
-        logMissingTextures(outputFolder, namespace, registry);
         File base = new File(outputFolder, "assets/" + namespace + "/font");
         if (!base.exists() && !base.mkdirs()) {
             logger.warning("Failed to create HUD font output directory: " + base.getAbsolutePath());
@@ -82,18 +81,17 @@ public class HudPackBuilder {
                 + "}";
     }
 
-    public List<String> collectMissingTextures(String outputFolder, String namespace, HudAssetRegistry registry) {
-        if (outputFolder == null || namespace == null || registry == null) {
+    public List<String> collectMissingTextures(String sourceTexturesFolder, HudAssetRegistry registry) {
+        if (sourceTexturesFolder == null || registry == null) {
             return List.of();
         }
         List<String> missing = new java.util.ArrayList<>();
-        File textureRoot = new File(outputFolder, "assets/" + namespace + "/textures");
+        java.nio.file.Path textureRoot = java.nio.file.Paths.get(sourceTexturesFolder).toAbsolutePath().normalize();
         for (HudImageDefinition definition : registry.getDefinitions().values()) {
             if (definition.getType() == HudImageType.LISTENER) {
-                for (HudGlyph frame : registry.getBarFrames(definition.getId())) {
-                    if (!textureExists(textureRoot, frame.texturePath())) {
-                        missing.add(frame.texturePath());
-                    }
+                String texture = definition.getTexture();
+                if (!textureExists(textureRoot, texture)) {
+                    missing.add(texture);
                 }
                 continue;
             }
@@ -105,19 +103,11 @@ public class HudPackBuilder {
         return missing;
     }
 
-    private void logMissingTextures(String outputFolder, String namespace, HudAssetRegistry registry) {
-        List<String> missing = collectMissingTextures(outputFolder, namespace, registry);
-        if (missing.isEmpty()) {
-            return;
-        }
-        logger.warning("HUD textures missing from pack (" + missing.size() + "). Example: " + missing.get(0));
-    }
-
-    private boolean textureExists(File textureRoot, String texturePath) {
+    private boolean textureExists(java.nio.file.Path textureRoot, String texturePath) {
         if (texturePath == null || texturePath.isBlank()) {
             return false;
         }
-        File file = new File(textureRoot, texturePath);
-        return file.exists();
+        java.nio.file.Path file = textureRoot.resolve(texturePath).normalize();
+        return java.nio.file.Files.exists(file);
     }
 }

@@ -17,6 +17,8 @@ public class HudConfig {
     private final boolean mergeBossBar;
     private final String namespace;
     private final String outputFolder;
+    private final String sourceTexturesFolder;
+    private final String imagesConfigPath;
     private final List<String> defaultModules;
     private final Map<String, HudModule> modules;
     private final Map<String, HudLayout> layouts;
@@ -30,6 +32,8 @@ public class HudConfig {
                      boolean mergeBossBar,
                      String namespace,
                      String outputFolder,
+                     String sourceTexturesFolder,
+                     String imagesConfigPath,
                      List<String> defaultModules,
                      Map<String, HudModule> modules,
                      Map<String, HudLayout> layouts,
@@ -42,6 +46,8 @@ public class HudConfig {
         this.mergeBossBar = mergeBossBar;
         this.namespace = namespace;
         this.outputFolder = outputFolder;
+        this.sourceTexturesFolder = sourceTexturesFolder;
+        this.imagesConfigPath = imagesConfigPath;
         this.defaultModules = defaultModules == null ? List.of() : List.copyOf(defaultModules);
         this.modules = modules == null ? Map.of() : Map.copyOf(modules);
         this.layouts = layouts == null ? Map.of() : Map.copyOf(layouts);
@@ -78,6 +84,14 @@ public class HudConfig {
 
     public String getOutputFolder() {
         return outputFolder;
+    }
+
+    public String getSourceTexturesFolder() {
+        return sourceTexturesFolder;
+    }
+
+    public String getImagesConfigPath() {
+        return imagesConfigPath;
     }
 
     public List<String> getDefaultModules() {
