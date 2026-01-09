@@ -89,9 +89,11 @@ public class HudPackBuilder {
         java.nio.file.Path textureRoot = java.nio.file.Paths.get(sourceTexturesFolder).toAbsolutePath().normalize();
         for (HudImageDefinition definition : registry.getDefinitions().values()) {
             if (definition.getType() == HudImageType.LISTENER) {
-                String texture = definition.getTexture();
-                if (!textureExists(textureRoot, texture)) {
-                    missing.add(texture);
+                List<HudGlyph> frames = registry.getBarFrames(definition.getId());
+                for (HudGlyph frame : frames) {
+                    if (!textureExists(textureRoot, frame.texturePath())) {
+                        missing.add(frame.texturePath());
+                    }
                 }
                 continue;
             }

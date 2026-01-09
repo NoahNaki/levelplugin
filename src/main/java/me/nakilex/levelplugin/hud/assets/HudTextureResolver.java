@@ -24,15 +24,11 @@ public class HudTextureResolver {
 
     private String sanitize(String texturePath) {
         String normalized = texturePath.replace('\\', '/');
-        String fileName = normalized;
-        int slash = normalized.lastIndexOf('/');
-        if (slash >= 0 && slash < normalized.length() - 1) {
-            fileName = normalized.substring(slash + 1);
-        }
-        String trimmed = fileName;
+        String trimmed = normalized;
         if (trimmed.toLowerCase().endsWith(".png")) {
             trimmed = trimmed.substring(0, trimmed.length() - 4);
         }
+        trimmed = trimmed.replace("/", "_");
         return trimmed.toLowerCase();
     }
 }
