@@ -48,6 +48,8 @@ public class NakiPlaceholderExpansion extends PlaceholderExpansion {
         placeholders.put("left_mouse_click", p -> "[papi:rf_lmb]");
         placeholders.put("right_mouse_click", p -> "[papi:rf_rmb]");
         placeholders.put("mouse_input_combo", spellInputDisplayManager::getMouseComboDisplay);
+        placeholders.put("mouse_input_combo_debug",
+                p -> spellInputDisplayManager.getMouseComboDisplay(p, true));
     }
 
     @Override

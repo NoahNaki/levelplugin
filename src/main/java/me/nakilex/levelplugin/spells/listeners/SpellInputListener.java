@@ -111,6 +111,8 @@ public class SpellInputListener implements Listener {
         if (isBasicAttackClick(leftClick, archerFamily)) {
             dispatch(player, SpellInputType.BASIC_ATTACK, SpellInputMode.MOUSE_AND_KEYBOARD,
                     leftClick ? "Left" : "Right");
+        } else if (!leftClick) {
+            dispatch(player, SpellInputType.SPELL_4, SpellInputMode.MOUSE_AND_KEYBOARD, "Right");
         }
     }
 
