@@ -1,14 +1,14 @@
 compass_background_image:
   type: single
-  texture: fantasy_assets/compass/compass_background.png
+  texture: compass/compass_background.png
 
 air_empty_image:
   type: single
-  texture: fantasy_assets/air_empty.png
+  texture: air_empty.png
 
 air_bar_image:
   type: listener
-  texture: fantasy_assets/air_bar.png
+  texture: air_bar.png
   split: 25
   split-type: up
   current: papi:player_remaining_air
@@ -16,11 +16,11 @@ air_bar_image:
 
 level_empty_image:
   type: single
-  texture: fantasy_assets/level_empty.png
+  texture: level_empty.png
 
 level_bar_image:
   type: listener
-  texture: fantasy_assets/level_bar.png
+  texture: level_bar.png
   split: 25
   split-type: up
   current: papi:naki_currentXp
@@ -28,11 +28,11 @@ level_bar_image:
 
 hp_empty_image:
   type: single
-  texture: fantasy_assets/hp_empty.png
+  texture: hp_empty.png
 
 hp_bar_image:
   type: listener
-  texture: fantasy_assets/hp_bar.png
+  texture: hp_bar.png
   split: 25
   split-type: up
   current: papi:player_health
@@ -40,11 +40,11 @@ hp_bar_image:
 
 mana_empty_image:
   type: single
-  texture: fantasy_assets/mana_empty.png
+  texture: mana_empty.png
 
 mana_bar_image:
   type: listener
-  texture: fantasy_assets/mana_bar.png
+  texture: mana_bar.png
   split: 25
   split-type: up
   current: papi:naki_currentMana
@@ -52,11 +52,11 @@ mana_bar_image:
 
 stamina_empty_image:
   type: single
-  texture: fantasy_assets/stamina_empty.png
+  texture: stamina_empty.png
 
 stamina_bar_image:
   type: listener
-  texture: fantasy_assets/stamina_bar.png
+  texture: stamina_bar.png
   split: 25
   split-type: up
   current: papi:player_food_level
@@ -64,11 +64,11 @@ stamina_bar_image:
 
 armor_empty_image:
   type: single
-  texture: fantasy_assets/mini_armor_empty.png
+  texture: mini_armor_empty.png
 
 armor_bar_image:
   type: listener
-  texture: fantasy_assets/mini_armor_bar.png
+  texture: mini_armor_bar.png
   split: 25
   split-type: up
   current: papi:player_armor
@@ -76,12 +76,12 @@ armor_bar_image:
 
 coin_icon_image:
   type: single
-  texture: fantasy_assets/coin_icon.png
+  texture: coin_icon.png
 
 premiumcoin_icon_image:
   type: single
-  texture: fantasy_assets/premiumcoin_icon.png
+  texture: premiumcoin_icon.png
 
 text_box_image:
   type: single
-  texture: fantasy_assets/text_box.png
+  texture: text_box.png
