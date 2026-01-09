@@ -199,6 +199,7 @@ public class PluginBootstrap {
     private SettingsManager settingsManager;
     private SettingsGUI settingsGUI;
     private me.nakilex.levelplugin.debug.gui.DebugGUI debugGUI;
+    private me.nakilex.levelplugin.hud.core.HudManager hudManager;
     private CodexManager codexManager;
     private CodexMainGUI codexGUI;
     private MobCodexGUI mobCodexGUI;
@@ -265,6 +266,9 @@ public class PluginBootstrap {
         locationCodexGUI.setMainGui(codexGUI);
         registerCommandsAndListeners();
         registerPlaceholders();
+        if (hudManager != null) {
+            hudManager.enable();
+        }
         me.nakilex.levelplugin.transmog.gui.TransmogBrowser tBrowser =
                 new me.nakilex.levelplugin.transmog.gui.TransmogBrowser(plugin, transmogManager);
         new me.nakilex.levelplugin.transmog.gui.TransmogGUI(plugin, transmogManager, tBrowser);
@@ -358,6 +362,7 @@ public class PluginBootstrap {
         broadcastMgr = new BroadcastManager(plugin, this.tipsCfg);
         broadcastMgr.start();
         settingsManager = new SettingsManager();
+        hudManager = new me.nakilex.levelplugin.hud.core.HudManager(plugin);
         questManager = new QuestManager(plugin, partyManager);
         battlePassManager = new BattlePassManager(plugin, questManager, itemManager);
         battlePassGUI = battlePassManager.getGui();
@@ -493,7 +498,8 @@ public class PluginBootstrap {
             beaconEntityDebugManager,
             dungeonExpeditionManager,
             serverSelectionManager,
-            customMobManager
+            customMobManager,
+            hudManager
         );
         me.nakilex.levelplugin.catacombs.CatacombsCommand catacombsCommand =
                 new me.nakilex.levelplugin.catacombs.CatacombsCommand(catacombsManager, catacombsGUI);
@@ -645,6 +651,7 @@ public class PluginBootstrap {
         TaskRegistry.stopTasks();
         despawnActiveMythicMobs();
         if (chatGameManager != null) chatGameManager.stop();
+        if (hudManager != null) hudManager.disable();
         if (mercenaryManager != null) mercenaryManager.unbindAll();
         if (economyManager != null) economyManager.saveBalances();
         if (dealMaker != null) dealMaker.closeAllTrades();

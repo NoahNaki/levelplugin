@@ -90,7 +90,6 @@ public class SpellInputListener implements Listener {
         if (isBasicAttackClick(leftClick, archerFamily)) {
             dispatch(player, SpellInputType.BASIC_ATTACK, SpellInputMode.MOUSE_COMBO, leftClick ? "L" : "R");
         }
-        displayManager.recordClick(player, leftClick ? SpellClickInput.LEFT : SpellClickInput.RIGHT);
         SpellComboTracker tracker = comboTrackers.computeIfAbsent(player.getUniqueId(),
                 id -> new SpellComboTracker(COMBO_TIMEOUT_MS));
         SpellInputType result = tracker.recordClick(
