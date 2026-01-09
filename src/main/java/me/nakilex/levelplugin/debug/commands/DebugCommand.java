@@ -12,6 +12,7 @@ import me.nakilex.levelplugin.chat.games.ChatGameStatus;
 import me.nakilex.levelplugin.debug.gui.DebugGUI;
 import me.nakilex.levelplugin.debug.BeaconEntityDebugManager;
 import me.nakilex.levelplugin.debug.DropDebugManager;
+import me.nakilex.levelplugin.debug.SpellInputDebugItem;
 import me.nakilex.levelplugin.environment.EnvironmentManager;
 import me.nakilex.levelplugin.guild.Guild;
 import me.nakilex.levelplugin.mercenary.MercenaryExpeditionManager;
@@ -23,6 +24,7 @@ import me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager;
 import me.nakilex.levelplugin.utils.RewardBombUtil;
 import me.nakilex.levelplugin.utils.ToggleFeedbackUtil;
 import me.nakilex.levelplugin.utils.ChatFormatter;
+import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.guild.siege.GuildSiegeManager;
 import me.nakilex.levelplugin.guild.GuildManager;
 import org.bukkit.ChatColor;
@@ -88,7 +90,7 @@ public class DebugCommand implements TabExecutor {
                 String statUsage = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|" + statUsage + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|" + statUsage + ">");
             }
             return true;
         }
@@ -219,6 +221,16 @@ public class DebugCommand implements TabExecutor {
                 pRb.sendMessage(ChatColor.YELLOW + "Reward bomb triggered for testing.");
                 return true;
 
+            case "spellinput":
+                if (!(sender instanceof Player spellPlayer)) {
+                    sender.sendMessage(ChatColor.RED + "Players only.");
+                    return true;
+                }
+                spellPlayer.getInventory().addItem(SpellInputDebugItem.create());
+                ChatMessageUtil.send(spellPlayer, ChatMessageUtil.MessageType.SUCCESS,
+                        "Spell input debug stick added to your inventory.");
+                return true;
+
             case "beaconentity":
                 if (!(sender instanceof Player beaconPlayer)) {
                     sender.sendMessage(ChatColor.RED + "Players only.");
@@ -301,7 +313,7 @@ public class DebugCommand implements TabExecutor {
                 String statUsage2 = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|cityowner|citymax|autocast|chatgame|expedition|dungeonexpedition|beaconentity|" + statUsage2 + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|cityowner|citymax|autocast|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|" + statUsage2 + ">");
                 return true;
         }
     }
@@ -365,7 +377,8 @@ public class DebugCommand implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
             List<String> subs = new ArrayList<>(List.of("mobinfo", "tps", "siege", "cityowner", "citymax", "autocast",
-                    "hand", "chatgame", "expedition", "dungeonexpedition", "rewardbomb", "drops", "beaconentity"));
+                    "hand", "chatgame", "expedition", "dungeonexpedition", "rewardbomb", "drops", "beaconentity",
+                    "spellinput"));
             subs.addAll(Arrays.stream(StatType.values()).map(StatType::getAbbrev).toList());
             return subs.stream()
                     .filter(s -> s.startsWith(args[0].toLowerCase()))

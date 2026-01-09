@@ -64,6 +64,7 @@ import me.nakilex.levelplugin.npc.listeners.NPCDialogMoveListener;
 import me.nakilex.levelplugin.dungeon.DungeonMobSpawnListener;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.debug.BeaconEntityDebugManager;
+import me.nakilex.levelplugin.debug.listeners.SpellInputDebugListener;
 import me.nakilex.levelplugin.fasttravel.listeners.WaystoneListener;
 import me.nakilex.levelplugin.fasttravel.listeners.ExplorationListener;
 import me.nakilex.levelplugin.fasttravel.listeners.FastTravelRespawnListener;
@@ -231,6 +232,7 @@ public class ListenerRegistry {
         pm.registerEvents(new DamageIndicatorListener(dmgToggleManager), plugin);
         new DamageIndicatorPacketBlocker(plugin);
         pm.registerEvents(new SpellInputListener(plugin.getSettingsManager()), plugin);
+        pm.registerEvents(new SpellInputDebugListener(), plugin);
         pm.registerEvents(settingsGUI, plugin);
         pm.registerEvents(debugGUI, plugin);
         pm.registerEvents(new GuildGUIListener(), plugin);

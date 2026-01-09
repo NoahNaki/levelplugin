@@ -55,6 +55,21 @@ public class SpellInputDisplayManager {
         return formatInputs(state.inputs);
     }
 
+    public String getComboSequence(Player player) {
+        if (player == null) {
+            return "";
+        }
+        DisplayState state = states.get(player.getUniqueId());
+        if (state == null || state.inputs.isEmpty()) {
+            return "";
+        }
+        if (System.currentTimeMillis() - state.lastInputAt > COMBO_TIMEOUT_MS) {
+            state.inputs.clear();
+            return "";
+        }
+        return formatSequence(state.inputs);
+    }
+
     public void clear(Player player) {
         if (player == null) {
             return;
@@ -73,6 +88,14 @@ public class SpellInputDisplayManager {
             }
             sb.append(input == SpellClickInput.RIGHT ? RIGHT_GLYPH : LEFT_GLYPH);
             index++;
+        }
+        return sb.toString();
+    }
+
+    private String formatSequence(Deque<SpellClickInput> inputs) {
+        StringBuilder sb = new StringBuilder();
+        for (SpellClickInput input : inputs) {
+            sb.append(input == SpellClickInput.RIGHT ? 'R' : 'L');
         }
         return sb.toString();
     }
