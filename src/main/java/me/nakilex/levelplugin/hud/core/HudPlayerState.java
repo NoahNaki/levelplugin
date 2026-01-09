@@ -1,13 +1,13 @@
 package me.nakilex.levelplugin.hud.core;
 
 public class HudPlayerState {
-    private String lastRendered = "";
+    private boolean enabled = true;
 
-    public String getLastRendered() {
-        return lastRendered;
+    public boolean isEnabled() {
+        return enabled;
     }
 
-    public void setLastRendered(String lastRendered) {
-        this.lastRendered = lastRendered == null ? "" : lastRendered;
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
     }
 }

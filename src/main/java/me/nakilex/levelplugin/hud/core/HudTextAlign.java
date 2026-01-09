@@ -2,20 +2,20 @@ package me.nakilex.levelplugin.hud.core;
 
 import java.util.Locale;
 
-public enum HudElementType {
-    TEXT,
-    IMAGE,
-    BAR;
+public enum HudTextAlign {
+    LEFT,
+    CENTER,
+    RIGHT;
 
-    public static HudElementType from(String value) {
+    public static HudTextAlign from(String value) {
         if (value == null) {
-            return TEXT;
+            return LEFT;
         }
         String normalized = value.trim().toUpperCase(Locale.ROOT);
         try {
-            return HudElementType.valueOf(normalized);
+            return HudTextAlign.valueOf(normalized);
         } catch (IllegalArgumentException ex) {
-            return TEXT;
+            return LEFT;
         }
     }
 }

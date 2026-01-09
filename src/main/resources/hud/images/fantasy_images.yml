@@ -1,0 +1,87 @@
+compass_background_image:
+  type: single
+  texture: fantasy_assets/compass/compass_background.png
+
+air_empty_image:
+  type: single
+  texture: fantasy_assets/air_empty.png
+
+air_bar_image:
+  type: listener
+  texture: fantasy_assets/air_bar.png
+  split: 25
+  split-type: up
+  current: papi:player_remaining_air
+  max: papi:player_max_air
+
+level_empty_image:
+  type: single
+  texture: fantasy_assets/level_empty.png
+
+level_bar_image:
+  type: listener
+  texture: fantasy_assets/level_bar.png
+  split: 25
+  split-type: up
+  current: papi:naki_currentXp
+  max: papi:naki_xpNextLevel
+
+hp_empty_image:
+  type: single
+  texture: fantasy_assets/hp_empty.png
+
+hp_bar_image:
+  type: listener
+  texture: fantasy_assets/hp_bar.png
+  split: 25
+  split-type: up
+  current: papi:player_health
+  max: papi:player_max_health
+
+mana_empty_image:
+  type: single
+  texture: fantasy_assets/mana_empty.png
+
+mana_bar_image:
+  type: listener
+  texture: fantasy_assets/mana_bar.png
+  split: 25
+  split-type: up
+  current: papi:naki_currentMana
+  max: papi:naki_maxMana
+
+stamina_empty_image:
+  type: single
+  texture: fantasy_assets/stamina_empty.png
+
+stamina_bar_image:
+  type: listener
+  texture: fantasy_assets/stamina_bar.png
+  split: 25
+  split-type: up
+  current: papi:player_food_level
+  max: 20
+
+armor_empty_image:
+  type: single
+  texture: fantasy_assets/mini_armor_empty.png
+
+armor_bar_image:
+  type: listener
+  texture: fantasy_assets/mini_armor_bar.png
+  split: 25
+  split-type: up
+  current: papi:player_armor
+  max: 20
+
+coin_icon_image:
+  type: single
+  texture: fantasy_assets/coin_icon.png
+
+premiumcoin_icon_image:
+  type: single
+  texture: fantasy_assets/premiumcoin_icon.png
+
+text_box_image:
+  type: single
+  texture: fantasy_assets/text_box.png

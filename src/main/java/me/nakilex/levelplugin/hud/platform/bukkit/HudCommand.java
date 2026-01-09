@@ -35,11 +35,17 @@ public class HudCommand implements CommandExecutor, TabCompleter {
                 ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.SUCCESS, "HUD reloaded.");
             }
             case "debug" -> {
-                if (!(sender instanceof Player player)) {
-                    ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.ERROR, "Only players can use /hud debug.");
+                Player target = null;
+                if (args.length > 1) {
+                    target = org.bukkit.Bukkit.getPlayer(args[1]);
+                } else if (sender instanceof Player player) {
+                    target = player;
+                }
+                if (target == null) {
+                    ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.ERROR, "Player not found.");
                     return true;
                 }
-                hudManager.debug(player);
+                hudManager.debug(target);
             }
             case "toggle" -> {
                 if (!(sender instanceof Player player)) {
@@ -57,6 +63,11 @@ public class HudCommand implements CommandExecutor, TabCompleter {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
             return List.of("reload", "debug", "toggle");
+        }
+        if (args.length == 2 && args[0].equalsIgnoreCase("debug")) {
+            return org.bukkit.Bukkit.getOnlinePlayers().stream()
+                    .map(org.bukkit.entity.Player::getName)
+                    .collect(java.util.stream.Collectors.toList());
         }
         return List.of();
     }

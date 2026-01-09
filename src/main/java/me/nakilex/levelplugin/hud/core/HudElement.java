@@ -12,7 +12,10 @@ public class HudElement {
     private final int x;
     private final int y;
     private final int layer;
+    private final double scale;
+    private final HudTextAlign align;
     private final String text;
+    private final String assetId;
     private final List<HudCondition> conditions;
 
     public HudElement(String id,
@@ -20,14 +23,20 @@ public class HudElement {
                       int x,
                       int y,
                       int layer,
+                      double scale,
+                      HudTextAlign align,
                       String text,
+                      String assetId,
                       List<HudCondition> conditions) {
         this.id = id;
         this.type = type;
         this.x = x;
         this.y = y;
         this.layer = layer;
+        this.scale = scale;
+        this.align = align == null ? HudTextAlign.LEFT : align;
         this.text = text;
+        this.assetId = assetId;
         this.conditions = conditions == null ? List.of() : List.copyOf(conditions);
     }
 
@@ -51,17 +60,29 @@ public class HudElement {
         return layer;
     }
 
+    public double getScale() {
+        return scale;
+    }
+
+    public HudTextAlign getAlign() {
+        return align;
+    }
+
     public String getText() {
         return text;
+    }
+
+    public String getAssetId() {
+        return assetId;
     }
 
     public List<HudCondition> getConditions() {
         return Collections.unmodifiableList(conditions);
     }
 
-    public boolean shouldRender(Player player) {
+    public boolean shouldRender(Player player, me.nakilex.levelplugin.hud.conditions.HudConditionContext context) {
         for (HudCondition condition : conditions) {
-            if (!condition.matches(player)) {
+            if (!condition.matches(player, context)) {
                 return false;
             }
         }

@@ -6,8 +6,12 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class HudConditionParser {
+    private static final Pattern EXPRESSION = Pattern.compile("(.+?)\\s*(==|!=|>=|<=|>|<)\\s*(.+)");
+
     private final Logger logger;
 
     public HudConditionParser(Logger logger) {
@@ -20,30 +24,55 @@ public class HudConditionParser {
         }
         List<HudCondition> parsed = new ArrayList<>();
         for (Object entry : conditions) {
-            if (entry instanceof Map<?, ?> map) {
-                Object typeRaw = map.get("type");
-                if (typeRaw == null) {
+            if (entry instanceof String text) {
+                String normalized = text.trim().toLowerCase(Locale.ROOT);
+                if (normalized.equals("dead")) {
+                    parsed.add(new HudComparisonCondition("dead", "==", "true"));
                     continue;
                 }
-                String typeName = typeRaw.toString().toUpperCase(Locale.ROOT);
-                HudConditionType type;
-                try {
-                    type = HudConditionType.valueOf(typeName);
-                } catch (IllegalArgumentException ex) {
-                    logger.warning("Unknown HUD condition type: " + typeName);
+                if (normalized.equals("not_dead")) {
+                    parsed.add(new HudComparisonCondition("dead", "==", "false"));
                     continue;
                 }
-                parsed.add(type::matches);
-            } else if (entry instanceof String name) {
-                String typeName = name.toUpperCase(Locale.ROOT);
-                try {
-                    HudConditionType type = HudConditionType.valueOf(typeName);
-                    parsed.add(type::matches);
-                } catch (IllegalArgumentException ex) {
-                    logger.warning("Unknown HUD condition type: " + typeName);
+                parseExpression(text).ifPresent(parsed::add);
+            } else if (entry instanceof Map<?, ?> map) {
+                Object expr = map.get("expr");
+                if (expr != null) {
+                    parseExpression(expr.toString()).ifPresent(parsed::add);
+                    continue;
+                }
+                Object type = map.get("type");
+                if (type != null) {
+                    String normalized = type.toString().trim().toLowerCase(Locale.ROOT);
+                    if (normalized.equals("dead")) {
+                        parsed.add(new HudComparisonCondition("dead", "==", "true"));
+                        continue;
+                    }
+                    if (normalized.equals("not_dead")) {
+                        parsed.add(new HudComparisonCondition("dead", "==", "false"));
+                        continue;
+                    }
+                }
+                Object left = map.get("left");
+                Object op = map.get("op");
+                Object right = map.get("right");
+                if (left != null && op != null && right != null) {
+                    parsed.add(new HudComparisonCondition(left.toString(), op.toString(), right.toString()));
                 }
             }
         }
         return parsed;
+    }
+
+    private java.util.Optional<HudCondition> parseExpression(String expr) {
+        if (expr == null || expr.isBlank()) {
+            return java.util.Optional.empty();
+        }
+        Matcher matcher = EXPRESSION.matcher(expr.trim());
+        if (!matcher.matches()) {
+            logger.warning("Invalid HUD condition expression: " + expr);
+            return java.util.Optional.empty();
+        }
+        return java.util.Optional.of(new HudComparisonCondition(matcher.group(1), matcher.group(2), matcher.group(3)));
     }
 }

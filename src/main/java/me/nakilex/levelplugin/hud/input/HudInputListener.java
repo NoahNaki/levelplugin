@@ -8,6 +8,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerAnimationEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 
 public class HudInputListener implements Listener {
@@ -28,6 +29,11 @@ public class HudInputListener implements Listener {
         if (action == Action.RIGHT_CLICK_AIR || action == Action.RIGHT_CLICK_BLOCK) {
             displayManager.recordClick(event.getPlayer(), SpellClickInput.RIGHT);
         }
+    }
+
+    @EventHandler
+    public void onInteractEntity(PlayerInteractEntityEvent event) {
+        displayManager.recordClick(event.getPlayer(), SpellClickInput.RIGHT);
     }
 
     @EventHandler
