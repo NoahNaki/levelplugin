@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.settings.data;
 
 import me.nakilex.levelplugin.items.data.ItemRarity;
 import me.nakilex.levelplugin.settings.data.PlayerVisibility;
+import me.nakilex.levelplugin.spells.input.SpellInputMode;
 
 public class PlayerSettings {
 
@@ -21,6 +22,7 @@ public class PlayerSettings {
     private boolean questTrackingParticles = true;
     private boolean tipsEnabled = true;
     private boolean chatGamesEnabled = true;
+    private SpellInputMode spellInputMode = SpellInputMode.MOUSE_COMBO;
     private static final ItemRarity[] LOOT_PICKUP_RARITIES = {
             ItemRarity.COMMON,
             ItemRarity.UNCOMMON,
@@ -162,6 +164,14 @@ public class PlayerSettings {
 
     public void toggleChatGamesEnabled() {
         chatGamesEnabled = !chatGamesEnabled;
+    }
+
+    public SpellInputMode getSpellInputMode() {
+        return spellInputMode;
+    }
+
+    public void cycleSpellInputMode() {
+        spellInputMode = spellInputMode.next();
     }
 
     public ItemRarity getLootPickupRarity() {

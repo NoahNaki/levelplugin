@@ -11,6 +11,7 @@ import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.ToggleFeedbackUtil;
 import me.nakilex.levelplugin.items.data.ItemRarity;
+import me.nakilex.levelplugin.spells.input.SpellInputMode;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -33,6 +34,7 @@ public class SettingsGUI implements Listener {
     private static final int FILTER_SLOT = 36;
     private static final int LOOT_FILTER_SLOT = 32;
     private static final int CHAT_GAMES_SLOT = 27;
+    private static final int SPELL_INPUT_SLOT = 33;
 
     private final SettingsManager settingsManager;
     private final Map<UUID, Filter> filters = new HashMap<>();
@@ -198,6 +200,10 @@ public class SettingsGUI implements Listener {
             gui.setItem(LOOT_FILTER_SLOT, createLootPickupFilterItem(playerSettings));
         }
 
+        if (filter == Filter.ALL || filter == Filter.COMBAT) {
+            gui.setItem(SPELL_INPUT_SLOT, createSpellInputModeItem(playerSettings));
+        }
+
         gui.setItem(FILTER_SLOT, createFilterItem(filter));
 
         // Filler border
@@ -298,6 +304,32 @@ public class SettingsGUI implements Listener {
             it.setItemMeta(meta);
         }
         return it;
+    }
+
+    private ItemStack createSpellInputModeItem(PlayerSettings settings) {
+        SpellInputMode mode = settings.getSpellInputMode();
+        ItemStack item = GuiUtil.getNexoItem("info", ChatColor.AQUA + "Spell Input Mode");
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            List<String> lore = new ArrayList<>();
+            lore.add(" ");
+            lore.add(ChatColor.GRAY + "Choose how spells are cast.");
+            lore.add(" ");
+            lore.add(TooltipUtil.selectionLine(mode == SpellInputMode.MOUSE_COMBO,
+                    ChatColor.WHITE + "Mouse Combo Clicks"));
+            lore.add(TooltipUtil.selectionLine(mode == SpellInputMode.MOUSE_AND_KEYBOARD,
+                    ChatColor.WHITE + "Mouse + Keyboard"));
+            lore.add(" ");
+            lore.addAll(TooltipUtil.bulletList(
+                    "Combo: R/L sequences (RRL, RLR, RRR, RLL)",
+                    "Keyboard: Sneak + Click or Sneak + Sneak"));
+            lore.add(" ");
+            lore.add(ChatColor.WHITE + "Click " + ChatColor.GRAY + "to cycle");
+            meta.setLore(lore);
+            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+            item.setItemMeta(meta);
+        }
+        return item;
     }
 
     private String formatRarityLabel(ItemRarity rarity) {
@@ -447,6 +479,9 @@ public class SettingsGUI implements Listener {
                 event.getInventory().setItem(LOOT_FILTER_SLOT,
                         createLootPickupFilterItem(settings));
             }
+        } else if (slot == SPELL_INPUT_SLOT) {
+            settings.cycleSpellInputMode();
+            event.getInventory().setItem(SPELL_INPUT_SLOT, createSpellInputModeItem(settings));
         }
     }
 }
