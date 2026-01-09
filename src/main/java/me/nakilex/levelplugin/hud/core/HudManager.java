@@ -20,6 +20,7 @@ import me.nakilex.levelplugin.hud.render.HudBossBarRenderer;
 import me.nakilex.levelplugin.hud.render.HudRenderOutput;
 import me.nakilex.levelplugin.hud.render.HudRenderer;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
+import org.bukkit.command.CommandSender;
 import org.bukkit.Bukkit;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
@@ -156,6 +157,32 @@ public class HudManager {
         }
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                 "HUD debug summary: shown=" + shown + ", hidden=" + hidden);
+    }
+
+    public void debugAssets(CommandSender sender) {
+        if (sender == null) {
+            return;
+        }
+        if (config == null || assetRegistry == null) {
+            ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.ERROR, "HUD assets not loaded.");
+            return;
+        }
+        HudPackBuilder packBuilder = new HudPackBuilder(plugin);
+        List<String> missing = packBuilder.collectMissingTextures(
+                config.getOutputFolder(), config.getNamespace(), assetRegistry);
+        if (missing.isEmpty()) {
+            ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.SUCCESS, "All HUD textures found in pack.");
+            return;
+        }
+        ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.WARNING,
+                "Missing HUD textures: " + missing.size());
+        int limit = Math.min(5, missing.size());
+        for (int i = 0; i < limit; i++) {
+            ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.WARNING, "- " + missing.get(i));
+        }
+        if (missing.size() > limit) {
+            ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.WARNING, "... and more");
+        }
     }
 
     private void startTask() {

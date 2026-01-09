@@ -25,7 +25,8 @@ public class HudCommand implements CommandExecutor, TabCompleter {
             return true;
         }
         if (args.length == 0) {
-            ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.INFO, "/hud reload | /hud debug | /hud toggle");
+            ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.INFO,
+                    "/hud reload | /hud debug [player] | /hud debug assets | /hud toggle");
             return true;
         }
         String sub = args[0].toLowerCase(Locale.ROOT);
@@ -35,6 +36,10 @@ public class HudCommand implements CommandExecutor, TabCompleter {
                 ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.SUCCESS, "HUD reloaded.");
             }
             case "debug" -> {
+                if (args.length > 1 && args[1].equalsIgnoreCase("assets")) {
+                    hudManager.debugAssets(sender);
+                    return true;
+                }
                 Player target = null;
                 if (args.length > 1) {
                     target = org.bukkit.Bukkit.getPlayer(args[1]);
@@ -65,9 +70,12 @@ public class HudCommand implements CommandExecutor, TabCompleter {
             return List.of("reload", "debug", "toggle");
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("debug")) {
-            return org.bukkit.Bukkit.getOnlinePlayers().stream()
+            List<String> options = new java.util.ArrayList<>();
+            options.add("assets");
+            org.bukkit.Bukkit.getOnlinePlayers().stream()
                     .map(org.bukkit.entity.Player::getName)
-                    .collect(java.util.stream.Collectors.toList());
+                    .forEach(options::add);
+            return options;
         }
         return List.of();
     }
