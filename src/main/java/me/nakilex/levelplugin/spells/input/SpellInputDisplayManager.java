@@ -15,8 +15,8 @@ public class SpellInputDisplayManager {
 
     private static final long COMBO_TIMEOUT_MS = 3_000L;
     private static final int MAX_INPUTS = 3;
-    private static final String LEFT_GLYPH = "[papi:rf_lmb]";
-    private static final String RIGHT_GLYPH = "[papi:rf_rmb]";
+    private static final String LEFT_GLYPH = "<glyph:left_mouse_click>";
+    private static final String RIGHT_GLYPH = "<glyph:right_mouse_click>";
     private static final String EMPTY_TOKEN = ChatColor.GRAY + "empty";
     private static final long DEBUG_THROTTLE_MS = 1_000L;
 

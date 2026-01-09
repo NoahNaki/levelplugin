@@ -1,6 +1,5 @@
 package me.nakilex.levelplugin.utils;
 
-import me.clip.placeholderapi.PlaceholderAPI;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
@@ -46,12 +45,11 @@ public class NakiPlaceholderExpansion extends PlaceholderExpansion {
         placeholders.put("currentxp", p -> String.valueOf(plugin.getLevelManager().getXP(p)));
         placeholders.put("xpnextlevel", p -> String.valueOf(plugin.getLevelManager().getXpNeededForNextLevel(p)));
         placeholders.put("seasondate", p -> plugin.getCalendarManager().getSeasonDate(false));
-        placeholders.put("left_mouse_click", p -> resolveNestedPlaceholders(p, "[papi:rf_lmb]"));
-        placeholders.put("right_mouse_click", p -> resolveNestedPlaceholders(p, "[papi:rf_rmb]"));
-        placeholders.put("mouse_input_combo",
-                p -> resolveNestedPlaceholders(p, spellInputDisplayManager.getMouseComboDisplay(p)));
+        placeholders.put("left_mouse_click", p -> "<glyph:left_mouse_click>");
+        placeholders.put("right_mouse_click", p -> "<glyph:right_mouse_click>");
+        placeholders.put("mouse_input_combo", spellInputDisplayManager::getMouseComboDisplay);
         placeholders.put("mouse_input_combo_debug",
-                p -> resolveNestedPlaceholders(p, spellInputDisplayManager.getMouseComboDisplay(p, true)));
+                p -> spellInputDisplayManager.getMouseComboDisplay(p, true));
     }
 
     @Override
@@ -86,10 +84,4 @@ public class NakiPlaceholderExpansion extends PlaceholderExpansion {
         return handler != null ? handler.apply(player) : null;
     }
 
-    private String resolveNestedPlaceholders(Player player, String value) {
-        if (player == null || value == null || value.isBlank()) {
-            return value == null ? "" : value;
-        }
-        return PlaceholderAPI.setPlaceholders(player, value);
-    }
 }
