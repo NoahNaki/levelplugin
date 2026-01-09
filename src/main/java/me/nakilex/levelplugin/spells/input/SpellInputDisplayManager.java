@@ -13,7 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class SpellInputDisplayManager {
     private static final SpellInputDisplayManager instance = new SpellInputDisplayManager();
 
-    private static final long COMBO_TIMEOUT_MS = 1_500L;
+    private static final long COMBO_TIMEOUT_MS = 3_000L;
     private static final int MAX_INPUTS = 3;
     private static final String LEFT_GLYPH = "[papi:rf_lmb]";
     private static final String RIGHT_GLYPH = "[papi:rf_rmb]";

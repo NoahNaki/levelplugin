@@ -25,7 +25,7 @@ import java.util.Map;
 import java.util.UUID;
 
 public class SpellInputListener implements Listener {
-    private static final long COMBO_TIMEOUT_MS = 1_500L;
+    private static final long COMBO_TIMEOUT_MS = 3_000L;
     private static final long SNEAK_WINDOW_MS = 700L;
 
     private final SettingsManager settingsManager;
