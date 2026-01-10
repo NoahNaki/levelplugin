@@ -100,7 +100,7 @@ public class HudManager {
         if (this.bossBarDisplay != null) {
             this.bossBarDisplay.clearAll();
         }
-        this.bossBarDisplay = new HudBossBarDisplay(bossBarLines, BossBar.Color.WHITE, BossBar.Overlay.PROGRESS);
+        this.bossBarDisplay = new HudBossBarDisplay(bossBarLines, BossBar.Color.WHITE, BossBar.Overlay.NOTCHED_20);
         refreshHudResourcePack();
         stopTask();
         startTask();
