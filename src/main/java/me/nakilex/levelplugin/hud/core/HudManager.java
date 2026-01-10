@@ -99,7 +99,7 @@ public class HudManager {
         if (!missing.isEmpty()) {
             plugin.getLogger().warning("HUD textures missing from source folder (" + missing.size() + "). Example: " + missing.get(0));
         }
-        packBuilder.build(resolvedOutputFolder.toString(), config.getNamespace(), assetRegistry);
+        packBuilder.build(resolvedOutputFolder.toString(), config.getNamespace(), assetRegistry, resolvedRoot);
         int bossBarLines = config.isMergeBossBar() ? 1 : config.getBossbarLines();
         Key fontKey = Key.key(config.getNamespace(), "hud_generated");
         this.renderer = new HudBossBarRenderer(bossBarLines, config.getLineHeightPx(),
@@ -423,18 +423,26 @@ public class HudManager {
             if (!element.shouldRender(player, context)) {
                 continue;
             }
+            double requestedScale = element.getScale();
+            double bucketScale = assetRegistry == null ? 1.0 : HudAssetRegistry.bucketScale(requestedScale);
+            if (element.getType() == HudElementType.TEXT) {
+                bucketScale = 1.0;
+            }
             String text = switch (element.getType()) {
                 case TEXT -> placeholderService.resolve(player, element.getText());
-                case IMAGE -> resolveImageGlyph(element.getAssetId());
-                case BAR -> resolveBarGlyph(player, element.getAssetId());
+                case IMAGE -> resolveImageGlyph(element.getAssetId(), bucketScale);
+                case BAR -> resolveBarGlyph(player, element.getAssetId(), bucketScale);
             };
             if (text == null || text.isBlank()) {
                 continue;
             }
-            ElementMetrics metrics = measureElementMetrics(element, text);
+            ElementMetrics metrics = measureElementMetrics(element, text, bucketScale);
+            ElementMetrics baseMetrics = measureBaseMetrics(element, text);
             int offsetX = element.getPosition().pixelX();
             int offsetY = element.getPosition().pixelY();
-            layouts.add(new ElementLayout(element, text, offsetX, offsetY, metrics.width(), metrics.height()));
+            layouts.add(new ElementLayout(element, text, offsetX, offsetY,
+                    metrics.width(), metrics.height(), baseMetrics.width(), baseMetrics.height(),
+                    requestedScale, bucketScale));
         }
         Map<String, AnchorBounds> anchors = buildAnchorBounds(layouts, groupBase, placement.getAlign());
         for (ElementLayout layoutElement : layouts) {
@@ -458,10 +466,12 @@ public class HudManager {
                 }
             }
             resolved.add(new HudResolvedElement(element.getId(), layoutElement.text(), x, y, 0,
-                    width, height, element.getLayer(), element.getScale(), align));
+                    width, height, element.getLayer(), 1.0, align));
             if (debugEntries != null) {
                 debugEntries.add(buildDebugEntry(element.getId(), groupBase.x(), groupBase.y(),
-                        layoutElement.offsetX(), layoutElement.offsetY(), x, y, width, height, element.getScale()));
+                        layoutElement.offsetX(), layoutElement.offsetY(), x, y, layoutElement.baseWidth(),
+                        layoutElement.baseHeight(), width, height, layoutElement.requestedScale(),
+                        layoutElement.bucketScale()));
             }
         }
         return resolved;
@@ -511,15 +521,27 @@ public class HudManager {
         };
     }
 
-    private ElementMetrics measureElementMetrics(HudElement element, String text) {
+    private ElementMetrics measureElementMetrics(HudElement element, String text, double bucketScale) {
         if (element == null) {
             return new ElementMetrics(0, 0);
         }
         return switch (element.getType()) {
             case TEXT -> new ElementMetrics(pixelLength(text), DEFAULT_TEXT_HEIGHT_PX);
             case IMAGE, BAR -> new ElementMetrics(
-                    assetRegistry == null ? 0 : assetRegistry.getAssetWidth(element.getAssetId()),
-                    assetRegistry == null ? 0 : assetRegistry.getAssetHeight(element.getAssetId()));
+                    assetRegistry == null ? 0 : assetRegistry.getAssetWidth(element.getAssetId(), bucketScale),
+                    assetRegistry == null ? 0 : assetRegistry.getAssetHeight(element.getAssetId(), bucketScale));
+        };
+    }
+
+    private ElementMetrics measureBaseMetrics(HudElement element, String text) {
+        if (element == null) {
+            return new ElementMetrics(0, 0);
+        }
+        return switch (element.getType()) {
+            case TEXT -> new ElementMetrics(pixelLength(text), DEFAULT_TEXT_HEIGHT_PX);
+            case IMAGE, BAR -> new ElementMetrics(
+                    assetRegistry == null ? 0 : assetRegistry.getBaseAssetWidth(element.getAssetId()),
+                    assetRegistry == null ? 0 : assetRegistry.getBaseAssetHeight(element.getAssetId()));
         };
     }
 
@@ -568,7 +590,10 @@ public class HudManager {
                     + " final=(" + entry.finalX() + "," + entry.finalY() + ")"
                     + " lineHeight=" + config.getLineHeightPx()
                     + " line=" + entry.lineIndex()
-                    + " w=" + entry.width() + " h=" + entry.height() + " scale=" + entry.scale();
+                    + " requestedScale=" + entry.requestedScale()
+                    + " bucketScale=" + entry.bucketScale()
+                    + " base=" + entry.baseWidth() + "x" + entry.baseHeight()
+                    + " variant=" + entry.variantWidth() + "x" + entry.variantHeight();
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO, line);
         }
     }
@@ -580,14 +605,15 @@ public class HudManager {
                                        int localOffsetY,
                                        int finalX,
                                        int finalY,
-                                       int width,
-                                       int height,
-                                       double scale) {
+                                       int baseWidth,
+                                       int baseHeight,
+                                       int variantWidth,
+                                       int variantHeight,
+                                       double requestedScale,
+                                       double bucketScale) {
         int lineIndex = clampLineIndex(finalY);
-        int scaledWidth = (int) Math.round(width * scale);
-        int scaledHeight = (int) Math.round(height * scale);
         return new DebugEntry(id, moduleOriginX, moduleOriginY, localOffsetX, localOffsetY, finalX, finalY,
-                lineIndex, scaledWidth, scaledHeight, scale);
+                lineIndex, baseWidth, baseHeight, variantWidth, variantHeight, requestedScale, bucketScale);
     }
 
     private int clampLineIndex(int yPx) {
@@ -598,7 +624,8 @@ public class HudManager {
     }
 
     private record ElementLayout(HudElement element, String text, int offsetX, int offsetY,
-                                 int width, int height) {
+                                 int width, int height, int baseWidth, int baseHeight,
+                                 double requestedScale, double bucketScale) {
     }
 
     private record ElementMetrics(int width, int height) {
@@ -612,9 +639,12 @@ public class HudManager {
                               int finalX,
                               int finalY,
                               int lineIndex,
-                              int width,
-                              int height,
-                              double scale) {
+                              int baseWidth,
+                              int baseHeight,
+                              int variantWidth,
+                              int variantHeight,
+                              double requestedScale,
+                              double bucketScale) {
     }
 
     private int pixelLength(String text) {
@@ -656,15 +686,15 @@ public class HudManager {
         }
     }
 
-    private String resolveImageGlyph(String assetId) {
+    private String resolveImageGlyph(String assetId, double scale) {
         if (assetRegistry == null || assetId == null) {
             return "";
         }
-        HudGlyph glyph = assetRegistry.getGlyph(assetId.toLowerCase(Locale.ROOT));
+        HudGlyph glyph = assetRegistry.getGlyph(assetId.toLowerCase(Locale.ROOT), scale);
         return glyph == null ? "" : String.valueOf(glyph.codepoint());
     }
 
-    private String resolveBarGlyph(Player player, String assetId) {
+    private String resolveBarGlyph(Player player, String assetId, double scale) {
         if (assetRegistry == null || assetId == null) {
             return "";
         }
@@ -683,7 +713,7 @@ public class HudManager {
         if (index <= 0) {
             return "";
         }
-        List<HudGlyph> frames = assetRegistry.getBarFrames(assetId.toLowerCase(Locale.ROOT));
+        List<HudGlyph> frames = assetRegistry.getBarFrames(assetId.toLowerCase(Locale.ROOT), scale);
         if (frames.isEmpty()) {
             return "";
         }
@@ -715,27 +745,92 @@ public class HudManager {
             if (definition.getType() == HudImageType.LISTENER) {
                 int frames = definition.getSplit() > 0 ? definition.getSplit() : definition.getFrames().size();
                 List<HudGlyph> glyphs = new ArrayList<>();
+                List<String> baseTextures = new ArrayList<>();
                 for (int index = 1; index <= frames; index++) {
                     String texture = resolveFrameTexture(definition, index, resolver);
                     if (texture == null || texture.isBlank()) {
                         continue;
                     }
+                    baseTextures.add(texture);
                     glyphs.add(createGlyph(allocator.next(), texture, sourceTextureRoot));
                 }
                 if (glyphs.isEmpty()) {
                     plugin.getLogger().warning("HUD bar '" + definition.getId() + "' has no frames configured.");
                 }
                 registry.registerBarFrames(definition.getId(), glyphs);
+                registerBarScaleVariants(registry, allocator, definition.getId(), glyphs, baseTextures);
             } else {
                 if (definition.getTexture() != null && !definition.getTexture().isBlank()) {
                     String texture = resolver.resolveSingle(definition.getTexture());
-                    registry.registerGlyph(definition.getId(), createGlyph(allocator.next(), texture, sourceTextureRoot));
+                    HudGlyph baseGlyph = createGlyph(allocator.next(), texture, sourceTextureRoot);
+                    registry.registerGlyph(definition.getId(), baseGlyph);
+                    registerImageScaleVariants(registry, allocator, definition.getId(), baseGlyph);
                 } else {
                     plugin.getLogger().warning("HUD image '" + definition.getId() + "' is missing a texture path.");
                 }
             }
         }
         return registry;
+    }
+
+    private void registerImageScaleVariants(HudAssetRegistry registry,
+                                            HudGlyphAllocator allocator,
+                                            String id,
+                                            HudGlyph baseGlyph) {
+        if (registry == null || id == null || baseGlyph == null) {
+            return;
+        }
+        for (double scale : HudAssetRegistry.SCALE_BUCKETS) {
+            if (scale == 1.0) {
+                continue;
+            }
+            String variantTexture = buildVariantTexturePath(registry, baseGlyph.texturePath(), scale);
+            HudGlyph scaled = createScaledGlyph(allocator.next(), baseGlyph, variantTexture, scale);
+            registry.registerGlyphVariant(id, scale, scaled, baseGlyph.texturePath());
+        }
+    }
+
+    private void registerBarScaleVariants(HudAssetRegistry registry,
+                                          HudGlyphAllocator allocator,
+                                          String id,
+                                          List<HudGlyph> baseFrames,
+                                          List<String> baseTextures) {
+        if (registry == null || id == null || baseFrames == null || baseFrames.isEmpty()) {
+            return;
+        }
+        for (double scale : HudAssetRegistry.SCALE_BUCKETS) {
+            if (scale == 1.0) {
+                continue;
+            }
+            List<HudGlyph> scaledFrames = new ArrayList<>();
+            for (int i = 0; i < baseFrames.size(); i++) {
+                HudGlyph baseGlyph = baseFrames.get(i);
+                String baseTexture = i < baseTextures.size() ? baseTextures.get(i) : baseGlyph.texturePath();
+                String variantTexture = buildVariantTexturePath(registry, baseTexture, scale);
+                scaledFrames.add(createScaledGlyph(allocator.next(), baseGlyph, variantTexture, scale));
+            }
+            registry.registerBarFramesVariant(id, scale, scaledFrames, baseFrames);
+        }
+    }
+
+    private String buildVariantTexturePath(HudAssetRegistry registry, String baseTexture, double scale) {
+        if (baseTexture == null || baseTexture.isBlank()) {
+            return "";
+        }
+        int dot = baseTexture.lastIndexOf('.');
+        String suffix = "@" + registry.formatScale(scale);
+        if (dot <= 0) {
+            return baseTexture + suffix;
+        }
+        return baseTexture.substring(0, dot) + suffix + baseTexture.substring(dot);
+    }
+
+    private HudGlyph createScaledGlyph(char codepoint, HudGlyph baseGlyph, String texture, double scale) {
+        int baseWidth = baseGlyph == null ? 0 : baseGlyph.width();
+        int baseHeight = baseGlyph == null ? 0 : baseGlyph.height();
+        int width = baseWidth <= 0 ? 0 : Math.max(1, (int) Math.round(baseWidth * scale));
+        int height = baseHeight <= 0 ? 0 : Math.max(1, (int) Math.round(baseHeight * scale));
+        return new HudGlyph(codepoint, texture, width, height);
     }
 
     private HudGlyph createGlyph(char codepoint, String texture, java.nio.file.Path sourceTextureRoot) {

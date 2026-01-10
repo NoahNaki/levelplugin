@@ -18,7 +18,8 @@ public class HudPackBuilder {
         this.logger = plugin.getLogger();
     }
 
-    public void build(String outputFolder, String namespace, HudAssetRegistry registry) {
+    public void build(String outputFolder, String namespace, HudAssetRegistry registry,
+                      java.nio.file.Path sourceTextureRoot) {
         if (outputFolder == null || namespace == null || registry == null) {
             return;
         }
@@ -27,6 +28,7 @@ public class HudPackBuilder {
             logger.warning("Failed to create HUD font output directory: " + base.getAbsolutePath());
             return;
         }
+        generateScaledTextures(outputFolder, namespace, registry, sourceTextureRoot);
         File fontFile = new File(base, "hud_generated.json");
         String json = buildFontJson(namespace, registry);
         try (FileWriter writer = new FileWriter(fontFile)) {
@@ -45,23 +47,17 @@ public class HudPackBuilder {
             builder.append("    ").append(advanceProvider);
             first = false;
         }
-        for (Map.Entry<String, HudImageDefinition> entry : registry.getDefinitions().entrySet()) {
-            String id = entry.getKey();
-            HudImageDefinition definition = entry.getValue();
-            if (definition.getType() == HudImageType.LISTENER) {
-                List<HudGlyph> frames = registry.getBarFrames(id);
-                for (int index = 0; index < frames.size(); index++) {
-                    HudGlyph glyph = frames.get(index);
-                    String texture = glyph.texturePath();
-                    if (!first) {
-                        builder.append(",\n");
-                    }
-                    first = false;
-                    builder.append("    ").append(providerJson(namespace, texture, glyph));
+        for (List<HudGlyph> frames : registry.getAllBarFrames().values()) {
+            for (HudGlyph glyph : frames) {
+                String texture = glyph.texturePath();
+                if (!first) {
+                    builder.append(",\n");
                 }
-                continue;
+                first = false;
+                builder.append("    ").append(providerJson(namespace, texture, glyph));
             }
-            HudGlyph glyph = registry.getGlyph(id);
+        }
+        for (HudGlyph glyph : registry.getAllGlyphs().values()) {
             if (glyph == null) {
                 continue;
             }
@@ -100,6 +96,54 @@ public class HudPackBuilder {
         }
         builder.append("}}");
         return builder.toString();
+    }
+
+    private void generateScaledTextures(String outputFolder,
+                                        String namespace,
+                                        HudAssetRegistry registry,
+                                        java.nio.file.Path sourceTextureRoot) {
+        if (outputFolder == null || namespace == null || registry == null || sourceTextureRoot == null) {
+            return;
+        }
+        java.nio.file.Path textureRoot = java.nio.file.Paths.get(outputFolder)
+                .resolve("assets")
+                .resolve(namespace)
+                .resolve("textures");
+        for (Map.Entry<String, HudAssetRegistry.VariantTexture> entry : registry.getVariantTextures().entrySet()) {
+            String variantTexture = entry.getKey();
+            HudAssetRegistry.VariantTexture info = entry.getValue();
+            if (variantTexture == null || info == null) {
+                continue;
+            }
+            java.nio.file.Path basePath = sourceTextureRoot.resolve(info.baseTexturePath()).normalize();
+            java.nio.file.Path outputPath = textureRoot.resolve(variantTexture).normalize();
+            if (java.nio.file.Files.exists(outputPath)) {
+                continue;
+            }
+            try {
+                java.nio.file.Files.createDirectories(outputPath.getParent());
+                java.awt.image.BufferedImage image = javax.imageio.ImageIO.read(basePath.toFile());
+                if (image == null) {
+                    continue;
+                }
+                java.awt.image.BufferedImage scaled = scaleImage(image, info.scale());
+                javax.imageio.ImageIO.write(scaled, "png", outputPath.toFile());
+            } catch (IOException ex) {
+                logger.warning("Failed to generate HUD scaled texture '" + variantTexture + "': " + ex.getMessage());
+            }
+        }
+    }
+
+    private java.awt.image.BufferedImage scaleImage(java.awt.image.BufferedImage source, double scale) {
+        int width = Math.max(1, (int) Math.round(source.getWidth() * scale));
+        int height = Math.max(1, (int) Math.round(source.getHeight() * scale));
+        java.awt.image.BufferedImage scaled = new java.awt.image.BufferedImage(width, height, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+        java.awt.Graphics2D graphics = scaled.createGraphics();
+        graphics.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION,
+                java.awt.RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+        graphics.drawImage(source, 0, 0, width, height, null);
+        graphics.dispose();
+        return scaled;
     }
 
     public List<String> collectMissingTextures(String sourceTexturesFolder, HudAssetRegistry registry) {
