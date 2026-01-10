@@ -34,6 +34,7 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -150,6 +151,7 @@ public class HudManager {
                 if (layout == null) {
                     continue;
                 }
+                Map<String, AnchorBounds> anchors = buildAnchors(layout, placement);
                 for (HudElement element : layout.getElements()) {
                     List<String> failures = new ArrayList<>();
                     for (me.nakilex.levelplugin.hud.conditions.HudCondition condition : element.getConditions()) {
@@ -163,7 +165,7 @@ public class HudManager {
                                 element.getId() + " hidden: " + String.join("; ", failures));
                         continue;
                     }
-                    HudResolvedElement resolved = resolveElement(player, element, placement);
+                    HudResolvedElement resolved = resolveElement(player, element, placement, anchors);
                     if (resolved != null && !resolved.getText().isBlank()) {
                         shown++;
                         String line = resolved.getId() + " x=" + resolved.getX() + " y=" + resolved.getY()
