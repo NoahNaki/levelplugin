@@ -54,6 +54,7 @@ public class Main extends JavaPlugin {
     public static Main getPlugin() { return plugin; }
 
     public BukkitAPIHelper getMythicHelper() { return bootstrap.getMythicHelper(); }
+    public me.nakilex.levelplugin.hud.core.HudManager getHudManager() { return bootstrap.getHudManager(); }
     public PotionManager getPotionManager() { return bootstrap.getPotionManager(); }
     @Override
     public FileConfiguration getConfig() { return super.getConfig(); }

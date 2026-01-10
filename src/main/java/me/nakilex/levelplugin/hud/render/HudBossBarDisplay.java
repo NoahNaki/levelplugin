@@ -11,7 +11,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class HudBossBarDisplay {
+public class HudBossBarDisplay implements HudDisplay {
     private final int lines;
     private final BossBar.Color barColor;
     private final BossBar.Overlay barStyle;

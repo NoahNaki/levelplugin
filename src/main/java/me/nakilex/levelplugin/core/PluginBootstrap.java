@@ -732,6 +732,7 @@ public class PluginBootstrap {
 
     public Map<UUID, List<NPC>> getActiveBowDrones() { return activeBowDrones; }
     public BukkitAPIHelper getMythicHelper() { return mythicHelper; }
+    public me.nakilex.levelplugin.hud.core.HudManager getHudManager() { return hudManager; }
     public LevelManager getLevelManager() { return levelManager; }
     public EconomyManager getEconomyManager() { return economyManager; }
     public ItemManager getItemManager() { return itemManager; }

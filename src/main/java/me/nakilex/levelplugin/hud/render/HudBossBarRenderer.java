@@ -127,12 +127,7 @@ public class HudBossBarRenderer implements HudRenderer {
     }
 
     private int alignedX(HudResolvedElement element) {
-        int base = switch (element.getAlign()) {
-            case CENTER -> canvasWidthPx / 2;
-            case RIGHT -> canvasWidthPx;
-            case LEFT -> 0;
-        };
-        return (int) Math.round(base + element.getX() * element.getScale());
+        return (int) Math.round(element.getX() * element.getScale());
     }
 
     private int pixelLength(String text) {

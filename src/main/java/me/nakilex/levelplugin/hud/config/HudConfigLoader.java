@@ -13,6 +13,7 @@ import me.nakilex.levelplugin.hud.core.HudModule;
 import me.nakilex.levelplugin.hud.core.HudAnchor;
 import me.nakilex.levelplugin.hud.core.HudPosition;
 import me.nakilex.levelplugin.hud.core.HudTextAlign;
+import me.nakilex.levelplugin.hud.render.HudRenderChannel;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -52,6 +53,7 @@ public class HudConfigLoader {
         int canvasHeightDefault = lineHeight * bossbarLines;
         int canvasHeight = Math.max(60, config.getInt("hud.canvas-height-px", canvasHeightDefault));
         boolean mergeBossBar = config.getBoolean("hud.bossbar.merge", true);
+        HudRenderChannel renderChannel = HudRenderChannel.from(config.getString("hud.render-channel", "actionbar"));
         String namespace = config.getString("hud.namespace", "betterhud");
         String outputFolder = config.getString("hud.output-folder", "Nexo/pack/external_packs/BetterHud");
         String sourceTexturesFolder = config.getString("hud.source-textures-folder",
@@ -64,6 +66,7 @@ public class HudConfigLoader {
         Map<String, HudImageDefinition> images = loadImages();
 
         return new HudConfig(updateTicks, cacheTtl, canvasWidth, canvasHeight, lineHeight, bossbarLines, mergeBossBar,
+                renderChannel,
                 namespace, outputFolder, sourceTexturesFolder, imagesConfigPath, defaultModules, modules, layouts, images);
     }
 

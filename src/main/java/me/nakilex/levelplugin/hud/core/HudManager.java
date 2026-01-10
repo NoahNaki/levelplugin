@@ -15,8 +15,11 @@ import me.nakilex.levelplugin.hud.input.HudInputListener;
 import me.nakilex.levelplugin.hud.placeholders.HudPlaceholderCache;
 import me.nakilex.levelplugin.hud.placeholders.HudPlaceholderRegistry;
 import me.nakilex.levelplugin.hud.placeholders.HudPlaceholderService;
+import me.nakilex.levelplugin.hud.render.HudActionBarDisplay;
 import me.nakilex.levelplugin.hud.render.HudBossBarDisplay;
 import me.nakilex.levelplugin.hud.render.HudBossBarRenderer;
+import me.nakilex.levelplugin.hud.render.HudDisplay;
+import me.nakilex.levelplugin.hud.render.HudRenderChannel;
 import me.nakilex.levelplugin.hud.render.HudRenderOutput;
 import me.nakilex.levelplugin.hud.render.HudRenderer;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
@@ -52,7 +55,7 @@ public class HudManager {
     private BukkitTask task;
     private HudConfig config;
     private HudRenderer renderer;
-    private HudBossBarDisplay bossBarDisplay;
+    private HudDisplay hudDisplay;
     private HudAssetRegistry assetRegistry;
 
     public HudManager(Main plugin) {
@@ -70,8 +73,8 @@ public class HudManager {
 
     public void disable() {
         stopTask();
-        if (bossBarDisplay != null) {
-            bossBarDisplay.clearAll();
+        if (hudDisplay != null) {
+            hudDisplay.clearAll();
         }
         playerStates.clear();
         placeholderCache.clearAll();
@@ -99,10 +102,10 @@ public class HudManager {
         this.renderer = new HudBossBarRenderer(bossBarLines, config.getLineHeightPx(),
                 config.getCanvasWidthPx(), config.getCanvasHeightPx(), config.isMergeBossBar(), fontKey,
                 assetRegistry.getGlyphWidths());
-        if (this.bossBarDisplay != null) {
-            this.bossBarDisplay.clearAll();
+        if (this.hudDisplay != null) {
+            this.hudDisplay.clearAll();
         }
-        this.bossBarDisplay = new HudBossBarDisplay(bossBarLines, BossBar.Color.WHITE, BossBar.Overlay.NOTCHED_20);
+        this.hudDisplay = createDisplay(config.getRenderChannel(), bossBarLines);
         refreshHudResourcePack();
         stopTask();
         startTask();
@@ -120,8 +123,8 @@ public class HudManager {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, "HUD enabled.");
         } else {
             state.setEnabled(false);
-            if (bossBarDisplay != null) {
-                bossBarDisplay.clear(player);
+            if (hudDisplay != null) {
+                hudDisplay.clear(player);
             }
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING, "HUD disabled.");
         }
@@ -251,7 +254,7 @@ public class HudManager {
     }
 
     private void tick() {
-        if (config == null || renderer == null || bossBarDisplay == null) {
+        if (config == null || renderer == null || hudDisplay == null) {
             return;
         }
         for (Player player : Bukkit.getOnlinePlayers()) {
@@ -266,7 +269,47 @@ public class HudManager {
     private void updatePlayer(Player player) {
         HudCanvas canvas = buildCanvas(player);
         HudRenderOutput output = renderer.render(canvas);
-        bossBarDisplay.update(player, output);
+        hudDisplay.update(player, output);
+    }
+
+    public Component getHudActionBarComponent(Player player) {
+        if (config == null || renderer == null) {
+            return Component.empty();
+        }
+        if (config.getRenderChannel() != HudRenderChannel.ACTIONBAR) {
+            return Component.empty();
+        }
+        HudCanvas canvas = buildCanvas(player);
+        HudRenderOutput output = renderer.render(canvas);
+        return buildActionBarComponent(output);
+    }
+
+    private Component buildActionBarComponent(HudRenderOutput output) {
+        if (output == null) {
+            return Component.empty();
+        }
+        List<Component> lines = output.getBossBarLineComponents();
+        Component combined = Component.empty();
+        boolean first = true;
+        for (Component line : lines) {
+            if (line == null || line.equals(Component.empty())) {
+                continue;
+            }
+            if (!first) {
+                combined = combined.append(Component.newline());
+            }
+            combined = combined.append(line);
+            first = false;
+        }
+        return combined;
+    }
+
+    private HudDisplay createDisplay(HudRenderChannel channel, int bossBarLines) {
+        HudRenderChannel resolved = channel == null ? HudRenderChannel.ACTIONBAR : channel;
+        return switch (resolved) {
+            case BOSSBAR -> new HudBossBarDisplay(bossBarLines, BossBar.Color.WHITE, BossBar.Overlay.NOTCHED_20);
+            case ACTIONBAR -> new HudActionBarDisplay();
+        };
     }
 
     private void refreshHudResourcePack() {

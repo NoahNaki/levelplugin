@@ -1,8 +1,8 @@
 package me.nakilex.levelplugin.player.attributes.managers;
 
 import me.nakilex.levelplugin.Main;
-import net.md_5.bungee.api.ChatMessageType;
-import net.md_5.bungee.api.chat.TextComponent;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
@@ -21,6 +21,7 @@ public class ActionBarTask extends BukkitRunnable {
         for (Player player : Bukkit.getOnlinePlayers()) {
             if (plugin.getCutsceneManager().isInCutscene(player)) continue;
             CooldownIndicatorManager.Info info = CooldownIndicatorManager.getInstance().get(player);
+            String baseMessage = "";
             if (info != null) {
                 boolean showCd = now < info.expireAt && now < info.costExpireAt;
                 boolean showCost = info.cost > 0 && now < info.costExpireAt;
@@ -43,22 +44,35 @@ public class ActionBarTask extends BukkitRunnable {
                            .append(ChatColor.GRAY).append(info.cost)
                            .append(ChatColor.DARK_GRAY).append("]");
                     }
-                    player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(msg.toString()));
-                    continue;
+                    baseMessage = msg.toString();
                 }
             }
-            if (StatsManager.getInstance().isInCombat(player.getUniqueId())) {
-                player.spigot().sendMessage(ChatMessageType.ACTION_BAR,
-                        new TextComponent(ChatColor.RED + "In Combat"));
-            } else {
-                String consistency = me.nakilex.levelplugin.player.farming.managers.FarmingManager.getInstance()
-                        .getConsistencyIndicator(player);
-                if (consistency != null) {
-                    player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(consistency));
+            if (baseMessage.isEmpty()) {
+                if (StatsManager.getInstance().isInCombat(player.getUniqueId())) {
+                    baseMessage = ChatColor.RED + "In Combat";
                 } else {
-                    player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(""));
+                    String consistency = me.nakilex.levelplugin.player.farming.managers.FarmingManager.getInstance()
+                            .getConsistencyIndicator(player);
+                    if (consistency != null) {
+                        baseMessage = consistency;
+                    }
                 }
             }
+            Component hudComponent = plugin.getHudManager() != null
+                    ? plugin.getHudManager().getHudActionBarComponent(player)
+                    : Component.empty();
+            Component baseComponent = baseMessage.isBlank()
+                    ? Component.empty()
+                    : LegacyComponentSerializer.legacySection().deserialize(baseMessage);
+            Component combined = hudComponent;
+            if (!baseMessage.isBlank()) {
+                if (combined.equals(Component.empty())) {
+                    combined = baseComponent;
+                } else {
+                    combined = combined.append(Component.space()).append(baseComponent);
+                }
+            }
+            player.sendActionBar(combined);
         }
     }
 }

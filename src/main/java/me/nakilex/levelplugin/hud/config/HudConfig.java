@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.hud.config;
 import me.nakilex.levelplugin.hud.assets.HudImageDefinition;
 import me.nakilex.levelplugin.hud.core.HudLayout;
 import me.nakilex.levelplugin.hud.core.HudModule;
+import me.nakilex.levelplugin.hud.render.HudRenderChannel;
 
 import java.util.Collections;
 import java.util.List;
@@ -16,6 +17,7 @@ public class HudConfig {
     private final int lineHeightPx;
     private final int bossbarLines;
     private final boolean mergeBossBar;
+    private final HudRenderChannel renderChannel;
     private final String namespace;
     private final String outputFolder;
     private final String sourceTexturesFolder;
@@ -32,6 +34,7 @@ public class HudConfig {
                      int lineHeightPx,
                      int bossbarLines,
                      boolean mergeBossBar,
+                     HudRenderChannel renderChannel,
                      String namespace,
                      String outputFolder,
                      String sourceTexturesFolder,
@@ -47,6 +50,7 @@ public class HudConfig {
         this.lineHeightPx = lineHeightPx;
         this.bossbarLines = bossbarLines;
         this.mergeBossBar = mergeBossBar;
+        this.renderChannel = renderChannel == null ? HudRenderChannel.ACTIONBAR : renderChannel;
         this.namespace = namespace;
         this.outputFolder = outputFolder;
         this.sourceTexturesFolder = sourceTexturesFolder;
@@ -83,6 +87,10 @@ public class HudConfig {
 
     public boolean isMergeBossBar() {
         return mergeBossBar;
+    }
+
+    public HudRenderChannel getRenderChannel() {
+        return renderChannel;
     }
 
     public String getNamespace() {
