@@ -17,6 +17,7 @@ public class HudConfig {
     private final int lineHeightPx;
     private final int bossbarLines;
     private final boolean mergeBossBar;
+    private final boolean applyBaselineOffset;
     private final HudRenderChannel renderChannel;
     private final String namespace;
     private final String outputFolder;
@@ -34,6 +35,7 @@ public class HudConfig {
                      int lineHeightPx,
                      int bossbarLines,
                      boolean mergeBossBar,
+                     boolean applyBaselineOffset,
                      HudRenderChannel renderChannel,
                      String namespace,
                      String outputFolder,
@@ -50,6 +52,7 @@ public class HudConfig {
         this.lineHeightPx = lineHeightPx;
         this.bossbarLines = bossbarLines;
         this.mergeBossBar = mergeBossBar;
+        this.applyBaselineOffset = applyBaselineOffset;
         this.renderChannel = renderChannel == null ? HudRenderChannel.ACTIONBAR : renderChannel;
         this.namespace = namespace;
         this.outputFolder = outputFolder;
@@ -87,6 +90,10 @@ public class HudConfig {
 
     public boolean isMergeBossBar() {
         return mergeBossBar;
+    }
+
+    public boolean isApplyBaselineOffset() {
+        return applyBaselineOffset;
     }
 
     public HudRenderChannel getRenderChannel() {

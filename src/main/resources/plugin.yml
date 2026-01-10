@@ -382,6 +382,9 @@ commands:
   hud:
     description: Manage the custom HUD
     usage: /hud <reload|debug [player|assets]|toggle>
+  huddebug:
+    description: Toggle HUD debug overlay and logging
+    usage: /huddebug [on|off|toggle]
   dpsdummy:
     description: Manage DPS training dummies
     usage: /dpsdummy <spawn|select|despawn|list>

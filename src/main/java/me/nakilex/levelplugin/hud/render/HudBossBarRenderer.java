@@ -3,8 +3,6 @@ package me.nakilex.levelplugin.hud.render;
 import me.nakilex.levelplugin.hud.assets.HudAdvanceGlyphs;
 import me.nakilex.levelplugin.hud.core.HudCanvas;
 import me.nakilex.levelplugin.hud.core.HudResolvedElement;
-import me.nakilex.levelplugin.hud.core.HudTextAlign;
-import me.nakilex.levelplugin.utils.DefaultFontInfo;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
@@ -25,18 +23,15 @@ public class HudBossBarRenderer implements HudRenderer {
     private final int canvasHeightPx;
     private final boolean mergeBossBar;
     private final Key hudFontKey;
-    private final Map<Character, Integer> glyphWidths;
 
     public HudBossBarRenderer(int lines, int lineHeightPx, int canvasWidthPx, int canvasHeightPx,
-                              boolean mergeBossBar, Key hudFontKey,
-                              Map<Character, Integer> glyphWidths) {
+                              boolean mergeBossBar, Key hudFontKey) {
         this.lines = Math.max(1, lines);
         this.lineHeightPx = Math.max(1, lineHeightPx);
         this.canvasWidthPx = Math.max(1, canvasWidthPx);
         this.canvasHeightPx = Math.max(1, canvasHeightPx);
         this.mergeBossBar = mergeBossBar;
         this.hudFontKey = hudFontKey;
-        this.glyphWidths = glyphWidths == null ? Map.of() : Map.copyOf(glyphWidths);
     }
 
     @Override
@@ -89,7 +84,7 @@ public class HudBossBarRenderer implements HudRenderer {
             int deltaPx = targetPx - currentPx;
             appendAdvance(builder, deltaPx);
             builder.append(text);
-            int widthPx = (int) Math.round(pixelLength(text) * element.getScale());
+            int widthPx = (int) Math.round(element.getWidth() * element.getScale());
             appendAdvance(builder, -(deltaPx + widthPx));
         }
         return builder.toString();
@@ -133,35 +128,6 @@ public class HudBossBarRenderer implements HudRenderer {
 
     private int alignedX(HudResolvedElement element) {
         return (int) Math.round(element.getX() * element.getScale());
-    }
-
-    private int pixelLength(String text) {
-        if (text == null || text.isEmpty()) {
-            return 0;
-        }
-        int px = 0;
-        boolean previousCode = false;
-        boolean bold = false;
-        for (int i = 0; i < text.length(); i++) {
-            char c = text.charAt(i);
-            if (c == '§') {
-                previousCode = true;
-                continue;
-            }
-            if (previousCode) {
-                previousCode = false;
-                bold = c == 'l' || c == 'L';
-                continue;
-            }
-            if (isGlyph(c)) {
-                int glyphWidth = glyphWidths.getOrDefault(c, DefaultFontInfo.SPACE.getLength());
-                px += glyphWidth + 1;
-                continue;
-            }
-            DefaultFontInfo dFI = DefaultFontInfo.getDefaultFontInfo(c);
-            px += (bold ? DefaultFontInfo.getBoldLength() : dFI.getLength()) + 1;
-        }
-        return px;
     }
 
     private int appendAdvance(StringBuilder builder, int deltaPx) {

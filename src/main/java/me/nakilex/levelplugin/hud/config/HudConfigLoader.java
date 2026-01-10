@@ -53,6 +53,7 @@ public class HudConfigLoader {
         int canvasHeightDefault = lineHeight * bossbarLines;
         int canvasHeight = Math.max(60, config.getInt("hud.canvas-height-px", canvasHeightDefault));
         boolean mergeBossBar = config.getBoolean("hud.bossbar.merge", true);
+        boolean applyBaselineOffset = config.getBoolean("hud.apply-baseline-offset", false);
         HudRenderChannel renderChannel = HudRenderChannel.from(config.getString("hud.render-channel", "actionbar"));
         String namespace = config.getString("hud.namespace", "betterhud");
         String outputFolder = config.getString("hud.output-folder", "Nexo/pack/external_packs/BetterHud");
@@ -66,7 +67,7 @@ public class HudConfigLoader {
         Map<String, HudImageDefinition> images = loadImages();
 
         return new HudConfig(updateTicks, cacheTtl, canvasWidth, canvasHeight, lineHeight, bossbarLines, mergeBossBar,
-                renderChannel,
+                applyBaselineOffset, renderChannel,
                 namespace, outputFolder, sourceTexturesFolder, imagesConfigPath, defaultModules, modules, layouts, images);
     }
 
@@ -153,8 +154,9 @@ public class HudConfigLoader {
                 for (Map<?, ?> entry : layouts) {
                     String layoutName = getString(entry, "name", "");
                     HudPosition position = parsePosition(getMap(entry, "position"));
+                    HudTextAlign align = HudTextAlign.from(getString(entry, "align", "left"));
                     if (!layoutName.isBlank()) {
-                        placements.add(new HudLayoutPlacement(layoutName, position));
+                        placements.add(new HudLayoutPlacement(layoutName, position, align));
                     }
                 }
                 modules.put(normalizedId, new HudModule(moduleId, placements));

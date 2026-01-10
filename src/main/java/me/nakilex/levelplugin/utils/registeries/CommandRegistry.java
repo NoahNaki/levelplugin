@@ -402,6 +402,12 @@ public class CommandRegistry {
             plugin.getCommand("hud").setExecutor(hudCommand);
             plugin.getCommand("hud").setTabCompleter(hudCommand);
         }
+        if (plugin.getCommand("huddebug") != null) {
+            me.nakilex.levelplugin.hud.platform.bukkit.HudDebugCommand hudDebugCommand =
+                    new me.nakilex.levelplugin.hud.platform.bukkit.HudDebugCommand(hudManager);
+            plugin.getCommand("huddebug").setExecutor(hudDebugCommand);
+            plugin.getCommand("huddebug").setTabCompleter(hudDebugCommand);
+        }
 
         if (serverSelectionManager != null) {
             ConnectCommand connectCommand = new ConnectCommand(serverSelectionManager);

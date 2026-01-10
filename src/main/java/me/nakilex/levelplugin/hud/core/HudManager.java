@@ -46,6 +46,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.io.IOException;
 
 public class HudManager {
+    private static final int BASELINE_OFFSET_PX = 54;
+    private static final int DEFAULT_TEXT_HEIGHT_PX = 8;
+    private static final long DEBUG_LOG_INTERVAL_MS = 1000L;
     private final Main plugin;
     private final HudConfigLoader configLoader;
     private final HudPlaceholderCache placeholderCache;
@@ -100,8 +103,7 @@ public class HudManager {
         int bossBarLines = config.isMergeBossBar() ? 1 : config.getBossbarLines();
         Key fontKey = Key.key(config.getNamespace(), "hud_generated");
         this.renderer = new HudBossBarRenderer(bossBarLines, config.getLineHeightPx(),
-                config.getCanvasWidthPx(), config.getCanvasHeightPx(), config.isMergeBossBar(), fontKey,
-                assetRegistry.getGlyphWidths());
+                config.getCanvasWidthPx(), config.getCanvasHeightPx(), config.isMergeBossBar(), fontKey);
         if (this.hudDisplay != null) {
             this.hudDisplay.clearAll();
         }
@@ -130,6 +132,35 @@ public class HudManager {
         }
     }
 
+    public void toggleDebugMode(Player player) {
+        if (player == null) {
+            return;
+        }
+        HudPlayerState state = playerStates.computeIfAbsent(player.getUniqueId(), id -> new HudPlayerState());
+        boolean enabled = !state.isDebugMode();
+        state.setDebugMode(enabled);
+        state.setLastDebugLogMs(System.currentTimeMillis());
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                enabled ? "HUD debug mode enabled." : "HUD debug mode disabled.");
+        if (enabled) {
+            logDebugElements(player, buildCanvas(player), true);
+        }
+    }
+
+    public void setDebugMode(Player player, boolean enabled) {
+        if (player == null) {
+            return;
+        }
+        HudPlayerState state = playerStates.computeIfAbsent(player.getUniqueId(), id -> new HudPlayerState());
+        state.setDebugMode(enabled);
+        state.setLastDebugLogMs(System.currentTimeMillis());
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                enabled ? "HUD debug mode enabled." : "HUD debug mode disabled.");
+        if (enabled) {
+            logDebugElements(player, buildCanvas(player), true);
+        }
+    }
+
     public void debug(Player player) {
         if (player == null) {
             return;
@@ -154,12 +185,6 @@ public class HudManager {
                 if (layout == null) {
                     continue;
                 }
-                HudPositionResolver.ResolvedPosition layoutBase = HudPositionResolver.resolve(
-                        placement.getPosition(),
-                        config.getCanvasWidthPx(),
-                        config.getCanvasHeightPx());
-                int layoutRow = placement.getPosition().row();
-                Map<String, AnchorBounds> anchors = buildAnchors(layout, layoutBase);
                 for (HudElement element : layout.getElements()) {
                     List<String> failures = new ArrayList<>();
                     for (me.nakilex.levelplugin.hud.conditions.HudCondition condition : element.getConditions()) {
@@ -173,15 +198,19 @@ public class HudManager {
                                 element.getId() + " hidden: " + String.join("; ", failures));
                         continue;
                     }
-                    int row = layoutRow + element.getPosition().row();
-                    HudResolvedElement resolved = resolveElement(player, element, layoutBase, anchors, row);
-                    if (resolved != null && !resolved.getText().isBlank()) {
-                        shown++;
-                        String line = resolved.getId() + " x=" + resolved.getX() + " y=" + resolved.getY()
-                                + " layer=" + resolved.getLayer() + " align=" + resolved.getAlign()
-                                + " -> " + resolved.getText();
-                        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO, line);
-                    }
+                }
+                HudPositionResolver.ResolvedPosition groupBase = resolveGroupBase(placement);
+                List<HudResolvedElement> resolved = resolveLayoutElements(player, layout, placement, context, groupBase);
+                for (HudResolvedElement element : resolved) {
+                    shown++;
+                    int renderX = (int) Math.round(element.getX() * element.getScale());
+                    int renderY = (int) Math.round(element.getY() * element.getScale());
+                    int width = (int) Math.round(element.getWidth() * element.getScale());
+                    int height = (int) Math.round(element.getHeight() * element.getScale());
+                    String line = element.getId() + " x=" + renderX + " y=" + renderY + " w=" + width + " h=" + height
+                            + " scale=" + element.getScale() + " layer=" + element.getLayer()
+                            + " align=" + element.getAlign() + " -> " + element.getText();
+                    ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO, line);
                 }
             }
         }
@@ -325,6 +354,8 @@ public class HudManager {
         if (config == null) {
             return new HudCanvas(resolved);
         }
+        HudPlayerState state = playerStates.computeIfAbsent(player.getUniqueId(), id -> new HudPlayerState());
+        boolean debugEnabled = state.isDebugMode();
         HudConditionContext context = new HudConditionContext(placeholderService);
         List<String> moduleIds = config.getDefaultModules().isEmpty()
                 ? new ArrayList<>(config.getModules().keySet())
@@ -340,71 +371,96 @@ public class HudManager {
                 if (layout == null) {
                     continue;
                 }
-                HudPositionResolver.ResolvedPosition layoutBase = HudPositionResolver.resolve(
-                        placement.getPosition(),
+                HudPositionResolver.ResolvedPosition anchorBase = HudPositionResolver.resolveAnchorBase(
+                        placement.getPosition().anchor(),
                         config.getCanvasWidthPx(),
                         config.getCanvasHeightPx());
-                int layoutRow = placement.getPosition().row();
-                Map<String, AnchorBounds> anchors = buildAnchors(layout, layoutBase);
-                for (HudElement element : layout.getElements()) {
-                    if (!element.shouldRender(player, context)) {
-                        continue;
-                    }
-                    int row = layoutRow + element.getPosition().row();
-                    HudResolvedElement resolvedElement = resolveElement(player, element, layoutBase, anchors, row);
-                    if (resolvedElement != null && !resolvedElement.getText().isBlank()) {
-                        resolved.add(resolvedElement);
-                    }
+                HudPositionResolver.ResolvedPosition groupBase = resolveGroupBase(placement);
+                resolved.addAll(resolveLayoutElements(player, layout, placement, context, groupBase));
+                if (debugEnabled) {
+                    appendDebugMarkers(resolved, placement, anchorBase, groupBase);
                 }
             }
+        }
+        if (debugEnabled) {
+            maybeLogDebugElements(player, resolved, state);
         }
         return new HudCanvas(resolved);
     }
 
-    private HudResolvedElement resolveElement(Player player, HudElement element,
-                                              HudPositionResolver.ResolvedPosition layoutBase,
-                                              Map<String, AnchorBounds> anchors,
-                                              int row) {
-        String text = switch (element.getType()) {
-            case TEXT -> placeholderService.resolve(player, element.getText());
-            case IMAGE -> resolveImageGlyph(element.getAssetId());
-            case BAR -> resolveBarGlyph(player, element.getAssetId());
-        };
-        if (text == null || text.isBlank()) {
-            return null;
+    private List<HudResolvedElement> resolveLayoutElements(Player player,
+                                                           HudLayout layout,
+                                                           HudLayoutPlacement placement,
+                                                           HudConditionContext context,
+                                                           HudPositionResolver.ResolvedPosition groupBase) {
+        List<HudResolvedElement> resolved = new ArrayList<>();
+        if (layout == null || placement == null) {
+            return resolved;
         }
-        HudPositionResolver.ResolvedPosition elementPos = HudPositionResolver.resolve(
-                element.getPosition(),
-                config.getCanvasWidthPx(),
-                config.getCanvasHeightPx());
-        int x = layoutBase.x() + elementPos.x();
-        int y = layoutBase.y() + elementPos.y();
-        HudTextAlign align = element.getAlign();
-        if (element.getType() == HudElementType.TEXT && anchors != null && element.getAnchorId() != null
-                && !element.getAnchorId().isBlank()) {
-            AnchorBounds anchor = anchors.get(element.getAnchorId().toLowerCase(Locale.ROOT));
-            if (anchor != null) {
-                int textWidth = (int) Math.round(pixelLength(text) * element.getScale());
-                switch (element.getAlign()) {
-                    case CENTER -> x = anchor.centerX() - textWidth / 2 + elementPos.x();
-                    case RIGHT -> x = anchor.rightX() - textWidth + elementPos.x();
-                    case LEFT -> x = anchor.leftX() + elementPos.x();
-                }
-                y = anchor.topY() + elementPos.y();
-                align = HudTextAlign.LEFT;
+        int layoutRow = placement.getPosition().row();
+        List<ElementLayout> layouts = new ArrayList<>();
+        for (HudElement element : layout.getElements()) {
+            if (!element.shouldRender(player, context)) {
+                continue;
             }
+            String text = switch (element.getType()) {
+                case TEXT -> placeholderService.resolve(player, element.getText());
+                case IMAGE -> resolveImageGlyph(element.getAssetId());
+                case BAR -> resolveBarGlyph(player, element.getAssetId());
+            };
+            if (text == null || text.isBlank()) {
+                continue;
+            }
+            ElementMetrics metrics = measureElementMetrics(element, text);
+            int row = layoutRow + element.getPosition().row();
+            int offsetX = element.getPosition().pixelX();
+            int offsetY = element.getPosition().pixelY();
+            layouts.add(new ElementLayout(element, text, offsetX, offsetY, row, metrics.width(), metrics.height()));
         }
-        return new HudResolvedElement(element.getId(), text, x, y, row, element.getLayer(),
-                element.getScale(), align);
+        Map<String, AnchorBounds> anchors = buildAnchorBounds(layouts, groupBase, placement.getAlign());
+        for (ElementLayout layoutElement : layouts) {
+            HudElement element = layoutElement.element();
+            int width = layoutElement.width();
+            int height = layoutElement.height();
+            int x = groupBase.x() + layoutElement.offsetX() + alignmentShift(placement.getAlign(), width);
+            int y = groupBase.y() + layoutElement.offsetY();
+            HudTextAlign align = element.getAlign();
+            if (element.getType() == HudElementType.TEXT && element.getAnchorId() != null
+                    && !element.getAnchorId().isBlank()) {
+                AnchorBounds anchor = anchors.get(element.getAnchorId().toLowerCase(Locale.ROOT));
+                if (anchor != null) {
+                    switch (element.getAlign()) {
+                        case CENTER -> x = anchor.centerX() - width / 2 + layoutElement.offsetX();
+                        case RIGHT -> x = anchor.rightX() - width + layoutElement.offsetX();
+                        case LEFT -> x = anchor.leftX() + layoutElement.offsetX();
+                    }
+                    y = anchor.topY() + layoutElement.offsetY();
+                    align = HudTextAlign.LEFT;
+                }
+            }
+            resolved.add(new HudResolvedElement(element.getId(), layoutElement.text(), x, y, layoutElement.row(),
+                    width, height, element.getLayer(), element.getScale(), align));
+        }
+        return resolved;
     }
 
-    private Map<String, AnchorBounds> buildAnchors(HudLayout layout,
-                                                   HudPositionResolver.ResolvedPosition layoutBase) {
-        Map<String, AnchorBounds> anchors = new HashMap<>();
-        if (layout == null) {
-            return anchors;
+    private HudPositionResolver.ResolvedPosition resolveGroupBase(HudLayoutPlacement placement) {
+        HudPositionResolver.ResolvedPosition base = HudPositionResolver.resolve(
+                placement.getPosition(),
+                config.getCanvasWidthPx(),
+                config.getCanvasHeightPx());
+        if (config.isApplyBaselineOffset()) {
+            return new HudPositionResolver.ResolvedPosition(base.x(), base.y() - BASELINE_OFFSET_PX);
         }
-        for (HudElement element : layout.getElements()) {
+        return base;
+    }
+
+    private Map<String, AnchorBounds> buildAnchorBounds(List<ElementLayout> layouts,
+                                                        HudPositionResolver.ResolvedPosition groupBase,
+                                                        HudTextAlign align) {
+        Map<String, AnchorBounds> anchors = new HashMap<>();
+        for (ElementLayout layoutElement : layouts) {
+            HudElement element = layoutElement.element();
             if (element.getType() == HudElementType.TEXT) {
                 continue;
             }
@@ -412,23 +468,93 @@ public class HudManager {
             if (id == null || id.isBlank()) {
                 continue;
             }
-            int width = element.getType() == HudElementType.IMAGE || element.getType() == HudElementType.BAR
-                    ? assetRegistry.getAssetWidth(element.getAssetId())
-                    : 0;
-            int height = element.getType() == HudElementType.IMAGE || element.getType() == HudElementType.BAR
-                    ? assetRegistry.getAssetHeight(element.getAssetId())
-                    : 0;
-            int scaledWidth = (int) Math.round(width * element.getScale());
-            int scaledHeight = (int) Math.round(height * element.getScale());
-            HudPositionResolver.ResolvedPosition elementPos = HudPositionResolver.resolve(
-                    element.getPosition(),
-                    config.getCanvasWidthPx(),
-                    config.getCanvasHeightPx());
-            int x = layoutBase.x() + elementPos.x();
-            int y = layoutBase.y() + elementPos.y();
-            anchors.put(id.toLowerCase(Locale.ROOT), new AnchorBounds(x, y, scaledWidth, scaledHeight));
+            int width = layoutElement.width();
+            int height = layoutElement.height();
+            int x = groupBase.x() + layoutElement.offsetX() + alignmentShift(align, width);
+            int y = groupBase.y() + layoutElement.offsetY();
+            anchors.put(id.toLowerCase(Locale.ROOT), new AnchorBounds(x, y, width, height));
         }
         return anchors;
+    }
+
+    private int alignmentShift(HudTextAlign align, int width) {
+        if (align == null) {
+            return 0;
+        }
+        return switch (align) {
+            case CENTER -> -(width / 2);
+            case RIGHT -> -width;
+            case LEFT -> 0;
+        };
+    }
+
+    private ElementMetrics measureElementMetrics(HudElement element, String text) {
+        if (element == null) {
+            return new ElementMetrics(0, 0);
+        }
+        return switch (element.getType()) {
+            case TEXT -> new ElementMetrics(pixelLength(text), DEFAULT_TEXT_HEIGHT_PX);
+            case IMAGE, BAR -> new ElementMetrics(
+                    assetRegistry == null ? 0 : assetRegistry.getAssetWidth(element.getAssetId()),
+                    assetRegistry == null ? 0 : assetRegistry.getAssetHeight(element.getAssetId()));
+        };
+    }
+
+    private void appendDebugMarkers(List<HudResolvedElement> resolved,
+                                    HudLayoutPlacement placement,
+                                    HudPositionResolver.ResolvedPosition anchorBase,
+                                    HudPositionResolver.ResolvedPosition groupBase) {
+        if (resolved == null || placement == null) {
+            return;
+        }
+        int row = placement.getPosition().row();
+        String anchorLabel = org.bukkit.ChatColor.RED + "A";
+        String originLabel = org.bukkit.ChatColor.YELLOW + "O";
+        int anchorWidth = pixelLength(anchorLabel);
+        int originWidth = pixelLength(originLabel);
+        resolved.add(new HudResolvedElement("hud_debug_anchor_" + placement.getLayoutId(),
+                anchorLabel, anchorBase.x(), anchorBase.y(), row, anchorWidth, DEFAULT_TEXT_HEIGHT_PX,
+                Integer.MAX_VALUE - 1, 1.0, HudTextAlign.LEFT));
+        resolved.add(new HudResolvedElement("hud_debug_origin_" + placement.getLayoutId(),
+                originLabel, groupBase.x(), groupBase.y(), row, originWidth, DEFAULT_TEXT_HEIGHT_PX,
+                Integer.MAX_VALUE - 1, 1.0, HudTextAlign.LEFT));
+    }
+
+    private void maybeLogDebugElements(Player player, List<HudResolvedElement> elements, HudPlayerState state) {
+        if (player == null || state == null || elements == null) {
+            return;
+        }
+        long now = System.currentTimeMillis();
+        if (now - state.getLastDebugLogMs() < DEBUG_LOG_INTERVAL_MS) {
+            return;
+        }
+        state.setLastDebugLogMs(now);
+        logDebugElements(player, new HudCanvas(elements), false);
+    }
+
+    private void logDebugElements(Player player, HudCanvas canvas, boolean forceHeader) {
+        if (player == null || canvas == null) {
+            return;
+        }
+        if (forceHeader) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO, "HUD debug positions:");
+        }
+        for (HudResolvedElement resolved : canvas.getElements()) {
+            int renderX = (int) Math.round(resolved.getX() * resolved.getScale());
+            int renderY = (int) Math.round(resolved.getY() * resolved.getScale());
+            int width = (int) Math.round(resolved.getWidth() * resolved.getScale());
+            int height = (int) Math.round(resolved.getHeight() * resolved.getScale());
+            String line = resolved.getId() + " x=" + renderX + " y=" + renderY
+                    + " w=" + width + " h=" + height + " scale=" + resolved.getScale();
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO, line);
+        }
+    }
+
+    private record ElementLayout(HudElement element, String text, int offsetX, int offsetY, int row,
+                                 int width, int height) {
+    }
+
+    private record ElementMetrics(int width, int height) {
     }
 
     private int pixelLength(String text) {
