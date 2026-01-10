@@ -80,15 +80,17 @@ public class HudManager {
         this.assetRegistry = buildAssetRegistry(config.getImages());
         HudPackBuilder packBuilder = new HudPackBuilder(plugin);
         java.nio.file.Path resolvedRoot = resolveSourceTextureRoot();
+        java.nio.file.Path resolvedOutputFolder = resolveOutputFolder();
         plugin.getLogger().info("HUD sourceTexturesFolder: " + config.getSourceTexturesFolder());
         plugin.getLogger().info("HUD resolvedSourceTexturesFolder: " + resolvedRoot);
         plugin.getLogger().info("HUD imagesConfigPath: " + config.getImagesConfigPath());
+        plugin.getLogger().info("HUD resolvedOutputFolder: " + resolvedOutputFolder);
         logTextureSample(config.getImages());
         List<String> missing = packBuilder.collectMissingTextures(resolvedRoot.toString(), assetRegistry);
         if (!missing.isEmpty()) {
             plugin.getLogger().warning("HUD textures missing from source folder (" + missing.size() + "). Example: " + missing.get(0));
         }
-        packBuilder.build(config.getOutputFolder(), config.getNamespace(), assetRegistry);
+        packBuilder.build(resolvedOutputFolder.toString(), config.getNamespace(), assetRegistry);
         int bossBarLines = config.isMergeBossBar() ? 1 : config.getBossbarLines();
         Key fontKey = Key.key(config.getNamespace(), "hud_generated");
         this.renderer = new HudBossBarRenderer(bossBarLines, config.getLineHeightPx(),
@@ -430,6 +432,16 @@ public class HudManager {
             root = Bukkit.getWorldContainer().toPath().resolve(root);
         }
         return root.toAbsolutePath().normalize();
+    }
+
+    private java.nio.file.Path resolveOutputFolder() {
+        String configured = config.getOutputFolder();
+        java.nio.file.Path output = java.nio.file.Paths.get(configured);
+        if (!output.isAbsolute()) {
+            java.io.File pluginsFolder = plugin.getDataFolder().getParentFile();
+            output = pluginsFolder.toPath().resolve(output);
+        }
+        return output.toAbsolutePath().normalize();
     }
 
     private class HudPlayerListener implements Listener {
