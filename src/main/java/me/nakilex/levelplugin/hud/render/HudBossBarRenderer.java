@@ -76,6 +76,8 @@ public class HudBossBarRenderer implements HudRenderer {
                 .thenComparingInt(HudResolvedElement::getX));
         StringBuilder builder = new StringBuilder();
         int currentPx = 0;
+        int originShift = -(canvasWidthPx / 2);
+        currentPx += appendAdvance(builder, originShift);
         for (HudResolvedElement element : sorted) {
             String text = element.getText();
             if (text == null || text.isBlank()) {
