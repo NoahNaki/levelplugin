@@ -3,7 +3,6 @@ package me.nakilex.levelplugin.hud.render;
 import me.nakilex.levelplugin.hud.core.HudCanvas;
 import me.nakilex.levelplugin.hud.core.HudResolvedElement;
 import me.nakilex.levelplugin.hud.core.HudTextAlign;
-import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.utils.DefaultFontInfo;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
@@ -25,13 +24,16 @@ public class HudBossBarRenderer implements HudRenderer {
     private final int canvasWidthPx;
     private final boolean mergeBossBar;
     private final Key hudFontKey;
+    private final Map<Character, Integer> glyphWidths;
 
-    public HudBossBarRenderer(int lines, int lineHeightPx, int canvasWidthPx, boolean mergeBossBar, Key hudFontKey) {
+    public HudBossBarRenderer(int lines, int lineHeightPx, int canvasWidthPx, boolean mergeBossBar, Key hudFontKey,
+                              Map<Character, Integer> glyphWidths) {
         this.lines = Math.max(1, lines);
         this.lineHeightPx = Math.max(1, lineHeightPx);
         this.canvasWidthPx = Math.max(1, canvasWidthPx);
         this.mergeBossBar = mergeBossBar;
         this.hudFontKey = hudFontKey;
+        this.glyphWidths = glyphWidths == null ? Map.of() : Map.copyOf(glyphWidths);
     }
 
     @Override
@@ -80,7 +82,7 @@ public class HudBossBarRenderer implements HudRenderer {
                 currentPx += SPACE_WIDTH;
             }
             builder.append(text);
-            currentPx += (int) Math.round(ChatFormatter.pixelLength(text) * element.getScale());
+            currentPx += (int) Math.round(pixelLength(text) * element.getScale());
         }
         return builder.toString();
     }
@@ -128,5 +130,34 @@ public class HudBossBarRenderer implements HudRenderer {
             case LEFT -> 0;
         };
         return (int) Math.round(base + element.getX() * element.getScale());
+    }
+
+    private int pixelLength(String text) {
+        if (text == null || text.isEmpty()) {
+            return 0;
+        }
+        int px = 0;
+        boolean previousCode = false;
+        boolean bold = false;
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            if (c == '§') {
+                previousCode = true;
+                continue;
+            }
+            if (previousCode) {
+                previousCode = false;
+                bold = c == 'l' || c == 'L';
+                continue;
+            }
+            if (isGlyph(c)) {
+                int glyphWidth = glyphWidths.getOrDefault(c, DefaultFontInfo.SPACE.getLength());
+                px += glyphWidth + 1;
+                continue;
+            }
+            DefaultFontInfo dFI = DefaultFontInfo.getDefaultFontInfo(c);
+            px += (bold ? DefaultFontInfo.getBoldLength() : dFI.getLength()) + 1;
+        }
+        return px;
     }
 }

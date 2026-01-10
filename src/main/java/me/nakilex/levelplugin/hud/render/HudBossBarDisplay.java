@@ -43,8 +43,11 @@ public class HudBossBarDisplay {
             boolean visible = title != null && !title.isBlank();
             bar.name(visible ? component : Component.empty());
             bar.progress(0.0f);
-            bar.visible(visible);
-            player.showBossBar(bar);
+            if (visible) {
+                player.showBossBar(bar);
+            } else {
+                player.hideBossBar(bar);
+            }
         }
     }
 
@@ -73,8 +76,6 @@ public class HudBossBarDisplay {
         List<BossBar> bars = new ArrayList<>(lines);
         for (int i = 0; i < lines; i++) {
             BossBar bar = BossBar.bossBar(Component.empty(), 1.0f, barColor, barStyle);
-            bar.visible(false);
-            player.showBossBar(bar);
             bars.add(bar);
         }
         return bars;

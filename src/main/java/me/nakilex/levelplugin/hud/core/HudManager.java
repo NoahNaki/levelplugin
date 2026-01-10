@@ -38,6 +38,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.io.IOException;
 
 public class HudManager {
     private final Main plugin;
@@ -77,9 +78,9 @@ public class HudManager {
     public void reload() {
         this.config = configLoader.load();
         placeholderCache.setTtlMs(config.getPlaceholderCacheTtlMs());
-        this.assetRegistry = buildAssetRegistry(config.getImages());
-        HudPackBuilder packBuilder = new HudPackBuilder(plugin);
         java.nio.file.Path resolvedRoot = resolveSourceTextureRoot();
+        this.assetRegistry = buildAssetRegistry(config.getImages(), resolvedRoot);
+        HudPackBuilder packBuilder = new HudPackBuilder(plugin);
         java.nio.file.Path resolvedOutputFolder = resolveOutputFolder();
         plugin.getLogger().info("HUD sourceTexturesFolder: " + config.getSourceTexturesFolder());
         plugin.getLogger().info("HUD resolvedSourceTexturesFolder: " + resolvedRoot);
@@ -94,7 +95,8 @@ public class HudManager {
         int bossBarLines = config.isMergeBossBar() ? 1 : config.getBossbarLines();
         Key fontKey = Key.key(config.getNamespace(), "hud_generated");
         this.renderer = new HudBossBarRenderer(bossBarLines, config.getLineHeightPx(),
-                config.getCanvasWidthPx(), config.isMergeBossBar(), fontKey);
+                config.getCanvasWidthPx(), config.isMergeBossBar(), fontKey,
+                assetRegistry.getGlyphWidths());
         if (this.bossBarDisplay != null) {
             this.bossBarDisplay.clearAll();
         }
@@ -364,7 +366,8 @@ public class HudManager {
         }
     }
 
-    private HudAssetRegistry buildAssetRegistry(Map<String, HudImageDefinition> images) {
+    private HudAssetRegistry buildAssetRegistry(Map<String, HudImageDefinition> images,
+                                                java.nio.file.Path sourceTextureRoot) {
         HudAssetRegistry registry = new HudAssetRegistry();
         HudGlyphAllocator allocator = new HudGlyphAllocator();
         me.nakilex.levelplugin.hud.assets.HudTextureResolver resolver = new me.nakilex.levelplugin.hud.assets.HudTextureResolver();
@@ -378,7 +381,7 @@ public class HudManager {
                     if (texture == null || texture.isBlank()) {
                         continue;
                     }
-                    glyphs.add(new HudGlyph(allocator.next(), texture));
+                    glyphs.add(createGlyph(allocator.next(), texture, sourceTextureRoot));
                 }
                 if (glyphs.isEmpty()) {
                     plugin.getLogger().warning("HUD bar '" + definition.getId() + "' has no frames configured.");
@@ -387,13 +390,38 @@ public class HudManager {
             } else {
                 if (definition.getTexture() != null && !definition.getTexture().isBlank()) {
                     String texture = resolver.resolveSingle(definition.getTexture());
-                    registry.registerGlyph(definition.getId(), new HudGlyph(allocator.next(), texture));
+                    registry.registerGlyph(definition.getId(), createGlyph(allocator.next(), texture, sourceTextureRoot));
                 } else {
                     plugin.getLogger().warning("HUD image '" + definition.getId() + "' is missing a texture path.");
                 }
             }
         }
         return registry;
+    }
+
+    private HudGlyph createGlyph(char codepoint, String texture, java.nio.file.Path sourceTextureRoot) {
+        int width = 0;
+        int height = 0;
+        java.nio.file.Path texturePath = resolveTexturePath(sourceTextureRoot, texture);
+        if (texturePath != null) {
+            try {
+                java.awt.image.BufferedImage image = javax.imageio.ImageIO.read(texturePath.toFile());
+                if (image != null) {
+                    width = image.getWidth();
+                    height = image.getHeight();
+                }
+            } catch (IOException ex) {
+                plugin.getLogger().warning("Failed to read HUD texture size for '" + texture + "': " + ex.getMessage());
+            }
+        }
+        return new HudGlyph(codepoint, texture, width, height);
+    }
+
+    private java.nio.file.Path resolveTexturePath(java.nio.file.Path sourceTextureRoot, String texture) {
+        if (sourceTextureRoot == null || texture == null || texture.isBlank()) {
+            return null;
+        }
+        return sourceTextureRoot.resolve(texture).normalize();
     }
 
     private String resolveFrameTexture(HudImageDefinition definition,

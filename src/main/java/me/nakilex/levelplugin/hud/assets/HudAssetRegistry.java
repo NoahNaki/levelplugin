@@ -9,6 +9,7 @@ public class HudAssetRegistry {
     private final Map<String, HudImageDefinition> definitions = new HashMap<>();
     private final Map<String, HudGlyph> glyphs = new HashMap<>();
     private final Map<String, List<HudGlyph>> barFrames = new HashMap<>();
+    private final Map<Character, Integer> glyphWidths = new HashMap<>();
 
     public void registerDefinition(HudImageDefinition definition) {
         if (definition == null || definition.getId() == null) {
@@ -26,6 +27,7 @@ public class HudAssetRegistry {
             return;
         }
         glyphs.put(id.toLowerCase(), glyph);
+        registerGlyphWidth(glyph);
     }
 
     public void registerBarFrames(String id, List<HudGlyph> frames) {
@@ -33,6 +35,9 @@ public class HudAssetRegistry {
             return;
         }
         barFrames.put(id.toLowerCase(), frames);
+        for (HudGlyph glyph : frames) {
+            registerGlyphWidth(glyph);
+        }
     }
 
     public HudGlyph getGlyph(String id) {
@@ -47,5 +52,19 @@ public class HudAssetRegistry {
             return List.of();
         }
         return barFrames.getOrDefault(id.toLowerCase(), List.of());
+    }
+
+    public Map<Character, Integer> getGlyphWidths() {
+        return Collections.unmodifiableMap(glyphWidths);
+    }
+
+    private void registerGlyphWidth(HudGlyph glyph) {
+        if (glyph == null) {
+            return;
+        }
+        int width = Math.max(0, glyph.width());
+        if (width > 0) {
+            glyphWidths.put(glyph.codepoint(), width);
+        }
     }
 }
