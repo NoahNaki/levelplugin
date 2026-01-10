@@ -20,10 +20,11 @@ import me.nakilex.levelplugin.hud.render.HudBossBarRenderer;
 import me.nakilex.levelplugin.hud.render.HudRenderOutput;
 import me.nakilex.levelplugin.hud.render.HudRenderer;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
+import me.nakilex.levelplugin.utils.ResourcePackUtil;
+import net.kyori.adventure.bossbar.BossBar;
+import net.kyori.adventure.key.Key;
 import org.bukkit.command.CommandSender;
 import org.bukkit.Bukkit;
-import org.bukkit.boss.BarColor;
-import org.bukkit.boss.BarStyle;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -88,12 +89,14 @@ public class HudManager {
         }
         packBuilder.build(config.getOutputFolder(), config.getNamespace(), assetRegistry);
         int bossBarLines = config.isMergeBossBar() ? 1 : config.getBossbarLines();
+        Key fontKey = Key.key(config.getNamespace(), "hud_generated");
         this.renderer = new HudBossBarRenderer(bossBarLines, config.getLineHeightPx(),
-                config.getCanvasWidthPx(), config.isMergeBossBar());
+                config.getCanvasWidthPx(), config.isMergeBossBar(), fontKey);
         if (this.bossBarDisplay != null) {
             this.bossBarDisplay.clearAll();
         }
-        this.bossBarDisplay = new HudBossBarDisplay(bossBarLines, BarColor.WHITE, BarStyle.SOLID);
+        this.bossBarDisplay = new HudBossBarDisplay(bossBarLines, BossBar.Color.WHITE, BossBar.Overlay.PROGRESS);
+        refreshHudResourcePack();
         stopTask();
         startTask();
         placeholderCache.clearAll();
@@ -228,6 +231,12 @@ public class HudManager {
         HudCanvas canvas = buildCanvas(player);
         HudRenderOutput output = renderer.render(canvas);
         bossBarDisplay.update(player, output);
+    }
+
+    private void refreshHudResourcePack() {
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            ResourcePackUtil.refresh(player);
+        }
     }
 
     private HudCanvas buildCanvas(Player player) {
