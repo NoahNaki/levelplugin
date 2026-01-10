@@ -26,7 +26,7 @@ public class HudCommand implements CommandExecutor, TabCompleter {
         }
         if (args.length == 0) {
             ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.INFO,
-                    "/hud reload | /hud debug [player] | /hud debug assets | /hud toggle");
+                    "/hud reload | /hud debug [player] | /hud debug assets | /hud toggle | /hud testglyph");
             return true;
         }
         String sub = args[0].toLowerCase(Locale.ROOT);
@@ -59,6 +59,13 @@ public class HudCommand implements CommandExecutor, TabCompleter {
                 }
                 hudManager.toggle(player);
             }
+            case "testglyph" -> {
+                if (!(sender instanceof Player player)) {
+                    ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.ERROR, "Only players can use /hud testglyph.");
+                    return true;
+                }
+                hudManager.testGlyph(player);
+            }
             default -> ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.WARNING, "Unknown subcommand.");
         }
         return true;
@@ -67,7 +74,7 @@ public class HudCommand implements CommandExecutor, TabCompleter {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            return List.of("reload", "debug", "toggle");
+            return List.of("reload", "debug", "toggle", "testglyph");
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("debug")) {
             List<String> options = new java.util.ArrayList<>();

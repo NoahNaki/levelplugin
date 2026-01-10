@@ -23,6 +23,7 @@ import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.ResourcePackUtil;
 import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.key.Key;
+import net.kyori.adventure.text.Component;
 import org.bukkit.command.CommandSender;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -200,6 +201,30 @@ public class HudManager {
         if (missing.size() > limit) {
             ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.WARNING, "... and more");
         }
+    }
+
+    public void testGlyph(Player player) {
+        if (player == null) {
+            return;
+        }
+        if (config == null) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "No HUD configuration loaded.");
+            return;
+        }
+        String namespace = config.getNamespace() == null || config.getNamespace().isBlank()
+                ? "betterhud"
+                : config.getNamespace();
+        Key fontKey = Key.key(namespace, "hud_fantasy_hud_image");
+        boolean refreshed = ResourcePackUtil.refresh(player);
+        if (!refreshed) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                    "Unable to refresh resource pack. Check server resource pack settings.");
+        }
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                "Rendering test glyph with font " + namespace + ":hud_fantasy_hud_image.");
+        Component glyph = Component.text("\uE000").font(fontKey);
+        Component message = Component.text("HUD glyph: ").append(glyph);
+        player.sendMessage(message);
     }
 
     private void startTask() {
