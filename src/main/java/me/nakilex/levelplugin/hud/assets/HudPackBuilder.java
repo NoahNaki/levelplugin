@@ -71,10 +71,9 @@ public class HudPackBuilder {
     }
 
     private String providerJson(String namespace, String texture, char codepoint) {
-        String texturePath = "textures/" + texture;
         return "{"
                 + "\"type\":\"bitmap\","
-                + "\"file\":\"" + namespace + ":" + texturePath + "\","
+                + "\"file\":\"" + namespace + ":" + texture + "\","
                 + "\"ascent\":8,"
                 + "\"height\":8,"
                 + "\"chars\":[\"" + codepoint + "\"]"
