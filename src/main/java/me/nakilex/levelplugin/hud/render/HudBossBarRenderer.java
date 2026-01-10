@@ -63,8 +63,9 @@ public class HudBossBarRenderer implements HudRenderer {
             return 0;
         }
         double normalized = (double) y / canvasHeightPx;
-        int lineIndex = (int) Math.round(normalized * (lines - 1));
-        return Math.max(0, Math.min(lines - 1, lineIndex));
+        int lineIndex = (int) Math.floor(normalized * (lines - 1));
+        int inverted = (lines - 1) - lineIndex;
+        return Math.max(0, Math.min(lines - 1, inverted));
     }
 
     private String composeLine(List<HudResolvedElement> elements) {
