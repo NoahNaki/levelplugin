@@ -39,14 +39,18 @@ public class HudBossBarRenderer implements HudRenderer {
     @Override
     public HudRenderOutput render(HudCanvas canvas) {
         Map<Integer, List<HudResolvedElement>> byLine = new TreeMap<>();
+        int minLine = Integer.MAX_VALUE;
         for (HudResolvedElement element : canvas.getElements()) {
-            int lineIndex = mergeBossBar ? 0 : mapLine(element.getY());
+            int lineIndex = mergeBossBar ? 0 : rawLineIndex(element.getY());
+            minLine = Math.min(minLine, lineIndex);
             byLine.computeIfAbsent(lineIndex, id -> new ArrayList<>()).add(element);
         }
+        int lineOffset = minLine == Integer.MAX_VALUE ? 0 : Math.max(0, -minLine);
         List<String> linesOut = new ArrayList<>();
         List<Component> componentsOut = new ArrayList<>();
         for (int line = 0; line < lines; line++) {
-            List<HudResolvedElement> elements = byLine.getOrDefault(line, List.of());
+            int sourceLine = mergeBossBar ? 0 : line - lineOffset;
+            List<HudResolvedElement> elements = byLine.getOrDefault(sourceLine, List.of());
             String lineText = composeLine(elements);
             linesOut.add(lineText);
             componentsOut.add(composeComponent(lineText));
@@ -54,12 +58,8 @@ public class HudBossBarRenderer implements HudRenderer {
         return new HudRenderOutput(linesOut, componentsOut);
     }
 
-    private int mapLine(int y) {
-        int lineIndex = (int) Math.floor((double) y / lineHeightPx);
-        if (lineIndex < 0) {
-            return 0;
-        }
-        return Math.min(lines - 1, lineIndex);
+    private int rawLineIndex(int y) {
+        return (int) Math.floor((double) y / lineHeightPx);
     }
 
     private String composeLine(List<HudResolvedElement> elements) {
@@ -69,6 +69,11 @@ public class HudBossBarRenderer implements HudRenderer {
         List<HudResolvedElement> sorted = new ArrayList<>(elements);
         sorted.sort(Comparator.comparingInt(HudResolvedElement::getLayer)
                 .thenComparingInt(HudResolvedElement::getX));
+        int minX = 0;
+        for (HudResolvedElement element : sorted) {
+            minX = Math.min(minX, alignedX(element));
+        }
+        int offsetX = minX < 0 ? -minX : 0;
         StringBuilder builder = new StringBuilder();
         int currentPx = 0;
         for (HudResolvedElement element : sorted) {
@@ -76,7 +81,7 @@ public class HudBossBarRenderer implements HudRenderer {
             if (text == null || text.isBlank()) {
                 continue;
             }
-            int targetPx = alignedX(element);
+            int targetPx = alignedX(element) + offsetX;
             while (currentPx + SPACE_WIDTH <= targetPx) {
                 builder.append(' ');
                 currentPx += SPACE_WIDTH;

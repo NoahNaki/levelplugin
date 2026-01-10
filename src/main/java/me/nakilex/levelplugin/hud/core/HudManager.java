@@ -20,6 +20,7 @@ import me.nakilex.levelplugin.hud.render.HudBossBarRenderer;
 import me.nakilex.levelplugin.hud.render.HudRenderOutput;
 import me.nakilex.levelplugin.hud.render.HudRenderer;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
+import me.nakilex.levelplugin.utils.DefaultFontInfo;
 import me.nakilex.levelplugin.utils.ResourcePackUtil;
 import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.key.Key;
@@ -288,11 +289,12 @@ public class HudManager {
                 if (layout == null) {
                     continue;
                 }
+                Map<String, AnchorBounds> anchors = buildAnchors(layout, placement);
                 for (HudElement element : layout.getElements()) {
                     if (!element.shouldRender(player, context)) {
                         continue;
                     }
-                    HudResolvedElement resolvedElement = resolveElement(player, element, placement);
+                    HudResolvedElement resolvedElement = resolveElement(player, element, placement, anchors);
                     if (resolvedElement != null && !resolvedElement.getText().isBlank()) {
                         resolved.add(resolvedElement);
                     }
@@ -302,7 +304,8 @@ public class HudManager {
         return new HudCanvas(resolved);
     }
 
-    private HudResolvedElement resolveElement(Player player, HudElement element, HudLayoutPlacement placement) {
+    private HudResolvedElement resolveElement(Player player, HudElement element, HudLayoutPlacement placement,
+                                              Map<String, AnchorBounds> anchors) {
         String text = switch (element.getType()) {
             case TEXT -> placeholderService.resolve(player, element.getText());
             case IMAGE -> resolveImageGlyph(element.getAssetId());
@@ -313,8 +316,90 @@ public class HudManager {
         }
         int x = placement.getOffsetX() + element.getX();
         int y = placement.getOffsetY() + element.getY();
+        HudTextAlign align = element.getAlign();
+        if (element.getType() == HudElementType.TEXT && anchors != null && element.getAnchorId() != null
+                && !element.getAnchorId().isBlank()) {
+            AnchorBounds anchor = anchors.get(element.getAnchorId().toLowerCase(Locale.ROOT));
+            if (anchor != null) {
+                int textWidth = (int) Math.round(pixelLength(text) * element.getScale());
+                switch (element.getAlign()) {
+                    case CENTER -> x = anchor.centerX() - textWidth / 2 + element.getX();
+                    case RIGHT -> x = anchor.rightX() - textWidth + element.getX();
+                    case LEFT -> x = anchor.leftX() + element.getX();
+                }
+                y = anchor.topY() + element.getY();
+                align = HudTextAlign.LEFT;
+            }
+        }
         return new HudResolvedElement(element.getId(), text, x, y, element.getLayer(),
-                element.getScale(), element.getAlign());
+                element.getScale(), align);
+    }
+
+    private Map<String, AnchorBounds> buildAnchors(HudLayout layout, HudLayoutPlacement placement) {
+        Map<String, AnchorBounds> anchors = new HashMap<>();
+        if (layout == null) {
+            return anchors;
+        }
+        for (HudElement element : layout.getElements()) {
+            if (element.getType() == HudElementType.TEXT) {
+                continue;
+            }
+            String id = element.getId();
+            if (id == null || id.isBlank()) {
+                continue;
+            }
+            int width = element.getType() == HudElementType.IMAGE || element.getType() == HudElementType.BAR
+                    ? assetRegistry.getAssetWidth(element.getAssetId())
+                    : 0;
+            int height = element.getType() == HudElementType.IMAGE || element.getType() == HudElementType.BAR
+                    ? assetRegistry.getAssetHeight(element.getAssetId())
+                    : 0;
+            int scaledWidth = (int) Math.round(width * element.getScale());
+            int scaledHeight = (int) Math.round(height * element.getScale());
+            int x = placement.getOffsetX() + element.getX();
+            int y = placement.getOffsetY() + element.getY();
+            anchors.put(id.toLowerCase(Locale.ROOT), new AnchorBounds(x, y, scaledWidth, scaledHeight));
+        }
+        return anchors;
+    }
+
+    private int pixelLength(String text) {
+        if (text == null || text.isEmpty()) {
+            return 0;
+        }
+        int px = 0;
+        boolean previousCode = false;
+        boolean bold = false;
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            if (c == '§') {
+                previousCode = true;
+                continue;
+            }
+            if (previousCode) {
+                previousCode = false;
+                bold = c == 'l' || c == 'L';
+                continue;
+            }
+            if (c >= 0xE000 && c <= 0xF8FF) {
+                int glyphWidth = assetRegistry.getGlyphWidths().getOrDefault(c, DefaultFontInfo.SPACE.getLength());
+                px += glyphWidth + 1;
+                continue;
+            }
+            DefaultFontInfo dFI = DefaultFontInfo.getDefaultFontInfo(c);
+            px += (bold ? DefaultFontInfo.getBoldLength() : dFI.getLength()) + 1;
+        }
+        return px;
+    }
+
+    private record AnchorBounds(int leftX, int topY, int width, int height) {
+        int rightX() {
+            return leftX + width;
+        }
+
+        int centerX() {
+            return leftX + (width / 2);
+        }
     }
 
     private String resolveImageGlyph(String assetId) {

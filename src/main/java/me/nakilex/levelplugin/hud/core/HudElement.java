@@ -16,6 +16,7 @@ public class HudElement {
     private final HudTextAlign align;
     private final String text;
     private final String assetId;
+    private final String anchorId;
     private final List<HudCondition> conditions;
 
     public HudElement(String id,
@@ -27,6 +28,7 @@ public class HudElement {
                       HudTextAlign align,
                       String text,
                       String assetId,
+                      String anchorId,
                       List<HudCondition> conditions) {
         this.id = id;
         this.type = type;
@@ -37,6 +39,7 @@ public class HudElement {
         this.align = align == null ? HudTextAlign.LEFT : align;
         this.text = text;
         this.assetId = assetId;
+        this.anchorId = anchorId;
         this.conditions = conditions == null ? List.of() : List.copyOf(conditions);
     }
 
@@ -74,6 +77,10 @@ public class HudElement {
 
     public String getAssetId() {
         return assetId;
+    }
+
+    public String getAnchorId() {
+        return anchorId;
     }
 
     public List<HudCondition> getConditions() {

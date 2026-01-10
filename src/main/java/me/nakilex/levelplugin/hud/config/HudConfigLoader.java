@@ -182,7 +182,8 @@ public class HudConfigLoader {
                     HudTextAlign align = HudTextAlign.from(getString(map, "align", "left"));
                     String text = getString(map, "text", "");
                     String asset = getString(map, "asset", "");
-                    elements.add(new HudElement(id, type, x, y, layer, scale, align, text, asset,
+                    String anchor = getString(map, "anchor", "");
+                    elements.add(new HudElement(id, type, x, y, layer, scale, align, text, asset, anchor,
                             conditionParser.parse(map.get("conditions"))));
                 }
                 layouts.put(normalizedId, new HudLayout(layoutId, elements));

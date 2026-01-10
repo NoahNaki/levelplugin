@@ -92,6 +92,7 @@ left_top:
       scale: 0.7
       layer: 2
       align: center
+      anchor: level_bar
       text: "[papi:naki_level]"
     - id: level_xp
       type: text
@@ -100,6 +101,7 @@ left_top:
       scale: 0.3
       layer: 2
       align: center
+      anchor: level_bar
       text: "[papi:naki_currentXp]//[papi:naki_xpNextLevel]"
     - id: hp_text
       type: text
@@ -108,6 +110,7 @@ left_top:
       scale: 0.4
       layer: 2
       align: center
+      anchor: hp_bar
       text: "HP [health]//[max_health]"
     - id: mana_text
       type: text
@@ -116,6 +119,7 @@ left_top:
       scale: 0.4
       layer: 2
       align: center
+      anchor: mana_bar
       text: "Mana [papi:naki_currentMana]//[papi:naki_maxMana]"
     - id: class_text
       type: text
