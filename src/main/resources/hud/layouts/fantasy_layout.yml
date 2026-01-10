@@ -4,7 +4,8 @@ top_center_layout:
       type: image
       asset: compass_background_image
       x: 0
-      y: 20
+      y: 4
+      align: center
       scale: 2.0
       layer: -100
 
@@ -67,41 +68,17 @@ left_top:
       x: 0
       y: 24
       layer: 1
-    - id: stamina_empty
-      type: image
-      asset: stamina_empty_image
-      x: 0
-      y: 36
-      layer: 0
-    - id: stamina_bar
-      type: bar
-      asset: stamina_bar_image
-      x: 0
-      y: 36
-      layer: 1
-    - id: armor_empty
-      type: image
-      asset: armor_empty_image
-      x: 0
-      y: 48
-      layer: 0
-    - id: armor_bar
-      type: bar
-      asset: armor_bar_image
-      x: 0
-      y: 48
-      layer: 1
     - id: coin_icon
       type: image
       asset: coin_icon_image
       x: 0
-      y: 60
+      y: 48
       layer: 0
     - id: premium_coin_icon
       type: image
       asset: premiumcoin_icon_image
       x: 0
-      y: 72
+      y: 60
       layer: 0
     - id: level_text
       type: text
@@ -136,13 +113,13 @@ left_top:
     - id: coins_text
       type: text
       x: 24
-      y: 60
+      y: 48
       layer: 2
       text: "x[papi:naki_coins]"
     - id: gems_text
       type: text
       x: 24
-      y: 72
+      y: 60
       layer: 2
       text: "x[papi:naki_gems]"
 
@@ -152,13 +129,14 @@ top_right_layout:
       type: image
       asset: text_box_image
       x: -125
-      y: 30
+      y: 6
+      align: right
       scale: 1.5
       layer: -1000
     - id: world_line
       type: text
       x: -10
-      y: 30
+      y: 6
       layer: 1
       align: right
       scale: 0.5
@@ -166,7 +144,7 @@ top_right_layout:
     - id: time_line
       type: text
       x: -10
-      y: 40
+      y: 16
       layer: 1
       align: right
       scale: 0.5

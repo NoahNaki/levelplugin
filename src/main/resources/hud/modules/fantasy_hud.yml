@@ -1,19 +1,19 @@
 fantasy_hud:
   layouts:
     - name: left_top
-      x: 0
-      y: 0
+      x: 8
+      y: 6
 
 fantasy_hud_compass:
   layouts:
     - name: top_center_layout
-      x: 50
+      x: 0
       y: 0
 
 fantasy_hud_season:
   layouts:
     - name: top_right_layout
-      x: 100
+      x: -10
       y: 0
 
 fantasy_hud_air:

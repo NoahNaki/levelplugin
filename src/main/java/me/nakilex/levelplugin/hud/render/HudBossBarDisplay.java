@@ -42,7 +42,7 @@ public class HudBossBarDisplay {
             Component component = index < newComponents.size() ? newComponents.get(index) : Component.empty();
             boolean visible = title != null && !title.isBlank();
             bar.name(visible ? component : Component.empty());
-            bar.progress(1.0f);
+            bar.progress(0.0f);
             bar.visible(visible);
             player.showBossBar(bar);
         }
