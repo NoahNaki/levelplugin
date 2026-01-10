@@ -16,6 +16,7 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -75,6 +76,7 @@ public class HudConfigLoader {
         saveIfMissing("hud/modules/fantasy_hud.yml");
         saveIfMissing("hud/layouts/fantasy_layout.yml");
         saveIfMissing("hud/images/fantasy_images.yml");
+        migrateFantasyImagesSplitTypes();
     }
 
     private void createDir(File dir) {
@@ -87,6 +89,44 @@ public class HudConfigLoader {
         File target = new File(plugin.getDataFolder(), resourcePath);
         if (!target.exists()) {
             plugin.saveResource(resourcePath, false);
+        }
+    }
+
+    private void migrateFantasyImagesSplitTypes() {
+        File configFile = new File(plugin.getDataFolder(), "hud/images/fantasy_images.yml");
+        if (!configFile.exists()) {
+            return;
+        }
+        FileConfiguration config = YamlConfiguration.loadConfiguration(configFile);
+        Map<String, String> expectedSplitTypes = Map.of(
+                "air_bar_image", "left",
+                "hp_bar_image", "left",
+                "mana_bar_image", "left",
+                "stamina_bar_image", "left",
+                "armor_bar_image", "left",
+                "level_bar_image", "up"
+        );
+        boolean changed = false;
+        for (Map.Entry<String, String> entry : expectedSplitTypes.entrySet()) {
+            String key = entry.getKey();
+            String expected = entry.getValue();
+            String current = config.getString(key + ".split-type", "");
+            if (current == null) {
+                current = "";
+            }
+            String normalized = current.trim().toLowerCase(Locale.ROOT);
+            if (normalized.isEmpty()
+                    || (!expected.equalsIgnoreCase(normalized) && "left".equals(expected) && "up".equals(normalized))) {
+                config.set(key + ".split-type", expected);
+                changed = true;
+            }
+        }
+        if (changed) {
+            try {
+                config.save(configFile);
+            } catch (IOException e) {
+                logger.warning("Failed to update fantasy images split types: " + e.getMessage());
+            }
         }
     }
 
