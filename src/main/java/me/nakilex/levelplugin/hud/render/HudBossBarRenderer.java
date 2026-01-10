@@ -1,5 +1,6 @@
 package me.nakilex.levelplugin.hud.render;
 
+import me.nakilex.levelplugin.hud.assets.HudAdvanceGlyphs;
 import me.nakilex.levelplugin.hud.core.HudCanvas;
 import me.nakilex.levelplugin.hud.core.HudResolvedElement;
 import me.nakilex.levelplugin.hud.core.HudTextAlign;
@@ -15,7 +16,6 @@ import java.util.Map;
 import java.util.TreeMap;
 
 public class HudBossBarRenderer implements HudRenderer {
-    private static final int SPACE_WIDTH = DefaultFontInfo.SPACE.getLength() + 1;
     private static final int PUA_START = 0xE000;
     private static final int PUA_END = 0xF8FF;
 
@@ -69,11 +69,6 @@ public class HudBossBarRenderer implements HudRenderer {
         List<HudResolvedElement> sorted = new ArrayList<>(elements);
         sorted.sort(Comparator.comparingInt(HudResolvedElement::getLayer)
                 .thenComparingInt(HudResolvedElement::getX));
-        int minX = 0;
-        for (HudResolvedElement element : sorted) {
-            minX = Math.min(minX, alignedX(element));
-        }
-        int offsetX = minX < 0 ? -minX : 0;
         StringBuilder builder = new StringBuilder();
         int currentPx = 0;
         for (HudResolvedElement element : sorted) {
@@ -81,11 +76,9 @@ public class HudBossBarRenderer implements HudRenderer {
             if (text == null || text.isBlank()) {
                 continue;
             }
-            int targetPx = alignedX(element) + offsetX;
-            while (currentPx + SPACE_WIDTH <= targetPx) {
-                builder.append(' ');
-                currentPx += SPACE_WIDTH;
-            }
+            int targetPx = alignedX(element);
+            int deltaPx = targetPx - currentPx;
+            currentPx += appendAdvance(builder, deltaPx);
             builder.append(text);
             currentPx += (int) Math.round(pixelLength(text) * element.getScale());
         }
@@ -164,5 +157,23 @@ public class HudBossBarRenderer implements HudRenderer {
             px += (bold ? DefaultFontInfo.getBoldLength() : dFI.getLength()) + 1;
         }
         return px;
+    }
+
+    private int appendAdvance(StringBuilder builder, int deltaPx) {
+        if (deltaPx == 0) {
+            return 0;
+        }
+        int moved = 0;
+        int remaining = deltaPx;
+        while (remaining != 0) {
+            int step = Math.min(HudAdvanceGlyphs.MAX_ADVANCE, Math.abs(remaining));
+            if (remaining < 0) {
+                step = -step;
+            }
+            builder.append(HudAdvanceGlyphs.codepointForAdvance(step));
+            moved += step;
+            remaining -= step;
+        }
+        return moved;
     }
 }

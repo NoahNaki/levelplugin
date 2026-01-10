@@ -40,6 +40,11 @@ public class HudPackBuilder {
         StringBuilder builder = new StringBuilder();
         builder.append("{\n  \"providers\": [\n");
         boolean first = true;
+        String advanceProvider = buildAdvanceProviderJson();
+        if (!advanceProvider.isBlank()) {
+            builder.append("    ").append(advanceProvider);
+            first = false;
+        }
         for (Map.Entry<String, HudImageDefinition> entry : registry.getDefinitions().entrySet()) {
             String id = entry.getKey();
             HudImageDefinition definition = entry.getValue();
@@ -80,6 +85,21 @@ public class HudPackBuilder {
                 + "\"height\":" + height + ","
                 + "\"chars\":[\"" + glyph.codepoint() + "\"]"
                 + "}";
+    }
+
+    private String buildAdvanceProviderJson() {
+        StringBuilder builder = new StringBuilder();
+        builder.append("{\"type\":\"space\",\"advances\":{");
+        boolean first = true;
+        for (Map.Entry<Character, Integer> entry : HudAdvanceGlyphs.buildAdvanceMap().entrySet()) {
+            if (!first) {
+                builder.append(",");
+            }
+            first = false;
+            builder.append("\"").append(entry.getKey()).append("\":").append(entry.getValue());
+        }
+        builder.append("}}");
+        return builder.toString();
     }
 
     public List<String> collectMissingTextures(String sourceTexturesFolder, HudAssetRegistry registry) {
