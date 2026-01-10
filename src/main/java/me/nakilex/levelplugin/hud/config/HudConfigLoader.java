@@ -256,7 +256,8 @@ public class HudConfigLoader {
         double guiY = getDouble(guiMap, "y", 0.0);
         int pixelX = (int) Math.round(getDouble(pixelMap, "x", 0.0));
         int pixelY = (int) Math.round(getDouble(pixelMap, "y", 0.0));
-        return new HudPosition(anchor, guiX, guiY, pixelX, pixelY);
+        int row = getInt(map, "row", 0);
+        return new HudPosition(anchor, guiX, guiY, pixelX, pixelY, row);
     }
 
     private static int getInt(Map<?, ?> map, String key, int fallback) {

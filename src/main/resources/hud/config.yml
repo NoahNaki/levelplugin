@@ -4,7 +4,7 @@ hud:
   canvas-width-px: 320
   canvas-height-px: 180
   line-height-px: 18
-  render-channel: actionbar
+  render-channel: bossbar
   namespace: betterhud
   output-folder: Nexo/pack/external_packs/BetterHud
   source-textures-folder: plugins/Nexo/pack/external_packs/BetterHud/assets/betterhud/textures

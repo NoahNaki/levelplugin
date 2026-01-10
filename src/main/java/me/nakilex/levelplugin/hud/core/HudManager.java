@@ -158,6 +158,7 @@ public class HudManager {
                         placement.getPosition(),
                         config.getCanvasWidthPx(),
                         config.getCanvasHeightPx());
+                int layoutRow = placement.getPosition().row();
                 Map<String, AnchorBounds> anchors = buildAnchors(layout, layoutBase);
                 for (HudElement element : layout.getElements()) {
                     List<String> failures = new ArrayList<>();
@@ -172,7 +173,8 @@ public class HudManager {
                                 element.getId() + " hidden: " + String.join("; ", failures));
                         continue;
                     }
-                    HudResolvedElement resolved = resolveElement(player, element, layoutBase, anchors);
+                    int row = layoutRow + element.getPosition().row();
+                    HudResolvedElement resolved = resolveElement(player, element, layoutBase, anchors, row);
                     if (resolved != null && !resolved.getText().isBlank()) {
                         shown++;
                         String line = resolved.getId() + " x=" + resolved.getX() + " y=" + resolved.getY()
@@ -342,12 +344,14 @@ public class HudManager {
                         placement.getPosition(),
                         config.getCanvasWidthPx(),
                         config.getCanvasHeightPx());
+                int layoutRow = placement.getPosition().row();
                 Map<String, AnchorBounds> anchors = buildAnchors(layout, layoutBase);
                 for (HudElement element : layout.getElements()) {
                     if (!element.shouldRender(player, context)) {
                         continue;
                     }
-                    HudResolvedElement resolvedElement = resolveElement(player, element, layoutBase, anchors);
+                    int row = layoutRow + element.getPosition().row();
+                    HudResolvedElement resolvedElement = resolveElement(player, element, layoutBase, anchors, row);
                     if (resolvedElement != null && !resolvedElement.getText().isBlank()) {
                         resolved.add(resolvedElement);
                     }
@@ -359,7 +363,8 @@ public class HudManager {
 
     private HudResolvedElement resolveElement(Player player, HudElement element,
                                               HudPositionResolver.ResolvedPosition layoutBase,
-                                              Map<String, AnchorBounds> anchors) {
+                                              Map<String, AnchorBounds> anchors,
+                                              int row) {
         String text = switch (element.getType()) {
             case TEXT -> placeholderService.resolve(player, element.getText());
             case IMAGE -> resolveImageGlyph(element.getAssetId());
@@ -389,7 +394,7 @@ public class HudManager {
                 align = HudTextAlign.LEFT;
             }
         }
-        return new HudResolvedElement(element.getId(), text, x, y, element.getLayer(),
+        return new HudResolvedElement(element.getId(), text, x, y, row, element.getLayer(),
                 element.getScale(), align);
     }
 
