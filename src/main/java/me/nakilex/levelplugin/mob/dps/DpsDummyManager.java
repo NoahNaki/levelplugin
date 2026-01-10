@@ -1,6 +1,5 @@
 package me.nakilex.levelplugin.mob.dps;
 
-import io.lumine.mythic.api.exceptions.InvalidMobTypeException;
 import io.lumine.mythic.bukkit.BukkitAPIHelper;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
@@ -55,7 +54,7 @@ public class DpsDummyManager implements Listener {
     }
 
     /** Spawn a dummy at the given player's location. */
-    public void spawn(Player player) throws InvalidMobTypeException {
+    public void spawn(Player player) {
         Location loc = player.getLocation();
         LivingEntity entity = spawnMythic(loc);
         if (entity == null) {
@@ -152,12 +151,18 @@ public class DpsDummyManager implements Listener {
         updater = Bukkit.getScheduler().runTaskTimer(plugin, () -> dummies.values().forEach(Dummy::refreshHolograms), 20L, 20L);
     }
 
-    private LivingEntity spawnMythic(Location loc) throws InvalidMobTypeException {
-        if (mythicHelper == null) return null;
+    private LivingEntity spawnMythic(Location loc) {
+        if (mythicHelper == null) {
+            return null;
+        }
 
-        org.bukkit.entity.Entity entity = mythicHelper.spawnMythicMob("training_dummy", loc);
-        if (entity instanceof LivingEntity living) {
-            return living;
+        try {
+            org.bukkit.entity.Entity entity = mythicHelper.spawnMythicMob("training_dummy", loc);
+            if (entity instanceof LivingEntity living) {
+                return living;
+            }
+        } catch (Exception ex) {
+            plugin.getLogger().warning("Unable to spawn MythicMobs DPS dummy: " + ex.getMessage());
         }
         return null;
     }
