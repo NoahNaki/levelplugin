@@ -566,6 +566,7 @@ public class HudManager {
             String line = entry.id() + " module=(" + entry.moduleOriginX() + "," + entry.moduleOriginY() + ")"
                     + " local=(" + entry.localOffsetX() + "," + entry.localOffsetY() + ")"
                     + " final=(" + entry.finalX() + "," + entry.finalY() + ")"
+                    + " lineHeight=" + config.getLineHeightPx()
                     + " line=" + entry.lineIndex()
                     + " w=" + entry.width() + " h=" + entry.height() + " scale=" + entry.scale();
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO, line);
@@ -582,7 +583,7 @@ public class HudManager {
                                        int width,
                                        int height,
                                        double scale) {
-        int lineIndex = clampLineIndex((int) Math.floor(finalY * scale));
+        int lineIndex = clampLineIndex(finalY);
         int scaledWidth = (int) Math.round(width * scale);
         int scaledHeight = (int) Math.round(height * scale);
         return new DebugEntry(id, moduleOriginX, moduleOriginY, localOffsetX, localOffsetY, finalX, finalY,

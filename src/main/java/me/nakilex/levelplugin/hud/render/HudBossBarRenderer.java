@@ -61,9 +61,8 @@ public class HudBossBarRenderer implements HudRenderer {
     }
 
     private int computeLineIndex(HudResolvedElement element) {
-        int scaledY = (int) Math.floor(element.getY() * element.getScale());
         int lineHeight = Math.max(1, lineHeightPx);
-        return Math.floorDiv(scaledY, lineHeight);
+        return Math.floorDiv(element.getY(), lineHeight);
     }
 
     private String composeLine(List<HudResolvedElement> elements) {
