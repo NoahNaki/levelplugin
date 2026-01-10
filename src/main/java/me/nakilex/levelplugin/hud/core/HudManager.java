@@ -623,8 +623,8 @@ public class HudManager {
     private class HudPlayerListener implements Listener {
         @EventHandler
         public void onQuit(PlayerQuitEvent event) {
-            if (bossBarDisplay != null) {
-                bossBarDisplay.clear(event.getPlayer());
+            if (hudDisplay != null) {
+                hudDisplay.clear(event.getPlayer());
             }
             playerStates.remove(event.getPlayer().getUniqueId());
             placeholderCache.clear(event.getPlayer());
