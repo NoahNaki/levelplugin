@@ -7,6 +7,7 @@ import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.utils.DefaultFontInfo;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TextComponent;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -88,7 +89,7 @@ public class HudBossBarRenderer implements HudRenderer {
         if (lineText == null || lineText.isEmpty()) {
             return Component.empty();
         }
-        Component.Builder builder = Component.text();
+        TextComponent.Builder builder = Component.text();
         StringBuilder segment = new StringBuilder();
         boolean segmentIsGlyph = isGlyph(lineText.charAt(0));
         for (int i = 0; i < lineText.length(); i++) {
@@ -105,7 +106,7 @@ public class HudBossBarRenderer implements HudRenderer {
         return builder.build();
     }
 
-    private void appendSegment(Component.Builder builder, StringBuilder segment, boolean isGlyph) {
+    private void appendSegment(TextComponent.Builder builder, StringBuilder segment, boolean isGlyph) {
         if (segment.isEmpty()) {
             return;
         }
