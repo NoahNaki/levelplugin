@@ -143,7 +143,7 @@ public class HudManager {
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                 enabled ? "HUD debug mode enabled." : "HUD debug mode disabled.");
         if (enabled) {
-            logDebugElements(player, buildCanvas(player), true);
+            logDebugEntries(player, buildDebugEntries(player), true);
         }
     }
 
@@ -157,7 +157,7 @@ public class HudManager {
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                 enabled ? "HUD debug mode enabled." : "HUD debug mode disabled.");
         if (enabled) {
-            logDebugElements(player, buildCanvas(player), true);
+            logDebugEntries(player, buildDebugEntries(player), true);
         }
     }
 
@@ -169,12 +169,13 @@ public class HudManager {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "No HUD configuration loaded.");
             return;
         }
-        HudConditionContext context = new HudConditionContext(placeholderService);
         int shown = 0;
         int hidden = 0;
+        HudConditionContext context = new HudConditionContext(placeholderService);
         List<String> moduleIds = config.getDefaultModules().isEmpty()
                 ? new ArrayList<>(config.getModules().keySet())
                 : config.getDefaultModules();
+        List<DebugEntry> debugEntries = new ArrayList<>();
         for (String moduleId : moduleIds) {
             HudModule module = config.getModules().get(moduleId.toLowerCase(Locale.ROOT));
             if (module == null) {
@@ -200,20 +201,12 @@ public class HudManager {
                     }
                 }
                 HudPositionResolver.ResolvedPosition groupBase = resolveGroupBase(placement);
-                List<HudResolvedElement> resolved = resolveLayoutElements(player, layout, placement, context, groupBase);
-                for (HudResolvedElement element : resolved) {
-                    shown++;
-                    int renderX = (int) Math.round(element.getX() * element.getScale());
-                    int renderY = (int) Math.round(element.getY() * element.getScale());
-                    int width = (int) Math.round(element.getWidth() * element.getScale());
-                    int height = (int) Math.round(element.getHeight() * element.getScale());
-                    String line = element.getId() + " x=" + renderX + " y=" + renderY + " w=" + width + " h=" + height
-                            + " scale=" + element.getScale() + " layer=" + element.getLayer()
-                            + " align=" + element.getAlign() + " -> " + element.getText();
-                    ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO, line);
-                }
+                List<HudResolvedElement> resolved = resolveLayoutElements(player, layout, placement, context,
+                        groupBase, debugEntries);
+                shown += resolved.size();
             }
         }
+        logDebugEntries(player, debugEntries, true);
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                 "HUD debug summary: shown=" + shown + ", hidden=" + hidden);
     }
@@ -349,6 +342,32 @@ public class HudManager {
         }
     }
 
+    private List<DebugEntry> buildDebugEntries(Player player) {
+        List<DebugEntry> debugEntries = new ArrayList<>();
+        if (config == null || player == null) {
+            return debugEntries;
+        }
+        HudConditionContext context = new HudConditionContext(placeholderService);
+        List<String> moduleIds = config.getDefaultModules().isEmpty()
+                ? new ArrayList<>(config.getModules().keySet())
+                : config.getDefaultModules();
+        for (String moduleId : moduleIds) {
+            HudModule module = config.getModules().get(moduleId.toLowerCase(Locale.ROOT));
+            if (module == null) {
+                continue;
+            }
+            for (HudLayoutPlacement placement : module.getPlacements()) {
+                HudLayout layout = config.getLayouts().get(placement.getLayoutId().toLowerCase(Locale.ROOT));
+                if (layout == null) {
+                    continue;
+                }
+                HudPositionResolver.ResolvedPosition groupBase = resolveGroupBase(placement);
+                resolveLayoutElements(player, layout, placement, context, groupBase, debugEntries);
+            }
+        }
+        return debugEntries;
+    }
+
     private HudCanvas buildCanvas(Player player) {
         List<HudResolvedElement> resolved = new ArrayList<>();
         if (config == null) {
@@ -356,6 +375,7 @@ public class HudManager {
         }
         HudPlayerState state = playerStates.computeIfAbsent(player.getUniqueId(), id -> new HudPlayerState());
         boolean debugEnabled = state.isDebugMode();
+        List<DebugEntry> debugEntries = debugEnabled ? new ArrayList<>() : null;
         HudConditionContext context = new HudConditionContext(placeholderService);
         List<String> moduleIds = config.getDefaultModules().isEmpty()
                 ? new ArrayList<>(config.getModules().keySet())
@@ -376,14 +396,14 @@ public class HudManager {
                         config.getCanvasWidthPx(),
                         config.getCanvasHeightPx());
                 HudPositionResolver.ResolvedPosition groupBase = resolveGroupBase(placement);
-                resolved.addAll(resolveLayoutElements(player, layout, placement, context, groupBase));
+                resolved.addAll(resolveLayoutElements(player, layout, placement, context, groupBase, debugEntries));
                 if (debugEnabled) {
                     appendDebugMarkers(resolved, placement, anchorBase, groupBase);
                 }
             }
         }
         if (debugEnabled) {
-            maybeLogDebugElements(player, resolved, state);
+            maybeLogDebugEntries(player, debugEntries, state);
         }
         return new HudCanvas(resolved);
     }
@@ -392,12 +412,12 @@ public class HudManager {
                                                            HudLayout layout,
                                                            HudLayoutPlacement placement,
                                                            HudConditionContext context,
-                                                           HudPositionResolver.ResolvedPosition groupBase) {
+                                                           HudPositionResolver.ResolvedPosition groupBase,
+                                                           List<DebugEntry> debugEntries) {
         List<HudResolvedElement> resolved = new ArrayList<>();
         if (layout == null || placement == null) {
             return resolved;
         }
-        int layoutRow = placement.getPosition().row();
         List<ElementLayout> layouts = new ArrayList<>();
         for (HudElement element : layout.getElements()) {
             if (!element.shouldRender(player, context)) {
@@ -412,10 +432,9 @@ public class HudManager {
                 continue;
             }
             ElementMetrics metrics = measureElementMetrics(element, text);
-            int row = layoutRow + element.getPosition().row();
             int offsetX = element.getPosition().pixelX();
             int offsetY = element.getPosition().pixelY();
-            layouts.add(new ElementLayout(element, text, offsetX, offsetY, row, metrics.width(), metrics.height()));
+            layouts.add(new ElementLayout(element, text, offsetX, offsetY, metrics.width(), metrics.height()));
         }
         Map<String, AnchorBounds> anchors = buildAnchorBounds(layouts, groupBase, placement.getAlign());
         for (ElementLayout layoutElement : layouts) {
@@ -438,8 +457,12 @@ public class HudManager {
                     align = HudTextAlign.LEFT;
                 }
             }
-            resolved.add(new HudResolvedElement(element.getId(), layoutElement.text(), x, y, layoutElement.row(),
+            resolved.add(new HudResolvedElement(element.getId(), layoutElement.text(), x, y, 0,
                     width, height, element.getLayer(), element.getScale(), align));
+            if (debugEntries != null) {
+                debugEntries.add(buildDebugEntry(element.getId(), groupBase.x(), groupBase.y(),
+                        layoutElement.offsetX(), layoutElement.offsetY(), x, y, width, height, element.getScale()));
+            }
         }
         return resolved;
     }
@@ -520,8 +543,8 @@ public class HudManager {
                 Integer.MAX_VALUE - 1, 1.0, HudTextAlign.LEFT));
     }
 
-    private void maybeLogDebugElements(Player player, List<HudResolvedElement> elements, HudPlayerState state) {
-        if (player == null || state == null || elements == null) {
+    private void maybeLogDebugEntries(Player player, List<DebugEntry> entries, HudPlayerState state) {
+        if (player == null || state == null || entries == null) {
             return;
         }
         long now = System.currentTimeMillis();
@@ -529,32 +552,68 @@ public class HudManager {
             return;
         }
         state.setLastDebugLogMs(now);
-        logDebugElements(player, new HudCanvas(elements), false);
+        logDebugEntries(player, entries, false);
     }
 
-    private void logDebugElements(Player player, HudCanvas canvas, boolean forceHeader) {
-        if (player == null || canvas == null) {
+    private void logDebugEntries(Player player, List<DebugEntry> entries, boolean forceHeader) {
+        if (player == null || entries == null) {
             return;
         }
         if (forceHeader) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO, "HUD debug positions:");
         }
-        for (HudResolvedElement resolved : canvas.getElements()) {
-            int renderX = (int) Math.round(resolved.getX() * resolved.getScale());
-            int renderY = (int) Math.round(resolved.getY() * resolved.getScale());
-            int width = (int) Math.round(resolved.getWidth() * resolved.getScale());
-            int height = (int) Math.round(resolved.getHeight() * resolved.getScale());
-            String line = resolved.getId() + " x=" + renderX + " y=" + renderY
-                    + " w=" + width + " h=" + height + " scale=" + resolved.getScale();
+        for (DebugEntry entry : entries) {
+            String line = entry.id() + " module=(" + entry.moduleOriginX() + "," + entry.moduleOriginY() + ")"
+                    + " local=(" + entry.localOffsetX() + "," + entry.localOffsetY() + ")"
+                    + " final=(" + entry.finalX() + "," + entry.finalY() + ")"
+                    + " line=" + entry.lineIndex()
+                    + " w=" + entry.width() + " h=" + entry.height() + " scale=" + entry.scale();
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO, line);
         }
     }
 
-    private record ElementLayout(HudElement element, String text, int offsetX, int offsetY, int row,
+    private DebugEntry buildDebugEntry(String id,
+                                       int moduleOriginX,
+                                       int moduleOriginY,
+                                       int localOffsetX,
+                                       int localOffsetY,
+                                       int finalX,
+                                       int finalY,
+                                       int width,
+                                       int height,
+                                       double scale) {
+        int lineIndex = clampLineIndex((int) Math.floor(finalY * scale));
+        int scaledWidth = (int) Math.round(width * scale);
+        int scaledHeight = (int) Math.round(height * scale);
+        return new DebugEntry(id, moduleOriginX, moduleOriginY, localOffsetX, localOffsetY, finalX, finalY,
+                lineIndex, scaledWidth, scaledHeight, scale);
+    }
+
+    private int clampLineIndex(int yPx) {
+        int lineHeight = Math.max(1, config.getLineHeightPx());
+        int line = Math.floorDiv(yPx, lineHeight);
+        int maxLines = config.isMergeBossBar() ? 1 : Math.max(1, config.getBossbarLines());
+        return Math.max(0, Math.min(maxLines - 1, line));
+    }
+
+    private record ElementLayout(HudElement element, String text, int offsetX, int offsetY,
                                  int width, int height) {
     }
 
     private record ElementMetrics(int width, int height) {
+    }
+
+    private record DebugEntry(String id,
+                              int moduleOriginX,
+                              int moduleOriginY,
+                              int localOffsetX,
+                              int localOffsetY,
+                              int finalX,
+                              int finalY,
+                              int lineIndex,
+                              int width,
+                              int height,
+                              double scale) {
     }
 
     private int pixelLength(String text) {

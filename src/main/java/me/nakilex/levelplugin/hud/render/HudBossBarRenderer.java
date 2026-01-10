@@ -38,7 +38,7 @@ public class HudBossBarRenderer implements HudRenderer {
     public HudRenderOutput render(HudCanvas canvas) {
         Map<Integer, List<HudResolvedElement>> byLine = new TreeMap<>();
         for (HudResolvedElement element : canvas.getElements()) {
-            int lineIndex = mergeBossBar ? 0 : clampLine(element.getRow());
+            int lineIndex = mergeBossBar ? 0 : clampLine(computeLineIndex(element));
             byLine.computeIfAbsent(lineIndex, id -> new ArrayList<>()).add(element);
         }
         List<String> linesOut = new ArrayList<>();
@@ -58,6 +58,12 @@ public class HudBossBarRenderer implements HudRenderer {
             return 0;
         }
         return Math.max(0, Math.min(lines - 1, row));
+    }
+
+    private int computeLineIndex(HudResolvedElement element) {
+        int scaledY = (int) Math.floor(element.getY() * element.getScale());
+        int lineHeight = Math.max(1, lineHeightPx);
+        return Math.floorDiv(scaledY, lineHeight);
     }
 
     private String composeLine(List<HudResolvedElement> elements) {
