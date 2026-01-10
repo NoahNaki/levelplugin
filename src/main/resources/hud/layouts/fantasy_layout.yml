@@ -3,8 +3,14 @@ top_center_layout:
     - id: compass_background
       type: image
       asset: compass_background_image
-      x: 0
-      y: 20
+      position:
+        anchor: TOP_LEFT
+        gui:
+          x: 0
+          y: 0
+        pixel:
+          x: 0
+          y: 20
       scale: 2.0
       layer: -1000
 
@@ -13,8 +19,14 @@ down_center_layout:
     - id: air_empty
       type: image
       asset: air_empty_image
-      x: 0
-      y: -32
+      position:
+        anchor: TOP_LEFT
+        gui:
+          x: 0
+          y: 0
+        pixel:
+          x: 0
+          y: -32
       layer: 0
       conditions:
         - "papi:player_remaining_air != '300'"
@@ -22,8 +34,14 @@ down_center_layout:
     - id: air_bar
       type: bar
       asset: air_bar_image
-      x: 0
-      y: -32
+      position:
+        anchor: TOP_LEFT
+        gui:
+          x: 0
+          y: 0
+        pixel:
+          x: 0
+          y: -32
       layer: 1
       conditions:
         - "papi:player_remaining_air != '300'"
@@ -34,61 +52,115 @@ left_top:
     - id: level_empty
       type: image
       asset: level_empty_image
-      x: 85
-      y: 10
+      position:
+        anchor: TOP_LEFT
+        gui:
+          x: 0
+          y: 0
+        pixel:
+          x: 85
+          y: 10
       scale: 1.2
       layer: 0
     - id: level_bar
       type: bar
       asset: level_bar_image
-      x: 85
-      y: 11
+      position:
+        anchor: TOP_LEFT
+        gui:
+          x: 0
+          y: 0
+        pixel:
+          x: 85
+          y: 11
       scale: 1.2
       layer: 1
     - id: hp_empty
       type: image
       asset: hp_empty_image
-      x: 142
-      y: 25
+      position:
+        anchor: TOP_LEFT
+        gui:
+          x: 0
+          y: 0
+        pixel:
+          x: 142
+          y: 25
       layer: 0
     - id: hp_bar
       type: bar
       asset: hp_bar_image
-      x: 142
-      y: 25
+      position:
+        anchor: TOP_LEFT
+        gui:
+          x: 0
+          y: 0
+        pixel:
+          x: 142
+          y: 25
       layer: 1
     - id: mana_empty
       type: image
       asset: mana_empty_image
-      x: 150
-      y: 41
+      position:
+        anchor: TOP_LEFT
+        gui:
+          x: 0
+          y: 0
+        pixel:
+          x: 150
+          y: 41
       scale: 0.9
       layer: 0
     - id: mana_bar
       type: bar
       asset: mana_bar_image
-      x: 150
-      y: 41
+      position:
+        anchor: TOP_LEFT
+        gui:
+          x: 0
+          y: 0
+        pixel:
+          x: 150
+          y: 41
       scale: 0.9
       layer: 1
     - id: coin_icon
       type: image
       asset: coin_icon_image
-      x: 150
-      y: 59
+      position:
+        anchor: TOP_LEFT
+        gui:
+          x: 0
+          y: 0
+        pixel:
+          x: 150
+          y: 59
       scale: 1.4
       layer: 1
     - id: premium_coin_icon
       type: image
       asset: premiumcoin_icon_image
-      x: 255
-      y: 59
+      position:
+        anchor: TOP_LEFT
+        gui:
+          x: 0
+          y: 0
+        pixel:
+          x: 255
+          y: 59
       scale: 1.4
       layer: 1
     - id: level_text
       type: text
-      x: 127
-      y: 25
+      position:
+        anchor: TOP_LEFT
+        gui:
+          x: 0
+          y: 0
+        pixel:
+          x: 127
+          y: 25
       scale: 0.7
       layer: 2
       align: center
@@ -96,8 +168,14 @@ left_top:
       text: "[papi:naki_level]"
     - id: level_xp
       type: text
-      x: 127
-      y: 40
+      position:
+        anchor: TOP_LEFT
+        gui:
+          x: 0
+          y: 0
+        pixel:
+          x: 127
+          y: 40
       scale: 0.3
       layer: 2
       align: center
@@ -105,8 +183,14 @@ left_top:
       text: "[papi:naki_currentXp]//[papi:naki_xpNextLevel]"
     - id: hp_text
       type: text
-      x: 220
-      y: 29
+      position:
+        anchor: TOP_LEFT
+        gui:
+          x: 0
+          y: 0
+        pixel:
+          x: 220
+          y: 29
       scale: 0.4
       layer: 2
       align: center
@@ -114,8 +198,14 @@ left_top:
       text: "HP [health]//[max_health]"
     - id: mana_text
       type: text
-      x: 220
-      y: 43
+      position:
+        anchor: TOP_LEFT
+        gui:
+          x: 0
+          y: 0
+        pixel:
+          x: 220
+          y: 43
       scale: 0.4
       layer: 2
       align: center
@@ -123,24 +213,42 @@ left_top:
       text: "Mana [papi:naki_currentMana]//[papi:naki_maxMana]"
     - id: class_text
       type: text
-      x: 150
-      y: 13
+      position:
+        anchor: TOP_LEFT
+        gui:
+          x: 0
+          y: 0
+        pixel:
+          x: 150
+          y: 13
       scale: 0.5
       layer: 2
       align: left
       text: "[papi:naki_class]"
     - id: coins_text
       type: text
-      x: 165
-      y: 62
+      position:
+        anchor: TOP_LEFT
+        gui:
+          x: 0
+          y: 0
+        pixel:
+          x: 165
+          y: 62
       scale: 0.4
       layer: 2
       align: left
       text: "x[papi:naki_coins]"
     - id: gems_text
       type: text
-      x: 270
-      y: 62
+      position:
+        anchor: TOP_LEFT
+        gui:
+          x: 0
+          y: 0
+        pixel:
+          x: 270
+          y: 62
       scale: 0.4
       layer: 2
       align: left
@@ -151,22 +259,40 @@ top_right_layout:
     - id: text_box
       type: image
       asset: text_box_image
-      x: -125
-      y: 30
+      position:
+        anchor: TOP_LEFT
+        gui:
+          x: 0
+          y: 0
+        pixel:
+          x: -125
+          y: 30
       scale: 1.5
       layer: -1000
     - id: world_line
       type: text
-      x: 80
-      y: 40
+      position:
+        anchor: TOP_LEFT
+        gui:
+          x: 0
+          y: 0
+        pixel:
+          x: 80
+          y: 40
       layer: 1
       align: right
       scale: 0.5
       text: "&eWorld &f[papi:naki_seasonDate] &e| Biome &f[papi:player_biome_capitalized]"
     - id: time_line
       type: text
-      x: 80
-      y: 55
+      position:
+        anchor: TOP_LEFT
+        gui:
+          x: 0
+          y: 0
+        pixel:
+          x: 80
+          y: 55
       layer: 1
       align: right
       scale: 0.5

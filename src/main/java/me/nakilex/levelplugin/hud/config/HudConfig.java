@@ -12,6 +12,7 @@ public class HudConfig {
     private final int updateIntervalTicks;
     private final int placeholderCacheTtlMs;
     private final int canvasWidthPx;
+    private final int canvasHeightPx;
     private final int lineHeightPx;
     private final int bossbarLines;
     private final boolean mergeBossBar;
@@ -27,6 +28,7 @@ public class HudConfig {
     public HudConfig(int updateIntervalTicks,
                      int placeholderCacheTtlMs,
                      int canvasWidthPx,
+                     int canvasHeightPx,
                      int lineHeightPx,
                      int bossbarLines,
                      boolean mergeBossBar,
@@ -41,6 +43,7 @@ public class HudConfig {
         this.updateIntervalTicks = updateIntervalTicks;
         this.placeholderCacheTtlMs = placeholderCacheTtlMs;
         this.canvasWidthPx = canvasWidthPx;
+        this.canvasHeightPx = canvasHeightPx;
         this.lineHeightPx = lineHeightPx;
         this.bossbarLines = bossbarLines;
         this.mergeBossBar = mergeBossBar;
@@ -64,6 +67,10 @@ public class HudConfig {
 
     public int getCanvasWidthPx() {
         return canvasWidthPx;
+    }
+
+    public int getCanvasHeightPx() {
+        return canvasHeightPx;
     }
 
     public int getLineHeightPx() {

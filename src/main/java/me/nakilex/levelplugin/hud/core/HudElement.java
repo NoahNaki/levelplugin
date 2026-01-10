@@ -9,8 +9,7 @@ import java.util.List;
 public class HudElement {
     private final String id;
     private final HudElementType type;
-    private final int x;
-    private final int y;
+    private final HudPosition position;
     private final int layer;
     private final double scale;
     private final HudTextAlign align;
@@ -21,8 +20,7 @@ public class HudElement {
 
     public HudElement(String id,
                       HudElementType type,
-                      int x,
-                      int y,
+                      HudPosition position,
                       int layer,
                       double scale,
                       HudTextAlign align,
@@ -32,8 +30,7 @@ public class HudElement {
                       List<HudCondition> conditions) {
         this.id = id;
         this.type = type;
-        this.x = x;
-        this.y = y;
+        this.position = position == null ? HudPosition.defaultPosition() : position;
         this.layer = layer;
         this.scale = scale;
         this.align = align == null ? HudTextAlign.LEFT : align;
@@ -51,12 +48,8 @@ public class HudElement {
         return type;
     }
 
-    public int getX() {
-        return x;
-    }
-
-    public int getY() {
-        return y;
+    public HudPosition getPosition() {
+        return position;
     }
 
     public int getLayer() {

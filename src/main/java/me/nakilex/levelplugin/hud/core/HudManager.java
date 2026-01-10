@@ -97,7 +97,7 @@ public class HudManager {
         int bossBarLines = config.isMergeBossBar() ? 1 : config.getBossbarLines();
         Key fontKey = Key.key(config.getNamespace(), "hud_generated");
         this.renderer = new HudBossBarRenderer(bossBarLines, config.getLineHeightPx(),
-                config.getCanvasWidthPx(), config.isMergeBossBar(), fontKey,
+                config.getCanvasWidthPx(), config.getCanvasHeightPx(), config.isMergeBossBar(), fontKey,
                 assetRegistry.getGlyphWidths());
         if (this.bossBarDisplay != null) {
             this.bossBarDisplay.clearAll();
@@ -151,7 +151,11 @@ public class HudManager {
                 if (layout == null) {
                     continue;
                 }
-                Map<String, AnchorBounds> anchors = buildAnchors(layout, placement);
+                HudPositionResolver.ResolvedPosition layoutBase = HudPositionResolver.resolve(
+                        placement.getPosition(),
+                        config.getCanvasWidthPx(),
+                        config.getCanvasHeightPx());
+                Map<String, AnchorBounds> anchors = buildAnchors(layout, layoutBase);
                 for (HudElement element : layout.getElements()) {
                     List<String> failures = new ArrayList<>();
                     for (me.nakilex.levelplugin.hud.conditions.HudCondition condition : element.getConditions()) {
@@ -165,7 +169,7 @@ public class HudManager {
                                 element.getId() + " hidden: " + String.join("; ", failures));
                         continue;
                     }
-                    HudResolvedElement resolved = resolveElement(player, element, placement, anchors);
+                    HudResolvedElement resolved = resolveElement(player, element, layoutBase, anchors);
                     if (resolved != null && !resolved.getText().isBlank()) {
                         shown++;
                         String line = resolved.getId() + " x=" + resolved.getX() + " y=" + resolved.getY()
@@ -291,12 +295,16 @@ public class HudManager {
                 if (layout == null) {
                     continue;
                 }
-                Map<String, AnchorBounds> anchors = buildAnchors(layout, placement);
+                HudPositionResolver.ResolvedPosition layoutBase = HudPositionResolver.resolve(
+                        placement.getPosition(),
+                        config.getCanvasWidthPx(),
+                        config.getCanvasHeightPx());
+                Map<String, AnchorBounds> anchors = buildAnchors(layout, layoutBase);
                 for (HudElement element : layout.getElements()) {
                     if (!element.shouldRender(player, context)) {
                         continue;
                     }
-                    HudResolvedElement resolvedElement = resolveElement(player, element, placement, anchors);
+                    HudResolvedElement resolvedElement = resolveElement(player, element, layoutBase, anchors);
                     if (resolvedElement != null && !resolvedElement.getText().isBlank()) {
                         resolved.add(resolvedElement);
                     }
@@ -306,7 +314,8 @@ public class HudManager {
         return new HudCanvas(resolved);
     }
 
-    private HudResolvedElement resolveElement(Player player, HudElement element, HudLayoutPlacement placement,
+    private HudResolvedElement resolveElement(Player player, HudElement element,
+                                              HudPositionResolver.ResolvedPosition layoutBase,
                                               Map<String, AnchorBounds> anchors) {
         String text = switch (element.getType()) {
             case TEXT -> placeholderService.resolve(player, element.getText());
@@ -316,8 +325,12 @@ public class HudManager {
         if (text == null || text.isBlank()) {
             return null;
         }
-        int x = placement.getOffsetX() + element.getX();
-        int y = placement.getOffsetY() + element.getY();
+        HudPositionResolver.ResolvedPosition elementPos = HudPositionResolver.resolve(
+                element.getPosition(),
+                config.getCanvasWidthPx(),
+                config.getCanvasHeightPx());
+        int x = layoutBase.x() + elementPos.x();
+        int y = layoutBase.y() + elementPos.y();
         HudTextAlign align = element.getAlign();
         if (element.getType() == HudElementType.TEXT && anchors != null && element.getAnchorId() != null
                 && !element.getAnchorId().isBlank()) {
@@ -325,11 +338,11 @@ public class HudManager {
             if (anchor != null) {
                 int textWidth = (int) Math.round(pixelLength(text) * element.getScale());
                 switch (element.getAlign()) {
-                    case CENTER -> x = anchor.centerX() - textWidth / 2 + element.getX();
-                    case RIGHT -> x = anchor.rightX() - textWidth + element.getX();
-                    case LEFT -> x = anchor.leftX() + element.getX();
+                    case CENTER -> x = anchor.centerX() - textWidth / 2 + elementPos.x();
+                    case RIGHT -> x = anchor.rightX() - textWidth + elementPos.x();
+                    case LEFT -> x = anchor.leftX() + elementPos.x();
                 }
-                y = anchor.topY() + element.getY();
+                y = anchor.topY() + elementPos.y();
                 align = HudTextAlign.LEFT;
             }
         }
@@ -337,7 +350,8 @@ public class HudManager {
                 element.getScale(), align);
     }
 
-    private Map<String, AnchorBounds> buildAnchors(HudLayout layout, HudLayoutPlacement placement) {
+    private Map<String, AnchorBounds> buildAnchors(HudLayout layout,
+                                                   HudPositionResolver.ResolvedPosition layoutBase) {
         Map<String, AnchorBounds> anchors = new HashMap<>();
         if (layout == null) {
             return anchors;
@@ -358,8 +372,12 @@ public class HudManager {
                     : 0;
             int scaledWidth = (int) Math.round(width * element.getScale());
             int scaledHeight = (int) Math.round(height * element.getScale());
-            int x = placement.getOffsetX() + element.getX();
-            int y = placement.getOffsetY() + element.getY();
+            HudPositionResolver.ResolvedPosition elementPos = HudPositionResolver.resolve(
+                    element.getPosition(),
+                    config.getCanvasWidthPx(),
+                    config.getCanvasHeightPx());
+            int x = layoutBase.x() + elementPos.x();
+            int y = layoutBase.y() + elementPos.y();
             anchors.put(id.toLowerCase(Locale.ROOT), new AnchorBounds(x, y, scaledWidth, scaledHeight));
         }
         return anchors;

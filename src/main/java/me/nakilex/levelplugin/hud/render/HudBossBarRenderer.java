@@ -22,15 +22,18 @@ public class HudBossBarRenderer implements HudRenderer {
     private final int lines;
     private final int lineHeightPx;
     private final int canvasWidthPx;
+    private final int canvasHeightPx;
     private final boolean mergeBossBar;
     private final Key hudFontKey;
     private final Map<Character, Integer> glyphWidths;
 
-    public HudBossBarRenderer(int lines, int lineHeightPx, int canvasWidthPx, boolean mergeBossBar, Key hudFontKey,
+    public HudBossBarRenderer(int lines, int lineHeightPx, int canvasWidthPx, int canvasHeightPx,
+                              boolean mergeBossBar, Key hudFontKey,
                               Map<Character, Integer> glyphWidths) {
         this.lines = Math.max(1, lines);
         this.lineHeightPx = Math.max(1, lineHeightPx);
         this.canvasWidthPx = Math.max(1, canvasWidthPx);
+        this.canvasHeightPx = Math.max(1, canvasHeightPx);
         this.mergeBossBar = mergeBossBar;
         this.hudFontKey = hudFontKey;
         this.glyphWidths = glyphWidths == null ? Map.of() : Map.copyOf(glyphWidths);
@@ -39,17 +42,14 @@ public class HudBossBarRenderer implements HudRenderer {
     @Override
     public HudRenderOutput render(HudCanvas canvas) {
         Map<Integer, List<HudResolvedElement>> byLine = new TreeMap<>();
-        int minLine = Integer.MAX_VALUE;
         for (HudResolvedElement element : canvas.getElements()) {
-            int lineIndex = mergeBossBar ? 0 : rawLineIndex(element.getY());
-            minLine = Math.min(minLine, lineIndex);
+            int lineIndex = mergeBossBar ? 0 : mapLineIndex(element.getY());
             byLine.computeIfAbsent(lineIndex, id -> new ArrayList<>()).add(element);
         }
-        int lineOffset = minLine == Integer.MAX_VALUE ? 0 : Math.max(0, -minLine);
         List<String> linesOut = new ArrayList<>();
         List<Component> componentsOut = new ArrayList<>();
         for (int line = 0; line < lines; line++) {
-            int sourceLine = mergeBossBar ? 0 : line - lineOffset;
+            int sourceLine = mergeBossBar ? 0 : line;
             List<HudResolvedElement> elements = byLine.getOrDefault(sourceLine, List.of());
             String lineText = composeLine(elements);
             linesOut.add(lineText);
@@ -58,8 +58,13 @@ public class HudBossBarRenderer implements HudRenderer {
         return new HudRenderOutput(linesOut, componentsOut);
     }
 
-    private int rawLineIndex(int y) {
-        return (int) Math.floor((double) y / lineHeightPx);
+    private int mapLineIndex(int y) {
+        if (lines <= 1) {
+            return 0;
+        }
+        double normalized = (double) y / canvasHeightPx;
+        int lineIndex = (int) Math.round(normalized * (lines - 1));
+        return Math.max(0, Math.min(lines - 1, lineIndex));
     }
 
     private String composeLine(List<HudResolvedElement> elements) {

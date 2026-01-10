@@ -2,6 +2,7 @@ hud:
   update-interval-ticks: 1
   placeholder-cache-ttl-ms: 150
   canvas-width-px: 320
+  canvas-height-px: 180
   line-height-px: 18
   namespace: betterhud
   output-folder: Nexo/pack/external_packs/BetterHud
