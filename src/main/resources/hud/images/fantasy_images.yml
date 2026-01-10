@@ -1,0 +1,87 @@
+compass_background_image:
+  type: single
+  texture: compass/compass_background.png
+
+air_empty_image:
+  type: single
+  texture: air_empty.png
+
+air_bar_image:
+  type: listener
+  texture: air_bar.png
+  split: 25
+  split-type: left
+  current: papi:player_remaining_air
+  max: papi:player_max_air
+
+level_empty_image:
+  type: single
+  texture: level_empty.png
+
+level_bar_image:
+  type: listener
+  texture: level_bar.png
+  split: 25
+  split-type: up
+  current: papi:naki_currentXp
+  max: papi:naki_xpNextLevel
+
+hp_empty_image:
+  type: single
+  texture: hp_empty.png
+
+hp_bar_image:
+  type: listener
+  texture: hp_bar.png
+  split: 25
+  split-type: left
+  current: papi:player_health
+  max: papi:player_max_health
+
+mana_empty_image:
+  type: single
+  texture: mana_empty.png
+
+mana_bar_image:
+  type: listener
+  texture: mana_bar.png
+  split: 25
+  split-type: left
+  current: papi:naki_currentMana
+  max: papi:naki_maxMana
+
+stamina_empty_image:
+  type: single
+  texture: stamina_empty.png
+
+stamina_bar_image:
+  type: listener
+  texture: stamina_bar.png
+  split: 25
+  split-type: left
+  current: papi:player_food_level
+  max: 20
+
+armor_empty_image:
+  type: single
+  texture: mini_armor_empty.png
+
+armor_bar_image:
+  type: listener
+  texture: mini_armor_bar.png
+  split: 25
+  split-type: left
+  current: papi:player_armor
+  max: 20
+
+coin_icon_image:
+  type: single
+  texture: coin_icon.png
+
+premiumcoin_icon_image:
+  type: single
+  texture: premiumcoin_icon.png
+
+text_box_image:
+  type: single
+  texture: text_box.png
