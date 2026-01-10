@@ -72,23 +72,28 @@ public class HudBossBarRenderer implements HudRenderer {
         if (elements.isEmpty()) {
             return "";
         }
-        List<HudResolvedElement> sorted = new ArrayList<>(elements);
-        sorted.sort(Comparator.comparingInt(HudResolvedElement::getLayer)
-                .thenComparingInt(HudResolvedElement::getX));
+        List<RenderOp> sorted = new ArrayList<>();
+        for (int index = 0; index < elements.size(); index++) {
+            sorted.add(new RenderOp(elements.get(index), index));
+        }
+        sorted.sort(Comparator.comparingInt((RenderOp op) -> op.element().getLayer())
+                .thenComparingInt(RenderOp::order));
         StringBuilder builder = new StringBuilder();
         int currentPx = 0;
         int originShift = -(canvasWidthPx / 2);
-        currentPx += appendAdvance(builder, originShift);
-        for (HudResolvedElement element : sorted) {
+        appendAdvance(builder, originShift);
+        for (RenderOp op : sorted) {
+            HudResolvedElement element = op.element();
             String text = element.getText();
             if (text == null || text.isBlank()) {
                 continue;
             }
             int targetPx = alignedX(element);
             int deltaPx = targetPx - currentPx;
-            currentPx += appendAdvance(builder, deltaPx);
+            appendAdvance(builder, deltaPx);
             builder.append(text);
-            currentPx += (int) Math.round(pixelLength(text) * element.getScale());
+            int widthPx = (int) Math.round(pixelLength(text) * element.getScale());
+            appendAdvance(builder, -(deltaPx + widthPx));
         }
         return builder.toString();
     }
@@ -178,5 +183,8 @@ public class HudBossBarRenderer implements HudRenderer {
             remaining -= step;
         }
         return moved;
+    }
+
+    private record RenderOp(HudResolvedElement element, int order) {
     }
 }
