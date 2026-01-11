@@ -208,7 +208,7 @@ public class HudManager {
                     }
                 }
                 HudPositionResolver.ResolvedPosition groupBase = resolveGroupBase(placement);
-                List<HudResolvedElement> resolved = resolveLayoutElements(player, layout, placement, context,
+                List<HudResolvedElement> resolved = resolveLayoutElements(player, moduleId.toLowerCase(Locale.ROOT), layout, placement, context,
                         groupBase, debugEntries);
                 shown += resolved.size();
             }
