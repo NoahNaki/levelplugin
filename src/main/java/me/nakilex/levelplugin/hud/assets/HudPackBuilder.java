@@ -32,6 +32,7 @@ public class HudPackBuilder {
                 .resolve("assets")
                 .resolve(namespace)
                 .resolve("textures");
+        copyBaseTextures(textureRoot, registry, sourceTextureRoot);
         generateScaledTextures(textureRoot, registry, sourceTextureRoot);
         File fontFile = new File(base, "hud_generated.json");
         String json = buildFontJson(namespace, registry, textureRoot);
@@ -143,6 +144,49 @@ public class HudPackBuilder {
             } catch (IOException ex) {
                 logger.warning("Failed to generate HUD scaled texture '" + variantTexture + "': " + ex.getMessage());
             }
+        }
+    }
+
+    private void copyBaseTextures(java.nio.file.Path textureRoot,
+                                  HudAssetRegistry registry,
+                                  java.nio.file.Path sourceTextureRoot) {
+        if (textureRoot == null || registry == null || sourceTextureRoot == null) {
+            return;
+        }
+        java.util.Set<String> variantTextures = registry.getVariantTextures().keySet();
+        for (List<HudGlyph> frames : registry.getAllBarFrames().values()) {
+            for (HudGlyph glyph : frames) {
+                copyTextureIfMissing(textureRoot, sourceTextureRoot, glyph.texturePath(), variantTextures);
+            }
+        }
+        for (HudGlyph glyph : registry.getAllGlyphs().values()) {
+            if (glyph == null) {
+                continue;
+            }
+            copyTextureIfMissing(textureRoot, sourceTextureRoot, glyph.texturePath(), variantTextures);
+        }
+    }
+
+    private void copyTextureIfMissing(java.nio.file.Path textureRoot,
+                                      java.nio.file.Path sourceTextureRoot,
+                                      String texturePath,
+                                      java.util.Set<String> variantTextures) {
+        if (texturePath == null || texturePath.isBlank()) {
+            return;
+        }
+        if (variantTextures != null && variantTextures.contains(texturePath)) {
+            return;
+        }
+        java.nio.file.Path sourcePath = sourceTextureRoot.resolve(texturePath).normalize();
+        java.nio.file.Path outputPath = textureRoot.resolve(texturePath).normalize();
+        if (java.nio.file.Files.exists(outputPath)) {
+            return;
+        }
+        try {
+            java.nio.file.Files.createDirectories(outputPath.getParent());
+            java.nio.file.Files.copy(sourcePath, outputPath);
+        } catch (IOException ex) {
+            logger.warning("Failed to copy HUD texture '" + texturePath + "': " + ex.getMessage());
         }
     }
 
