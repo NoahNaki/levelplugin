@@ -11,7 +11,6 @@ import me.nakilex.levelplugin.hud.assets.HudSplitType;
 import me.nakilex.levelplugin.hud.conditions.HudConditionContext;
 import me.nakilex.levelplugin.hud.config.HudConfig;
 import me.nakilex.levelplugin.hud.config.HudConfigLoader;
-import me.nakilex.levelplugin.hud.input.HudInputListener;
 import me.nakilex.levelplugin.hud.placeholders.HudPlaceholderCache;
 import me.nakilex.levelplugin.hud.placeholders.HudPlaceholderRegistry;
 import me.nakilex.levelplugin.hud.placeholders.HudPlaceholderService;
@@ -53,7 +52,6 @@ public class HudManager {
     private final HudConfigLoader configLoader;
     private final HudPlaceholderCache placeholderCache;
     private final HudPlaceholderService placeholderService;
-    private final HudInputListener inputListener = new HudInputListener();
     private final Map<UUID, HudPlayerState> playerStates = new ConcurrentHashMap<>();
     private BukkitTask task;
     private HudConfig config;
@@ -70,7 +68,6 @@ public class HudManager {
 
     public void enable() {
         reload();
-        Bukkit.getPluginManager().registerEvents(inputListener, plugin);
         Bukkit.getPluginManager().registerEvents(new HudPlayerListener(), plugin);
     }
 

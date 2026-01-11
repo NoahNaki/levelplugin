@@ -1,8 +1,6 @@
 package me.nakilex.levelplugin.spells.input;
 
-import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
-import me.nakilex.levelplugin.utils.ChatMessageUtil;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -13,20 +11,17 @@ import java.util.concurrent.ConcurrentHashMap;
 public class SpellInputDisplayManager {
     private static final SpellInputDisplayManager instance = new SpellInputDisplayManager();
 
-    private static final long COMBO_TIMEOUT_MS = 3_000L;
+    private static final long COMBO_TIMEOUT_MS = 900L;
+    private static final long ACTIVE_WINDOW_MS = 1_200L;
     private static final int MAX_INPUTS = 3;
-    private static final String LEFT_GLYPH = "<glyph:left_mouse_click>";
-    private static final String RIGHT_GLYPH = "<glyph:right_mouse_click>";
-    private static final String EMPTY_TOKEN = ChatColor.GRAY + "empty";
-    private static final long DEBUG_THROTTLE_MS = 1_000L;
+    private static final char LEFT_GLYPH = '\uE001';
+    private static final char RIGHT_GLYPH = '\uE002';
 
     public static SpellInputDisplayManager getInstance() {
         return instance;
     }
 
     private final Map<UUID, DisplayState> states = new ConcurrentHashMap<>();
-    private final Map<UUID, Long> lastDebugAt = new ConcurrentHashMap<>();
-
     public void recordClick(Player player, SpellClickInput input) {
         if (player == null || input == null) {
             return;
@@ -38,48 +33,30 @@ public class SpellInputDisplayManager {
             state.inputs.clear();
         }
         state.lastInputAt = now;
+        state.activeUntil = now + ACTIVE_WINDOW_MS;
         if (state.inputs.size() == MAX_INPUTS) {
             state.inputs.removeFirst();
         }
         state.inputs.addLast(input);
     }
 
-    public String getMouseComboDisplay(Player player) {
-        return getMouseComboDisplay(player, false);
+    public boolean isComboActive(Player player) {
+        if (player == null) {
+            return false;
+        }
+        DisplayState state = states.get(player.getUniqueId());
+        return state != null && System.currentTimeMillis() < state.activeUntil;
     }
 
-    public String getMouseComboDisplay(Player player, boolean debug) {
+    public String getComboGlyphs(Player player) {
         if (player == null) {
             return "";
         }
         DisplayState state = states.get(player.getUniqueId());
-        if (state == null) {
-            String empty = formatEmpty();
-            if (debug) {
-                sendDebug(player, empty);
-            }
-            return empty;
+        if (state == null || !isComboActive(player) || state.inputs.isEmpty()) {
+            return "";
         }
-        if (state.inputs.isEmpty()) {
-            String empty = formatEmpty();
-            if (debug) {
-                sendDebug(player, empty);
-            }
-            return empty;
-        }
-        if (System.currentTimeMillis() - state.lastInputAt > COMBO_TIMEOUT_MS) {
-            state.inputs.clear();
-            String empty = formatEmpty();
-            if (debug) {
-                sendDebug(player, empty);
-            }
-            return empty;
-        }
-        String display = formatInputs(state.inputs);
-        if (debug) {
-            sendDebug(player, display);
-        }
-        return display;
+        return formatGlyphs(state.inputs);
     }
 
     public String getComboSequence(Player player) {
@@ -87,11 +64,7 @@ public class SpellInputDisplayManager {
             return "";
         }
         DisplayState state = states.get(player.getUniqueId());
-        if (state == null || state.inputs.isEmpty()) {
-            return "";
-        }
-        if (System.currentTimeMillis() - state.lastInputAt > COMBO_TIMEOUT_MS) {
-            state.inputs.clear();
+        if (state == null || state.inputs.isEmpty() || !isComboActive(player)) {
             return "";
         }
         return formatSequence(state.inputs);
@@ -102,7 +75,6 @@ public class SpellInputDisplayManager {
             return;
         }
         states.remove(player.getUniqueId());
-        lastDebugAt.remove(player.getUniqueId());
     }
 
     public void clearInputs(Player player) {
@@ -115,33 +87,12 @@ public class SpellInputDisplayManager {
         }
     }
 
-    private String formatInputs(Deque<SpellClickInput> inputs) {
+    private String formatGlyphs(Deque<SpellClickInput> inputs) {
         StringBuilder sb = new StringBuilder();
-        for (int index = 0; index < MAX_INPUTS; index++) {
-            if (index == 1) {
-                sb.append(ChatColor.GRAY).append(" - ");
-            } else if (index == 2) {
-                sb.append(ChatColor.GRAY).append(" ");
-            }
-            SpellClickInput input = inputs.size() > index ? getInputAt(inputs, index) : null;
-            sb.append(input == null ? EMPTY_TOKEN : (input == SpellClickInput.RIGHT ? RIGHT_GLYPH : LEFT_GLYPH));
+        for (SpellClickInput input : inputs) {
+            sb.append(input == SpellClickInput.RIGHT ? RIGHT_GLYPH : LEFT_GLYPH);
         }
         return sb.toString();
-    }
-
-    private String formatEmpty() {
-        return formatInputs(new ArrayDeque<>(0));
-    }
-
-    private SpellClickInput getInputAt(Deque<SpellClickInput> inputs, int index) {
-        int i = 0;
-        for (SpellClickInput input : inputs) {
-            if (i == index) {
-                return input;
-            }
-            i++;
-        }
-        return null;
     }
 
     private String formatSequence(Deque<SpellClickInput> inputs) {
@@ -152,22 +103,9 @@ public class SpellInputDisplayManager {
         return sb.toString();
     }
 
-    private void sendDebug(Player player, String display) {
-        long now = System.currentTimeMillis();
-        long last = lastDebugAt.getOrDefault(player.getUniqueId(), 0L);
-        if (now - last < DEBUG_THROTTLE_MS) {
-            return;
-        }
-        lastDebugAt.put(player.getUniqueId(), now);
-        String combo = getComboSequence(player);
-        String text = display.isBlank() ? "empty" : display;
-        String message = ChatColor.GRAY + "PAPI spell combo: " + ChatColor.WHITE + text
-                + (combo.isBlank() ? "" : ChatColor.DARK_GRAY + " (" + combo + ")");
-        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO, message);
-    }
-
     private static final class DisplayState {
         private final Deque<SpellClickInput> inputs = new ArrayDeque<>(MAX_INPUTS);
         private long lastInputAt;
+        private long activeUntil;
     }
 }

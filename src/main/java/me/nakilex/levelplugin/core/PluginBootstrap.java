@@ -66,6 +66,7 @@ import me.nakilex.levelplugin.guild.quests.GuildQuestManager;
 import me.nakilex.levelplugin.trade.data.ConfigValues;
 import me.nakilex.levelplugin.trade.utils.MessageStrings;
 import me.nakilex.levelplugin.utils.DealMaker;
+import me.nakilex.levelplugin.utils.LevelPlaceholderExpansion;
 import me.nakilex.levelplugin.utils.NakiPlaceholderExpansion;
 import me.nakilex.levelplugin.utils.EntityTextDisplay;
 import me.nakilex.levelplugin.utils.MetadataTrait;
@@ -604,7 +605,7 @@ public class PluginBootstrap {
     }
 
     /**
-     * Registers PlaceholderAPI expansion if the plugin is present.
+     * Registers PlaceholderAPI expansions if the plugin is present.
      * Provided placeholders:
      * <ul>
      *   <li><code>%naki_level%</code></li>
@@ -616,11 +617,14 @@ public class PluginBootstrap {
      *   <li><code>%naki_currentXP%</code></li>
      *   <li><code>%naki_xpNextLevel%</code></li>
      *   <li><code>%naki_seasonDate%</code></li>
+     *   <li><code>%level_spell_combo_active%</code></li>
+     *   <li><code>%level_spell_combo_glyphs%</code></li>
      * </ul>
      */
     private void registerPlaceholders() {
         if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
             new NakiPlaceholderExpansion(plugin).register();
+            new LevelPlaceholderExpansion(plugin).register();
         }
     }
 
