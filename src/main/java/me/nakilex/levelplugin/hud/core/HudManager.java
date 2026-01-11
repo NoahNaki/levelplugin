@@ -357,6 +357,48 @@ public class HudManager {
         }
     }
 
+    private java.nio.file.Path resolveTexturePath(java.nio.file.Path sourceTextureRoot, String texture) {
+        if (sourceTextureRoot == null || texture == null || texture.isBlank()) {
+            return null;
+        }
+        java.nio.file.Path direct = sourceTextureRoot.resolve(texture).normalize();
+        if (java.nio.file.Files.exists(direct)) {
+            return direct;
+        }
+        String normalized = texture.replace('\\', '/');
+        if (normalized.startsWith("textures/")) {
+            normalized = normalized.substring("textures/".length());
+        }
+        if (normalized.indexOf('/') < 0) {
+            java.nio.file.Path candidate = sourceTextureRoot.resolve("fantasy/assets").resolve(normalized).normalize();
+            if (java.nio.file.Files.exists(candidate)) {
+                return candidate;
+            }
+            try (java.util.stream.Stream<java.nio.file.Path> stream = java.nio.file.Files.walk(sourceTextureRoot, 5)) {
+                java.util.Optional<java.nio.file.Path> found = stream
+                        .filter(path -> path.getFileName().toString().equalsIgnoreCase(normalized))
+                        .findFirst();
+                return found.orElse(direct);
+            } catch (IOException ex) {
+                return direct;
+            }
+        }
+        return direct;
+    }
+
+    private String resolveTextureRelativePath(java.nio.file.Path sourceTextureRoot, String texture) {
+        java.nio.file.Path resolved = resolveTexturePath(sourceTextureRoot, texture);
+        if (resolved == null || sourceTextureRoot == null) {
+            return texture;
+        }
+        try {
+            java.nio.file.Path relative = sourceTextureRoot.relativize(resolved);
+            return relative.toString().replace('\\', '/');
+        } catch (IllegalArgumentException ex) {
+            return texture;
+        }
+    }
+
     private List<DebugEntry> buildDebugEntries(Player player) {
         List<DebugEntry> debugEntries = new ArrayList<>();
         if (config == null || player == null) {
@@ -766,8 +808,9 @@ public class HudManager {
                     if (texture == null || texture.isBlank()) {
                         continue;
                     }
-                    baseTextures.add(texture);
-                    glyphs.add(createGlyph(allocator.next(), texture, sourceTextureRoot));
+                    String resolvedTexture = resolveTextureRelativePath(sourceTextureRoot, texture);
+                    baseTextures.add(resolvedTexture);
+                    glyphs.add(createGlyph(allocator.next(), resolvedTexture, sourceTextureRoot));
                 }
                 if (glyphs.isEmpty()) {
                     plugin.getLogger().warning("HUD bar '" + definition.getId() + "' has no frames configured.");
@@ -777,7 +820,8 @@ public class HudManager {
             } else {
                 if (definition.getTexture() != null && !definition.getTexture().isBlank()) {
                     String texture = resolver.resolveSingle(definition.getTexture());
-                    HudGlyph baseGlyph = createGlyph(allocator.next(), texture, sourceTextureRoot);
+                    String resolvedTexture = resolveTextureRelativePath(sourceTextureRoot, texture);
+                    HudGlyph baseGlyph = createGlyph(allocator.next(), resolvedTexture, sourceTextureRoot);
                     registry.registerGlyph(definition.getId(), baseGlyph);
                     registerImageScaleVariants(registry, allocator, definition.getId(), baseGlyph);
                 } else {
@@ -865,13 +909,6 @@ public class HudManager {
             }
         }
         return new HudGlyph(codepoint, texture, width, height);
-    }
-
-    private java.nio.file.Path resolveTexturePath(java.nio.file.Path sourceTextureRoot, String texture) {
-        if (sourceTextureRoot == null || texture == null || texture.isBlank()) {
-            return null;
-        }
-        return sourceTextureRoot.resolve(texture).normalize();
     }
 
     private String resolveFrameTexture(HudImageDefinition definition,
