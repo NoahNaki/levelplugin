@@ -195,6 +195,56 @@ public class HudPackBuilder {
         return missing;
     }
 
+    public List<String> collectMissingFontTextures(java.nio.file.Path outputFolder, String namespace) {
+        if (outputFolder == null || namespace == null || namespace.isBlank()) {
+            return List.of("Invalid output folder or namespace for HUD font validation.");
+        }
+        java.nio.file.Path fontFile = outputFolder.resolve("assets")
+                .resolve(namespace)
+                .resolve("font")
+                .resolve("hud_generated.json");
+        if (!java.nio.file.Files.exists(fontFile)) {
+            return List.of("Missing HUD font file: " + fontFile);
+        }
+        List<String> missing = new java.util.ArrayList<>();
+        java.nio.file.Path namespaceRoot = outputFolder.resolve("assets").resolve(namespace);
+        try {
+            String content = java.nio.file.Files.readString(fontFile);
+            java.util.regex.Matcher matcher = java.util.regex.Pattern.compile("\"file\"\\s*:\\s*\"([^\"]+)\"")
+                    .matcher(content);
+            while (matcher.find()) {
+                String fileToken = matcher.group(1);
+                String relative = parseFontFileRelativePath(namespace, fileToken);
+                if (relative == null || relative.isBlank()) {
+                    missing.add("Invalid font file reference: " + fileToken);
+                    continue;
+                }
+                java.nio.file.Path texturePath = namespaceRoot.resolve(relative).normalize();
+                if (!java.nio.file.Files.exists(texturePath)) {
+                    missing.add(texturePath.toString());
+                }
+            }
+        } catch (IOException ex) {
+            missing.add("Failed to read HUD font file: " + ex.getMessage());
+        }
+        return missing;
+    }
+
+    private String parseFontFileRelativePath(String namespace, String fileToken) {
+        if (fileToken == null || fileToken.isBlank()) {
+            return null;
+        }
+        String prefix = namespace + ":";
+        String resolved = fileToken.startsWith(prefix) ? fileToken.substring(prefix.length()) : fileToken;
+        while (resolved.startsWith("/")) {
+            resolved = resolved.substring(1);
+        }
+        if (!resolved.startsWith("textures/")) {
+            return null;
+        }
+        return resolved;
+    }
+
     private boolean textureExists(java.nio.file.Path textureRoot, String texturePath) {
         if (texturePath == null || texturePath.isBlank()) {
             return false;

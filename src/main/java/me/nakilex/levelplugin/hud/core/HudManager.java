@@ -221,22 +221,37 @@ public class HudManager {
         }
         HudPackBuilder packBuilder = new HudPackBuilder(plugin);
         java.nio.file.Path resolvedRoot = resolveSourceTextureRoot();
+        java.nio.file.Path resolvedOutput = resolveOutputFolder();
         ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.INFO,
                 "HUD resolvedSourceTexturesFolder: " + resolvedRoot);
         List<String> missing = packBuilder.collectMissingTextures(
                 resolvedRoot.toString(), assetRegistry);
         if (missing.isEmpty()) {
             ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.SUCCESS, "All HUD textures found in pack.");
+        } else {
+            ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.WARNING,
+                    "Missing HUD textures: " + missing.size());
+            int limit = Math.min(5, missing.size());
+            for (int i = 0; i < limit; i++) {
+                java.nio.file.Path fullPath = resolvedRoot.resolve(missing.get(i)).normalize();
+                ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.WARNING, "- " + fullPath);
+            }
+            if (missing.size() > limit) {
+                ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.WARNING, "... and more");
+            }
+        }
+        List<String> missingFont = packBuilder.collectMissingFontTextures(resolvedOutput, config.getNamespace());
+        if (missingFont.isEmpty()) {
+            ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.SUCCESS, "HUD font JSON references are valid.");
             return;
         }
         ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.WARNING,
-                "Missing HUD textures: " + missing.size());
-        int limit = Math.min(5, missing.size());
-        for (int i = 0; i < limit; i++) {
-            java.nio.file.Path fullPath = resolvedRoot.resolve(missing.get(i)).normalize();
-            ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.WARNING, "- " + fullPath);
+                "Missing HUD font textures: " + missingFont.size());
+        int fontLimit = Math.min(5, missingFont.size());
+        for (int i = 0; i < fontLimit; i++) {
+            ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.WARNING, "- " + missingFont.get(i));
         }
-        if (missing.size() > limit) {
+        if (missingFont.size() > fontLimit) {
             ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.WARNING, "... and more");
         }
     }
