@@ -44,6 +44,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.io.IOException;
+import java.nio.file.Files;
 
 public class HudManager {
     private static final int BASELINE_OFFSET_PX = 54;
@@ -100,6 +101,7 @@ public class HudManager {
             plugin.getLogger().warning("HUD textures missing from source folder (" + missing.size() + "). Example: " + missing.get(0));
         }
         packBuilder.build(resolvedOutputFolder.toString(), config.getNamespace(), assetRegistry);
+        writeGuiOffsetManifest(resolvedOutputFolder, config.getNamespace(), config.getModules(), config.getLayouts());
         int bossBarLines = config.isMergeBossBar() ? 1 : config.getBossbarLines();
         Key fontKey = Key.key(config.getNamespace(), "hud_generated");
         this.renderer = new HudBossBarRenderer(bossBarLines, config.getLineHeightPx(),
@@ -443,6 +445,7 @@ public class HudManager {
             int height = layoutElement.height();
             int x = groupBase.x() + layoutElement.offsetX() + alignmentShift(placement.getAlign(), width);
             int y = groupBase.y() + layoutElement.offsetY();
+            GuiOffset guiOffset = combineGuiOffsets(placement.getPosition(), element.getPosition());
             HudTextAlign align = element.getAlign();
             if (element.getType() == HudElementType.TEXT && element.getAnchorId() != null
                     && !element.getAnchorId().isBlank()) {
@@ -459,7 +462,7 @@ public class HudManager {
             }
             double renderScale = element.getType() == HudElementType.TEXT ? element.getScale() : 1.0;
             resolved.add(new HudResolvedElement(element.getId(), layoutElement.text(), x, y, 0,
-                    width, height, element.getLayer(), renderScale, align));
+                    width, height, element.getLayer(), renderScale, align, guiOffset.xPercent(), guiOffset.yPercent()));
             if (debugEntries != null) {
                 debugEntries.add(buildDebugEntry(element.getId(), groupBase.x(), groupBase.y(),
                         layoutElement.offsetX(), layoutElement.offsetY(), x, y, width, height, renderScale));
@@ -536,10 +539,10 @@ public class HudManager {
         int originWidth = pixelLength(originLabel);
         resolved.add(new HudResolvedElement("hud_debug_anchor_" + placement.getLayoutId(),
                 anchorLabel, anchorBase.x(), anchorBase.y(), row, anchorWidth, DEFAULT_TEXT_HEIGHT_PX,
-                Integer.MAX_VALUE - 1, 1.0, HudTextAlign.LEFT));
+                Integer.MAX_VALUE - 1, 1.0, HudTextAlign.LEFT, 0.0, 0.0));
         resolved.add(new HudResolvedElement("hud_debug_origin_" + placement.getLayoutId(),
                 originLabel, groupBase.x(), groupBase.y(), row, originWidth, DEFAULT_TEXT_HEIGHT_PX,
-                Integer.MAX_VALUE - 1, 1.0, HudTextAlign.LEFT));
+                Integer.MAX_VALUE - 1, 1.0, HudTextAlign.LEFT, 0.0, 0.0));
     }
 
     private void maybeLogDebugEntries(Player player, List<DebugEntry> entries, HudPlayerState state) {
@@ -603,6 +606,9 @@ public class HudManager {
     private record ElementMetrics(int width, int height, double scaleFactor) {
     }
 
+    private record GuiOffset(double xPercent, double yPercent) {
+    }
+
     private record DebugEntry(String id,
                               int moduleOriginX,
                               int moduleOriginY,
@@ -643,6 +649,78 @@ public class HudManager {
             px += (bold ? DefaultFontInfo.getBoldLength() : dFI.getLength()) + 1;
         }
         return px;
+    }
+
+    private GuiOffset combineGuiOffsets(HudPosition placementPosition, HudPosition elementPosition) {
+        double placementX = placementPosition == null ? 0.0 : placementPosition.guiX();
+        double placementY = placementPosition == null ? 0.0 : placementPosition.guiY();
+        double elementX = elementPosition == null ? 0.0 : elementPosition.guiX();
+        double elementY = elementPosition == null ? 0.0 : elementPosition.guiY();
+        return new GuiOffset(placementX + elementX, placementY + elementY);
+    }
+
+    private void writeGuiOffsetManifest(java.nio.file.Path outputFolder,
+                                        String namespace,
+                                        Map<String, HudModule> modules,
+                                        Map<String, HudLayout> layouts) {
+        if (outputFolder == null || namespace == null || namespace.isBlank() || modules == null || layouts == null) {
+            return;
+        }
+        java.nio.file.Path base = outputFolder.resolve("assets").resolve(namespace).resolve("hud");
+        try {
+            Files.createDirectories(base);
+        } catch (IOException ex) {
+            plugin.getLogger().warning("Failed to create HUD gui manifest folder: " + ex.getMessage());
+            return;
+        }
+        java.nio.file.Path manifest = base.resolve("hud_gui_offsets.json");
+        StringBuilder builder = new StringBuilder();
+        builder.append("{\n  \"elements\": [\n");
+        boolean first = true;
+        for (Map.Entry<String, HudModule> moduleEntry : modules.entrySet()) {
+            String moduleId = moduleEntry.getKey();
+            HudModule module = moduleEntry.getValue();
+            if (module == null) {
+                continue;
+            }
+            for (HudLayoutPlacement placement : module.getPlacements()) {
+                if (placement == null) {
+                    continue;
+                }
+                String layoutId = placement.getLayoutId();
+                HudLayout layout = layoutId == null ? null : layouts.get(layoutId.toLowerCase(Locale.ROOT));
+                if (layout == null) {
+                    continue;
+                }
+                for (HudElement element : layout.getElements()) {
+                    if (element == null) {
+                        continue;
+                    }
+                    GuiOffset guiOffset = combineGuiOffsets(placement.getPosition(), element.getPosition());
+                    if (!first) {
+                        builder.append(",\n");
+                    }
+                    first = false;
+                    builder.append("    {\"id\":\"")
+                            .append(moduleId).append(":").append(layoutId).append(":").append(element.getId())
+                            .append("\",\"anchor\":\"")
+                            .append(placement.getPosition().anchor().name())
+                            .append("\",\"guiX\":")
+                            .append(guiOffset.xPercent())
+                            .append(",\"guiY\":")
+                            .append(guiOffset.yPercent())
+                            .append(",\"layer\":")
+                            .append(element.getLayer())
+                            .append("}");
+                }
+            }
+        }
+        builder.append("\n  ]\n}\n");
+        try (java.io.FileWriter writer = new java.io.FileWriter(manifest.toFile())) {
+            writer.write(builder.toString());
+        } catch (IOException ex) {
+            plugin.getLogger().warning("Failed to write HUD gui manifest: " + ex.getMessage());
+        }
     }
 
     private record AnchorBounds(int leftX, int topY, int width, int height) {

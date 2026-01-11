@@ -11,6 +11,8 @@ public class HudResolvedElement {
     private final int layer;
     private final double scale;
     private final HudTextAlign align;
+    private final double guiXPercent;
+    private final double guiYPercent;
 
     public HudResolvedElement(String id,
                               String text,
@@ -21,7 +23,9 @@ public class HudResolvedElement {
                               int height,
                               int layer,
                               double scale,
-                              HudTextAlign align) {
+                              HudTextAlign align,
+                              double guiXPercent,
+                              double guiYPercent) {
         this.id = id;
         this.text = text;
         this.x = x;
@@ -32,6 +36,8 @@ public class HudResolvedElement {
         this.layer = layer;
         this.scale = scale;
         this.align = align;
+        this.guiXPercent = guiXPercent;
+        this.guiYPercent = guiYPercent;
     }
 
     public String getId() {
@@ -72,5 +78,13 @@ public class HudResolvedElement {
 
     public HudTextAlign getAlign() {
         return align;
+    }
+
+    public double getGuiXPercent() {
+        return guiXPercent;
+    }
+
+    public double getGuiYPercent() {
+        return guiYPercent;
     }
 }

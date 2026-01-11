@@ -7,10 +7,8 @@ public final class HudPositionResolver {
     public static ResolvedPosition resolve(HudPosition position, int widthPx, int heightPx) {
         HudPosition pos = position == null ? HudPosition.defaultPosition() : position;
         ResolvedPosition base = resolveAnchorBase(pos.anchor(), widthPx, heightPx);
-        int guiX = (int) Math.round(widthPx * (pos.guiX() / 100.0));
-        int guiY = (int) Math.round(heightPx * (pos.guiY() / 100.0));
-        int x = base.x() + guiX + pos.pixelX();
-        int y = base.y() + guiY + pos.pixelY();
+        int x = base.x() + pos.pixelX();
+        int y = base.y() + pos.pixelY();
         return new ResolvedPosition(x, y);
     }
 
