@@ -619,6 +619,9 @@ public class PluginBootstrap {
      *   <li><code>%naki_seasonDate%</code></li>
      *   <li><code>%level_spell_combo_active%</code></li>
      *   <li><code>%level_spell_combo_glyphs%</code></li>
+     *   <li><code>%level_spell_combo_slot1%</code></li>
+     *   <li><code>%level_spell_combo_slot2%</code></li>
+     *   <li><code>%level_spell_combo_slot3%</code></li>
      * </ul>
      */
     private void registerPlaceholders() {

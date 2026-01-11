@@ -60,6 +60,24 @@ public class SpellInputDisplayManager {
         return formatGlyphs(state.inputs);
     }
 
+    public String getComboSlot(Player player, int slotIndex) {
+        if (player == null) {
+            return "E";
+        }
+        if (slotIndex < 0 || slotIndex >= MAX_INPUTS) {
+            return "E";
+        }
+        DisplayState state = states.get(player.getUniqueId());
+        if (state == null || !isComboActive(player)) {
+            return "E";
+        }
+        SpellClickInput input = getInputAt(state.inputs, slotIndex);
+        if (input == null) {
+            return "E";
+        }
+        return input == SpellClickInput.RIGHT ? "R" : "L";
+    }
+
     public String getComboSequence(Player player) {
         if (player == null) {
             return "";
@@ -102,6 +120,17 @@ public class SpellInputDisplayManager {
             sb.append(EMPTY_GLYPH);
         }
         return sb.toString();
+    }
+
+    private SpellClickInput getInputAt(Deque<SpellClickInput> inputs, int index) {
+        int i = 0;
+        for (SpellClickInput input : inputs) {
+            if (i == index) {
+                return input;
+            }
+            i++;
+        }
+        return null;
     }
 
     private String emptyGlyphs() {
