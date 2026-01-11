@@ -14,6 +14,7 @@ public class SpellInputDisplayManager {
     private static final long COMBO_TIMEOUT_MS = 900L;
     private static final long ACTIVE_WINDOW_MS = 1_200L;
     private static final int MAX_INPUTS = 3;
+    private static final char EMPTY_GLYPH = '\uE000';
     private static final char LEFT_GLYPH = '\uE001';
     private static final char RIGHT_GLYPH = '\uE002';
 
@@ -54,7 +55,7 @@ public class SpellInputDisplayManager {
         }
         DisplayState state = states.get(player.getUniqueId());
         if (state == null || !isComboActive(player) || state.inputs.isEmpty()) {
-            return "";
+            return emptyGlyphs();
         }
         return formatGlyphs(state.inputs);
     }
@@ -89,10 +90,22 @@ public class SpellInputDisplayManager {
 
     private String formatGlyphs(Deque<SpellClickInput> inputs) {
         StringBuilder sb = new StringBuilder();
+        int count = 0;
         for (SpellClickInput input : inputs) {
+            if (count >= MAX_INPUTS) {
+                break;
+            }
             sb.append(input == SpellClickInput.RIGHT ? RIGHT_GLYPH : LEFT_GLYPH);
+            count++;
+        }
+        for (int i = count; i < MAX_INPUTS; i++) {
+            sb.append(EMPTY_GLYPH);
         }
         return sb.toString();
+    }
+
+    private String emptyGlyphs() {
+        return String.valueOf(EMPTY_GLYPH).repeat(MAX_INPUTS);
     }
 
     private String formatSequence(Deque<SpellClickInput> inputs) {

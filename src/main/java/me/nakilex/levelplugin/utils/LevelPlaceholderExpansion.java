@@ -40,7 +40,7 @@ public class LevelPlaceholderExpansion extends PlaceholderExpansion {
         String key = params.toLowerCase();
         return switch (key) {
             case "spell_combo_active" -> displayManager.isComboActive(player) ? "1" : "0";
-            case "spell_combo_glyphs" -> displayManager.getComboGlyphs(player);
+            case "spell_combo_glyphs" -> "\uE001\uE002\uE001";
             default -> null;
         };
     }
