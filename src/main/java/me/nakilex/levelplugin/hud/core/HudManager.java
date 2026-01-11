@@ -784,7 +784,7 @@ public class HudManager {
             if (scale == 1.0) {
                 continue;
             }
-            String variantTexture = buildVariantTexturePath(registry, baseGlyph.texturePath(), scale);
+            String variantTexture = buildVariantTexturePath(baseGlyph.texturePath(), scale);
             HudGlyph scaled = createScaledGlyph(allocator.next(), baseGlyph, variantTexture, scale);
             registry.registerGlyphVariant(id, scale, scaled, baseGlyph.texturePath());
         }
@@ -806,19 +806,20 @@ public class HudManager {
             for (int i = 0; i < baseFrames.size(); i++) {
                 HudGlyph baseGlyph = baseFrames.get(i);
                 String baseTexture = i < baseTextures.size() ? baseTextures.get(i) : baseGlyph.texturePath();
-                String variantTexture = buildVariantTexturePath(registry, baseTexture, scale);
+                String variantTexture = buildVariantTexturePath(baseTexture, scale);
                 scaledFrames.add(createScaledGlyph(allocator.next(), baseGlyph, variantTexture, scale));
             }
             registry.registerBarFramesVariant(id, scale, scaledFrames, baseFrames);
         }
     }
 
-    private String buildVariantTexturePath(HudAssetRegistry registry, String baseTexture, double scale) {
+    private String buildVariantTexturePath(String baseTexture, double scale) {
         if (baseTexture == null || baseTexture.isBlank()) {
             return "";
         }
         int dot = baseTexture.lastIndexOf('.');
-        String suffix = "@" + registry.formatScale(scale);
+        int scaled = (int) Math.round(scale * 100);
+        String suffix = "_s" + String.format("%03d", scaled);
         if (dot <= 0) {
             return baseTexture + suffix;
         }

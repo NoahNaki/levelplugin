@@ -28,9 +28,17 @@ public class HudPackBuilder {
             logger.warning("Failed to create HUD font output directory: " + base.getAbsolutePath());
             return;
         }
-        generateScaledTextures(outputFolder, namespace, registry, sourceTextureRoot);
+        java.nio.file.Path textureRoot = java.nio.file.Paths.get(outputFolder)
+                .resolve("assets")
+                .resolve(namespace)
+                .resolve("textures");
+        generateScaledTextures(textureRoot, registry, sourceTextureRoot);
         File fontFile = new File(base, "hud_generated.json");
-        String json = buildFontJson(namespace, registry);
+        String json = buildFontJson(namespace, registry, textureRoot);
+        if (json.isBlank()) {
+            logger.warning("HUD font build aborted due to missing textures.");
+            return;
+        }
         try (FileWriter writer = new FileWriter(fontFile)) {
             writer.write(json);
         } catch (IOException ex) {
@@ -38,7 +46,10 @@ public class HudPackBuilder {
         }
     }
 
-    private String buildFontJson(String namespace, HudAssetRegistry registry) {
+    private String buildFontJson(String namespace, HudAssetRegistry registry, java.nio.file.Path textureRoot) {
+        if (textureRoot == null) {
+            return "";
+        }
         StringBuilder builder = new StringBuilder();
         builder.append("{\n  \"providers\": [\n");
         boolean first = true;
@@ -50,6 +61,9 @@ public class HudPackBuilder {
         for (List<HudGlyph> frames : registry.getAllBarFrames().values()) {
             for (HudGlyph glyph : frames) {
                 String texture = glyph.texturePath();
+                if (!validateTexture(textureRoot, texture)) {
+                    return "";
+                }
                 if (!first) {
                     builder.append(",\n");
                 }
@@ -60,6 +74,9 @@ public class HudPackBuilder {
         for (HudGlyph glyph : registry.getAllGlyphs().values()) {
             if (glyph == null) {
                 continue;
+            }
+            if (!validateTexture(textureRoot, glyph.texturePath())) {
+                return "";
             }
             if (!first) {
                 builder.append(",\n");
@@ -76,7 +93,7 @@ public class HudPackBuilder {
         int ascent = Math.max(1, height - 1);
         return "{"
                 + "\"type\":\"bitmap\","
-                + "\"file\":\"" + namespace + ":" + texture + "\","
+                + "\"file\":\"" + namespace + ":textures/" + texture + "\","
                 + "\"ascent\":" + ascent + ","
                 + "\"height\":" + height + ","
                 + "\"chars\":[\"" + glyph.codepoint() + "\"]"
@@ -98,17 +115,12 @@ public class HudPackBuilder {
         return builder.toString();
     }
 
-    private void generateScaledTextures(String outputFolder,
-                                        String namespace,
+    private void generateScaledTextures(java.nio.file.Path textureRoot,
                                         HudAssetRegistry registry,
                                         java.nio.file.Path sourceTextureRoot) {
-        if (outputFolder == null || namespace == null || registry == null || sourceTextureRoot == null) {
+        if (textureRoot == null || registry == null || sourceTextureRoot == null) {
             return;
         }
-        java.nio.file.Path textureRoot = java.nio.file.Paths.get(outputFolder)
-                .resolve("assets")
-                .resolve(namespace)
-                .resolve("textures");
         for (Map.Entry<String, HudAssetRegistry.VariantTexture> entry : registry.getVariantTextures().entrySet()) {
             String variantTexture = entry.getKey();
             HudAssetRegistry.VariantTexture info = entry.getValue();
@@ -132,6 +144,19 @@ public class HudPackBuilder {
                 logger.warning("Failed to generate HUD scaled texture '" + variantTexture + "': " + ex.getMessage());
             }
         }
+    }
+
+    private boolean validateTexture(java.nio.file.Path textureRoot, String texturePath) {
+        if (texturePath == null || texturePath.isBlank()) {
+            logger.warning("HUD font entry has blank texture path.");
+            return false;
+        }
+        java.nio.file.Path file = textureRoot.resolve(texturePath).normalize();
+        if (!java.nio.file.Files.exists(file)) {
+            logger.warning("Missing HUD texture for font provider: " + file);
+            return false;
+        }
+        return true;
     }
 
     private java.awt.image.BufferedImage scaleImage(java.awt.image.BufferedImage source, double scale) {
