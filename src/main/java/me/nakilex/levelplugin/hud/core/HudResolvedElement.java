@@ -11,6 +11,7 @@ public class HudResolvedElement {
     private final int layer;
     private final double scale;
     private final HudTextAlign align;
+    private final String shaderKey;
     private final double guiXPercent;
     private final double guiYPercent;
 
@@ -24,6 +25,7 @@ public class HudResolvedElement {
                               int layer,
                               double scale,
                               HudTextAlign align,
+                              String shaderKey,
                               double guiXPercent,
                               double guiYPercent) {
         this.id = id;
@@ -36,6 +38,7 @@ public class HudResolvedElement {
         this.layer = layer;
         this.scale = scale;
         this.align = align;
+        this.shaderKey = shaderKey;
         this.guiXPercent = guiXPercent;
         this.guiYPercent = guiYPercent;
     }
@@ -78,6 +81,10 @@ public class HudResolvedElement {
 
     public HudTextAlign getAlign() {
         return align;
+    }
+
+    public String getShaderKey() {
+        return shaderKey;
     }
 
     public double getGuiXPercent() {

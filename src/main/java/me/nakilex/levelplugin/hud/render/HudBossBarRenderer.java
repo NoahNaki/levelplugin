@@ -6,6 +6,7 @@ import me.nakilex.levelplugin.hud.core.HudResolvedElement;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
+import net.kyori.adventure.text.format.TextColor;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -23,15 +24,17 @@ public class HudBossBarRenderer implements HudRenderer {
     private final int canvasHeightPx;
     private final boolean mergeBossBar;
     private final Key hudFontKey;
+    private final Map<String, TextColor> shaderColors;
 
     public HudBossBarRenderer(int lines, int lineHeightPx, int canvasWidthPx, int canvasHeightPx,
-                              boolean mergeBossBar, Key hudFontKey) {
+                              boolean mergeBossBar, Key hudFontKey, Map<String, TextColor> shaderColors) {
         this.lines = Math.max(1, lines);
         this.lineHeightPx = Math.max(1, lineHeightPx);
         this.canvasWidthPx = Math.max(1, canvasWidthPx);
         this.canvasHeightPx = Math.max(1, canvasHeightPx);
         this.mergeBossBar = mergeBossBar;
         this.hudFontKey = hudFontKey;
+        this.shaderColors = shaderColors == null ? Map.of() : shaderColors;
     }
 
     @Override
@@ -46,9 +49,9 @@ public class HudBossBarRenderer implements HudRenderer {
         for (int line = 0; line < lines; line++) {
             int sourceLine = mergeBossBar ? 0 : line;
             List<HudResolvedElement> elements = byLine.getOrDefault(sourceLine, List.of());
-            String lineText = composeLine(elements);
+            String lineText = composeLineText(elements);
             linesOut.add(lineText);
-            componentsOut.add(composeComponent(lineText));
+            componentsOut.add(composeComponent(elements));
         }
         return new HudRenderOutput(linesOut, componentsOut);
     }
@@ -65,7 +68,7 @@ public class HudBossBarRenderer implements HudRenderer {
         return Math.floorDiv(element.getY(), lineHeight);
     }
 
-    private String composeLine(List<HudResolvedElement> elements) {
+    private String composeLineText(List<HudResolvedElement> elements) {
         if (elements.isEmpty()) {
             return "";
         }
@@ -95,40 +98,67 @@ public class HudBossBarRenderer implements HudRenderer {
         return builder.toString();
     }
 
-    private Component composeComponent(String lineText) {
-        if (lineText == null || lineText.isEmpty()) {
+    private Component composeComponent(List<HudResolvedElement> elements) {
+        if (elements == null || elements.isEmpty()) {
             return Component.empty();
         }
-        TextComponent.Builder builder = Component.text();
-        StringBuilder segment = new StringBuilder();
-        boolean segmentIsGlyph = isGlyph(lineText.charAt(0));
-        for (int i = 0; i < lineText.length(); i++) {
-            char c = lineText.charAt(i);
-            boolean isGlyph = isGlyph(c);
-            if (isGlyph != segmentIsGlyph) {
-                appendSegment(builder, segment, segmentIsGlyph);
-                segment.setLength(0);
-                segmentIsGlyph = isGlyph;
-            }
-            segment.append(c);
+        List<RenderOp> sorted = new ArrayList<>();
+        for (int index = 0; index < elements.size(); index++) {
+            sorted.add(new RenderOp(elements.get(index), index));
         }
-        appendSegment(builder, segment, segmentIsGlyph);
+        sorted.sort(Comparator.comparingInt((RenderOp op) -> op.element().getLayer())
+                .thenComparingInt(RenderOp::order));
+        TextComponent.Builder builder = Component.text();
+        int currentPx = 0;
+        int originShift = -(canvasWidthPx / 2);
+        appendAdvanceComponent(builder, originShift);
+        for (RenderOp op : sorted) {
+            HudResolvedElement element = op.element();
+            String text = element.getText();
+            if (text == null || text.isBlank()) {
+                continue;
+            }
+            int targetPx = alignedX(element);
+            int deltaPx = targetPx - currentPx;
+            appendAdvanceComponent(builder, deltaPx);
+            builder.append(elementComponent(element));
+            int widthPx = (int) Math.round(element.getWidth() * element.getScale());
+            appendAdvanceComponent(builder, -(deltaPx + widthPx));
+        }
         return builder.build();
     }
 
-    private void appendSegment(TextComponent.Builder builder, StringBuilder segment, boolean isGlyph) {
-        if (segment.isEmpty()) {
-            return;
-        }
-        Component piece = Component.text(segment.toString());
-        if (isGlyph && hudFontKey != null) {
+    private Component elementComponent(HudResolvedElement element) {
+        Component piece = Component.text(element.getText());
+        if (isGlyphText(element.getText()) && hudFontKey != null) {
             piece = piece.font(hudFontKey);
+            TextColor color = shaderColors.get(element.getShaderKey());
+            if (color != null) {
+                piece = piece.color(color);
+            }
         }
-        builder.append(piece);
+        return piece;
     }
 
     private boolean isGlyph(char c) {
         return c >= PUA_START && c <= PUA_END;
+    }
+
+    private boolean isGlyphText(String text) {
+        if (text == null || text.isEmpty()) {
+            return false;
+        }
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            if (c == '§') {
+                i++;
+                continue;
+            }
+            if (!isGlyph(c)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private int alignedX(HudResolvedElement element) {
@@ -150,6 +180,20 @@ public class HudBossBarRenderer implements HudRenderer {
             moved += step;
             remaining -= step;
         }
+        return moved;
+    }
+
+    private int appendAdvanceComponent(TextComponent.Builder builder, int deltaPx) {
+        if (deltaPx == 0) {
+            return 0;
+        }
+        StringBuilder advances = new StringBuilder();
+        int moved = appendAdvance(advances, deltaPx);
+        Component piece = Component.text(advances.toString());
+        if (hudFontKey != null) {
+            piece = piece.font(hudFontKey);
+        }
+        builder.append(piece);
         return moved;
     }
 

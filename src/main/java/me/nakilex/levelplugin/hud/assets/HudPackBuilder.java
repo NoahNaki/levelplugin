@@ -36,6 +36,30 @@ public class HudPackBuilder {
         }
     }
 
+    public void buildTextShader(String outputFolder, String namespace, int maxId, List<String> layoutLines) {
+        if (outputFolder == null || namespace == null || layoutLines == null) {
+            return;
+        }
+        String template = readShaderTemplate("hud/shaders/text.vsh");
+        if (template.isBlank()) {
+            logger.warning("Failed to load HUD shader template.");
+            return;
+        }
+        String shader = template.replace("${HUD_MAX_ID}", Integer.toString(Math.max(0, maxId)))
+                .replace("#CreateLayout", String.join("\n", layoutLines));
+        File shaderFile = new File(outputFolder, "assets/minecraft/shaders/core/text.vsh");
+        File parent = shaderFile.getParentFile();
+        if (!parent.exists() && !parent.mkdirs()) {
+            logger.warning("Failed to create HUD shader output directory: " + parent.getAbsolutePath());
+            return;
+        }
+        try (FileWriter writer = new FileWriter(shaderFile)) {
+            writer.write(shader);
+        } catch (IOException ex) {
+            logger.warning("Failed to write HUD text shader: " + ex.getMessage());
+        }
+    }
+
     private String buildFontJson(String namespace, HudAssetRegistry registry) {
         StringBuilder builder = new StringBuilder();
         builder.append("{\n  \"providers\": [\n");
@@ -104,6 +128,21 @@ public class HudPackBuilder {
         }
         builder.append("}}");
         return builder.toString();
+    }
+
+    private String readShaderTemplate(String resourcePath) {
+        if (resourcePath == null || resourcePath.isBlank()) {
+            return "";
+        }
+        try (java.io.InputStream input = plugin.getResource(resourcePath)) {
+            if (input == null) {
+                return "";
+            }
+            return new String(input.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+        } catch (IOException ex) {
+            logger.warning("Failed to read HUD shader template: " + ex.getMessage());
+            return "";
+        }
     }
 
     public List<String> collectMissingTextures(String sourceTexturesFolder, HudAssetRegistry registry) {

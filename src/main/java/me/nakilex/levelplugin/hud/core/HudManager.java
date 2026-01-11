@@ -44,7 +44,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.io.IOException;
-import java.nio.file.Files;
 
 public class HudManager {
     private static final int BASELINE_OFFSET_PX = 54;
@@ -101,11 +100,17 @@ public class HudManager {
             plugin.getLogger().warning("HUD textures missing from source folder (" + missing.size() + "). Example: " + missing.get(0));
         }
         packBuilder.build(resolvedOutputFolder.toString(), config.getNamespace(), assetRegistry);
-        writeGuiOffsetManifest(resolvedOutputFolder, config.getNamespace(), config.getModules(), config.getLayouts());
+        List<ShaderElement> shaderElements = buildShaderElements(config.getModules(), config.getLayouts());
+        Map<String, net.kyori.adventure.text.format.TextColor> shaderColors = buildShaderColors(shaderElements);
+        ShaderBuild shaderBuild = buildShaderCases(shaderElements);
+        packBuilder.buildTextShader(resolvedOutputFolder.toString(),
+                config.getNamespace(),
+                shaderBuild.maxId(),
+                shaderBuild.lines());
         int bossBarLines = config.isMergeBossBar() ? 1 : config.getBossbarLines();
         Key fontKey = Key.key(config.getNamespace(), "hud_generated");
         this.renderer = new HudBossBarRenderer(bossBarLines, config.getLineHeightPx(),
-                config.getCanvasWidthPx(), config.getCanvasHeightPx(), config.isMergeBossBar(), fontKey);
+                config.getCanvasWidthPx(), config.getCanvasHeightPx(), config.isMergeBossBar(), fontKey, shaderColors);
         if (this.hudDisplay != null) {
             this.hudDisplay.clearAll();
         }
@@ -364,7 +369,7 @@ public class HudManager {
                     continue;
                 }
                 HudPositionResolver.ResolvedPosition groupBase = resolveGroupBase(placement);
-                resolveLayoutElements(player, layout, placement, context, groupBase, debugEntries);
+                resolveLayoutElements(player, moduleId.toLowerCase(Locale.ROOT), layout, placement, context, groupBase, debugEntries);
             }
         }
         return debugEntries;
@@ -398,7 +403,7 @@ public class HudManager {
                         config.getCanvasWidthPx(),
                         config.getCanvasHeightPx());
                 HudPositionResolver.ResolvedPosition groupBase = resolveGroupBase(placement);
-                resolved.addAll(resolveLayoutElements(player, layout, placement, context, groupBase, debugEntries));
+                resolved.addAll(resolveLayoutElements(player, normalizedModuleId, layout, placement, context, groupBase, debugEntries));
                 if (debugEnabled) {
                     appendDebugMarkers(resolved, placement, anchorBase, groupBase);
                 }
@@ -411,6 +416,7 @@ public class HudManager {
     }
 
     private List<HudResolvedElement> resolveLayoutElements(Player player,
+                                                           String moduleId,
                                                            HudLayout layout,
                                                            HudLayoutPlacement placement,
                                                            HudConditionContext context,
@@ -461,8 +467,9 @@ public class HudManager {
                 }
             }
             double renderScale = element.getType() == HudElementType.TEXT ? element.getScale() : 1.0;
+            String shaderKey = buildShaderKey(moduleId, layout.getId(), element.getId());
             resolved.add(new HudResolvedElement(element.getId(), layoutElement.text(), x, y, 0,
-                    width, height, element.getLayer(), renderScale, align, guiOffset.xPercent(), guiOffset.yPercent()));
+                    width, height, element.getLayer(), renderScale, align, shaderKey, guiOffset.xPercent(), guiOffset.yPercent()));
             if (debugEntries != null) {
                 debugEntries.add(buildDebugEntry(element.getId(), groupBase.x(), groupBase.y(),
                         layoutElement.offsetX(), layoutElement.offsetY(), x, y, width, height, renderScale));
@@ -539,10 +546,10 @@ public class HudManager {
         int originWidth = pixelLength(originLabel);
         resolved.add(new HudResolvedElement("hud_debug_anchor_" + placement.getLayoutId(),
                 anchorLabel, anchorBase.x(), anchorBase.y(), row, anchorWidth, DEFAULT_TEXT_HEIGHT_PX,
-                Integer.MAX_VALUE - 1, 1.0, HudTextAlign.LEFT, 0.0, 0.0));
+                Integer.MAX_VALUE - 1, 1.0, HudTextAlign.LEFT, "hud_debug_anchor", 0.0, 0.0));
         resolved.add(new HudResolvedElement("hud_debug_origin_" + placement.getLayoutId(),
                 originLabel, groupBase.x(), groupBase.y(), row, originWidth, DEFAULT_TEXT_HEIGHT_PX,
-                Integer.MAX_VALUE - 1, 1.0, HudTextAlign.LEFT, 0.0, 0.0));
+                Integer.MAX_VALUE - 1, 1.0, HudTextAlign.LEFT, "hud_debug_origin", 0.0, 0.0));
     }
 
     private void maybeLogDebugEntries(Player player, List<DebugEntry> entries, HudPlayerState state) {
@@ -609,6 +616,12 @@ public class HudManager {
     private record GuiOffset(double xPercent, double yPercent) {
     }
 
+    private record ShaderElement(String key, int id, double guiXPercent, double guiYPercent, int layer) {
+    }
+
+    private record ShaderBuild(int maxId, List<String> lines) {
+    }
+
     private record DebugEntry(String id,
                               int moduleOriginX,
                               int moduleOriginY,
@@ -659,27 +672,23 @@ public class HudManager {
         return new GuiOffset(placementX + elementX, placementY + elementY);
     }
 
-    private void writeGuiOffsetManifest(java.nio.file.Path outputFolder,
-                                        String namespace,
-                                        Map<String, HudModule> modules,
-                                        Map<String, HudLayout> layouts) {
-        if (outputFolder == null || namespace == null || namespace.isBlank() || modules == null || layouts == null) {
-            return;
+    private String buildShaderKey(String moduleId, String layoutId, String elementId) {
+        String safeModule = moduleId == null ? "unknown" : moduleId;
+        String safeLayout = layoutId == null ? "layout" : layoutId;
+        String safeElement = elementId == null ? "element" : elementId;
+        return safeModule + ":" + safeLayout + ":" + safeElement;
+    }
+
+    private List<ShaderElement> buildShaderElements(Map<String, HudModule> modules, Map<String, HudLayout> layouts) {
+        if (modules == null || layouts == null) {
+            return List.of();
         }
-        java.nio.file.Path base = outputFolder.resolve("assets").resolve(namespace).resolve("hud");
-        try {
-            Files.createDirectories(base);
-        } catch (IOException ex) {
-            plugin.getLogger().warning("Failed to create HUD gui manifest folder: " + ex.getMessage());
-            return;
-        }
-        java.nio.file.Path manifest = base.resolve("hud_gui_offsets.json");
-        StringBuilder builder = new StringBuilder();
-        builder.append("{\n  \"elements\": [\n");
-        boolean first = true;
-        for (Map.Entry<String, HudModule> moduleEntry : modules.entrySet()) {
-            String moduleId = moduleEntry.getKey();
-            HudModule module = moduleEntry.getValue();
+        List<ShaderElement> elements = new ArrayList<>();
+        List<String> moduleIds = new ArrayList<>(modules.keySet());
+        moduleIds.sort(String::compareTo);
+        int nextId = 1;
+        for (String moduleId : moduleIds) {
+            HudModule module = modules.get(moduleId);
             if (module == null) {
                 continue;
             }
@@ -697,30 +706,56 @@ public class HudManager {
                         continue;
                     }
                     GuiOffset guiOffset = combineGuiOffsets(placement.getPosition(), element.getPosition());
-                    if (!first) {
-                        builder.append(",\n");
-                    }
-                    first = false;
-                    builder.append("    {\"id\":\"")
-                            .append(moduleId).append(":").append(layoutId).append(":").append(element.getId())
-                            .append("\",\"anchor\":\"")
-                            .append(placement.getPosition().anchor().name())
-                            .append("\",\"guiX\":")
-                            .append(guiOffset.xPercent())
-                            .append(",\"guiY\":")
-                            .append(guiOffset.yPercent())
-                            .append(",\"layer\":")
-                            .append(element.getLayer())
-                            .append("}");
+                    String shaderKey = buildShaderKey(moduleId, layout.getId(), element.getId());
+                    elements.add(new ShaderElement(shaderKey, nextId++, guiOffset.xPercent(),
+                            guiOffset.yPercent(), element.getLayer()));
                 }
             }
         }
-        builder.append("\n  ]\n}\n");
-        try (java.io.FileWriter writer = new java.io.FileWriter(manifest.toFile())) {
-            writer.write(builder.toString());
-        } catch (IOException ex) {
-            plugin.getLogger().warning("Failed to write HUD gui manifest: " + ex.getMessage());
+        return elements;
+    }
+
+    private Map<String, net.kyori.adventure.text.format.TextColor> buildShaderColors(List<ShaderElement> elements) {
+        if (elements == null || elements.isEmpty()) {
+            return Map.of();
         }
+        Map<String, net.kyori.adventure.text.format.TextColor> colors = new HashMap<>();
+        for (ShaderElement element : elements) {
+            colors.put(element.key(), encodeShaderColor(element.id()));
+        }
+        return colors;
+    }
+
+    private net.kyori.adventure.text.format.TextColor encodeShaderColor(int id) {
+        int safeId = Math.max(1, id);
+        int rgb = safeId & 0x00FFFFFF;
+        int r = (rgb >> 16) & 0xFF;
+        int g = (rgb >> 8) & 0xFF;
+        int b = rgb & 0xFF;
+        return net.kyori.adventure.text.format.TextColor.color(r, g, b);
+    }
+
+    private ShaderBuild buildShaderCases(List<ShaderElement> elements) {
+        if (elements == null || elements.isEmpty()) {
+            return new ShaderBuild(0, List.of());
+        }
+        List<String> cases = new ArrayList<>();
+        int maxId = 0;
+        for (ShaderElement element : elements) {
+            cases.add("        case " + element.id() + ":");
+            if (element.guiXPercent() != 0.0) {
+                cases.add("            xGui = ui.x * " + ((float) element.guiXPercent()) + " / 100.0;");
+            }
+            if (element.guiYPercent() != 0.0) {
+                cases.add("            yGui = ui.y * " + ((float) element.guiYPercent()) + " / 100.0;");
+            }
+            if (element.layer() != 0) {
+                cases.add("            layer = " + element.layer() + ";");
+            }
+            cases.add("            break;");
+            maxId = Math.max(maxId, element.id());
+        }
+        return new ShaderBuild(maxId, cases);
     }
 
     private record AnchorBounds(int leftX, int topY, int width, int height) {
