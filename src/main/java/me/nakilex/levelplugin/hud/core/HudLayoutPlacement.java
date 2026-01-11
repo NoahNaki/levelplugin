@@ -2,24 +2,24 @@ package me.nakilex.levelplugin.hud.core;
 
 public class HudLayoutPlacement {
     private final String layoutId;
-    private final int offsetX;
-    private final int offsetY;
+    private final HudPosition position;
+    private final HudTextAlign align;
 
-    public HudLayoutPlacement(String layoutId, int offsetX, int offsetY) {
+    public HudLayoutPlacement(String layoutId, HudPosition position, HudTextAlign align) {
         this.layoutId = layoutId;
-        this.offsetX = offsetX;
-        this.offsetY = offsetY;
+        this.position = position == null ? HudPosition.defaultPosition() : position;
+        this.align = align == null ? HudTextAlign.LEFT : align;
     }
 
     public String getLayoutId() {
         return layoutId;
     }
 
-    public int getOffsetX() {
-        return offsetX;
+    public HudPosition getPosition() {
+        return position;
     }
 
-    public int getOffsetY() {
-        return offsetY;
+    public HudTextAlign getAlign() {
+        return align;
     }
 }

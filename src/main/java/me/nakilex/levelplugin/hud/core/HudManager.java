@@ -15,11 +15,15 @@ import me.nakilex.levelplugin.hud.input.HudInputListener;
 import me.nakilex.levelplugin.hud.placeholders.HudPlaceholderCache;
 import me.nakilex.levelplugin.hud.placeholders.HudPlaceholderRegistry;
 import me.nakilex.levelplugin.hud.placeholders.HudPlaceholderService;
+import me.nakilex.levelplugin.hud.render.HudActionBarDisplay;
 import me.nakilex.levelplugin.hud.render.HudBossBarDisplay;
 import me.nakilex.levelplugin.hud.render.HudBossBarRenderer;
+import me.nakilex.levelplugin.hud.render.HudDisplay;
+import me.nakilex.levelplugin.hud.render.HudRenderChannel;
 import me.nakilex.levelplugin.hud.render.HudRenderOutput;
 import me.nakilex.levelplugin.hud.render.HudRenderer;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
+import me.nakilex.levelplugin.utils.DefaultFontInfo;
 import me.nakilex.levelplugin.utils.ResourcePackUtil;
 import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.key.Key;
@@ -33,13 +37,18 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.io.IOException;
 
 public class HudManager {
+    private static final int BASELINE_OFFSET_PX = 54;
+    private static final int DEFAULT_TEXT_HEIGHT_PX = 8;
+    private static final long DEBUG_LOG_INTERVAL_MS = 1000L;
     private final Main plugin;
     private final HudConfigLoader configLoader;
     private final HudPlaceholderCache placeholderCache;
@@ -49,7 +58,7 @@ public class HudManager {
     private BukkitTask task;
     private HudConfig config;
     private HudRenderer renderer;
-    private HudBossBarDisplay bossBarDisplay;
+    private HudDisplay hudDisplay;
     private HudAssetRegistry assetRegistry;
 
     public HudManager(Main plugin) {
@@ -67,8 +76,8 @@ public class HudManager {
 
     public void disable() {
         stopTask();
-        if (bossBarDisplay != null) {
-            bossBarDisplay.clearAll();
+        if (hudDisplay != null) {
+            hudDisplay.clearAll();
         }
         playerStates.clear();
         placeholderCache.clearAll();
@@ -77,9 +86,9 @@ public class HudManager {
     public void reload() {
         this.config = configLoader.load();
         placeholderCache.setTtlMs(config.getPlaceholderCacheTtlMs());
-        this.assetRegistry = buildAssetRegistry(config.getImages());
-        HudPackBuilder packBuilder = new HudPackBuilder(plugin);
         java.nio.file.Path resolvedRoot = resolveSourceTextureRoot();
+        this.assetRegistry = buildAssetRegistry(config.getImages(), resolvedRoot);
+        HudPackBuilder packBuilder = new HudPackBuilder(plugin);
         java.nio.file.Path resolvedOutputFolder = resolveOutputFolder();
         plugin.getLogger().info("HUD sourceTexturesFolder: " + config.getSourceTexturesFolder());
         plugin.getLogger().info("HUD resolvedSourceTexturesFolder: " + resolvedRoot);
@@ -94,11 +103,11 @@ public class HudManager {
         int bossBarLines = config.isMergeBossBar() ? 1 : config.getBossbarLines();
         Key fontKey = Key.key(config.getNamespace(), "hud_generated");
         this.renderer = new HudBossBarRenderer(bossBarLines, config.getLineHeightPx(),
-                config.getCanvasWidthPx(), config.isMergeBossBar(), fontKey);
-        if (this.bossBarDisplay != null) {
-            this.bossBarDisplay.clearAll();
+                config.getCanvasWidthPx(), config.getCanvasHeightPx(), config.isMergeBossBar(), fontKey);
+        if (this.hudDisplay != null) {
+            this.hudDisplay.clearAll();
         }
-        this.bossBarDisplay = new HudBossBarDisplay(bossBarLines, BossBar.Color.WHITE, BossBar.Overlay.PROGRESS);
+        this.hudDisplay = createDisplay(config.getRenderChannel(), bossBarLines);
         refreshHudResourcePack();
         stopTask();
         startTask();
@@ -116,10 +125,39 @@ public class HudManager {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, "HUD enabled.");
         } else {
             state.setEnabled(false);
-            if (bossBarDisplay != null) {
-                bossBarDisplay.clear(player);
+            if (hudDisplay != null) {
+                hudDisplay.clear(player);
             }
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING, "HUD disabled.");
+        }
+    }
+
+    public void toggleDebugMode(Player player) {
+        if (player == null) {
+            return;
+        }
+        HudPlayerState state = playerStates.computeIfAbsent(player.getUniqueId(), id -> new HudPlayerState());
+        boolean enabled = !state.isDebugMode();
+        state.setDebugMode(enabled);
+        state.setLastDebugLogMs(System.currentTimeMillis());
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                enabled ? "HUD debug mode enabled." : "HUD debug mode disabled.");
+        if (enabled) {
+            logDebugEntries(player, buildDebugEntries(player), true);
+        }
+    }
+
+    public void setDebugMode(Player player, boolean enabled) {
+        if (player == null) {
+            return;
+        }
+        HudPlayerState state = playerStates.computeIfAbsent(player.getUniqueId(), id -> new HudPlayerState());
+        state.setDebugMode(enabled);
+        state.setLastDebugLogMs(System.currentTimeMillis());
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                enabled ? "HUD debug mode enabled." : "HUD debug mode disabled.");
+        if (enabled) {
+            logDebugEntries(player, buildDebugEntries(player), true);
         }
     }
 
@@ -131,12 +169,13 @@ public class HudManager {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "No HUD configuration loaded.");
             return;
         }
-        HudConditionContext context = new HudConditionContext(placeholderService);
         int shown = 0;
         int hidden = 0;
+        HudConditionContext context = new HudConditionContext(placeholderService);
         List<String> moduleIds = config.getDefaultModules().isEmpty()
                 ? new ArrayList<>(config.getModules().keySet())
                 : config.getDefaultModules();
+        List<DebugEntry> debugEntries = new ArrayList<>();
         for (String moduleId : moduleIds) {
             HudModule module = config.getModules().get(moduleId.toLowerCase(Locale.ROOT));
             if (module == null) {
@@ -160,17 +199,14 @@ public class HudManager {
                                 element.getId() + " hidden: " + String.join("; ", failures));
                         continue;
                     }
-                    HudResolvedElement resolved = resolveElement(player, element, placement);
-                    if (resolved != null && !resolved.getText().isBlank()) {
-                        shown++;
-                        String line = resolved.getId() + " x=" + resolved.getX() + " y=" + resolved.getY()
-                                + " layer=" + resolved.getLayer() + " align=" + resolved.getAlign()
-                                + " -> " + resolved.getText();
-                        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO, line);
-                    }
                 }
+                HudPositionResolver.ResolvedPosition groupBase = resolveGroupBase(placement);
+                List<HudResolvedElement> resolved = resolveLayoutElements(player, layout, placement, context,
+                        groupBase, debugEntries);
+                shown += resolved.size();
             }
         }
+        logDebugEntries(player, debugEntries, true);
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                 "HUD debug summary: shown=" + shown + ", hidden=" + hidden);
     }
@@ -242,7 +278,7 @@ public class HudManager {
     }
 
     private void tick() {
-        if (config == null || renderer == null || bossBarDisplay == null) {
+        if (config == null || renderer == null || hudDisplay == null) {
             return;
         }
         for (Player player : Bukkit.getOnlinePlayers()) {
@@ -257,7 +293,47 @@ public class HudManager {
     private void updatePlayer(Player player) {
         HudCanvas canvas = buildCanvas(player);
         HudRenderOutput output = renderer.render(canvas);
-        bossBarDisplay.update(player, output);
+        hudDisplay.update(player, output);
+    }
+
+    public Component getHudActionBarComponent(Player player) {
+        if (config == null || renderer == null) {
+            return Component.empty();
+        }
+        if (config.getRenderChannel() != HudRenderChannel.ACTIONBAR) {
+            return Component.empty();
+        }
+        HudCanvas canvas = buildCanvas(player);
+        HudRenderOutput output = renderer.render(canvas);
+        return buildActionBarComponent(output);
+    }
+
+    private Component buildActionBarComponent(HudRenderOutput output) {
+        if (output == null) {
+            return Component.empty();
+        }
+        List<Component> lines = output.getBossBarLineComponents();
+        Component combined = Component.empty();
+        boolean first = true;
+        for (Component line : lines) {
+            if (line == null || line.equals(Component.empty())) {
+                continue;
+            }
+            if (!first) {
+                combined = combined.append(Component.newline());
+            }
+            combined = combined.append(line);
+            first = false;
+        }
+        return combined;
+    }
+
+    private HudDisplay createDisplay(HudRenderChannel channel, int bossBarLines) {
+        HudRenderChannel resolved = channel == null ? HudRenderChannel.ACTIONBAR : channel;
+        return switch (resolved) {
+            case BOSSBAR -> new HudBossBarDisplay(bossBarLines, BossBar.Color.WHITE, BossBar.Overlay.NOTCHED_20);
+            case ACTIONBAR -> new HudActionBarDisplay();
+        };
     }
 
     private void refreshHudResourcePack() {
@@ -266,11 +342,40 @@ public class HudManager {
         }
     }
 
+    private List<DebugEntry> buildDebugEntries(Player player) {
+        List<DebugEntry> debugEntries = new ArrayList<>();
+        if (config == null || player == null) {
+            return debugEntries;
+        }
+        HudConditionContext context = new HudConditionContext(placeholderService);
+        List<String> moduleIds = config.getDefaultModules().isEmpty()
+                ? new ArrayList<>(config.getModules().keySet())
+                : config.getDefaultModules();
+        for (String moduleId : moduleIds) {
+            HudModule module = config.getModules().get(moduleId.toLowerCase(Locale.ROOT));
+            if (module == null) {
+                continue;
+            }
+            for (HudLayoutPlacement placement : module.getPlacements()) {
+                HudLayout layout = config.getLayouts().get(placement.getLayoutId().toLowerCase(Locale.ROOT));
+                if (layout == null) {
+                    continue;
+                }
+                HudPositionResolver.ResolvedPosition groupBase = resolveGroupBase(placement);
+                resolveLayoutElements(player, layout, placement, context, groupBase, debugEntries);
+            }
+        }
+        return debugEntries;
+    }
+
     private HudCanvas buildCanvas(Player player) {
         List<HudResolvedElement> resolved = new ArrayList<>();
         if (config == null) {
             return new HudCanvas(resolved);
         }
+        HudPlayerState state = playerStates.computeIfAbsent(player.getUniqueId(), id -> new HudPlayerState());
+        boolean debugEnabled = state.isDebugMode();
+        List<DebugEntry> debugEntries = debugEnabled ? new ArrayList<>() : null;
         HudConditionContext context = new HudConditionContext(placeholderService);
         List<String> moduleIds = config.getDefaultModules().isEmpty()
                 ? new ArrayList<>(config.getModules().keySet())
@@ -286,33 +391,269 @@ public class HudManager {
                 if (layout == null) {
                     continue;
                 }
-                for (HudElement element : layout.getElements()) {
-                    if (!element.shouldRender(player, context)) {
-                        continue;
-                    }
-                    HudResolvedElement resolvedElement = resolveElement(player, element, placement);
-                    if (resolvedElement != null && !resolvedElement.getText().isBlank()) {
-                        resolved.add(resolvedElement);
-                    }
+                HudPositionResolver.ResolvedPosition anchorBase = HudPositionResolver.resolveAnchorBase(
+                        placement.getPosition().anchor(),
+                        config.getCanvasWidthPx(),
+                        config.getCanvasHeightPx());
+                HudPositionResolver.ResolvedPosition groupBase = resolveGroupBase(placement);
+                resolved.addAll(resolveLayoutElements(player, layout, placement, context, groupBase, debugEntries));
+                if (debugEnabled) {
+                    appendDebugMarkers(resolved, placement, anchorBase, groupBase);
                 }
             }
+        }
+        if (debugEnabled) {
+            maybeLogDebugEntries(player, debugEntries, state);
         }
         return new HudCanvas(resolved);
     }
 
-    private HudResolvedElement resolveElement(Player player, HudElement element, HudLayoutPlacement placement) {
-        String text = switch (element.getType()) {
-            case TEXT -> placeholderService.resolve(player, element.getText());
-            case IMAGE -> resolveImageGlyph(element.getAssetId());
-            case BAR -> resolveBarGlyph(player, element.getAssetId());
-        };
-        if (text == null || text.isBlank()) {
-            return null;
+    private List<HudResolvedElement> resolveLayoutElements(Player player,
+                                                           HudLayout layout,
+                                                           HudLayoutPlacement placement,
+                                                           HudConditionContext context,
+                                                           HudPositionResolver.ResolvedPosition groupBase,
+                                                           List<DebugEntry> debugEntries) {
+        List<HudResolvedElement> resolved = new ArrayList<>();
+        if (layout == null || placement == null) {
+            return resolved;
         }
-        int x = placement.getOffsetX() + element.getX();
-        int y = placement.getOffsetY() + element.getY();
-        return new HudResolvedElement(element.getId(), text, x, y, element.getLayer(),
-                element.getScale(), element.getAlign());
+        List<ElementLayout> layouts = new ArrayList<>();
+        for (HudElement element : layout.getElements()) {
+            if (!element.shouldRender(player, context)) {
+                continue;
+            }
+            String text = switch (element.getType()) {
+                case TEXT -> placeholderService.resolve(player, element.getText());
+                case IMAGE -> resolveImageGlyph(element.getAssetId());
+                case BAR -> resolveBarGlyph(player, element.getAssetId());
+            };
+            if (text == null || text.isBlank()) {
+                continue;
+            }
+            ElementMetrics metrics = measureElementMetrics(element, text);
+            int offsetX = element.getPosition().pixelX();
+            int offsetY = element.getPosition().pixelY();
+            layouts.add(new ElementLayout(element, text, offsetX, offsetY, metrics.width(), metrics.height()));
+        }
+        Map<String, AnchorBounds> anchors = buildAnchorBounds(layouts, groupBase, placement.getAlign());
+        for (ElementLayout layoutElement : layouts) {
+            HudElement element = layoutElement.element();
+            int width = layoutElement.width();
+            int height = layoutElement.height();
+            int x = groupBase.x() + layoutElement.offsetX() + alignmentShift(placement.getAlign(), width);
+            int y = groupBase.y() + layoutElement.offsetY();
+            HudTextAlign align = element.getAlign();
+            if (element.getType() == HudElementType.TEXT && element.getAnchorId() != null
+                    && !element.getAnchorId().isBlank()) {
+                AnchorBounds anchor = anchors.get(element.getAnchorId().toLowerCase(Locale.ROOT));
+                if (anchor != null) {
+                    switch (element.getAlign()) {
+                        case CENTER -> x = anchor.centerX() - width / 2 + layoutElement.offsetX();
+                        case RIGHT -> x = anchor.rightX() - width + layoutElement.offsetX();
+                        case LEFT -> x = anchor.leftX() + layoutElement.offsetX();
+                    }
+                    y = anchor.topY() + layoutElement.offsetY();
+                    align = HudTextAlign.LEFT;
+                }
+            }
+            resolved.add(new HudResolvedElement(element.getId(), layoutElement.text(), x, y, 0,
+                    width, height, element.getLayer(), element.getScale(), align));
+            if (debugEntries != null) {
+                debugEntries.add(buildDebugEntry(element.getId(), groupBase.x(), groupBase.y(),
+                        layoutElement.offsetX(), layoutElement.offsetY(), x, y, width, height, element.getScale()));
+            }
+        }
+        return resolved;
+    }
+
+    private HudPositionResolver.ResolvedPosition resolveGroupBase(HudLayoutPlacement placement) {
+        HudPositionResolver.ResolvedPosition base = HudPositionResolver.resolve(
+                placement.getPosition(),
+                config.getCanvasWidthPx(),
+                config.getCanvasHeightPx());
+        if (config.isApplyBaselineOffset()) {
+            return new HudPositionResolver.ResolvedPosition(base.x(), base.y() - BASELINE_OFFSET_PX);
+        }
+        return base;
+    }
+
+    private Map<String, AnchorBounds> buildAnchorBounds(List<ElementLayout> layouts,
+                                                        HudPositionResolver.ResolvedPosition groupBase,
+                                                        HudTextAlign align) {
+        Map<String, AnchorBounds> anchors = new HashMap<>();
+        for (ElementLayout layoutElement : layouts) {
+            HudElement element = layoutElement.element();
+            if (element.getType() == HudElementType.TEXT) {
+                continue;
+            }
+            String id = element.getId();
+            if (id == null || id.isBlank()) {
+                continue;
+            }
+            int width = layoutElement.width();
+            int height = layoutElement.height();
+            int x = groupBase.x() + layoutElement.offsetX() + alignmentShift(align, width);
+            int y = groupBase.y() + layoutElement.offsetY();
+            anchors.put(id.toLowerCase(Locale.ROOT), new AnchorBounds(x, y, width, height));
+        }
+        return anchors;
+    }
+
+    private int alignmentShift(HudTextAlign align, int width) {
+        if (align == null) {
+            return 0;
+        }
+        return switch (align) {
+            case CENTER -> -(width / 2);
+            case RIGHT -> -width;
+            case LEFT -> 0;
+        };
+    }
+
+    private ElementMetrics measureElementMetrics(HudElement element, String text) {
+        if (element == null) {
+            return new ElementMetrics(0, 0);
+        }
+        return switch (element.getType()) {
+            case TEXT -> new ElementMetrics(pixelLength(text), DEFAULT_TEXT_HEIGHT_PX);
+            case IMAGE, BAR -> new ElementMetrics(
+                    assetRegistry == null ? 0 : assetRegistry.getAssetWidth(element.getAssetId()),
+                    assetRegistry == null ? 0 : assetRegistry.getAssetHeight(element.getAssetId()));
+        };
+    }
+
+    private void appendDebugMarkers(List<HudResolvedElement> resolved,
+                                    HudLayoutPlacement placement,
+                                    HudPositionResolver.ResolvedPosition anchorBase,
+                                    HudPositionResolver.ResolvedPosition groupBase) {
+        if (resolved == null || placement == null) {
+            return;
+        }
+        int row = placement.getPosition().row();
+        String anchorLabel = org.bukkit.ChatColor.RED + "A";
+        String originLabel = org.bukkit.ChatColor.YELLOW + "O";
+        int anchorWidth = pixelLength(anchorLabel);
+        int originWidth = pixelLength(originLabel);
+        resolved.add(new HudResolvedElement("hud_debug_anchor_" + placement.getLayoutId(),
+                anchorLabel, anchorBase.x(), anchorBase.y(), row, anchorWidth, DEFAULT_TEXT_HEIGHT_PX,
+                Integer.MAX_VALUE - 1, 1.0, HudTextAlign.LEFT));
+        resolved.add(new HudResolvedElement("hud_debug_origin_" + placement.getLayoutId(),
+                originLabel, groupBase.x(), groupBase.y(), row, originWidth, DEFAULT_TEXT_HEIGHT_PX,
+                Integer.MAX_VALUE - 1, 1.0, HudTextAlign.LEFT));
+    }
+
+    private void maybeLogDebugEntries(Player player, List<DebugEntry> entries, HudPlayerState state) {
+        if (player == null || state == null || entries == null) {
+            return;
+        }
+        long now = System.currentTimeMillis();
+        if (now - state.getLastDebugLogMs() < DEBUG_LOG_INTERVAL_MS) {
+            return;
+        }
+        state.setLastDebugLogMs(now);
+        logDebugEntries(player, entries, false);
+    }
+
+    private void logDebugEntries(Player player, List<DebugEntry> entries, boolean forceHeader) {
+        if (player == null || entries == null) {
+            return;
+        }
+        if (forceHeader) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO, "HUD debug positions:");
+        }
+        for (DebugEntry entry : entries) {
+            String line = entry.id() + " module=(" + entry.moduleOriginX() + "," + entry.moduleOriginY() + ")"
+                    + " local=(" + entry.localOffsetX() + "," + entry.localOffsetY() + ")"
+                    + " final=(" + entry.finalX() + "," + entry.finalY() + ")"
+                    + " lineHeight=" + config.getLineHeightPx()
+                    + " line=" + entry.lineIndex()
+                    + " w=" + entry.width() + " h=" + entry.height() + " scale=" + entry.scale();
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO, line);
+        }
+    }
+
+    private DebugEntry buildDebugEntry(String id,
+                                       int moduleOriginX,
+                                       int moduleOriginY,
+                                       int localOffsetX,
+                                       int localOffsetY,
+                                       int finalX,
+                                       int finalY,
+                                       int width,
+                                       int height,
+                                       double scale) {
+        int lineIndex = clampLineIndex(finalY);
+        int scaledWidth = (int) Math.round(width * scale);
+        int scaledHeight = (int) Math.round(height * scale);
+        return new DebugEntry(id, moduleOriginX, moduleOriginY, localOffsetX, localOffsetY, finalX, finalY,
+                lineIndex, scaledWidth, scaledHeight, scale);
+    }
+
+    private int clampLineIndex(int yPx) {
+        int lineHeight = Math.max(1, config.getLineHeightPx());
+        int line = Math.floorDiv(yPx, lineHeight);
+        int maxLines = config.isMergeBossBar() ? 1 : Math.max(1, config.getBossbarLines());
+        return Math.max(0, Math.min(maxLines - 1, line));
+    }
+
+    private record ElementLayout(HudElement element, String text, int offsetX, int offsetY,
+                                 int width, int height) {
+    }
+
+    private record ElementMetrics(int width, int height) {
+    }
+
+    private record DebugEntry(String id,
+                              int moduleOriginX,
+                              int moduleOriginY,
+                              int localOffsetX,
+                              int localOffsetY,
+                              int finalX,
+                              int finalY,
+                              int lineIndex,
+                              int width,
+                              int height,
+                              double scale) {
+    }
+
+    private int pixelLength(String text) {
+        if (text == null || text.isEmpty()) {
+            return 0;
+        }
+        int px = 0;
+        boolean previousCode = false;
+        boolean bold = false;
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            if (c == '§') {
+                previousCode = true;
+                continue;
+            }
+            if (previousCode) {
+                previousCode = false;
+                bold = c == 'l' || c == 'L';
+                continue;
+            }
+            if (c >= 0xE000 && c <= 0xF8FF) {
+                int glyphWidth = assetRegistry.getGlyphWidths().getOrDefault(c, DefaultFontInfo.SPACE.getLength());
+                px += glyphWidth + 1;
+                continue;
+            }
+            DefaultFontInfo dFI = DefaultFontInfo.getDefaultFontInfo(c);
+            px += (bold ? DefaultFontInfo.getBoldLength() : dFI.getLength()) + 1;
+        }
+        return px;
+    }
+
+    private record AnchorBounds(int leftX, int topY, int width, int height) {
+        int rightX() {
+            return leftX + width;
+        }
+
+        int centerX() {
+            return leftX + (width / 2);
+        }
     }
 
     private String resolveImageGlyph(String assetId) {
@@ -364,7 +705,8 @@ public class HudManager {
         }
     }
 
-    private HudAssetRegistry buildAssetRegistry(Map<String, HudImageDefinition> images) {
+    private HudAssetRegistry buildAssetRegistry(Map<String, HudImageDefinition> images,
+                                                java.nio.file.Path sourceTextureRoot) {
         HudAssetRegistry registry = new HudAssetRegistry();
         HudGlyphAllocator allocator = new HudGlyphAllocator();
         me.nakilex.levelplugin.hud.assets.HudTextureResolver resolver = new me.nakilex.levelplugin.hud.assets.HudTextureResolver();
@@ -378,7 +720,7 @@ public class HudManager {
                     if (texture == null || texture.isBlank()) {
                         continue;
                     }
-                    glyphs.add(new HudGlyph(allocator.next(), texture));
+                    glyphs.add(createGlyph(allocator.next(), texture, sourceTextureRoot));
                 }
                 if (glyphs.isEmpty()) {
                     plugin.getLogger().warning("HUD bar '" + definition.getId() + "' has no frames configured.");
@@ -387,13 +729,38 @@ public class HudManager {
             } else {
                 if (definition.getTexture() != null && !definition.getTexture().isBlank()) {
                     String texture = resolver.resolveSingle(definition.getTexture());
-                    registry.registerGlyph(definition.getId(), new HudGlyph(allocator.next(), texture));
+                    registry.registerGlyph(definition.getId(), createGlyph(allocator.next(), texture, sourceTextureRoot));
                 } else {
                     plugin.getLogger().warning("HUD image '" + definition.getId() + "' is missing a texture path.");
                 }
             }
         }
         return registry;
+    }
+
+    private HudGlyph createGlyph(char codepoint, String texture, java.nio.file.Path sourceTextureRoot) {
+        int width = 0;
+        int height = 0;
+        java.nio.file.Path texturePath = resolveTexturePath(sourceTextureRoot, texture);
+        if (texturePath != null) {
+            try {
+                java.awt.image.BufferedImage image = javax.imageio.ImageIO.read(texturePath.toFile());
+                if (image != null) {
+                    width = image.getWidth();
+                    height = image.getHeight();
+                }
+            } catch (IOException ex) {
+                plugin.getLogger().warning("Failed to read HUD texture size for '" + texture + "': " + ex.getMessage());
+            }
+        }
+        return new HudGlyph(codepoint, texture, width, height);
+    }
+
+    private java.nio.file.Path resolveTexturePath(java.nio.file.Path sourceTextureRoot, String texture) {
+        if (sourceTextureRoot == null || texture == null || texture.isBlank()) {
+            return null;
+        }
+        return sourceTextureRoot.resolve(texture).normalize();
     }
 
     private String resolveFrameTexture(HudImageDefinition definition,
@@ -447,8 +814,8 @@ public class HudManager {
     private class HudPlayerListener implements Listener {
         @EventHandler
         public void onQuit(PlayerQuitEvent event) {
-            if (bossBarDisplay != null) {
-                bossBarDisplay.clear(event.getPlayer());
+            if (hudDisplay != null) {
+                hudDisplay.clear(event.getPlayer());
             }
             playerStates.remove(event.getPlayer().getUniqueId());
             placeholderCache.clear(event.getPlayer());

@@ -5,6 +5,9 @@ public class HudResolvedElement {
     private final String text;
     private final int x;
     private final int y;
+    private final int row;
+    private final int width;
+    private final int height;
     private final int layer;
     private final double scale;
     private final HudTextAlign align;
@@ -13,6 +16,9 @@ public class HudResolvedElement {
                               String text,
                               int x,
                               int y,
+                              int row,
+                              int width,
+                              int height,
                               int layer,
                               double scale,
                               HudTextAlign align) {
@@ -20,6 +26,9 @@ public class HudResolvedElement {
         this.text = text;
         this.x = x;
         this.y = y;
+        this.row = row;
+        this.width = width;
+        this.height = height;
         this.layer = layer;
         this.scale = scale;
         this.align = align;
@@ -39,6 +48,18 @@ public class HudResolvedElement {
 
     public int getY() {
         return y;
+    }
+
+    public int getRow() {
+        return row;
+    }
+
+    public int getWidth() {
+        return width;
+    }
+
+    public int getHeight() {
+        return height;
     }
 
     public int getLayer() {

@@ -9,34 +9,34 @@ import java.util.List;
 public class HudElement {
     private final String id;
     private final HudElementType type;
-    private final int x;
-    private final int y;
+    private final HudPosition position;
     private final int layer;
     private final double scale;
     private final HudTextAlign align;
     private final String text;
     private final String assetId;
+    private final String anchorId;
     private final List<HudCondition> conditions;
 
     public HudElement(String id,
                       HudElementType type,
-                      int x,
-                      int y,
+                      HudPosition position,
                       int layer,
                       double scale,
                       HudTextAlign align,
                       String text,
                       String assetId,
+                      String anchorId,
                       List<HudCondition> conditions) {
         this.id = id;
         this.type = type;
-        this.x = x;
-        this.y = y;
+        this.position = position == null ? HudPosition.defaultPosition() : position;
         this.layer = layer;
         this.scale = scale;
         this.align = align == null ? HudTextAlign.LEFT : align;
         this.text = text;
         this.assetId = assetId;
+        this.anchorId = anchorId;
         this.conditions = conditions == null ? List.of() : List.copyOf(conditions);
     }
 
@@ -48,12 +48,8 @@ public class HudElement {
         return type;
     }
 
-    public int getX() {
-        return x;
-    }
-
-    public int getY() {
-        return y;
+    public HudPosition getPosition() {
+        return position;
     }
 
     public int getLayer() {
@@ -74,6 +70,10 @@ public class HudElement {
 
     public String getAssetId() {
         return assetId;
+    }
+
+    public String getAnchorId() {
+        return anchorId;
     }
 
     public List<HudCondition> getConditions() {

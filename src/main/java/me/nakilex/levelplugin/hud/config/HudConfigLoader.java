@@ -10,7 +10,10 @@ import me.nakilex.levelplugin.hud.core.HudElementType;
 import me.nakilex.levelplugin.hud.core.HudLayout;
 import me.nakilex.levelplugin.hud.core.HudLayoutPlacement;
 import me.nakilex.levelplugin.hud.core.HudModule;
+import me.nakilex.levelplugin.hud.core.HudAnchor;
+import me.nakilex.levelplugin.hud.core.HudPosition;
 import me.nakilex.levelplugin.hud.core.HudTextAlign;
+import me.nakilex.levelplugin.hud.render.HudRenderChannel;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -47,7 +50,11 @@ public class HudConfigLoader {
         int canvasWidth = Math.max(120, config.getInt("hud.canvas-width-px", 320));
         int lineHeight = Math.max(1, config.getInt("hud.line-height-px", 18));
         int bossbarLines = Math.max(1, config.getInt("hud.bossbar.lines", 1));
+        int canvasHeightDefault = lineHeight * bossbarLines;
+        int canvasHeight = Math.max(60, config.getInt("hud.canvas-height-px", canvasHeightDefault));
         boolean mergeBossBar = config.getBoolean("hud.bossbar.merge", true);
+        boolean applyBaselineOffset = config.getBoolean("hud.apply-baseline-offset", false);
+        HudRenderChannel renderChannel = HudRenderChannel.from(config.getString("hud.render-channel", "actionbar"));
         String namespace = config.getString("hud.namespace", "betterhud");
         String outputFolder = config.getString("hud.output-folder", "Nexo/pack/external_packs/BetterHud");
         String sourceTexturesFolder = config.getString("hud.source-textures-folder",
@@ -59,7 +66,8 @@ public class HudConfigLoader {
         Map<String, HudLayout> layouts = loadLayouts();
         Map<String, HudImageDefinition> images = loadImages();
 
-        return new HudConfig(updateTicks, cacheTtl, canvasWidth, lineHeight, bossbarLines, mergeBossBar,
+        return new HudConfig(updateTicks, cacheTtl, canvasWidth, canvasHeight, lineHeight, bossbarLines, mergeBossBar,
+                applyBaselineOffset, renderChannel,
                 namespace, outputFolder, sourceTexturesFolder, imagesConfigPath, defaultModules, modules, layouts, images);
     }
 
@@ -145,10 +153,10 @@ public class HudConfigLoader {
                 List<HudLayoutPlacement> placements = new ArrayList<>();
                 for (Map<?, ?> entry : layouts) {
                     String layoutName = getString(entry, "name", "");
-                    int x = getInt(entry, "x", 0);
-                    int y = getInt(entry, "y", 0);
+                    HudPosition position = parsePosition(getMap(entry, "position"));
+                    HudTextAlign align = HudTextAlign.from(getString(entry, "align", "left"));
                     if (!layoutName.isBlank()) {
-                        placements.add(new HudLayoutPlacement(layoutName, x, y));
+                        placements.add(new HudLayoutPlacement(layoutName, position, align));
                     }
                 }
                 modules.put(normalizedId, new HudModule(moduleId, placements));
@@ -175,14 +183,14 @@ public class HudConfigLoader {
                     Map<?, ?> map = elementsRaw.get(index);
                     String id = getString(map, "id", layoutId + "_element_" + index);
                     HudElementType type = HudElementType.from(getString(map, "type", "text"));
-                    int x = getInt(map, "x", 0);
-                    int y = getInt(map, "y", 0);
+                    HudPosition position = parsePosition(getMap(map, "position"));
                     int layer = getInt(map, "layer", 0);
                     double scale = getDouble(map, "scale", 1.0);
                     HudTextAlign align = HudTextAlign.from(getString(map, "align", "left"));
                     String text = getString(map, "text", "");
                     String asset = getString(map, "asset", "");
-                    elements.add(new HudElement(id, type, x, y, layer, scale, align, text, asset,
+                    String anchor = getString(map, "anchor", "");
+                    elements.add(new HudElement(id, type, position, layer, scale, align, text, asset, anchor,
                             conditionParser.parse(map.get("conditions"))));
                 }
                 layouts.put(normalizedId, new HudLayout(layoutId, elements));
@@ -229,6 +237,29 @@ public class HudConfigLoader {
         }
         Object value = map.get(key);
         return value == null ? fallback : value.toString();
+    }
+
+    private static Map<?, ?> getMap(Map<?, ?> map, String key) {
+        if (map == null) {
+            return null;
+        }
+        Object value = map.get(key);
+        return value instanceof Map<?, ?> cast ? cast : null;
+    }
+
+    private static HudPosition parsePosition(Map<?, ?> map) {
+        if (map == null) {
+            return HudPosition.defaultPosition();
+        }
+        HudAnchor anchor = HudAnchor.from(getString(map, "anchor", "TOP_LEFT"));
+        Map<?, ?> guiMap = getMap(map, "gui");
+        Map<?, ?> pixelMap = getMap(map, "pixel");
+        double guiX = getDouble(guiMap, "x", 0.0);
+        double guiY = getDouble(guiMap, "y", 0.0);
+        int pixelX = (int) Math.round(getDouble(pixelMap, "x", 0.0));
+        int pixelY = (int) Math.round(getDouble(pixelMap, "y", 0.0));
+        int row = getInt(map, "row", 0);
+        return new HudPosition(anchor, guiX, guiY, pixelX, pixelY, row);
     }
 
     private static int getInt(Map<?, ?> map, String key, int fallback) {

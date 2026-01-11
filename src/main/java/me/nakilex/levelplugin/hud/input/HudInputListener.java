@@ -6,17 +6,14 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
-import org.bukkit.event.player.PlayerAnimationEvent;
-import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.event.player.PlayerInteractEntityEvent;
-import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.*;
 
 public class HudInputListener implements Listener {
     private final SpellInputDisplayManager displayManager = SpellInputDisplayManager.getInstance();
 
     @EventHandler
     public void onAnimation(PlayerAnimationEvent event) {
-        if (event.getAnimationType() != PlayerAnimationEvent.AnimationType.ARM_SWING) {
+        if (event.getAnimationType() != PlayerAnimationType.ARM_SWING) {
             return;
         }
         Player player = event.getPlayer();

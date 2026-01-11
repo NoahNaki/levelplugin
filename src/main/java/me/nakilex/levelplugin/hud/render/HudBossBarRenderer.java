@@ -1,10 +1,8 @@
 package me.nakilex.levelplugin.hud.render;
 
+import me.nakilex.levelplugin.hud.assets.HudAdvanceGlyphs;
 import me.nakilex.levelplugin.hud.core.HudCanvas;
 import me.nakilex.levelplugin.hud.core.HudResolvedElement;
-import me.nakilex.levelplugin.hud.core.HudTextAlign;
-import me.nakilex.levelplugin.utils.ChatFormatter;
-import me.nakilex.levelplugin.utils.DefaultFontInfo;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
@@ -16,20 +14,22 @@ import java.util.Map;
 import java.util.TreeMap;
 
 public class HudBossBarRenderer implements HudRenderer {
-    private static final int SPACE_WIDTH = DefaultFontInfo.SPACE.getLength() + 1;
     private static final int PUA_START = 0xE000;
     private static final int PUA_END = 0xF8FF;
 
     private final int lines;
     private final int lineHeightPx;
     private final int canvasWidthPx;
+    private final int canvasHeightPx;
     private final boolean mergeBossBar;
     private final Key hudFontKey;
 
-    public HudBossBarRenderer(int lines, int lineHeightPx, int canvasWidthPx, boolean mergeBossBar, Key hudFontKey) {
+    public HudBossBarRenderer(int lines, int lineHeightPx, int canvasWidthPx, int canvasHeightPx,
+                              boolean mergeBossBar, Key hudFontKey) {
         this.lines = Math.max(1, lines);
         this.lineHeightPx = Math.max(1, lineHeightPx);
         this.canvasWidthPx = Math.max(1, canvasWidthPx);
+        this.canvasHeightPx = Math.max(1, canvasHeightPx);
         this.mergeBossBar = mergeBossBar;
         this.hudFontKey = hudFontKey;
     }
@@ -38,13 +38,14 @@ public class HudBossBarRenderer implements HudRenderer {
     public HudRenderOutput render(HudCanvas canvas) {
         Map<Integer, List<HudResolvedElement>> byLine = new TreeMap<>();
         for (HudResolvedElement element : canvas.getElements()) {
-            int lineIndex = mergeBossBar ? 0 : mapLine(element.getY());
+            int lineIndex = mergeBossBar ? 0 : clampLine(computeLineIndex(element));
             byLine.computeIfAbsent(lineIndex, id -> new ArrayList<>()).add(element);
         }
         List<String> linesOut = new ArrayList<>();
         List<Component> componentsOut = new ArrayList<>();
         for (int line = 0; line < lines; line++) {
-            List<HudResolvedElement> elements = byLine.getOrDefault(line, List.of());
+            int sourceLine = mergeBossBar ? 0 : line;
+            List<HudResolvedElement> elements = byLine.getOrDefault(sourceLine, List.of());
             String lineText = composeLine(elements);
             linesOut.add(lineText);
             componentsOut.add(composeComponent(lineText));
@@ -52,35 +53,44 @@ public class HudBossBarRenderer implements HudRenderer {
         return new HudRenderOutput(linesOut, componentsOut);
     }
 
-    private int mapLine(int y) {
-        int lineIndex = (int) Math.floor((double) y / lineHeightPx);
-        if (lineIndex < 0) {
+    private int clampLine(int row) {
+        if (lines <= 1) {
             return 0;
         }
-        return Math.min(lines - 1, lineIndex);
+        return Math.max(0, Math.min(lines - 1, row));
+    }
+
+    private int computeLineIndex(HudResolvedElement element) {
+        int lineHeight = Math.max(1, lineHeightPx);
+        return Math.floorDiv(element.getY(), lineHeight);
     }
 
     private String composeLine(List<HudResolvedElement> elements) {
         if (elements.isEmpty()) {
             return "";
         }
-        List<HudResolvedElement> sorted = new ArrayList<>(elements);
-        sorted.sort(Comparator.comparingInt(HudResolvedElement::getLayer)
-                .thenComparingInt(HudResolvedElement::getX));
+        List<RenderOp> sorted = new ArrayList<>();
+        for (int index = 0; index < elements.size(); index++) {
+            sorted.add(new RenderOp(elements.get(index), index));
+        }
+        sorted.sort(Comparator.comparingInt((RenderOp op) -> op.element().getLayer())
+                .thenComparingInt(RenderOp::order));
         StringBuilder builder = new StringBuilder();
         int currentPx = 0;
-        for (HudResolvedElement element : sorted) {
+        int originShift = -(canvasWidthPx / 2);
+        appendAdvance(builder, originShift);
+        for (RenderOp op : sorted) {
+            HudResolvedElement element = op.element();
             String text = element.getText();
             if (text == null || text.isBlank()) {
                 continue;
             }
             int targetPx = alignedX(element);
-            while (currentPx + SPACE_WIDTH <= targetPx) {
-                builder.append(' ');
-                currentPx += SPACE_WIDTH;
-            }
+            int deltaPx = targetPx - currentPx;
+            appendAdvance(builder, deltaPx);
             builder.append(text);
-            currentPx += (int) Math.round(ChatFormatter.pixelLength(text) * element.getScale());
+            int widthPx = (int) Math.round(element.getWidth() * element.getScale());
+            appendAdvance(builder, -(deltaPx + widthPx));
         }
         return builder.toString();
     }
@@ -122,11 +132,27 @@ public class HudBossBarRenderer implements HudRenderer {
     }
 
     private int alignedX(HudResolvedElement element) {
-        int base = switch (element.getAlign()) {
-            case CENTER -> canvasWidthPx / 2;
-            case RIGHT -> canvasWidthPx;
-            case LEFT -> 0;
-        };
-        return (int) Math.round(base + element.getX() * element.getScale());
+        return (int) Math.round(element.getX() * element.getScale());
+    }
+
+    private int appendAdvance(StringBuilder builder, int deltaPx) {
+        if (deltaPx == 0) {
+            return 0;
+        }
+        int moved = 0;
+        int remaining = deltaPx;
+        while (remaining != 0) {
+            int step = Math.min(HudAdvanceGlyphs.MAX_ADVANCE, Math.abs(remaining));
+            if (remaining < 0) {
+                step = -step;
+            }
+            builder.append(HudAdvanceGlyphs.codepointForAdvance(step));
+            moved += step;
+            remaining -= step;
+        }
+        return moved;
+    }
+
+    private record RenderOp(HudResolvedElement element, int order) {
     }
 }
