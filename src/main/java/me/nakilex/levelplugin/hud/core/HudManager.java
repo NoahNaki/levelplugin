@@ -370,13 +370,14 @@ public class HudManager {
             normalized = normalized.substring("textures/".length());
         }
         if (normalized.indexOf('/') < 0) {
-            java.nio.file.Path candidate = sourceTextureRoot.resolve("fantasy/assets").resolve(normalized).normalize();
+            String fileName = normalized;
+            java.nio.file.Path candidate = sourceTextureRoot.resolve("fantasy/assets").resolve(fileName).normalize();
             if (java.nio.file.Files.exists(candidate)) {
                 return candidate;
             }
             try (java.util.stream.Stream<java.nio.file.Path> stream = java.nio.file.Files.walk(sourceTextureRoot, 5)) {
                 java.util.Optional<java.nio.file.Path> found = stream
-                        .filter(path -> path.getFileName().toString().equalsIgnoreCase(normalized))
+                        .filter(path -> path.getFileName().toString().equalsIgnoreCase(fileName))
                         .findFirst();
                 return found.orElse(direct);
             } catch (IOException ex) {
@@ -610,8 +611,8 @@ public class HudManager {
             return;
         }
         int row = placement.getPosition().row();
-        String anchorLabel = org.bukkit.ChatColor.RED + "A";
-        String originLabel = org.bukkit.ChatColor.YELLOW + "O";
+        String anchorLabel = "§cA";
+        String originLabel = "§eO";
         int anchorWidth = pixelLength(anchorLabel);
         int originWidth = pixelLength(originLabel);
         resolved.add(new HudResolvedElement("hud_debug_anchor_" + placement.getLayoutId(),
