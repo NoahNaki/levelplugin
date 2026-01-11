@@ -87,7 +87,7 @@ public class HudManager {
         this.config = configLoader.load();
         placeholderCache.setTtlMs(config.getPlaceholderCacheTtlMs());
         java.nio.file.Path resolvedRoot = resolveSourceTextureRoot();
-        this.assetRegistry = buildAssetRegistry(config.getImages(), resolvedRoot);
+        this.assetRegistry = buildAssetRegistry(config.getImages(), config.getLayouts(), resolvedRoot);
         HudPackBuilder packBuilder = new HudPackBuilder(plugin);
         java.nio.file.Path resolvedOutputFolder = resolveOutputFolder();
         plugin.getLogger().info("HUD sourceTexturesFolder: " + config.getSourceTexturesFolder());
@@ -425,15 +425,15 @@ public class HudManager {
             }
             String text = switch (element.getType()) {
                 case TEXT -> placeholderService.resolve(player, element.getText());
-                case IMAGE -> resolveImageGlyph(element.getAssetId());
-                case BAR -> resolveBarGlyph(player, element.getAssetId());
+                case IMAGE -> resolveImageGlyph(element.getAssetId(), element.getScale());
+                case BAR -> resolveBarGlyph(player, element.getAssetId(), element.getScale());
             };
             if (text == null || text.isBlank()) {
                 continue;
             }
             ElementMetrics metrics = measureElementMetrics(element, text);
-            int offsetX = element.getPosition().pixelX();
-            int offsetY = element.getPosition().pixelY();
+            int offsetX = scaleOffset(element.getPosition().pixelX(), metrics.scaleFactor());
+            int offsetY = scaleOffset(element.getPosition().pixelY(), metrics.scaleFactor());
             layouts.add(new ElementLayout(element, text, offsetX, offsetY, metrics.width(), metrics.height()));
         }
         Map<String, AnchorBounds> anchors = buildAnchorBounds(layouts, groupBase, placement.getAlign());
@@ -457,11 +457,12 @@ public class HudManager {
                     align = HudTextAlign.LEFT;
                 }
             }
+            double renderScale = element.getType() == HudElementType.TEXT ? element.getScale() : 1.0;
             resolved.add(new HudResolvedElement(element.getId(), layoutElement.text(), x, y, 0,
-                    width, height, element.getLayer(), element.getScale(), align));
+                    width, height, element.getLayer(), renderScale, align));
             if (debugEntries != null) {
                 debugEntries.add(buildDebugEntry(element.getId(), groupBase.x(), groupBase.y(),
-                        layoutElement.offsetX(), layoutElement.offsetY(), x, y, width, height, element.getScale()));
+                        layoutElement.offsetX(), layoutElement.offsetY(), x, y, width, height, renderScale));
             }
         }
         return resolved;
@@ -513,13 +514,11 @@ public class HudManager {
 
     private ElementMetrics measureElementMetrics(HudElement element, String text) {
         if (element == null) {
-            return new ElementMetrics(0, 0);
+            return new ElementMetrics(0, 0, 1.0);
         }
         return switch (element.getType()) {
-            case TEXT -> new ElementMetrics(pixelLength(text), DEFAULT_TEXT_HEIGHT_PX);
-            case IMAGE, BAR -> new ElementMetrics(
-                    assetRegistry == null ? 0 : assetRegistry.getAssetWidth(element.getAssetId()),
-                    assetRegistry == null ? 0 : assetRegistry.getAssetHeight(element.getAssetId()));
+            case TEXT -> new ElementMetrics(pixelLength(text), DEFAULT_TEXT_HEIGHT_PX, 1.0);
+            case IMAGE, BAR -> resolveAssetMetrics(element.getAssetId(), element.getScale());
         };
     }
 
@@ -601,7 +600,7 @@ public class HudManager {
                                  int width, int height) {
     }
 
-    private record ElementMetrics(int width, int height) {
+    private record ElementMetrics(int width, int height, double scaleFactor) {
     }
 
     private record DebugEntry(String id,
@@ -656,15 +655,15 @@ public class HudManager {
         }
     }
 
-    private String resolveImageGlyph(String assetId) {
+    private String resolveImageGlyph(String assetId, double scale) {
         if (assetRegistry == null || assetId == null) {
             return "";
         }
-        HudGlyph glyph = assetRegistry.getGlyph(assetId.toLowerCase(Locale.ROOT));
+        HudGlyph glyph = assetRegistry.getGlyph(assetId.toLowerCase(Locale.ROOT), scale);
         return glyph == null ? "" : String.valueOf(glyph.codepoint());
     }
 
-    private String resolveBarGlyph(Player player, String assetId) {
+    private String resolveBarGlyph(Player player, String assetId, double scale) {
         if (assetRegistry == null || assetId == null) {
             return "";
         }
@@ -683,7 +682,7 @@ public class HudManager {
         if (index <= 0) {
             return "";
         }
-        List<HudGlyph> frames = assetRegistry.getBarFrames(assetId.toLowerCase(Locale.ROOT));
+        List<HudGlyph> frames = assetRegistry.getBarFrames(assetId.toLowerCase(Locale.ROOT), scale);
         if (frames.isEmpty()) {
             return "";
         }
@@ -706,36 +705,124 @@ public class HudManager {
     }
 
     private HudAssetRegistry buildAssetRegistry(Map<String, HudImageDefinition> images,
+                                                Map<String, HudLayout> layouts,
                                                 java.nio.file.Path sourceTextureRoot) {
         HudAssetRegistry registry = new HudAssetRegistry();
         HudGlyphAllocator allocator = new HudGlyphAllocator();
         me.nakilex.levelplugin.hud.assets.HudTextureResolver resolver = new me.nakilex.levelplugin.hud.assets.HudTextureResolver();
+        Map<String, java.util.Set<Double>> scalesByAssetId = collectAssetScales(layouts);
         for (HudImageDefinition definition : images.values()) {
             registry.registerDefinition(definition);
+            String definitionId = definition.getId();
+            String normalizedId = definitionId == null ? "" : definitionId.toLowerCase(Locale.ROOT);
+            java.util.Set<Double> scales = scalesByAssetId.getOrDefault(normalizedId, java.util.Set.of(1.0));
             if (definition.getType() == HudImageType.LISTENER) {
                 int frames = definition.getSplit() > 0 ? definition.getSplit() : definition.getFrames().size();
-                List<HudGlyph> glyphs = new ArrayList<>();
+                List<HudGlyph> baseFrames = new ArrayList<>();
                 for (int index = 1; index <= frames; index++) {
                     String texture = resolveFrameTexture(definition, index, resolver);
                     if (texture == null || texture.isBlank()) {
                         continue;
                     }
-                    glyphs.add(createGlyph(allocator.next(), texture, sourceTextureRoot));
+                    baseFrames.add(createGlyph(allocator.next(), texture, sourceTextureRoot));
                 }
-                if (glyphs.isEmpty()) {
+                if (baseFrames.isEmpty()) {
                     plugin.getLogger().warning("HUD bar '" + definition.getId() + "' has no frames configured.");
                 }
-                registry.registerBarFrames(definition.getId(), glyphs);
+                registry.registerBaseBarFrames(definition.getId(), baseFrames);
+                for (double scale : scales) {
+                    List<HudGlyph> scaledFrames = new ArrayList<>();
+                    boolean useBase = isScaleOne(scale);
+                    for (HudGlyph baseGlyph : baseFrames) {
+                        if (useBase) {
+                            scaledFrames.add(baseGlyph);
+                        } else {
+                            scaledFrames.add(scaleGlyph(baseGlyph, allocator.next(), scale));
+                        }
+                    }
+                    if (!scaledFrames.isEmpty()) {
+                        registry.registerBarFrames(definition.getId(), scale, scaledFrames);
+                    }
+                }
             } else {
                 if (definition.getTexture() != null && !definition.getTexture().isBlank()) {
                     String texture = resolver.resolveSingle(definition.getTexture());
-                    registry.registerGlyph(definition.getId(), createGlyph(allocator.next(), texture, sourceTextureRoot));
+                    HudGlyph baseGlyph = createGlyph(allocator.next(), texture, sourceTextureRoot);
+                    registry.registerBaseGlyph(definition.getId(), baseGlyph);
+                    for (double scale : scales) {
+                        HudGlyph scaledGlyph = isScaleOne(scale)
+                                ? baseGlyph
+                                : scaleGlyph(baseGlyph, allocator.next(), scale);
+                        registry.registerGlyph(definition.getId(), scale, scaledGlyph);
+                    }
                 } else {
                     plugin.getLogger().warning("HUD image '" + definition.getId() + "' is missing a texture path.");
                 }
             }
         }
         return registry;
+    }
+
+    private ElementMetrics resolveAssetMetrics(String assetId, double scale) {
+        if (assetRegistry == null || assetId == null || assetId.isBlank()) {
+            return new ElementMetrics(0, 0, 1.0);
+        }
+        double normalizedScale = scale <= 0 ? 1.0 : scale;
+        int baseWidth = assetRegistry.getBaseAssetWidth(assetId);
+        int baseHeight = assetRegistry.getBaseAssetHeight(assetId);
+        if (baseWidth <= 0 || baseHeight <= 0) {
+            return new ElementMetrics(0, 0, 1.0);
+        }
+        int scaledHeight = Math.max(1, (int) Math.round(baseHeight * normalizedScale));
+        double scaleFactor = (double) scaledHeight / baseHeight;
+        int scaledWidth = (int) Math.round(baseWidth * scaleFactor);
+        return new ElementMetrics(scaledWidth, scaledHeight, scaleFactor);
+    }
+
+    private int scaleOffset(int offset, double scaleFactor) {
+        return (int) Math.round(offset * scaleFactor);
+    }
+
+    private Map<String, java.util.Set<Double>> collectAssetScales(Map<String, HudLayout> layouts) {
+        Map<String, java.util.Set<Double>> scales = new HashMap<>();
+        if (layouts == null) {
+            return scales;
+        }
+        for (HudLayout layout : layouts.values()) {
+            for (HudElement element : layout.getElements()) {
+                if (element.getType() != HudElementType.IMAGE && element.getType() != HudElementType.BAR) {
+                    continue;
+                }
+                String assetId = element.getAssetId();
+                if (assetId == null || assetId.isBlank()) {
+                    continue;
+                }
+                double scale = element.getScale() <= 0 ? 1.0 : element.getScale();
+                scales.computeIfAbsent(assetId.toLowerCase(Locale.ROOT), key -> new java.util.HashSet<>())
+                        .add(scale);
+            }
+        }
+        return scales;
+    }
+
+    private boolean isScaleOne(double scale) {
+        return Math.abs(scale - 1.0) < 0.0001;
+    }
+
+    private HudGlyph scaleGlyph(HudGlyph baseGlyph, char codepoint, double scale) {
+        if (baseGlyph == null) {
+            return new HudGlyph(codepoint, "", 0, 0);
+        }
+        int baseWidth = baseGlyph.width();
+        int baseHeight = baseGlyph.height();
+        if (baseWidth <= 0 || baseHeight <= 0) {
+            return new HudGlyph(codepoint, baseGlyph.texturePath(), 0, 0);
+        }
+        double normalizedScale = scale <= 0 ? 1.0 : scale;
+        int scaledHeight = Math.max(1, (int) Math.round(baseHeight * normalizedScale));
+        double scaleFactor = (double) scaledHeight / baseHeight;
+        int scaledWidth = (int) Math.round(baseWidth * scaleFactor);
+        return new HudGlyph(codepoint, baseGlyph.texturePath(), scaledWidth, scaledHeight);
     }
 
     private HudGlyph createGlyph(char codepoint, String texture, java.nio.file.Path sourceTextureRoot) {

@@ -49,34 +49,38 @@ public class HudPackBuilder {
             String id = entry.getKey();
             HudImageDefinition definition = entry.getValue();
             if (definition.getType() == HudImageType.LISTENER) {
-                List<HudGlyph> frames = registry.getBarFrames(id);
-                for (int index = 0; index < frames.size(); index++) {
-                    HudGlyph glyph = frames.get(index);
-                    String texture = glyph.texturePath();
-                    if (!first) {
-                        builder.append(",\n");
+                Map<String, List<HudGlyph>> frameVariants = registry.getBarFrameVariants(id);
+                for (List<HudGlyph> frames : frameVariants.values()) {
+                    for (int index = 0; index < frames.size(); index++) {
+                        HudGlyph glyph = frames.get(index);
+                        String texture = glyph.texturePath();
+                        if (!first) {
+                            builder.append(",\n");
+                        }
+                        first = false;
+                        builder.append("    ").append(providerJson(namespace, texture, glyph));
                     }
-                    first = false;
-                    builder.append("    ").append(providerJson(namespace, texture, glyph));
                 }
                 continue;
             }
-            HudGlyph glyph = registry.getGlyph(id);
-            if (glyph == null) {
-                continue;
+            Map<String, HudGlyph> variants = registry.getGlyphVariants(id);
+            for (HudGlyph glyph : variants.values()) {
+                if (glyph == null) {
+                    continue;
+                }
+                if (!first) {
+                    builder.append(",\n");
+                }
+                first = false;
+                builder.append("    ").append(providerJson(namespace, glyph.texturePath(), glyph));
             }
-            if (!first) {
-                builder.append(",\n");
-            }
-            first = false;
-            builder.append("    ").append(providerJson(namespace, glyph.texturePath(), glyph));
         }
         builder.append("\n  ]\n}");
         return builder.toString();
     }
 
     private String providerJson(String namespace, String texture, HudGlyph glyph) {
-        int height = Math.max(8, glyph.height());
+        int height = Math.max(1, glyph.height());
         int ascent = Math.max(1, height - 1);
         return "{"
                 + "\"type\":\"bitmap\","
@@ -110,7 +114,7 @@ public class HudPackBuilder {
         java.nio.file.Path textureRoot = java.nio.file.Paths.get(sourceTexturesFolder).toAbsolutePath().normalize();
         for (HudImageDefinition definition : registry.getDefinitions().values()) {
             if (definition.getType() == HudImageType.LISTENER) {
-                List<HudGlyph> frames = registry.getBarFrames(definition.getId());
+                List<HudGlyph> frames = registry.getBaseBarFrames(definition.getId());
                 for (HudGlyph frame : frames) {
                     if (!textureExists(textureRoot, frame.texturePath())) {
                         missing.add(frame.texturePath());
@@ -118,7 +122,7 @@ public class HudPackBuilder {
                 }
                 continue;
             }
-            HudGlyph glyph = registry.getGlyph(definition.getId());
+            HudGlyph glyph = registry.getBaseGlyph(definition.getId());
             if (glyph != null && !textureExists(textureRoot, glyph.texturePath())) {
                 missing.add(glyph.texturePath());
             }
