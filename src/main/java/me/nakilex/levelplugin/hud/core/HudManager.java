@@ -361,30 +361,21 @@ public class HudManager {
         if (sourceTextureRoot == null || texture == null || texture.isBlank()) {
             return null;
         }
-        java.nio.file.Path direct = sourceTextureRoot.resolve(texture).normalize();
-        if (java.nio.file.Files.exists(direct)) {
-            return direct;
-        }
-        String normalized = texture.replace('\\', '/');
-        if (normalized.startsWith("textures/")) {
-            normalized = normalized.substring("textures/".length());
-        }
-        if (normalized.indexOf('/') < 0) {
-            String fileName = normalized;
-            java.nio.file.Path candidate = sourceTextureRoot.resolve("fantasy/assets").resolve(fileName).normalize();
-            if (java.nio.file.Files.exists(candidate)) {
-                return candidate;
-            }
-            try (java.util.stream.Stream<java.nio.file.Path> stream = java.nio.file.Files.walk(sourceTextureRoot, 5)) {
-                java.util.Optional<java.nio.file.Path> found = stream
-                        .filter(path -> path.getFileName().toString().equalsIgnoreCase(fileName))
-                        .findFirst();
-                return found.orElse(direct);
-            } catch (IOException ex) {
-                return direct;
+        for (String candidate : me.nakilex.levelplugin.hud.assets.HudTextureCandidates.buildCandidates(texture)) {
+            java.nio.file.Path candidatePath = sourceTextureRoot.resolve(candidate).normalize();
+            if (java.nio.file.Files.exists(candidatePath)) {
+                return candidatePath;
             }
         }
-        return direct;
+        try (java.util.stream.Stream<java.nio.file.Path> stream = java.nio.file.Files.walk(sourceTextureRoot, 5)) {
+            String name = java.nio.file.Paths.get(texture).getFileName().toString();
+            java.util.Optional<java.nio.file.Path> found = stream
+                    .filter(path -> path.getFileName().toString().equalsIgnoreCase(name))
+                    .findFirst();
+            return found.orElse(sourceTextureRoot.resolve(texture).normalize());
+        } catch (IOException ex) {
+            return sourceTextureRoot.resolve(texture).normalize();
+        }
     }
 
     private String resolveTextureRelativePath(java.nio.file.Path sourceTextureRoot, String texture) {

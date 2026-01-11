@@ -293,7 +293,12 @@ public class HudPackBuilder {
         if (texturePath == null || texturePath.isBlank()) {
             return false;
         }
-        java.nio.file.Path file = textureRoot.resolve(texturePath).normalize();
-        return java.nio.file.Files.exists(file);
+        for (String candidate : HudTextureCandidates.buildCandidates(texturePath)) {
+            java.nio.file.Path file = textureRoot.resolve(candidate).normalize();
+            if (java.nio.file.Files.exists(file)) {
+                return true;
+            }
+        }
+        return java.nio.file.Files.exists(textureRoot.resolve(texturePath).normalize());
     }
 }
