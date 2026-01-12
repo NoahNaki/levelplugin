@@ -138,5 +138,11 @@
             <artifactId>adventure-text-serializer-legacy</artifactId>
             <version>4.17.0</version>
         </dependency>
+        <dependency>
+            <groupId>net.md-5</groupId>
+            <artifactId>bungeecord-chat</artifactId>
+            <version>1.21-R0.1-SNAPSHOT</version>
+            <scope>provided</scope>
+        </dependency>
     </dependencies>
 </project>
