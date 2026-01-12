@@ -88,6 +88,10 @@
             <id>placeholderapi</id>
             <url>https://repo.extendedclip.com/content/repositories/placeholderapi/</url>
         </repository>
+        <repository>
+            <id>md-5-repo</id>
+            <url>https://repo.md-5.net/content/repositories/snapshots/</url>
+        </repository>
     </repositories>
 
 
