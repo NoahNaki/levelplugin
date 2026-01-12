@@ -92,6 +92,10 @@
             <id>md-5-repo</id>
             <url>https://repo.md-5.net/content/repositories/snapshots/</url>
         </repository>
+        <repository>
+            <id>nexomc-releases</id>
+            <url>https://repo.nexomc.com/releases</url>
+        </repository>
     </repositories>
 
 
@@ -146,6 +150,12 @@
             <groupId>net.md-5</groupId>
             <artifactId>bungeecord-chat</artifactId>
             <version>1.21-R0.1-SNAPSHOT</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.nexomc</groupId>
+            <artifactId>nexo</artifactId>
+            <version>1.17.0</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>
