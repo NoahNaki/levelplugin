@@ -14,8 +14,8 @@ import me.nakilex.levelplugin.quests.data.QuestResetScript;
 import me.nakilex.levelplugin.quests.data.QuestRepeatType;
 import me.nakilex.levelplugin.quests.data.PlayerQuestProgress;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
-import net.citizensnpcs.api.CitizensAPI;
-import net.citizensnpcs.api.npc.NPC;
+import me.nakilex.levelplugin.npc.system.NpcApi;
+import me.nakilex.levelplugin.npc.system.NPC;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -171,10 +171,10 @@ public class AbandonedCastleQuest extends Quest implements QuestScript, QuestRes
                 if (event.getHand() == org.bukkit.inventory.EquipmentSlot.OFF_HAND) {
                     return;
                 }
-                if (!CitizensAPI.getNPCRegistry().isNPC(event.getRightClicked())) {
+                if (!NpcApi.getRegistry().isNPC(event.getRightClicked())) {
                     return;
                 }
-                net.citizensnpcs.api.npc.NPC npc = CitizensAPI.getNPCRegistry().getNPC(event.getRightClicked());
+                me.nakilex.levelplugin.npc.system.NPC npc = NpcApi.getRegistry().getNPC(event.getRightClicked());
                 if (npc.getId() != NPC_ID) {
                     return;
                 }

@@ -42,8 +42,8 @@ import me.nakilex.levelplugin.auctionhouse.AuctionHouseGUI;
 import me.nakilex.levelplugin.salvage.gui.SalvageGUI;
 import me.nakilex.levelplugin.quests.util.QuestServiceAccessTracker;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
-import net.citizensnpcs.api.CitizensAPI;
-import net.citizensnpcs.api.npc.NPC;
+import me.nakilex.levelplugin.npc.system.NpcApi;
+import me.nakilex.levelplugin.npc.system.NPC;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
@@ -101,9 +101,9 @@ public class NPCClickListener implements Listener {
             return; // Ignore offhand clicks
         }
 
-        if (CitizensAPI.getNPCRegistry().isNPC(event.getRightClicked())) {
+        if (NpcApi.getRegistry().isNPC(event.getRightClicked())) {
             Player player = event.getPlayer();
-            NPC npc = CitizensAPI.getNPCRegistry().getNPC(event.getRightClicked());
+            NPC npc = NpcApi.getRegistry().getNPC(event.getRightClicked());
             var serverSelection = Main.getInstance().getServerSelectionManager();
             if (serverSelection != null && serverSelection.handleSelectorClick(player, npc)) {
                 return;
@@ -177,7 +177,7 @@ public class NPCClickListener implements Listener {
             if (npc.getId() == 546 &&
                     questManager.hasCompleted(player.getUniqueId(), "newbeginning")) {
                 if (!dialogManager.hasSession(player)) {
-                    NPC seras = CitizensAPI.getNPCRegistry().getById(823);
+                    NPC seras = NpcApi.getRegistry().getById(823);
                     String coords = "unknown";
                     if (seras != null) {
                         Location l = seras.isSpawned() ? seras.getEntity().getLocation() : seras.getStoredLocation();

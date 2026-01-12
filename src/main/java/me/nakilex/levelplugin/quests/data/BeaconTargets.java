@@ -16,25 +16,24 @@ public final class BeaconTargets {
     }
 
     /**
-     * Create a beacon target that tracks a Citizens NPC by its ID.
+     * Create a beacon target that tracks a LevelPlugin NPC by its ID.
      */
     public static BeaconTarget npc(int npcId) {
         return new NpcBeaconTarget(npcId);
     }
 
     /**
-     * Create a beacon target that tracks a Citizens NPC by its (stripped) name.
+     * Create a beacon target that tracks a LevelPlugin NPC by its (stripped) name.
      */
     public static BeaconTarget npc(String npcName) {
         return new NpcBeaconTarget(npcName);
     }
 
     /**
-     * Create a beacon target that tracks a Citizens NPC by its (stripped) name.
+     * Create a beacon target that tracks a LevelPlugin NPC by its (stripped) name.
      */
     @Deprecated
     public static BeaconTarget npcByName(String npcName) {
         return npc(npcName);
     }
 }
-

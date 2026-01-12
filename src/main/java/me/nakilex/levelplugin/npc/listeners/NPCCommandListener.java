@@ -1,11 +1,12 @@
 package me.nakilex.levelplugin.npc.listeners;
 
+import me.nakilex.levelplugin.npc.system.NPC;
+import me.nakilex.levelplugin.npc.system.NpcApi;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import net.citizensnpcs.api.event.NPCRightClickEvent; // Fix: Use NPCRightClickEvent
-import net.citizensnpcs.api.npc.NPC;
+import org.bukkit.event.player.PlayerInteractEntityEvent;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -23,10 +24,15 @@ public class NPCCommandListener implements Listener {
     }
 
     @EventHandler
-    public void onNPCRightClick(NPCRightClickEvent event) { // Fix: Use NPCRightClickEvent
-        // Get the player who clicked and the NPC clicked
-        Player player = event.getClicker();
-        NPC npc = event.getNPC();
+    public void onNPCRightClick(PlayerInteractEntityEvent event) {
+        if (!NpcApi.getRegistry().isNPC(event.getRightClicked())) {
+            return;
+        }
+        Player player = event.getPlayer();
+        NPC npc = NpcApi.getRegistry().getNPC(event.getRightClicked());
+        if (npc == null) {
+            return;
+        }
 
         // Check if the NPC's name matches any key in the map
         String npcName = npc.getName();

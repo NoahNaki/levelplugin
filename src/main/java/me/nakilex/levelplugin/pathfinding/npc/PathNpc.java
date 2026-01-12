@@ -3,7 +3,7 @@ package me.nakilex.levelplugin.pathfinding.npc;
 import io.lumine.mythic.bukkit.BukkitAdapter;
 import io.lumine.mythic.bukkit.MythicBukkit;
 import me.nakilex.levelplugin.utils.cooldowns.CooldownManager;
-import net.citizensnpcs.api.npc.NPC;
+import me.nakilex.levelplugin.npc.system.NPC;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
@@ -42,8 +42,8 @@ public interface PathNpc {
     }
 
     /**
-     * Entity type used for the NPC. Mercenaries default to player entities so
-     * they retain standard Citizens behaviour rather than native mob AI.
+     * Entity type used for the NPC. Mercenaries default to player entities to
+     * keep a player-like silhouette rather than native mob AI.
      */
     default EntityType type() {
         return EntityType.PLAYER;
@@ -80,4 +80,3 @@ public interface PathNpc {
         return cast(npc, skill.name(), skill.cooldown(), target, cooldowns);
     }
 }
-

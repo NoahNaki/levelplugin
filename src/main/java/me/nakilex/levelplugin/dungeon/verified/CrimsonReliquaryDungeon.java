@@ -31,9 +31,9 @@ import me.nakilex.levelplugin.player.classes.essence.ClassEssence;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.utils.*;
 import me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
-import net.citizensnpcs.api.CitizensAPI;
-import net.citizensnpcs.api.npc.NPC;
-import net.citizensnpcs.trait.CurrentLocation;
+import me.nakilex.levelplugin.npc.system.NpcApi;
+import me.nakilex.levelplugin.npc.system.NPC;
+import me.nakilex.levelplugin.npc.system.trait.CurrentLocationTrait;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
@@ -822,14 +822,14 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
 
     private void spawnInstanceNpcs(Location origin, InstanceState state) {
         for (NpcPlacement placement : NPCS) {
-            NPC template = CitizensAPI.getNPCRegistry().getById(placement.id());
+            NPC template = NpcApi.getRegistry().getById(placement.id());
             if (template == null) {
                 plugin.getLogger().warning("[Dungeon] Missing NPC template id=" + placement.id());
                 continue;
             }
-            NPC clone = template.copy();
+            NPC clone = NpcApi.getRegistry().cloneNpc(template);
             Location loc = origin.clone().add(placement.x() - MIN_X + 0.5, placement.y() - MIN_Y, placement.z() - MIN_Z + 0.5);
-            clone.getOrAddTrait(CurrentLocation.class).setLocation(loc);
+            clone.getOrAddTrait(CurrentLocationTrait.class).setLocation(loc);
             clone.spawn(loc);
             if (clone.isSpawned()) {
                 clone.getEntity().teleport(loc, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.PLUGIN);

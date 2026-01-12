@@ -16,9 +16,8 @@ import me.nakilex.levelplugin.quests.data.QuestScript;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
-import net.citizensnpcs.api.CitizensAPI;
-import net.citizensnpcs.api.npc.NPC;
-import net.citizensnpcs.api.event.NPCRightClickEvent;
+import me.nakilex.levelplugin.npc.system.NPC;
+import me.nakilex.levelplugin.npc.system.NpcApi;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -232,7 +231,7 @@ public class GamblersGambitQuest extends Quest implements QuestScript, QuestComp
         resetFailStack(player);
         questManager.removeFlag(player.getUniqueId(), ID, GUESS_FLAG);
 
-        NPC npc = CitizensAPI.getNPCRegistry().getById(NPC_ID);
+        NPC npc = NpcApi.getRegistry().getById(NPC_ID);
         me.nakilex.levelplugin.npc.dialog.NPCDialogManager dialogManager = plugin.getDialogManager();
         if (dialogManager != null && npc != null) {
             dialogManager.startDialog(player, SUCCESS_DIALOG, npc, () ->
@@ -447,11 +446,15 @@ public class GamblersGambitQuest extends Quest implements QuestScript, QuestComp
             }
 
             @EventHandler(priority = org.bukkit.event.EventPriority.LOWEST)
-            public void onNpcInteract(net.citizensnpcs.api.event.NPCRightClickEvent event) {
-                if (event.getNPC() == null || event.getNPC().getId() != NPC_ID) {
+            public void onNpcInteract(org.bukkit.event.player.PlayerInteractEntityEvent event) {
+                if (!NpcApi.getRegistry().isNPC(event.getRightClicked())) {
                     return;
                 }
-                Player player = event.getClicker();
+                me.nakilex.levelplugin.npc.system.NPC npc = NpcApi.getRegistry().getNPC(event.getRightClicked());
+                if (npc == null || npc.getId() != NPC_ID) {
+                    return;
+                }
+                Player player = event.getPlayer();
                 QuestManager questManager = Main.getInstance().getQuestManager();
                 if (questManager == null || questManager.getProgress(player.getUniqueId(), ID) == null) {
                     return;
@@ -466,7 +469,7 @@ public class GamblersGambitQuest extends Quest implements QuestScript, QuestComp
                     lastNpcClick.put(player.getUniqueId(), now);
                 }
                 if (dialogManager != null && dialogManager.hasSession(player)) {
-                    net.citizensnpcs.api.npc.NPC sessionNpc = dialogManager.getSessionNpc(player);
+                    me.nakilex.levelplugin.npc.system.NPC sessionNpc = dialogManager.getSessionNpc(player);
                     if (sessionNpc != null && sessionNpc.getId() == NPC_ID) {
                         event.setCancelled(true);
                         return;

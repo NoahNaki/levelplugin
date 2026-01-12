@@ -69,7 +69,8 @@ import me.nakilex.levelplugin.utils.DealMaker;
 import me.nakilex.levelplugin.utils.LevelPlaceholderExpansion;
 import me.nakilex.levelplugin.utils.NakiPlaceholderExpansion;
 import me.nakilex.levelplugin.utils.EntityTextDisplay;
-import me.nakilex.levelplugin.utils.MetadataTrait;
+import me.nakilex.levelplugin.npc.system.NpcApi;
+import me.nakilex.levelplugin.npc.system.NpcRegistry;
 import me.nakilex.levelplugin.utils.HologramUtil;
 import me.nakilex.levelplugin.utils.MultiLineHologram;
 import me.nakilex.levelplugin.utils.registeries.CommandRegistry;
@@ -77,8 +78,6 @@ import me.nakilex.levelplugin.utils.registeries.ListenerRegistry;
 import me.nakilex.levelplugin.utils.registeries.TaskRegistry;
 import me.nakilex.levelplugin.fasttravel.FastTravelManager;
 import me.nakilex.levelplugin.fasttravel.gui.FastTravelGUI;
-import net.citizensnpcs.api.CitizensAPI;
-import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
 import org.bukkit.configuration.InvalidConfigurationException;
@@ -194,7 +193,8 @@ public class PluginBootstrap {
     private me.nakilex.levelplugin.environment.stage.BuildingStageManager buildingStageManager;
     private me.nakilex.levelplugin.leaderboards.LeaderboardManager leaderboardManager;
     private me.nakilex.levelplugin.leaderboards.DuelStatsManager duelStatsManager;
-    private final Map<UUID, List<NPC>> activeBowDrones = new HashMap<>();
+    private final Map<UUID, List<me.nakilex.levelplugin.npc.system.NPC>> activeBowDrones = new HashMap<>();
+    private NpcRegistry npcRegistry;
     private me.nakilex.levelplugin.auctionhouse.AuctionHouseManager auctionHouseManager;
     private me.nakilex.levelplugin.auctionhouse.AuctionHouseGUI auctionHouseGUI;
     private SettingsManager settingsManager;
@@ -252,7 +252,6 @@ public class PluginBootstrap {
                 duelStatsManager,
                 settingsManager,
                 environmentManager);
-        CitizensAPI.getTraitFactory().registerTrait(net.citizensnpcs.api.trait.TraitInfo.create(MetadataTrait.class).withName("MetadataTrait"));
         mobRewardsConfig = new MobRewardsConfig(plugin);
         customMobManager = new CustomMobManager(plugin);
         GuildQuestManager.getInstance().reloadMobCategories();
@@ -307,6 +306,8 @@ public class PluginBootstrap {
                 : "hub";
         worldManager.ensureWorldsLoaded("flatland", "redrocks", hubWorld);
         serverSelectionManager = new me.nakilex.levelplugin.server.ServerSelectionManager(plugin);
+        npcRegistry = new NpcRegistry(plugin);
+        NpcApi.initialize(npcRegistry);
 
         itemManager = new ItemManager(plugin);
         toolManager = new me.nakilex.levelplugin.items.tools.ToolManager();
@@ -626,26 +627,7 @@ public class PluginBootstrap {
     }
 
     private boolean validateDependencies() {
-        return ensureDependency("Citizens", null);
-    }
-
-    private boolean ensureDependency(String pluginName, String requiredClassName) {
-        if (!plugin.getServer().getPluginManager().isPluginEnabled(pluginName)) {
-            plugin.getLogger().severe(pluginName + " is installed but disabled! Check for errors.");
-            return false;
-        }
-
-        if (requiredClassName == null) {
-            return true;
-        }
-
-        try {
-            Class.forName(requiredClassName);
-            return true;
-        } catch (ClassNotFoundException ex) {
-            plugin.getLogger().severe("Required class '" + requiredClassName + "' from " + pluginName + " is missing. Make sure the plugin is updated and loaded.");
-            return false;
-        }
+        return true;
     }
 
     public void disable() {
@@ -730,7 +712,9 @@ public class PluginBootstrap {
         }
     }
 
-    public Map<UUID, List<NPC>> getActiveBowDrones() { return activeBowDrones; }
+    public Map<UUID, List<me.nakilex.levelplugin.npc.system.NPC>> getActiveBowDrones() { return activeBowDrones; }
+
+    public NpcRegistry getNpcRegistry() { return npcRegistry; }
     public BukkitAPIHelper getMythicHelper() { return mythicHelper; }
     public LevelManager getLevelManager() { return levelManager; }
     public EconomyManager getEconomyManager() { return economyManager; }

@@ -32,8 +32,8 @@ import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.classes.essence.ClassEssence;
 import me.nakilex.levelplugin.utils.NumberUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
-import net.citizensnpcs.api.CitizensAPI;
-import net.citizensnpcs.api.npc.NPC;
+import me.nakilex.levelplugin.npc.system.NpcApi;
+import me.nakilex.levelplugin.npc.system.NPC;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
@@ -454,7 +454,7 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
         if (player == null) {
             return;
         }
-        NPC npc = CitizensAPI.getNPCRegistry().getById(CONTACT_NPC_ID);
+        NPC npc = NpcApi.getRegistry().getById(CONTACT_NPC_ID);
         if (npc == null || npc.getEntity() == null) {
             return;
         }

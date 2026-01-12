@@ -15,10 +15,10 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
-import net.citizensnpcs.api.CitizensAPI;
-import net.citizensnpcs.api.npc.NPC;
-import net.citizensnpcs.trait.SkinTrait;
-import net.citizensnpcs.trait.LookClose;
+import me.nakilex.levelplugin.npc.system.NpcApi;
+import me.nakilex.levelplugin.npc.system.NPC;
+import me.nakilex.levelplugin.npc.system.trait.SkinTrait;
+import me.nakilex.levelplugin.npc.system.trait.LookCloseTrait;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -259,7 +259,7 @@ public class ServerSelectionManager {
 
     private void spawnHubSelectors() {
         shutdown();
-        for (NPC npc : CitizensAPI.getNPCRegistry()) {
+        for (NPC npc : NpcApi.getRegistry()) {
             String value = npc.data().get(SELECTOR_DATA_KEY);
             if (value != null && !value.isBlank()) {
                 npc.destroy();
@@ -280,14 +280,14 @@ public class ServerSelectionManager {
     }
 
     private SelectorNpc createSelectorNpc(String key, String label, Location location) {
-        NPC npc = CitizensAPI.getNPCRegistry().createNPC(EntityType.PLAYER, "");
+        NPC npc = NpcApi.getRegistry().createNPC(EntityType.PLAYER, "");
         npc.data().set(SELECTOR_DATA_KEY, key);
         applySelectorSkin(npc, key);
         npc.spawn(location);
         if (npc.getEntity() != null) {
             npc.getEntity().setCustomNameVisible(false);
         }
-        LookClose lookClose = npc.getOrAddTrait(LookClose.class);
+        LookCloseTrait lookClose = npc.getOrAddTrait(LookCloseTrait.class);
         lookClose.lookClose(true);
         SelectorNpc selector = new SelectorNpc(npc);
         selector.updateTop(org.bukkit.ChatColor.YELLOW + "CLICK TO JOIN");
