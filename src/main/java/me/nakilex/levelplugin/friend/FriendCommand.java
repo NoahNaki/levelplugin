@@ -2,8 +2,8 @@ package me.nakilex.levelplugin.friend;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
-import net.md_5.bungee.api.chat.ClickEvent;
-import net.md_5.bungee.api.chat.TextComponent;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -178,19 +178,21 @@ public class FriendCommand implements TabExecutor {
                 }
 
                 if (maxPage > 1) {
-                    TextComponent nav = new TextComponent("");
+                    Component nav = Component.empty();
                     if (page > 1) {
-                        TextComponent prev = new TextComponent(ChatColor.GREEN + "[Previous]");
-                        prev.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/friend list " + (page - 1)));
-                        nav.addExtra(prev);
+                        Component prev = Component.text(ChatColor.GREEN + "[Previous]")
+                                .clickEvent(ClickEvent.runCommand("/friend list " + (page - 1)));
+                        nav = nav.append(prev);
                     }
                     if (page < maxPage) {
-                        if (page > 1) nav.addExtra(" ");
-                        TextComponent next = new TextComponent(ChatColor.GREEN + "[Next]");
-                        next.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/friend list " + (page + 1)));
-                        nav.addExtra(next);
+                        if (page > 1) {
+                            nav = nav.append(Component.text(" "));
+                        }
+                        Component next = Component.text(ChatColor.GREEN + "[Next]")
+                                .clickEvent(ClickEvent.runCommand("/friend list " + (page + 1)));
+                        nav = nav.append(next);
                     }
-                    player.spigot().sendMessage(nav);
+                    player.sendMessage(nav);
                 }
             }
             default -> player.sendMessage(ChatColor.RED + "Unknown subcommand.");
