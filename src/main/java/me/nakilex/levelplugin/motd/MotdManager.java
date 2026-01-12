@@ -1,7 +1,7 @@
 package me.nakilex.levelplugin.motd;
 
 import me.nakilex.levelplugin.Main;
-import net.md_5.bungee.api.ChatColor;
+import org.bukkit.ChatColor;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.event.EventHandler;

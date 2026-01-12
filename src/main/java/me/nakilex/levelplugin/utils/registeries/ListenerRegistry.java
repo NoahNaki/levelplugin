@@ -2,7 +2,6 @@ package me.nakilex.levelplugin.utils.registeries;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.blacksmith.gui.BlacksmithGUI;
-import me.nakilex.levelplugin.boss.FieldBossListener;
 import me.nakilex.levelplugin.doublejump.listeners.DoubleJumpListener;
 import me.nakilex.levelplugin.duels.listeners.DuelListener;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
@@ -242,9 +241,6 @@ public class ListenerRegistry {
         pm.registerEvents(new ClassEssenceBoundListener(), plugin);
         pm.registerEvents(new ClassEssenceSwapListener(), plugin);
         pm.registerEvents(new ClassEssenceUpgradeGUI(), plugin);
-        if (mythicEnabled) {
-            pm.registerEvents(new FieldBossListener(plugin, plugin.getBossConfig(), plugin.getItemManager(), plugin.getGemsManager()), plugin);
-        }
         pm.registerEvents(new EquipOnJoinListener(), plugin);
         pm.registerEvents(new PlayerDeathListener(plugin), plugin);
         pm.registerEvents(new FullInventoryListener(plugin.getSettingsManager()), plugin);
