@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.utils;
 
 import me.nakilex.levelplugin.utils.DefaultFontInfo;
+import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 
 public class ChatFormatter {
@@ -93,7 +94,7 @@ public class ChatFormatter {
     }
 
     /** Hex color used for experience text and amounts. */
-    private static final String EXP_COLOR = net.md_5.bungee.api.ChatColor.of("#47b587").toString();
+    private static final String EXP_COLOR = ChatColor.of("#47b587").toString();
 
     /** Return the standard colored label used for experience amounts. */
     public static String experienceLabel() {
@@ -104,7 +105,7 @@ public class ChatFormatter {
     public static String experienceColor() {
         // Display XP amounts in gray so reward numbers stand out
         // uniformly across coins, gems, and experience.
-        return net.md_5.bungee.api.ChatColor.GRAY.toString();
+        return ChatColor.GRAY.toString();
     }
 
     /**
