@@ -1,5 +1,6 @@
 package me.nakilex.levelplugin.utils;
 
+
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
@@ -62,13 +63,9 @@ public final class ChatMessageUtil {
         ChatFormatter.sendIndentedMessage(player, format(type, message));
     }
 
-    /**
-     * Convenience for non-player command senders.
-     */
     public static void send(CommandSender sender, MessageType type, String message) {
         sender.sendMessage(format(type, message));
     }
-
     /**
      * Send a standardized purchase confirmation to a player.
      */

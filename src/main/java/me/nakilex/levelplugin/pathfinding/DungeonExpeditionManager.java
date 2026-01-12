@@ -238,7 +238,6 @@ public class DungeonExpeditionManager implements Listener {
         NPC npc = template != null ? NpcApi.getRegistry().cloneNpc(template) : NpcApi.getRegistry().createNPC(profile.type(), profile.name());
         npc.setBukkitEntityType(profile.type());
         npc.spawn(start);
-        npc.setProtected(false);
         return npc;
     }
 

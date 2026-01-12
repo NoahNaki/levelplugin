@@ -57,7 +57,7 @@ public class LeafParticleTask extends BukkitRunnable {
         if (leafType == Material.CHERRY_LEAVES) {
             particle = Particle.CHERRY_LEAVES;
         } else if (leafType == Material.PALE_OAK_LEAVES) {
-            particle = Particle.PALE_OAK_LEAVES;
+            particle = Particle.CHERRY_LEAVES;
         } else {
             // Generic leaf particle
             particle = Particle.CHERRY_LEAVES;

@@ -291,9 +291,9 @@ public class PluginBootstrap {
                 ? customConfig.getString("server.hub-world", "hub")
                 : "hub";
         worldManager.ensureWorldsLoaded("flatland", "redrocks", hubWorld);
-        serverSelectionManager = new me.nakilex.levelplugin.server.ServerSelectionManager(plugin);
         npcRegistry = new NpcRegistry(plugin);
         NpcApi.initialize(npcRegistry);
+        serverSelectionManager = new me.nakilex.levelplugin.server.ServerSelectionManager(plugin);
 
         itemManager = new ItemManager(plugin);
         toolManager = new me.nakilex.levelplugin.items.tools.ToolManager();
@@ -648,7 +648,6 @@ public class PluginBootstrap {
             dungeonManager.saveLayoutsSync();
             dungeonManager.getBuilder().cancelAll();
         }
-        if (me.nakilex.levelplugin.player.mining.listeners.OreMiningListener.getInstance() != null) me.nakilex.levelplugin.player.mining.listeners.OreMiningListener.getInstance().removeAllHolograms();
         if (questManager != null) questManager.saveProgress();
         if (modelGateManager != null) modelGateManager.removeAllGates();
         if (environmentManager != null) {
