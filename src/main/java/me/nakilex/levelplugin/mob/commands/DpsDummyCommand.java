@@ -1,6 +1,5 @@
 package me.nakilex.levelplugin.mob.commands;
 
-import io.lumine.mythic.api.exceptions.InvalidMobTypeException;
 import me.nakilex.levelplugin.mob.dps.DpsDummyManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.command.Command;
@@ -34,11 +33,7 @@ public class DpsDummyCommand implements TabExecutor {
         String sub = args[0].toLowerCase();
         switch (sub) {
             case "spawn":
-                try {
-                    manager.spawn(player);
-                } catch (InvalidMobTypeException e) {
-                    throw new RuntimeException(e);
-                }
+                manager.spawn(player);
                 break;
             case "select":
                 manager.select(player);
