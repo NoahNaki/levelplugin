@@ -379,9 +379,6 @@ commands:
   roll:
     description: Roll a number between 1 and 100
     usage: /roll
-  hud:
-    description: Manage the custom HUD
-    usage: /hud <reload|debug [player|assets]|toggle>
   dpsdummy:
     description: Manage DPS training dummies
     usage: /dpsdummy <spawn|select|despawn|list>

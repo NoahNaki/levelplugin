@@ -152,8 +152,7 @@ public class CommandRegistry {
                                         BeaconEntityDebugManager beaconEntityDebugManager,
                                         DungeonExpeditionManager dungeonExpeditionManager,
                                         ServerSelectionManager serverSelectionManager,
-                                        CustomMobManager customMobManager,
-                                        me.nakilex.levelplugin.hud.core.HudManager hudManager) {
+                                        CustomMobManager customMobManager) {
 
 
         AddPointsCommand addPointsCmd = new AddPointsCommand();
@@ -395,13 +394,6 @@ public class CommandRegistry {
         plugin.getCommand("emotes").setTabCompleter(emotesCommand);
 
         plugin.getCommand("roll").setExecutor(new RollCommand());
-
-        if (plugin.getCommand("hud") != null) {
-            me.nakilex.levelplugin.hud.platform.bukkit.HudCommand hudCommand =
-                    new me.nakilex.levelplugin.hud.platform.bukkit.HudCommand(hudManager);
-            plugin.getCommand("hud").setExecutor(hudCommand);
-            plugin.getCommand("hud").setTabCompleter(hudCommand);
-        }
 
         if (serverSelectionManager != null) {
             ConnectCommand connectCommand = new ConnectCommand(serverSelectionManager);
