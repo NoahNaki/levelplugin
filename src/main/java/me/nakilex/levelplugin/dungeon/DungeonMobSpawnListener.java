@@ -1,9 +1,9 @@
 package me.nakilex.levelplugin.dungeon;
 
 import me.nakilex.levelplugin.Main;
-import me.nakilex.levelplugin.mob.utils.MobNameUtil;
 import me.nakilex.levelplugin.mob.custom.CustomMobManager;
 import me.nakilex.levelplugin.lootchests.utils.LocationUtils;
+import me.nakilex.levelplugin.mob.utils.MobNameUtil;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -17,8 +17,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.event.entity.EntityDeathEvent;
-
-import java.util.Optional;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -92,9 +90,8 @@ public class DungeonMobSpawnListener implements Listener {
             atk = sec.contains("attack-speed") ? sec.getDouble("attack-speed") : null;
             key = sec.getString("mob", key);
         }
+        String spawnKey = key;
         String canonical = MobNameUtil.canonicalMobKey(key);
-        final String spawnKey = key;
-        Optional<String> resolved = MobNameUtil.resolveMythicInternalName(spawnKey);
         String overrides = String.format("hp=%s dmg=%s move=%s atk=%s",
                 hp == null ? "-" : String.format("%.2f", hp),
                 dmg == null ? "-" : String.format("%.2f", dmg),
@@ -109,16 +106,6 @@ public class DungeonMobSpawnListener implements Listener {
                 key,
                 canonical,
                 overrides));
-
-        resolved.ifPresentOrElse(
-                internalName -> plugin.getLogger().info(String.format(
-                        "[DungeonSpawn] Resolved combat mob '%s' to Mythic internal '%s'",
-                        spawnKey,
-                        internalName)),
-                () -> plugin.getLogger().warning(String.format(
-                        "[DungeonSpawn] Mob definition for '%s' could not be resolved",
-                        spawnKey))
-        );
         int spawned = 0;
         for (int i = 0; i < count; i++) {
             double x = room.minX + 1 + Math.random() * (room.maxX - room.minX - 1);
@@ -157,20 +144,10 @@ public class DungeonMobSpawnListener implements Listener {
 
         String mobId = room.mob;
         String canonical = MobNameUtil.canonicalMobKey(mobId);
-        Optional<String> resolved = MobNameUtil.resolveMythicInternalName(mobId);
         Main.getInstance().getLogger().info(String.format(
                 "[DungeonBoss] Attempting to spawn '%s' (canonical='%s')",
                 mobId,
                 canonical));
-        resolved.ifPresentOrElse(
-                internalName -> Main.getInstance().getLogger().info(String.format(
-                        "[DungeonBoss] Resolved boss '%s' to Mythic internal '%s'",
-                        mobId,
-                        internalName)),
-                () -> Main.getInstance().getLogger().warning(String.format(
-                        "[DungeonBoss] Mob definition for '%s' could not be resolved",
-                        mobId))
-        );
         if (customMobManager == null || customMobManager.getDefinition(mobId).isEmpty()) {
             Main.getInstance().getLogger().warning("[DungeonBoss] Custom mob '" + mobId + "' could not be spawned");
             return;

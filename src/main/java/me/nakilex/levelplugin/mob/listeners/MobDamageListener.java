@@ -13,8 +13,11 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.inventory.ItemStack;
 
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -131,5 +134,23 @@ public class MobDamageListener implements Listener {
      */
     public static void clearDamageRecord(UUID entityUUID) {
         damageMap.remove(entityUUID);
+    }
+
+    /**
+     * Returns the participating players for an entity and clears their damage record.
+     */
+    public static Set<Player> getParticipantsAndClear(UUID entityUUID) {
+        Map<UUID, Double> damage = damageMap.remove(entityUUID);
+        if (damage == null || damage.isEmpty()) {
+            return Collections.emptySet();
+        }
+        Set<Player> participants = new HashSet<>();
+        for (UUID playerId : damage.keySet()) {
+            Player player = Bukkit.getPlayer(playerId);
+            if (player != null) {
+                participants.add(player);
+            }
+        }
+        return participants;
     }
 }

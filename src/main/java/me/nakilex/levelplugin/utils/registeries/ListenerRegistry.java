@@ -21,7 +21,6 @@ import me.nakilex.levelplugin.mob.config.MobRewardsConfig;
 import me.nakilex.levelplugin.mob.dps.DpsDummyManager;
 import me.nakilex.levelplugin.mob.listeners.*;
 import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
-import me.nakilex.levelplugin.mob.managers.MythicMobNameManager;
 import me.nakilex.levelplugin.mob.custom.CustomMobManager;
 import me.nakilex.levelplugin.mob.custom.CustomMobRewardListener;
 import me.nakilex.levelplugin.mob.custom.gui.CustomMobAdminGUI;
@@ -135,8 +134,6 @@ public class ListenerRegistry {
         PluginManager pm = plugin.getServer().getPluginManager();
 
         pm.registerEvents(new MobDamageListener(), plugin);
-        MythicMobDamageTracker dmgTracker = new MythicMobDamageTracker();
-        pm.registerEvents(dmgTracker, plugin);
         BattlePassManager battlePassManager = plugin.getBattlePassManager();
 
         MobRewardService rewardService = new MobRewardService(
@@ -153,7 +150,7 @@ public class ListenerRegistry {
         boolean mythicEnabled = Bukkit.getPluginManager().isPluginEnabled("MythicMobs");
         if (customMobManager != null) {
             pm.registerEvents(customMobManager.getNameManager(), plugin);
-            pm.registerEvents(new CustomMobRewardListener(customMobManager, dmgTracker, rewardService), plugin);
+            pm.registerEvents(new CustomMobRewardListener(customMobManager, rewardService), plugin);
             pm.registerEvents(customMobManager.getSpawnerManager(), plugin);
             pm.registerEvents(customMobManager.getAdminGui(), plugin);
         }
@@ -213,10 +210,6 @@ public class ListenerRegistry {
         pm.registerEvents(new LootChestChunkListener(lootChestManager), plugin);
         pm.registerEvents(new LootChestWandListener(lootChestManager), plugin);
         pm.registerEvents(new PotionUseListener(potionManager, plugin), plugin);
-        if (mythicEnabled) {
-            pm.registerEvents(new MythicMobNameManager(plugin), plugin);
-            pm.registerEvents(new MythicMobDamageListener(), plugin);
-        }
         if (dpsDummyManager != null) {
             pm.registerEvents(dpsDummyManager, plugin);
         }
