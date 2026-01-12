@@ -44,10 +44,11 @@ public class SpellInputListener implements Listener {
             return;
         }
         Player player = event.getPlayer();
+        boolean leftClick = isLeftClick(action);
+        displayManager.recordClick(player, leftClick ? SpellClickInput.LEFT : SpellClickInput.RIGHT);
         PlayerSettings settings = settingsManager.getSettings(player);
         SpellInputMode mode = settings.getSpellInputMode();
         boolean archerFamily = isArcherFamily(player);
-        boolean leftClick = isLeftClick(action);
         if (mode == SpellInputMode.MOUSE_COMBO) {
             handleComboClick(player, leftClick, archerFamily);
             return;

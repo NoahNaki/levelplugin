@@ -66,6 +66,7 @@ import me.nakilex.levelplugin.guild.quests.GuildQuestManager;
 import me.nakilex.levelplugin.trade.data.ConfigValues;
 import me.nakilex.levelplugin.trade.utils.MessageStrings;
 import me.nakilex.levelplugin.utils.DealMaker;
+import me.nakilex.levelplugin.utils.LevelPlaceholderExpansion;
 import me.nakilex.levelplugin.utils.NakiPlaceholderExpansion;
 import me.nakilex.levelplugin.utils.EntityTextDisplay;
 import me.nakilex.levelplugin.utils.MetadataTrait;
@@ -199,7 +200,6 @@ public class PluginBootstrap {
     private SettingsManager settingsManager;
     private SettingsGUI settingsGUI;
     private me.nakilex.levelplugin.debug.gui.DebugGUI debugGUI;
-    private me.nakilex.levelplugin.hud.core.HudManager hudManager;
     private CodexManager codexManager;
     private CodexMainGUI codexGUI;
     private MobCodexGUI mobCodexGUI;
@@ -266,9 +266,6 @@ public class PluginBootstrap {
         locationCodexGUI.setMainGui(codexGUI);
         registerCommandsAndListeners();
         registerPlaceholders();
-        if (hudManager != null) {
-            hudManager.enable();
-        }
         me.nakilex.levelplugin.transmog.gui.TransmogBrowser tBrowser =
                 new me.nakilex.levelplugin.transmog.gui.TransmogBrowser(plugin, transmogManager);
         new me.nakilex.levelplugin.transmog.gui.TransmogGUI(plugin, transmogManager, tBrowser);
@@ -362,7 +359,6 @@ public class PluginBootstrap {
         broadcastMgr = new BroadcastManager(plugin, this.tipsCfg);
         broadcastMgr.start();
         settingsManager = new SettingsManager();
-        hudManager = new me.nakilex.levelplugin.hud.core.HudManager(plugin);
         questManager = new QuestManager(plugin, partyManager);
         battlePassManager = new BattlePassManager(plugin, questManager, itemManager);
         battlePassGUI = battlePassManager.getGui();
@@ -498,8 +494,7 @@ public class PluginBootstrap {
             beaconEntityDebugManager,
             dungeonExpeditionManager,
             serverSelectionManager,
-            customMobManager,
-            hudManager
+            customMobManager
         );
         me.nakilex.levelplugin.catacombs.CatacombsCommand catacombsCommand =
                 new me.nakilex.levelplugin.catacombs.CatacombsCommand(catacombsManager, catacombsGUI);
@@ -604,7 +599,7 @@ public class PluginBootstrap {
     }
 
     /**
-     * Registers PlaceholderAPI expansion if the plugin is present.
+     * Registers PlaceholderAPI expansions if the plugin is present.
      * Provided placeholders:
      * <ul>
      *   <li><code>%naki_level%</code></li>
@@ -616,11 +611,17 @@ public class PluginBootstrap {
      *   <li><code>%naki_currentXP%</code></li>
      *   <li><code>%naki_xpNextLevel%</code></li>
      *   <li><code>%naki_seasonDate%</code></li>
+     *   <li><code>%level_spell_combo_active%</code></li>
+     *   <li><code>%level_spell_combo_glyphs%</code></li>
+     *   <li><code>%level_spell_combo_slot1%</code></li>
+     *   <li><code>%level_spell_combo_slot2%</code></li>
+     *   <li><code>%level_spell_combo_slot3%</code></li>
      * </ul>
      */
     private void registerPlaceholders() {
         if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
             new NakiPlaceholderExpansion(plugin).register();
+            new LevelPlaceholderExpansion(plugin).register();
         }
     }
 
@@ -651,7 +652,6 @@ public class PluginBootstrap {
         TaskRegistry.stopTasks();
         despawnActiveMythicMobs();
         if (chatGameManager != null) chatGameManager.stop();
-        if (hudManager != null) hudManager.disable();
         if (mercenaryManager != null) mercenaryManager.unbindAll();
         if (economyManager != null) economyManager.saveBalances();
         if (dealMaker != null) dealMaker.closeAllTrades();
