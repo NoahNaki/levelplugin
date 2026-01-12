@@ -1,0 +1,9 @@
+maxNpcs: 200
+viewRange: 32.0
+autosaveIntervalTicks: 6000
+traitTickIntervalTicks: 20
+keepChunksLoaded: false
+backupOnSave: true
+maxBackups: 10
+skinResolverEndpoint: ""
+skinResolverTimeoutSeconds: 8

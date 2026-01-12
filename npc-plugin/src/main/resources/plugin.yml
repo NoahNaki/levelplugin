@@ -1,0 +1,11 @@
+name: npc-plugin
+main: me.nakilex.npc.plugin.NpcPlugin
+version: 1.0-SNAPSHOT
+api-version: 1.21
+commands:
+  npc:
+    description: Manage NPCs
+    usage: /npc
+permissions:
+  npc.admin:
+    default: op
