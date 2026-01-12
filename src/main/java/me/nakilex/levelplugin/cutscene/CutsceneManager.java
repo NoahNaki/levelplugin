@@ -15,12 +15,17 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.event.HoverEvent;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 
 import java.io.File;
 import java.util.*;
 
 public class CutsceneManager {
     private final Main plugin;
+    private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
     private final Map<String, Cutscene> cutscenes = new HashMap<>();
     private final Map<UUID, List<BukkitTask>> active = new HashMap<>();
     private final Map<UUID, RecordingSession> recordings = new HashMap<>();
@@ -147,10 +152,10 @@ public class CutsceneManager {
         var sbManager = plugin.getScoreboardManager();
         if (sbManager != null) sbManager.removeBoard(player);
 
-        TextComponent skip = new TextComponent(ChatColor.YELLOW + "[Skip Cutscene]");
-        skip.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/cutscene skip"));
-        skip.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text("Click to skip")));
-        player.spigot().sendMessage(skip);
+        Component skip = LEGACY.deserialize(ChatColor.YELLOW + "[Skip Cutscene]")
+                .clickEvent(ClickEvent.runCommand("/cutscene skip"))
+                .hoverEvent(HoverEvent.showText(Component.text("Click to skip")));
+        player.sendMessage(skip);
         long delay = 0L;
         List<BukkitTask> tasks = new ArrayList<>();
         Location curr = player.getLocation().clone();

@@ -10,10 +10,15 @@ import org.bukkit.ChatColor;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.event.HoverEvent;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 
 import java.util.*;
 
 public class DealMaker {
+    private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
     private HashMap<UUID, Player> pairs = new HashMap<UUID, Player>(); // Owner saved as UUID in key
     private ArrayList<TradingWindow> currentDealInvs = new ArrayList<TradingWindow>();
     private ArrayList<Player> cooldownRightClick = new ArrayList<Player>();
@@ -53,21 +58,19 @@ public class DealMaker {
             String acceptLabel = messageStrings.getTranslation(Translations.CHAT_BUTTON_ACCEPT);
             String denyLabel = messageStrings.getTranslation(Translations.CHAT_BUTTON_DENY);
 
-            TextComponent acceptBtn = new TextComponent(ChatColor.GREEN + "" + ChatColor.BOLD + "[" + acceptLabel + "]");
-            acceptBtn.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/trade accept " + owner.getName()));
-            acceptBtn.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
-                    new ComponentBuilder("Click to accept the trade").create()));
+            Component acceptBtn = LEGACY.deserialize(ChatColor.GREEN + "" + ChatColor.BOLD + "[" + acceptLabel + "]")
+                    .clickEvent(ClickEvent.runCommand("/trade accept " + owner.getName()))
+                    .hoverEvent(HoverEvent.showText(Component.text("Click to accept the trade")));
 
-            TextComponent denyBtn = new TextComponent(" " + ChatColor.RED + ChatColor.BOLD.toString() + "[" + denyLabel + "]");
-            denyBtn.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/trade deny " + owner.getName()));
-            denyBtn.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
-                    new ComponentBuilder("Click to decline the trade").create()));
+            Component denyBtn = LEGACY.deserialize(" " + ChatColor.RED + ChatColor.BOLD + "[" + denyLabel + "]")
+                    .clickEvent(ClickEvent.runCommand("/trade deny " + owner.getName()))
+                    .hoverEvent(HoverEvent.showText(Component.text("Click to decline the trade")));
 
-            TextComponent row = new TextComponent("                     ");
-            row.addExtra(acceptBtn);
-            row.addExtra("   ");
-            row.addExtra(denyBtn);
-            target.spigot().sendMessage(row);
+            Component row = Component.text("                     ")
+                    .append(acceptBtn)
+                    .append(Component.text("   "))
+                    .append(denyBtn);
+            target.sendMessage(row);
             target.playSound(target.getLocation(), Sound.ITEM_GOAT_HORN_SOUND_3, 1.0f, 1.0f);
             owner.playSound(owner.getLocation(), Sound.ENTITY_VILLAGER_YES, 1.0f, 1.0f);
             owner.sendMessage(String.format(Main.PREFIX + messageStrings.getTranslation(Translations.TRADE_REQUEST_SENT), target.getName()));

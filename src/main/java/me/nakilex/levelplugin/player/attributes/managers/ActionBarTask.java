@@ -1,8 +1,7 @@
 package me.nakilex.levelplugin.player.attributes.managers;
 
 import me.nakilex.levelplugin.Main;
-import net.md_5.bungee.api.ChatMessageType;
-import net.md_5.bungee.api.chat.TextComponent;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
@@ -43,20 +42,19 @@ public class ActionBarTask extends BukkitRunnable {
                            .append(ChatColor.GRAY).append(info.cost)
                            .append(ChatColor.DARK_GRAY).append("]");
                     }
-                    player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(msg.toString()));
+                    player.sendActionBar(Component.text(msg.toString()));
                     continue;
                 }
             }
             if (StatsManager.getInstance().isInCombat(player.getUniqueId())) {
-                player.spigot().sendMessage(ChatMessageType.ACTION_BAR,
-                        new TextComponent(ChatColor.RED + "In Combat"));
+                player.sendActionBar(Component.text(ChatColor.RED + "In Combat"));
             } else {
                 String consistency = me.nakilex.levelplugin.player.farming.managers.FarmingManager.getInstance()
                         .getConsistencyIndicator(player);
                 if (consistency != null) {
-                    player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(consistency));
+                    player.sendActionBar(Component.text(consistency));
                 } else {
-                    player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(""));
+                    player.sendActionBar(Component.text(""));
                 }
             }
         }

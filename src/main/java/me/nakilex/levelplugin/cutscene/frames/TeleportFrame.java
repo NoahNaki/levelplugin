@@ -6,8 +6,10 @@ import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 
 public class TeleportFrame implements Frame {
+    private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
     private final Location location;
     private final String worldName;
     private final long durationMs;
@@ -145,7 +147,7 @@ public class TeleportFrame implements Frame {
         }
         if (actionBar != null) {
             String msg = ChatColor.translateAlternateColorCodes('&', actionBar);
-            player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(msg));
+            player.sendActionBar(LEGACY.deserialize(msg));
         }
         if (sound != null) {
             player.playSound(player.getLocation(), sound, 1f, 1f);

@@ -35,9 +35,9 @@ public class MobRewardsConfig {
     }
 
     /**
-     * Retrieve the rewards section for a MythicMob ID, ignoring case.
+     * Retrieve the rewards section for a mob ID, ignoring case.
      *
-     * @param mobType the MythicMob identifier
+     * @param mobType the mob identifier
      * @return configuration section for that mob or {@code null} if not found
      */
     public ConfigurationSection getMobSection(String mobType) {

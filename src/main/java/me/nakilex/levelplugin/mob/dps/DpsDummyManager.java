@@ -14,6 +14,8 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Projectile;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Entity;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -316,12 +318,10 @@ public class DpsDummyManager implements Listener {
             Location l = entity.getLocation();
             String location = ChatColor.AQUA + l.getWorld().getName() + ChatColor.GRAY + " @ " +
                     ChatColor.WHITE + String.format("%.1f, %.1f, %.1f", l.getX(), l.getY(), l.getZ());
-            net.md_5.bungee.api.chat.TextComponent line = new net.md_5.bungee.api.chat.TextComponent(ChatColor.GRAY + " - " + location + " ");
-            net.md_5.bungee.api.chat.TextComponent delete = new net.md_5.bungee.api.chat.TextComponent(ChatColor.WHITE + "[" + ChatColor.RED + "-" + ChatColor.WHITE + "]");
-            delete.setClickEvent(new net.md_5.bungee.api.chat.ClickEvent(net.md_5.bungee.api.chat.ClickEvent.Action.RUN_COMMAND,
-                    "/dpsdummy despawn " + entity.getUniqueId()));
-            line.addExtra(delete);
-            viewer.spigot().sendMessage(line);
+            Component line = Component.text(ChatColor.GRAY + " - " + location + " ");
+            Component delete = Component.text(ChatColor.WHITE + "[" + ChatColor.RED + "-" + ChatColor.WHITE + "]")
+                    .clickEvent(ClickEvent.runCommand("/dpsdummy despawn " + entity.getUniqueId()));
+            viewer.sendMessage(line.append(delete));
         }
 
         void despawn() {

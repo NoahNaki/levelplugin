@@ -31,7 +31,9 @@ public final class GlowPacketUtil {
             if (!(rawValues instanceof List<?> list)) {
                 return false;
             }
-            List<Object> values = new ArrayList<>(list);
+            List<Object> values = new ArrayList<>();
+            values.addAll((List<?>) list);
+
             boolean updated = false;
             for (int i = 0; i < values.size(); i++) {
                 Object value = values.get(i);
@@ -51,19 +53,38 @@ public final class GlowPacketUtil {
                 }
             }
             if (!updated) {
-                WrappedDataWatcher.Serializer serializer = WrappedDataWatcher.Registry.get(Byte.class);
-                Object wrapped = newWrappedDataValue(ENTITY_FLAGS_INDEX, serializer, glowing ? GLOWING_FLAG : (byte) 0);
+                Object serializer = getDefaultByteSerializer();
+                Object wrapped = newWrappedDataValue(
+                    ENTITY_FLAGS_INDEX,
+                    serializer,
+                    glowing ? GLOWING_FLAG : (byte) 0
+                );
+
                 if (wrapped == null) {
                     return false;
                 }
                 values.add(wrapped);
             }
-            modifier.write(0, values);
+            @SuppressWarnings("unchecked")
+            StructureModifier<List<?>> listMod = (StructureModifier<List<?>>) modifier;
+            listMod.write(0, (List<?>) values);
             return true;
         } catch (ReflectiveOperationException | IllegalArgumentException ex) {
             return false;
         }
     }
+
+    private static Object getDefaultByteSerializer() {
+        try {
+            // ProtocolLib 5.x internal registry
+            Class<?> registry = Class.forName("com.comphenix.protocol.wrappers.WrappedDataWatcher$Registry");
+            Method get = registry.getMethod("get", Class.class);
+            return get.invoke(null, Byte.class);
+        } catch (ReflectiveOperationException ex) {
+            throw new RuntimeException("Failed to resolve Byte serializer", ex);
+        }
+    }
+
 
     private static void applyWatchables(PacketContainer packet, boolean glowing) {
         List<WrappedWatchableObject> watchables = new ArrayList<>(packet.getWatchableCollectionModifier().read(0));
