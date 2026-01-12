@@ -14,9 +14,9 @@ public class SpellInputDisplayManager {
     private static final long COMBO_TIMEOUT_MS = 900L;
     private static final long ACTIVE_WINDOW_MS = 1_200L;
     private static final int MAX_INPUTS = 3;
-    private static final char EMPTY_GLYPH = '\uE000';
-    private static final char LEFT_GLYPH = '\uE001';
-    private static final char RIGHT_GLYPH = '\uE002';
+    private static final char EMPTY_GLYPH = 'E';
+    private static final char LEFT_GLYPH = 'L';
+    private static final char RIGHT_GLYPH = 'R';
 
     public static SpellInputDisplayManager getInstance() {
         return instance;
