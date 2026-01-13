@@ -1,7 +1,5 @@
 package me.nakilex.levelplugin.codex;
 
-import io.lumine.mythic.bukkit.MythicBukkit;
-import io.lumine.mythic.core.mobs.ActiveMob;
 import me.nakilex.levelplugin.mob.config.MobRewardsConfig;
 import org.bukkit.ChatColor;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -29,14 +27,6 @@ public class CodexListener implements Listener {
         Player killer = event.getEntity().getKiller();
         if (killer == null) return;
         LivingEntity ent = event.getEntity();
-        ActiveMob mob = MythicBukkit.inst().getAPIHelper().getMythicMobInstance(ent);
-        if (mob == null) return;
-
-        String mobType = mob.getMobType().replaceAll("§.", "");
-        if (mobCfg.getMobSection(mobType) != null) {
-            manager.recordKill(killer, mobType);
-            return;
-        }
 
         if (bossCfg.isConfigurationSection("mobs")) {
             String name = ChatColor.stripColor(ent.getName());

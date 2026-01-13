@@ -1,6 +1,5 @@
 package me.nakilex.levelplugin;
 
-import io.lumine.mythic.bukkit.BukkitAPIHelper;
 import me.nakilex.levelplugin.chat.games.ChatGameManager;
 import me.nakilex.levelplugin.core.PluginBootstrap;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
@@ -53,7 +52,6 @@ public class Main extends JavaPlugin {
     public static Main getInstance() { return instance; }
     public static Main getPlugin() { return plugin; }
 
-    public BukkitAPIHelper getMythicHelper() { return bootstrap.getMythicHelper(); }
     public PotionManager getPotionManager() { return bootstrap.getPotionManager(); }
     @Override
     public FileConfiguration getConfig() { return super.getConfig(); }

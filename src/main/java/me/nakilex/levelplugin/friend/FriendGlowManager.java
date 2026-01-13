@@ -7,12 +7,8 @@ import com.comphenix.protocol.events.PacketAdapter;
 import com.comphenix.protocol.events.PacketEvent;
 import com.comphenix.protocol.events.PacketContainer;
 import com.comphenix.protocol.events.ListenerPriority;
-import com.comphenix.protocol.wrappers.WrappedDataWatcher;
-import com.comphenix.protocol.wrappers.WrappedDataValue;
-import com.comphenix.protocol.wrappers.WrappedDataWatcher.Registry;
-import com.comphenix.protocol.wrappers.WrappedWatchableObject;
-import com.comphenix.protocol.reflect.StructureModifier;
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.utils.GlowPacketUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Entity;
@@ -60,49 +56,7 @@ public class FriendGlowManager implements Listener {
         if (!(entity instanceof Player target)) return;
         if (!areFriends(viewer.getUniqueId(), target.getUniqueId())) return;
 
-        try {
-            StructureModifier<List<WrappedDataValue>> mod =
-                (StructureModifier<List<WrappedDataValue>>) event.getPacket()
-                        .getClass()
-                        .getMethod("getDataValueCollectionModifier")
-                        .invoke(event.getPacket());
-            List<WrappedDataValue> values = new ArrayList<>(mod.read(0));
-            boolean found = false;
-            for (int i = 0; i < values.size(); i++) {
-                WrappedDataValue val = values.get(i);
-                if (val.getIndex() == 0 && val.getValue() instanceof Byte) {
-                    byte flags = (byte) val.getValue();
-                    flags |= 0x40;
-                    values.set(i, new WrappedDataValue(0, val.getSerializer(), flags));
-                    found = true;
-                    break;
-                }
-            }
-            if (!found) {
-                WrappedDataWatcher.Serializer ser = Registry.get(Byte.class);
-                values.add(new WrappedDataValue(0, ser, (byte) 0x40));
-            }
-            mod.write(0, values);
-            return;
-        } catch (Exception ignore) {
-        }
-
-        List<WrappedWatchableObject> watchables = new ArrayList<>(event.getPacket().getWatchableCollectionModifier().read(0));
-        boolean found = false;
-        for (int i = 0; i < watchables.size(); i++) {
-            WrappedWatchableObject val = watchables.get(i);
-            if (val.getIndex() == 0 && val.getValue() instanceof Byte) {
-                byte flags = (byte) val.getValue();
-                flags |= 0x40;
-                watchables.set(i, new WrappedWatchableObject(0, flags));
-                found = true;
-                break;
-            }
-        }
-        if (!found) {
-            watchables.add(new WrappedWatchableObject(0, (byte) 0x40));
-        }
-        event.getPacket().getWatchableCollectionModifier().write(0, watchables);
+        GlowPacketUtil.applyGlowing(event.getPacket(), true);
     }
 
     private boolean areFriends(UUID a, UUID b) {
@@ -171,20 +125,7 @@ public class FriendGlowManager implements Listener {
         PacketContainer packet = protocol.createPacket(PacketType.Play.Server.ENTITY_METADATA);
         packet.getIntegers().write(0, target.getEntityId());
 
-        try {
-            StructureModifier<List<WrappedDataValue>> mod =
-                (StructureModifier<List<WrappedDataValue>>) packet.getClass()
-                        .getMethod("getDataValueCollectionModifier")
-                        .invoke(packet);
-            WrappedDataWatcher.Serializer ser = Registry.get(Byte.class);
-            byte flags = (byte) (glowing ? 0x40 : 0);
-            mod.write(0, Collections.singletonList(new WrappedDataValue(0, ser, flags)));
-        } catch (Exception ex) {
-            WrappedDataWatcher watcher = new WrappedDataWatcher();
-            WrappedDataWatcher.Serializer ser = WrappedDataWatcher.Registry.get(Byte.class);
-            watcher.setObject(new WrappedDataWatcher.WrappedDataWatcherObject(0, ser), (byte) (glowing ? 0x40 : 0));
-            packet.getWatchableCollectionModifier().write(0, watcher.getWatchableObjects());
-        }
+        GlowPacketUtil.applyGlowing(packet, glowing);
 
         try {
             protocol.sendServerPacket(viewer, packet);

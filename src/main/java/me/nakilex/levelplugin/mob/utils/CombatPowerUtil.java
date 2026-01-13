@@ -1,12 +1,15 @@
 package me.nakilex.levelplugin.mob.utils;
 
+import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.mob.custom.CustomMobDefinition;
+import me.nakilex.levelplugin.mob.custom.CustomMobManager;
+import me.nakilex.levelplugin.mob.custom.CustomMobStats;
+import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.utils.AttributeUtil;
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.LivingEntity;
 
-/** Utility for calculating a MythicMob's combat power based on common attributes. */
+/** Utility for calculating combat power based on common attributes. */
 public final class CombatPowerUtil {
     private CombatPowerUtil() {}
 
@@ -43,68 +46,55 @@ public final class CombatPowerUtil {
     }
 
     /**
-     * Spawn the given MythicMob template briefly to estimate its combat power.
-     * The spawned entity is removed immediately after evaluation.
+     * Estimate combat power for a configured custom mob ID.
      *
-     * @param mobName MythicMob internal name
-     * @return estimated combat power or 0 if the mob could not be spawned
+     * @param mobId custom mob identifier
+     * @return estimated combat power or 0 if the mob could not be resolved
      */
-    public static int estimateCombatPower(String mobName) {
-        if (!Bukkit.getPluginManager().isPluginEnabled("MythicMobs")) {
+    public static int estimateCombatPower(String mobId) {
+        if (mobId == null || mobId.isBlank()) {
             return 0;
         }
-        try {
-            Class<?> mythicClass = Class.forName("io.lumine.mythic.bukkit.MythicBukkit");
-            Object mythic = mythicClass.getMethod("inst").invoke(null);
-            Object apiHelper = mythic.getClass().getMethod("getAPIHelper").invoke(mythic);
-            Location loc = Bukkit.getWorlds().get(0).getSpawnLocation();
-            Object entity = apiHelper.getClass()
-                    .getMethod("spawnMythicMob", String.class, Location.class, int.class)
-                    .invoke(apiHelper, mobName, loc, 1);
-            if (!(entity instanceof LivingEntity livingEntity)) {
-                return 0;
-            }
-            Object activeMob = apiHelper.getClass()
-                    .getMethod("getMythicMobInstance", org.bukkit.entity.Entity.class)
-                    .invoke(apiHelper, livingEntity);
-            int power = activeMob != null ? getCombatPower(activeMob) : getCombatPower(livingEntity, 1.0);
-            livingEntity.remove();
-            return power;
-        } catch (ReflectiveOperationException | RuntimeException ex) {
+        CustomMobManager manager = Main.getInstance().getCustomMobManager();
+        if (manager == null) {
             return 0;
         }
+        CustomMobDefinition definition = manager.getDefinition(mobId).orElse(null);
+        if (definition == null) {
+            return 0;
+        }
+        int level = resolveLevel(definition);
+        return estimateCombatPower(definition, level);
     }
 
-    /**
-     * Calculate a simple combat power rating for a MythicMob instance without a hard dependency.
-     *
-     * @param mythicMob MythicMob instance (ActiveMob) or similar wrapper
-     * @return combat power value
-     */
-    public static int getCombatPower(Object mythicMob) {
-        if (mythicMob == null) {
-            return 0;
+    private static int estimateCombatPower(CustomMobDefinition definition, int level) {
+        CustomMobStats stats = definition.stats();
+        double baseHealth = definition.baseHealth() != null
+                ? definition.baseHealth()
+                : StatsManager.BASE_HEALTH;
+        double hp = stats.computeMaxHealth(baseHealth);
+        CustomMobDefinition.CustomMobOptions options = definition.options();
+        if (options == null) {
+            options = new CustomMobDefinition.CustomMobOptions(null, null, null, null, null, true, false, false);
         }
-        try {
-            Object entityWrapper = mythicMob.getClass().getMethod("getEntity").invoke(mythicMob);
-            if (entityWrapper == null) {
-                return 0;
-            }
-            Object bukkitEntity = entityWrapper.getClass().getMethod("getBukkitEntity").invoke(entityWrapper);
-            if (!(bukkitEntity instanceof LivingEntity livingEntity)) {
-                return 0;
-            }
-            double level = 0.0;
-            try {
-                Object levelValue = mythicMob.getClass().getMethod("getLevel").invoke(mythicMob);
-                if (levelValue instanceof Number number) {
-                    level = number.doubleValue();
-                }
-            } catch (ReflectiveOperationException | RuntimeException ignored) {
-            }
-            return getCombatPower(livingEntity, level);
-        } catch (ReflectiveOperationException | RuntimeException ex) {
-            return 0;
+        double dmg = options.attackDamage() != null
+                ? options.attackDamage()
+                : (stats.strength() > 0 ? 1.0 + stats.strength() * 0.5 : 0.0);
+        double move = options.movementSpeed() != null
+                ? options.movementSpeed()
+                : 0.2 + stats.agility() * 0.002;
+        double atk = options.attackSpeed() != null
+                ? options.attackSpeed()
+                : (stats.technique() > 0 ? 0.5 * (1.0 + 0.0075 * stats.technique()) * 8.0 : 0.0);
+        double power = hp + dmg * 10 + move * 100 + atk * 20 + level * 5;
+        return (int) Math.round(power);
+    }
+
+    private static int resolveLevel(CustomMobDefinition definition) {
+        CustomMobDefinition.LevelRange range = definition.levelRange();
+        if (range == null) {
+            return 1;
         }
+        return Math.max(1, (range.min() + range.max()) / 2);
     }
 }

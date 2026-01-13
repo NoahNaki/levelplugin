@@ -1,18 +1,21 @@
 package me.nakilex.levelplugin.mob.dps;
 
-import io.lumine.mythic.api.exceptions.InvalidMobTypeException;
-import io.lumine.mythic.bukkit.BukkitAPIHelper;
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.npc.system.NPC;
+import me.nakilex.levelplugin.npc.system.NpcApi;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.MultiLineHologram;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.attribute.Attribute;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Projectile;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Entity;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -32,9 +35,8 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * Manages persistent DPS training dummies backed by MythicMobs' {@code training_dummy}
- * (with a vanilla fallback). Dummies constantly heal, cannot be moved, and expose
- * a hologram showing rolling DPS over the last few seconds.
+ * Manages persistent DPS training dummies that constantly heal, cannot be moved,
+ * and expose a hologram showing rolling DPS over the last few seconds.
  */
 public class DpsDummyManager implements Listener {
     private static final String DUMMY_TAG = "dps_dummy";
@@ -43,33 +45,26 @@ public class DpsDummyManager implements Listener {
     private static final DecimalFormat DPS_FORMAT = new DecimalFormat("#,##0.0");
 
     private final Main plugin;
-    private final BukkitAPIHelper mythicHelper;
     private final Map<UUID, Dummy> dummies = new HashMap<>();
     private final Map<UUID, UUID> selections = new HashMap<>();
     private BukkitTask updater;
 
-    public DpsDummyManager(Main plugin, BukkitAPIHelper mythicHelper) {
+    public DpsDummyManager(Main plugin) {
         this.plugin = plugin;
-        this.mythicHelper = mythicHelper;
         startUpdater();
     }
 
     /** Spawn a dummy at the given player's location. */
-    public void spawn(Player player) throws InvalidMobTypeException {
+    public void spawn(Player player) {
         Location loc = player.getLocation();
-        LivingEntity entity = spawnMythic(loc);
-        if (entity == null) {
-            entity = spawnFallback(loc);
-        }
-        if (entity == null) {
+        Dummy dummy = spawnDummy(loc);
+        if (dummy == null) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "Unable to spawn training dummy.");
             return;
         }
 
-        prepareEntity(entity);
-        Dummy dummy = new Dummy(entity);
-        dummies.put(entity.getUniqueId(), dummy);
-        selections.put(player.getUniqueId(), entity.getUniqueId());
+        dummies.put(dummy.entity.getUniqueId(), dummy);
+        selections.put(player.getUniqueId(), dummy.entity.getUniqueId());
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, "Spawned DPS dummy and selected it.");
     }
 
@@ -152,19 +147,27 @@ public class DpsDummyManager implements Listener {
         updater = Bukkit.getScheduler().runTaskTimer(plugin, () -> dummies.values().forEach(Dummy::refreshHolograms), 20L, 20L);
     }
 
-    private LivingEntity spawnMythic(Location loc) throws InvalidMobTypeException {
-        if (mythicHelper == null) return null;
-
-        org.bukkit.entity.Entity entity = mythicHelper.spawnMythicMob("training_dummy", loc);
-        if (entity instanceof LivingEntity living) {
-            return living;
+    private Dummy spawnDummy(Location loc) {
+        NPC npc = null;
+        LivingEntity entity = null;
+        try {
+            npc = NpcApi.getRegistry().createNpc(EntityType.ZOMBIE, "DPS Dummy");
+            npc.setPersistent(false);
+            npc.spawn(loc);
+            if (npc.getEntity() instanceof LivingEntity living) {
+                entity = living;
+            }
+        } catch (IllegalStateException ignored) {
+            // NPC system not initialized; fall back to vanilla spawn.
         }
-        return null;
-    }
-
-    private LivingEntity spawnFallback(Location loc) {
-        LivingEntity entity = loc.getWorld().spawn(loc, org.bukkit.entity.Zombie.class, zombie -> zombie.setAdult());
-        return entity;
+        if (entity == null) {
+            entity = loc.getWorld().spawn(loc, org.bukkit.entity.Zombie.class, zombie -> zombie.setAdult());
+        }
+        if (entity == null) {
+            return null;
+        }
+        prepareEntity(entity);
+        return new Dummy(entity, npc);
     }
 
     private void prepareEntity(LivingEntity entity) {
@@ -213,11 +216,13 @@ public class DpsDummyManager implements Listener {
     /** Lightweight dummy state holder. */
     private class Dummy {
         private final LivingEntity entity;
+        private final NPC npc;
         private final Map<UUID, Deque<DamageSample>> samples = new HashMap<>();
         private final Map<UUID, MultiLineHologram> holograms = new HashMap<>();
 
-        Dummy(LivingEntity entity) {
+        Dummy(LivingEntity entity, NPC npc) {
             this.entity = entity;
+            this.npc = npc;
         }
 
         void recordDamage(UUID playerId, double amount) {
@@ -313,17 +318,19 @@ public class DpsDummyManager implements Listener {
             Location l = entity.getLocation();
             String location = ChatColor.AQUA + l.getWorld().getName() + ChatColor.GRAY + " @ " +
                     ChatColor.WHITE + String.format("%.1f, %.1f, %.1f", l.getX(), l.getY(), l.getZ());
-            net.md_5.bungee.api.chat.TextComponent line = new net.md_5.bungee.api.chat.TextComponent(ChatColor.GRAY + " - " + location + " ");
-            net.md_5.bungee.api.chat.TextComponent delete = new net.md_5.bungee.api.chat.TextComponent(ChatColor.WHITE + "[" + ChatColor.RED + "-" + ChatColor.WHITE + "]");
-            delete.setClickEvent(new net.md_5.bungee.api.chat.ClickEvent(net.md_5.bungee.api.chat.ClickEvent.Action.RUN_COMMAND,
-                    "/dpsdummy despawn " + entity.getUniqueId()));
-            line.addExtra(delete);
-            viewer.spigot().sendMessage(line);
+            Component line = Component.text(ChatColor.GRAY + " - " + location + " ");
+            Component delete = Component.text(ChatColor.WHITE + "[" + ChatColor.RED + "-" + ChatColor.WHITE + "]")
+                    .clickEvent(ClickEvent.runCommand("/dpsdummy despawn " + entity.getUniqueId()));
+            viewer.sendMessage(line.append(delete));
         }
 
         void despawn() {
             holograms.values().forEach(MultiLineHologram::despawn);
-            entity.remove();
+            if (npc != null) {
+                npc.destroy();
+            } else {
+                entity.remove();
+            }
         }
     }
 

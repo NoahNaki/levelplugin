@@ -1,6 +1,6 @@
 package me.nakilex.levelplugin.mob.custom;
 
-import me.nakilex.levelplugin.mob.listeners.MythicMobDamageTracker;
+import me.nakilex.levelplugin.mob.listeners.MobDamageListener;
 import me.nakilex.levelplugin.mob.utils.CombatPowerUtil;
 import me.nakilex.levelplugin.mob.utils.MobNameUtil;
 import me.nakilex.levelplugin.mob.utils.MobRewardService;
@@ -14,14 +14,11 @@ import java.util.Set;
 
 public class CustomMobRewardListener implements Listener {
     private final CustomMobManager mobManager;
-    private final MythicMobDamageTracker tracker;
     private final MobRewardService rewardService;
 
     public CustomMobRewardListener(CustomMobManager mobManager,
-                                   MythicMobDamageTracker tracker,
                                    MobRewardService rewardService) {
         this.mobManager = mobManager;
-        this.tracker = tracker;
         this.rewardService = rewardService;
     }
 
@@ -37,7 +34,7 @@ public class CustomMobRewardListener implements Listener {
         event.getDrops().clear();
         event.setDroppedExp(0);
         CustomMobInstance instance = instanceOpt.get();
-        Set<Player> participants = tracker.getParticipantsAndClear(entity.getUniqueId());
+        Set<Player> participants = MobDamageListener.getParticipantsAndClear(entity.getUniqueId());
         if (participants.isEmpty() && entity.getKiller() instanceof Player killer) {
             participants = Set.of(killer);
         }

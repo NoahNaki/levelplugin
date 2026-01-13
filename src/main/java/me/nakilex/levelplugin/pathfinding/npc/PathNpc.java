@@ -1,9 +1,7 @@
 package me.nakilex.levelplugin.pathfinding.npc;
 
-import io.lumine.mythic.bukkit.BukkitAdapter;
-import io.lumine.mythic.bukkit.MythicBukkit;
-import me.nakilex.levelplugin.utils.cooldowns.CooldownManager;
 import me.nakilex.levelplugin.npc.system.NPC;
+import me.nakilex.levelplugin.utils.cooldowns.CooldownManager;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
@@ -16,8 +14,21 @@ import java.util.UUID;
  * and handle combat ticks with custom spell logic.
  */
 public interface PathNpc {
-    /** Represents a MythicMobs skill and its cooldown. */
-    record Skill(String name, double cooldown) {}
+    /** Represents a combat skill and its cooldown. */
+    record Skill(String name, double cooldown, SkillAction action) {
+        Skill(String name, double cooldown) {
+            this(name, cooldown, SkillAction.noop());
+        }
+    }
+
+    @FunctionalInterface
+    interface SkillAction {
+        boolean cast(NPC npc, LivingEntity target);
+
+        static SkillAction noop() {
+            return (npc, target) -> false;
+        }
+    }
 
     /** Multiplier applied to the NPC's base walking speed. */
     float speedMultiplier();
@@ -34,8 +45,8 @@ public interface PathNpc {
     }
 
     /**
-     * Primary Mythic skill this profile tries to cast. Used only for debug
-     * output so server logs can easily confirm which ability is expected.
+     * Primary skill this profile tries to cast. Used only for debug output so
+     * server logs can easily confirm which ability is expected.
      */
     default String primarySkill() {
         return "";
@@ -50,33 +61,26 @@ public interface PathNpc {
     }
 
     /**
-     * Utility to cast a MythicMobs skill if its cooldown has expired.
+     * Utility to cast a skill if its cooldown has expired.
      */
-    default boolean cast(NPC npc, String skill, double cooldownSeconds,
-                         LivingEntity target, CooldownManager cooldowns) {
-        UUID id = npc.getEntity().getUniqueId();
-        if (cooldowns.isOnCooldown(id, skill)) {
-            Bukkit.getLogger().info("[MercenaryDebug] " + skill + " on cooldown for NPC " + id);
-            return false;
-        }
-        if (MythicBukkit.inst().getSkillManager().getSkill(skill).isEmpty()) {
-            Bukkit.getLogger().warning("[MercenaryDebug] Skill '" + skill + "' not found");
-            return false;
-        }
-        Bukkit.getLogger().info("[MercenaryDebug] Attempting to cast '" + skill + "' at " + target.getName());
-        boolean success = MythicBukkit.inst().getAPIHelper().castSkill(npc.getEntity(), skill, meta ->
-                meta.setTrigger(BukkitAdapter.adapt(target)));
-        if (!success) {
-            Bukkit.getLogger().warning("[MercenaryDebug] castSkill returned false for '" + skill + "'");
-            return false;
-        }
-        cooldowns.setCooldown(id, skill, cooldownSeconds);
-        Bukkit.getLogger().info("[MercenaryDebug] Cast '" + skill + "' successfully");
-        return true;
-    }
-
-    /** Convenience overload using a {@link Skill} record. */
     default boolean cast(NPC npc, Skill skill, LivingEntity target, CooldownManager cooldowns) {
-        return cast(npc, skill.name(), skill.cooldown(), target, cooldowns);
+        if (skill == null || target == null) {
+            return false;
+        }
+        UUID id = npc.getEntity().getUniqueId();
+        String skillName = skill.name();
+        if (cooldowns.isOnCooldown(id, skillName)) {
+            Bukkit.getLogger().info("[MercenaryDebug] " + skillName + " on cooldown for NPC " + id);
+            return false;
+        }
+        Bukkit.getLogger().info("[MercenaryDebug] Attempting to cast '" + skillName + "' at " + target.getName());
+        boolean success = skill.action() != null && skill.action().cast(npc, target);
+        if (!success) {
+            Bukkit.getLogger().warning("[MercenaryDebug] No handler for skill '" + skillName + "'");
+            return false;
+        }
+        cooldowns.setCooldown(id, skillName, skill.cooldown());
+        Bukkit.getLogger().info("[MercenaryDebug] Cast '" + skillName + "' successfully");
+        return true;
     }
 }
