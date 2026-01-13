@@ -12,8 +12,8 @@ import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import com.nexomc.nexo.api.NexoItems;
 import com.nexomc.nexo.items.ItemBuilder;
-import net.citizensnpcs.api.CitizensAPI;
-import net.citizensnpcs.api.npc.NPC;
+import me.nakilex.levelplugin.npc.system.NpcApi;
+import me.nakilex.levelplugin.npc.system.NPC;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -331,7 +331,7 @@ public class QuestGUI {
             return "Unknown";
         }
 
-        NPC npc = CitizensAPI.getNPCRegistry().getById(quest.getNpcGiverId());
+        NPC npc = NpcApi.getRegistry().getById(quest.getNpcGiverId());
         if (npc == null) {
             return "Unknown";
         }

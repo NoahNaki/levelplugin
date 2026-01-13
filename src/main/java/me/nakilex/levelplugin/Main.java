@@ -1,6 +1,5 @@
 package me.nakilex.levelplugin;
 
-import io.lumine.mythic.bukkit.BukkitAPIHelper;
 import me.nakilex.levelplugin.chat.games.ChatGameManager;
 import me.nakilex.levelplugin.core.PluginBootstrap;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
@@ -53,7 +52,6 @@ public class Main extends JavaPlugin {
     public static Main getInstance() { return instance; }
     public static Main getPlugin() { return plugin; }
 
-    public BukkitAPIHelper getMythicHelper() { return bootstrap.getMythicHelper(); }
     public PotionManager getPotionManager() { return bootstrap.getPotionManager(); }
     @Override
     public FileConfiguration getConfig() { return super.getConfig(); }
@@ -108,7 +106,8 @@ public class Main extends JavaPlugin {
     public me.nakilex.levelplugin.environment.stage.BuildingStageManager getBuildingStageManager() { return bootstrap.getBuildingStageManager(); }
     public me.nakilex.levelplugin.leaderboards.LeaderboardManager getLeaderboardManager() { return bootstrap.getLeaderboardManager(); }
     public me.nakilex.levelplugin.leaderboards.DuelStatsManager getDuelStatsManager() { return bootstrap.getDuelStatsManager(); }
-    public Map<UUID, List<net.citizensnpcs.api.npc.NPC>> getActiveBowDrones() { return bootstrap.getActiveBowDrones(); }
+    public Map<UUID, List<me.nakilex.levelplugin.npc.system.NPC>> getActiveBowDrones() { return bootstrap.getActiveBowDrones(); }
+    public me.nakilex.levelplugin.npc.system.NpcRegistry getNpcRegistry() { return bootstrap.getNpcRegistry(); }
     public PartyGlowManager getPartyGlowManager() { return bootstrap.getPartyGlowManager(); }
     public me.nakilex.levelplugin.friend.FriendManager getFriendManager() { return bootstrap.getFriendManager(); }
     public me.nakilex.levelplugin.friend.FriendGlowManager getFriendGlowManager() { return bootstrap.getFriendGlowManager(); }

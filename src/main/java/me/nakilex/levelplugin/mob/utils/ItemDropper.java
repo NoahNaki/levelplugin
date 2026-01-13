@@ -31,7 +31,7 @@ public class ItemDropper {
     }
 
     /**
-     * Drop configured custom items for the given MythicMob type.
+     * Drop configured custom items for the given mob type.
      */
     public void dropCustomItems(Player player, ConfigurationSection node, String modelSet, int combatPower, int mobLevel, boolean forceDrops) {
         if (node == null) {

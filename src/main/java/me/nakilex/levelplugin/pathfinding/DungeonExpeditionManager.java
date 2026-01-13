@@ -14,8 +14,8 @@ import me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
 import me.nakilex.levelplugin.waypoints.bukkit.BukkitPathfindingService;
 import me.nakilex.levelplugin.waypoints.bukkit.PathLocationUtils;
 import me.nakilex.levelplugin.waypoints.engine.result.PathUtils;
-import net.citizensnpcs.api.CitizensAPI;
-import net.citizensnpcs.api.npc.NPC;
+import me.nakilex.levelplugin.npc.system.NpcApi;
+import me.nakilex.levelplugin.npc.system.NPC;
 import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.Location;
@@ -234,11 +234,10 @@ public class DungeonExpeditionManager implements Listener {
     }
 
     private NPC spawnMercenaryNpc(int npcId, PathNpc profile, Location start) {
-        NPC template = npcId > 0 ? CitizensAPI.getNPCRegistry().getById(npcId) : null;
-        NPC npc = template != null ? template.copy() : CitizensAPI.getNPCRegistry().createNPC(profile.type(), profile.name());
+        NPC template = npcId > 0 ? NpcApi.getRegistry().getById(npcId) : null;
+        NPC npc = template != null ? NpcApi.getRegistry().cloneNpc(template) : NpcApi.getRegistry().createNPC(profile.type(), profile.name());
         npc.setBukkitEntityType(profile.type());
         npc.spawn(start);
-        npc.setProtected(false);
         return npc;
     }
 

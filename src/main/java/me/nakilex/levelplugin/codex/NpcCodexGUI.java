@@ -7,9 +7,9 @@ import me.nakilex.levelplugin.utils.HeadUtil;
 import me.nakilex.levelplugin.utils.NpcNameUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
-import net.citizensnpcs.api.CitizensAPI;
-import net.citizensnpcs.api.npc.NPC;
-import net.citizensnpcs.trait.SkinTrait;
+import me.nakilex.levelplugin.npc.system.NpcApi;
+import me.nakilex.levelplugin.npc.system.NPC;
+import me.nakilex.levelplugin.npc.system.trait.SkinTrait;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -183,7 +183,7 @@ public class NpcCodexGUI implements Listener {
             return;
         }
 
-        NPC npc = CitizensAPI.getNPCRegistry().getById(npcId);
+        NPC npc = NpcApi.getRegistry().getById(npcId);
         String npcName = npc != null ? ChatColor.stripColor(npc.getName()) : ChatColor.stripColor(clicked.getItemMeta().getDisplayName());
         if (npcName == null || npcName.isBlank()) {
             npcName = "Mercenary " + npcId;

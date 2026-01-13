@@ -6,8 +6,8 @@ import me.nakilex.levelplugin.pathfinding.npc.RogueMercenary;
 import me.nakilex.levelplugin.pathfinding.npc.MageMercenary;
 import me.nakilex.levelplugin.pathfinding.npc.PathNpc;
 import me.nakilex.levelplugin.pathfinding.npc.WarriorMercenary;
-import net.citizensnpcs.api.CitizensAPI;
-import net.citizensnpcs.api.npc.NPC;
+import me.nakilex.levelplugin.npc.system.NpcApi;
+import me.nakilex.levelplugin.npc.system.NPC;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -139,7 +139,7 @@ public class MercenaryCommand implements CommandExecutor, TabCompleter {
         if (args.length == 2) {
             if (args[0].equalsIgnoreCase("bind")) {
                 List<String> ids = new ArrayList<>();
-                for (NPC npc : CitizensAPI.getNPCRegistry().sorted()) {
+                for (NPC npc : NpcApi.getRegistry().sorted()) {
                     String id = Integer.toString(npc.getId());
                     if (id.startsWith(args[1])) ids.add(id);
                 }
@@ -147,7 +147,7 @@ public class MercenaryCommand implements CommandExecutor, TabCompleter {
             }
             if (args[0].equalsIgnoreCase("unbind")) {
                 List<String> out = new ArrayList<>();
-                for (NPC npc : CitizensAPI.getNPCRegistry().sorted()) {
+                for (NPC npc : NpcApi.getRegistry().sorted()) {
                     String id = Integer.toString(npc.getId());
                     if (id.startsWith(args[1])) out.add(id);
                 }

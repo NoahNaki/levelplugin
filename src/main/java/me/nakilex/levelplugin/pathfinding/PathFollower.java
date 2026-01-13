@@ -3,23 +3,19 @@ package me.nakilex.levelplugin.pathfinding;
 import me.nakilex.levelplugin.pathfinding.npc.PathNpc;
 import me.nakilex.levelplugin.utils.cooldowns.CooldownManager;
 import me.nakilex.levelplugin.utils.MobUtil;
-import net.citizensnpcs.api.CitizensAPI;
-import net.citizensnpcs.api.ai.event.NavigationStuckEvent;
-import net.citizensnpcs.api.npc.NPC;
+import me.nakilex.levelplugin.npc.system.NpcApi;
+import me.nakilex.levelplugin.npc.system.NPC;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.HandlerList;
-import org.bukkit.event.Listener;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.util.List;
 
-public class PathFollower implements Listener {
+public class PathFollower {
     private final Plugin plugin;
     private final NPC npc;
     private final List<Location> points;
@@ -51,7 +47,6 @@ public class PathFollower implements Listener {
         this.cleanupOnComplete = cleanupOnComplete;
         this.onComplete = onComplete;
         this.gearScore = Math.max(0, gearScore);
-        Bukkit.getPluginManager().registerEvents(this, plugin);
     }
 
     public PathFollower(Plugin plugin,
@@ -68,7 +63,7 @@ public class PathFollower implements Listener {
                                         PathNpc profile,
                                         boolean cleanupOnComplete,
                                         Runnable onComplete) {
-        NPC npc = CitizensAPI.getNPCRegistry().createNPC(profile.type(), profile.name());
+        NPC npc = NpcApi.getRegistry().createNPC(profile.type(), profile.name());
         return new PathFollower(plugin, npc, points, profile, cleanupOnComplete, onComplete, 0);
     }
 
@@ -186,20 +181,6 @@ public class PathFollower implements Listener {
         } else if (!npc.getNavigator().isNavigating()) {
             npc.getNavigator().setTarget(current);
             plugin.getLogger().info("[PathfindingDebug] Reissuing target for point " + index);
-        }
-    }
-
-    @EventHandler
-    public void onStuck(NavigationStuckEvent event) {
-        if (!event.getNPC().equals(npc)) {
-            return;
-        }
-        if (combatTarget != null && combatTarget.isValid()) {
-            npc.getNavigator().setTarget(combatTarget, true);
-            return;
-        }
-        if (!completed && points != null && index < points.size()) {
-            npc.getNavigator().setTarget(points.get(index));
         }
     }
 
@@ -345,6 +326,5 @@ public class PathFollower implements Listener {
             npc.despawn();
         }
         npc.destroy();
-        HandlerList.unregisterAll(this);
     }
 }

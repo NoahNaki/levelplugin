@@ -9,8 +9,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
-import net.citizensnpcs.api.CitizensAPI;
-import net.citizensnpcs.api.npc.NPC;
+import me.nakilex.levelplugin.npc.system.NpcApi;
+import me.nakilex.levelplugin.npc.system.NPC;
 
 public class PlayerRightClicksPlayerListener implements Listener {
     @EventHandler
@@ -22,7 +22,7 @@ public class PlayerRightClicksPlayerListener implements Listener {
         // Check if the entity clicked is a Player
         if (e.getRightClicked() instanceof Player) {
             // Check if the clicked entity is an NPC
-            if (CitizensAPI.getNPCRegistry().isNPC(e.getRightClicked())) {
+            if (NpcApi.getRegistry().isNPC(e.getRightClicked())) {
                 // Right-clicked entity is an NPC, so do nothing
                 return;
             }

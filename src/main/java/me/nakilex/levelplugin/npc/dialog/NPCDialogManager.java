@@ -2,8 +2,8 @@ package me.nakilex.levelplugin.npc.dialog;
 
 import me.nakilex.levelplugin.quests.data.Quest;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
-import net.citizensnpcs.api.CitizensAPI;
-import net.citizensnpcs.api.npc.NPC;
+import me.nakilex.levelplugin.npc.system.NpcApi;
+import me.nakilex.levelplugin.npc.system.NPC;
 import me.nakilex.levelplugin.Main;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -207,8 +207,8 @@ public class NPCDialogManager implements Listener {
             @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
             public void onInteract(PlayerInteractEntityEvent e) {
                 if (!e.getPlayer().equals(player)) return;
-                if (!CitizensAPI.getNPCRegistry().isNPC(e.getRightClicked())) return;
-                NPC n = CitizensAPI.getNPCRegistry().getNPC(e.getRightClicked());
+                if (!NpcApi.getRegistry().isNPC(e.getRightClicked())) return;
+                NPC n = NpcApi.getRegistry().getNPC(e.getRightClicked());
                 if (npc != null && n.getId() != npc.getId()) return;
                 e.setCancelled(true);
                 finishChoice(player, ref[0]);

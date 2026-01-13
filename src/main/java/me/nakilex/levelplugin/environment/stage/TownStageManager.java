@@ -4,9 +4,9 @@ import me.nakilex.levelplugin.Main;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
-import net.citizensnpcs.api.CitizensAPI;
-import net.citizensnpcs.api.npc.NPC;
-import net.citizensnpcs.trait.CurrentLocation;
+import me.nakilex.levelplugin.npc.system.NpcApi;
+import me.nakilex.levelplugin.npc.system.NPC;
+import me.nakilex.levelplugin.npc.system.trait.CurrentLocationTrait;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -87,7 +87,7 @@ public class TownStageManager {
         var boxMaxY = Math.max(p1.getBlockY(), p2.getBlockY());
         var boxMinZ = Math.min(p1.getBlockZ(), p2.getBlockZ());
         var boxMaxZ = Math.max(p1.getBlockZ(), p2.getBlockZ());
-        for (NPC npc : CitizensAPI.getNPCRegistry()) {
+        for (NPC npc : NpcApi.getRegistry()) {
             Location l = npc.isSpawned() ? npc.getEntity().getLocation() : npc.getStoredLocation();
             if (l == null) continue;
             if (!l.getWorld().equals(p1.getWorld())) continue;
@@ -162,13 +162,13 @@ public class TownStageManager {
         }
         list.clear();
         for (NPCSpawn ns : ts.npcs) {
-            NPC template = CitizensAPI.getNPCRegistry().getById(ns.id);
+            NPC template = NpcApi.getRegistry().getById(ns.id);
             if (template == null) {
                 plugin.getLogger().warning("NPC template with ID " + ns.id + " not found while spawning stage NPCs");
                 continue;
             }
-            // Use Citizens API clone support to copy all traits/metadata
-            NPC clone = template.copy();
+            // Clone the template NPC so staged spawns retain base metadata
+            NPC clone = NpcApi.getRegistry().cloneNpc(template);
 
             // Translate original NPC position relative to the player's town
             // origin. Add a Y offset so the NPC doesn't spawn partially in the ground.
@@ -180,7 +180,7 @@ public class TownStageManager {
             loc.setYaw(ns.yaw);
             loc.setPitch(ns.pitch);
 
-            clone.getOrAddTrait(CurrentLocation.class).setLocation(loc);
+            clone.getOrAddTrait(CurrentLocationTrait.class).setLocation(loc);
             plugin.getLogger().info("Spawning NPC clone from template " + ns.id + " at "
                     + loc.getBlockX() + "," + loc.getBlockY() + "," + loc.getBlockZ()
                     + " for " + viewer.getName());

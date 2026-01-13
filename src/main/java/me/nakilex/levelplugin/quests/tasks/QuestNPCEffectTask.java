@@ -6,8 +6,8 @@ import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.quests.data.PlayerQuestProgress;
 import me.nakilex.levelplugin.quests.data.QuestObjective;
 import me.nakilex.levelplugin.quests.data.QuestObjectiveType;
-import net.citizensnpcs.api.CitizensAPI;
-import net.citizensnpcs.api.npc.NPC;
+import me.nakilex.levelplugin.npc.system.NpcApi;
+import me.nakilex.levelplugin.npc.system.NPC;
 import org.bukkit.Bukkit;
 import me.nakilex.levelplugin.Main;
 import org.bukkit.Particle;
@@ -65,7 +65,7 @@ public class QuestNPCEffectTask extends BukkitRunnable {
         });
 
         Set<NPC> relevant = new HashSet<>();
-        for (NPC npc : CitizensAPI.getNPCRegistry()) {
+        for (NPC npc : NpcApi.getRegistry()) {
             if (questManager.hasQuestForNpc(npc) || getServiceGlyph(npc.getName().toLowerCase()) != null) {
                 relevant.add(npc);
             }

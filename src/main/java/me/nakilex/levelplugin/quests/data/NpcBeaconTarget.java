@@ -1,13 +1,13 @@
 package me.nakilex.levelplugin.quests.data;
 
 import me.nakilex.levelplugin.utils.NpcNameUtil;
-import net.citizensnpcs.api.CitizensAPI;
-import net.citizensnpcs.api.npc.NPC;
+import me.nakilex.levelplugin.npc.system.NpcApi;
+import me.nakilex.levelplugin.npc.system.NPC;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
 /**
- * Beacon target that resolves to the location of a Citizens NPC when spawned.
+ * Beacon target that resolves to the location of a tracked NPC when spawned.
  */
 public class NpcBeaconTarget implements BeaconTarget {
     private final Integer npcId;
@@ -26,7 +26,7 @@ public class NpcBeaconTarget implements BeaconTarget {
     @Override
     public Location resolve(Player viewer) {
         if (npcId != null) {
-            NPC npc = CitizensAPI.getNPCRegistry().getById(npcId);
+            NPC npc = NpcApi.getRegistry().getById(npcId);
             if (npc != null) {
                 Location active = getSpawnedOrStoredLocation(npc);
                 if (active != null) {
@@ -44,7 +44,7 @@ public class NpcBeaconTarget implements BeaconTarget {
             NPC nearestNpc = null;
             Location nearestLocation = null;
             double nearestDistance = Double.MAX_VALUE;
-            for (NPC npc : CitizensAPI.getNPCRegistry()) {
+            for (NPC npc : NpcApi.getRegistry()) {
                 String npcNormalized = NpcNameUtil.normalize(npc.getName());
                 if (npcNormalized == null || !normalizedName.equals(npcNormalized)) {
                     continue;
