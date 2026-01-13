@@ -125,7 +125,7 @@ public final class NpcPlayerRenderer {
     }
 
     private static void sendPlayerInfoAdd(Player viewer, WrappedGameProfile profile) {
-        PacketContainer packet = PROTOCOL.createPacket(com.comphenix.protocol.PacketType.Play.Server.PLAYER_INFO);
+        PacketContainer packet = PROTOCOL.createPacket(com.comphenix.protocol.PacketType.Play.Server.PLAYER_INFO_UPDATE);
         writePlayerInfoActions(packet, EnumSet.of(EnumWrappers.PlayerInfoAction.ADD_PLAYER));
         PlayerInfoData data = new PlayerInfoData(
                 profile,
@@ -153,10 +153,17 @@ public final class NpcPlayerRenderer {
         com.comphenix.protocol.reflect.StructureModifier<EnumSet<?>> enumSets =
                 packet.getModifier().withType(EnumSet.class);
         if (enumSets.size() > 0) {
-            enumSets.write(0, actions);
-            return;
+            try {
+                enumSets.write(0, actions);
+                return;
+            } catch (RuntimeException ignored) {
+            }
         }
-        packet.getPlayerInfoActions().write(0, actions);
+        try {
+            packet.getPlayerInfoActions().write(0, actions);
+        } catch (RuntimeException ignored) {
+            Main.getInstance().getLogger().warning("Failed to set NPC player info actions for packet " + packet.getType());
+        }
     }
 
     private static boolean writeActionsViaHandle(PacketContainer packet, EnumSet<EnumWrappers.PlayerInfoAction> actions) {
