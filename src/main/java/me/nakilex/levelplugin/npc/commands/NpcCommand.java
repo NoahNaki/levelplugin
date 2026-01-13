@@ -110,9 +110,6 @@ public class NpcCommand implements CommandExecutor, TabCompleter {
         if (parsed != null && args.length >= 3) {
             type = parsed;
             nameEnd = args.length - 1;
-        } else if (args.length >= 3 && args[args.length - 1].equalsIgnoreCase("player")) {
-            ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.WARNING,
-                    "PLAYER NPCs render as a name-only hologram. Use a spawnable entity type instead.");
         }
         String name = joinArgs(args, 1, nameEnd).trim();
         if (name.isBlank()) {
@@ -218,6 +215,9 @@ public class NpcCommand implements CommandExecutor, TabCompleter {
         String action = args[2].toLowerCase(Locale.ROOT);
         if (action.equals("clear")) {
             npc.removeTrait(SkinTrait.class);
+            if (npc.getType() == EntityType.PLAYER) {
+                npc.refreshPlayerNpc();
+            }
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
                     "Cleared skin trait for NPC #" + npc.getId() + ".");
             return true;
@@ -237,6 +237,9 @@ public class NpcCommand implements CommandExecutor, TabCompleter {
         String texture = args[5];
         SkinTrait trait = npc.getOrAddTrait(SkinTrait.class);
         trait.setSkinPersistent(skinName, signature, texture);
+        if (npc.getType() == EntityType.PLAYER) {
+            npc.refreshPlayerNpc();
+        }
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
                 "Updated skin trait for NPC #" + npc.getId() + ".");
         return true;
@@ -357,7 +360,7 @@ public class NpcCommand implements CommandExecutor, TabCompleter {
     private List<String> entityTypeNames() {
         List<String> names = new ArrayList<>();
         for (EntityType type : EntityType.values()) {
-            if (type.isSpawnable()) {
+            if (type.isSpawnable() || type == EntityType.PLAYER) {
                 names.add(type.name().toLowerCase(Locale.ROOT));
             }
         }
@@ -371,7 +374,7 @@ public class NpcCommand implements CommandExecutor, TabCompleter {
         }
         try {
             EntityType type = EntityType.valueOf(input.toUpperCase(Locale.ROOT));
-            if (!type.isSpawnable()) {
+            if (!type.isSpawnable() && type != EntityType.PLAYER) {
                 return null;
             }
             return type;
