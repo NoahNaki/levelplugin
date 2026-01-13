@@ -146,17 +146,11 @@ public final class NpcPlayerRenderer {
     }
 
     private static void writePlayerInfoActions(PacketContainer packet, EnumSet<EnumWrappers.PlayerInfoAction> actions) {
-        try {
-            var method = packet.getClass().getMethod("getEnumSetModifier", Class.class, int.class);
-            Object modifier = method.invoke(packet, EnumWrappers.PlayerInfoAction.class, 0);
-            if (modifier instanceof com.comphenix.protocol.reflect.StructureModifier<?> struct) {
-                @SuppressWarnings("unchecked")
-                com.comphenix.protocol.reflect.StructureModifier<EnumSet<?>> typed =
-                        (com.comphenix.protocol.reflect.StructureModifier<EnumSet<?>>) struct;
-                typed.write(0, actions);
-                return;
-            }
-        } catch (ReflectiveOperationException ignored) {
+        com.comphenix.protocol.reflect.StructureModifier<EnumSet<?>> enumSets =
+                packet.getModifier().withType(EnumSet.class);
+        if (enumSets.size() > 0) {
+            enumSets.write(0, actions);
+            return;
         }
         packet.getPlayerInfoActions().write(0, actions);
     }
