@@ -125,8 +125,12 @@ public final class NpcPlayerRenderer {
     }
 
     private static void sendPlayerInfoAdd(Player viewer, WrappedGameProfile profile) {
-        PacketContainer packet = PROTOCOL.createPacket(com.comphenix.protocol.PacketType.Play.Server.PLAYER_INFO_UPDATE);
-        writePlayerInfoActions(packet, EnumSet.of(EnumWrappers.PlayerInfoAction.ADD_PLAYER));
+        PacketContainer packet = PROTOCOL.createPacket(com.comphenix.protocol.PacketType.Play.Server.PLAYER_INFO);
+        try {
+            writePlayerInfoActions(packet, EnumSet.of(EnumWrappers.PlayerInfoAction.ADD_PLAYER));
+        } catch (RuntimeException ex) {
+            Main.getInstance().getLogger().warning("Failed to set NPC player info actions: " + ex.getMessage());
+        }
         PlayerInfoData data = new PlayerInfoData(
                 profile,
                 0,
@@ -147,22 +151,20 @@ public final class NpcPlayerRenderer {
     }
 
     private static void writePlayerInfoActions(PacketContainer packet, EnumSet<EnumWrappers.PlayerInfoAction> actions) {
-        if (writeActionsViaHandle(packet, actions)) {
-            return;
-        }
-        com.comphenix.protocol.reflect.StructureModifier<EnumSet<?>> enumSets =
-                packet.getModifier().withType(EnumSet.class);
-        if (enumSets.size() > 0) {
-            try {
+        try {
+            if (writeActionsViaHandle(packet, actions)) {
+                return;
+            }
+            com.comphenix.protocol.reflect.StructureModifier<EnumSet<?>> enumSets =
+                    packet.getModifier().withType(EnumSet.class);
+            if (enumSets.size() > 0) {
                 enumSets.write(0, actions);
                 return;
-            } catch (RuntimeException ignored) {
             }
-        }
-        try {
             packet.getPlayerInfoActions().write(0, actions);
-        } catch (RuntimeException ignored) {
-            Main.getInstance().getLogger().warning("Failed to set NPC player info actions for packet " + packet.getType());
+        } catch (RuntimeException ex) {
+            Main.getInstance().getLogger().warning("Failed to set NPC player info actions for packet "
+                    + packet.getType() + ": " + ex.getMessage());
         }
     }
 
