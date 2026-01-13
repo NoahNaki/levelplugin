@@ -125,7 +125,7 @@ public final class NpcPlayerRenderer {
 
     private static void sendPlayerInfoAdd(Player viewer, WrappedGameProfile profile) {
         PacketContainer packet = PROTOCOL.createPacket(com.comphenix.protocol.PacketType.Play.Server.PLAYER_INFO);
-        packet.getPlayerInfoActions().write(0, EnumSet.of(EnumWrappers.PlayerInfoAction.ADD_PLAYER));
+        writePlayerInfoActions(packet, EnumSet.of(EnumWrappers.PlayerInfoAction.ADD_PLAYER));
         PlayerInfoData data = new PlayerInfoData(
                 profile,
                 0,
@@ -143,6 +143,15 @@ public final class NpcPlayerRenderer {
         PacketContainer packet = PROTOCOL.createPacket(com.comphenix.protocol.PacketType.Play.Server.PLAYER_INFO_REMOVE);
         packet.getUUIDLists().write(0, List.of(uuid));
         sendPacket(viewer, packet);
+    }
+
+    private static void writePlayerInfoActions(PacketContainer packet, EnumSet<EnumWrappers.PlayerInfoAction> actions) {
+        try {
+            packet.getEnumSetModifier(EnumWrappers.PlayerInfoAction.class, 0).write(0, actions);
+            return;
+        } catch (Exception ignored) {
+        }
+        packet.getPlayerInfoActions().write(0, actions);
     }
 
     private static void sendSpawnPlayer(Player viewer, int entityId, UUID uuid, Location loc) {
