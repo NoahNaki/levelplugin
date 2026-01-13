@@ -146,7 +146,7 @@ public final class NpcPlayerRenderer {
     }
 
     private static void sendSpawnPlayer(Player viewer, int entityId, UUID uuid, Location loc) {
-        PacketContainer packet = PROTOCOL.createPacket(com.comphenix.protocol.PacketType.Play.Server.SPAWN_PLAYER);
+        PacketContainer packet = PROTOCOL.createPacket(com.comphenix.protocol.PacketType.Play.Server.NAMED_ENTITY_SPAWN);
         packet.getIntegers().write(0, entityId);
         packet.getUUIDs().write(0, uuid);
         packet.getDoubles().write(0, loc.getX());
