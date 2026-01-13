@@ -16,6 +16,7 @@ import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
+import java.lang.reflect.Field;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.UUID;
@@ -146,6 +147,9 @@ public final class NpcPlayerRenderer {
     }
 
     private static void writePlayerInfoActions(PacketContainer packet, EnumSet<EnumWrappers.PlayerInfoAction> actions) {
+        if (writeActionsViaHandle(packet, actions)) {
+            return;
+        }
         com.comphenix.protocol.reflect.StructureModifier<EnumSet<?>> enumSets =
                 packet.getModifier().withType(EnumSet.class);
         if (enumSets.size() > 0) {
@@ -153,6 +157,29 @@ public final class NpcPlayerRenderer {
             return;
         }
         packet.getPlayerInfoActions().write(0, actions);
+    }
+
+    private static boolean writeActionsViaHandle(PacketContainer packet, EnumSet<EnumWrappers.PlayerInfoAction> actions) {
+        if (packet == null) {
+            return false;
+        }
+        Object handle = packet.getHandle();
+        if (handle == null) {
+            return false;
+        }
+        for (Field field : handle.getClass().getDeclaredFields()) {
+            if (!EnumSet.class.isAssignableFrom(field.getType())) {
+                continue;
+            }
+            try {
+                field.setAccessible(true);
+                field.set(handle, actions);
+                return true;
+            } catch (IllegalAccessException ignored) {
+                return false;
+            }
+        }
+        return false;
     }
 
     private static void sendSpawnPlayer(Player viewer, int entityId, UUID uuid, Location loc) {
