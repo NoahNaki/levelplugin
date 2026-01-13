@@ -70,6 +70,7 @@ import me.nakilex.levelplugin.friend.FriendGUI;
 import me.nakilex.levelplugin.friend.FriendsCommand;
 import me.nakilex.levelplugin.codex.CodexMainGUI;
 import me.nakilex.levelplugin.codex.CodexCommand;
+import me.nakilex.levelplugin.npc.commands.NpcCommand;
 import me.nakilex.levelplugin.npc.wandering.WanderingMerchantCommand;
 import me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager;
 import me.nakilex.levelplugin.music.commands.SkipSongCommand;
@@ -198,6 +199,9 @@ public class CommandRegistry {
         plugin.getCommand("opsword").setExecutor(new OpSwordCommand());
         me.nakilex.levelplugin.items.commands.GenerateItemCommand genItemCmd = new me.nakilex.levelplugin.items.commands.GenerateItemCommand();
         plugin.getCommand("genitem").setExecutor(genItemCmd);
+        NpcCommand npcCommand = new NpcCommand(plugin.getNpcRegistry());
+        plugin.getCommand("npc").setExecutor(npcCommand);
+        plugin.getCommand("npc").setTabCompleter(npcCommand);
         plugin.getCommand("genitem").setTabCompleter(genItemCmd);
         GenClassCommand genClassCmd = new GenClassCommand();
         plugin.getCommand("genclass").setExecutor(genClassCmd);

@@ -286,6 +286,9 @@ commands:
   enddialog:
     description: End a stuck NPC dialog session for a player
     usage: /enddialog <player>
+  npc:
+    description: Create, remove, and edit NPCs.
+    usage: /npc <create|remove|list|select|sel>
   enchant:
     description: Opens the enchanting GUI
     usage: /enchant
