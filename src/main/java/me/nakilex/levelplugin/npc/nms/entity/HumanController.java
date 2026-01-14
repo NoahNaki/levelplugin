@@ -23,12 +23,21 @@ public final class HumanController {
         String profileName = sanitizeProfileName(npc.getName(), npc.getId());
         Object profile = NmsImpl.createGameProfile(uuid, profileName);
         Object clientInformation = NmsImpl.createClientInformation();
+        Object server = NmsImpl.getMinecraftServer();
+        if (level == null || profile == null || clientInformation == null || server == null) {
+            org.bukkit.Bukkit.getLogger().warning("[NPC] Missing NMS components for player NPC spawn.");
+            return null;
+        }
         EntityHumanNPC human = new EntityHumanNPC(
-                NmsImpl.getMinecraftServer(),
+                server,
                 level,
                 profile,
                 clientInformation,
                 npc);
+        if (human.getHandle() == null) {
+            org.bukkit.Bukkit.getLogger().warning("[NPC] Unable to construct ServerPlayer for NPC.");
+            return null;
+        }
         NmsImpl.applyPosition(human.getHandle(), location);
         NmsImpl.addEntityToWorld(world, level, human.getHandle());
         NmsImpl.addOrRemoveFromPlayerList(level, human.getHandle(), true);

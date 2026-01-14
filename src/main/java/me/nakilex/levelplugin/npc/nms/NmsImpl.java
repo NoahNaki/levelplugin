@@ -1,5 +1,6 @@
 package me.nakilex.levelplugin.npc.nms;
 
+import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.npc.system.trait.SkinTrait;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -32,7 +33,8 @@ public final class NmsImpl {
             Method getServer = serverClass.getMethod("getServer");
             return getServer.invoke(null);
         } catch (ReflectiveOperationException ex) {
-            throw new IllegalStateException("Unable to access MinecraftServer", ex);
+            logFailure("Unable to access MinecraftServer", ex);
+            return null;
         }
     }
 
@@ -41,7 +43,8 @@ public final class NmsImpl {
             Method handle = world.getClass().getMethod("getHandle");
             return handle.invoke(world);
         } catch (ReflectiveOperationException ex) {
-            throw new IllegalStateException("Unable to access ServerLevel handle", ex);
+            logFailure("Unable to access ServerLevel handle", ex);
+            return null;
         }
     }
 
@@ -50,7 +53,8 @@ public final class NmsImpl {
             Method handle = player.getClass().getMethod("getHandle");
             return handle.invoke(player);
         } catch (ReflectiveOperationException ex) {
-            throw new IllegalStateException("Unable to access ServerPlayer handle", ex);
+            logFailure("Unable to access ServerPlayer handle", ex);
+            return null;
         }
     }
 
@@ -62,6 +66,9 @@ public final class NmsImpl {
     }
 
     public static boolean addEntityToWorld(World world, Object level, Object entity) {
+        if (world == null || level == null || entity == null) {
+            return false;
+        }
         try {
             Class<?> nmsEntityClass = Class.forName("net.minecraft.world.entity.Entity");
             Method addEntityToWorld = world.getClass().getMethod("addEntityToWorld", nmsEntityClass, SpawnReason.class);
@@ -71,13 +78,20 @@ public final class NmsImpl {
                 Method addFreshEntity = level.getClass().getMethod("addFreshEntity", Class.forName("net.minecraft.world.entity.Entity"), SpawnReason.class);
                 return (boolean) addFreshEntity.invoke(level, entity, SpawnReason.CUSTOM);
             } catch (ReflectiveOperationException ex) {
+                logFailure("Unable to add NPC entity to world", ex);
                 return false;
             }
         }
     }
 
     public static void addOrRemoveFromPlayerList(Object level, Object player, boolean add) {
+        if (level == null || player == null) {
+            return;
+        }
         List<?> players = getPlayers(level);
+        if (players == null) {
+            return;
+        }
         if (add) {
             if (!players.contains(player)) {
                 addPlayer(players, player);
@@ -89,16 +103,23 @@ public final class NmsImpl {
     }
 
     private static List<?> getPlayers(Object level) {
+        if (level == null) {
+            return null;
+        }
         try {
             Method players = level.getClass().getMethod("players");
             return (List<?>) players.invoke(level);
         } catch (ReflectiveOperationException ex) {
-            throw new IllegalStateException("Unable to access level players list", ex);
+            logFailure("Unable to access level players list", ex);
+            return null;
         }
     }
 
     private static void updateChunkMapPlayerStatus(Object level, Object player, boolean add) {
         Object chunkSource = getChunkSource(level);
+        if (chunkSource == null) {
+            return;
+        }
         try {
             Field chunkMapField = chunkSource.getClass().getDeclaredField("chunkMap");
             chunkMapField.setAccessible(true);
@@ -110,11 +131,15 @@ public final class NmsImpl {
     }
 
     private static Object getChunkSource(Object level) {
+        if (level == null) {
+            return null;
+        }
         try {
             Method chunkSource = level.getClass().getMethod("getChunkSource");
             return chunkSource.invoke(level);
         } catch (ReflectiveOperationException ex) {
-            throw new IllegalStateException("Unable to access chunk source", ex);
+            logFailure("Unable to access chunk source", ex);
+            return null;
         }
     }
 
@@ -134,11 +159,20 @@ public final class NmsImpl {
             return;
         }
         Object handle = getServerPlayer(npcPlayer);
+        if (handle == null) {
+            return;
+        }
         try {
             Method getProfile = handle.getClass().getMethod("getGameProfile");
             Object profile = getProfile.invoke(handle);
+            if (profile == null) {
+                return;
+            }
             Method getProperties = profile.getClass().getMethod("getProperties");
             Object properties = getProperties.invoke(profile);
+            if (properties == null) {
+                return;
+            }
             Method removeAll = properties.getClass().getMethod("removeAll", String.class);
             removeAll.invoke(properties, "textures");
             Class<?> propertyClass = Class.forName(CLASS_PROPERTY);
@@ -153,12 +187,19 @@ public final class NmsImpl {
     public static void sendTabListAdd(Player viewer, Player npcPlayer) {
         Object viewerHandle = getServerPlayer(viewer);
         Object npcHandle = getServerPlayer(npcPlayer);
+        if (viewerHandle == null || npcHandle == null) {
+            return;
+        }
         try {
             Class<?> actionClass = Class.forName(CLASS_INFO_ACTION);
             Object addAction = Enum.valueOf((Class<Enum>) actionClass, "ADD_PLAYER");
             Class<?> packetClass = Class.forName(CLASS_INFO_UPDATE);
             Constructor<?> ctor = packetClass.getConstructor(EnumSet.class, List.class);
-            Object packet = ctor.newInstance(createActionSet(actionClass, addAction), List.of(npcHandle));
+            EnumSet<?> actions = createActionSet(actionClass, addAction);
+            if (actions == null) {
+                return;
+            }
+            Object packet = ctor.newInstance(actions, List.of(npcHandle));
             sendPacket(viewerHandle, packet);
         } catch (ReflectiveOperationException ignored) {
         }
@@ -167,6 +208,9 @@ public final class NmsImpl {
     public static void sendTabListRemove(Player viewer, Player npcPlayer) {
         Object viewerHandle = getServerPlayer(viewer);
         Object npcHandle = getServerPlayer(npcPlayer);
+        if (viewerHandle == null || npcHandle == null) {
+            return;
+        }
         try {
             Method getUuid = npcHandle.getClass().getMethod("getUUID");
             Object uuid = getUuid.invoke(npcHandle);
@@ -184,7 +228,8 @@ public final class NmsImpl {
             Constructor<?> ctor = profileClass.getConstructor(UUID.class, String.class);
             return ctor.newInstance(uuid, name);
         } catch (ReflectiveOperationException ex) {
-            throw new IllegalStateException("Unable to create GameProfile", ex);
+            logFailure("Unable to create GameProfile", ex);
+            return null;
         }
     }
 
@@ -194,7 +239,8 @@ public final class NmsImpl {
             Method createDefault = clientInfoClass.getMethod("createDefault");
             return createDefault.invoke(null);
         } catch (ReflectiveOperationException ex) {
-            throw new IllegalStateException("Unable to create ClientInformation", ex);
+            logFailure("Unable to create ClientInformation", ex);
+            return null;
         }
     }
 
@@ -216,8 +262,14 @@ public final class NmsImpl {
     }
 
     private static void sendPacket(Object serverPlayer, Object packet) throws ReflectiveOperationException {
+        if (serverPlayer == null || packet == null) {
+            return;
+        }
         Field connectionField = getField(serverPlayer.getClass(), "connection");
         Object connection = connectionField.get(serverPlayer);
+        if (connection == null) {
+            return;
+        }
         Method send = connection.getClass().getMethod("send", Class.forName("net.minecraft.network.protocol.Packet"));
         send.invoke(connection, packet);
     }
@@ -229,6 +281,9 @@ public final class NmsImpl {
     }
 
     private static EnumSet<?> createActionSet(Class<?> actionClass, Object action) {
+        if (actionClass == null || action == null || !actionClass.isEnum() || !(action instanceof Enum)) {
+            return null;
+        }
         @SuppressWarnings("unchecked")
         Class<? extends Enum> enumClass = (Class<? extends Enum>) actionClass;
         EnumSet<?> set = EnumSet.noneOf(enumClass);
@@ -236,6 +291,18 @@ public final class NmsImpl {
         EnumSet raw = set;
         raw.add(action);
         return set;
+    }
+
+    private static void logFailure(String message, Exception ex) {
+        try {
+            if (Main.getInstance() != null) {
+                Main.getInstance().getLogger().warning(message + ": " + ex.getMessage());
+            } else {
+                org.bukkit.Bukkit.getLogger().warning(message + ": " + ex.getMessage());
+            }
+        } catch (Exception ignored) {
+            org.bukkit.Bukkit.getLogger().warning(message + ": " + ex.getMessage());
+        }
     }
 
     private static Field getField(Class<?> type, String name) throws ReflectiveOperationException {

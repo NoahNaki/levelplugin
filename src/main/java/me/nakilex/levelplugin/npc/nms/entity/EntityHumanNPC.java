@@ -26,6 +26,9 @@ public class EntityHumanNPC {
                           NPC npc) {
         this.npc = npc;
         this.handle = createServerPlayer(server, level, profile, clientInformation);
+        if (this.handle == null) {
+            return;
+        }
         setupNetworkStack(server, profile, clientInformation);
         setupStatsAndAdvancements(server);
         markClientLoaded();
@@ -40,6 +43,9 @@ public class EntityHumanNPC {
     }
 
     public org.bukkit.entity.Entity getBukkitEntity() {
+        if (handle == null) {
+            return null;
+        }
         try {
             Method method = handle.getClass().getMethod("getBukkitEntity");
             return (org.bukkit.entity.Entity) method.invoke(handle);
@@ -49,6 +55,9 @@ public class EntityHumanNPC {
     }
 
     private Object createServerPlayer(Object server, Object level, Object profile, Object clientInformation) {
+        if (server == null || level == null || profile == null || clientInformation == null) {
+            return null;
+        }
         try {
             Class<?> serverPlayerClass = Class.forName(CLASS_SERVER_PLAYER);
             Class<?> serverClass = server.getClass();
@@ -65,11 +74,14 @@ public class EntityHumanNPC {
             }
             throw new IllegalStateException("No ServerPlayer constructor found");
         } catch (ReflectiveOperationException ex) {
-            throw new IllegalStateException("Failed to construct ServerPlayer", ex);
+            return null;
         }
     }
 
     private void setupNetworkStack(Object server, Object profile, Object clientInformation) {
+        if (server == null || profile == null || clientInformation == null) {
+            return;
+        }
         try {
             Class<?> connectionClass = Class.forName(CLASS_CONNECTION);
             Class<?> packetFlowClass = Class.forName(CLASS_PACKET_FLOW);
@@ -89,8 +101,7 @@ public class EntityHumanNPC {
 
             Field connectionField = getField(handle.getClass(), "connection");
             connectionField.set(handle, listener);
-        } catch (ReflectiveOperationException ex) {
-            throw new IllegalStateException("Failed to setup NPC network stack", ex);
+        } catch (ReflectiveOperationException ignored) {
         }
     }
 
@@ -111,6 +122,9 @@ public class EntityHumanNPC {
     }
 
     private void setupStatsAndAdvancements(Object server) {
+        if (server == null) {
+            return;
+        }
         setField("stats", createStats(server));
         setField("advancements", createAdvancements(server));
     }
@@ -121,7 +135,7 @@ public class EntityHumanNPC {
             Constructor<?> ctor = statsClass.getConstructor(server.getClass(), File.class);
             return ctor.newInstance(server, new File("npc_stats_" + getUuidString() + ".json"));
         } catch (ReflectiveOperationException ex) {
-            throw new IllegalStateException("Failed to create dummy stats counter", ex);
+            return null;
         }
     }
 
@@ -138,13 +152,15 @@ public class EntityHumanNPC {
                     return ctor.newInstance(server, handle);
                 }
             }
-        } catch (ReflectiveOperationException ex) {
-            throw new IllegalStateException("Failed to create dummy advancements", ex);
+        } catch (ReflectiveOperationException ignored) {
         }
-        throw new IllegalStateException("No suitable PlayerAdvancements constructor found");
+        return null;
     }
 
     private void markClientLoaded() {
+        if (handle == null) {
+            return;
+        }
         try {
             Method method = handle.getClass().getDeclaredMethod("setClientLoaded");
             method.setAccessible(true);
@@ -171,6 +187,9 @@ public class EntityHumanNPC {
     }
 
     private void setField(String name, Object value) {
+        if (handle == null) {
+            return;
+        }
         try {
             Field field = getField(handle.getClass(), name);
             field.setAccessible(true);

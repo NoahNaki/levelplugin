@@ -94,6 +94,10 @@ public class NPC {
         }
         if (type == EntityType.PLAYER) {
             entity = me.nakilex.levelplugin.npc.nms.entity.HumanController.spawn(this, location);
+            if (entity == null) {
+                org.bukkit.Bukkit.getLogger().warning("[NPC] Failed to spawn player NPC " + id + ". Falling back to armor stand.");
+                entity = location.getWorld().spawnEntity(location, EntityType.ARMOR_STAND);
+            }
         } else {
             entity = location.getWorld().spawnEntity(location, type);
         }
