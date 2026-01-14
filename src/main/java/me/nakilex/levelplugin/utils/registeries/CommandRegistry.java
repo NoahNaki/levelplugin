@@ -75,6 +75,7 @@ import me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager;
 import me.nakilex.levelplugin.music.commands.SkipSongCommand;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.horse.managers.HorseManager;
+import me.nakilex.levelplugin.npc.commands.NpcCommand;
 import me.nakilex.levelplugin.party.PartyManager;
 import me.nakilex.levelplugin.potions.managers.PotionManager;
 import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
@@ -212,6 +213,9 @@ public class CommandRegistry {
         EndDialogCommand endDialogCommand = new EndDialogCommand();
         plugin.getCommand("enddialog").setExecutor(endDialogCommand);
         plugin.getCommand("enddialog").setTabCompleter(endDialogCommand);
+        NpcCommand npcCommand = new NpcCommand();
+        plugin.getCommand("npc").setExecutor(npcCommand);
+        plugin.getCommand("npc").setTabCompleter(npcCommand);
         SetLevelCommand setLevelCmd = new SetLevelCommand(plugin);
         plugin.getCommand("setlevel").setExecutor(setLevelCmd);
         plugin.getCommand("setlevel").setTabCompleter(setLevelCmd);

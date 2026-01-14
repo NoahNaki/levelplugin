@@ -286,6 +286,10 @@ commands:
   enddialog:
     description: End a stuck NPC dialog session for a player
     usage: /enddialog <player>
+  npc:
+    description: Manage NPCs
+    usage: /npc <create|remove|list|move|teleport|spawn|despawn>
+    permission: levelplugin.admin
   enchant:
     description: Opens the enchanting GUI
     usage: /enchant

@@ -6,6 +6,7 @@ import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
@@ -13,8 +14,10 @@ import org.bukkit.persistence.PersistentDataType;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.nio.charset.StandardCharsets;
 
 public class NPC {
+    private static final String UUID_DATA_KEY = "npc_uuid";
     private final int id;
     private String name;
     private EntityType type;
@@ -89,8 +92,11 @@ public class NPC {
             entity.teleport(location);
             return;
         }
-        EntityType spawnType = type == EntityType.PLAYER ? EntityType.ARMOR_STAND : type;
-        entity = location.getWorld().spawnEntity(location, spawnType);
+        if (type == EntityType.PLAYER) {
+            entity = me.nakilex.levelplugin.npc.nms.entity.HumanController.spawn(this, location);
+        } else {
+            entity = location.getWorld().spawnEntity(location, type);
+        }
         if (entity instanceof LivingEntity living) {
             living.setCustomName(name);
             living.setCustomNameVisible(true);
@@ -100,14 +106,24 @@ public class NPC {
             stand.setMarker(true);
             stand.setGravity(false);
         }
+        if (entity instanceof Player playerEntity) {
+            playerEntity.setCustomNameVisible(true);
+        }
         setIdMetadata();
         traits.values().forEach(trait -> trait.onSpawn(this));
+        if (type == EntityType.PLAYER && entity != null) {
+            me.nakilex.levelplugin.npc.system.NpcSkinService.applySkinToViewers(this);
+        }
     }
 
     public void despawn() {
         if (entity != null) {
             traits.values().forEach(trait -> trait.onDespawn(this));
-            entity.remove();
+            if (entity instanceof Player playerEntity) {
+                me.nakilex.levelplugin.npc.nms.entity.HumanController.despawn(playerEntity);
+            } else {
+                entity.remove();
+            }
             entity = null;
         }
     }
@@ -141,6 +157,16 @@ public class NPC {
         return entity == null ? null : entity.getUniqueId();
     }
 
+    public UUID getOrCreateNpcUuid() {
+        String stored = dataStore.get(UUID_DATA_KEY);
+        if (stored != null) {
+            return UUID.fromString(stored);
+        }
+        UUID created = UUID.nameUUIDFromBytes(("levelplugin-npc-" + id).getBytes(StandardCharsets.UTF_8));
+        dataStore.set(UUID_DATA_KEY, created.toString());
+        return created;
+    }
+
     public <T extends NpcTrait> T getOrAddTrait(Class<T> type) {
         NpcTrait existing = traits.get(type);
         if (existing != null) {
@@ -170,6 +196,7 @@ public class NPC {
     public NPC copy(int newId) {
         NPC clone = new NPC(newId, type, name);
         clone.copyFrom(this);
+        clone.dataStore.set(UUID_DATA_KEY, null);
         return clone;
     }
 

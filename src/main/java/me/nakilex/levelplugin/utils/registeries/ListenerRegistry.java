@@ -27,6 +27,7 @@ import me.nakilex.levelplugin.mob.custom.gui.CustomMobAdminGUI;
 import me.nakilex.levelplugin.mob.utils.MobRewardService;
 import me.nakilex.levelplugin.npc.listeners.NPCClickListener;
 import me.nakilex.levelplugin.npc.listeners.NPCCommandListener;
+import me.nakilex.levelplugin.npc.listeners.NpcViewerListener;
 import me.nakilex.levelplugin.npc.dialog.NPCDialogManager;
 import me.nakilex.levelplugin.chat.ChatChannelListener;
 import me.nakilex.levelplugin.chat.games.ChatGameListener;
@@ -190,6 +191,7 @@ public class ListenerRegistry {
                 auctionGUI,
                 plugin.getStorageManager()), plugin);
         pm.registerEvents(new NPCCommandListener(), plugin);
+        pm.registerEvents(new NpcViewerListener(), plugin);
         pm.registerEvents(new PlayerRightClicksPlayerListener(), plugin);
         pm.registerEvents(new TradingWindow(), plugin);
         pm.registerEvents(arenaQueueGUI, plugin);
