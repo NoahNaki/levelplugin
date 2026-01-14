@@ -230,8 +230,11 @@ public final class NmsImpl {
 
     private static EnumSet<?> createActionSet(Class<?> actionClass, Object action) {
         @SuppressWarnings("unchecked")
-        EnumSet<Enum> set = EnumSet.noneOf((Class) actionClass);
-        set.add((Enum) action);
+        Class<? extends Enum> enumClass = (Class<? extends Enum>) actionClass;
+        EnumSet<?> set = EnumSet.noneOf(enumClass);
+        @SuppressWarnings("unchecked")
+        EnumSet raw = set;
+        raw.add(action);
         return set;
     }
 
