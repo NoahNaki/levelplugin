@@ -1,12 +1,7 @@
 package me.nakilex.levelplugin.npc.nms.entity;
 
-import com.mojang.authlib.GameProfile;
 import me.nakilex.levelplugin.npc.nms.NmsImpl;
 import me.nakilex.levelplugin.npc.system.NPC;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ClientInformation;
-import net.minecraft.server.network.ServerGamePacketListenerImpl;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -24,22 +19,31 @@ public final class HumanController {
         if (world == null) {
             return null;
         }
-        ServerLevel level = NmsImpl.getServerLevel(world);
+        Object level = NmsImpl.getServerLevel(world);
         UUID uuid = npc.getOrCreateNpcUuid();
         String profileName = sanitizeProfileName(npc.getName(), npc.getId());
-        GameProfile profile = NmsImpl.createGameProfile(uuid, profileName);
-        ClientInformation clientInformation = NmsImpl.createClientInformation();
-        MinecraftServer server = MinecraftServer.getServer();
+        Object profile = NmsImpl.createGameProfile(uuid, profileName);
+        Object clientInformation = NmsImpl.createClientInformation();
+        Object server = NmsImpl.getMinecraftServer();
+        if (level == null || profile == null || clientInformation == null || server == null) {
+            Bukkit.getLogger().warning("[NPC] Missing NMS components for player NPC spawn.");
+            return null;
+        }
         EntityHumanNPC human = new EntityHumanNPC(
                 server,
                 level,
                 profile,
                 clientInformation,
                 npc);
-        NmsImpl.applyPosition(human, location);
-        NmsImpl.addEntityToWorld(level, human);
-        NmsImpl.addOrRemoveFromPlayerList(level, human, true);
-        logNpcConnection(human);
+        Object handle = human.getHandle();
+        if (handle == null) {
+            Bukkit.getLogger().warning("[NPC] Unable to construct ServerPlayer for NPC.");
+            return null;
+        }
+        NmsImpl.applyPosition(handle, location);
+        NmsImpl.addEntityToWorld(level, handle);
+        NmsImpl.addOrRemoveFromPlayerList(level, handle, true);
+        logNpcConnection(handle);
         return human.getBukkitEntity();
     }
 
@@ -47,8 +51,8 @@ public final class HumanController {
         if (npcPlayer == null) {
             return;
         }
-        ServerLevel level = NmsImpl.getServerLevel(npcPlayer.getWorld());
-        var handle = NmsImpl.getServerPlayer(npcPlayer);
+        Object level = NmsImpl.getServerLevel(npcPlayer.getWorld());
+        Object handle = NmsImpl.getServerPlayer(npcPlayer);
         NmsImpl.addOrRemoveFromPlayerList(level, handle, false);
         npcPlayer.remove();
     }
@@ -64,13 +68,20 @@ public final class HumanController {
         return stripped;
     }
 
-    private static void logNpcConnection(EntityHumanNPC human) {
-        if (human == null) {
+    private static void logNpcConnection(Object handle) {
+        if (handle == null) {
             return;
         }
-        boolean isListener = human.connection instanceof ServerGamePacketListenerImpl;
-        boolean hasConnection = human.connection != null;
-        Bukkit.getLogger().info("[NPC] Spawned player NPC connection=" + hasConnection
-                + " listener=" + isListener);
+        try {
+            java.lang.reflect.Field connectionField = handle.getClass().getField("connection");
+            Object connection = connectionField.get(handle);
+            boolean hasConnection = connection != null;
+            boolean isListener = connection != null
+                    && "net.minecraft.server.network.ServerGamePacketListenerImpl".equals(connection.getClass().getName());
+            Bukkit.getLogger().info("[NPC] Spawned player NPC connection=" + hasConnection
+                    + " listener=" + isListener);
+        } catch (ReflectiveOperationException ex) {
+            Bukkit.getLogger().info("[NPC] Spawned player NPC connection=false listener=false");
+        }
     }
 }
