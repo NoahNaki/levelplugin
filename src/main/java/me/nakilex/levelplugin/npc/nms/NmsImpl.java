@@ -158,7 +158,7 @@ public final class NmsImpl {
             Object addAction = Enum.valueOf((Class<Enum>) actionClass, "ADD_PLAYER");
             Class<?> packetClass = Class.forName(CLASS_INFO_UPDATE);
             Constructor<?> ctor = packetClass.getConstructor(EnumSet.class, List.class);
-            Object packet = ctor.newInstance(EnumSet.of((Enum<?>) addAction), List.of(npcHandle));
+            Object packet = ctor.newInstance(createActionSet(actionClass, addAction), List.of(npcHandle));
             sendPacket(viewerHandle, packet);
         } catch (ReflectiveOperationException ignored) {
         }
@@ -226,6 +226,13 @@ public final class NmsImpl {
         @SuppressWarnings("unchecked")
         List<Object> mutable = (List<Object>) players;
         mutable.add(player);
+    }
+
+    private static EnumSet<?> createActionSet(Class<?> actionClass, Object action) {
+        @SuppressWarnings("unchecked")
+        EnumSet<Enum> set = EnumSet.noneOf((Class) actionClass);
+        set.add((Enum) action);
+        return set;
     }
 
     private static Field getField(Class<?> type, String name) throws ReflectiveOperationException {
