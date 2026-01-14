@@ -19,7 +19,8 @@ public final class NmsImpl {
     private static final String CLASS_SERVER_PLAYER = "net.minecraft.server.level.ServerPlayer";
     private static final String CLASS_GAME_PROFILE = "com.mojang.authlib.GameProfile";
     private static final String CLASS_PROPERTY = "com.mojang.authlib.properties.Property";
-    private static final String CLASS_CLIENT_INFO = "net.minecraft.server.network.ClientInformation";
+    private static final String CLASS_CLIENT_INFO_NETWORK = "net.minecraft.server.network.ClientInformation";
+    private static final String CLASS_CLIENT_INFO_LEVEL = "net.minecraft.server.level.ClientInformation";
     private static final String CLASS_INFO_UPDATE = "net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket";
     private static final String CLASS_INFO_REMOVE = "net.minecraft.network.protocol.game.ClientboundPlayerInfoRemovePacket";
     private static final String CLASS_INFO_ACTION = "net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket$Action";
@@ -235,7 +236,11 @@ public final class NmsImpl {
 
     public static Object createClientInformation() {
         try {
-            Class<?> clientInfoClass = Class.forName(CLASS_CLIENT_INFO);
+            Class<?> clientInfoClass = findClass(CLASS_CLIENT_INFO_NETWORK, CLASS_CLIENT_INFO_LEVEL);
+            if (clientInfoClass == null) {
+                logFailure("Unable to find ClientInformation class", new ClassNotFoundException(CLASS_CLIENT_INFO_NETWORK));
+                return null;
+            }
             Method createDefault = clientInfoClass.getMethod("createDefault");
             return createDefault.invoke(null);
         } catch (ReflectiveOperationException ex) {
@@ -303,6 +308,16 @@ public final class NmsImpl {
         } catch (Exception ignored) {
             org.bukkit.Bukkit.getLogger().warning(message + ": " + ex.getMessage());
         }
+    }
+
+    private static Class<?> findClass(String... names) {
+        for (String name : names) {
+            try {
+                return Class.forName(name);
+            } catch (ClassNotFoundException ignored) {
+            }
+        }
+        return null;
     }
 
     private static Field getField(Class<?> type, String name) throws ReflectiveOperationException {
