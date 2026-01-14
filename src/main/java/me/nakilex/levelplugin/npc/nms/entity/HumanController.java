@@ -1,7 +1,13 @@
 package me.nakilex.levelplugin.npc.nms.entity;
 
+import com.mojang.authlib.GameProfile;
 import me.nakilex.levelplugin.npc.nms.NmsImpl;
 import me.nakilex.levelplugin.npc.system.NPC;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ClientInformation;
+import net.minecraft.server.network.ServerGamePacketListenerImpl;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -18,29 +24,22 @@ public final class HumanController {
         if (world == null) {
             return null;
         }
-        Object level = NmsImpl.getServerLevel(world);
+        ServerLevel level = NmsImpl.getServerLevel(world);
         UUID uuid = npc.getOrCreateNpcUuid();
         String profileName = sanitizeProfileName(npc.getName(), npc.getId());
-        Object profile = NmsImpl.createGameProfile(uuid, profileName);
-        Object clientInformation = NmsImpl.createClientInformation();
-        Object server = NmsImpl.getMinecraftServer();
-        if (level == null || profile == null || clientInformation == null || server == null) {
-            org.bukkit.Bukkit.getLogger().warning("[NPC] Missing NMS components for player NPC spawn.");
-            return null;
-        }
+        GameProfile profile = NmsImpl.createGameProfile(uuid, profileName);
+        ClientInformation clientInformation = NmsImpl.createClientInformation();
+        MinecraftServer server = MinecraftServer.getServer();
         EntityHumanNPC human = new EntityHumanNPC(
                 server,
                 level,
                 profile,
                 clientInformation,
                 npc);
-        if (human.getHandle() == null) {
-            org.bukkit.Bukkit.getLogger().warning("[NPC] Unable to construct ServerPlayer for NPC.");
-            return null;
-        }
-        NmsImpl.applyPosition(human.getHandle(), location);
-        NmsImpl.addEntityToWorld(world, level, human.getHandle());
-        NmsImpl.addOrRemoveFromPlayerList(level, human.getHandle(), true);
+        NmsImpl.applyPosition(human, location);
+        NmsImpl.addEntityToWorld(level, human);
+        NmsImpl.addOrRemoveFromPlayerList(level, human, true);
+        logNpcConnection(human);
         return human.getBukkitEntity();
     }
 
@@ -48,8 +47,8 @@ public final class HumanController {
         if (npcPlayer == null) {
             return;
         }
-        Object level = NmsImpl.getServerLevel(npcPlayer.getWorld());
-        Object handle = NmsImpl.getServerPlayer(npcPlayer);
+        ServerLevel level = NmsImpl.getServerLevel(npcPlayer.getWorld());
+        var handle = NmsImpl.getServerPlayer(npcPlayer);
         NmsImpl.addOrRemoveFromPlayerList(level, handle, false);
         npcPlayer.remove();
     }
@@ -63,5 +62,15 @@ public final class HumanController {
             stripped = stripped.substring(0, 16);
         }
         return stripped;
+    }
+
+    private static void logNpcConnection(EntityHumanNPC human) {
+        if (human == null) {
+            return;
+        }
+        boolean isListener = human.connection instanceof ServerGamePacketListenerImpl;
+        boolean hasConnection = human.connection != null;
+        Bukkit.getLogger().info("[NPC] Spawned player NPC connection=" + hasConnection
+                + " listener=" + isListener);
     }
 }
