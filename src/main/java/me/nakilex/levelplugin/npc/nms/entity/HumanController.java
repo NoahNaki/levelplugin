@@ -1,11 +1,7 @@
 package me.nakilex.levelplugin.npc.nms.entity;
 
-import com.mojang.authlib.GameProfile;
 import me.nakilex.levelplugin.npc.nms.NmsImpl;
 import me.nakilex.levelplugin.npc.system.NPC;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.network.ClientInformation;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -22,22 +18,20 @@ public final class HumanController {
         if (world == null) {
             return null;
         }
-        ServerLevel level = NmsImpl.getServerLevel(world);
+        Object level = NmsImpl.getServerLevel(world);
         UUID uuid = npc.getOrCreateNpcUuid();
         String profileName = sanitizeProfileName(npc.getName(), npc.getId());
-        GameProfile profile = new GameProfile(uuid, profileName);
+        Object profile = NmsImpl.createGameProfile(uuid, profileName);
+        Object clientInformation = NmsImpl.createClientInformation();
         EntityHumanNPC human = new EntityHumanNPC(
-                MinecraftServer.getServer(),
+                NmsImpl.getMinecraftServer(),
                 level,
                 profile,
-                ClientInformation.createDefault(),
+                clientInformation,
                 npc);
-        human.setPos(location.getX(), location.getY(), location.getZ());
-        human.setYRot(location.getYaw());
-        human.setXRot(location.getPitch());
-        human.setYHeadRot(location.getYaw());
-        NmsImpl.addEntityToWorld(world, level, human);
-        NmsImpl.addOrRemoveFromPlayerList(level, human, true);
+        NmsImpl.applyPosition(human.getHandle(), location);
+        NmsImpl.addEntityToWorld(world, level, human.getHandle());
+        NmsImpl.addOrRemoveFromPlayerList(level, human.getHandle(), true);
         return human.getBukkitEntity();
     }
 
@@ -45,8 +39,8 @@ public final class HumanController {
         if (npcPlayer == null) {
             return;
         }
-        ServerLevel level = NmsImpl.getServerLevel(npcPlayer.getWorld());
-        var handle = NmsImpl.getServerPlayer(npcPlayer);
+        Object level = NmsImpl.getServerLevel(npcPlayer.getWorld());
+        Object handle = NmsImpl.getServerPlayer(npcPlayer);
         NmsImpl.addOrRemoveFromPlayerList(level, handle, false);
         npcPlayer.remove();
     }
