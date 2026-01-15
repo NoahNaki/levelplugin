@@ -200,15 +200,27 @@ public final class NpcPacketService {
         }
     }
 
-            logPacketFailure("ENTITY_HEAD_ROTATION", npc, ex);
-            logPacketFailure("ENTITY_TELEPORT", npc, ex);
-            logPacketFailure("ENTITY_DESTROY", npc, ex);
-    private static PacketContainer buildSpawnPacket(NpcPlayer npc) {
-        try {
-            PacketContainer packet = ProtocolLibrary.getProtocolManager()
-                    .createPacket(PacketType.Play.Server.NAMED_ENTITY_SPAWN);
-            Location loc = npc.getLocation();
-            packet.getIntegers().write(0, npc.getEntityId());
+        PacketType packetType = resolvePacketType("ENTITY_HEAD_ROTATION", "ENTITY_LOOK");
+        if (packetType == null) {
+            logPacketFailure("ENTITY_HEAD_ROTATION/ENTITY_LOOK", npc, null);
+            return null;
+        }
+            PacketContainer packet = ProtocolLibrary.getProtocolManager().createPacket(packetType);
+            logPacketFailure(packetType.name(), npc, ex);
+        PacketType packetType = resolvePacketType("ENTITY_TELEPORT");
+        if (packetType == null) {
+            logPacketFailure("ENTITY_TELEPORT", npc, null);
+            return null;
+        }
+            PacketContainer packet = ProtocolLibrary.getProtocolManager().createPacket(packetType);
+            logPacketFailure(packetType.name(), npc, ex);
+        PacketType packetType = resolvePacketType("ENTITY_DESTROY", "REMOVE_ENTITIES");
+        if (packetType == null) {
+            logPacketFailure("ENTITY_DESTROY/REMOVE_ENTITIES", npc, null);
+            return null;
+        }
+            PacketContainer packet = ProtocolLibrary.getProtocolManager().createPacket(packetType);
+            logPacketFailure(packetType.name(), npc, ex);
             packet.getUUIDs().write(0, npc.getUuid());
             packet.getDoubles().write(0, loc.getX());
             packet.getDoubles().write(1, loc.getY());
