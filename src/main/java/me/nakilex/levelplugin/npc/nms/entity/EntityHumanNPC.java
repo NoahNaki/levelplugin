@@ -106,18 +106,82 @@ public class EntityHumanNPC {
 
     private Object createListenerCookie(Object profile, Object clientInformation) throws ReflectiveOperationException {
         Class<?> cookieClass = Class.forName(CLASS_COOKIE);
-        try {
-            Method createInitial = cookieClass.getMethod("createInitial", profile.getClass(), clientInformation.getClass());
-            return createInitial.invoke(null, profile, clientInformation);
-        } catch (NoSuchMethodException ignored) {
-        }
-        for (Constructor<?> ctor : cookieClass.getConstructors()) {
-            Class<?>[] params = ctor.getParameterTypes();
-            if (params.length >= 4) {
-                return ctor.newInstance(profile, 0, clientInformation, false);
+
+        for (Method method : cookieClass.getMethods()) {
+            if (!method.getName().equals("createInitial")) {
+                continue;
+            }
+            if (!java.lang.reflect.Modifier.isStatic(method.getModifiers())) {
+                continue;
+            }
+            Object built = tryInvokeFactory(method, profile, clientInformation);
+            if (built != null) {
+                return built;
             }
         }
-        throw new ReflectiveOperationException("No CommonListenerCookie constructor found");
+
+        for (Constructor<?> ctor : cookieClass.getConstructors()) {
+            Object built = tryConstructCookie(ctor, profile, clientInformation);
+            if (built != null) {
+                return built;
+            }
+        }
+
+        throw new ReflectiveOperationException("No compatible CommonListenerCookie factory/constructor found");
+    }
+
+    private Object tryInvokeFactory(Method method, Object profile, Object clientInformation) {
+        try {
+            Class<?>[] params = method.getParameterTypes();
+            Object[] args = new Object[params.length];
+
+            for (int i = 0; i < params.length; i++) {
+                Class<?> type = params[i];
+
+                if (type.isInstance(profile)) {
+                    args[i] = profile;
+                } else if (type.isInstance(clientInformation)) {
+                    args[i] = clientInformation;
+                } else if (type == boolean.class || type == Boolean.class) {
+                    args[i] = false;
+                } else if (type == int.class || type == Integer.class) {
+                    args[i] = 0;
+                } else {
+                    return null;
+                }
+            }
+
+            return method.invoke(null, args);
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
+    private Object tryConstructCookie(Constructor<?> ctor, Object profile, Object clientInformation) {
+        try {
+            Class<?>[] params = ctor.getParameterTypes();
+            Object[] args = new Object[params.length];
+
+            for (int i = 0; i < params.length; i++) {
+                Class<?> type = params[i];
+
+                if (type.isInstance(profile)) {
+                    args[i] = profile;
+                } else if (type.isInstance(clientInformation)) {
+                    args[i] = clientInformation;
+                } else if (type == boolean.class || type == Boolean.class) {
+                    args[i] = false;
+                } else if (type == int.class || type == Integer.class) {
+                    args[i] = 0;
+                } else {
+                    return null;
+                }
+            }
+
+            return ctor.newInstance(args);
+        } catch (Throwable ignored) {
+            return null;
+        }
     }
 
     private Object createListener(Object server, Object connection, Object player, Object cookie) throws ReflectiveOperationException {

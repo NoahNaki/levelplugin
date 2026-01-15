@@ -459,12 +459,22 @@ public final class NmsImpl {
             return null;
         }
         try {
-            Field field = listener.getClass().getDeclaredField("connection");
-            field.setAccessible(true);
+            Field field = findField(listener.getClass(), "connection");
             return field.get(listener);
         } catch (ReflectiveOperationException ex) {
-            return null;
+            // fall through
         }
+        try {
+            Class<?> connectionClass = Class.forName("net.minecraft.network.Connection");
+            for (Field field : listener.getClass().getDeclaredFields()) {
+                if (field.getType() == connectionClass) {
+                    field.setAccessible(true);
+                    return field.get(listener);
+                }
+            }
+        } catch (ReflectiveOperationException ignored) {
+        }
+        return null;
     }
 
     private static boolean invokeDisconnect(Object target, String reason) {

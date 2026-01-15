@@ -41,7 +41,8 @@ public final class HumanController {
             return null;
         }
         if (NmsImpl.getPlayerConnection(handle) == null) {
-            Bukkit.getLogger().severe("[NPC] Missing connection for player NPC " + npc.getId() + ". Aborting spawn.");
+            Bukkit.getLogger().severe("[NPC] Missing connection for player NPC " + npc.getId()
+                    + " (cookie/listener construction likely failed). Aborting spawn.");
             return null;
         }
         NmsImpl.applyPosition(handle, location);
