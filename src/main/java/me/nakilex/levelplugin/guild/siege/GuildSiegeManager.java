@@ -8,6 +8,7 @@ import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.utils.MultiLineHologram;
 import me.nakilex.levelplugin.utils.FireworkUtil;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
+import me.nakilex.levelplugin.npc.system.NpcTagUtil;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
@@ -532,8 +533,15 @@ public class GuildSiegeManager {
     }
 
     public void refreshTownVisibility(Player p) {
+        if (NpcTagUtil.isNpc(p)) {
+            return;
+        }
         plugin.getLogger().info("[SiegeDebug] Refresh visibility for " + p.getName());
         EnvironmentManager env = Main.getInstance().getEnvironmentManager();
+        if (env == null) {
+            plugin.getLogger().warning("[SiegeDebug] EnvironmentManager unavailable for " + p.getName());
+            return;
+        }
         env.hideAllBuildingHolograms(p);
         env.removeAllBuildingHolograms(p.getUniqueId());
         Guild g = GuildManager.getInstance().getGuild(p.getUniqueId());
