@@ -85,12 +85,14 @@ public class EntityHumanNPC {
             Object cookie = createListenerCookie(profile, clientInformation);
             Object listener = createListener(server, connection, handle, cookie);
 
-            Method setListener = connection.getClass().getMethod("setListener", Class.forName("net.minecraft.network.PacketListener"));
-            setListener.invoke(connection, listener);
+            attachListenerToConnection(connection, listener);
 
             Field connectionField = getField(handle.getClass(), "connection");
             connectionField.set(handle, listener);
-        } catch (ReflectiveOperationException ignored) {
+        } catch (ReflectiveOperationException ex) {
+            System.out.println("[NPC] setupNetworkStack failed: " + ex.getClass().getSimpleName()
+                    + ": " + ex.getMessage());
+            ex.printStackTrace();
         }
     }
 
@@ -114,7 +116,7 @@ public class EntityHumanNPC {
             if (!java.lang.reflect.Modifier.isStatic(method.getModifiers())) {
                 continue;
             }
-            Object built = tryInvokeFactory(method, profile, clientInformation);
+            Object built = tryInvokeCookieFactory(method, profile, clientInformation);
             if (built != null) {
                 return built;
             }
@@ -130,7 +132,7 @@ public class EntityHumanNPC {
         throw new ReflectiveOperationException("No compatible CommonListenerCookie factory/constructor found");
     }
 
-    private Object tryInvokeFactory(Method method, Object profile, Object clientInformation) {
+    private Object tryInvokeCookieFactory(Method method, Object profile, Object clientInformation) {
         try {
             Class<?>[] params = method.getParameterTypes();
             Object[] args = new Object[params.length];
@@ -182,6 +184,27 @@ public class EntityHumanNPC {
         } catch (Throwable ignored) {
             return null;
         }
+    }
+
+    private void attachListenerToConnection(Object connection, Object listener) throws ReflectiveOperationException {
+        Method target = null;
+        for (Method method : connection.getClass().getMethods()) {
+            if (!method.getName().equals("setListener")) {
+                continue;
+            }
+            if (method.getParameterCount() != 1) {
+                continue;
+            }
+            Class<?> param = method.getParameterTypes()[0];
+            if (param.isInstance(listener) || param.isAssignableFrom(listener.getClass())) {
+                target = method;
+                break;
+            }
+        }
+        if (target == null) {
+            throw new NoSuchMethodException("No compatible Connection#setListener found");
+        }
+        target.invoke(connection, listener);
     }
 
     private Object createListener(Object server, Object connection, Object player, Object cookie) throws ReflectiveOperationException {
