@@ -17,8 +17,8 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 
+import java.lang.reflect.Method;
 import java.util.Collections;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -127,9 +127,8 @@ public final class NpcPacketService {
     private static PacketContainer buildPlayerInfoAdd(NpcPlayer npc) {
         try {
             PacketContainer packet = ProtocolLibrary.getProtocolManager()
-                    .createPacket(PacketType.Play.Server.PLAYER_INFO_UPDATE);
-            EnumSet<EnumWrappers.PlayerInfoAction> actions = EnumSet.of(EnumWrappers.PlayerInfoAction.ADD_PLAYER);
-            packet.getPlayerInfoActions().write(0, actions);
+                    .createPacket(PacketType.Play.Server.PLAYER_INFO);
+            packet.getPlayerInfoAction().write(0, EnumWrappers.PlayerInfoAction.ADD_PLAYER);
             PlayerInfoData data = new PlayerInfoData(
                     createWrappedProfile(npc),
                     0,
@@ -145,8 +144,14 @@ public final class NpcPacketService {
     private static PacketContainer buildPlayerInfoRemove(NpcPlayer npc) {
         try {
             PacketContainer packet = ProtocolLibrary.getProtocolManager()
-                    .createPacket(PacketType.Play.Server.PLAYER_INFO_REMOVE);
-            packet.getUUIDLists().write(0, List.of(npc.getUuid()));
+                    .createPacket(PacketType.Play.Server.PLAYER_INFO);
+            packet.getPlayerInfoAction().write(0, EnumWrappers.PlayerInfoAction.REMOVE_PLAYER);
+            PlayerInfoData data = new PlayerInfoData(
+                    createWrappedProfile(npc),
+                    0,
+                    EnumWrappers.NativeGameMode.SURVIVAL,
+                    WrappedChatComponent.fromText(npc.getName()));
+            packet.getPlayerInfoDataLists().write(0, Collections.singletonList(data));
             return packet;
         } catch (Exception ex) {
             return null;
