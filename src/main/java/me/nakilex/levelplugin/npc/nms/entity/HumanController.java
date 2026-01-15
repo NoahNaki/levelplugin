@@ -40,6 +40,10 @@ public final class HumanController {
             Bukkit.getLogger().warning("[NPC] Unable to construct ServerPlayer for NPC.");
             return null;
         }
+        if (NmsImpl.getPlayerConnection(handle) == null) {
+            Bukkit.getLogger().severe("[NPC] Missing connection for player NPC " + npc.getId() + ". Aborting spawn.");
+            return null;
+        }
         NmsImpl.applyPosition(handle, location);
         NmsImpl.addEntityToWorld(level, handle);
         NmsImpl.addOrRemoveFromPlayerList(level, handle, true);
@@ -54,7 +58,8 @@ public final class HumanController {
         Object level = NmsImpl.getServerLevel(npcPlayer.getWorld());
         Object handle = NmsImpl.getServerPlayer(npcPlayer);
         NmsImpl.addOrRemoveFromPlayerList(level, handle, false);
-        npcPlayer.remove();
+        NmsImpl.disconnectPlayer(handle, "NPC removed");
+        NmsImpl.removePlayerFromWorld(level, handle);
     }
 
     private static String sanitizeProfileName(String name, int id) {

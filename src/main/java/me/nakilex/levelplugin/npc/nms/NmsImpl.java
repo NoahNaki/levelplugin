@@ -23,6 +23,8 @@ public final class NmsImpl {
     private static final String CLASS_INFO_UPDATE = "net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket";
     private static final String CLASS_INFO_REMOVE = "net.minecraft.network.protocol.game.ClientboundPlayerInfoRemovePacket";
     private static final String CLASS_INFO_ACTION = "net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket$Action";
+    private static final String CLASS_COMPONENT = "net.minecraft.network.chat.Component";
+    private static final String CLASS_REMOVAL_REASON = "net.minecraft.world.entity.Entity$RemovalReason";
 
     private static volatile Method addPlayerMethod;
     private static volatile Method addEntityMethod;
@@ -222,6 +224,53 @@ public final class NmsImpl {
         }
     }
 
+    public static Object getPlayerConnection(Object serverPlayer) {
+        if (serverPlayer == null) {
+            return null;
+        }
+        try {
+            Field connectionField = serverPlayer.getClass().getField("connection");
+            return connectionField.get(serverPlayer);
+        } catch (ReflectiveOperationException ex) {
+            return null;
+        }
+    }
+
+    public static void disconnectPlayer(Object serverPlayer, String reason) {
+        Object connection = getPlayerConnection(serverPlayer);
+        if (connection == null) {
+            return;
+        }
+        if (invokeDisconnect(connection, reason)) {
+            return;
+        }
+        Object rawConnection = getConnectionField(connection);
+        if (rawConnection != null && invokeDisconnect(rawConnection, reason)) {
+            return;
+        }
+        closeChannel(rawConnection);
+    }
+
+    public static void removePlayerFromWorld(Object level, Object player) {
+        if (level == null || player == null) {
+            return;
+        }
+        if (invokeLevelRemove(level, player, new String[]{"removePlayerImmediately", "removePlayer"})) {
+            return;
+        }
+        removeEntityFromWorld(level, player);
+    }
+
+    public static void removeEntityFromWorld(Object level, Object entity) {
+        if (entity == null) {
+            return;
+        }
+        if (level != null && invokeLevelRemove(level, entity, new String[]{"removeEntity", "removeEntityImmediately"})) {
+            return;
+        }
+        invokeEntityRemoval(entity);
+    }
+
     public static Object createGameProfile(UUID uuid, String name) {
         try {
             Class<?> profileClass = Class.forName(CLASS_GAME_PROFILE);
@@ -269,8 +318,7 @@ public final class NmsImpl {
         if (serverPlayer == null || packet == null) {
             return;
         }
-        Field connectionField = serverPlayer.getClass().getField("connection");
-        Object connection = connectionField.get(serverPlayer);
+        Object connection = getPlayerConnection(serverPlayer);
         if (connection == null) {
             return;
         }
@@ -338,6 +386,139 @@ public final class NmsImpl {
         method = findMethod(level.getClass(), new String[]{"addFreshEntity", "addEntity"}, CLASS_ENTITY);
         addEntityMethod = method;
         return method;
+    }
+
+    private static boolean invokeLevelRemove(Object level, Object entity, String[] names) {
+        Method method = findMethod(level.getClass(), names, entity.getClass().getName());
+        if (method == null) {
+            return false;
+        }
+        try {
+            method.invoke(level, entity);
+            return true;
+        } catch (ReflectiveOperationException ex) {
+            return false;
+        }
+    }
+
+    private static void invokeEntityRemoval(Object entity) {
+        if (invokeEntityMethod(entity, "discard")) {
+            return;
+        }
+        if (invokeEntityMethod(entity, "remove")) {
+            return;
+        }
+        Object reason = resolveRemovalReason();
+        if (reason == null) {
+            return;
+        }
+        try {
+            Method setRemoved = entity.getClass().getMethod("setRemoved", reason.getClass());
+            setRemoved.invoke(entity, reason);
+        } catch (ReflectiveOperationException ignored) {
+        }
+    }
+
+    private static boolean invokeEntityMethod(Object entity, String methodName) {
+        try {
+            Method method = entity.getClass().getMethod(methodName);
+            method.invoke(entity);
+            return true;
+        } catch (ReflectiveOperationException ex) {
+            return false;
+        }
+    }
+
+    private static Object resolveRemovalReason() {
+        try {
+            Class<?> reasonClass = Class.forName(CLASS_REMOVAL_REASON);
+            Object value = resolveEnumConstant(reasonClass, "DISCARDED");
+            if (value != null) {
+                return value;
+            }
+            Object[] constants = reasonClass.getEnumConstants();
+            return constants != null && constants.length > 0 ? constants[0] : null;
+        } catch (ClassNotFoundException ex) {
+            return null;
+        }
+    }
+
+    private static Object resolveEnumConstant(Class<?> enumClass, String name) {
+        if (enumClass == null || !enumClass.isEnum()) {
+            return null;
+        }
+        try {
+            return Enum.valueOf((Class<Enum>) enumClass, name);
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
+    }
+
+    private static Object getConnectionField(Object listener) {
+        if (listener == null) {
+            return null;
+        }
+        try {
+            Field field = listener.getClass().getDeclaredField("connection");
+            field.setAccessible(true);
+            return field.get(listener);
+        } catch (ReflectiveOperationException ex) {
+            return null;
+        }
+    }
+
+    private static boolean invokeDisconnect(Object target, String reason) {
+        if (target == null) {
+            return false;
+        }
+        Object component = createComponentLiteral(reason);
+        if (component != null && invokeDisconnect(target, component)) {
+            return true;
+        }
+        try {
+            Method disconnect = target.getClass().getMethod("disconnect");
+            disconnect.invoke(target);
+            return true;
+        } catch (ReflectiveOperationException ex) {
+            return false;
+        }
+    }
+
+    private static boolean invokeDisconnect(Object target, Object component) {
+        try {
+            Method disconnect = target.getClass().getMethod("disconnect", component.getClass());
+            disconnect.invoke(target, component);
+            return true;
+        } catch (ReflectiveOperationException ex) {
+            return false;
+        }
+    }
+
+    private static Object createComponentLiteral(String message) {
+        try {
+            Class<?> componentClass = Class.forName(CLASS_COMPONENT);
+            Method literal = componentClass.getMethod("literal", String.class);
+            return literal.invoke(null, message);
+        } catch (ReflectiveOperationException ex) {
+            return null;
+        }
+    }
+
+    private static void closeChannel(Object connection) {
+        if (connection == null) {
+            return;
+        }
+        try {
+            Field channelField = connection.getClass().getDeclaredField("channel");
+            channelField.setAccessible(true);
+            Object channel = channelField.get(connection);
+            if (channel == null) {
+                return;
+            }
+            Method close = channel.getClass().getMethod("close");
+            close.invoke(channel);
+        } catch (ReflectiveOperationException ignored) {
+        }
     }
 
     private static Method findMethod(Class<?> owner, String[] names, String paramClassName) {

@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.npc.nms.entity;
 
 import me.nakilex.levelplugin.npc.system.NPC;
+import io.netty.channel.embedded.EmbeddedChannel;
 
 import java.io.File;
 import java.lang.reflect.Constructor;
@@ -11,10 +12,10 @@ public class EntityHumanNPC {
     private static final String CLASS_SERVER_PLAYER = "net.minecraft.server.level.ServerPlayer";
     private static final String CLASS_CONNECTION = "net.minecraft.network.Connection";
     private static final String CLASS_PACKET_FLOW = "net.minecraft.network.PacketFlow";
-    private static final String CLASS_LISTENER = "net.minecraft.server.network.ServerGamePacketListenerImpl";
     private static final String CLASS_COOKIE = "net.minecraft.server.network.CommonListenerCookie";
     private static final String CLASS_STATS = "net.minecraft.stats.ServerStatsCounter";
     private static final String CLASS_ADVANCEMENTS = "net.minecraft.server.PlayerAdvancements";
+    private static final String CLASS_NOOP_LISTENER = "me.nakilex.levelplugin.npc.nms.entity.NoopGamePacketListener";
 
     private final NPC npc;
     private final Object handle;
@@ -82,13 +83,7 @@ public class EntityHumanNPC {
         try {
             Object connection = createConnection();
             Object cookie = createListenerCookie(profile, clientInformation);
-            Class<?> listenerClass = Class.forName(CLASS_LISTENER);
-            Constructor<?> listenerCtor = listenerClass.getConstructor(
-                    server.getClass(),
-                    Class.forName(CLASS_CONNECTION),
-                    Class.forName(CLASS_SERVER_PLAYER),
-                    cookie.getClass());
-            Object listener = listenerCtor.newInstance(server, connection, handle, cookie);
+            Object listener = createListener(server, connection, handle, cookie);
 
             Method setListener = connection.getClass().getMethod("setListener", Class.forName("net.minecraft.network.PacketListener"));
             setListener.invoke(connection, listener);
@@ -102,9 +97,11 @@ public class EntityHumanNPC {
     private Object createConnection() throws ReflectiveOperationException {
         Class<?> connectionClass = Class.forName(CLASS_CONNECTION);
         Class<?> packetFlowClass = Class.forName(CLASS_PACKET_FLOW);
-        Object clientbound = Enum.valueOf((Class<Enum>) packetFlowClass, "CLIENTBOUND");
+        Object serverbound = Enum.valueOf((Class<Enum>) packetFlowClass, "SERVERBOUND");
         Constructor<?> connectionCtor = connectionClass.getConstructor(packetFlowClass);
-        return connectionCtor.newInstance(clientbound);
+        Object connection = connectionCtor.newInstance(serverbound);
+        setChannel(connection);
+        return connection;
     }
 
     private Object createListenerCookie(Object profile, Object clientInformation) throws ReflectiveOperationException {
@@ -121,6 +118,32 @@ public class EntityHumanNPC {
             }
         }
         throw new ReflectiveOperationException("No CommonListenerCookie constructor found");
+    }
+
+    private Object createListener(Object server, Object connection, Object player, Object cookie) throws ReflectiveOperationException {
+        Class<?> listenerClass = Class.forName(CLASS_NOOP_LISTENER);
+        for (Constructor<?> ctor : listenerClass.getConstructors()) {
+            Class<?>[] params = ctor.getParameterTypes();
+            if (params.length == 4
+                    && params[0].isInstance(server)
+                    && params[1].isInstance(connection)
+                    && params[2].isInstance(player)
+                    && params[3].isInstance(cookie)) {
+                return ctor.newInstance(server, connection, player, cookie);
+            }
+        }
+        throw new ReflectiveOperationException("No NoopGamePacketListener constructor found");
+    }
+
+    private void setChannel(Object connection) {
+        if (connection == null) {
+            return;
+        }
+        try {
+            Field channelField = getField(connection.getClass(), "channel");
+            channelField.set(connection, new EmbeddedChannel());
+        } catch (ReflectiveOperationException ignored) {
+        }
     }
 
     private void setupStatsAndAdvancements(Object server) {
