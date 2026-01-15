@@ -15,6 +15,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.nio.charset.StandardCharsets;
+import me.nakilex.levelplugin.npc.system.NpcPacketService;
+import me.nakilex.levelplugin.npc.system.NpcPlayer;
 
 public class NPC {
     private static final String UUID_DATA_KEY = "npc_uuid";
@@ -25,6 +27,7 @@ public class NPC {
     private final Map<Class<? extends NpcTrait>, NpcTrait> traits = new HashMap<>();
     private Location storedLocation;
     private Entity entity;
+    private NpcPlayer packetPlayer;
     private final NpcNavigator navigator = new NpcNavigator(this);
     private boolean persistent = true;
 
@@ -63,7 +66,14 @@ public class NPC {
         return entity;
     }
 
+    public NpcPlayer getPacketPlayer() {
+        return packetPlayer;
+    }
+
     public boolean isSpawned() {
+        if (type == EntityType.PLAYER) {
+            return packetPlayer != null;
+        }
         return entity != null && entity.isValid();
     }
 
@@ -93,9 +103,11 @@ public class NPC {
             return;
         }
         if (type == EntityType.PLAYER) {
-            entity = me.nakilex.levelplugin.npc.nms.entity.HumanController.spawn(this, location);
-            if (entity == null) {
-                org.bukkit.Bukkit.getLogger().warning("[NPC] Failed to spawn player NPC " + id + ". Falling back to armor stand.");
+            packetPlayer = NpcPacketService.createPlayerNpc(this, location);
+            if (packetPlayer != null) {
+                NpcPacketService.showToWorld(packetPlayer, location.getWorld());
+            } else {
+                org.bukkit.Bukkit.getLogger().warning("[NPC] Failed to spawn packet NPC " + id + ". Falling back to armor stand.");
                 entity = location.getWorld().spawnEntity(location, EntityType.ARMOR_STAND);
             }
         } else {
@@ -115,7 +127,7 @@ public class NPC {
         }
         setIdMetadata();
         traits.values().forEach(trait -> trait.onSpawn(this));
-        if (type == EntityType.PLAYER && entity != null) {
+        if (type == EntityType.PLAYER && packetPlayer != null) {
             me.nakilex.levelplugin.npc.system.NpcSkinService.applySkinToViewers(this);
         }
     }
@@ -129,6 +141,10 @@ public class NPC {
                 entity.remove();
             }
             entity = null;
+        }
+        if (packetPlayer != null) {
+            NpcPacketService.hideFromAll(packetPlayer);
+            packetPlayer = null;
         }
     }
 
@@ -144,9 +160,28 @@ public class NPC {
     }
 
     public void teleport(Location location, PlayerTeleportEvent.TeleportCause cause) {
-        if (entity != null && location != null) {
+        if (location == null) {
+            return;
+        }
+        if (packetPlayer != null) {
+            packetPlayer.setLocation(location);
+            NpcPacketService.teleportForAll(packetPlayer, location);
+            storedLocation = location.clone();
+            return;
+        }
+        if (entity != null) {
             entity.teleport(location, cause);
         }
+    }
+
+    public Location getCurrentLocation() {
+        if (entity != null) {
+            return entity.getLocation();
+        }
+        if (packetPlayer != null) {
+            return packetPlayer.getLocation();
+        }
+        return storedLocation == null ? null : storedLocation.clone();
     }
 
     public NpcDataStore data() {

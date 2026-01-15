@@ -179,7 +179,7 @@ public class NPCClickListener implements Listener {
                     NPC seras = NpcApi.getRegistry().getById(823);
                     String coords = "unknown";
                     if (seras != null) {
-                        Location l = seras.isSpawned() ? seras.getEntity().getLocation() : seras.getStoredLocation();
+                        Location l = seras.isSpawned() ? seras.getCurrentLocation() : seras.getStoredLocation();
                         if (l != null) {
                             coords = l.getBlockX() + ", " + l.getBlockY() + ", " + l.getBlockZ();
                         }

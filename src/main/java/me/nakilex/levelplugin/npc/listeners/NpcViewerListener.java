@@ -32,11 +32,11 @@ public class NpcViewerListener implements Listener {
         for (NPC npc : NpcApi.getRegistry()) {
             if (!npc.isSpawned()
                     || npc.getType() != org.bukkit.entity.EntityType.PLAYER
-                    || npc.getEntity() == null
-                    || npc.getEntity().getWorld() == null) {
+                    || npc.getPacketPlayer() == null
+                    || npc.getPacketPlayer().getLocation().getWorld() == null) {
                 continue;
             }
-            if (!npc.getEntity().getWorld().equals(player.getWorld())) {
+            if (!npc.getPacketPlayer().getLocation().getWorld().equals(player.getWorld())) {
                 continue;
             }
             NpcSkinService.applySkinToViewer(player, npc, 20L);

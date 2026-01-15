@@ -471,19 +471,25 @@ public class NPCDialogManager implements Listener {
         DialogSession session = sessions.get(player.getUniqueId());
         if (session != null) {
             if (session.paused) return;
-            if (session.npc != null && session.npc.isSpawned() &&
-                    player.getLocation().distanceSquared(session.npc.getEntity().getLocation()) > maxDistanceSquared) {
-                player.sendMessage(ChatColor.RED + "You walked away from the NPC. Dialogue cancelled.");
-                resetDialog(player);
-                return;
+            if (session.npc != null && session.npc.isSpawned()) {
+                Location npcLocation = session.npc.getCurrentLocation();
+                if (npcLocation != null
+                        && player.getLocation().distanceSquared(npcLocation) > maxDistanceSquared) {
+                    player.sendMessage(ChatColor.RED + "You walked away from the NPC. Dialogue cancelled.");
+                    resetDialog(player);
+                    return;
+                }
             }
         }
 
         ChoiceSession cs = choiceSessions.get(player.getUniqueId());
-        if (cs != null && cs.npc != null && cs.npc.isSpawned() &&
-                player.getLocation().distanceSquared(cs.npc.getEntity().getLocation()) > maxDistanceSquared) {
-            player.sendMessage(ChatColor.RED + "You walked away from the NPC. Dialogue cancelled.");
-            resetDialog(player);
+        if (cs != null && cs.npc != null && cs.npc.isSpawned()) {
+            Location npcLocation = cs.npc.getCurrentLocation();
+            if (npcLocation != null
+                    && player.getLocation().distanceSquared(npcLocation) > maxDistanceSquared) {
+                player.sendMessage(ChatColor.RED + "You walked away from the NPC. Dialogue cancelled.");
+                resetDialog(player);
+            }
         }
     }
 }

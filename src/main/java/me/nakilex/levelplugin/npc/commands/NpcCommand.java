@@ -140,7 +140,7 @@ public class NpcCommand implements TabExecutor {
         if (npc == null) {
             return true;
         }
-        Location target = npc.isSpawned() && npc.getEntity() != null ? npc.getEntity().getLocation() : npc.getStoredLocation();
+        Location target = npc.isSpawned() ? npc.getCurrentLocation() : npc.getStoredLocation();
         if (target == null) {
             ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.WARNING, "NPC has no stored location.");
             return true;

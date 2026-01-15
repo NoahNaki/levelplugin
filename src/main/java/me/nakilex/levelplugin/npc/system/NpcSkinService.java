@@ -1,11 +1,8 @@
 package me.nakilex.levelplugin.npc.system;
 
-import me.nakilex.levelplugin.Main;
-import me.nakilex.levelplugin.npc.nms.NmsImpl;
-import me.nakilex.levelplugin.npc.system.trait.SkinTrait;
-import org.bukkit.Bukkit;
+import me.nakilex.levelplugin.npc.system.NpcPacketService;
+import me.nakilex.levelplugin.npc.system.NpcPlayer;
 import org.bukkit.World;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
 public final class NpcSkinService {
@@ -15,36 +12,30 @@ public final class NpcSkinService {
     }
 
     public static void applySkinToViewers(NPC npc) {
-        if (npc == null || npc.getEntity() == null || npc.getType() != org.bukkit.entity.EntityType.PLAYER) {
+        if (npc == null || npc.getType() != org.bukkit.entity.EntityType.PLAYER) {
             return;
         }
-        Entity entity = npc.getEntity();
-        if (!(entity instanceof Player npcPlayer)) {
+        NpcPlayer packetPlayer = npc.getPacketPlayer();
+        if (packetPlayer == null) {
             return;
         }
-        World world = npcPlayer.getWorld();
+        World world = packetPlayer.getLocation().getWorld();
+        if (world == null) {
+            return;
+        }
         for (Player viewer : world.getPlayers()) {
             applySkinToViewer(viewer, npc, TAB_LIST_REMOVE_DELAY_TICKS);
         }
     }
 
     public static void applySkinToViewer(Player viewer, NPC npc, long removeDelayTicks) {
-        if (viewer == null || npc == null || npc.getEntity() == null) {
+        if (viewer == null || npc == null) {
             return;
         }
-        if (!(npc.getEntity() instanceof Player npcPlayer)) {
+        NpcPlayer packetPlayer = npc.getPacketPlayer();
+        if (packetPlayer == null) {
             return;
         }
-        SkinTrait skin = npc.getTrait(SkinTrait.class);
-        if (skin == null || skin.getTexture() == null || skin.getSignature() == null) {
-            return;
-        }
-        NmsImpl.applySkin(npcPlayer, skin);
-        NmsImpl.sendTabListAdd(viewer, npcPlayer);
-        if (removeDelayTicks > 0) {
-            Bukkit.getScheduler().runTaskLater(Main.getInstance(),
-                    () -> NmsImpl.sendTabListRemove(viewer, npcPlayer),
-                    removeDelayTicks);
-        }
+        NpcPacketService.showTo(viewer, packetPlayer);
     }
 }
