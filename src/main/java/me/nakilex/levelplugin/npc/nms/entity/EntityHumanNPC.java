@@ -86,10 +86,16 @@ public class EntityHumanNPC {
             Object cookie = createListenerCookie(profile, clientInformation);
             Object listener = createListener(server, connection, handle, cookie);
 
-            attachListenerToConnection(connection, listener);
+            try {
+                attachListenerToConnection(connection, listener);
+            } catch (ReflectiveOperationException ignored) {
+                // best-effort
+            }
 
             Field connectionField = getField(handle.getClass(), "connection");
             connectionField.set(handle, listener);
+
+            placeNewPlayer(server, connection, handle, cookie);
         } catch (ReflectiveOperationException ex) {
             System.out.println("[NPC] setupNetworkStack failed: " + ex.getClass().getSimpleName()
                     + ": " + ex.getMessage());
@@ -226,6 +232,40 @@ public class EntityHumanNPC {
             throw new NoSuchMethodException("No compatible Connection#setListener found");
         }
         target.invoke(connection, listener);
+    }
+
+    private void placeNewPlayer(Object server, Object connection, Object serverPlayer, Object cookie)
+            throws ReflectiveOperationException {
+        Object playerList = server.getClass().getMethod("getPlayerList").invoke(server);
+
+        Method place = null;
+        for (Method method : playerList.getClass().getMethods()) {
+            if (!method.getName().equals("placeNewPlayer")) {
+                continue;
+            }
+            if (method.getParameterCount() != 3) {
+                continue;
+            }
+            Class<?>[] params = method.getParameterTypes();
+            if (!params[0].isAssignableFrom(connection.getClass())) {
+                continue;
+            }
+            if (!params[1].isAssignableFrom(serverPlayer.getClass())) {
+                continue;
+            }
+            if (!params[2].isAssignableFrom(cookie.getClass())) {
+                continue;
+            }
+            place = method;
+            break;
+        }
+
+        if (place == null) {
+            throw new NoSuchMethodException(
+                    "Could not find PlayerList#placeNewPlayer(Connection, ServerPlayer, CommonListenerCookie)");
+        }
+
+        place.invoke(playerList, connection, serverPlayer, cookie);
     }
 
     private Object createListener(Object server, Object connection, Object player, Object cookie) throws ReflectiveOperationException {
