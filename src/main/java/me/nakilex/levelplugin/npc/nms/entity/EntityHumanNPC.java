@@ -12,10 +12,10 @@ public class EntityHumanNPC {
     private static final String CLASS_SERVER_PLAYER = "net.minecraft.server.level.ServerPlayer";
     private static final String CLASS_CONNECTION = "net.minecraft.network.Connection";
     private static final String CLASS_PACKET_FLOW = "net.minecraft.network.PacketFlow";
+    private static final String CLASS_LISTENER = "net.minecraft.server.network.ServerGamePacketListenerImpl";
     private static final String CLASS_COOKIE = "net.minecraft.server.network.CommonListenerCookie";
     private static final String CLASS_STATS = "net.minecraft.stats.ServerStatsCounter";
     private static final String CLASS_ADVANCEMENTS = "net.minecraft.server.PlayerAdvancements";
-    private static final String CLASS_NOOP_LISTENER = "me.nakilex.levelplugin.npc.nms.entity.NoopGamePacketListener";
 
     private final NPC npc;
     private final Object handle;
@@ -121,7 +121,7 @@ public class EntityHumanNPC {
     }
 
     private Object createListener(Object server, Object connection, Object player, Object cookie) throws ReflectiveOperationException {
-        Class<?> listenerClass = Class.forName(CLASS_NOOP_LISTENER);
+        Class<?> listenerClass = Class.forName(CLASS_LISTENER);
         for (Constructor<?> ctor : listenerClass.getConstructors()) {
             Class<?>[] params = ctor.getParameterTypes();
             if (params.length == 4
@@ -132,7 +132,7 @@ public class EntityHumanNPC {
                 return ctor.newInstance(server, connection, player, cookie);
             }
         }
-        throw new ReflectiveOperationException("No NoopGamePacketListener constructor found");
+        throw new ReflectiveOperationException("No ServerGamePacketListenerImpl constructor found");
     }
 
     private void setChannel(Object connection) {
