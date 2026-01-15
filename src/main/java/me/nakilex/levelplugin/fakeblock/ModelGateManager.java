@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.fakeblock;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.fasttravel.FastTravelManager;
+import me.nakilex.levelplugin.npc.system.NpcTagUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -216,6 +217,9 @@ public class ModelGateManager implements Listener {
         // track the spawned furniture entities. Otherwise hideEntity may not
         // take effect and they would still see the open model.
         Player player = event.getPlayer();
+        if (NpcTagUtil.isNpc(player)) {
+            return;
+        }
         plugin.getServer().getScheduler().runTaskLater(plugin,
                 () -> updatePlayer(player), 5L);
     }

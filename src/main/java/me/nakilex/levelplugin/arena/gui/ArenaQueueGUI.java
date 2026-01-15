@@ -8,6 +8,7 @@ import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.TextUtil;
+import me.nakilex.levelplugin.npc.system.NpcTagUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.HumanEntity;
@@ -200,6 +201,9 @@ public class ArenaQueueGUI implements Listener {
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
+        if (NpcTagUtil.isNpc(event.getPlayer())) {
+            return;
+        }
         UUID id = event.getPlayer().getUniqueId();
         if (queueManager.leave(id, ArenaQueueManager.LeaveReason.DISCONNECT)) {
             refreshOpenInventories();

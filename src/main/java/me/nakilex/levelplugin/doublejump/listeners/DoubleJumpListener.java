@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.doublejump.listeners;
 
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
+import me.nakilex.levelplugin.npc.system.NpcTagUtil;
 import org.bukkit.GameMode;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
@@ -35,6 +36,9 @@ public class DoubleJumpListener implements Listener {
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
+        if (NpcTagUtil.isNpc(player)) {
+            return;
+        }
         PlayerClass playerClass = StatsManager.getInstance()
             .getPlayerStats(player.getUniqueId())
             .playerClass;

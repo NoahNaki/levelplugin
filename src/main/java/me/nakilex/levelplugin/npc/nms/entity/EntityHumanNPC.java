@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.npc.nms.entity;
 
 import me.nakilex.levelplugin.npc.system.NPC;
+import me.nakilex.levelplugin.npc.system.NpcTagUtil;
 import io.netty.channel.embedded.EmbeddedChannel;
 
 import java.io.File;
@@ -95,6 +96,7 @@ public class EntityHumanNPC {
             Field connectionField = getField(handle.getClass(), "connection");
             connectionField.set(handle, listener);
 
+            NpcTagUtil.tagNpc(getBukkitEntity());
             placeNewPlayer(server, connection, handle, cookie);
         } catch (ReflectiveOperationException ex) {
             System.out.println("[NPC] setupNetworkStack failed: " + ex.getClass().getSimpleName()

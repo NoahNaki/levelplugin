@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.mob.dps;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.npc.system.NPC;
 import me.nakilex.levelplugin.npc.system.NpcApi;
+import me.nakilex.levelplugin.npc.system.NpcTagUtil;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.MultiLineHologram;
 import org.bukkit.Bukkit;
@@ -140,6 +141,9 @@ public class DpsDummyManager implements Listener {
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
+        if (NpcTagUtil.isNpc(event.getPlayer())) {
+            return;
+        }
         selections.remove(event.getPlayer().getUniqueId());
     }
 

@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.items.data.ArmorType;
 import me.nakilex.levelplugin.items.data.WeaponType;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.mob.config.ModelSetManager;
+import me.nakilex.levelplugin.npc.system.NpcTagUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -154,6 +155,9 @@ public class TransmogManager implements Listener {
 
     @EventHandler
     public void onJoin(PlayerJoinEvent e) {
+        if (NpcTagUtil.isNpc(e.getPlayer())) {
+            return;
+        }
         scanInventory(e.getPlayer());
     }
 

@@ -11,6 +11,7 @@ import me.nakilex.levelplugin.spells.input.SpellInputDisplayManager;
 import me.nakilex.levelplugin.spells.input.SpellInputEvent;
 import me.nakilex.levelplugin.spells.input.SpellInputMode;
 import me.nakilex.levelplugin.spells.input.SpellInputType;
+import me.nakilex.levelplugin.npc.system.NpcTagUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -81,6 +82,9 @@ public class SpellInputListener implements Listener {
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
+        if (NpcTagUtil.isNpc(event.getPlayer())) {
+            return;
+        }
         UUID playerId = event.getPlayer().getUniqueId();
         comboTrackers.remove(playerId);
         sneakStates.remove(playerId);

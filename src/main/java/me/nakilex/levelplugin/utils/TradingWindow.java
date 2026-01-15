@@ -11,6 +11,7 @@ import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.IntegerInputPrompt;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
+import me.nakilex.levelplugin.npc.system.NpcTagUtil;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
@@ -825,6 +826,9 @@ public class TradingWindow implements Listener {
 
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent e) {
+        if (NpcTagUtil.isNpc(e.getPlayer())) {
+            return;
+        }
         DealMaker dm = Main.getPlugin().getDealMaker();
         if (dm.isPlayerCurrentlyDealing(e.getPlayer())) {
             TradingWindow tw = dm.getTradingWindowByPlayer(e.getPlayer());

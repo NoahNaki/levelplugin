@@ -6,6 +6,7 @@ import me.nakilex.levelplugin.items.data.WeaponType;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
+import me.nakilex.levelplugin.npc.system.NpcTagUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -25,6 +26,9 @@ public class EquipOnJoinListener implements Listener {
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
+        if (NpcTagUtil.isNpc(player)) {
+            return;
+        }
         UUID puuid = player.getUniqueId();
 
         // Haal set van al geapplyde item-IDs

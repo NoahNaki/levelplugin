@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.player.config.PlayerConfig;
 import me.nakilex.levelplugin.environment.EnvironmentManager;
 import me.nakilex.levelplugin.player.profile.ProfileManager;
+import me.nakilex.levelplugin.npc.system.NpcTagUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -28,6 +29,9 @@ public class PlayerQuitListener implements Listener {
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
         Player player = event.getPlayer();
+        if (NpcTagUtil.isNpc(player)) {
+            return;
+        }
         UUID pid = player.getUniqueId();
 
         if (Main.getInstance().getQuestManager().isDebug()) {

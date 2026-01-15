@@ -6,6 +6,7 @@ import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.player.fishing.managers.FishingManager;
 import me.nakilex.levelplugin.player.mining.managers.MiningManager;
 import me.nakilex.levelplugin.environment.EnvironmentManager;
+import me.nakilex.levelplugin.npc.system.NpcTagUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
@@ -45,6 +46,9 @@ public class PlayerJoinListener implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
+        if (NpcTagUtil.isNpc(player)) {
+            return;
+        }
         UUID pid = player.getUniqueId();
 
         // Delay to let other plugins finish their startup logic

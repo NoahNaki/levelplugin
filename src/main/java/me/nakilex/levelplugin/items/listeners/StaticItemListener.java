@@ -5,6 +5,7 @@ import me.nakilex.levelplugin.player.profile.ProfileEntryUtil;
 import me.nakilex.levelplugin.server.ServerSelectionManager;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.WorldExclusionUtil;
+import me.nakilex.levelplugin.npc.system.NpcTagUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -126,6 +127,9 @@ public class StaticItemListener implements Listener {
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player p = event.getPlayer();
+        if (NpcTagUtil.isNpc(p)) {
+            return;
+        }
         applyWorldLoadout(p);
     }
 

@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.friend;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.npc.system.NpcTagUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -55,6 +56,9 @@ public class IgnoreManager implements Listener {
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
         Player joined = event.getPlayer();
+        if (NpcTagUtil.isNpc(joined)) {
+            return;
+        }
         // hide ignored players from the joiner
         Bukkit.getScheduler().runTaskLater(plugin, () -> apply(joined), 1L);
         // hide this joiner from others who ignore them

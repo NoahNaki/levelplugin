@@ -6,6 +6,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.entity.Player;
+import me.nakilex.levelplugin.npc.system.NpcTagUtil;
 
 import java.util.UUID;
 
@@ -22,6 +23,9 @@ public class FriendRequestListener implements Listener {
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
+        if (NpcTagUtil.isNpc(player)) {
+            return;
+        }
         UUID inviter = manager.getRequest(player.getUniqueId());
         if (inviter != null) {
             String name = Bukkit.getOfflinePlayer(inviter).getName();

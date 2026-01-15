@@ -5,6 +5,7 @@ import me.nakilex.levelplugin.fakeblock.GateAnimation;
 import me.nakilex.levelplugin.quests.def.DungeonGuardQuest;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.utils.SchematicUtil;
+import me.nakilex.levelplugin.npc.system.NpcTagUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -354,6 +355,9 @@ public class QuestGateManager implements Listener {
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
+        if (NpcTagUtil.isNpc(player)) {
+            return;
+        }
         QuestGate gate = gates.get("office_elevator");
         if (gate != null) {
             gate.setClosed(player.getUniqueId(), true);
@@ -393,6 +397,9 @@ public class QuestGateManager implements Listener {
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
+        if (NpcTagUtil.isNpc(event.getPlayer())) {
+            return;
+        }
         dungeonGateApplied.remove(event.getPlayer().getUniqueId());
     }
 

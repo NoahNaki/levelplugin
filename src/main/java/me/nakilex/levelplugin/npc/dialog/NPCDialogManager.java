@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.quests.data.Quest;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.npc.system.NpcApi;
 import me.nakilex.levelplugin.npc.system.NPC;
+import me.nakilex.levelplugin.npc.system.NpcTagUtil;
 import me.nakilex.levelplugin.Main;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -216,6 +217,9 @@ public class NPCDialogManager implements Listener {
 
             @EventHandler
             public void onQuit(PlayerQuitEvent e) {
+                if (NpcTagUtil.isNpc(e.getPlayer())) {
+                    return;
+                }
                 if (e.getPlayer().equals(player)) {
                     // Treat quitting like walking away so the dialog can resume
                     if (plugin.getQuestManager().isDebug()) {
@@ -337,6 +341,9 @@ public class NPCDialogManager implements Listener {
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
+        if (NpcTagUtil.isNpc(event.getPlayer())) {
+            return;
+        }
         if (plugin.getQuestManager().isDebug()) {
             plugin.getLogger().info("[DialogDebug] player quit " + event.getPlayer().getName());
         }

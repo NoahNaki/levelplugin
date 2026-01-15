@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.auctionhouse;
 
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
+import me.nakilex.levelplugin.npc.system.NpcTagUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -398,6 +399,9 @@ public class AuctionHouseGUI implements Listener {
 
     @EventHandler
     public void onQuit(PlayerQuitEvent e) {
+        if (NpcTagUtil.isNpc(e.getPlayer())) {
+            return;
+        }
         cancelPending(e.getPlayer());
     }
 

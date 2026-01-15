@@ -16,6 +16,7 @@ import me.nakilex.levelplugin.guild.Guild;
 import me.nakilex.levelplugin.guild.GuildManager;
 import me.nakilex.levelplugin.guild.quests.GuildQuest;
 import me.nakilex.levelplugin.guild.quests.GuildQuestManager;
+import me.nakilex.levelplugin.npc.system.NpcTagUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
@@ -52,6 +53,9 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
 
     @org.bukkit.event.EventHandler
     public void onJoin(org.bukkit.event.player.PlayerJoinEvent event) {
+        if (NpcTagUtil.isNpc(event.getPlayer())) {
+            return;
+        }
         questManager.ensureTrackedQuestFor(event.getPlayer().getUniqueId());
         updateBoard(event.getPlayer());
         org.bukkit.entity.Player player = event.getPlayer();
@@ -64,6 +68,9 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
 
     @org.bukkit.event.EventHandler
     public void onQuit(org.bukkit.event.player.PlayerQuitEvent event) {
+        if (NpcTagUtil.isNpc(event.getPlayer())) {
+            return;
+        }
         removeBoard(event.getPlayer());
     }
 

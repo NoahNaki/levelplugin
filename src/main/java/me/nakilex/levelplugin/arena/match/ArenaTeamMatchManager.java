@@ -8,6 +8,7 @@ import me.nakilex.levelplugin.arena.instance.ArenaInstanceManager;
 import me.nakilex.levelplugin.arena.rating.ArenaRatingManager;
 import me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
+import me.nakilex.levelplugin.npc.system.NpcTagUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
@@ -366,6 +367,9 @@ public class ArenaTeamMatchManager implements Listener {
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
+        if (NpcTagUtil.isNpc(event.getPlayer())) {
+            return;
+        }
         UUID id = event.getPlayer().getUniqueId();
         ArenaTeamMatch match = findMatch(id).orElse(null);
         if (match == null || match.getState() == ArenaTeamMatch.State.FINISHED) {
@@ -376,6 +380,9 @@ public class ArenaTeamMatchManager implements Listener {
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
+        if (NpcTagUtil.isNpc(event.getPlayer())) {
+            return;
+        }
         UUID id = event.getPlayer().getUniqueId();
         ArenaTeamMatch match = findMatch(id).orElse(null);
         if (match == null) {

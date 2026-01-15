@@ -19,6 +19,7 @@ import com.nexomc.nexo.mechanics.furniture.FurnitureMechanic;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.lootchests.utils.LocationUtils;
 import me.nakilex.levelplugin.utils.NexoUtil;
+import me.nakilex.levelplugin.npc.system.NpcTagUtil;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -164,12 +165,18 @@ public class BeaconManager implements Listener {
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
+        if (NpcTagUtil.isNpc(event.getPlayer())) {
+            return;
+        }
         removeBeam(event.getPlayer());
     }
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
         Player viewer = event.getPlayer();
+        if (NpcTagUtil.isNpc(viewer)) {
+            return;
+        }
         for (Map.Entry<UUID, ItemDisplay> entry : activeBeacons.entrySet()) {
             ItemDisplay display = entry.getValue();
             if (display == null || display.isDead()) {

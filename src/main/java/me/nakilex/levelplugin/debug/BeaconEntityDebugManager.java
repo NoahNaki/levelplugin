@@ -5,6 +5,7 @@ import com.nexomc.nexo.mechanics.furniture.FurnitureMechanic;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.lootchests.utils.LocationUtils;
 import me.nakilex.levelplugin.utils.NexoUtil;
+import me.nakilex.levelplugin.npc.system.NpcTagUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.entity.ItemDisplay;
@@ -138,6 +139,9 @@ public class BeaconEntityDebugManager implements Listener {
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
+        if (NpcTagUtil.isNpc(event.getPlayer())) {
+            return;
+        }
         remove(event.getPlayer());
     }
 

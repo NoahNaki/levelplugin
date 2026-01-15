@@ -12,6 +12,7 @@ import me.nakilex.levelplugin.utils.AttributeUtil;
 import me.nakilex.levelplugin.utils.TeleportUtils;
 import me.nakilex.levelplugin.player.config.PlayerConfig;
 import me.nakilex.levelplugin.player.profile.ProfileManager;
+import me.nakilex.levelplugin.npc.system.NpcTagUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -316,6 +317,9 @@ public class CatacombsManager implements Listener {
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
+        if (NpcTagUtil.isNpc(event.getPlayer())) {
+            return;
+        }
         CatacombRun run = runs.remove(event.getPlayer().getUniqueId());
         if (run != null) {
             persistProgress(run);

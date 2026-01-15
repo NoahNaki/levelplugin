@@ -6,6 +6,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.codex.CodexManager;
 import me.nakilex.levelplugin.npc.system.NpcApi;
 import me.nakilex.levelplugin.npc.system.NPC;
+import me.nakilex.levelplugin.npc.system.NpcTagUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -332,6 +333,9 @@ public class MercenaryAffinityManager implements org.bukkit.event.Listener {
 
     @org.bukkit.event.EventHandler
     public void onJoin(org.bukkit.event.player.PlayerJoinEvent event) {
+        if (NpcTagUtil.isNpc(event.getPlayer())) {
+            return;
+        }
         loadPlayer(event.getPlayer().getUniqueId());
     }
 

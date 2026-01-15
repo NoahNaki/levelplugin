@@ -9,6 +9,7 @@ import com.comphenix.protocol.events.PacketContainer;
 import com.comphenix.protocol.events.ListenerPriority;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.utils.GlowPacketUtil;
+import me.nakilex.levelplugin.npc.system.NpcTagUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Entity;
@@ -135,6 +136,9 @@ public class FriendGlowManager implements Listener {
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
+        if (NpcTagUtil.isNpc(event.getPlayer())) {
+            return;
+        }
         disabled.remove(event.getPlayer().getUniqueId());
         glowing.remove(event.getPlayer().getUniqueId());
     }

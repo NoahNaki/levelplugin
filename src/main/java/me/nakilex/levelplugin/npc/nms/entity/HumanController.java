@@ -46,8 +46,6 @@ public final class HumanController {
             return null;
         }
         NmsImpl.applyPosition(handle, location);
-        NmsImpl.addEntityToWorld(level, handle);
-        NmsImpl.addOrRemoveFromPlayerList(level, handle, true);
         logNpcConnection(handle);
         return human.getBukkitEntity();
     }
