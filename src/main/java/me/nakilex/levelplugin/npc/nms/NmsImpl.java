@@ -229,7 +229,7 @@ public final class NmsImpl {
             return null;
         }
         try {
-            Field connectionField = serverPlayer.getClass().getField("connection");
+            Field connectionField = findField(serverPlayer.getClass(), "connection");
             return connectionField.get(serverPlayer);
         } catch (ReflectiveOperationException ex) {
             return null;
@@ -542,6 +542,18 @@ public final class NmsImpl {
             }
         }
         return null;
+    }
+
+    private static Field findField(Class<?> owner, String name) throws ReflectiveOperationException {
+        try {
+            Field field = owner.getField(name);
+            field.setAccessible(true);
+            return field;
+        } catch (NoSuchFieldException ignored) {
+        }
+        Field field = owner.getDeclaredField(name);
+        field.setAccessible(true);
+        return field;
     }
 
     private static boolean matchesName(String value, String[] names) {
