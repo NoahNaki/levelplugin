@@ -11,7 +11,8 @@ import java.lang.reflect.Method;
 public class EntityHumanNPC {
     private static final String CLASS_SERVER_PLAYER = "net.minecraft.server.level.ServerPlayer";
     private static final String CLASS_CONNECTION = "net.minecraft.network.Connection";
-    private static final String CLASS_PACKET_FLOW = "net.minecraft.network.PacketFlow";
+    private static final String CLASS_PACKET_FLOW_PROTOCOL = "net.minecraft.network.protocol.PacketFlow";
+    private static final String CLASS_PACKET_FLOW_NETWORK = "net.minecraft.network.PacketFlow";
     private static final String CLASS_LISTENER = "net.minecraft.server.network.ServerGamePacketListenerImpl";
     private static final String CLASS_COOKIE = "net.minecraft.server.network.CommonListenerCookie";
     private static final String CLASS_STATS = "net.minecraft.stats.ServerStatsCounter";
@@ -98,12 +99,32 @@ public class EntityHumanNPC {
 
     private Object createConnection() throws ReflectiveOperationException {
         Class<?> connectionClass = Class.forName(CLASS_CONNECTION);
-        Class<?> packetFlowClass = Class.forName(CLASS_PACKET_FLOW);
-        Object serverbound = Enum.valueOf((Class<Enum>) packetFlowClass, "SERVERBOUND");
+        Class<?> packetFlowClass = findPacketFlowClass();
+        Object serverbound = resolvePacketFlowServerbound(packetFlowClass);
         Constructor<?> connectionCtor = connectionClass.getConstructor(packetFlowClass);
         Object connection = connectionCtor.newInstance(serverbound);
         setChannel(connection);
         return connection;
+    }
+
+    private Class<?> findPacketFlowClass() throws ClassNotFoundException {
+        try {
+            return Class.forName(CLASS_PACKET_FLOW_PROTOCOL);
+        } catch (ClassNotFoundException ex) {
+            return Class.forName(CLASS_PACKET_FLOW_NETWORK);
+        }
+    }
+
+    private Object resolvePacketFlowServerbound(Class<?> packetFlowClass) {
+        try {
+            return Enum.valueOf((Class<Enum>) packetFlowClass.asSubclass(Enum.class), "SERVERBOUND");
+        } catch (IllegalArgumentException ex) {
+            Object[] constants = packetFlowClass.getEnumConstants();
+            if (constants != null && constants.length > 0) {
+                return constants[0];
+            }
+            throw ex;
+        }
     }
 
     private Object createListenerCookie(Object profile, Object clientInformation) throws ReflectiveOperationException {
