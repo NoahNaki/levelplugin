@@ -182,6 +182,9 @@ commands:
   hub:
     description: Return to the hub
     usage: /hub
+  npc:
+    description: Create basic player NPCs
+    usage: /npc create <name>
   addgems:
     description: Adjust a player's gems (can be negative)
     usage: /addgems <player|@everyone> <amount>

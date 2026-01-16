@@ -45,6 +45,10 @@ import me.nakilex.levelplugin.friend.IgnoreManager;
 import me.nakilex.levelplugin.friend.FriendRequestListener;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.config.PlayerConfig;
+import me.nakilex.levelplugin.npc.command.NpcCommand;
+import me.nakilex.levelplugin.npc.core.NpcManager;
+import me.nakilex.levelplugin.npc.core.ViewerTracker;
+import me.nakilex.levelplugin.npc.nms.NmsBridge_1_21_3;
 import me.nakilex.levelplugin.pathfinding.PathfindingManager;
 import me.nakilex.levelplugin.chat.ChatManager;
 import me.nakilex.levelplugin.pathfinding.MercenaryManager;
@@ -191,6 +195,9 @@ public class PluginBootstrap {
     private me.nakilex.levelplugin.leaderboards.DuelStatsManager duelStatsManager;
     private final Map<UUID, List<me.nakilex.levelplugin.npc.system.NPC>> activeBowDrones = new HashMap<>();
     private NpcRegistry npcRegistry;
+    private me.nakilex.levelplugin.npc.core.NpcRegistry playerNpcRegistry;
+    private NpcManager playerNpcManager;
+    private ViewerTracker playerNpcViewerTracker;
     private me.nakilex.levelplugin.auctionhouse.AuctionHouseManager auctionHouseManager;
     private me.nakilex.levelplugin.auctionhouse.AuctionHouseGUI auctionHouseGUI;
     private SettingsManager settingsManager;
@@ -293,6 +300,10 @@ public class PluginBootstrap {
         worldManager.ensureWorldsLoaded("flatland", "redrocks", hubWorld);
         npcRegistry = new NpcRegistry(plugin);
         NpcApi.initialize(npcRegistry);
+        playerNpcRegistry = new me.nakilex.levelplugin.npc.core.NpcRegistry();
+        playerNpcManager = new NpcManager(plugin, playerNpcRegistry, new NmsBridge_1_21_3(plugin));
+        playerNpcViewerTracker = new ViewerTracker(plugin, playerNpcManager, playerNpcRegistry);
+        playerNpcViewerTracker.start();
         serverSelectionManager = new me.nakilex.levelplugin.server.ServerSelectionManager(plugin);
 
         itemManager = new ItemManager(plugin);
@@ -495,6 +506,9 @@ public class PluginBootstrap {
                 new me.nakilex.levelplugin.guild.siege.GuildSiegeCommand(guildSiegeManager);
         plugin.getCommand("siege").setExecutor(siegeCmd);
         plugin.getCommand("siege").setTabCompleter(siegeCmd);
+        NpcCommand npcCommand = new NpcCommand(playerNpcManager);
+        plugin.getCommand("npc").setExecutor(npcCommand);
+        plugin.getCommand("npc").setTabCompleter(npcCommand);
 
         furnitureGuiMapper = new me.nakilex.levelplugin.nexo.FurnitureGuiMapper();
         furnitureGuiMapper.register("quest_board", player -> mercenaryExpeditionGUI.open(player));
@@ -614,6 +628,12 @@ public class PluginBootstrap {
 
     public void disable() {
         TaskRegistry.stopTasks();
+        if (playerNpcViewerTracker != null) {
+            playerNpcViewerTracker.stop();
+        }
+        if (playerNpcManager != null) {
+            playerNpcManager.shutdown();
+        }
         if (chatGameManager != null) chatGameManager.stop();
         if (mercenaryManager != null) mercenaryManager.unbindAll();
         if (economyManager != null) economyManager.saveBalances();
