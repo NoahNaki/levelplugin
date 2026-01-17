@@ -261,13 +261,6 @@ public class ListenerRegistry {
         pm.registerEvents(mobCodexGUI, plugin);
         pm.registerEvents(npcCodexGUI, plugin);
         pm.registerEvents(locationCodexGUI, plugin);
-        if (mythicEnabled) {
-            pm.registerEvents(new me.nakilex.levelplugin.codex.CodexListener(
-                    plugin.getMobRewardsConfig(),
-                    plugin.getBossConfig(),
-                    plugin.getCodexManager()), plugin);
-            pm.registerEvents(new DungeonMobSpawnListener(plugin.getDungeonManager(), plugin), plugin);
-        }
         pm.registerEvents(hologramListener, plugin);
         pm.registerEvents(stageBlockInteractListener, plugin);
         pm.registerEvents(new me.nakilex.levelplugin.environment.listeners.EnvironmentInventoryListener(plugin.getEnvironmentManager()), plugin);
