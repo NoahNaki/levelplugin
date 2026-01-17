@@ -94,7 +94,7 @@ public class NPCClickListener implements Listener {
         registerQuestHandlers();
     }
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler
     public void onNPCClick(PlayerInteractEntityEvent event) {
         // Ignore offhand interactions
         if (event.getHand() == org.bukkit.inventory.EquipmentSlot.OFF_HAND) {
