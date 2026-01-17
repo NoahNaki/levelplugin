@@ -1,16 +1,21 @@
 package me.nakilex.levelplugin.utils;
 
-import me.nakilex.levelplugin.utils.DefaultFontInfo;
+import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class ChatFormatter {
 
     private static final int CENTER_PX = 154; // This is approximately the center of the Minecraft chat window
     public static final int GLYPH_PX = 8;     // approximate width of custom glyphs
 
-    public static void sendCenteredMessage(Player player, String message) {
-        if (message == null || message.equals("")) return;
+    // Matches "#47b587" or "&#47b587" (case-insensitive).
+    private static final Pattern HEX_PATTERN = Pattern.compile("(?i)(&)?#([0-9a-f]{6})");
 
+    public static void sendCenteredMessage(Player player, String message) {
+        if (message == null || message.isEmpty()) return;
         player.sendMessage(getCenteredText(message));
     }
 
@@ -34,7 +39,11 @@ public class ChatFormatter {
     public static String getCenteredText(String message, int centerPx) {
         if (message == null || message.isEmpty()) return "";
 
-        int messagePxSize = pixelLength(message);
+        // Important: convert hex codes before measuring pixel width,
+        // otherwise "#RRGGBB" characters distort centering.
+        String processed = colorize(message);
+
+        int messagePxSize = pixelLength(processed);
 
         int toCompensate = centerPx - (messagePxSize / 2);
         int spaceLength = DefaultFontInfo.SPACE.getLength() + 1;
@@ -44,25 +53,31 @@ public class ChatFormatter {
             sb.append(' ');
             compensated += spaceLength;
         }
-        return sb + message;
+        return sb + processed;
     }
 
     /** Calculate pixel width of a message accounting for color codes and glyph placeholders. */
     public static int pixelLength(String text) {
+        if (text == null || text.isEmpty()) return 0;
+
         int px = 0;
         boolean previousCode = false;
         boolean bold = false;
+
         for (int i = 0; i < text.length(); i++) {
             char c = text.charAt(i);
+
             if (c == '§') {
                 previousCode = true;
                 continue;
             }
             if (previousCode) {
                 previousCode = false;
-                bold = c == 'l' || c == 'L';
+                bold = (c == 'l' || c == 'L');
                 continue;
             }
+
+            // Your custom glyph placeholder format: <glyph:...>
             if (text.startsWith("<glyph:", i)) {
                 int end = text.indexOf('>', i);
                 if (end == -1) end = text.length() - 1;
@@ -70,6 +85,7 @@ public class ChatFormatter {
                 px += GLYPH_PX + 1;
                 continue;
             }
+
             DefaultFontInfo dFI = DefaultFontInfo.getDefaultFontInfo(c);
             px += (bold ? DefaultFontInfo.getBoldLength() : dFI.getLength()) + 1;
         }
@@ -92,8 +108,48 @@ public class ChatFormatter {
         player.sendMessage("        " + message);
     }
 
+    /**
+     * Apply legacy &-color codes AND hex colors (#RRGGBB or &#RRGGBB) into
+     * Minecraft legacy section codes.
+     *
+     * This is safe: invalid hex won't throw; it will just be left untouched.
+     */
+    public static String colorize(String input) {
+        if (input == null || input.isEmpty()) return "";
+        String withHex = applyHex(input);
+        return ChatColor.translateAlternateColorCodes('&', withHex);
+    }
+
+    private static String applyHex(String input) {
+        try {
+            Matcher matcher = HEX_PATTERN.matcher(input);
+            StringBuffer sb = new StringBuffer();
+
+            while (matcher.find()) {
+                String hex = matcher.group(2); // RRGGBB
+                String replacement = toLegacyHex(hex);
+                matcher.appendReplacement(sb, Matcher.quoteReplacement(replacement));
+            }
+
+            matcher.appendTail(sb);
+            return sb.toString();
+        } catch (Throwable t) {
+            // Never let formatting kill plugin enable.
+            return input;
+        }
+    }
+
+    private static String toLegacyHex(String hex) {
+        // Build "§x§R§R§G§G§B§B"
+        StringBuilder out = new StringBuilder("§x");
+        for (int i = 0; i < 6; i++) {
+            out.append('§').append(hex.charAt(i));
+        }
+        return out.toString();
+    }
+
     /** Hex color used for experience text and amounts. */
-    private static final String EXP_COLOR = net.md_5.bungee.api.ChatColor.of("#47b587").toString();
+    private static final String EXP_COLOR = colorize("#47b587");
 
     /** Return the standard colored label used for experience amounts. */
     public static String experienceLabel() {
@@ -104,7 +160,7 @@ public class ChatFormatter {
     public static String experienceColor() {
         // Display XP amounts in gray so reward numbers stand out
         // uniformly across coins, gems, and experience.
-        return net.md_5.bungee.api.ChatColor.GRAY.toString();
+        return ChatColor.GRAY.toString();
     }
 
     /**
@@ -121,5 +177,4 @@ public class ChatFormatter {
         }
         constructDivider(player, dividerColor + "§l-", 45);
     }
-
 }

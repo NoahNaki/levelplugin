@@ -4,9 +4,8 @@ import me.nakilex.levelplugin.utils.TextUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.codex.CodexManager;
-import net.citizensnpcs.api.event.NPCRightClickEvent;
-import net.citizensnpcs.api.CitizensAPI;
-import net.citizensnpcs.api.npc.NPC;
+import me.nakilex.levelplugin.npc.system.NpcApi;
+import me.nakilex.levelplugin.npc.system.NPC;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -337,18 +336,25 @@ public class MercenaryAffinityManager implements org.bukkit.event.Listener {
     }
 
     @org.bukkit.event.EventHandler
-    public void onMercenaryGift(NPCRightClickEvent event) {
-        int npcId = event.getNPC().getId();
+    public void onMercenaryGift(org.bukkit.event.player.PlayerInteractEntityEvent event) {
+        if (!NpcApi.getRegistry().isNPC(event.getRightClicked())) {
+            return;
+        }
+        me.nakilex.levelplugin.npc.system.NPC npc = NpcApi.getRegistry().getNPC(event.getRightClicked());
+        if (npc == null) {
+            return;
+        }
+        int npcId = npc.getId();
         if (!gearScores.containsKey(npcId)) {
             return;
         }
-        recordDiscovery(event.getClicker(), event.getNPC());
-        Player player = event.getClicker();
+        recordDiscovery(event.getPlayer(), npc);
+        Player player = event.getPlayer();
         MercenaryGift heldGift = matchGift(player.getInventory().getItemInMainHand());
         if (!player.isSneaking()) {
             if (heldGift != null && shouldSendGiftHint(player.getUniqueId())) {
                 player.sendMessage(ChatColor.GRAY + "Sneak + right-click with your gift to give it to "
-                        + ChatColor.GOLD + event.getNPC().getName() + ChatColor.GRAY + ".");
+                        + ChatColor.GOLD + npc.getName() + ChatColor.GRAY + ".");
             }
             return;
         }
@@ -358,7 +364,7 @@ public class MercenaryAffinityManager implements org.bukkit.event.Listener {
             return;
         }
 
-        handGift(player, npcId, event.getNPC().getName(), heldGift);
+        handGift(player, npcId, npc.getName(), heldGift);
     }
 
     private boolean shouldSendGiftHint(UUID playerId) {
@@ -379,7 +385,7 @@ public class MercenaryAffinityManager implements org.bukkit.event.Listener {
     }
 
     private String getMercenaryName(int npcId) {
-        NPC npc = CitizensAPI.getNPCRegistry().getById(npcId);
+        NPC npc = NpcApi.getRegistry().getById(npcId);
         if (npc == null || npc.getName() == null) {
             return null;
         }

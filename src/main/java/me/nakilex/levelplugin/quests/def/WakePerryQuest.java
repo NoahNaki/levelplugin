@@ -12,8 +12,8 @@ import me.nakilex.levelplugin.quests.data.QuestScript;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
-import net.citizensnpcs.api.CitizensAPI;
-import net.citizensnpcs.api.npc.NPC;
+import me.nakilex.levelplugin.npc.system.NpcApi;
+import me.nakilex.levelplugin.npc.system.NPC;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.NamespacedKey;
@@ -266,7 +266,7 @@ public class WakePerryQuest extends Quest implements QuestScript {
 
         consumeOne(player, slot);
         syncNpcVisibilityForPlayer(player);
-        NPC awake = CitizensAPI.getNPCRegistry().getById(NPC_PERRY_AWAKE_ID);
+        NPC awake = NpcApi.getRegistry().getById(NPC_PERRY_AWAKE_ID);
         NPC dialogNpc = awake != null ? awake : npc;
         questManager.handleTalk(player, WAKE_TARGET);
         startAutoDialog(player, dialogNpc, PERRY_AWAKE_DIALOG, null, dialogManager, questManager);
@@ -343,8 +343,8 @@ public class WakePerryQuest extends Quest implements QuestScript {
         if (questManager == null || player == null) {
             return;
         }
-        NPC sleeping = CitizensAPI.getNPCRegistry().getById(NPC_PERRY_SLEEP_ID);
-        NPC awake = CitizensAPI.getNPCRegistry().getById(NPC_PERRY_AWAKE_ID);
+        NPC sleeping = NpcApi.getRegistry().getById(NPC_PERRY_SLEEP_ID);
+        NPC awake = NpcApi.getRegistry().getById(NPC_PERRY_AWAKE_ID);
         if (sleeping == null || awake == null) {
             return;
         }

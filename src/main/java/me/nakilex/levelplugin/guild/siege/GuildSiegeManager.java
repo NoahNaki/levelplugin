@@ -8,8 +8,10 @@ import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.utils.MultiLineHologram;
 import me.nakilex.levelplugin.utils.FireworkUtil;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
-import net.md_5.bungee.api.chat.ClickEvent;
-import net.md_5.bungee.api.chat.TextComponent;
+
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -38,6 +40,7 @@ public class GuildSiegeManager {
     public static GuildSiegeManager getInstance() { return INSTANCE; }
 
     private Main plugin;
+    private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
     private BukkitTask announceTask;
     private BukkitTask countdownTask;
     private BukkitTask captureTask;
@@ -122,15 +125,15 @@ public class GuildSiegeManager {
     public void broadcastSignupMessage() {
         String raw = "<glyph:flagleft_icon> " + ChatColor.GOLD + "" + ChatColor.BOLD + "CLICK-HERE "
                 + ChatColor.GRAY + "to sign up for the guild siege! " + ChatColor.RESET + "<glyph:flagright_icon>";
-        TextComponent msg = new TextComponent(ChatFormatter.getCenteredText(raw));
-        msg.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/siege join"));
+        Component msg = LEGACY.deserialize(ChatFormatter.getCenteredText(raw))
+                .clickEvent(ClickEvent.runCommand("/siege join"));
         QuestManager qm = Main.getInstance().getQuestManager();
         for (Player p : Bukkit.getOnlinePlayers()) {
             if (!p.getWorld().getName().equals("world")) continue;
             // Temporarily disabled quest completion check for testing
             // if (!qm.hasCompleted(p.getUniqueId(), "newbeginning")) continue;
             ChatFormatter.sendCenteredMessage(p, " ");
-            p.spigot().sendMessage(msg);
+            p.sendMessage(msg);
             ChatFormatter.sendCenteredMessage(p, " ");
         }
     }

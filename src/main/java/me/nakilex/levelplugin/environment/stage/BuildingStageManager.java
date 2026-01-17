@@ -6,9 +6,9 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.lootchests.utils.LocationUtils;
 import me.nakilex.levelplugin.utils.FurnitureCleanupUtil;
 import me.nakilex.levelplugin.utils.NexoUtil;
-import net.citizensnpcs.api.CitizensAPI;
-import net.citizensnpcs.api.npc.NPC;
-import net.citizensnpcs.trait.CurrentLocation;
+import me.nakilex.levelplugin.npc.system.NpcApi;
+import me.nakilex.levelplugin.npc.system.NPC;
+import me.nakilex.levelplugin.npc.system.trait.CurrentLocationTrait;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -159,9 +159,9 @@ public class BuildingStageManager {
         }
         list.clear();
         for (NPCSpawn spawn : st.npcs) {
-            NPC template = CitizensAPI.getNPCRegistry().getById(spawn.id);
+            NPC template = NpcApi.getRegistry().getById(spawn.id);
             if (template == null) continue;
-            NPC clone = template.copy();
+            NPC clone = NpcApi.getRegistry().cloneNpc(template);
             Location loc = origin.clone().add(
                     spawn.x - st.ox + 0.5,
                     spawn.y - st.oy + NPC_SPAWN_Y_OFFSET,
@@ -169,7 +169,7 @@ public class BuildingStageManager {
             );
             loc.setYaw(spawn.yaw);
             loc.setPitch(spawn.pitch);
-            clone.getOrAddTrait(CurrentLocation.class).setLocation(loc);
+            clone.getOrAddTrait(CurrentLocationTrait.class).setLocation(loc);
             clone.spawn(loc);
             if (clone.isSpawned()) {
                 clone.getEntity().teleport(loc, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.PLUGIN);
@@ -277,7 +277,7 @@ public class BuildingStageManager {
         int maxY = Math.max(p1.getBlockY(), p2.getBlockY());
         int minZ = Math.min(p1.getBlockZ(), p2.getBlockZ());
         int maxZ = Math.max(p1.getBlockZ(), p2.getBlockZ());
-        for (NPC npc : CitizensAPI.getNPCRegistry()) {
+        for (NPC npc : NpcApi.getRegistry()) {
             Location l = npc.isSpawned() ? npc.getEntity().getLocation() : npc.getStoredLocation();
             if (l == null || !l.getWorld().equals(p1.getWorld())) continue;
             int x = l.getBlockX();

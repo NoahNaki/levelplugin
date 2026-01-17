@@ -1,7 +1,7 @@
 package me.nakilex.levelplugin.motd;
 
 import me.nakilex.levelplugin.Main;
-import net.md_5.bungee.api.ChatColor;
+import org.bukkit.ChatColor;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.event.EventHandler;
@@ -101,7 +101,7 @@ public class MotdManager implements Listener {
         StringBuffer sb = new StringBuffer();
         while (m.find()) {
             String color = m.group(1);
-            m.appendReplacement(sb, Matcher.quoteReplacement(ChatColor.of("#" + color).toString()));
+            m.appendReplacement(sb, Matcher.quoteReplacement(ChatColor.valueOf("#" + color).toString()));
         }
         m.appendTail(sb);
         return sb.toString();
@@ -124,7 +124,7 @@ public class MotdManager implements Listener {
                 int g = (int) (start.getGreen() + (end.getGreen() - start.getGreen()) * ratio);
                 int b = (int) (start.getBlue() + (end.getBlue() - start.getBlue()) * ratio);
                 String hex = String.format("#%02X%02X%02X", r, g, b);
-                out.append(ChatColor.of(hex)).append(text.charAt(index));
+                out.append(ChatColor.valueOf(hex)).append(text.charAt(index));
             }
         }
         // append leftover characters without gradient

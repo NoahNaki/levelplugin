@@ -4,8 +4,8 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.classes.essence.ClassEssence;
 import me.nakilex.levelplugin.quests.data.*;
-import net.citizensnpcs.api.CitizensAPI;
-import net.citizensnpcs.api.npc.NPC;
+import me.nakilex.levelplugin.npc.system.NpcApi;
+import me.nakilex.levelplugin.npc.system.NPC;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Sound;
@@ -92,7 +92,7 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
         qm.removeFlag(player.getUniqueId(), "newbeginning", "readyToShop");
         qm.removeFlag(player.getUniqueId(), "newbeginning", "merchantDone");
 
-        NPC startNpc = CitizensAPI.getNPCRegistry().getById(546);
+        NPC startNpc = NpcApi.getRegistry().getById(546);
         boolean played = false;
         if (startNpc != null && startNpc.isSpawned() && player.isOnline() &&
                 startNpc.getEntity().getWorld().equals(player.getWorld()) &&
@@ -106,7 +106,7 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                 boolean triggered = false;
                 @Override
                 public void run() {
-                    NPC npc = CitizensAPI.getNPCRegistry().getById(546);
+                    NPC npc = NpcApi.getRegistry().getById(546);
                     if (npc == null || !npc.isSpawned()) return;
                     if (!player.isOnline()) { cancel(); return; }
                     if (!npc.getEntity().getWorld().equals(player.getWorld())) return;
@@ -127,8 +127,8 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                 if (!event.getPlayer().getUniqueId().equals(pid)) return;
                 Player pl = event.getPlayer();
                 if (event.getHand() == EquipmentSlot.OFF_HAND) return;
-                if (!CitizensAPI.getNPCRegistry().isNPC(event.getRightClicked())) return;
-                NPC npc = CitizensAPI.getNPCRegistry().getNPC(event.getRightClicked());
+                if (!NpcApi.getRegistry().isNPC(event.getRightClicked())) return;
+                NPC npc = NpcApi.getRegistry().getNPC(event.getRightClicked());
                 if (npc.getId() != 546) return;
 
                 PlayerQuestProgress prog = plugin.getQuestManager().getProgress(pid, "newbeginning");
@@ -157,8 +157,8 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                 if (!event.getPlayer().getUniqueId().equals(pid)) return;
                 Player pl = event.getPlayer();
                 if (event.getHand() == EquipmentSlot.OFF_HAND) return;
-                if (!CitizensAPI.getNPCRegistry().isNPC(event.getRightClicked())) return;
-                NPC npc = CitizensAPI.getNPCRegistry().getNPC(event.getRightClicked());
+                if (!NpcApi.getRegistry().isNPC(event.getRightClicked())) return;
+                NPC npc = NpcApi.getRegistry().getNPC(event.getRightClicked());
                 if (!ChatColor.stripColor(npc.getName()).equalsIgnoreCase("Starter Merchant")) return;
 
                 PlayerQuestProgress prog = plugin.getQuestManager().getProgress(pid, "newbeginning");
@@ -268,8 +268,8 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                 if (!event.getPlayer().getUniqueId().equals(pid)) return;
                 Player pl = event.getPlayer();
                 if (event.getHand() == EquipmentSlot.OFF_HAND) return;
-                if (!CitizensAPI.getNPCRegistry().isNPC(event.getRightClicked())) return;
-                NPC npc = CitizensAPI.getNPCRegistry().getNPC(event.getRightClicked());
+                if (!NpcApi.getRegistry().isNPC(event.getRightClicked())) return;
+                NPC npc = NpcApi.getRegistry().getNPC(event.getRightClicked());
                 if (npc.getId() != 546) return;
 
                 PlayerQuestProgress prog = plugin.getQuestManager().getProgress(pid, "newbeginning");

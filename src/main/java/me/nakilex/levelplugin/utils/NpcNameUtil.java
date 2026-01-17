@@ -5,7 +5,7 @@ import org.bukkit.ChatColor;
 import java.util.Locale;
 
 /**
- * Utility helpers for normalizing and comparing Citizens NPC names regardless of color codes or spacing.
+ * Utility helpers for normalizing and comparing NPC names regardless of color codes or spacing.
  */
 public final class NpcNameUtil {
     private NpcNameUtil() {

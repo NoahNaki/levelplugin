@@ -5,7 +5,10 @@ import org.bukkit.ChatColor;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.lootchests.utils.LocationUtils;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
-import net.md_5.bungee.api.chat.*;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.event.HoverEvent;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.World;
 import org.bukkit.World.Environment;
 import org.bukkit.WorldType;
@@ -23,6 +26,7 @@ import java.util.stream.Collectors;
 
 public class WorldCommand implements CommandExecutor, TabCompleter {
     private final WorldManager manager;
+    private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
 
     public WorldCommand(WorldManager manager) {
         this.manager = manager;
@@ -213,18 +217,19 @@ public class WorldCommand implements CommandExecutor, TabCompleter {
             }
             case "list" -> {
                 if (sender instanceof Player p) {
-                    TextComponent base = new TextComponent(ChatColor.GREEN + "Worlds: ");
+                    Component base = LEGACY.deserialize(ChatColor.GREEN + "Worlds: ");
                     boolean first = true;
                     for (World w : manager.listWorlds()) {
-                        if (!first) base.addExtra(ChatColor.GRAY + ", ");
-                        TextComponent name = new TextComponent(ChatColor.AQUA + w.getName());
-                        name.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/world tp " + w.getName()));
-                        name.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
-                                new ComponentBuilder("Teleport to " + w.getName()).create()));
-                        base.addExtra(name);
+                        if (!first) {
+                            base = base.append(LEGACY.deserialize(ChatColor.GRAY + ", "));
+                        }
+                        Component name = LEGACY.deserialize(ChatColor.AQUA + w.getName())
+                                .clickEvent(ClickEvent.runCommand("/world tp " + w.getName()))
+                                .hoverEvent(HoverEvent.showText(Component.text("Teleport to " + w.getName())));
+                        base = base.append(name);
                         first = false;
                     }
-                    p.spigot().sendMessage(base);
+                    p.sendMessage(base);
                 } else {
                     StringBuilder sb = new StringBuilder("Worlds: ");
                     for (World w : manager.listWorlds()) {
