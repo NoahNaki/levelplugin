@@ -10,6 +10,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.lang.reflect.Field;
 import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.UUID;
 import java.util.function.BiConsumer;
@@ -120,10 +121,11 @@ public class NmsBridge_1_21_3 implements NmsBridge {
     private Object createAddEntityPacketDirect(Object npc) {
         try {
             Class<?> packetClass = Class.forName("net.minecraft.network.protocol.game.ClientboundAddEntityPacket");
+            Object serverEntity = createServerEntity(npc);
             for (Constructor<?> ctor : packetClass.getConstructors()) {
-                Class<?>[] params = ctor.getParameterTypes();
-                if (params.length == 1 && params[0].isInstance(npc)) {
-                    return ctor.newInstance(npc);
+                Object[] args = buildAddEntityArgs(ctor.getParameterTypes(), npc, serverEntity);
+                if (args != null) {
+                    return ctor.newInstance(args);
                 }
             }
         } catch (ReflectiveOperationException ex) {
@@ -213,14 +215,9 @@ public class NmsBridge_1_21_3 implements NmsBridge {
         }
         Field connectionField = getField(craftHandle.getClass(), "connection");
         if (connectionField == null) {
-            return null;
+            connectionField = findFieldByTypeName(craftHandle.getClass(), "ServerGamePacketListenerImpl");
         }
-        try {
-            connectionField.setAccessible(true);
-            return connectionField.get(craftHandle);
-        } catch (IllegalAccessException ex) {
-            return null;
-        }
+        return readField(connectionField, craftHandle);
     }
 
     private Object createPlayerInfoPacket(Object npc, String... actionNames) {
@@ -235,6 +232,12 @@ public class NmsBridge_1_21_3 implements NmsBridge {
                 Class<?>[] params = ctor.getParameterTypes();
                 if (params.length == 2 && params[0].isAssignableFrom(actionClass)) {
                     return ctor.newInstance(action, npc);
+                }
+                if (params.length == 2 && EnumSet.class.isAssignableFrom(params[0])
+                        && java.util.Collection.class.isAssignableFrom(params[1])) {
+                    EnumSet<?> set = EnumSet.of((Enum<?>) action);
+                    java.util.List<Object> players = java.util.List.of(npc);
+                    return ctor.newInstance(set, players);
                 }
             }
         } catch (ReflectiveOperationException ex) {
@@ -320,12 +323,84 @@ public class NmsBridge_1_21_3 implements NmsBridge {
         return -1;
     }
 
+    private UUID getEntityUuid(Object entity) {
+        Object uuid = invoke(entity, "getUUID");
+        if (uuid instanceof UUID id) {
+            return id;
+        }
+        return null;
+    }
+
+    private double[] getEntityPosition(Object entity) {
+        Object x = invoke(entity, "getX");
+        Object y = invoke(entity, "getY");
+        Object z = invoke(entity, "getZ");
+        if (x instanceof Number nx && y instanceof Number ny && z instanceof Number nz) {
+            return new double[]{nx.doubleValue(), ny.doubleValue(), nz.doubleValue()};
+        }
+        return new double[]{0.0, 0.0, 0.0};
+    }
+
+    private float[] getEntityRotation(Object entity) {
+        Object yaw = invoke(entity, "getYRot");
+        Object pitch = invoke(entity, "getXRot");
+        if (yaw instanceof Number ny && pitch instanceof Number np) {
+            return new float[]{ny.floatValue(), np.floatValue()};
+        }
+        return new float[]{0.0f, 0.0f};
+    }
+
+    private Object[] buildAddEntityArgs(Class<?>[] params, Object npc, Object serverEntity) {
+        if (params.length == 0) {
+            return new Object[0];
+        }
+        Object[] args = new Object[params.length];
+        double[] pos = getEntityPosition(npc);
+        float[] rot = getEntityRotation(npc);
+        int doubleIndex = 0;
+        int floatIndex = 0;
+        for (int i = 0; i < params.length; i++) {
+            Class<?> param = params[i];
+            if (param.isInstance(npc)) {
+                args[i] = npc;
+            } else if (serverEntity != null && param.isAssignableFrom(serverEntity.getClass())) {
+                args[i] = serverEntity;
+            } else if (param == int.class || param == Integer.class) {
+                args[i] = getEntityId(npc);
+            } else if (param == UUID.class) {
+                args[i] = getEntityUuid(npc);
+            } else if (param == double.class || param == Double.class) {
+                args[i] = pos[Math.min(doubleIndex, pos.length - 1)];
+                doubleIndex++;
+            } else if (param == float.class || param == Float.class) {
+                args[i] = rot[Math.min(floatIndex, rot.length - 1)];
+                floatIndex++;
+            } else if (param == boolean.class || param == Boolean.class) {
+                args[i] = true;
+            } else if (param == byte.class || param == Byte.class) {
+                args[i] = (byte) 0;
+            } else if (param == long.class || param == Long.class) {
+                args[i] = 0L;
+            } else if (param.getName().equals("net.minecraft.world.phys.Vec3")) {
+                args[i] = createVec3(pos[0], pos[1], pos[2]);
+            } else {
+                return null;
+            }
+            if (args[i] == null && param.isPrimitive()) {
+                return null;
+            }
+        }
+        return args;
+    }
+
     private void sendPacket(Object connection, Object packet) {
         if (connection == null || packet == null) {
             return;
         }
         Method sendMethod = Arrays.stream(connection.getClass().getMethods())
-                .filter(method -> method.getName().equals("send") && method.getParameterCount() == 1)
+                .filter(method -> method.getName().equals("send")
+                        && method.getParameterCount() == 1
+                        && method.getParameterTypes()[0].isAssignableFrom(packet.getClass()))
                 .findFirst()
                 .orElse(null);
         if (sendMethod == null) {
@@ -365,6 +440,40 @@ public class NmsBridge_1_21_3 implements NmsBridge {
         }
         return null;
     }
+
+    private Field findFieldByTypeName(Class<?> type, String typeNameSuffix) {
+        for (Class<?> current = type; current != null; current = current.getSuperclass()) {
+            for (Field field : current.getDeclaredFields()) {
+                if (field.getType().getName().endsWith(typeNameSuffix)) {
+                    return field;
+                }
+            }
+        }
+        return null;
+    }
+
+    private Object readField(Field field, Object target) {
+        if (field == null || target == null) {
+            return null;
+        }
+        try {
+            field.setAccessible(true);
+            return field.get(target);
+        } catch (IllegalAccessException ex) {
+            return null;
+        }
+    }
+
+    private Object createVec3(double x, double y, double z) {
+        try {
+            Class<?> vec3Class = Class.forName("net.minecraft.world.phys.Vec3");
+            Constructor<?> ctor = vec3Class.getConstructor(double.class, double.class, double.class);
+            return ctor.newInstance(x, y, z);
+        } catch (ReflectiveOperationException ex) {
+            return null;
+        }
+    }
+
     private Object createClientInformation() {
         Object info = createClientInformation("net.minecraft.server.network.ClientInformation");
         if (info != null) {
