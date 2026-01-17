@@ -135,8 +135,6 @@ public class ListenerRegistry {
         PluginManager pm = plugin.getServer().getPluginManager();
 
         pm.registerEvents(new MobDamageListener(), plugin);
-        MythicMobDamageTracker dmgTracker = new MythicMobDamageTracker();
-        pm.registerEvents(dmgTracker, plugin);
         BattlePassManager battlePassManager = plugin.getBattlePassManager();
 
         MobRewardService rewardService = new MobRewardService(
@@ -152,7 +150,7 @@ public class ListenerRegistry {
         );
         if (customMobManager != null) {
             pm.registerEvents(customMobManager.getNameManager(), plugin);
-            pm.registerEvents(new CustomMobRewardListener(customMobManager, dmgTracker, rewardService), plugin);
+            pm.registerEvents(new CustomMobRewardListener(customMobManager, rewardService), plugin);
             pm.registerEvents(customMobManager.getSpawnerManager(), plugin);
             pm.registerEvents(customMobManager.getAdminGui(), plugin);
         }
