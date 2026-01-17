@@ -946,6 +946,9 @@ public class PluginBootstrap {
         if (!customConfig.contains("server.build-min-weight")) {
             customConfig.set("server.build-min-weight", 51);
         }
+        if (!customConfig.contains("server.restrict-alpha-commands")) {
+            customConfig.set("server.restrict-alpha-commands", false);
+        }
         java.util.List<String> excluded = customConfig.getStringList("levelplugin.excluded-worlds");
         if (excluded == null || excluded.isEmpty()) {
             excluded = new java.util.ArrayList<>(java.util.List.of("flatland"));

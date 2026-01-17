@@ -20,15 +20,21 @@ public class LevelPluginCommandGuard implements Listener {
     private final ServerSelectionManager serverSelectionManager;
     private final Set<String> guardedCommands;
     private final Set<String> buildAllowedCommands;
+    private final boolean enforceAlphaCommands;
 
     public LevelPluginCommandGuard(Main plugin, ServerSelectionManager serverSelectionManager) {
         this.serverSelectionManager = serverSelectionManager;
         this.guardedCommands = buildCommandSet(plugin);
         this.buildAllowedCommands = Set.of("world", "debug", "se");
+        this.enforceAlphaCommands = plugin.getCustomConfig()
+                .getBoolean("server.restrict-alpha-commands", false);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onCommand(PlayerCommandPreprocessEvent event) {
+        if (!enforceAlphaCommands) {
+            return;
+        }
         if (serverSelectionManager == null) {
             return;
         }
