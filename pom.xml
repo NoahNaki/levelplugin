@@ -77,6 +77,12 @@
             <id>md-5</id>
             <url>https://repo.md-5.net/content/repositories/releases/</url>
         </repository>
+
+        <!-- Citizens -->
+        <repository>
+            <id>citizens</id>
+            <url>https://repo.citizensnpcs.co/</url>
+        </repository>
     </repositories>
 
     <dependencies>
@@ -125,6 +131,14 @@
             <groupId>com.nexomc</groupId>
             <artifactId>nexo</artifactId>
             <version>1.17.0</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- Citizens NPC API -->
+        <dependency>
+            <groupId>net.citizensnpcs</groupId>
+            <artifactId>citizens-main</artifactId>
+            <version>2.0.35-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
 
