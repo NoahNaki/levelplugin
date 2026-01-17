@@ -1,6 +1,5 @@
 package me.nakilex.levelplugin.npc.core;
 
-import net.minecraft.server.level.ServerPlayer;
 import org.bukkit.Location;
 
 import java.util.Collections;
@@ -12,16 +11,16 @@ public class PlayerNpc {
     private final UUID uuid;
     private final String name;
     private Location location;
-    private final ServerPlayer handle;
+    private final Object handle;
     private final int entityId;
     private final Set<UUID> viewers = new HashSet<>();
 
-    public PlayerNpc(UUID uuid, String name, Location location, ServerPlayer handle) {
+    public PlayerNpc(UUID uuid, String name, Location location, Object handle) {
         this.uuid = uuid;
         this.name = name;
         this.location = location;
         this.handle = handle;
-        this.entityId = handle.getId();
+        this.entityId = readEntityId(handle);
     }
 
     public UUID getUuid() {
@@ -40,7 +39,7 @@ public class PlayerNpc {
         this.location = location;
     }
 
-    public ServerPlayer getHandle() {
+    public Object getHandle() {
         return handle;
     }
 
@@ -66,5 +65,20 @@ public class PlayerNpc {
 
     public void clearViewers() {
         viewers.clear();
+    }
+
+    private int readEntityId(Object handle) {
+        if (handle == null) {
+            return -1;
+        }
+        try {
+            Object id = handle.getClass().getMethod("getId").invoke(handle);
+            if (id instanceof Integer intId) {
+                return intId;
+            }
+        } catch (ReflectiveOperationException ignored) {
+            // ignore
+        }
+        return -1;
     }
 }

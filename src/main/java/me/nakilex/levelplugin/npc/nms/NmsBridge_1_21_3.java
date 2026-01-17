@@ -1,27 +1,15 @@
 package me.nakilex.levelplugin.npc.nms;
 
-import com.mojang.authlib.GameProfile;
 import me.nakilex.levelplugin.npc.core.PlayerNpc;
-import net.minecraft.network.protocol.Packet;
-import net.minecraft.network.protocol.game.ClientboundAddEntityPacket;
-import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket;
-import net.minecraft.network.protocol.game.ClientboundRemoveEntitiesPacket;
-import net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket;
-import net.minecraft.network.syncher.SynchedEntityData;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.Entity;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.craftbukkit.CraftServer;
-import org.bukkit.craftbukkit.CraftWorld;
-import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
+import java.lang.reflect.Field;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.function.BiConsumer;
@@ -35,15 +23,18 @@ public class NmsBridge_1_21_3 implements NmsBridge {
     }
 
     @Override
-    public ServerPlayer createNpcHandle(UUID uuid, String name, Location location) {
-        CraftServer craftServer = (CraftServer) Bukkit.getServer();
-        MinecraftServer nmsServer = craftServer.getServer();
-        ServerLevel level = ((CraftWorld) location.getWorld()).getHandle();
-        GameProfile profile = new GameProfile(uuid, name);
-        ServerPlayer npc = createServerPlayer(nmsServer, level, profile);
-        npc.moveTo(location.getX(), location.getY(), location.getZ(), location.getYaw(), location.getPitch());
-        npc.setYHeadRot(location.getYaw());
-        npc.setYBodyRot(location.getYaw());
+    public Object createNpcHandle(UUID uuid, String name, Location location) {
+        Object craftServer = Bukkit.getServer();
+        Object nmsServer = invoke(craftServer, "getServer");
+        Object craftWorld = location.getWorld();
+        Object level = invoke(craftWorld, "getHandle");
+        Object profile = createGameProfile(uuid, name);
+        Object npc = createServerPlayer(nmsServer, level, profile);
+        invoke(npc, "moveTo",
+                new Class<?>[]{double.class, double.class, double.class, float.class, float.class},
+                location.getX(), location.getY(), location.getZ(), location.getYaw(), location.getPitch());
+        invoke(npc, "setYHeadRot", new Class<?>[]{float.class}, location.getYaw());
+        invoke(npc, "setYBodyRot", new Class<?>[]{float.class}, location.getYaw());
         return npc;
     }
 
@@ -52,21 +43,30 @@ public class NmsBridge_1_21_3 implements NmsBridge {
         if (npc == null || viewer == null) {
             return;
         }
-        ServerPlayer handle = npc.getHandle();
-        var connection = ((CraftPlayer) viewer).getHandle().connection;
-        connection.send(new ClientboundPlayerInfoUpdatePacket(ClientboundPlayerInfoUpdatePacket.Action.ADD_PLAYER, handle));
-        connection.send(createAddEntityPacket(handle));
-        List<SynchedEntityData.DataValue<?>> dataValues = handle.getEntityData().getNonDefaultValues();
-        if (dataValues == null || dataValues.isEmpty()) {
-            dataValues = handle.getEntityData().getAll();
+        Object handle = npc.getHandle();
+        Object connection = getConnection(viewer);
+        if (connection == null) {
+            return;
         }
+        Object addPlayerPacket = createPlayerInfoPacket("ADD_PLAYER", handle);
+        if (addPlayerPacket != null) {
+            sendPacket(connection, addPlayerPacket);
+        }
+        Object addEntityPacket = createAddEntityPacket(handle);
+        if (addEntityPacket != null) {
+            sendPacket(connection, addEntityPacket);
+        }
+        Object entityData = invoke(handle, "getEntityData");
+        List<?> dataValues = getEntityDataValues(entityData);
         if (dataValues != null && !dataValues.isEmpty()) {
-            connection.send(new ClientboundSetEntityDataPacket(handle.getId(), dataValues));
+            Object metadataPacket = createSetEntityDataPacket(getEntityId(handle), dataValues);
+            if (metadataPacket != null) {
+                sendPacket(connection, metadataPacket);
+            }
         }
         if (removeFromTabLater) {
             Bukkit.getScheduler().runTaskLater(plugin, () ->
-                    connection.send(new ClientboundPlayerInfoUpdatePacket(
-                            ClientboundPlayerInfoUpdatePacket.Action.REMOVE_PLAYER, handle)), 3L);
+                    sendPacket(connection, createPlayerInfoPacket("REMOVE_PLAYER", handle)), 3L);
         }
     }
 
@@ -75,45 +75,64 @@ public class NmsBridge_1_21_3 implements NmsBridge {
         if (npc == null || viewer == null) {
             return;
         }
-        ServerPlayer handle = npc.getHandle();
-        var connection = ((CraftPlayer) viewer).getHandle().connection;
-        connection.send(new ClientboundRemoveEntitiesPacket(handle.getId()));
-        connection.send(new ClientboundPlayerInfoUpdatePacket(ClientboundPlayerInfoUpdatePacket.Action.REMOVE_PLAYER, handle));
+        Object handle = npc.getHandle();
+        Object connection = getConnection(viewer);
+        if (connection == null) {
+            return;
+        }
+        Object removePacket = createRemoveEntitiesPacket(getEntityId(handle));
+        if (removePacket != null) {
+            sendPacket(connection, removePacket);
+        }
+        Object removeInfoPacket = createPlayerInfoPacket("REMOVE_PLAYER", handle);
+        if (removeInfoPacket != null) {
+            sendPacket(connection, removeInfoPacket);
+        }
     }
 
-    private Packet<?> createAddEntityPacket(ServerPlayer npc) {
-        Packet<?> packet = createAddEntityPacketWithTracker(npc);
+    private Object createAddEntityPacket(Object npc) {
+        Object packet = createAddEntityPacketWithTracker(npc);
         if (packet != null) {
             return packet;
         }
         return createAddEntityPacketDirect(npc);
     }
 
-    private Packet<?> createAddEntityPacketWithTracker(ServerPlayer npc) {
+    private Object createAddEntityPacketWithTracker(Object npc) {
         try {
             Object serverEntity = createServerEntity(npc);
             if (serverEntity == null) {
                 return null;
             }
-            Constructor<ClientboundAddEntityPacket> ctor = ClientboundAddEntityPacket.class
-                    .getConstructor(Entity.class, serverEntity.getClass());
-            return ctor.newInstance(npc, serverEntity);
+            Class<?> packetClass = Class.forName("net.minecraft.network.protocol.game.ClientboundAddEntityPacket");
+            for (Constructor<?> ctor : packetClass.getConstructors()) {
+                Class<?>[] params = ctor.getParameterTypes();
+                if (params.length == 2 && params[1].isAssignableFrom(serverEntity.getClass()) && params[0].isInstance(npc)) {
+                    return ctor.newInstance(npc, serverEntity);
+                }
+            }
         } catch (ReflectiveOperationException ex) {
             return null;
         }
+        return null;
     }
 
-    private Packet<?> createAddEntityPacketDirect(ServerPlayer npc) {
+    private Object createAddEntityPacketDirect(Object npc) {
         try {
-            Constructor<ClientboundAddEntityPacket> ctor = ClientboundAddEntityPacket.class
-                    .getConstructor(Entity.class);
-            return ctor.newInstance(npc);
+            Class<?> packetClass = Class.forName("net.minecraft.network.protocol.game.ClientboundAddEntityPacket");
+            for (Constructor<?> ctor : packetClass.getConstructors()) {
+                Class<?>[] params = ctor.getParameterTypes();
+                if (params.length == 1 && params[0].isInstance(npc)) {
+                    return ctor.newInstance(npc);
+                }
+            }
         } catch (ReflectiveOperationException ex) {
             throw new IllegalStateException("Unable to build ClientboundAddEntityPacket", ex);
         }
+        throw new IllegalStateException("Unable to build ClientboundAddEntityPacket");
     }
 
-    private Object createServerEntity(ServerPlayer npc) {
+    private Object createServerEntity(Object npc) {
         try {
             Class<?> serverEntityClass = Class.forName("net.minecraft.server.level.ServerEntity");
             for (Constructor<?> ctor : serverEntityClass.getConstructors()) {
@@ -121,25 +140,23 @@ public class NmsBridge_1_21_3 implements NmsBridge {
                 if (params.length < 5) {
                     continue;
                 }
-                if (!ServerLevel.class.isAssignableFrom(params[0])) {
-                    continue;
-                }
-                if (!Entity.class.isAssignableFrom(params[1])) {
+                Object serverLevel = invoke(npc, "serverLevel");
+                if (serverLevel == null || !params[0].isAssignableFrom(serverLevel.getClass())) {
                     continue;
                 }
                 if (!int.class.equals(params[2]) || !boolean.class.equals(params[3])) {
                     continue;
                 }
                 Object[] args = new Object[params.length];
-                args[0] = npc.serverLevel();
+                args[0] = serverLevel;
                 args[1] = npc;
                 args[2] = 0;
                 args[3] = true;
                 for (int i = 4; i < params.length; i++) {
                     if (Consumer.class.isAssignableFrom(params[i])) {
-                        args[i] = (Consumer<Packet<?>>) packet -> {};
+                        args[i] = (Consumer<Object>) packet -> {};
                     } else if (BiConsumer.class.isAssignableFrom(params[i])) {
-                        args[i] = (BiConsumer<Packet<?>, Packet<?>>) (packet, packet2) -> {};
+                        args[i] = (BiConsumer<Object, Object>) (packet, packet2) -> {};
                     } else {
                         args[i] = null;
                     }
@@ -152,28 +169,178 @@ public class NmsBridge_1_21_3 implements NmsBridge {
         return null;
     }
 
-    private ServerPlayer createServerPlayer(MinecraftServer server, ServerLevel level, GameProfile profile) {
+    private Object createServerPlayer(Object server, Object level, Object profile) {
         Object clientInformation = createClientInformation();
-        for (Constructor<?> ctor : ServerPlayer.class.getConstructors()) {
-            Class<?>[] params = ctor.getParameterTypes();
-            if (params.length == 4
-                    && params[0].isAssignableFrom(MinecraftServer.class)
-                    && params[1].isAssignableFrom(ServerLevel.class)
-                    && params[2].isAssignableFrom(GameProfile.class)) {
-                if (clientInformation != null && params[3].isInstance(clientInformation)) {
-                    return (ServerPlayer) invokeServerPlayerCtor(ctor, server, level, profile, clientInformation);
+        try {
+            Class<?> serverPlayerClass = Class.forName("net.minecraft.server.level.ServerPlayer");
+            for (Constructor<?> ctor : serverPlayerClass.getConstructors()) {
+                Class<?>[] params = ctor.getParameterTypes();
+                if (params.length == 4
+                        && params[0].isAssignableFrom(server.getClass())
+                        && params[1].isAssignableFrom(level.getClass())
+                        && params[2].isAssignableFrom(profile.getClass())) {
+                    if (clientInformation != null && params[3].isInstance(clientInformation)) {
+                        return invokeServerPlayerCtor(ctor, server, level, profile, clientInformation);
+                    }
+                }
+                if (params.length == 3
+                        && params[0].isAssignableFrom(server.getClass())
+                        && params[1].isAssignableFrom(level.getClass())
+                        && params[2].isAssignableFrom(profile.getClass())) {
+                    return invokeServerPlayerCtor(ctor, server, level, profile);
                 }
             }
-            if (params.length == 3
-                    && params[0].isAssignableFrom(MinecraftServer.class)
-                    && params[1].isAssignableFrom(ServerLevel.class)
-                    && params[2].isAssignableFrom(GameProfile.class)) {
-                return (ServerPlayer) invokeServerPlayerCtor(ctor, server, level, profile);
-            }
+        } catch (ReflectiveOperationException ex) {
+            throw new IllegalStateException("Unable to construct ServerPlayer for NPC", ex);
         }
         throw new IllegalStateException("Unable to construct ServerPlayer for NPC");
     }
 
+    private Object createGameProfile(UUID uuid, String name) {
+        try {
+            Class<?> profileClass = Class.forName("com.mojang.authlib.GameProfile");
+            Constructor<?> ctor = profileClass.getConstructor(UUID.class, String.class);
+            return ctor.newInstance(uuid, name);
+        } catch (ReflectiveOperationException ex) {
+            throw new IllegalStateException("Unable to construct GameProfile", ex);
+        }
+    }
+
+    private Object getConnection(Player viewer) {
+        Object craftHandle = invoke(viewer, "getHandle");
+        if (craftHandle == null) {
+            return null;
+        }
+        Field connectionField = getField(craftHandle.getClass(), "connection");
+        if (connectionField == null) {
+            return null;
+        }
+        try {
+            connectionField.setAccessible(true);
+            return connectionField.get(craftHandle);
+        } catch (IllegalAccessException ex) {
+            return null;
+        }
+    }
+
+    private Object createPlayerInfoPacket(String actionName, Object npc) {
+        try {
+            Class<?> packetClass = Class.forName("net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket");
+            Class<?> actionClass = Class.forName("net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket$Action");
+            Object action = Enum.valueOf((Class<Enum>) actionClass, actionName);
+            for (Constructor<?> ctor : packetClass.getConstructors()) {
+                Class<?>[] params = ctor.getParameterTypes();
+                if (params.length == 2 && params[0].isAssignableFrom(actionClass)) {
+                    return ctor.newInstance(action, npc);
+                }
+            }
+        } catch (ReflectiveOperationException ex) {
+            return null;
+        }
+        return null;
+    }
+
+    private Object createSetEntityDataPacket(int entityId, List<?> dataValues) {
+        try {
+            Class<?> packetClass = Class.forName("net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket");
+            for (Constructor<?> ctor : packetClass.getConstructors()) {
+                Class<?>[] params = ctor.getParameterTypes();
+                if (params.length == 2 && params[0] == int.class && List.class.isAssignableFrom(params[1])) {
+                    return ctor.newInstance(entityId, dataValues);
+                }
+            }
+        } catch (ReflectiveOperationException ex) {
+            return null;
+        }
+        return null;
+    }
+
+    private Object createRemoveEntitiesPacket(int entityId) {
+        try {
+            Class<?> packetClass = Class.forName("net.minecraft.network.protocol.game.ClientboundRemoveEntitiesPacket");
+            for (Constructor<?> ctor : packetClass.getConstructors()) {
+                Class<?>[] params = ctor.getParameterTypes();
+                if (params.length == 1 && params[0] == int.class) {
+                    return ctor.newInstance(entityId);
+                }
+            }
+        } catch (ReflectiveOperationException ex) {
+            return null;
+        }
+        return null;
+    }
+
+    private List<?> getEntityDataValues(Object entityData) {
+        if (entityData == null) {
+            return null;
+        }
+        List<?> dataValues = asList(invoke(entityData, "getNonDefaultValues"));
+        if (dataValues == null || dataValues.isEmpty()) {
+            dataValues = asList(invoke(entityData, "getAll"));
+        }
+        return dataValues;
+    }
+
+    private List<?> asList(Object value) {
+        if (value instanceof List<?> list) {
+            return list;
+        }
+        return null;
+    }
+
+    private int getEntityId(Object entity) {
+        Object id = invoke(entity, "getId");
+        if (id instanceof Integer intId) {
+            return intId;
+        }
+        return -1;
+    }
+
+    private void sendPacket(Object connection, Object packet) {
+        if (connection == null || packet == null) {
+            return;
+        }
+        Method sendMethod = Arrays.stream(connection.getClass().getMethods())
+                .filter(method -> method.getName().equals("send") && method.getParameterCount() == 1)
+                .findFirst()
+                .orElse(null);
+        if (sendMethod == null) {
+            return;
+        }
+        try {
+            sendMethod.invoke(connection, packet);
+        } catch (ReflectiveOperationException ex) {
+            // ignore failed sends
+        }
+    }
+
+    private Object invoke(Object target, String methodName, Class<?>[] paramTypes, Object... args) {
+        if (target == null) {
+            return null;
+        }
+        try {
+            Method method = target.getClass().getMethod(methodName, paramTypes);
+            method.setAccessible(true);
+            return method.invoke(target, args);
+        } catch (ReflectiveOperationException ex) {
+            return null;
+        }
+    }
+
+    private Object invoke(Object target, String methodName) {
+        return invoke(target, methodName, new Class<?>[0]);
+    }
+
+    private Field getField(Class<?> type, String name) {
+        for (Class<?> current = type; current != null; current = current.getSuperclass()) {
+            try {
+                return current.getDeclaredField(name);
+            } catch (NoSuchFieldException ex) {
+                // continue
+            }
+        }
+        return null;
+    }
     private Object createClientInformation() {
         Object info = createClientInformation("net.minecraft.server.network.ClientInformation");
         if (info != null) {
