@@ -18,7 +18,8 @@ import me.nakilex.levelplugin.utils.NpcNameUtil;
 import me.nakilex.levelplugin.quests.util.QuestNavigationUtil;
 import me.nakilex.levelplugin.quests.util.QuestServiceAccessTracker;
 import me.nakilex.levelplugin.utils.MobUtil;
-import net.citizensnpcs.api.npc.NPC;
+import me.nakilex.levelplugin.npc.system.NpcApi;
+import me.nakilex.levelplugin.npc.system.NPC;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -1549,7 +1550,7 @@ public class QuestManager {
         if (digits.length() > 0) {
             try {
                 int id = Integer.parseInt(digits.toString());
-                net.citizensnpcs.api.npc.NPC npc = net.citizensnpcs.api.CitizensAPI.getNPCRegistry().getById(id);
+                NPC npc = NpcApi.getRegistry().getById(id);
                 if (npc != null) {
                     return npc.getName();
                 }

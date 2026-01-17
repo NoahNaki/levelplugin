@@ -1,7 +1,7 @@
 package me.nakilex.levelplugin.pathfinding.npc;
 
 import me.nakilex.levelplugin.utils.cooldowns.CooldownManager;
-import net.citizensnpcs.api.npc.NPC;
+import me.nakilex.levelplugin.npc.system.NPC;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
@@ -41,7 +41,7 @@ public interface PathNpc {
 
     /**
      * Entity type used for the NPC. Mercenaries default to player entities so
-     * they retain standard Citizens behaviour rather than native mob AI.
+     * they retain standard behavior rather than native mob AI.
      */
     default EntityType type() {
         return EntityType.PLAYER;
