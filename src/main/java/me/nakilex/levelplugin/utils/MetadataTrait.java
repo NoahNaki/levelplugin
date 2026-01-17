@@ -1,7 +1,7 @@
 package me.nakilex.levelplugin.utils;
 
-import net.citizensnpcs.api.persistence.DataKey;
 import net.citizensnpcs.api.trait.Trait;
+import net.citizensnpcs.api.util.DataKey;
 
 import java.util.Collections;
 import java.util.HashMap;
