@@ -270,14 +270,14 @@ public class NmsBridge_1_21_3 implements NmsBridge {
         return null;
     }
 
+    @SuppressWarnings({"rawtypes", "unchecked"})
     private EnumSet<?> createEnumSet(Class<?> enumClass, Object value) {
         if (enumClass == null || value == null || !enumClass.isEnum() || !enumClass.isInstance(value)) {
             return null;
         }
-        @SuppressWarnings("unchecked")
         Class<? extends Enum> typedEnum = (Class<? extends Enum>) enumClass;
-        EnumSet<?> set = EnumSet.noneOf(typedEnum);
-        set.add((Enum<?>) value);
+        EnumSet set = EnumSet.noneOf(typedEnum);
+        set.add((Enum) value);
         return set;
     }
 
