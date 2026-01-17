@@ -209,14 +209,26 @@ public class QuestManager {
         return getQuestByNpc(npc, null);
     }
 
+    public Quest getQuestByNpc(me.nakilex.levelplugin.npc.system.NPC npc) {
+        return getQuestByNpc(npc, null);
+    }
+
     public Quest getQuestByNpc(NPC npc, Player player) {
-        if (npc == null) {
+        return getQuestByNpcData(npc == null ? null : npc.getName(), npc == null ? null : npc.getId(), player);
+    }
+
+    public Quest getQuestByNpc(me.nakilex.levelplugin.npc.system.NPC npc, Player player) {
+        return getQuestByNpcData(npc == null ? null : npc.getName(), npc == null ? null : npc.getId(), player);
+    }
+
+    private Quest getQuestByNpcData(String npcName, Integer npcId, Player player) {
+        if (npcName == null && npcId == null) {
             return null;
         }
 
         java.util.Set<String> candidates = new java.util.LinkedHashSet<>();
 
-        String normalized = NpcNameUtil.normalize(npc.getName());
+        String normalized = NpcNameUtil.normalize(npcName);
         if (normalized != null) {
             List<String> nameMapped = npcQuestNameMap.get(normalized);
             if (nameMapped != null) {
@@ -224,9 +236,11 @@ public class QuestManager {
             }
         }
 
-        List<String> idMapped = npcQuestMap.get(npc.getId());
-        if (idMapped != null) {
-            candidates.addAll(idMapped);
+        if (npcId != null) {
+            List<String> idMapped = npcQuestMap.get(npcId);
+            if (idMapped != null) {
+                candidates.addAll(idMapped);
+            }
         }
 
         if (candidates.isEmpty()) {
@@ -263,14 +277,25 @@ public class QuestManager {
 
     /** Determine whether any quest is associated with the given NPC. */
     public boolean hasQuestForNpc(NPC npc) {
-        if (npc == null) {
+        return hasQuestForNpcData(npc == null ? null : npc.getName(), npc == null ? null : npc.getId());
+    }
+
+    public boolean hasQuestForNpc(me.nakilex.levelplugin.npc.system.NPC npc) {
+        return hasQuestForNpcData(npc == null ? null : npc.getName(), npc == null ? null : npc.getId());
+    }
+
+    private boolean hasQuestForNpcData(String npcName, Integer npcId) {
+        if (npcName == null && npcId == null) {
             return false;
         }
-        String normalized = NpcNameUtil.normalize(npc.getName());
+        String normalized = NpcNameUtil.normalize(npcName);
         if (normalized != null && npcQuestNameMap.containsKey(normalized)) {
             return true;
         }
-        List<String> mapped = npcQuestMap.get(npc.getId());
+        if (npcId == null) {
+            return false;
+        }
+        List<String> mapped = npcQuestMap.get(npcId);
         return mapped != null && !mapped.isEmpty();
     }
 
