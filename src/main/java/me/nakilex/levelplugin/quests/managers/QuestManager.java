@@ -1585,16 +1585,27 @@ public class QuestManager {
     }
 
     public boolean isTalkObjectiveForNpc(QuestObjective obj, NPC npc) {
-        if (obj == null || npc == null || obj.getType() != QuestObjectiveType.TALK) {
+        return isTalkObjectiveForNpcData(obj, npc == null ? null : npc.getName(), npc == null ? null : npc.getId());
+    }
+
+    public boolean isTalkObjectiveForNpc(QuestObjective obj, me.nakilex.levelplugin.npc.system.NPC npc) {
+        return isTalkObjectiveForNpcData(obj, npc == null ? null : npc.getName(), npc == null ? null : npc.getId());
+    }
+
+    private boolean isTalkObjectiveForNpcData(QuestObjective obj, String npcName, Integer npcId) {
+        if (obj == null || obj.getType() != QuestObjectiveType.TALK) {
             return false;
         }
         TalkTargetInfo info = talkTargetMap.get(obj.getTarget());
         if (info != null) {
-            String normalized = NpcNameUtil.normalize(npc.getName());
+            String normalized = NpcNameUtil.normalize(npcName);
             return normalized != null && normalized.equals(info.getNormalizedName());
         }
+        if (npcId == null) {
+            return false;
+        }
         String target = obj.getTarget().toLowerCase();
-        return target.startsWith("npc" + npc.getId());
+        return target.startsWith("npc" + npcId);
     }
 
     private static class TalkTargetInfo {
