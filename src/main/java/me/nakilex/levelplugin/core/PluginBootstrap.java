@@ -41,6 +41,8 @@ import me.nakilex.levelplugin.friend.FriendGlowManager;
 import me.nakilex.levelplugin.friend.PlayerVisibilityManager;
 import me.nakilex.levelplugin.codex.*;
 import me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager;
+import me.nakilex.levelplugin.npc.system.NpcApi;
+import me.nakilex.levelplugin.npc.system.NpcRegistry;
 import me.nakilex.levelplugin.friend.IgnoreManager;
 import me.nakilex.levelplugin.friend.FriendRequestListener;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
@@ -202,6 +204,7 @@ public class PluginBootstrap {
     private NpcCodexGUI npcCodexGUI;
     private LocationCodexGUI locationCodexGUI;
     private me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager wanderingMerchantManager;
+    private NpcRegistry npcRegistry;
     private PathfindingManager pathfindingManager;
     private MercenaryManager mercenaryManager;
     private me.nakilex.levelplugin.mercenary.MercenaryAffinityManager mercenaryAffinityManager;
@@ -287,6 +290,9 @@ public class PluginBootstrap {
     }
 
     private void initializeManagers() {
+        npcRegistry = new NpcRegistry(plugin);
+        NpcApi.initialize(npcRegistry);
+
         // World-dependent managers like gates or fast travel require target
         // worlds to be loaded. Ensure the necessary worlds are available
         // before other managers are initialized.
@@ -791,6 +797,7 @@ public class PluginBootstrap {
     public me.nakilex.levelplugin.catacombs.CatacombsManager getCatacombsManager() { return catacombsManager; }
     public me.nakilex.levelplugin.catacombs.CatacombsGUI getCatacombsGUI() { return catacombsGUI; }
     public me.nakilex.levelplugin.world.WorldManager getWorldManager() { return worldManager; }
+    public NpcRegistry getNpcRegistry() { return npcRegistry; }
     public me.nakilex.levelplugin.server.ServerSelectionManager getServerSelectionManager() { return serverSelectionManager; }
     public me.nakilex.levelplugin.environment.EnvironmentManager getEnvironmentManager() { return environmentManager; }
     public me.nakilex.levelplugin.environment.UpgradeGUI getUpgradeGUI() { return upgradeGUI; }
