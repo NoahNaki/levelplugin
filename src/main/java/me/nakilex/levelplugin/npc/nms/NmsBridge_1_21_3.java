@@ -235,7 +235,10 @@ public class NmsBridge_1_21_3 implements NmsBridge {
                 }
                 if (params.length == 2 && EnumSet.class.isAssignableFrom(params[0])
                         && java.util.Collection.class.isAssignableFrom(params[1])) {
-                    EnumSet<?> set = EnumSet.of((Enum<?>) action);
+                    EnumSet<?> set = createEnumSet(actionClass, action);
+                    if (set == null) {
+                        return null;
+                    }
                     java.util.List<Object> players = java.util.List.of(npc);
                     return ctor.newInstance(set, players);
                 }
@@ -265,6 +268,17 @@ public class NmsBridge_1_21_3 implements NmsBridge {
             }
         }
         return null;
+    }
+
+    private EnumSet<?> createEnumSet(Class<?> enumClass, Object value) {
+        if (enumClass == null || value == null || !enumClass.isEnum() || !enumClass.isInstance(value)) {
+            return null;
+        }
+        @SuppressWarnings("unchecked")
+        Class<? extends Enum> typedEnum = (Class<? extends Enum>) enumClass;
+        EnumSet<?> set = EnumSet.noneOf(typedEnum);
+        set.add((Enum<?>) value);
+        return set;
     }
 
     private Object createSetEntityDataPacket(int entityId, List<?> dataValues) {
