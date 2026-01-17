@@ -48,7 +48,7 @@ public class NmsBridge_1_21_3 implements NmsBridge {
         if (connection == null) {
             return;
         }
-        Object addPlayerPacket = createPlayerInfoPacket("ADD_PLAYER", handle);
+        Object addPlayerPacket = createPlayerInfoPacket(handle, "ADD_PLAYER", "ADD");
         if (addPlayerPacket != null) {
             sendPacket(connection, addPlayerPacket);
         }
@@ -66,7 +66,7 @@ public class NmsBridge_1_21_3 implements NmsBridge {
         }
         if (removeFromTabLater) {
             Bukkit.getScheduler().runTaskLater(plugin, () ->
-                    sendPacket(connection, createPlayerInfoPacket("REMOVE_PLAYER", handle)), 3L);
+                    sendPacket(connection, createPlayerInfoPacket(handle, "REMOVE_PLAYER", "REMOVE")), 3L);
         }
     }
 
@@ -84,7 +84,7 @@ public class NmsBridge_1_21_3 implements NmsBridge {
         if (removePacket != null) {
             sendPacket(connection, removePacket);
         }
-        Object removeInfoPacket = createPlayerInfoPacket("REMOVE_PLAYER", handle);
+        Object removeInfoPacket = createPlayerInfoPacket(handle, "REMOVE_PLAYER", "REMOVE");
         if (removeInfoPacket != null) {
             sendPacket(connection, removeInfoPacket);
         }
@@ -223,11 +223,14 @@ public class NmsBridge_1_21_3 implements NmsBridge {
         }
     }
 
-    private Object createPlayerInfoPacket(String actionName, Object npc) {
+    private Object createPlayerInfoPacket(Object npc, String... actionNames) {
         try {
             Class<?> packetClass = Class.forName("net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket");
             Class<?> actionClass = Class.forName("net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket$Action");
-            Object action = Enum.valueOf((Class<Enum>) actionClass, actionName);
+            Object action = findEnumValue(actionClass, actionNames);
+            if (action == null) {
+                return null;
+            }
             for (Constructor<?> ctor : packetClass.getConstructors()) {
                 Class<?>[] params = ctor.getParameterTypes();
                 if (params.length == 2 && params[0].isAssignableFrom(actionClass)) {
@@ -236,6 +239,27 @@ public class NmsBridge_1_21_3 implements NmsBridge {
             }
         } catch (ReflectiveOperationException ex) {
             return null;
+        }
+        return null;
+    }
+
+    private Object findEnumValue(Class<?> enumClass, String... names) {
+        if (enumClass == null || !enumClass.isEnum() || names == null) {
+            return null;
+        }
+        Object[] values = enumClass.getEnumConstants();
+        if (values == null) {
+            return null;
+        }
+        for (String name : names) {
+            if (name == null) {
+                continue;
+            }
+            for (Object value : values) {
+                if (value instanceof Enum<?> enumValue && enumValue.name().equalsIgnoreCase(name)) {
+                    return value;
+                }
+            }
         }
         return null;
     }
