@@ -8,6 +8,7 @@ import me.nakilex.levelplugin.quests.data.QuestObjective;
 import me.nakilex.levelplugin.quests.data.QuestObjectiveType;
 import me.nakilex.levelplugin.npc.system.NpcApi;
 import me.nakilex.levelplugin.npc.system.NPC;
+import net.citizensnpcs.api.CitizensAPI;
 import org.bukkit.Bukkit;
 import me.nakilex.levelplugin.Main;
 import org.bukkit.Particle;
@@ -26,7 +27,7 @@ import java.util.UUID;
 
 public class QuestNPCEffectTask extends BukkitRunnable {
     private final QuestManager questManager;
-    private final Map<UUID, Map<Integer, TextDisplay>> glyphs = new HashMap<>();
+    private final Map<UUID, Map<String, TextDisplay>> glyphs = new HashMap<>();
 
     private static final Map<String, String> NAME_GLYPHS = Map.of(
             "blacksmith", "<glyph:anvil>",
@@ -64,39 +65,19 @@ public class QuestNPCEffectTask extends BukkitRunnable {
             return false;
         });
 
-        Set<NPC> relevant = new HashSet<>();
-        for (NPC npc : NpcApi.getRegistry()) {
-            if (questManager.hasQuestForNpc(npc) || getServiceGlyph(npc.getName().toLowerCase()) != null) {
-                relevant.add(npc);
-            }
-        }
-
         for (Player player : Bukkit.getOnlinePlayers()) {
-            Map<Integer, TextDisplay> map = glyphs.computeIfAbsent(player.getUniqueId(), k -> new HashMap<>());
-            Set<Integer> processed = new HashSet<>();
+            Map<String, TextDisplay> map = glyphs.computeIfAbsent(player.getUniqueId(), k -> new HashMap<>());
+            Set<String> processed = new HashSet<>();
 
-            for (NPC npc : relevant) {
-                int npcId = npc.getId();
-                TextDisplay disp = map.get(npcId);
-
-                if (npc == null || !npc.isSpawned() || !npc.getEntity().getWorld().equals(player.getWorld())
-                        || player.getLocation().distanceSquared(npc.getEntity().getLocation()) > 100) {
-                    if (disp != null) {
-                        disp.remove();
-                        map.remove(npcId);
-                    }
-                    continue;
-                }
-
-                String glyph = getGlyph(player, npc);
-
-                if (glyph != null) {
-                    updateDisplay(player, npc, npcId, glyph, disp, map);
-                    processed.add(npcId);
-                } else if (disp != null) {
-                    disp.remove();
-                    map.remove(npcId);
-                }
+            for (NPC npc : NpcApi.getRegistry()) {
+                handleNpc(player, map, processed, "level", npc.getId(), npc.getName(),
+                        npc.isSpawned() ? npc.getEntity().getLocation() : null,
+                        questManager.getQuestByNpc(npc, player));
+            }
+            for (net.citizensnpcs.api.npc.NPC npc : CitizensAPI.getNPCRegistry()) {
+                handleNpc(player, map, processed, "citizens", npc.getId(), npc.getName(),
+                        npc.isSpawned() ? npc.getEntity().getLocation() : null,
+                        questManager.getQuestByNpc(npc, player));
             }
 
             map.entrySet().removeIf(e -> {
@@ -110,8 +91,43 @@ public class QuestNPCEffectTask extends BukkitRunnable {
         }
     }
 
-    private String getGlyph(Player player, NPC npc) {
-        Quest quest = questManager.getQuestByNpc(npc, player);
+    private void handleNpc(Player player, Map<String, TextDisplay> map, Set<String> processed,
+                           String source, int npcId, String npcName, Location location, Quest quest) {
+        if (quest == null && getServiceGlyph(npcName.toLowerCase()) == null) {
+            removeDisplay(map, processed, source, npcId);
+            return;
+        }
+        if (location == null || !location.getWorld().equals(player.getWorld())
+                || player.getLocation().distanceSquared(location) > 100) {
+            removeDisplay(map, processed, source, npcId);
+            return;
+        }
+        String key = source + ":" + npcId;
+        TextDisplay disp = map.get(key);
+        String glyph = getGlyph(player, quest, npcId, npcName);
+        if (glyph != null) {
+            updateDisplay(player, key, location, npcName, glyph, disp, map);
+            processed.add(key);
+            return;
+        }
+        if (disp != null) {
+            disp.remove();
+            map.remove(key);
+        }
+    }
+
+    private void removeDisplay(Map<String, TextDisplay> map, Set<String> processed,
+                               String source, int npcId) {
+        String key = source + ":" + npcId;
+        TextDisplay disp = map.get(key);
+        if (disp != null) {
+            disp.remove();
+            map.remove(key);
+        }
+        processed.remove(key);
+    }
+
+    private String getGlyph(Player player, Quest quest, int npcId, String npcName) {
         if (quest != null) {
             QuestState state = questManager.getQuestState(player, quest);
             if (state == QuestState.AVAILABLE) {
@@ -128,7 +144,7 @@ public class QuestNPCEffectTask extends BukkitRunnable {
                     }
                 }
                 QuestObjective obj = quest.getObjectives().get(idx);
-                if (questManager.isTalkObjectiveForNpc(obj, npc)) {
+                if (questManager.isTalkObjectiveForNpc(obj, npcId, npcName)) {
                     boolean last = idx == quest.getObjectives().size() - 1;
                     return last ? "<glyph:check>" : "<glyph:alert>";
                 } else if (state == QuestState.TURN_IN_READY) {
@@ -136,24 +152,25 @@ public class QuestNPCEffectTask extends BukkitRunnable {
                 }
             }
         }
-        return getServiceGlyph(npc.getName().toLowerCase());
+        return getServiceGlyph(npcName.toLowerCase());
     }
 
-    private void updateDisplay(Player player, NPC npc, int npcId, String glyph, TextDisplay disp, Map<Integer, TextDisplay> map) {
-        if (getServiceGlyph(npc.getName().toLowerCase()) == null) {
-            player.spawnParticle(Particle.HAPPY_VILLAGER, npc.getEntity().getLocation().add(0, 2, 0), 1, 0, 0, 0, 0);
+    private void updateDisplay(Player player, String key, Location baseLocation, String npcName, String glyph,
+                               TextDisplay disp, Map<String, TextDisplay> map) {
+        if (getServiceGlyph(npcName.toLowerCase()) == null) {
+            player.spawnParticle(Particle.HAPPY_VILLAGER, baseLocation.clone().add(0, 2, 0), 1, 0, 0, 0, 0);
         }
 
         double xOffset = GLYPH_X_OFFSETS.getOrDefault(glyph, 0.0);
-        Location loc = npc.getEntity().getLocation().add(xOffset, GLYPH_Y_OFFSET, 0);
+        Location loc = baseLocation.clone().add(xOffset, GLYPH_Y_OFFSET, 0);
         if (disp == null || disp.isDead()) {
-            disp = (TextDisplay) npc.getEntity().getWorld().spawnEntity(loc, EntityType.TEXT_DISPLAY);
+            disp = (TextDisplay) loc.getWorld().spawnEntity(loc, EntityType.TEXT_DISPLAY);
             disp.setBillboard(Display.Billboard.CENTER);
             disp.setShadowRadius(0f);
             disp.setShadowStrength(0f);
             disp.setBackgroundColor(org.bukkit.Color.fromARGB(0, 0, 0, 0));
             disp.setText(glyph);
-            map.put(npcId, disp);
+            map.put(key, disp);
             for (Player p : Bukkit.getOnlinePlayers()) {
                 if (!p.equals(player)) {
                     p.hideEntity(Main.getInstance(), disp);
@@ -177,7 +194,7 @@ public class QuestNPCEffectTask extends BukkitRunnable {
     }
 
     public void clearGlyphs() {
-        for (Map<Integer, TextDisplay> map : glyphs.values()) {
+        for (Map<String, TextDisplay> map : glyphs.values()) {
             for (TextDisplay td : map.values()) {
                 if (td != null && !td.isDead()) {
                     td.remove();

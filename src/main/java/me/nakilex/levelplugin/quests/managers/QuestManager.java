@@ -281,11 +281,22 @@ public class QuestManager {
         if (npc == null) {
             return false;
         }
-        String normalized = NpcNameUtil.normalize(npc.getName());
+        return hasQuestForNpc(npc.getId(), npc.getName());
+    }
+
+    public boolean hasQuestForNpc(net.citizensnpcs.api.npc.NPC npc) {
+        if (npc == null) {
+            return false;
+        }
+        return hasQuestForNpc(npc.getId(), npc.getName());
+    }
+
+    public boolean hasQuestForNpc(int npcId, String npcName) {
+        String normalized = NpcNameUtil.normalize(npcName);
         if (normalized != null && npcQuestNameMap.containsKey(normalized)) {
             return true;
         }
-        List<String> mapped = npcQuestMap.get(npc.getId());
+        List<String> mapped = npcQuestMap.get(npcId);
         return mapped != null && !mapped.isEmpty();
     }
 
@@ -1740,16 +1751,23 @@ public class QuestManager {
     }
 
     public boolean isTalkObjectiveForNpc(QuestObjective obj, NPC npc) {
-        if (obj == null || npc == null || obj.getType() != QuestObjectiveType.TALK) {
+        if (obj == null || npc == null) {
+            return false;
+        }
+        return isTalkObjectiveForNpc(obj, npc.getId(), npc.getName());
+    }
+
+    public boolean isTalkObjectiveForNpc(QuestObjective obj, int npcId, String npcName) {
+        if (obj == null || npcName == null || obj.getType() != QuestObjectiveType.TALK) {
             return false;
         }
         TalkTargetInfo info = talkTargetMap.get(obj.getTarget());
         if (info != null) {
-            String normalized = NpcNameUtil.normalize(npc.getName());
+            String normalized = NpcNameUtil.normalize(npcName);
             return normalized != null && normalized.equals(info.getNormalizedName());
         }
         String target = obj.getTarget().toLowerCase();
-        return target.startsWith("npc" + npc.getId());
+        return target.startsWith("npc" + npcId);
     }
 
     private static class TalkTargetInfo {
