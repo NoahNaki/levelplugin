@@ -9,7 +9,6 @@ import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.quests.util.QuestServiceAccessTracker;
 import me.nakilex.levelplugin.salvage.gui.SalvageGUI;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
-import me.nakilex.levelplugin.npc.system.NPC;
 import org.bukkit.entity.Player;
 
 /**
@@ -22,10 +21,12 @@ public class SalvagersLessonNpcHandler extends AbstractQuestNpcHandler {
     }
 
     @Override
-    public boolean handle(Player player, NPC npc, Quest quest, QuestState state,
+    public boolean handle(Player player, me.nakilex.levelplugin.npc.system.NPC npc,
+                          net.citizensnpcs.api.npc.NPC citizensNpc,
+                          Quest quest, QuestState state,
                           QuestManager questManager, NPCDialogManager dialogManager) {
         if (state == QuestState.AVAILABLE) {
-            dialogManager.startDialog(player, quest, npc);
+            startQuestDialog(player, quest, npc, citizensNpc);
             return true;
         }
         if (state == QuestState.LOCKED) {
@@ -42,9 +43,10 @@ public class SalvagersLessonNpcHandler extends AbstractQuestNpcHandler {
         boolean cooling = QuestServiceAccessTracker.isCoolingDown(player.getUniqueId(), QuestServiceAccessTracker.Service.SALVAGE);
 
         if (!introDone && progress != null) {
-            dialogManager.startDialog(player,
+            startDialog(player,
                     quest.getDialogLines(),
                     npc,
+                    citizensNpc,
                     () -> questManager.handleTalk(player, SalvagersLessonQuest.INTRO_TARGET));
             return true;
         }
@@ -69,9 +71,10 @@ public class SalvagersLessonNpcHandler extends AbstractQuestNpcHandler {
             return true;
         }
 
-        dialogManager.startDialog(player,
+        startDialog(player,
                 SalvagersLessonQuest.getReturnDialog(),
                 npc,
+                citizensNpc,
                 () -> questManager.handleTalk(player, SalvagersLessonQuest.RETURN_TARGET));
         return true;
     }

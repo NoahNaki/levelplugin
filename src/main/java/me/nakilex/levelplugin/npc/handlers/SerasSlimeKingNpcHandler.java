@@ -7,7 +7,6 @@ import me.nakilex.levelplugin.quests.def.SerasSlimeKingQuest;
 import me.nakilex.levelplugin.quests.gui.QuestState;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
-import me.nakilex.levelplugin.npc.system.NPC;
 import org.bukkit.entity.Player;
 
 /**
@@ -20,10 +19,12 @@ public class SerasSlimeKingNpcHandler extends AbstractQuestNpcHandler {
     }
 
     @Override
-    public boolean handle(Player player, NPC npc, Quest quest, QuestState state,
+    public boolean handle(Player player, me.nakilex.levelplugin.npc.system.NPC npc,
+                          net.citizensnpcs.api.npc.NPC citizensNpc,
+                          Quest quest, QuestState state,
                           QuestManager questManager, NPCDialogManager dialogManager) {
         if (state == QuestState.AVAILABLE) {
-            dialogManager.startDialog(player, quest, npc);
+            startQuestDialog(player, quest, npc, citizensNpc);
             return true;
         }
         if (state == QuestState.LOCKED) {
@@ -41,10 +42,11 @@ public class SerasSlimeKingNpcHandler extends AbstractQuestNpcHandler {
         boolean finaleDone = progress.getProgress(2) >= quest.getObjectives().get(2).getAmount();
 
         if (!introDone) {
-            dialogManager.startDialog(player,
+            startDialog(player,
                     quest.getDialogLines(),
                     npc,
-                    () -> questManager.handleTalk(player, "npc" + npc.getId() + "_second"));
+                    citizensNpc,
+                    () -> questManager.handleTalk(player, "npc" + getNpcId(npc, citizensNpc) + "_second"));
             return true;
         }
 
@@ -55,10 +57,11 @@ public class SerasSlimeKingNpcHandler extends AbstractQuestNpcHandler {
         }
 
         if (!finaleDone) {
-            dialogManager.startDialog(player,
+            startDialog(player,
                     SerasSlimeKingQuest.getDialogForObjective(2),
                     npc,
-                    () -> questManager.handleTalk(player, "npc" + npc.getId() + "_third"));
+                    citizensNpc,
+                    () -> questManager.handleTalk(player, "npc" + getNpcId(npc, citizensNpc) + "_third"));
             return true;
         }
 

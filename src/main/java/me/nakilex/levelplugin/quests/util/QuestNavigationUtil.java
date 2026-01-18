@@ -34,7 +34,7 @@ public final class QuestNavigationUtil {
         }
 
         QuestState state = questManager.getQuestState(player, quest);
-        int objectiveIndex = findObjectiveIndex(quest, progress);
+        int objectiveIndex = resolveObjectiveIndex(quest, progress);
 
         BeaconTarget target = quest.getObjectives().get(objectiveIndex).getBeaconTarget();
         Location location = target != null ? target.resolve(player) : null;
@@ -51,7 +51,7 @@ public final class QuestNavigationUtil {
         return new QuestTrackingInfo(quest, state, objectiveIndex, location);
     }
 
-    private static int findObjectiveIndex(Quest quest, PlayerQuestProgress progress) {
+    public static int resolveObjectiveIndex(Quest quest, PlayerQuestProgress progress) {
         if (quest == null) {
             return 0;
         }

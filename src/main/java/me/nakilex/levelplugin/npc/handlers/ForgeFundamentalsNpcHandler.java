@@ -7,7 +7,6 @@ import me.nakilex.levelplugin.quests.def.ForgeFundamentalsQuest;
 import me.nakilex.levelplugin.quests.gui.QuestState;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
-import me.nakilex.levelplugin.npc.system.NPC;
 import org.bukkit.entity.Player;
 
 /**
@@ -20,7 +19,9 @@ public class ForgeFundamentalsNpcHandler extends AbstractQuestNpcHandler {
     }
 
     @Override
-    public boolean handle(Player player, NPC npc, Quest quest, QuestState state,
+    public boolean handle(Player player, me.nakilex.levelplugin.npc.system.NPC npc,
+                          net.citizensnpcs.api.npc.NPC citizensNpc,
+                          Quest quest, QuestState state,
                           QuestManager questManager, NPCDialogManager dialogManager) {
         if (state == QuestState.AVAILABLE) {
             player.performCommand("blacksmith");
@@ -37,12 +38,13 @@ public class ForgeFundamentalsNpcHandler extends AbstractQuestNpcHandler {
         boolean returned = progress != null && progress.getProgress(2) >= 1;
 
         if (!introDone && progress != null) {
-            dialogManager.startDialog(player,
+            startDialog(player,
                     quest.getDialogLines(),
                     npc,
-                    () -> questManager.handleTalk(player, ForgeFundamentalsQuest.NPC_NAME.equalsIgnoreCase(npc.getName())
+                    citizensNpc,
+                    () -> questManager.handleTalk(player, ForgeFundamentalsQuest.NPC_NAME.equalsIgnoreCase(getNpcName(npc, citizensNpc))
                             ? "npc_blacksmith_intro"
-                            : "npc" + npc.getId()));
+                            : "npc" + getNpcId(npc, citizensNpc)));
             return true;
         }
 
@@ -58,9 +60,10 @@ public class ForgeFundamentalsNpcHandler extends AbstractQuestNpcHandler {
             return true;
         }
 
-        dialogManager.startDialog(player,
+        startDialog(player,
                 ForgeFundamentalsQuest.getReturnDialog(),
                 npc,
+                citizensNpc,
                 () -> questManager.handleTalk(player, "npc_blacksmith_return"));
         return true;
     }

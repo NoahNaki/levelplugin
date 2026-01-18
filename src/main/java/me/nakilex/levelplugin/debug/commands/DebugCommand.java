@@ -20,6 +20,7 @@ import me.nakilex.levelplugin.pathfinding.DungeonExpeditionManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
 import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
+import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager;
 import me.nakilex.levelplugin.utils.RewardBombUtil;
 import me.nakilex.levelplugin.utils.ToggleFeedbackUtil;
@@ -40,6 +41,7 @@ import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import io.papermc.paper.datacomponent.DataComponentTypes;
 import net.kyori.adventure.key.Key;
+import net.citizensnpcs.api.CitizensAPI;
 
 /**
  * Root debug command that hosts various developer utilities.
@@ -60,6 +62,7 @@ public class DebugCommand implements TabExecutor {
     private final DropDebugManager dropDebugManager;
     private final EnvironmentManager environmentManager;
     private final BeaconEntityDebugManager beaconEntityDebugManager;
+    private final QuestManager questManager;
 
     public DebugCommand(PlayerToggleManager mobDebugManager,
                         PlayerScoreboardManager scoreboardManager,
@@ -69,7 +72,8 @@ public class DebugCommand implements TabExecutor {
                         DungeonExpeditionManager dungeonExpeditionManager,
                         DropDebugManager dropDebugManager,
                         EnvironmentManager environmentManager,
-                        BeaconEntityDebugManager beaconEntityDebugManager) {
+                        BeaconEntityDebugManager beaconEntityDebugManager,
+                        QuestManager questManager) {
         this.mobDebugManager = mobDebugManager;
         this.scoreboardManager = scoreboardManager;
         this.debugGUI = debugGUI;
@@ -79,6 +83,7 @@ public class DebugCommand implements TabExecutor {
         this.dropDebugManager = dropDebugManager;
         this.environmentManager = environmentManager;
         this.beaconEntityDebugManager = beaconEntityDebugManager;
+        this.questManager = questManager;
     }
 
     @Override
@@ -90,7 +95,7 @@ public class DebugCommand implements TabExecutor {
                 String statUsage = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|" + statUsage + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|particlepath|" + statUsage + ">");
             }
             return true;
         }
@@ -246,6 +251,46 @@ public class DebugCommand implements TabExecutor {
                 ToggleFeedbackUtil.sendToggle(beaconPlayer, "Beacon entity", toggle.enabled());
                 return true;
 
+            case "particlepath":
+                if (!(sender instanceof Player particlePlayer)) {
+                    sender.sendMessage(ChatColor.RED + "Players only.");
+                    return true;
+                }
+                if (args.length < 2) {
+                    ChatMessageUtil.send(particlePlayer, ChatMessageUtil.MessageType.WARNING,
+                            "Usage: /debug particlepath <npcId|off>");
+                    return true;
+                }
+                String rawTarget = args[1];
+                if (rawTarget.equalsIgnoreCase("off") || rawTarget.equalsIgnoreCase("clear")) {
+                    questManager.clearParticlePathDebugTarget(particlePlayer.getUniqueId());
+                    ChatMessageUtil.send(particlePlayer, ChatMessageUtil.MessageType.SUCCESS,
+                            "Quest particle path debug disabled.");
+                    return true;
+                }
+                int npcId;
+                try {
+                    npcId = Integer.parseInt(rawTarget);
+                } catch (NumberFormatException e) {
+                    ChatMessageUtil.send(particlePlayer, ChatMessageUtil.MessageType.ERROR,
+                            "NPC id must be a number.");
+                    return true;
+                }
+                net.citizensnpcs.api.npc.NPC npc = CitizensAPI.getNPCRegistry().getById(npcId);
+                if (npc == null) {
+                    ChatMessageUtil.send(particlePlayer, ChatMessageUtil.MessageType.ERROR,
+                            "Citizens NPC not found for id " + npcId + ".");
+                    return true;
+                }
+                questManager.setParticlePathDebugTarget(particlePlayer.getUniqueId(), npcId);
+                ChatMessageUtil.send(particlePlayer, ChatMessageUtil.MessageType.SUCCESS,
+                        "Quest particle path debug set to NPC " + npcId + " (" + npc.getName() + ").");
+                if (questManager.resolveCitizensNpcLocation(npcId) == null) {
+                    ChatMessageUtil.send(particlePlayer, ChatMessageUtil.MessageType.WARNING,
+                            "NPC " + npcId + " has no stored location; particles may not show until it spawns.");
+                }
+                return true;
+
             case "hand":
                 if (!(sender instanceof Player p4)) {
                     sender.sendMessage("Players only.");
@@ -313,7 +358,7 @@ public class DebugCommand implements TabExecutor {
                 String statUsage2 = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|cityowner|citymax|autocast|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|" + statUsage2 + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|cityowner|citymax|autocast|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|particlepath|" + statUsage2 + ">");
                 return true;
         }
     }
@@ -378,7 +423,7 @@ public class DebugCommand implements TabExecutor {
         if (args.length == 1) {
             List<String> subs = new ArrayList<>(List.of("mobinfo", "tps", "siege", "cityowner", "citymax", "autocast",
                     "hand", "chatgame", "expedition", "dungeonexpedition", "rewardbomb", "drops", "beaconentity",
-                    "spellinput"));
+                    "spellinput", "particlepath"));
             subs.addAll(Arrays.stream(StatType.values()).map(StatType::getAbbrev).toList());
             return subs.stream()
                     .filter(s -> s.startsWith(args[0].toLowerCase()))
@@ -398,6 +443,16 @@ public class DebugCommand implements TabExecutor {
                     .collect(Collectors.toCollection(ArrayList::new));
             return guilds.stream()
                     .filter(g -> g.toLowerCase().startsWith(args[1].toLowerCase()))
+                    .toList();
+        } else if (args.length == 2 && args[0].equalsIgnoreCase("particlepath")) {
+            List<String> npcIds = new ArrayList<>();
+            npcIds.add("off");
+            for (net.citizensnpcs.api.npc.NPC npc : CitizensAPI.getNPCRegistry()) {
+                npcIds.add(String.valueOf(npc.getId()));
+            }
+            String filter = args[1].toLowerCase();
+            return npcIds.stream()
+                    .filter(id -> id.toLowerCase().startsWith(filter))
                     .toList();
         } else if (args.length == 3 && args[0].equalsIgnoreCase("chatgame")) {
             return List.of("on", "off", "enable", "disable").stream()

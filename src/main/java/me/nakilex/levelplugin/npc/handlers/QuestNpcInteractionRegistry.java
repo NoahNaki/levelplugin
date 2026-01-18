@@ -4,7 +4,6 @@ import me.nakilex.levelplugin.npc.dialog.NPCDialogManager;
 import me.nakilex.levelplugin.quests.data.Quest;
 import me.nakilex.levelplugin.quests.gui.QuestState;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
-import me.nakilex.levelplugin.npc.system.NPC;
 import org.bukkit.entity.Player;
 
 import java.util.HashMap;
@@ -23,7 +22,9 @@ public class QuestNpcInteractionRegistry {
         return this;
     }
 
-    public boolean handle(Player player, NPC npc, Quest quest, QuestState state,
+    public boolean handle(Player player, me.nakilex.levelplugin.npc.system.NPC npc,
+                          net.citizensnpcs.api.npc.NPC citizensNpc,
+                          Quest quest, QuestState state,
                           QuestManager questManager, NPCDialogManager dialogManager) {
         if (quest == null) {
             return false;
@@ -32,6 +33,6 @@ public class QuestNpcInteractionRegistry {
         if (handler == null) {
             return false;
         }
-        return handler.handle(player, npc, quest, state, questManager, dialogManager);
+        return handler.handle(player, npc, citizensNpc, quest, state, questManager, dialogManager);
     }
 }

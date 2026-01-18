@@ -19,7 +19,10 @@ import me.nakilex.levelplugin.quests.util.QuestNavigationUtil;
 import me.nakilex.levelplugin.quests.util.QuestServiceAccessTracker;
 import me.nakilex.levelplugin.utils.MobUtil;
 import me.nakilex.levelplugin.npc.system.NPC;
+import me.nakilex.levelplugin.npc.system.NpcApi;
+import net.citizensnpcs.api.CitizensAPI;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -42,6 +45,7 @@ public class QuestManager {
     private final Map<UUID, Set<String>> completedQuests = new HashMap<>();
     private final Map<UUID, Map<String, Long>> lastQuestCompletion = new HashMap<>();
     private final Map<UUID, String> trackedQuests = new HashMap<>();
+    private final Map<UUID, Integer> debugParticlePathTargets = new HashMap<>();
     private boolean debug = false;
     private FileConfiguration progressConfig;
     private File progressFile;
@@ -155,6 +159,8 @@ public class QuestManager {
                 me.nakilex.levelplugin.quests.def.EssenceWeaversLessonQuest.ID);
         registerNpcQuest(me.nakilex.levelplugin.quests.def.AbandonedCastleQuest.NPC_NAME,
                 me.nakilex.levelplugin.quests.def.AbandonedCastleQuest.ID);
+        registerNpcQuest(me.nakilex.levelplugin.quests.def.OfficeErrandsQuest.JANITOR_NPC_ID,
+                me.nakilex.levelplugin.quests.def.OfficeErrandsQuest.ID);
         plugin.getLogger().info("Registered " + quests.size() + " quests.");
     }
 
@@ -214,9 +220,20 @@ public class QuestManager {
             return null;
         }
 
+        return getQuestByNpc(npc.getId(), npc.getName(), player);
+    }
+
+    public Quest getQuestByNpc(net.citizensnpcs.api.npc.NPC npc, Player player) {
+        if (npc == null) {
+            return null;
+        }
+        return getQuestByNpc(npc.getId(), npc.getName(), player);
+    }
+
+    private Quest getQuestByNpc(int npcId, String npcName, Player player) {
         java.util.Set<String> candidates = new java.util.LinkedHashSet<>();
 
-        String normalized = NpcNameUtil.normalize(npc.getName());
+        String normalized = NpcNameUtil.normalize(npcName);
         if (normalized != null) {
             List<String> nameMapped = npcQuestNameMap.get(normalized);
             if (nameMapped != null) {
@@ -224,7 +241,7 @@ public class QuestManager {
             }
         }
 
-        List<String> idMapped = npcQuestMap.get(npc.getId());
+        List<String> idMapped = npcQuestMap.get(npcId);
         if (idMapped != null) {
             candidates.addAll(idMapped);
         }
@@ -266,11 +283,22 @@ public class QuestManager {
         if (npc == null) {
             return false;
         }
-        String normalized = NpcNameUtil.normalize(npc.getName());
+        return hasQuestForNpc(npc.getId(), npc.getName());
+    }
+
+    public boolean hasQuestForNpc(net.citizensnpcs.api.npc.NPC npc) {
+        if (npc == null) {
+            return false;
+        }
+        return hasQuestForNpc(npc.getId(), npc.getName());
+    }
+
+    public boolean hasQuestForNpc(int npcId, String npcName) {
+        String normalized = NpcNameUtil.normalize(npcName);
         if (normalized != null && npcQuestNameMap.containsKey(normalized)) {
             return true;
         }
-        List<String> mapped = npcQuestMap.get(npc.getId());
+        List<String> mapped = npcQuestMap.get(npcId);
         return mapped != null && !mapped.isEmpty();
     }
 
@@ -585,6 +613,9 @@ public class QuestManager {
         }
         saveProgress();
         sendStartMessage(player, quest);
+        if (debug) {
+            logQuestStartTracking(player, quest);
+        }
 
         if (quest instanceof me.nakilex.levelplugin.quests.data.QuestScript script) {
             script.onStart(player, plugin);
@@ -657,6 +688,41 @@ public class QuestManager {
 
     public String getTrackedQuest(UUID player) {
         return trackedQuests.get(player);
+    }
+
+    public void setParticlePathDebugTarget(UUID playerId, Integer npcId) {
+        if (playerId == null) {
+            return;
+        }
+        if (npcId == null) {
+            debugParticlePathTargets.remove(playerId);
+            return;
+        }
+        debugParticlePathTargets.put(playerId, npcId);
+    }
+
+    public void clearParticlePathDebugTarget(UUID playerId) {
+        setParticlePathDebugTarget(playerId, null);
+    }
+
+    public Integer getParticlePathDebugTarget(UUID playerId) {
+        return playerId == null ? null : debugParticlePathTargets.get(playerId);
+    }
+
+    public Location getParticlePathDebugLocation(Player player) {
+        if (player == null) {
+            return null;
+        }
+        Integer npcId = getParticlePathDebugTarget(player.getUniqueId());
+        if (npcId == null) {
+            return null;
+        }
+        return resolveCitizensNpcLocation(npcId);
+    }
+
+    public Location resolveCitizensNpcLocation(int npcId) {
+        net.citizensnpcs.api.npc.NPC npc = CitizensAPI.getNPCRegistry().getById(npcId);
+        return getCitizensNpcLocation(npc);
     }
 
     public void ensureTrackedQuestFor(UUID playerId) {
@@ -1524,6 +1590,133 @@ public class QuestManager {
         me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "", 45);
     }
 
+    private void logQuestStartTracking(Player player, Quest quest) {
+        if (player == null || quest == null) {
+            return;
+        }
+        PlayerQuestProgress progress = getProgress(player.getUniqueId(), quest.getId());
+        int objectiveCount = quest.getObjectives().size();
+        int objectiveIndex = QuestNavigationUtil.resolveObjectiveIndex(quest, progress);
+        QuestObjective objective = (objectiveIndex >= 0 && objectiveIndex < objectiveCount)
+                ? quest.getObjectives().get(objectiveIndex)
+                : null;
+        QuestState state = getQuestState(player, quest);
+        String objectiveType = objective != null ? objective.getType().name() : "none";
+        String objectiveTarget = objective != null ? objective.getTarget() : "none";
+        String talkNpc = (objective != null && objective.getType() == QuestObjectiveType.TALK)
+                ? resolveNpcName(objective.getTarget())
+                : null;
+        plugin.getLogger().info("[QuestDebug] Quest start tracking for " + player.getName()
+                + " quest=" + quest.getId()
+                + " state=" + state
+                + " objective=" + objectiveIndex + "/" + objectiveCount
+                + " type=" + objectiveType
+                + " target=" + objectiveTarget
+                + (talkNpc != null ? " talkNpc=" + talkNpc : ""));
+        BeaconTarget beaconTarget = objective != null ? objective.getBeaconTarget() : null;
+        Location location = beaconTarget != null ? beaconTarget.resolve(player) : null;
+        if (beaconTarget instanceof NpcBeaconTarget npcTarget) {
+            logNpcPresence(npcTarget.getNpcId(), npcTarget.getNormalizedName(), location);
+            return;
+        }
+        if (beaconTarget == null) {
+            Integer npcGiverId = quest.getNpcGiverId();
+            String questNpcName = findNpcNameForQuest(quest.getId());
+            plugin.getLogger().info("[QuestDebug] No beacon target. questGiverId="
+                    + npcGiverId + " questGiverName=" + questNpcName);
+            if (npcGiverId != null || questNpcName != null) {
+                logNpcPresence(npcGiverId, questNpcName, location);
+            }
+            plugin.getLogger().info("[QuestDebug] ResolvedLocation=" + formatLocation(location));
+            return;
+        }
+        plugin.getLogger().info("[QuestDebug] Beacon target type="
+                + beaconTarget.getClass().getSimpleName()
+                + " resolvedLocation=" + formatLocation(location));
+    }
+
+    private void logNpcPresence(Integer npcId, String normalizedName, Location location) {
+        NPC levelNpc = npcId != null
+                ? NpcApi.getRegistry().getById(npcId)
+                : findLevelNpcByNormalizedName(normalizedName);
+        net.citizensnpcs.api.npc.NPC citizensNpc = npcId != null
+                ? CitizensAPI.getNPCRegistry().getById(npcId)
+                : findCitizensNpcByNormalizedName(normalizedName);
+        plugin.getLogger().info("[QuestDebug] NPC lookup id=" + npcId
+                + " name=" + normalizedName
+                + " levelNpc=" + formatLevelNpc(levelNpc)
+                + " citizensNpc=" + formatCitizensNpc(citizensNpc)
+                + " resolvedLocation=" + formatLocation(location));
+    }
+
+    private NPC findLevelNpcByNormalizedName(String normalizedName) {
+        if (normalizedName == null || normalizedName.isBlank()) {
+            return null;
+        }
+        for (NPC npc : NpcApi.getRegistry()) {
+            if (normalizedName.equals(NpcNameUtil.normalize(npc.getName()))) {
+                return npc;
+            }
+        }
+        return null;
+    }
+
+    private net.citizensnpcs.api.npc.NPC findCitizensNpcByNormalizedName(String normalizedName) {
+        if (normalizedName == null || normalizedName.isBlank()) {
+            return null;
+        }
+        for (net.citizensnpcs.api.npc.NPC npc : CitizensAPI.getNPCRegistry()) {
+            if (normalizedName.equals(NpcNameUtil.normalize(npc.getName()))) {
+                return npc;
+            }
+        }
+        return null;
+    }
+
+    private String formatLevelNpc(NPC npc) {
+        if (npc == null) {
+            return "missing";
+        }
+        Location location = npc.isSpawned() && npc.getEntity() != null
+                ? npc.getEntity().getLocation()
+                : npc.getStoredLocation();
+        return "id=" + npc.getId()
+                + " name=" + npc.getName()
+                + " spawned=" + npc.isSpawned()
+                + " location=" + formatLocation(location);
+    }
+
+    private String formatCitizensNpc(net.citizensnpcs.api.npc.NPC npc) {
+        if (npc == null) {
+            return "missing";
+        }
+        Location location = getCitizensNpcLocation(npc);
+        return "id=" + npc.getId()
+                + " name=" + npc.getName()
+                + " spawned=" + npc.isSpawned()
+                + " location=" + formatLocation(location);
+    }
+
+    private Location getCitizensNpcLocation(net.citizensnpcs.api.npc.NPC npc) {
+        if (npc == null) {
+            return null;
+        }
+        if (npc.isSpawned() && npc.getEntity() != null) {
+            return npc.getEntity().getLocation();
+        }
+        return npc.getStoredLocation();
+    }
+
+    private String formatLocation(Location location) {
+        if (location == null || location.getWorld() == null) {
+            return "none";
+        }
+        return location.getWorld().getName()
+                + ":" + location.getBlockX()
+                + "," + location.getBlockY()
+                + "," + location.getBlockZ();
+    }
+
     private String beautifyName(String raw) {
         return MobNameUtil.getPlainDisplayName(raw);
     }
@@ -1560,16 +1753,23 @@ public class QuestManager {
     }
 
     public boolean isTalkObjectiveForNpc(QuestObjective obj, NPC npc) {
-        if (obj == null || npc == null || obj.getType() != QuestObjectiveType.TALK) {
+        if (obj == null || npc == null) {
+            return false;
+        }
+        return isTalkObjectiveForNpc(obj, npc.getId(), npc.getName());
+    }
+
+    public boolean isTalkObjectiveForNpc(QuestObjective obj, int npcId, String npcName) {
+        if (obj == null || npcName == null || obj.getType() != QuestObjectiveType.TALK) {
             return false;
         }
         TalkTargetInfo info = talkTargetMap.get(obj.getTarget());
         if (info != null) {
-            String normalized = NpcNameUtil.normalize(npc.getName());
+            String normalized = NpcNameUtil.normalize(npcName);
             return normalized != null && normalized.equals(info.getNormalizedName());
         }
         String target = obj.getTarget().toLowerCase();
-        return target.startsWith("npc" + npc.getId());
+        return target.startsWith("npc" + npcId);
     }
 
     private static class TalkTargetInfo {

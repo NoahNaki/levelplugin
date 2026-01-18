@@ -62,18 +62,24 @@ public class QuestPathTask extends BukkitRunnable {
             if (me.nakilex.levelplugin.player.profile.ProfileSelectionGUI.isSelecting(player)) {
                 continue;
             }
+            Location debugTarget = questManager.getParticlePathDebugLocation(player);
             if (settingsManager != null
-                    && !settingsManager.getSettings(player).isQuestTrackingParticlesEnabled()) {
+                    && !settingsManager.getSettings(player).isQuestTrackingParticlesEnabled()
+                    && debugTarget == null) {
                 clearCache(player.getUniqueId());
                 continue;
             }
-            QuestNavigationUtil.QuestTrackingInfo tracking = QuestNavigationUtil.resolveTracking(player, questManager);
-            if (tracking == null || tracking.location() == null) {
+            Location target = debugTarget;
+            QuestNavigationUtil.QuestTrackingInfo tracking = null;
+            if (target == null) {
+                tracking = QuestNavigationUtil.resolveTracking(player, questManager);
+                target = tracking != null ? tracking.location() : null;
+            }
+            if (target == null) {
                 clearCache(player.getUniqueId());
                 continue;
             }
 
-            Location target = tracking.location();
             Location playerLoc = player.getLocation();
             if (!isSameWorld(playerLoc, target)) {
                 clearCache(player.getUniqueId());

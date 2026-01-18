@@ -9,7 +9,6 @@ import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.NpcNameUtil;
 import me.nakilex.levelplugin.enchanting.gui.EnchantGUI;
-import me.nakilex.levelplugin.npc.system.NPC;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
@@ -27,10 +26,13 @@ public class SharpestSecretNpcHandler extends AbstractQuestNpcHandler {
     }
 
     @Override
-    public boolean handle(Player player, NPC npc, Quest quest, QuestState state,
+    public boolean handle(Player player, me.nakilex.levelplugin.npc.system.NPC npc,
+                          net.citizensnpcs.api.npc.NPC citizensNpc,
+                          Quest quest, QuestState state,
                           QuestManager questManager, NPCDialogManager dialogManager) {
-        boolean isKazan = NpcNameUtil.equalsNormalized(npc.getName(), SharpestSecretQuest.NPC_KAZAN_NAME);
-        boolean isOsiris = NpcNameUtil.equalsNormalized(npc.getName(), SharpestSecretQuest.NPC_OSIRIS_NAME);
+        String npcName = getNpcName(npc, citizensNpc);
+        boolean isKazan = NpcNameUtil.equalsNormalized(npcName, SharpestSecretQuest.NPC_KAZAN_NAME);
+        boolean isOsiris = NpcNameUtil.equalsNormalized(npcName, SharpestSecretQuest.NPC_OSIRIS_NAME);
         if (!isKazan && !isOsiris) {
             return false;
         }
@@ -55,9 +57,10 @@ public class SharpestSecretNpcHandler extends AbstractQuestNpcHandler {
             boolean osirisSpoken = progress.getProgress(SharpestSecretQuest.TALK_OSIRIS_INDEX) >= 1;
 
             if (!introDone) {
-                dialogManager.startDialog(player,
+                startDialog(player,
                         SharpestSecretQuest.getIntroDialog(),
                         npc,
+                        citizensNpc,
                         () -> questManager.handleTalk(player, SharpestSecretQuest.NPC_INTRO_TARGET));
                 return true;
             }
@@ -72,9 +75,10 @@ public class SharpestSecretNpcHandler extends AbstractQuestNpcHandler {
                             "You don't have the Midnight Orchid on you. Check beneath the oak at midnight again.");
                     return true;
                 }
-                dialogManager.startDialog(player,
+                startDialog(player,
                         SharpestSecretQuest.getReturnDialog(),
                         npc,
+                        citizensNpc,
                         () -> {
                             SharpestSecretQuest.removeMidnightOrchid(player);
                             questManager.handleTalk(player, SharpestSecretQuest.NPC_RETURN_TARGET);
@@ -87,9 +91,10 @@ public class SharpestSecretNpcHandler extends AbstractQuestNpcHandler {
             }
 
             if (osirisSpoken) {
-                dialogManager.startDialog(player,
+                startDialog(player,
                         SharpestSecretQuest.getOsirisReminderDialog(),
                         npc,
+                        citizensNpc,
                         () -> {
                             if (enchantGUI != null) {
                                 enchantGUI.open(player);
@@ -101,9 +106,10 @@ public class SharpestSecretNpcHandler extends AbstractQuestNpcHandler {
 
         if (isOsiris) {
             if (completed) {
-                dialogManager.startDialog(player,
+                startDialog(player,
                         SharpestSecretQuest.getOsirisReminderDialog(),
                         npc,
+                        citizensNpc,
                         () -> {
                             if (enchantGUI != null) {
                                 enchantGUI.open(player);
@@ -126,20 +132,23 @@ public class SharpestSecretNpcHandler extends AbstractQuestNpcHandler {
             }
 
             if (!osirisSpoken) {
-                dialogManager.startDialog(player,
+                startDialog(player,
                         SharpestSecretQuest.getOsirisIntroDialog(),
                         npc,
+                        citizensNpc,
                         () -> Bukkit.getScheduler().runTaskLater(me.nakilex.levelplugin.Main.getInstance(), () ->
-                                dialogManager.startChoiceDialog(player,
-                                        npc,
+                                startChoiceDialog(player,
                                         java.util.List.of("Memory", "Secret", "Spell", "Lie"),
+                                        npc,
+                                        citizensNpc,
                                         SharpestSecretQuest.ID,
                                         "osiris_choice_",
                                         choice -> {
                                             if (choice == 1) {
-                                                dialogManager.startDialog(player,
+                                                startDialog(player,
                                                         SharpestSecretQuest.getOsirisSuccessDialog(player.getName()),
                                                         npc,
+                                                        citizensNpc,
                                                         () -> {
                                                             SharpestSecretQuest.giveEnchantToken(player);
                                                             questManager.handleTalk(player, SharpestSecretQuest.NPC_OSIRIS_TARGET);
@@ -155,9 +164,10 @@ public class SharpestSecretNpcHandler extends AbstractQuestNpcHandler {
                 return true;
             }
 
-            dialogManager.startDialog(player,
+            startDialog(player,
                     SharpestSecretQuest.getOsirisReminderDialog(),
                     npc,
+                    citizensNpc,
                     () -> {
                         if (enchantGUI != null) {
                             enchantGUI.open(player);

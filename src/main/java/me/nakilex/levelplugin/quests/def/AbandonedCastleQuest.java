@@ -197,7 +197,27 @@ public class AbandonedCastleQuest extends Quest implements QuestScript, QuestRes
 
     public static boolean handleCedricTurnIn(Player player, QuestManager questManager, NPC npc,
                                              me.nakilex.levelplugin.npc.dialog.NPCDialogManager dialogManager) {
-        if (player == null || questManager == null || npc == null || npc.getId() != NPC_ID) {
+        if (npc == null) {
+            return false;
+        }
+        return handleCedricTurnIn(player, questManager, npc.getId(), dialogManager,
+                finish -> dialogManager.startDialog(player, TURN_IN_DIALOG, npc, finish));
+    }
+
+    public static boolean handleCedricTurnIn(Player player, QuestManager questManager,
+                                             net.citizensnpcs.api.npc.NPC npc,
+                                             me.nakilex.levelplugin.npc.dialog.NPCDialogManager dialogManager) {
+        if (npc == null) {
+            return false;
+        }
+        return handleCedricTurnIn(player, questManager, npc.getId(), dialogManager,
+                finish -> dialogManager.startDialog(player, TURN_IN_DIALOG, npc, finish));
+    }
+
+    private static boolean handleCedricTurnIn(Player player, QuestManager questManager, int npcId,
+                                              me.nakilex.levelplugin.npc.dialog.NPCDialogManager dialogManager,
+                                              java.util.function.Consumer<Runnable> dialogStarter) {
+        if (player == null || questManager == null || npcId != NPC_ID) {
             return false;
         }
 
@@ -223,9 +243,8 @@ public class AbandonedCastleQuest extends Quest implements QuestScript, QuestRes
             }
         }
 
-        if (dialogManager != null) {
-            dialogManager.startDialog(player, TURN_IN_DIALOG, npc,
-                    () -> questManager.handleTalk(player, RETURN_TARGET));
+        if (dialogManager != null && dialogStarter != null) {
+            dialogStarter.accept(() -> questManager.handleTalk(player, RETURN_TARGET));
             dialogManager.advanceDialog(player, questManager);
         } else {
             questManager.handleTalk(player, RETURN_TARGET);

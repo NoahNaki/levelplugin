@@ -12,7 +12,6 @@ import me.nakilex.levelplugin.quests.gui.QuestState;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.quests.util.QuestMessageUtil;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
-import me.nakilex.levelplugin.npc.system.NPC;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
@@ -26,10 +25,12 @@ public class FieldworkFavorNpcHandler extends AbstractQuestNpcHandler {
     }
 
     @Override
-    public boolean handle(Player player, NPC npc, Quest quest, QuestState state,
+    public boolean handle(Player player, me.nakilex.levelplugin.npc.system.NPC npc,
+                          net.citizensnpcs.api.npc.NPC citizensNpc,
+                          Quest quest, QuestState state,
                           QuestManager questManager, NPCDialogManager dialogManager) {
         if (state == QuestState.AVAILABLE) {
-            dialogManager.startDialog(player, quest, npc);
+            startQuestDialog(player, quest, npc, citizensNpc);
             return true;
         }
         if (state == QuestState.LOCKED) {
@@ -58,9 +59,10 @@ public class FieldworkFavorNpcHandler extends AbstractQuestNpcHandler {
                         "Your inventory is full. Make room before receiving the scythe.");
                 return true;
             }
-            dialogManager.startDialog(player,
+            startDialog(player,
                     quest.getDialogLines(),
                     npc,
+                    citizensNpc,
                     () -> {
                         CustomTool tool = ToolManager.getInstance().getTool(ToolTier.TIER_I, ToolDiscipline.FARMING);
                         if (tool != null) {
@@ -80,9 +82,10 @@ public class FieldworkFavorNpcHandler extends AbstractQuestNpcHandler {
         }
 
         if (!returnDone) {
-            dialogManager.startDialog(player,
+            startDialog(player,
                     FieldworkFavorQuest.getReturnDialog(),
                     npc,
+                    citizensNpc,
                     () -> questManager.handleTalk(player, FieldworkFavorQuest.RETURN_TARGET));
             return true;
         }
