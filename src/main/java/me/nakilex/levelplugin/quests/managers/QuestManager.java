@@ -159,6 +159,8 @@ public class QuestManager {
                 me.nakilex.levelplugin.quests.def.EssenceWeaversLessonQuest.ID);
         registerNpcQuest(me.nakilex.levelplugin.quests.def.AbandonedCastleQuest.NPC_NAME,
                 me.nakilex.levelplugin.quests.def.AbandonedCastleQuest.ID);
+        registerNpcQuest(me.nakilex.levelplugin.quests.def.OfficeErrandsQuest.JANITOR_NPC_ID,
+                me.nakilex.levelplugin.quests.def.OfficeErrandsQuest.ID);
         plugin.getLogger().info("Registered " + quests.size() + " quests.");
     }
 

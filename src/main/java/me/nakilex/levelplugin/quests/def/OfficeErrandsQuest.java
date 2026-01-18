@@ -26,6 +26,7 @@ import java.util.List;
 
 public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompletionScript, QuestResetScript {
     public static final String ID = "officeerrands";
+    public static final int JANITOR_NPC_ID = 516;
 
     /** Per-player listeners for cleanup when the quest resets. */
     private final java.util.Map<java.util.UUID, java.util.List<Listener>> listeners = new java.util.HashMap<>();
@@ -38,7 +39,7 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
         World world = Bukkit.getWorld("redrocks");
         Location elevatorLoc = world == null ? null : new Location(world, 29.0, 142.0, -93.0);
         return java.util.List.of(
-                new QuestObjective(QuestObjectiveType.TALK, "npc516", 1, BeaconTargets.npc(516)),
+                new QuestObjective(QuestObjectiveType.TALK, "npc" + JANITOR_NPC_ID, 1, BeaconTargets.npc(JANITOR_NPC_ID)),
                 new QuestObjective(QuestObjectiveType.DISCOVER, ELEVATOR_TARGET, 1,
                         false,
                         BeaconTargets.staticLoc(elevatorLoc),
@@ -127,15 +128,22 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
             public void onInteract(PlayerInteractEntityEvent event) {
                 if (!event.getPlayer().equals(player)) return;
                 if (event.getHand() == EquipmentSlot.OFF_HAND) return;
-                if (!NpcApi.getRegistry().isNPC(event.getRightClicked())) return;
                 NPC npc = NpcApi.getRegistry().getNPC(event.getRightClicked());
-                if (npc.getId() != 516) return;
+                net.citizensnpcs.api.npc.NPC citizensNpc =
+                        net.citizensnpcs.api.CitizensAPI.getNPCRegistry().getNPC(event.getRightClicked());
+                int npcId = npc != null ? npc.getId() : citizensNpc != null ? citizensNpc.getId() : -1;
+                if (npcId != JANITOR_NPC_ID) {
+                    if (plugin.getQuestManager().isDebug()) {
+                        plugin.getLogger().info("[QuestDebug] OfficeErrands click ignored player="
+                                + player.getName() + " npcId=" + npcId);
+                    }
+                    return;
+                }
 
                 if (dialogDone[0]) return;
 
                 if (plugin.getDialogManager().hasSession(player)) {
-                    NPC sessionNpc = plugin.getDialogManager().getSessionNpc(player);
-                    if (sessionNpc != null && sessionNpc.getId() == npc.getId()) {
+                    if (plugin.getDialogManager().isSessionNpc(player, npcId)) {
                         event.setCancelled(true);
                         plugin.getDialogManager().advanceDialog(player, plugin.getQuestManager());
                         return;
@@ -143,10 +151,10 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
                 }
 
                 event.setCancelled(true);
-                plugin.getDialogManager().startDialog(player, lines, npc, () -> {
+                startDialog(player, npc, citizensNpc, lines, () -> {
                     dialogDone[0] = true;
                     gates.openGate(player, gateId);
-                    plugin.getQuestManager().handleTalk(player, "npc516");
+                    plugin.getQuestManager().handleTalk(player, "npc" + JANITOR_NPC_ID);
 
                     // If the player is already inside the elevator area when
                     // the dialog finishes, trigger the teleport sequence
@@ -296,6 +304,17 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
                 }
             }.runTaskTimer(plugin, 0L, 10L);
         }, 40L);
+    }
+
+    private void startDialog(Player player, NPC npc, net.citizensnpcs.api.npc.NPC citizensNpc,
+                             List<String> lines, Runnable finish) {
+        if (npc != null) {
+            Main.getInstance().getDialogManager().startDialog(player, lines, npc, finish);
+            return;
+        }
+        if (citizensNpc != null) {
+            Main.getInstance().getDialogManager().startDialog(player, lines, citizensNpc, finish);
+        }
     }
 
     @Override
