@@ -5,7 +5,6 @@ import me.nakilex.levelplugin.quests.def.AbandonedCastleQuest;
 import me.nakilex.levelplugin.quests.data.Quest;
 import me.nakilex.levelplugin.quests.gui.QuestState;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
-import me.nakilex.levelplugin.npc.system.NPC;
 import org.bukkit.entity.Player;
 
 /**
@@ -18,14 +17,20 @@ public class AbandonedCastleNpcHandler extends AbstractQuestNpcHandler {
     }
 
     @Override
-    public boolean handle(Player player, NPC npc, Quest quest, QuestState state,
+    public boolean handle(Player player, me.nakilex.levelplugin.npc.system.NPC npc,
+                          net.citizensnpcs.api.npc.NPC citizensNpc,
+                          Quest quest, QuestState state,
                           QuestManager questManager, NPCDialogManager dialogManager) {
-        if (npc == null || npc.getId() != AbandonedCastleQuest.NPC_ID) {
+        int npcId = getNpcId(npc, citizensNpc);
+        if (npcId != AbandonedCastleQuest.NPC_ID) {
             return false;
         }
         if (AbandonedCastleQuest.isReadyForTurnIn(player, questManager)) {
             me.nakilex.levelplugin.Main.getInstance().getLogger().info("[CedricTurnIn] Handler invoked for " + player.getName() + " state=" + state);
-            if (AbandonedCastleQuest.handleCedricTurnIn(player, questManager, npc, dialogManager)) {
+            boolean handled = npc != null
+                    ? AbandonedCastleQuest.handleCedricTurnIn(player, questManager, npc, dialogManager)
+                    : AbandonedCastleQuest.handleCedricTurnIn(player, questManager, citizensNpc, dialogManager);
+            if (handled) {
                 return true;
             }
         }
@@ -40,9 +45,10 @@ public class AbandonedCastleNpcHandler extends AbstractQuestNpcHandler {
             if (progress != null && quest != null) {
                 int needed = quest.getObjectives().get(0).getAmount();
                 if (progress.getProgress(0) < needed) {
-                    dialogManager.startDialog(player,
+                    startDialog(player,
                             quest.getDialogLines(),
                             npc,
+                            citizensNpc,
                             () -> questManager.handleTalk(player, AbandonedCastleQuest.INTRO_TARGET));
                     return true;
                 }

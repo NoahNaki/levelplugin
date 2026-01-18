@@ -12,7 +12,6 @@ import me.nakilex.levelplugin.player.classes.data.ClassUtil;
 import me.nakilex.levelplugin.player.classes.essence.ClassEssence;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
-import me.nakilex.levelplugin.npc.system.NPC;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -33,10 +32,12 @@ public class EssenceWeaverLessonNpcHandler extends AbstractQuestNpcHandler {
     }
 
     @Override
-    public boolean handle(Player player, NPC npc, Quest quest, QuestState state,
+    public boolean handle(Player player, me.nakilex.levelplugin.npc.system.NPC npc,
+                          net.citizensnpcs.api.npc.NPC citizensNpc,
+                          Quest quest, QuestState state,
                           QuestManager questManager, NPCDialogManager dialogManager) {
         if (state == QuestState.AVAILABLE) {
-            dialogManager.startDialog(player, quest, npc);
+            startQuestDialog(player, quest, npc, citizensNpc);
             return true;
         }
         if (state == QuestState.LOCKED) {
@@ -50,13 +51,14 @@ public class EssenceWeaverLessonNpcHandler extends AbstractQuestNpcHandler {
         boolean swapped = progress != null && progress.getProgress(2) >= 1;
 
         if (!introDone && progress != null) {
-            dialogManager.startDialog(player,
+            startDialog(player,
                     quest.getDialogLines(),
                     npc,
+                    citizensNpc,
                     () -> {
-                        questManager.handleTalk(player, EssenceWeaversLessonQuest.NPC_NAME.equalsIgnoreCase(npc.getName())
+                        questManager.handleTalk(player, EssenceWeaversLessonQuest.NPC_NAME.equalsIgnoreCase(getNpcName(npc, citizensNpc))
                                 ? "npc_essence_weaver_intro"
-                                : "npc" + npc.getId());
+                                : "npc" + getNpcId(npc, citizensNpc));
                         ensureIntroEssence(player);
                     });
             return true;

@@ -7,7 +7,6 @@ import me.nakilex.levelplugin.quests.data.Quest;
 import me.nakilex.levelplugin.quests.def.StableKeeperQuest;
 import me.nakilex.levelplugin.quests.gui.QuestState;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
-import me.nakilex.levelplugin.npc.system.NPC;
 import org.bukkit.entity.Player;
 
 /**
@@ -23,7 +22,9 @@ public class StableKeeperNpcHandler extends AbstractQuestNpcHandler {
     }
 
     @Override
-    public boolean handle(Player player, NPC npc, Quest quest, QuestState state,
+    public boolean handle(Player player, me.nakilex.levelplugin.npc.system.NPC npc,
+                          net.citizensnpcs.api.npc.NPC citizensNpc,
+                          Quest quest, QuestState state,
                           QuestManager questManager, NPCDialogManager dialogManager) {
         if (questManager.hasCompleted(player.getUniqueId(), StableKeeperQuest.ID)) {
             horseGUI.openHorseMenu(player);
@@ -42,9 +43,10 @@ public class StableKeeperNpcHandler extends AbstractQuestNpcHandler {
         boolean finaleDone = progress.getProgress(StableKeeperQuest.TALK_FINAL_INDEX) >= 1;
 
         if (!introDone) {
-            dialogManager.startDialog(player,
+            startDialog(player,
                     quest.getDialogLines(),
                     npc,
+                    citizensNpc,
                     () -> questManager.handleTalk(player, StableKeeperQuest.NPC_TALK_TARGET));
             return true;
         }
@@ -55,9 +57,10 @@ public class StableKeeperNpcHandler extends AbstractQuestNpcHandler {
         }
 
         if (roostersCleared && !reportDone) {
-            dialogManager.startDialog(player,
+            startDialog(player,
                     StableKeeperQuest.getDialogForObjective(StableKeeperQuest.TALK_REPORT_INDEX),
                     npc,
+                    citizensNpc,
                     () -> questManager.handleTalk(player, StableKeeperQuest.NPC_RETURN_TARGET));
             return true;
         }
@@ -69,9 +72,10 @@ public class StableKeeperNpcHandler extends AbstractQuestNpcHandler {
         }
 
         if (horseBought && !finaleDone) {
-            dialogManager.startDialog(player,
+            startDialog(player,
                     StableKeeperQuest.getDialogForObjective(StableKeeperQuest.TALK_FINAL_INDEX),
                     npc,
+                    citizensNpc,
                     () -> questManager.handleTalk(player, StableKeeperQuest.NPC_FINAL_TARGET));
             return true;
         }

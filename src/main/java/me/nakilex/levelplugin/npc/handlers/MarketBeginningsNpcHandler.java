@@ -9,7 +9,6 @@ import me.nakilex.levelplugin.quests.gui.QuestState;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.quests.util.QuestServiceAccessTracker;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
-import me.nakilex.levelplugin.npc.system.NPC;
 import org.bukkit.entity.Player;
 
 /**
@@ -26,10 +25,12 @@ public class MarketBeginningsNpcHandler extends AbstractQuestNpcHandler {
     }
 
     @Override
-    public boolean handle(Player player, NPC npc, Quest quest, QuestState state,
+    public boolean handle(Player player, me.nakilex.levelplugin.npc.system.NPC npc,
+                          net.citizensnpcs.api.npc.NPC citizensNpc,
+                          Quest quest, QuestState state,
                           QuestManager questManager, NPCDialogManager dialogManager) {
         if (state == QuestState.AVAILABLE) {
-            dialogManager.startDialog(player, quest, npc);
+            startQuestDialog(player, quest, npc, citizensNpc);
             return true;
         }
         if (state == QuestState.LOCKED) {
@@ -46,9 +47,10 @@ public class MarketBeginningsNpcHandler extends AbstractQuestNpcHandler {
         boolean cooling = QuestServiceAccessTracker.isCoolingDown(player.getUniqueId(), QuestServiceAccessTracker.Service.AUCTION);
 
         if (!introDone && progress != null) {
-            dialogManager.startDialog(player,
+            startDialog(player,
                     quest.getDialogLines(),
                     npc,
+                    citizensNpc,
                     () -> questManager.handleTalk(player, MarketBeginningsQuest.INTRO_TARGET));
             return true;
         }
@@ -77,9 +79,10 @@ public class MarketBeginningsNpcHandler extends AbstractQuestNpcHandler {
             return true;
         }
 
-        dialogManager.startDialog(player,
+        startDialog(player,
                 MarketBeginningsQuest.getReturnDialog(),
                 npc,
+                citizensNpc,
                 () -> questManager.handleTalk(player, MarketBeginningsQuest.RETURN_TARGET));
         return true;
     }

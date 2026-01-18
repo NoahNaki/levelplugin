@@ -6,7 +6,6 @@ import me.nakilex.levelplugin.quests.data.Quest;
 import me.nakilex.levelplugin.quests.def.ZoyaDungeonQuest;
 import me.nakilex.levelplugin.quests.gui.QuestState;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
-import me.nakilex.levelplugin.npc.system.NPC;
 import org.bukkit.entity.Player;
 
 /**
@@ -19,7 +18,9 @@ public class ZoyaDungeonNpcHandler extends AbstractQuestNpcHandler {
     }
 
     @Override
-    public boolean handle(Player player, NPC npc, Quest quest, QuestState state,
+    public boolean handle(Player player, me.nakilex.levelplugin.npc.system.NPC npc,
+                          net.citizensnpcs.api.npc.NPC citizensNpc,
+                          Quest quest, QuestState state,
                           QuestManager questManager, NPCDialogManager dialogManager) {
         PlayerQuestProgress progress = questManager.getProgress(player.getUniqueId(), quest.getId());
         if (progress == null) {
@@ -30,18 +31,20 @@ public class ZoyaDungeonNpcHandler extends AbstractQuestNpcHandler {
         boolean finaleDone = progress.getProgress(2) >= quest.getObjectives().get(2).getAmount();
 
         if (introDone && !dungeonSaved) {
-            dialogManager.startDialog(player,
+            startDialog(player,
                     ZoyaDungeonQuest.getReminderDialog(),
                     npc,
+                    citizensNpc,
                     null);
             return true;
         }
 
         if (dungeonSaved && !finaleDone) {
-            dialogManager.startDialog(player,
+            startDialog(player,
                     ZoyaDungeonQuest.getCompletionDialog(),
                     npc,
-                    () -> questManager.handleTalk(player, "npc" + npc.getId() + "_return"));
+                    citizensNpc,
+                    () -> questManager.handleTalk(player, "npc" + getNpcId(npc, citizensNpc) + "_return"));
             return true;
         }
 

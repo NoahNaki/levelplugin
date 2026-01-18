@@ -10,7 +10,6 @@ import me.nakilex.levelplugin.quests.gui.QuestState;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.CurrencyMessageUtil;
-import me.nakilex.levelplugin.npc.system.NPC;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
@@ -29,9 +28,11 @@ public class GamblersGambitNpcHandler extends AbstractQuestNpcHandler {
     }
 
     @Override
-    public boolean handle(Player player, NPC npc, Quest quest, QuestState state,
+    public boolean handle(Player player, me.nakilex.levelplugin.npc.system.NPC npc,
+                          net.citizensnpcs.api.npc.NPC citizensNpc,
+                          Quest quest, QuestState state,
                           QuestManager questManager, NPCDialogManager dialogManager) {
-        if (dialogManager.resumePendingChoice(player, npc)) {
+        if (resumePendingChoice(player, npc, citizensNpc)) {
             return true;
         }
 
@@ -55,12 +56,12 @@ public class GamblersGambitNpcHandler extends AbstractQuestNpcHandler {
                         "This daily wager opens again in " + formatDuration(remaining) + ".");
                 return true;
             }
-            openOfferWithChoice(player, npc, GamblersGambitQuest.getRepeatDialog(), script);
+            openOfferWithChoice(player, npc, citizensNpc, GamblersGambitQuest.getRepeatDialog(), script);
             return true;
         }
 
         if (state == QuestState.AVAILABLE) {
-            openOfferWithChoice(player, npc, GamblersGambitQuest.getOfferDialog(), script);
+            openOfferWithChoice(player, npc, citizensNpc, GamblersGambitQuest.getOfferDialog(), script);
             return true;
         }
 
@@ -76,25 +77,31 @@ public class GamblersGambitNpcHandler extends AbstractQuestNpcHandler {
         return true;
     }
 
-    private void openOfferWithChoice(Player player, NPC npc, java.util.List<String> dialog,
+    private void openOfferWithChoice(Player player, me.nakilex.levelplugin.npc.system.NPC npc,
+                                     net.citizensnpcs.api.npc.NPC citizensNpc,
+                                     java.util.List<String> dialog,
                                      GamblersGambitQuest script) {
-        dialogManager.startDialog(player,
+        startDialog(player,
                 dialog,
                 npc,
+                citizensNpc,
                 () -> new BukkitRunnable() {
                     @Override
                     public void run() {
-                        dialogManager.startChoiceDialog(player,
-                                npc,
+                        startChoiceDialog(player,
                                 java.util.List.of("Yes", "No"),
+                                npc,
+                                citizensNpc,
                                 GamblersGambitQuest.ID,
                                 GamblersGambitQuest.getChoiceFlagBase(),
-                                choice -> handleChoice(player, player.getUniqueId(), choice, script, npc));
+                                choice -> handleChoice(player, player.getUniqueId(), choice, script, npc, citizensNpc));
                     }
                 }.runTaskLater(Main.getInstance(), 1L));
     }
 
-    private void handleChoice(Player player, UUID uuid, int choice, GamblersGambitQuest script, NPC npc) {
+    private void handleChoice(Player player, UUID uuid, int choice, GamblersGambitQuest script,
+                              me.nakilex.levelplugin.npc.system.NPC npc,
+                              net.citizensnpcs.api.npc.NPC citizensNpc) {
         questManager.removeFlag(uuid, GamblersGambitQuest.ID,
                 GamblersGambitQuest.getChoiceFlagBase() + choice);
         if (choice == 0) {
@@ -108,18 +115,20 @@ public class GamblersGambitNpcHandler extends AbstractQuestNpcHandler {
             CurrencyMessageUtil.sendLoss(player, CurrencyMessageUtil.Currency.COINS,
                     GamblersGambitQuest.ENTRY_FEE);
             questManager.startQuest(player, GamblersGambitQuest.ID);
-            dialogManager.startDialog(player,
+            startDialog(player,
                     GamblersGambitQuest.getAcceptDialog(),
                     npc,
+                    citizensNpc,
                     () -> {
                         if (script != null) {
                             script.remindGuess(player);
                         }
                     });
         } else {
-            dialogManager.startDialog(player,
+            startDialog(player,
                     GamblersGambitQuest.getDeclineDialog(),
                     npc,
+                    citizensNpc,
                     null);
         }
     }
