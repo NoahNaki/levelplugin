@@ -15,7 +15,6 @@ import me.nakilex.levelplugin.quests.def.SharpestSecretQuest;
 import me.nakilex.levelplugin.quests.def.SalvagersLessonQuest;
 import me.nakilex.levelplugin.quests.def.HawieHermitCrabQuest;
 import me.nakilex.levelplugin.quests.def.MarketBeginningsQuest;
-import me.nakilex.levelplugin.quests.def.CultistCullingQuest;
 import me.nakilex.levelplugin.quests.def.FieldworkFavorQuest;
 import me.nakilex.levelplugin.quests.def.WakePerryQuest;
 import me.nakilex.levelplugin.npc.handlers.EssenceWeaverLessonNpcHandler;
@@ -42,8 +41,8 @@ import me.nakilex.levelplugin.auctionhouse.AuctionHouseGUI;
 import me.nakilex.levelplugin.salvage.gui.SalvageGUI;
 import me.nakilex.levelplugin.quests.util.QuestServiceAccessTracker;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
-import net.citizensnpcs.api.CitizensAPI;
-import net.citizensnpcs.api.npc.NPC;
+import me.nakilex.levelplugin.npc.system.NpcApi;
+import me.nakilex.levelplugin.npc.system.NPC;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
@@ -94,16 +93,16 @@ public class NPCClickListener implements Listener {
         registerQuestHandlers();
     }
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler
     public void onNPCClick(PlayerInteractEntityEvent event) {
         // Ignore offhand interactions
         if (event.getHand() == org.bukkit.inventory.EquipmentSlot.OFF_HAND) {
             return; // Ignore offhand clicks
         }
 
-        if (CitizensAPI.getNPCRegistry().isNPC(event.getRightClicked())) {
+        if (NpcApi.getRegistry().isNPC(event.getRightClicked())) {
             Player player = event.getPlayer();
-            NPC npc = CitizensAPI.getNPCRegistry().getNPC(event.getRightClicked());
+            NPC npc = NpcApi.getRegistry().getNPC(event.getRightClicked());
             var serverSelection = Main.getInstance().getServerSelectionManager();
             if (serverSelection != null && serverSelection.handleSelectorClick(player, npc)) {
                 return;
@@ -177,7 +176,7 @@ public class NPCClickListener implements Listener {
             if (npc.getId() == 546 &&
                     questManager.hasCompleted(player.getUniqueId(), "newbeginning")) {
                 if (!dialogManager.hasSession(player)) {
-                    NPC seras = CitizensAPI.getNPCRegistry().getById(823);
+                    NPC seras = NpcApi.getRegistry().getById(823);
                     String coords = "unknown";
                     if (seras != null) {
                         Location l = seras.isSpawned() ? seras.getEntity().getLocation() : seras.getStoredLocation();
@@ -209,18 +208,6 @@ public class NPCClickListener implements Listener {
             if (npc.getId() == DungeonGuardQuest.NPC_ID) {
                 handleDungeonGuard(player, npc);
                 return;
-            }
-
-            if (npc.getId() == CultistCullingQuest.NPC_ID) {
-                if (handleCultistCulling(player, npc)) {
-                    return;
-                }
-            }
-
-            if (npc.getId() == CultistCullingQuest.getContactNpcId()) {
-                if (handleCultistContact(player, npc)) {
-                    return;
-                }
             }
 
             Quest quest = questManager.getQuestByNpc(npc, player);
@@ -395,67 +382,6 @@ public class NPCClickListener implements Listener {
                 .register(new SharpestSecretNpcHandler(questManager, dialogManager, enchantGUI))
                 .register(new StableKeeperNpcHandler(questManager, dialogManager, horseGUI))
                 .register(new ZoyaDungeonNpcHandler(questManager, dialogManager));
-    }
-
-    private boolean handleCultistCulling(Player player, NPC npc) {
-        Quest quest = questManager.getQuestById(CultistCullingQuest.ID);
-        if (quest == null) {
-            return false;
-        }
-        QuestState state = questManager.getQuestState(player, quest);
-        if (state == QuestState.LOCKED) {
-            return false;
-        }
-        if (state == QuestState.AVAILABLE) {
-            if (questManager.meetsRequirements(player, quest)) {
-                dialogManager.startDialog(player, quest, npc);
-            }
-            return true;
-        }
-
-        PlayerQuestProgress progress = questManager.getProgress(player.getUniqueId(), quest.getId());
-        if (progress != null) {
-            int halted = progress.getProgress(0);
-            int total = quest.getObjectives().get(0).getAmount();
-            if (halted < total) {
-                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
-                        "Rituals halted: " + halted + "/" + total + ". Draw closer to cult activity to stop the rest.");
-            } else {
-                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
-                        "All rituals disrupted. Report to the mysterious contact now visible nearby.");
-            }
-            return true;
-        }
-
-        return questManager.hasCompleted(player.getUniqueId(), quest.getId());
-    }
-
-    private boolean handleCultistContact(Player player, NPC npc) {
-        Quest quest = questManager.getQuestById(CultistCullingQuest.ID);
-        if (quest == null) {
-            return false;
-        }
-        boolean completed = questManager.hasCompleted(player.getUniqueId(), quest.getId());
-        PlayerQuestProgress progress = questManager.getProgress(player.getUniqueId(), quest.getId());
-        if (completed || progress == null) {
-            return false;
-        }
-        boolean ritualsDone = progress.getProgress(0) >= quest.getObjectives().get(0).getAmount();
-        boolean spoken = progress.getProgress(1) >= 1;
-        if (!ritualsDone) {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
-                    "Disrupt the remaining rituals before reporting in.");
-            return true;
-        }
-        if (spoken) {
-            return false;
-        }
-
-        dialogManager.startDialog(player,
-                CultistCullingQuest.getContactDialog(),
-                npc,
-                () -> questManager.handleTalk(player, CultistCullingQuest.getContactTalkTarget()));
-        return true;
     }
 
     private boolean isNpcName(NPC npc, String expectedName) {

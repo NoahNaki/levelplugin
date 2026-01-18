@@ -9,7 +9,7 @@ import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.NpcNameUtil;
 import me.nakilex.levelplugin.enchanting.gui.EnchantGUI;
-import net.citizensnpcs.api.npc.NPC;
+import me.nakilex.levelplugin.npc.system.NPC;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 

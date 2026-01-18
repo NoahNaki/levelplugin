@@ -1,0 +1,12 @@
+<component name="libraryTable">
+  <library name="Model-Engine-R4.0.8-dev-all.jar">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/../Minecraft Servers/1.21.3 Paper/plugins/Model-Engine-R4.0.8-dev-all.jar.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../Minecraft Servers/1.21.3 Paper/plugins/nexo-1.7.1.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../Minecraft Servers/1.21.3 Paper/plugins/PlaceholderAPI-2.11.6.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../Minecraft Servers/1.21.3 Paper/plugins/ProtocolLib.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

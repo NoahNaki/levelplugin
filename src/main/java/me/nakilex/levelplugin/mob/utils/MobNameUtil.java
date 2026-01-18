@@ -1,21 +1,17 @@
 package me.nakilex.levelplugin.mob.utils;
 
-import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.metadata.MetadataValue;
+import me.nakilex.levelplugin.mob.custom.CustomMobManager;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 
 /** Utility methods to convert between MythicMob internal IDs and human-friendly names. */
 public final class MobNameUtil {
-    private static final String MYTHIC_PLUGIN = "MythicMobs";
-    private static final String MYTHIC_BUKKIT_CLASS = "io.lumine.mythic.bukkit.MythicBukkit";
-
     private MobNameUtil() {}
 
     /**
@@ -47,97 +43,26 @@ public final class MobNameUtil {
         if (mobId == null || mobId.isEmpty()) {
             return mobId;
         }
-        Optional<Object> opt = resolveMythicMobHandle(mobId);
-        if (opt.isPresent()) {
-            String result = extractDisplayName(opt.get());
-            if (result != null && !result.isEmpty()) {
-                return result;
-            }
-        }
         return toPrettyName(mobId);
     }
 
     /**
-     * Attempt to locate a MythicMob definition regardless of how the ID is cased or formatted.
-     * Mythic mob IDs are traditionally upper-case and use underscores, while our configuration
-     * files often use lower-case keys copied straight from Mythic. This helper keeps the lookup
-     * tolerant so we can still resolve the correct display name even when the cases differ.
+     * Resolve a custom mob id from metadata, if one is present.
      */
-    public static Optional<String> resolveMythicInternalName(String mobId) {
-        return resolveMythicMobHandle(mobId)
-                .map(MobNameUtil::extractInternalName)
-                .filter(name -> name != null && !name.isBlank());
-    }
-
-    private static Optional<Object> resolveMythicMobHandle(String mobId) {
-        if (mobId == null || mobId.isEmpty()) {
+    public static Optional<String> resolveCustomMobId(LivingEntity entity) {
+        if (entity == null || !entity.hasMetadata(CustomMobManager.CUSTOM_MOB_ID_META)) {
             return Optional.empty();
         }
-
-        if (!Bukkit.getPluginManager().isPluginEnabled(MYTHIC_PLUGIN)) {
-            return Optional.empty();
-        }
-
-        Object manager;
-        try {
-            Class<?> mythicClass = Class.forName(MYTHIC_BUKKIT_CLASS);
-            Object mythic = mythicClass.getMethod("inst").invoke(null);
-            manager = mythic.getClass().getMethod("getMobManager").invoke(mythic);
-        } catch (ReflectiveOperationException | RuntimeException ex) {
-            return Optional.empty();
-        }
-        if (manager == null) {
-            return Optional.empty();
-        }
-
-        String normalized = mobId.replace(' ', '_');
-        LinkedHashSet<String> candidates = new LinkedHashSet<>();
-        candidates.add(mobId);
-        candidates.add(normalized);
-        candidates.add(mobId.toUpperCase(Locale.ROOT));
-        candidates.add(normalized.toUpperCase(Locale.ROOT));
-        candidates.add(mobId.toLowerCase(Locale.ROOT));
-        candidates.add(normalized.toLowerCase(Locale.ROOT));
-
-        List<String> tokens = tokenize(mobId);
-        if (!tokens.isEmpty()) {
-            String joined = String.join("_", tokens);
-            candidates.add(joined);
-            candidates.add(joined.toUpperCase(Locale.ROOT));
-            candidates.add(joined.toLowerCase(Locale.ROOT));
-
-            if (tokens.size() > 1) {
-                List<String> sorted = new ArrayList<>(tokens);
-                sorted.sort(String.CASE_INSENSITIVE_ORDER);
-                String sortedJoin = String.join("_", sorted);
-                candidates.add(sortedJoin);
-                candidates.add(sortedJoin.toUpperCase(Locale.ROOT));
-                candidates.add(sortedJoin.toLowerCase(Locale.ROOT));
-
-                List<String> reversed = new ArrayList<>(tokens);
-                Collections.reverse(reversed);
-                String reversedJoin = String.join("_", reversed);
-                candidates.add(reversedJoin);
-                candidates.add(reversedJoin.toUpperCase(Locale.ROOT));
-                candidates.add(reversedJoin.toLowerCase(Locale.ROOT));
-            }
-        }
-
-        for (String candidate : candidates) {
-            if (candidate == null || candidate.isEmpty()) {
+        List<MetadataValue> values = entity.getMetadata(CustomMobManager.CUSTOM_MOB_ID_META);
+        for (MetadataValue value : values) {
+            if (value == null) {
                 continue;
             }
-            try {
-                Object result = manager.getClass()
-                        .getMethod("getMythicMob", String.class)
-                        .invoke(manager, candidate);
-                if (result instanceof Optional<?> optional && optional.isPresent()) {
-                    return Optional.of(optional.get());
-                }
-            } catch (ReflectiveOperationException | RuntimeException ignored) {
+            Object raw = value.value();
+            if (raw instanceof String id && !id.isBlank()) {
+                return Optional.of(id);
             }
         }
-
         return Optional.empty();
     }
 
@@ -155,11 +80,8 @@ public final class MobNameUtil {
             return "";
         }
 
-        String base = resolveMythicInternalName(mobId).orElse(null);
-        if (base == null || base.isBlank()) {
-            String plain = getPlainDisplayName(mobId);
-            base = (plain == null || plain.isBlank()) ? mobId : plain;
-        }
+        String plain = getPlainDisplayName(mobId);
+        String base = (plain == null || plain.isBlank()) ? mobId : plain;
         List<String> tokens = tokenize(base);
         if (tokens.isEmpty()) {
             return "";
@@ -174,28 +96,6 @@ public final class MobNameUtil {
             builder.append(token.toLowerCase(Locale.ROOT));
         }
         return builder.toString();
-    }
-
-    private static String extractDisplayName(Object mob) {
-        try {
-            Object placeholder = mob.getClass().getMethod("getDisplayName").invoke(mob);
-            if (placeholder == null) {
-                return null;
-            }
-            Object value = placeholder.getClass().getMethod("get").invoke(placeholder);
-            return value != null ? value.toString() : null;
-        } catch (ReflectiveOperationException | RuntimeException ex) {
-            return null;
-        }
-    }
-
-    private static String extractInternalName(Object mob) {
-        try {
-            Object name = mob.getClass().getMethod("getInternalName").invoke(mob);
-            return name != null ? name.toString() : null;
-        } catch (ReflectiveOperationException | RuntimeException ex) {
-            return null;
-        }
     }
 
     private static List<String> tokenize(String input) {

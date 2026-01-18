@@ -1,7 +1,6 @@
 package me.nakilex.levelplugin.codex;
 
-import io.lumine.mythic.bukkit.MythicBukkit;
-import io.lumine.mythic.core.mobs.ActiveMob;
+import me.nakilex.levelplugin.mob.utils.MobNameUtil;
 import me.nakilex.levelplugin.mob.config.MobRewardsConfig;
 import org.bukkit.ChatColor;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -29,19 +28,17 @@ public class CodexListener implements Listener {
         Player killer = event.getEntity().getKiller();
         if (killer == null) return;
         LivingEntity ent = event.getEntity();
-        ActiveMob mob = MythicBukkit.inst().getAPIHelper().getMythicMobInstance(ent);
-        if (mob == null) return;
-
-        String mobType = mob.getMobType().replaceAll("§.", "");
-        if (mobCfg.getMobSection(mobType) != null) {
-            manager.recordKill(killer, mobType);
+        String mobId = MobNameUtil.resolveCustomMobId(ent).orElse(null);
+        if (mobId != null && mobCfg.getMobSection(mobId) != null) {
+            manager.recordKill(killer, mobId);
             return;
         }
 
         if (bossCfg.isConfigurationSection("mobs")) {
             String name = ChatColor.stripColor(ent.getName());
             for (String key : bossCfg.getConfigurationSection("mobs").getKeys(false)) {
-                if (key.equalsIgnoreCase(name)) {
+                if (key.equalsIgnoreCase(name)
+                        || (mobId != null && key.equalsIgnoreCase(mobId))) {
                     manager.recordKill(killer, key);
                     break;
                 }

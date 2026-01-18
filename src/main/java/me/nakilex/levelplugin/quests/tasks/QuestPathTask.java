@@ -102,7 +102,9 @@ public class QuestPathTask extends BukkitRunnable {
         long now = System.currentTimeMillis();
         Optional<Path> pathResult = pathfindingService.findPath(start, target);
         if (pathResult.isEmpty()) {
-            return new QuestPathCache(start.clone(), target.clone(), now, List.of());
+            List<Location> directPoints = buildDirectPathPoints(start, target);
+            directPoints = limitPointCount(directPoints, MAX_PARTICLE_POINTS);
+            return new QuestPathCache(start.clone(), target.clone(), now, directPoints);
         }
 
         Path path = PathUtils.interpolate(pathResult.get(), INTERPOLATION_STEP);
@@ -118,6 +120,28 @@ public class QuestPathTask extends BukkitRunnable {
                     target.getBlockZ() + 0.5));
         }
         return new QuestPathCache(start.clone(), target.clone(), now, points);
+    }
+
+    private List<Location> buildDirectPathPoints(Location start, Location target) {
+        if (start == null || target == null || start.getWorld() == null) {
+            return List.of();
+        }
+        Location anchoredStart = start.clone().add(0, PARTICLE_HEIGHT_OFFSET, 0);
+        Location anchoredTarget = target.clone().add(0, PARTICLE_HEIGHT_OFFSET, 0);
+        double distance = anchoredStart.distance(anchoredTarget);
+        if (distance <= 0.1) {
+            return List.of(anchoredTarget);
+        }
+        int steps = (int) Math.ceil(distance / INTERPOLATION_STEP);
+        List<Location> points = new ArrayList<>(steps + 1);
+        for (int i = 0; i <= steps; i++) {
+            double t = i / (double) steps;
+            double x = anchoredStart.getX() + (anchoredTarget.getX() - anchoredStart.getX()) * t;
+            double y = anchoredStart.getY() + (anchoredTarget.getY() - anchoredStart.getY()) * t;
+            double z = anchoredStart.getZ() + (anchoredTarget.getZ() - anchoredStart.getZ()) * t;
+            points.add(new Location(anchoredStart.getWorld(), x, y, z));
+        }
+        return points;
     }
 
     private void renderParticles(Player player, List<Location> points, int stride) {

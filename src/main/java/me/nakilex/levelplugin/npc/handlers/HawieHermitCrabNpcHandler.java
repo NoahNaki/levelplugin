@@ -13,7 +13,7 @@ import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.quests.util.QuestMessageUtil;
 import me.nakilex.levelplugin.quests.gui.QuestState;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
-import net.citizensnpcs.api.npc.NPC;
+import me.nakilex.levelplugin.npc.system.NPC;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.entity.Player;
 

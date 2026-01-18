@@ -1,7 +1,5 @@
 package me.nakilex.levelplugin.pathfinding.npc;
 
-import io.lumine.mythic.bukkit.BukkitAdapter;
-import io.lumine.mythic.bukkit.MythicBukkit;
 import me.nakilex.levelplugin.utils.cooldowns.CooldownManager;
 import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.Bukkit;
@@ -59,20 +57,8 @@ public interface PathNpc {
             Bukkit.getLogger().info("[MercenaryDebug] " + skill + " on cooldown for NPC " + id);
             return false;
         }
-        if (MythicBukkit.inst().getSkillManager().getSkill(skill).isEmpty()) {
-            Bukkit.getLogger().warning("[MercenaryDebug] Skill '" + skill + "' not found");
-            return false;
-        }
-        Bukkit.getLogger().info("[MercenaryDebug] Attempting to cast '" + skill + "' at " + target.getName());
-        boolean success = MythicBukkit.inst().getAPIHelper().castSkill(npc.getEntity(), skill, meta ->
-                meta.setTrigger(BukkitAdapter.adapt(target)));
-        if (!success) {
-            Bukkit.getLogger().warning("[MercenaryDebug] castSkill returned false for '" + skill + "'");
-            return false;
-        }
-        cooldowns.setCooldown(id, skill, cooldownSeconds);
-        Bukkit.getLogger().info("[MercenaryDebug] Cast '" + skill + "' successfully");
-        return true;
+        Bukkit.getLogger().warning("[MercenaryDebug] Mythic skills are disabled; unable to cast '" + skill + "'.");
+        return false;
     }
 
     /** Convenience overload using a {@link Skill} record. */
@@ -80,4 +66,3 @@ public interface PathNpc {
         return cast(npc, skill.name(), skill.cooldown(), target, cooldowns);
     }
 }
-

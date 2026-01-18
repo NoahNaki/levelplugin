@@ -1,8 +1,5 @@
 package me.nakilex.levelplugin.quests.def;
 
-import io.lumine.mythic.api.exceptions.InvalidMobTypeException;
-import io.lumine.mythic.bukkit.MythicBukkit;
-import io.lumine.mythic.bukkit.events.MythicMobDeathEvent;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.fakeblock.QuestGateManager;
 import me.nakilex.levelplugin.quests.data.BeaconTargets;
@@ -32,6 +29,7 @@ import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.classes.essence.ClassEssence;
 import me.nakilex.levelplugin.utils.NumberUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
+import me.nakilex.levelplugin.mob.custom.CustomMobManager;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.Bukkit;
@@ -208,13 +206,6 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
             }
 
             @EventHandler
-            public void onMythicDeath(MythicMobDeathEvent event) {
-                if (instance != null && event.getEntity() instanceof LivingEntity living) {
-                    instance.handleDeath(living);
-                }
-            }
-
-            @EventHandler
             public void onJoin(PlayerJoinEvent event) {
                 if (instance != null) {
                     instance.refreshGateState(event.getPlayer());
@@ -357,15 +348,18 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
         for (int i = 0; i < spawnCount; i++) {
             Location spawnLoc = site.randomizedLocation();
             Entity mob;
-            try {
-                mob = MythicBukkit.inst().getAPIHelper().spawnMythicMob(site.mobId(), spawnLoc, site.level());
-            } catch (InvalidMobTypeException ex) {
-                Main.getInstance().getLogger().warning("Unable to spawn ritual mob '" + site.mobId() + "': " + ex.getMessage());
+            CustomMobManager customMobManager = Main.getInstance().getCustomMobManager();
+            if (customMobManager == null) {
+                Main.getInstance().getLogger().warning("Unable to spawn ritual mob '" + site.mobId() + "' (custom mobs unavailable).");
                 return;
             }
-            if (!(mob instanceof LivingEntity living)) {
-                continue;
+            java.util.List<LivingEntity> spawned = customMobManager.spawn(site.mobId(), spawnLoc, 1, site.level());
+            if (spawned.isEmpty()) {
+                Main.getInstance().getLogger().warning("Unable to spawn ritual mob '" + site.mobId() + "' (unknown id).");
+                return;
             }
+            LivingEntity living = spawned.get(0);
+            mob = living;
             UUID playerId = player.getUniqueId();
             UUID mobId = living.getUniqueId();
             progress.activeMobIds().add(mobId);

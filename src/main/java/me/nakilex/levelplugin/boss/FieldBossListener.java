@@ -1,9 +1,5 @@
 package me.nakilex.levelplugin.boss;
 
-import io.lumine.mythic.bukkit.BukkitAdapter;
-import io.lumine.mythic.bukkit.MythicBukkit;
-import io.lumine.mythic.bukkit.events.MythicMobDeathEvent;
-import io.lumine.mythic.core.mobs.ActiveMob;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.economy.managers.GemsManager;
 import me.nakilex.levelplugin.items.data.CustomItem;
@@ -26,6 +22,7 @@ import org.bukkit.entity.Projectile;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 
@@ -65,13 +62,11 @@ public class FieldBossListener implements Listener {
         Entity ent = ev.getEntity();
         if (!(ent instanceof LivingEntity)) return;
 
-        ActiveMob mob = MythicBukkit.inst()
-            .getAPIHelper()
-            .getMythicMobInstance((LivingEntity) ent);
-        if (mob == null) return;
-
-        String mobId = mob.getMobType().toUpperCase(Locale.ROOT);
-        String cfgKey = bossKeyMap.get(mobId);
+        String mobId = MobNameUtil.resolveCustomMobId((LivingEntity) ent)
+                .orElse(null);
+        if (mobId == null) return;
+        String normalizedId = mobId.toUpperCase(Locale.ROOT);
+        String cfgKey = bossKeyMap.get(normalizedId);
         if (cfgKey == null) return;
 
         UUID bossId = ent.getUniqueId();
@@ -94,10 +89,12 @@ public class FieldBossListener implements Listener {
     }
 
     @EventHandler
-    public void onBossDeath(MythicMobDeathEvent ev) {
+    public void onBossDeath(EntityDeathEvent ev) {
         // 1) Identify boss and fetch record
-        String mobId = ev.getMob().getMobType().toUpperCase(Locale.ROOT);
-        String cfgKey = bossKeyMap.get(mobId);
+        LivingEntity entity = ev.getEntity();
+        String mobId = MobNameUtil.resolveCustomMobId(entity).orElse(null);
+        if (mobId == null) return;
+        String cfgKey = bossKeyMap.get(mobId.toUpperCase(Locale.ROOT));
         if (cfgKey == null) return;
 
         String bossDisplayName = MobNameUtil.getDisplayName(mobId);
@@ -107,7 +104,7 @@ public class FieldBossListener implements Listener {
         bossDisplayName = ChatColor.stripColor(bossDisplayName);
         final String bossNameUpper = bossDisplayName.toUpperCase(Locale.ROOT);
 
-        UUID bossId = BukkitAdapter.adapt(ev.getEntity()).getUniqueId();
+        UUID bossId = entity.getUniqueId();
         Map<UUID, Double> record = damageMap.remove(bossId);
         Long startTs = bossStartTime.remove(bossId);
         if (record == null || record.isEmpty() || startTs == null) return;
@@ -185,7 +182,7 @@ public class FieldBossListener implements Listener {
         for (var entry : record.entrySet()) {
             Player p = Bukkit.getPlayer(entry.getKey());
             if (p == null) continue;
-            RewardBombUtil.startRewardBomb(plugin, ev.getEntity().getLocation(),
+            RewardBombUtil.startRewardBomb(plugin, entity.getLocation(),
                     createBossRewardBomb(items, mobId), 60, p);
         }
 

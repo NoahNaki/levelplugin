@@ -4,8 +4,8 @@ import me.nakilex.levelplugin.mob.config.MobRewardsConfig;
 import me.nakilex.levelplugin.mob.utils.MobNameUtil;
 import me.nakilex.levelplugin.player.config.PlayerConfig;
 import me.nakilex.levelplugin.utils.NpcNameUtil;
-import net.citizensnpcs.api.CitizensAPI;
-import net.citizensnpcs.api.npc.NPC;
+import me.nakilex.levelplugin.npc.system.NpcApi;
+import me.nakilex.levelplugin.npc.system.NPC;
 import org.bukkit.ChatColor;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
@@ -229,7 +229,7 @@ public class CodexManager {
 
     public List<NPC> getAllNpcs() {
         Map<String, NPC> uniqueByName = new LinkedHashMap<>();
-        CitizensAPI.getNPCRegistry().forEach(npc -> {
+        NpcApi.getRegistry().forEach(npc -> {
             String normalized = normalizeNpcName(npc.getName());
             if (!normalized.isEmpty() && !uniqueByName.containsKey(normalized)) {
                 uniqueByName.put(normalized, npc);

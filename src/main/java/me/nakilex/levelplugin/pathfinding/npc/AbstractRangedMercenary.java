@@ -1,7 +1,7 @@
 package me.nakilex.levelplugin.pathfinding.npc;
 
 import me.nakilex.levelplugin.utils.cooldowns.CooldownManager;
-import net.citizensnpcs.api.npc.NPC;
+import me.nakilex.levelplugin.npc.system.NPC;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.LivingEntity;
@@ -11,7 +11,7 @@ import me.nakilex.levelplugin.pathfinding.npc.PathNpc.Skill;
 
 /**
  * Base implementation for ranged mercenaries that keep 8-10 blocks away
- * and fire a single MythicMobs skill as their basic attack.
+ * and fire a single skill as their basic attack.
  */
 public abstract class AbstractRangedMercenary extends AbstractMercenary {
     private final Material weapon;

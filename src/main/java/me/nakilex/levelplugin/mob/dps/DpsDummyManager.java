@@ -1,7 +1,5 @@
 package me.nakilex.levelplugin.mob.dps;
 
-import io.lumine.mythic.api.exceptions.InvalidMobTypeException;
-import io.lumine.mythic.bukkit.BukkitAPIHelper;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.MultiLineHologram;
@@ -32,8 +30,8 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * Manages persistent DPS training dummies backed by MythicMobs' {@code training_dummy}
- * (with a vanilla fallback). Dummies constantly heal, cannot be moved, and expose
+ * Manages persistent DPS training dummies. Dummies constantly heal, cannot be
+ * moved, and expose
  * a hologram showing rolling DPS over the last few seconds.
  */
 public class DpsDummyManager implements Listener {
@@ -43,24 +41,19 @@ public class DpsDummyManager implements Listener {
     private static final DecimalFormat DPS_FORMAT = new DecimalFormat("#,##0.0");
 
     private final Main plugin;
-    private final BukkitAPIHelper mythicHelper;
     private final Map<UUID, Dummy> dummies = new HashMap<>();
     private final Map<UUID, UUID> selections = new HashMap<>();
     private BukkitTask updater;
 
-    public DpsDummyManager(Main plugin, BukkitAPIHelper mythicHelper) {
+    public DpsDummyManager(Main plugin) {
         this.plugin = plugin;
-        this.mythicHelper = mythicHelper;
         startUpdater();
     }
 
     /** Spawn a dummy at the given player's location. */
-    public void spawn(Player player) throws InvalidMobTypeException {
+    public void spawn(Player player) {
         Location loc = player.getLocation();
-        LivingEntity entity = spawnMythic(loc);
-        if (entity == null) {
-            entity = spawnFallback(loc);
-        }
+        LivingEntity entity = spawnFallback(loc);
         if (entity == null) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "Unable to spawn training dummy.");
             return;
@@ -150,16 +143,6 @@ public class DpsDummyManager implements Listener {
 
     private void startUpdater() {
         updater = Bukkit.getScheduler().runTaskTimer(plugin, () -> dummies.values().forEach(Dummy::refreshHolograms), 20L, 20L);
-    }
-
-    private LivingEntity spawnMythic(Location loc) throws InvalidMobTypeException {
-        if (mythicHelper == null) return null;
-
-        org.bukkit.entity.Entity entity = mythicHelper.spawnMythicMob("training_dummy", loc);
-        if (entity instanceof LivingEntity living) {
-            return living;
-        }
-        return null;
     }
 
     private LivingEntity spawnFallback(Location loc) {

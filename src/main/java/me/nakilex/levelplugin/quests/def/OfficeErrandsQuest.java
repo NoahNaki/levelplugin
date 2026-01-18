@@ -19,8 +19,8 @@ import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import me.nakilex.levelplugin.utils.ChatFormatter;
-import net.citizensnpcs.api.CitizensAPI;
-import net.citizensnpcs.api.npc.NPC;
+import me.nakilex.levelplugin.npc.system.NpcApi;
+import me.nakilex.levelplugin.npc.system.NPC;
 
 import java.util.List;
 
@@ -127,8 +127,8 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
             public void onInteract(PlayerInteractEntityEvent event) {
                 if (!event.getPlayer().equals(player)) return;
                 if (event.getHand() == EquipmentSlot.OFF_HAND) return;
-                if (!CitizensAPI.getNPCRegistry().isNPC(event.getRightClicked())) return;
-                NPC npc = CitizensAPI.getNPCRegistry().getNPC(event.getRightClicked());
+                if (!NpcApi.getRegistry().isNPC(event.getRightClicked())) return;
+                NPC npc = NpcApi.getRegistry().getNPC(event.getRightClicked());
                 if (npc.getId() != 516) return;
 
                 if (dialogDone[0]) return;

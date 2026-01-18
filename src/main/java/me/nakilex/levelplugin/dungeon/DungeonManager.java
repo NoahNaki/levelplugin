@@ -21,6 +21,9 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.block.Skull;
 import org.bukkit.entity.TextDisplay;
 import com.destroystokyo.paper.profile.PlayerProfile;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.player.PlayerPortalEvent;
 
@@ -32,6 +35,7 @@ import java.util.*;
  */
 public class DungeonManager {
     private final Main plugin;
+    private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
     private final Map<String, Dungeon> dungeons = new HashMap<>();
     private final Map<String, DungeonLayout> layouts = new HashMap<>();
     private final Map<String, String> layoutDisplay = new HashMap<>();
@@ -1444,10 +1448,9 @@ public class DungeonManager {
         me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§7You finished the §a" + layout + "§7 dungeon.");
         me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "");
         String msg = me.nakilex.levelplugin.utils.ChatFormatter.getCenteredText("§e§lCLICK-HERE §7to rate the dungeon!");
-        net.md_5.bungee.api.chat.TextComponent comp = new net.md_5.bungee.api.chat.TextComponent(msg);
-        comp.setClickEvent(new net.md_5.bungee.api.chat.ClickEvent(net.md_5.bungee.api.chat.ClickEvent.Action.RUN_COMMAND,
-                "/dungeon rate " + layout));
-        player.spigot().sendMessage(comp);
+        Component comp = LEGACY.deserialize(msg)
+                .clickEvent(ClickEvent.runCommand("/dungeon rate " + layout));
+        player.sendMessage(comp);
         me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§a§l-", 45);
         markPendingRating(player.getUniqueId(), normalizeKey(layout));
     }

@@ -13,9 +13,9 @@ import me.nakilex.levelplugin.utils.HeadUtil;
 import me.nakilex.levelplugin.utils.NumberUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
-import net.citizensnpcs.api.CitizensAPI;
-import net.citizensnpcs.api.npc.NPC;
-import net.citizensnpcs.trait.SkinTrait;
+import me.nakilex.levelplugin.npc.system.NpcApi;
+import me.nakilex.levelplugin.npc.system.NPC;
+import me.nakilex.levelplugin.npc.system.trait.SkinTrait;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -199,7 +199,7 @@ public class MercenaryExpeditionGUI implements Listener {
     }
 
     private ItemStack createMercenaryIcon(Player player, int npcId, boolean selected) {
-        NPC npc = CitizensAPI.getNPCRegistry().getById(npcId);
+        NPC npc = NpcApi.getRegistry().getById(npcId);
         String skin = null;
         if (npc != null) {
             SkinTrait trait = npc.getOrAddTrait(SkinTrait.class);
@@ -548,7 +548,7 @@ public class MercenaryExpeditionGUI implements Listener {
     }
 
     private String getNpcName(int npcId) {
-        NPC npc = CitizensAPI.getNPCRegistry().getById(npcId);
+        NPC npc = NpcApi.getRegistry().getById(npcId);
         if (npc != null) {
             return ChatColor.stripColor(npc.getName());
         }

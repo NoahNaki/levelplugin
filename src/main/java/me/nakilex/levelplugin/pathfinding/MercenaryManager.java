@@ -4,10 +4,10 @@ import me.nakilex.levelplugin.pathfinding.npc.RogueMercenary;
 import me.nakilex.levelplugin.pathfinding.npc.PathNpc;
 import me.nakilex.levelplugin.utils.cooldowns.CooldownManager;
 import me.nakilex.levelplugin.utils.MobUtil;
-import net.citizensnpcs.api.CitizensAPI;
-import net.citizensnpcs.api.npc.NPC;
-import net.citizensnpcs.trait.CurrentLocation;
-import net.citizensnpcs.trait.LookClose;
+import me.nakilex.levelplugin.npc.system.NpcApi;
+import me.nakilex.levelplugin.npc.system.NPC;
+import me.nakilex.levelplugin.npc.system.trait.CurrentLocationTrait;
+import me.nakilex.levelplugin.npc.system.trait.LookCloseTrait;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.LivingEntity;
@@ -47,14 +47,14 @@ public class MercenaryManager implements Listener {
 
     /** Bind an NPC by id to follow and fight for the player using a custom profile. */
     public boolean bind(int npcId, Player player, PathNpc profile) {
-        NPC template = CitizensAPI.getNPCRegistry().getById(npcId);
+        NPC template = NpcApi.getRegistry().getById(npcId);
         if (template == null) return false;
 
         // Clone the template NPC so the original remains untouched
-        NPC clone = template.copy();
+        NPC clone = NpcApi.getRegistry().cloneNpc(template);
         clone.setBukkitEntityType(profile.type());
         var loc = player.getLocation();
-        clone.getOrAddTrait(CurrentLocation.class).setLocation(loc);
+        clone.getOrAddTrait(CurrentLocationTrait.class).setLocation(loc);
         clone.spawn(loc);
 
         MercenaryFollower follower = new MercenaryFollower(clone, npcId, player, profile);
@@ -126,7 +126,7 @@ public class MercenaryManager implements Listener {
     @EventHandler
     public void onPlayerDamage(EntityDamageByEntityEvent event) {
         if (event.getDamager() instanceof Player p && event.getEntity() instanceof LivingEntity le) {
-            if (CitizensAPI.getNPCRegistry().isNPC(p) || CitizensAPI.getNPCRegistry().isNPC(le) || le instanceof Player || !(le instanceof Monster)) {
+            if (NpcApi.getRegistry().isNPC(p) || NpcApi.getRegistry().isNPC(le) || le instanceof Player || !(le instanceof Monster)) {
                 return;
             }
             playerTargets.put(p.getUniqueId(), le);
@@ -153,7 +153,7 @@ public class MercenaryManager implements Listener {
             var params = npc.getNavigator().getDefaultParameters();
             params.baseSpeed(params.baseSpeed() * profile.speedMultiplier());
             profile.equip(npc);
-            npc.removeTrait(LookClose.class);
+            npc.removeTrait(LookCloseTrait.class);
             task = Bukkit.getScheduler().runTaskTimer(plugin, this::tick, 20L, 10L);
         }
 
@@ -172,13 +172,13 @@ public class MercenaryManager implements Listener {
                 // allow switching to a newly damaged target in TARGET mode
                 if (mode == Mode.TARGET) {
                     LivingEntity swap = playerTargets.remove(owner.getUniqueId());
-                    if (swap != null && swap instanceof Monster && swap != owner && !CitizensAPI.getNPCRegistry().isNPC(swap)) {
+                    if (swap != null && swap instanceof Monster && swap != owner && !NpcApi.getRegistry().isNPC(swap)) {
                         target = swap;
                         plugin.getLogger().info("[MercenaryDebug] Switching target to " + swap.getName() + " for " + owner.getName());
                     }
                 }
 
-                if (target == owner || target instanceof Player || CitizensAPI.getNPCRegistry().isNPC(target)) {
+                if (target == owner || target instanceof Player || NpcApi.getRegistry().isNPC(target)) {
                     plugin.getLogger().info("[MercenaryDebug] Ignoring player target for " + owner.getName());
                     target = null;
                     moveNearOwner();
@@ -198,7 +198,7 @@ public class MercenaryManager implements Listener {
 
             if (mode == Mode.TARGET) {
                 LivingEntity t = playerTargets.remove(owner.getUniqueId());
-                if (t instanceof Monster && t.isValid() && !t.isDead() && t != owner && !CitizensAPI.getNPCRegistry().isNPC(t)) {
+                if (t instanceof Monster && t.isValid() && !t.isDead() && t != owner && !NpcApi.getRegistry().isNPC(t)) {
                     target = t;
                     plugin.getLogger().info("[MercenaryDebug] Targeting mob " + t.getName() + " for " + owner.getName());
                     profile.handleCombat(npc, target, cd);

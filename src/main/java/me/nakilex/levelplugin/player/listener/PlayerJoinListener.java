@@ -77,8 +77,8 @@ public class PlayerJoinListener implements Listener {
                 public void run() {
                     if (!player.isOnline()) { cancel(); return; }
 
-                    net.citizensnpcs.api.npc.NPC moved =
-                            net.citizensnpcs.api.CitizensAPI.getNPCRegistry().getById(547);
+                    me.nakilex.levelplugin.npc.system.NPC moved =
+                            me.nakilex.levelplugin.npc.system.NpcApi.getRegistry().getById(547);
                     me.nakilex.levelplugin.quests.gui.QuestState state =
                             qm.getQuestState(player, nb1);
 

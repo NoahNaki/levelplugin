@@ -76,10 +76,7 @@ public class QuestManager {
         Quest office = new me.nakilex.levelplugin.quests.def.OfficeErrandsQuest();
         registerQuest(office);
         Quest nb = new me.nakilex.levelplugin.quests.def.NewBeginningQuest();
-        Quest cultistCulling = null;
-        if (Bukkit.getPluginManager().isPluginEnabled("MythicMobs")) {
-            cultistCulling = new me.nakilex.levelplugin.quests.def.CultistCullingQuest();
-        }
+        Quest cultistCulling = new me.nakilex.levelplugin.quests.def.CultistCullingQuest();
         Quest seras = new me.nakilex.levelplugin.quests.def.SerasQuest();
         Quest serasPartTwo = new me.nakilex.levelplugin.quests.def.SerasSlimeKingQuest();
         Quest hawieCrabs = new me.nakilex.levelplugin.quests.def.HawieHermitCrabQuest();
@@ -100,9 +97,7 @@ public class QuestManager {
         Quest abandonedCastle = new me.nakilex.levelplugin.quests.def.AbandonedCastleQuest();
         Quest wakePerry = new me.nakilex.levelplugin.quests.def.WakePerryQuest();
         registerQuest(nb);
-        if (cultistCulling != null) {
-            registerQuest(cultistCulling);
-        }
+        registerQuest(cultistCulling);
         registerQuest(seras);
         registerQuest(serasPartTwo);
         registerQuest(hawieCrabs);

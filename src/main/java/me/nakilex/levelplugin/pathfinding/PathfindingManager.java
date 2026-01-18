@@ -12,7 +12,7 @@ import java.io.IOException;
 import java.util.*;
 
 /**
- * Manages editable location sequences and executes them with Citizens NPCs.
+ * Manages editable location sequences and executes them with LevelPlugin NPCs.
  * Designed to be generic so different systems can reuse stored paths.
  */
 public class PathfindingManager {

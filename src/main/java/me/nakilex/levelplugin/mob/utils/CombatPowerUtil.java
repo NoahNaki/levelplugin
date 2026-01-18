@@ -1,8 +1,6 @@
 package me.nakilex.levelplugin.mob.utils;
 
 import me.nakilex.levelplugin.utils.AttributeUtil;
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.LivingEntity;
 
@@ -43,50 +41,29 @@ public final class CombatPowerUtil {
     }
 
     /**
-     * Spawn the given MythicMob template briefly to estimate its combat power.
-     * The spawned entity is removed immediately after evaluation.
+     * Estimate combat power from a mob identifier. Mythic-only estimates are no
+     * longer supported, so this returns 0 to allow callers to fall back to
+     * their own heuristics.
      *
-     * @param mobName MythicMob internal name
+     * @param mobName mob identifier
      * @return estimated combat power or 0 if the mob could not be spawned
      */
     public static int estimateCombatPower(String mobName) {
-        if (!Bukkit.getPluginManager().isPluginEnabled("MythicMobs")) {
-            return 0;
-        }
-        try {
-            Class<?> mythicClass = Class.forName("io.lumine.mythic.bukkit.MythicBukkit");
-            Object mythic = mythicClass.getMethod("inst").invoke(null);
-            Object apiHelper = mythic.getClass().getMethod("getAPIHelper").invoke(mythic);
-            Location loc = Bukkit.getWorlds().get(0).getSpawnLocation();
-            Object entity = apiHelper.getClass()
-                    .getMethod("spawnMythicMob", String.class, Location.class, int.class)
-                    .invoke(apiHelper, mobName, loc, 1);
-            if (!(entity instanceof LivingEntity livingEntity)) {
-                return 0;
-            }
-            Object activeMob = apiHelper.getClass()
-                    .getMethod("getMythicMobInstance", org.bukkit.entity.Entity.class)
-                    .invoke(apiHelper, livingEntity);
-            int power = activeMob != null ? getCombatPower(activeMob) : getCombatPower(livingEntity, 1.0);
-            livingEntity.remove();
-            return power;
-        } catch (ReflectiveOperationException | RuntimeException ex) {
-            return 0;
-        }
+        return 0;
     }
 
     /**
-     * Calculate a simple combat power rating for a MythicMob instance without a hard dependency.
+     * Calculate a simple combat power rating for an entity wrapper.
      *
-     * @param mythicMob MythicMob instance (ActiveMob) or similar wrapper
+     * @param mobWrapper entity wrapper or similar
      * @return combat power value
      */
-    public static int getCombatPower(Object mythicMob) {
-        if (mythicMob == null) {
+    public static int getCombatPower(Object mobWrapper) {
+        if (mobWrapper == null) {
             return 0;
         }
         try {
-            Object entityWrapper = mythicMob.getClass().getMethod("getEntity").invoke(mythicMob);
+            Object entityWrapper = mobWrapper.getClass().getMethod("getEntity").invoke(mobWrapper);
             if (entityWrapper == null) {
                 return 0;
             }
@@ -96,7 +73,7 @@ public final class CombatPowerUtil {
             }
             double level = 0.0;
             try {
-                Object levelValue = mythicMob.getClass().getMethod("getLevel").invoke(mythicMob);
+                Object levelValue = mobWrapper.getClass().getMethod("getLevel").invoke(mobWrapper);
                 if (levelValue instanceof Number number) {
                     level = number.doubleValue();
                 }

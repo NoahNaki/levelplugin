@@ -1,8 +1,5 @@
 package me.nakilex.levelplugin.core;
 
-import io.lumine.mythic.bukkit.BukkitAPIHelper;
-import io.lumine.mythic.bukkit.MythicBukkit;
-import io.lumine.mythic.core.mobs.ActiveMob;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.blacksmith.gui.BlacksmithGUI;
 import me.nakilex.levelplugin.blacksmith.managers.ItemRepairManager;
@@ -66,6 +63,7 @@ import me.nakilex.levelplugin.guild.quests.GuildQuestManager;
 import me.nakilex.levelplugin.trade.data.ConfigValues;
 import me.nakilex.levelplugin.trade.utils.MessageStrings;
 import me.nakilex.levelplugin.utils.DealMaker;
+import me.nakilex.levelplugin.utils.LevelPlaceholderExpansion;
 import me.nakilex.levelplugin.utils.NakiPlaceholderExpansion;
 import me.nakilex.levelplugin.utils.EntityTextDisplay;
 import me.nakilex.levelplugin.utils.MetadataTrait;
@@ -95,7 +93,6 @@ import java.util.UUID;
 public class PluginBootstrap {
     private final Main plugin;
 
-    private BukkitAPIHelper mythicHelper;
     private LevelManager levelManager;
     private EconomyManager economyManager;
     private ItemManager itemManager;
@@ -290,13 +287,6 @@ public class PluginBootstrap {
     }
 
     private void initializeManagers() {
-        if (Bukkit.getPluginManager().isPluginEnabled("MythicMobs")) {
-            mythicHelper = MythicBukkit.inst().getAPIHelper();
-        } else {
-            mythicHelper = null;
-            plugin.getLogger().info("MythicMobs is not enabled; Mythic-only features will be skipped.");
-        }
-
         // World-dependent managers like gates or fast travel require target
         // worlds to be loaded. Ensure the necessary worlds are available
         // before other managers are initialized.
@@ -316,11 +306,7 @@ public class PluginBootstrap {
         mobDebugToggleManager = new PlayerToggleManager();
         dropDebugManager = new me.nakilex.levelplugin.debug.DropDebugManager(plugin);
         beaconEntityDebugManager = new me.nakilex.levelplugin.debug.BeaconEntityDebugManager(plugin);
-        if (mythicHelper != null) {
-            dpsDummyManager = new DpsDummyManager(plugin, mythicHelper);
-        } else {
-            dpsDummyManager = null;
-        }
+        dpsDummyManager = new DpsDummyManager(plugin);
         upgradeKey = new NamespacedKey(plugin, "upgrade_level");
         levelManager = new LevelManager(plugin);
         miningManager = new me.nakilex.levelplugin.player.mining.managers.MiningManager(plugin);
@@ -598,7 +584,7 @@ public class PluginBootstrap {
     }
 
     /**
-     * Registers PlaceholderAPI expansion if the plugin is present.
+     * Registers PlaceholderAPI expansions if the plugin is present.
      * Provided placeholders:
      * <ul>
      *   <li><code>%naki_level%</code></li>
@@ -610,11 +596,17 @@ public class PluginBootstrap {
      *   <li><code>%naki_currentXP%</code></li>
      *   <li><code>%naki_xpNextLevel%</code></li>
      *   <li><code>%naki_seasonDate%</code></li>
+     *   <li><code>%level_spell_combo_active%</code></li>
+     *   <li><code>%level_spell_combo_glyphs%</code></li>
+     *   <li><code>%level_spell_combo_slot1%</code></li>
+     *   <li><code>%level_spell_combo_slot2%</code></li>
+     *   <li><code>%level_spell_combo_slot3%</code></li>
      * </ul>
      */
     private void registerPlaceholders() {
         if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
             new NakiPlaceholderExpansion(plugin).register();
+            new LevelPlaceholderExpansion(plugin).register();
         }
     }
 
@@ -643,7 +635,6 @@ public class PluginBootstrap {
 
     public void disable() {
         TaskRegistry.stopTasks();
-        despawnActiveMythicMobs();
         if (chatGameManager != null) chatGameManager.stop();
         if (mercenaryManager != null) mercenaryManager.unbindAll();
         if (economyManager != null) economyManager.saveBalances();
@@ -704,27 +695,7 @@ public class PluginBootstrap {
         plugin.getLogger().info("LevelPlugin has been disabled!");
     }
 
-    private void despawnActiveMythicMobs() {
-        if (!Bukkit.getPluginManager().isPluginEnabled("MythicMobs")) {
-            return;
-        }
-        var mythic = MythicBukkit.inst();
-        if (mythic == null || mythic.getMobManager() == null) {
-            return;
-        }
-        for (ActiveMob mob : mythic.getMobManager().getActiveMobs()) {
-            if (mob == null || mob.getEntity() == null) {
-                continue;
-            }
-            var entity = mob.getEntity().getBukkitEntity();
-            if (entity != null) {
-                entity.remove();
-            }
-        }
-    }
-
     public Map<UUID, List<NPC>> getActiveBowDrones() { return activeBowDrones; }
-    public BukkitAPIHelper getMythicHelper() { return mythicHelper; }
     public LevelManager getLevelManager() { return levelManager; }
     public EconomyManager getEconomyManager() { return economyManager; }
     public ItemManager getItemManager() { return itemManager; }
