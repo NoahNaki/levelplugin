@@ -1,39 +1,37 @@
 package me.nakilex.levelplugin.utils;
 
-import net.citizensnpcs.api.persistence.Persist;
 import net.citizensnpcs.api.trait.Trait;
-import net.citizensnpcs.api.trait.TraitName;
+import net.citizensnpcs.api.util.DataKey;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.UUID;
 
-@TraitName("MetadataTrait")
 public class MetadataTrait extends Trait {
-    @Persist("metadata")
-    private final Map<String, String> metadata = new HashMap<>();
+    private UUID owner;
 
     public MetadataTrait() {
         super("MetadataTrait");
     }
 
-    public void set(String key, String value) {
-        if (value == null) {
-            metadata.remove(key);
-            return;
+    public void setOwner(UUID owner) {
+        this.owner = owner;
+    }
+
+    public UUID getOwner() {
+        return owner;
+    }
+
+    @Override
+    public void load(DataKey key) {
+        String ownerId = key.getString("owner");
+        if (ownerId != null && !ownerId.isEmpty()) {
+            owner = UUID.fromString(ownerId);
         }
-        metadata.put(key, value);
     }
 
-    public String get(String key) {
-        return metadata.get(key);
-    }
-
-    public void remove(String key) {
-        metadata.remove(key);
-    }
-
-    public Map<String, String> getAll() {
-        return Collections.unmodifiableMap(metadata);
+    @Override
+    public void save(DataKey key) {
+        if (owner != null) {
+            key.setString("owner", owner.toString());
+        }
     }
 }
