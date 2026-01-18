@@ -6,8 +6,9 @@ import me.nakilex.levelplugin.player.classes.essence.ClassEssence;
 import me.nakilex.levelplugin.quests.data.*;
 import me.nakilex.levelplugin.npc.system.NpcApi;
 import me.nakilex.levelplugin.npc.system.NPC;
+import net.citizensnpcs.api.CitizensAPI;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
+import org.bukkit.Location;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.EquipmentSlot;
@@ -23,6 +24,7 @@ import me.nakilex.levelplugin.quests.data.PlayerQuestProgress;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
+import me.nakilex.levelplugin.utils.NpcNameUtil;
 
 import java.util.List;
 
@@ -92,13 +94,17 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
         qm.removeFlag(player.getUniqueId(), "newbeginning", "readyToShop");
         qm.removeFlag(player.getUniqueId(), "newbeginning", "merchantDone");
 
-        NPC startNpc = NpcApi.getRegistry().getById(546);
+        NpcInteraction startNpc = resolveNpcInteraction(PIWAN_NPC_ID);
         boolean played = false;
-        if (startNpc != null && startNpc.isSpawned() && player.isOnline() &&
-                startNpc.getEntity().getWorld().equals(player.getWorld()) &&
-                player.getLocation().distanceSquared(startNpc.getEntity().getLocation()) <= 25) {
-            playDialog(player, plugin, startNpc);
-            played = true;
+        if (startNpc != null && player.isOnline() && isNpcSpawned(startNpc.npc(), startNpc.citizensNpc())) {
+            Location npcLocation = getNpcLocation(startNpc.npc(), startNpc.citizensNpc());
+            if (npcLocation != null
+                    && npcLocation.getWorld() != null
+                    && npcLocation.getWorld().equals(player.getWorld())
+                    && player.getLocation().distanceSquared(npcLocation) <= 25) {
+                playDialog(player, plugin, startNpc.npc(), startNpc.citizensNpc());
+                played = true;
+            }
         }
 
         if (!played) {
@@ -106,12 +112,14 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                 boolean triggered = false;
                 @Override
                 public void run() {
-                    NPC npc = NpcApi.getRegistry().getById(546);
-                    if (npc == null || !npc.isSpawned()) return;
+                    NpcInteraction npc = resolveNpcInteraction(PIWAN_NPC_ID);
+                    if (npc == null || !isNpcSpawned(npc.npc(), npc.citizensNpc())) return;
                     if (!player.isOnline()) { cancel(); return; }
-                    if (!npc.getEntity().getWorld().equals(player.getWorld())) return;
-                    if (!triggered && player.getLocation().distanceSquared(npc.getEntity().getLocation()) <= 25) {
-                        playDialog(player, plugin, npc);
+                    Location npcLocation = getNpcLocation(npc.npc(), npc.citizensNpc());
+                    if (npcLocation == null || npcLocation.getWorld() == null) return;
+                    if (!npcLocation.getWorld().equals(player.getWorld())) return;
+                    if (!triggered && player.getLocation().distanceSquared(npcLocation) <= 25) {
+                        playDialog(player, plugin, npc.npc(), npc.citizensNpc());
                         triggered = true;
                         cancel();
                     }
@@ -127,9 +135,8 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                 if (!event.getPlayer().getUniqueId().equals(pid)) return;
                 Player pl = event.getPlayer();
                 if (event.getHand() == EquipmentSlot.OFF_HAND) return;
-                if (!NpcApi.getRegistry().isNPC(event.getRightClicked())) return;
-                NPC npc = NpcApi.getRegistry().getNPC(event.getRightClicked());
-                if (npc.getId() != 546) return;
+                NpcInteraction clicked = resolveNpcInteraction(event);
+                if (clicked == null || clicked.id() != PIWAN_NPC_ID) return;
 
                 PlayerQuestProgress prog = plugin.getQuestManager().getProgress(pid, "newbeginning");
                 if (prog == null) return;
@@ -138,14 +145,13 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                 event.setCancelled(true);
 
                 if (plugin.getDialogManager().hasSession(pl)) {
-                    NPC sessionNpc = plugin.getDialogManager().getSessionNpc(pl);
-                    if (sessionNpc != null && sessionNpc.getId() == npc.getId()) {
+                    if (plugin.getDialogManager().isSessionNpc(pl, clicked.id())) {
                         plugin.getDialogManager().advanceDialog(pl, plugin.getQuestManager());
                     }
                     return;
                 }
 
-                playDialog(pl, plugin, npc);
+                playDialog(pl, plugin, clicked.npc(), clicked.citizensNpc());
             }
         };
         register(player, startListener, plugin);
@@ -157,9 +163,8 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                 if (!event.getPlayer().getUniqueId().equals(pid)) return;
                 Player pl = event.getPlayer();
                 if (event.getHand() == EquipmentSlot.OFF_HAND) return;
-                if (!NpcApi.getRegistry().isNPC(event.getRightClicked())) return;
-                NPC npc = NpcApi.getRegistry().getNPC(event.getRightClicked());
-                if (!ChatColor.stripColor(npc.getName()).equalsIgnoreCase("Starter Merchant")) return;
+                NpcInteraction clicked = resolveNpcInteraction(event);
+                if (clicked == null || !isNpcName(clicked.name(), "Starter Merchant")) return;
 
                 PlayerQuestProgress prog = plugin.getQuestManager().getProgress(pid, "newbeginning");
                 if (prog == null) return;
@@ -173,13 +178,12 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                             " flags=" + prog.getFlags());
                 }
 
-                if (plugin.getDialogManager().resumePendingChoice(pl, npc)) {
+                if (resumePendingChoice(pl, clicked)) {
                     return;
                 }
 
                 if (plugin.getDialogManager().hasSession(pl)) {
-                    NPC sessionNpc = plugin.getDialogManager().getSessionNpc(pl);
-                    if (sessionNpc != null && sessionNpc.getId() == npc.getId()) {
+                    if (plugin.getDialogManager().isSessionNpc(pl, clicked.id())) {
                         plugin.getDialogManager().advanceDialog(pl, plugin.getQuestManager());
                     }
                     return;
@@ -204,12 +208,12 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
 
                 qm.setFlag(pid, "newbeginning", "awaitingMerchant");
 
-                plugin.getDialogManager().startDialog(pl,
+                startDialog(pl,
                         java.util.List.of("Starter Merchant|I'm sorry I can't sell you any equipment if you don't have any money, " +
                                 "but those clothes you're wearing, I could certainly buy that off you in-exchange for some coins, whaddya say?"),
-                        npc,
+                        clicked,
                         () -> Bukkit.getScheduler().runTaskLater(plugin, () ->
-                                plugin.getDialogManager().startChoiceDialog(pl, npc,
+                                startChoiceDialog(pl, clicked,
                                         java.util.List.of("Yes", "No"),
                                         "newbeginning", "merchant_choice_", choice -> {
                                             qm.removeFlag(pid, "newbeginning", "awaitingMerchant");
@@ -220,9 +224,9 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                                                 me.nakilex.levelplugin.utils.CurrencyMessageUtil.sendReceive(pl,
                                                         me.nakilex.levelplugin.utils.CurrencyMessageUtil.Currency.COINS, 200);
                                             } else {
-                                                plugin.getDialogManager().startDialog(pl,
+                                                startDialog(pl,
                                                         java.util.List.of("Starter Merchant|Fair enough, have a nice day."),
-                                                        npc,
+                                                        clicked,
                                                         null);
                                                 Bukkit.getScheduler().runTaskLater(plugin,
                                                         () -> plugin.getDialogManager().advanceDialog(pl, plugin.getQuestManager()),
@@ -241,7 +245,7 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
         register(player, merchantListener, plugin);
     }
 
-    private void playDialog(Player player, Main plugin, NPC npc) {
+    private void playDialog(Player player, Main plugin, NPC npc, net.citizensnpcs.api.npc.NPC citizensNpc) {
         java.util.List<String> lines = java.util.List.of(
                 "Hey you there! I could've sworn no one was standing there a second ago, how did you suddenly appear?",
                 "You certainly don't look from around here, especially with those clothes, perhaps a noble from another country.",
@@ -250,7 +254,16 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                 "First things first, you're going to have to look like you're from this world, go talk to that merchant over there and buy some equipment."
         );
 
-        plugin.getDialogManager().startDialog(player, lines, npc, () -> {
+        if (npc != null) {
+            plugin.getDialogManager().startDialog(player, lines, npc, () -> {
+                if (player.isOnline()) {
+                    Main.getInstance().getQuestManager().handleTalk(player, "npc546_done");
+                    registerFinalDialog(player, plugin);
+                }
+            });
+            return;
+        }
+        plugin.getDialogManager().startDialog(player, lines, citizensNpc, () -> {
             if (player.isOnline()) {
                 Main.getInstance().getQuestManager().handleTalk(player, "npc546_done");
                 registerFinalDialog(player, plugin);
@@ -268,9 +281,8 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                 if (!event.getPlayer().getUniqueId().equals(pid)) return;
                 Player pl = event.getPlayer();
                 if (event.getHand() == EquipmentSlot.OFF_HAND) return;
-                if (!NpcApi.getRegistry().isNPC(event.getRightClicked())) return;
-                NPC npc = NpcApi.getRegistry().getNPC(event.getRightClicked());
-                if (npc.getId() != 546) return;
+                NpcInteraction clicked = resolveNpcInteraction(event);
+                if (clicked == null || clicked.id() != PIWAN_NPC_ID) return;
 
                 PlayerQuestProgress prog = plugin.getQuestManager().getProgress(pid, "newbeginning");
                 if (prog == null) return;
@@ -278,8 +290,7 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                 event.setCancelled(true);
 
                 if (plugin.getDialogManager().hasSession(pl)) {
-                    NPC sessionNpc = plugin.getDialogManager().getSessionNpc(pl);
-                    if (sessionNpc != null && sessionNpc.getId() == npc.getId()) {
+                    if (plugin.getDialogManager().isSessionNpc(pl, clicked.id())) {
                         plugin.getDialogManager().advanceDialog(pl, plugin.getQuestManager());
                     }
                     return;
@@ -288,9 +299,9 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                 if (prog.getProgress(1) < 1) {
                     if (!qm.hasFlag(pid, "newbeginning", "givenCoins") &&
                             !qm.hasFlag(pid, "newbeginning", "soldClothes")) {
-                        plugin.getDialogManager().startDialog(pl,
+                        startDialog(pl,
                                 java.util.List.of("Piwan|Oh right, I should've realised you wouldn't have any currency belonging to this world, here, you can pay me back in the future."),
-                                npc,
+                                clicked,
                                 () -> {
                                     plugin.getEconomyManager().addCoins(pl, 100);
                                     qm.setFlag(pid, "newbeginning", "givenCoins");
@@ -298,18 +309,18 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                                             me.nakilex.levelplugin.utils.CurrencyMessageUtil.Currency.COINS, 100);
                                 });
                     } else {
-                        plugin.getDialogManager().startDialog(pl,
+                        startDialog(pl,
                                 java.util.List.of("Piwan|Go ahead and buy some new equipment."),
-                                npc,
+                                clicked,
                                 null);
                     }
                     return;
                 }
 
                 if (prog.getProgress(2) < 1) {
-                    plugin.getDialogManager().startDialog(pl,
+                    startDialog(pl,
                             java.util.List.of("Piwan|Alright great now that you look like you belong here, now you just have to tell me what class you'll be going so that we can find you an appropriate weapon."),
-                            npc,
+                            clicked,
                             () -> {
                                 plugin.getQuestManager().handleTalk(pl, "npc546_again");
                                 Bukkit.getScheduler().runTaskLater(plugin, () -> {
@@ -322,9 +333,9 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                 }
 
                 if (prog.getProgress(3) < 1) {
-                    plugin.getDialogManager().startDialog(pl,
+                    startDialog(pl,
                             java.util.List.of("Piwan|Alright great now that you look like you belong here, now you just have to tell me what class you'll be going so that we can find you an appropriate weapon."),
-                            npc,
+                            clicked,
                             () -> Bukkit.getScheduler().runTaskLater(plugin,
                                     () -> { if (pl.isOnline()) pl.performCommand("class"); }, 20L));
                     return;
@@ -338,7 +349,7 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                         "Now you're all set, I'm sure our paths will cross again adventurer, now go and explore the vast world of Eldrin."
                 );
 
-                plugin.getDialogManager().startDialog(pl, lines, npc, () -> {
+                startDialog(pl, lines, clicked, () -> {
                     giveClassWeapon(pl);
                     // Populate and equip a starting class essence
                     StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(pl.getUniqueId());
@@ -404,5 +415,114 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
     public void onComplete(Player player, Main plugin) {
         plugin.getQuestManager().startQuest(player, "serashelp");
         plugin.getQuestManager().startQuest(player, me.nakilex.levelplugin.quests.def.WayfarersMarkQuest.ID, false);
+    }
+
+    private void startDialog(Player player, List<String> lines, NpcInteraction npc, Runnable finish) {
+        if (npc.npc() != null) {
+            Main.getInstance().getDialogManager().startDialog(player, lines, npc.npc(), finish);
+        } else {
+            Main.getInstance().getDialogManager().startDialog(player, lines, npc.citizensNpc(), finish);
+        }
+    }
+
+    private void startChoiceDialog(Player player, NpcInteraction npc, List<String> options,
+                                   String questId, String flagBase,
+                                   java.util.function.Consumer<Integer> callback) {
+        if (npc.npc() != null) {
+            Main.getInstance().getDialogManager().startChoiceDialog(player, npc.npc(), options, questId, flagBase, callback);
+        } else {
+            Main.getInstance().getDialogManager().startChoiceDialog(player, npc.citizensNpc(), options, questId, flagBase, callback);
+        }
+    }
+
+    private boolean isNpcName(String npcName, String expectedName) {
+        if (npcName == null || expectedName == null) {
+            return false;
+        }
+        return NpcNameUtil.equalsNormalized(npcName, expectedName);
+    }
+
+    private boolean resumePendingChoice(Player player, NpcInteraction clicked) {
+        if (clicked.npc() != null) {
+            return Main.getInstance().getDialogManager().resumePendingChoice(player, clicked.npc());
+        }
+        return Main.getInstance().getDialogManager().resumePendingChoice(player, clicked.citizensNpc());
+    }
+
+    private NpcInteraction resolveNpcInteraction(PlayerInteractEntityEvent event) {
+        if (event == null || event.getRightClicked() == null) {
+            return null;
+        }
+        NPC npc = NpcApi.getRegistry().getNPC(event.getRightClicked());
+        net.citizensnpcs.api.npc.NPC citizensNpc = npc == null
+                ? CitizensAPI.getNPCRegistry().getNPC(event.getRightClicked())
+                : null;
+        if (npc == null && citizensNpc == null) {
+            return null;
+        }
+        return new NpcInteraction(npc, citizensNpc);
+    }
+
+    private NpcInteraction resolveNpcInteraction(int npcId) {
+        NPC npc = NpcApi.getRegistry().getById(npcId);
+        net.citizensnpcs.api.npc.NPC citizensNpc = npc == null
+                ? CitizensAPI.getNPCRegistry().getById(npcId)
+                : null;
+        if (npc == null && citizensNpc == null) {
+            return null;
+        }
+        return new NpcInteraction(npc, citizensNpc);
+    }
+
+    private Location getNpcLocation(NPC npc, net.citizensnpcs.api.npc.NPC citizensNpc) {
+        if (npc != null) {
+            if (npc.isSpawned() && npc.getEntity() != null) {
+                return npc.getEntity().getLocation();
+            }
+            return null;
+        }
+        if (citizensNpc != null) {
+            if (citizensNpc.isSpawned() && citizensNpc.getEntity() != null) {
+                return citizensNpc.getEntity().getLocation();
+            }
+            return null;
+        }
+        return null;
+    }
+
+    private boolean isNpcSpawned(NPC npc, net.citizensnpcs.api.npc.NPC citizensNpc) {
+        if (npc != null) {
+            return npc.isSpawned() && npc.getEntity() != null;
+        }
+        if (citizensNpc != null) {
+            return citizensNpc.isSpawned() && citizensNpc.getEntity() != null;
+        }
+        return false;
+    }
+
+    private static final class NpcInteraction {
+        private final NPC npc;
+        private final net.citizensnpcs.api.npc.NPC citizensNpc;
+
+        private NpcInteraction(NPC npc, net.citizensnpcs.api.npc.NPC citizensNpc) {
+            this.npc = npc;
+            this.citizensNpc = citizensNpc;
+        }
+
+        private NPC npc() {
+            return npc;
+        }
+
+        private net.citizensnpcs.api.npc.NPC citizensNpc() {
+            return citizensNpc;
+        }
+
+        private int id() {
+            return npc != null ? npc.getId() : citizensNpc.getId();
+        }
+
+        private String name() {
+            return npc != null ? npc.getName() : citizensNpc.getName();
+        }
     }
 }

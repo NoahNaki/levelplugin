@@ -5,6 +5,7 @@ import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.fakeblock.QuestGateManager;
 import me.nakilex.levelplugin.horse.gui.HorseGUI;
 import me.nakilex.levelplugin.quests.data.Quest;
+import me.nakilex.levelplugin.quests.data.QuestObjective;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.quests.def.DungeonGuardQuest;
 import me.nakilex.levelplugin.quests.gui.QuestState;
@@ -255,11 +256,24 @@ public class NPCClickListener implements Listener {
                 }
             }
 
-            questManager.handleTalk(player, resolveTalkTarget(player.getUniqueId(), quest, npcId, npcName));
             switch (state) {
-                case AVAILABLE -> startDialog(player, quest, npc, citizensNpc);
+                case AVAILABLE -> {
+                    questManager.handleTalk(player, resolveTalkTarget(player.getUniqueId(), quest, npcId, npcName));
+                    startDialog(player, quest, npc, citizensNpc);
+                }
                 case LOCKED -> questManager.meetsRequirements(player, quest);
-                case ACCEPTED, IN_PROGRESS -> player.sendMessage("§cComplete the quest first!");
+                case ACCEPTED, IN_PROGRESS -> {
+                    int objIndex = QuestNavigationUtil.resolveObjectiveIndex(quest,
+                            questManager.getProgress(player.getUniqueId(), quest.getId()));
+                    if (objIndex >= 0 && objIndex < quest.getObjectives().size()) {
+                        QuestObjective obj = quest.getObjectives().get(objIndex);
+                        if (questManager.isTalkObjectiveForNpc(obj, npcId, npcName)) {
+                            questManager.handleTalk(player, resolveTalkTarget(player.getUniqueId(), quest, npcId, npcName));
+                            return;
+                        }
+                    }
+                    player.sendMessage("§cComplete the quest first!");
+                }
                 default -> {}
             }
         }
@@ -439,6 +453,16 @@ public class NPCClickListener implements Listener {
                 return MarketBeginningsQuest.RETURN_TARGET;
             }
             return MarketBeginningsQuest.INTRO_TARGET;
+        }
+        if (quest != null) {
+            PlayerQuestProgress progress = questManager.getProgress(playerId, quest.getId());
+            int objectiveIndex = QuestNavigationUtil.resolveObjectiveIndex(quest, progress);
+            if (objectiveIndex >= 0 && objectiveIndex < quest.getObjectives().size()) {
+                QuestObjective objective = quest.getObjectives().get(objectiveIndex);
+                if (questManager.isTalkObjectiveForNpc(objective, npcId, npcName)) {
+                    return objective.getTarget();
+                }
+            }
         }
         return "npc" + npcId;
     }
