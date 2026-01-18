@@ -74,8 +74,6 @@ import me.nakilex.levelplugin.utils.registeries.ListenerRegistry;
 import me.nakilex.levelplugin.utils.registeries.TaskRegistry;
 import me.nakilex.levelplugin.fasttravel.FastTravelManager;
 import me.nakilex.levelplugin.fasttravel.gui.FastTravelGUI;
-import me.nakilex.levelplugin.npc.system.NpcApi;
-import me.nakilex.levelplugin.npc.system.NpcRegistry;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.Bukkit;
@@ -297,7 +295,6 @@ public class PluginBootstrap {
                 ? customConfig.getString("server.hub-world", "hub")
                 : "hub";
         worldManager.ensureWorldsLoaded("flatland", "redrocks", hubWorld);
-        NpcApi.initialize(new NpcRegistry(plugin));
         serverSelectionManager = new me.nakilex.levelplugin.server.ServerSelectionManager(plugin);
 
         itemManager = new ItemManager(plugin);

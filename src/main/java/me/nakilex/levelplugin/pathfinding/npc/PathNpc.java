@@ -1,7 +1,7 @@
 package me.nakilex.levelplugin.pathfinding.npc;
 
-import me.nakilex.levelplugin.npc.system.NPC;
 import me.nakilex.levelplugin.utils.cooldowns.CooldownManager;
+import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;

@@ -18,7 +18,7 @@ import me.nakilex.levelplugin.utils.NpcNameUtil;
 import me.nakilex.levelplugin.quests.util.QuestNavigationUtil;
 import me.nakilex.levelplugin.quests.util.QuestServiceAccessTracker;
 import me.nakilex.levelplugin.utils.MobUtil;
-import me.nakilex.levelplugin.npc.system.NPC;
+import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
