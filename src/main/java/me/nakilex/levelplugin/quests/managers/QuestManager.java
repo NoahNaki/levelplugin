@@ -19,7 +19,10 @@ import me.nakilex.levelplugin.quests.util.QuestNavigationUtil;
 import me.nakilex.levelplugin.quests.util.QuestServiceAccessTracker;
 import me.nakilex.levelplugin.utils.MobUtil;
 import me.nakilex.levelplugin.npc.system.NPC;
+import me.nakilex.levelplugin.npc.system.NpcApi;
+import net.citizensnpcs.api.CitizensAPI;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -585,6 +588,9 @@ public class QuestManager {
         }
         saveProgress();
         sendStartMessage(player, quest);
+        if (debug) {
+            logQuestStartTracking(player, quest);
+        }
 
         if (quest instanceof me.nakilex.levelplugin.quests.data.QuestScript script) {
             script.onStart(player, plugin);
@@ -1522,6 +1528,125 @@ public class QuestManager {
         me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§6§lQuest Started!");
         me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§e" + quest.getName());
         me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "", 45);
+    }
+
+    private void logQuestStartTracking(Player player, Quest quest) {
+        if (player == null || quest == null) {
+            return;
+        }
+        PlayerQuestProgress progress = getProgress(player.getUniqueId(), quest.getId());
+        int objectiveCount = quest.getObjectives().size();
+        int objectiveIndex = QuestNavigationUtil.resolveObjectiveIndex(quest, progress);
+        QuestObjective objective = (objectiveIndex >= 0 && objectiveIndex < objectiveCount)
+                ? quest.getObjectives().get(objectiveIndex)
+                : null;
+        QuestState state = getQuestState(player, quest);
+        String objectiveType = objective != null ? objective.getType().name() : "none";
+        String objectiveTarget = objective != null ? objective.getTarget() : "none";
+        String talkNpc = (objective != null && objective.getType() == QuestObjectiveType.TALK)
+                ? resolveNpcName(objective.getTarget())
+                : null;
+        plugin.getLogger().info("[QuestDebug] Quest start tracking for " + player.getName()
+                + " quest=" + quest.getId()
+                + " state=" + state
+                + " objective=" + objectiveIndex + "/" + objectiveCount
+                + " type=" + objectiveType
+                + " target=" + objectiveTarget
+                + (talkNpc != null ? " talkNpc=" + talkNpc : ""));
+        BeaconTarget beaconTarget = objective != null ? objective.getBeaconTarget() : null;
+        Location location = beaconTarget != null ? beaconTarget.resolve(player) : null;
+        if (beaconTarget instanceof NpcBeaconTarget npcTarget) {
+            logNpcPresence(npcTarget.getNpcId(), npcTarget.getNormalizedName(), location);
+            return;
+        }
+        if (beaconTarget == null) {
+            Integer npcGiverId = quest.getNpcGiverId();
+            String questNpcName = findNpcNameForQuest(quest.getId());
+            plugin.getLogger().info("[QuestDebug] No beacon target. questGiverId="
+                    + npcGiverId + " questGiverName=" + questNpcName);
+            if (npcGiverId != null || questNpcName != null) {
+                logNpcPresence(npcGiverId, questNpcName, location);
+            }
+            plugin.getLogger().info("[QuestDebug] ResolvedLocation=" + formatLocation(location));
+            return;
+        }
+        plugin.getLogger().info("[QuestDebug] Beacon target type="
+                + beaconTarget.getClass().getSimpleName()
+                + " resolvedLocation=" + formatLocation(location));
+    }
+
+    private void logNpcPresence(Integer npcId, String normalizedName, Location location) {
+        NPC levelNpc = npcId != null
+                ? NpcApi.getRegistry().getById(npcId)
+                : findLevelNpcByNormalizedName(normalizedName);
+        net.citizensnpcs.api.npc.NPC citizensNpc = npcId != null
+                ? CitizensAPI.getNPCRegistry().getById(npcId)
+                : findCitizensNpcByNormalizedName(normalizedName);
+        plugin.getLogger().info("[QuestDebug] NPC lookup id=" + npcId
+                + " name=" + normalizedName
+                + " levelNpc=" + formatLevelNpc(levelNpc)
+                + " citizensNpc=" + formatCitizensNpc(citizensNpc)
+                + " resolvedLocation=" + formatLocation(location));
+    }
+
+    private NPC findLevelNpcByNormalizedName(String normalizedName) {
+        if (normalizedName == null || normalizedName.isBlank()) {
+            return null;
+        }
+        for (NPC npc : NpcApi.getRegistry()) {
+            if (normalizedName.equals(NpcNameUtil.normalize(npc.getName()))) {
+                return npc;
+            }
+        }
+        return null;
+    }
+
+    private net.citizensnpcs.api.npc.NPC findCitizensNpcByNormalizedName(String normalizedName) {
+        if (normalizedName == null || normalizedName.isBlank()) {
+            return null;
+        }
+        for (net.citizensnpcs.api.npc.NPC npc : CitizensAPI.getNPCRegistry()) {
+            if (normalizedName.equals(NpcNameUtil.normalize(npc.getName()))) {
+                return npc;
+            }
+        }
+        return null;
+    }
+
+    private String formatLevelNpc(NPC npc) {
+        if (npc == null) {
+            return "missing";
+        }
+        Location location = npc.isSpawned() && npc.getEntity() != null
+                ? npc.getEntity().getLocation()
+                : npc.getStoredLocation();
+        return "id=" + npc.getId()
+                + " name=" + npc.getName()
+                + " spawned=" + npc.isSpawned()
+                + " location=" + formatLocation(location);
+    }
+
+    private String formatCitizensNpc(net.citizensnpcs.api.npc.NPC npc) {
+        if (npc == null) {
+            return "missing";
+        }
+        Location location = npc.isSpawned() && npc.getEntity() != null
+                ? npc.getEntity().getLocation()
+                : npc.getStoredLocation();
+        return "id=" + npc.getId()
+                + " name=" + npc.getName()
+                + " spawned=" + npc.isSpawned()
+                + " location=" + formatLocation(location);
+    }
+
+    private String formatLocation(Location location) {
+        if (location == null || location.getWorld() == null) {
+            return "none";
+        }
+        return location.getWorld().getName()
+                + ":" + location.getBlockX()
+                + "," + location.getBlockY()
+                + "," + location.getBlockZ();
     }
 
     private String beautifyName(String raw) {

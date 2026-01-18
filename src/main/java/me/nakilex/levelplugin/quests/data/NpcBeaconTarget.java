@@ -23,6 +23,14 @@ public class NpcBeaconTarget implements BeaconTarget {
         this.normalizedName = NpcNameUtil.normalize(npcName);
     }
 
+    public Integer getNpcId() {
+        return npcId;
+    }
+
+    public String getNormalizedName() {
+        return normalizedName;
+    }
+
     @Override
     public Location resolve(Player viewer) {
         if (npcId != null) {
