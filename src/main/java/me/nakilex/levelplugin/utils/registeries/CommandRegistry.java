@@ -319,7 +319,8 @@ public class CommandRegistry {
                 dungeonExpeditionManager,
                 plugin.getDropDebugManager(),
                 plugin.getEnvironmentManager(),
-                beaconEntityDebugManager);
+                beaconEntityDebugManager,
+                questManager);
         plugin.getCommand("debug").setExecutor(debugCmd);
         plugin.getCommand("debug").setTabCompleter(debugCmd);
         SpawnEntityModelCommand spawnEntityModelCommand = new SpawnEntityModelCommand(plugin);

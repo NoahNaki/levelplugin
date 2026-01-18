@@ -45,6 +45,7 @@ public class QuestManager {
     private final Map<UUID, Set<String>> completedQuests = new HashMap<>();
     private final Map<UUID, Map<String, Long>> lastQuestCompletion = new HashMap<>();
     private final Map<UUID, String> trackedQuests = new HashMap<>();
+    private final Map<UUID, Integer> debugParticlePathTargets = new HashMap<>();
     private boolean debug = false;
     private FileConfiguration progressConfig;
     private File progressFile;
@@ -663,6 +664,41 @@ public class QuestManager {
 
     public String getTrackedQuest(UUID player) {
         return trackedQuests.get(player);
+    }
+
+    public void setParticlePathDebugTarget(UUID playerId, Integer npcId) {
+        if (playerId == null) {
+            return;
+        }
+        if (npcId == null) {
+            debugParticlePathTargets.remove(playerId);
+            return;
+        }
+        debugParticlePathTargets.put(playerId, npcId);
+    }
+
+    public void clearParticlePathDebugTarget(UUID playerId) {
+        setParticlePathDebugTarget(playerId, null);
+    }
+
+    public Integer getParticlePathDebugTarget(UUID playerId) {
+        return playerId == null ? null : debugParticlePathTargets.get(playerId);
+    }
+
+    public Location getParticlePathDebugLocation(Player player) {
+        if (player == null) {
+            return null;
+        }
+        Integer npcId = getParticlePathDebugTarget(player.getUniqueId());
+        if (npcId == null) {
+            return null;
+        }
+        return resolveCitizensNpcLocation(npcId);
+    }
+
+    public Location resolveCitizensNpcLocation(int npcId) {
+        net.citizensnpcs.api.npc.NPC npc = CitizensAPI.getNPCRegistry().getById(npcId);
+        return getCitizensNpcLocation(npc);
     }
 
     public void ensureTrackedQuestFor(UUID playerId) {
@@ -1630,13 +1666,21 @@ public class QuestManager {
         if (npc == null) {
             return "missing";
         }
-        Location location = npc.isSpawned() && npc.getEntity() != null
-                ? npc.getEntity().getLocation()
-                : npc.getStoredLocation();
+        Location location = getCitizensNpcLocation(npc);
         return "id=" + npc.getId()
                 + " name=" + npc.getName()
                 + " spawned=" + npc.isSpawned()
                 + " location=" + formatLocation(location);
+    }
+
+    private Location getCitizensNpcLocation(net.citizensnpcs.api.npc.NPC npc) {
+        if (npc == null) {
+            return null;
+        }
+        if (npc.isSpawned() && npc.getEntity() != null) {
+            return npc.getEntity().getLocation();
+        }
+        return npc.getStoredLocation();
     }
 
     private String formatLocation(Location location) {

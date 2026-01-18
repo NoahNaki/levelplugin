@@ -58,6 +58,7 @@ public class PlayerQuitListener implements Listener {
         // Reset the intro quest only if the player hasn't finished it yet
         me.nakilex.levelplugin.quests.managers.QuestManager qm =
                 Main.getInstance().getQuestManager();
+        qm.clearParticlePathDebugTarget(pid);
         boolean reset = false;
         if (qm.getProgress(pid, "officeerrands") != null) {
             if (qm.isDebug()) {
