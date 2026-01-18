@@ -17,6 +17,7 @@ import me.nakilex.levelplugin.quests.def.HawieHermitCrabQuest;
 import me.nakilex.levelplugin.quests.def.MarketBeginningsQuest;
 import me.nakilex.levelplugin.quests.def.FieldworkFavorQuest;
 import me.nakilex.levelplugin.quests.def.WakePerryQuest;
+import me.nakilex.levelplugin.quests.util.QuestNavigationUtil;
 import me.nakilex.levelplugin.npc.handlers.EssenceWeaverLessonNpcHandler;
 import me.nakilex.levelplugin.npc.handlers.FieldworkFavorNpcHandler;
 import me.nakilex.levelplugin.npc.handlers.ForgeFundamentalsNpcHandler;
@@ -113,151 +114,155 @@ public class NPCClickListener implements Listener {
         int npcId = npc != null ? npc.getId() : citizensNpc.getId();
         String npcName = npc != null ? npc.getName() : citizensNpc.getName();
 
-            var serverSelection = Main.getInstance().getServerSelectionManager();
-            if (serverSelection != null && npc != null && serverSelection.handleSelectorClick(player, npc)) {
+        if (questManager.isDebug()) {
+            logQuestNpcClickDebug(player, npc, citizensNpc, npcId, npcName);
+        }
+
+        var serverSelection = Main.getInstance().getServerSelectionManager();
+        if (serverSelection != null && npc != null && serverSelection.handleSelectorClick(player, npc)) {
+            return;
+        }
+
+        dialogManager.recordDialogCooldown(player);
+
+        if (npc != null && WakePerryQuest.handleNpcInteraction(player, npc, event.getHand())) {
+            return;
+        }
+
+        String stripped = org.bukkit.ChatColor.stripColor(npcName);
+        if (npcId == 546) {
+            Main.getInstance().getCodexManager().recordNpc(player, stripped);
+        }
+
+        if (isNpcName(npcName, SalvagersLessonQuest.NPC_NAME)
+                && questManager.hasCompleted(player.getUniqueId(), SalvagersLessonQuest.ID)) {
+            if (QuestServiceAccessTracker.isCoolingDown(player.getUniqueId(), QuestServiceAccessTracker.Service.SALVAGE)) {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                        "Give the salvager a moment before reopening the bench.");
                 return;
             }
+            SalvageGUI.openMerchantGUI(player);
+            return;
+        }
 
-            dialogManager.recordDialogCooldown(player);
+        if (npcId == 1089 && questManager.hasCompleted(player.getUniqueId(), HawieHermitCrabQuest.ID)) {
+            player.performCommand("fishrewards");
+            return;
+        }
 
-            if (npc != null && WakePerryQuest.handleNpcInteraction(player, npc, event.getHand())) {
-                return;
-            }
+        if (npcId == FieldworkFavorQuest.NPC_ID
+                && questManager.hasCompleted(player.getUniqueId(), FieldworkFavorQuest.ID)) {
+            player.performCommand("farmrewards");
+            return;
+        }
 
-            String stripped = org.bukkit.ChatColor.stripColor(npcName);
-            if (npcId == 546) {
-                Main.getInstance().getCodexManager().recordNpc(player, stripped);
-            }
+        if (isNpcName(npcName, "Fisherman")) {
+            player.performCommand("fishrewards");
+            return;
+        }
 
-            if (isNpcName(npcName, SalvagersLessonQuest.NPC_NAME)
-                    && questManager.hasCompleted(player.getUniqueId(), SalvagersLessonQuest.ID)) {
-                if (QuestServiceAccessTracker.isCoolingDown(player.getUniqueId(), QuestServiceAccessTracker.Service.SALVAGE)) {
-                    ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
-                            "Give the salvager a moment before reopening the bench.");
-                    return;
-                }
-                SalvageGUI.openMerchantGUI(player);
-                return;
-            }
-
-            if (npcId == 1089 && questManager.hasCompleted(player.getUniqueId(), HawieHermitCrabQuest.ID)) {
-                player.performCommand("fishrewards");
-                return;
-            }
-
+        if (isNpcName(npcName, "Farmer") || isNpcName(npcName, "Baker")) {
             if (npcId == FieldworkFavorQuest.NPC_ID
-                    && questManager.hasCompleted(player.getUniqueId(), FieldworkFavorQuest.ID)) {
+                    && !questManager.hasCompleted(player.getUniqueId(), FieldworkFavorQuest.ID)) {
+                // Allow the quest handler to run before opening farm rewards.
+            } else {
                 player.performCommand("farmrewards");
                 return;
             }
-
-            if (isNpcName(npcName, "Fisherman")) {
-                player.performCommand("fishrewards");
+        }
+        if (stripped.equalsIgnoreCase("Starter Merchant")) {
+            PlayerQuestProgress prog = questManager.getProgress(player.getUniqueId(), "newbeginning");
+            if (prog == null || questManager.hasCompleted(player.getUniqueId(), "newbeginning")) {
+                player.performCommand("merchant starter_shop");
                 return;
             }
+        }
 
-            if (isNpcName(npcName, "Farmer") || isNpcName(npcName, "Baker")) {
-                if (npcId == FieldworkFavorQuest.NPC_ID
-                        && !questManager.hasCompleted(player.getUniqueId(), FieldworkFavorQuest.ID)) {
-                    // Allow the quest handler to run before opening farm rewards.
-                } else {
-                    player.performCommand("farmrewards");
+        if (stripped.equalsIgnoreCase("Potion Merchant")) {
+            player.performCommand("merchant potion_merchant");
+            return;
+        }
+
+        if (isNpcName(npcName, "Tool Merchant")) {
+            player.performCommand("merchant tool");
+            return;
+        }
+
+        if (npcId == 546 &&
+                questManager.hasCompleted(player.getUniqueId(), "newbeginning")) {
+            if (!dialogManager.hasSession(player)) {
+                NPC seras = NpcApi.getRegistry().getById(823);
+                net.citizensnpcs.api.npc.NPC serasCitizen = CitizensAPI.getNPCRegistry().getById(823);
+                String coords = "unknown";
+                if (seras != null) {
+                    Location l = seras.isSpawned() ? seras.getEntity().getLocation() : seras.getStoredLocation();
+                    if (l != null) {
+                        coords = l.getBlockX() + ", " + l.getBlockY() + ", " + l.getBlockZ();
+                    }
+                } else if (serasCitizen != null) {
+                    Location l = serasCitizen.isSpawned() ? serasCitizen.getEntity().getLocation() : serasCitizen.getStoredLocation();
+                    if (l != null) {
+                        coords = l.getBlockX() + ", " + l.getBlockY() + ", " + l.getBlockZ();
+                    }
+                }
+                String line = "Piwan|You should talk to Seras at §8[§e" + coords + "§8]§f, I'm sure she has plenty of tasks for you, though be wary she's a fiery one.";
+                startDialog(player, java.util.List.of(line), npc, citizensNpc, null);
+            }
+        }
+
+        if (dialogManager.hasSession(player)) {
+            if (dialogManager.isSessionNpc(player, npcId)) {
+                dialogManager.advanceDialog(player, questManager);
+            }
+            return;
+        }
+
+        if (isNpcName(npcName, "Storage Manager")) {
+            handleStorageManagerInteraction(player, npc, citizensNpc);
+            return;
+        }
+
+        if (npcId == DungeonGuardQuest.NPC_ID) {
+            handleDungeonGuard(player, npc, citizensNpc);
+            return;
+        }
+
+        Quest quest = npc != null
+                ? questManager.getQuestByNpc(npc, player)
+                : questManager.getQuestByNpc(citizensNpc, player);
+        if (npcId == SerasQuest.NPC_ID) {
+            Quest serasPartTwo = questManager.getQuestById(SerasSlimeKingQuest.ID);
+            if (serasPartTwo != null && !questManager.hasCompleted(player.getUniqueId(), serasPartTwo.getId())) {
+                PlayerQuestProgress partTwoProgress = questManager.getProgress(player.getUniqueId(), serasPartTwo.getId());
+                QuestState partTwoState = questManager.getQuestState(player, serasPartTwo);
+                if (partTwoProgress != null || partTwoState == QuestState.AVAILABLE) {
+                    quest = serasPartTwo;
+                }
+            }
+
+            if (quest == null) {
+                quest = questManager.getQuestById(SerasQuest.ID);
+            }
+        }
+        if (quest == null && isNpcName(npcName, SalvagersLessonQuest.NPC_NAME)) {
+            quest = questManager.getQuestById(SalvagersLessonQuest.ID);
+        }
+        if (quest != null) {
+            QuestState state = questManager.getQuestState(player, quest);
+            if (npc != null) {
+                if (questHandlerRegistry.handle(player, npc, quest, state, questManager, dialogManager)) {
                     return;
                 }
             }
-            if (stripped.equalsIgnoreCase("Starter Merchant")) {
-                PlayerQuestProgress prog = questManager.getProgress(player.getUniqueId(), "newbeginning");
-                if (prog == null || questManager.hasCompleted(player.getUniqueId(), "newbeginning")) {
-                    player.performCommand("merchant starter_shop");
-                    return;
-                }
-            }
 
-            if (stripped.equalsIgnoreCase("Potion Merchant")) {
-                player.performCommand("merchant potion_merchant");
-                return;
+            questManager.handleTalk(player, resolveTalkTarget(player.getUniqueId(), quest, npcId, npcName));
+            switch (state) {
+                case AVAILABLE -> startDialog(player, quest, npc, citizensNpc);
+                case LOCKED -> questManager.meetsRequirements(player, quest);
+                case ACCEPTED, IN_PROGRESS -> player.sendMessage("§cComplete the quest first!");
+                default -> {}
             }
-
-            if (isNpcName(npcName, "Tool Merchant")) {
-                player.performCommand("merchant tool");
-                return;
-            }
-
-            if (npcId == 546 &&
-                    questManager.hasCompleted(player.getUniqueId(), "newbeginning")) {
-                if (!dialogManager.hasSession(player)) {
-                    NPC seras = NpcApi.getRegistry().getById(823);
-                    net.citizensnpcs.api.npc.NPC serasCitizen = CitizensAPI.getNPCRegistry().getById(823);
-                    String coords = "unknown";
-                    if (seras != null) {
-                        Location l = seras.isSpawned() ? seras.getEntity().getLocation() : seras.getStoredLocation();
-                        if (l != null) {
-                            coords = l.getBlockX() + ", " + l.getBlockY() + ", " + l.getBlockZ();
-                        }
-                    } else if (serasCitizen != null) {
-                        Location l = serasCitizen.isSpawned() ? serasCitizen.getEntity().getLocation() : serasCitizen.getStoredLocation();
-                        if (l != null) {
-                            coords = l.getBlockX() + ", " + l.getBlockY() + ", " + l.getBlockZ();
-                        }
-                    }
-                    String line = "Piwan|You should talk to Seras at §8[§e" + coords + "§8]§f, I'm sure she has plenty of tasks for you, though be wary she's a fiery one.";
-                    startDialog(player, java.util.List.of(line), npc, citizensNpc, null);
-                }
-            }
-
-            if (dialogManager.hasSession(player)) {
-                if (dialogManager.isSessionNpc(player, npcId)) {
-                    dialogManager.advanceDialog(player, questManager);
-                }
-                return;
-            }
-
-            if (isNpcName(npcName, "Storage Manager")) {
-                handleStorageManagerInteraction(player, npc, citizensNpc);
-                return;
-            }
-
-            if (npcId == DungeonGuardQuest.NPC_ID) {
-                handleDungeonGuard(player, npc, citizensNpc);
-                return;
-            }
-
-            Quest quest = npc != null
-                    ? questManager.getQuestByNpc(npc, player)
-                    : questManager.getQuestByNpc(citizensNpc, player);
-            if (npcId == SerasQuest.NPC_ID) {
-                Quest serasPartTwo = questManager.getQuestById(SerasSlimeKingQuest.ID);
-                if (serasPartTwo != null && !questManager.hasCompleted(player.getUniqueId(), serasPartTwo.getId())) {
-                    PlayerQuestProgress partTwoProgress = questManager.getProgress(player.getUniqueId(), serasPartTwo.getId());
-                    QuestState partTwoState = questManager.getQuestState(player, serasPartTwo);
-                    if (partTwoProgress != null || partTwoState == QuestState.AVAILABLE) {
-                        quest = serasPartTwo;
-                    }
-                }
-
-                if (quest == null) {
-                    quest = questManager.getQuestById(SerasQuest.ID);
-                }
-            }
-            if (quest == null && isNpcName(npcName, SalvagersLessonQuest.NPC_NAME)) {
-                quest = questManager.getQuestById(SalvagersLessonQuest.ID);
-            }
-            if (quest != null) {
-                QuestState state = questManager.getQuestState(player, quest);
-                if (npc != null) {
-                    if (questHandlerRegistry.handle(player, npc, quest, state, questManager, dialogManager)) {
-                        return;
-                    }
-                }
-
-                questManager.handleTalk(player, resolveTalkTarget(player.getUniqueId(), quest, npcId, npcName));
-                switch (state) {
-                    case AVAILABLE -> startDialog(player, quest, npc, citizensNpc);
-                    case LOCKED -> questManager.meetsRequirements(player, quest);
-                    case ACCEPTED, IN_PROGRESS -> player.sendMessage("§cComplete the quest first!");
-                    default -> {}
-                }
-            }
+        }
     }
 
     private void handleStorageManagerInteraction(Player player, NPC npc, net.citizensnpcs.api.npc.NPC citizensNpc) {
@@ -479,5 +484,81 @@ public class NPCClickListener implements Listener {
             return dialogManager.resumePendingChoice(player, npc);
         }
         return dialogManager.resumePendingChoice(player, citizensNpc);
+    }
+
+    private void logQuestNpcClickDebug(Player player, NPC npc, net.citizensnpcs.api.npc.NPC citizensNpc,
+                                       int npcId, String npcName) {
+        String source = npc != null ? "level" : "citizens";
+        Quest questForNpc = npc != null
+                ? questManager.getQuestByNpc(npc, player)
+                : questManager.getQuestByNpc(citizensNpc, player);
+        String questForNpcId = questForNpc != null ? questForNpc.getId() : "none";
+        String trackedId = questManager.getTrackedQuest(player.getUniqueId());
+        Quest trackedQuest = trackedId != null ? questManager.getQuest(trackedId) : null;
+        PlayerQuestProgress progress = trackedId != null
+                ? questManager.getProgress(player.getUniqueId(), trackedId)
+                : null;
+        int objectiveIndex = trackedQuest != null
+                ? QuestNavigationUtil.resolveObjectiveIndex(trackedQuest, progress)
+                : -1;
+        String objectiveTarget = trackedQuest != null && objectiveIndex >= 0
+                ? trackedQuest.getObjectives().get(objectiveIndex).getTarget()
+                : null;
+        Integer objectiveNpcId = parseNpcId(objectiveTarget);
+        String normalizedObjectiveName = objectiveNpcId == null ? NpcNameUtil.normalize(objectiveTarget) : null;
+        if (trackedQuest != null && objectiveIndex >= 0) {
+            var beaconTarget = trackedQuest.getObjectives().get(objectiveIndex).getBeaconTarget();
+            if (beaconTarget instanceof me.nakilex.levelplugin.quests.data.NpcBeaconTarget npcBeaconTarget) {
+                if (npcBeaconTarget.getNpcId() != null) {
+                    objectiveNpcId = npcBeaconTarget.getNpcId();
+                    normalizedObjectiveName = null;
+                } else if (npcBeaconTarget.getNormalizedName() != null) {
+                    normalizedObjectiveName = npcBeaconTarget.getNormalizedName();
+                }
+            }
+        }
+        String normalizedNpcName = NpcNameUtil.normalize(npcName);
+        boolean idMatches = objectiveNpcId != null && objectiveNpcId == npcId;
+        boolean nameMatches = normalizedObjectiveName != null && normalizedNpcName != null
+                && normalizedObjectiveName.equals(normalizedNpcName);
+        Main.getInstance().getLogger().info("[QuestDebug] NPC click player=" + player.getName()
+                + " source=" + source
+                + " npcId=" + npcId
+                + " npcName=" + npcName
+                + " questForNpc=" + questForNpcId
+                + " trackedQuest=" + (trackedQuest != null ? trackedQuest.getId() : "none")
+                + " trackedObjectiveIndex=" + objectiveIndex
+                + " trackedObjectiveTarget=" + (objectiveTarget != null ? objectiveTarget : "none")
+                + " trackedObjectiveNpcId=" + (objectiveNpcId != null ? objectiveNpcId : "none")
+                + " idMatchesTracked=" + idMatches
+                + " nameMatchesTracked=" + nameMatches);
+    }
+
+    private Integer parseNpcId(String target) {
+        if (target == null) {
+            return null;
+        }
+        String lower = target.toLowerCase();
+        if (!lower.startsWith("npc")) {
+            return null;
+        }
+        String idPart = lower.substring(3);
+        StringBuilder digits = new StringBuilder();
+        for (int i = 0; i < idPart.length(); i++) {
+            char c = idPart.charAt(i);
+            if (Character.isDigit(c)) {
+                digits.append(c);
+            } else {
+                break;
+            }
+        }
+        if (digits.length() == 0) {
+            return null;
+        }
+        try {
+            return Integer.parseInt(digits.toString());
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 }
