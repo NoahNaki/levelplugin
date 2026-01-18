@@ -218,9 +218,20 @@ public class QuestManager {
             return null;
         }
 
+        return getQuestByNpc(npc.getId(), npc.getName(), player);
+    }
+
+    public Quest getQuestByNpc(net.citizensnpcs.api.npc.NPC npc, Player player) {
+        if (npc == null) {
+            return null;
+        }
+        return getQuestByNpc(npc.getId(), npc.getName(), player);
+    }
+
+    private Quest getQuestByNpc(int npcId, String npcName, Player player) {
         java.util.Set<String> candidates = new java.util.LinkedHashSet<>();
 
-        String normalized = NpcNameUtil.normalize(npc.getName());
+        String normalized = NpcNameUtil.normalize(npcName);
         if (normalized != null) {
             List<String> nameMapped = npcQuestNameMap.get(normalized);
             if (nameMapped != null) {
@@ -228,7 +239,7 @@ public class QuestManager {
             }
         }
 
-        List<String> idMapped = npcQuestMap.get(npc.getId());
+        List<String> idMapped = npcQuestMap.get(npcId);
         if (idMapped != null) {
             candidates.addAll(idMapped);
         }
