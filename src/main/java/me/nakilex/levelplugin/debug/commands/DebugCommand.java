@@ -19,6 +19,8 @@ import me.nakilex.levelplugin.environment.EnvironmentManager;
 import me.nakilex.levelplugin.guild.Guild;
 import me.nakilex.levelplugin.mercenary.MercenaryExpeditionManager;
 import me.nakilex.levelplugin.pathfinding.DungeonExpeditionManager;
+import me.nakilex.levelplugin.particles.ParticleAxis;
+import me.nakilex.levelplugin.particles.ParticlePreset;
 import me.nakilex.levelplugin.particles.ParticleService;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
@@ -29,10 +31,11 @@ import me.nakilex.levelplugin.utils.RewardBombUtil;
 import me.nakilex.levelplugin.utils.ToggleFeedbackUtil;
 import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
+import me.nakilex.levelplugin.utils.TeleportUtils;
 import me.nakilex.levelplugin.guild.siege.GuildSiegeManager;
 import me.nakilex.levelplugin.guild.GuildManager;
-import me.nakilex.levelplugin.particles.ParticleService.ParticlePreset;
 import org.bukkit.ChatColor;
+import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Material;
 import org.bukkit.command.Command;
@@ -263,7 +266,9 @@ public class DebugCommand implements TabExecutor {
                 }
                 if (args.length < 2) {
                     ChatMessageUtil.send(particlePlayer, ChatMessageUtil.MessageType.WARNING,
-                            "Usage: /debug particle <type> [count] [ticks] | /debug particle ring <type> <radius> [points] [ticks] | /debug particle arc <type> <radius> <degrees> [points] [ticks]");
+                            "Usage: /debug particle <type> [count] [ticks] [center=self|look]"
+                                    + " | /debug particle ring <type> <radius> [points] [ticks] [axis=x|y|z|look] [center=self|look]"
+                                    + " | /debug particle arc <type> <radius> <degrees> [points] [ticks] [axis=x|y|z|look] [center=self|look]");
                     return true;
                 }
                 String mode = args[1].toLowerCase(Locale.ROOT);
@@ -275,9 +280,9 @@ public class DebugCommand implements TabExecutor {
                 }
                 if (args.length <= argOffset) {
                     String usage = switch (mode) {
-                        case "ring" -> "Usage: /debug particle ring <particle> <radius> [points] [ticks]";
-                        case "arc" -> "Usage: /debug particle arc <particle> <radius> <degrees> [points] [ticks]";
-                        default -> "Usage: /debug particle spawn <particle> [count] [ticks]";
+                        case "ring" -> "Usage: /debug particle ring <particle> <radius> [points] [ticks] [axis=x|y|z|look] [center=self|look]";
+                        case "arc" -> "Usage: /debug particle arc <particle> <radius> <degrees> [points] [ticks] [axis=x|y|z|look] [center=self|look]";
+                        default -> "Usage: /debug particle spawn <particle> [count] [ticks] [center=self|look]";
                     };
                     ChatMessageUtil.send(particlePlayer, ChatMessageUtil.MessageType.WARNING, usage);
                     return true;
@@ -296,23 +301,26 @@ public class DebugCommand implements TabExecutor {
                 if (mode.equals("ring")) {
                     if (args.length <= argOffset + 1) {
                         ChatMessageUtil.send(particlePlayer, ChatMessageUtil.MessageType.WARNING,
-                                "Usage: /debug particle ring <particle> <radius> [points] [ticks]");
+                                "Usage: /debug particle ring <particle> <radius> [points] [ticks] [axis=x|y|z|look] [center=self|look]");
                         return true;
                     }
                     double radius = parsePositiveDouble(args, argOffset + 1, "Radius must be a positive number.", particlePlayer);
                     if (radius <= 0) {
                         return true;
                     }
-                    int points = parsePositiveInt(args, argOffset + 2, 24, "Points must be a positive number.", particlePlayer);
-                    if (points <= 0) {
+                    ParseIntResult pointsResult = parseOptionalInt(args, argOffset + 2, 24, "Points must be a positive number.", particlePlayer);
+                    if (pointsResult.value() <= 0) {
                         return true;
                     }
-                    int ticks = parsePositiveInt(args, argOffset + 3, 100, "Ticks must be a positive number.", particlePlayer);
-                    if (ticks <= 0) {
+                    ParseIntResult ticksResult = parseOptionalInt(args, pointsResult.nextIndex(), 100, "Ticks must be a positive number.", particlePlayer);
+                    if (ticksResult.value() <= 0) {
                         return true;
                     }
-                    runParticleShape(particlePlayer, ticks, () ->
-                            particleService.sendRing(particlePlayer, preset, particlePlayer.getLocation().clone().add(0, 1.0, 0), radius, points));
+                    ParticleOptions options = parseOptions(args, ticksResult.nextIndex(), ParticleAxis.Y, CenterMode.LOOK, particlePlayer);
+                    Location center = resolveCenter(particlePlayer, options.centerMode());
+                    runParticleShape(particlePlayer, ticksResult.value(), () ->
+                            particleService.sendRing(particlePlayer, preset, center, radius, pointsResult.value(),
+                                    options.axis(), particlePlayer.getLocation()));
                     ChatMessageUtil.send(particlePlayer, ChatMessageUtil.MessageType.SUCCESS,
                             "Spawned ring of " + particleName.toUpperCase(Locale.ROOT) + " particles for 5 seconds.");
                     return true;
@@ -320,7 +328,7 @@ public class DebugCommand implements TabExecutor {
                 if (mode.equals("arc")) {
                     if (args.length <= argOffset + 2) {
                         ChatMessageUtil.send(particlePlayer, ChatMessageUtil.MessageType.WARNING,
-                                "Usage: /debug particle arc <particle> <radius> <degrees> [points] [ticks]");
+                                "Usage: /debug particle arc <particle> <radius> <degrees> [points] [ticks] [axis=x|y|z|look] [center=self|look]");
                         return true;
                     }
                     double radius = parsePositiveDouble(args, argOffset + 1, "Radius must be a positive number.", particlePlayer);
@@ -331,38 +339,43 @@ public class DebugCommand implements TabExecutor {
                     if (degrees <= 0) {
                         return true;
                     }
-                    int points = parsePositiveInt(args, argOffset + 3, 24, "Points must be a positive number.", particlePlayer);
-                    if (points <= 0) {
+                    ParseIntResult pointsResult = parseOptionalInt(args, argOffset + 3, 24, "Points must be a positive number.", particlePlayer);
+                    if (pointsResult.value() <= 0) {
                         return true;
                     }
-                    int ticks = parsePositiveInt(args, argOffset + 4, 100, "Ticks must be a positive number.", particlePlayer);
-                    if (ticks <= 0) {
+                    ParseIntResult ticksResult = parseOptionalInt(args, pointsResult.nextIndex(), 100, "Ticks must be a positive number.", particlePlayer);
+                    if (ticksResult.value() <= 0) {
                         return true;
                     }
-                    runParticleShape(particlePlayer, ticks, () ->
-                            particleService.sendArc(particlePlayer, preset, particlePlayer.getLocation().clone().add(0, 1.0, 0), radius, degrees, points));
+                    ParticleOptions options = parseOptions(args, ticksResult.nextIndex(), ParticleAxis.LOOK, CenterMode.LOOK, particlePlayer);
+                    Location center = resolveCenter(particlePlayer, options.centerMode());
+                    runParticleShape(particlePlayer, ticksResult.value(), () ->
+                            particleService.sendArc(particlePlayer, preset, center, radius, degrees, pointsResult.value(),
+                                    options.axis(), particlePlayer.getLocation()));
                     ChatMessageUtil.send(particlePlayer, ChatMessageUtil.MessageType.SUCCESS,
                             "Spawned arc of " + particleName.toUpperCase(Locale.ROOT) + " particles for 5 seconds.");
                     return true;
                 }
-                int count = parsePositiveInt(args, argOffset + 1, 8, "Particle count must be a positive number.", particlePlayer);
-                if (count <= 0) {
+                ParseIntResult countResult = parseOptionalInt(args, argOffset + 1, 8, "Particle count must be a positive number.", particlePlayer);
+                if (countResult.value() <= 0) {
                     return true;
                 }
-                int ticks = parsePositiveInt(args, argOffset + 2, 100, "Ticks must be a positive number.", particlePlayer);
-                if (ticks <= 0) {
+                ParseIntResult ticksResult = parseOptionalInt(args, countResult.nextIndex(), 100, "Ticks must be a positive number.", particlePlayer);
+                if (ticksResult.value() <= 0) {
                     return true;
                 }
+                ParticleOptions options = parseOptions(args, ticksResult.nextIndex(), ParticleAxis.Y, CenterMode.SELF, particlePlayer);
+                Location center = resolveCenter(particlePlayer, options.centerMode()).add(0, 1.0, 0);
                 try {
-                    runParticleShape(particlePlayer, ticks, () ->
-                            particleService.sendToPlayer(particlePlayer, preset, particlePlayer.getLocation().clone().add(0, 1.0, 0), count));
+                    runParticleShape(particlePlayer, ticksResult.value(), () ->
+                            particleService.sendToPlayer(particlePlayer, preset, center, countResult.value()));
                 } catch (Exception e) {
                     ChatMessageUtil.send(particlePlayer, ChatMessageUtil.MessageType.ERROR,
                             "Failed to spawn particle: " + e.getMessage());
                     return true;
                 }
                 ChatMessageUtil.send(particlePlayer, ChatMessageUtil.MessageType.SUCCESS,
-                        "Spawned " + count + " " + particleName.toUpperCase(Locale.ROOT) + " particles for 5 seconds.");
+                        "Spawned " + countResult.value() + " " + particleName.toUpperCase(Locale.ROOT) + " particles for 5 seconds.");
                 return true;
 
             case "particlepath":
@@ -569,12 +582,29 @@ public class DebugCommand implements TabExecutor {
                     .filter(id -> id.toLowerCase().startsWith(filter))
                     .toList();
         } else if (args.length == 2 && args[0].equalsIgnoreCase("particle")) {
-            return List.of("spawn", "ring", "arc").stream()
+            List<String> options = new ArrayList<>();
+            options.addAll(List.of("spawn", "ring", "arc"));
+            options.addAll(ParticleService.getInstance().getPresetNames());
+            return options.stream()
                     .filter(opt -> opt.startsWith(args[1].toLowerCase()))
                     .toList();
+        } else if (args.length == 3 && args[0].equalsIgnoreCase("particle")) {
+            if (args[1].equalsIgnoreCase("spawn")
+                    || args[1].equalsIgnoreCase("ring")
+                    || args[1].equalsIgnoreCase("arc")) {
+                return ParticleService.getInstance().getPresetNames().stream()
+                        .filter(opt -> opt.toLowerCase().startsWith(args[2].toLowerCase()))
+                        .toList();
+            }
         } else if (args.length == 3 && args[0].equalsIgnoreCase("chatgame")) {
             return List.of("on", "off", "enable", "disable").stream()
                     .filter(opt -> opt.startsWith(args[2].toLowerCase()))
+                    .toList();
+        } else if (args.length >= 4 && args[0].equalsIgnoreCase("particle")) {
+            String current = args[args.length - 1].toLowerCase();
+            List<String> optionHints = List.of("axis=x", "axis=y", "axis=z", "axis=look", "center=self", "center=look");
+            return optionHints.stream()
+                    .filter(opt -> opt.startsWith(current))
                     .toList();
         }
         return Collections.emptyList();
@@ -596,19 +626,73 @@ public class DebugCommand implements TabExecutor {
         }
     }
 
-    private int parsePositiveInt(String[] args, int index, int fallback, String error, Player player) {
+    private ParseIntResult parseOptionalInt(String[] args, int index, int fallback, String error, Player player) {
         if (args.length <= index) {
-            return fallback;
+            return new ParseIntResult(fallback, index);
+        }
+        if (!isNumber(args[index])) {
+            return new ParseIntResult(fallback, index);
         }
         try {
             int value = Integer.parseInt(args[index]);
             if (value <= 0) {
                 throw new NumberFormatException("value must be positive");
             }
-            return value;
+            return new ParseIntResult(value, index + 1);
         } catch (NumberFormatException e) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, error);
-            return -1;
+            return new ParseIntResult(-1, index);
+        }
+    }
+
+    private ParticleOptions parseOptions(String[] args, int startIndex, ParticleAxis defaultAxis, CenterMode defaultCenter,
+                                         Player player) {
+        ParticleAxis axis = defaultAxis;
+        CenterMode centerMode = defaultCenter;
+        for (int i = startIndex; i < args.length; i++) {
+            String token = args[i].toLowerCase(Locale.ROOT);
+            if (token.startsWith("axis=")) {
+                String rawAxis = token.substring("axis=".length());
+                axis = ParticleAxis.fromToken(rawAxis).orElse(defaultAxis);
+                if (axis == defaultAxis && !rawAxis.isBlank()) {
+                    ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                            "Unknown axis '" + rawAxis + "'. Using " + defaultAxis.name().toLowerCase(Locale.ROOT) + ".");
+                }
+            } else if (token.startsWith("center=")) {
+                String rawCenter = token.substring("center=".length());
+                centerMode = CenterMode.fromToken(rawCenter).orElse(defaultCenter);
+                if (centerMode == defaultCenter && !rawCenter.isBlank()) {
+                    ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                            "Unknown center '" + rawCenter + "'. Using " + defaultCenter.name().toLowerCase(Locale.ROOT) + ".");
+                }
+            }
+        }
+        return new ParticleOptions(axis, centerMode);
+    }
+
+    private Location resolveCenter(Player player, CenterMode centerMode) {
+        if (centerMode == CenterMode.LOOK) {
+            Location target = TeleportUtils.resolveLineOfSightTarget(
+                    player,
+                    player.getEyeLocation().getDirection(),
+                    12.0,
+                    0.2);
+            if (target != null) {
+                return target;
+            }
+        }
+        return player.getLocation().clone();
+    }
+
+    private boolean isNumber(String value) {
+        if (value == null || value.isBlank()) {
+            return false;
+        }
+        try {
+            Double.parseDouble(value);
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
         }
     }
 
@@ -630,6 +714,28 @@ public class DebugCommand implements TabExecutor {
                 remaining--;
             }
         }.runTaskTimer(Main.getInstance(), 0L, 1L);
+    }
+
+    private enum CenterMode {
+        SELF,
+        LOOK;
+
+        private static Optional<CenterMode> fromToken(String raw) {
+            if (raw == null || raw.isBlank()) {
+                return Optional.empty();
+            }
+            return switch (raw.toLowerCase(Locale.ROOT)) {
+                case "self", "player" -> Optional.of(SELF);
+                case "look", "target" -> Optional.of(LOOK);
+                default -> Optional.empty();
+            };
+        }
+    }
+
+    private record ParticleOptions(ParticleAxis axis, CenterMode centerMode) {
+    }
+
+    private record ParseIntResult(int value, int nextIndex) {
     }
 
 }
