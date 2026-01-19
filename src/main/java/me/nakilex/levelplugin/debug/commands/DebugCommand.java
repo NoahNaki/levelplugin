@@ -1,11 +1,11 @@
 package me.nakilex.levelplugin.debug.commands;
 
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import me.nakilex.levelplugin.Main;
@@ -31,7 +31,6 @@ import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.guild.siege.GuildSiegeManager;
 import me.nakilex.levelplugin.guild.GuildManager;
-import com.github.fierioziy.particlenativeapi.api.ParticleNativeAPI;
 import com.github.fierioziy.particlenativeapi.api.particle.type.ParticleType;
 import org.bukkit.ChatColor;
 import org.bukkit.NamespacedKey;
@@ -47,6 +46,7 @@ import org.bukkit.persistence.PersistentDataType;
 import io.papermc.paper.datacomponent.DataComponentTypes;
 import net.kyori.adventure.key.Key;
 import net.citizensnpcs.api.CitizensAPI;
+import org.bukkit.scheduler.BukkitRunnable;
 
 /**
  * Root debug command that hosts various developer utilities.
@@ -263,44 +263,95 @@ public class DebugCommand implements TabExecutor {
                 }
                 if (args.length < 2) {
                     ChatMessageUtil.send(particlePlayer, ChatMessageUtil.MessageType.WARNING,
-                            "Usage: /debug particle <type> [count]");
+                            "Usage: /debug particle <type> [count] | /debug particle ring <type> <radius> [points] [ticks] | /debug particle arc <type> <radius> <degrees> [points] [ticks]");
                     return true;
                 }
-                ParticleNativeAPI api = ParticleService.getInstance().getApi();
-                ParticleType type = resolveParticleType(api, args[1]);
-                if (type == null) {
+                String mode = args[1].toLowerCase(Locale.ROOT);
+                int argOffset = 2;
+                boolean explicitMode = mode.equals("spawn") || mode.equals("ring") || mode.equals("arc");
+                if (!explicitMode) {
+                    mode = "spawn";
+                    argOffset = 1;
+                }
+                if (args.length <= argOffset) {
+                    ChatMessageUtil.send(particlePlayer, ChatMessageUtil.MessageType.WARNING,
+                            "Usage: /debug particle spawn <particle> [count]");
+                    return true;
+                }
+                String particleName = args[argOffset];
+                ParticleService particleService = ParticleService.getInstance();
+                Optional<ParticleType> resolved = particleService.resolveParticleType(particleName);
+                if (resolved.isEmpty()) {
                     ChatMessageUtil.send(particlePlayer, ChatMessageUtil.MessageType.ERROR,
-                            "Unknown particle type: " + args[1] + ".");
+                            "Unknown particle type: " + particleName + ".");
                     return true;
                 }
-                if (!type.isPresent()) {
-                    ChatMessageUtil.send(particlePlayer, ChatMessageUtil.MessageType.ERROR,
-                            "Particle type " + args[1] + " is not supported on this server.");
-                    return true;
-                }
-                int count = 8;
-                if (args.length >= 3) {
-                    try {
-                        count = Integer.parseInt(args[2]);
-                        if (count <= 0) {
-                            throw new NumberFormatException("count must be positive");
-                        }
-                    } catch (NumberFormatException e) {
-                        ChatMessageUtil.send(particlePlayer, ChatMessageUtil.MessageType.ERROR,
-                                "Particle count must be a positive number.");
+                ParticleType type = resolved.get();
+                if (mode.equals("ring")) {
+                    if (args.length <= argOffset + 1) {
+                        ChatMessageUtil.send(particlePlayer, ChatMessageUtil.MessageType.WARNING,
+                                "Usage: /debug particle ring <particle> <radius> [points] [ticks]");
                         return true;
                     }
+                    double radius = parsePositiveDouble(args, argOffset + 1, "Radius must be a positive number.", particlePlayer);
+                    if (radius <= 0) {
+                        return true;
+                    }
+                    int points = parsePositiveInt(args, argOffset + 2, 24, "Points must be a positive number.", particlePlayer);
+                    if (points <= 0) {
+                        return true;
+                    }
+                    int ticks = parsePositiveInt(args, argOffset + 3, 0, "Ticks must be a positive number.", particlePlayer);
+                    if (ticks < 0) {
+                        return true;
+                    }
+                    runParticleShape(particlePlayer, ticks, () ->
+                            particleService.sendRing(particlePlayer, type, particlePlayer.getLocation().clone().add(0, 1.0, 0), radius, points));
+                    ChatMessageUtil.send(particlePlayer, ChatMessageUtil.MessageType.SUCCESS,
+                            "Spawned ring of " + particleName.toUpperCase(Locale.ROOT) + " particles.");
+                    return true;
+                }
+                if (mode.equals("arc")) {
+                    if (args.length <= argOffset + 2) {
+                        ChatMessageUtil.send(particlePlayer, ChatMessageUtil.MessageType.WARNING,
+                                "Usage: /debug particle arc <particle> <radius> <degrees> [points] [ticks]");
+                        return true;
+                    }
+                    double radius = parsePositiveDouble(args, argOffset + 1, "Radius must be a positive number.", particlePlayer);
+                    if (radius <= 0) {
+                        return true;
+                    }
+                    double degrees = parsePositiveDouble(args, argOffset + 2, "Degrees must be a positive number.", particlePlayer);
+                    if (degrees <= 0) {
+                        return true;
+                    }
+                    int points = parsePositiveInt(args, argOffset + 3, 24, "Points must be a positive number.", particlePlayer);
+                    if (points <= 0) {
+                        return true;
+                    }
+                    int ticks = parsePositiveInt(args, argOffset + 4, 0, "Ticks must be a positive number.", particlePlayer);
+                    if (ticks < 0) {
+                        return true;
+                    }
+                    runParticleShape(particlePlayer, ticks, () ->
+                            particleService.sendArc(particlePlayer, type, particlePlayer.getLocation().clone().add(0, 1.0, 0), radius, degrees, points));
+                    ChatMessageUtil.send(particlePlayer, ChatMessageUtil.MessageType.SUCCESS,
+                            "Spawned arc of " + particleName.toUpperCase(Locale.ROOT) + " particles.");
+                    return true;
+                }
+                int count = parsePositiveInt(args, argOffset + 1, 8, "Particle count must be a positive number.", particlePlayer);
+                if (count <= 0) {
+                    return true;
                 }
                 try {
-                    type.packet(false, particlePlayer.getLocation().add(0, 1.0, 0), count)
-                            .sendTo(particlePlayer);
+                    particleService.sendToPlayer(particlePlayer, type, particlePlayer.getLocation().clone().add(0, 1.0, 0), count);
                 } catch (Exception e) {
                     ChatMessageUtil.send(particlePlayer, ChatMessageUtil.MessageType.ERROR,
                             "Failed to spawn particle: " + e.getMessage());
                     return true;
                 }
                 ChatMessageUtil.send(particlePlayer, ChatMessageUtil.MessageType.SUCCESS,
-                        "Spawned " + count + " " + args[1].toUpperCase(Locale.ROOT) + " particles.");
+                        "Spawned " + count + " " + particleName.toUpperCase(Locale.ROOT) + " particles.");
                 return true;
 
             case "particlepath":
@@ -507,7 +558,9 @@ public class DebugCommand implements TabExecutor {
                     .filter(id -> id.toLowerCase().startsWith(filter))
                     .toList();
         } else if (args.length == 2 && args[0].equalsIgnoreCase("particle")) {
-            return Collections.emptyList();
+            return List.of("spawn", "ring", "arc").stream()
+                    .filter(opt -> opt.startsWith(args[1].toLowerCase()))
+                    .toList();
         } else if (args.length == 3 && args[0].equalsIgnoreCase("chatgame")) {
             return List.of("on", "off", "enable", "disable").stream()
                     .filter(opt -> opt.startsWith(args[2].toLowerCase()))
@@ -516,30 +569,56 @@ public class DebugCommand implements TabExecutor {
         return Collections.emptyList();
     }
 
-    private ParticleType resolveParticleType(ParticleNativeAPI api, String rawName) {
-        String fieldName = rawName.toUpperCase(Locale.ROOT);
-        ParticleType type = resolveParticleTypeFromList(api.LIST_1_13, fieldName);
-        if (type != null) {
-            return type;
+    private double parsePositiveDouble(String[] args, int index, String error, Player player) {
+        if (args.length <= index) {
+            return -1;
         }
-        type = resolveParticleTypeFromList(api.LIST_1_8, fieldName);
-        if (type != null) {
-            return type;
+        try {
+            double value = Double.parseDouble(args[index]);
+            if (value <= 0) {
+                throw new NumberFormatException("value must be positive");
+            }
+            return value;
+        } catch (NumberFormatException e) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, error);
+            return -1;
         }
-        return resolveParticleTypeFromList(api.LIST_1_19_PART, fieldName);
     }
 
-    private ParticleType resolveParticleTypeFromList(Object list, String fieldName) {
-        try {
-            Field field = list.getClass().getField(fieldName);
-            Object value = field.get(list);
-            if (value instanceof ParticleType particleType) {
-                return particleType;
-            }
-        } catch (NoSuchFieldException | IllegalAccessException ignored) {
-            // Particle not found in this list.
+    private int parsePositiveInt(String[] args, int index, int fallback, String error, Player player) {
+        if (args.length <= index) {
+            return fallback;
         }
-        return null;
+        try {
+            int value = Integer.parseInt(args[index]);
+            if (value <= 0) {
+                throw new NumberFormatException("value must be positive");
+            }
+            return value;
+        } catch (NumberFormatException e) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, error);
+            return -1;
+        }
+    }
+
+    private void runParticleShape(Player player, int ticks, Runnable action) {
+        if (ticks <= 0) {
+            action.run();
+            return;
+        }
+        new BukkitRunnable() {
+            int remaining = ticks;
+
+            @Override
+            public void run() {
+                if (!player.isOnline() || remaining <= 0) {
+                    cancel();
+                    return;
+                }
+                action.run();
+                remaining--;
+            }
+        }.runTaskTimer(Main.getInstance(), 0L, 1L);
     }
 
 }
