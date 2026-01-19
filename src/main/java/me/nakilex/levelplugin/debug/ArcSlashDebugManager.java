@@ -78,18 +78,8 @@ public class ArcSlashDebugManager implements Listener {
         List<ParticlePattern> patterns = List.of(
                 new EllipseArcPattern(config.particle(), null, radiusX, radiusZ, config.width(),
                         config.startAngleDegrees(), config.endAngleDegrees(), rotationSpeed,
-                        ParticlePlane.LOOK_VERTICAL, baseTilt - config.layerTiltStep(),
-                        ParticleRotationAxis.LOOK_RIGHT, config.rotateXDegrees(),
-                        config.rotateYDegrees(), config.rotateZDegrees()),
-                new EllipseArcPattern(config.particle(), null, radiusX, radiusZ, config.width(),
-                        config.startAngleDegrees(), config.endAngleDegrees(), rotationSpeed,
                         ParticlePlane.LOOK_VERTICAL, baseTilt, ParticleRotationAxis.LOOK_RIGHT,
-                        config.rotateXDegrees(), config.rotateYDegrees(), config.rotateZDegrees()),
-                new EllipseArcPattern(config.particle(), null, radiusX, radiusZ, config.width(),
-                        config.startAngleDegrees(), config.endAngleDegrees(), rotationSpeed,
-                        ParticlePlane.LOOK_VERTICAL, baseTilt + config.layerTiltStep(),
-                        ParticleRotationAxis.LOOK_RIGHT, config.rotateXDegrees(),
-                        config.rotateYDegrees(), config.rotateZDegrees())
+                        config.rotateXDegrees(), config.rotateYDegrees(), config.rotateZDegrees())
         );
 
         Location orientation = player.getLocation().clone();
@@ -223,7 +213,7 @@ public class ArcSlashDebugManager implements Listener {
         public static ArcSlashConfig defaultConfig() {
             return new ArcSlashConfig(Particle.CRIT, 28, 7, 2, 2.4, 2.6, 2.2, 2.8, 1.1, 1.6,
                     0.3, -75.0, 75.0, -22.0, 22.0, 26.0, 0.0, 0.0, 0.0, 0.0,
-                    0.0, 0.0, 0.0);
+                    180.0, -90.0, 180.0);
         }
 
         public ArcSlashConfig copy() {
