@@ -52,4 +52,8 @@ public class SpellComboTracker {
     public String getLastSequence() {
         return lastSequence;
     }
+
+    public boolean hasInputs() {
+        return !inputs.isEmpty();
+    }
 }
