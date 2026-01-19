@@ -447,7 +447,7 @@ public class PluginBootstrap {
                 lootChestManager.getCooldownManager());
         particleDebugRegistry = new me.nakilex.levelplugin.debug.particles.ParticleDebugRegistry(plugin);
         particleDebugManager = new me.nakilex.levelplugin.debug.particles.ParticleDebugManager(plugin);
-        particleDebugGUI = new me.nakilex.levelplugin.debug.gui.ParticleDebugGUI(particleDebugRegistry, particleDebugManager);
+        particleDebugGUI = new me.nakilex.levelplugin.debug.gui.ParticleDebugGUI(plugin, particleDebugRegistry, particleDebugManager);
         this.storageManager = new StorageManager();
         this.guildVaultManager = new me.nakilex.levelplugin.guild.GuildVaultManager(storageEvents, guildMemberGUI);
         CommandRegistry.registerCommands(

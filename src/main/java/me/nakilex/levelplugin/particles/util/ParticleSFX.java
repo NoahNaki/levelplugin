@@ -607,6 +607,132 @@ public final class ParticleSFX {
     }
 
     /**
+     * Creates a circular arc, useful for slash effects.
+     *
+     * @param particle particle to use
+     * @param center the center of the arc
+     * @param radius what the radius should be
+     * @param arcDegrees how many degrees of the circle should be shown (1 - 360)
+     * @param pitch pitch rotation
+     * @param yaw yaw rotation
+     * @param roll roll rotation
+     * @param particleFrequency particle amount
+     * @return the shape displaying the arc
+     */
+    public static ParticleCircle arc(Particle particle, LocationSafe center, double radius, double arcDegrees, double pitch, double yaw, double roll, int particleFrequency) {
+        Validate.isTrue(arcDegrees > 0 && arcDegrees <= 360, "Arc degrees must be between 1 and 360");
+        ParticleCircle circle = new ParticleCircle(particle, center, radius, radius, pitch, yaw, roll, particleFrequency);
+        double limit = 100 - ((arcDegrees / 360D) * 100);
+        circle.setLimit(limit);
+        return circle;
+    }
+
+    /**
+     * Creates an arc that can be faced toward a target, useful for sword slash effects.
+     *
+     * @param particle particle to use
+     * @param center the center of the arc
+     * @param toFace where the arc should face
+     * @param radius what the radius should be
+     * @param arcDegrees how many degrees of the circle should be shown (1 - 360)
+     * @param particleFrequency particle amount
+     * @return the shape displaying the arc slash
+     */
+    public static ParticleCircle arcSlash(Particle particle, LocationSafe center, Location toFace, double radius, double arcDegrees, int particleFrequency) {
+        ParticleCircle circle = arc(particle, center, radius, arcDegrees, 0, 0, 0, particleFrequency);
+        circle.face(toFace);
+        return circle;
+    }
+
+    /**
+     * Creates a magic circle composed of outer/inner rings and a pentagram.
+     *
+     * @param ringParticle particle to use for the rings
+     * @param glyphParticle particle to use for the glyph
+     * @param center the center of the magic circle
+     * @param outerRadius radius of the outer ring
+     * @param innerRadius radius of the inner ring
+     * @param particleFrequency particle amount
+     * @return a compound containing the magic circle shapes
+     */
+    public static ParticleShapeCompound magicCircle(Particle ringParticle, Particle glyphParticle, LocationSafe center, double outerRadius, double innerRadius, int particleFrequency) {
+        ParticleShapeCompound compound = new ParticleShapeCompound();
+        ParticleCircle outer = new ParticleCircle(ringParticle, center, outerRadius, outerRadius, particleFrequency);
+        ParticleCircle inner = new ParticleCircle(ringParticle, center, innerRadius, innerRadius, particleFrequency);
+        ParticleLine glyph = pentagram(glyphParticle, center, innerRadius, particleFrequency);
+        compound.addShape(outer, "outer");
+        compound.addShape(inner, "inner");
+        compound.addShape(glyph, "glyph");
+        return compound;
+    }
+
+    /**
+     * Creates a magic circle composed of outer/inner rings and a pentagram using the same particle.
+     *
+     * @param particle particle to use
+     * @param center the center of the magic circle
+     * @param outerRadius radius of the outer ring
+     * @param innerRadius radius of the inner ring
+     * @param particleFrequency particle amount
+     * @return a compound containing the magic circle shapes
+     */
+    public static ParticleShapeCompound magicCircle(Particle particle, LocationSafe center, double outerRadius, double innerRadius, int particleFrequency) {
+        return magicCircle(particle, particle, center, outerRadius, innerRadius, particleFrequency);
+    }
+
+    /**
+     * Creates a wave line using a sine curve.
+     *
+     * @param particle particle to use
+     * @param start where the wave begins
+     * @param direction direction the wave travels
+     * @param length total length of the wave
+     * @param amplitude height of the wave
+     * @param wavelength length of one full wave
+     * @param points number of segments in the wave
+     * @param particleFrequency particle amount
+     * @return the shape displaying the wave
+     */
+    public static ParticleLine wave(Particle particle, LocationSafe start, Vector direction, double length, double amplitude, double wavelength, int points, int particleFrequency) {
+        Validate.notNull(start, "Start location cannot be null!");
+        Validate.notNull(start.getWorld(), "Start location world cannot be null!");
+        Validate.notNull(direction, "Direction cannot be null!");
+        Validate.isTrue(length > 0, "Length must be greater than 0");
+        Validate.isTrue(wavelength > 0, "Wavelength must be greater than 0");
+        Validate.isTrue(points >= 2, "Points must be 2 or greater");
+
+        Vector dir = direction.clone();
+        if (dir.lengthSquared() == 0) {
+            dir = new Vector(1, 0, 0);
+        }
+        dir.normalize();
+        LocationSafe[] locations = new LocationSafe[points + 1];
+        for (int i = 0; i <= points; i++) {
+            double distance = length * i / points;
+            double phase = (Math.PI * 2 * distance) / wavelength;
+            double vertical = Math.sin(phase) * amplitude;
+            locations[i] = start.clone().add(dir.clone().multiply(distance)).add(0, vertical, 0);
+        }
+        return new ParticleLine(particle, particleFrequency, locations);
+    }
+
+    /**
+     * Creates a wave line using the start location direction.
+     *
+     * @param particle particle to use
+     * @param start where the wave begins
+     * @param length total length of the wave
+     * @param amplitude height of the wave
+     * @param wavelength length of one full wave
+     * @param points number of segments in the wave
+     * @param particleFrequency particle amount
+     * @return the shape displaying the wave
+     */
+    public static ParticleLine wave(Particle particle, LocationSafe start, double length, double amplitude, double wavelength, int points, int particleFrequency) {
+        return wave(particle, start, start.getDirection(), length, amplitude, wavelength, points, particleFrequency);
+    }
+
+    /**
      * @param toFace the location to get the direction towards
      * @param location the starting location
      * @return a double array of the pitch and yaw of the direction where the pitch is [0] and the yaw is [1]

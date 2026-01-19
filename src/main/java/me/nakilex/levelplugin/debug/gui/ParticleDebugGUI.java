@@ -18,6 +18,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.HashMap;
 import java.util.List;
@@ -30,11 +31,13 @@ public class ParticleDebugGUI implements Listener {
     private static final int PREVIOUS_SLOT = 45;
     private static final int NEXT_SLOT = 53;
 
+    private final JavaPlugin plugin;
     private final ParticleDebugRegistry registry;
     private final ParticleDebugManager debugManager;
     private final Map<UUID, Integer> pages = new HashMap<>();
 
-    public ParticleDebugGUI(ParticleDebugRegistry registry, ParticleDebugManager debugManager) {
+    public ParticleDebugGUI(JavaPlugin plugin, ParticleDebugRegistry registry, ParticleDebugManager debugManager) {
+        this.plugin = plugin;
         this.registry = registry;
         this.debugManager = debugManager;
     }
@@ -135,6 +138,12 @@ public class ParticleDebugGUI implements Listener {
         if (!GuiUtil.normalizeTitle(event.getView().getTitle()).startsWith(TITLE)) {
             return;
         }
-        pages.remove(event.getPlayer().getUniqueId());
+        Player player = (Player) event.getPlayer();
+        plugin.getServer().getScheduler().runTask(plugin, () -> {
+            if (GuiUtil.normalizeTitle(player.getOpenInventory().getTitle()).startsWith(TITLE)) {
+                return;
+            }
+            pages.remove(player.getUniqueId());
+        });
     }
 }
