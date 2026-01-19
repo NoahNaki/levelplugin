@@ -9,7 +9,6 @@ import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
 import me.nakilex.levelplugin.mob.custom.CustomMobManager;
 import me.nakilex.levelplugin.party.PartyGlowManager;
 import me.nakilex.levelplugin.party.PartyManager;
-import me.nakilex.levelplugin.particles.ParticleService;
 import me.nakilex.levelplugin.player.config.PlayerConfig;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.potions.managers.PotionManager;
@@ -24,14 +23,12 @@ import me.nakilex.levelplugin.mob.config.MobRewardsConfig;
 import me.nakilex.levelplugin.storage.StorageManager;
 import me.nakilex.levelplugin.pathfinding.PathfindingManager;
 import me.nakilex.levelplugin.pathfinding.MercenaryManager;
-import com.github.fierioziy.particlenativeapi.core.ParticleNativeCore;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.logging.Level;
 
 public class Main extends JavaPlugin {
     private static Main instance;
@@ -43,17 +40,6 @@ public class Main extends JavaPlugin {
     public void onEnable() {
         instance = this;
         plugin = this;
-        try {
-            ParticleService.getInstance().initialize(ParticleNativeCore.loadAPI(this));
-        } catch (Exception e) {
-            getLogger().log(Level.SEVERE,
-                    "Failed to initialize ParticleNativeAPI for server version "
-                            + getServer().getBukkitVersion()
-                            + ". Disabling LevelPlugin to avoid partial combat VFX.",
-                    e);
-            getServer().getPluginManager().disablePlugin(this);
-            return;
-        }
         bootstrap = new PluginBootstrap(this);
         bootstrap.enable();
     }
@@ -61,7 +47,6 @@ public class Main extends JavaPlugin {
     @Override
     public void onDisable() {
         if (bootstrap != null) bootstrap.disable();
-        ParticleService.getInstance().reset();
     }
 
     public static Main getInstance() { return instance; }

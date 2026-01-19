@@ -31,7 +31,7 @@ import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.guild.siege.GuildSiegeManager;
 import me.nakilex.levelplugin.guild.GuildManager;
-import com.github.fierioziy.particlenativeapi.api.particle.type.ParticleType;
+import me.nakilex.levelplugin.particles.ParticleService.ParticlePreset;
 import org.bukkit.ChatColor;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Material;
@@ -263,7 +263,7 @@ public class DebugCommand implements TabExecutor {
                 }
                 if (args.length < 2) {
                     ChatMessageUtil.send(particlePlayer, ChatMessageUtil.MessageType.WARNING,
-                            "Usage: /debug particle <type> [count] | /debug particle ring <type> <radius> [points] [ticks] | /debug particle arc <type> <radius> <degrees> [points] [ticks]");
+                            "Usage: /debug particle <type> [count] [ticks] | /debug particle ring <type> <radius> [points] [ticks] | /debug particle arc <type> <radius> <degrees> [points] [ticks]");
                     return true;
                 }
                 String mode = args[1].toLowerCase(Locale.ROOT);
@@ -274,19 +274,25 @@ public class DebugCommand implements TabExecutor {
                     argOffset = 1;
                 }
                 if (args.length <= argOffset) {
-                    ChatMessageUtil.send(particlePlayer, ChatMessageUtil.MessageType.WARNING,
-                            "Usage: /debug particle spawn <particle> [count]");
+                    String usage = switch (mode) {
+                        case "ring" -> "Usage: /debug particle ring <particle> <radius> [points] [ticks]";
+                        case "arc" -> "Usage: /debug particle arc <particle> <radius> <degrees> [points] [ticks]";
+                        default -> "Usage: /debug particle spawn <particle> [count] [ticks]";
+                    };
+                    ChatMessageUtil.send(particlePlayer, ChatMessageUtil.MessageType.WARNING, usage);
                     return true;
                 }
                 String particleName = args[argOffset];
                 ParticleService particleService = ParticleService.getInstance();
-                Optional<ParticleType> resolved = particleService.resolveParticleType(particleName);
+                Optional<ParticlePreset> resolved = particleService.resolvePreset(particleName);
                 if (resolved.isEmpty()) {
                     ChatMessageUtil.send(particlePlayer, ChatMessageUtil.MessageType.ERROR,
                             "Unknown particle type: " + particleName + ".");
+                    ChatMessageUtil.send(particlePlayer, ChatMessageUtil.MessageType.INFO,
+                            "Available presets: " + String.join(", ", particleService.getPresetNames()));
                     return true;
                 }
-                ParticleType type = resolved.get();
+                ParticlePreset preset = resolved.get();
                 if (mode.equals("ring")) {
                     if (args.length <= argOffset + 1) {
                         ChatMessageUtil.send(particlePlayer, ChatMessageUtil.MessageType.WARNING,
@@ -301,14 +307,14 @@ public class DebugCommand implements TabExecutor {
                     if (points <= 0) {
                         return true;
                     }
-                    int ticks = parsePositiveInt(args, argOffset + 3, 0, "Ticks must be a positive number.", particlePlayer);
-                    if (ticks < 0) {
+                    int ticks = parsePositiveInt(args, argOffset + 3, 100, "Ticks must be a positive number.", particlePlayer);
+                    if (ticks <= 0) {
                         return true;
                     }
                     runParticleShape(particlePlayer, ticks, () ->
-                            particleService.sendRing(particlePlayer, type, particlePlayer.getLocation().clone().add(0, 1.0, 0), radius, points));
+                            particleService.sendRing(particlePlayer, preset, particlePlayer.getLocation().clone().add(0, 1.0, 0), radius, points));
                     ChatMessageUtil.send(particlePlayer, ChatMessageUtil.MessageType.SUCCESS,
-                            "Spawned ring of " + particleName.toUpperCase(Locale.ROOT) + " particles.");
+                            "Spawned ring of " + particleName.toUpperCase(Locale.ROOT) + " particles for 5 seconds.");
                     return true;
                 }
                 if (mode.equals("arc")) {
@@ -329,29 +335,34 @@ public class DebugCommand implements TabExecutor {
                     if (points <= 0) {
                         return true;
                     }
-                    int ticks = parsePositiveInt(args, argOffset + 4, 0, "Ticks must be a positive number.", particlePlayer);
-                    if (ticks < 0) {
+                    int ticks = parsePositiveInt(args, argOffset + 4, 100, "Ticks must be a positive number.", particlePlayer);
+                    if (ticks <= 0) {
                         return true;
                     }
                     runParticleShape(particlePlayer, ticks, () ->
-                            particleService.sendArc(particlePlayer, type, particlePlayer.getLocation().clone().add(0, 1.0, 0), radius, degrees, points));
+                            particleService.sendArc(particlePlayer, preset, particlePlayer.getLocation().clone().add(0, 1.0, 0), radius, degrees, points));
                     ChatMessageUtil.send(particlePlayer, ChatMessageUtil.MessageType.SUCCESS,
-                            "Spawned arc of " + particleName.toUpperCase(Locale.ROOT) + " particles.");
+                            "Spawned arc of " + particleName.toUpperCase(Locale.ROOT) + " particles for 5 seconds.");
                     return true;
                 }
                 int count = parsePositiveInt(args, argOffset + 1, 8, "Particle count must be a positive number.", particlePlayer);
                 if (count <= 0) {
                     return true;
                 }
+                int ticks = parsePositiveInt(args, argOffset + 2, 100, "Ticks must be a positive number.", particlePlayer);
+                if (ticks <= 0) {
+                    return true;
+                }
                 try {
-                    particleService.sendToPlayer(particlePlayer, type, particlePlayer.getLocation().clone().add(0, 1.0, 0), count);
+                    runParticleShape(particlePlayer, ticks, () ->
+                            particleService.sendToPlayer(particlePlayer, preset, particlePlayer.getLocation().clone().add(0, 1.0, 0), count));
                 } catch (Exception e) {
                     ChatMessageUtil.send(particlePlayer, ChatMessageUtil.MessageType.ERROR,
                             "Failed to spawn particle: " + e.getMessage());
                     return true;
                 }
                 ChatMessageUtil.send(particlePlayer, ChatMessageUtil.MessageType.SUCCESS,
-                        "Spawned " + count + " " + particleName.toUpperCase(Locale.ROOT) + " particles.");
+                        "Spawned " + count + " " + particleName.toUpperCase(Locale.ROOT) + " particles for 5 seconds.");
                 return true;
 
             case "particlepath":
