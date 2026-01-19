@@ -5,7 +5,6 @@ import me.nakilex.levelplugin.particles.particles.parents.Particle;
 import me.nakilex.levelplugin.particles.particles.parents.SizeableParticle;
 import me.nakilex.levelplugin.particles.util.Color;
 import org.bukkit.Location;
-import org.bukkit.Particle;
 
 import javax.annotation.Nullable;
 
@@ -100,7 +99,7 @@ public class ParticleDustColored extends Particle implements SizeableParticle, C
         if (color != null && !colorHelper.equals(color)) {
             colorHelper.setRGB(color.getRGB());
         }
-        data = new Particle.DustOptions(bukkitColor, clampSize(size));
+        data = new org.bukkit.Particle.DustOptions(bukkitColor, clampSize(size));
     }
 
     public void setColor(@Nullable Color color) {

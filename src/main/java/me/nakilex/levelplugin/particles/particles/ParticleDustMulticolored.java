@@ -5,7 +5,6 @@ import me.nakilex.levelplugin.particles.particles.parents.Particle;
 import me.nakilex.levelplugin.particles.particles.parents.SizeableParticle;
 import me.nakilex.levelplugin.particles.util.Color;
 import org.bukkit.Location;
-import org.bukkit.Particle;
 
 import javax.annotation.Nullable;
 
@@ -96,7 +95,7 @@ public class ParticleDustMulticolored extends ParticleDustColored implements Siz
             colorHelper2.setRGB(transition.getRGB());
         }
 
-        data = new Particle.DustTransition(from, to, clampSize(size));
+        data = new org.bukkit.Particle.DustTransition(from, to, clampSize(size));
     }
 
     /**

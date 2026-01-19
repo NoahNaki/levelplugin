@@ -6,7 +6,6 @@ import me.nakilex.levelplugin.particles.particles.parents.TravellingParticle;
 import me.nakilex.levelplugin.particles.util.Color;
 import me.nakilex.levelplugin.particles.util.LVMath;
 import org.bukkit.Location;
-import org.bukkit.Particle;
 import org.bukkit.util.Vector;
 
 import javax.annotation.Nullable;
@@ -146,7 +145,7 @@ public class ParticleTrail extends TravellingParticle implements ColorablePartic
             target.add(velocity);
         }
         org.bukkit.Color trailColor = (color == null) ? org.bukkit.Color.fromRGB(rng.nextInt(0xffffff)) : color.toBukkitColor();
-        return new Particle.TargetColor(target, trailColor);
+        return new org.bukkit.Particle.TargetColor(target, trailColor);
     }
 
     public void setColor(@Nullable Color color) {
