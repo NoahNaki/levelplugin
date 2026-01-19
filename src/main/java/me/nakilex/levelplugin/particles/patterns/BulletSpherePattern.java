@@ -6,6 +6,7 @@ import me.nakilex.levelplugin.particles.ParticleRenderContext;
 import me.nakilex.levelplugin.particles.ParticleSpawnUtil;
 import org.bukkit.Location;
 import org.bukkit.Particle;
+import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.util.Vector;
 
@@ -15,6 +16,9 @@ import org.bukkit.util.Vector;
  */
 public class BulletSpherePattern implements ParticlePattern {
     private static final double EPSILON = 0.001;
+    private static final int IMPACT_PARTICLE_COUNT = 6;
+    private static final double IMPACT_SPREAD = 0.12;
+    private static final double RANDOM_BOUNCE_INTENSITY = 0.35;
 
     private final Particle sphereParticle;
     private final Object sphereData;
@@ -28,6 +32,7 @@ public class BulletSpherePattern implements ParticlePattern {
     private Vector position;
     private Vector velocity;
     private boolean initialized;
+    private final ThreadLocalRandom random = ThreadLocalRandom.current();
 
     public BulletSpherePattern(Particle sphereParticle, Object sphereData, Particle bulletParticle, Object bulletData,
                                double radius, double bulletSpeed, int spherePoints, int trailPoints) {
@@ -75,7 +80,9 @@ public class BulletSpherePattern implements ParticlePattern {
             Vector normal = next.clone().normalize();
             double dot = velocity.dot(normal);
             velocity = velocity.clone().subtract(normal.multiply(2 * dot));
+            velocity = randomizeBounce(velocity);
             position = normal.multiply(radius - EPSILON);
+            playImpact(world, center.clone().add(position));
             next = position.clone().add(velocity);
         }
         position = next;
@@ -91,7 +98,6 @@ public class BulletSpherePattern implements ParticlePattern {
     }
 
     private void initializeBullet() {
-        ThreadLocalRandom random = ThreadLocalRandom.current();
         Vector direction = randomUnitVector(random);
         double distance = Math.cbrt(random.nextDouble()) * radius * 0.8;
         position = direction.multiply(distance);
@@ -106,5 +112,18 @@ public class BulletSpherePattern implements ParticlePattern {
         double y = Math.cos(phi);
         double z = Math.sin(theta) * Math.sin(phi);
         return new Vector(x, y, z);
+    }
+
+    private Vector randomizeBounce(Vector baseVelocity) {
+        Vector normalized = baseVelocity.clone().normalize();
+        Vector jitter = randomUnitVector(random).multiply(RANDOM_BOUNCE_INTENSITY);
+        Vector combined = normalized.add(jitter).normalize();
+        return combined.multiply(bulletSpeed);
+    }
+
+    private void playImpact(World world, Location location) {
+        world.spawnParticle(Particle.END_ROD, location, IMPACT_PARTICLE_COUNT,
+                IMPACT_SPREAD, IMPACT_SPREAD, IMPACT_SPREAD, 0.01);
+        world.playSound(location, Sound.ENTITY_ARROW_HIT_PLAYER, 0.6f, 1.4f);
     }
 }

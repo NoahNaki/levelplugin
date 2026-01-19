@@ -144,9 +144,9 @@ public final class ElementalPresets {
             "BULLETSPHERE",
             List.of(
                     new BulletSpherePattern(Particle.END_ROD, null, Particle.CRIT, null,
-                            1.6, 0.18, 80, 4)
+                            2.6, 0.22, 120, 5)
             ),
-            new ParticlePresetSettings(20, 60, ParticleCenter.SELF, 6.0)
+            new ParticlePresetSettings(20, 60, ParticleCenter.LOOK, 8.0)
     );
 
     private static final Map<String, ParticlePreset> PRESETS = Map.ofEntries(
