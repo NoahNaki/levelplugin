@@ -16,8 +16,8 @@ import org.bukkit.util.Vector;
  */
 public class BulletSpherePattern implements ParticlePattern {
     private static final double EPSILON = 0.001;
-    private static final int IMPACT_PARTICLE_COUNT = 6;
-    private static final double IMPACT_SPREAD = 0.12;
+    private static final int IMPACT_PARTICLE_COUNT = 18;
+    private static final double IMPACT_SPREAD = 0.2;
     private static final double RANDOM_BOUNCE_INTENSITY = 0.35;
 
     private final Particle sphereParticle;
