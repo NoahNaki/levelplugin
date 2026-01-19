@@ -62,25 +62,25 @@ public class ArcSlashDebugManager implements Listener {
 
     private void spawnSlashBurst(Player player) {
         ThreadLocalRandom random = ThreadLocalRandom.current();
-        double baseTilt = random.nextDouble(-50.0, 50.0);
-        double radius = random.nextDouble(1.3, 1.8);
-        double innerRadius = radius * random.nextDouble(0.82, 0.9);
-        double offset = radius * random.nextDouble(0.22, 0.32);
-        double rotationSpeed = random.nextDouble(-12.0, -6.0);
+        double baseTilt = random.nextDouble(-40.0, 40.0);
+        double radius = random.nextDouble(1.6, 2.1);
+        double innerRadius = radius * random.nextDouble(0.7, 0.78);
+        double offset = radius * random.nextDouble(0.25, 0.35);
+        double rotationSpeed = 0.0;
 
         List<ParticlePattern> patterns = List.of(
-                new CrescentPattern(Particle.CLOUD, null, radius, innerRadius, offset, rotationSpeed,
+                new CrescentPattern(Particle.END_ROD, null, radius, innerRadius, offset, rotationSpeed,
                         ParticlePlane.LOOK, baseTilt - 20.0, ParticleRotationAxis.Z),
-                new CrescentPattern(Particle.CLOUD, null, radius, innerRadius, offset, rotationSpeed,
+                new CrescentPattern(Particle.END_ROD, null, radius, innerRadius, offset, rotationSpeed,
                         ParticlePlane.LOOK, baseTilt, ParticleRotationAxis.Z),
-                new CrescentPattern(Particle.CLOUD, null, radius, innerRadius, offset, rotationSpeed,
+                new CrescentPattern(Particle.END_ROD, null, radius, innerRadius, offset, rotationSpeed,
                         ParticlePlane.LOOK, baseTilt + 20.0, ParticleRotationAxis.Z)
         );
 
         Location orientation = player.getLocation().clone();
         orientation.setPitch(0f);
         Vector direction = orientation.getDirection().normalize();
-        Location baseCenter = player.getEyeLocation().clone().add(direction.clone().multiply(0.8));
+        Location baseCenter = player.getEyeLocation().clone().add(direction.clone().multiply(1.4));
 
         new BukkitRunnable() {
             private int tick = 0;
@@ -97,7 +97,7 @@ public class ArcSlashDebugManager implements Listener {
                         player,
                         baseCenter.clone().add(travel),
                         orientation,
-                        12,
+                        10,
                         tick,
                         6
                 );
