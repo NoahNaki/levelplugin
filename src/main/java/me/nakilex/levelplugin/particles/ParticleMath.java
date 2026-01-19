@@ -6,6 +6,16 @@ import org.bukkit.util.Vector;
 public final class ParticleMath {
     private ParticleMath() {}
 
+    public static int pointsForArc(double radius, double angleRadians, double spacing, int minPoints) {
+        int resolvedMin = Math.max(1, minPoints);
+        if (radius <= 0 || Math.abs(angleRadians) <= 0.0001 || spacing <= 0) {
+            return resolvedMin;
+        }
+        double arcLength = Math.abs(radius * angleRadians);
+        int points = (int) Math.ceil(arcLength / spacing) + 1;
+        return Math.max(points, resolvedMin);
+    }
+
     public static Vector buildOffset(double angle, double radius, ParticlePlane plane) {
         ParticlePlane resolved = plane == null ? ParticlePlane.Y : plane;
         double cos = Math.cos(angle) * radius;
@@ -15,6 +25,12 @@ public final class ParticleMath {
             case Z -> new Vector(cos, sin, 0);
             case LOOK, Y -> new Vector(cos, 0, sin);
         };
+    }
+
+    public static Vector buildEllipseOffset(double angle, double radiusX, double radiusZ, ParticlePlane plane) {
+        double cos = Math.cos(angle) * radiusX;
+        double sin = Math.sin(angle) * radiusZ;
+        return mapToPlane(new Vector(cos, 0, sin), plane);
     }
 
     public static Vector mapToPlane(Vector base, ParticlePlane plane) {
@@ -68,6 +84,16 @@ public final class ParticleMath {
                 }
                 return rotateAroundAxis(rotated, axisVector.normalize(), radians);
             }
+            case LOOK_RIGHT -> {
+                if (orientation == null) {
+                    return rotated;
+                }
+                Vector axisVector = resolveRightAxis(orientation);
+                if (axisVector.lengthSquared() <= 0.0001) {
+                    return rotated;
+                }
+                return rotateAroundAxis(rotated, axisVector.normalize(), radians);
+            }
         }
         return rotated;
     }
@@ -103,5 +129,14 @@ public final class ParticleMath {
         return v.multiply(cos)
                 .add(k.multiply(dot * (1 - cos)))
                 .add(cross.multiply(sin));
+    }
+
+    private static Vector resolveRightAxis(Location orientation) {
+        Vector direction = orientation.getDirection().clone();
+        if (direction.lengthSquared() <= 0.0001) {
+            return new Vector();
+        }
+        Vector up = new Vector(0, 1, 0);
+        return up.crossProduct(direction).normalize();
     }
 }

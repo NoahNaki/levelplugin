@@ -14,14 +14,17 @@ public record ArcPattern(Particle particle, Object data, double radius, double s
                          double endAngleDegrees, double rotationSpeed, ParticlePlane plane,
                          double tiltDegrees, ParticleRotationAxis tiltAxis) implements ParticlePattern {
 
+    private static final double DEFAULT_POINT_SPACING = 0.18;
+
     @Override
     public void render(ParticleRenderContext context) {
-        int points = context.points();
-        if (points <= 0) {
+        int configuredPoints = context.points();
+        if (configuredPoints <= 0) {
             return;
         }
         double start = Math.toRadians(startAngleDegrees);
         double end = Math.toRadians(endAngleDegrees);
+        int points = ParticleMath.pointsForArc(radius, end - start, DEFAULT_POINT_SPACING, configuredPoints);
         double rotation = Math.toRadians(rotationSpeed) * context.tick();
         World world = context.center().getWorld();
         for (int i = 0; i < points; i++) {

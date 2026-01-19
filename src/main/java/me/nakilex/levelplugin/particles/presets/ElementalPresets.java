@@ -12,6 +12,7 @@ import me.nakilex.levelplugin.particles.ParticleRotationAxis;
 import me.nakilex.levelplugin.particles.patterns.HelixPattern;
 import me.nakilex.levelplugin.particles.patterns.LemniscatePattern;
 import me.nakilex.levelplugin.particles.patterns.LissajousPattern;
+import me.nakilex.levelplugin.particles.patterns.BulletSpherePattern;
 import me.nakilex.levelplugin.particles.patterns.PointPattern;
 import me.nakilex.levelplugin.particles.patterns.RosePattern;
 import me.nakilex.levelplugin.particles.patterns.SpiralPattern;
@@ -139,6 +140,15 @@ public final class ElementalPresets {
             new ParticlePresetSettings(34, 24, ParticleCenter.SELF, 6.0)
     );
 
+    public static final ParticlePreset BULLETSPHERE = new ParticlePreset(
+            "BULLETSPHERE",
+            List.of(
+                    new BulletSpherePattern(Particle.END_ROD, null, Particle.CRIT, null,
+                            5.0, 0.45, 160, 6)
+            ),
+            new ParticlePresetSettings(20, 60, ParticleCenter.LOOK, 8.0)
+    );
+
     private static final Map<String, ParticlePreset> PRESETS = Map.ofEntries(
             Map.entry(EMBER.name(), EMBER),
             Map.entry(SOUL_MIST.name(), SOUL_MIST),
@@ -150,7 +160,8 @@ public final class ElementalPresets {
             Map.entry(RADIANT_SIGIL.name(), RADIANT_SIGIL),
             Map.entry(METEOR_FALL.name(), METEOR_FALL),
             Map.entry(PIERCING_LANCE.name(), PIERCING_LANCE),
-            Map.entry(ARCANE_CIRCLE.name(), ARCANE_CIRCLE)
+            Map.entry(ARCANE_CIRCLE.name(), ARCANE_CIRCLE),
+            Map.entry(BULLETSPHERE.name(), BULLETSPHERE)
     );
 
     public static ParticlePreset getPreset(String name) {
