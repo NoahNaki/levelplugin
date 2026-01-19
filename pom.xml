@@ -16,6 +16,7 @@
     <properties>
         <java.version>21</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <particlenativeapi.version>4.4.0</particlenativeapi.version>
     </properties>
 
     <!-- Force stable versions for transitive deps -->
@@ -169,6 +170,18 @@
             <artifactId>fastutil</artifactId>
             <version>8.5.13</version>
         </dependency>
+
+        <dependency>
+            <groupId>com.github.fierioziy.particlenativeapi</groupId>
+            <artifactId>ParticleNativeAPI-api</artifactId>
+            <version>${particlenativeapi.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.github.fierioziy.particlenativeapi</groupId>
+            <artifactId>ParticleNativeAPI-core</artifactId>
+            <version>${particlenativeapi.version}</version>
+        </dependency>
     </dependencies>
 
     <build>
@@ -204,6 +217,32 @@
                         <goals>
                             <goal>shade</goal>
                         </goals>
+                        <configuration>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <artifactSet>
+                                <includes>
+                                    <include>com.github.fierioziy.particlenativeapi:ParticleNativeAPI-api</include>
+                                    <include>com.github.fierioziy.particlenativeapi:ParticleNativeAPI-core</include>
+                                </includes>
+                            </artifactSet>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                        <exclude>module-info.class</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                            <relocations>
+                                <relocation>
+                                    <pattern>org.objectweb.asm</pattern>
+                                    <shadedPattern>com.github.fierioziy.particlenativeapi.core.internal.asm</shadedPattern>
+                                </relocation>
+                            </relocations>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
