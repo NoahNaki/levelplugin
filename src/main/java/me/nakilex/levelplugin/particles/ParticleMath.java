@@ -27,6 +27,12 @@ public final class ParticleMath {
         };
     }
 
+    public static Vector buildEllipseOffset(double angle, double radiusX, double radiusZ, ParticlePlane plane) {
+        double cos = Math.cos(angle) * radiusX;
+        double sin = Math.sin(angle) * radiusZ;
+        return mapToPlane(new Vector(cos, 0, sin), plane);
+    }
+
     public static Vector mapToPlane(Vector base, ParticlePlane plane) {
         if (base == null) {
             return new Vector();
