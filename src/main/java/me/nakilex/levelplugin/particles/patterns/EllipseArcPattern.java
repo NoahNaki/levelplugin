@@ -32,10 +32,19 @@ public record EllipseArcPattern(Particle particle, Object data, double radiusX, 
         for (int i = 0; i < points; i++) {
             double progress = points == 1 ? 1.0 : (double) i / (points - 1);
             double angle = start + (end - start) * progress + rotation;
-            Vector offset = ParticleMath.buildEllipseOffset(angle, radiusX, radiusZ, plane);
+            Vector offset = buildEllipseOffset(angle);
             offset = ParticleMath.orientAndTilt(offset, plane, context.orientation(), tiltAxis, tiltDegrees);
             Location spawn = context.center().clone().add(offset);
             ParticleSpawnUtil.spawn(world, spawn, particle, 1, data);
         }
+    }
+
+    private Vector buildEllipseOffset(double angle) {
+        if (plane == ParticlePlane.LOOK_VERTICAL) {
+            double x = Math.cos(angle) * radiusX;
+            double y = Math.sin(angle) * radiusZ;
+            return new Vector(x, y, 0);
+        }
+        return ParticleMath.buildEllipseOffset(angle, radiusX, radiusZ, plane);
     }
 }
