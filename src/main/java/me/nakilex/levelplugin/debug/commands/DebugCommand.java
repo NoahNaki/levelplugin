@@ -10,6 +10,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.chat.games.ChatGameManager;
 import me.nakilex.levelplugin.chat.games.ChatGameStatus;
 import me.nakilex.levelplugin.debug.gui.DebugGUI;
+import me.nakilex.levelplugin.debug.gui.ParticleDebugGUI;
 import me.nakilex.levelplugin.debug.BeaconEntityDebugManager;
 import me.nakilex.levelplugin.debug.DropDebugManager;
 import me.nakilex.levelplugin.debug.SpellInputDebugItem;
@@ -63,6 +64,7 @@ public class DebugCommand implements TabExecutor {
     private final EnvironmentManager environmentManager;
     private final BeaconEntityDebugManager beaconEntityDebugManager;
     private final QuestManager questManager;
+    private final ParticleDebugGUI particleDebugGUI;
 
     public DebugCommand(PlayerToggleManager mobDebugManager,
                         PlayerScoreboardManager scoreboardManager,
@@ -73,7 +75,8 @@ public class DebugCommand implements TabExecutor {
                         DropDebugManager dropDebugManager,
                         EnvironmentManager environmentManager,
                         BeaconEntityDebugManager beaconEntityDebugManager,
-                        QuestManager questManager) {
+                        QuestManager questManager,
+                        ParticleDebugGUI particleDebugGUI) {
         this.mobDebugManager = mobDebugManager;
         this.scoreboardManager = scoreboardManager;
         this.debugGUI = debugGUI;
@@ -84,6 +87,7 @@ public class DebugCommand implements TabExecutor {
         this.environmentManager = environmentManager;
         this.beaconEntityDebugManager = beaconEntityDebugManager;
         this.questManager = questManager;
+        this.particleDebugGUI = particleDebugGUI;
     }
 
     @Override
@@ -95,7 +99,7 @@ public class DebugCommand implements TabExecutor {
                 String statUsage = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|particlepath|" + statUsage + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|particlepath|particles|" + statUsage + ">");
             }
             return true;
         }
@@ -291,6 +295,14 @@ public class DebugCommand implements TabExecutor {
                 }
                 return true;
 
+            case "particles":
+                if (!(sender instanceof Player particleViewer)) {
+                    sender.sendMessage(ChatColor.RED + "Players only.");
+                    return true;
+                }
+                particleDebugGUI.open(particleViewer);
+                return true;
+
             case "hand":
                 if (!(sender instanceof Player p4)) {
                     sender.sendMessage("Players only.");
@@ -358,7 +370,7 @@ public class DebugCommand implements TabExecutor {
                 String statUsage2 = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|cityowner|citymax|autocast|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|particlepath|" + statUsage2 + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|cityowner|citymax|autocast|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|particlepath|particles|" + statUsage2 + ">");
                 return true;
         }
     }
@@ -423,7 +435,7 @@ public class DebugCommand implements TabExecutor {
         if (args.length == 1) {
             List<String> subs = new ArrayList<>(List.of("mobinfo", "tps", "siege", "cityowner", "citymax", "autocast",
                     "hand", "chatgame", "expedition", "dungeonexpedition", "rewardbomb", "drops", "beaconentity",
-                    "spellinput", "particlepath"));
+                    "spellinput", "particlepath", "particles"));
             subs.addAll(Arrays.stream(StatType.values()).map(StatType::getAbbrev).toList());
             return subs.stream()
                     .filter(s -> s.startsWith(args[0].toLowerCase()))

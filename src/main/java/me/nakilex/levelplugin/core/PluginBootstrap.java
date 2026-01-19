@@ -69,6 +69,7 @@ import me.nakilex.levelplugin.utils.EntityTextDisplay;
 import me.nakilex.levelplugin.utils.MetadataTrait;
 import me.nakilex.levelplugin.utils.HologramUtil;
 import me.nakilex.levelplugin.utils.MultiLineHologram;
+import hm.zelha.particlesfx.util.ParticleSFX;
 import me.nakilex.levelplugin.utils.registeries.CommandRegistry;
 import me.nakilex.levelplugin.utils.registeries.ListenerRegistry;
 import me.nakilex.levelplugin.utils.registeries.TaskRegistry;
@@ -198,6 +199,9 @@ public class PluginBootstrap {
     private SettingsManager settingsManager;
     private SettingsGUI settingsGUI;
     private me.nakilex.levelplugin.debug.gui.DebugGUI debugGUI;
+    private me.nakilex.levelplugin.debug.gui.ParticleDebugGUI particleDebugGUI;
+    private me.nakilex.levelplugin.debug.particles.ParticleDebugManager particleDebugManager;
+    private me.nakilex.levelplugin.debug.particles.ParticleDebugRegistry particleDebugRegistry;
     private CodexManager codexManager;
     private CodexMainGUI codexGUI;
     private MobCodexGUI mobCodexGUI;
@@ -229,6 +233,8 @@ public class PluginBootstrap {
             plugin.getServer().getPluginManager().disablePlugin(plugin);
             return;
         }
+
+        ParticleSFX.setPlugin(plugin);
 
         loadConfigFiles();
         setupCustomConfig();
@@ -439,6 +445,9 @@ public class PluginBootstrap {
                 mercenaryExpeditionManager,
                 dropDebugManager,
                 lootChestManager.getCooldownManager());
+        particleDebugRegistry = new me.nakilex.levelplugin.debug.particles.ParticleDebugRegistry(plugin);
+        particleDebugManager = new me.nakilex.levelplugin.debug.particles.ParticleDebugManager(plugin);
+        particleDebugGUI = new me.nakilex.levelplugin.debug.gui.ParticleDebugGUI(particleDebugRegistry, particleDebugManager);
         this.storageManager = new StorageManager();
         this.guildVaultManager = new me.nakilex.levelplugin.guild.GuildVaultManager(storageEvents, guildMemberGUI);
         CommandRegistry.registerCommands(
@@ -482,7 +491,8 @@ public class PluginBootstrap {
             beaconEntityDebugManager,
             dungeonExpeditionManager,
             serverSelectionManager,
-            customMobManager
+            customMobManager,
+            particleDebugGUI
         );
         me.nakilex.levelplugin.catacombs.CatacombsCommand catacombsCommand =
                 new me.nakilex.levelplugin.catacombs.CatacombsCommand(catacombsManager, catacombsGUI);
@@ -567,7 +577,8 @@ public class PluginBootstrap {
             dpsDummyManager,
             beaconEntityDebugManager,
             serverSelectionManager,
-            customMobManager
+            customMobManager,
+            particleDebugGUI
         );
         plugin.getServer().getPluginManager().registerEvents(
                 new me.nakilex.levelplugin.mercenary.board.ExpeditionBoardWandListener(expeditionBoardManager),

@@ -291,7 +291,7 @@ commands:
     usage: /enchant
   debug:
     descri ption: Developer debug tools
-    usage: /debug [mobinfo|tps|siege|autocast|drops|hand|chatgame|expedition|spellinput]
+    usage: /debug [mobinfo|tps|siege|autocast|drops|hand|chatgame|expedition|spellinput|particles]
   se:
     description: Spawn an entity with ModelEngine models for testing
     usage: /se <entity> <model...> | /se list
