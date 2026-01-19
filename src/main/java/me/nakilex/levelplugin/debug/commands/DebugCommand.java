@@ -3,10 +3,7 @@ package me.nakilex.levelplugin.debug.commands;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 import me.nakilex.levelplugin.Main;
@@ -15,18 +12,14 @@ import me.nakilex.levelplugin.chat.games.ChatGameStatus;
 import me.nakilex.levelplugin.debug.gui.DebugGUI;
 import me.nakilex.levelplugin.debug.BeaconEntityDebugManager;
 import me.nakilex.levelplugin.debug.DropDebugManager;
+import me.nakilex.levelplugin.debug.ArcSlashDebugManager;
 import me.nakilex.levelplugin.debug.SpellInputDebugItem;
 import me.nakilex.levelplugin.environment.EnvironmentManager;
 import me.nakilex.levelplugin.guild.Guild;
 import me.nakilex.levelplugin.mercenary.MercenaryExpeditionManager;
 import me.nakilex.levelplugin.pathfinding.DungeonExpeditionManager;
 import me.nakilex.levelplugin.particles.ParticlePreset;
-import me.nakilex.levelplugin.particles.ParticleRenderContext;
-import me.nakilex.levelplugin.particles.ParticlePlane;
-import me.nakilex.levelplugin.particles.ParticleRotationAxis;
 import me.nakilex.levelplugin.particles.ParticleService;
-import me.nakilex.levelplugin.particles.patterns.ArcPattern;
-import me.nakilex.levelplugin.particles.patterns.ParticlePattern;
 import me.nakilex.levelplugin.particles.presets.ElementalPresets;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
@@ -48,9 +41,6 @@ import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.scheduler.BukkitTask;
-import org.bukkit.util.Vector;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import io.papermc.paper.datacomponent.DataComponentTypes;
@@ -77,7 +67,7 @@ public class DebugCommand implements TabExecutor {
     private final EnvironmentManager environmentManager;
     private final BeaconEntityDebugManager beaconEntityDebugManager;
     private final QuestManager questManager;
-    private final Map<UUID, BukkitTask> arcSlashTasks = new HashMap<>();
+    private final ArcSlashDebugManager arcSlashDebugManager;
 
     public DebugCommand(PlayerToggleManager mobDebugManager,
                         PlayerScoreboardManager scoreboardManager,
@@ -88,7 +78,8 @@ public class DebugCommand implements TabExecutor {
                         DropDebugManager dropDebugManager,
                         EnvironmentManager environmentManager,
                         BeaconEntityDebugManager beaconEntityDebugManager,
-                        QuestManager questManager) {
+                        QuestManager questManager,
+                        ArcSlashDebugManager arcSlashDebugManager) {
         this.mobDebugManager = mobDebugManager;
         this.scoreboardManager = scoreboardManager;
         this.debugGUI = debugGUI;
@@ -99,6 +90,7 @@ public class DebugCommand implements TabExecutor {
         this.environmentManager = environmentManager;
         this.beaconEntityDebugManager = beaconEntityDebugManager;
         this.questManager = questManager;
+        this.arcSlashDebugManager = arcSlashDebugManager;
     }
 
     @Override
@@ -317,7 +309,7 @@ public class DebugCommand implements TabExecutor {
                     return true;
                 }
                 if (args[1].equalsIgnoreCase("arc")) {
-                    toggleArcSlashes(presetPlayer);
+                    arcSlashDebugManager.toggle(presetPlayer);
                     return true;
                 }
                 ParticlePreset preset = ElementalPresets.getPreset(args[1]);
@@ -509,52 +501,4 @@ public class DebugCommand implements TabExecutor {
         return Collections.emptyList();
     }
 
-    private void toggleArcSlashes(Player player) {
-        UUID id = player.getUniqueId();
-        BukkitTask existing = arcSlashTasks.remove(id);
-        if (existing != null) {
-            existing.cancel();
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
-                    "Arc slash preview disabled.");
-            return;
-        }
-
-        List<ParticlePattern> patterns = List.of(
-                new ArcPattern(org.bukkit.Particle.SWEEP_ATTACK, null, 1.6, -120.0, 120.0, 0.0,
-                        ParticlePlane.LOOK, -45.0, ParticleRotationAxis.Z),
-                new ArcPattern(org.bukkit.Particle.SWEEP_ATTACK, null, 1.6, -120.0, 120.0, 0.0,
-                        ParticlePlane.LOOK, 0.0, ParticleRotationAxis.Z),
-                new ArcPattern(org.bukkit.Particle.SWEEP_ATTACK, null, 1.6, -120.0, 120.0, 0.0,
-                        ParticlePlane.LOOK, 45.0, ParticleRotationAxis.Z)
-        );
-
-        BukkitTask task = new BukkitRunnable() {
-            private int tick = 0;
-
-            @Override
-            public void run() {
-                if (!player.isOnline()) {
-                    cancel();
-                    arcSlashTasks.remove(id);
-                    return;
-                }
-                Vector forward = player.getLocation().getDirection().normalize().multiply(1.4);
-                ParticleRenderContext context = new ParticleRenderContext(
-                        player,
-                        player.getEyeLocation().clone().add(forward),
-                        18,
-                        tick,
-                        1
-                );
-                for (ParticlePattern pattern : patterns) {
-                    pattern.render(context);
-                }
-                tick++;
-            }
-        }.runTaskTimer(Main.getInstance(), 0L, 2L);
-
-        arcSlashTasks.put(id, task);
-        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                "Arc slash preview enabled.");
-    }
 }

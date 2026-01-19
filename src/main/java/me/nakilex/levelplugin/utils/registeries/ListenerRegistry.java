@@ -125,11 +125,12 @@ public class ListenerRegistry {
                                         ArenaQueueGUI arenaQueueGUI,
                                          ArenaMatchManager arenaMatchManager,
                                          ArenaTeamMatchManager arenaTeamMatchManager,
-                                         ChatGameManager chatGameManager,
+                                        ChatGameManager chatGameManager,
                                         DpsDummyManager dpsDummyManager,
                                         BeaconEntityDebugManager beaconEntityDebugManager,
                                         ServerSelectionManager serverSelectionManager,
-                                        CustomMobManager customMobManager) {
+                                        CustomMobManager customMobManager,
+                                        me.nakilex.levelplugin.debug.ArcSlashDebugManager arcSlashDebugManager) {
 
 
         PluginManager pm = plugin.getServer().getPluginManager();
@@ -223,6 +224,7 @@ public class ListenerRegistry {
         new DamageIndicatorPacketBlocker(plugin);
         pm.registerEvents(new SpellInputListener(plugin.getSettingsManager()), plugin);
         pm.registerEvents(new SpellInputDebugListener(), plugin);
+        pm.registerEvents(arcSlashDebugManager, plugin);
         pm.registerEvents(settingsGUI, plugin);
         pm.registerEvents(debugGUI, plugin);
         pm.registerEvents(new GuildGUIListener(), plugin);
