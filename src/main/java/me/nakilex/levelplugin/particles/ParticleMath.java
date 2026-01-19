@@ -45,6 +45,10 @@ public final class ParticleMath {
     }
 
     public static Vector rotateByAxis(Vector vector, ParticleRotationAxis axis, double degrees) {
+        return rotateByAxis(vector, axis, degrees, null);
+    }
+
+    public static Vector rotateByAxis(Vector vector, ParticleRotationAxis axis, double degrees, Location orientation) {
         if (axis == null || Math.abs(degrees) < 0.0001) {
             return vector.clone();
         }
@@ -54,6 +58,16 @@ public final class ParticleMath {
             case X -> rotated.rotateAroundX(radians);
             case Y -> rotated.rotateAroundY(radians);
             case Z -> rotated.rotateAroundZ(radians);
+            case LOOK -> {
+                if (orientation == null) {
+                    return rotated;
+                }
+                Vector axisVector = orientation.getDirection().clone();
+                if (axisVector.lengthSquared() <= 0.0001) {
+                    return rotated;
+                }
+                return rotateAroundAxis(rotated, axisVector.normalize(), radians);
+            }
         }
         return rotated;
     }
@@ -76,6 +90,18 @@ public final class ParticleMath {
         if (plane == ParticlePlane.LOOK) {
             rotated = rotateByOrientation(rotated, orientation);
         }
-        return rotateByAxis(rotated, tiltAxis, tiltDegrees);
+        return rotateByAxis(rotated, tiltAxis, tiltDegrees, orientation);
+    }
+
+    private static Vector rotateAroundAxis(Vector vector, Vector axis, double radians) {
+        double cos = Math.cos(radians);
+        double sin = Math.sin(radians);
+        Vector v = vector.clone();
+        Vector k = axis.clone();
+        double dot = v.dot(k);
+        Vector cross = k.clone().crossProduct(v);
+        return v.multiply(cos)
+                .add(k.multiply(dot * (1 - cos)))
+                .add(cross.multiply(sin));
     }
 }
