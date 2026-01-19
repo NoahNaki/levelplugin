@@ -11,7 +11,7 @@ import org.bukkit.World;
 import org.bukkit.util.Vector;
 
 public record CrescentPattern(Particle particle, Object data, double outerRadius, double innerRadius,
-                              double offsetDistance, double rotationSpeed, ParticlePlane plane,
+                              double offsetDistance, Vector localOffset, double rotationSpeed, ParticlePlane plane,
                               double tiltDegrees, ParticleRotationAxis tiltAxis) implements ParticlePattern {
 
     @Override
@@ -23,6 +23,12 @@ public record CrescentPattern(Particle particle, Object data, double outerRadius
         }
         double rotation = Math.toRadians(rotationSpeed) * context.tick();
         World world = context.center().getWorld();
+        Location origin = context.center().clone();
+        if (localOffset != null) {
+            Vector shift = ParticleMath.mapToPlane(localOffset, plane);
+            shift = ParticleMath.orientAndTilt(shift, plane, context.orientation(), tiltAxis, tiltDegrees);
+            origin.add(shift);
+        }
 
         double xStar = (outerRadius * outerRadius - innerRadius * innerRadius + offsetDistance * offsetDistance)
                 / (2 * offsetDistance);
@@ -46,7 +52,7 @@ public record CrescentPattern(Particle particle, Object data, double outerRadius
             double angle = thetaStart + (thetaEnd - thetaStart) * progress + rotation;
             Vector offset = ParticleMath.buildOffset(angle, outerRadius, plane);
             offset = ParticleMath.orientAndTilt(offset, plane, context.orientation(), tiltAxis, tiltDegrees);
-            Location spawn = context.center().clone().add(offset);
+            Location spawn = origin.clone().add(offset);
             ParticleSpawnUtil.spawn(world, spawn, particle, 1, data);
         }
 
@@ -57,7 +63,7 @@ public record CrescentPattern(Particle particle, Object data, double outerRadius
             double z = innerRadius * Math.sin(angle);
             Vector offset = ParticleMath.mapToPlane(new Vector(x, 0, z), plane);
             offset = ParticleMath.orientAndTilt(offset, plane, context.orientation(), tiltAxis, tiltDegrees);
-            Location spawn = context.center().clone().add(offset);
+            Location spawn = origin.clone().add(offset);
             ParticleSpawnUtil.spawn(world, spawn, particle, 1, data);
         }
     }

@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.debug;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
@@ -26,21 +27,25 @@ import org.bukkit.util.Vector;
 public class ArcSlashDebugManager implements Listener {
     private final Main plugin;
     private final Set<UUID> enabledPlayers = java.util.concurrent.ConcurrentHashMap.newKeySet();
+    private final Map<UUID, ArcSlashVariant> activeVariants = new java.util.concurrent.ConcurrentHashMap<>();
 
     public ArcSlashDebugManager(Main plugin) {
         this.plugin = plugin;
     }
 
-    public void toggle(Player player) {
+    public void toggle(Player player, ArcSlashVariant variant) {
         UUID id = player.getUniqueId();
-        if (enabledPlayers.remove(id)) {
+        ArcSlashVariant current = activeVariants.get(id);
+        if (current == variant && enabledPlayers.remove(id)) {
+            activeVariants.remove(id);
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
                     "Arc slash preview disabled.");
             return;
         }
         enabledPlayers.add(id);
+        activeVariants.put(id, variant);
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                "Arc slash preview enabled. Left click to spawn slashes.");
+                "Arc slash preview enabled (" + variant.id() + "). Left click to spawn slashes.");
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -57,30 +62,38 @@ public class ArcSlashDebugManager implements Listener {
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
-        enabledPlayers.remove(event.getPlayer().getUniqueId());
+        UUID id = event.getPlayer().getUniqueId();
+        enabledPlayers.remove(id);
+        activeVariants.remove(id);
     }
 
     private void spawnSlashBurst(Player player) {
+        ArcSlashVariant variant = activeVariants.get(player.getUniqueId());
+        if (variant == null) {
+            return;
+        }
+        ArcSlashConfig config = variant.config();
         ThreadLocalRandom random = ThreadLocalRandom.current();
-        double baseTilt = random.nextDouble(-30.0, 30.0);
-        double radius = random.nextDouble(1.8, 2.3);
-        double innerRadius = radius * random.nextDouble(0.7, 0.76);
-        double offset = radius * random.nextDouble(0.26, 0.34);
+        double baseTilt = random.nextDouble(config.baseTiltMin(), config.baseTiltMax());
+        double radius = random.nextDouble(config.radiusMin(), config.radiusMax());
+        double innerRadius = radius * random.nextDouble(config.innerRatioMin(), config.innerRatioMax());
+        double offset = radius * random.nextDouble(config.offsetRatioMin(), config.offsetRatioMax());
         double rotationSpeed = 0.0;
+        Vector localOffset = new Vector(-offset * config.centerShiftFactor(), 0, 0);
 
         List<ParticlePattern> patterns = List.of(
-                new CrescentPattern(Particle.END_ROD, null, radius, innerRadius, offset, rotationSpeed,
-                        ParticlePlane.LOOK, baseTilt - 25.0, ParticleRotationAxis.LOOK),
-                new CrescentPattern(Particle.END_ROD, null, radius, innerRadius, offset, rotationSpeed,
+                new CrescentPattern(config.particle(), null, radius, innerRadius, offset, localOffset, rotationSpeed,
+                        ParticlePlane.LOOK, baseTilt - config.layerTiltStep(), ParticleRotationAxis.LOOK),
+                new CrescentPattern(config.particle(), null, radius, innerRadius, offset, localOffset, rotationSpeed,
                         ParticlePlane.LOOK, baseTilt, ParticleRotationAxis.LOOK),
-                new CrescentPattern(Particle.END_ROD, null, radius, innerRadius, offset, rotationSpeed,
-                        ParticlePlane.LOOK, baseTilt + 25.0, ParticleRotationAxis.LOOK)
+                new CrescentPattern(config.particle(), null, radius, innerRadius, offset, localOffset, rotationSpeed,
+                        ParticlePlane.LOOK, baseTilt + config.layerTiltStep(), ParticleRotationAxis.LOOK)
         );
 
         Location orientation = player.getLocation().clone();
         orientation.setPitch(0f);
         Vector direction = orientation.getDirection().normalize();
-        Location baseCenter = player.getEyeLocation().clone().add(direction.clone().multiply(1.9));
+        Location baseCenter = player.getEyeLocation().clone().add(direction.clone().multiply(config.startDistance()));
 
         new BukkitRunnable() {
             private int tick = 0;
@@ -91,24 +104,78 @@ public class ArcSlashDebugManager implements Listener {
                     cancel();
                     return;
                 }
-                double progress = 6 <= 1 ? 1.0 : (double) tick / 5.0;
-                Vector travel = direction.clone().multiply(2.0 * progress);
+                double progress = config.ticks() <= 1 ? 1.0 : (double) tick / (config.ticks() - 1);
+                Vector travel = direction.clone().multiply(config.travelDistance() * progress);
                 ParticleRenderContext context = new ParticleRenderContext(
                         player,
                         baseCenter.clone().add(travel),
                         orientation,
-                        18,
+                        config.points(),
                         tick,
-                        6
+                        config.ticks()
                 );
                 for (ParticlePattern pattern : patterns) {
                     pattern.render(context);
                 }
                 tick++;
-                if (tick >= 6) {
+                if (tick >= config.ticks()) {
                     cancel();
                 }
             }
         }.runTaskTimer(plugin, 0L, 1L);
     }
+
+    public static List<String> getVariantIds() {
+        return ArcSlashVariant.ids();
+    }
+
+    public enum ArcSlashVariant {
+        ARC1("arc1", new ArcSlashConfig(Particle.END_ROD, 18, 6, 2.0, 2.0, 1.9, 2.4,
+                0.7, 0.75, 0.26, 0.32, -20.0, 20.0, 22.0, 0.55)),
+        ARC2("arc2", new ArcSlashConfig(Particle.CRIT, 16, 5, 2.2, 1.8, 1.6, 2.0,
+                0.72, 0.78, 0.22, 0.3, -15.0, 15.0, 18.0, 0.5)),
+        ARC3("arc3", new ArcSlashConfig(Particle.ENCHANT, 20, 6, 2.0, 2.2, 2.0, 2.6,
+                0.68, 0.74, 0.24, 0.32, -25.0, 25.0, 24.0, 0.6)),
+        ARC4("arc4", new ArcSlashConfig(Particle.CLOUD, 22, 6, 2.1, 2.0, 2.1, 2.7,
+                0.7, 0.76, 0.25, 0.34, -18.0, 18.0, 20.0, 0.55)),
+        ARC5("arc5", new ArcSlashConfig(Particle.END_ROD, 14, 4, 2.4, 1.6, 1.7, 2.2,
+                0.72, 0.78, 0.24, 0.3, -12.0, 12.0, 16.0, 0.5)),
+        ARC6("arc6", new ArcSlashConfig(Particle.CRIT, 18, 5, 2.0, 2.4, 2.2, 2.8,
+                0.66, 0.72, 0.26, 0.34, -30.0, 30.0, 26.0, 0.6));
+
+        private final String id;
+        private final ArcSlashConfig config;
+
+        ArcSlashVariant(String id, ArcSlashConfig config) {
+            this.id = id;
+            this.config = config;
+        }
+
+        public String id() {
+            return id;
+        }
+
+        public ArcSlashConfig config() {
+            return config;
+        }
+
+        public static ArcSlashVariant fromId(String id) {
+            for (ArcSlashVariant variant : values()) {
+                if (variant.id.equalsIgnoreCase(id)) {
+                    return variant;
+                }
+            }
+            return null;
+        }
+
+        public static List<String> ids() {
+            return java.util.Arrays.stream(values()).map(ArcSlashVariant::id).toList();
+        }
+    }
+
+    public record ArcSlashConfig(Particle particle, int points, int ticks, double startDistance,
+                                 double travelDistance, double radiusMin, double radiusMax,
+                                 double innerRatioMin, double innerRatioMax, double offsetRatioMin,
+                                 double offsetRatioMax, double baseTiltMin, double baseTiltMax,
+                                 double layerTiltStep, double centerShiftFactor) {}
 }

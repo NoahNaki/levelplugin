@@ -305,17 +305,23 @@ public class DebugCommand implements TabExecutor {
                 }
                 if (args.length < 2) {
                     ChatMessageUtil.send(presetPlayer, ChatMessageUtil.MessageType.WARNING,
-                            "Usage: /debug particlepreset <arc|" + String.join("|", ElementalPresets.getPresetNames()) + ">");
+                            "Usage: /debug particlepreset <"
+                                    + String.join("|", ArcSlashDebugManager.getVariantIds())
+                                    + "|" + String.join("|", ElementalPresets.getPresetNames()) + ">");
                     return true;
                 }
-                if (args[1].equalsIgnoreCase("arc")) {
-                    arcSlashDebugManager.toggle(presetPlayer);
+                ArcSlashDebugManager.ArcSlashVariant arcVariant =
+                        ArcSlashDebugManager.ArcSlashVariant.fromId(args[1]);
+                if (arcVariant != null) {
+                    arcSlashDebugManager.toggle(presetPlayer, arcVariant);
                     return true;
                 }
                 ParticlePreset preset = ElementalPresets.getPreset(args[1]);
                 if (preset == null) {
                     ChatMessageUtil.send(presetPlayer, ChatMessageUtil.MessageType.ERROR,
-                            "Unknown preset. Available: arc, " + String.join(", ", ElementalPresets.getPresetNames()));
+                            "Unknown preset. Available: "
+                                    + String.join(", ", ArcSlashDebugManager.getVariantIds())
+                                    + ", " + String.join(", ", ElementalPresets.getPresetNames()));
                     return true;
                 }
                 new ParticleService(Main.getInstance()).renderPreset(presetPlayer, preset);
@@ -489,7 +495,7 @@ public class DebugCommand implements TabExecutor {
         } else if (args.length == 2 && args[0].equalsIgnoreCase("particlepreset")) {
             String filter = args[1].toLowerCase();
             List<String> options = new ArrayList<>(ElementalPresets.getPresetNames());
-            options.add("arc");
+            options.addAll(ArcSlashDebugManager.getVariantIds());
             return options.stream()
                     .filter(name -> name.toLowerCase().startsWith(filter))
                     .toList();
