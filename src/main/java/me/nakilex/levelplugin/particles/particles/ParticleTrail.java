@@ -140,7 +140,9 @@ public class ParticleTrail extends TravellingParticle implements ColorablePartic
     protected Object getData(Location location) {
         Location target = location.clone();
         if (toGo != null) {
-            target.setX(toGo.getX()).setY(toGo.getY()).setZ(toGo.getZ());
+            target.setX(toGo.getX());
+            target.setY(toGo.getY());
+            target.setZ(toGo.getZ());
         } else if (velocity != null) {
             target.add(velocity);
         }
