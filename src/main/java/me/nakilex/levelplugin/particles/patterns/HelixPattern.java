@@ -26,11 +26,8 @@ public record HelixPattern(Particle particle, Object data, double radius, double
             double progress = points == 1 ? 1.0 : (double) i / (points - 1);
             double angle = (Math.PI * 2 * turns * progress) + rotation;
             Vector offset = ParticleMath.buildOffset(angle, radius, plane);
-            if (plane == ParticlePlane.LOOK) {
-                offset = ParticleMath.rotateByOrientation(offset, context.player().getLocation());
-            }
             offset = ParticleMath.addHeight(offset, height * progress, plane, context.player().getLocation());
-            offset = ParticleMath.rotateByAxis(offset, tiltAxis, tiltDegrees);
+            offset = ParticleMath.orientAndTilt(offset, plane, context.player().getLocation(), tiltAxis, tiltDegrees);
             Location spawn = context.center().clone().add(offset);
             ParticleSpawnUtil.spawn(world, spawn, particle, 1, data);
         }

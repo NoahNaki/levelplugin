@@ -10,9 +10,9 @@ import org.bukkit.Particle;
 import org.bukkit.World;
 import org.bukkit.util.Vector;
 
-public record SpiralPattern(Particle particle, Object data, double baseRadius, double baseHeight,
-                            double rotationSpeed, double turns, boolean inward, ParticlePlane plane,
-                            double tiltDegrees, ParticleRotationAxis tiltAxis) implements ParticlePattern {
+public record ArcPattern(Particle particle, Object data, double radius, double startAngleDegrees,
+                         double endAngleDegrees, double rotationSpeed, ParticlePlane plane,
+                         double tiltDegrees, ParticleRotationAxis tiltAxis) implements ParticlePattern {
 
     @Override
     public void render(ParticleRenderContext context) {
@@ -20,16 +20,14 @@ public record SpiralPattern(Particle particle, Object data, double baseRadius, d
         if (points <= 0) {
             return;
         }
+        double start = Math.toRadians(startAngleDegrees);
+        double end = Math.toRadians(endAngleDegrees);
         double rotation = Math.toRadians(rotationSpeed) * context.tick();
         World world = context.center().getWorld();
         for (int i = 0; i < points; i++) {
             double progress = points == 1 ? 1.0 : (double) i / (points - 1);
-            double radiusProgress = inward ? 1.0 - progress : progress;
-            double radius = baseRadius * radiusProgress;
-            double height = baseHeight * progress;
-            double angle = (Math.PI * 2 * turns * progress) + rotation;
+            double angle = start + (end - start) * progress + rotation;
             Vector offset = ParticleMath.buildOffset(angle, radius, plane);
-            offset = ParticleMath.addHeight(offset, height, plane, context.player().getLocation());
             offset = ParticleMath.orientAndTilt(offset, plane, context.player().getLocation(), tiltAxis, tiltDegrees);
             Location spawn = context.center().clone().add(offset);
             ParticleSpawnUtil.spawn(world, spawn, particle, 1, data);
