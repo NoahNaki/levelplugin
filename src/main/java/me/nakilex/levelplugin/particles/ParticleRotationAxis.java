@@ -4,5 +4,6 @@ public enum ParticleRotationAxis {
     X,
     Y,
     Z,
-    LOOK
+    LOOK,
+    LOOK_RIGHT
 }
