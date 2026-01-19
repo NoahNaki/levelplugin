@@ -103,6 +103,7 @@ public class ArcSlashDebugGUI implements Listener {
             workingConfigs.put(player.getUniqueId(), config);
         }
         boolean rightClick = event.isRightClick();
+        boolean shiftClick = event.isShiftClick();
         if (slot == SAVE_SLOT) {
             arcSlashDebugManager.applyConfig(config);
             arcSlashDebugManager.logConfig(config);
@@ -114,6 +115,7 @@ public class ArcSlashDebugGUI implements Listener {
         if (slot == RESET_SLOT) {
             ArcSlashConfig reset = ArcSlashConfig.defaultConfig();
             workingConfigs.put(player.getUniqueId(), reset);
+            arcSlashDebugManager.applyConfig(reset);
             player.openInventory(buildInventory(reset));
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                     "Arc slash settings reset to defaults.");
@@ -124,7 +126,8 @@ public class ArcSlashDebugGUI implements Listener {
             return;
         }
 
-        handleConfigClick(config, slot, rightClick);
+        handleConfigClick(config, slot, rightClick, shiftClick);
+        arcSlashDebugManager.applyConfig(config);
         player.openInventory(buildInventory(config));
     }
 
@@ -138,46 +141,47 @@ public class ArcSlashDebugGUI implements Listener {
         }
     }
 
-    private void handleConfigClick(ArcSlashConfig config, int slot, boolean rightClick) {
+    private void handleConfigClick(ArcSlashConfig config, int slot, boolean rightClick, boolean shiftClick) {
         int direction = rightClick ? -1 : 1;
+        int multiplier = shiftClick ? 5 : 1;
         if (slot == PARTICLE_SLOT) {
             config.setParticle(nextParticle(config.particle(), direction));
         } else if (slot == POINTS_SLOT) {
-            config.setPoints(clampInt(config.points() + POINT_STEP * direction, 2, 120));
+            config.setPoints(clampInt(config.points() + POINT_STEP * direction * multiplier, 2, 120));
         } else if (slot == TICKS_SLOT) {
-            config.setTicks(clampInt(config.ticks() + TICK_STEP * direction, 1, 40));
+            config.setTicks(clampInt(config.ticks() + TICK_STEP * direction * multiplier, 1, 40));
         } else if (slot == FRAME_STEP_SLOT) {
-            config.setFrameStep(clampInt(config.frameStep() + FRAME_STEP_STEP * direction, 1, 10));
+            config.setFrameStep(clampInt(config.frameStep() + FRAME_STEP_STEP * direction * multiplier, 1, 10));
         } else if (slot == START_DISTANCE_SLOT) {
-            config.setStartDistance(clampDouble(config.startDistance() + DISTANCE_STEP * direction, 0.0, 8.0));
+            config.setStartDistance(clampDouble(config.startDistance() + DISTANCE_STEP * direction * multiplier, 0.0, 8.0));
         } else if (slot == TRAVEL_DISTANCE_SLOT) {
-            config.setTravelDistance(clampDouble(config.travelDistance() + DISTANCE_STEP * direction, 0.0, 8.0));
+            config.setTravelDistance(clampDouble(config.travelDistance() + DISTANCE_STEP * direction * multiplier, 0.0, 8.0));
         } else if (slot == RADIUS_X_MIN_SLOT) {
-            double value = clampDouble(config.radiusXMin() + RADIUS_STEP * direction, 0.1, 6.0);
+            double value = clampDouble(config.radiusXMin() + RADIUS_STEP * direction * multiplier, 0.1, 6.0);
             config.setRadiusXMin(Math.min(value, config.radiusXMax()));
         } else if (slot == RADIUS_X_MAX_SLOT) {
-            double value = clampDouble(config.radiusXMax() + RADIUS_STEP * direction, 0.1, 6.0);
+            double value = clampDouble(config.radiusXMax() + RADIUS_STEP * direction * multiplier, 0.1, 6.0);
             config.setRadiusXMax(Math.max(value, config.radiusXMin()));
         } else if (slot == RADIUS_Z_MIN_SLOT) {
-            double value = clampDouble(config.radiusZMin() + RADIUS_STEP * direction, 0.1, 6.0);
+            double value = clampDouble(config.radiusZMin() + RADIUS_STEP * direction * multiplier, 0.1, 6.0);
             config.setRadiusZMin(Math.min(value, config.radiusZMax()));
         } else if (slot == RADIUS_Z_MAX_SLOT) {
-            double value = clampDouble(config.radiusZMax() + RADIUS_STEP * direction, 0.1, 6.0);
+            double value = clampDouble(config.radiusZMax() + RADIUS_STEP * direction * multiplier, 0.1, 6.0);
             config.setRadiusZMax(Math.max(value, config.radiusZMin()));
         } else if (slot == START_ANGLE_SLOT) {
-            config.setStartAngleDegrees(clampDouble(config.startAngleDegrees() + ANGLE_STEP * direction, -180.0, 180.0));
+            config.setStartAngleDegrees(clampDouble(config.startAngleDegrees() + ANGLE_STEP * direction * multiplier, -180.0, 180.0));
         } else if (slot == END_ANGLE_SLOT) {
-            config.setEndAngleDegrees(clampDouble(config.endAngleDegrees() + ANGLE_STEP * direction, -180.0, 180.0));
+            config.setEndAngleDegrees(clampDouble(config.endAngleDegrees() + ANGLE_STEP * direction * multiplier, -180.0, 180.0));
         } else if (slot == BASE_TILT_MIN_SLOT) {
-            double value = clampDouble(config.baseTiltMin() + TILT_STEP * direction, -90.0, 90.0);
+            double value = clampDouble(config.baseTiltMin() + TILT_STEP * direction * multiplier, -90.0, 90.0);
             config.setBaseTiltMin(Math.min(value, config.baseTiltMax()));
         } else if (slot == BASE_TILT_MAX_SLOT) {
-            double value = clampDouble(config.baseTiltMax() + TILT_STEP * direction, -90.0, 90.0);
+            double value = clampDouble(config.baseTiltMax() + TILT_STEP * direction * multiplier, -90.0, 90.0);
             config.setBaseTiltMax(Math.max(value, config.baseTiltMin()));
         } else if (slot == LAYER_TILT_SLOT) {
-            config.setLayerTiltStep(clampDouble(config.layerTiltStep() + TILT_STEP * direction, 0.0, 45.0));
+            config.setLayerTiltStep(clampDouble(config.layerTiltStep() + TILT_STEP * direction * multiplier, 0.0, 45.0));
         } else if (slot == SIDE_SHIFT_SLOT) {
-            config.setSideShiftFactor(clampDouble(config.sideShiftFactor() + SIDE_SHIFT_STEP * direction, -1.0, 1.0));
+            config.setSideShiftFactor(clampDouble(config.sideShiftFactor() + SIDE_SHIFT_STEP * direction * multiplier, -1.0, 1.0));
         }
     }
 
@@ -189,52 +193,52 @@ public class ArcSlashDebugGUI implements Listener {
 
         builder.setItem(PARTICLE_SLOT, createParamItem(Material.BLAZE_POWDER, ChatColor.AQUA + "Particle",
                 List.of("Current: " + ChatColor.WHITE + config.particle().name()),
-                "to cycle forward", "to cycle backward"));
+                "to cycle forward", "to cycle backward", null, null));
         builder.setItem(POINTS_SLOT, createParamItem(Material.NETHER_STAR, ChatColor.AQUA + "Points",
                 List.of("Current: " + ChatColor.WHITE + config.points()),
-                "to increase points", "to decrease points"));
+                "to increase points", "to decrease points", "to increase faster", "to decrease faster"));
         builder.setItem(TICKS_SLOT, createParamItem(Material.CLOCK, ChatColor.AQUA + "Ticks",
                 List.of("Current: " + ChatColor.WHITE + config.ticks()),
-                "to increase duration", "to decrease duration"));
+                "to increase duration", "to decrease duration", "to increase faster", "to decrease faster"));
         builder.setItem(FRAME_STEP_SLOT, createParamItem(Material.REPEATER, ChatColor.AQUA + "Frame Step",
                 List.of("Current: " + ChatColor.WHITE + config.frameStep()),
-                "to increase step", "to decrease step"));
+                "to increase step", "to decrease step", "to increase faster", "to decrease faster"));
         builder.setItem(START_DISTANCE_SLOT, createParamItem(Material.ENDER_PEARL, ChatColor.AQUA + "Start Distance",
                 List.of("Current: " + ChatColor.WHITE + formatDecimal(config.startDistance())),
-                "to push forward", "to pull back"));
+                "to push forward", "to pull back", "to push further", "to pull further"));
         builder.setItem(TRAVEL_DISTANCE_SLOT, createParamItem(Material.ELYTRA, ChatColor.AQUA + "Travel Distance",
                 List.of("Current: " + ChatColor.WHITE + formatDecimal(config.travelDistance())),
-                "to increase travel", "to decrease travel"));
+                "to increase travel", "to decrease travel", "to increase faster", "to decrease faster"));
         builder.setItem(RADIUS_X_MIN_SLOT, createParamItem(Material.SHIELD, ChatColor.AQUA + "Radius X (Min)",
                 List.of("Current: " + ChatColor.WHITE + formatDecimal(config.radiusXMin())),
-                "to widen min radius", "to tighten min radius"));
+                "to widen min radius", "to tighten min radius", "to widen faster", "to tighten faster"));
         builder.setItem(RADIUS_X_MAX_SLOT, createParamItem(Material.SHIELD, ChatColor.AQUA + "Radius X (Max)",
                 List.of("Current: " + ChatColor.WHITE + formatDecimal(config.radiusXMax())),
-                "to widen max radius", "to tighten max radius"));
+                "to widen max radius", "to tighten max radius", "to widen faster", "to tighten faster"));
         builder.setItem(RADIUS_Z_MIN_SLOT, createParamItem(Material.IRON_BARS, ChatColor.AQUA + "Radius Z (Min)",
                 List.of("Current: " + ChatColor.WHITE + formatDecimal(config.radiusZMin())),
-                "to widen min depth", "to tighten min depth"));
+                "to widen min depth", "to tighten min depth", "to widen faster", "to tighten faster"));
         builder.setItem(RADIUS_Z_MAX_SLOT, createParamItem(Material.IRON_BARS, ChatColor.AQUA + "Radius Z (Max)",
                 List.of("Current: " + ChatColor.WHITE + formatDecimal(config.radiusZMax())),
-                "to widen max depth", "to tighten max depth"));
+                "to widen max depth", "to tighten max depth", "to widen faster", "to tighten faster"));
         builder.setItem(START_ANGLE_SLOT, createParamItem(Material.COMPASS, ChatColor.AQUA + "Start Angle",
                 List.of("Current: " + ChatColor.WHITE + formatDecimal(config.startAngleDegrees()) + "°"),
-                "to rotate forward", "to rotate backward"));
+                "to rotate forward", "to rotate backward", "to rotate faster", "to rotate faster"));
         builder.setItem(END_ANGLE_SLOT, createParamItem(Material.COMPASS, ChatColor.AQUA + "End Angle",
                 List.of("Current: " + ChatColor.WHITE + formatDecimal(config.endAngleDegrees()) + "°"),
-                "to rotate forward", "to rotate backward"));
+                "to rotate forward", "to rotate backward", "to rotate faster", "to rotate faster"));
         builder.setItem(BASE_TILT_MIN_SLOT, createParamItem(Material.FEATHER, ChatColor.AQUA + "Base Tilt (Min)",
                 List.of("Current: " + ChatColor.WHITE + formatDecimal(config.baseTiltMin()) + "°"),
-                "to increase min tilt", "to decrease min tilt"));
+                "to increase min tilt", "to decrease min tilt", "to increase faster", "to decrease faster"));
         builder.setItem(BASE_TILT_MAX_SLOT, createParamItem(Material.FEATHER, ChatColor.AQUA + "Base Tilt (Max)",
                 List.of("Current: " + ChatColor.WHITE + formatDecimal(config.baseTiltMax()) + "°"),
-                "to increase max tilt", "to decrease max tilt"));
+                "to increase max tilt", "to decrease max tilt", "to increase faster", "to decrease faster"));
         builder.setItem(LAYER_TILT_SLOT, createParamItem(Material.QUARTZ, ChatColor.AQUA + "Layer Tilt Step",
                 List.of("Current: " + ChatColor.WHITE + formatDecimal(config.layerTiltStep()) + "°"),
-                "to add separation", "to reduce separation"));
+                "to add separation", "to reduce separation", "to add more", "to reduce more"));
         builder.setItem(SIDE_SHIFT_SLOT, createParamItem(Material.ARROW, ChatColor.AQUA + "Side Shift Factor",
                 List.of("Current: " + ChatColor.WHITE + formatDecimal(config.sideShiftFactor())),
-                "to push right", "to push left"));
+                "to push right", "to push left", "to push further", "to pull further"));
         builder.setItem(INFO_SLOT, createInfoItem(config));
         builder.setItem(RESET_SLOT, GuiUtil.getNexoItem("refresh", ChatColor.YELLOW + "Reset Defaults"));
         builder.setItem(SAVE_SLOT, GuiUtil.getNexoItem("save", ChatColor.GREEN + "Save Settings"));
@@ -260,7 +264,8 @@ public class ArcSlashDebugGUI implements Listener {
     }
 
     private ItemStack createParamItem(Material material, String name, List<String> valueLines,
-                                      String leftAction, String rightAction) {
+                                      String leftAction, String rightAction,
+                                      String sneakLeftAction, String sneakRightAction) {
         ItemStack item = new ItemStack(material);
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
@@ -269,6 +274,9 @@ public class ArcSlashDebugGUI implements Listener {
             lore.addAll(TooltipUtil.bulletList(valueLines.toArray(new String[0])));
             lore.add(" ");
             lore.addAll(TooltipUtil.clickInstructions(leftAction, rightAction));
+            if (sneakLeftAction != null || sneakRightAction != null) {
+                lore.addAll(TooltipUtil.sneakClickInstructions(sneakLeftAction, sneakRightAction));
+            }
             meta.setLore(lore);
             meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
             item.setItemMeta(meta);
