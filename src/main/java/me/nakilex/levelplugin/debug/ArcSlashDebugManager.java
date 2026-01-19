@@ -76,25 +76,29 @@ public class ArcSlashDebugManager implements Listener {
         double rotationSpeed = 0.0;
 
         List<ParticlePattern> patterns = List.of(
-                new EllipseArcPattern(config.particle(), null, radiusX, radiusZ, config.startAngleDegrees(),
-                        config.endAngleDegrees(), rotationSpeed, ParticlePlane.LOOK_VERTICAL,
-                        baseTilt - config.layerTiltStep(), ParticleRotationAxis.LOOK_RIGHT),
-                new EllipseArcPattern(config.particle(), null, radiusX, radiusZ, config.startAngleDegrees(),
-                        config.endAngleDegrees(), rotationSpeed, ParticlePlane.LOOK_VERTICAL, baseTilt,
+                new EllipseArcPattern(config.particle(), null, radiusX, radiusZ, config.width(),
+                        config.startAngleDegrees(), config.endAngleDegrees(), rotationSpeed,
+                        ParticlePlane.LOOK_VERTICAL, baseTilt - config.layerTiltStep(),
                         ParticleRotationAxis.LOOK_RIGHT),
-                new EllipseArcPattern(config.particle(), null, radiusX, radiusZ, config.startAngleDegrees(),
-                        config.endAngleDegrees(), rotationSpeed, ParticlePlane.LOOK_VERTICAL,
-                        baseTilt + config.layerTiltStep(), ParticleRotationAxis.LOOK_RIGHT)
+                new EllipseArcPattern(config.particle(), null, radiusX, radiusZ, config.width(),
+                        config.startAngleDegrees(), config.endAngleDegrees(), rotationSpeed,
+                        ParticlePlane.LOOK_VERTICAL, baseTilt, ParticleRotationAxis.LOOK_RIGHT),
+                new EllipseArcPattern(config.particle(), null, radiusX, radiusZ, config.width(),
+                        config.startAngleDegrees(), config.endAngleDegrees(), rotationSpeed,
+                        ParticlePlane.LOOK_VERTICAL, baseTilt + config.layerTiltStep(),
+                        ParticleRotationAxis.LOOK_RIGHT)
         );
 
         Location orientation = player.getLocation().clone();
         orientation.setPitch(0f);
         Vector direction = orientation.getDirection().normalize();
         Vector right = new Vector(0, 1, 0).crossProduct(direction).normalize();
-        double sideShift = radiusX * config.sideShiftFactor();
+        Vector up = new Vector(0, 1, 0);
+        double sideShift = radiusX * config.sideShiftFactor() + config.rightOffset();
         Location baseCenter = player.getEyeLocation().clone()
-                .add(direction.clone().multiply(config.startDistance()))
-                .add(right.multiply(sideShift));
+                .add(direction.clone().multiply(config.startDistance() + config.forwardOffset()))
+                .add(right.multiply(sideShift))
+                .add(up.clone().multiply(config.upOffset()));
 
         new BukkitRunnable() {
             private int tick = 0;
@@ -167,18 +171,23 @@ public class ArcSlashDebugManager implements Listener {
         private double radiusXMax;
         private double radiusZMin;
         private double radiusZMax;
+        private double width;
         private double startAngleDegrees;
         private double endAngleDegrees;
         private double baseTiltMin;
         private double baseTiltMax;
         private double layerTiltStep;
         private double sideShiftFactor;
+        private double forwardOffset;
+        private double rightOffset;
+        private double upOffset;
 
         public ArcSlashConfig(Particle particle, int points, int ticks, int frameStep, double startDistance,
                               double travelDistance, double radiusXMin, double radiusXMax,
-                              double radiusZMin, double radiusZMax, double startAngleDegrees,
-                              double endAngleDegrees, double baseTiltMin, double baseTiltMax,
-                              double layerTiltStep, double sideShiftFactor) {
+                              double radiusZMin, double radiusZMax, double width,
+                              double startAngleDegrees, double endAngleDegrees, double baseTiltMin,
+                              double baseTiltMax, double layerTiltStep, double sideShiftFactor,
+                              double forwardOffset, double rightOffset, double upOffset) {
             this.particle = particle;
             this.points = points;
             this.ticks = ticks;
@@ -189,23 +198,28 @@ public class ArcSlashDebugManager implements Listener {
             this.radiusXMax = radiusXMax;
             this.radiusZMin = radiusZMin;
             this.radiusZMax = radiusZMax;
+            this.width = width;
             this.startAngleDegrees = startAngleDegrees;
             this.endAngleDegrees = endAngleDegrees;
             this.baseTiltMin = baseTiltMin;
             this.baseTiltMax = baseTiltMax;
             this.layerTiltStep = layerTiltStep;
             this.sideShiftFactor = sideShiftFactor;
+            this.forwardOffset = forwardOffset;
+            this.rightOffset = rightOffset;
+            this.upOffset = upOffset;
         }
 
         public static ArcSlashConfig defaultConfig() {
             return new ArcSlashConfig(Particle.CRIT, 28, 7, 2, 2.4, 2.6, 2.2, 2.8, 1.1, 1.6,
-                    -75.0, 75.0, -22.0, 22.0, 26.0, 0.4);
+                    0.3, -75.0, 75.0, -22.0, 22.0, 26.0, 0.0, 0.0, 0.0, 0.0);
         }
 
         public ArcSlashConfig copy() {
             return new ArcSlashConfig(particle, points, ticks, frameStep, startDistance, travelDistance,
-                    radiusXMin, radiusXMax, radiusZMin, radiusZMax, startAngleDegrees, endAngleDegrees,
-                    baseTiltMin, baseTiltMax, layerTiltStep, sideShiftFactor);
+                    radiusXMin, radiusXMax, radiusZMin, radiusZMax, width, startAngleDegrees,
+                    endAngleDegrees, baseTiltMin, baseTiltMax, layerTiltStep, sideShiftFactor,
+                    forwardOffset, rightOffset, upOffset);
         }
 
         public String describe() {
@@ -219,12 +233,16 @@ public class ArcSlashDebugManager implements Listener {
                     + ", radiusXMax=" + radiusXMax
                     + ", radiusZMin=" + radiusZMin
                     + ", radiusZMax=" + radiusZMax
+                    + ", width=" + width
                     + ", startAngleDegrees=" + startAngleDegrees
                     + ", endAngleDegrees=" + endAngleDegrees
                     + ", baseTiltMin=" + baseTiltMin
                     + ", baseTiltMax=" + baseTiltMax
                     + ", layerTiltStep=" + layerTiltStep
-                    + ", sideShiftFactor=" + sideShiftFactor;
+                    + ", sideShiftFactor=" + sideShiftFactor
+                    + ", forwardOffset=" + forwardOffset
+                    + ", rightOffset=" + rightOffset
+                    + ", upOffset=" + upOffset;
         }
 
         public Particle particle() {
@@ -307,6 +325,14 @@ public class ArcSlashDebugManager implements Listener {
             this.radiusZMax = radiusZMax;
         }
 
+        public double width() {
+            return width;
+        }
+
+        public void setWidth(double width) {
+            this.width = width;
+        }
+
         public double startAngleDegrees() {
             return startAngleDegrees;
         }
@@ -353,6 +379,30 @@ public class ArcSlashDebugManager implements Listener {
 
         public void setSideShiftFactor(double sideShiftFactor) {
             this.sideShiftFactor = sideShiftFactor;
+        }
+
+        public double forwardOffset() {
+            return forwardOffset;
+        }
+
+        public void setForwardOffset(double forwardOffset) {
+            this.forwardOffset = forwardOffset;
+        }
+
+        public double rightOffset() {
+            return rightOffset;
+        }
+
+        public void setRightOffset(double rightOffset) {
+            this.rightOffset = rightOffset;
+        }
+
+        public double upOffset() {
+            return upOffset;
+        }
+
+        public void setUpOffset(double upOffset) {
+            this.upOffset = upOffset;
         }
     }
 }

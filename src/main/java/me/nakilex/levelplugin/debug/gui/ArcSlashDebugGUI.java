@@ -47,13 +47,19 @@ public class ArcSlashDebugGUI implements Listener {
     private static final int BASE_TILT_MAX_SLOT = 25;
     private static final int LAYER_TILT_SLOT = 28;
     private static final int SIDE_SHIFT_SLOT = 29;
-    private static final int INFO_SLOT = 31;
+    private static final int WIDTH_SLOT = 30;
+    private static final int FORWARD_OFFSET_SLOT = 32;
+    private static final int RIGHT_OFFSET_SLOT = 33;
+    private static final int UP_OFFSET_SLOT = 34;
+    private static final int INFO_SLOT = 40;
 
     private static final double DISTANCE_STEP = 0.1;
     private static final double RADIUS_STEP = 0.1;
     private static final double ANGLE_STEP = 2.0;
     private static final double TILT_STEP = 1.0;
     private static final double SIDE_SHIFT_STEP = 0.05;
+    private static final double OFFSET_STEP = 0.1;
+    private static final double WIDTH_STEP = 0.05;
 
     private static final int POINT_STEP = 2;
     private static final int TICK_STEP = 1;
@@ -182,6 +188,14 @@ public class ArcSlashDebugGUI implements Listener {
             config.setLayerTiltStep(clampDouble(config.layerTiltStep() + TILT_STEP * direction * multiplier, 0.0, 45.0));
         } else if (slot == SIDE_SHIFT_SLOT) {
             config.setSideShiftFactor(clampDouble(config.sideShiftFactor() + SIDE_SHIFT_STEP * direction * multiplier, -1.0, 1.0));
+        } else if (slot == WIDTH_SLOT) {
+            config.setWidth(clampDouble(config.width() + WIDTH_STEP * direction * multiplier, 0.0, 3.0));
+        } else if (slot == FORWARD_OFFSET_SLOT) {
+            config.setForwardOffset(clampDouble(config.forwardOffset() + OFFSET_STEP * direction * multiplier, -4.0, 6.0));
+        } else if (slot == RIGHT_OFFSET_SLOT) {
+            config.setRightOffset(clampDouble(config.rightOffset() + OFFSET_STEP * direction * multiplier, -4.0, 4.0));
+        } else if (slot == UP_OFFSET_SLOT) {
+            config.setUpOffset(clampDouble(config.upOffset() + OFFSET_STEP * direction * multiplier, -4.0, 4.0));
         }
     }
 
@@ -192,53 +206,85 @@ public class ArcSlashDebugGUI implements Listener {
                 .fillEmptySlots(false);
 
         builder.setItem(PARTICLE_SLOT, createParamItem(Material.BLAZE_POWDER, ChatColor.AQUA + "Particle",
+                "Particle type used for the arc.",
                 List.of("Current: " + ChatColor.WHITE + config.particle().name()),
                 "to cycle forward", "to cycle backward", null, null));
         builder.setItem(POINTS_SLOT, createParamItem(Material.NETHER_STAR, ChatColor.AQUA + "Points",
+                "How many particles form each arc.",
                 List.of("Current: " + ChatColor.WHITE + config.points()),
                 "to increase points", "to decrease points", "to increase faster", "to decrease faster"));
         builder.setItem(TICKS_SLOT, createParamItem(Material.CLOCK, ChatColor.AQUA + "Ticks",
+                "How long the arc travels forward.",
                 List.of("Current: " + ChatColor.WHITE + config.ticks()),
                 "to increase duration", "to decrease duration", "to increase faster", "to decrease faster"));
         builder.setItem(FRAME_STEP_SLOT, createParamItem(Material.REPEATER, ChatColor.AQUA + "Frame Step",
+                "Spacing between animation frames.",
                 List.of("Current: " + ChatColor.WHITE + config.frameStep()),
                 "to increase step", "to decrease step", "to increase faster", "to decrease faster"));
         builder.setItem(START_DISTANCE_SLOT, createParamItem(Material.ENDER_PEARL, ChatColor.AQUA + "Start Distance",
+                "Initial distance in front of the player.",
                 List.of("Current: " + ChatColor.WHITE + formatDecimal(config.startDistance())),
                 "to push forward", "to pull back", "to push further", "to pull further"));
         builder.setItem(TRAVEL_DISTANCE_SLOT, createParamItem(Material.ELYTRA, ChatColor.AQUA + "Travel Distance",
+                "How far the arc advances forward.",
                 List.of("Current: " + ChatColor.WHITE + formatDecimal(config.travelDistance())),
                 "to increase travel", "to decrease travel", "to increase faster", "to decrease faster"));
         builder.setItem(RADIUS_X_MIN_SLOT, createParamItem(Material.SHIELD, ChatColor.AQUA + "Radius X (Min)",
+                "Minimum horizontal size of the arc.",
                 List.of("Current: " + ChatColor.WHITE + formatDecimal(config.radiusXMin())),
                 "to widen min radius", "to tighten min radius", "to widen faster", "to tighten faster"));
         builder.setItem(RADIUS_X_MAX_SLOT, createParamItem(Material.SHIELD, ChatColor.AQUA + "Radius X (Max)",
+                "Maximum horizontal size of the arc.",
                 List.of("Current: " + ChatColor.WHITE + formatDecimal(config.radiusXMax())),
                 "to widen max radius", "to tighten max radius", "to widen faster", "to tighten faster"));
         builder.setItem(RADIUS_Z_MIN_SLOT, createParamItem(Material.IRON_BARS, ChatColor.AQUA + "Radius Z (Min)",
+                "Minimum vertical depth of the arc.",
                 List.of("Current: " + ChatColor.WHITE + formatDecimal(config.radiusZMin())),
                 "to widen min depth", "to tighten min depth", "to widen faster", "to tighten faster"));
         builder.setItem(RADIUS_Z_MAX_SLOT, createParamItem(Material.IRON_BARS, ChatColor.AQUA + "Radius Z (Max)",
+                "Maximum vertical depth of the arc.",
                 List.of("Current: " + ChatColor.WHITE + formatDecimal(config.radiusZMax())),
                 "to widen max depth", "to tighten max depth", "to widen faster", "to tighten faster"));
         builder.setItem(START_ANGLE_SLOT, createParamItem(Material.COMPASS, ChatColor.AQUA + "Start Angle",
+                "Where the arc begins along the curve.",
                 List.of("Current: " + ChatColor.WHITE + formatDecimal(config.startAngleDegrees()) + "°"),
                 "to rotate forward", "to rotate backward", "to rotate faster", "to rotate faster"));
         builder.setItem(END_ANGLE_SLOT, createParamItem(Material.COMPASS, ChatColor.AQUA + "End Angle",
+                "Where the arc ends along the curve.",
                 List.of("Current: " + ChatColor.WHITE + formatDecimal(config.endAngleDegrees()) + "°"),
                 "to rotate forward", "to rotate backward", "to rotate faster", "to rotate faster"));
         builder.setItem(BASE_TILT_MIN_SLOT, createParamItem(Material.FEATHER, ChatColor.AQUA + "Base Tilt (Min)",
+                "Minimum tilt applied to the arc layers.",
                 List.of("Current: " + ChatColor.WHITE + formatDecimal(config.baseTiltMin()) + "°"),
                 "to increase min tilt", "to decrease min tilt", "to increase faster", "to decrease faster"));
         builder.setItem(BASE_TILT_MAX_SLOT, createParamItem(Material.FEATHER, ChatColor.AQUA + "Base Tilt (Max)",
+                "Maximum tilt applied to the arc layers.",
                 List.of("Current: " + ChatColor.WHITE + formatDecimal(config.baseTiltMax()) + "°"),
                 "to increase max tilt", "to decrease max tilt", "to increase faster", "to decrease faster"));
         builder.setItem(LAYER_TILT_SLOT, createParamItem(Material.QUARTZ, ChatColor.AQUA + "Layer Tilt Step",
+                "Separation between arc layers.",
                 List.of("Current: " + ChatColor.WHITE + formatDecimal(config.layerTiltStep()) + "°"),
                 "to add separation", "to reduce separation", "to add more", "to reduce more"));
         builder.setItem(SIDE_SHIFT_SLOT, createParamItem(Material.ARROW, ChatColor.AQUA + "Side Shift Factor",
+                "Scales horizontal offset by arc size.",
                 List.of("Current: " + ChatColor.WHITE + formatDecimal(config.sideShiftFactor())),
                 "to push right", "to push left", "to push further", "to pull further"));
+        builder.setItem(WIDTH_SLOT, createParamItem(Material.PAPER, ChatColor.AQUA + "Arc Width",
+                "Thickness of the arc band.",
+                List.of("Current: " + ChatColor.WHITE + formatDecimal(config.width())),
+                "to thicken", "to thin", "to thicken faster", "to thin faster"));
+        builder.setItem(FORWARD_OFFSET_SLOT, createParamItem(Material.OAK_SIGN, ChatColor.AQUA + "Forward Offset",
+                "Extra push along the look direction.",
+                List.of("Current: " + ChatColor.WHITE + formatDecimal(config.forwardOffset())),
+                "to push forward", "to pull back", "to push further", "to pull further"));
+        builder.setItem(RIGHT_OFFSET_SLOT, createParamItem(Material.ARROW, ChatColor.AQUA + "Right Offset",
+                "Shift the arc left or right.",
+                List.of("Current: " + ChatColor.WHITE + formatDecimal(config.rightOffset())),
+                "to move right", "to move left", "to move further", "to move further"));
+        builder.setItem(UP_OFFSET_SLOT, createParamItem(Material.FEATHER, ChatColor.AQUA + "Up Offset",
+                "Raise or lower the arc.",
+                List.of("Current: " + ChatColor.WHITE + formatDecimal(config.upOffset())),
+                "to move up", "to move down", "to move further", "to move further"));
         builder.setItem(INFO_SLOT, createInfoItem(config));
         builder.setItem(RESET_SLOT, GuiUtil.getNexoItem("refresh", ChatColor.YELLOW + "Reset Defaults"));
         builder.setItem(SAVE_SLOT, GuiUtil.getNexoItem("save", ChatColor.GREEN + "Save Settings"));
@@ -263,7 +309,7 @@ public class ArcSlashDebugGUI implements Listener {
         return info;
     }
 
-    private ItemStack createParamItem(Material material, String name, List<String> valueLines,
+    private ItemStack createParamItem(Material material, String name, String description, List<String> valueLines,
                                       String leftAction, String rightAction,
                                       String sneakLeftAction, String sneakRightAction) {
         ItemStack item = new ItemStack(material);
@@ -271,6 +317,7 @@ public class ArcSlashDebugGUI implements Listener {
         if (meta != null) {
             meta.setDisplayName(name);
             List<String> lore = new java.util.ArrayList<>();
+            lore.addAll(TooltipUtil.bulletList(description));
             lore.addAll(TooltipUtil.bulletList(valueLines.toArray(new String[0])));
             lore.add(" ");
             lore.addAll(TooltipUtil.clickInstructions(leftAction, rightAction));
