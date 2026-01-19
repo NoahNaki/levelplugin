@@ -1,7 +1,6 @@
 package me.nakilex.levelplugin.debug;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
@@ -25,27 +24,26 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
 public class ArcSlashDebugManager implements Listener {
+    private static final String ARC_PRESET_ID = "arc";
+
     private final Main plugin;
     private final Set<UUID> enabledPlayers = java.util.concurrent.ConcurrentHashMap.newKeySet();
-    private final Map<UUID, ArcSlashVariant> activeVariants = new java.util.concurrent.ConcurrentHashMap<>();
+    private ArcSlashConfig config = ArcSlashConfig.defaultConfig();
 
     public ArcSlashDebugManager(Main plugin) {
         this.plugin = plugin;
     }
 
-    public void toggle(Player player, ArcSlashVariant variant) {
+    public void toggle(Player player) {
         UUID id = player.getUniqueId();
-        ArcSlashVariant current = activeVariants.get(id);
-        if (current == variant && enabledPlayers.remove(id)) {
-            activeVariants.remove(id);
+        if (enabledPlayers.remove(id)) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
                     "Arc slash preview disabled.");
             return;
         }
         enabledPlayers.add(id);
-        activeVariants.put(id, variant);
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                "Arc slash preview enabled (" + variant.id() + "). Left click to spawn slashes.");
+                "Arc slash preview enabled. Left click to spawn slashes.");
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -64,15 +62,13 @@ public class ArcSlashDebugManager implements Listener {
     public void onQuit(PlayerQuitEvent event) {
         UUID id = event.getPlayer().getUniqueId();
         enabledPlayers.remove(id);
-        activeVariants.remove(id);
     }
 
     private void spawnSlashBurst(Player player) {
-        ArcSlashVariant variant = activeVariants.get(player.getUniqueId());
-        if (variant == null) {
+        if (!enabledPlayers.contains(player.getUniqueId())) {
             return;
         }
-        ArcSlashConfig config = variant.config();
+        ArcSlashConfig config = config();
         ThreadLocalRandom random = ThreadLocalRandom.current();
         double baseTilt = random.nextDouble(config.baseTiltMin(), config.baseTiltMax());
         double radiusX = random.nextDouble(config.radiusXMin(), config.radiusXMax());
@@ -140,57 +136,223 @@ public class ArcSlashDebugManager implements Listener {
         }.runTaskTimer(plugin, 0L, 1L);
     }
 
-    public static List<String> getVariantIds() {
-        return ArcSlashVariant.ids();
+    public ArcSlashConfig config() {
+        return config.copy();
     }
 
-    public enum ArcSlashVariant {
-        ARC1("arc1", new ArcSlashConfig(Particle.END_ROD, 20, 5, 2, 2.0, 1.4, 1.6, 2.0, 0.9, 1.2,
-                -70.0, 70.0, -18.0, 18.0, 16.0, 0.35)),
-        ARC2("arc2", new ArcSlashConfig(Particle.CRIT, 28, 7, 2, 2.4, 2.6, 2.2, 2.8, 1.1, 1.6,
-                -75.0, 75.0, -22.0, 22.0, 26.0, 0.4)),
-        ARC3("arc3", new ArcSlashConfig(Particle.ENCHANT, 24, 6, 2, 2.1, 2.0, 1.9, 2.6, 1.0, 1.4,
-                -80.0, 80.0, -28.0, 28.0, 24.0, 0.38)),
-        ARC4("arc4", new ArcSlashConfig(Particle.CLOUD, 30, 8, 2, 2.3, 2.8, 2.4, 3.1, 1.2, 1.7,
-                -70.0, 70.0, -16.0, 16.0, 20.0, 0.45)),
-        ARC5("arc5", new ArcSlashConfig(Particle.END_ROD, 18, 4, 2, 2.6, 1.2, 1.5, 2.0, 0.8, 1.1,
-                -65.0, 65.0, -12.0, 12.0, 14.0, 0.3)),
-        ARC6("arc6", new ArcSlashConfig(Particle.CRIT, 32, 6, 2, 2.0, 2.4, 2.6, 3.3, 1.3, 1.8,
-                -85.0, 85.0, -32.0, 32.0, 28.0, 0.5));
-
-        private final String id;
-        private final ArcSlashConfig config;
-
-        ArcSlashVariant(String id, ArcSlashConfig config) {
-            this.id = id;
-            this.config = config;
-        }
-
-        public String id() {
-            return id;
-        }
-
-        public ArcSlashConfig config() {
-            return config;
-        }
-
-        public static ArcSlashVariant fromId(String id) {
-            for (ArcSlashVariant variant : values()) {
-                if (variant.id.equalsIgnoreCase(id)) {
-                    return variant;
-                }
-            }
-            return null;
-        }
-
-        public static List<String> ids() {
-            return java.util.Arrays.stream(values()).map(ArcSlashVariant::id).toList();
-        }
+    public void applyConfig(ArcSlashConfig config) {
+        this.config = config.copy();
     }
 
-    public record ArcSlashConfig(Particle particle, int points, int ticks, int frameStep, double startDistance,
-                                 double travelDistance, double radiusXMin, double radiusXMax,
-                                 double radiusZMin, double radiusZMax, double startAngleDegrees,
-                                 double endAngleDegrees, double baseTiltMin, double baseTiltMax,
-                                 double layerTiltStep, double sideShiftFactor) {}
+    public void logConfig(ArcSlashConfig config) {
+        plugin.getLogger().info(() -> "[ArcSlashDebug] " + config.describe());
+    }
+
+    public static String getArcPresetId() {
+        return ARC_PRESET_ID;
+    }
+
+    public static List<String> getPresetIds() {
+        return List.of(ARC_PRESET_ID);
+    }
+
+    public static class ArcSlashConfig {
+        private Particle particle;
+        private int points;
+        private int ticks;
+        private int frameStep;
+        private double startDistance;
+        private double travelDistance;
+        private double radiusXMin;
+        private double radiusXMax;
+        private double radiusZMin;
+        private double radiusZMax;
+        private double startAngleDegrees;
+        private double endAngleDegrees;
+        private double baseTiltMin;
+        private double baseTiltMax;
+        private double layerTiltStep;
+        private double sideShiftFactor;
+
+        public ArcSlashConfig(Particle particle, int points, int ticks, int frameStep, double startDistance,
+                              double travelDistance, double radiusXMin, double radiusXMax,
+                              double radiusZMin, double radiusZMax, double startAngleDegrees,
+                              double endAngleDegrees, double baseTiltMin, double baseTiltMax,
+                              double layerTiltStep, double sideShiftFactor) {
+            this.particle = particle;
+            this.points = points;
+            this.ticks = ticks;
+            this.frameStep = frameStep;
+            this.startDistance = startDistance;
+            this.travelDistance = travelDistance;
+            this.radiusXMin = radiusXMin;
+            this.radiusXMax = radiusXMax;
+            this.radiusZMin = radiusZMin;
+            this.radiusZMax = radiusZMax;
+            this.startAngleDegrees = startAngleDegrees;
+            this.endAngleDegrees = endAngleDegrees;
+            this.baseTiltMin = baseTiltMin;
+            this.baseTiltMax = baseTiltMax;
+            this.layerTiltStep = layerTiltStep;
+            this.sideShiftFactor = sideShiftFactor;
+        }
+
+        public static ArcSlashConfig defaultConfig() {
+            return new ArcSlashConfig(Particle.CRIT, 28, 7, 2, 2.4, 2.6, 2.2, 2.8, 1.1, 1.6,
+                    -75.0, 75.0, -22.0, 22.0, 26.0, 0.4);
+        }
+
+        public ArcSlashConfig copy() {
+            return new ArcSlashConfig(particle, points, ticks, frameStep, startDistance, travelDistance,
+                    radiusXMin, radiusXMax, radiusZMin, radiusZMax, startAngleDegrees, endAngleDegrees,
+                    baseTiltMin, baseTiltMax, layerTiltStep, sideShiftFactor);
+        }
+
+        public String describe() {
+            return "particle=" + particle
+                    + ", points=" + points
+                    + ", ticks=" + ticks
+                    + ", frameStep=" + frameStep
+                    + ", startDistance=" + startDistance
+                    + ", travelDistance=" + travelDistance
+                    + ", radiusXMin=" + radiusXMin
+                    + ", radiusXMax=" + radiusXMax
+                    + ", radiusZMin=" + radiusZMin
+                    + ", radiusZMax=" + radiusZMax
+                    + ", startAngleDegrees=" + startAngleDegrees
+                    + ", endAngleDegrees=" + endAngleDegrees
+                    + ", baseTiltMin=" + baseTiltMin
+                    + ", baseTiltMax=" + baseTiltMax
+                    + ", layerTiltStep=" + layerTiltStep
+                    + ", sideShiftFactor=" + sideShiftFactor;
+        }
+
+        public Particle particle() {
+            return particle;
+        }
+
+        public void setParticle(Particle particle) {
+            this.particle = particle;
+        }
+
+        public int points() {
+            return points;
+        }
+
+        public void setPoints(int points) {
+            this.points = points;
+        }
+
+        public int ticks() {
+            return ticks;
+        }
+
+        public void setTicks(int ticks) {
+            this.ticks = ticks;
+        }
+
+        public int frameStep() {
+            return frameStep;
+        }
+
+        public void setFrameStep(int frameStep) {
+            this.frameStep = frameStep;
+        }
+
+        public double startDistance() {
+            return startDistance;
+        }
+
+        public void setStartDistance(double startDistance) {
+            this.startDistance = startDistance;
+        }
+
+        public double travelDistance() {
+            return travelDistance;
+        }
+
+        public void setTravelDistance(double travelDistance) {
+            this.travelDistance = travelDistance;
+        }
+
+        public double radiusXMin() {
+            return radiusXMin;
+        }
+
+        public void setRadiusXMin(double radiusXMin) {
+            this.radiusXMin = radiusXMin;
+        }
+
+        public double radiusXMax() {
+            return radiusXMax;
+        }
+
+        public void setRadiusXMax(double radiusXMax) {
+            this.radiusXMax = radiusXMax;
+        }
+
+        public double radiusZMin() {
+            return radiusZMin;
+        }
+
+        public void setRadiusZMin(double radiusZMin) {
+            this.radiusZMin = radiusZMin;
+        }
+
+        public double radiusZMax() {
+            return radiusZMax;
+        }
+
+        public void setRadiusZMax(double radiusZMax) {
+            this.radiusZMax = radiusZMax;
+        }
+
+        public double startAngleDegrees() {
+            return startAngleDegrees;
+        }
+
+        public void setStartAngleDegrees(double startAngleDegrees) {
+            this.startAngleDegrees = startAngleDegrees;
+        }
+
+        public double endAngleDegrees() {
+            return endAngleDegrees;
+        }
+
+        public void setEndAngleDegrees(double endAngleDegrees) {
+            this.endAngleDegrees = endAngleDegrees;
+        }
+
+        public double baseTiltMin() {
+            return baseTiltMin;
+        }
+
+        public void setBaseTiltMin(double baseTiltMin) {
+            this.baseTiltMin = baseTiltMin;
+        }
+
+        public double baseTiltMax() {
+            return baseTiltMax;
+        }
+
+        public void setBaseTiltMax(double baseTiltMax) {
+            this.baseTiltMax = baseTiltMax;
+        }
+
+        public double layerTiltStep() {
+            return layerTiltStep;
+        }
+
+        public void setLayerTiltStep(double layerTiltStep) {
+            this.layerTiltStep = layerTiltStep;
+        }
+
+        public double sideShiftFactor() {
+            return sideShiftFactor;
+        }
+
+        public void setSideShiftFactor(double sideShiftFactor) {
+            this.sideShiftFactor = sideShiftFactor;
+        }
+    }
 }
