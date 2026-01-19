@@ -52,23 +52,23 @@ public final class ParticleService {
     }
 
     public void sendRing(Player player, ParticlePreset preset, Location center, double radius, int points,
-                         ParticleAxis axis, Location orientation) {
+                         ParticleAxis axis, double tiltDegrees, Location orientation) {
         double step = (Math.PI * 2.0) / points;
         for (int i = 0; i < points; i++) {
             double angle = step * i;
-            Vector offset = buildOffset(angle, radius, axis, orientation);
+            Vector offset = buildOffset(angle, radius, axis, tiltDegrees, orientation);
             spawnParticle(player.getWorld(), center.clone().add(offset), preset, 1);
         }
     }
 
     public void sendArc(Player player, ParticlePreset preset, Location center, double radius, double degrees, int points,
-                        ParticleAxis axis, Location orientation) {
+                        ParticleAxis axis, double tiltDegrees, Location orientation) {
         double radians = Math.toRadians(degrees);
         double step = radians / Math.max(points - 1, 1);
         double start = -radians / 2.0;
         for (int i = 0; i < points; i++) {
             double angle = start + (step * i);
-            Vector offset = buildOffset(angle, radius, axis, orientation);
+            Vector offset = buildOffset(angle, radius, axis, tiltDegrees, orientation);
             spawnParticle(player.getWorld(), center.clone().add(offset), preset, 1);
         }
     }
@@ -91,7 +91,7 @@ public final class ParticleService {
         providers.forEach(provider -> provider.register(registry));
     }
 
-    private Vector buildOffset(double angle, double radius, ParticleAxis axis, Location orientation) {
+    private Vector buildOffset(double angle, double radius, ParticleAxis axis, double tiltDegrees, Location orientation) {
         Vector base;
         switch (axis) {
             case X -> base = new Vector(0.0, Math.cos(angle) * radius, Math.sin(angle) * radius);
@@ -99,6 +99,10 @@ public final class ParticleService {
             case LOOK -> base = new Vector(0.0, Math.sin(angle) * radius, Math.cos(angle) * radius);
             case Y -> base = new Vector(Math.cos(angle) * radius, 0.0, Math.sin(angle) * radius);
             default -> base = new Vector(Math.cos(angle) * radius, 0.0, Math.sin(angle) * radius);
+        }
+
+        if (tiltDegrees != 0.0) {
+            base.rotateAroundX(Math.toRadians(tiltDegrees));
         }
 
         if (axis == ParticleAxis.LOOK && orientation != null) {
