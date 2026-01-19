@@ -6,6 +6,16 @@ import org.bukkit.util.Vector;
 public final class ParticleMath {
     private ParticleMath() {}
 
+    public static int pointsForArc(double radius, double angleRadians, double spacing, int minPoints) {
+        int resolvedMin = Math.max(1, minPoints);
+        if (radius <= 0 || Math.abs(angleRadians) <= 0.0001 || spacing <= 0) {
+            return resolvedMin;
+        }
+        double arcLength = Math.abs(radius * angleRadians);
+        int points = (int) Math.ceil(arcLength / spacing) + 1;
+        return Math.max(points, resolvedMin);
+    }
+
     public static Vector buildOffset(double angle, double radius, ParticlePlane plane) {
         ParticlePlane resolved = plane == null ? ParticlePlane.Y : plane;
         double cos = Math.cos(angle) * radius;

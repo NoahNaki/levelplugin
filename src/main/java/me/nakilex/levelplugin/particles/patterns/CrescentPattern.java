@@ -14,10 +14,13 @@ public record CrescentPattern(Particle particle, Object data, double outerRadius
                               double offsetDistance, Vector localOffset, double rotationSpeed, ParticlePlane plane,
                               double tiltDegrees, ParticleRotationAxis tiltAxis) implements ParticlePattern {
 
+    private static final double DEFAULT_POINT_SPACING = 0.18;
+    private static final int MIN_ARC_POINTS = 2;
+
     @Override
     public void render(ParticleRenderContext context) {
-        int points = context.points();
-        if (points <= 0 || outerRadius <= 0 || innerRadius <= 0 || outerRadius <= innerRadius
+        int configuredPoints = context.points();
+        if (configuredPoints <= 0 || outerRadius <= 0 || innerRadius <= 0 || outerRadius <= innerRadius
                 || offsetDistance <= 0) {
             return;
         }
@@ -44,8 +47,20 @@ public record CrescentPattern(Particle particle, Object data, double outerRadius
         double phiStart = Math.atan2(-yStar, innerX);
         double phiEnd = Math.atan2(yStar, innerX);
 
-        int outerPoints = Math.max(1, points / 2);
-        int innerPoints = Math.max(1, points - outerPoints);
+        double outerAngleSpan = thetaEnd - thetaStart;
+        double innerAngleSpan = phiEnd - phiStart;
+        int computedOuter = ParticleMath.pointsForArc(outerRadius, outerAngleSpan, DEFAULT_POINT_SPACING,
+                MIN_ARC_POINTS);
+        int computedInner = ParticleMath.pointsForArc(innerRadius, innerAngleSpan, DEFAULT_POINT_SPACING,
+                MIN_ARC_POINTS);
+        int computedTotal = computedOuter + computedInner;
+        int outerPoints = computedOuter;
+        int innerPoints = computedInner;
+        if (configuredPoints > computedTotal) {
+            double ratio = configuredPoints / (double) computedTotal;
+            outerPoints = Math.max(MIN_ARC_POINTS, (int) Math.ceil(computedOuter * ratio));
+            innerPoints = Math.max(MIN_ARC_POINTS, (int) Math.ceil(computedInner * ratio));
+        }
 
         for (int i = 0; i < outerPoints; i++) {
             double progress = outerPoints == 1 ? 1.0 : (double) i / (outerPoints - 1);
