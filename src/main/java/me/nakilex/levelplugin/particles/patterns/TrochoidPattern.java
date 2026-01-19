@@ -10,9 +10,9 @@ import org.bukkit.Particle;
 import org.bukkit.World;
 import org.bukkit.util.Vector;
 
-public record RingPattern(Particle particle, Object data, double radius, double rotationSpeed,
-                          ParticlePlane plane, double tiltDegrees, ParticleRotationAxis tiltAxis)
-        implements ParticlePattern {
+public record TrochoidPattern(Particle particle, Object data, double fixedRadius, double rollingRadius,
+                              double offsetDistance, double rotationSpeed, ParticlePlane plane,
+                              double tiltDegrees, ParticleRotationAxis tiltAxis) implements ParticlePattern {
 
     @Override
     public void render(ParticleRenderContext context) {
@@ -22,9 +22,16 @@ public record RingPattern(Particle particle, Object data, double radius, double 
         }
         double rotation = Math.toRadians(rotationSpeed) * context.tick();
         World world = context.center().getWorld();
+        double ratio = (fixedRadius - rollingRadius) / rollingRadius;
         for (int i = 0; i < points; i++) {
-            double angle = (Math.PI * 2 * i / points) + rotation;
-            Vector offset = ParticleMath.buildOffset(angle, radius, plane);
+            double progress = points == 1 ? 1.0 : (double) i / (points - 1);
+            double t = (Math.PI * 2 * progress) + rotation;
+            double cos = Math.cos(t);
+            double sin = Math.sin(t);
+            double x = (fixedRadius - rollingRadius) * cos + offsetDistance * Math.cos(ratio * t);
+            double z = (fixedRadius - rollingRadius) * sin - offsetDistance * Math.sin(ratio * t);
+            Vector base = new Vector(x, 0, z);
+            Vector offset = ParticleMath.mapToPlane(base, plane);
             offset = ParticleMath.orientAndTilt(offset, plane, context.player().getLocation(), tiltAxis, tiltDegrees);
             Location spawn = context.center().clone().add(offset);
             ParticleSpawnUtil.spawn(world, spawn, particle, 1, data);

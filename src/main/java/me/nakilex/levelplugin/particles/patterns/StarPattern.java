@@ -26,10 +26,7 @@ public record StarPattern(Particle particle, Object data, double outerRadius, do
             double radius = (i % 2 == 0) ? outerRadius : innerRadius;
             double angle = (Math.PI * 2 * i / points) + rotation;
             Vector offset = ParticleMath.buildOffset(angle, radius, plane);
-            if (plane == ParticlePlane.LOOK) {
-                offset = ParticleMath.rotateByOrientation(offset, context.player().getLocation());
-            }
-            offset = ParticleMath.rotateByAxis(offset, tiltAxis, tiltDegrees);
+            offset = ParticleMath.orientAndTilt(offset, plane, context.player().getLocation(), tiltAxis, tiltDegrees);
             Location spawn = context.center().clone().add(offset);
             ParticleSpawnUtil.spawn(world, spawn, particle, 1, data);
         }

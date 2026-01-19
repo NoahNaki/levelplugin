@@ -10,9 +10,9 @@ import org.bukkit.Particle;
 import org.bukkit.World;
 import org.bukkit.util.Vector;
 
-public record RingPattern(Particle particle, Object data, double radius, double rotationSpeed,
-                          ParticlePlane plane, double tiltDegrees, ParticleRotationAxis tiltAxis)
-        implements ParticlePattern {
+public record RosePattern(Particle particle, Object data, double radius, double petals,
+                          double rotationSpeed, ParticlePlane plane, double tiltDegrees,
+                          ParticleRotationAxis tiltAxis) implements ParticlePattern {
 
     @Override
     public void render(ParticleRenderContext context) {
@@ -23,8 +23,10 @@ public record RingPattern(Particle particle, Object data, double radius, double 
         double rotation = Math.toRadians(rotationSpeed) * context.tick();
         World world = context.center().getWorld();
         for (int i = 0; i < points; i++) {
-            double angle = (Math.PI * 2 * i / points) + rotation;
-            Vector offset = ParticleMath.buildOffset(angle, radius, plane);
+            double progress = points == 1 ? 1.0 : (double) i / (points - 1);
+            double angle = (Math.PI * 2 * progress) + rotation;
+            double radial = radius * Math.cos(petals * angle);
+            Vector offset = ParticleMath.buildOffset(angle, radial, plane);
             offset = ParticleMath.orientAndTilt(offset, plane, context.player().getLocation(), tiltAxis, tiltDegrees);
             Location spawn = context.center().clone().add(offset);
             ParticleSpawnUtil.spawn(world, spawn, particle, 1, data);

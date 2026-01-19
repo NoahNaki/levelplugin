@@ -10,9 +10,10 @@ import org.bukkit.Particle;
 import org.bukkit.World;
 import org.bukkit.util.Vector;
 
-public record RingPattern(Particle particle, Object data, double radius, double rotationSpeed,
-                          ParticlePlane plane, double tiltDegrees, ParticleRotationAxis tiltAxis)
-        implements ParticlePattern {
+public record LissajousPattern(Particle particle, Object data, double amplitudeX, double amplitudeZ,
+                               double frequencyX, double frequencyZ, double phaseDegrees,
+                               double rotationSpeed, ParticlePlane plane, double tiltDegrees,
+                               ParticleRotationAxis tiltAxis) implements ParticlePattern {
 
     @Override
     public void render(ParticleRenderContext context) {
@@ -20,11 +21,16 @@ public record RingPattern(Particle particle, Object data, double radius, double 
         if (points <= 0) {
             return;
         }
+        double phase = Math.toRadians(phaseDegrees);
         double rotation = Math.toRadians(rotationSpeed) * context.tick();
         World world = context.center().getWorld();
         for (int i = 0; i < points; i++) {
-            double angle = (Math.PI * 2 * i / points) + rotation;
-            Vector offset = ParticleMath.buildOffset(angle, radius, plane);
+            double progress = points == 1 ? 1.0 : (double) i / (points - 1);
+            double t = (Math.PI * 2 * progress) + rotation;
+            double x = amplitudeX * Math.sin(frequencyX * t + phase);
+            double z = amplitudeZ * Math.sin(frequencyZ * t);
+            Vector base = new Vector(x, 0, z);
+            Vector offset = ParticleMath.mapToPlane(base, plane);
             offset = ParticleMath.orientAndTilt(offset, plane, context.player().getLocation(), tiltAxis, tiltDegrees);
             Location spawn = context.center().clone().add(offset);
             ParticleSpawnUtil.spawn(world, spawn, particle, 1, data);

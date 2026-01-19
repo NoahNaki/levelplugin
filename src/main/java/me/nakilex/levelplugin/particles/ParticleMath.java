@@ -17,6 +17,18 @@ public final class ParticleMath {
         };
     }
 
+    public static Vector mapToPlane(Vector base, ParticlePlane plane) {
+        if (base == null) {
+            return new Vector();
+        }
+        ParticlePlane resolved = plane == null ? ParticlePlane.Y : plane;
+        return switch (resolved) {
+            case X -> new Vector(0, base.getX(), base.getZ());
+            case Z -> new Vector(base.getX(), base.getZ(), 0);
+            case LOOK, Y -> base.clone();
+        };
+    }
+
     public static Vector addHeight(Vector offset, double height, ParticlePlane plane, Location orientation) {
         ParticlePlane resolved = plane == null ? ParticlePlane.Y : plane;
         if (resolved == ParticlePlane.X) {
@@ -56,5 +68,14 @@ public final class ParticleMath {
         rotated.rotateAroundY(yaw);
         rotated.rotateAroundX(pitch);
         return rotated;
+    }
+
+    public static Vector orientAndTilt(Vector vector, ParticlePlane plane, Location orientation,
+                                       ParticleRotationAxis tiltAxis, double tiltDegrees) {
+        Vector rotated = vector == null ? new Vector() : vector.clone();
+        if (plane == ParticlePlane.LOOK) {
+            rotated = rotateByOrientation(rotated, orientation);
+        }
+        return rotateByAxis(rotated, tiltAxis, tiltDegrees);
     }
 }
