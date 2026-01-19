@@ -2,13 +2,8 @@ package hm.zelha.particlesfx.particles;
 
 import hm.zelha.particlesfx.particles.parents.MaterialParticle;
 import hm.zelha.particlesfx.particles.parents.Particle;
-import net.minecraft.core.particles.ParticleParamBlock;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.MinecraftKey;
 import org.apache.commons.lang.Validate;
 import org.bukkit.Material;
-import org.bukkit.craftbukkit.v1_21_R5.block.data.CraftBlockData;
-import org.bukkit.craftbukkit.v1_21_R5.util.CraftMagicNumbers;
 
 public class ParticleBlockDust extends Particle implements MaterialParticle {
     public ParticleBlockDust(Material material, double offsetX, double offsetY, double offsetZ, int count) {
@@ -65,10 +60,13 @@ public class ParticleBlockDust extends Particle implements MaterialParticle {
         Validate.notNull(material, "Material cannot be null!");
         Validate.isTrue(material.isBlock(), "Material must be a block!");
 
-        particle = new ParticleParamBlock((net.minecraft.core.particles.Particle) BuiltInRegistries.i.a(MinecraftKey.a("minecraft", "falling_dust")), ((CraftBlockData) material.createBlockData()).getState());
+        setParticleKey("falling_dust", material.createBlockData());
     }
 
     public Material getMaterial() {
-        return CraftMagicNumbers.getMaterial(((ParticleParamBlock) particle).b().b());
+        if (data instanceof org.bukkit.block.data.BlockData blockData) {
+            return blockData.getMaterial();
+        }
+        return Material.AIR;
     }
 }

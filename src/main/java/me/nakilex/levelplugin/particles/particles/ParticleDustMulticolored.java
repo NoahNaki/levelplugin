@@ -4,14 +4,10 @@ import hm.zelha.particlesfx.particles.parents.ColorableParticle;
 import hm.zelha.particlesfx.particles.parents.Particle;
 import hm.zelha.particlesfx.particles.parents.SizeableParticle;
 import hm.zelha.particlesfx.util.Color;
-import net.minecraft.core.particles.DustColorTransitionOptions;
-import net.minecraft.core.particles.DustParticleOptionsBase;
-import net.minecraft.util.MathHelper;
 import org.bukkit.Location;
-import org.bukkit.craftbukkit.v1_21_R5.entity.CraftPlayer;
+import org.bukkit.Particle;
 
 import javax.annotation.Nullable;
-import java.util.List;
 
 public class ParticleDustMulticolored extends ParticleDustColored implements SizeableParticle, ColorableParticle {
 
@@ -21,7 +17,7 @@ public class ParticleDustMulticolored extends ParticleDustColored implements Siz
     public ParticleDustMulticolored(@Nullable Color color, double size, double offsetX, double offsetY, double offsetZ, int count) {
         super(color, size, offsetX, offsetY, offsetZ, count);
 
-        particle = new DustColorTransitionOptions((color == null) ? rng.nextInt(0xffffff) : color.getRGB(), (transition == null) ? rng.nextInt(0xffffff) : transition.getRGB(), (float) size);
+        setParticleKey("dust_color_transition");
     }
 
     public ParticleDustMulticolored(double size, double offsetX, double offsetY, double offsetZ, int count) {
@@ -89,17 +85,18 @@ public class ParticleDustMulticolored extends ParticleDustColored implements Siz
     }
 
     @Override
-    protected void display(Location location, List<CraftPlayer> players) {
-        if (color == null || transition == null) {
-            particle = new DustColorTransitionOptions((color == null) ? rng.nextInt(0xffffff) : color.getRGB(), (transition == null) ? rng.nextInt(0xffffff) : transition.getRGB(), (float) size);
-        } else if (!colorHelper.equals(color) || !colorHelper2.equals(transition) || MathHelper.a(size, 0.01F, 4.0F) != ((DustParticleOptionsBase) particle).d()) {
-            particle = new DustColorTransitionOptions(color.getRGB(), transition.getRGB(), (float) size);
+    protected void updateData(Location location) {
+        org.bukkit.Color from = (color == null) ? org.bukkit.Color.fromRGB(rng.nextInt(0xffffff)) : color.toBukkitColor();
+        org.bukkit.Color to = (transition == null) ? org.bukkit.Color.fromRGB(rng.nextInt(0xffffff)) : transition.toBukkitColor();
 
+        if (color != null && !colorHelper.equals(color)) {
             colorHelper.setRGB(color.getRGB());
+        }
+        if (transition != null && !colorHelper2.equals(transition)) {
             colorHelper2.setRGB(transition.getRGB());
         }
 
-        super.display(location, players);
+        data = new Particle.DustTransition(from, to, clampSize(size));
     }
 
     /**

@@ -3,9 +3,6 @@ package hm.zelha.particlesfx.particles;
 import hm.zelha.particlesfx.particles.parents.LiquidParticle;
 import hm.zelha.particlesfx.particles.parents.Particle;
 import hm.zelha.particlesfx.util.LiquidParticleState;
-import net.minecraft.core.particles.ParticleType;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.MinecraftKey;
 
 public class ParticleSporeBlossom extends Particle implements LiquidParticle {
 
@@ -48,9 +45,9 @@ public class ParticleSporeBlossom extends Particle implements LiquidParticle {
         if (state == LiquidParticleState.LANDING) throw new IllegalArgumentException("The \"LANDING\" state doesn't exist for this particle!");
 
         if (state == LiquidParticleState.DRIPPING) {
-            particle = (ParticleType) BuiltInRegistries.i.a(MinecraftKey.a("minecraft", "spore_blossom_air"));
+            setParticleKey("spore_blossom_air");
         } else {
-            particle = (ParticleType) BuiltInRegistries.i.a(MinecraftKey.a("minecraft", "falling_spore_blossom"));
+            setParticleKey("falling_spore_blossom");
         }
 
         this.state = state;

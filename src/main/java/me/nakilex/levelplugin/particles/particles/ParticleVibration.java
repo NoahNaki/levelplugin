@@ -3,15 +3,8 @@ package hm.zelha.particlesfx.particles;
 import hm.zelha.particlesfx.particles.parents.Particle;
 import hm.zelha.particlesfx.particles.parents.TravellingParticle;
 import hm.zelha.particlesfx.util.LVMath;
-import net.minecraft.core.BlockPosition;
-import net.minecraft.core.particles.VibrationParticleOption;
-import net.minecraft.network.protocol.Packet;
-import net.minecraft.network.protocol.game.PacketPlayOutWorldParticles;
-import net.minecraft.world.level.gameevent.BlockPositionSource;
-import net.minecraft.world.level.gameevent.EntityPositionSource;
-import net.minecraft.world.level.gameevent.PositionSource;
 import org.bukkit.Location;
-import org.bukkit.craftbukkit.v1_21_R5.entity.CraftEntity;
+import org.bukkit.Vibration;
 import org.bukkit.entity.Entity;
 import org.bukkit.util.Vector;
 
@@ -22,16 +15,19 @@ public class ParticleVibration extends TravellingParticle {
 
     public ParticleVibration(Location toGo, double offsetX, double offsetY, double offsetZ, int count) {
         super("", false, 0, null, toGo, offsetX, offsetY, offsetZ, count);
+        setParticleKey("vibration");
     }
 
     public ParticleVibration(Vector velocity, double offsetX, double offsetY, double offsetZ, int count) {
         super("", false, 0, velocity, null, offsetX, offsetY, offsetZ, count);
+        setParticleKey("vibration");
     }
 
     public ParticleVibration(Entity entity, double offsetX, double offsetY, double offsetZ, int count) {
         super("", false, 0, null, null, offsetX, offsetY, offsetZ, count);
 
         this.entity = entity;
+        setParticleKey("vibration");
     }
 
     public ParticleVibration(Location toGo, double offsetX, double offsetY, double offsetZ) {
@@ -111,31 +107,19 @@ public class ParticleVibration extends TravellingParticle {
     }
 
     @Override
-    protected Packet getStrangePacket(Location location) {
-        PositionSource source;
-        Vector xyz = getXYZ(location);
-
+    protected Object getData(Location location) {
+        Vibration.Destination destination;
         if (entity != null) {
-            source = new EntityPositionSource(((CraftEntity) entity).getHandle(), (float) (entity.getHeight() / 2));
+            destination = new Vibration.Destination.EntityDestination(entity);
+        } else if (toGo != null) {
+            destination = new Vibration.Destination.BlockDestination(toGo);
+        } else if (velocity != null) {
+            Location target = location.clone().add(velocity);
+            destination = new Vibration.Destination.BlockDestination(target);
         } else {
-            BlockPosition.MutableBlockPosition destination = new BlockPosition.MutableBlockPosition();
-
-            destination.d(location.getBlockX(), location.getBlockY(), location.getBlockZ());
-            destination.e(fakeOffsetHelper.getBlockX(), fakeOffsetHelper.getBlockY(), fakeOffsetHelper.getBlockZ());
-
-            if (toGo != null) {
-                destination.d(toGo.getBlockX(), toGo.getBlockY(), toGo.getBlockZ());
-            } else if (velocity != null) {
-                destination.e((int) velocity.getX(), (int) velocity.getY(), (int) velocity.getZ());
-            }
-
-            source = new BlockPositionSource(destination);
+            destination = new Vibration.Destination.BlockDestination(location);
         }
-
-        return new PacketPlayOutWorldParticles(
-                new VibrationParticleOption(source, arrivalTime), true, false, (float) xyz.getX(), (float) xyz.getY(), (float) xyz.getZ(), 0f,
-                0f, 0f, 1, 1
-        );
+        return new Vibration(destination, arrivalTime);
     }
 
     /**

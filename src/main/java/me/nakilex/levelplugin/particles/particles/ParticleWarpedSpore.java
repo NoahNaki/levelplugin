@@ -1,7 +1,6 @@
 package hm.zelha.particlesfx.particles;
 
 import hm.zelha.particlesfx.particles.parents.Particle;
-import net.minecraft.core.particles.Particles;
 
 public class ParticleWarpedSpore extends Particle {
     public ParticleWarpedSpore(double offsetX, double offsetY, double offsetZ, int count) {

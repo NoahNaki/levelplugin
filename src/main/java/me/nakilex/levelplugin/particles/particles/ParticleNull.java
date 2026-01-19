@@ -3,7 +3,6 @@ package hm.zelha.particlesfx.particles;
 import hm.zelha.particlesfx.particles.parents.Particle;
 import hm.zelha.particlesfx.shapers.parents.ParticleShaper;
 import org.bukkit.Location;
-import org.bukkit.craftbukkit.v1_21_R5.entity.CraftPlayer;
 import org.bukkit.entity.Player;
 
 import java.util.List;
@@ -27,7 +26,7 @@ public class ParticleNull extends Particle {
     }
 
     @Override
-    protected void display(Location location, List<CraftPlayer> players) {
+    protected void display(Location location, List<Player> players) {
     }
 
     @Override

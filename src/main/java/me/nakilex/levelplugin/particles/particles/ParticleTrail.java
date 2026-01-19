@@ -5,11 +5,8 @@ import hm.zelha.particlesfx.particles.parents.Particle;
 import hm.zelha.particlesfx.particles.parents.TravellingParticle;
 import hm.zelha.particlesfx.util.Color;
 import hm.zelha.particlesfx.util.LVMath;
-import net.minecraft.core.particles.TrailParticleOption;
-import net.minecraft.network.protocol.Packet;
-import net.minecraft.network.protocol.game.PacketPlayOutWorldParticles;
-import net.minecraft.world.phys.Vec3D;
 import org.bukkit.Location;
+import org.bukkit.Particle;
 import org.bukkit.util.Vector;
 
 import javax.annotation.Nullable;
@@ -22,12 +19,14 @@ public class ParticleTrail extends TravellingParticle implements ColorablePartic
     public ParticleTrail(Color color, Location toGo, double offsetX, double offsetY, double offsetZ, int count) {
         super("", false, 1, null, toGo, offsetX, offsetY, offsetZ, count);
 
+        setParticleKey("trail");
         setColor(color);
     }
 
     public ParticleTrail(Color color, Vector velocity, double offsetX, double offsetY, double offsetZ, int count) {
         super("", false, 1, velocity, null, offsetX, offsetY, offsetZ, count);
 
+        setParticleKey("trail");
         setColor(color);
     }
 
@@ -139,20 +138,15 @@ public class ParticleTrail extends TravellingParticle implements ColorablePartic
     }
 
     @Override
-    protected Packet getStrangePacket(Location location) {
-        Vector xyz = getXYZ(location);
-        Vector vec = xyz.clone();
-
+    protected Object getData(Location location) {
+        Location target = location.clone();
         if (toGo != null) {
-            vec.setX(toGo.getX()).setY(toGo.getY()).setZ(toGo.getZ());
+            target.setX(toGo.getX()).setY(toGo.getY()).setZ(toGo.getZ());
         } else if (velocity != null) {
-            vec.add(velocity);
+            target.add(velocity);
         }
-
-        return new PacketPlayOutWorldParticles(
-                new TrailParticleOption(new Vec3D(vec.getX(), vec.getY(), vec.getZ()), (color == null) ? rng.nextInt(0xffffff) : color.getRGB(), arrivalTime),
-                true, false, (float) xyz.getX(), (float) xyz.getY(), (float) xyz.getZ(), 0f, 0f, 0f, 1, 1
-        );
+        org.bukkit.Color trailColor = (color == null) ? org.bukkit.Color.fromRGB(rng.nextInt(0xffffff)) : color.toBukkitColor();
+        return new Particle.TargetColor(target, trailColor);
     }
 
     public void setColor(@Nullable Color color) {

@@ -1,12 +1,15 @@
 package hm.zelha.particlesfx.particles;
 
 import hm.zelha.particlesfx.particles.parents.Particle;
-import net.minecraft.core.particles.ShriekParticleOption;
+import org.bukkit.Location;
 
 public class ParticleShriek extends Particle {
+    private int delay;
+
     public ParticleShriek(double offsetX, double offsetY, double offsetZ, int count) {
         super("", offsetX, offsetY, offsetZ, count);
 
+        setParticleKey("shriek");
         setDelay(0);
     }
 
@@ -27,7 +30,7 @@ public class ParticleShriek extends Particle {
         super.inherit(particle);
 
         if (particle instanceof ParticleShriek) {
-            this.particle = ((ParticleShriek) particle).particle;
+            this.delay = ((ParticleShriek) particle).delay;
         }
 
         return this;
@@ -42,7 +45,7 @@ public class ParticleShriek extends Particle {
      * @param delay amount of ticks before this particle displays
      */
     public ParticleShriek setDelay(int delay) {
-        particle = new ShriekParticleOption(delay);
+        this.delay = Math.max(0, delay);
 
         return this;
     }
@@ -51,6 +54,11 @@ public class ParticleShriek extends Particle {
      * @return amount of ticks before this particle displays
      */
     public int getDelay() {
-        return ((ShriekParticleOption) particle).b();
+        return delay;
+    }
+
+    @Override
+    protected Object getData(Location location) {
+        return delay;
     }
 }

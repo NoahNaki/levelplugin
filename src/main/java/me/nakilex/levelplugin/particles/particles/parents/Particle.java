@@ -1,23 +1,17 @@
 package hm.zelha.particlesfx.particles.parents;
 
 import hm.zelha.particlesfx.util.LVMath;
-import net.minecraft.core.particles.ParticleParam;
-import net.minecraft.core.particles.ParticleType;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.network.protocol.Packet;
-import net.minecraft.network.protocol.game.PacketPlayOutWorldParticles;
-import net.minecraft.resources.MinecraftKey;
-import net.minecraft.server.level.EntityPlayer;
 import org.apache.commons.lang.Validate;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.craftbukkit.v1_21_R5.CraftServer;
-import org.bukkit.craftbukkit.v1_21_R5.entity.CraftPlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -27,32 +21,45 @@ public abstract class Particle implements IParticle {
     protected final Vector fakeOffsetHelper = new Vector();
     protected final Vector xyzHelper = new Vector();
     protected final Vector offsetHelper = new Vector();
-    protected ParticleParam particle;
+    private static final Map<String, org.bukkit.Particle> PARTICLES_BY_KEY = new HashMap<>();
+    protected org.bukkit.Particle particle;
+    protected Object data;
     protected double offsetX;
     protected double offsetY;
     protected double offsetZ;
     protected double speed = 0;
     protected int count;
     protected int radius = 0;
-    private final List<CraftPlayer> players = ((CraftServer) Bukkit.getServer()).getOnlinePlayers();
-    private final List<CraftPlayer> listHelper = new ArrayList<>();
+    private final List<Player> players = new ArrayList<>();
+    private final List<Player> listHelper = new ArrayList<>();
+
+    static {
+        for (org.bukkit.Particle particle : org.bukkit.Particle.values()) {
+            if (particle.getKey() != null) {
+                PARTICLES_BY_KEY.put(particle.getKey().getKey().toLowerCase(Locale.ROOT), particle);
+            }
+            PARTICLES_BY_KEY.put(particle.name().toLowerCase(Locale.ROOT), particle);
+        }
+    }
 
     protected Particle(String particleID, double offsetX, double offsetY, double offsetZ, int count) {
-        this.particle = (ParticleType) BuiltInRegistries.i.a(MinecraftKey.a("minecraft", particleID));
+        setParticleKey(particleID);
 
         setOffset(offsetX, offsetY, offsetZ);
         setCount(count);
     }
 
     public void display(Location location) {
+        players.clear();
+        players.addAll(Bukkit.getOnlinePlayers());
         display(location, players);
     }
 
     public void displayForPlayers(Location location, Player... players) {
         listHelper.clear();
 
-        for (int i = 0; i < players.length; i++) {
-            listHelper.add((CraftPlayer) players[i]);
+        for (Player player : players) {
+            listHelper.add(player);
         }
 
         display(location, listHelper);
@@ -66,7 +73,7 @@ public abstract class Particle implements IParticle {
 
             if (p == null) continue;
 
-            listHelper.add((CraftPlayer) p);
+            listHelper.add(p);
         }
 
         display(location, listHelper);
@@ -79,45 +86,56 @@ public abstract class Particle implements IParticle {
         speed = particle.speed;
         count = particle.count;
         radius = particle.radius;
+        this.particle = particle.particle;
+        this.data = particle.data;
 
         return this;
     }
 
     public abstract Particle clone();
 
-    protected void display(Location location, List<CraftPlayer> players) {
+    protected void display(Location location, List<Player> players) {
         Validate.notNull(location, "Location cannot be null!");
         Validate.notNull(location.getWorld(), "World cannot be null!");
+        updateData(location);
+
+        if (particle == null) {
+            return;
+        }
 
         for (int i = 0; i < ((getPacketCount() != count) ? count : 1); i++) {
             for (int k = 0; k < players.size(); k++) {
-                EntityPlayer p = players.get(k).getHandle();
+                Player player = players.get(k);
 
-                if (p == null) continue;
-                if (!location.getWorld().getName().equals(p.y().getWorld().getName())) continue;
+                if (player == null) continue;
+                if (!location.getWorld().equals(player.getWorld())) continue;
 
                 if (radius != 0) {
-                    double distance = Math.pow(location.getX() - p.dv().a(), 2) +
-                            Math.pow(location.getY() - p.dv().b(), 2) +
-                            Math.pow(location.getZ() - p.dv().c(), 2);
+                    double distance = location.distanceSquared(player.getLocation());
 
                     if (distance > Math.pow(radius, 2)) continue;
                 }
 
                 Vector xyz = getXYZ(location);
                 Vector offsets = getOffsets(location);
-                Packet strangePacket = getStrangePacket(location);
-
-                if (strangePacket != null) {
-                    p.g.sendPacket(strangePacket);
-                } else {
-                    p.g.sendPacket(
-                            new PacketPlayOutWorldParticles(
-                                    particle, true, false, (float) xyz.getX(), (float) xyz.getY(), (float) xyz.getZ(), (float) offsets.getX(),
-                                    (float) offsets.getY(), (float) offsets.getZ(), getPacketSpeed(), getPacketCount()
-                            )
-                    );
+                Location spawnLocation = new Location(location.getWorld(), xyz.getX(), xyz.getY(), xyz.getZ());
+                if (displaySpecial(player, spawnLocation)) {
+                    continue;
                 }
+                Object payload = getData(spawnLocation);
+                if (payload == null && particle.getDataType() != Void.class) {
+                    continue;
+                }
+                player.spawnParticle(
+                        particle,
+                        spawnLocation,
+                        getPacketCount(),
+                        offsets.getX(),
+                        offsets.getY(),
+                        offsets.getZ(),
+                        getPacketSpeed(),
+                        payload
+                );
             }
         }
     }
@@ -175,8 +193,35 @@ public abstract class Particle implements IParticle {
      * @param location the location passed into the display method
      * @return the different packet
      */
-    protected Packet getStrangePacket(Location location) {
-        return null;
+    protected boolean displaySpecial(Player player, Location location) {
+        return false;
+    }
+
+    protected void updateData(Location location) {
+    }
+
+    protected Object getData(Location location) {
+        return data;
+    }
+
+    protected void setParticleKey(String key) {
+        this.particle = resolveParticle(key);
+    }
+
+    protected void setParticleKey(String key, Object data) {
+        this.particle = resolveParticle(key);
+        this.data = data;
+    }
+
+    private static org.bukkit.Particle resolveParticle(String key) {
+        if (key == null || key.isBlank()) {
+            return null;
+        }
+        String cleaned = key.toLowerCase(Locale.ROOT);
+        if (cleaned.startsWith("minecraft:")) {
+            cleaned = cleaned.substring("minecraft:".length());
+        }
+        return PARTICLES_BY_KEY.get(cleaned);
     }
 
     public void setOffset(double x, double y, double z) {

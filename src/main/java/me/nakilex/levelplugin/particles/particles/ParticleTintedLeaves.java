@@ -3,25 +3,18 @@ package hm.zelha.particlesfx.particles;
 import hm.zelha.particlesfx.particles.parents.ColorableParticle;
 import hm.zelha.particlesfx.particles.parents.Particle;
 import hm.zelha.particlesfx.util.Color;
-import net.minecraft.core.particles.ColorParticleOption;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.MinecraftKey;
 import org.bukkit.Location;
-import org.bukkit.craftbukkit.v1_21_R5.entity.CraftPlayer;
 
 import javax.annotation.Nullable;
-import java.util.List;
 
 public class ParticleTintedLeaves extends Particle implements ColorableParticle {
 
-    private final net.minecraft.core.particles.Particle<ColorParticleOption> registryParticle = (net.minecraft.core.particles.Particle<ColorParticleOption>) BuiltInRegistries.i.a(MinecraftKey.a("minecraft", "tinted_leaves"));
     protected Color color;
 
     public ParticleTintedLeaves(@Nullable Color color, double offsetX, double offsetY, double offsetZ, int count) {
         super("", offsetX, offsetY, offsetZ, count);
 
-        particle = ColorParticleOption.a(registryParticle, 255 << 24 | ((color != null) ? color.getRGB() : Color.WHITE.getRGB()));
-
+        setParticleKey("tinted_leaves");
         setColor(color);
     }
 
@@ -70,16 +63,12 @@ public class ParticleTintedLeaves extends Particle implements ColorableParticle 
     }
 
     @Override
-    protected void display(Location location, List<CraftPlayer> players) {
-        ColorParticleOption p = (ColorParticleOption) particle;
-
+    protected void updateData(Location location) {
         if (color == null) {
-            particle = ColorParticleOption.a(registryParticle, 255 << 24 | rng.nextInt(0xffffff));
-        } else if (p.b() * 255 != color.getRed() || p.c() * 255 != color.getGreen() || p.d() * 255 != color.getBlue()) {
-            particle = ColorParticleOption.a(registryParticle, 255 << 24 | color.getRGB());
+            data = org.bukkit.Color.fromRGB(rng.nextInt(0xffffff));
+            return;
         }
-
-        super.display(location, players);
+        data = color.toBukkitColor();
     }
 
     public void setColor(@Nullable Color color) {

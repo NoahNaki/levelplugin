@@ -113,6 +113,10 @@ public class Color {
         return blue;
     }
 
+    public org.bukkit.Color toBukkitColor() {
+        return org.bukkit.Color.fromRGB(red, green, blue);
+    }
+
     /**
      * @return whether this object can be modified
      */

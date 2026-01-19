@@ -3,9 +3,6 @@ package hm.zelha.particlesfx.particles;
 import hm.zelha.particlesfx.particles.parents.LiquidParticle;
 import hm.zelha.particlesfx.particles.parents.Particle;
 import hm.zelha.particlesfx.util.LiquidParticleState;
-import net.minecraft.core.particles.ParticleType;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.MinecraftKey;
 
 import java.util.Locale;
 
@@ -47,7 +44,7 @@ public class ParticleHoney extends Particle implements LiquidParticle {
 
     @Override
     public ParticleHoney setLiquidState(LiquidParticleState state) {
-        particle = (ParticleType) BuiltInRegistries.i.a(MinecraftKey.a("minecraft", state.name().toLowerCase(Locale.ROOT) + "_honey"));
+        setParticleKey(state.name().toLowerCase(Locale.ROOT) + "_honey");
         this.state = state;
 
         return this;

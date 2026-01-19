@@ -2,14 +2,16 @@ package hm.zelha.particlesfx.particles;
 
 import hm.zelha.particlesfx.particles.parents.Particle;
 import hm.zelha.particlesfx.particles.parents.TravellingParticle;
-import net.minecraft.core.particles.SculkChargeParticleOptions;
 import org.bukkit.Location;
 import org.bukkit.util.Vector;
 
 public class ParticleSculkCharge extends TravellingParticle {
+    private float rollRadians;
+
     public ParticleSculkCharge(Location toGo, double offsetX, double offsetY, double offsetZ, int count) {
         super("", false, 0.08, null, toGo, offsetX, offsetY, offsetZ, count);
 
+        setParticleKey("sculk_charge");
         setRoll(0);
     }
 
@@ -56,7 +58,7 @@ public class ParticleSculkCharge extends TravellingParticle {
         super.inherit(particle);
 
         if (particle instanceof ParticleSculkCharge) {
-            this.particle = ((ParticleSculkCharge) particle).particle;
+            this.rollRadians = ((ParticleSculkCharge) particle).rollRadians;
         }
 
         return this;
@@ -71,7 +73,7 @@ public class ParticleSculkCharge extends TravellingParticle {
      * @param degrees how much this particle should be rotated in the Z axis
      */
     public ParticleSculkCharge setRoll(double degrees) {
-        particle = new SculkChargeParticleOptions((float) Math.toRadians(degrees));
+        rollRadians = (float) Math.toRadians(degrees);
 
         return this;
     }
@@ -80,6 +82,11 @@ public class ParticleSculkCharge extends TravellingParticle {
      * @return how much this particle is rotated in the Z axis
      */
     public double getRoll() {
-        return Math.toDegrees(((SculkChargeParticleOptions) particle).b());
+        return Math.toDegrees(rollRadians);
+    }
+
+    @Override
+    protected Object getData(Location location) {
+        return rollRadians;
     }
 }

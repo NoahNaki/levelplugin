@@ -4,13 +4,10 @@ import hm.zelha.particlesfx.particles.parents.ColorableParticle;
 import hm.zelha.particlesfx.particles.parents.Particle;
 import hm.zelha.particlesfx.particles.parents.SizeableParticle;
 import hm.zelha.particlesfx.util.Color;
-import net.minecraft.core.particles.ParticleParamRedstone;
-import net.minecraft.util.MathHelper;
 import org.bukkit.Location;
-import org.bukkit.craftbukkit.v1_21_R5.entity.CraftPlayer;
+import org.bukkit.Particle;
 
 import javax.annotation.Nullable;
-import java.util.List;
 
 public class ParticleDustColored extends Particle implements SizeableParticle, ColorableParticle {
 
@@ -21,10 +18,10 @@ public class ParticleDustColored extends Particle implements SizeableParticle, C
     public ParticleDustColored(@Nullable Color color, double size, double offsetX, double offsetY, double offsetZ, int count) {
         super("", offsetX, offsetY, offsetZ, count);
 
-        particle = new ParticleParamRedstone((color == null) ? rng.nextInt(0xffffff) : color.getRGB(), (float) size);
-
-        if (color != null) colorHelper.setRGB(color.getRGB());
-
+        setParticleKey("dust");
+        if (color != null) {
+            colorHelper.setRGB(color.getRGB());
+        }
         setColor(color);
         setSize(size);
     }
@@ -98,18 +95,12 @@ public class ParticleDustColored extends Particle implements SizeableParticle, C
     }
 
     @Override
-    protected void display(Location location, List<CraftPlayer> players) {
-        if (particle instanceof ParticleParamRedstone) {
-            if (color == null) {
-                particle = new ParticleParamRedstone(rng.nextInt(0xffffff), (float) size);
-            } else if (!colorHelper.equals(color) || MathHelper.a(size, 0.01F, 4.0F) != ((ParticleParamRedstone) particle).d()) {
-                particle = new ParticleParamRedstone(color.getRGB(), (float) size);
-
-                colorHelper.setRGB(color.getRGB());
-            }
+    protected void updateData(Location location) {
+        org.bukkit.Color bukkitColor = (color == null) ? org.bukkit.Color.fromRGB(rng.nextInt(0xffffff)) : color.toBukkitColor();
+        if (color != null && !colorHelper.equals(color)) {
+            colorHelper.setRGB(color.getRGB());
         }
-
-        super.display(location, players);
+        data = new Particle.DustOptions(bukkitColor, clampSize(size));
     }
 
     public void setColor(@Nullable Color color) {
@@ -141,5 +132,9 @@ public class ParticleDustColored extends Particle implements SizeableParticle, C
     @Override
     public double getSize() {
         return size;
+    }
+
+    protected float clampSize(double size) {
+        return (float) Math.max(0.01, Math.min(4.0, size));
     }
 }

@@ -1,26 +1,23 @@
 package hm.zelha.particlesfx.particles;
 
 import hm.zelha.particlesfx.particles.parents.Particle;
-import net.minecraft.core.BlockPosition;
-import net.minecraft.network.protocol.Packet;
-import net.minecraft.network.protocol.game.PacketPlayOutWorldEvent;
 import org.bukkit.Effect;
 import org.bukkit.Location;
+import org.bukkit.entity.Player;
 
 /**
  * while this effect is really cool, it summons around 30 particles per effect.
  * <br><br>
  * since Effect.ENDER_SIGNAL is Type.VISUAL, the radius, speed, and offsets are unused internally, and the default radius is quite small.
  * <br><br>
- * Type.VISUAL effects are also locked to specific coordinates of the block they're played on because their packet uses BlockPosition
+ * Type.VISUAL effects are also locked to specific coordinates of the block they're played on because they use block-based locations.
  */
 public class ParticleEnderSignal extends Particle {
-
-    private final BlockPosition.MutableBlockPosition pos = new BlockPosition.MutableBlockPosition(0, 0, 0);
 
     /**@see ParticleEnderSignal*/
     public ParticleEnderSignal(int count) {
         super("", 0, 0, 0, count);
+        setParticleKey("effect");
     }
 
     /**@see ParticleEnderSignal*/
@@ -41,10 +38,8 @@ public class ParticleEnderSignal extends Particle {
     }
 
     @Override
-    protected Packet getStrangePacket(Location location) {
-        return new PacketPlayOutWorldEvent(
-                Effect.ENDER_SIGNAL.getId(), pos.d(location.getBlockX(), location.getBlockY(), location.getBlockZ()),
-                Effect.ENDER_SIGNAL.getId(), false
-        );
+    protected boolean displaySpecial(Player player, Location location) {
+        player.playEffect(location, Effect.ENDER_SIGNAL, 0);
+        return true;
     }
 }
