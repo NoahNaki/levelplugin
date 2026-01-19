@@ -4,5 +4,6 @@ public enum ParticlePlane {
     X,
     Y,
     Z,
-    LOOK
+    LOOK,
+    LOOK_VERTICAL
 }

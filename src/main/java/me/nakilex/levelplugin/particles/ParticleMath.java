@@ -11,7 +11,7 @@ public final class ParticleMath {
         double cos = Math.cos(angle) * radius;
         double sin = Math.sin(angle) * radius;
         return switch (resolved) {
-            case X -> new Vector(0, cos, sin);
+            case X, LOOK_VERTICAL -> new Vector(0, cos, sin);
             case Z -> new Vector(cos, sin, 0);
             case LOOK, Y -> new Vector(cos, 0, sin);
         };
@@ -23,7 +23,7 @@ public final class ParticleMath {
         }
         ParticlePlane resolved = plane == null ? ParticlePlane.Y : plane;
         return switch (resolved) {
-            case X -> new Vector(0, base.getX(), base.getZ());
+            case X, LOOK_VERTICAL -> new Vector(0, base.getX(), base.getZ());
             case Z -> new Vector(base.getX(), base.getZ(), 0);
             case LOOK, Y -> base.clone();
         };
@@ -37,7 +37,7 @@ public final class ParticleMath {
         if (resolved == ParticlePlane.Z) {
             return offset.clone().add(new Vector(0, 0, height));
         }
-        if (resolved == ParticlePlane.LOOK && orientation != null) {
+        if ((resolved == ParticlePlane.LOOK || resolved == ParticlePlane.LOOK_VERTICAL) && orientation != null) {
             Vector direction = orientation.getDirection().clone().normalize().multiply(height);
             return offset.clone().add(direction);
         }
@@ -87,7 +87,7 @@ public final class ParticleMath {
     public static Vector orientAndTilt(Vector vector, ParticlePlane plane, Location orientation,
                                        ParticleRotationAxis tiltAxis, double tiltDegrees) {
         Vector rotated = vector == null ? new Vector() : vector.clone();
-        if (plane == ParticlePlane.LOOK) {
+        if (plane == ParticlePlane.LOOK || plane == ParticlePlane.LOOK_VERTICAL) {
             rotated = rotateByOrientation(rotated, orientation);
         }
         return rotateByAxis(rotated, tiltAxis, tiltDegrees, orientation);
