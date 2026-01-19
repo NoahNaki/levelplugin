@@ -12,6 +12,8 @@ import me.nakilex.levelplugin.spells.input.SpellInputEvent;
 import me.nakilex.levelplugin.spells.input.SpellInputMode;
 import me.nakilex.levelplugin.spells.input.SpellInputType;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
+import io.papermc.paper.event.player.PlayerBlockInteractEvent;
+import io.papermc.paper.event.player.PlayerUseItemEvent;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -32,10 +34,12 @@ import java.util.UUID;
 public class SpellInputListener implements Listener {
     private static final long COMBO_TIMEOUT_MS = 3_000L;
     private static final long SNEAK_WINDOW_MS = 700L;
+    private static final long RIGHT_CLICK_DEBOUNCE_MS = 75L;
 
     private final SettingsManager settingsManager;
     private final Map<UUID, SpellComboTracker> comboTrackers = new HashMap<>();
     private final Map<UUID, SneakState> sneakStates = new HashMap<>();
+    private final Map<UUID, Long> lastRightClickAt = new HashMap<>();
     private final SpellInputDisplayManager displayManager = SpellInputDisplayManager.getInstance();
 
     public SpellInputListener(SettingsManager settingsManager) {
@@ -45,7 +49,7 @@ public class SpellInputListener implements Listener {
     @EventHandler
     public void onInteract(PlayerInteractEvent event) {
         Action action = event.getAction();
-        if (!isClickAction(action)) {
+        if (!isLeftClickAction(action)) {
             return;
         }
         if (event.getHand() != EquipmentSlot.HAND) {
@@ -59,6 +63,31 @@ public class SpellInputListener implements Listener {
     @EventHandler
     public void onInteractEntity(PlayerInteractEntityEvent event) {
         if (event.getHand() != EquipmentSlot.HAND) {
+            return;
+        }
+        if (!shouldProcessRightClick(event.getPlayer())) {
+            return;
+        }
+        handleClick(event.getPlayer(), false);
+    }
+
+    @EventHandler
+    public void onUseItem(PlayerUseItemEvent event) {
+        if (event.getHand() != EquipmentSlot.HAND) {
+            return;
+        }
+        if (!shouldProcessRightClick(event.getPlayer())) {
+            return;
+        }
+        handleClick(event.getPlayer(), false);
+    }
+
+    @EventHandler
+    public void onBlockInteract(PlayerBlockInteractEvent event) {
+        if (event.getHand() != EquipmentSlot.HAND) {
+            return;
+        }
+        if (!shouldProcessRightClick(event.getPlayer())) {
             return;
         }
         handleClick(event.getPlayer(), false);
@@ -103,6 +132,7 @@ public class SpellInputListener implements Listener {
         UUID playerId = event.getPlayer().getUniqueId();
         comboTrackers.remove(playerId);
         sneakStates.remove(playerId);
+        lastRightClickAt.remove(playerId);
         displayManager.clear(event.getPlayer());
     }
 
@@ -160,11 +190,8 @@ public class SpellInputListener implements Listener {
         return ClassUtil.isArcherFamily(playerClass);
     }
 
-    private boolean isClickAction(Action action) {
-        return action == Action.LEFT_CLICK_AIR
-                || action == Action.LEFT_CLICK_BLOCK
-                || action == Action.RIGHT_CLICK_AIR
-                || action == Action.RIGHT_CLICK_BLOCK;
+    private boolean isLeftClickAction(Action action) {
+        return action == Action.LEFT_CLICK_AIR || action == Action.LEFT_CLICK_BLOCK;
     }
 
     private boolean isLeftClick(Action action) {
@@ -185,6 +212,17 @@ public class SpellInputListener implements Listener {
     private void dispatch(Player player, SpellInputType type, SpellInputMode mode, String sequence) {
         Bukkit.getPluginManager().callEvent(new SpellInputEvent(player, type, mode, sequence));
         sendSpellCastIndicator(player, type);
+    }
+
+    private boolean shouldProcessRightClick(Player player) {
+        long now = System.currentTimeMillis();
+        UUID playerId = player.getUniqueId();
+        Long last = lastRightClickAt.get(playerId);
+        if (last != null && now - last < RIGHT_CLICK_DEBOUNCE_MS) {
+            return false;
+        }
+        lastRightClickAt.put(playerId, now);
+        return true;
     }
 
     private void sendSpellCastIndicator(Player player, SpellInputType type) {
