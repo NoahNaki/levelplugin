@@ -12,7 +12,7 @@ public class SpellInputDisplayManager {
     private static final SpellInputDisplayManager instance = new SpellInputDisplayManager();
 
     private static final long COMBO_TIMEOUT_MS = 900L;
-    private static final long ACTIVE_WINDOW_MS = 1_200L;
+    private static final long ACTIVE_WINDOW_MS = 2_000L;
     private static final int MAX_INPUTS = 3;
     private static final char EMPTY_GLYPH = 'E';
     private static final char LEFT_GLYPH = 'L';
@@ -30,9 +30,10 @@ public class SpellInputDisplayManager {
         UUID playerId = player.getUniqueId();
         DisplayState state = states.computeIfAbsent(playerId, id -> new DisplayState());
         long now = System.currentTimeMillis();
-        if (now - state.lastInputAt > COMBO_TIMEOUT_MS) {
+        if (state.castComplete || now - state.lastInputAt > COMBO_TIMEOUT_MS) {
             state.inputs.clear();
         }
+        state.castComplete = false;
         state.lastInputAt = now;
         state.activeUntil = now + ACTIVE_WINDOW_MS;
         if (state.inputs.size() == MAX_INPUTS) {
@@ -103,7 +104,21 @@ public class SpellInputDisplayManager {
         DisplayState state = states.get(player.getUniqueId());
         if (state != null) {
             state.inputs.clear();
+            state.castComplete = false;
         }
+    }
+
+    public void markSpellCast(Player player) {
+        if (player == null) {
+            return;
+        }
+        DisplayState state = states.get(player.getUniqueId());
+        if (state == null) {
+            return;
+        }
+        long now = System.currentTimeMillis();
+        state.activeUntil = now + ACTIVE_WINDOW_MS;
+        state.castComplete = true;
     }
 
     private String formatGlyphs(Deque<SpellClickInput> inputs) {
@@ -149,5 +164,6 @@ public class SpellInputDisplayManager {
         private final Deque<SpellClickInput> inputs = new ArrayDeque<>(MAX_INPUTS);
         private long lastInputAt;
         private long activeUntil;
+        private boolean castComplete;
     }
 }
