@@ -51,24 +51,34 @@ public final class ParticleService {
         spawnParticle(player.getWorld(), location, preset, count);
     }
 
+    public void renderPreset(Player player, ParticlePreset preset, Location center, Location orientation, int count, int tick) {
+        if (preset.patterns() == null || preset.patterns().isEmpty()) {
+            spawnParticle(player.getWorld(), center, preset, count);
+            return;
+        }
+        for (ParticlePattern pattern : preset.patterns()) {
+            renderPattern(player, preset, pattern, center, orientation, count, tick);
+        }
+    }
+
     public void sendRing(Player player, ParticlePreset preset, Location center, double radius, int points,
-                         ParticleAxis axis, double tiltDegrees, Location orientation) {
+                         ParticleAxis axis, ParticleRotationAxis tiltAxis, double tiltDegrees, Location orientation) {
         double step = (Math.PI * 2.0) / points;
         for (int i = 0; i < points; i++) {
             double angle = step * i;
-            Vector offset = buildOffset(angle, radius, axis, tiltDegrees, orientation);
+            Vector offset = buildOffset(angle, radius, axis, tiltAxis, tiltDegrees, orientation);
             spawnParticle(player.getWorld(), center.clone().add(offset), preset, 1);
         }
     }
 
     public void sendArc(Player player, ParticlePreset preset, Location center, double radius, double degrees, int points,
-                        ParticleAxis axis, double tiltDegrees, Location orientation) {
+                        ParticleAxis axis, ParticleRotationAxis tiltAxis, double tiltDegrees, Location orientation) {
         double radians = Math.toRadians(degrees);
         double step = radians / Math.max(points - 1, 1);
         double start = -radians / 2.0;
         for (int i = 0; i < points; i++) {
             double angle = start + (step * i);
-            Vector offset = buildOffset(angle, radius, axis, tiltDegrees, orientation);
+            Vector offset = buildOffset(angle, radius, axis, tiltAxis, tiltDegrees, orientation);
             spawnParticle(player.getWorld(), center.clone().add(offset), preset, 1);
         }
     }
@@ -91,7 +101,8 @@ public final class ParticleService {
         providers.forEach(provider -> provider.register(registry));
     }
 
-    private Vector buildOffset(double angle, double radius, ParticleAxis axis, double tiltDegrees, Location orientation) {
+    private Vector buildOffset(double angle, double radius, ParticleAxis axis, ParticleRotationAxis tiltAxis,
+                               double tiltDegrees, Location orientation) {
         Vector base;
         switch (axis) {
             case X -> base = new Vector(0.0, Math.cos(angle) * radius, Math.sin(angle) * radius);
@@ -102,7 +113,7 @@ public final class ParticleService {
         }
 
         if (tiltDegrees != 0.0) {
-            base.rotateAroundX(Math.toRadians(tiltDegrees));
+            base = rotateByAxis(base, tiltAxis, tiltDegrees);
         }
 
         if (axis == ParticleAxis.LOOK && orientation != null) {
@@ -114,6 +125,73 @@ public final class ParticleService {
     private Vector rotateByOrientation(Vector vector, Location orientation) {
         Vector rotated = vector.clone();
         rotated.rotateAroundX(Math.toRadians(orientation.getPitch()));
+        rotated.rotateAroundY(Math.toRadians(-orientation.getYaw()));
+        return rotated;
+    }
+
+    private Vector rotateByAxis(Vector vector, ParticleRotationAxis axis, double degrees) {
+        Vector rotated = vector.clone();
+        double radians = Math.toRadians(degrees);
+        return switch (axis) {
+            case X -> rotated.rotateAroundX(radians);
+            case Y -> rotated.rotateAroundY(radians);
+            case Z -> rotated.rotateAroundZ(radians);
+        };
+    }
+
+    private void renderPattern(Player player, ParticlePreset preset, ParticlePattern pattern, Location center,
+                               Location orientation, int count, int tick) {
+        int countPerPoint = Math.max(1, count / Math.max(pattern.points(), 1));
+        double rotation = pattern.rotationSpeed() * tick;
+        switch (pattern.type()) {
+            case POINT -> spawnParticle(player.getWorld(), center, preset, count);
+            case RING -> renderRingPattern(player, preset, pattern, center, orientation, rotation, countPerPoint);
+            case STAR -> renderStarPattern(player, preset, pattern, center, orientation, rotation, countPerPoint);
+            case SPIRAL -> renderSpiralPattern(player, preset, pattern, center, orientation, rotation, countPerPoint);
+        }
+    }
+
+    private void renderRingPattern(Player player, ParticlePreset preset, ParticlePattern pattern, Location center,
+                                   Location orientation, double rotation, int count) {
+        double step = (Math.PI * 2.0) / Math.max(pattern.points(), 1);
+        for (int i = 0; i < pattern.points(); i++) {
+            double angle = rotation + (step * i);
+            Vector offset = new Vector(Math.cos(angle) * pattern.radius(), pattern.height(), Math.sin(angle) * pattern.radius());
+            spawnParticle(player.getWorld(), center.clone().add(rotateAroundYaw(offset, orientation)), preset, count);
+        }
+    }
+
+    private void renderStarPattern(Player player, ParticlePreset preset, ParticlePattern pattern, Location center,
+                                   Location orientation, double rotation, int count) {
+        int points = pattern.points() > 0 ? pattern.points() : Math.max(pattern.arms() * 2, 2);
+        double step = (Math.PI * 2.0) / points;
+        for (int i = 0; i < points; i++) {
+            double angle = rotation + (step * i);
+            double radius = i % 2 == 0 ? pattern.radius() : pattern.innerRadius();
+            Vector offset = new Vector(Math.cos(angle) * radius, pattern.height(), Math.sin(angle) * radius);
+            spawnParticle(player.getWorld(), center.clone().add(rotateAroundYaw(offset, orientation)), preset, count);
+        }
+    }
+
+    private void renderSpiralPattern(Player player, ParticlePreset preset, ParticlePattern pattern, Location center,
+                                     Location orientation, double rotation, int count) {
+        int points = Math.max(pattern.points(), 1);
+        double step = (Math.PI * 2.0) / points;
+        for (int i = 0; i < points; i++) {
+            double progress = points == 1 ? 1.0 : (double) i / (points - 1);
+            double angle = rotation + (step * i);
+            double radius = pattern.radius() * progress;
+            double height = pattern.height() * progress;
+            Vector offset = new Vector(Math.cos(angle) * radius, height, Math.sin(angle) * radius);
+            spawnParticle(player.getWorld(), center.clone().add(rotateAroundYaw(offset, orientation)), preset, count);
+        }
+    }
+
+    private Vector rotateAroundYaw(Vector vector, Location orientation) {
+        if (orientation == null) {
+            return vector;
+        }
+        Vector rotated = vector.clone();
         rotated.rotateAroundY(Math.toRadians(-orientation.getYaw()));
         return rotated;
     }

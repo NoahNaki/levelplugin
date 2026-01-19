@@ -21,6 +21,7 @@ import me.nakilex.levelplugin.mercenary.MercenaryExpeditionManager;
 import me.nakilex.levelplugin.pathfinding.DungeonExpeditionManager;
 import me.nakilex.levelplugin.particles.ParticleAxis;
 import me.nakilex.levelplugin.particles.ParticleCenter;
+import me.nakilex.levelplugin.particles.ParticleRotationAxis;
 import me.nakilex.levelplugin.particles.ParticlePreset;
 import me.nakilex.levelplugin.particles.ParticleService;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
@@ -268,8 +269,8 @@ public class DebugCommand implements TabExecutor {
                 if (args.length < 2) {
                     ChatMessageUtil.send(particlePlayer, ChatMessageUtil.MessageType.WARNING,
                             "Usage: /debug particle <type> [count] [ticks] [center=self|look]"
-                                    + " | /debug particle ring <type> <radius> [points] [ticks] [axis=x|y|z|look] [tilt=deg] [center=self|look]"
-                                    + " | /debug particle arc <type> <radius> <degrees> [points] [ticks] [axis=x|y|z|look] [tilt=deg] [center=self|look]");
+                                    + " | /debug particle ring <type> <radius> [points] [ticks] [axis=x|y|z|look] [tilt=deg] [tiltAxis=x|y|z] [center=self|look]"
+                                    + " | /debug particle arc <type> <radius> <degrees> [points] [ticks] [axis=x|y|z|look] [tilt=deg] [tiltAxis=x|y|z] [center=self|look]");
                     return true;
                 }
                 String mode = args[1].toLowerCase(Locale.ROOT);
@@ -281,8 +282,8 @@ public class DebugCommand implements TabExecutor {
                 }
                 if (args.length <= argOffset) {
                     String usage = switch (mode) {
-                        case "ring" -> "Usage: /debug particle ring <particle> <radius> [points] [ticks] [axis=x|y|z|look] [tilt=deg] [center=self|look]";
-                        case "arc" -> "Usage: /debug particle arc <particle> <radius> <degrees> [points] [ticks] [axis=x|y|z|look] [tilt=deg] [center=self|look]";
+                        case "ring" -> "Usage: /debug particle ring <particle> <radius> [points] [ticks] [axis=x|y|z|look] [tilt=deg] [tiltAxis=x|y|z] [center=self|look]";
+                        case "arc" -> "Usage: /debug particle arc <particle> <radius> <degrees> [points] [ticks] [axis=x|y|z|look] [tilt=deg] [tiltAxis=x|y|z] [center=self|look]";
                         default -> "Usage: /debug particle spawn <particle> [count] [ticks] [center=self|look]";
                     };
                     ChatMessageUtil.send(particlePlayer, ChatMessageUtil.MessageType.WARNING, usage);
@@ -302,7 +303,7 @@ public class DebugCommand implements TabExecutor {
                 if (mode.equals("ring")) {
                     if (args.length <= argOffset + 1) {
                         ChatMessageUtil.send(particlePlayer, ChatMessageUtil.MessageType.WARNING,
-                                "Usage: /debug particle ring <particle> <radius> [points] [ticks] [axis=x|y|z|look] [tilt=deg] [center=self|look]");
+                                "Usage: /debug particle ring <particle> <radius> [points] [ticks] [axis=x|y|z|look] [tilt=deg] [tiltAxis=x|y|z] [center=self|look]");
                         return true;
                     }
                     double radius = parsePositiveDouble(args, argOffset + 1, "Radius must be a positive number.", particlePlayer);
@@ -317,11 +318,12 @@ public class DebugCommand implements TabExecutor {
                     if (ticksResult.value() <= 0) {
                         return true;
                     }
-                    ParticleOptions options = parseOptions(args, ticksResult.nextIndex(), ParticleAxis.Y, ParticleCenter.LOOK, particlePlayer);
+                    ParticleOptions options = parseOptions(args, ticksResult.nextIndex(), ParticleAxis.Y, ParticleRotationAxis.X,
+                            ParticleCenter.LOOK, particlePlayer);
                     Location center = resolveCenter(particlePlayer, options.centerMode());
-                    runParticleShape(particlePlayer, ticksResult.value(), () ->
+                    runParticleShape(particlePlayer, ticksResult.value(), tick ->
                             particleService.sendRing(particlePlayer, preset, center, radius, pointsResult.value(),
-                                    options.axis(), options.tiltDegrees(), particlePlayer.getLocation()));
+                                    options.axis(), options.tiltAxis(), options.tiltDegrees(), particlePlayer.getLocation()));
                     ChatMessageUtil.send(particlePlayer, ChatMessageUtil.MessageType.SUCCESS,
                             "Spawned ring of " + particleName.toUpperCase(Locale.ROOT) + " particles for 5 seconds.");
                     return true;
@@ -329,7 +331,7 @@ public class DebugCommand implements TabExecutor {
                 if (mode.equals("arc")) {
                     if (args.length <= argOffset + 2) {
                         ChatMessageUtil.send(particlePlayer, ChatMessageUtil.MessageType.WARNING,
-                                "Usage: /debug particle arc <particle> <radius> <degrees> [points] [ticks] [axis=x|y|z|look] [tilt=deg] [center=self|look]");
+                                "Usage: /debug particle arc <particle> <radius> <degrees> [points] [ticks] [axis=x|y|z|look] [tilt=deg] [tiltAxis=x|y|z] [center=self|look]");
                         return true;
                     }
                     double radius = parsePositiveDouble(args, argOffset + 1, "Radius must be a positive number.", particlePlayer);
@@ -348,11 +350,18 @@ public class DebugCommand implements TabExecutor {
                     if (ticksResult.value() <= 0) {
                         return true;
                     }
-                    ParticleOptions options = parseOptions(args, ticksResult.nextIndex(), ParticleAxis.LOOK, ParticleCenter.LOOK, particlePlayer);
+                    ParticleOptions options = parseOptions(args, ticksResult.nextIndex(), ParticleAxis.LOOK, ParticleRotationAxis.Z,
+                            ParticleCenter.LOOK, particlePlayer);
                     Location center = resolveCenter(particlePlayer, options.centerMode());
-                    runParticleShape(particlePlayer, ticksResult.value(), () ->
+                    List<Double> tilts = options.tiltProvided()
+                            ? List.of(options.tiltDegrees())
+                            : List.of(-45.0, 0.0, 45.0);
+                    runParticleShape(particlePlayer, ticksResult.value(), tick -> {
+                        for (double tilt : tilts) {
                             particleService.sendArc(particlePlayer, preset, center, radius, degrees, pointsResult.value(),
-                                    options.axis(), options.tiltDegrees(), particlePlayer.getLocation()));
+                                    options.axis(), options.tiltAxis(), tilt, particlePlayer.getLocation());
+                        }
+                    });
                     ChatMessageUtil.send(particlePlayer, ChatMessageUtil.MessageType.SUCCESS,
                             "Spawned arc of " + particleName.toUpperCase(Locale.ROOT) + " particles for 5 seconds.");
                     return true;
@@ -367,14 +376,16 @@ public class DebugCommand implements TabExecutor {
                 if (ticksResult.value() <= 0) {
                     return true;
                 }
-                ParticleOptions options = parseOptions(args, ticksResult.nextIndex(), ParticleAxis.Y, preset.defaultCenter(), particlePlayer);
+                ParticleOptions options = parseOptions(args, ticksResult.nextIndex(), ParticleAxis.Y, ParticleRotationAxis.X,
+                        preset.defaultCenter(), particlePlayer);
                 Location center = resolveCenter(particlePlayer, options.centerMode());
                 if (options.centerMode() == ParticleCenter.SELF) {
                     center.add(0, 1.0, 0);
                 }
                 try {
-                    runParticleShape(particlePlayer, ticksResult.value(), () ->
-                            particleService.sendToPlayer(particlePlayer, preset, center, countResult.value()));
+                    runParticleShape(particlePlayer, ticksResult.value(), tick ->
+                            particleService.renderPreset(particlePlayer, preset, center, particlePlayer.getLocation(),
+                                    countResult.value(), tick));
                 } catch (Exception e) {
                     ChatMessageUtil.send(particlePlayer, ChatMessageUtil.MessageType.ERROR,
                             "Failed to spawn particle: " + e.getMessage());
@@ -608,7 +619,10 @@ public class DebugCommand implements TabExecutor {
                     .toList();
         } else if (args.length >= 4 && args[0].equalsIgnoreCase("particle")) {
             String current = args[args.length - 1].toLowerCase();
-            List<String> optionHints = List.of("axis=x", "axis=y", "axis=z", "axis=look", "tilt=45", "center=self", "center=look");
+            List<String> optionHints = List.of(
+                    "axis=x", "axis=y", "axis=z", "axis=look",
+                    "tilt=45", "tiltAxis=x", "tiltAxis=y", "tiltAxis=z",
+                    "center=self", "center=look");
             return optionHints.stream()
                     .filter(opt -> opt.startsWith(current))
                     .toList();
@@ -651,11 +665,13 @@ public class DebugCommand implements TabExecutor {
         }
     }
 
-    private ParticleOptions parseOptions(String[] args, int startIndex, ParticleAxis defaultAxis, ParticleCenter defaultCenter,
-                                         Player player) {
+    private ParticleOptions parseOptions(String[] args, int startIndex, ParticleAxis defaultAxis,
+                                         ParticleRotationAxis defaultTiltAxis, ParticleCenter defaultCenter, Player player) {
         ParticleAxis axis = defaultAxis;
+        ParticleRotationAxis tiltAxis = defaultTiltAxis;
         ParticleCenter centerMode = defaultCenter;
         double tiltDegrees = 0.0;
+        boolean tiltProvided = false;
         for (int i = startIndex; i < args.length; i++) {
             String token = args[i].toLowerCase(Locale.ROOT);
             if (token.startsWith("axis=")) {
@@ -673,6 +689,14 @@ public class DebugCommand implements TabExecutor {
                             "Tilt must be a number of degrees. Using 0.");
                 } else {
                     tiltDegrees = parsedTilt;
+                    tiltProvided = true;
+                }
+            } else if (token.startsWith("tiltaxis=")) {
+                String rawTiltAxis = token.substring("tiltaxis=".length());
+                tiltAxis = ParticleRotationAxis.fromToken(rawTiltAxis).orElse(defaultTiltAxis);
+                if (tiltAxis == defaultTiltAxis && !rawTiltAxis.isBlank()) {
+                    ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                            "Unknown tilt axis '" + rawTiltAxis + "'. Using " + defaultTiltAxis.name().toLowerCase(Locale.ROOT) + ".");
                 }
             } else if (token.startsWith("center=")) {
                 String rawCenter = token.substring("center=".length());
@@ -683,7 +707,7 @@ public class DebugCommand implements TabExecutor {
                 }
             }
         }
-        return new ParticleOptions(axis, centerMode, tiltDegrees);
+        return new ParticleOptions(axis, tiltAxis, centerMode, tiltDegrees, tiltProvided);
     }
 
     private Location resolveCenter(Player player, ParticleCenter centerMode) {
@@ -723,13 +747,14 @@ public class DebugCommand implements TabExecutor {
         }
     }
 
-    private void runParticleShape(Player player, int ticks, Runnable action) {
+    private void runParticleShape(Player player, int ticks, java.util.function.IntConsumer action) {
         if (ticks <= 0) {
-            action.run();
+            action.accept(0);
             return;
         }
         new BukkitRunnable() {
             int remaining = ticks;
+            int tick = 0;
 
             @Override
             public void run() {
@@ -737,13 +762,15 @@ public class DebugCommand implements TabExecutor {
                     cancel();
                     return;
                 }
-                action.run();
+                action.accept(tick);
                 remaining--;
+                tick++;
             }
         }.runTaskTimer(Main.getInstance(), 0L, 1L);
     }
 
-    private record ParticleOptions(ParticleAxis axis, ParticleCenter centerMode, double tiltDegrees) {
+    private record ParticleOptions(ParticleAxis axis, ParticleRotationAxis tiltAxis, ParticleCenter centerMode,
+                                   double tiltDegrees, boolean tiltProvided) {
     }
 
     private record ParseIntResult(int value, int nextIndex) {
