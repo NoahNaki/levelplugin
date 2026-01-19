@@ -118,6 +118,9 @@ public class SpellInputListener implements Listener {
     }
 
     private void handleComboClick(Player player, boolean leftClick, boolean archerFamily) {
+        if (isMainHandEmpty(player)) {
+            return;
+        }
         SpellComboTracker tracker = comboTrackers.computeIfAbsent(player.getUniqueId(),
                 id -> new SpellComboTracker(COMBO_TIMEOUT_MS));
         boolean comboStarted = tracker.hasInputs();
@@ -171,6 +174,10 @@ public class SpellInputListener implements Listener {
         return ClassUtil.isArcherFamily(playerClass);
     }
 
+    private boolean isMainHandEmpty(Player player) {
+        return player.getInventory().getItemInMainHand().getType().isAir();
+    }
+
     private boolean isLeftClickAction(Action action) {
         return action == Action.LEFT_CLICK_AIR || action == Action.LEFT_CLICK_BLOCK;
     }
@@ -180,6 +187,7 @@ public class SpellInputListener implements Listener {
     }
 
     private void handleClick(Player player, boolean leftClick) {
+        sendClickDebug(player, leftClick);
         PlayerSettings settings = settingsManager.getSettings(player);
         SpellInputMode mode = settings.getSpellInputMode();
         boolean archerFamily = isArcherFamily(player);
@@ -193,6 +201,11 @@ public class SpellInputListener implements Listener {
     private void dispatch(Player player, SpellInputType type, SpellInputMode mode, String sequence) {
         Bukkit.getPluginManager().callEvent(new SpellInputEvent(player, type, mode, sequence));
         sendSpellCastIndicator(player, type);
+    }
+
+    private void sendClickDebug(Player player, boolean leftClick) {
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                "Click " + (leftClick ? "Left" : "Right") + " Class: " + getPlayerClassName(player));
     }
 
     private boolean shouldProcessRightClick(Player player) {
@@ -213,11 +226,14 @@ public class SpellInputListener implements Listener {
                 && type != SpellInputType.SPELL_4) {
             return;
         }
-        PlayerClass playerClass = PlayerClassManager.getInstance().getPlayerClass(player);
-        String className = playerClass != null ? playerClass.getDisplayName() : "Unknown";
         int spellNumber = type.ordinal();
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
-                "Spell " + spellNumber + " " + className + " Casted");
+                "Spell " + spellNumber + " " + getPlayerClassName(player) + " Casted");
+    }
+
+    private String getPlayerClassName(Player player) {
+        PlayerClass playerClass = PlayerClassManager.getInstance().getPlayerClass(player);
+        return playerClass != null ? playerClass.getDisplayName() : "Unknown";
     }
 
     private static final class SneakState {
