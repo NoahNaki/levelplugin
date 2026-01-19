@@ -2,7 +2,9 @@ package me.nakilex.levelplugin.utils;
 
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.settings.managers.SettingsManager;
 import me.nakilex.levelplugin.spells.input.SpellInputDisplayManager;
+import me.nakilex.levelplugin.spells.input.SpellInputMode;
 import org.bukkit.entity.Player;
 
 /**
@@ -11,10 +13,12 @@ import org.bukkit.entity.Player;
  */
 public class LevelPlaceholderExpansion extends PlaceholderExpansion {
     private final Main plugin;
+    private final SettingsManager settingsManager;
     private final SpellInputDisplayManager displayManager = SpellInputDisplayManager.getInstance();
 
     public LevelPlaceholderExpansion(Main plugin) {
         this.plugin = plugin;
+        this.settingsManager = plugin.getSettingsManager();
     }
 
     @Override
@@ -37,6 +41,9 @@ public class LevelPlaceholderExpansion extends PlaceholderExpansion {
         if (player == null || params == null) {
             return "";
         }
+        if (!isMouseComboEnabled(player)) {
+            return "";
+        }
         String key = params.toLowerCase();
         return switch (key) {
             case "spell_combo_active" -> displayManager.isComboActive(player) ? "1" : "0";
@@ -46,5 +53,12 @@ public class LevelPlaceholderExpansion extends PlaceholderExpansion {
             case "spell_combo_slot3" -> displayManager.getComboSlot(player, 2);
             default -> null;
         };
+    }
+
+    private boolean isMouseComboEnabled(Player player) {
+        if (settingsManager == null) {
+            return false;
+        }
+        return settingsManager.getSettings(player).getSpellInputMode() == SpellInputMode.MOUSE_COMBO;
     }
 }
