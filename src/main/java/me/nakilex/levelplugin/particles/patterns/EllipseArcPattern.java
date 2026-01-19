@@ -13,7 +13,8 @@ import org.bukkit.util.Vector;
 public record EllipseArcPattern(Particle particle, Object data, double radiusX, double radiusZ,
                                 double width, double startAngleDegrees, double endAngleDegrees,
                                 double rotationSpeed, ParticlePlane plane, double tiltDegrees,
-                                ParticleRotationAxis tiltAxis)
+                                ParticleRotationAxis tiltAxis, double rotateXDegrees,
+                                double rotateYDegrees, double rotateZDegrees)
         implements ParticlePattern {
 
     private static final double DEFAULT_POINT_SPACING = 0.18;
@@ -43,6 +44,9 @@ public record EllipseArcPattern(Particle particle, Object data, double radiusX, 
                 double adjustedRadiusZ = Math.max(0.05, radiusZ + offsetAmount);
                 Vector offset = buildEllipseOffset(angle, adjustedRadiusX, adjustedRadiusZ);
                 offset = ParticleMath.orientAndTilt(offset, plane, context.orientation(), tiltAxis, tiltDegrees);
+                offset = ParticleMath.rotateByAxis(offset, ParticleRotationAxis.X, rotateXDegrees);
+                offset = ParticleMath.rotateByAxis(offset, ParticleRotationAxis.Y, rotateYDegrees);
+                offset = ParticleMath.rotateByAxis(offset, ParticleRotationAxis.Z, rotateZDegrees);
                 Location spawn = context.center().clone().add(offset);
                 ParticleSpawnUtil.spawn(world, spawn, particle, 1, data);
             }

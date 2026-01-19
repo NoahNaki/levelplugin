@@ -51,6 +51,9 @@ public class ArcSlashDebugGUI implements Listener {
     private static final int FORWARD_OFFSET_SLOT = 32;
     private static final int RIGHT_OFFSET_SLOT = 33;
     private static final int UP_OFFSET_SLOT = 34;
+    private static final int ROTATE_X_SLOT = 37;
+    private static final int ROTATE_Y_SLOT = 38;
+    private static final int ROTATE_Z_SLOT = 39;
     private static final int INFO_SLOT = 40;
 
     private static final double DISTANCE_STEP = 0.1;
@@ -60,6 +63,7 @@ public class ArcSlashDebugGUI implements Listener {
     private static final double SIDE_SHIFT_STEP = 0.05;
     private static final double OFFSET_STEP = 0.1;
     private static final double WIDTH_STEP = 0.05;
+    private static final double ROTATION_STEP = 5.0;
 
     private static final int POINT_STEP = 2;
     private static final int TICK_STEP = 1;
@@ -196,6 +200,12 @@ public class ArcSlashDebugGUI implements Listener {
             config.setRightOffset(clampDouble(config.rightOffset() + OFFSET_STEP * direction * multiplier, -4.0, 4.0));
         } else if (slot == UP_OFFSET_SLOT) {
             config.setUpOffset(clampDouble(config.upOffset() + OFFSET_STEP * direction * multiplier, -4.0, 4.0));
+        } else if (slot == ROTATE_X_SLOT) {
+            config.setRotateXDegrees(clampDouble(config.rotateXDegrees() + ROTATION_STEP * direction * multiplier, -180.0, 180.0));
+        } else if (slot == ROTATE_Y_SLOT) {
+            config.setRotateYDegrees(clampDouble(config.rotateYDegrees() + ROTATION_STEP * direction * multiplier, -180.0, 180.0));
+        } else if (slot == ROTATE_Z_SLOT) {
+            config.setRotateZDegrees(clampDouble(config.rotateZDegrees() + ROTATION_STEP * direction * multiplier, -180.0, 180.0));
         }
     }
 
@@ -285,6 +295,18 @@ public class ArcSlashDebugGUI implements Listener {
                 "Raise or lower the arc.",
                 List.of("Current: " + ChatColor.WHITE + formatDecimal(config.upOffset())),
                 "to move up", "to move down", "to move further", "to move further"));
+        builder.setItem(ROTATE_X_SLOT, createParamItem(Material.IRON_BARS, ChatColor.AQUA + "Rotate X",
+                "Rotate the arc around the X axis.",
+                List.of("Current: " + ChatColor.WHITE + formatDecimal(config.rotateXDegrees()) + "°"),
+                "to rotate forward", "to rotate backward", "to rotate faster", "to rotate faster"));
+        builder.setItem(ROTATE_Y_SLOT, createParamItem(Material.IRON_BLOCK, ChatColor.AQUA + "Rotate Y",
+                "Rotate the arc around the Y axis.",
+                List.of("Current: " + ChatColor.WHITE + formatDecimal(config.rotateYDegrees()) + "°"),
+                "to rotate forward", "to rotate backward", "to rotate faster", "to rotate faster"));
+        builder.setItem(ROTATE_Z_SLOT, createParamItem(Material.IRON_NUGGET, ChatColor.AQUA + "Rotate Z",
+                "Rotate the arc around the Z axis.",
+                List.of("Current: " + ChatColor.WHITE + formatDecimal(config.rotateZDegrees()) + "°"),
+                "to rotate forward", "to rotate backward", "to rotate faster", "to rotate faster"));
         builder.setItem(INFO_SLOT, createInfoItem(config));
         builder.setItem(RESET_SLOT, GuiUtil.getNexoItem("refresh", ChatColor.YELLOW + "Reset Defaults"));
         builder.setItem(SAVE_SLOT, GuiUtil.getNexoItem("save", ChatColor.GREEN + "Save Settings"));

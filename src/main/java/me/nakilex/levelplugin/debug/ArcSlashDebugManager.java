@@ -79,14 +79,17 @@ public class ArcSlashDebugManager implements Listener {
                 new EllipseArcPattern(config.particle(), null, radiusX, radiusZ, config.width(),
                         config.startAngleDegrees(), config.endAngleDegrees(), rotationSpeed,
                         ParticlePlane.LOOK_VERTICAL, baseTilt - config.layerTiltStep(),
-                        ParticleRotationAxis.LOOK_RIGHT),
+                        ParticleRotationAxis.LOOK_RIGHT, config.rotateXDegrees(),
+                        config.rotateYDegrees(), config.rotateZDegrees()),
                 new EllipseArcPattern(config.particle(), null, radiusX, radiusZ, config.width(),
                         config.startAngleDegrees(), config.endAngleDegrees(), rotationSpeed,
-                        ParticlePlane.LOOK_VERTICAL, baseTilt, ParticleRotationAxis.LOOK_RIGHT),
+                        ParticlePlane.LOOK_VERTICAL, baseTilt, ParticleRotationAxis.LOOK_RIGHT,
+                        config.rotateXDegrees(), config.rotateYDegrees(), config.rotateZDegrees()),
                 new EllipseArcPattern(config.particle(), null, radiusX, radiusZ, config.width(),
                         config.startAngleDegrees(), config.endAngleDegrees(), rotationSpeed,
                         ParticlePlane.LOOK_VERTICAL, baseTilt + config.layerTiltStep(),
-                        ParticleRotationAxis.LOOK_RIGHT)
+                        ParticleRotationAxis.LOOK_RIGHT, config.rotateXDegrees(),
+                        config.rotateYDegrees(), config.rotateZDegrees())
         );
 
         Location orientation = player.getLocation().clone();
@@ -181,13 +184,17 @@ public class ArcSlashDebugManager implements Listener {
         private double forwardOffset;
         private double rightOffset;
         private double upOffset;
+        private double rotateXDegrees;
+        private double rotateYDegrees;
+        private double rotateZDegrees;
 
         public ArcSlashConfig(Particle particle, int points, int ticks, int frameStep, double startDistance,
                               double travelDistance, double radiusXMin, double radiusXMax,
                               double radiusZMin, double radiusZMax, double width,
                               double startAngleDegrees, double endAngleDegrees, double baseTiltMin,
                               double baseTiltMax, double layerTiltStep, double sideShiftFactor,
-                              double forwardOffset, double rightOffset, double upOffset) {
+                              double forwardOffset, double rightOffset, double upOffset,
+                              double rotateXDegrees, double rotateYDegrees, double rotateZDegrees) {
             this.particle = particle;
             this.points = points;
             this.ticks = ticks;
@@ -208,18 +215,23 @@ public class ArcSlashDebugManager implements Listener {
             this.forwardOffset = forwardOffset;
             this.rightOffset = rightOffset;
             this.upOffset = upOffset;
+            this.rotateXDegrees = rotateXDegrees;
+            this.rotateYDegrees = rotateYDegrees;
+            this.rotateZDegrees = rotateZDegrees;
         }
 
         public static ArcSlashConfig defaultConfig() {
             return new ArcSlashConfig(Particle.CRIT, 28, 7, 2, 2.4, 2.6, 2.2, 2.8, 1.1, 1.6,
-                    0.3, -75.0, 75.0, -22.0, 22.0, 26.0, 0.0, 0.0, 0.0, 0.0);
+                    0.3, -75.0, 75.0, -22.0, 22.0, 26.0, 0.0, 0.0, 0.0, 0.0,
+                    0.0, 0.0, 0.0);
         }
 
         public ArcSlashConfig copy() {
             return new ArcSlashConfig(particle, points, ticks, frameStep, startDistance, travelDistance,
                     radiusXMin, radiusXMax, radiusZMin, radiusZMax, width, startAngleDegrees,
                     endAngleDegrees, baseTiltMin, baseTiltMax, layerTiltStep, sideShiftFactor,
-                    forwardOffset, rightOffset, upOffset);
+                    forwardOffset, rightOffset, upOffset, rotateXDegrees, rotateYDegrees,
+                    rotateZDegrees);
         }
 
         public String describe() {
@@ -242,7 +254,10 @@ public class ArcSlashDebugManager implements Listener {
                     + ", sideShiftFactor=" + sideShiftFactor
                     + ", forwardOffset=" + forwardOffset
                     + ", rightOffset=" + rightOffset
-                    + ", upOffset=" + upOffset;
+                    + ", upOffset=" + upOffset
+                    + ", rotateXDegrees=" + rotateXDegrees
+                    + ", rotateYDegrees=" + rotateYDegrees
+                    + ", rotateZDegrees=" + rotateZDegrees;
         }
 
         public Particle particle() {
@@ -403,6 +418,30 @@ public class ArcSlashDebugManager implements Listener {
 
         public void setUpOffset(double upOffset) {
             this.upOffset = upOffset;
+        }
+
+        public double rotateXDegrees() {
+            return rotateXDegrees;
+        }
+
+        public void setRotateXDegrees(double rotateXDegrees) {
+            this.rotateXDegrees = rotateXDegrees;
+        }
+
+        public double rotateYDegrees() {
+            return rotateYDegrees;
+        }
+
+        public void setRotateYDegrees(double rotateYDegrees) {
+            this.rotateYDegrees = rotateYDegrees;
+        }
+
+        public double rotateZDegrees() {
+            return rotateZDegrees;
+        }
+
+        public void setRotateZDegrees(double rotateZDegrees) {
+            this.rotateZDegrees = rotateZDegrees;
         }
     }
 }
