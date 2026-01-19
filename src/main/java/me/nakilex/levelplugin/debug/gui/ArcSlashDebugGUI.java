@@ -74,7 +74,7 @@ public class ArcSlashDebugGUI implements Listener {
             Particle.CRIT,
             Particle.ENCHANT,
             Particle.CLOUD,
-            Particle.FIREWORKS_SPARK,
+            Particle.FIREWORK,
             Particle.FLAME,
             Particle.SMOKE,
             Particle.HEART

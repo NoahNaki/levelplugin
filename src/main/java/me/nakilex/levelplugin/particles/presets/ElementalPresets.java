@@ -27,7 +27,7 @@ public final class ElementalPresets {
     public static final ParticlePreset EMBER = new ParticlePreset(
             "EMBER",
             List.of(
-                    new HelixPattern(Particle.SMOKE_NORMAL, null, 0.6, 2.4, 1.4, -6.0, ParticlePlane.Y, 0,
+                    new HelixPattern(Particle.SMOKE, null, 0.6, 2.4, 1.4, -6.0, ParticlePlane.Y, 0,
                             null),
                     new SpiralPattern(Particle.FLAME, null, 1.0, 2.0, 4.0, 1.3, true, ParticlePlane.Y, 0,
                             null)
@@ -112,7 +112,7 @@ public final class ElementalPresets {
     public static final ParticlePreset METEOR_FALL = new ParticlePreset(
             "METEOR_FALL",
             List.of(
-                    new HelixPattern(Particle.SMOKE_NORMAL, null, 0.5, 2.8, 1.2, -5.0, ParticlePlane.Y, 0,
+                    new HelixPattern(Particle.SMOKE, null, 0.5, 2.8, 1.2, -5.0, ParticlePlane.Y, 0,
                             null),
                     new SpiralPattern(Particle.LAVA, null, 0.9, 2.2, 5.0, 1.1, true, ParticlePlane.Y, 0,
                             null)
