@@ -1,6 +1,6 @@
-package hm.zelha.particlesfx.particles;
+package me.nakilex.levelplugin.particles.particles;
 
-import hm.zelha.particlesfx.particles.parents.Particle;
+import me.nakilex.levelplugin.particles.particles.parents.Particle;
 import org.bukkit.Effect;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;

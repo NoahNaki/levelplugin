@@ -1,6 +1,6 @@
-package hm.zelha.particlesfx.particles;
+package me.nakilex.levelplugin.particles.particles;
 
-import hm.zelha.particlesfx.particles.parents.Particle;
+import me.nakilex.levelplugin.particles.particles.parents.Particle;
 
 public class ParticleCherryLeaves extends Particle {
     public ParticleCherryLeaves(double offsetX, double offsetY, double offsetZ, int count) {

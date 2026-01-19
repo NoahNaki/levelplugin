@@ -1,9 +1,9 @@
-package hm.zelha.particlesfx.shapers;
+package me.nakilex.levelplugin.particles.shapers;
 
-import hm.zelha.particlesfx.particles.parents.Particle;
-import hm.zelha.particlesfx.shapers.parents.ParticleShaper;
-import hm.zelha.particlesfx.util.*;
-import org.apache.commons.lang.Validate;
+import me.nakilex.levelplugin.particles.particles.parents.Particle;
+import me.nakilex.levelplugin.particles.shapers.parents.ParticleShaper;
+import me.nakilex.levelplugin.particles.util.*;
+import me.nakilex.levelplugin.particles.util.Validate;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.util.Vector;

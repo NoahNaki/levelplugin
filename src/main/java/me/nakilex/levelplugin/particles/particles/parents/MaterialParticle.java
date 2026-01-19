@@ -1,4 +1,4 @@
-package hm.zelha.particlesfx.particles.parents;
+package me.nakilex.levelplugin.particles.particles.parents;
 
 import org.bukkit.Material;
 

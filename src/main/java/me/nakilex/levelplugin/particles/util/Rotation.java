@@ -1,7 +1,7 @@
-package hm.zelha.particlesfx.util;
+package me.nakilex.levelplugin.particles.util;
 
-import hm.zelha.particlesfx.shapers.parents.Shape;
-import org.apache.commons.lang.Validate;
+import me.nakilex.levelplugin.particles.shapers.parents.Shape;
+import me.nakilex.levelplugin.particles.util.Validate;
 import org.bukkit.util.Vector;
 
 public class Rotation {

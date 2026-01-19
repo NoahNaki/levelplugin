@@ -1,8 +1,8 @@
-package hm.zelha.particlesfx.particles;
+package me.nakilex.levelplugin.particles.particles;
 
-import hm.zelha.particlesfx.particles.parents.MaterialParticle;
-import hm.zelha.particlesfx.particles.parents.Particle;
-import org.apache.commons.lang.Validate;
+import me.nakilex.levelplugin.particles.particles.parents.MaterialParticle;
+import me.nakilex.levelplugin.particles.particles.parents.Particle;
+import me.nakilex.levelplugin.particles.util.Validate;
 import org.bukkit.Material;
 
 public class ParticleBlockBreak extends Particle implements MaterialParticle {

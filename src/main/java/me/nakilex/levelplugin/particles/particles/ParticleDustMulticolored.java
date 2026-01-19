@@ -1,9 +1,9 @@
-package hm.zelha.particlesfx.particles;
+package me.nakilex.levelplugin.particles.particles;
 
-import hm.zelha.particlesfx.particles.parents.ColorableParticle;
-import hm.zelha.particlesfx.particles.parents.Particle;
-import hm.zelha.particlesfx.particles.parents.SizeableParticle;
-import hm.zelha.particlesfx.util.Color;
+import me.nakilex.levelplugin.particles.particles.parents.ColorableParticle;
+import me.nakilex.levelplugin.particles.particles.parents.Particle;
+import me.nakilex.levelplugin.particles.particles.parents.SizeableParticle;
+import me.nakilex.levelplugin.particles.util.Color;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 

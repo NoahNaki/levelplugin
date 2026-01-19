@@ -1,7 +1,7 @@
-package hm.zelha.particlesfx.shapers.parents;
+package me.nakilex.levelplugin.particles.shapers.parents;
 
-import hm.zelha.particlesfx.util.*;
-import org.apache.commons.lang.Validate;
+import me.nakilex.levelplugin.particles.util.*;
+import me.nakilex.levelplugin.particles.util.Validate;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;

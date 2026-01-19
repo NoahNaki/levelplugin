@@ -69,7 +69,7 @@ import me.nakilex.levelplugin.utils.EntityTextDisplay;
 import me.nakilex.levelplugin.utils.MetadataTrait;
 import me.nakilex.levelplugin.utils.HologramUtil;
 import me.nakilex.levelplugin.utils.MultiLineHologram;
-import hm.zelha.particlesfx.util.ParticleSFX;
+import me.nakilex.levelplugin.particles.util.ParticleSFX;
 import me.nakilex.levelplugin.utils.registeries.CommandRegistry;
 import me.nakilex.levelplugin.utils.registeries.ListenerRegistry;
 import me.nakilex.levelplugin.utils.registeries.TaskRegistry;

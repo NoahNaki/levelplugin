@@ -1,10 +1,10 @@
-package hm.zelha.particlesfx.shapers.parents;
+package me.nakilex.levelplugin.particles.shapers.parents;
 
-import hm.zelha.particlesfx.particles.parents.Particle;
-import hm.zelha.particlesfx.util.Pair;
-import hm.zelha.particlesfx.util.ParticleSFX;
-import hm.zelha.particlesfx.util.ShapeDisplayMechanic;
-import org.apache.commons.lang.Validate;
+import me.nakilex.levelplugin.particles.particles.parents.Particle;
+import me.nakilex.levelplugin.particles.util.Pair;
+import me.nakilex.levelplugin.particles.util.ParticleSFX;
+import me.nakilex.levelplugin.particles.util.ShapeDisplayMechanic;
+import me.nakilex.levelplugin.particles.util.Validate;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;

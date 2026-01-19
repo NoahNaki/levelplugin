@@ -1,6 +1,6 @@
-package hm.zelha.particlesfx.util;
+package me.nakilex.levelplugin.particles.util;
 
-import hm.zelha.particlesfx.shapers.parents.RotationHandler;
+import me.nakilex.levelplugin.particles.shapers.parents.RotationHandler;
 
 import java.util.ArrayList;
 import java.util.HashMap;

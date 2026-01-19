@@ -1,6 +1,6 @@
 package me.nakilex.levelplugin.debug.particles;
 
-import hm.zelha.particlesfx.particles.parents.Particle;
+import me.nakilex.levelplugin.particles.particles.parents.Particle;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;

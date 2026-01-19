@@ -1,6 +1,6 @@
 package me.nakilex.levelplugin.debug.particles;
 
-import hm.zelha.particlesfx.particles.parents.Particle;
+import me.nakilex.levelplugin.particles.particles.parents.Particle;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
@@ -22,8 +22,8 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
 public class ParticleDebugRegistry {
-    private static final String PARTICLE_PACKAGE = "hm.zelha.particlesfx.particles";
-    private static final String PARTICLE_PATH = "hm/zelha/particlesfx/particles";
+    private static final String PARTICLE_PACKAGE = "me.nakilex.levelplugin.particles.particles";
+    private static final String PARTICLE_PATH = "me/nakilex/levelplugin/particles/particles";
     private final JavaPlugin plugin;
     private List<ParticleDefinition> cached;
 

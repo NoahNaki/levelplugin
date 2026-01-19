@@ -1,6 +1,6 @@
-package hm.zelha.particlesfx.particles;
+package me.nakilex.levelplugin.particles.particles;
 
-import hm.zelha.particlesfx.particles.parents.Particle;
+import me.nakilex.levelplugin.particles.particles.parents.Particle;
 
 /**
  * this particle almost instantly disappears when displayed out of water, which can be displeasing to the eyes

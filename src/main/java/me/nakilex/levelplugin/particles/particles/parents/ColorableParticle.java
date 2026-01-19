@@ -1,6 +1,6 @@
-package hm.zelha.particlesfx.particles.parents;
+package me.nakilex.levelplugin.particles.particles.parents;
 
-import hm.zelha.particlesfx.util.Color;
+import me.nakilex.levelplugin.particles.util.Color;
 
 import javax.annotation.Nullable;
 

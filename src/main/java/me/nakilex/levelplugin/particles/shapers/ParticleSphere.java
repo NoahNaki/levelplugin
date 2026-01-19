@@ -1,10 +1,10 @@
-package hm.zelha.particlesfx.shapers;
+package me.nakilex.levelplugin.particles.shapers;
 
-import hm.zelha.particlesfx.particles.parents.Particle;
-import hm.zelha.particlesfx.shapers.parents.ParticleShaper;
-import hm.zelha.particlesfx.util.LocationSafe;
-import hm.zelha.particlesfx.util.ParticleShapeCompound;
-import hm.zelha.particlesfx.util.ShapeDisplayMechanic;
+import me.nakilex.levelplugin.particles.particles.parents.Particle;
+import me.nakilex.levelplugin.particles.shapers.parents.ParticleShaper;
+import me.nakilex.levelplugin.particles.util.LocationSafe;
+import me.nakilex.levelplugin.particles.util.ParticleShapeCompound;
+import me.nakilex.levelplugin.particles.util.ShapeDisplayMechanic;
 
 /**
  * This class uses the <a href="https://medium.com/@vagnerseibert/distributing-points-on-a-sphere-6b593cc05b42">Sunflower Seed Arrangement</a>

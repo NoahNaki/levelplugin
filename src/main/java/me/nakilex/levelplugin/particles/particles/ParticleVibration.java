@@ -1,8 +1,8 @@
-package hm.zelha.particlesfx.particles;
+package me.nakilex.levelplugin.particles.particles;
 
-import hm.zelha.particlesfx.particles.parents.Particle;
-import hm.zelha.particlesfx.particles.parents.TravellingParticle;
-import hm.zelha.particlesfx.util.LVMath;
+import me.nakilex.levelplugin.particles.particles.parents.Particle;
+import me.nakilex.levelplugin.particles.particles.parents.TravellingParticle;
+import me.nakilex.levelplugin.particles.util.LVMath;
 import org.bukkit.Location;
 import org.bukkit.Vibration;
 import org.bukkit.entity.Entity;

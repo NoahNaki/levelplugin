@@ -1,6 +1,6 @@
 package me.nakilex.levelplugin.debug.gui;
 
-import hm.zelha.particlesfx.particles.parents.Particle;
+import me.nakilex.levelplugin.particles.particles.parents.Particle;
 import me.nakilex.levelplugin.debug.particles.ParticleDebugManager;
 import me.nakilex.levelplugin.debug.particles.ParticleDebugRegistry;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;

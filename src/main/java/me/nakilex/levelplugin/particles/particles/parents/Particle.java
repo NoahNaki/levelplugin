@@ -1,7 +1,7 @@
-package hm.zelha.particlesfx.particles.parents;
+package me.nakilex.levelplugin.particles.particles.parents;
 
-import hm.zelha.particlesfx.util.LVMath;
-import org.apache.commons.lang.Validate;
+import me.nakilex.levelplugin.particles.util.LVMath;
+import me.nakilex.levelplugin.particles.util.Validate;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;

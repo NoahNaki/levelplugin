@@ -1,4 +1,4 @@
-package hm.zelha.particlesfx.util;
+package me.nakilex.levelplugin.particles.util;
 
 public enum LiquidParticleState {
     DRIPPING,

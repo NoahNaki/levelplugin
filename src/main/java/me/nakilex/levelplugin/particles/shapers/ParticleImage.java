@@ -1,15 +1,15 @@
-package hm.zelha.particlesfx.shapers;
+package me.nakilex.levelplugin.particles.shapers;
 
-import hm.zelha.particlesfx.particles.ParticleDustColored;
-import hm.zelha.particlesfx.particles.ParticleEffectColored;
-import hm.zelha.particlesfx.particles.parents.ColorableParticle;
-import hm.zelha.particlesfx.particles.parents.Particle;
-import hm.zelha.particlesfx.shapers.parents.ParticleShaper;
-import hm.zelha.particlesfx.util.Color;
-import hm.zelha.particlesfx.util.LocationSafe;
-import hm.zelha.particlesfx.util.ParticleShapeCompound;
-import hm.zelha.particlesfx.util.ShapeDisplayMechanic;
-import org.apache.commons.lang.Validate;
+import me.nakilex.levelplugin.particles.particles.ParticleDustColored;
+import me.nakilex.levelplugin.particles.particles.ParticleEffectColored;
+import me.nakilex.levelplugin.particles.particles.parents.ColorableParticle;
+import me.nakilex.levelplugin.particles.particles.parents.Particle;
+import me.nakilex.levelplugin.particles.shapers.parents.ParticleShaper;
+import me.nakilex.levelplugin.particles.util.Color;
+import me.nakilex.levelplugin.particles.util.LocationSafe;
+import me.nakilex.levelplugin.particles.util.ParticleShapeCompound;
+import me.nakilex.levelplugin.particles.util.ShapeDisplayMechanic;
+import me.nakilex.levelplugin.particles.util.Validate;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 

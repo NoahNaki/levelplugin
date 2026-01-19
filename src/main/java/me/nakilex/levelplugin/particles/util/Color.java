@@ -1,6 +1,6 @@
-package hm.zelha.particlesfx.util;
+package me.nakilex.levelplugin.particles.util;
 
-import org.apache.commons.lang.Validate;
+import me.nakilex.levelplugin.particles.util.Validate;
 
 public class Color {
 

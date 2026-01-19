@@ -1,9 +1,9 @@
-package hm.zelha.particlesfx.util;
+package me.nakilex.levelplugin.particles.util;
 
-import hm.zelha.particlesfx.particles.parents.Particle;
-import hm.zelha.particlesfx.particles.parents.TravellingParticle;
-import hm.zelha.particlesfx.shapers.*;
-import org.apache.commons.lang.Validate;
+import me.nakilex.levelplugin.particles.particles.parents.Particle;
+import me.nakilex.levelplugin.particles.particles.parents.TravellingParticle;
+import me.nakilex.levelplugin.particles.shapers.*;
+import me.nakilex.levelplugin.particles.util.Validate;
 import org.bukkit.Location;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.util.NumberConversions;

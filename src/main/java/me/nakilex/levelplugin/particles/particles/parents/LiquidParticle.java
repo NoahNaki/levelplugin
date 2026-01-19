@@ -1,6 +1,6 @@
-package hm.zelha.particlesfx.particles.parents;
+package me.nakilex.levelplugin.particles.particles.parents;
 
-import hm.zelha.particlesfx.util.LiquidParticleState;
+import me.nakilex.levelplugin.particles.util.LiquidParticleState;
 
 public interface LiquidParticle extends IParticle {
     LiquidParticle inherit(Particle particle);
