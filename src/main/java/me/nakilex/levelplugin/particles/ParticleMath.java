@@ -84,6 +84,16 @@ public final class ParticleMath {
                 }
                 return rotateAroundAxis(rotated, axisVector.normalize(), radians);
             }
+            case LOOK_RIGHT -> {
+                if (orientation == null) {
+                    return rotated;
+                }
+                Vector axisVector = resolveRightAxis(orientation);
+                if (axisVector.lengthSquared() <= 0.0001) {
+                    return rotated;
+                }
+                return rotateAroundAxis(rotated, axisVector.normalize(), radians);
+            }
         }
         return rotated;
     }
@@ -119,5 +129,14 @@ public final class ParticleMath {
         return v.multiply(cos)
                 .add(k.multiply(dot * (1 - cos)))
                 .add(cross.multiply(sin));
+    }
+
+    private static Vector resolveRightAxis(Location orientation) {
+        Vector direction = orientation.getDirection().clone();
+        if (direction.lengthSquared() <= 0.0001) {
+            return new Vector();
+        }
+        Vector up = new Vector(0, 1, 0);
+        return up.crossProduct(direction).normalize();
     }
 }
