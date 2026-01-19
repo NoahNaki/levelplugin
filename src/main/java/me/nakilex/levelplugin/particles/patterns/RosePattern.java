@@ -27,7 +27,7 @@ public record RosePattern(Particle particle, Object data, double radius, double 
             double angle = (Math.PI * 2 * progress) + rotation;
             double radial = radius * Math.cos(petals * angle);
             Vector offset = ParticleMath.buildOffset(angle, radial, plane);
-            offset = ParticleMath.orientAndTilt(offset, plane, context.player().getLocation(), tiltAxis, tiltDegrees);
+            offset = ParticleMath.orientAndTilt(offset, plane, context.orientation(), tiltAxis, tiltDegrees);
             Location spawn = context.center().clone().add(offset);
             ParticleSpawnUtil.spawn(world, spawn, particle, 1, data);
         }

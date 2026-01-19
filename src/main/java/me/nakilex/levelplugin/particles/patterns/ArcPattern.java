@@ -28,7 +28,7 @@ public record ArcPattern(Particle particle, Object data, double radius, double s
             double progress = points == 1 ? 1.0 : (double) i / (points - 1);
             double angle = start + (end - start) * progress + rotation;
             Vector offset = ParticleMath.buildOffset(angle, radius, plane);
-            offset = ParticleMath.orientAndTilt(offset, plane, context.player().getLocation(), tiltAxis, tiltDegrees);
+            offset = ParticleMath.orientAndTilt(offset, plane, context.orientation(), tiltAxis, tiltDegrees);
             Location spawn = context.center().clone().add(offset);
             ParticleSpawnUtil.spawn(world, spawn, particle, 1, data);
         }

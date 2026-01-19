@@ -42,8 +42,8 @@ public class ParticleService {
                 Location center = centerOverride == null
                         ? resolveCenter(player, settings)
                         : centerOverride.clone();
-                ParticleRenderContext context = new ParticleRenderContext(player, center, settings.points(), tick,
-                        settings.ticks());
+                ParticleRenderContext context = new ParticleRenderContext(player, center, player.getLocation(),
+                        settings.points(), tick, settings.ticks());
                 for (ParticlePattern pattern : preset.patterns()) {
                     pattern.render(context);
                 }

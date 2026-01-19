@@ -29,8 +29,8 @@ public record SpiralPattern(Particle particle, Object data, double baseRadius, d
             double height = baseHeight * progress;
             double angle = (Math.PI * 2 * turns * progress) + rotation;
             Vector offset = ParticleMath.buildOffset(angle, radius, plane);
-            offset = ParticleMath.addHeight(offset, height, plane, context.player().getLocation());
-            offset = ParticleMath.orientAndTilt(offset, plane, context.player().getLocation(), tiltAxis, tiltDegrees);
+            offset = ParticleMath.addHeight(offset, height, plane, context.orientation());
+            offset = ParticleMath.orientAndTilt(offset, plane, context.orientation(), tiltAxis, tiltDegrees);
             Location spawn = context.center().clone().add(offset);
             ParticleSpawnUtil.spawn(world, spawn, particle, 1, data);
         }

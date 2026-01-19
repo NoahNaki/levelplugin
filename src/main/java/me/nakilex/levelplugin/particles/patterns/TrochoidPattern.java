@@ -32,7 +32,7 @@ public record TrochoidPattern(Particle particle, Object data, double fixedRadius
             double z = (fixedRadius - rollingRadius) * sin - offsetDistance * Math.sin(ratio * t);
             Vector base = new Vector(x, 0, z);
             Vector offset = ParticleMath.mapToPlane(base, plane);
-            offset = ParticleMath.orientAndTilt(offset, plane, context.player().getLocation(), tiltAxis, tiltDegrees);
+            offset = ParticleMath.orientAndTilt(offset, plane, context.orientation(), tiltAxis, tiltDegrees);
             Location spawn = context.center().clone().add(offset);
             ParticleSpawnUtil.spawn(world, spawn, particle, 1, data);
         }

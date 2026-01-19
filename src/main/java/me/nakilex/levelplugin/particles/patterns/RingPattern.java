@@ -25,7 +25,7 @@ public record RingPattern(Particle particle, Object data, double radius, double 
         for (int i = 0; i < points; i++) {
             double angle = (Math.PI * 2 * i / points) + rotation;
             Vector offset = ParticleMath.buildOffset(angle, radius, plane);
-            offset = ParticleMath.orientAndTilt(offset, plane, context.player().getLocation(), tiltAxis, tiltDegrees);
+            offset = ParticleMath.orientAndTilt(offset, plane, context.orientation(), tiltAxis, tiltDegrees);
             Location spawn = context.center().clone().add(offset);
             ParticleSpawnUtil.spawn(world, spawn, particle, 1, data);
         }

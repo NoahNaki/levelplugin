@@ -45,7 +45,7 @@ public record CrescentPattern(Particle particle, Object data, double outerRadius
             double progress = outerPoints == 1 ? 1.0 : (double) i / (outerPoints - 1);
             double angle = thetaStart + (thetaEnd - thetaStart) * progress + rotation;
             Vector offset = ParticleMath.buildOffset(angle, outerRadius, plane);
-            offset = ParticleMath.orientAndTilt(offset, plane, context.player().getLocation(), tiltAxis, tiltDegrees);
+            offset = ParticleMath.orientAndTilt(offset, plane, context.orientation(), tiltAxis, tiltDegrees);
             Location spawn = context.center().clone().add(offset);
             ParticleSpawnUtil.spawn(world, spawn, particle, 1, data);
         }
@@ -56,7 +56,7 @@ public record CrescentPattern(Particle particle, Object data, double outerRadius
             double x = offsetDistance + innerRadius * Math.cos(angle);
             double z = innerRadius * Math.sin(angle);
             Vector offset = ParticleMath.mapToPlane(new Vector(x, 0, z), plane);
-            offset = ParticleMath.orientAndTilt(offset, plane, context.player().getLocation(), tiltAxis, tiltDegrees);
+            offset = ParticleMath.orientAndTilt(offset, plane, context.orientation(), tiltAxis, tiltDegrees);
             Location spawn = context.center().clone().add(offset);
             ParticleSpawnUtil.spawn(world, spawn, particle, 1, data);
         }
