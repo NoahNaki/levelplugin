@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.debug.particles;
 
 import me.nakilex.levelplugin.particles.particles.parents.Particle;
+import me.nakilex.levelplugin.utils.FileUtil;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
@@ -80,7 +81,7 @@ public class ParticleDebugRegistry {
 
     private Set<String> listFromJar() {
         Set<String> classNames = new HashSet<>();
-        File file = plugin.getFile();
+        File file = FileUtil.getCodeSourceFile(plugin.getClass());
         if (file == null || !file.isFile()) {
             return classNames;
         }

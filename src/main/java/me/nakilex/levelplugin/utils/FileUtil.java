@@ -2,9 +2,12 @@ package me.nakilex.levelplugin.utils;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.security.CodeSource;
 
 /** Utility methods for basic file operations. */
 public final class FileUtil {
@@ -48,5 +51,27 @@ public final class FileUtil {
                 throw new RuntimeException(e);
             }
         });
+    }
+
+    /**
+     * Resolve the code source file for a class, typically the jar or classes directory.
+     */
+    public static File getCodeSourceFile(Class<?> sourceClass) {
+        if (sourceClass == null) {
+            return null;
+        }
+        CodeSource codeSource = sourceClass.getProtectionDomain().getCodeSource();
+        if (codeSource == null) {
+            return null;
+        }
+        URL location = codeSource.getLocation();
+        if (location == null) {
+            return null;
+        }
+        try {
+            return Path.of(location.toURI()).toFile();
+        } catch (URISyntaxException e) {
+            return null;
+        }
     }
 }
