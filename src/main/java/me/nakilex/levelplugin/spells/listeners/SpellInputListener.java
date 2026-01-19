@@ -12,8 +12,6 @@ import me.nakilex.levelplugin.spells.input.SpellInputEvent;
 import me.nakilex.levelplugin.spells.input.SpellInputMode;
 import me.nakilex.levelplugin.spells.input.SpellInputType;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
-import io.papermc.paper.event.player.PlayerBlockInteractEvent;
-import io.papermc.paper.event.player.PlayerUseItemEvent;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -49,41 +47,24 @@ public class SpellInputListener implements Listener {
     @EventHandler
     public void onInteract(PlayerInteractEvent event) {
         Action action = event.getAction();
-        if (!isLeftClickAction(action)) {
-            return;
-        }
         if (event.getHand() != EquipmentSlot.HAND) {
             return;
         }
         Player player = event.getPlayer();
-        boolean leftClick = isLeftClick(action);
-        handleClick(player, leftClick);
+        if (isLeftClickAction(action)) {
+            handleClick(player, true);
+            return;
+        }
+        if (isRightClickAction(action)) {
+            if (!shouldProcessRightClick(player)) {
+                return;
+            }
+            handleClick(player, false);
+        }
     }
 
     @EventHandler
     public void onInteractEntity(PlayerInteractEntityEvent event) {
-        if (event.getHand() != EquipmentSlot.HAND) {
-            return;
-        }
-        if (!shouldProcessRightClick(event.getPlayer())) {
-            return;
-        }
-        handleClick(event.getPlayer(), false);
-    }
-
-    @EventHandler
-    public void onUseItem(PlayerUseItemEvent event) {
-        if (event.getHand() != EquipmentSlot.HAND) {
-            return;
-        }
-        if (!shouldProcessRightClick(event.getPlayer())) {
-            return;
-        }
-        handleClick(event.getPlayer(), false);
-    }
-
-    @EventHandler
-    public void onBlockInteract(PlayerBlockInteractEvent event) {
         if (event.getHand() != EquipmentSlot.HAND) {
             return;
         }
@@ -194,8 +175,8 @@ public class SpellInputListener implements Listener {
         return action == Action.LEFT_CLICK_AIR || action == Action.LEFT_CLICK_BLOCK;
     }
 
-    private boolean isLeftClick(Action action) {
-        return action == Action.LEFT_CLICK_AIR || action == Action.LEFT_CLICK_BLOCK;
+    private boolean isRightClickAction(Action action) {
+        return action == Action.RIGHT_CLICK_AIR || action == Action.RIGHT_CLICK_BLOCK;
     }
 
     private void handleClick(Player player, boolean leftClick) {
