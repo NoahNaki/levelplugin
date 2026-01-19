@@ -1,0 +1,142 @@
+package me.nakilex.levelplugin.particles;
+
+import org.bukkit.Location;
+import org.bukkit.util.Vector;
+
+public final class ParticleMath {
+    private ParticleMath() {}
+
+    public static int pointsForArc(double radius, double angleRadians, double spacing, int minPoints) {
+        int resolvedMin = Math.max(1, minPoints);
+        if (radius <= 0 || Math.abs(angleRadians) <= 0.0001 || spacing <= 0) {
+            return resolvedMin;
+        }
+        double arcLength = Math.abs(radius * angleRadians);
+        int points = (int) Math.ceil(arcLength / spacing) + 1;
+        return Math.max(points, resolvedMin);
+    }
+
+    public static Vector buildOffset(double angle, double radius, ParticlePlane plane) {
+        ParticlePlane resolved = plane == null ? ParticlePlane.Y : plane;
+        double cos = Math.cos(angle) * radius;
+        double sin = Math.sin(angle) * radius;
+        return switch (resolved) {
+            case X, LOOK_VERTICAL -> new Vector(0, cos, sin);
+            case Z -> new Vector(cos, sin, 0);
+            case LOOK, Y -> new Vector(cos, 0, sin);
+        };
+    }
+
+    public static Vector buildEllipseOffset(double angle, double radiusX, double radiusZ, ParticlePlane plane) {
+        double cos = Math.cos(angle) * radiusX;
+        double sin = Math.sin(angle) * radiusZ;
+        return mapToPlane(new Vector(cos, 0, sin), plane);
+    }
+
+    public static Vector mapToPlane(Vector base, ParticlePlane plane) {
+        if (base == null) {
+            return new Vector();
+        }
+        ParticlePlane resolved = plane == null ? ParticlePlane.Y : plane;
+        return switch (resolved) {
+            case X, LOOK_VERTICAL -> new Vector(0, base.getX(), base.getZ());
+            case Z -> new Vector(base.getX(), base.getZ(), 0);
+            case LOOK, Y -> base.clone();
+        };
+    }
+
+    public static Vector addHeight(Vector offset, double height, ParticlePlane plane, Location orientation) {
+        ParticlePlane resolved = plane == null ? ParticlePlane.Y : plane;
+        if (resolved == ParticlePlane.X) {
+            return offset.clone().add(new Vector(height, 0, 0));
+        }
+        if (resolved == ParticlePlane.Z) {
+            return offset.clone().add(new Vector(0, 0, height));
+        }
+        if ((resolved == ParticlePlane.LOOK || resolved == ParticlePlane.LOOK_VERTICAL) && orientation != null) {
+            Vector direction = orientation.getDirection().clone().normalize().multiply(height);
+            return offset.clone().add(direction);
+        }
+        return offset.clone().add(new Vector(0, height, 0));
+    }
+
+    public static Vector rotateByAxis(Vector vector, ParticleRotationAxis axis, double degrees) {
+        return rotateByAxis(vector, axis, degrees, null);
+    }
+
+    public static Vector rotateByAxis(Vector vector, ParticleRotationAxis axis, double degrees, Location orientation) {
+        if (axis == null || Math.abs(degrees) < 0.0001) {
+            return vector.clone();
+        }
+        Vector rotated = vector.clone();
+        double radians = Math.toRadians(degrees);
+        switch (axis) {
+            case X -> rotated.rotateAroundX(radians);
+            case Y -> rotated.rotateAroundY(radians);
+            case Z -> rotated.rotateAroundZ(radians);
+            case LOOK -> {
+                if (orientation == null) {
+                    return rotated;
+                }
+                Vector axisVector = orientation.getDirection().clone();
+                if (axisVector.lengthSquared() <= 0.0001) {
+                    return rotated;
+                }
+                return rotateAroundAxis(rotated, axisVector.normalize(), radians);
+            }
+            case LOOK_RIGHT -> {
+                if (orientation == null) {
+                    return rotated;
+                }
+                Vector axisVector = resolveRightAxis(orientation);
+                if (axisVector.lengthSquared() <= 0.0001) {
+                    return rotated;
+                }
+                return rotateAroundAxis(rotated, axisVector.normalize(), radians);
+            }
+        }
+        return rotated;
+    }
+
+    public static Vector rotateByOrientation(Vector vector, Location orientation) {
+        if (orientation == null) {
+            return vector.clone();
+        }
+        Vector rotated = vector.clone();
+        double yaw = Math.toRadians(-orientation.getYaw());
+        double pitch = Math.toRadians(orientation.getPitch());
+        rotated.rotateAroundY(yaw);
+        rotated.rotateAroundX(pitch);
+        return rotated;
+    }
+
+    public static Vector orientAndTilt(Vector vector, ParticlePlane plane, Location orientation,
+                                       ParticleRotationAxis tiltAxis, double tiltDegrees) {
+        Vector rotated = vector == null ? new Vector() : vector.clone();
+        if (plane == ParticlePlane.LOOK || plane == ParticlePlane.LOOK_VERTICAL) {
+            rotated = rotateByOrientation(rotated, orientation);
+        }
+        return rotateByAxis(rotated, tiltAxis, tiltDegrees, orientation);
+    }
+
+    private static Vector rotateAroundAxis(Vector vector, Vector axis, double radians) {
+        double cos = Math.cos(radians);
+        double sin = Math.sin(radians);
+        Vector v = vector.clone();
+        Vector k = axis.clone();
+        double dot = v.dot(k);
+        Vector cross = k.clone().crossProduct(v);
+        return v.multiply(cos)
+                .add(k.multiply(dot * (1 - cos)))
+                .add(cross.multiply(sin));
+    }
+
+    private static Vector resolveRightAxis(Location orientation) {
+        Vector direction = orientation.getDirection().clone();
+        if (direction.lengthSquared() <= 0.0001) {
+            return new Vector();
+        }
+        Vector up = new Vector(0, 1, 0);
+        return up.crossProduct(direction).normalize();
+    }
+}

@@ -152,7 +152,9 @@ public class CommandRegistry {
                                         BeaconEntityDebugManager beaconEntityDebugManager,
                                         DungeonExpeditionManager dungeonExpeditionManager,
                                         ServerSelectionManager serverSelectionManager,
-                                        CustomMobManager customMobManager) {
+                                        CustomMobManager customMobManager,
+                                        me.nakilex.levelplugin.debug.ArcSlashDebugManager arcSlashDebugManager,
+                                        me.nakilex.levelplugin.debug.gui.ArcSlashDebugGUI arcSlashDebugGUI) {
 
 
         AddPointsCommand addPointsCmd = new AddPointsCommand();
@@ -320,7 +322,9 @@ public class CommandRegistry {
                 plugin.getDropDebugManager(),
                 plugin.getEnvironmentManager(),
                 beaconEntityDebugManager,
-                questManager);
+                questManager,
+                arcSlashDebugManager,
+                arcSlashDebugGUI);
         plugin.getCommand("debug").setExecutor(debugCmd);
         plugin.getCommand("debug").setTabCompleter(debugCmd);
         SpawnEntityModelCommand spawnEntityModelCommand = new SpawnEntityModelCommand(plugin);

@@ -152,6 +152,8 @@ public class PluginBootstrap {
     private PlayerToggleManager dmgNumberToggleManager;
     private PlayerToggleManager mobDebugToggleManager;
     private me.nakilex.levelplugin.debug.DropDebugManager dropDebugManager;
+    private me.nakilex.levelplugin.debug.ArcSlashDebugManager arcSlashDebugManager;
+    private me.nakilex.levelplugin.debug.gui.ArcSlashDebugGUI arcSlashDebugGUI;
     private me.nakilex.levelplugin.debug.BeaconEntityDebugManager beaconEntityDebugManager;
     private DpsDummyManager dpsDummyManager;
     private FileConfiguration bossConfig;
@@ -439,6 +441,8 @@ public class PluginBootstrap {
                 mercenaryExpeditionManager,
                 dropDebugManager,
                 lootChestManager.getCooldownManager());
+        arcSlashDebugManager = new me.nakilex.levelplugin.debug.ArcSlashDebugManager(plugin);
+        arcSlashDebugGUI = new me.nakilex.levelplugin.debug.gui.ArcSlashDebugGUI(arcSlashDebugManager);
         this.storageManager = new StorageManager();
         this.guildVaultManager = new me.nakilex.levelplugin.guild.GuildVaultManager(storageEvents, guildMemberGUI);
         CommandRegistry.registerCommands(
@@ -482,7 +486,9 @@ public class PluginBootstrap {
             beaconEntityDebugManager,
             dungeonExpeditionManager,
             serverSelectionManager,
-            customMobManager
+            customMobManager,
+            arcSlashDebugManager,
+            arcSlashDebugGUI
         );
         me.nakilex.levelplugin.catacombs.CatacombsCommand catacombsCommand =
                 new me.nakilex.levelplugin.catacombs.CatacombsCommand(catacombsManager, catacombsGUI);
@@ -567,7 +573,9 @@ public class PluginBootstrap {
             dpsDummyManager,
             beaconEntityDebugManager,
             serverSelectionManager,
-            customMobManager
+            customMobManager,
+            arcSlashDebugManager,
+            arcSlashDebugGUI
         );
         plugin.getServer().getPluginManager().registerEvents(
                 new me.nakilex.levelplugin.mercenary.board.ExpeditionBoardWandListener(expeditionBoardManager),

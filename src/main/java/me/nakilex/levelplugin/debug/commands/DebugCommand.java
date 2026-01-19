@@ -12,11 +12,16 @@ import me.nakilex.levelplugin.chat.games.ChatGameStatus;
 import me.nakilex.levelplugin.debug.gui.DebugGUI;
 import me.nakilex.levelplugin.debug.BeaconEntityDebugManager;
 import me.nakilex.levelplugin.debug.DropDebugManager;
+import me.nakilex.levelplugin.debug.ArcSlashDebugManager;
+import me.nakilex.levelplugin.debug.gui.ArcSlashDebugGUI;
 import me.nakilex.levelplugin.debug.SpellInputDebugItem;
 import me.nakilex.levelplugin.environment.EnvironmentManager;
 import me.nakilex.levelplugin.guild.Guild;
 import me.nakilex.levelplugin.mercenary.MercenaryExpeditionManager;
 import me.nakilex.levelplugin.pathfinding.DungeonExpeditionManager;
+import me.nakilex.levelplugin.particles.ParticlePreset;
+import me.nakilex.levelplugin.particles.ParticleService;
+import me.nakilex.levelplugin.particles.presets.ElementalPresets;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
 import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
@@ -63,6 +68,8 @@ public class DebugCommand implements TabExecutor {
     private final EnvironmentManager environmentManager;
     private final BeaconEntityDebugManager beaconEntityDebugManager;
     private final QuestManager questManager;
+    private final ArcSlashDebugManager arcSlashDebugManager;
+    private final ArcSlashDebugGUI arcSlashDebugGUI;
 
     public DebugCommand(PlayerToggleManager mobDebugManager,
                         PlayerScoreboardManager scoreboardManager,
@@ -73,7 +80,9 @@ public class DebugCommand implements TabExecutor {
                         DropDebugManager dropDebugManager,
                         EnvironmentManager environmentManager,
                         BeaconEntityDebugManager beaconEntityDebugManager,
-                        QuestManager questManager) {
+                        QuestManager questManager,
+                        ArcSlashDebugManager arcSlashDebugManager,
+                        ArcSlashDebugGUI arcSlashDebugGUI) {
         this.mobDebugManager = mobDebugManager;
         this.scoreboardManager = scoreboardManager;
         this.debugGUI = debugGUI;
@@ -84,6 +93,8 @@ public class DebugCommand implements TabExecutor {
         this.environmentManager = environmentManager;
         this.beaconEntityDebugManager = beaconEntityDebugManager;
         this.questManager = questManager;
+        this.arcSlashDebugManager = arcSlashDebugManager;
+        this.arcSlashDebugGUI = arcSlashDebugGUI;
     }
 
     @Override
@@ -95,7 +106,7 @@ public class DebugCommand implements TabExecutor {
                 String statUsage = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|particlepath|" + statUsage + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|particle|particlepath|particlepreset|" + statUsage + ">");
             }
             return true;
         }
@@ -291,6 +302,53 @@ public class DebugCommand implements TabExecutor {
                 }
                 return true;
 
+            case "particle":
+                if (!(sender instanceof Player particleGuiPlayer)) {
+                    sender.sendMessage(ChatColor.RED + "Players only.");
+                    return true;
+                }
+                if (args.length < 2) {
+                    ChatMessageUtil.send(particleGuiPlayer, ChatMessageUtil.MessageType.WARNING,
+                            "Usage: /debug particle <arc>");
+                    return true;
+                }
+                if (!args[1].equalsIgnoreCase(ArcSlashDebugManager.getArcPresetId())) {
+                    ChatMessageUtil.send(particleGuiPlayer, ChatMessageUtil.MessageType.ERROR,
+                            "Unknown particle GUI. Available: " + ArcSlashDebugManager.getArcPresetId());
+                    return true;
+                }
+                arcSlashDebugGUI.open(particleGuiPlayer);
+                return true;
+
+            case "particlepreset":
+                if (!(sender instanceof Player presetPlayer)) {
+                    sender.sendMessage(ChatColor.RED + "Players only.");
+                    return true;
+                }
+                if (args.length < 2) {
+                    ChatMessageUtil.send(presetPlayer, ChatMessageUtil.MessageType.WARNING,
+                            "Usage: /debug particlepreset <"
+                                    + String.join("|", ArcSlashDebugManager.getPresetIds())
+                                    + "|" + String.join("|", ElementalPresets.getPresetNames()) + ">");
+                    return true;
+                }
+                if (args[1].equalsIgnoreCase(ArcSlashDebugManager.getArcPresetId())) {
+                    arcSlashDebugManager.toggle(presetPlayer);
+                    return true;
+                }
+                ParticlePreset preset = ElementalPresets.getPreset(args[1]);
+                if (preset == null) {
+                    ChatMessageUtil.send(presetPlayer, ChatMessageUtil.MessageType.ERROR,
+                            "Unknown preset. Available: "
+                                    + String.join(", ", ArcSlashDebugManager.getPresetIds())
+                                    + ", " + String.join(", ", ElementalPresets.getPresetNames()));
+                    return true;
+                }
+                new ParticleService(Main.getInstance()).renderPreset(presetPlayer, preset);
+                ChatMessageUtil.send(presetPlayer, ChatMessageUtil.MessageType.SUCCESS,
+                        "Rendered particle preset " + preset.name() + ".");
+                return true;
+
             case "hand":
                 if (!(sender instanceof Player p4)) {
                     sender.sendMessage("Players only.");
@@ -358,7 +416,7 @@ public class DebugCommand implements TabExecutor {
                 String statUsage2 = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|cityowner|citymax|autocast|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|particlepath|" + statUsage2 + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|cityowner|citymax|autocast|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|particle|particlepath|particlepreset|" + statUsage2 + ">");
                 return true;
         }
     }
@@ -423,7 +481,7 @@ public class DebugCommand implements TabExecutor {
         if (args.length == 1) {
             List<String> subs = new ArrayList<>(List.of("mobinfo", "tps", "siege", "cityowner", "citymax", "autocast",
                     "hand", "chatgame", "expedition", "dungeonexpedition", "rewardbomb", "drops", "beaconentity",
-                    "spellinput", "particlepath"));
+                    "spellinput", "particle", "particlepath", "particlepreset"));
             subs.addAll(Arrays.stream(StatType.values()).map(StatType::getAbbrev).toList());
             return subs.stream()
                     .filter(s -> s.startsWith(args[0].toLowerCase()))
@@ -453,6 +511,17 @@ public class DebugCommand implements TabExecutor {
             String filter = args[1].toLowerCase();
             return npcIds.stream()
                     .filter(id -> id.toLowerCase().startsWith(filter))
+                    .toList();
+        } else if (args.length == 2 && args[0].equalsIgnoreCase("particlepreset")) {
+            String filter = args[1].toLowerCase();
+            List<String> options = new ArrayList<>(ElementalPresets.getPresetNames());
+            options.addAll(ArcSlashDebugManager.getPresetIds());
+            return options.stream()
+                    .filter(name -> name.toLowerCase().startsWith(filter))
+                    .toList();
+        } else if (args.length == 2 && args[0].equalsIgnoreCase("particle")) {
+            return ArcSlashDebugManager.getPresetIds().stream()
+                    .filter(name -> name.toLowerCase().startsWith(args[1].toLowerCase()))
                     .toList();
         } else if (args.length == 3 && args[0].equalsIgnoreCase("chatgame")) {
             return List.of("on", "off", "enable", "disable").stream()
