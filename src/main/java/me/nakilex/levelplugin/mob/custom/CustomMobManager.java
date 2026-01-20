@@ -11,6 +11,7 @@ import me.nakilex.levelplugin.particles.ParticleRotationAxis;
 import me.nakilex.levelplugin.particles.patterns.ArcPattern;
 import me.nakilex.levelplugin.particles.patterns.ParticlePattern;
 import me.nakilex.levelplugin.particles.patterns.RingPattern;
+import me.nakilex.levelplugin.utils.PotionEffectUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Particle;
@@ -20,6 +21,7 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
 import org.bukkit.metadata.FixedMetadataValue;
+import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
@@ -82,8 +84,10 @@ public class CustomMobManager {
             ParticleRotationAxis.Y
     );
     private static final Map<CustomMobStatus, ParticlePattern> STATUS_PATTERNS = buildStatusPatterns();
-    private static final int STATUS_POINTS = 6;
+    private static final Map<CustomMobStatus, Integer> STATUS_POINTS = buildStatusPoints();
     private static final double STATUS_HEIGHT_OFFSET = 0.35;
+    private static final double FEAR_SPEED_MULTIPLIER = 0.0875;
+    private static final int FEAR_SLOW_AMPLIFIER = 1;
 
     private final Main plugin;
     private final CustomMobNameManager nameManager;
@@ -309,7 +313,10 @@ public class CustomMobManager {
                 entity.setVelocity(entity.getVelocity().setY(0));
             }
             case TAUNTED -> startTauntTask(instance, source);
-            case FEARED -> startFearTask(instance, source);
+            case FEARED -> {
+                startFearTask(instance, source);
+                PotionEffectUtil.applyHiddenEffect(entity, PotionEffectType.SLOWNESS, ticks, FEAR_SLOW_AMPLIFIER);
+            }
             case POISONED -> startPoisonDamageTask(instance, ticks);
         }
         BukkitTask particleTask = startStatusParticles(instance, status);
@@ -341,7 +348,12 @@ public class CustomMobManager {
                             .ifPresent(player -> mob.setTarget(null));
                 }
             }
-            case FEARED, POISONED -> {
+            case FEARED -> {
+                if (!entity.isDead()) {
+                    PotionEffectUtil.removeEffect(entity, PotionEffectType.SLOWNESS);
+                }
+            }
+            case POISONED -> {
             }
         }
         instance.clearStatusTasks(status);
@@ -364,7 +376,8 @@ public class CustomMobManager {
                 }
                 Location base = entity.getLocation();
                 Location center = base.clone().add(0, entity.getHeight() + STATUS_HEIGHT_OFFSET, 0);
-                ParticleRenderContext context = new ParticleRenderContext(null, center, base, STATUS_POINTS, tick, 20);
+                int points = STATUS_POINTS.getOrDefault(status, 1);
+                ParticleRenderContext context = new ParticleRenderContext(null, center, base, points, tick, 20);
                 pattern.render(context);
                 tick++;
             }
@@ -446,7 +459,7 @@ public class CustomMobManager {
                 if (away.lengthSquared() < 0.0001) {
                     return;
                 }
-                away.normalize().multiply(0.35).setY(0);
+                away.normalize().multiply(FEAR_SPEED_MULTIPLIER).setY(0);
                 entity.setVelocity(away);
                 if (entity instanceof Mob mob) {
                     mob.setTarget(null);
@@ -463,6 +476,15 @@ public class CustomMobManager {
         patterns.put(CustomMobStatus.TAUNTED, TAUNT_PATTERN);
         patterns.put(CustomMobStatus.FEARED, FEAR_PATTERN);
         return patterns;
+    }
+
+    private static Map<CustomMobStatus, Integer> buildStatusPoints() {
+        Map<CustomMobStatus, Integer> points = new EnumMap<>(CustomMobStatus.class);
+        points.put(CustomMobStatus.STUNNED, 6);
+        points.put(CustomMobStatus.POISONED, 2);
+        points.put(CustomMobStatus.TAUNTED, 2);
+        points.put(CustomMobStatus.FEARED, 2);
+        return points;
     }
 
     private double resolveMaxHealth(LivingEntity entity) {
