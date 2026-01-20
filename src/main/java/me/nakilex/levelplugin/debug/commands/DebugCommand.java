@@ -108,7 +108,7 @@ public class DebugCommand implements TabExecutor {
                 String statUsage = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|stunstick|poisonstick|tauntstick|fearstick|particle|particlepath|particlepreset|" + statUsage + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|" + statUsage + ">");
             }
             return true;
         }
@@ -284,6 +284,15 @@ public class DebugCommand implements TabExecutor {
                 ChatMessageUtil.send(fearPlayer, ChatMessageUtil.MessageType.SUCCESS,
                         "Fear stick added to your inventory.");
                 return true;
+            case "slowstick":
+                if (!(sender instanceof Player slowPlayer)) {
+                    sender.sendMessage(ChatColor.RED + "Players only.");
+                    return true;
+                }
+                slowPlayer.getInventory().addItem(MobStatusDebugItem.create(CustomMobStatus.SLOWED));
+                ChatMessageUtil.send(slowPlayer, ChatMessageUtil.MessageType.SUCCESS,
+                        "Slow stick added to your inventory.");
+                return true;
 
             case "beaconentity":
                 if (!(sender instanceof Player beaconPlayer)) {
@@ -454,7 +463,7 @@ public class DebugCommand implements TabExecutor {
                 String statUsage2 = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|cityowner|citymax|autocast|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|stunstick|poisonstick|tauntstick|fearstick|particle|particlepath|particlepreset|" + statUsage2 + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|cityowner|citymax|autocast|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|" + statUsage2 + ">");
                 return true;
         }
     }
@@ -519,7 +528,7 @@ public class DebugCommand implements TabExecutor {
         if (args.length == 1) {
             List<String> subs = new ArrayList<>(List.of("mobinfo", "tps", "siege", "cityowner", "citymax", "autocast",
                     "hand", "chatgame", "expedition", "dungeonexpedition", "rewardbomb", "drops", "beaconentity",
-                    "spellinput", "stunstick", "poisonstick", "tauntstick", "fearstick",
+                    "spellinput", "stunstick", "poisonstick", "tauntstick", "fearstick", "slowstick",
                     "particle", "particlepath", "particlepreset"));
             subs.addAll(Arrays.stream(StatType.values()).map(StatType::getAbbrev).toList());
             return subs.stream()

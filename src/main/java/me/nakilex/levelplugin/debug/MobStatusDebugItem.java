@@ -62,6 +62,7 @@ public final class MobStatusDebugItem {
             case POISONED -> "Poison Stick";
             case TAUNTED -> "Taunt Stick";
             case FEARED -> "Fear Stick";
+            case SLOWED -> "Slow Stick";
         };
     }
 
@@ -71,6 +72,7 @@ public final class MobStatusDebugItem {
             case POISONED -> "Hit a custom mob to poison it.";
             case TAUNTED -> "Hit a custom mob to taunt it.";
             case FEARED -> "Hit a custom mob to fear it.";
+            case SLOWED -> "Hit a custom mob to slow it.";
         };
     }
 
@@ -80,6 +82,7 @@ public final class MobStatusDebugItem {
             case POISONED -> new String[] { "Deals 1% max HP per second", "Single stack on bosses" };
             case TAUNTED -> new String[] { "Forces aggro to you", "Shows an angry ring indicator" };
             case FEARED -> new String[] { "Moves away from you", "Shows a smoke ring indicator" };
+            case SLOWED -> new String[] { "Applies a slowness debuff", "Shows a cloud ring indicator" };
         };
     }
 

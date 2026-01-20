@@ -43,6 +43,7 @@ public class MobStatusDebugListener implements Listener {
             case POISONED -> mobManager.poison(entity, DEFAULT_DURATION_TICKS);
             case TAUNTED -> mobManager.taunt(entity, player, DEFAULT_DURATION_TICKS);
             case FEARED -> mobManager.fear(entity, player, DEFAULT_DURATION_TICKS);
+            case SLOWED -> mobManager.slow(entity, DEFAULT_DURATION_TICKS);
         };
         if (applied) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
@@ -56,6 +57,7 @@ public class MobStatusDebugListener implements Listener {
             case POISONED -> "Poisoned " + displayName + " for 2 seconds.";
             case TAUNTED -> "Taunted " + displayName + " for 2 seconds.";
             case FEARED -> "Feared " + displayName + " for 2 seconds.";
+            case SLOWED -> "Slowed " + displayName + " for 2 seconds.";
         };
     }
 }

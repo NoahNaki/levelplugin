@@ -4,5 +4,6 @@ public enum CustomMobStatus {
     STUNNED,
     POISONED,
     TAUNTED,
-    FEARED
+    FEARED,
+    SLOWED
 }

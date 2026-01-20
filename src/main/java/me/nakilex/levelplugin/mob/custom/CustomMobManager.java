@@ -83,11 +83,20 @@ public class CustomMobManager {
             0,
             ParticleRotationAxis.Y
     );
+    private static final RingPattern SLOW_PATTERN = new RingPattern(
+            Particle.CLOUD,
+            null,
+            0.55,
+            8,
+            ParticlePlane.Y,
+            0,
+            ParticleRotationAxis.Y
+    );
     private static final Map<CustomMobStatus, ParticlePattern> STATUS_PATTERNS = buildStatusPatterns();
     private static final Map<CustomMobStatus, Integer> STATUS_POINTS = buildStatusPoints();
     private static final double STATUS_HEIGHT_OFFSET = 0.35;
     private static final double FEAR_SPEED_MULTIPLIER = 0.0875;
-    private static final int FEAR_SLOW_AMPLIFIER = 1;
+    private static final int SLOW_AMPLIFIER = 1;
 
     private final Main plugin;
     private final CustomMobNameManager nameManager;
@@ -160,6 +169,10 @@ public class CustomMobManager {
 
     public boolean fear(LivingEntity entity, Player source, int durationTicks) {
         return applyStatus(entity, CustomMobStatus.FEARED, durationTicks, source);
+    }
+
+    public boolean slow(LivingEntity entity, int durationTicks) {
+        return applyStatus(entity, CustomMobStatus.SLOWED, durationTicks, null);
     }
 
     public void reload() {
@@ -313,10 +326,8 @@ public class CustomMobManager {
                 entity.setVelocity(entity.getVelocity().setY(0));
             }
             case TAUNTED -> startTauntTask(instance, source);
-            case FEARED -> {
-                startFearTask(instance, source);
-                PotionEffectUtil.applyHiddenEffect(entity, PotionEffectType.SLOWNESS, ticks, FEAR_SLOW_AMPLIFIER);
-            }
+            case FEARED -> startFearTask(instance, source);
+            case SLOWED -> PotionEffectUtil.applyHiddenEffect(entity, PotionEffectType.SLOWNESS, ticks, SLOW_AMPLIFIER);
             case POISONED -> startPoisonDamageTask(instance, ticks);
         }
         BukkitTask particleTask = startStatusParticles(instance, status);
@@ -348,12 +359,12 @@ public class CustomMobManager {
                             .ifPresent(player -> mob.setTarget(null));
                 }
             }
-            case FEARED -> {
+            case FEARED, POISONED -> {
+            }
+            case SLOWED -> {
                 if (!entity.isDead()) {
                     PotionEffectUtil.removeEffect(entity, PotionEffectType.SLOWNESS);
                 }
-            }
-            case POISONED -> {
             }
         }
         instance.clearStatusTasks(status);
@@ -475,6 +486,7 @@ public class CustomMobManager {
         patterns.put(CustomMobStatus.POISONED, POISON_PATTERN);
         patterns.put(CustomMobStatus.TAUNTED, TAUNT_PATTERN);
         patterns.put(CustomMobStatus.FEARED, FEAR_PATTERN);
+        patterns.put(CustomMobStatus.SLOWED, SLOW_PATTERN);
         return patterns;
     }
 
@@ -484,6 +496,7 @@ public class CustomMobManager {
         points.put(CustomMobStatus.POISONED, 2);
         points.put(CustomMobStatus.TAUNTED, 2);
         points.put(CustomMobStatus.FEARED, 2);
+        points.put(CustomMobStatus.SLOWED, 2);
         return points;
     }
 
