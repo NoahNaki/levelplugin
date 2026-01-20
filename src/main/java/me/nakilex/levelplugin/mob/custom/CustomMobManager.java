@@ -55,7 +55,7 @@ public class CustomMobManager {
             ParticleRotationAxis.Y
     );
     private static final RingPattern POISON_PATTERN = new RingPattern(
-            Particle.SPELL_MOB,
+            Particle.SPELL,
             null,
             0.55,
             12,
@@ -64,7 +64,7 @@ public class CustomMobManager {
             ParticleRotationAxis.Y
     );
     private static final RingPattern TAUNT_PATTERN = new RingPattern(
-            Particle.VILLAGER_ANGRY,
+            Particle.ANGRY_VILLAGER,
             null,
             0.55,
             10,
@@ -391,7 +391,7 @@ public class CustomMobManager {
                     cancel();
                     return;
                 }
-                double maxHealth = living.getMaxHealth();
+                double maxHealth = resolveMaxHealth(living);
                 double damage = Math.max(0.1, maxHealth * 0.01);
                 living.damage(damage);
                 remainingSeconds--;
@@ -463,5 +463,13 @@ public class CustomMobManager {
         patterns.put(CustomMobStatus.TAUNTED, TAUNT_PATTERN);
         patterns.put(CustomMobStatus.FEARED, FEAR_PATTERN);
         return patterns;
+    }
+
+    private double resolveMaxHealth(LivingEntity entity) {
+        Attribute maxHealthAttr = AttributeUtil.resolve("GENERIC_MAX_HEALTH", "MAX_HEALTH");
+        if (maxHealthAttr != null && entity.getAttribute(maxHealthAttr) != null) {
+            return entity.getAttribute(maxHealthAttr).getValue();
+        }
+        return entity.getHealth();
     }
 }
