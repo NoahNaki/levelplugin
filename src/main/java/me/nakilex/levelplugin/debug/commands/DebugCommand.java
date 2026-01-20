@@ -14,7 +14,9 @@ import me.nakilex.levelplugin.debug.BeaconEntityDebugManager;
 import me.nakilex.levelplugin.debug.DropDebugManager;
 import me.nakilex.levelplugin.debug.ArcSlashDebugManager;
 import me.nakilex.levelplugin.debug.gui.ArcSlashDebugGUI;
+import me.nakilex.levelplugin.debug.MobStatusDebugItem;
 import me.nakilex.levelplugin.debug.SpellInputDebugItem;
+import me.nakilex.levelplugin.mob.custom.CustomMobStatus;
 import me.nakilex.levelplugin.environment.EnvironmentManager;
 import me.nakilex.levelplugin.guild.Guild;
 import me.nakilex.levelplugin.mercenary.MercenaryExpeditionManager;
@@ -106,7 +108,7 @@ public class DebugCommand implements TabExecutor {
                 String statUsage = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|particle|particlepath|particlepreset|" + statUsage + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|" + statUsage + ">");
             }
             return true;
         }
@@ -245,6 +247,51 @@ public class DebugCommand implements TabExecutor {
                 spellPlayer.getInventory().addItem(SpellInputDebugItem.create());
                 ChatMessageUtil.send(spellPlayer, ChatMessageUtil.MessageType.SUCCESS,
                         "Spell input debug stick added to your inventory.");
+                return true;
+            case "stunstick":
+                if (!(sender instanceof Player stunPlayer)) {
+                    sender.sendMessage(ChatColor.RED + "Players only.");
+                    return true;
+                }
+                stunPlayer.getInventory().addItem(MobStatusDebugItem.create(CustomMobStatus.STUNNED));
+                ChatMessageUtil.send(stunPlayer, ChatMessageUtil.MessageType.SUCCESS,
+                        "Stun stick added to your inventory.");
+                return true;
+            case "poisonstick":
+                if (!(sender instanceof Player poisonPlayer)) {
+                    sender.sendMessage(ChatColor.RED + "Players only.");
+                    return true;
+                }
+                poisonPlayer.getInventory().addItem(MobStatusDebugItem.create(CustomMobStatus.POISONED));
+                ChatMessageUtil.send(poisonPlayer, ChatMessageUtil.MessageType.SUCCESS,
+                        "Poison stick added to your inventory.");
+                return true;
+            case "tauntstick":
+                if (!(sender instanceof Player tauntPlayer)) {
+                    sender.sendMessage(ChatColor.RED + "Players only.");
+                    return true;
+                }
+                tauntPlayer.getInventory().addItem(MobStatusDebugItem.create(CustomMobStatus.TAUNTED));
+                ChatMessageUtil.send(tauntPlayer, ChatMessageUtil.MessageType.SUCCESS,
+                        "Taunt stick added to your inventory.");
+                return true;
+            case "fearstick":
+                if (!(sender instanceof Player fearPlayer)) {
+                    sender.sendMessage(ChatColor.RED + "Players only.");
+                    return true;
+                }
+                fearPlayer.getInventory().addItem(MobStatusDebugItem.create(CustomMobStatus.FEARED));
+                ChatMessageUtil.send(fearPlayer, ChatMessageUtil.MessageType.SUCCESS,
+                        "Fear stick added to your inventory.");
+                return true;
+            case "slowstick":
+                if (!(sender instanceof Player slowPlayer)) {
+                    sender.sendMessage(ChatColor.RED + "Players only.");
+                    return true;
+                }
+                slowPlayer.getInventory().addItem(MobStatusDebugItem.create(CustomMobStatus.SLOWED));
+                ChatMessageUtil.send(slowPlayer, ChatMessageUtil.MessageType.SUCCESS,
+                        "Slow stick added to your inventory.");
                 return true;
 
             case "beaconentity":
@@ -416,7 +463,7 @@ public class DebugCommand implements TabExecutor {
                 String statUsage2 = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|cityowner|citymax|autocast|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|particle|particlepath|particlepreset|" + statUsage2 + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|cityowner|citymax|autocast|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|" + statUsage2 + ">");
                 return true;
         }
     }
@@ -481,7 +528,8 @@ public class DebugCommand implements TabExecutor {
         if (args.length == 1) {
             List<String> subs = new ArrayList<>(List.of("mobinfo", "tps", "siege", "cityowner", "citymax", "autocast",
                     "hand", "chatgame", "expedition", "dungeonexpedition", "rewardbomb", "drops", "beaconentity",
-                    "spellinput", "particle", "particlepath", "particlepreset"));
+                    "spellinput", "stunstick", "poisonstick", "tauntstick", "fearstick", "slowstick",
+                    "particle", "particlepath", "particlepreset"));
             subs.addAll(Arrays.stream(StatType.values()).map(StatType::getAbbrev).toList());
             return subs.stream()
                     .filter(s -> s.startsWith(args[0].toLowerCase()))

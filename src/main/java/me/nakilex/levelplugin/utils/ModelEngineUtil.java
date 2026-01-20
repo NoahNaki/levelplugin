@@ -87,10 +87,7 @@ public final class ModelEngineUtil {
         List<String> blueprintOnlyModels = new ArrayList<>();
         for (String modelId : modelIds) {
             String resolvedId = resolveModelId(modelId, modelEngineIds);
-            ActiveModel activeModel = ModelEngineAPI.createActiveModel(resolvedId);
-            if (activeModel == null) {
-                activeModel = createActiveModelByReflection(resolvedId, plugin);
-            }
+            ActiveModel activeModel = createActiveModelSafely(resolvedId, plugin);
             if (activeModel == null) {
                 failedModels.add(modelId);
                 if (!modelEngineIds.isEmpty()
@@ -102,10 +99,7 @@ public final class ModelEngineUtil {
             }
             var added = modeledEntity.addModel(activeModel, true);
             if (added.isEmpty()) {
-                ActiveModel retryModel = ModelEngineAPI.createActiveModel(resolvedId);
-                if (retryModel == null) {
-                    retryModel = createActiveModelByReflection(resolvedId, plugin);
-                }
+                ActiveModel retryModel = createActiveModelSafely(resolvedId, plugin);
                 if (retryModel == null || modeledEntity.addModel(retryModel, true).isEmpty()) {
                     failedModels.add(modelId);
                     continue;
@@ -114,6 +108,20 @@ public final class ModelEngineUtil {
             appliedModels.add(modelId);
         }
         return new ModelApplyResult(appliedModels, failedModels, blueprintOnlyModels);
+    }
+
+    private static ActiveModel createActiveModelSafely(String modelId, Plugin plugin) {
+        try {
+            ActiveModel model = ModelEngineAPI.createActiveModel(modelId);
+            if (model != null) {
+                return model;
+            }
+        } catch (RuntimeException e) {
+            if (plugin != null) {
+                plugin.getLogger().warning("Failed to create ModelEngine model '" + modelId + "': " + e.getMessage());
+            }
+        }
+        return createActiveModelByReflection(modelId, plugin);
     }
 
     private static List<String> getModelIds() throws ReflectiveOperationException {

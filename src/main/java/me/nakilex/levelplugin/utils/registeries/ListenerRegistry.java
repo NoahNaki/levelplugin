@@ -63,6 +63,7 @@ import me.nakilex.levelplugin.npc.listeners.NPCDialogMoveListener;
 import me.nakilex.levelplugin.dungeon.DungeonMobSpawnListener;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.debug.BeaconEntityDebugManager;
+import me.nakilex.levelplugin.debug.listeners.MobStatusDebugListener;
 import me.nakilex.levelplugin.debug.listeners.SpellInputDebugListener;
 import me.nakilex.levelplugin.fasttravel.listeners.WaystoneListener;
 import me.nakilex.levelplugin.fasttravel.listeners.ExplorationListener;
@@ -155,6 +156,7 @@ public class ListenerRegistry {
             pm.registerEvents(new CustomMobRewardListener(customMobManager, rewardService), plugin);
             pm.registerEvents(customMobManager.getSpawnerManager(), plugin);
             pm.registerEvents(customMobManager.getAdminGui(), plugin);
+            pm.registerEvents(new MobStatusDebugListener(customMobManager), plugin);
         }
         pm.registerEvents(new me.nakilex.levelplugin.player.mining.listeners.OreMiningListener(
                 plugin,
