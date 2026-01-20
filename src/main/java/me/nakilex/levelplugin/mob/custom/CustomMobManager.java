@@ -5,12 +5,19 @@ import me.nakilex.levelplugin.utils.AttributeUtil;
 import me.nakilex.levelplugin.utils.ModelEngineUtil;
 import me.nakilex.levelplugin.mob.custom.spawner.CustomMobSpawnerManager;
 import me.nakilex.levelplugin.mob.custom.gui.CustomMobAdminGUI;
+import me.nakilex.levelplugin.particles.ParticlePlane;
+import me.nakilex.levelplugin.particles.ParticleRenderContext;
+import me.nakilex.levelplugin.particles.ParticleRotationAxis;
+import me.nakilex.levelplugin.particles.patterns.ArcPattern;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Particle;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Ageable;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.metadata.FixedMetadataValue;
+import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scheduler.BukkitTask;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -30,6 +37,19 @@ public class CustomMobManager {
             "custom_mobs/cursed_archer.yml",
             "custom_mobs/forest_slime.yml"
     );
+    private static final ArcPattern STUN_PATTERN = new ArcPattern(
+            Particle.CRIT,
+            null,
+            0.55,
+            0,
+            70,
+            16,
+            ParticlePlane.Y,
+            0,
+            ParticleRotationAxis.Y
+    );
+    private static final int STUN_POINTS = 4;
+    private static final double STUN_HEIGHT_OFFSET = 0.35;
 
     private final Main plugin;
     private final CustomMobNameManager nameManager;
@@ -88,6 +108,18 @@ public class CustomMobManager {
         return activeMobs;
     }
 
+    public boolean stun(LivingEntity entity, int durationTicks) {
+        if (entity == null) {
+            return false;
+        }
+        CustomMobInstance instance = getInstance(entity).orElse(null);
+        if (instance == null) {
+            return false;
+        }
+        applyStun(instance, durationTicks);
+        return true;
+    }
+
     public void reload() {
         loadDefinitions();
     }
@@ -127,6 +159,7 @@ public class CustomMobManager {
     public void remove(UUID uuid) {
         CustomMobInstance instance = activeMobs.remove(uuid);
         if (instance != null) {
+            instance.clearStunTasks();
             nameManager.untrack(uuid);
             spawnerManager.removeActiveMob(uuid);
         }
@@ -209,5 +242,52 @@ public class CustomMobManager {
             return;
         }
         entity.getAttribute(attr).setBaseValue(value);
+    }
+
+    private void applyStun(CustomMobInstance instance, int durationTicks) {
+        LivingEntity entity = instance.entity();
+        if (entity == null || entity.isDead()) {
+            return;
+        }
+        int ticks = Math.max(1, durationTicks);
+        instance.setStunned(true);
+        entity.setAI(false);
+        entity.setVelocity(entity.getVelocity().setY(0));
+        instance.setStunParticleTask(startStunParticles(instance));
+        BukkitTask resetTask = Bukkit.getScheduler().runTaskLater(plugin, () -> clearStun(instance), ticks);
+        instance.setStunResetTask(resetTask);
+    }
+
+    private void clearStun(CustomMobInstance instance) {
+        LivingEntity entity = instance.entity();
+        if (entity == null) {
+            instance.clearStunTasks();
+            return;
+        }
+        instance.setStunned(false);
+        if (!entity.isDead()) {
+            entity.setAI(instance.baseAi());
+        }
+        instance.clearStunTasks();
+    }
+
+    private BukkitTask startStunParticles(CustomMobInstance instance) {
+        return new BukkitRunnable() {
+            private int tick = 0;
+
+            @Override
+            public void run() {
+                LivingEntity entity = instance.entity();
+                if (entity == null || entity.isDead() || !instance.isStunned()) {
+                    cancel();
+                    return;
+                }
+                Location base = entity.getLocation();
+                Location center = base.clone().add(0, entity.getHeight() + STUN_HEIGHT_OFFSET, 0);
+                ParticleRenderContext context = new ParticleRenderContext(null, center, base, STUN_POINTS, tick, 20);
+                STUN_PATTERN.render(context);
+                tick++;
+            }
+        }.runTaskTimer(plugin, 0L, 1L);
     }
 }
