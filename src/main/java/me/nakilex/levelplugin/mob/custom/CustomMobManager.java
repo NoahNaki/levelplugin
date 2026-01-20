@@ -9,18 +9,24 @@ import me.nakilex.levelplugin.particles.ParticlePlane;
 import me.nakilex.levelplugin.particles.ParticleRenderContext;
 import me.nakilex.levelplugin.particles.ParticleRotationAxis;
 import me.nakilex.levelplugin.particles.patterns.ArcPattern;
+import me.nakilex.levelplugin.particles.patterns.ParticlePattern;
+import me.nakilex.levelplugin.particles.patterns.RingPattern;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Ageable;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Mob;
+import org.bukkit.entity.Player;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
+import org.bukkit.util.Vector;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -48,8 +54,36 @@ public class CustomMobManager {
             0,
             ParticleRotationAxis.Y
     );
-    private static final int STUN_POINTS = 4;
-    private static final double STUN_HEIGHT_OFFSET = 0.35;
+    private static final RingPattern POISON_PATTERN = new RingPattern(
+            Particle.SPELL_MOB,
+            null,
+            0.55,
+            12,
+            ParticlePlane.Y,
+            0,
+            ParticleRotationAxis.Y
+    );
+    private static final RingPattern TAUNT_PATTERN = new RingPattern(
+            Particle.VILLAGER_ANGRY,
+            null,
+            0.55,
+            10,
+            ParticlePlane.Y,
+            0,
+            ParticleRotationAxis.Y
+    );
+    private static final RingPattern FEAR_PATTERN = new RingPattern(
+            Particle.SMOKE,
+            null,
+            0.55,
+            10,
+            ParticlePlane.Y,
+            0,
+            ParticleRotationAxis.Y
+    );
+    private static final Map<CustomMobStatus, ParticlePattern> STATUS_PATTERNS = buildStatusPatterns();
+    private static final int STATUS_POINTS = 6;
+    private static final double STATUS_HEIGHT_OFFSET = 0.35;
 
     private final Main plugin;
     private final CustomMobNameManager nameManager;
@@ -109,15 +143,19 @@ public class CustomMobManager {
     }
 
     public boolean stun(LivingEntity entity, int durationTicks) {
-        if (entity == null) {
-            return false;
-        }
-        CustomMobInstance instance = getInstance(entity).orElse(null);
-        if (instance == null) {
-            return false;
-        }
-        applyStun(instance, durationTicks);
-        return true;
+        return applyStatus(entity, CustomMobStatus.STUNNED, durationTicks, null);
+    }
+
+    public boolean poison(LivingEntity entity, int durationTicks) {
+        return applyStatus(entity, CustomMobStatus.POISONED, durationTicks, null);
+    }
+
+    public boolean taunt(LivingEntity entity, Player source, int durationTicks) {
+        return applyStatus(entity, CustomMobStatus.TAUNTED, durationTicks, source);
+    }
+
+    public boolean fear(LivingEntity entity, Player source, int durationTicks) {
+        return applyStatus(entity, CustomMobStatus.FEARED, durationTicks, source);
     }
 
     public void reload() {
@@ -159,7 +197,7 @@ public class CustomMobManager {
     public void remove(UUID uuid) {
         CustomMobInstance instance = activeMobs.remove(uuid);
         if (instance != null) {
-            instance.clearStunTasks();
+            instance.clearAllStatusTasks();
             nameManager.untrack(uuid);
             spawnerManager.removeActiveMob(uuid);
         }
@@ -244,50 +282,186 @@ public class CustomMobManager {
         entity.getAttribute(attr).setBaseValue(value);
     }
 
-    private void applyStun(CustomMobInstance instance, int durationTicks) {
-        LivingEntity entity = instance.entity();
-        if (entity == null || entity.isDead()) {
-            return;
+    private boolean applyStatus(LivingEntity entity, CustomMobStatus status, int durationTicks, Player source) {
+        if (entity == null) {
+            return false;
+        }
+        CustomMobInstance instance = getInstance(entity).orElse(null);
+        if (instance == null) {
+            return false;
+        }
+        if ((status == CustomMobStatus.TAUNTED || status == CustomMobStatus.FEARED) && source == null) {
+            return false;
         }
         int ticks = Math.max(1, durationTicks);
-        instance.setStunned(true);
-        entity.setAI(false);
-        entity.setVelocity(entity.getVelocity().setY(0));
-        instance.setStunParticleTask(startStunParticles(instance));
-        BukkitTask resetTask = Bukkit.getScheduler().runTaskLater(plugin, () -> clearStun(instance), ticks);
-        instance.setStunResetTask(resetTask);
+        if (instance.isStatusActive(status)) {
+            instance.clearStatusTasks(status);
+        }
+        instance.setStatusActive(status, true);
+        if (source != null) {
+            instance.setStatusSource(status, source.getUniqueId());
+        } else {
+            instance.setStatusSource(status, null);
+        }
+        switch (status) {
+            case STUNNED -> {
+                entity.setAI(false);
+                entity.setVelocity(entity.getVelocity().setY(0));
+            }
+            case TAUNTED -> startTauntTask(instance, source);
+            case FEARED -> startFearTask(instance, source);
+            case POISONED -> startPoisonDamageTask(instance, ticks);
+        }
+        BukkitTask particleTask = startStatusParticles(instance, status);
+        if (particleTask != null) {
+            instance.setParticleTask(status, particleTask);
+        }
+        BukkitTask resetTask = Bukkit.getScheduler().runTaskLater(plugin, () -> endStatus(instance, status), ticks);
+        instance.setResetTask(status, resetTask);
+        return true;
     }
 
-    private void clearStun(CustomMobInstance instance) {
+    private void endStatus(CustomMobInstance instance, CustomMobStatus status) {
         LivingEntity entity = instance.entity();
         if (entity == null) {
-            instance.clearStunTasks();
+            instance.clearStatusTasks(status);
             return;
         }
-        instance.setStunned(false);
-        if (!entity.isDead()) {
-            entity.setAI(instance.baseAi());
+        switch (status) {
+            case STUNNED -> {
+                if (!entity.isDead()) {
+                    entity.setAI(instance.baseAi());
+                }
+            }
+            case TAUNTED -> {
+                if (!entity.isDead() && entity instanceof Mob mob) {
+                    instance.getStatusSource(status)
+                            .map(Bukkit::getPlayer)
+                            .filter(player -> mob.getTarget() != null && mob.getTarget().equals(player))
+                            .ifPresent(player -> mob.setTarget(null));
+                }
+            }
+            case FEARED, POISONED -> {
+            }
         }
-        instance.clearStunTasks();
+        instance.clearStatusTasks(status);
     }
 
-    private BukkitTask startStunParticles(CustomMobInstance instance) {
+    private BukkitTask startStatusParticles(CustomMobInstance instance, CustomMobStatus status) {
+        ParticlePattern pattern = STATUS_PATTERNS.get(status);
+        if (pattern == null) {
+            return null;
+        }
         return new BukkitRunnable() {
             private int tick = 0;
 
             @Override
             public void run() {
                 LivingEntity entity = instance.entity();
-                if (entity == null || entity.isDead() || !instance.isStunned()) {
+                if (entity == null || entity.isDead() || !instance.isStatusActive(status)) {
                     cancel();
                     return;
                 }
                 Location base = entity.getLocation();
-                Location center = base.clone().add(0, entity.getHeight() + STUN_HEIGHT_OFFSET, 0);
-                ParticleRenderContext context = new ParticleRenderContext(null, center, base, STUN_POINTS, tick, 20);
-                STUN_PATTERN.render(context);
+                Location center = base.clone().add(0, entity.getHeight() + STATUS_HEIGHT_OFFSET, 0);
+                ParticleRenderContext context = new ParticleRenderContext(null, center, base, STATUS_POINTS, tick, 20);
+                pattern.render(context);
                 tick++;
             }
         }.runTaskTimer(plugin, 0L, 1L);
+    }
+
+    private void startPoisonDamageTask(CustomMobInstance instance, int durationTicks) {
+        LivingEntity entity = instance.entity();
+        if (entity == null || entity.isDead()) {
+            return;
+        }
+        int totalSeconds = (int) Math.ceil(durationTicks / 20.0);
+        BukkitRunnable runnable = new BukkitRunnable() {
+            private int remainingSeconds = totalSeconds;
+
+            @Override
+            public void run() {
+                LivingEntity living = instance.entity();
+                if (living == null || living.isDead() || !instance.isStatusActive(CustomMobStatus.POISONED)) {
+                    cancel();
+                    return;
+                }
+                if (remainingSeconds <= 0) {
+                    cancel();
+                    return;
+                }
+                double maxHealth = living.getMaxHealth();
+                double damage = Math.max(0.1, maxHealth * 0.01);
+                living.damage(damage);
+                remainingSeconds--;
+            }
+        };
+        instance.setEffectTask(CustomMobStatus.POISONED, runnable.runTaskTimer(plugin, 20L, 20L));
+    }
+
+    private void startTauntTask(CustomMobInstance instance, Player source) {
+        if (source == null) {
+            return;
+        }
+        BukkitRunnable runnable = new BukkitRunnable() {
+            @Override
+            public void run() {
+                LivingEntity entity = instance.entity();
+                if (entity == null || entity.isDead() || !instance.isStatusActive(CustomMobStatus.TAUNTED)) {
+                    cancel();
+                    return;
+                }
+                Player player = source.isOnline() ? source : null;
+                if (player == null) {
+                    cancel();
+                    return;
+                }
+                if (entity instanceof Mob mob) {
+                    mob.setTarget(player);
+                }
+            }
+        };
+        instance.setEffectTask(CustomMobStatus.TAUNTED, runnable.runTaskTimer(plugin, 0L, 10L));
+    }
+
+    private void startFearTask(CustomMobInstance instance, Player source) {
+        if (source == null) {
+            return;
+        }
+        BukkitRunnable runnable = new BukkitRunnable() {
+            @Override
+            public void run() {
+                LivingEntity entity = instance.entity();
+                if (entity == null || entity.isDead() || !instance.isStatusActive(CustomMobStatus.FEARED)) {
+                    cancel();
+                    return;
+                }
+                Player player = source.isOnline() ? source : null;
+                if (player == null) {
+                    cancel();
+                    return;
+                }
+                Vector away = entity.getLocation().toVector().subtract(player.getLocation().toVector());
+                if (away.lengthSquared() < 0.0001) {
+                    return;
+                }
+                away.normalize().multiply(0.35).setY(0);
+                entity.setVelocity(away);
+                if (entity instanceof Mob mob) {
+                    mob.setTarget(null);
+                }
+            }
+        };
+        instance.setEffectTask(CustomMobStatus.FEARED, runnable.runTaskTimer(plugin, 0L, 1L));
+    }
+
+    private static Map<CustomMobStatus, ParticlePattern> buildStatusPatterns() {
+        Map<CustomMobStatus, ParticlePattern> patterns = new EnumMap<>(CustomMobStatus.class);
+        patterns.put(CustomMobStatus.STUNNED, STUN_PATTERN);
+        patterns.put(CustomMobStatus.POISONED, POISON_PATTERN);
+        patterns.put(CustomMobStatus.TAUNTED, TAUNT_PATTERN);
+        patterns.put(CustomMobStatus.FEARED, FEAR_PATTERN);
+        return patterns;
     }
 }

@@ -3,14 +3,22 @@ package me.nakilex.levelplugin.mob.custom;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.scheduler.BukkitTask;
 
+import java.util.EnumMap;
+import java.util.EnumSet;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+
 public class CustomMobInstance {
     private final CustomMobDefinition definition;
     private final LivingEntity entity;
     private final int level;
     private final boolean baseAi;
-    private boolean stunned;
-    private BukkitTask stunResetTask;
-    private BukkitTask stunParticleTask;
+    private final EnumSet<CustomMobStatus> activeStatuses = EnumSet.noneOf(CustomMobStatus.class);
+    private final Map<CustomMobStatus, BukkitTask> resetTasks = new EnumMap<>(CustomMobStatus.class);
+    private final Map<CustomMobStatus, BukkitTask> particleTasks = new EnumMap<>(CustomMobStatus.class);
+    private final Map<CustomMobStatus, BukkitTask> effectTasks = new EnumMap<>(CustomMobStatus.class);
+    private final Map<CustomMobStatus, UUID> sources = new EnumMap<>(CustomMobStatus.class);
 
     public CustomMobInstance(CustomMobDefinition definition, LivingEntity entity, int level) {
         this.definition = definition;
@@ -35,48 +43,78 @@ public class CustomMobInstance {
         return level;
     }
 
-    public boolean isStunned() {
-        return stunned;
-    }
-
-    public void setStunned(boolean stunned) {
-        this.stunned = stunned;
-    }
-
     public boolean baseAi() {
         return baseAi;
     }
 
-    public BukkitTask getStunResetTask() {
-        return stunResetTask;
+    public boolean isStatusActive(CustomMobStatus status) {
+        return activeStatuses.contains(status);
     }
 
-    public void setStunResetTask(BukkitTask stunResetTask) {
-        if (this.stunResetTask != null) {
-            this.stunResetTask.cancel();
+    public void setStatusActive(CustomMobStatus status, boolean active) {
+        if (active) {
+            activeStatuses.add(status);
+        } else {
+            activeStatuses.remove(status);
         }
-        this.stunResetTask = stunResetTask;
     }
 
-    public BukkitTask getStunParticleTask() {
-        return stunParticleTask;
+    public Optional<UUID> getStatusSource(CustomMobStatus status) {
+        return Optional.ofNullable(sources.get(status));
     }
 
-    public void setStunParticleTask(BukkitTask stunParticleTask) {
-        if (this.stunParticleTask != null) {
-            this.stunParticleTask.cancel();
+    public void setStatusSource(CustomMobStatus status, UUID source) {
+        if (source == null) {
+            sources.remove(status);
+        } else {
+            sources.put(status, source);
         }
-        this.stunParticleTask = stunParticleTask;
     }
 
-    public void clearStunTasks() {
-        if (stunResetTask != null) {
-            stunResetTask.cancel();
-            stunResetTask = null;
+    public void setResetTask(CustomMobStatus status, BukkitTask task) {
+        replaceTask(resetTasks, status, task);
+    }
+
+    public void setParticleTask(CustomMobStatus status, BukkitTask task) {
+        replaceTask(particleTasks, status, task);
+    }
+
+    public void setEffectTask(CustomMobStatus status, BukkitTask task) {
+        replaceTask(effectTasks, status, task);
+    }
+
+    public void clearStatusTasks(CustomMobStatus status) {
+        cancelTask(resetTasks.remove(status));
+        cancelTask(particleTasks.remove(status));
+        cancelTask(effectTasks.remove(status));
+        sources.remove(status);
+        activeStatuses.remove(status);
+    }
+
+    public void clearAllStatusTasks() {
+        for (BukkitTask task : resetTasks.values()) {
+            cancelTask(task);
         }
-        if (stunParticleTask != null) {
-            stunParticleTask.cancel();
-            stunParticleTask = null;
+        for (BukkitTask task : particleTasks.values()) {
+            cancelTask(task);
+        }
+        for (BukkitTask task : effectTasks.values()) {
+            cancelTask(task);
+        }
+        resetTasks.clear();
+        particleTasks.clear();
+        effectTasks.clear();
+        sources.clear();
+        activeStatuses.clear();
+    }
+
+    private void replaceTask(Map<CustomMobStatus, BukkitTask> map, CustomMobStatus status, BukkitTask task) {
+        cancelTask(map.put(status, task));
+    }
+
+    private void cancelTask(BukkitTask task) {
+        if (task != null) {
+            task.cancel();
         }
     }
 }
