@@ -7,6 +7,7 @@ import me.nakilex.levelplugin.settings.data.PlayerVisibility;
 import me.nakilex.levelplugin.leaderboards.LeaderboardType;
 import me.nakilex.levelplugin.player.attributes.gui.StatsInventory;
 import me.nakilex.levelplugin.mob.managers.ChatToggleManager;
+import me.nakilex.levelplugin.spells.gui.SpellKeybindGUI;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.ToggleFeedbackUtil;
@@ -35,9 +36,11 @@ public class SettingsGUI implements Listener {
     private static final int LOOT_FILTER_SLOT = 32;
     private static final int CHAT_GAMES_SLOT = 27;
     private static final int SPELL_INPUT_SLOT = 33;
+    private static final int SPELL_KEYBINDS_SLOT = 34;
 
     private final SettingsManager settingsManager;
     private final Map<UUID, Filter> filters = new HashMap<>();
+    private SpellKeybindGUI spellKeybindGUI;
 
     public SettingsGUI(SettingsManager settingsManager) {
         this.settingsManager = settingsManager;
@@ -45,6 +48,10 @@ public class SettingsGUI implements Listener {
 
     public SettingsManager getSettingsManager() {
         return settingsManager;
+    }
+
+    public void setSpellKeybindGUI(SpellKeybindGUI spellKeybindGUI) {
+        this.spellKeybindGUI = spellKeybindGUI;
     }
 
     public void openSettingsMenu(Player player) {
@@ -204,6 +211,10 @@ public class SettingsGUI implements Listener {
             gui.setItem(SPELL_INPUT_SLOT, createSpellInputModeItem(playerSettings));
         }
 
+        if (filter == Filter.ALL || filter == Filter.COMBAT) {
+            gui.setItem(SPELL_KEYBINDS_SLOT, createSpellKeybindsItem());
+        }
+
         gui.setItem(FILTER_SLOT, createFilterItem(filter));
 
         // Filler border
@@ -325,6 +336,26 @@ public class SettingsGUI implements Listener {
                     "Keyboard: Sneak + Click or Sneak + Sneak"));
             lore.add(" ");
             lore.add(ChatColor.WHITE + "Click " + ChatColor.GRAY + "to cycle");
+            meta.setLore(lore);
+            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
+    private ItemStack createSpellKeybindsItem() {
+        ItemStack item = new ItemStack(Material.BOOK);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(ChatColor.AQUA + "Spell Keybinds");
+            List<String> lore = new ArrayList<>();
+            lore.add(" ");
+            lore.add(ChatColor.GRAY + "View and adjust spell keybinds.");
+            lore.addAll(TooltipUtil.bulletList(
+                    "Keybinds are saved per class.",
+                    "Use save/cancel to confirm changes."));
+            lore.add(" ");
+            lore.addAll(TooltipUtil.clickInstructions("to open", null));
             meta.setLore(lore);
             meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
             item.setItemMeta(meta);
@@ -482,6 +513,10 @@ public class SettingsGUI implements Listener {
         } else if (slot == SPELL_INPUT_SLOT) {
             settings.cycleSpellInputMode();
             event.getInventory().setItem(SPELL_INPUT_SLOT, createSpellInputModeItem(settings));
+        } else if (slot == SPELL_KEYBINDS_SLOT) {
+            if (spellKeybindGUI != null) {
+                spellKeybindGUI.open(player);
+            }
         }
     }
 }

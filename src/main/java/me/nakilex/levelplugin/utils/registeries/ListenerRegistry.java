@@ -46,6 +46,7 @@ import me.nakilex.levelplugin.potions.managers.PotionManager;
 import me.nakilex.levelplugin.salvage.listeners.SalvageListener;
 import me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager;
 import me.nakilex.levelplugin.settings.gui.SettingsGUI;
+import me.nakilex.levelplugin.spells.gui.SpellKeybindGUI;
 import me.nakilex.levelplugin.spells.listeners.SpellInputListener;
 import me.nakilex.levelplugin.player.classes.gui.SubclassGUI;
 import me.nakilex.levelplugin.player.classes.essence.listener.ClassEssenceMenuListener;
@@ -101,6 +102,7 @@ public class ListenerRegistry {
                                          PlayerToggleManager mobDebugToggleManager,
                                          PickupCustomItemListener pickupCustomItemListener,
                                          SettingsGUI settingsGUI,
+                                         SpellKeybindGUI spellKeybindGUI,
                                          me.nakilex.levelplugin.debug.gui.DebugGUI debugGUI,
                                          FileConfiguration bossConfig,
                                         GemsManager gemsManager,
@@ -230,6 +232,7 @@ public class ListenerRegistry {
         pm.registerEvents(arcSlashDebugManager, plugin);
         pm.registerEvents(arcSlashDebugGUI, plugin);
         pm.registerEvents(settingsGUI, plugin);
+        pm.registerEvents(spellKeybindGUI, plugin);
         pm.registerEvents(debugGUI, plugin);
         pm.registerEvents(new GuildGUIListener(), plugin);
         pm.registerEvents(new GuildQuestGUIListener(), plugin);
