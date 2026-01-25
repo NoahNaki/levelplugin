@@ -11,6 +11,9 @@ import me.nakilex.levelplugin.spells.input.SpellInputDisplayManager;
 import me.nakilex.levelplugin.spells.input.SpellInputEvent;
 import me.nakilex.levelplugin.spells.input.SpellInputMode;
 import me.nakilex.levelplugin.spells.input.SpellInputType;
+import me.nakilex.levelplugin.spells.input.SpellKeybindLayout;
+import me.nakilex.levelplugin.spells.input.SpellKeybindManager;
+import me.nakilex.levelplugin.spells.input.SpellKeybindSlot;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -39,6 +42,7 @@ public class SpellInputListener implements Listener {
     private final Map<UUID, SneakState> sneakStates = new HashMap<>();
     private final Map<UUID, Long> lastRightClickAt = new HashMap<>();
     private final SpellInputDisplayManager displayManager = SpellInputDisplayManager.getInstance();
+    private final SpellKeybindManager keybindManager = SpellKeybindManager.getInstance();
 
     public SpellInputListener(SettingsManager settingsManager) {
         this.settingsManager = settingsManager;
@@ -104,7 +108,7 @@ public class SpellInputListener implements Listener {
         state.lastReleaseAt = now;
         if (state.count >= 2) {
             state.count = 0;
-            dispatch(player, SpellInputType.SPELL_3, SpellInputMode.MOUSE_AND_KEYBOARD, "Sneak+Sneak");
+            dispatchBoundSpell(player, SpellInputMode.MOUSE_AND_KEYBOARD, SpellKeybindSlot.SLOT_3, "Sneak+Sneak");
         }
     }
 
@@ -136,20 +140,32 @@ public class SpellInputListener implements Listener {
             return;
         }
         displayManager.recordClick(player, leftClick ? SpellClickInput.LEFT : SpellClickInput.RIGHT);
-        SpellInputType result = tracker.recordClick(
+        String sequence = tracker.recordClick(
                 leftClick ? SpellClickInput.LEFT : SpellClickInput.RIGHT,
                 archerFamily);
-        if (result != null) {
-            dispatch(player, result, SpellInputMode.MOUSE_COMBO, tracker.getLastSequence());
-            displayManager.markSpellCast(player);
+        if (sequence != null) {
+            SpellInputType bound = getBoundSpell(player, SpellInputMode.MOUSE_COMBO,
+                    SpellKeybindLayout.comboSlotForSequence(archerFamily, sequence));
+            if (bound != null) {
+                dispatch(player, bound, SpellInputMode.MOUSE_COMBO, tracker.getLastSequence());
+                displayManager.markSpellCast(player);
+            }
         }
+    }
+
+    private SpellInputType getBoundSpell(Player player, SpellInputMode mode, SpellKeybindSlot slot) {
+        if (player == null || mode == null || slot == null) {
+            return null;
+        }
+        PlayerClass playerClass = PlayerClassManager.getInstance().getPlayerClass(player);
+        return keybindManager.getBinding(player.getUniqueId(), playerClass, mode, slot);
     }
 
     private void handleModifierClick(Player player, boolean leftClick, boolean archerFamily) {
         displayManager.recordClick(player, leftClick ? SpellClickInput.LEFT : SpellClickInput.RIGHT);
         if (player.isSneaking()) {
-            SpellInputType type = leftClick ? SpellInputType.SPELL_1 : SpellInputType.SPELL_2;
-            dispatch(player, type, SpellInputMode.MOUSE_AND_KEYBOARD,
+            SpellKeybindSlot slot = leftClick ? SpellKeybindSlot.SLOT_1 : SpellKeybindSlot.SLOT_2;
+            dispatchBoundSpell(player, SpellInputMode.MOUSE_AND_KEYBOARD, slot,
                     leftClick ? "Sneak+Left" : "Sneak+Right");
             return;
         }
@@ -157,7 +173,7 @@ public class SpellInputListener implements Listener {
             dispatch(player, SpellInputType.BASIC_ATTACK, SpellInputMode.MOUSE_AND_KEYBOARD,
                     leftClick ? "Left" : "Right");
         } else if (!leftClick) {
-            dispatch(player, SpellInputType.SPELL_4, SpellInputMode.MOUSE_AND_KEYBOARD, "Right");
+            dispatchBoundSpell(player, SpellInputMode.MOUSE_AND_KEYBOARD, SpellKeybindSlot.SLOT_4, "Right");
         }
     }
 
@@ -201,6 +217,13 @@ public class SpellInputListener implements Listener {
     private void dispatch(Player player, SpellInputType type, SpellInputMode mode, String sequence) {
         Bukkit.getPluginManager().callEvent(new SpellInputEvent(player, type, mode, sequence));
         sendSpellCastIndicator(player, type);
+    }
+
+    private void dispatchBoundSpell(Player player, SpellInputMode mode, SpellKeybindSlot slot, String sequence) {
+        SpellInputType bound = getBoundSpell(player, mode, slot);
+        if (bound != null) {
+            dispatch(player, bound, mode, sequence);
+        }
     }
 
     private void sendClickDebug(Player player, boolean leftClick) {

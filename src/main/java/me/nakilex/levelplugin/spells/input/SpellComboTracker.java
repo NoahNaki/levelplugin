@@ -2,12 +2,8 @@ package me.nakilex.levelplugin.spells.input;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
-import java.util.List;
 
 public class SpellComboTracker {
-    private static final List<String> DEFAULT_COMBOS = List.of("RRL", "RLR", "RRR", "RLL");
-    private static final List<String> ARCHER_COMBOS = List.of("LLR", "LLL", "LRL", "LRR");
-
     private final long comboTimeoutMs;
     private final Deque<SpellClickInput> inputs = new ArrayDeque<>(3);
     private long lastInputAt;
@@ -17,7 +13,7 @@ public class SpellComboTracker {
         this.comboTimeoutMs = comboTimeoutMs;
     }
 
-    public SpellInputType recordClick(SpellClickInput input, boolean archerFamily) {
+    public String recordClick(SpellClickInput input, boolean archerFamily) {
         long now = System.currentTimeMillis();
         if (now - lastInputAt > comboTimeoutMs) {
             inputs.clear();
@@ -33,12 +29,10 @@ public class SpellComboTracker {
         String sequence = getSequence();
         lastSequence = sequence;
         inputs.clear();
-        List<String> combos = archerFamily ? ARCHER_COMBOS : DEFAULT_COMBOS;
-        int idx = combos.indexOf(sequence);
-        if (idx == -1) {
+        if (!SpellKeybindLayout.isValidComboSequence(archerFamily, sequence)) {
             return null;
         }
-        return SpellInputType.values()[SpellInputType.SPELL_1.ordinal() + idx];
+        return sequence;
     }
 
     public String getSequence() {

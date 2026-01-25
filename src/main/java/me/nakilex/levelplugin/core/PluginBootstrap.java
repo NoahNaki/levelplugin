@@ -51,6 +51,7 @@ import me.nakilex.levelplugin.pathfinding.MercenaryManager;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.potions.managers.PotionManager;
 import me.nakilex.levelplugin.settings.gui.SettingsGUI;
+import me.nakilex.levelplugin.spells.gui.SpellKeybindGUI;
 import me.nakilex.levelplugin.settings.managers.SettingsManager;
 import me.nakilex.levelplugin.storage.StorageManager;
 import me.nakilex.levelplugin.storage.events.StorageEvents;
@@ -199,6 +200,7 @@ public class PluginBootstrap {
     private me.nakilex.levelplugin.auctionhouse.AuctionHouseGUI auctionHouseGUI;
     private SettingsManager settingsManager;
     private SettingsGUI settingsGUI;
+    private SpellKeybindGUI spellKeybindGUI;
     private me.nakilex.levelplugin.debug.gui.DebugGUI debugGUI;
     private CodexManager codexManager;
     private CodexMainGUI codexGUI;
@@ -434,6 +436,8 @@ public class PluginBootstrap {
         horseManager = new HorseManager(horseConfigManager);
         HorseGUI horseGUI = new HorseGUI(horseManager, economyManager);
         settingsGUI = new SettingsGUI(settingsManager);
+        spellKeybindGUI = new SpellKeybindGUI(settingsManager, settingsGUI);
+        settingsGUI.setSpellKeybindGUI(spellKeybindGUI);
         debugGUI = new me.nakilex.levelplugin.debug.gui.DebugGUI(
                 mobDebugToggleManager,
                 scoreboardManager,
@@ -544,6 +548,7 @@ public class PluginBootstrap {
             mobDebugToggleManager,
             pickupCustomItemListener,
             settingsGUI,
+            spellKeybindGUI,
             debugGUI,
             bossConfig,
             gemsManager,
