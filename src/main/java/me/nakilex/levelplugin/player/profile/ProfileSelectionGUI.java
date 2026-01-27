@@ -4,8 +4,11 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
+import me.nakilex.levelplugin.utils.gui.widgets.ActionWidget;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiContext;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiLayout;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiWidget;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
-import me.nakilex.levelplugin.npc.dialog.NPCDialogManager;
 import me.nakilex.levelplugin.utils.BetterHudUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -71,6 +74,9 @@ public class ProfileSelectionGUI implements Listener {
     private static final Map<UUID, Inventory> OPEN = new HashMap<>();
     private static final Map<UUID, Inventory> EDIT_OPEN = new HashMap<>();
     private static final Map<UUID, Inventory> CONFIRM_OPEN = new HashMap<>();
+    private static final Map<UUID, List<GuiWidget>> MAIN_WIDGETS = new HashMap<>();
+    private static final Map<UUID, List<GuiWidget>> EDIT_WIDGETS = new HashMap<>();
+    private static final Map<UUID, List<GuiWidget>> CONFIRM_WIDGETS = new HashMap<>();
     private static final Set<UUID> SELECTING = new HashSet<>();
     private static final Set<UUID> NAMING = new HashSet<>();
     private static final Map<UUID, Integer> PENDING_SLOT = new HashMap<>();
@@ -141,6 +147,9 @@ public class ProfileSelectionGUI implements Listener {
         OPEN.remove(id);
         EDIT_OPEN.remove(id);
         CONFIRM_OPEN.remove(id);
+        MAIN_WIDGETS.remove(id);
+        EDIT_WIDGETS.remove(id);
+        CONFIRM_WIDGETS.remove(id);
         PENDING_SLOT.remove(id);
         FIRST_PROFILE_SLOT.remove(id);
     }
@@ -165,23 +174,9 @@ public class ProfileSelectionGUI implements Listener {
         int unlocked = pm.getUnlockedSlots(player.getUniqueId());
         List<PlayerProfile> list = pm.getProfiles(player.getUniqueId());
 
-        for (int i = 0; i < PROFILE_SLOTS.length; i++) {
-            int slot = PROFILE_SLOTS[i];
-            if (i >= unlocked) {
-                inv.setItem(slot, GuiUtil.getNexoItem("lock", ChatColor.RED + "Locked"));
-                continue;
-            }
-            PlayerProfile prof = list.get(i);
-            if (prof == null) {
-                inv.setItem(slot,
-                        GuiUtil.getNexoItem("plus", ChatColor.GREEN + "[+] Create character"));
-            } else {
-                inv.setItem(slot, createProfileItem(player, prof));
-            }
-        }
-
-        // add logout button
-        inv.setItem(LOGOUT_SLOT, LOGOUT_ITEM);
+        List<GuiWidget> widgets = buildMainWidgets(player, unlocked, list);
+        renderWidgets(inv, player, widgets);
+        MAIN_WIDGETS.put(player.getUniqueId(), widgets);
 
         OPEN.put(player.getUniqueId(), inv);
         player.openInventory(inv);
@@ -191,8 +186,9 @@ public class ProfileSelectionGUI implements Listener {
         Inventory inv = GuiBuilder.create(SIZE, EDIT_TITLE)
                 .filler(Material.GRAY_STAINED_GLASS_PANE)
                 .build();
-        inv.setItem(DELETE_SLOT, DELETE_ITEM);
-        inv.setItem(BACK_SLOT, GuiUtil.getNexoItem("arrow_left", ChatColor.GRAY + "Back"));
+        List<GuiWidget> widgets = buildEditWidgets(player, slotIndex);
+        renderWidgets(inv, player, widgets);
+        EDIT_WIDGETS.put(player.getUniqueId(), widgets);
         EDIT_OPEN.put(player.getUniqueId(), inv);
         PENDING_SLOT.put(player.getUniqueId(), slotIndex);
         player.openInventory(inv);
@@ -217,9 +213,9 @@ public class ProfileSelectionGUI implements Listener {
             confirmMeta.setLore(lore);
             confirm.setItemMeta(confirmMeta);
         }
-        inv.setItem(CONFIRM_YES_SLOT, confirm);
-        inv.setItem(CONFIRM_NO_SLOT,
-                GuiUtil.getNexoItem("cross", ChatColor.RED + "Cancel"));
+        List<GuiWidget> widgets = buildConfirmWidgets(player, slotIndex, confirm);
+        renderWidgets(inv, player, widgets);
+        CONFIRM_WIDGETS.put(player.getUniqueId(), widgets);
         // The edit menu closes when this opens; remove the reference so the
         // close handler doesn't reopen the main menu before the confirm GUI
         // appears.
@@ -277,20 +273,11 @@ public class ProfileSelectionGUI implements Listener {
         Player player = (Player) e.getWhoClicked();
         Inventory open = OPEN.get(player.getUniqueId());
         if (open == null || !e.getView().getTopInventory().equals(open)) return;
+        List<GuiWidget> widgets = MAIN_WIDGETS.get(player.getUniqueId());
+        if (handleWidgetClick(e, player, widgets)) {
+            return;
+        }
         e.setCancelled(true);
-        for (int i = 0; i < PROFILE_SLOTS.length; i++) {
-            if (e.getRawSlot() == PROFILE_SLOTS[i]) {
-                if (e.isRightClick()) {
-                    handleEdit(player, i);
-                } else {
-                    selectProfile(player, i);
-                }
-                return;
-            }
-        }
-        if (e.getRawSlot() == LOGOUT_SLOT) {
-            handleLogout(player);
-        }
     }
 
     @EventHandler
@@ -298,17 +285,11 @@ public class ProfileSelectionGUI implements Listener {
         Player player = (Player) e.getWhoClicked();
         Inventory inv = EDIT_OPEN.get(player.getUniqueId());
         if (inv == null || !e.getView().getTopInventory().equals(inv)) return;
-        e.setCancelled(true);
-        int slotIndex = PENDING_SLOT.getOrDefault(player.getUniqueId(), -1);
-        if (e.getRawSlot() == DELETE_SLOT) {
-            openConfirmDelete(player, slotIndex);
-            return;
-        } else if (e.getRawSlot() == BACK_SLOT) {
-            EDIT_OPEN.remove(player.getUniqueId());
-            PENDING_SLOT.remove(player.getUniqueId());
-            open(player);
+        List<GuiWidget> widgets = EDIT_WIDGETS.get(player.getUniqueId());
+        if (handleWidgetClick(e, player, widgets)) {
             return;
         }
+        e.setCancelled(true);
     }
 
     @EventHandler
@@ -316,36 +297,11 @@ public class ProfileSelectionGUI implements Listener {
         Player player = (Player) e.getWhoClicked();
         Inventory inv = CONFIRM_OPEN.get(player.getUniqueId());
         if (inv == null || !e.getView().getTopInventory().equals(inv)) return;
-        e.setCancelled(true);
-        int slotIndex = PENDING_SLOT.getOrDefault(player.getUniqueId(), -1);
-        if (e.getRawSlot() == CONFIRM_YES_SLOT) {
-            if (slotIndex >= 0) {
-                ProfileManager pm = ProfileManager.getInstance();
-                Integer active = pm.getActiveSlot(player.getUniqueId());
-                pm.deleteProfile(player, slotIndex);
-                player.sendMessage(ChatColor.RED + "Profile deleted.");
-
-                if (active != null && active == slotIndex) {
-                    pm.clearActiveSlot(player.getUniqueId());
-
-                    // Teleport back to the lobby world before forcing profile
-                    // selection again. Delay reopening slightly so the player
-                    // lands on the ground first.
-                    org.bukkit.World lobbyWorld = Bukkit.getWorld("world");
-                    if (lobbyWorld != null) {
-                        player.teleport(new org.bukkit.Location(lobbyWorld, 217, 6, 80));
-                    }
-
-                    Bukkit.getScheduler().runTaskLater(
-                            Main.getInstance(),
-                            () -> startSelection(player),
-                            30L); // ~1.5 seconds
-                }
-            }
-            player.closeInventory();
-        } else if (e.getRawSlot() == CONFIRM_NO_SLOT) {
-            openEdit(player, slotIndex);
+        List<GuiWidget> widgets = CONFIRM_WIDGETS.get(player.getUniqueId());
+        if (handleWidgetClick(e, player, widgets)) {
+            return;
         }
+        e.setCancelled(true);
     }
 
     public static void selectProfile(Player player, int index) {
@@ -542,12 +498,14 @@ public class ProfileSelectionGUI implements Listener {
         Inventory open = OPEN.get(id);
         if (open != null && inv.equals(open)) {
             OPEN.remove(id);
+            MAIN_WIDGETS.remove(id);
             handled = true;
         }
 
         Inventory edit = EDIT_OPEN.get(id);
         if (edit != null && inv.equals(edit)) {
             EDIT_OPEN.remove(id);
+            EDIT_WIDGETS.remove(id);
             PENDING_SLOT.remove(id);
             handled = true;
         }
@@ -555,6 +513,7 @@ public class ProfileSelectionGUI implements Listener {
         Inventory confirm = CONFIRM_OPEN.get(id);
         if (confirm != null && inv.equals(confirm)) {
             CONFIRM_OPEN.remove(id);
+            CONFIRM_WIDGETS.remove(id);
             PENDING_SLOT.remove(id);
             handled = true;
         }
@@ -570,5 +529,114 @@ public class ProfileSelectionGUI implements Listener {
         if (SELECTING.contains(id) && !NAMING.contains(id)) {
             e.setCancelled(true);
         }
+    }
+
+    private static List<GuiWidget> buildMainWidgets(Player player, int unlocked, List<PlayerProfile> profiles) {
+        List<GuiWidget> widgets = new ArrayList<>();
+        for (int i = 0; i < PROFILE_SLOTS.length; i++) {
+            int index = i;
+            int slot = PROFILE_SLOTS[i];
+            widgets.add(new ActionWidget(slot,
+                    context -> {
+                        if (index >= unlocked) {
+                            return GuiUtil.getNexoItem("lock", ChatColor.RED + "Locked");
+                        }
+                        PlayerProfile prof = profiles.get(index);
+                        if (prof == null) {
+                            return GuiUtil.getNexoItem("plus", ChatColor.GREEN + "[+] Create character");
+                        }
+                        return createProfileItem(context.player(), prof);
+                    },
+                    (click, context) -> {
+                        if (click.isRightClick()) {
+                            handleEdit(context.player(), index);
+                        } else {
+                            selectProfile(context.player(), index);
+                        }
+                    }));
+        }
+        widgets.add(new ActionWidget(LOGOUT_SLOT, context -> LOGOUT_ITEM,
+                (click, context) -> handleLogout(context.player())));
+        return widgets;
+    }
+
+    private static List<GuiWidget> buildEditWidgets(Player player, int slotIndex) {
+        List<GuiWidget> widgets = new ArrayList<>();
+        widgets.add(new ActionWidget(DELETE_SLOT, context -> DELETE_ITEM,
+                (click, context) -> openConfirmDelete(context.player(), slotIndex)));
+        widgets.add(new ActionWidget(BACK_SLOT,
+                context -> GuiUtil.getNexoItem("arrow_left", ChatColor.GRAY + "Back"),
+                (click, context) -> {
+                    EDIT_OPEN.remove(context.player().getUniqueId());
+                    PENDING_SLOT.remove(context.player().getUniqueId());
+                    open(context.player());
+                }));
+        return widgets;
+    }
+
+    private static List<GuiWidget> buildConfirmWidgets(Player player, int slotIndex, ItemStack confirmItem) {
+        List<GuiWidget> widgets = new ArrayList<>();
+        widgets.add(new ActionWidget(CONFIRM_YES_SLOT,
+                context -> confirmItem,
+                (click, context) -> handleDeleteConfirm(context.player(), slotIndex)));
+        widgets.add(new ActionWidget(CONFIRM_NO_SLOT,
+                context -> GuiUtil.getNexoItem("cross", ChatColor.RED + "Cancel"),
+                (click, context) -> openEdit(context.player(), slotIndex)));
+        return widgets;
+    }
+
+    private static void renderWidgets(Inventory inventory, Player player, List<GuiWidget> widgets) {
+        GuiLayout layout = new GuiLayout(inventory);
+        GuiContext context = new GuiContext(player, inventory);
+        for (GuiWidget widget : widgets) {
+            widget.contribute(layout, context);
+        }
+    }
+
+    private static boolean handleWidgetClick(InventoryClickEvent event, Player player, List<GuiWidget> widgets) {
+        if (widgets == null) {
+            return false;
+        }
+        int slot = event.getRawSlot();
+        if (slot < 0 || slot >= event.getView().getTopInventory().getSize()) {
+            return false;
+        }
+        GuiWidget widget = widgets.stream()
+                .filter(w -> w.handlesSlot(slot))
+                .findFirst()
+                .orElse(null);
+        if (widget == null) {
+            return false;
+        }
+        event.setCancelled(true);
+        widget.onClick(slot, event.getClick(), new GuiContext(player, event.getView().getTopInventory()));
+        return true;
+    }
+
+    private static void handleDeleteConfirm(Player player, int slotIndex) {
+        if (slotIndex >= 0) {
+            ProfileManager pm = ProfileManager.getInstance();
+            Integer active = pm.getActiveSlot(player.getUniqueId());
+            pm.deleteProfile(player, slotIndex);
+            player.sendMessage(ChatColor.RED + "Profile deleted.");
+
+            if (active != null && active == slotIndex) {
+                pm.clearActiveSlot(player.getUniqueId());
+
+                // Teleport back to the lobby world before forcing profile
+                // selection again. Delay reopening slightly so the player
+                // lands on the ground first.
+                org.bukkit.World lobbyWorld = Bukkit.getWorld("world");
+                if (lobbyWorld != null) {
+                    player.teleport(new org.bukkit.Location(lobbyWorld, 217, 6, 80));
+                }
+
+                Bukkit.getScheduler().runTaskLater(
+                        Main.getInstance(),
+                        () -> startSelection(player),
+                        30L); // ~1.5 seconds
+            }
+        }
+        player.closeInventory();
     }
 }
