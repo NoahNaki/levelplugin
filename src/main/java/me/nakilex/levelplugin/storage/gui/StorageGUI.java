@@ -7,10 +7,10 @@ import me.nakilex.levelplugin.storage.events.StorageEvents;
 import com.nexomc.nexo.api.NexoItems;
 import com.nexomc.nexo.items.ItemBuilder;
 import me.nakilex.levelplugin.utils.TooltipUtil;
+import me.nakilex.levelplugin.utils.gui.widgets.ActionWidget;
 import me.nakilex.levelplugin.utils.gui.widgets.GuiContext;
 import me.nakilex.levelplugin.utils.gui.widgets.GuiLayout;
 import me.nakilex.levelplugin.utils.gui.widgets.GuiWidget;
-import me.nakilex.levelplugin.utils.gui.widgets.SlotWidget;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -201,118 +201,57 @@ public class StorageGUI {
         }
         event.setCancelled(true);
         if (event.getWhoClicked() instanceof Player player) {
-            widget.onClick(slot, event.getClick(), new GuiContext(player, event.getInventory()));
+            widget.onClick(slot, event.getClick(), new GuiContext(player, event.getView().getTopInventory()));
         }
         return true;
     }
 
     private List<GuiWidget> buildWidgets() {
         List<GuiWidget> widgetList = new ArrayList<>();
-        widgetList.add(new PrevPageWidget());
-        widgetList.add(new NextPageWidget());
-        widgetList.add(new SortWidget());
-        widgetList.add(new FilterWidget());
-        widgetList.add(new InfoWidget());
+        registerWidget(widgetList, new ActionWidget(NAV_PREV_SLOT, context -> createPrevNavItem(),
+                (click, context) -> {
+                    Player player = context.player();
+                    if (confirmUnlock) {
+                        confirmUnlock = false;
+                        open(player);
+                        return;
+                    }
+                    if (currentPage > 0) {
+                        goToPreviousPage(player);
+                    }
+                }));
+        registerWidget(widgetList, new ActionWidget(NAV_NEXT_SLOT, context -> createNextNavItem(),
+                (click, context) -> goToNextPage(context.player())));
+        registerWidget(widgetList, new ActionWidget(SORT_SLOT, context -> createSortButton(sortMode),
+                (click, context) -> {
+                    if (click.isLeftClick()) {
+                        sortMode++;
+                    } else {
+                        sortMode--;
+                    }
+                    if (sortMode > 2) sortMode = 0;
+                    if (sortMode < 0) sortMode = 2;
+                    open(context.player());
+                }));
+        registerWidget(widgetList, new ActionWidget(FILTER_SLOT, context -> createFilterButton(filterMode),
+                (click, context) -> {
+                    if (click.isLeftClick()) {
+                        filterMode++;
+                    } else {
+                        filterMode--;
+                    }
+                    if (filterMode > 5) filterMode = 0;
+                    if (filterMode < 0) filterMode = 5;
+                    Main.getInstance().getLogger().info(
+                            "[StorageGUI] filterMode owner=" + ownerKey + " newMode=" + filterMode);
+                    open(context.player());
+                }));
+        registerWidget(widgetList, new ActionWidget(INFO_SLOT, context -> createInfoItem(), null));
         return widgetList;
     }
 
-    private class PrevPageWidget extends SlotWidget {
-        private PrevPageWidget() {
-            super(NAV_PREV_SLOT);
-        }
-
-        @Override
-        protected ItemStack render(GuiContext context) {
-            return createPrevNavItem();
-        }
-
-        @Override
-        protected void handleClick(org.bukkit.event.inventory.ClickType click, GuiContext context) {
-            Player player = context.player();
-            if (confirmUnlock) {
-                confirmUnlock = false;
-                open(player);
-                return;
-            }
-            if (currentPage > 0) {
-                goToPreviousPage(player);
-            }
-        }
-    }
-
-    private class NextPageWidget extends SlotWidget {
-        private NextPageWidget() {
-            super(NAV_NEXT_SLOT);
-        }
-
-        @Override
-        protected ItemStack render(GuiContext context) {
-            return createNextNavItem();
-        }
-
-        @Override
-        protected void handleClick(org.bukkit.event.inventory.ClickType click, GuiContext context) {
-            goToNextPage(context.player());
-        }
-    }
-
-    private class SortWidget extends SlotWidget {
-        private SortWidget() {
-            super(SORT_SLOT);
-        }
-
-        @Override
-        protected ItemStack render(GuiContext context) {
-            return createSortButton(sortMode);
-        }
-
-        @Override
-        protected void handleClick(org.bukkit.event.inventory.ClickType click, GuiContext context) {
-            if (click.isLeftClick()) {
-                sortMode++;
-            } else {
-                sortMode--;
-            }
-            if (sortMode > 2) sortMode = 0;
-            if (sortMode < 0) sortMode = 2;
-            open(context.player());
-        }
-    }
-
-    private class FilterWidget extends SlotWidget {
-        private FilterWidget() {
-            super(FILTER_SLOT);
-        }
-
-        @Override
-        protected ItemStack render(GuiContext context) {
-            return createFilterButton(filterMode);
-        }
-
-        @Override
-        protected void handleClick(org.bukkit.event.inventory.ClickType click, GuiContext context) {
-            if (click.isLeftClick()) {
-                filterMode++;
-            } else {
-                filterMode--;
-            }
-            if (filterMode > 5) filterMode = 0;
-            if (filterMode < 0) filterMode = 5;
-            Main.getInstance().getLogger().info(
-                    "[StorageGUI] filterMode owner=" + ownerKey + " newMode=" + filterMode);
-            open(context.player());
-        }
-    }
-
-    private class InfoWidget extends SlotWidget {
-        private InfoWidget() {
-            super(INFO_SLOT);
-        }
-
-        @Override
-        protected ItemStack render(GuiContext context) {
-            return createInfoItem();
-        }
+    private void registerWidget(List<GuiWidget> widgets, GuiWidget widget) {
+        widgets.add(widget);
     }
 
     private void goToNextPage(Player player) {

@@ -22,6 +22,10 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 import me.nakilex.levelplugin.items.data.ItemRarity;
 import me.nakilex.levelplugin.utils.TooltipUtil;
+import me.nakilex.levelplugin.utils.gui.widgets.ActionWidget;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiContext;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiLayout;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiWidget;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 
 import java.util.*;
@@ -74,12 +78,16 @@ public class AuctionHouseGUI implements Listener {
     private final Map<UUID, Integer> awaitingBid = new HashMap<>();
     private final Map<UUID, Integer> confirmPurchase = new HashMap<>();
     private final Map<UUID, Integer> myPageMap = new HashMap<>();
+    private final List<GuiWidget> widgets;
+    private boolean canPrevPage;
+    private boolean canNextPage;
 
     public AuctionHouseGUI(JavaPlugin plugin, AuctionHouseManager manager, EconomyManager economy) {
         this.plugin = plugin;
         this.manager = manager;
         this.economy = economy;
         this.indexKey = new NamespacedKey(plugin, "auction_index");
+        this.widgets = buildWidgets();
         Bukkit.getPluginManager().registerEvents(this, plugin);
     }
 
@@ -139,19 +147,147 @@ public class AuctionHouseGUI implements Listener {
             }
             inv.setItem(LISTING_SLOTS[slot++], stack);
         }
-
-        if (page > 0) inv.setItem(PREV_PAGE, createArrow(ChatColor.RED + "Previous", false));
-        if (list.size() > (page + 1) * ITEMS_PER_PAGE) inv.setItem(NEXT_PAGE, createArrow(ChatColor.GREEN + "Next", true));
-        inv.setItem(SELL_SLOT, createSellButton());
-        inv.setItem(MY_LISTINGS_SLOT, createMyListingsButton());
-        inv.setItem(REFRESH_SLOT, createRefreshButton());
-        inv.setItem(SEARCH_SLOT, createSearchButton(term));
-        inv.setItem(FILTER_SLOT, createLevelFilterButton(filter));
-        inv.setItem(RARITY_FILTER_SLOT, createRarityFilterButton(rarityFilter));
-        inv.setItem(SORT_SLOT, createSortButton(sort));
-        inv.setItem(INFO_SLOT, createInfoItem());
+        canPrevPage = page > 0;
+        canNextPage = list.size() > (page + 1) * ITEMS_PER_PAGE;
+        renderWidgets(inv, player);
 
         player.openInventory(inv);
+    }
+
+    private void renderWidgets(Inventory inventory, Player player) {
+        GuiLayout layout = new GuiLayout(inventory);
+        GuiContext context = new GuiContext(player, inventory);
+        for (GuiWidget widget : widgets) {
+            widget.contribute(layout, context);
+        }
+    }
+
+    private boolean handleWidgetClick(InventoryClickEvent event) {
+        int slot = event.getRawSlot();
+        GuiWidget widget = widgets.stream()
+                .filter(w -> w.handlesSlot(slot))
+                .findFirst()
+                .orElse(null);
+        if (widget == null) {
+            return false;
+        }
+        event.setCancelled(true);
+        if (event.getWhoClicked() instanceof Player player) {
+            widget.onClick(slot, event.getClick(), new GuiContext(player, event.getView().getTopInventory()));
+        }
+        return true;
+    }
+
+    private List<GuiWidget> buildWidgets() {
+        List<GuiWidget> widgetList = new ArrayList<>();
+        widgetList.add(new ActionWidget(REFRESH_SLOT, context -> createRefreshButton(),
+                (click, context) -> handleRefreshClick(context.player())));
+        widgetList.add(new ActionWidget(SELL_SLOT, context -> createSellButton(),
+                (click, context) -> handleSellClick(context.player())));
+        widgetList.add(new ActionWidget(MY_LISTINGS_SLOT, context -> createMyListingsButton(),
+                (click, context) -> openMyListings(context.player())));
+        widgetList.add(new ActionWidget(SEARCH_SLOT,
+                context -> createSearchButton(searchTerms.getOrDefault(context.player().getUniqueId(), "")),
+                (click, context) -> handleSearchClick(context.player(), click)));
+        widgetList.add(new ActionWidget(FILTER_SLOT,
+                context -> createLevelFilterButton(levelFilters.getOrDefault(context.player().getUniqueId(), 5)),
+                (click, context) -> handleLevelFilterClick(context.player(), click)));
+        widgetList.add(new ActionWidget(RARITY_FILTER_SLOT,
+                context -> createRarityFilterButton(rarityFilters.getOrDefault(context.player().getUniqueId(), ItemRarity.values().length)),
+                (click, context) -> handleRarityFilterClick(context.player(), click)));
+        widgetList.add(new ActionWidget(SORT_SLOT,
+                context -> createSortButton(sortModes.getOrDefault(context.player().getUniqueId(), 0)),
+                (click, context) -> handleSortClick(context.player(), click)));
+        widgetList.add(new ActionWidget(INFO_SLOT, context -> createInfoItem(), null));
+        widgetList.add(new ActionWidget(PREV_PAGE,
+                context -> canPrevPage ? createArrow(ChatColor.RED + "Previous", false) : null,
+                (click, context) -> handlePrevPageClick(context.player())));
+        widgetList.add(new ActionWidget(NEXT_PAGE,
+                context -> canNextPage ? createArrow(ChatColor.GREEN + "Next", true) : null,
+                (click, context) -> handleNextPageClick(context.player())));
+        return widgetList;
+    }
+
+    private void handleRefreshClick(Player player) {
+        open(player, pageMap.getOrDefault(player.getUniqueId(), 0));
+    }
+
+    private void handleSellClick(Player player) {
+        ItemStack hand = player.getInventory().getItemInMainHand();
+        if (hand == null || hand.getType().isAir()) {
+            player.sendMessage(ChatColor.RED + "Hold the item you wish to sell in your hand.");
+            return;
+        }
+        if (me.nakilex.levelplugin.items.listeners.StaticItemListener.isStaticItem(hand)
+                || me.nakilex.levelplugin.items.utils.ItemUtil.isSoulbound(hand)) {
+            player.sendMessage(ChatColor.RED + "You cannot list that item.");
+            return;
+        }
+        ListingData data = new ListingData();
+        data.item = hand.clone();
+        pending.put(player.getUniqueId(), data);
+        player.getInventory().setItemInMainHand(null);
+        player.closeInventory();
+        player.sendMessage(ChatColor.YELLOW + "Enter starting price or 'cancel'.");
+    }
+
+    private void handleSearchClick(Player player, ClickType click) {
+        if (click == ClickType.RIGHT) {
+            searchTerms.remove(player.getUniqueId());
+            open(player, pageMap.getOrDefault(player.getUniqueId(), 0));
+            return;
+        }
+        awaitingSearch.add(player.getUniqueId());
+        player.closeInventory();
+        player.sendMessage(ChatColor.YELLOW + "Enter search term or 'cancel'.");
+    }
+
+    private void handleLevelFilterClick(Player player, ClickType click) {
+        int filter = levelFilters.getOrDefault(player.getUniqueId(), 5);
+        switch (click) {
+            case RIGHT -> filter = (filter + 5) % 6;
+            default -> filter = (filter + 1) % 6;
+        }
+        levelFilters.put(player.getUniqueId(), filter);
+        open(player, pageMap.getOrDefault(player.getUniqueId(), 0));
+    }
+
+    private void handleRarityFilterClick(Player player, ClickType click) {
+        int filter = rarityFilters.getOrDefault(player.getUniqueId(), ItemRarity.values().length);
+        int total = ItemRarity.values().length + 1;
+        switch (click) {
+            case RIGHT -> filter = (filter + total - 1) % total;
+            default -> filter = (filter + 1) % total;
+        }
+        rarityFilters.put(player.getUniqueId(), filter);
+        open(player, pageMap.getOrDefault(player.getUniqueId(), 0));
+    }
+
+    private void handleSortClick(Player player, ClickType click) {
+        int mode = sortModes.getOrDefault(player.getUniqueId(), 0);
+        int total = 7;
+        switch (click) {
+            case RIGHT -> mode = (mode + total - 1) % total;
+            default -> mode = (mode + 1) % total;
+        }
+        sortModes.put(player.getUniqueId(), mode);
+        open(player, pageMap.getOrDefault(player.getUniqueId(), 0));
+    }
+
+    private void handlePrevPageClick(Player player) {
+        if (!canPrevPage) {
+            return;
+        }
+        int page = Math.max(0, pageMap.getOrDefault(player.getUniqueId(), 0) - 1);
+        open(player, page);
+    }
+
+    private void handleNextPageClick(Player player) {
+        if (!canNextPage) {
+            return;
+        }
+        int page = pageMap.getOrDefault(player.getUniqueId(), 0) + 1;
+        open(player, page);
     }
 
     @EventHandler
@@ -184,92 +320,7 @@ public class AuctionHouseGUI implements Listener {
         if (clicked == null || !clicked.hasItemMeta()) return;
         Player player = (Player) e.getWhoClicked();
 
-        int rawSlot = e.getRawSlot();
-        if (rawSlot == REFRESH_SLOT) {
-            open(player, pageMap.getOrDefault(player.getUniqueId(), 0));
-            return;
-        }
-        if (rawSlot == SELL_SLOT) {
-            ItemStack hand = player.getInventory().getItemInMainHand();
-            if (hand == null || hand.getType().isAir()) {
-                player.sendMessage(ChatColor.RED + "Hold the item you wish to sell in your hand.");
-                return;
-            }
-            if (me.nakilex.levelplugin.items.listeners.StaticItemListener.isStaticItem(hand)
-                    || me.nakilex.levelplugin.items.utils.ItemUtil.isSoulbound(hand)) {
-                player.sendMessage(ChatColor.RED + "You cannot list that item.");
-                return;
-            }
-            ListingData data = new ListingData();
-            data.item = hand.clone();
-            pending.put(player.getUniqueId(), data);
-            player.getInventory().setItemInMainHand(null);
-            player.closeInventory();
-            player.sendMessage(ChatColor.YELLOW + "Enter starting price or 'cancel'.");
-            return;
-        }
-
-        if (rawSlot == MY_LISTINGS_SLOT) {
-            openMyListings(player);
-            return;
-        }
-
-        if (rawSlot == SEARCH_SLOT) {
-            if (e.getClick() == ClickType.RIGHT) {
-                searchTerms.remove(player.getUniqueId());
-                open(player, pageMap.getOrDefault(player.getUniqueId(), 0));
-            } else {
-                awaitingSearch.add(player.getUniqueId());
-                player.closeInventory();
-                player.sendMessage(ChatColor.YELLOW + "Enter search term or 'cancel'.");
-            }
-            return;
-        }
-
-        if (rawSlot == FILTER_SLOT) {
-            int filter = levelFilters.getOrDefault(player.getUniqueId(), 5);
-            switch (e.getClick()) {
-                case RIGHT -> filter = (filter + 5) % 6;
-                default -> filter = (filter + 1) % 6;
-            }
-            levelFilters.put(player.getUniqueId(), filter);
-            open(player, pageMap.getOrDefault(player.getUniqueId(), 0));
-            return;
-        }
-
-        if (rawSlot == RARITY_FILTER_SLOT) {
-            int filter = rarityFilters.getOrDefault(player.getUniqueId(), ItemRarity.values().length);
-            int total = ItemRarity.values().length + 1;
-            switch (e.getClick()) {
-                case RIGHT -> filter = (filter + total - 1) % total;
-                default -> filter = (filter + 1) % total;
-            }
-            rarityFilters.put(player.getUniqueId(), filter);
-            open(player, pageMap.getOrDefault(player.getUniqueId(), 0));
-            return;
-        }
-
-        if (rawSlot == SORT_SLOT) {
-            int mode = sortModes.getOrDefault(player.getUniqueId(), 0);
-            int total = 7;
-            switch (e.getClick()) {
-                case RIGHT -> mode = (mode + total - 1) % total;
-                default -> mode = (mode + 1) % total;
-            }
-            sortModes.put(player.getUniqueId(), mode);
-            open(player, pageMap.getOrDefault(player.getUniqueId(), 0));
-            return;
-        }
-
-        if (rawSlot == NEXT_PAGE && isArrow(clicked, "Next")) {
-            int page = pageMap.getOrDefault(player.getUniqueId(), 0) + 1;
-            open(player, page);
-            return;
-        }
-
-        if (rawSlot == PREV_PAGE && isArrow(clicked, "Previous")) {
-            int page = Math.max(0, pageMap.getOrDefault(player.getUniqueId(), 0) - 1);
-            open(player, page);
+        if (handleWidgetClick(e)) {
             return;
         }
 
