@@ -1,7 +1,5 @@
 package me.nakilex.levelplugin.blacksmith.gui;
 
-import com.nexomc.nexo.api.NexoItems;
-import com.nexomc.nexo.items.ItemBuilder;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.blacksmith.managers.ItemRepairManager;
 import me.nakilex.levelplugin.blacksmith.managers.ItemUpgradeManager;
@@ -15,6 +13,11 @@ import me.nakilex.levelplugin.guild.GuildManager;
 import me.nakilex.levelplugin.guild.TownPerk;
 import me.nakilex.levelplugin.guild.TownPerkManager;
 import me.nakilex.levelplugin.utils.GuiUtil;
+import me.nakilex.levelplugin.utils.gui.GuiBuilder;
+import me.nakilex.levelplugin.utils.gui.widgets.ActionWidget;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiContext;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiLayout;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiWidget;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -26,8 +29,6 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.persistence.PersistentDataType;
 
 import java.util.*;
 
@@ -47,6 +48,15 @@ public class BlacksmithGUI implements Listener {
     private final ItemRerollManager rerollManager;
     private final ItemManager itemManager;
     private final Map<UUID, Inventory> openInventories = new HashMap<>();
+    private final Map<UUID, BlacksmithMode> openModes = new HashMap<>();
+    private final List<GuiWidget> widgets;
+    private final ItemStack filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
+
+    private enum BlacksmithMode {
+        UPGRADE,
+        REPAIR,
+        REROLL
+    }
 
     public BlacksmithGUI(EconomyManager economyManager, ItemUpgradeManager upgradeManager,
                          ItemManager itemManager, ItemRepairManager repairManager) {
@@ -55,200 +65,197 @@ public class BlacksmithGUI implements Listener {
         this.repairManager = repairManager;
         this.itemManager = itemManager;
         this.rerollManager = new ItemRerollManager();
+        this.widgets = buildWidgets();
     }
 
     public void openUpgradeGUI(Player player) {
-        Inventory gui = Bukkit.createInventory(player, GUI_SIZE, GUI_TITLE_UPGRADE);
-        fillGuiWithFiller(gui);
-        gui.setItem(8, createUpgradeInfoItem());
-        gui.setItem(9, getNexoItem("arrow_left", ChatColor.GRAY + "Go to Reroll"));
-        gui.setItem(17, getNexoItem("arrow_right", ChatColor.GRAY + "Go to Repair"));
-        gui.setItem(13, null);
-        gui.setItem(22, createUpgradeButton(0, 0));
-        openInventories.put(player.getUniqueId(), gui);
-        player.openInventory(gui);
+        openGui(player, BlacksmithMode.UPGRADE);
     }
 
     public void openRepairGUI(Player player) {
-        Inventory gui = Bukkit.createInventory(player, GUI_SIZE, GUI_TITLE_REPAIR);
-        fillGuiWithFiller(gui);
-        gui.setItem(8, createRepairInfoItem());
-        gui.setItem(9, getNexoItem("arrow_left", ChatColor.GRAY + "Go to Upgrade"));
-        gui.setItem(17, getNexoItem("arrow_right", ChatColor.GRAY + "Go to Reroll"));
-        gui.setItem(0, createRepairAllButton(calculateTotalRepairCost(player)));
-        gui.setItem(13, null);
-        gui.setItem(22, createRepairButton(0));
-        openInventories.put(player.getUniqueId(), gui);
-        player.openInventory(gui);
+        openGui(player, BlacksmithMode.REPAIR);
     }
 
     public void openRerollGUI(Player player) {
-        Inventory gui = Bukkit.createInventory(player, GUI_SIZE, GUI_TITLE_REROLL);
-        fillGuiWithFiller(gui);
-        gui.setItem(8, createRerollInfoItem());
-        gui.setItem(9, getNexoItem("arrow_left", ChatColor.GRAY + "Go to Repair"));
-        gui.setItem(17, getNexoItem("arrow_right", ChatColor.GRAY + "Go to Upgrade"));
-        gui.setItem(11, null); // item slot
-        gui.setItem(13, null); // result
-        gui.setItem(15, null); // placeholder
-        gui.setItem(22, createRerollButton(0));
+        openGui(player, BlacksmithMode.REROLL);
+    }
+
+    private void openGui(Player player, BlacksmithMode mode) {
+        Inventory gui = GuiBuilder.create(GUI_SIZE, getTitle(mode))
+                .filler(Material.GRAY_STAINED_GLASS_PANE)
+                .build();
         openInventories.put(player.getUniqueId(), gui);
+        openModes.put(player.getUniqueId(), mode);
+        renderWidgets(gui, player);
+        if (mode == BlacksmithMode.REROLL) {
+            gui.setItem(11, null);
+            gui.setItem(13, null);
+            gui.setItem(15, null);
+        } else {
+            gui.setItem(13, null);
+        }
+        updateActionButton(player, gui, mode);
         player.openInventory(gui);
     }
 
-
-    private void fillGuiWithFiller(Inventory gui) {
-        ItemStack filler = createFiller();
-        for (int i = 0; i < GUI_SIZE; i++) gui.setItem(i, filler);
+    private List<GuiWidget> buildWidgets() {
+        List<GuiWidget> widgetList = new ArrayList<>();
+        widgetList.add(new ActionWidget(8, context -> createInfoItem(getMode(context.player())), null));
+        widgetList.add(new ActionWidget(9, context -> createNavItem(getMode(context.player()), true),
+                (click, context) -> handleNavigation(context.player(), getMode(context.player()), true)));
+        widgetList.add(new ActionWidget(17, context -> createNavItem(getMode(context.player()), false),
+                (click, context) -> handleNavigation(context.player(), getMode(context.player()), false)));
+        widgetList.add(new ActionWidget(0, context -> createRepairAllWidget(context), (click, context) -> {
+            if (getMode(context.player()) == BlacksmithMode.REPAIR) {
+                handleRepairAllClick(context.player());
+                context.inventory().setItem(0, createRepairAllButton(calculateTotalRepairCost(context.player())));
+            }
+        }));
+        widgetList.add(new ActionWidget(22, context -> createActionItem(context), (click, context) -> {
+            handleActionButtonClick(context.player(), context.inventory(), getMode(context.player()));
+            Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
+                Inventory updatedGui = openInventories.get(context.player().getUniqueId());
+                if (updatedGui != null) updateActionButton(context.player(), updatedGui, getMode(context.player()));
+            }, 1L);
+        }));
+        return widgetList;
     }
 
-    private ItemStack createFiller() {
-        ItemStack glass = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
-        ItemMeta meta = glass.getItemMeta();
-        if (meta != null) {
-            meta.setDisplayName(" ");
-            glass.setItemMeta(meta);
+    private void renderWidgets(Inventory inventory, Player player) {
+        GuiLayout layout = new GuiLayout(inventory);
+        GuiContext context = new GuiContext(player, inventory);
+        for (GuiWidget widget : widgets) {
+            widget.contribute(layout, context);
         }
-        return glass;
     }
 
-    private ItemStack getNexoItem(String id, String name) {
-        ItemBuilder builder = NexoItems.itemFromId(id);
-        if (builder == null) return new ItemStack(Material.BARRIER);
-        ItemStack item = builder.build();
-        ItemMeta meta = item.getItemMeta();
-        if (meta != null) {
-            meta.setDisplayName(name);
-            item.setItemMeta(meta);
+    private String getTitle(BlacksmithMode mode) {
+        return switch (mode) {
+            case UPGRADE -> GUI_TITLE_UPGRADE;
+            case REPAIR -> GUI_TITLE_REPAIR;
+            case REROLL -> GUI_TITLE_REROLL;
+        };
+    }
+
+    private BlacksmithMode getMode(Player player) {
+        BlacksmithMode mode = openModes.get(player.getUniqueId());
+        if (mode != null) {
+            return mode;
         }
-        return item;
+        String title = player.getOpenInventory().getTitle();
+        if (GuiUtil.titleMatches(title, GUI_TITLE_UPGRADE)) {
+            return BlacksmithMode.UPGRADE;
+        }
+        if (GuiUtil.titleMatches(title, GUI_TITLE_REPAIR)) {
+            return BlacksmithMode.REPAIR;
+        }
+        if (GuiUtil.titleMatches(title, GUI_TITLE_REROLL)) {
+            return BlacksmithMode.REROLL;
+        }
+        return BlacksmithMode.UPGRADE;
     }
 
-    private ItemStack createUpgradeInfoItem() {
-        ItemStack info = getNexoItem("info", ChatColor.YELLOW + "Information");
-        ItemMeta meta = info.getItemMeta();
-        if (meta != null) {
-            meta.setLore(Arrays.asList(
-                ChatColor.GRAY + "",
-                ChatColor.GRAY + "Upgrade Success Rates:",
-                ChatColor.GRAY + "",
-                ChatColor.GRAY + "  +0 ➜ +1: " + ChatColor.WHITE + "33%",
-                ChatColor.GRAY + "  +1 ➜ +2: " + ChatColor.WHITE + "15%",
-                ChatColor.GRAY + "  +2 ➜ +3: " + ChatColor.WHITE + "10%",
-                ChatColor.GRAY + "  +3 ➜ +4: " + ChatColor.WHITE + "5%",
-                ChatColor.GRAY + "  +4 ➜ +5: " + ChatColor.WHITE + "2%",
-                "",
-                ChatColor.GRAY + "Upgrade costs scale with " + ChatColor.AQUA + "rarity" + ChatColor.GRAY + " and",
-                ChatColor.GRAY + "current upgrade " + ChatColor.AQUA + "tier" + ChatColor.GRAY + "."
+    private ItemStack createInfoItem(BlacksmithMode mode) {
+        return switch (mode) {
+            case UPGRADE -> GuiUtil.getNexoItem("info", ChatColor.YELLOW + "Information", Arrays.asList(
+                    ChatColor.GRAY + "",
+                    ChatColor.GRAY + "Upgrade Success Rates:",
+                    ChatColor.GRAY + "",
+                    ChatColor.GRAY + "  +0 ➜ +1: " + ChatColor.WHITE + "33%",
+                    ChatColor.GRAY + "  +1 ➜ +2: " + ChatColor.WHITE + "15%",
+                    ChatColor.GRAY + "  +2 ➜ +3: " + ChatColor.WHITE + "10%",
+                    ChatColor.GRAY + "  +3 ➜ +4: " + ChatColor.WHITE + "5%",
+                    ChatColor.GRAY + "  +4 ➜ +5: " + ChatColor.WHITE + "2%",
+                    "",
+                    ChatColor.GRAY + "Upgrade costs scale with " + ChatColor.AQUA + "rarity" + ChatColor.GRAY + " and",
+                    ChatColor.GRAY + "current upgrade " + ChatColor.AQUA + "tier" + ChatColor.GRAY + "."
             ));
-            info.setItemMeta(meta);
-        }
-        return info;
-    }
-
-    private ItemStack createRepairInfoItem() {
-        ItemStack info = getNexoItem("info", ChatColor.YELLOW + "Information");
-        ItemMeta meta = info.getItemMeta();
-        if (meta != null) {
-            meta.setLore(Arrays.asList(
-                ChatColor.GRAY + "",
-                ChatColor.GRAY + "Costs increase with item " + ChatColor.AQUA + "rarity",
-                ChatColor.GRAY + "and " + ChatColor.AQUA + "durability" + ChatColor.GRAY + " lost.",
-                "",
-                ChatColor.GRAY + "Place a damaged item in the center.",
-                ChatColor.GRAY + "Use " + ChatColor.GREEN + "Repair Item" + ChatColor.GRAY + " or",
-                ChatColor.GREEN + "Repair All Items" + ChatColor.GRAY + " to fix it."
+            case REPAIR -> GuiUtil.getNexoItem("info", ChatColor.YELLOW + "Information", Arrays.asList(
+                    ChatColor.GRAY + "",
+                    ChatColor.GRAY + "Costs increase with item " + ChatColor.AQUA + "rarity",
+                    ChatColor.GRAY + "and " + ChatColor.AQUA + "durability" + ChatColor.GRAY + " lost.",
+                    "",
+                    ChatColor.GRAY + "Place a damaged item in the center.",
+                    ChatColor.GRAY + "Use " + ChatColor.GREEN + "Repair Item" + ChatColor.GRAY + " or",
+                    ChatColor.GREEN + "Repair All Items" + ChatColor.GRAY + " to fix it."
             ));
-            info.setItemMeta(meta);
-        }
-        return info;
-    }
-
-    private ItemStack createRerollInfoItem() {
-        ItemStack info = getNexoItem("info", ChatColor.YELLOW + "Information");
-        ItemMeta meta = info.getItemMeta();
-        if (meta != null) {
-            meta.setLore(Arrays.asList(
-                ChatColor.GRAY + "",
-                ChatColor.GRAY + "Use the left slot for your item and",
-                ChatColor.GRAY + "the right slot for a stat placeholder.",
-                ChatColor.GRAY + "Press the check mark to reroll that stat."
+            case REROLL -> GuiUtil.getNexoItem("info", ChatColor.YELLOW + "Information", Arrays.asList(
+                    ChatColor.GRAY + "",
+                    ChatColor.GRAY + "Use the left slot for your item and",
+                    ChatColor.GRAY + "the right slot for a stat placeholder.",
+                    ChatColor.GRAY + "Press the check mark to reroll that stat."
             ));
-            info.setItemMeta(meta);
-        }
-        return info;
+        };
     }
 
+    private ItemStack createNavItem(BlacksmithMode mode, boolean left) {
+        return switch (mode) {
+            case UPGRADE -> left
+                    ? GuiUtil.getNexoItem("arrow_left", ChatColor.GRAY + "Go to Reroll")
+                    : GuiUtil.getNexoItem("arrow_right", ChatColor.GRAY + "Go to Repair");
+            case REPAIR -> left
+                    ? GuiUtil.getNexoItem("arrow_left", ChatColor.GRAY + "Go to Upgrade")
+                    : GuiUtil.getNexoItem("arrow_right", ChatColor.GRAY + "Go to Reroll");
+            case REROLL -> left
+                    ? GuiUtil.getNexoItem("arrow_left", ChatColor.GRAY + "Go to Repair")
+                    : GuiUtil.getNexoItem("arrow_right", ChatColor.GRAY + "Go to Upgrade");
+        };
+    }
+
+    private ItemStack createRepairAllWidget(GuiContext context) {
+        if (getMode(context.player()) != BlacksmithMode.REPAIR) {
+            return filler.clone();
+        }
+        return createRepairAllButton(calculateTotalRepairCost(context.player()));
+    }
 
     private ItemStack createUpgradeButton(int upgradeCost, int successChance) {
-        ItemStack upgrade = new ItemStack(Material.ANVIL);
-        ItemMeta meta = upgrade.getItemMeta();
         List<String> lore = new ArrayList<>();
 
         if (upgradeCost < 0) {
             // Negative cost indicates the item reached the upgrade cap
-            meta.setDisplayName("§cMax Level");
             lore.add("§7This item cannot be upgraded further.");
+            return GuiUtil.createGuiItem(Material.ANVIL, "§cMax Level", lore);
         } else {
-            meta.setDisplayName("§aUpgrade");
             if (upgradeCost > 0) {
                 lore.add("§7Cost: §6<glyph:coins_icon> " + upgradeCost);
                 lore.add("§7Success Chance: §6" + successChance + "%");
             } else {
                 lore.add("§7Place an item in upgrade slot.");
             }
+            return GuiUtil.createGuiItem(Material.ANVIL, "§aUpgrade", lore);
         }
-
-        meta.setLore(lore);
-        upgrade.setItemMeta(meta);
-        return upgrade;
     }
 
     private ItemStack createRepairButton(int cost) {
-        ItemStack repair = new ItemStack(Material.ANVIL);
-        ItemMeta meta = repair.getItemMeta();
-        meta.setDisplayName("§bRepair Item");
         List<String> lore = new ArrayList<>();
         if (cost > 0) {
             lore.add("§7Cost: §6<glyph:coins_icon> " + cost);
         } else {
             lore.add("§7Place an item in the repair slot.");
         }
-        meta.setLore(lore);
-        repair.setItemMeta(meta);
-        return repair;
+        return GuiUtil.createGuiItem(Material.ANVIL, "§bRepair Item", lore);
     }
 
     private ItemStack createRerollButton(int cost) {
-        ItemStack reroll = getNexoItem("check", ChatColor.GREEN + "Reroll Stat");
-        ItemMeta meta = reroll.getItemMeta();
-        if (meta != null) {
-            List<String> lore = new ArrayList<>();
-            if (cost > 0) {
-                lore.add("§7Cost: §6<glyph:coins_icon> " + cost);
-            } else {
-                lore.add("§7Place item and placeholder.");
-            }
-            meta.setLore(lore);
-            reroll.setItemMeta(meta);
+        List<String> lore = new ArrayList<>();
+        if (cost > 0) {
+            lore.add("§7Cost: §6<glyph:coins_icon> " + cost);
+        } else {
+            lore.add("§7Place item and placeholder.");
         }
-        return reroll;
+        return GuiUtil.getNexoItem("check", ChatColor.GREEN + "Reroll Stat", lore);
     }
 
 
     private ItemStack createRepairAllButton(int totalCost) {
-        ItemStack repairAll = new ItemStack(Material.GRINDSTONE);
-        ItemMeta meta = repairAll.getItemMeta();
-        meta.setDisplayName("§cRepair All Items");
         List<String> lore = new ArrayList<>();
         if (totalCost > 0) {
             lore.add("§7Total Cost: §6<glyph:coins_icon> " + totalCost);
         } else {
             lore.add("§7No damaged items found.");
         }
-        meta.setLore(lore);
-        repairAll.setItemMeta(meta);
-        return repairAll;
+        return GuiUtil.createGuiItem(Material.GRINDSTONE, "§cRepair All Items", lore);
     }
 
     private int calculateTotalRepairCost(Player player) {
@@ -272,21 +279,19 @@ public class BlacksmithGUI implements Listener {
         if (gui == null || !event.getView().getTopInventory().equals(gui)) return;
 
         int rawSlot = event.getRawSlot();
-        int clickedSlot = event.getSlot();
+        BlacksmithMode mode = getMode(player);
 
-        String title = event.getView().getTitle();
-
-// Allow placing item/placeholder in reroll slots
-        if (GuiUtil.titleMatches(title, GUI_TITLE_REROLL) && (rawSlot == 11 || rawSlot == 15)) {
+        // Allow placing item/placeholder in reroll slots
+        if (mode == BlacksmithMode.REROLL && (rawSlot == 11 || rawSlot == 15)) {
             event.setCancelled(false);
             Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
                 Inventory updatedGui = openInventories.get(player.getUniqueId());
-                if (updatedGui != null) updateActionButton(player, updatedGui, title);
+                if (updatedGui != null) updateActionButton(player, updatedGui, mode);
             }, 1L);
             return;
         }
 
-        if (GuiUtil.titleMatches(title, GUI_TITLE_REROLL) && rawSlot == 13) {
+        if (mode == BlacksmithMode.REROLL && rawSlot == 13) {
             if (event.getCursor() == null || event.getCursor().getType().isAir()) {
                 event.setCancelled(false); // allow taking result item
             } else {
@@ -295,12 +300,12 @@ public class BlacksmithGUI implements Listener {
             return;
         }
 
-// Allow placing into slot 13 only manually on upgrade/repair
-        if (event.getRawSlot() == 13 && !GuiUtil.titleMatches(title, GUI_TITLE_REROLL)) {
+        // Allow placing into slot 13 only manually on upgrade/repair
+        if (rawSlot == 13 && mode != BlacksmithMode.REROLL) {
             event.setCancelled(false);
             Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
                 Inventory updatedGui = openInventories.get(player.getUniqueId());
-                if (updatedGui != null) updateActionButton(player, updatedGui, title);
+                if (updatedGui != null) updateActionButton(player, updatedGui, mode);
             }, 1L);
             return;
         }
@@ -312,25 +317,25 @@ public class BlacksmithGUI implements Listener {
             event.getAction() == InventoryAction.PLACE_ONE ||
             event.getAction() == InventoryAction.SWAP_WITH_CURSOR ||
             event.getAction() == InventoryAction.HOTBAR_SWAP) {
-            if (GuiUtil.titleMatches(title, GUI_TITLE_REROLL) && (event.getSlot() == 11 || event.getSlot() == 15)) {
+            if (mode == BlacksmithMode.REROLL && (event.getSlot() == 11 || event.getSlot() == 15)) {
                 event.setCancelled(false);
                 Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
                     Inventory updatedGui = openInventories.get(player.getUniqueId());
-                    if (updatedGui != null) updateActionButton(player, updatedGui, title);
+                    if (updatedGui != null) updateActionButton(player, updatedGui, mode);
                 }, 1L);
                 return;
-            } else if (!GuiUtil.titleMatches(title, GUI_TITLE_REROLL) && event.getSlot() == 13) {
+            } else if (mode != BlacksmithMode.REROLL && event.getSlot() == 13) {
                 event.setCancelled(false);
                 return;
             }
         }
 
-// Cancel all interactions outside the GUI
+        // Cancel all interactions outside the GUI
         if (event.getRawSlot() >= event.getView().getTopInventory().getSize()) {
             if (event.getAction() == InventoryAction.MOVE_TO_OTHER_INVENTORY) {
                 Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
                     Inventory updatedGui = openInventories.get(player.getUniqueId());
-                    if (updatedGui != null) updateActionButton(player, updatedGui, title);
+                    if (updatedGui != null) updateActionButton(player, updatedGui, mode);
                 }, 1L);
             }
             return; // allow interactions with the player's inventory
@@ -338,162 +343,187 @@ public class BlacksmithGUI implements Listener {
 
         event.setCancelled(true);
 
+        handleWidgetClick(event, player);
+    }
 
-        if (rawSlot == 9 || rawSlot == 17) {
-            ItemStack carriedItem = GuiUtil.titleMatches(title, GUI_TITLE_REROLL) ? gui.getItem(11) : gui.getItem(13);
-            ItemStack placeholder = GuiUtil.titleMatches(title, GUI_TITLE_REROLL) ? gui.getItem(15) : null;
-            String newTitle;
-            if (GuiUtil.titleMatches(title, GUI_TITLE_UPGRADE)) {
-                if (rawSlot == 9) {
-                    newTitle = GUI_TITLE_REROLL;
-                    openRerollGUI(player);
-                } else {
-                    newTitle = GUI_TITLE_REPAIR;
-                    openRepairGUI(player);
-                }
-            } else if (GuiUtil.titleMatches(title, GUI_TITLE_REPAIR)) {
-                if (rawSlot == 9) {
-                    newTitle = GUI_TITLE_UPGRADE;
-                    openUpgradeGUI(player);
-                } else {
-                    newTitle = GUI_TITLE_REROLL;
-                    openRerollGUI(player);
-                }
-            } else { // REROLL
-                if (rawSlot == 9) {
-                    newTitle = GUI_TITLE_REPAIR;
-                    openRepairGUI(player);
-                } else {
-                    newTitle = GUI_TITLE_UPGRADE;
-                    openUpgradeGUI(player);
-                }
+    private boolean handleWidgetClick(InventoryClickEvent event, Player player) {
+        int slot = event.getRawSlot();
+        if (slot < 0 || slot >= event.getView().getTopInventory().getSize()) {
+            return false;
+        }
+        GuiWidget widget = widgets.stream()
+                .filter(w -> w.handlesSlot(slot))
+                .findFirst()
+                .orElse(null);
+        if (widget == null) {
+            return false;
+        }
+        widget.onClick(slot, event.getClick(), new GuiContext(player, event.getView().getTopInventory()));
+        return true;
+    }
+
+    private void handleNavigation(Player player, BlacksmithMode mode, boolean left) {
+        Inventory gui = openInventories.get(player.getUniqueId());
+        if (gui == null) {
+            return;
+        }
+        ItemStack carriedItem = mode == BlacksmithMode.REROLL ? gui.getItem(11) : gui.getItem(13);
+        ItemStack placeholder = mode == BlacksmithMode.REROLL ? gui.getItem(15) : null;
+        BlacksmithMode targetMode = switch (mode) {
+            case UPGRADE -> left ? BlacksmithMode.REROLL : BlacksmithMode.REPAIR;
+            case REPAIR -> left ? BlacksmithMode.UPGRADE : BlacksmithMode.REROLL;
+            case REROLL -> left ? BlacksmithMode.REPAIR : BlacksmithMode.UPGRADE;
+        };
+        openGui(player, targetMode);
+        Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
+            Inventory newGui = openInventories.get(player.getUniqueId());
+            if (newGui == null) {
+                return;
             }
+            if (targetMode == BlacksmithMode.REROLL) {
+                newGui.setItem(11, carriedItem);
+                newGui.setItem(15, placeholder);
+            } else {
+                newGui.setItem(13, carriedItem);
+                updateActionButton(player, newGui, targetMode);
+            }
+        }, 1L);
+    }
 
-            Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
-                Inventory newGui = openInventories.get(player.getUniqueId());
-                if (newGui != null) {
-                    if (GuiUtil.titleMatches(newTitle, GUI_TITLE_REROLL)) {
-                        newGui.setItem(11, carriedItem);
-                        newGui.setItem(15, placeholder);
-                    } else {
-                        newGui.setItem(13, carriedItem);
-                        updateActionButton(player, newGui, newTitle);
-                    }
-                }
-            }, 1L);
-            return;
-        }
+    private void handleActionButtonClick(Player player, Inventory gui, BlacksmithMode mode) {
+        ItemStack item = mode == BlacksmithMode.REROLL ? gui.getItem(11) : gui.getItem(13);
+        if (item == null || item.getType().isAir()) return;
+        CustomItem ci = itemManager.getCustomItemFromItemStack(item);
+        if (ci == null) return;
 
-
-        if (rawSlot == 0 && GuiUtil.titleMatches(title, GUI_TITLE_REPAIR)) {
-            handleRepairAllClick(player);
-            gui.setItem(0, createRepairAllButton(calculateTotalRepairCost(player)));
-            return;
-        }
-
-        if (rawSlot == 22) {
-            ItemStack item = GuiUtil.titleMatches(title, GUI_TITLE_REROLL) ? gui.getItem(11) : gui.getItem(13);
-            if (item == null || item.getType().isAir()) return;
-            CustomItem ci = itemManager.getCustomItemFromItemStack(item);
-            if (ci == null) return;
-
-            if (GuiUtil.titleMatches(title, GUI_TITLE_UPGRADE)) {
-                if (ci.getUpgradeLevel() >= 5) {
-                    send(player, MessageType.ERROR, "Item has reached the maximum upgrade level.");
-                    return;
-                }
-                int cost = TownPerkManager.getInstance().applyDiscount(
+        if (mode == BlacksmithMode.UPGRADE) {
+            if (ci.getUpgradeLevel() >= 5) {
+                send(player, MessageType.ERROR, "Item has reached the maximum upgrade level.");
+                return;
+            }
+            int cost = TownPerkManager.getInstance().applyDiscount(
+                    GuildManager.getInstance().getGuild(player.getUniqueId()),
+                    TownPerk.BLACKSMITH_DISCOUNT,
+                    upgradeManager.getUpgradeCost(ci));
+            try {
+                economyManager.deductCoins(player, cost);
+            } catch (IllegalArgumentException ex) {
+                send(player, MessageType.ERROR, "Not enough coins! Upgrade cost: §6<glyph:coins_icon> " + cost);
+                return;
+            }
+            if (upgradeManager.attemptUpgrade(player, item, ci)) {
+                send(player, MessageType.SUCCESS, "Upgrade successful!");
+                Main.getInstance().getQuestManager().handleBlacksmithUpgrade(player, String.valueOf(ci.getId()));
+                gui.setItem(13, item);
+            } else {
+                send(player, MessageType.ERROR, "Upgrade failed!");
+            }
+            if (ci.getUpgradeLevel() >= 5) {
+                gui.setItem(22, createUpgradeButton(-1, 0));
+            } else {
+                int nextCost = TownPerkManager.getInstance().applyDiscount(
                         GuildManager.getInstance().getGuild(player.getUniqueId()),
                         TownPerk.BLACKSMITH_DISCOUNT,
                         upgradeManager.getUpgradeCost(ci));
-                int chance = upgradeManager.getSuccessChance(ci);
-                try {
-                    economyManager.deductCoins(player, cost);
-                } catch (IllegalArgumentException ex) {
-                    send(player, MessageType.ERROR, "Not enough coins! Upgrade cost: §6<glyph:coins_icon> " + cost);
-                    return;
-                }
-                if (upgradeManager.attemptUpgrade(player, item, ci)) {
-                    send(player, MessageType.SUCCESS, "Upgrade successful!");
-                    Main.getInstance().getQuestManager().handleBlacksmithUpgrade(player, String.valueOf(ci.getId()));
-                    gui.setItem(13, item);
-                } else {
-                    send(player, MessageType.ERROR, "Upgrade failed!");
-                }
-                if (ci.getUpgradeLevel() >= 5) {
-                    gui.setItem(22, createUpgradeButton(-1, 0));
-                } else {
-                    int nextCost = TownPerkManager.getInstance().applyDiscount(
-                            GuildManager.getInstance().getGuild(player.getUniqueId()),
-                            TownPerk.BLACKSMITH_DISCOUNT,
-                            upgradeManager.getUpgradeCost(ci));
-                    gui.setItem(22, createUpgradeButton(
-                            nextCost,
-                            upgradeManager.getSuccessChance(ci)));
-                }
-            } else if (GuiUtil.titleMatches(title, GUI_TITLE_REPAIR)) {
-                int cost = TownPerkManager.getInstance().applyDiscount(
-                        GuildManager.getInstance().getGuild(player.getUniqueId()),
-                        TownPerk.BLACKSMITH_DISCOUNT,
-                        repairManager.getRepairCost(ci));
-                try {
-                    economyManager.deductCoins(player, cost);
-                } catch (IllegalArgumentException ex) {
-                    send(player, MessageType.ERROR, "Not enough coins to repair! Cost: §6<glyph:coins_icon> " + cost);
-                    return;
-                }
-                if (repairManager.repairItem(player, item, ci)) {
-                    send(player, MessageType.SUCCESS, "Item repaired!");
-                    gui.setItem(13, item);
-                    ItemUtil.updateTooltip(item, player);
-                    Main.getInstance().getQuestManager().handleRepair(player, String.valueOf(ci.getId()));
-                }
-                gui.setItem(22, createRepairButton(0));
-            } else if (GuiUtil.titleMatches(title, GUI_TITLE_REROLL)) {
-                ItemStack placeholder = gui.getItem(15);
-                if (placeholder == null || placeholder.getType().isAir()) {
-                    send(player, MessageType.WARNING, "Place a stat placeholder on the right.");
-                    return;
-                }
-                StatType stat = materialToStat(placeholder.getType());
-                if (stat == null) {
-                    send(player, MessageType.ERROR, "Invalid placeholder item!");
-                    return;
-                }
-
-                if (!rerollManager.hasStat(ci, stat)) {
-                    send(player, MessageType.ERROR, "This item does not have " + statDisplayName(stat) + "!");
-                    return;
-                }
-
-                int cost = TownPerkManager.getInstance().applyDiscount(
-                        GuildManager.getInstance().getGuild(player.getUniqueId()),
-                        TownPerk.BLACKSMITH_DISCOUNT,
-                        rerollManager.getRerollCost(ci));
-                try {
-                    economyManager.deductCoins(player, cost);
-                } catch (IllegalArgumentException ex) {
-                    send(player, MessageType.ERROR, "Not enough coins to reroll! Cost: §6<glyph:coins_icon>" + cost);
-                    return;
-                }
-
-                int diff = rerollManager.rerollStat(player, item, ci, stat);
-                Main.getInstance().getQuestManager().handleReroll(player, String.valueOf(ci.getId()));
-                gui.setItem(13, item.clone());
-                gui.setItem(11, null);
-                placeholder.setAmount(placeholder.getAmount() - 1);
-                if (placeholder.getAmount() <= 0) gui.setItem(15, null);
-                String message = ChatColor.GOLD + "" + ChatColor.BOLD + "STAT REROLLED! "
-                        + ChatColor.YELLOW + statDisplayName(stat) + (diff >= 0
-                        ? " increased by " + ChatColor.GREEN + "+" + diff
-                        : " decreased by " + ChatColor.RED + diff);
-                send(player, MessageType.SUCCESS, message);
+                gui.setItem(22, createUpgradeButton(nextCost, upgradeManager.getSuccessChance(ci)));
             }
-        }
+        } else if (mode == BlacksmithMode.REPAIR) {
+            int cost = TownPerkManager.getInstance().applyDiscount(
+                    GuildManager.getInstance().getGuild(player.getUniqueId()),
+                    TownPerk.BLACKSMITH_DISCOUNT,
+                    repairManager.getRepairCost(ci));
+            try {
+                economyManager.deductCoins(player, cost);
+            } catch (IllegalArgumentException ex) {
+                send(player, MessageType.ERROR, "Not enough coins to repair! Cost: §6<glyph:coins_icon> " + cost);
+                return;
+            }
+            if (repairManager.repairItem(player, item, ci)) {
+                send(player, MessageType.SUCCESS, "Item repaired!");
+                gui.setItem(13, item);
+                ItemUtil.updateTooltip(item, player);
+                Main.getInstance().getQuestManager().handleRepair(player, String.valueOf(ci.getId()));
+            }
+            gui.setItem(22, createRepairButton(0));
+        } else if (mode == BlacksmithMode.REROLL) {
+            ItemStack placeholder = gui.getItem(15);
+            if (placeholder == null || placeholder.getType().isAir()) {
+                send(player, MessageType.WARNING, "Place a stat placeholder on the right.");
+                return;
+            }
+            StatType stat = materialToStat(placeholder.getType());
+            if (stat == null) {
+                send(player, MessageType.ERROR, "Invalid placeholder item!");
+                return;
+            }
 
-        Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
-            updateActionButton(player, gui, title);
-        }, 1L);
+            if (!rerollManager.hasStat(ci, stat)) {
+                send(player, MessageType.ERROR, "This item does not have " + statDisplayName(stat) + "!");
+                return;
+            }
+
+            int cost = TownPerkManager.getInstance().applyDiscount(
+                    GuildManager.getInstance().getGuild(player.getUniqueId()),
+                    TownPerk.BLACKSMITH_DISCOUNT,
+                    rerollManager.getRerollCost(ci));
+            try {
+                economyManager.deductCoins(player, cost);
+            } catch (IllegalArgumentException ex) {
+                send(player, MessageType.ERROR, "Not enough coins to reroll! Cost: §6<glyph:coins_icon>" + cost);
+                return;
+            }
+
+            int diff = rerollManager.rerollStat(player, item, ci, stat);
+            Main.getInstance().getQuestManager().handleReroll(player, String.valueOf(ci.getId()));
+            gui.setItem(13, item.clone());
+            gui.setItem(11, null);
+            placeholder.setAmount(placeholder.getAmount() - 1);
+            if (placeholder.getAmount() <= 0) gui.setItem(15, null);
+            String message = ChatColor.GOLD + "" + ChatColor.BOLD + "STAT REROLLED! "
+                    + ChatColor.YELLOW + statDisplayName(stat) + (diff >= 0
+                    ? " increased by " + ChatColor.GREEN + "+" + diff
+                    : " decreased by " + ChatColor.RED + diff);
+            send(player, MessageType.SUCCESS, message);
+        }
+    }
+
+    private ItemStack createActionItem(GuiContext context) {
+        BlacksmithMode mode = getMode(context.player());
+        Inventory gui = context.inventory();
+        ItemStack current = mode == BlacksmithMode.REROLL ? gui.getItem(11) : gui.getItem(13);
+        if (current == null || current.getType().isAir()) {
+            return mode == BlacksmithMode.REROLL
+                    ? createRerollButton(0)
+                    : (mode == BlacksmithMode.UPGRADE ? createUpgradeButton(0, 0) : createRepairButton(0));
+        }
+        CustomItem ci = itemManager.getCustomItemFromItemStack(current);
+        if (ci == null) {
+            return mode == BlacksmithMode.REROLL
+                    ? createRerollButton(0)
+                    : (mode == BlacksmithMode.UPGRADE ? createUpgradeButton(0, 0) : createRepairButton(0));
+        }
+        if (mode == BlacksmithMode.UPGRADE) {
+            if (ci.getUpgradeLevel() >= 5) {
+                return createUpgradeButton(-1, 0);
+            }
+            int cost = TownPerkManager.getInstance().applyDiscount(
+                    GuildManager.getInstance().getGuild(context.player().getUniqueId()),
+                    TownPerk.BLACKSMITH_DISCOUNT,
+                    upgradeManager.getUpgradeCost(ci));
+            return createUpgradeButton(cost, upgradeManager.getSuccessChance(ci));
+        }
+        if (mode == BlacksmithMode.REPAIR) {
+            int cost = TownPerkManager.getInstance().applyDiscount(
+                    GuildManager.getInstance().getGuild(context.player().getUniqueId()),
+                    TownPerk.BLACKSMITH_DISCOUNT,
+                    repairManager.getRepairCost(ci));
+            return createRepairButton(cost);
+        }
+        int cost = TownPerkManager.getInstance().applyDiscount(
+                GuildManager.getInstance().getGuild(context.player().getUniqueId()),
+                TownPerk.BLACKSMITH_DISCOUNT,
+                rerollManager.getRerollCost(ci));
+        return createRerollButton(cost);
     }
 
     private void handleRepairAllClick(Player player) {
@@ -530,13 +560,13 @@ public class BlacksmithGUI implements Listener {
         send(player, MessageType.SUCCESS, "All items repaired! Total cost: §6<glyph:coins_icon> " + totalCost);
     }
 
-    private void updateActionButton(Player player, Inventory gui, String title) {
-        ItemStack current = GuiUtil.titleMatches(title, GUI_TITLE_REROLL) ? gui.getItem(11) : gui.getItem(13);
+    private void updateActionButton(Player player, Inventory gui, BlacksmithMode mode) {
+        ItemStack current = mode == BlacksmithMode.REROLL ? gui.getItem(11) : gui.getItem(13);
         if (current == null || current.getType().isAir()) {
-            if (GuiUtil.titleMatches(title, GUI_TITLE_REROLL)) {
+            if (mode == BlacksmithMode.REROLL) {
                 gui.setItem(22, createRerollButton(0));
             } else {
-                gui.setItem(22, GuiUtil.titleMatches(title, GUI_TITLE_UPGRADE)
+                gui.setItem(22, mode == BlacksmithMode.UPGRADE
                     ? createUpgradeButton(0, 0)
                     : createRepairButton(0));
             }
@@ -545,17 +575,17 @@ public class BlacksmithGUI implements Listener {
 
         CustomItem ci = itemManager.getCustomItemFromItemStack(current);
         if (ci == null) {
-            if (GuiUtil.titleMatches(title, GUI_TITLE_REROLL)) {
+            if (mode == BlacksmithMode.REROLL) {
                 gui.setItem(22, createRerollButton(0));
             } else {
-                gui.setItem(22, GuiUtil.titleMatches(title, GUI_TITLE_UPGRADE)
+                gui.setItem(22, mode == BlacksmithMode.UPGRADE
                     ? createUpgradeButton(0, 0)
                     : createRepairButton(0));
             }
             return;
         }
 
-        if (GuiUtil.titleMatches(title, GUI_TITLE_UPGRADE)) {
+        if (mode == BlacksmithMode.UPGRADE) {
             if (ci.getUpgradeLevel() >= 5) {
                 gui.setItem(22, createUpgradeButton(-1, 0));
             } else {
@@ -565,22 +595,20 @@ public class BlacksmithGUI implements Listener {
                         upgradeManager.getUpgradeCost(ci));
                 gui.setItem(22, createUpgradeButton(cost, upgradeManager.getSuccessChance(ci)));
             }
-        } else if (GuiUtil.titleMatches(title, GUI_TITLE_REPAIR)) {
+        } else if (mode == BlacksmithMode.REPAIR) {
             int cost = TownPerkManager.getInstance().applyDiscount(
                     GuildManager.getInstance().getGuild(player.getUniqueId()),
                     TownPerk.BLACKSMITH_DISCOUNT,
                     repairManager.getRepairCost(ci));
             gui.setItem(22, createRepairButton(cost));
-        } else if (GuiUtil.titleMatches(title, GUI_TITLE_REROLL)) {
+        } else if (mode == BlacksmithMode.REROLL) {
             int cost = TownPerkManager.getInstance().applyDiscount(
                     GuildManager.getInstance().getGuild(player.getUniqueId()),
                     TownPerk.BLACKSMITH_DISCOUNT,
                     rerollManager.getRerollCost(ci));
             gui.setItem(22, createRerollButton(cost));
         } else {
-            gui.setItem(22, GuiUtil.titleMatches(title, GUI_TITLE_UPGRADE)
-                ? createUpgradeButton(0,0)
-                : createRepairButton(0));
+            gui.setItem(22, createUpgradeButton(0, 0));
         }
     }
 
@@ -628,5 +656,6 @@ public class BlacksmithGUI implements Listener {
             if (item != null && !item.getType().isAir()) player.getInventory().addItem(item);
         }
         openInventories.remove(player.getUniqueId());
+        openModes.remove(player.getUniqueId());
     }
 }
