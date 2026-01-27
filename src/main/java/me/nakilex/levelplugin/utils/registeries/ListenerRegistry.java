@@ -54,6 +54,7 @@ import me.nakilex.levelplugin.player.classes.essence.listener.ClassEssenceBoundL
 import me.nakilex.levelplugin.player.classes.essence.listener.ClassEssenceSwapListener;
 import me.nakilex.levelplugin.player.classes.essence.gui.ClassEssenceUpgradeGUI;
 import me.nakilex.levelplugin.trade.listeners.PlayerRightClicksPlayerListener;
+import me.nakilex.levelplugin.guild.GuildGUI;
 import me.nakilex.levelplugin.guild.GuildGUIListener;
 import me.nakilex.levelplugin.guild.quests.GuildQuestGUIListener;
 import me.nakilex.levelplugin.utils.*;
@@ -104,6 +105,7 @@ public class ListenerRegistry {
                                          SettingsGUI settingsGUI,
                                          SpellKeybindGUI spellKeybindGUI,
                                          me.nakilex.levelplugin.debug.gui.DebugGUI debugGUI,
+                                         GuildGUI guildGUI,
                                          FileConfiguration bossConfig,
                                         GemsManager gemsManager,
                                        me.nakilex.levelplugin.enchanting.gui.EnchantGUI enchantGUI,
@@ -234,7 +236,7 @@ public class ListenerRegistry {
         pm.registerEvents(settingsGUI, plugin);
         pm.registerEvents(spellKeybindGUI, plugin);
         pm.registerEvents(debugGUI, plugin);
-        pm.registerEvents(new GuildGUIListener(), plugin);
+        pm.registerEvents(new GuildGUIListener(guildGUI), plugin);
         pm.registerEvents(new GuildQuestGUIListener(), plugin);
         pm.registerEvents(new SubclassGUI(), plugin);
         pm.registerEvents(new ClassEssenceMenuListener(), plugin);

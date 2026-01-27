@@ -554,6 +554,7 @@ public class PluginBootstrap {
             settingsGUI,
             spellKeybindGUI,
             debugGUI,
+            guildGUI,
             bossConfig,
             gemsManager,
             enchantGUI,
