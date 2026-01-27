@@ -90,6 +90,8 @@ It also centralizes the input-slot rules in `SalvageGUI.isInputSlot`, which the 
 - **Custom Mob Admin**: uses `ActionWidget` for main menu navigation and paged lists of mobs/spawners.
 - **Potion Merchant**: uses `ActionWidget` for potion offers with centralized purchase handling.
 - **Wandering Merchant**: uses `ActionWidget` for offer slots with shared click routing.
+- **Life Skills**: uses `ActionWidget` for skill entries and back navigation.
+- **Life Skill Rewards**: uses `ActionWidget` for reward slots, pagination, and catalog navigation.
 
 ## 7) UX styling guidance
 

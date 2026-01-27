@@ -5,9 +5,7 @@ import me.nakilex.levelplugin.player.attributes.gui.LifeSkillGUI;
 import me.nakilex.levelplugin.player.attributes.gui.LifeSkillRewardsGUI;
 import me.nakilex.levelplugin.player.attributes.gui.StatsInventory;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
-import me.nakilex.levelplugin.player.attributes.managers.LifeSkillRewardManager;
 import me.nakilex.levelplugin.player.classes.essence.gui.ClassEssenceGUI;
-import me.nakilex.levelplugin.player.fishing.gui.FishingCatalogGUI;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.Sound;
@@ -35,92 +33,13 @@ public class StatsMenuListener implements Listener {
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
         if (event.getView().getTitle().equals(LifeSkillGUI.TITLE)) {
-            event.setCancelled(true);
-            ItemStack clickedItem = event.getCurrentItem();
-            if (clickedItem == null || clickedItem.getType() == Material.AIR) return;
-
-            Player player = (Player) event.getWhoClicked();
-            ItemMeta meta = clickedItem.getItemMeta();
-            if (meta == null || !meta.hasDisplayName()) return;
-            String displayName = ChatColor.stripColor(meta.getDisplayName());
-
-            if (displayName.equalsIgnoreCase("Back to Stats")) {
-                player.openInventory(StatsInventory.getStatsMenu(player, StatsInventory.getPage(player)));
-                return;
-            }
-
-            if (displayName.startsWith("Mining")) {
-                LifeSkillRewardsGUI.open(player, ToolDiscipline.MINING);
-                return;
-            }
-
-            if (displayName.startsWith("Farming")) {
-                LifeSkillRewardsGUI.open(player, ToolDiscipline.FARMING);
-                return;
-            }
-            if (displayName.startsWith("Fishing")) {
-                LifeSkillRewardsGUI.open(player, ToolDiscipline.FISHING);
-                return;
-            }
+            LifeSkillGUI.handleWidgetClick(event, (Player) event.getWhoClicked());
             return;
         }
 
         ToolDiscipline rewardDiscipline = LifeSkillRewardsGUI.disciplineFromTitle(event.getView().getTitle());
         if (rewardDiscipline != null) {
-            event.setCancelled(true);
-            Player player = (Player) event.getWhoClicked();
-            int page = LifeSkillRewardsGUI.pageFromTitle(event.getView().getTitle());
-            if (event.getRawSlot() == LifeSkillRewardsGUI.previousSlot()) {
-                player.openInventory(LifeSkillRewardsGUI.create(player, rewardDiscipline, Math.max(0, page - 1)));
-                return;
-            }
-            if (event.getRawSlot() == LifeSkillRewardsGUI.nextSlot()) {
-                player.openInventory(LifeSkillRewardsGUI.create(player, rewardDiscipline, page + 1));
-                return;
-            }
-            if (rewardDiscipline == ToolDiscipline.FISHING
-                    && event.getRawSlot() == LifeSkillRewardsGUI.fishingCatalogSlot()) {
-                FishingCatalogGUI.getInstance().open(player);
-                return;
-            }
-            ItemStack clickedItem = event.getCurrentItem();
-            if (clickedItem == null || clickedItem.getType() == Material.AIR) return;
-
-            ItemMeta meta = clickedItem.getItemMeta();
-            if (event.getRawSlot() == LifeSkillRewardsGUI.backSlot()
-                    || (meta != null && meta.hasDisplayName()
-                    && ChatColor.stripColor(meta.getDisplayName()).equalsIgnoreCase("Back to Skills"))) {
-                LifeSkillGUI.open(player);
-                return;
-            }
-
-            LifeSkillRewardManager rewardManager = LifeSkillRewardManager.getInstance();
-            if (rewardManager == null) return;
-
-            int levelRequirement = LifeSkillRewardsGUI.levelFrom(clickedItem);
-            java.util.List<me.nakilex.levelplugin.player.attributes.managers.LifeSkillRewardManager.LifeSkillReward> rewards =
-                    rewardManager.getRewards(rewardDiscipline);
-
-            me.nakilex.levelplugin.player.attributes.managers.LifeSkillRewardManager.LifeSkillReward reward = null;
-            if (levelRequirement > 0) {
-                for (me.nakilex.levelplugin.player.attributes.managers.LifeSkillRewardManager.LifeSkillReward candidate : rewards) {
-                    if (candidate.levelRequired() == levelRequirement) {
-                        reward = candidate;
-                        break;
-                    }
-                }
-            }
-
-            if (reward == null) {
-                int rewardIndex = LifeSkillRewardsGUI.indexForSlot(event.getRawSlot());
-                int pageStart = page * LifeSkillRewardsGUI.pageSize();
-                int resolvedIndex = rewardIndex < 0 ? -1 : pageStart + rewardIndex;
-                if (resolvedIndex < 0 || resolvedIndex >= rewards.size()) return;
-                reward = rewards.get(resolvedIndex);
-            }
-
-            rewardManager.claimReward(player, rewardDiscipline, reward);
-            player.openInventory(LifeSkillRewardsGUI.create(player, rewardDiscipline, page));
+            LifeSkillRewardsGUI.handleWidgetClick(event, (Player) event.getWhoClicked(), rewardDiscipline);
             return;
         }
 
