@@ -83,6 +83,7 @@ It also centralizes the input-slot rules in `SalvageGUI.isInputSlot`, which the 
 - **Codex Lists**: use `ActionWidget` for pagination and back controls with shared click routing.
 - **Fast Travel**: uses `ActionWidget` for pagination/sort/filter controls with shared routing.
 - **Friends**: uses `ActionWidget` for pagination and sorting controls with shared routing.
+- **Guild Applicants**: uses `ActionWidget` for pagination, search, sort, refresh, and back controls with shared routing.
 
 ## 7) UX styling guidance
 
