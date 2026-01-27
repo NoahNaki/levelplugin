@@ -50,17 +50,10 @@ public class GuildVaultGUI extends StorageGUI {
         Guild g = GuildManager.getInstance().getGuildIgnoreCase(guildName);
         int coins = g != null ? g.getCoins() : 0;
         int capacity = g != null ? g.getCoinCapacity() : 0;
-        ItemStack stack = new ItemStack(Material.GOLD_BLOCK);
-        ItemMeta meta = stack.getItemMeta();
-        if (meta != null) {
-            meta.setDisplayName(ChatColor.GOLD + "Guild Coins");
-            List<String> lore = new ArrayList<>();
-            lore.add(ChatColor.GRAY + "Guild Coins: " + ChatColor.GOLD + coins + ChatColor.GRAY + "/" + ChatColor.GOLD + capacity + " <glyph:coins_icon>");
-            lore.addAll(TooltipUtil.clickInstructions("to deposit", "to withdraw"));
-            meta.setLore(lore);
-            stack.setItemMeta(meta);
-        }
-        return stack;
+        List<String> lore = new ArrayList<>();
+        lore.add(ChatColor.GRAY + "Guild Coins: " + ChatColor.GOLD + coins + ChatColor.GRAY + "/" + ChatColor.GOLD + capacity + " <glyph:coins_icon>");
+        lore.addAll(TooltipUtil.clickInstructions("to deposit", "to withdraw"));
+        return GuiUtil.createGuiItem(Material.GOLD_BLOCK, ChatColor.GOLD + "Guild Coins", lore);
     }
 
     @Override
