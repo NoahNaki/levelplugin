@@ -75,6 +75,8 @@ It also centralizes the input-slot rules in `SalvageGUI.isInputSlot`, which the 
 
 - **Arena Queue**: uses `ActionWidget` for the queue buttons and shared rendering/click routing.
 - **Catacombs Entry**: uses `NexoButtonWidget` for the entry button with a lore builder.
+- **Dungeon List**: uses `ActionWidget` for filter toggles and shared click routing.
+- **Enchant**: uses `NexoButtonWidget` for info and an `ActionWidget` for the dynamic enchant action button.
 
 ## 7) UX styling guidance
 
