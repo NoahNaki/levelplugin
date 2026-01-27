@@ -3,7 +3,10 @@ package me.nakilex.levelplugin.codex;
 import me.nakilex.levelplugin.mob.utils.MobNameUtil;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
-import org.bukkit.Bukkit;
+import me.nakilex.levelplugin.utils.gui.widgets.ActionWidget;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiContext;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiLayout;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiWidget;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -35,10 +38,12 @@ public class MobCodexGUI implements Listener {
     private final CodexManager manager;
     private CodexMainGUI mainGui;
     private final Map<UUID, Integer> pageMap = new HashMap<>();
+    private final List<GuiWidget> widgets;
 
     public MobCodexGUI(CodexManager manager, CodexMainGUI mainGui) {
         this.manager = manager;
         this.mainGui = mainGui;
+        this.widgets = buildWidgets();
     }
 
     public void setMainGui(CodexMainGUI gui) { this.mainGui = gui; }
@@ -66,9 +71,7 @@ public class MobCodexGUI implements Listener {
             inv.setItem(GuiUtil.PAGED_SLOTS[slot++], createMobIcon(player.getUniqueId(), key));
         }
 
-        if (page > 0) inv.setItem(PREV_SLOT, GuiUtil.getNexoItem("arrow_left", ChatColor.GREEN + "Previous"));
-        if (mobs.size() > (page + 1) * ITEMS_PER_PAGE) inv.setItem(NEXT_SLOT, GuiUtil.getNexoItem("arrow_right", ChatColor.GREEN + "Next"));
-        inv.setItem(BACK_SLOT, GuiUtil.getNexoItem("arrow_left", ChatColor.YELLOW + "Back"));
+        renderWidgets(inv, player);
 
         player.openInventory(inv);
     }
@@ -98,23 +101,77 @@ public class MobCodexGUI implements Listener {
 
     @EventHandler
     public void onClick(InventoryClickEvent e) {
-        if (!e.getView().getTitle().equals(TITLE)) return;
-        e.setCancelled(true);
+        if (!GuiUtil.titleMatches(e.getView().getTitle(), TITLE)) return;
         if (!(e.getWhoClicked() instanceof Player p)) return;
+        if (handleWidgetClick(e, p)) {
+            return;
+        }
+        e.setCancelled(true);
+    }
 
-        int slot = e.getRawSlot();
-        if (slot == PREV_SLOT) {
-            int page = pageMap.getOrDefault(p.getUniqueId(), 0);
-            open(p, Math.max(0, page - 1));
-            return;
+    private List<GuiWidget> buildWidgets() {
+        List<GuiWidget> widgetList = new java.util.ArrayList<>();
+        widgetList.add(new ActionWidget(PREV_SLOT,
+                context -> createPrevItem(context.player()),
+                (click, context) -> handlePrev(context.player())));
+        widgetList.add(new ActionWidget(NEXT_SLOT,
+                context -> createNextItem(context.player()),
+                (click, context) -> handleNext(context.player())));
+        widgetList.add(new ActionWidget(BACK_SLOT,
+                context -> GuiUtil.getNexoItem("arrow_left", ChatColor.YELLOW + "Back"),
+                (click, context) -> {
+                    if (mainGui != null) {
+                        mainGui.open(context.player());
+                    }
+                }));
+        return widgetList;
+    }
+
+    private void renderWidgets(Inventory inventory, Player player) {
+        GuiLayout layout = new GuiLayout(inventory);
+        GuiContext context = new GuiContext(player, inventory);
+        for (GuiWidget widget : widgets) {
+            widget.contribute(layout, context);
         }
-        if (slot == NEXT_SLOT) {
-            int page = pageMap.getOrDefault(p.getUniqueId(), 0);
-            open(p, page + 1);
-            return;
+    }
+
+    private boolean handleWidgetClick(InventoryClickEvent event, Player player) {
+        int slot = event.getRawSlot();
+        if (slot < 0 || slot >= event.getView().getTopInventory().getSize()) {
+            return false;
         }
-        if (slot == BACK_SLOT && mainGui != null) {
-            mainGui.open(p);
+        GuiWidget widget = widgets.stream()
+                .filter(w -> w.handlesSlot(slot))
+                .findFirst()
+                .orElse(null);
+        if (widget == null) {
+            return false;
         }
+        event.setCancelled(true);
+        widget.onClick(slot, event.getClick(), new GuiContext(player, event.getView().getTopInventory()));
+        return true;
+    }
+
+    private ItemStack createPrevItem(Player player) {
+        int page = pageMap.getOrDefault(player.getUniqueId(), 0);
+        return page > 0 ? GuiUtil.getNexoItem("arrow_left", ChatColor.GREEN + "Previous") : null;
+    }
+
+    private ItemStack createNextItem(Player player) {
+        int page = pageMap.getOrDefault(player.getUniqueId(), 0);
+        int total = manager.getAllMobKeys().size();
+        return total > (page + 1) * ITEMS_PER_PAGE
+                ? GuiUtil.getNexoItem("arrow_right", ChatColor.GREEN + "Next")
+                : null;
+    }
+
+    private void handlePrev(Player player) {
+        int page = pageMap.getOrDefault(player.getUniqueId(), 0);
+        open(player, Math.max(0, page - 1));
+    }
+
+    private void handleNext(Player player) {
+        int page = pageMap.getOrDefault(player.getUniqueId(), 0);
+        open(player, page + 1);
     }
 }

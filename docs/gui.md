@@ -80,6 +80,7 @@ It also centralizes the input-slot rules in `SalvageGUI.isInputSlot`, which the 
 - **Codex Main**: uses `ActionWidget` for head-based category buttons and a `NexoButtonWidget` back control.
 - **Guild Settings**: uses `ActionWidget` for permission toggles and back navigation with shared click routing.
 - **Server Selector**: uses `ActionWidget` for server choices with consistent click handling.
+- **Codex Lists**: use `ActionWidget` for pagination and back controls with shared click routing.
 
 ## 7) UX styling guidance
 
