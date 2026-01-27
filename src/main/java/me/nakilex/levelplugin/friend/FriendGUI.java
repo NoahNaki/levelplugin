@@ -6,7 +6,12 @@ import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.HeadUtil;
+import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
+import me.nakilex.levelplugin.utils.gui.widgets.ActionWidget;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiContext;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiLayout;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiWidget;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -43,9 +48,11 @@ public class FriendGUI implements Listener {
 
     private final Map<UUID, Integer> pageMap = new HashMap<>();
     private final Map<UUID, Integer> sortModes = new HashMap<>();
+    private final List<GuiWidget> widgets;
 
     public FriendGUI(FriendManager manager) {
         this.manager = manager;
+        this.widgets = buildWidgets();
         Bukkit.getPluginManager().registerEvents(this, Main.getInstance());
     }
 
@@ -100,11 +107,7 @@ public class FriendGUI implements Listener {
             inv.setItem(FRIEND_SLOTS[slot++], head);
         }
 
-        if (page > 0) inv.setItem(PREV_SLOT, GuiUtil.getNexoItem("arrow_left", ChatColor.GREEN + "Previous"));
-        if (list.size() > (page + 1) * ITEMS_PER_PAGE) {
-            inv.setItem(NEXT_SLOT, GuiUtil.getNexoItem("arrow_right", ChatColor.GREEN + "Next"));
-        }
-        inv.setItem(SORT_SLOT, createSortButton(sort));
+        renderWidgets(inv, player);
 
         player.openInventory(inv);
         pageMap.put(player.getUniqueId(), page);
@@ -122,8 +125,7 @@ public class FriendGUI implements Listener {
                 lore.add(b + "- " + c + opts[i]);
             }
             lore.add(" ");
-            lore.add(ChatColor.WHITE + "Left-Click " + ChatColor.GRAY + "to go forward");
-            lore.add(ChatColor.WHITE + "Right-Click " + ChatColor.GRAY + "to go backward");
+            lore.addAll(TooltipUtil.clickInstructions("to go forward", "to go backward"));
             meta.setLore(lore);
             it.setItemMeta(meta);
         }
@@ -132,30 +134,84 @@ public class FriendGUI implements Listener {
 
     @EventHandler
     public void onClick(InventoryClickEvent e) {
-        if (!ChatColor.stripColor(e.getView().getTitle()).equals(ChatColor.stripColor(TITLE))) return;
+        if (!GuiUtil.titleMatches(e.getView().getTitle(), TITLE)) return;
+        if (!(e.getWhoClicked() instanceof Player player)) return;
+        if (handleWidgetClick(e, player)) {
+            return;
+        }
         e.setCancelled(true);
-        Player player = (Player) e.getWhoClicked();
-        int slot = e.getRawSlot();
-        if (slot == PREV_SLOT) {
-            int p = pageMap.getOrDefault(player.getUniqueId(), 0);
-            open(player, Math.max(0, p - 1));
-            return;
-        }
-        if (slot == NEXT_SLOT) {
-            int p = pageMap.getOrDefault(player.getUniqueId(), 0);
-            open(player, p + 1);
-            return;
-        }
-        if (slot == SORT_SLOT) {
-            int m = sortModes.getOrDefault(player.getUniqueId(), 0);
-            if (e.getClick() == ClickType.RIGHT) {
-                m = (m + 3) % 4;
-            } else {
-                m = (m + 1) % 4;
-            }
-            sortModes.put(player.getUniqueId(), m);
-            open(player, pageMap.getOrDefault(player.getUniqueId(), 0));
+    }
+
+    private List<GuiWidget> buildWidgets() {
+        List<GuiWidget> widgetList = new ArrayList<>();
+        widgetList.add(new ActionWidget(PREV_SLOT,
+                context -> createPrevItem(context.player()),
+                (click, context) -> handlePrev(context.player())));
+        widgetList.add(new ActionWidget(NEXT_SLOT,
+                context -> createNextItem(context.player()),
+                (click, context) -> handleNext(context.player())));
+        widgetList.add(new ActionWidget(SORT_SLOT,
+                context -> createSortButton(sortModes.getOrDefault(context.player().getUniqueId(), 0)),
+                (click, context) -> handleSortClick(context.player(), click)));
+        return widgetList;
+    }
+
+    private void renderWidgets(Inventory inventory, Player player) {
+        GuiLayout layout = new GuiLayout(inventory);
+        GuiContext context = new GuiContext(player, inventory);
+        for (GuiWidget widget : widgets) {
+            widget.contribute(layout, context);
         }
     }
-}
 
+    private boolean handleWidgetClick(InventoryClickEvent event, Player player) {
+        int slot = event.getRawSlot();
+        if (slot < 0 || slot >= event.getView().getTopInventory().getSize()) {
+            return false;
+        }
+        GuiWidget widget = widgets.stream()
+                .filter(w -> w.handlesSlot(slot))
+                .findFirst()
+                .orElse(null);
+        if (widget == null) {
+            return false;
+        }
+        event.setCancelled(true);
+        widget.onClick(slot, event.getClick(), new GuiContext(player, event.getView().getTopInventory()));
+        return true;
+    }
+
+    private ItemStack createPrevItem(Player player) {
+        int page = pageMap.getOrDefault(player.getUniqueId(), 0);
+        return page > 0 ? GuiUtil.getNexoItem("arrow_left", ChatColor.GREEN + "Previous") : null;
+    }
+
+    private ItemStack createNextItem(Player player) {
+        int page = pageMap.getOrDefault(player.getUniqueId(), 0);
+        int size = manager.getFriends(player.getUniqueId()).size();
+        return size > (page + 1) * ITEMS_PER_PAGE
+                ? GuiUtil.getNexoItem("arrow_right", ChatColor.GREEN + "Next")
+                : null;
+    }
+
+    private void handlePrev(Player player) {
+        int p = pageMap.getOrDefault(player.getUniqueId(), 0);
+        open(player, Math.max(0, p - 1));
+    }
+
+    private void handleNext(Player player) {
+        int p = pageMap.getOrDefault(player.getUniqueId(), 0);
+        open(player, p + 1);
+    }
+
+    private void handleSortClick(Player player, ClickType click) {
+        int m = sortModes.getOrDefault(player.getUniqueId(), 0);
+        if (click == ClickType.RIGHT) {
+            m = (m + 3) % 4;
+        } else {
+            m = (m + 1) % 4;
+        }
+        sortModes.put(player.getUniqueId(), m);
+        open(player, pageMap.getOrDefault(player.getUniqueId(), 0));
+    }
+}
