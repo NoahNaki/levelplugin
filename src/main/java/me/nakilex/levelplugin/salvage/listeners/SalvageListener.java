@@ -42,9 +42,6 @@ public class SalvageListener implements Listener {
         return view != null && ChatColor.stripColor(view.getTitle()).equalsIgnoreCase("Salvage Items");
     }
 
-    private boolean isInputSlot(int slot) {
-        return slot >= 0 && slot < 54 && !(slot < 9 || slot >= 45 || slot % 9 == 0 || slot % 9 == 8);
-    }
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
@@ -96,7 +93,7 @@ public class SalvageListener implements Listener {
                 returnAllItems(player, topInv);
                 return;
             }
-            if (!isInputSlot(slot)) {
+            if (!SalvageGUI.isInputSlot(slot)) {
                 event.setCancelled(true);
                 return;
             }
@@ -115,7 +112,7 @@ public class SalvageListener implements Listener {
         if (!isMerchant(event.getView())) return;
 
         for (int slot : event.getRawSlots()) {
-            if (isInputSlot(slot)) {
+            if (SalvageGUI.isInputSlot(slot)) {
                 ItemStack dragged = event.getOldCursor();
                 if (dragged != null && dragged.getType() != Material.AIR) {
                     if (!ItemUtil.isSalvageable(dragged)) {
@@ -144,7 +141,7 @@ public class SalvageListener implements Listener {
         Inventory topInv = event.getView().getTopInventory();
 
         for (int i = 0; i < 54; i++) {
-            if (!isInputSlot(i)) continue;
+            if (!SalvageGUI.isInputSlot(i)) continue;
             ItemStack leftover = topInv.getItem(i);
             if (leftover != null && leftover.getType() != Material.AIR) {
                 HashMap<Integer, ItemStack> overflow = player.getInventory().addItem(leftover);

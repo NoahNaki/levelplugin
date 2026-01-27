@@ -7,6 +7,10 @@ import me.nakilex.levelplugin.storage.events.StorageEvents;
 import com.nexomc.nexo.api.NexoItems;
 import com.nexomc.nexo.items.ItemBuilder;
 import me.nakilex.levelplugin.utils.TooltipUtil;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiContext;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiLayout;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiWidget;
+import me.nakilex.levelplugin.utils.gui.widgets.SlotWidget;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -48,6 +52,7 @@ public class StorageGUI {
     private int sortMode = 0;
     private int filterMode = 5;
     private final Map<Inventory, Inventory> filteredViews = new HashMap<>();
+    private final List<GuiWidget> widgets;
 
     private static final int PAGE_SIZE     = 54;  // double chest size
     private static final int NAV_NEXT_SLOT = 53;
@@ -67,6 +72,7 @@ public class StorageGUI {
         this.maxPages = maxPages;
         this.pages = new ArrayList<>();
         this.currentPage = 0;
+        this.widgets = buildWidgets();
 
         pages.add(createBlankPage(1));
         this.currentPageCost = BASE_PAGE_COST * pages.size();
@@ -90,38 +96,29 @@ public class StorageGUI {
         return Bukkit.createInventory(null, PAGE_SIZE, title);
     }
 
-    /**
-     * Updates the Prev/Next arrow slots to show either navigation labels
-     * or, when on the last locked page, a purchase tooltip with cost.
-     */
-    private void updateNavigationItems(Inventory inv) {
-        // Next arrow: if on last page, show purchase cost; otherwise "Next Page"
-        ItemStack nextItem;
+    private ItemStack createNextNavItem() {
         if (currentPage == pages.size() - 1) {
             if (pages.size() >= maxPages) {
-                nextItem = FILLER.clone();
-            } else if (confirmUnlock) {
-                nextItem = getNexoItem("check",
-                        ChatColor.GREEN + "Confirm " + currentPageCost + " <glyph:coins_icon>");
-            } else {
-                nextItem = getNexoItem("arrow_right",
-                        ChatColor.GRAY + "Unlock Page: " + ChatColor.YELLOW + currentPageCost + " <glyph:coins_icon>");
+                return FILLER.clone();
             }
-        } else {
-            nextItem = getNexoItem("arrow_right", ChatColor.YELLOW + "Next Page");
+            if (confirmUnlock) {
+                return getNexoItem("check",
+                        ChatColor.GREEN + "Confirm " + currentPageCost + " <glyph:coins_icon>");
+            }
+            return getNexoItem("arrow_right",
+                    ChatColor.GRAY + "Unlock Page: " + ChatColor.YELLOW + currentPageCost + " <glyph:coins_icon>");
         }
-        inv.setItem(NAV_NEXT_SLOT, nextItem);
+        return getNexoItem("arrow_right", ChatColor.YELLOW + "Next Page");
+    }
 
-        // Previous arrow slot behavior
-        ItemStack prevItem;
+    private ItemStack createPrevNavItem() {
         if (confirmUnlock) {
-            prevItem = getNexoItem("cross", ChatColor.RED + "Cancel");
-        } else if (currentPage > 0) {
-            prevItem = getNexoItem("arrow_left", ChatColor.YELLOW + "Previous Page");
-        } else {
-            prevItem = FILLER.clone();
+            return getNexoItem("cross", ChatColor.RED + "Cancel");
         }
-        inv.setItem(NAV_PREV_SLOT, prevItem);
+        if (currentPage > 0) {
+            return getNexoItem("arrow_left", ChatColor.YELLOW + "Previous Page");
+        }
+        return FILLER.clone();
     }
 
     /**
@@ -139,10 +136,7 @@ public class StorageGUI {
             }
         }
 
-        updateNavigationItems(inv);
-        inv.setItem(SORT_SLOT, createSortButton(sortMode));
-        inv.setItem(FILTER_SLOT, createFilterButton(filterMode));
-        inv.setItem(INFO_SLOT, createInfoItem());
+        renderWidgets(inv, player);
 
         // Register after opening so InventoryCloseEvent from the previous page
         // does not immediately unregister this one when navigating or
@@ -159,40 +153,12 @@ public class StorageGUI {
         if (slot < 0 || slot >= PAGE_SIZE) {
             return; // clicked outside main area
         }
-
-        if (slot == NAV_NEXT_SLOT) {
-            event.setCancelled(true);
-            goToNextPage((Player) event.getWhoClicked());
+        if (handleWidgetClick(event)) {
+            return;
         }
-        else if (slot == NAV_PREV_SLOT) {
-            event.setCancelled(true);
-            if (confirmUnlock) {
-                // Cancel purchase confirmation and restore navigation arrow
-                confirmUnlock = false;
-                open((Player) event.getWhoClicked());
-            } else if (currentPage > 0) {
-                goToPreviousPage((Player) event.getWhoClicked());
-            }
-        }
-        else if (slot == SORT_SLOT) {
-            event.setCancelled(true);
-            if (event.isLeftClick()) sortMode++; else sortMode--;
-            if (sortMode > 2) sortMode = 0; if (sortMode < 0) sortMode = 2;
-            open((Player) event.getWhoClicked());
-        }
-        else if (slot == FILTER_SLOT) {
-            event.setCancelled(true);
-            if (event.isLeftClick()) filterMode++; else filterMode--;
-            if (filterMode > 5) filterMode = 0; if (filterMode < 0) filterMode = 5;
-            Main.getInstance().getLogger().info(
-                    "[StorageGUI] filterMode owner=" + ownerKey + " newMode=" + filterMode);
-            open((Player) event.getWhoClicked());
-        }
-        else if (slot == INFO_SLOT || slot < 9 || slot >= 45 || slot % 9 == 0 || slot % 9 == 8) {
-            // Prevent taking filler or info items
+        if (isProtectedSlot(slot)) {
             event.setCancelled(true);
         }
-        // otherwise allow regular interactions
     }
 
     /**
@@ -202,14 +168,150 @@ public class StorageGUI {
     public void handleDrag(InventoryDragEvent event) {
         for (int rawSlot : event.getRawSlots()) {
             if (rawSlot < 0 || rawSlot >= PAGE_SIZE) continue;
-
-            if (rawSlot == NAV_NEXT_SLOT || rawSlot == NAV_PREV_SLOT ||
-                rawSlot == SORT_SLOT || rawSlot == FILTER_SLOT ||
-                rawSlot == INFO_SLOT || rawSlot < 9 || rawSlot >= 45 ||
-                rawSlot % 9 == 0 || rawSlot % 9 == 8) {
+            if (isProtectedSlot(rawSlot)) {
                 event.setCancelled(true);
                 return;
             }
+        }
+    }
+
+    private boolean isProtectedSlot(int slot) {
+        if (slot < 9 || slot >= 45 || slot % 9 == 0 || slot % 9 == 8) {
+            return true;
+        }
+        return widgets.stream().anyMatch(widget -> widget.handlesSlot(slot));
+    }
+
+    private void renderWidgets(Inventory inventory, Player player) {
+        GuiLayout layout = new GuiLayout(inventory);
+        GuiContext context = new GuiContext(player, inventory);
+        for (GuiWidget widget : widgets) {
+            widget.contribute(layout, context);
+        }
+    }
+
+    private boolean handleWidgetClick(InventoryClickEvent event) {
+        int slot = event.getRawSlot();
+        GuiWidget widget = widgets.stream()
+                .filter(w -> w.handlesSlot(slot))
+                .findFirst()
+                .orElse(null);
+        if (widget == null) {
+            return false;
+        }
+        event.setCancelled(true);
+        if (event.getWhoClicked() instanceof Player player) {
+            widget.onClick(slot, event.getClick(), new GuiContext(player, event.getInventory()));
+        }
+        return true;
+    }
+
+    private List<GuiWidget> buildWidgets() {
+        List<GuiWidget> widgetList = new ArrayList<>();
+        widgetList.add(new PrevPageWidget());
+        widgetList.add(new NextPageWidget());
+        widgetList.add(new SortWidget());
+        widgetList.add(new FilterWidget());
+        widgetList.add(new InfoWidget());
+        return widgetList;
+    }
+
+    private class PrevPageWidget extends SlotWidget {
+        private PrevPageWidget() {
+            super(NAV_PREV_SLOT);
+        }
+
+        @Override
+        protected ItemStack render(GuiContext context) {
+            return createPrevNavItem();
+        }
+
+        @Override
+        protected void handleClick(org.bukkit.event.inventory.ClickType click, GuiContext context) {
+            Player player = context.player();
+            if (confirmUnlock) {
+                confirmUnlock = false;
+                open(player);
+                return;
+            }
+            if (currentPage > 0) {
+                goToPreviousPage(player);
+            }
+        }
+    }
+
+    private class NextPageWidget extends SlotWidget {
+        private NextPageWidget() {
+            super(NAV_NEXT_SLOT);
+        }
+
+        @Override
+        protected ItemStack render(GuiContext context) {
+            return createNextNavItem();
+        }
+
+        @Override
+        protected void handleClick(org.bukkit.event.inventory.ClickType click, GuiContext context) {
+            goToNextPage(context.player());
+        }
+    }
+
+    private class SortWidget extends SlotWidget {
+        private SortWidget() {
+            super(SORT_SLOT);
+        }
+
+        @Override
+        protected ItemStack render(GuiContext context) {
+            return createSortButton(sortMode);
+        }
+
+        @Override
+        protected void handleClick(org.bukkit.event.inventory.ClickType click, GuiContext context) {
+            if (click.isLeftClick()) {
+                sortMode++;
+            } else {
+                sortMode--;
+            }
+            if (sortMode > 2) sortMode = 0;
+            if (sortMode < 0) sortMode = 2;
+            open(context.player());
+        }
+    }
+
+    private class FilterWidget extends SlotWidget {
+        private FilterWidget() {
+            super(FILTER_SLOT);
+        }
+
+        @Override
+        protected ItemStack render(GuiContext context) {
+            return createFilterButton(filterMode);
+        }
+
+        @Override
+        protected void handleClick(org.bukkit.event.inventory.ClickType click, GuiContext context) {
+            if (click.isLeftClick()) {
+                filterMode++;
+            } else {
+                filterMode--;
+            }
+            if (filterMode > 5) filterMode = 0;
+            if (filterMode < 0) filterMode = 5;
+            Main.getInstance().getLogger().info(
+                    "[StorageGUI] filterMode owner=" + ownerKey + " newMode=" + filterMode);
+            open(context.player());
+        }
+    }
+
+    private class InfoWidget extends SlotWidget {
+        private InfoWidget() {
+            super(INFO_SLOT);
+        }
+
+        @Override
+        protected ItemStack render(GuiContext context) {
+            return createInfoItem();
         }
     }
 
