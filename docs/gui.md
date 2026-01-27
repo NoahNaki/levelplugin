@@ -77,6 +77,9 @@ It also centralizes the input-slot rules in `SalvageGUI.isInputSlot`, which the 
 - **Catacombs Entry**: uses `NexoButtonWidget` for the entry button with a lore builder.
 - **Dungeon List**: uses `ActionWidget` for filter toggles and shared click routing.
 - **Enchant**: uses `NexoButtonWidget` for info and an `ActionWidget` for the dynamic enchant action button.
+- **Codex Main**: uses `ActionWidget` for head-based category buttons and a `NexoButtonWidget` back control.
+- **Guild Settings**: uses `ActionWidget` for permission toggles and back navigation with shared click routing.
+- **Server Selector**: uses `ActionWidget` for server choices with consistent click handling.
 
 ## 7) UX styling guidance
 

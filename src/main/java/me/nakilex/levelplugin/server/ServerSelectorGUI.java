@@ -4,6 +4,10 @@ import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
+import me.nakilex.levelplugin.utils.gui.widgets.ActionWidget;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiContext;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiLayout;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiWidget;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -23,9 +27,11 @@ public class ServerSelectorGUI implements Listener {
     private static final int BUILD_SLOT = 15;
 
     private final ServerSelectionManager manager;
+    private final List<GuiWidget> widgets;
 
     public ServerSelectorGUI(ServerSelectionManager manager) {
         this.manager = manager;
+        this.widgets = buildWidgets();
     }
 
     public void open(Player player) {
@@ -36,9 +42,8 @@ public class ServerSelectorGUI implements Listener {
                 .filler(Material.GRAY_STAINED_GLASS_PANE)
                 .border()
                 .fillEmptySlots(true)
-                .setItem(ALPHA_SLOT, createAlphaItem(player))
-                .setItem(BUILD_SLOT, createBuildItem(player))
                 .build();
+        renderWidgets(gui, player);
         player.openInventory(gui);
     }
 
@@ -93,25 +98,58 @@ public class ServerSelectorGUI implements Listener {
         if (!(event.getWhoClicked() instanceof Player player)) {
             return;
         }
-        String title = GuiUtil.normalizeTitle(event.getView().getTitle());
-        if (!TITLE.equalsIgnoreCase(title)) {
+        if (!GuiUtil.titleMatches(event.getView().getTitle(), TITLE)) {
             return;
+        }
+        handleWidgetClick(event, player);
+    }
+
+    private List<GuiWidget> buildWidgets() {
+        List<GuiWidget> widgetList = new ArrayList<>();
+        widgetList.add(new ActionWidget(ALPHA_SLOT,
+                context -> createAlphaItem(context.player()),
+                (click, context) -> {
+                    context.player().closeInventory();
+                    manager.sendToAlpha(context.player());
+                }));
+        widgetList.add(new ActionWidget(BUILD_SLOT,
+                context -> createBuildItem(context.player()),
+                (click, context) -> handleBuildClick(context.player())));
+        return widgetList;
+    }
+
+    private void renderWidgets(Inventory inventory, Player player) {
+        GuiLayout layout = new GuiLayout(inventory);
+        GuiContext context = new GuiContext(player, inventory);
+        for (GuiWidget widget : widgets) {
+            widget.contribute(layout, context);
+        }
+    }
+
+    private boolean handleWidgetClick(InventoryClickEvent event, Player player) {
+        int slot = event.getRawSlot();
+        if (slot < 0 || slot >= event.getView().getTopInventory().getSize()) {
+            return false;
+        }
+        GuiWidget widget = widgets.stream()
+                .filter(w -> w.handlesSlot(slot))
+                .findFirst()
+                .orElse(null);
+        if (widget == null) {
+            return false;
         }
         event.setCancelled(true);
-        int slot = event.getRawSlot();
-        if (slot == ALPHA_SLOT) {
-            player.closeInventory();
-            manager.sendToAlpha(player);
+        widget.onClick(slot, event.getClick(), new GuiContext(player, event.getView().getTopInventory()));
+        return true;
+    }
+
+    private void handleBuildClick(Player player) {
+        if (!manager.canAccessBuild(player)) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                    "You do not have access to the build server.");
             return;
         }
-        if (slot == BUILD_SLOT) {
-            if (!manager.canAccessBuild(player)) {
-                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
-                        "You do not have access to the build server.");
-                return;
-            }
-            player.closeInventory();
-            manager.sendToBuild(player);
-        }
+        player.closeInventory();
+        manager.sendToBuild(player);
     }
 }
