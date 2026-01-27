@@ -87,6 +87,9 @@ It also centralizes the input-slot rules in `SalvageGUI.isInputSlot`, which the 
 - **Guild List**: uses `ActionWidget` for guild entries with centralized apply handling.
 - **Guild Quests**: uses `ActionWidget` for quest slots with shared click routing for accept/track/reroll actions.
 - **Horse Menu**: uses `ActionWidget` for horse info + reroll buttons with consistent tooltips.
+- **Custom Mob Admin**: uses `ActionWidget` for main menu navigation and paged lists of mobs/spawners.
+- **Potion Merchant**: uses `ActionWidget` for potion offers with centralized purchase handling.
+- **Wandering Merchant**: uses `ActionWidget` for offer slots with shared click routing.
 
 ## 7) UX styling guidance
 
