@@ -94,6 +94,8 @@ It also centralizes the input-slot rules in `SalvageGUI.isInputSlot`, which the 
 - **Life Skill Rewards**: uses `ActionWidget` for reward slots, pagination, and catalog navigation.
 - **Profile Selection**: uses `ActionWidget` for profile slots plus edit/confirm controls.
 - **Quest Journal**: uses `ActionWidget` for quest entries, filters, and abandon confirmations.
+- **Settings**: uses `ActionWidget` for toggles, filters, and navigation.
+- **Fishing Catalog**: uses `ActionWidget` for catalog entries and paging controls.
 
 ## 7) UX styling guidance
 

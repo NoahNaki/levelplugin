@@ -13,6 +13,11 @@ import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.ToggleFeedbackUtil;
 import me.nakilex.levelplugin.items.data.ItemRarity;
 import me.nakilex.levelplugin.spells.input.SpellInputMode;
+import me.nakilex.levelplugin.utils.gui.GuiBuilder;
+import me.nakilex.levelplugin.utils.gui.widgets.ActionWidget;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiContext;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiLayout;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiWidget;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -21,7 +26,6 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
@@ -40,6 +44,7 @@ public class SettingsGUI implements Listener {
 
     private final SettingsManager settingsManager;
     private final Map<UUID, Filter> filters = new HashMap<>();
+    private final Map<UUID, List<GuiWidget>> widgetsByPlayer = new HashMap<>();
     private SpellKeybindGUI spellKeybindGUI;
 
     public SettingsGUI(SettingsManager settingsManager) {
@@ -58,186 +63,18 @@ public class SettingsGUI implements Listener {
         PlayerSettings playerSettings = settingsManager.getSettings(player);
         Filter filter = filters.getOrDefault(player.getUniqueId(), Filter.ALL);
 
-        Inventory gui = Bukkit.createInventory(null, GUI_SIZE, "Settings");
-
-        // Back button
-        gui.setItem(0, GuiUtil.getNexoItem("arrow_left2", "§7Back"));
-
-        // Damage Chat toggle
-        if (filter == Filter.ALL || filter == Filter.COMBAT) {
-            gui.setItem(10, GuiUtil.createToggleItem(
-                    playerSettings.isDmgChatEnabled(),
-                    "§bDamage Chat",
-                    "§eClick to toggle"
-            ));
-        }
-
-        // Damage Numbers toggle
-        if (filter == Filter.ALL || filter == Filter.COMBAT) {
-            gui.setItem(11, GuiUtil.createToggleItem(
-                    playerSettings.isDmgNumberEnabled(),
-                    "§bDamage Numbers",
-                    "§eClick to toggle and run /dmgnumber"
-            ));
-        }
-
-        // Drop Details (hologram) toggle
-        if (filter == Filter.ALL || filter == Filter.VISUAL) {
-            gui.setItem(12, GuiUtil.createToggleItem(
-                    playerSettings.isDropDetailsEnabled(),
-                    "§bDrop Details",
-                    "§eClick to toggle and run /toggle dropdetails"
-            ));
-        }
-
-        // Drop Details Chat toggle
-        if (filter == Filter.ALL || filter == Filter.VISUAL) {
-            gui.setItem(13, GuiUtil.createToggleItem(
-                    playerSettings.isDropDetailsChatEnabled(),
-                    "§bDrop Details Chat",
-                    "§eClick to toggle and run /toggle dropdetailschat"
-            ));
-        }
-
-        // Party Glow toggle
-        if (filter == Filter.ALL || filter == Filter.SOCIAL) {
-            gui.setItem(14, GuiUtil.createToggleItem(
-                    playerSettings.isPartyGlowEnabled(),
-                    "§bParty Glow",
-                    "§eClick to toggle and run /partyglow"
-            ));
-        }
-
-        // Friend Glow toggle
-        if (filter == Filter.ALL || filter == Filter.SOCIAL) {
-            gui.setItem(15, GuiUtil.createToggleItem(
-                    playerSettings.isFriendGlowEnabled(),
-                    "§bFriend Glow",
-                    "§eClick to toggle and run /friendglow"
-            ));
-        }
-
-        // Balance visibility toggle
-        if (filter == Filter.ALL || filter == Filter.SOCIAL) {
-            gui.setItem(16, GuiUtil.createToggleItem(
-                    playerSettings.isBalancePublic(),
-                    "§ePublic Balance",
-                    "§eClick to toggle and run /toggle balancepublic"
-            ));
-        }
-
-        if (filter == Filter.ALL || filter == Filter.SOCIAL) {
-            gui.setItem(21, createVisibilityItem(playerSettings.getPlayerVisibility(),
-                    isOfficeErrandsLocked(player)));
-        }
-
-        // Auto-skip Cutscenes toggle
-        if (filter == Filter.ALL || filter == Filter.VISUAL) {
-            gui.setItem(22, GuiUtil.createToggleItem(
-                    playerSettings.isAutoSkipCutscenes(),
-                    "§bAuto Skip Cutscenes",
-                    "§eClick to toggle"
-            ));
-        }
-
-        // Auto-skip Songs toggle
-        if (filter == Filter.ALL || filter == Filter.VISUAL) {
-            gui.setItem(23, GuiUtil.createToggleItem(
-                    playerSettings.isAutoSkipSongs(),
-                    "§bAuto Skip Songs",
-                    "§eClick to toggle and run /toggle songskip"
-            ));
-        }
-
-        // Skill Point Reminder toggle
-        if (filter == Filter.ALL || filter == Filter.VISUAL) {
-            gui.setItem(24, GuiUtil.createToggleItem(
-                    playerSettings.isSkillPointReminderEnabled(),
-                    "§bSkill Point Reminder",
-                    "§eClick to toggle"
-            ));
-        }
-
-        // Full Inventory Title toggle
-        if (filter == Filter.ALL || filter == Filter.VISUAL) {
-            gui.setItem(25, GuiUtil.createToggleItem(
-                    playerSettings.isFullInventoryTitleEnabled(),
-                    "§bFull Inventory Title",
-                    "§eClick to toggle"
-            ));
-        }
-
-        // Tips toggle
-        if (filter == Filter.ALL || filter == Filter.VISUAL) {
-            gui.setItem(26, GuiUtil.createToggleItem(
-                    playerSettings.isTipsEnabled(),
-                    "§bTips",
-                    "§eClick to toggle"
-            ));
-        }
-
-        // Chat games toggle
-        if (filter == Filter.ALL || filter == Filter.SOCIAL) {
-            gui.setItem(CHAT_GAMES_SLOT, GuiUtil.createToggleItem(
-                    playerSettings.isChatGamesEnabled(),
-                    "§bChat Games",
-                    "§eClick to toggle"
-            ));
-        }
-
-        // Booster Boss Bar toggle
-        if (filter == Filter.ALL || filter == Filter.VISUAL) {
-            gui.setItem(31, GuiUtil.createToggleItem(
-                    playerSettings.isBoosterBossBarEnabled(),
-                    "§bBooster Boss Bar",
-                    "§eClick to toggle"
-            ));
-        }
-
-        // Quest tracking particles toggle
-        if (filter == Filter.ALL || filter == Filter.VISUAL) {
-            gui.setItem(30, GuiUtil.createToggleItem(
-                    playerSettings.isQuestTrackingParticlesEnabled(),
-                    "§bQuest Path Particles",
-                    "§eClick to toggle"
-            ));
-        }
-
-        if (filter == Filter.ALL || filter == Filter.COMBAT) {
-            gui.setItem(LOOT_FILTER_SLOT, createLootPickupFilterItem(playerSettings));
-        }
-
-        if (filter == Filter.ALL || filter == Filter.COMBAT) {
-            gui.setItem(SPELL_INPUT_SLOT, createSpellInputModeItem(playerSettings));
-        }
-
-        if (filter == Filter.ALL || filter == Filter.COMBAT) {
-            gui.setItem(SPELL_KEYBINDS_SLOT, createSpellKeybindsItem());
-        }
-
-        gui.setItem(FILTER_SLOT, createFilterItem(filter));
-
-        // Filler border
-        ItemStack filler = createItem(Material.GRAY_STAINED_GLASS_PANE, " ", " ");
-        for (int i = 0; i < gui.getSize(); i++) {
-            if (gui.getItem(i) == null) {
-                gui.setItem(i, filler);
-            }
-        }
+        Inventory gui = GuiBuilder.create(GUI_SIZE, "Settings")
+                .filler(Material.GRAY_STAINED_GLASS_PANE)
+                .build();
+        List<GuiWidget> widgets = buildWidgets(player, playerSettings, filter, isOfficeErrandsLocked(player));
+        widgetsByPlayer.put(player.getUniqueId(), widgets);
+        renderWidgets(gui, player, widgets);
 
         player.openInventory(gui);
     }
 
     private ItemStack createItem(Material mat, String name, String... loreLines) {
-        ItemStack item = new ItemStack(mat);
-        ItemMeta meta = item.getItemMeta();
-        if (meta != null) {
-            meta.setDisplayName(name);
-            meta.setLore(Arrays.asList(loreLines));
-            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
-            item.setItemMeta(meta);
-        }
-        return item;
+        return GuiUtil.createGuiItem(mat, name, Arrays.asList(loreLines));
     }
 
     private ItemStack createVisibilityItem(PlayerVisibility vis, boolean locked) {
@@ -266,17 +103,6 @@ public class SettingsGUI implements Listener {
 
 
 
-    private void updateSettingItem(Inventory inventory, int slot, boolean enabled, String name, String command) {
-        String lore = (command != null && !command.isBlank())
-                ? "§eClick to toggle and run " + command
-                : "§eClick to toggle";
-        inventory.setItem(slot, GuiUtil.createToggleItem(enabled, name, lore));
-    }
-
-    private void updateVisibilityItem(Inventory inv, PlayerVisibility vis, boolean locked) {
-        inv.setItem(21, createVisibilityItem(vis, locked));
-    }
-
     private ItemStack createFilterItem(Filter filter) {
         String name = switch (filter) {
             case ALL -> "§bFilter: All";
@@ -299,7 +125,6 @@ public class SettingsGUI implements Listener {
         ItemMeta meta = it.getItemMeta();
         if (meta != null) {
             List<String> lore = new ArrayList<>();
-            lore.add(ChatColor.GRAY + "");
             lore.add(ChatColor.DARK_GRAY + "Pick up armor & weapons");
             lore.add(ChatColor.DARK_GRAY + "of this rarity or higher.");
             lore.add(" ");
@@ -309,8 +134,7 @@ public class SettingsGUI implements Listener {
                 lore.add(TooltipUtil.selectionLine(entry == rarity, label));
             }
             lore.add(" ");
-            lore.add(ChatColor.WHITE + "Left-Click " + ChatColor.GRAY + "to go forward");
-            lore.add(ChatColor.WHITE + "Right-Click " + ChatColor.GRAY + "to go backward");
+            lore.addAll(TooltipUtil.clickInstructions("to go forward", "to go backward"));
             meta.setLore(lore);
             it.setItemMeta(meta);
         }
@@ -335,9 +159,8 @@ public class SettingsGUI implements Listener {
                     "Combo: R/L sequences (RRL, RLR, RRR, RLL)",
                     "Keyboard: Sneak + Click or Sneak + Sneak"));
             lore.add(" ");
-            lore.add(ChatColor.WHITE + "Click " + ChatColor.GRAY + "to cycle");
+            lore.addAll(TooltipUtil.clickInstructions("to cycle", null));
             meta.setLore(lore);
-            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
             item.setItemMeta(meta);
         }
         return item;
@@ -357,7 +180,6 @@ public class SettingsGUI implements Listener {
             lore.add(" ");
             lore.addAll(TooltipUtil.clickInstructions("to open", null));
             meta.setLore(lore);
-            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
             item.setItemMeta(meta);
         }
         return item;
@@ -384,139 +206,261 @@ public class SettingsGUI implements Listener {
         if (!(event.getWhoClicked() instanceof Player)) return;
         if (!event.getView().getTitle().equals("Settings")) return;
 
-        event.setCancelled(true);
         Player player = (Player) event.getWhoClicked();
-        PlayerSettings settings = settingsManager.getSettings(player);
-
-        ItemStack clicked = event.getCurrentItem();
-        if (clicked == null || clicked.getType() == Material.GRAY_STAINED_GLASS_PANE) return;
-
-        int slot = event.getSlot();
-
-        if (slot == 0) {
-            player.openInventory(StatsInventory.getStatsMenu(player));
+        if (handleWidgetClick(event, player)) {
             return;
         }
+        event.setCancelled(true);
+    }
 
-        if (slot == FILTER_SLOT) {
-            Filter next = switch (filters.getOrDefault(player.getUniqueId(), Filter.ALL)) {
-                case ALL -> Filter.SOCIAL;
-                case SOCIAL -> Filter.VISUAL;
-                case VISUAL -> Filter.COMBAT;
-                case COMBAT -> Filter.ALL;
-            };
-            filters.put(player.getUniqueId(), next);
+    private List<GuiWidget> buildWidgets(Player player, PlayerSettings settings, Filter filter, boolean lockedVisibility) {
+        List<GuiWidget> widgets = new ArrayList<>();
+        widgets.add(new ActionWidget(0,
+                context -> GuiUtil.getNexoItem("arrow_left2", "§7Back"),
+                (click, context) -> context.player().openInventory(StatsInventory.getStatsMenu(context.player()))));
+        widgets.add(new ActionWidget(FILTER_SLOT,
+                context -> createFilterItem(filter),
+                (click, context) -> cycleFilter(context.player())));
+
+        if (filter == Filter.ALL || filter == Filter.COMBAT) {
+            widgets.add(new ActionWidget(10,
+                    context -> GuiUtil.createToggleItem(settings.isDmgChatEnabled(), "§bDamage Chat", "§eClick to toggle"),
+                    (click, context) -> toggleDamageChat(context.player(), settings)));
+            widgets.add(new ActionWidget(11,
+                    context -> GuiUtil.createToggleItem(settings.isDmgNumberEnabled(), "§bDamage Numbers",
+                            "§eClick to toggle and run /dmgnumber"),
+                    (click, context) -> toggleDamageNumbers(context.player(), settings)));
+            widgets.add(new ActionWidget(LOOT_FILTER_SLOT,
+                    context -> createLootPickupFilterItem(settings),
+                    (click, context) -> cycleLootFilter(context.player(), settings, click.isLeftClick())));
+            widgets.add(new ActionWidget(SPELL_INPUT_SLOT,
+                    context -> createSpellInputModeItem(settings),
+                    (click, context) -> cycleSpellInputMode(context.player(), settings)));
+            widgets.add(new ActionWidget(SPELL_KEYBINDS_SLOT,
+                    context -> createSpellKeybindsItem(),
+                    (click, context) -> {
+                        if (spellKeybindGUI != null) {
+                            spellKeybindGUI.open(context.player());
+                        }
+                    }));
+        }
+
+        if (filter == Filter.ALL || filter == Filter.VISUAL) {
+            widgets.add(new ActionWidget(12,
+                    context -> GuiUtil.createToggleItem(settings.isDropDetailsEnabled(), "§bDrop Details",
+                            "§eClick to toggle and run /toggle dropdetails"),
+                    (click, context) -> toggleDropDetails(context.player(), settings)));
+            widgets.add(new ActionWidget(13,
+                    context -> GuiUtil.createToggleItem(settings.isDropDetailsChatEnabled(), "§bDrop Details Chat",
+                            "§eClick to toggle and run /toggle dropdetailschat"),
+                    (click, context) -> toggleDropDetailsChat(context.player(), settings)));
+            widgets.add(new ActionWidget(22,
+                    context -> GuiUtil.createToggleItem(settings.isAutoSkipCutscenes(), "§bAuto Skip Cutscenes",
+                            "§eClick to toggle"),
+                    (click, context) -> toggleAutoSkipCutscenes(context.player(), settings)));
+            widgets.add(new ActionWidget(23,
+                    context -> GuiUtil.createToggleItem(settings.isAutoSkipSongs(), "§bAuto Skip Songs",
+                            "§eClick to toggle and run /toggle songskip"),
+                    (click, context) -> toggleAutoSkipSongs(context.player(), settings)));
+            widgets.add(new ActionWidget(24,
+                    context -> GuiUtil.createToggleItem(settings.isSkillPointReminderEnabled(), "§bSkill Point Reminder",
+                            "§eClick to toggle"),
+                    (click, context) -> toggleSkillPointReminder(context.player(), settings)));
+            widgets.add(new ActionWidget(25,
+                    context -> GuiUtil.createToggleItem(settings.isFullInventoryTitleEnabled(), "§bFull Inventory Title",
+                            "§eClick to toggle"),
+                    (click, context) -> toggleFullInventoryTitle(context.player(), settings)));
+            widgets.add(new ActionWidget(26,
+                    context -> GuiUtil.createToggleItem(settings.isTipsEnabled(), "§bTips",
+                            "§eClick to toggle"),
+                    (click, context) -> toggleTips(context.player(), settings)));
+            widgets.add(new ActionWidget(31,
+                    context -> GuiUtil.createToggleItem(settings.isBoosterBossBarEnabled(), "§bBooster Boss Bar",
+                            "§eClick to toggle"),
+                    (click, context) -> toggleBoosterBossBar(context.player(), settings)));
+            widgets.add(new ActionWidget(30,
+                    context -> GuiUtil.createToggleItem(settings.isQuestTrackingParticlesEnabled(), "§bQuest Path Particles",
+                            "§eClick to toggle"),
+                    (click, context) -> toggleQuestTrackingParticles(context.player(), settings)));
+        }
+
+        if (filter == Filter.ALL || filter == Filter.SOCIAL) {
+            widgets.add(new ActionWidget(14,
+                    context -> GuiUtil.createToggleItem(settings.isPartyGlowEnabled(), "§bParty Glow",
+                            "§eClick to toggle and run /partyglow"),
+                    (click, context) -> togglePartyGlow(context.player(), settings)));
+            widgets.add(new ActionWidget(15,
+                    context -> GuiUtil.createToggleItem(settings.isFriendGlowEnabled(), "§bFriend Glow",
+                            "§eClick to toggle and run /friendglow"),
+                    (click, context) -> toggleFriendGlow(context.player(), settings)));
+            widgets.add(new ActionWidget(16,
+                    context -> GuiUtil.createToggleItem(settings.isBalancePublic(), "§ePublic Balance",
+                            "§eClick to toggle and run /toggle balancepublic"),
+                    (click, context) -> toggleBalancePublic(context.player(), settings)));
+            widgets.add(new ActionWidget(21,
+                    context -> createVisibilityItem(settings.getPlayerVisibility(), lockedVisibility),
+                    (click, context) -> toggleVisibility(context.player(), settings, lockedVisibility)));
+            widgets.add(new ActionWidget(CHAT_GAMES_SLOT,
+                    context -> GuiUtil.createToggleItem(settings.isChatGamesEnabled(), "§bChat Games",
+                            "§eClick to toggle"),
+                    (click, context) -> toggleChatGames(context.player(), settings)));
+        }
+
+        return widgets;
+    }
+
+    private void renderWidgets(Inventory inventory, Player player, List<GuiWidget> widgets) {
+        GuiLayout layout = new GuiLayout(inventory);
+        GuiContext context = new GuiContext(player, inventory);
+        for (GuiWidget widget : widgets) {
+            widget.contribute(layout, context);
+        }
+    }
+
+    private boolean handleWidgetClick(InventoryClickEvent event, Player player) {
+        List<GuiWidget> widgets = widgetsByPlayer.get(player.getUniqueId());
+        if (widgets == null) {
+            return false;
+        }
+        int slot = event.getRawSlot();
+        if (slot < 0 || slot >= event.getView().getTopInventory().getSize()) {
+            return false;
+        }
+        GuiWidget widget = widgets.stream()
+                .filter(w -> w.handlesSlot(slot))
+                .findFirst()
+                .orElse(null);
+        if (widget == null) {
+            return false;
+        }
+        event.setCancelled(true);
+        widget.onClick(slot, event.getClick(), new GuiContext(player, event.getView().getTopInventory()));
+        return true;
+    }
+
+    private void cycleFilter(Player player) {
+        Filter next = switch (filters.getOrDefault(player.getUniqueId(), Filter.ALL)) {
+            case ALL -> Filter.SOCIAL;
+            case SOCIAL -> Filter.VISUAL;
+            case VISUAL -> Filter.COMBAT;
+            case COMBAT -> Filter.ALL;
+        };
+        filters.put(player.getUniqueId(), next);
+        openSettingsMenu(player);
+    }
+
+    private void toggleDamageChat(Player player, PlayerSettings settings) {
+        settings.toggleDmgChat();
+        boolean enabled = settings.isDmgChatEnabled();
+        ChatToggleManager.getInstance().setEnabled(player, enabled);
+        ToggleFeedbackUtil.sendToggle(player, "Damage chat", enabled);
+        openSettingsMenu(player);
+    }
+
+    private void toggleDamageNumbers(Player player, PlayerSettings settings) {
+        settings.toggleDmgNumber();
+        Bukkit.dispatchCommand(player, "dmgnumber");
+        openSettingsMenu(player);
+    }
+
+    private void toggleDropDetails(Player player, PlayerSettings settings) {
+        Bukkit.dispatchCommand(player, "toggle dropdetails");
+        openSettingsMenu(player);
+    }
+
+    private void toggleDropDetailsChat(Player player, PlayerSettings settings) {
+        Bukkit.dispatchCommand(player, "toggle dropdetailschat");
+        openSettingsMenu(player);
+    }
+
+    private void togglePartyGlow(Player player, PlayerSettings settings) {
+        settings.togglePartyGlow();
+        Bukkit.dispatchCommand(player, "partyglow");
+        openSettingsMenu(player);
+    }
+
+    private void toggleFriendGlow(Player player, PlayerSettings settings) {
+        settings.toggleFriendGlow();
+        Bukkit.dispatchCommand(player, "friendglow");
+        openSettingsMenu(player);
+    }
+
+    private void toggleBalancePublic(Player player, PlayerSettings settings) {
+        settings.toggleBalancePublic();
+        me.nakilex.levelplugin.Main main = me.nakilex.levelplugin.Main.getInstance();
+        if (main != null && main.getLeaderboardManager() != null) {
+            main.getLeaderboardManager().updateType(LeaderboardType.BALANCE);
+        }
+        openSettingsMenu(player);
+    }
+
+    private void toggleVisibility(Player player, PlayerSettings settings, boolean locked) {
+        if (locked) {
+            me.nakilex.levelplugin.utils.ChatMessageUtil.send(player,
+                    me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType.ERROR,
+                    "Player visibility is locked during Office Errands.");
             openSettingsMenu(player);
             return;
         }
-
-        if (slot == 10) {
-            settings.toggleDmgChat();
-            boolean enabled = settings.isDmgChatEnabled();
-            ChatToggleManager.getInstance().setEnabled(player, enabled);
-            ToggleFeedbackUtil.sendToggle(player, "Damage chat", enabled);
-            updateSettingItem(event.getInventory(), 10,
-                enabled, "§bDamage Chat", null);
-
-        } else if (slot == 11) {
-            settings.toggleDmgNumber();
-            Bukkit.dispatchCommand(player, "dmgnumber");
-            updateSettingItem(event.getInventory(), 11,
-                settings.isDmgNumberEnabled(), "§bDamage Numbers", "/dmgnumber");
-
-        } else if (slot == 12) {
-            Bukkit.dispatchCommand(player, "toggle dropdetails");
-            updateSettingItem(event.getInventory(), 12,
-                settings.isDropDetailsEnabled(), "§bDrop Details", "/toggle dropdetails");
-
-        } else if (slot == 13) {
-            // new drop-details-chat toggle
-            Bukkit.dispatchCommand(player, "toggle dropdetailschat");
-            updateSettingItem(event.getInventory(), 13,
-                settings.isDropDetailsChatEnabled(), "§bDrop Details Chat", "/toggle dropdetailschat");
-        } else if (slot == 14) {
-            settings.togglePartyGlow();
-            Bukkit.dispatchCommand(player, "partyglow");
-            updateSettingItem(event.getInventory(), 14,
-                settings.isPartyGlowEnabled(), "§bParty Glow", "/partyglow");
-        } else if (slot == 15) {
-            settings.toggleFriendGlow();
-            Bukkit.dispatchCommand(player, "friendglow");
-            updateSettingItem(event.getInventory(), 15,
-                settings.isFriendGlowEnabled(), "§bFriend Glow", "/friendglow");
-        } else if (slot == 16) {
-            settings.toggleBalancePublic();
-            updateSettingItem(event.getInventory(), 16,
-                settings.isBalancePublic(), "§ePublic Balance", "/toggle balancepublic");
-            me.nakilex.levelplugin.Main main = me.nakilex.levelplugin.Main.getInstance();
-            if (main != null && main.getLeaderboardManager() != null) {
-                main.getLeaderboardManager().updateType(LeaderboardType.BALANCE);
-            }
-        } else if (slot == 21) {
-            if (isOfficeErrandsLocked(player)) {
-                me.nakilex.levelplugin.utils.ChatMessageUtil.send(player,
-                        me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType.ERROR,
-                        "Player visibility is locked during Office Errands.");
-                updateVisibilityItem(event.getInventory(), settings.getPlayerVisibility(), true);
-                return;
-            }
-            settings.cyclePlayerVisibility();
-            updateVisibilityItem(event.getInventory(), settings.getPlayerVisibility(), false);
-            me.nakilex.levelplugin.Main.getInstance()
+        settings.cyclePlayerVisibility();
+        me.nakilex.levelplugin.Main.getInstance()
                 .getPlayerVisibilityManager().updatePlayer(player);
-        } else if (slot == 22) {
-            settings.toggleAutoSkipCutscenes();
-            updateSettingItem(event.getInventory(), 22,
-                settings.isAutoSkipCutscenes(), "§bAuto Skip Cutscenes", "");
-        } else if (slot == 23) {
-            Bukkit.dispatchCommand(player, "toggle songskip");
-            updateSettingItem(event.getInventory(), 23,
-                settings.isAutoSkipSongs(), "§bAuto Skip Songs", "/toggle songskip");
-        } else if (slot == 24) {
-            settings.toggleSkillPointReminder();
-            updateSettingItem(event.getInventory(), 24,
-                settings.isSkillPointReminderEnabled(), "§bSkill Point Reminder", "");
-        } else if (slot == 25) {
-            settings.toggleFullInventoryTitle();
-            updateSettingItem(event.getInventory(), 25,
-                settings.isFullInventoryTitleEnabled(), "§bFull Inventory Title", "");
-        } else if (slot == 26) {
-            settings.toggleTipsEnabled();
-            boolean enabled = settings.isTipsEnabled();
-            ToggleFeedbackUtil.sendToggle(player, "Tips", enabled);
-            updateSettingItem(event.getInventory(), 26,
-                enabled, "§bTips", "");
-        } else if (slot == CHAT_GAMES_SLOT) {
-            settings.toggleChatGamesEnabled();
-            boolean enabled = settings.isChatGamesEnabled();
-            ToggleFeedbackUtil.sendToggle(player, "Chat games", enabled);
-            updateSettingItem(event.getInventory(), CHAT_GAMES_SLOT,
-                enabled, "§bChat Games", "");
-        } else if (slot == 31) {
-            settings.toggleBoosterBossBar();
-            updateSettingItem(event.getInventory(), 31,
-                settings.isBoosterBossBarEnabled(), "§bBooster Boss Bar", "");
-            var boosterManager = Main.getInstance().getBoosterManager();
-            if (boosterManager != null) {
-                boosterManager.refreshBossBar(player);
-            }
-        } else if (slot == 30) {
-            settings.toggleQuestTrackingParticles();
-            updateSettingItem(event.getInventory(), 30,
-                settings.isQuestTrackingParticlesEnabled(), "§bQuest Path Particles", "");
-        } else if (slot == LOOT_FILTER_SLOT) {
-            if (event.isLeftClick() || event.isRightClick()) {
-                settings.cycleLootPickupRarity(event.isLeftClick());
-                event.getInventory().setItem(LOOT_FILTER_SLOT,
-                        createLootPickupFilterItem(settings));
-            }
-        } else if (slot == SPELL_INPUT_SLOT) {
-            settings.cycleSpellInputMode();
-            event.getInventory().setItem(SPELL_INPUT_SLOT, createSpellInputModeItem(settings));
-        } else if (slot == SPELL_KEYBINDS_SLOT) {
-            if (spellKeybindGUI != null) {
-                spellKeybindGUI.open(player);
-            }
+        openSettingsMenu(player);
+    }
+
+    private void toggleAutoSkipCutscenes(Player player, PlayerSettings settings) {
+        settings.toggleAutoSkipCutscenes();
+        openSettingsMenu(player);
+    }
+
+    private void toggleAutoSkipSongs(Player player, PlayerSettings settings) {
+        Bukkit.dispatchCommand(player, "toggle songskip");
+        openSettingsMenu(player);
+    }
+
+    private void toggleSkillPointReminder(Player player, PlayerSettings settings) {
+        settings.toggleSkillPointReminder();
+        openSettingsMenu(player);
+    }
+
+    private void toggleFullInventoryTitle(Player player, PlayerSettings settings) {
+        settings.toggleFullInventoryTitle();
+        openSettingsMenu(player);
+    }
+
+    private void toggleTips(Player player, PlayerSettings settings) {
+        settings.toggleTipsEnabled();
+        ToggleFeedbackUtil.sendToggle(player, "Tips", settings.isTipsEnabled());
+        openSettingsMenu(player);
+    }
+
+    private void toggleChatGames(Player player, PlayerSettings settings) {
+        settings.toggleChatGamesEnabled();
+        ToggleFeedbackUtil.sendToggle(player, "Chat games", settings.isChatGamesEnabled());
+        openSettingsMenu(player);
+    }
+
+    private void toggleBoosterBossBar(Player player, PlayerSettings settings) {
+        settings.toggleBoosterBossBar();
+        var boosterManager = Main.getInstance().getBoosterManager();
+        if (boosterManager != null) {
+            boosterManager.refreshBossBar(player);
         }
+        openSettingsMenu(player);
+    }
+
+    private void toggleQuestTrackingParticles(Player player, PlayerSettings settings) {
+        settings.toggleQuestTrackingParticles();
+        openSettingsMenu(player);
+    }
+
+    private void cycleLootFilter(Player player, PlayerSettings settings, boolean forward) {
+        settings.cycleLootPickupRarity(forward);
+        openSettingsMenu(player);
+    }
+
+    private void cycleSpellInputMode(Player player, PlayerSettings settings) {
+        settings.cycleSpellInputMode();
+        openSettingsMenu(player);
     }
 }
