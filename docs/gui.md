@@ -98,6 +98,7 @@ It also centralizes the input-slot rules in `SalvageGUI.isInputSlot`, which the 
 - **Mercenary Friendship**: uses `ActionWidget` for portrait, perk list, and back navigation.
 - **Mercenary Gifts**: uses `ActionWidget` for gift entries with shared click routing.
 - **Battle Pass**: uses `ActionWidget` for reward tiles, progress panes, and page navigation with centralized click routing.
+- **Subclass Select**: uses `ActionWidget` for class slots, filtering/sorting controls, and pagination.
 - **Profile Selection**: uses `ActionWidget` for profile slots plus edit/confirm controls.
 - **Quest Journal**: uses `ActionWidget` for quest entries, filters, and abandon confirmations.
 - **Settings**: uses `ActionWidget` for toggles, filters, and navigation.
