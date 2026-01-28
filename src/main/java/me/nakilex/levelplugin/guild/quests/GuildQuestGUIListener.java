@@ -8,6 +8,7 @@ import org.bukkit.event.inventory.InventoryDragEvent;
 
 import me.nakilex.levelplugin.guild.Guild;
 import me.nakilex.levelplugin.guild.GuildManager;
+import me.nakilex.levelplugin.utils.GuiUtil;
 
 /**
  * Simple click handler for the guild quest menu to prevent players from
@@ -18,7 +19,7 @@ public class GuildQuestGUIListener implements Listener {
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        if (!event.getView().getTitle().equals(GuildQuestGUI.TITLE)) return;
+        if (!GuiUtil.titleMatches(event.getView().getTitle(), GuildQuestGUI.TITLE)) return;
         if (event.getClickedInventory() != event.getView().getTopInventory()) return;
         event.setCancelled(true);
 
@@ -30,7 +31,7 @@ public class GuildQuestGUIListener implements Listener {
 
     @EventHandler
     public void onInventoryDrag(InventoryDragEvent event) {
-        if (!event.getView().getTitle().equals(GuildQuestGUI.TITLE)) return;
+        if (!GuiUtil.titleMatches(event.getView().getTitle(), GuildQuestGUI.TITLE)) return;
         event.setCancelled(true);
     }
 }

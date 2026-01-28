@@ -100,6 +100,7 @@ It also centralizes the input-slot rules in `SalvageGUI.isInputSlot`, which the 
 - **Battle Pass**: uses `ActionWidget` for reward tiles, progress panes, and page navigation with centralized click routing.
 - **Subclass Select**: uses `ActionWidget` for class slots, filtering/sorting controls, and pagination.
 - **Class Essences**: uses `ActionWidget` for essence slots, equipped indicators, and locked slot placeholders.
+- **Class Essence Upgrade**: uses `ActionWidget` for mode navigation and invest helper buttons.
 - **Merchant**: uses `ActionWidget` for offer slots with centralized purchase handling.
 - **Profile Selection**: uses `ActionWidget` for profile slots plus edit/confirm controls.
 - **Quest Journal**: uses `ActionWidget` for quest entries, filters, and abandon confirmations.

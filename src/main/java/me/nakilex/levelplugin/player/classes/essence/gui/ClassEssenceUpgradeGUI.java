@@ -10,6 +10,10 @@ import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.TextUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
+import me.nakilex.levelplugin.utils.gui.widgets.ActionWidget;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiContext;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiLayout;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiWidget;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -53,6 +57,7 @@ public class ClassEssenceUpgradeGUI implements Listener {
     private static final int INVEST_INFO_SLOT = 30;
 
     private static final Set<UUID> SWITCHING = new HashSet<>();
+    private static final Map<UUID, List<GuiWidget>> WIDGETS = new HashMap<>();
 
     private enum Mode {
         INVEST(INVEST_TITLE, "Invest"),
@@ -132,6 +137,9 @@ public class ClassEssenceUpgradeGUI implements Listener {
         gui.setItem(INVEST_ALL_SLOT, createInvestAllButton());
         gui.setItem(INVEST_EQUIPPED_SLOT, createInvestEquippedButton());
         gui.setItem(INVEST_INFO_SLOT, createInvestInfo());
+        List<GuiWidget> widgets = buildWidgets(Mode.INVEST, gui);
+        WIDGETS.put(player.getUniqueId(), widgets);
+        renderWidgets(gui, player, widgets);
         player.openInventory(gui);
     }
 
@@ -143,6 +151,9 @@ public class ClassEssenceUpgradeGUI implements Listener {
         setNavigationArrows(gui, Mode.STAR);
         gui.setItem(STAR_SLOT, target);
         updateStarButton(gui);
+        List<GuiWidget> widgets = buildWidgets(Mode.STAR, gui);
+        WIDGETS.put(player.getUniqueId(), widgets);
+        renderWidgets(gui, player, widgets);
         player.openInventory(gui);
     }
 
@@ -155,6 +166,9 @@ public class ClassEssenceUpgradeGUI implements Listener {
         gui.setItem(RESEAL_ESSENCE_SLOT, essence);
         gui.setItem(RESEAL_CHARM_SLOT, charms);
         updateResealButton(gui);
+        List<GuiWidget> widgets = buildWidgets(Mode.RESEAL, gui);
+        WIDGETS.put(player.getUniqueId(), widgets);
+        renderWidgets(gui, player, widgets);
         player.openInventory(gui);
     }
 
@@ -251,33 +265,11 @@ public class ClassEssenceUpgradeGUI implements Listener {
         e.setCancelled(true);
         Player player = (Player) e.getWhoClicked();
         Inventory inv = e.getInventory();
-        int slot = e.getRawSlot();
-
-        if (slot == LEFT_ARROW_SLOT || slot == RIGHT_ARROW_SLOT) {
-            Mode targetMode = slot == LEFT_ARROW_SLOT ? mode.previous() : mode.next();
-            ItemStack carry = null;
-            switch (mode) {
-                case INVEST -> {
-                    carry = inv.getItem(TARGET_SLOT);
-                    ItemStack sacrifice = inv.getItem(SACRIFICE_SLOT);
-                    if (sacrifice != null) player.getInventory().addItem(sacrifice);
-                }
-                case STAR -> carry = inv.getItem(STAR_SLOT);
-                case RESEAL -> {
-                    carry = inv.getItem(RESEAL_ESSENCE_SLOT);
-                    ItemStack charm = inv.getItem(RESEAL_CHARM_SLOT);
-                    if (charm != null) player.getInventory().addItem(charm);
-                }
-            }
-            SWITCHING.add(player.getUniqueId());
-            switch (targetMode) {
-                case INVEST -> openInvest(player, carry);
-                case STAR -> openStar(player, carry);
-                case RESEAL -> openReseal(player, carry, null);
-            }
+        if (handleWidgetClick(e, player)) {
             return;
         }
 
+        int slot = e.getRawSlot();
         switch (mode) {
             case INVEST -> handleInvestClick(player, inv, slot, e);
             case STAR -> handleStarClick(player, inv, slot, e);
@@ -684,6 +676,7 @@ public class ClassEssenceUpgradeGUI implements Listener {
         Inventory inv = e.getInventory();
         Mode mode = modeFromTitle(title);
         if (mode == null) return;
+        WIDGETS.remove(player.getUniqueId());
 
         switch (mode) {
             case INVEST -> {
@@ -702,6 +695,81 @@ public class ClassEssenceUpgradeGUI implements Listener {
                 if (essence != null) player.getInventory().addItem(essence);
                 if (charms != null) player.getInventory().addItem(charms);
             }
+        }
+    }
+
+    private static List<GuiWidget> buildWidgets(Mode mode, Inventory inventory) {
+        List<GuiWidget> widgets = new ArrayList<>();
+        widgets.add(new ActionWidget(LEFT_ARROW_SLOT,
+                context -> navItem(mode.previous(), true),
+                (click, context) -> handleNavigation(context.player(), inventory, mode.previous(), mode)));
+        widgets.add(new ActionWidget(RIGHT_ARROW_SLOT,
+                context -> navItem(mode.next(), false),
+                (click, context) -> handleNavigation(context.player(), inventory, mode.next(), mode)));
+
+        if (mode == Mode.INVEST) {
+            widgets.add(new ActionWidget(INVEST_ALL_SLOT,
+                    context -> createInvestAllButton(),
+                    (click, context) -> investAllDuplicates(context.player(), inventory)));
+            widgets.add(new ActionWidget(INVEST_EQUIPPED_SLOT,
+                    context -> createInvestEquippedButton(),
+                    (click, context) -> investIntoEquippedEssences(context.player(), inventory)));
+            widgets.add(new ActionWidget(INVEST_INFO_SLOT,
+                    context -> createInvestInfo(),
+                    null));
+        }
+        return widgets;
+    }
+
+    private static void handleNavigation(Player player, Inventory inv, Mode targetMode, Mode currentMode) {
+        ItemStack carry = null;
+        switch (currentMode) {
+            case INVEST -> {
+                carry = inv.getItem(TARGET_SLOT);
+                ItemStack sacrifice = inv.getItem(SACRIFICE_SLOT);
+                if (sacrifice != null) player.getInventory().addItem(sacrifice);
+            }
+            case STAR -> carry = inv.getItem(STAR_SLOT);
+            case RESEAL -> {
+                carry = inv.getItem(RESEAL_ESSENCE_SLOT);
+                ItemStack charm = inv.getItem(RESEAL_CHARM_SLOT);
+                if (charm != null) player.getInventory().addItem(charm);
+            }
+        }
+        SWITCHING.add(player.getUniqueId());
+        switch (targetMode) {
+            case INVEST -> openInvest(player, carry);
+            case STAR -> openStar(player, carry);
+            case RESEAL -> openReseal(player, carry, null);
+        }
+    }
+
+    private static boolean handleWidgetClick(InventoryClickEvent event, Player player) {
+        List<GuiWidget> widgets = WIDGETS.get(player.getUniqueId());
+        if (widgets == null) {
+            return false;
+        }
+        int slot = event.getRawSlot();
+        if (slot < 0 || slot >= event.getView().getTopInventory().getSize()) {
+            return false;
+        }
+        GuiWidget widget = widgets.stream()
+                .filter(w -> w.handlesSlot(slot))
+                .findFirst()
+                .orElse(null);
+        if (widget == null) {
+            return false;
+        }
+        event.setCancelled(true);
+        widget.onClick(slot, event.getClick(), new GuiContext(player, event.getView().getTopInventory()));
+        return true;
+    }
+
+    private static void renderWidgets(Inventory inventory, Player player, List<GuiWidget> widgets) {
+        GuiLayout layout = new GuiLayout(inventory);
+        GuiContext context = new GuiContext(player, inventory);
+        for (GuiWidget widget : widgets) {
+            widget.contribute(layout, context);
         }
     }
 }
