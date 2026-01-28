@@ -8,17 +8,22 @@ import me.nakilex.levelplugin.quests.data.QuestObjective;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.utils.ChatFormatter;
+import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.utils.TooltipUtil;
-import com.nexomc.nexo.api.NexoItems;
-import com.nexomc.nexo.items.ItemBuilder;
 import me.nakilex.levelplugin.npc.system.NpcApi;
 import me.nakilex.levelplugin.npc.system.NPC;
+import me.nakilex.levelplugin.utils.gui.GuiBuilder;
+import me.nakilex.levelplugin.utils.gui.widgets.ActionWidget;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiContext;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiLayout;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiWidget;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
+import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -72,6 +77,7 @@ public class QuestGUI {
     public static final int CONFIRM_YES_SLOT = 11;
     public static final int CONFIRM_NO_SLOT = 15;
     private static final Map<java.util.UUID, Inventory> CONFIRM_OPEN = new java.util.HashMap<>();
+    private static final Map<java.util.UUID, List<GuiWidget>> CONFIRM_WIDGETS = new java.util.HashMap<>();
     private static final Map<java.util.UUID, String> PENDING_QUEST = new java.util.HashMap<>();
 
     public static void openQuestGUI(Player player, QuestManager questManager) {
@@ -80,91 +86,33 @@ public class QuestGUI {
     }
 
     public static void openConfirmAbandon(Player player, Quest quest) {
-        Inventory inv = Bukkit.createInventory(null, CONFIRM_SIZE, CONFIRM_TITLE);
-        ItemStack filler = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
-        ItemMeta fm = filler.getItemMeta();
-        if (fm != null) { fm.setDisplayName(" "); filler.setItemMeta(fm); }
-        for (int i = 0; i < CONFIRM_SIZE; i++) inv.setItem(i, filler);
-        inv.setItem(CONFIRM_YES_SLOT, getNexoItem("check", ChatColor.GREEN + "Confirm"));
-        inv.setItem(CONFIRM_NO_SLOT, getNexoItem("cross", ChatColor.RED + "Cancel"));
+        Inventory inv = GuiBuilder.create(CONFIRM_SIZE, CONFIRM_TITLE)
+                .filler(Material.GRAY_STAINED_GLASS_PANE)
+                .build();
+        List<GuiWidget> widgets = buildConfirmWidgets(player, Main.getInstance().getQuestManager());
+        renderWidgets(inv, player, widgets);
+        CONFIRM_WIDGETS.put(player.getUniqueId(), widgets);
         CONFIRM_OPEN.put(player.getUniqueId(), inv);
         PENDING_QUEST.put(player.getUniqueId(), quest.getId());
         player.openInventory(inv);
     }
 
     static void openQuestGUI(Player player, QuestManager questManager, int page) {
-        if (STORY_ORDER_INDEX.isEmpty()) {
-            for (int i = 0; i < STORY_ORDER.size(); i++) {
-                STORY_ORDER_INDEX.put(STORY_ORDER.get(i), i);
-            }
-        }
+        ensureStoryOrderIndex();
         pageMap.put(player.getUniqueId(), page);
-        Inventory gui = Bukkit.createInventory(null, GUI_SIZE, GUI_TITLE);
+        Inventory gui = GuiBuilder.create(GUI_SIZE, GUI_TITLE)
+                .filler(Material.GRAY_STAINED_GLASS_PANE)
+                .fillEmptySlots(false)
+                .border()
+                .build();
 
-        ItemStack filler = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
-        ItemMeta fillerMeta = filler.getItemMeta();
-        if (fillerMeta != null) {
-            fillerMeta.setDisplayName(" ");
-            filler.setItemMeta(fillerMeta);
-        }
-
-        for (int i = 0; i < GUI_SIZE; i++) {
-            if (i < 9 || i >= 45 || i % 9 == 0 || i % 9 == 8) {
-                gui.setItem(i, filler);
-            }
-        }
-
-        List<Quest> list = new ArrayList<>(questManager.getQuests());
+        List<Quest> list = getFilteredSortedQuests(player, questManager);
         int filter = filterMap.getOrDefault(player.getUniqueId(), 0);
         int repeatFilter = repeatFilterMap.getOrDefault(player.getUniqueId(), 0);
         int sort = sortMap.getOrDefault(player.getUniqueId(), 3);
-
-        list.removeIf(q -> {
-            QuestState state = questManager.getQuestState(player, q);
-            return switch (filter) {
-                case 1 -> state != QuestState.AVAILABLE;
-                case 2 -> state != QuestState.IN_PROGRESS && state != QuestState.ACCEPTED;
-                case 3 -> state != QuestState.COMPLETED;
-                default -> false;
-            };
-        });
-        list.removeIf(q -> {
-            if (repeatFilter == 1) {
-                return q.getRepeatType() != me.nakilex.levelplugin.quests.data.QuestRepeatType.ONE_TIME;
-            }
-            if (repeatFilter == 2) {
-                return q.getRepeatType() != me.nakilex.levelplugin.quests.data.QuestRepeatType.DAILY;
-            }
-            return false;
-        });
-
-        Comparator<Quest> comp;
-        switch (sort) {
-            case 1 -> comp = Comparator.comparingInt((Quest q) -> questManager.getQuestState(player, q).ordinal());
-            case 2 -> comp = Comparator.comparingInt(Quest::getLevelRequirement)
-                    .thenComparing(Quest::getName, String.CASE_INSENSITIVE_ORDER);
-            case 3 -> comp = Comparator.comparingInt(
-                            (Quest q) -> STORY_ORDER_INDEX.getOrDefault(q.getId(), Integer.MAX_VALUE))
-                    .thenComparing(Quest::getName, String.CASE_INSENSITIVE_ORDER);
-            default -> comp = Comparator.comparing(Quest::getName, String.CASE_INSENSITIVE_ORDER);
-        }
-        list.sort(comp);
-
-        int start = page * ITEMS_PER_PAGE;
-        int slot = 0;
-        for (int i = start; i < list.size() && slot < ITEMS_PER_PAGE; i++) {
-            Quest quest = list.get(i);
-            QuestState state = questManager.getQuestState(player, quest);
-            ItemStack item = createQuestItem(player, quest, state, questManager.getProgress(player.getUniqueId(), quest.getId()), questManager);
-            gui.setItem(QUEST_SLOTS[slot++], item);
-        }
-
-        if (page > 0) gui.setItem(PREV_PAGE, getNexoItem("arrow_left", ChatColor.GREEN + "Previous"));
-        if (list.size() > (page + 1) * ITEMS_PER_PAGE) gui.setItem(NEXT_PAGE, getNexoItem("arrow_right", ChatColor.GREEN + "Next"));
-        gui.setItem(FILTER_SLOT, createFilterButton(filter));
-        gui.setItem(REPEAT_FILTER_SLOT, createRepeatFilterButton(repeatFilter));
-        gui.setItem(SORT_SLOT, createSortButton(sort));
-
+        int maxPage = Math.max(0, (list.size() - 1) / ITEMS_PER_PAGE);
+        List<GuiWidget> widgets = buildWidgets(player, questManager, list, page, maxPage, filter, repeatFilter, sort);
+        renderWidgets(gui, player, widgets);
         player.openInventory(gui);
     }
 
@@ -201,7 +149,7 @@ public class QuestGUI {
             }
         }
 
-        ItemStack item = getNexoItem(icon, name);
+        ItemStack item = GuiUtil.getNexoItem(icon, name);
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
             List<String> lore = new ArrayList<>();
@@ -349,30 +297,20 @@ public class QuestGUI {
         return coords;
     }
 
-    private static ItemStack getNexoItem(String id, String name) {
-        ItemBuilder b = NexoItems.itemFromId(id);
-        ItemStack it = b == null ? new ItemStack(Material.BARRIER) : b.build();
-        ItemMeta meta = it.getItemMeta();
-        if (meta != null) { meta.setDisplayName(name); it.setItemMeta(meta); }
-        return it;
-    }
-
     private static ItemStack createFilterButton(int mode) {
         ItemStack it = new ItemStack(Material.HOPPER);
         ItemMeta meta = it.getItemMeta();
         if (meta != null) {
             meta.setDisplayName(ChatColor.AQUA + "Filter");
             List<String> lore = new ArrayList<>();
-            lore.add(ChatColor.GRAY + "");
             lore.add(ChatColor.DARK_GRAY + "Filter the quests");
             lore.add(" ");
             String[] opts = {"Show All", "Available", "In Progress", "Completed"};
             for (int i = 0; i < opts.length; i++) {
-                lore.add(rangeLine(i, mode, opts[i]));
+                lore.add(TooltipUtil.selectionLine(i == mode, opts[i]));
             }
             lore.add(" ");
-            lore.add(ChatColor.WHITE + "Left-Click " + ChatColor.GRAY + "to go forward");
-            lore.add(ChatColor.WHITE + "Right-Click " + ChatColor.GRAY + "to go backward");
+            lore.addAll(TooltipUtil.clickInstructions("to go forward", "to go backward"));
             meta.setLore(lore);
             it.setItemMeta(meta);
         }
@@ -385,16 +323,14 @@ public class QuestGUI {
         if (meta != null) {
             meta.setDisplayName(ChatColor.AQUA + "Sorting");
             List<String> lore = new ArrayList<>();
-            lore.add(ChatColor.GRAY + "");
             lore.add(ChatColor.DARK_GRAY + "Sort the quests");
             lore.add(" ");
             String[] opts = {"A-Z", "By State", "By Level", "Story Order"};
             for (int i = 0; i < opts.length; i++) {
-                lore.add(rangeLine(i, mode, opts[i]));
+                lore.add(TooltipUtil.selectionLine(i == mode, opts[i]));
             }
             lore.add(" ");
-            lore.add(ChatColor.WHITE + "Left-Click " + ChatColor.GRAY + "to go forward");
-            lore.add(ChatColor.WHITE + "Right-Click " + ChatColor.GRAY + "to go backward");
+            lore.addAll(TooltipUtil.clickInstructions("to go forward", "to go backward"));
             meta.setLore(lore);
             it.setItemMeta(meta);
         }
@@ -407,26 +343,224 @@ public class QuestGUI {
         if (meta != null) {
             meta.setDisplayName(ChatColor.AQUA + "Repeat Filter");
             List<String> lore = new ArrayList<>();
-            lore.add(ChatColor.GRAY + "");
             lore.add(ChatColor.DARK_GRAY + "Filter by repeat type");
             lore.add(" ");
             String[] opts = {"Show All", "One-Time", "Daily"};
             for (int i = 0; i < opts.length; i++) {
-                lore.add(rangeLine(i, mode, opts[i]));
+                lore.add(TooltipUtil.selectionLine(i == mode, opts[i]));
             }
             lore.add(" ");
-            lore.add(ChatColor.WHITE + "Left-Click " + ChatColor.GRAY + "to go forward");
-            lore.add(ChatColor.WHITE + "Right-Click " + ChatColor.GRAY + "to go backward");
+            lore.addAll(TooltipUtil.clickInstructions("to go forward", "to go backward"));
             meta.setLore(lore);
             it.setItemMeta(meta);
         }
         return it;
     }
 
-    private static String rangeLine(int index, int current, String label) {
-        ChatColor color = index == current ? ChatColor.WHITE : ChatColor.GRAY;
-        ChatColor bullet = index == current ? ChatColor.GREEN : ChatColor.DARK_GRAY;
-        return bullet + "- " + color + label;
+    public static boolean handleWidgetClick(InventoryClickEvent event, Player player, QuestManager questManager) {
+        if (!event.getView().getTitle().equals(GUI_TITLE)) {
+            return false;
+        }
+        int slot = event.getRawSlot();
+        if (slot < 0 || slot >= event.getView().getTopInventory().getSize()) {
+            return false;
+        }
+        int page = pageMap.getOrDefault(player.getUniqueId(), 0);
+        List<Quest> list = getFilteredSortedQuests(player, questManager);
+        int maxPage = Math.max(0, (list.size() - 1) / ITEMS_PER_PAGE);
+        int filter = filterMap.getOrDefault(player.getUniqueId(), 0);
+        int repeatFilter = repeatFilterMap.getOrDefault(player.getUniqueId(), 0);
+        int sort = sortMap.getOrDefault(player.getUniqueId(), 3);
+        GuiWidget widget = buildWidgets(player, questManager, list, page, maxPage, filter, repeatFilter, sort).stream()
+                .filter(w -> w.handlesSlot(slot))
+                .findFirst()
+                .orElse(null);
+        if (widget == null) {
+            return false;
+        }
+        event.setCancelled(true);
+        widget.onClick(slot, event.getClick(), new GuiContext(player, event.getView().getTopInventory()));
+        return true;
+    }
+
+    public static boolean handleConfirmWidgetClick(InventoryClickEvent event, Player player) {
+        if (!event.getView().getTitle().equals(CONFIRM_TITLE)) {
+            return false;
+        }
+        int slot = event.getRawSlot();
+        if (slot < 0 || slot >= event.getView().getTopInventory().getSize()) {
+            return false;
+        }
+        List<GuiWidget> widgets = CONFIRM_WIDGETS.get(player.getUniqueId());
+        if (widgets == null) {
+            return false;
+        }
+        GuiWidget widget = widgets.stream()
+                .filter(w -> w.handlesSlot(slot))
+                .findFirst()
+                .orElse(null);
+        if (widget == null) {
+            return false;
+        }
+        event.setCancelled(true);
+        widget.onClick(slot, event.getClick(), new GuiContext(player, event.getView().getTopInventory()));
+        return true;
+    }
+
+    private static List<Quest> getFilteredSortedQuests(Player player, QuestManager questManager) {
+        ensureStoryOrderIndex();
+        List<Quest> list = new ArrayList<>(questManager.getQuests());
+        int filter = filterMap.getOrDefault(player.getUniqueId(), 0);
+        int repeatFilter = repeatFilterMap.getOrDefault(player.getUniqueId(), 0);
+        int sort = sortMap.getOrDefault(player.getUniqueId(), 3);
+
+        list.removeIf(q -> {
+            QuestState state = questManager.getQuestState(player, q);
+            return switch (filter) {
+                case 1 -> state != QuestState.AVAILABLE;
+                case 2 -> state != QuestState.IN_PROGRESS && state != QuestState.ACCEPTED;
+                case 3 -> state != QuestState.COMPLETED;
+                default -> false;
+            };
+        });
+        list.removeIf(q -> {
+            if (repeatFilter == 1) {
+                return q.getRepeatType() != me.nakilex.levelplugin.quests.data.QuestRepeatType.ONE_TIME;
+            }
+            if (repeatFilter == 2) {
+                return q.getRepeatType() != me.nakilex.levelplugin.quests.data.QuestRepeatType.DAILY;
+            }
+            return false;
+        });
+
+        Comparator<Quest> comp;
+        switch (sort) {
+            case 1 -> comp = Comparator.comparingInt((Quest q) -> questManager.getQuestState(player, q).ordinal());
+            case 2 -> comp = Comparator.comparingInt(Quest::getLevelRequirement)
+                    .thenComparing(Quest::getName, String.CASE_INSENSITIVE_ORDER);
+            case 3 -> comp = Comparator.comparingInt(
+                            (Quest q) -> STORY_ORDER_INDEX.getOrDefault(q.getId(), Integer.MAX_VALUE))
+                    .thenComparing(Quest::getName, String.CASE_INSENSITIVE_ORDER);
+            default -> comp = Comparator.comparing(Quest::getName, String.CASE_INSENSITIVE_ORDER);
+        }
+        list.sort(comp);
+        return list;
+    }
+
+    private static void ensureStoryOrderIndex() {
+        if (!STORY_ORDER_INDEX.isEmpty()) {
+            return;
+        }
+        for (int i = 0; i < STORY_ORDER.size(); i++) {
+            STORY_ORDER_INDEX.put(STORY_ORDER.get(i), i);
+        }
+    }
+
+    private static List<GuiWidget> buildWidgets(Player player, QuestManager questManager, List<Quest> list,
+                                                int page, int maxPage, int filter, int repeatFilter, int sort) {
+        List<GuiWidget> widgets = new ArrayList<>();
+        int start = page * ITEMS_PER_PAGE;
+        int slotIndex = 0;
+        for (int i = start; i < list.size() && slotIndex < ITEMS_PER_PAGE; i++) {
+            Quest quest = list.get(i);
+            int slot = QUEST_SLOTS[slotIndex++];
+            widgets.add(new ActionWidget(slot,
+                    context -> {
+                        QuestState state = questManager.getQuestState(context.player(), quest);
+                        return createQuestItem(context.player(), quest, state,
+                                questManager.getProgress(context.player().getUniqueId(), quest.getId()), questManager);
+                    },
+                    (click, context) -> handleQuestClick(context.player(), quest, questManager, click)));
+        }
+        if (page > 0) {
+            widgets.add(new ActionWidget(PREV_PAGE,
+                    context -> GuiUtil.getNexoItem("arrow_left", ChatColor.GREEN + "Previous"),
+                    (click, context) -> openQuestGUI(context.player(), questManager, Math.max(0, page - 1))));
+        }
+        if (list.size() > (page + 1) * ITEMS_PER_PAGE) {
+            widgets.add(new ActionWidget(NEXT_PAGE,
+                    context -> GuiUtil.getNexoItem("arrow_right", ChatColor.GREEN + "Next"),
+                    (click, context) -> openQuestGUI(context.player(), questManager, page + 1)));
+        }
+        widgets.add(new ActionWidget(FILTER_SLOT,
+                context -> createFilterButton(filter),
+                (click, context) -> {
+                    int mode = filterMap.getOrDefault(context.player().getUniqueId(), 0);
+                    mode = click.isRightClick() ? (mode + 3) % 4 : (mode + 1) % 4;
+                    filterMap.put(context.player().getUniqueId(), mode);
+                    openQuestGUI(context.player(), questManager, pageMap.getOrDefault(context.player().getUniqueId(), 0));
+                }));
+        widgets.add(new ActionWidget(REPEAT_FILTER_SLOT,
+                context -> createRepeatFilterButton(repeatFilter),
+                (click, context) -> {
+                    int mode = repeatFilterMap.getOrDefault(context.player().getUniqueId(), 0);
+                    mode = click.isRightClick() ? (mode + 2) % 3 : (mode + 1) % 3;
+                    repeatFilterMap.put(context.player().getUniqueId(), mode);
+                    openQuestGUI(context.player(), questManager, pageMap.getOrDefault(context.player().getUniqueId(), 0));
+                }));
+        widgets.add(new ActionWidget(SORT_SLOT,
+                context -> createSortButton(sort),
+                (click, context) -> {
+                    int mode = sortMap.getOrDefault(context.player().getUniqueId(), 0);
+                    mode = click.isRightClick() ? (mode + 3) % 4 : (mode + 1) % 4;
+                    sortMap.put(context.player().getUniqueId(), mode);
+                    openQuestGUI(context.player(), questManager, pageMap.getOrDefault(context.player().getUniqueId(), 0));
+                }));
+        return widgets;
+    }
+
+    private static void renderWidgets(Inventory inventory, Player player, List<GuiWidget> widgets) {
+        GuiLayout layout = new GuiLayout(inventory);
+        GuiContext context = new GuiContext(player, inventory);
+        for (GuiWidget widget : widgets) {
+            widget.contribute(layout, context);
+        }
+    }
+
+    private static List<GuiWidget> buildConfirmWidgets(Player player, QuestManager questManager) {
+        List<GuiWidget> widgets = new ArrayList<>();
+        widgets.add(new ActionWidget(CONFIRM_YES_SLOT,
+                context -> GuiUtil.getNexoItem("check", ChatColor.GREEN + "Confirm"),
+                (click, context) -> {
+                    String qId = getPendingQuest(context.player().getUniqueId());
+                    if (qId != null) {
+                        var quest = questManager.getQuest(qId);
+                        questManager.resetQuest(context.player().getUniqueId(), qId);
+                        context.player().sendMessage(ChatColor.RED + "Abandoned quest: " + ChatColor.WHITE + quest.getName());
+                    }
+                    clearPending(context.player().getUniqueId());
+                    openQuestGUI(context.player(), questManager, pageMap.getOrDefault(context.player().getUniqueId(), 0));
+                }));
+        widgets.add(new ActionWidget(CONFIRM_NO_SLOT,
+                context -> GuiUtil.getNexoItem("cross", ChatColor.RED + "Cancel"),
+                (click, context) -> {
+                    clearPending(context.player().getUniqueId());
+                    openQuestGUI(context.player(), questManager, pageMap.getOrDefault(context.player().getUniqueId(), 0));
+                }));
+        return widgets;
+    }
+
+    private static void handleQuestClick(Player player, Quest quest, QuestManager questManager,
+                                         org.bukkit.event.inventory.ClickType click) {
+        QuestState state = questManager.getQuestState(player, quest);
+        if (click.isRightClick()) {
+            if (state == QuestState.AVAILABLE) {
+                questManager.startQuest(player, quest.getId());
+                player.closeInventory();
+            } else if (state == QuestState.ACCEPTED || state == QuestState.IN_PROGRESS || state == QuestState.TURN_IN_READY) {
+                if (!quest.isMainQuest()) {
+                    Bukkit.getScheduler().runTask(Main.getInstance(),
+                            () -> openConfirmAbandon(player, quest));
+                }
+            }
+        } else if (click.isLeftClick()) {
+            if (state == QuestState.ACCEPTED || state == QuestState.IN_PROGRESS || state == QuestState.TURN_IN_READY
+                    || state == QuestState.AVAILABLE) {
+                questManager.setTrackedQuest(player, quest.getId());
+                player.sendMessage(ChatColor.GREEN + "Tracking quest: " + ChatColor.WHITE + quest.getName());
+                openQuestGUI(player, questManager, pageMap.getOrDefault(player.getUniqueId(), 0));
+            }
+        }
     }
 
     static Inventory getConfirmInventory(java.util.UUID id) {
@@ -443,6 +577,7 @@ public class QuestGUI {
 
     static void clearPending(java.util.UUID id) {
         CONFIRM_OPEN.remove(id);
+        CONFIRM_WIDGETS.remove(id);
         PENDING_QUEST.remove(id);
     }
 }

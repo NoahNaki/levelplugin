@@ -10,8 +10,14 @@ This document explains the shared widget framework and how Storage, Auction Hous
 - **GuiWidget**: interface for contributing items to a layout and handling clicks. (`GuiWidget`)
 - **SlotWidget**: base class for slot-based widgets with a single render + click handler. (`SlotWidget`)
 - **ActionWidget**: a reusable shared widget that takes a renderer and click handler, eliminating one-off inner classes. (`ActionWidget`)
+- **NexoButtonWidget**: a slot widget that renders a Nexo icon button with optional lore builder + click handler for common control buttons. (`NexoButtonWidget`)
 
 These are intentionally small and composable, so GUIs can define widgets without duplicating inventory setup logic.
+
+### Widget reuse guide
+- **ActionWidget**: use when the item rendering is dynamic (depends on player state, paging, filters) or needs a custom ItemStack builder.
+- **NexoButtonWidget**: use for standard GUI controls with Nexo icons (info, confirm, cancel, deposit/withdraw, navigation) so the lore and hidden attributes are consistent.
+- **SlotWidget**: use when you need a stateful widget class with shared helper methods or multiple slots handled by one widget.
 
 ## 2) Refactor pattern used
 
@@ -65,7 +71,40 @@ It also centralizes the input-slot rules in `SalvageGUI.isInputSlot`, which the 
 **Implementation reference:**
 - `SalvageGUI.buildWidgets`, `SalvageGUI.renderWidgets`, `SalvageGUI.isInputSlot`, `SalvageListener` input checks.
 
-## 6) UX styling guidance
+## 6) Refactor examples added
+
+- **Arena Queue**: uses `ActionWidget` for the queue buttons and shared rendering/click routing.
+- **Catacombs Entry**: uses `NexoButtonWidget` for the entry button with a lore builder.
+- **Dungeon List**: uses `ActionWidget` for filter toggles and shared click routing.
+- **Enchant**: uses `NexoButtonWidget` for info and an `ActionWidget` for the dynamic enchant action button.
+- **Codex Main**: uses `ActionWidget` for head-based category buttons and a `NexoButtonWidget` back control.
+- **Guild Settings**: uses `ActionWidget` for permission toggles and back navigation with shared click routing.
+- **Server Selector**: uses `ActionWidget` for server choices with consistent click handling.
+- **Codex Lists**: use `ActionWidget` for pagination and back controls with shared click routing.
+- **Fast Travel**: uses `ActionWidget` for pagination/sort/filter controls with shared routing.
+- **Friends**: uses `ActionWidget` for pagination and sorting controls with shared routing.
+- **Guild Applicants**: uses `ActionWidget` for pagination, search, sort, refresh, and back controls with shared routing.
+- **Guild List**: uses `ActionWidget` for guild entries with centralized apply handling.
+- **Guild Quests**: uses `ActionWidget` for quest slots with shared click routing for accept/track/reroll actions.
+- **Guild Vault**: uses `ActionWidget` for back navigation and the guild coin placeholder actions.
+- **Horse Menu**: uses `ActionWidget` for horse info + reroll buttons with consistent tooltips.
+- **Custom Mob Admin**: uses `ActionWidget` for main menu navigation and paged lists of mobs/spawners.
+- **Potion Merchant**: uses `ActionWidget` for potion offers with centralized purchase handling.
+- **Wandering Merchant**: uses `ActionWidget` for offer slots with shared click routing.
+- **Life Skills**: uses `ActionWidget` for skill entries and back navigation.
+- **Life Skill Rewards**: uses `ActionWidget` for reward slots, pagination, and catalog navigation.
+- **Expedition Rewards**: uses `ActionWidget` for the info slot while keeping loot slots interactive.
+- **Mercenary Expeditions**: uses `ActionWidget` for tab controls, party members, dungeon listings, and filter/search/sort controls.
+- **Mercenary Friendship**: uses `ActionWidget` for portrait, perk list, and back navigation.
+- **Mercenary Gifts**: uses `ActionWidget` for gift entries with shared click routing.
+- **Battle Pass**: uses `ActionWidget` for reward tiles, progress panes, and page navigation with centralized click routing.
+- **Subclass Select**: uses `ActionWidget` for class slots, filtering/sorting controls, and pagination.
+- **Profile Selection**: uses `ActionWidget` for profile slots plus edit/confirm controls.
+- **Quest Journal**: uses `ActionWidget` for quest entries, filters, and abandon confirmations.
+- **Settings**: uses `ActionWidget` for toggles, filters, and navigation.
+- **Fishing Catalog**: uses `ActionWidget` for catalog entries and paging controls.
+
+## 7) UX styling guidance
 
 Use existing utilities for consistent look-and-feel:
 - `GuiUtil` for Nexo items, filler panes, stat formatting, and borders.
@@ -74,7 +113,7 @@ Use existing utilities for consistent look-and-feel:
 
 Avoid hardcoding formatting when these utilities already exist.
 
-## 7) Suggested checklist for refactoring another GUI
+## 8) Suggested checklist for refactoring another GUI
 
 1. Identify menu slots that are fixed controls (pagination, filters, info, confirm/back, etc.).
 2. Create widgets for those slots in `buildWidgets()` (prefer `ActionWidget` for simple slots).
@@ -82,7 +121,7 @@ Avoid hardcoding formatting when these utilities already exist.
 4. Route click handling through `handleWidgetClick(...)` and keep specialized logic in helper methods.
 5. Protect widget slots from drag/move using `handlesSlot` checks.
 
-## 8) Example snippets (pseudo)
+## 9) Example snippets (pseudo)
 
 ```java
 private List<GuiWidget> buildWidgets() {
@@ -104,7 +143,10 @@ private List<GuiWidget> buildWidgets() {
 - `utils/gui/widgets/GuiWidget.java`
 - `utils/gui/widgets/SlotWidget.java`
 - `utils/gui/widgets/ActionWidget.java`
+- `utils/gui/widgets/NexoButtonWidget.java`
 - `storage/gui/StorageGUI.java`
 - `auctionhouse/AuctionHouseGUI.java`
 - `salvage/gui/SalvageGUI.java`
 - `salvage/listeners/SalvageListener.java`
+- `arena/gui/ArenaQueueGUI.java`
+- `catacombs/CatacombsGUI.java`

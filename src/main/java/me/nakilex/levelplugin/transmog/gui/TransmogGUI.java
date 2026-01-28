@@ -5,7 +5,12 @@ import me.nakilex.levelplugin.items.data.WeaponType;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.transmog.TransmogManager;
 import me.nakilex.levelplugin.utils.GuiUtil;
+import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
+import me.nakilex.levelplugin.utils.gui.widgets.ActionWidget;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiContext;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiLayout;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiWidget;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -40,6 +45,7 @@ public class TransmogGUI implements CommandExecutor, Listener {
     private final Map<UUID, Inventory> pending = new HashMap<>();
     /** players who opened the model browser */
     private final Set<UUID> browsing = new HashSet<>();
+    private final Map<UUID, List<GuiWidget>> widgetsByPlayer = new HashMap<>();
 
     public TransmogGUI(JavaPlugin plugin, TransmogManager manager, TransmogBrowser browser) {
         this.plugin = plugin;
@@ -54,9 +60,10 @@ public class TransmogGUI implements CommandExecutor, Listener {
         Inventory inv = GuiBuilder.create(27, TITLE)
                 .filler(Material.BLACK_STAINED_GLASS_PANE)
                 .border()
-                .setItem(MODEL_SLOT, GuiUtil.getNexoItem("book", ChatColor.YELLOW + "Select Skin"))
-                .setItem(CONFIRM_SLOT, GuiUtil.getNexoItem("check", ChatColor.GREEN + "Apply"))
                 .build();
+        List<GuiWidget> widgets = buildWidgets();
+        widgetsByPlayer.put(player.getUniqueId(), widgets);
+        renderWidgets(inv, player, widgets);
         inv.setItem(ITEM_SLOT, null);
         player.openInventory(inv);
     }
@@ -69,12 +76,12 @@ public class TransmogGUI implements CommandExecutor, Listener {
     }
 
     private void updateModelSlot(Inventory inv, String modelId) {
-        com.nexomc.nexo.items.ItemBuilder b = com.nexomc.nexo.api.NexoItems.itemFromId(modelId);
-        ItemStack it = b != null ? b.build() : new ItemStack(Material.BARRIER);
+        List<String> lore = new ArrayList<>();
+        lore.add(" ");
+        lore.addAll(TooltipUtil.clickInstructions("to change model", null));
+        ItemStack it = GuiUtil.getNexoItem(modelId, " ", lore);
         ItemMeta meta = it.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName(" ");
-            meta.setLore(java.util.List.of(ChatColor.GRAY + "Left-click to change model"));
             meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ENCHANTS);
             it.setItemMeta(meta);
         }
@@ -83,8 +90,8 @@ public class TransmogGUI implements CommandExecutor, Listener {
 
     @EventHandler
     public void onClick(InventoryClickEvent e) {
-        if (!e.getView().getTitle().equals(TITLE)) return;
-        Inventory inv = e.getInventory();
+        if (!GuiUtil.titleMatches(e.getView().getTitle(), TITLE)) return;
+        Inventory inv = e.getView().getTopInventory();
         int raw = e.getRawSlot();
         if (raw >= inv.getSize()) {
             return; // allow interaction with the player's inventory
@@ -100,48 +107,95 @@ public class TransmogGUI implements CommandExecutor, Listener {
             }
             return;
         }
-        e.setCancelled(true);
         Player p = (Player) e.getWhoClicked();
-        if (raw == MODEL_SLOT) {
-            ItemStack item = inv.getItem(ITEM_SLOT);
-            if (item == null) return;
-            WeaponType wType = WeaponType.matchType(item);
-            ArmorType aType = ArmorType.matchType(item);
-            if (wType == null && aType == null) return;
-            browsing.add(p.getUniqueId());
-            browser.openSelector(p, wType, aType, id -> {
-                UUID uid = p.getUniqueId();
-                Inventory back = pending.remove(uid);
-                if (back != null) {
-                    selectedModel.put(uid, id);
-                    updateModelSlot(back, id);
-                    browsing.remove(uid);
-                    Bukkit.getScheduler().runTask(plugin, () -> p.openInventory(back));
-                }
-            });
-        } else if (raw == CONFIRM_SLOT) {
-            ItemStack item = inv.getItem(ITEM_SLOT);
-            String id = selectedModel.get(p.getUniqueId());
-            if (item != null && id != null) {
-                WeaponType itemWeapon = WeaponType.matchType(item);
-                ArmorType itemArmor = ArmorType.matchType(item);
-                WeaponType modelWeapon = manager.getWeaponType(id);
-                ArmorType modelArmor = manager.getArmorType(id);
-                if ((itemWeapon != null && itemWeapon != modelWeapon) ||
-                        (itemArmor != null && itemArmor != modelArmor)) {
-                    p.sendMessage(ChatColor.RED + "That skin can't be applied to this item.");
-                    return;
-                }
-                ItemUtil.applyNexoModel(item, id);
-                selectedModel.remove(p.getUniqueId());
-                p.closeInventory();
-            }
+        if (handleWidgetClick(e, p)) {
+            return;
         }
+        e.setCancelled(true);
+    }
+
+    private List<GuiWidget> buildWidgets() {
+        List<GuiWidget> widgets = new ArrayList<>();
+        widgets.add(new ActionWidget(MODEL_SLOT,
+                context -> GuiUtil.getNexoItem("book", ChatColor.YELLOW + "Select Skin"),
+                (click, context) -> handleModelClick(context.player(), context.inventory())));
+        widgets.add(new ActionWidget(CONFIRM_SLOT,
+                context -> GuiUtil.getNexoItem("check", ChatColor.GREEN + "Apply"),
+                (click, context) -> handleConfirmClick(context.player(), context.inventory())));
+        return widgets;
+    }
+
+    private void renderWidgets(Inventory inventory, Player player, List<GuiWidget> widgets) {
+        GuiLayout layout = new GuiLayout(inventory);
+        GuiContext context = new GuiContext(player, inventory);
+        for (GuiWidget widget : widgets) {
+            widget.contribute(layout, context);
+        }
+    }
+
+    private boolean handleWidgetClick(InventoryClickEvent event, Player player) {
+        List<GuiWidget> widgets = widgetsByPlayer.get(player.getUniqueId());
+        if (widgets == null) {
+            return false;
+        }
+        int slot = event.getRawSlot();
+        if (slot < 0 || slot >= event.getView().getTopInventory().getSize()) {
+            return false;
+        }
+        GuiWidget widget = widgets.stream()
+                .filter(w -> w.handlesSlot(slot))
+                .findFirst()
+                .orElse(null);
+        if (widget == null) {
+            return false;
+        }
+        event.setCancelled(true);
+        widget.onClick(slot, event.getClick(), new GuiContext(player, event.getView().getTopInventory()));
+        return true;
+    }
+
+    private void handleModelClick(Player player, Inventory inv) {
+        ItemStack item = inv.getItem(ITEM_SLOT);
+        if (item == null) return;
+        WeaponType wType = WeaponType.matchType(item);
+        ArmorType aType = ArmorType.matchType(item);
+        if (wType == null && aType == null) return;
+        browsing.add(player.getUniqueId());
+        browser.openSelector(player, wType, aType, id -> {
+            UUID uid = player.getUniqueId();
+            Inventory back = pending.remove(uid);
+            if (back != null) {
+                selectedModel.put(uid, id);
+                updateModelSlot(back, id);
+                browsing.remove(uid);
+                Bukkit.getScheduler().runTask(plugin, () -> player.openInventory(back));
+            }
+        });
+    }
+
+    private void handleConfirmClick(Player player, Inventory inv) {
+        ItemStack item = inv.getItem(ITEM_SLOT);
+        String id = selectedModel.get(player.getUniqueId());
+        if (item == null || id == null) {
+            return;
+        }
+        WeaponType itemWeapon = WeaponType.matchType(item);
+        ArmorType itemArmor = ArmorType.matchType(item);
+        WeaponType modelWeapon = manager.getWeaponType(id);
+        ArmorType modelArmor = manager.getArmorType(id);
+        if ((itemWeapon != null && itemWeapon != modelWeapon) ||
+                (itemArmor != null && itemArmor != modelArmor)) {
+            player.sendMessage(ChatColor.RED + "That skin can't be applied to this item.");
+            return;
+        }
+        ItemUtil.applyNexoModel(item, id);
+        selectedModel.remove(player.getUniqueId());
+        player.closeInventory();
     }
 
     @EventHandler
     public void onClose(InventoryCloseEvent e) {
-        if (!e.getView().getTitle().equals(TITLE)) return;
+        if (!GuiUtil.titleMatches(e.getView().getTitle(), TITLE)) return;
         UUID id = e.getPlayer().getUniqueId();
         Inventory inv = e.getInventory();
         if (browsing.contains(id)) {
@@ -155,6 +209,7 @@ public class TransmogGUI implements CommandExecutor, Listener {
         selectedModel.remove(id);
         pending.remove(id);
         browsing.remove(id);
+        widgetsByPlayer.remove(id);
     }
 
     /** Return the pending item if the player closed the browser without choosing. */

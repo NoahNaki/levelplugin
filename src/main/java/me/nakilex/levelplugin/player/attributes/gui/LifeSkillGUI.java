@@ -6,9 +6,16 @@ import me.nakilex.levelplugin.player.mining.managers.MiningManager;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
+import me.nakilex.levelplugin.utils.gui.widgets.ActionWidget;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiContext;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiLayout;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiWidget;
+import me.nakilex.levelplugin.items.tools.ToolDiscipline;
+import me.nakilex.levelplugin.player.attributes.gui.StatsInventory;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -31,52 +38,93 @@ public final class LifeSkillGUI {
                 .filler(Material.GRAY_STAINED_GLASS_PANE)
                 .border();
 
+        Inventory inventory = builder.build();
+        renderWidgets(inventory, player);
+        return inventory;
+    }
+
+    public static boolean handleWidgetClick(InventoryClickEvent event, Player player) {
+        int slot = event.getRawSlot();
+        if (slot < 0 || slot >= event.getView().getTopInventory().getSize()) {
+            return false;
+        }
+        GuiWidget widget = buildWidgets(player).stream()
+                .filter(w -> w.handlesSlot(slot))
+                .findFirst()
+                .orElse(null);
+        if (widget == null) {
+            return false;
+        }
+        event.setCancelled(true);
+        widget.onClick(slot, event.getClick(), new GuiContext(player, event.getView().getTopInventory()));
+        return true;
+    }
+
+    private static void renderWidgets(Inventory inventory, Player player) {
+        GuiLayout layout = new GuiLayout(inventory);
+        GuiContext context = new GuiContext(player, inventory);
+        for (GuiWidget widget : buildWidgets(player)) {
+            widget.contribute(layout, context);
+        }
+    }
+
+    private static List<GuiWidget> buildWidgets(Player player) {
         MiningManager miningManager = MiningManager.getInstance();
         FarmingManager farmingManager = FarmingManager.getInstance();
         FishingManager fishingManager = FishingManager.getInstance();
+        List<GuiWidget> widgets = new ArrayList<>();
 
-        builder.setItem(20, createSkillItem(
-                "Mining",
-                Material.DIAMOND_PICKAXE,
-                miningManager.getLevel(player),
-                miningManager.getXP(player),
-                miningManager.getXpRequired(miningManager.getLevel(player)),
-                miningManager.getMaxLevel(),
-                TooltipUtil.bulletList(
-                        "Improve ore yields and access higher tier nodes.",
-                        "Tool bonuses scale with your mining level."
-                )
-        ));
+        widgets.add(new ActionWidget(20,
+                context -> createSkillItem(
+                        "Mining",
+                        Material.DIAMOND_PICKAXE,
+                        miningManager.getLevel(context.player()),
+                        miningManager.getXP(context.player()),
+                        miningManager.getXpRequired(miningManager.getLevel(context.player())),
+                        miningManager.getMaxLevel(),
+                        TooltipUtil.bulletList(
+                                "Improve ore yields and access higher tier nodes.",
+                                "Tool bonuses scale with your mining level."
+                        )
+                ),
+                (click, context) -> LifeSkillRewardsGUI.open(context.player(), ToolDiscipline.MINING)));
 
-        builder.setItem(22, createSkillItem(
-                "Fishing",
-                Material.FISHING_ROD,
-                fishingManager.getLevel(player),
-                fishingManager.getXP(player),
-                fishingManager.getXpRequired(fishingManager.getLevel(player)),
-                fishingManager.getMaxLevel(),
-                TooltipUtil.bulletList(
-                        "Reel in fish during the bite window.",
-                        "Higher fishing levels unlock rarer pools."
-                )
-        ));
+        widgets.add(new ActionWidget(22,
+                context -> createSkillItem(
+                        "Fishing",
+                        Material.FISHING_ROD,
+                        fishingManager.getLevel(context.player()),
+                        fishingManager.getXP(context.player()),
+                        fishingManager.getXpRequired(fishingManager.getLevel(context.player())),
+                        fishingManager.getMaxLevel(),
+                        TooltipUtil.bulletList(
+                                "Reel in fish during the bite window.",
+                                "Higher fishing levels unlock rarer pools."
+                        )
+                ),
+                (click, context) -> LifeSkillRewardsGUI.open(context.player(), ToolDiscipline.FISHING)));
 
-        builder.setItem(24, createSkillItem(
-                "Farming",
-                Material.GOLDEN_HOE,
-                farmingManager.getLevel(player),
-                farmingManager.getXP(player),
-                farmingManager.getXpRequired(farmingManager.getLevel(player)),
-                farmingManager.getMaxLevel(),
-                TooltipUtil.bulletList(
-                        "Harvest mature crops for the best XP and wheat.",
-                        "Higher farming levels improve harvest rewards."
-                )
-        ));
+        widgets.add(new ActionWidget(24,
+                context -> createSkillItem(
+                        "Farming",
+                        Material.GOLDEN_HOE,
+                        farmingManager.getLevel(context.player()),
+                        farmingManager.getXP(context.player()),
+                        farmingManager.getXpRequired(farmingManager.getLevel(context.player())),
+                        farmingManager.getMaxLevel(),
+                        TooltipUtil.bulletList(
+                                "Harvest mature crops for the best XP and wheat.",
+                                "Higher farming levels improve harvest rewards."
+                        )
+                ),
+                (click, context) -> LifeSkillRewardsGUI.open(context.player(), ToolDiscipline.FARMING)));
 
-        builder.setItem(40, createBackButton());
+        widgets.add(new ActionWidget(40,
+                context -> createBackButton(),
+                (click, context) -> context.player().openInventory(
+                        StatsInventory.getStatsMenu(context.player(), StatsInventory.getPage(context.player())))));
 
-        return builder.build();
+        return widgets;
     }
 
     private static ItemStack createSkillItem(String name, Material icon, int level, int xp, int required, int maxLevel,

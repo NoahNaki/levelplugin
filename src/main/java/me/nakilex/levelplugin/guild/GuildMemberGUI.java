@@ -9,6 +9,10 @@ import me.nakilex.levelplugin.guild.quests.GuildQuestGUI;
 import me.nakilex.levelplugin.guild.quests.GuildQuestManager;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
+import me.nakilex.levelplugin.utils.gui.widgets.ActionWidget;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiContext;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiLayout;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiWidget;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -63,6 +67,8 @@ public class GuildMemberGUI implements Listener {
     private final Set<UUID> awaitingMotd = new HashSet<>();
     private final Map<UUID, UUID> managingTargets = new HashMap<>();
     private final Map<UUID, PendingRoleChange> pendingRoleChanges = new HashMap<>();
+    private final List<GuiWidget> widgets;
+    private final ItemStack filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
 
     private static final String MANAGE_TITLE = "Manage Member";
     private static final int MANAGE_SIZE = 36;
@@ -87,6 +93,7 @@ public class GuildMemberGUI implements Listener {
         this.guildGUI = guildGUI;
         this.applicantsGUI = applicantsGUI;
         this.settingsGUI = settingsGUI;
+        this.widgets = buildWidgets();
         Bukkit.getPluginManager().registerEvents(this, Main.getInstance());
     }
 
@@ -107,77 +114,7 @@ public class GuildMemberGUI implements Listener {
                 .fillEmptySlots(false)
                 .border()
                 .build();
-
-        List<UUID> members = getFilteredMembers(player, g);
-        int sort = sortModes.getOrDefault(player.getUniqueId(), 0);
-
-        int start = page * ITEMS_PER_PAGE;
-        for (int i = start, slot = 0; i < members.size() && slot < ITEMS_PER_PAGE; i++) {
-            UUID id = members.get(i);
-            ItemStack head = createMemberItem(g, player, id);
-            inv.setItem(MEMBER_SLOTS[slot++], head);
-        }
-
-        if (page > 0) inv.setItem(PREV_SLOT, GuiUtil.getNexoItem("arrow_left", ChatColor.GREEN + "Previous"));
-        if (members.size() > (page + 1) * ITEMS_PER_PAGE) {
-            inv.setItem(NEXT_SLOT, GuiUtil.getNexoItem("arrow_right", ChatColor.GREEN + "Next"));
-        }
-        ItemStack infoItem = GuiUtil.getNexoItem("home", ChatColor.YELLOW + "Guild Info");
-        ItemMeta infoMeta = infoItem.getItemMeta();
-        if (infoMeta != null) {
-            List<String> lore = new ArrayList<>();
-            lore.add(ChatColor.GRAY + "Leader: " + ChatColor.WHITE + g.getLeaderName());
-            lore.add(ChatColor.GRAY + "Members: " + ChatColor.WHITE + g.getMembers().size() + ChatColor.GRAY + "/" + ChatColor.WHITE + g.getMaxMembers());
-            lore.add(ChatColor.GRAY + "Level: " + ChatColor.YELLOW + g.getLevel());
-            int need = g.getExpNeeded();
-            if (need > 0) {
-                int cur = g.getExp();
-                double progress = cur / (double) need;
-                double percent = Math.round(progress * 1000.0) / 10.0;
-                lore.add(ChatColor.GRAY + "Progress: " + ChatColor.YELLOW + percent + "%");
-                String bar = GuiUtil.createProgressBar(progress, 15);
-                String expColor = ChatFormatter.experienceColor();
-                lore.add(bar + " " + expColor + cur + ChatColor.GOLD + "/" + expColor + need + " " + ChatFormatter.experienceLabel());
-            }
-            infoMeta.setLore(lore);
-            infoItem.setItemMeta(infoMeta);
-        }
-        String term = searchTerms.getOrDefault(player.getUniqueId(), "");
-        inv.setItem(HOME_SLOT, infoItem);
-        inv.setItem(SEARCH_SLOT, createSearchButton(term));
-        inv.setItem(MOTD_SLOT, createMotdButton(g, player));
-        ItemStack camItem;
-        if (g.getLeader().equals(player.getUniqueId())) {
-            camItem = GuiUtil.getNexoItem("camera", ChatColor.YELLOW + "Applicants");
-            ItemMeta meta = camItem.getItemMeta();
-            if (meta != null) {
-                int count = g.getApplicants().size();
-                List<String> lore = new ArrayList<>();
-                if (count > 0) {
-                    lore.add(ChatColor.GRAY + "Pending: " + ChatColor.WHITE + count);
-                } else {
-                    lore.add(ChatColor.GRAY + "No pending applications");
-                }
-                meta.setLore(lore);
-                camItem.setItemMeta(meta);
-            }
-        } else {
-            camItem = GuiUtil.getNexoItem("camera", ChatColor.YELLOW + "Coming Soon");
-        }
-        inv.setItem(CAMERA_SLOT, camItem);
-        inv.setItem(SORT_SLOT, createSortButton(sort));
-        inv.setItem(INFO_SLOT, createInfoButton(g));
-        inv.setItem(REFRESH_SLOT, GuiUtil.getNexoItem("refresh", ChatColor.RED + "Refresh"));
-        ItemStack vaultItem = new ItemStack(Material.CHEST);
-        ItemMeta vMeta = vaultItem.getItemMeta();
-        if (vMeta != null) {
-            vMeta.setDisplayName(ChatColor.GOLD + "Guild Storage");
-            vaultItem.setItemMeta(vMeta);
-        }
-        inv.setItem(VAULT_SLOT, vaultItem);
-        inv.setItem(SETTINGS_SLOT, GuiUtil.getNexoItem("settings", ChatColor.AQUA + "Settings"));
-        inv.setItem(QUESTS_SLOT, GuiUtil.getNexoItem("pack1_scroll2", ChatColor.LIGHT_PURPLE + "Guild Quests"));
-
+        renderWidgets(inv, player);
         player.openInventory(inv);
     }
 
@@ -231,7 +168,211 @@ public class GuildMemberGUI implements Listener {
         return HeadUtil.createPlayerHead(op, ChatColor.YELLOW + op.getName(), lore);
     }
 
-    private void handleMemberRoleClick(InventoryClickEvent e, Player viewer, Guild g, int memberSlotIndex) {
+    private List<GuiWidget> buildWidgets() {
+        List<GuiWidget> widgetList = new ArrayList<>();
+        for (int i = 0; i < MEMBER_SLOTS.length; i++) {
+            final int index = i;
+            widgetList.add(new ActionWidget(MEMBER_SLOTS[i],
+                    context -> createMemberItemForSlot(context, index),
+                    (click, context) -> {
+                        Guild guild = manager.getGuild(context.player().getUniqueId());
+                        if (guild != null) {
+                            handleMemberRoleClick(context.player(), guild, index);
+                        }
+                    }));
+        }
+        widgetList.add(new ActionWidget(PREV_SLOT, this::createPrevItem,
+                (click, context) -> {
+                    int page = pageMap.getOrDefault(context.player().getUniqueId(), 0);
+                    open(context.player(), Math.max(0, page - 1));
+                }));
+        widgetList.add(new ActionWidget(NEXT_SLOT, this::createNextItem,
+                (click, context) -> {
+                    int page = pageMap.getOrDefault(context.player().getUniqueId(), 0);
+                    open(context.player(), page + 1);
+                }));
+        widgetList.add(new ActionWidget(HOME_SLOT, this::createHomeInfoItem, null));
+        widgetList.add(new ActionWidget(SEARCH_SLOT,
+                context -> createSearchButton(searchTerms.getOrDefault(context.player().getUniqueId(), "")),
+                (click, context) -> {
+                    if (click == ClickType.RIGHT) {
+                        searchTerms.remove(context.player().getUniqueId());
+                        open(context.player(), pageMap.getOrDefault(context.player().getUniqueId(), 0));
+                    } else {
+                        awaitingSearch.add(context.player().getUniqueId());
+                        context.player().closeInventory();
+                        context.player().sendMessage(ChatColor.YELLOW + "Enter search term or 'cancel'.");
+                    }
+                }));
+        widgetList.add(new ActionWidget(MOTD_SLOT,
+                context -> {
+                    Guild guild = manager.getGuild(context.player().getUniqueId());
+                    return guild != null ? createMotdButton(guild, context.player()) : filler.clone();
+                },
+                (click, context) -> {
+                    if (manager.hasPermission(context.player().getUniqueId(), GuildPermission.CHANGE_MOTD)) {
+                        awaitingMotd.add(context.player().getUniqueId());
+                        context.player().closeInventory();
+                        context.player().sendMessage(ChatColor.YELLOW + "Enter new MOTD or 'cancel'.");
+                    }
+                }));
+        widgetList.add(new ActionWidget(CAMERA_SLOT, this::createApplicantsButton,
+                (click, context) -> {
+                    if (manager.hasPermission(context.player().getUniqueId(), GuildPermission.ACCEPT_APPLICANTS)) {
+                        applicantsGUI.open(context.player());
+                    }
+                }));
+        widgetList.add(new ActionWidget(SORT_SLOT,
+                context -> createSortButton(sortModes.getOrDefault(context.player().getUniqueId(), 0)),
+                (click, context) -> {
+                    int mode = sortModes.getOrDefault(context.player().getUniqueId(), 0);
+                    mode = click == ClickType.RIGHT ? (mode + 2) % 3 : (mode + 1) % 3;
+                    sortModes.put(context.player().getUniqueId(), mode);
+                    open(context.player(), pageMap.getOrDefault(context.player().getUniqueId(), 0));
+                }));
+        widgetList.add(new ActionWidget(INFO_SLOT, context -> {
+            Guild guild = manager.getGuild(context.player().getUniqueId());
+            return guild != null ? createInfoButton(guild) : filler.clone();
+        }, null));
+        widgetList.add(new ActionWidget(REFRESH_SLOT,
+                context -> GuiUtil.getNexoItem("refresh", ChatColor.RED + "Refresh"),
+                (click, context) -> open(context.player(), pageMap.getOrDefault(context.player().getUniqueId(), 0))));
+        widgetList.add(new ActionWidget(VAULT_SLOT,
+                context -> GuiUtil.createGuiItem(Material.CHEST, ChatColor.GOLD + "Guild Storage", List.of()),
+                (click, context) -> {
+                    Guild guild = manager.getGuild(context.player().getUniqueId());
+                    if (manager.hasPermission(context.player().getUniqueId(), GuildPermission.VAULT_ACCESS) && guild != null) {
+                        Main.getInstance().getGuildVaultManager().getVault(guild.getName()).open(context.player());
+                    }
+                }));
+        widgetList.add(new ActionWidget(SETTINGS_SLOT,
+                context -> GuiUtil.getNexoItem("settings", ChatColor.AQUA + "Settings"),
+                (click, context) -> {
+                    Guild guild = manager.getGuild(context.player().getUniqueId());
+                    if (guild != null && guild.getRole(context.player().getUniqueId()) == GuildRole.LEADER) {
+                        settingsGUI.open(context.player());
+                    }
+                }));
+        widgetList.add(new ActionWidget(QUESTS_SLOT,
+                context -> GuiUtil.getNexoItem("pack1_scroll2", ChatColor.LIGHT_PURPLE + "Guild Quests"),
+                (click, context) -> {
+                    Guild guild = manager.getGuild(context.player().getUniqueId());
+                    if (guild != null) {
+                        GuildQuestManager.getInstance().ensureQuests(guild);
+                        context.player().openInventory(GuildQuestGUI.create(context.player(), guild.getQuests()));
+                    }
+                }));
+        return widgetList;
+    }
+
+    private void renderWidgets(Inventory inventory, Player player) {
+        GuiLayout layout = new GuiLayout(inventory);
+        GuiContext context = new GuiContext(player, inventory);
+        for (GuiWidget widget : widgets) {
+            widget.contribute(layout, context);
+        }
+    }
+
+    private void handleWidgetClick(InventoryClickEvent event, Player player) {
+        int slot = event.getRawSlot();
+        GuiWidget widget = widgets.stream()
+                .filter(w -> w.handlesSlot(slot))
+                .findFirst()
+                .orElse(null);
+        if (widget == null) {
+            return;
+        }
+        widget.onClick(slot, event.getClick(), new GuiContext(player, event.getView().getTopInventory()));
+    }
+
+    private ItemStack createMemberItemForSlot(GuiContext context, int slotIndex) {
+        Guild guild = manager.getGuild(context.player().getUniqueId());
+        if (guild == null) {
+            return filler.clone();
+        }
+        List<UUID> members = getFilteredMembers(context.player(), guild);
+        int page = pageMap.getOrDefault(context.player().getUniqueId(), 0);
+        int idx = page * ITEMS_PER_PAGE + slotIndex;
+        if (idx >= members.size()) {
+            return filler.clone();
+        }
+        return createMemberItem(guild, context.player(), members.get(idx));
+    }
+
+    private ItemStack createPrevItem(GuiContext context) {
+        int page = pageMap.getOrDefault(context.player().getUniqueId(), 0);
+        if (page > 0) {
+            return GuiUtil.getNexoItem("arrow_left", ChatColor.GREEN + "Previous");
+        }
+        return filler.clone();
+    }
+
+    private ItemStack createNextItem(GuiContext context) {
+        Guild guild = manager.getGuild(context.player().getUniqueId());
+        if (guild == null) {
+            return filler.clone();
+        }
+        List<UUID> members = getFilteredMembers(context.player(), guild);
+        int page = pageMap.getOrDefault(context.player().getUniqueId(), 0);
+        if (members.size() > (page + 1) * ITEMS_PER_PAGE) {
+            return GuiUtil.getNexoItem("arrow_right", ChatColor.GREEN + "Next");
+        }
+        return filler.clone();
+    }
+
+    private ItemStack createHomeInfoItem(GuiContext context) {
+        Guild guild = manager.getGuild(context.player().getUniqueId());
+        if (guild == null) {
+            return filler.clone();
+        }
+        ItemStack infoItem = GuiUtil.getNexoItem("home", ChatColor.YELLOW + "Guild Info");
+        ItemMeta infoMeta = infoItem.getItemMeta();
+        if (infoMeta != null) {
+            List<String> lore = new ArrayList<>();
+            lore.add(ChatColor.GRAY + "Leader: " + ChatColor.WHITE + guild.getLeaderName());
+            lore.add(ChatColor.GRAY + "Members: " + ChatColor.WHITE + guild.getMembers().size() + ChatColor.GRAY + "/" + ChatColor.WHITE + guild.getMaxMembers());
+            lore.add(ChatColor.GRAY + "Level: " + ChatColor.YELLOW + guild.getLevel());
+            int need = guild.getExpNeeded();
+            if (need > 0) {
+                int cur = guild.getExp();
+                double progress = cur / (double) need;
+                double percent = Math.round(progress * 1000.0) / 10.0;
+                lore.add(ChatColor.GRAY + "Progress: " + ChatColor.YELLOW + percent + "%");
+                String bar = GuiUtil.createProgressBar(progress, 15);
+                String expColor = ChatFormatter.experienceColor();
+                lore.add(bar + " " + expColor + cur + ChatColor.GOLD + "/" + expColor + need + " " + ChatFormatter.experienceLabel());
+            }
+            infoMeta.setLore(lore);
+            infoItem.setItemMeta(infoMeta);
+        }
+        return infoItem;
+    }
+
+    private ItemStack createApplicantsButton(GuiContext context) {
+        Guild guild = manager.getGuild(context.player().getUniqueId());
+        if (guild == null) {
+            return filler.clone();
+        }
+        if (guild.getLeader().equals(context.player().getUniqueId())) {
+            ItemStack camItem = GuiUtil.getNexoItem("camera", ChatColor.YELLOW + "Applicants");
+            ItemMeta meta = camItem.getItemMeta();
+            if (meta != null) {
+                int count = guild.getApplicants().size();
+                List<String> lore = new ArrayList<>();
+                if (count > 0) {
+                    lore.add(ChatColor.GRAY + "Pending: " + ChatColor.WHITE + count);
+                } else {
+                    lore.add(ChatColor.GRAY + "No pending applications");
+                }
+                meta.setLore(lore);
+                camItem.setItemMeta(meta);
+            }
+            return camItem;
+        }
+        return GuiUtil.getNexoItem("camera", ChatColor.YELLOW + "Coming Soon");
+    }
+
+    private void handleMemberRoleClick(Player viewer, Guild g, int memberSlotIndex) {
         List<UUID> members = getFilteredMembers(viewer, g);
         int page = pageMap.getOrDefault(viewer.getUniqueId(), 0);
         int idx = page * ITEMS_PER_PAGE + memberSlotIndex;
@@ -417,84 +558,7 @@ public class GuildMemberGUI implements Listener {
         Player player = (Player) e.getWhoClicked();
         if (title.equals(ChatColor.stripColor(TITLE))) {
             e.setCancelled(true);
-            Guild g = manager.getGuild(player.getUniqueId());
-            int slot = e.getRawSlot();
-            if (g != null) {
-                for (int i = 0; i < MEMBER_SLOTS.length; i++) {
-                    if (slot == MEMBER_SLOTS[i]) {
-                        handleMemberRoleClick(e, player, g, i);
-                        return;
-                    }
-                }
-            }
-            if (slot == PREV_SLOT) {
-                int p = pageMap.getOrDefault(player.getUniqueId(), 0);
-                open(player, Math.max(0, p - 1));
-                return;
-            }
-            if (slot == NEXT_SLOT) {
-                int p = pageMap.getOrDefault(player.getUniqueId(), 0);
-                open(player, p + 1);
-                return;
-            }
-            if (slot == CAMERA_SLOT) {
-                if (manager.hasPermission(player.getUniqueId(), GuildPermission.ACCEPT_APPLICANTS)) {
-                    applicantsGUI.open(player);
-                }
-                return;
-            }
-            if (slot == SEARCH_SLOT) {
-                if (e.getClick() == ClickType.RIGHT) {
-                    searchTerms.remove(player.getUniqueId());
-                    open(player, pageMap.getOrDefault(player.getUniqueId(), 0));
-                } else {
-                    awaitingSearch.add(player.getUniqueId());
-                    player.closeInventory();
-                    player.sendMessage(ChatColor.YELLOW + "Enter search term or 'cancel'.");
-                }
-                return;
-            }
-            if (slot == MOTD_SLOT && manager.hasPermission(player.getUniqueId(), GuildPermission.CHANGE_MOTD)) {
-                awaitingMotd.add(player.getUniqueId());
-                player.closeInventory();
-                player.sendMessage(ChatColor.YELLOW + "Enter new MOTD or 'cancel'.");
-                return;
-            }
-            if (slot == SORT_SLOT) {
-                int m = sortModes.getOrDefault(player.getUniqueId(), 0);
-                if (e.getClick() == ClickType.RIGHT) {
-                    m = (m + 3 - 1) % 3;
-                } else {
-                    m = (m + 1) % 3;
-                }
-                sortModes.put(player.getUniqueId(), m);
-                open(player, pageMap.getOrDefault(player.getUniqueId(), 0));
-                return;
-            }
-            if (slot == VAULT_SLOT) {
-                if (manager.hasPermission(player.getUniqueId(), GuildPermission.VAULT_ACCESS)) {
-                    if (g != null) {
-                        me.nakilex.levelplugin.Main.getInstance().getGuildVaultManager().getVault(g.getName()).open(player);
-                    }
-                }
-                return;
-            }
-            if (slot == SETTINGS_SLOT) {
-                if (g != null && g.getRole(player.getUniqueId()) == GuildRole.LEADER) {
-                    settingsGUI.open(player);
-                }
-                return;
-            }
-            if (slot == QUESTS_SLOT) {
-                if (g != null) {
-                    GuildQuestManager.getInstance().ensureQuests(g);
-                    player.openInventory(GuildQuestGUI.create(player, g.getQuests()));
-                }
-                return;
-            }
-            if (slot == REFRESH_SLOT) {
-                open(player, pageMap.getOrDefault(player.getUniqueId(), 0));
-            }
+            handleWidgetClick(e, player);
             return;
         }
 

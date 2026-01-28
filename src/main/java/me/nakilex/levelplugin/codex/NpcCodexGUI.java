@@ -7,10 +7,13 @@ import me.nakilex.levelplugin.utils.HeadUtil;
 import me.nakilex.levelplugin.utils.NpcNameUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
+import me.nakilex.levelplugin.utils.gui.widgets.ActionWidget;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiContext;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiLayout;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiWidget;
 import me.nakilex.levelplugin.npc.system.NpcApi;
 import me.nakilex.levelplugin.npc.system.NPC;
 import me.nakilex.levelplugin.npc.system.trait.SkinTrait;
-import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -49,6 +52,7 @@ public class NpcCodexGUI implements Listener {
     private final MercenaryAffinityManager affinityManager;
     private final MercenaryFriendshipGUI friendshipGUI;
     private final Map<UUID, Integer> pageMap = new HashMap<>();
+    private final List<GuiWidget> widgets;
 
     public NpcCodexGUI(Plugin plugin,
                        CodexManager manager,
@@ -60,6 +64,7 @@ public class NpcCodexGUI implements Listener {
         this.mainGui = mainGui;
         this.affinityManager = affinityManager;
         this.friendshipGUI = friendshipGUI;
+        this.widgets = buildWidgets();
     }
 
     public void setMainGui(CodexMainGUI gui) { this.mainGui = gui; }
@@ -90,9 +95,7 @@ public class NpcCodexGUI implements Listener {
                     createNpcIcon(id, discovered, npcs.get(i)));
         }
 
-        if (page > 0) inv.setItem(PREV_SLOT, GuiUtil.getNexoItem("arrow_left", ChatColor.GREEN + "Previous"));
-        if (npcs.size() > (page + 1) * ITEMS_PER_PAGE) inv.setItem(NEXT_SLOT, GuiUtil.getNexoItem("arrow_right", ChatColor.GREEN + "Next"));
-        inv.setItem(BACK_SLOT, GuiUtil.getNexoItem("arrow_left", ChatColor.YELLOW + "Back"));
+        renderWidgets(inv, player);
 
         player.openInventory(inv);
     }
@@ -146,24 +149,12 @@ public class NpcCodexGUI implements Listener {
 
     @EventHandler
     public void onClick(InventoryClickEvent e) {
-        if (!e.getView().getTitle().equals(TITLE)) return;
-        e.setCancelled(true);
+        if (!GuiUtil.titleMatches(e.getView().getTitle(), TITLE)) return;
         if (!(e.getWhoClicked() instanceof Player p)) return;
-
-        int slot = e.getRawSlot();
-        if (slot == PREV_SLOT) {
-            int page = pageMap.getOrDefault(p.getUniqueId(), 0);
-            open(p, Math.max(0, page - 1));
+        if (handleWidgetClick(e, p)) {
             return;
         }
-        if (slot == NEXT_SLOT) {
-            int page = pageMap.getOrDefault(p.getUniqueId(), 0);
-            open(p, page + 1);
-            return;
-        }
-        if (slot == BACK_SLOT && mainGui != null) {
-            mainGui.open(p);
-        }
+        e.setCancelled(true);
 
         ItemStack clicked = e.getCurrentItem();
         if (clicked == null || clicked.getType() == Material.AIR) {
@@ -190,6 +181,72 @@ public class NpcCodexGUI implements Listener {
         }
         affinityManager.loadPlayer(p.getUniqueId());
         friendshipGUI.openWithBack(p, npcId, npcName, viewer -> open(viewer));
+    }
+
+    private List<GuiWidget> buildWidgets() {
+        List<GuiWidget> widgetList = new java.util.ArrayList<>();
+        widgetList.add(new ActionWidget(PREV_SLOT,
+                context -> createPrevItem(context.player()),
+                (click, context) -> handlePrev(context.player())));
+        widgetList.add(new ActionWidget(NEXT_SLOT,
+                context -> createNextItem(context.player()),
+                (click, context) -> handleNext(context.player())));
+        widgetList.add(new ActionWidget(BACK_SLOT,
+                context -> GuiUtil.getNexoItem("arrow_left", ChatColor.YELLOW + "Back"),
+                (click, context) -> {
+                    if (mainGui != null) {
+                        mainGui.open(context.player());
+                    }
+                }));
+        return widgetList;
+    }
+
+    private void renderWidgets(Inventory inventory, Player player) {
+        GuiLayout layout = new GuiLayout(inventory);
+        GuiContext context = new GuiContext(player, inventory);
+        for (GuiWidget widget : widgets) {
+            widget.contribute(layout, context);
+        }
+    }
+
+    private boolean handleWidgetClick(InventoryClickEvent event, Player player) {
+        int slot = event.getRawSlot();
+        if (slot < 0 || slot >= event.getView().getTopInventory().getSize()) {
+            return false;
+        }
+        GuiWidget widget = widgets.stream()
+                .filter(w -> w.handlesSlot(slot))
+                .findFirst()
+                .orElse(null);
+        if (widget == null) {
+            return false;
+        }
+        event.setCancelled(true);
+        widget.onClick(slot, event.getClick(), new GuiContext(player, event.getView().getTopInventory()));
+        return true;
+    }
+
+    private ItemStack createPrevItem(Player player) {
+        int page = pageMap.getOrDefault(player.getUniqueId(), 0);
+        return page > 0 ? GuiUtil.getNexoItem("arrow_left", ChatColor.GREEN + "Previous") : null;
+    }
+
+    private ItemStack createNextItem(Player player) {
+        int page = pageMap.getOrDefault(player.getUniqueId(), 0);
+        int total = manager.getAllNpcs().size();
+        return total > (page + 1) * ITEMS_PER_PAGE
+                ? GuiUtil.getNexoItem("arrow_right", ChatColor.GREEN + "Next")
+                : null;
+    }
+
+    private void handlePrev(Player player) {
+        int page = pageMap.getOrDefault(player.getUniqueId(), 0);
+        open(player, Math.max(0, page - 1));
+    }
+
+    private void handleNext(Player player) {
+        int page = pageMap.getOrDefault(player.getUniqueId(), 0);
+        open(player, page + 1);
     }
 
     private boolean isMercenary(int npcId) {

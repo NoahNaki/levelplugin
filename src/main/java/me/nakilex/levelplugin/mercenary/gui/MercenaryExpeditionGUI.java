@@ -13,6 +13,10 @@ import me.nakilex.levelplugin.utils.HeadUtil;
 import me.nakilex.levelplugin.utils.NumberUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
+import me.nakilex.levelplugin.utils.gui.widgets.ActionWidget;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiContext;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiLayout;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiWidget;
 import me.nakilex.levelplugin.npc.system.NpcApi;
 import me.nakilex.levelplugin.npc.system.NPC;
 import me.nakilex.levelplugin.npc.system.trait.SkinTrait;
@@ -28,9 +32,6 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
-import org.bukkit.persistence.PersistentDataContainer;
-import org.bukkit.persistence.PersistentDataType;
-import org.bukkit.NamespacedKey;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -73,7 +74,6 @@ public class MercenaryExpeditionGUI implements Listener {
     private final MercenaryExpeditionManager expeditionManager;
     private final MercenaryFriendshipGUI friendshipGUI;
     private final MercenaryExpeditionRewardsGUI rewardsGUI;
-    private final NamespacedKey mercenaryKey;
 
     private final Map<UUID, Tab> tabs = new HashMap<>();
     private final Map<UUID, List<Integer>> party = new HashMap<>();
@@ -81,6 +81,7 @@ public class MercenaryExpeditionGUI implements Listener {
     private final Map<UUID, Integer> threatFilters = new HashMap<>();
     private final Map<UUID, Integer> sortModes = new HashMap<>();
     private final Set<UUID> awaitingSearch = new HashSet<>();
+    private final Map<UUID, List<GuiWidget>> widgetsByPlayer = new HashMap<>();
 
     public MercenaryExpeditionGUI(Plugin plugin,
                                   MercenaryAffinityManager affinityManager,
@@ -92,7 +93,6 @@ public class MercenaryExpeditionGUI implements Listener {
         this.expeditionManager = expeditionManager;
         this.friendshipGUI = friendshipGUI;
         this.rewardsGUI = rewardsGUI;
-        this.mercenaryKey = new NamespacedKey(plugin, "mercenary_id");
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
     }
 
@@ -110,28 +110,52 @@ public class MercenaryExpeditionGUI implements Listener {
                 .fillEmptySlots(false)
                 .border()
                 .build();
-        switch (tab) {
-            case PARTY -> renderParty(inv, player);
-            case DUNGEONS -> renderDungeons(inv, player);
-        }
-        renderNavigation(inv, tab, player);
+
+        List<GuiWidget> widgets = buildWidgets(player, tab);
+        widgetsByPlayer.put(player.getUniqueId(), widgets);
+        renderWidgets(inv, player, widgets);
         player.openInventory(inv);
     }
 
-    private void renderNavigation(Inventory inv, Tab tab, Player player) {
-        inv.setItem(4, createInfoItem(tab, player));
+    private List<GuiWidget> buildWidgets(Player player, Tab tab) {
+        List<GuiWidget> widgets = new ArrayList<>();
+        widgets.add(new ActionWidget(4, context -> createInfoItem(tab, player), null));
 
-        ItemStack partyTab = tab == Tab.DUNGEONS
-                ? GuiUtil.getNexoItem("arrow_left", ChatColor.YELLOW + "Party")
-                : GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
-        ItemStack dungeonTab = tab == Tab.PARTY
-                ? GuiUtil.getNexoItem("arrow_right", ChatColor.YELLOW + "Dungeons")
-                : GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
+        widgets.add(new ActionWidget(PARTY_TAB_SLOT,
+                context -> tab == Tab.DUNGEONS
+                        ? GuiUtil.getNexoItem("arrow_left", ChatColor.YELLOW + "Party")
+                        : GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE),
+                tab == Tab.DUNGEONS ? (click, context) -> open(context.player(), Tab.PARTY) : null));
+        widgets.add(new ActionWidget(DUNGEON_TAB_SLOT,
+                context -> tab == Tab.PARTY
+                        ? GuiUtil.getNexoItem("arrow_right", ChatColor.YELLOW + "Dungeons")
+                        : GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE),
+                tab == Tab.PARTY ? (click, context) -> open(context.player(), Tab.DUNGEONS) : null));
+        widgets.add(new ActionWidget(REWARD_SLOT,
+                context -> createRewardsButton(),
+                (click, context) -> rewardsGUI.open(context.player(), RewardView.EXPEDITIONS)));
+        widgets.add(new ActionWidget(46, context -> createPartyStatus(player), null));
 
-        inv.setItem(PARTY_TAB_SLOT, partyTab);
-        inv.setItem(DUNGEON_TAB_SLOT, dungeonTab);
-        inv.setItem(REWARD_SLOT, createRewardsButton());
+        if (tab == Tab.DUNGEONS) {
+            widgets.add(new ActionWidget(SEARCH_SLOT,
+                    context -> createSearchItem(player),
+                    (click, context) -> handleSearchClick(context.player(), click)));
+            widgets.add(new ActionWidget(FILTER_SLOT,
+                    context -> createThreatFilterItem(player),
+                    (click, context) -> handleFilterClick(context.player(), click)));
+            widgets.add(new ActionWidget(SORT_SLOT,
+                    context -> createSortItem(player),
+                    (click, context) -> handleSortClick(context.player(), click)));
+        }
 
+        switch (tab) {
+            case PARTY -> widgets.addAll(buildPartyWidgets(player));
+            case DUNGEONS -> widgets.addAll(buildDungeonWidgets(player));
+        }
+        return widgets;
+    }
+
+    private ItemStack createPartyStatus(Player player) {
         List<Integer> selected = party.getOrDefault(player.getUniqueId(), Collections.emptyList());
         ItemStack partyStatus = new ItemStack(Material.PLAYER_HEAD);
         ItemMeta meta = partyStatus.getItemMeta();
@@ -147,13 +171,7 @@ public class MercenaryExpeditionGUI implements Listener {
             meta.setLore(lore);
             partyStatus.setItemMeta(meta);
         }
-        inv.setItem(46, partyStatus);
-
-        if (tab == Tab.DUNGEONS) {
-            inv.setItem(SEARCH_SLOT, createSearchItem(player));
-            inv.setItem(FILTER_SLOT, createThreatFilterItem(player));
-            inv.setItem(SORT_SLOT, createSortItem(player));
-        }
+        return partyStatus;
     }
 
     private ItemStack createInfoItem(Tab tab, Player player) {
@@ -253,28 +271,33 @@ public class MercenaryExpeditionGUI implements Listener {
                 lore.add(ChatColor.RED + "Requires level 3+ to deploy");
             }
             meta.setLore(lore);
-            meta.getPersistentDataContainer().set(mercenaryKey, PersistentDataType.INTEGER, npcId);
             icon.setItemMeta(meta);
         }
         return icon;
     }
 
-    private void renderParty(Inventory inv, Player player) {
+    private List<GuiWidget> buildPartyWidgets(Player player) {
+        List<GuiWidget> widgets = new ArrayList<>();
         int slotIndex = 10;
         List<Integer> selected = party.computeIfAbsent(player.getUniqueId(), id -> new ArrayList<>());
         Set<Integer> unlocked = new HashSet<>(affinityManager.getUnlockedMercenaryIds(player.getUniqueId()));
         selected.removeIf(id -> !unlocked.contains(id));
         for (int npcId : affinityManager.getUnlockedMercenaryIds(player.getUniqueId())) {
             boolean isSelected = selected.contains(npcId);
-            inv.setItem(slotIndex, createMercenaryIcon(player, npcId, isSelected));
+            int slot = slotIndex;
+            widgets.add(new ActionWidget(slot,
+                    context -> createMercenaryIcon(player, npcId, isSelected),
+                    (click, context) -> handlePartyClick(context.player(), npcId, click)));
             slotIndex++;
             if ((slotIndex + 1) % 9 == 0) {
                 slotIndex += 2;
             }
         }
+        return widgets;
     }
 
-    private void renderDungeons(Inventory inv, Player player) {
+    private List<GuiWidget> buildDungeonWidgets(Player player) {
+        List<GuiWidget> widgets = new ArrayList<>();
         List<Integer> selected = party.getOrDefault(player.getUniqueId(), Collections.emptyList());
         String search = searchTerms.getOrDefault(player.getUniqueId(), "").toLowerCase(Locale.ENGLISH);
         int filter = threatFilters.getOrDefault(player.getUniqueId(), 0);
@@ -306,42 +329,17 @@ public class MercenaryExpeditionGUI implements Listener {
         String activeId = active != null ? active.getDefinition().id() : null;
         int slot = 10;
         for (ExpeditionDefinition definition : definitions) {
-            ItemStack item = new ItemStack(Material.MAP);
-            ItemMeta meta = item.getItemMeta();
-            if (meta != null) {
-                meta.setDisplayName(ChatColor.GOLD + definition.displayName());
-                List<String> lore = new ArrayList<>();
-                lore.add(ChatColor.GRAY + "Threat: " + ChatColor.RED + definition.threat());
-                lore.add(ChatColor.GRAY + "Recommended GS: " + ChatColor.GREEN + definition.recommendedGearScore());
-                int combined = selected.stream().mapToInt(affinityManager::getGearScore).sum();
-                lore.add(ChatColor.GRAY + "Party GS: " + ChatColor.AQUA + combined);
-                double success = expeditionManager.successChance(selected, definition.threat(), definition.recommendedGearScore());
-                int friendship = expeditionManager.averageFriendship(player.getUniqueId(), selected);
-                int seconds = expeditionManager.adjustedDuration(combined, definition.threat(), definition.baseDurationSeconds(), friendship);
-                lore.add(ChatColor.WHITE + TooltipUtil.progressBar(Math.min(combined, definition.recommendedGearScore()),
-                        Math.max(definition.recommendedGearScore(), 1), 12));
-                lore.add(ChatColor.GRAY + "Success: " + ChatColor.GREEN + String.format(Locale.ENGLISH, "%.1f%%", success));
-                String durationLabel = expeditionManager.isInstantExpeditions()
-                        ? ChatColor.GREEN + "Instant"
-                        : ChatColor.AQUA.toString() + seconds / 60 + "m";
-                lore.add(ChatColor.GRAY + "Est. Duration: " + durationLabel);
-                lore.add(ChatColor.GRAY + "Roles grant bonus when Tank/DPS/Support are present.");
-                if (activeId != null) {
-                    lore.add(" ");
-                    lore.addAll(activeLore(active, definition.id().equals(activeId)));
-                }
-                lore.add(" ");
-                lore.add(ChatColor.YELLOW + "Click to start with current party");
-                meta.setLore(lore);
-                item.setItemMeta(meta);
-            }
-            inv.setItem(slot, item);
+            int targetSlot = slot;
+            widgets.add(new ActionWidget(targetSlot,
+                    context -> createDungeonItem(definition, player, selected, active, activeId),
+                    (click, context) -> handleDungeonClick(context.player(), definition)));
             if ((slot + 1) % 9 == 8) {
                 slot += 3;
             } else {
                 slot++;
             }
         }
+        return widgets;
     }
 
     @EventHandler
@@ -352,74 +350,10 @@ public class MercenaryExpeditionGUI implements Listener {
         if (!TITLE.equals(event.getView().getTitle())) {
             return;
         }
+        if (handleWidgetClick(event, player)) {
+            return;
+        }
         event.setCancelled(true);
-        ItemStack clicked = event.getCurrentItem();
-        if (clicked == null) {
-            return;
-        }
-        if (clicked.getType() == Material.GRAY_STAINED_GLASS_PANE) {
-            return;
-        }
-        UUID id = player.getUniqueId();
-        Tab tab = tabs.getOrDefault(id, Tab.PARTY);
-
-        if (event.getSlot() == PARTY_TAB_SLOT) {
-            if (tab != Tab.PARTY) {
-                open(player, Tab.PARTY);
-            }
-            return;
-        }
-        if (event.getSlot() == DUNGEON_TAB_SLOT) {
-            if (tab != Tab.DUNGEONS) {
-                open(player, Tab.DUNGEONS);
-            }
-            return;
-        }
-        if (event.getSlot() == REWARD_SLOT) {
-            rewardsGUI.open(player, RewardView.EXPEDITIONS);
-            return;
-        }
-
-        if (tab == Tab.DUNGEONS) {
-            if (event.getSlot() == SEARCH_SLOT) {
-                if (event.getClick() == ClickType.RIGHT) {
-                    searchTerms.remove(id);
-                    open(player, Tab.DUNGEONS);
-                } else {
-                    awaitingSearch.add(id);
-                    player.closeInventory();
-                    player.sendMessage(ChatColor.YELLOW + "Enter dungeon search term or 'cancel'.");
-                }
-                return;
-            }
-            if (event.getSlot() == FILTER_SLOT) {
-                int filter = threatFilters.getOrDefault(id, 0);
-                int max = 5;
-                switch (event.getClick()) {
-                    case RIGHT -> filter = filter <= 0 ? max : filter - 1;
-                    default -> filter = filter >= max ? 0 : filter + 1;
-                }
-                threatFilters.put(id, filter);
-                open(player, Tab.DUNGEONS);
-                return;
-            }
-            if (event.getSlot() == SORT_SLOT) {
-                int mode = sortModes.getOrDefault(id, 0);
-                int total = SORT_OPTIONS.length;
-                switch (event.getClick()) {
-                    case RIGHT -> mode = (mode + total - 1) % total;
-                    default -> mode = (mode + 1) % total;
-                }
-                sortModes.put(id, mode);
-                open(player, Tab.DUNGEONS);
-                return;
-            }
-        }
-
-        switch (tab) {
-            case PARTY -> handlePartyClick(player, clicked, event.getSlot(), event.getClick());
-            case DUNGEONS -> handleDungeonClick(player, clicked);
-        }
     }
 
     @EventHandler
@@ -435,6 +369,27 @@ public class MercenaryExpeditionGUI implements Listener {
             }
             plugin.getServer().getScheduler().runTask(plugin, () -> open(event.getPlayer(), Tab.DUNGEONS));
         }
+    }
+
+    private boolean handleWidgetClick(InventoryClickEvent event, Player player) {
+        List<GuiWidget> widgets = widgetsByPlayer.get(player.getUniqueId());
+        if (widgets == null) {
+            return false;
+        }
+        int slot = event.getRawSlot();
+        if (slot < 0 || slot >= event.getView().getTopInventory().getSize()) {
+            return false;
+        }
+        GuiWidget widget = widgets.stream()
+                .filter(w -> w.handlesSlot(slot))
+                .findFirst()
+                .orElse(null);
+        if (widget == null) {
+            return false;
+        }
+        event.setCancelled(true);
+        widget.onClick(slot, event.getClick(), new GuiContext(player, event.getView().getTopInventory()));
+        return true;
     }
 
     private ItemStack createSearchItem(Player player) {
@@ -458,6 +413,42 @@ public class MercenaryExpeditionGUI implements Listener {
         return item;
     }
 
+    private void handleSearchClick(Player player, ClickType clickType) {
+        UUID id = player.getUniqueId();
+        if (clickType == ClickType.RIGHT) {
+            searchTerms.remove(id);
+            open(player, Tab.DUNGEONS);
+            return;
+        }
+        awaitingSearch.add(id);
+        player.closeInventory();
+        player.sendMessage(ChatColor.YELLOW + "Enter dungeon search term or 'cancel'.");
+    }
+
+    private void handleFilterClick(Player player, ClickType clickType) {
+        UUID id = player.getUniqueId();
+        int filter = threatFilters.getOrDefault(id, 0);
+        int max = 5;
+        switch (clickType) {
+            case RIGHT -> filter = filter <= 0 ? max : filter - 1;
+            default -> filter = filter >= max ? 0 : filter + 1;
+        }
+        threatFilters.put(id, filter);
+        open(player, Tab.DUNGEONS);
+    }
+
+    private void handleSortClick(Player player, ClickType clickType) {
+        UUID id = player.getUniqueId();
+        int mode = sortModes.getOrDefault(id, 0);
+        int total = SORT_OPTIONS.length;
+        switch (clickType) {
+            case RIGHT -> mode = (mode + total - 1) % total;
+            default -> mode = (mode + 1) % total;
+        }
+        sortModes.put(id, mode);
+        open(player, Tab.DUNGEONS);
+    }
+
     private ItemStack createThreatFilterItem(Player player) {
         ItemStack item = GuiUtil.getNexoItem("filter", ChatColor.AQUA + "Threat Filter");
         ItemMeta meta = item.getItemMeta();
@@ -472,6 +463,43 @@ public class MercenaryExpeditionGUI implements Listener {
             lore.add(optionLine(0, filter, "All Threats"));
             lore.add(" ");
             lore.addAll(TooltipUtil.clickInstructions("to go forward", "to go backward"));
+            meta.setLore(lore);
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
+    private ItemStack createDungeonItem(ExpeditionDefinition definition,
+                                        Player player,
+                                        List<Integer> selected,
+                                        ActiveExpedition active,
+                                        String activeId) {
+        ItemStack item = new ItemStack(Material.MAP);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(ChatColor.GOLD + definition.displayName());
+            List<String> lore = new ArrayList<>();
+            lore.add(ChatColor.GRAY + "Threat: " + ChatColor.RED + definition.threat());
+            lore.add(ChatColor.GRAY + "Recommended GS: " + ChatColor.GREEN + definition.recommendedGearScore());
+            int combined = selected.stream().mapToInt(affinityManager::getGearScore).sum();
+            lore.add(ChatColor.GRAY + "Party GS: " + ChatColor.AQUA + combined);
+            double success = expeditionManager.successChance(selected, definition.threat(), definition.recommendedGearScore());
+            int friendship = expeditionManager.averageFriendship(player.getUniqueId(), selected);
+            int seconds = expeditionManager.adjustedDuration(combined, definition.threat(), definition.baseDurationSeconds(), friendship);
+            lore.add(ChatColor.WHITE + TooltipUtil.progressBar(Math.min(combined, definition.recommendedGearScore()),
+                    Math.max(definition.recommendedGearScore(), 1), 12));
+            lore.add(ChatColor.GRAY + "Success: " + ChatColor.GREEN + String.format(Locale.ENGLISH, "%.1f%%", success));
+            String durationLabel = expeditionManager.isInstantExpeditions()
+                    ? ChatColor.GREEN + "Instant"
+                    : ChatColor.AQUA.toString() + seconds / 60 + "m";
+            lore.add(ChatColor.GRAY + "Est. Duration: " + durationLabel);
+            lore.add(ChatColor.GRAY + "Roles grant bonus when Tank/DPS/Support are present.");
+            if (activeId != null) {
+                lore.add(" ");
+                lore.addAll(activeLore(active, definition.id().equals(activeId)));
+            }
+            lore.add(" ");
+            lore.add(ChatColor.YELLOW + "Click to start with current party");
             meta.setLore(lore);
             item.setItemMeta(meta);
         }
@@ -567,16 +595,7 @@ public class MercenaryExpeditionGUI implements Listener {
         selection.removeIf(id -> !unlocked.contains(id));
     }
 
-    private void handlePartyClick(Player player, ItemStack clicked, int slot, ClickType clickType) {
-        ItemMeta meta = clicked.getItemMeta();
-        if (meta == null) {
-            return;
-        }
-        PersistentDataContainer container = meta.getPersistentDataContainer();
-        Integer npcId = container.get(mercenaryKey, PersistentDataType.INTEGER);
-        if (npcId == null) {
-            return;
-        }
+    private void handlePartyClick(Player player, int npcId, ClickType clickType) {
         int level = affinityManager.getFriendship(player.getUniqueId(), npcId).getLevel();
         if (clickType.isRightClick()) {
             friendshipGUI.open(player, npcId, getNpcName(npcId));
@@ -605,18 +624,7 @@ public class MercenaryExpeditionGUI implements Listener {
         open(player, Tab.PARTY);
     }
 
-    private void handleDungeonClick(Player player, ItemStack clicked) {
-        if (clicked.getType() != Material.MAP) {
-            return;
-        }
-        String display = clicked.getItemMeta() != null ? ChatColor.stripColor(clicked.getItemMeta().getDisplayName()) : "";
-        ExpeditionDefinition definition = expeditionManager.getExpeditions().stream()
-                .filter(def -> ChatColor.stripColor(def.displayName()).equals(display))
-                .findFirst()
-                .orElse(null);
-        if (definition == null) {
-            return;
-        }
+    private void handleDungeonClick(Player player, ExpeditionDefinition definition) {
         List<Integer> selected = party.getOrDefault(player.getUniqueId(), Collections.emptyList());
         if (selected.isEmpty()) {
             player.sendMessage(ChatColor.RED + "Select at least one mercenary before starting an expedition.");
@@ -628,5 +636,13 @@ public class MercenaryExpeditionGUI implements Listener {
         }
         expeditionManager.startExpedition(player, selected, definition);
         player.closeInventory();
+    }
+
+    private void renderWidgets(Inventory inventory, Player player, List<GuiWidget> widgets) {
+        GuiLayout layout = new GuiLayout(inventory);
+        GuiContext context = new GuiContext(player, inventory);
+        for (GuiWidget widget : widgets) {
+            widget.contribute(layout, context);
+        }
     }
 }

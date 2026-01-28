@@ -9,20 +9,22 @@ import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.ChatUtil;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
+import me.nakilex.levelplugin.utils.gui.GuiBuilder;
+import me.nakilex.levelplugin.utils.gui.widgets.ActionWidget;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiContext;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiLayout;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiWidget;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.persistence.PersistentDataType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,8 +42,6 @@ public class CustomMobAdminGUI implements Listener {
     private final Main plugin;
     private final CustomMobManager mobManager;
     private final CustomMobSpawnerManager spawnerManager;
-    private final NamespacedKey mobKey;
-    private final NamespacedKey spawnerKey;
     private final Map<UUID, Integer> mobPages = new java.util.HashMap<>();
     private final Map<UUID, Integer> spawnerPages = new java.util.HashMap<>();
 
@@ -55,21 +55,14 @@ public class CustomMobAdminGUI implements Listener {
         this.plugin = plugin;
         this.mobManager = mobManager;
         this.spawnerManager = spawnerManager;
-        this.mobKey = new NamespacedKey(plugin, "cm_mob_id");
-        this.spawnerKey = new NamespacedKey(plugin, "cm_spawner_id");
     }
 
     public void openMain(Player player) {
-        Inventory inv = Bukkit.createInventory(null, MAIN_SIZE, mainTitle);
-        GuiUtil.fillBorder(inv, GuiUtil.createFiller(Material.BLACK_STAINED_GLASS_PANE));
-
-        inv.setItem(11, createMenuItem(Material.SPAWNER, "§aCustom Mobs",
-                TooltipUtil.bulletList("Spawn or inspect custom mobs."),
-                TooltipUtil.clickInstructions("to open mob list", null)));
-
-        inv.setItem(15, createMenuItem(Material.END_CRYSTAL, "§bSpawners",
-                TooltipUtil.bulletList("Manage custom mob spawners."),
-                TooltipUtil.clickInstructions("to open spawner list", null)));
+        Inventory inv = GuiBuilder.create(MAIN_SIZE, mainTitle)
+                .filler(Material.BLACK_STAINED_GLASS_PANE)
+                .border()
+                .build();
+        renderWidgets(inv, player, buildMainWidgets());
 
         player.openInventory(inv);
     }
@@ -83,23 +76,11 @@ public class CustomMobAdminGUI implements Listener {
         int current = Math.max(0, Math.min(page, maxPage));
         mobPages.put(player.getUniqueId(), current);
 
-        Inventory inv = Bukkit.createInventory(null, GUI_SIZE, mobsTitle);
-        GuiUtil.fillBorder(inv, GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE));
-        inv.setItem(BACK_SLOT, GuiUtil.getNexoItem("arrow_left2", "§7Back"));
-        if (current > 0) {
-            inv.setItem(PREV_SLOT, GuiUtil.getNexoItem("arrow_left", "§aPrevious Page"));
-        }
-        if (current < maxPage) {
-            inv.setItem(NEXT_SLOT, GuiUtil.getNexoItem("arrow_right", "§aNext Page"));
-        }
-
-        int start = current * PAGE_SIZE;
-        int end = Math.min(defs.size(), start + PAGE_SIZE);
-        for (int i = start; i < end; i++) {
-            CustomMobDefinition def = defs.get(i);
-            ItemStack item = createMobItem(def);
-            inv.setItem(GuiUtil.PAGED_SLOTS[i - start], item);
-        }
+        Inventory inv = GuiBuilder.create(GUI_SIZE, mobsTitle)
+                .filler(Material.GRAY_STAINED_GLASS_PANE)
+                .border()
+                .build();
+        renderWidgets(inv, player, buildMobWidgets(defs, current, maxPage));
 
         player.openInventory(inv);
     }
@@ -113,23 +94,11 @@ public class CustomMobAdminGUI implements Listener {
         int current = Math.max(0, Math.min(page, maxPage));
         spawnerPages.put(player.getUniqueId(), current);
 
-        Inventory inv = Bukkit.createInventory(null, GUI_SIZE, spawnersTitle);
-        GuiUtil.fillBorder(inv, GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE));
-        inv.setItem(BACK_SLOT, GuiUtil.getNexoItem("arrow_left2", "§7Back"));
-        if (current > 0) {
-            inv.setItem(PREV_SLOT, GuiUtil.getNexoItem("arrow_left", "§aPrevious Page"));
-        }
-        if (current < maxPage) {
-            inv.setItem(NEXT_SLOT, GuiUtil.getNexoItem("arrow_right", "§aNext Page"));
-        }
-
-        int start = current * PAGE_SIZE;
-        int end = Math.min(list.size(), start + PAGE_SIZE);
-        for (int i = start; i < end; i++) {
-            CustomMobSpawner spawner = list.get(i);
-            ItemStack item = createSpawnerItem(spawner);
-            inv.setItem(GuiUtil.PAGED_SLOTS[i - start], item);
-        }
+        Inventory inv = GuiBuilder.create(GUI_SIZE, spawnersTitle)
+                .filler(Material.GRAY_STAINED_GLASS_PANE)
+                .border()
+                .build();
+        renderWidgets(inv, player, buildSpawnerWidgets(list, current, maxPage));
 
         player.openInventory(inv);
     }
@@ -153,134 +122,44 @@ public class CustomMobAdminGUI implements Listener {
         }
 
         if (GuiUtil.titleMatches(title, mainTitle)) {
-            handleMainClick(player, event.getSlot());
-            return;
-        }
-
-        if (GuiUtil.titleMatches(title, mobsTitle)) {
-            handleMobClick(player, event.getSlot(), clicked, event.isRightClick());
-            return;
-        }
-
-        if (GuiUtil.titleMatches(title, spawnersTitle)) {
-            handleSpawnerClick(player, event.getSlot(), clicked, event.isLeftClick(), event.isRightClick(), event.isShiftClick());
-        }
-    }
-
-    private void handleMainClick(Player player, int slot) {
-        if (slot == 11) {
-            openMobs(player, mobPages.getOrDefault(player.getUniqueId(), 0));
-        } else if (slot == 15) {
-            openSpawners(player, spawnerPages.getOrDefault(player.getUniqueId(), 0));
-        }
-    }
-
-    private void handleMobClick(Player player, int slot, ItemStack item, boolean rightClick) {
-        if (slot == BACK_SLOT) {
-            openMain(player);
-            return;
-        }
-        if (slot == PREV_SLOT) {
-            int page = mobPages.getOrDefault(player.getUniqueId(), 0) - 1;
-            openMobs(player, page);
-            return;
-        }
-        if (slot == NEXT_SLOT) {
-            int page = mobPages.getOrDefault(player.getUniqueId(), 0) + 1;
-            openMobs(player, page);
-            return;
-        }
-
-        String mobId = getIdFromItem(item, mobKey);
-        if (mobId == null) {
-            return;
-        }
-        int amount = rightClick ? 5 : 1;
-        var spawned = mobManager.spawn(mobId, player.getLocation(), amount);
-        if (spawned.isEmpty()) {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
-                    "Failed to spawn custom mob: " + mobId);
-            return;
-        }
-        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                "Spawned " + spawned.size() + "x " + mobId + ".");
-    }
-
-    private void handleSpawnerClick(Player player, int slot, ItemStack item, boolean leftClick, boolean rightClick, boolean shiftClick) {
-        if (slot == BACK_SLOT) {
-            openMain(player);
-            return;
-        }
-        if (slot == PREV_SLOT) {
-            int page = spawnerPages.getOrDefault(player.getUniqueId(), 0) - 1;
-            openSpawners(player, page);
-            return;
-        }
-        if (slot == NEXT_SLOT) {
-            int page = spawnerPages.getOrDefault(player.getUniqueId(), 0) + 1;
-            openSpawners(player, page);
-            return;
-        }
-
-        String spawnerName = getIdFromItem(item, spawnerKey);
-        if (spawnerName == null) {
-            return;
-        }
-        CustomMobSpawner spawner = spawnerManager.getSpawner(spawnerName).orElse(null);
-        if (spawner == null) {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
-                    "Spawner no longer exists.");
-            return;
-        }
-
-        if (shiftClick && leftClick) {
-            if (spawnerManager.moveSpawner(spawnerName, player.getLocation())) {
-                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                        "Moved spawner '" + spawnerName + "' to your location.");
-                openSpawners(player, spawnerPages.getOrDefault(player.getUniqueId(), 0));
-            } else {
-                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
-                        "Failed to move spawner.");
+            if (handleWidgetClick(event, player, buildMainWidgets())) {
+                return;
             }
             return;
         }
 
-        if (rightClick) {
-            boolean next = !spawner.isFieldBoss();
-            spawnerManager.setFlag(spawnerName, "fieldboss", String.valueOf(next));
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                    "Field boss set to " + next + " for '" + spawnerName + "'.");
-            openSpawners(player, spawnerPages.getOrDefault(player.getUniqueId(), 0));
+        if (GuiUtil.titleMatches(title, mobsTitle)) {
+            List<CustomMobDefinition> defs = mobManager.getMobIds().stream()
+                    .map(mobManager::getDefinition)
+                    .flatMap(java.util.Optional::stream)
+                    .toList();
+            int page = mobPages.getOrDefault(player.getUniqueId(), 0);
+            int maxPage = Math.max(0, (defs.size() - 1) / PAGE_SIZE);
+            if (handleWidgetClick(event, player, buildMobWidgets(defs, page, maxPage))) {
+                return;
+            }
             return;
         }
 
-        if (leftClick) {
-            Location loc = new Location(Bukkit.getWorld(spawner.getWorld()), spawner.getX(), spawner.getY(), spawner.getZ());
-            if (loc.getWorld() != null) {
-                player.teleport(loc);
-                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                        "Teleported to spawner '" + spawnerName + "'.");
-            } else {
-                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
-                        "Spawner world is not loaded.");
+        if (GuiUtil.titleMatches(title, spawnersTitle)) {
+            List<CustomMobSpawner> list = spawnerManager.getSpawnerNames().stream()
+                    .map(spawnerManager::getSpawner)
+                    .flatMap(java.util.Optional::stream)
+                    .toList();
+            int page = spawnerPages.getOrDefault(player.getUniqueId(), 0);
+            int maxPage = Math.max(0, (list.size() - 1) / PAGE_SIZE);
+            if (handleWidgetClick(event, player, buildSpawnerWidgets(list, page, maxPage))) {
+                return;
             }
         }
     }
 
     private ItemStack createMenuItem(Material material, String name, List<String> description, List<String> instructions) {
-        ItemStack item = new ItemStack(material);
-        ItemMeta meta = item.getItemMeta();
-        if (meta != null) {
-            meta.setDisplayName(name);
-            List<String> lore = new ArrayList<>();
-            lore.addAll(description);
-            lore.add(" ");
-            lore.addAll(instructions);
-            meta.setLore(lore);
-            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
-            item.setItemMeta(meta);
-        }
-        return item;
+        List<String> lore = new ArrayList<>();
+        lore.addAll(description);
+        lore.add(" ");
+        lore.addAll(instructions);
+        return GuiUtil.createGuiItem(material, name, lore);
     }
 
     private ItemStack createMobItem(CustomMobDefinition def) {
@@ -299,8 +178,7 @@ public class CustomMobAdminGUI implements Listener {
             lore.add(" ");
             lore.addAll(TooltipUtil.clickInstructions("to spawn 1", "to spawn 5"));
             meta.setLore(lore);
-            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
-            meta.getPersistentDataContainer().set(mobKey, PersistentDataType.STRING, def.id());
+            meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ATTRIBUTES);
             item.setItemMeta(meta);
         }
         return item;
@@ -322,18 +200,10 @@ public class CustomMobAdminGUI implements Listener {
             lore.addAll(TooltipUtil.clickInstructions("to teleport", "to toggle field boss"));
             lore.addAll(TooltipUtil.sneakClickInstructions("to move spawner here", null));
             meta.setLore(lore);
-            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
-            meta.getPersistentDataContainer().set(spawnerKey, PersistentDataType.STRING, spawner.getName());
+            meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ATTRIBUTES);
             item.setItemMeta(meta);
         }
         return item;
-    }
-
-    private String getIdFromItem(ItemStack item, NamespacedKey key) {
-        if (item == null || item.getItemMeta() == null) {
-            return null;
-        }
-        return item.getItemMeta().getPersistentDataContainer().get(key, PersistentDataType.STRING);
     }
 
     private Material resolveSpawnEgg(String entityType) {
@@ -344,6 +214,141 @@ public class CustomMobAdminGUI implements Listener {
             return Material.valueOf(entityType.toUpperCase() + "_SPAWN_EGG");
         } catch (IllegalArgumentException ex) {
             return Material.SPAWNER;
+        }
+    }
+
+    private List<GuiWidget> buildMainWidgets() {
+        List<GuiWidget> widgets = new ArrayList<>();
+        widgets.add(new ActionWidget(11,
+                context -> createMenuItem(Material.SPAWNER, "§aCustom Mobs",
+                        TooltipUtil.bulletList("Spawn or inspect custom mobs."),
+                        TooltipUtil.clickInstructions("to open mob list", null)),
+                (click, context) -> openMobs(context.player(), mobPages.getOrDefault(context.player().getUniqueId(), 0))));
+        widgets.add(new ActionWidget(15,
+                context -> createMenuItem(Material.END_CRYSTAL, "§bSpawners",
+                        TooltipUtil.bulletList("Manage custom mob spawners."),
+                        TooltipUtil.clickInstructions("to open spawner list", null)),
+                (click, context) -> openSpawners(context.player(), spawnerPages.getOrDefault(context.player().getUniqueId(), 0))));
+        return widgets;
+    }
+
+    private List<GuiWidget> buildMobWidgets(List<CustomMobDefinition> defs, int page, int maxPage) {
+        List<GuiWidget> widgets = new ArrayList<>();
+        widgets.add(new ActionWidget(BACK_SLOT,
+                context -> GuiUtil.getNexoItem("arrow_left2", "§7Back"),
+                (click, context) -> openMain(context.player())));
+        widgets.add(new ActionWidget(PREV_SLOT,
+                context -> page > 0 ? GuiUtil.getNexoItem("arrow_left", "§aPrevious Page") : null,
+                (click, context) -> openMobs(context.player(), page - 1)));
+        widgets.add(new ActionWidget(NEXT_SLOT,
+                context -> page < maxPage ? GuiUtil.getNexoItem("arrow_right", "§aNext Page") : null,
+                (click, context) -> openMobs(context.player(), page + 1)));
+
+        int start = page * PAGE_SIZE;
+        int end = Math.min(defs.size(), start + PAGE_SIZE);
+        for (int i = start; i < end; i++) {
+            CustomMobDefinition def = defs.get(i);
+            int slot = GuiUtil.PAGED_SLOTS[i - start];
+            widgets.add(new ActionWidget(slot,
+                    context -> createMobItem(def),
+                    (click, context) -> spawnMob(context.player(), def.id(), click.isRightClick())));
+        }
+        return widgets;
+    }
+
+    private List<GuiWidget> buildSpawnerWidgets(List<CustomMobSpawner> list, int page, int maxPage) {
+        List<GuiWidget> widgets = new ArrayList<>();
+        widgets.add(new ActionWidget(BACK_SLOT,
+                context -> GuiUtil.getNexoItem("arrow_left2", "§7Back"),
+                (click, context) -> openMain(context.player())));
+        widgets.add(new ActionWidget(PREV_SLOT,
+                context -> page > 0 ? GuiUtil.getNexoItem("arrow_left", "§aPrevious Page") : null,
+                (click, context) -> openSpawners(context.player(), page - 1)));
+        widgets.add(new ActionWidget(NEXT_SLOT,
+                context -> page < maxPage ? GuiUtil.getNexoItem("arrow_right", "§aNext Page") : null,
+                (click, context) -> openSpawners(context.player(), page + 1)));
+
+        int start = page * PAGE_SIZE;
+        int end = Math.min(list.size(), start + PAGE_SIZE);
+        for (int i = start; i < end; i++) {
+            CustomMobSpawner spawner = list.get(i);
+            int slot = GuiUtil.PAGED_SLOTS[i - start];
+            widgets.add(new ActionWidget(slot,
+                    context -> createSpawnerItem(spawner),
+                    (click, context) -> handleSpawnerAction(context.player(), spawner, click)));
+        }
+        return widgets;
+    }
+
+    private void renderWidgets(Inventory inventory, Player player, List<GuiWidget> widgets) {
+        GuiLayout layout = new GuiLayout(inventory);
+        GuiContext context = new GuiContext(player, inventory);
+        for (GuiWidget widget : widgets) {
+            widget.contribute(layout, context);
+        }
+    }
+
+    private boolean handleWidgetClick(InventoryClickEvent event, Player player, List<GuiWidget> widgets) {
+        int slot = event.getRawSlot();
+        if (slot < 0 || slot >= event.getView().getTopInventory().getSize()) {
+            return false;
+        }
+        GuiWidget widget = widgets.stream()
+                .filter(w -> w.handlesSlot(slot))
+                .findFirst()
+                .orElse(null);
+        if (widget == null) {
+            return false;
+        }
+        event.setCancelled(true);
+        widget.onClick(slot, event.getClick(), new GuiContext(player, event.getView().getTopInventory()));
+        return true;
+    }
+
+    private void spawnMob(Player player, String mobId, boolean rightClick) {
+        int amount = rightClick ? 5 : 1;
+        var spawned = mobManager.spawn(mobId, player.getLocation(), amount);
+        if (spawned.isEmpty()) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                    "Failed to spawn custom mob: " + mobId);
+            return;
+        }
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
+                "Spawned " + spawned.size() + "x " + mobId + ".");
+    }
+
+    private void handleSpawnerAction(Player player, CustomMobSpawner spawner, org.bukkit.event.inventory.ClickType click) {
+        if (click.isShiftClick() && click.isLeftClick()) {
+            if (spawnerManager.moveSpawner(spawner.getName(), player.getLocation())) {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
+                        "Moved spawner '" + spawner.getName() + "' to your location.");
+                openSpawners(player, spawnerPages.getOrDefault(player.getUniqueId(), 0));
+            } else {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                        "Failed to move spawner.");
+            }
+            return;
+        }
+
+        if (click.isRightClick()) {
+            boolean next = !spawner.isFieldBoss();
+            spawnerManager.setFlag(spawner.getName(), "fieldboss", String.valueOf(next));
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
+                    "Field boss set to " + next + " for '" + spawner.getName() + "'.");
+            openSpawners(player, spawnerPages.getOrDefault(player.getUniqueId(), 0));
+            return;
+        }
+
+        if (click.isLeftClick()) {
+            Location loc = new Location(Bukkit.getWorld(spawner.getWorld()), spawner.getX(), spawner.getY(), spawner.getZ());
+            if (loc.getWorld() != null) {
+                player.teleport(loc);
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
+                        "Teleported to spawner '" + spawner.getName() + "'.");
+            } else {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                        "Spawner world is not loaded.");
+            }
         }
     }
 }

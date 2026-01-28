@@ -10,9 +10,15 @@ import me.nakilex.levelplugin.player.mining.managers.MiningManager;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
+import me.nakilex.levelplugin.utils.gui.widgets.ActionWidget;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiContext;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiLayout;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiWidget;
+import me.nakilex.levelplugin.player.fishing.gui.FishingCatalogGUI;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -96,32 +102,39 @@ public final class LifeSkillRewardsGUI {
             case FISHING -> FishingManager.getInstance().getLevel(player);
         };
 
-        int startIndex = clampedPage * PATH.length;
-        for (int i = 0; i < PATH.length; i++) {
-            ItemStack tile;
-            int rewardIndex = startIndex + i;
-            if (rewardIndex < rewards.size()) {
-                LifeSkillReward reward = rewards.get(rewardIndex);
-                tile = createRewardItem(player, discipline, reward, level,
-                        rewardManager.isClaimed(player.getUniqueId(), discipline, reward.levelRequired()));
-            } else {
-                tile = createPlaceholder();
-            }
-            builder.setItem(PATH[i], tile);
-        }
+        Inventory inventory = builder.build();
+        renderWidgets(inventory, player, discipline, rewards, clampedPage, maxPage, level);
+        return inventory;
+    }
 
-        if (clampedPage > 0) {
-            builder.setItem(PREVIOUS_SLOT, createPreviousButton());
+    public static boolean handleWidgetClick(InventoryClickEvent event, Player player, ToolDiscipline discipline) {
+        int slot = event.getRawSlot();
+        if (slot < 0 || slot >= event.getView().getTopInventory().getSize()) {
+            return false;
         }
-        if (clampedPage < maxPage) {
-            builder.setItem(NEXT_SLOT, createNextButton());
+        int page = pageFromTitle(event.getView().getTitle());
+        LifeSkillRewardManager rewardManager = LifeSkillRewardManager.getInstance();
+        if (rewardManager == null) {
+            return false;
         }
-        builder.setItem(BACK_SLOT, createBackButton());
-        if (discipline == ToolDiscipline.FISHING) {
-            builder.setItem(FISHING_CATALOG_SLOT, createCatalogButton());
+        List<LifeSkillReward> rewards = rewardManager.getRewards(discipline);
+        int maxPage = Math.max(0, (rewards.size() - 1) / PATH.length);
+        int clampedPage = Math.max(0, Math.min(page, maxPage));
+        int level = switch (discipline) {
+            case MINING -> MiningManager.getInstance().getLevel(player);
+            case FARMING -> FarmingManager.getInstance().getLevel(player);
+            case FISHING -> FishingManager.getInstance().getLevel(player);
+        };
+        GuiWidget widget = buildWidgets(player, discipline, rewards, clampedPage, maxPage, level).stream()
+                .filter(w -> w.handlesSlot(slot))
+                .findFirst()
+                .orElse(null);
+        if (widget == null) {
+            return false;
         }
-
-        return builder.build();
+        event.setCancelled(true);
+        widget.onClick(slot, event.getClick(), new GuiContext(player, event.getView().getTopInventory()));
+        return true;
     }
 
     public static int levelFrom(ItemStack stack) {
@@ -160,6 +173,58 @@ public final class LifeSkillRewardsGUI {
 
     public static int fishingCatalogSlot() {
         return FISHING_CATALOG_SLOT;
+    }
+
+    private static void renderWidgets(Inventory inventory, Player player, ToolDiscipline discipline,
+                                      List<LifeSkillReward> rewards, int page, int maxPage, int level) {
+        GuiLayout layout = new GuiLayout(inventory);
+        GuiContext context = new GuiContext(player, inventory);
+        for (GuiWidget widget : buildWidgets(player, discipline, rewards, page, maxPage, level)) {
+            widget.contribute(layout, context);
+        }
+    }
+
+    private static List<GuiWidget> buildWidgets(Player player, ToolDiscipline discipline,
+                                                List<LifeSkillReward> rewards, int page, int maxPage, int level) {
+        List<GuiWidget> widgets = new ArrayList<>();
+        LifeSkillRewardManager rewardManager = LifeSkillRewardManager.getInstance();
+        int startIndex = page * PATH.length;
+        for (int i = 0; i < PATH.length; i++) {
+            int rewardIndex = startIndex + i;
+            int slot = PATH[i];
+            if (rewardIndex < rewards.size()) {
+                LifeSkillReward reward = rewards.get(rewardIndex);
+                boolean claimed = rewardManager.isClaimed(player.getUniqueId(), discipline, reward.levelRequired());
+                widgets.add(new ActionWidget(slot,
+                        context -> createRewardItem(player, discipline, reward, level, claimed),
+                        (click, context) -> {
+                            rewardManager.claimReward(context.player(), discipline, reward);
+                            context.player().openInventory(create(context.player(), discipline, page));
+                        }));
+            } else {
+                widgets.add(new ActionWidget(slot, context -> createPlaceholder(), null));
+            }
+        }
+
+        widgets.add(new ActionWidget(BACK_SLOT,
+                context -> createBackButton(),
+                (click, context) -> LifeSkillGUI.open(context.player())));
+
+        widgets.add(new ActionWidget(PREVIOUS_SLOT,
+                context -> page > 0 ? createPreviousButton() : null,
+                (click, context) -> context.player().openInventory(create(context.player(), discipline, page - 1))));
+
+        widgets.add(new ActionWidget(NEXT_SLOT,
+                context -> page < maxPage ? createNextButton() : null,
+                (click, context) -> context.player().openInventory(create(context.player(), discipline, page + 1))));
+
+        if (discipline == ToolDiscipline.FISHING) {
+            widgets.add(new ActionWidget(FISHING_CATALOG_SLOT,
+                    context -> createCatalogButton(),
+                    (click, context) -> FishingCatalogGUI.getInstance().open(context.player())));
+        }
+
+        return widgets;
     }
 
     private static ItemStack createRewardItem(Player player, ToolDiscipline discipline, LifeSkillReward reward,

@@ -3,6 +3,11 @@ package me.nakilex.levelplugin.codex;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.HeadUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
+import me.nakilex.levelplugin.utils.gui.widgets.ActionWidget;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiContext;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiLayout;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiWidget;
+import me.nakilex.levelplugin.utils.gui.widgets.NexoButtonWidget;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -13,6 +18,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Consumer;
@@ -32,21 +38,20 @@ public class CodexMainGUI implements Listener {
     private final NpcCodexGUI npcGui;
     private final LocationCodexGUI locGui;
     private final Map<UUID, Consumer<Player>> backActions = new HashMap<>();
+    private final List<GuiWidget> widgets;
 
     public CodexMainGUI(MobCodexGUI m, NpcCodexGUI n, LocationCodexGUI l) {
         this.mobGui = m;
         this.npcGui = n;
         this.locGui = l;
+        this.widgets = buildWidgets();
     }
 
     public void open(Player player) {
         Inventory inv = GuiBuilder.create(SIZE, TITLE)
                 .filler(Material.GRAY_STAINED_GLASS_PANE)
                 .build();
-        inv.setItem(BACK_SLOT, GuiUtil.getNexoItem("arrow_left", ChatColor.YELLOW + "Back"));
-        inv.setItem(11, createHead(LOC_HEAD, ChatColor.GREEN + "Locations"));
-        inv.setItem(13, createHead(NPC_HEAD, ChatColor.YELLOW + "NPCs"));
-        inv.setItem(15, createHead(MOB_HEAD, ChatColor.RED + "Mobs"));
+        renderWidgets(inv, player);
         player.openInventory(inv);
     }
 
@@ -66,15 +71,9 @@ public class CodexMainGUI implements Listener {
 
     @EventHandler
     public void onClick(InventoryClickEvent e) {
-        if (!e.getView().getTitle().equals(TITLE)) return;
-        e.setCancelled(true);
-        Player p = (Player) e.getWhoClicked();
-        int slot = e.getRawSlot();
-        if (slot == BACK_SLOT) {
-            runBackAction(p);
-        } else if (slot == 11) locGui.open(p);
-        else if (slot == 13) npcGui.open(p);
-        else if (slot == 15) mobGui.open(p);
+        if (!GuiUtil.titleMatches(e.getView().getTitle(), TITLE)) return;
+        if (!(e.getWhoClicked() instanceof Player player)) return;
+        handleWidgetClick(e, player);
     }
 
     private void runBackAction(Player player) {
@@ -84,5 +83,46 @@ public class CodexMainGUI implements Listener {
         } else {
             player.closeInventory();
         }
+    }
+
+    private List<GuiWidget> buildWidgets() {
+        List<GuiWidget> widgetList = new java.util.ArrayList<>();
+        widgetList.add(new NexoButtonWidget(BACK_SLOT, "arrow_left", ChatColor.YELLOW + "Back",
+                null, (click, context) -> runBackAction(context.player())));
+        widgetList.add(new ActionWidget(11,
+                context -> createHead(LOC_HEAD, ChatColor.GREEN + "Locations"),
+                (click, context) -> locGui.open(context.player())));
+        widgetList.add(new ActionWidget(13,
+                context -> createHead(NPC_HEAD, ChatColor.YELLOW + "NPCs"),
+                (click, context) -> npcGui.open(context.player())));
+        widgetList.add(new ActionWidget(15,
+                context -> createHead(MOB_HEAD, ChatColor.RED + "Mobs"),
+                (click, context) -> mobGui.open(context.player())));
+        return widgetList;
+    }
+
+    private void renderWidgets(Inventory inventory, Player player) {
+        GuiLayout layout = new GuiLayout(inventory);
+        GuiContext context = new GuiContext(player, inventory);
+        for (GuiWidget widget : widgets) {
+            widget.contribute(layout, context);
+        }
+    }
+
+    private boolean handleWidgetClick(InventoryClickEvent event, Player player) {
+        int slot = event.getRawSlot();
+        if (slot < 0 || slot >= event.getView().getTopInventory().getSize()) {
+            return false;
+        }
+        GuiWidget widget = widgets.stream()
+                .filter(w -> w.handlesSlot(slot))
+                .findFirst()
+                .orElse(null);
+        if (widget == null) {
+            return false;
+        }
+        event.setCancelled(true);
+        widget.onClick(slot, event.getClick(), new GuiContext(player, event.getView().getTopInventory()));
+        return true;
     }
 }

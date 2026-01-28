@@ -8,6 +8,10 @@ import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.TextUtil;
+import me.nakilex.levelplugin.utils.gui.widgets.ActionWidget;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiContext;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiLayout;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiWidget;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.HumanEntity;
@@ -48,10 +52,12 @@ public class ArenaQueueGUI implements Listener {
     private final ArenaQueueManager queueManager;
     private final ArenaRatingManager ratingManager;
     private final Map<UUID, Inventory> openInventories = new HashMap<>();
+    private final List<GuiWidget> widgets;
 
     public ArenaQueueGUI(ArenaQueueManager queueManager, ArenaRatingManager ratingManager) {
         this.queueManager = queueManager;
         this.ratingManager = ratingManager;
+        this.widgets = buildWidgets();
     }
 
     /**
@@ -63,8 +69,7 @@ public class ArenaQueueGUI implements Listener {
                 .fillEmptySlots(false)
                 .border()
                 .build();
-        inv.setItem(ONE_VS_ONE_SLOT, createQueueButton(player.getUniqueId(), ArenaMode.ONE_VS_ONE));
-        inv.setItem(TWO_VS_TWO_SLOT, createQueueButton(player.getUniqueId(), ArenaMode.TWO_VS_TWO));
+        renderWidgets(inv, player);
         openInventories.put(player.getUniqueId(), inv);
         player.openInventory(inv);
     }
@@ -77,7 +82,8 @@ public class ArenaQueueGUI implements Listener {
         refreshOpenInventories();
     }
 
-    private ItemStack createQueueButton(UUID viewerId, ArenaMode mode) {
+    private ItemStack createQueueButton(Player viewer, ArenaMode mode) {
+        UUID viewerId = viewer != null ? viewer.getUniqueId() : null;
         boolean queued = viewerId != null && queueManager.getMode(viewerId)
                 .map(mode::equals)
                 .orElse(false);
@@ -107,8 +113,8 @@ public class ArenaQueueGUI implements Listener {
                 lore.add(ChatColor.GRAY + "Queue with your party of two.");
             }
 
-            if (viewerId != null) {
-                ArenaRatingManager.RatingSnapshot snapshot = ratingManager.getSnapshot(viewerId, mode.ratingCategory());
+            if (viewer != null) {
+                ArenaRatingManager.RatingSnapshot snapshot = ratingManager.getSnapshot(viewer.getUniqueId(), mode.ratingCategory());
                 int rating = snapshot.rating();
                 int window = snapshot.matchWindow(Duration.ZERO);
                 int stability = (int) Math.round(snapshot.deviation());
@@ -144,19 +150,90 @@ public class ArenaQueueGUI implements Listener {
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        if (!event.getView().getTitle().equals(TITLE)) return;
-        event.setCancelled(true);
+        if (!GuiUtil.titleMatches(event.getView().getTitle(), TITLE)) return;
         if (!(event.getWhoClicked() instanceof Player player)) return;
-        int slot = event.getRawSlot();
-        ArenaMode mode;
-        if (slot == ONE_VS_ONE_SLOT) {
-            mode = ArenaMode.ONE_VS_ONE;
-        } else if (slot == TWO_VS_TWO_SLOT) {
-            mode = ArenaMode.TWO_VS_TWO;
-        } else {
+        if (handleWidgetClick(event, player)) {
             return;
         }
+    }
 
+    @EventHandler
+    public void onInventoryClose(InventoryCloseEvent event) {
+        if (!GuiUtil.titleMatches(event.getView().getTitle(), TITLE)) return;
+        openInventories.remove(event.getPlayer().getUniqueId());
+    }
+
+    @EventHandler
+    public void onQuit(PlayerQuitEvent event) {
+        UUID id = event.getPlayer().getUniqueId();
+        if (queueManager.leave(id, ArenaQueueManager.LeaveReason.DISCONNECT)) {
+            refreshOpenInventories();
+        }
+        openInventories.remove(id);
+    }
+
+    private void refreshOpenInventories() {
+        Iterator<Map.Entry<UUID, Inventory>> iterator = openInventories.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<UUID, Inventory> entry = iterator.next();
+            UUID viewerId = entry.getKey();
+            Inventory inv = entry.getValue();
+            boolean stillOpen = false;
+            Player player = null;
+            for (HumanEntity viewer : inv.getViewers()) {
+                if (viewer.getUniqueId().equals(viewerId) && viewer instanceof Player match) {
+                    player = match;
+                    stillOpen = true;
+                    break;
+                }
+            }
+            if (!stillOpen) {
+                iterator.remove();
+                continue;
+            }
+            if (player != null) {
+                renderWidgets(inv, player);
+            }
+        }
+    }
+
+    private List<GuiWidget> buildWidgets() {
+        List<GuiWidget> widgetList = new ArrayList<>();
+        widgetList.add(new ActionWidget(ONE_VS_ONE_SLOT,
+                context -> createQueueButton(context.player(), ArenaMode.ONE_VS_ONE),
+                (click, context) -> handleQueueClick(context.player(), ArenaMode.ONE_VS_ONE)));
+        widgetList.add(new ActionWidget(TWO_VS_TWO_SLOT,
+                context -> createQueueButton(context.player(), ArenaMode.TWO_VS_TWO),
+                (click, context) -> handleQueueClick(context.player(), ArenaMode.TWO_VS_TWO)));
+        return widgetList;
+    }
+
+    private void renderWidgets(Inventory inventory, Player player) {
+        GuiLayout layout = new GuiLayout(inventory);
+        GuiContext context = new GuiContext(player, inventory);
+        for (GuiWidget widget : widgets) {
+            widget.contribute(layout, context);
+        }
+    }
+
+    private boolean handleWidgetClick(InventoryClickEvent event, Player player) {
+        int slot = event.getRawSlot();
+        if (slot < 0 || slot >= event.getView().getTopInventory().getSize()) {
+            return false;
+        }
+        GuiWidget widget = widgets.stream()
+                .filter(w -> w.handlesSlot(slot))
+                .findFirst()
+                .orElse(null);
+        if (widget == null) {
+            return false;
+        }
+        event.setCancelled(true);
+        widget.onClick(slot, event.getClick(), new GuiContext(player, event.getView().getTopInventory()));
+        return true;
+    }
+
+    private void handleQueueClick(Player player, ArenaMode mode) {
         if (ArenaUnlockUtil.warnIfLocked(player)) {
             return;
         }
@@ -164,7 +241,7 @@ public class ArenaQueueGUI implements Listener {
         UUID id = player.getUniqueId();
         Optional<ArenaMode> current = queueManager.getMode(id);
         if (current.isPresent() && !current.get().equals(mode)) {
-            send(player, MessageType.ERROR, "Leave your current arena queue before joining another." );
+            send(player, MessageType.ERROR, "Leave your current arena queue before joining another.");
             refreshOpenInventories();
             return;
         }
@@ -190,42 +267,5 @@ public class ArenaQueueGUI implements Listener {
             }
         }
         refreshOpenInventories();
-    }
-
-    @EventHandler
-    public void onInventoryClose(InventoryCloseEvent event) {
-        if (!event.getView().getTitle().equals(TITLE)) return;
-        openInventories.remove(event.getPlayer().getUniqueId());
-    }
-
-    @EventHandler
-    public void onQuit(PlayerQuitEvent event) {
-        UUID id = event.getPlayer().getUniqueId();
-        if (queueManager.leave(id, ArenaQueueManager.LeaveReason.DISCONNECT)) {
-            refreshOpenInventories();
-        }
-        openInventories.remove(id);
-    }
-
-    private void refreshOpenInventories() {
-        Iterator<Map.Entry<UUID, Inventory>> iterator = openInventories.entrySet().iterator();
-        while (iterator.hasNext()) {
-            Map.Entry<UUID, Inventory> entry = iterator.next();
-            UUID viewerId = entry.getKey();
-            Inventory inv = entry.getValue();
-            boolean stillOpen = false;
-            for (HumanEntity viewer : inv.getViewers()) {
-                if (viewer.getUniqueId().equals(viewerId)) {
-                    stillOpen = true;
-                    break;
-                }
-            }
-            if (!stillOpen) {
-                iterator.remove();
-                continue;
-            }
-            inv.setItem(ONE_VS_ONE_SLOT, createQueueButton(viewerId, ArenaMode.ONE_VS_ONE));
-            inv.setItem(TWO_VS_TWO_SLOT, createQueueButton(viewerId, ArenaMode.TWO_VS_TWO));
-        }
     }
 }
