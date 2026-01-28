@@ -9,6 +9,10 @@ import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.TextUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
+import me.nakilex.levelplugin.utils.gui.widgets.ActionWidget;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiContext;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiLayout;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiWidget;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.HumanEntity;
@@ -53,6 +57,7 @@ public class BattlePassGUI implements Listener {
 
     private final BattlePassProvider provider;
     private final Map<UUID, PageState> openMenus = new HashMap<>();
+    private final Map<UUID, List<GuiWidget>> widgetsByPlayer = new HashMap<>();
 
     public BattlePassGUI(BattlePassProvider provider) {
         this.provider = provider;
@@ -76,59 +81,56 @@ public class BattlePassGUI implements Listener {
         if (page < 0) page = 0;
         if (page > maxPage) page = maxPage;
 
-        Inventory inv = buildInventory(view, page);
+        Inventory inv = buildInventory();
+        List<GuiWidget> widgets = buildWidgets(view, page);
+        widgetsByPlayer.put(player.getUniqueId(), widgets);
+        renderWidgets(inv, player, widgets);
         player.openInventory(inv);
-        Map<Integer, RewardTarget> slotTargets = buildSlotTargets(view, page);
-        Map<Integer, BattlePassEntry> tierMap = buildTierMap(view);
-        openMenus.put(player.getUniqueId(), new PageState(view, page, inv, slotTargets, tierMap));
+        openMenus.put(player.getUniqueId(), new PageState(view, page, inv));
     }
 
-    private Map<Integer, RewardTarget> buildSlotTargets(BattlePassView view, int page) {
-        Map<Integer, RewardTarget> slotTargets = new HashMap<>();
-        int startIndex = page * FREE_ROW.length;
-        int endIndex = Math.min(view.entries().size(), startIndex + FREE_ROW.length);
-        for (int idx = startIndex; idx < endIndex; idx++) {
-            BattlePassEntry entry = view.entries().get(idx);
-            int column = idx - startIndex;
-            slotTargets.put(FREE_ROW[column], new RewardTarget(entry.tier(), false));
-            slotTargets.put(PREMIUM_ROW[column], new RewardTarget(entry.tier(), true));
-        }
-        return slotTargets;
-    }
-
-    private Map<Integer, BattlePassEntry> buildTierMap(BattlePassView view) {
-        Map<Integer, BattlePassEntry> tierMap = new HashMap<>();
-        for (BattlePassEntry entry : view.entries()) {
-            tierMap.put(entry.tier(), entry);
-        }
-        return tierMap;
-    }
-
-    private Inventory buildInventory(BattlePassView view, int page) {
-        GuiBuilder builder = GuiBuilder.create(GUI_SIZE, TITLE)
+    private Inventory buildInventory() {
+        return GuiBuilder.create(GUI_SIZE, TITLE)
                 .filler(Material.BLACK_STAINED_GLASS_PANE)
-                .border();
+                .border()
+                .build();
+    }
 
+    private List<GuiWidget> buildWidgets(BattlePassView view, int page) {
+        List<GuiWidget> widgets = new ArrayList<>();
         int startIndex = page * FREE_ROW.length;
         int endIndex = Math.min(view.entries().size(), startIndex + FREE_ROW.length);
         for (int idx = startIndex; idx < endIndex; idx++) {
             int column = idx - startIndex;
             BattlePassEntry entry = view.entries().get(idx);
-            builder.setItem(FREE_ROW[column], createRewardIcon(entry, entry.freeReward(), view, false));
-            builder.setItem(PROGRESS_ROW[column], createProgressPane(entry, view));
-            builder.setItem(PREMIUM_ROW[column], createRewardIcon(entry, entry.premiumReward(), view, true));
+            widgets.add(new ActionWidget(FREE_ROW[column],
+                    context -> createRewardIcon(entry, entry.freeReward(), view, false),
+                    (click, context) -> handleRewardClick(context.player(), entry, false, view, page)));
+            widgets.add(new ActionWidget(PROGRESS_ROW[column],
+                    context -> createProgressPane(entry, view),
+                    null));
+            widgets.add(new ActionWidget(PREMIUM_ROW[column],
+                    context -> createRewardIcon(entry, entry.premiumReward(), view, true),
+                    (click, context) -> handleRewardClick(context.player(), entry, true, view, page)));
         }
 
         if (page > 0) {
-            builder.setItem(PREVIOUS_PAGE_SLOT, GuiUtil.getNexoItem("arrow_left", ChatColor.GREEN + "Previous Page"));
+            widgets.add(new ActionWidget(PREVIOUS_PAGE_SLOT,
+                    context -> GuiUtil.getNexoItem("arrow_left", ChatColor.GREEN + "Previous Page"),
+                    (click, context) -> open(context.player(), page - 1)));
         }
         if (endIndex < view.entries().size()) {
-            builder.setItem(NEXT_PAGE_SLOT, GuiUtil.getNexoItem("arrow_right", ChatColor.GREEN + "Next Page"));
+            widgets.add(new ActionWidget(NEXT_PAGE_SLOT,
+                    context -> GuiUtil.getNexoItem("arrow_right", ChatColor.GREEN + "Next Page"),
+                    (click, context) -> open(context.player(), page + 1)));
         }
-        builder.setItem(SEASON_SLOT, createSeasonItem(view));
-        builder.setItem(INFO_SLOT, createXpInfoItem());
-
-        return builder.build();
+        widgets.add(new ActionWidget(SEASON_SLOT,
+                context -> createSeasonItem(view),
+                null));
+        widgets.add(new ActionWidget(INFO_SLOT,
+                context -> createXpInfoItem(),
+                null));
+        return widgets;
     }
 
     private ItemStack createSeasonItem(BattlePassView view) {
@@ -251,46 +253,17 @@ public class BattlePassGUI implements Listener {
         return icon;
     }
 
-    @EventHandler
-    public void onInventoryClick(InventoryClickEvent event) {
-        if (!event.getView().getTitle().equals(TITLE)) {
-            return;
-        }
-        event.setCancelled(true);
-        if (!(event.getWhoClicked() instanceof Player player)) {
-            return;
-        }
-        PageState state = openMenus.get(player.getUniqueId());
-        if (state == null) {
-            return;
-        }
-        int slot = event.getRawSlot();
-        if (slot == PREVIOUS_PAGE_SLOT) {
-            open(player, state.page() - 1);
-            return;
-        }
-        if (slot == NEXT_PAGE_SLOT) {
-            open(player, state.page() + 1);
-            return;
-        }
-        RewardTarget target = state.slotTargets().get(slot);
-        if (target == null) {
-            return;
-        }
-        BattlePassEntry entry = state.entriesByTier().get(target.tier());
-        if (entry == null) {
-            return;
-        }
-        BattlePassReward reward = target.premium() ? entry.premiumReward() : entry.freeReward();
+    private void handleRewardClick(Player player, BattlePassEntry entry, boolean premium, BattlePassView view, int page) {
+        BattlePassReward reward = premium ? entry.premiumReward() : entry.freeReward();
         if (reward.claimed()) {
             ChatMessageUtil.send(player, MessageType.INFO, "You have already claimed this reward.");
             return;
         }
-        if (entry.tier() > state.view().currentTier()) {
+        if (entry.tier() > view.currentTier()) {
             ChatMessageUtil.send(player, MessageType.ERROR, "You have not unlocked this tier yet.");
             return;
         }
-        if (target.premium() && !state.view().premiumActive()) {
+        if (premium && !view.premiumActive()) {
             ChatMessageUtil.send(player, MessageType.ERROR, "You need the premium pass to claim this reward.");
             return;
         }
@@ -299,9 +272,9 @@ public class BattlePassGUI implements Listener {
             return;
         }
 
-        provider.claimReward(player, entry.tier(), target.premium());
+        provider.claimReward(player, entry.tier(), premium);
         BattlePassView refreshed = provider.view(player.getUniqueId());
-        int desiredPage = state.page();
+        int desiredPage = page;
         int maxPage = Math.max(0, (int) Math.ceil((double) refreshed.entries().size() / FREE_ROW.length) - 1);
         if (desiredPage > maxPage) {
             desiredPage = maxPage;
@@ -310,16 +283,32 @@ public class BattlePassGUI implements Listener {
     }
 
     @EventHandler
+    public void onInventoryClick(InventoryClickEvent event) {
+        if (!event.getView().getTitle().equals(TITLE)) {
+            return;
+        }
+        if (!(event.getWhoClicked() instanceof Player player)) {
+            return;
+        }
+        if (handleWidgetClick(event, player)) {
+            return;
+        }
+        event.setCancelled(true);
+    }
+
+    @EventHandler
     public void onInventoryClose(InventoryCloseEvent event) {
         if (!event.getView().getTitle().equals(TITLE)) {
             return;
         }
         openMenus.remove(event.getPlayer().getUniqueId());
+        widgetsByPlayer.remove(event.getPlayer().getUniqueId());
     }
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
         openMenus.remove(event.getPlayer().getUniqueId());
+        widgetsByPlayer.remove(event.getPlayer().getUniqueId());
     }
 
     public void refresh() {
@@ -351,11 +340,36 @@ public class BattlePassGUI implements Listener {
         }
     }
 
-    private record RewardTarget(int tier, boolean premium) { }
+    private boolean handleWidgetClick(InventoryClickEvent event, Player player) {
+        List<GuiWidget> widgets = widgetsByPlayer.get(player.getUniqueId());
+        if (widgets == null) {
+            return false;
+        }
+        int slot = event.getRawSlot();
+        if (slot < 0 || slot >= event.getView().getTopInventory().getSize()) {
+            return false;
+        }
+        GuiWidget widget = widgets.stream()
+                .filter(w -> w.handlesSlot(slot))
+                .findFirst()
+                .orElse(null);
+        if (widget == null) {
+            return false;
+        }
+        event.setCancelled(true);
+        widget.onClick(slot, event.getClick(), new GuiContext(player, event.getView().getTopInventory()));
+        return true;
+    }
+
+    private void renderWidgets(Inventory inventory, Player player, List<GuiWidget> widgets) {
+        GuiLayout layout = new GuiLayout(inventory);
+        GuiContext context = new GuiContext(player, inventory);
+        for (GuiWidget widget : widgets) {
+            widget.contribute(layout, context);
+        }
+    }
 
     private record PageState(BattlePassView view,
                              int page,
-                             Inventory inventory,
-                             Map<Integer, RewardTarget> slotTargets,
-                             Map<Integer, BattlePassEntry> entriesByTier) { }
+                             Inventory inventory) { }
 }

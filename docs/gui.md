@@ -92,9 +92,11 @@ It also centralizes the input-slot rules in `SalvageGUI.isInputSlot`, which the 
 - **Wandering Merchant**: uses `ActionWidget` for offer slots with shared click routing.
 - **Life Skills**: uses `ActionWidget` for skill entries and back navigation.
 - **Life Skill Rewards**: uses `ActionWidget` for reward slots, pagination, and catalog navigation.
+- **Expedition Rewards**: uses `ActionWidget` for the info slot while keeping loot slots interactive.
 - **Mercenary Expeditions**: uses `ActionWidget` for tab controls, party members, dungeon listings, and filter/search/sort controls.
 - **Mercenary Friendship**: uses `ActionWidget` for portrait, perk list, and back navigation.
 - **Mercenary Gifts**: uses `ActionWidget` for gift entries with shared click routing.
+- **Battle Pass**: uses `ActionWidget` for reward tiles, progress panes, and page navigation with centralized click routing.
 - **Profile Selection**: uses `ActionWidget` for profile slots plus edit/confirm controls.
 - **Quest Journal**: uses `ActionWidget` for quest entries, filters, and abandon confirmations.
 - **Settings**: uses `ActionWidget` for toggles, filters, and navigation.

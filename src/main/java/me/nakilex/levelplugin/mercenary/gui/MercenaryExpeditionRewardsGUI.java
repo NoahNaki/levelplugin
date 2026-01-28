@@ -5,6 +5,10 @@ import me.nakilex.levelplugin.mercenary.MercenaryExpeditionManager;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.NumberUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
+import me.nakilex.levelplugin.utils.gui.widgets.ActionWidget;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiContext;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiLayout;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiWidget;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -26,9 +30,11 @@ public class MercenaryExpeditionRewardsGUI implements Listener {
     private static final int SIZE = 54;
     private static final String TITLE = "Expedition Rewards";
     private static final int[] LOOT_SLOTS = GuiUtil.PAGED_SLOTS;
+    private static final int INFO_SLOT = 49;
 
     private final MercenaryExpeditionManager expeditionManager;
     private final Map<UUID, Set<Integer>> lootTrackedSlots = new HashMap<>();
+    private final Map<UUID, List<GuiWidget>> widgetsByPlayer = new HashMap<>();
 
     public MercenaryExpeditionRewardsGUI(Plugin plugin, MercenaryExpeditionManager expeditionManager) {
         this.expeditionManager = expeditionManager;
@@ -59,16 +65,9 @@ public class MercenaryExpeditionRewardsGUI implements Listener {
         }
         lootTrackedSlots.put(player.getUniqueId(), tracked);
 
-        ItemStack info = GuiUtil.getNexoItem("info", ChatColor.YELLOW + "Expedition Earnings");
-        ItemMeta meta = info.getItemMeta();
-        if (meta != null) {
-            List<String> lore = new ArrayList<>();
-            lore.add(ChatColor.GRAY + "Coins: " + ChatColor.GOLD + NumberUtil.formatCommas(rewards.coins()));
-            lore.add(ChatColor.GRAY + "Take the pieces you want; the rest are salvaged.");
-            meta.setLore(lore);
-            info.setItemMeta(meta);
-        }
-        inv.setItem(49, info);
+        List<GuiWidget> widgets = buildWidgets(rewards);
+        widgetsByPlayer.put(player.getUniqueId(), widgets);
+        renderWidgets(inv, player, widgets);
         player.openInventory(inv);
 
         // Credit coins immediately so they aren't lost.
@@ -87,6 +86,9 @@ public class MercenaryExpeditionRewardsGUI implements Listener {
             return;
         }
         if (!TITLE.equals(event.getView().getTitle())) {
+            return;
+        }
+        if (handleWidgetClick(event, player)) {
             return;
         }
         int raw = event.getRawSlot();
@@ -114,6 +116,7 @@ public class MercenaryExpeditionRewardsGUI implements Listener {
             return;
         }
         Set<Integer> tracked = lootTrackedSlots.remove(player.getUniqueId());
+        widgetsByPlayer.remove(player.getUniqueId());
         if (tracked == null) {
             return;
         }
@@ -127,5 +130,55 @@ public class MercenaryExpeditionRewardsGUI implements Listener {
         }
         expeditionManager.salvageRemaining(player, leftovers);
         expeditionManager.clearPending(player.getUniqueId());
+    }
+
+    private List<GuiWidget> buildWidgets(ExpeditionRewards rewards) {
+        List<GuiWidget> widgets = new ArrayList<>();
+        widgets.add(new ActionWidget(INFO_SLOT,
+                context -> createInfoItem(rewards),
+                null));
+        return widgets;
+    }
+
+    private ItemStack createInfoItem(ExpeditionRewards rewards) {
+        ItemStack info = GuiUtil.getNexoItem("info", ChatColor.YELLOW + "Expedition Earnings");
+        ItemMeta meta = info.getItemMeta();
+        if (meta != null) {
+            List<String> lore = new ArrayList<>();
+            lore.add(ChatColor.GRAY + "Coins: " + ChatColor.GOLD + NumberUtil.formatCommas(rewards.coins()));
+            lore.add(ChatColor.GRAY + "Take the pieces you want; the rest are salvaged.");
+            meta.setLore(lore);
+            info.setItemMeta(meta);
+        }
+        return info;
+    }
+
+    private boolean handleWidgetClick(InventoryClickEvent event, Player player) {
+        List<GuiWidget> widgets = widgetsByPlayer.get(player.getUniqueId());
+        if (widgets == null) {
+            return false;
+        }
+        int slot = event.getRawSlot();
+        if (slot < 0 || slot >= event.getView().getTopInventory().getSize()) {
+            return false;
+        }
+        GuiWidget widget = widgets.stream()
+                .filter(w -> w.handlesSlot(slot))
+                .findFirst()
+                .orElse(null);
+        if (widget == null) {
+            return false;
+        }
+        event.setCancelled(true);
+        widget.onClick(slot, event.getClick(), new GuiContext(player, event.getView().getTopInventory()));
+        return true;
+    }
+
+    private void renderWidgets(Inventory inventory, Player player, List<GuiWidget> widgets) {
+        GuiLayout layout = new GuiLayout(inventory);
+        GuiContext context = new GuiContext(player, inventory);
+        for (GuiWidget widget : widgets) {
+            widget.contribute(layout, context);
+        }
     }
 }
