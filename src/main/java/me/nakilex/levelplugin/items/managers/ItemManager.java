@@ -43,7 +43,7 @@ public class ItemManager {
     /**
      * Procedurally generated items all receive unique negative IDs. We keep a
      * counter that starts at -1 and decrements for each generated item so the
-     * IDs never collide with the positive template IDs from items_legacy.yml.
+     * IDs never collide with the positive template IDs from items.yml.
      */
     private int nextGeneratedId = -1;
 
@@ -59,13 +59,13 @@ public class ItemManager {
     }
 
     private void loadItemsConfig(Plugin plugin) {
-        File file = new File(plugin.getDataFolder(), "items_legacy.yml");
+        File file = new File(plugin.getDataFolder(), "items.yml");
         if (!file.exists()) {
-            plugin.saveResource("items_legacy.yml", true);
+            plugin.saveResource("items.yml", false);
         }
         itemsConfig = YamlConfiguration.loadConfiguration(file);
 
-        InputStream defStream = plugin.getResource("items_legacy.yml");
+        InputStream defStream = plugin.getResource("items.yml");
         if (defStream != null) {
             YamlConfiguration defConfig = YamlConfiguration.loadConfiguration(
                 new InputStreamReader(defStream, StandardCharsets.UTF_8));
@@ -78,16 +78,30 @@ public class ItemManager {
         itemsMap.clear();
 
         if (!itemsConfig.contains("items")) {
-            Main.getInstance().getLogger().warning("No items found in items_legacy.yml!");
+            Main.getInstance().getLogger().warning("No items found in items.yml!");
             return;
         }
 
-        for (String key : itemsConfig.getConfigurationSection("items").getKeys(false)) {
+        int schema = itemsConfig.getInt("schema", 1);
+        if (schema == 2) {
+            loadItemsV2(itemsConfig.getConfigurationSection("items"));
+        } else {
+            loadItemsV1(itemsConfig.getConfigurationSection("items"));
+        }
+
+        Main.getInstance().getLogger()
+            .info("Loaded " + templatesMap.size() + " custom item templates from items.yml.");
+    }
+
+    private void loadItemsV1(org.bukkit.configuration.ConfigurationSection itemsSection) {
+        if (itemsSection == null) {
+            return;
+        }
+        for (String key : itemsSection.getKeys(false)) {
             try {
                 int numericId = Integer.parseInt(key);
                 String path = "items." + key + ".";
 
-                // Basic fields
                 String name       = itemsConfig.getString(path + "name", "Unknown Item");
                 ItemRarity rarity = ItemRarity.valueOf(
                     itemsConfig.getString(path + "rarity", "COMMON").toUpperCase());
@@ -107,7 +121,6 @@ public class ItemManager {
                     };
                 }
 
-                // === NEW: parse StatRanges instead of ints ===
                 StatRange hpRange    = StatRange.fromString(
                     itemsConfig.getString(path + "hp", "0-0"));
                 StatRange defRange   = StatRange.fromString(
@@ -125,47 +138,163 @@ public class ItemManager {
                 StatRange tecRange   = StatRange.fromString(
                     itemsConfig.getString(path + "tec", "0-0"));
 
-                TemplateRanges normalized = normalizeTemplateRanges(
-                        levelReq,
-                        rarity,
-                        material,
-                        hpRange,
-                        defRange,
-                        strRange,
-                        agiRange,
-                        intelRange,
-                        dexRange,
-                        wilRange,
-                        tecRange);
-
-                // Build the template (rolls will happen when creating instances)
-                CustomItem template = new CustomItem(
-                    numericId,
-                    name,
-                    rarity,
-                    levelReq,
-                    classReq,
-                    material,
-                    normalized.hpRange(),
-                    normalized.defRange(),
-                    normalized.strRange(),
-                    normalized.agiRange(),
-                    normalized.intelRange(),
-                    normalized.dexRange(),
-                    normalized.wilRange(),
-                    normalized.tecRange()
-                );
-
-                templatesMap.put(numericId, template);
-
+                addTemplate(numericId, name, rarity, levelReq, classReq, material,
+                        hpRange, defRange, strRange, agiRange, intelRange, dexRange, wilRange, tecRange);
             } catch (Exception e) {
                 Main.getInstance().getLogger().warning("Failed to load item with key: " + key);
                 e.printStackTrace();
             }
         }
+    }
 
-        Main.getInstance().getLogger()
-            .info("Loaded " + templatesMap.size() + " custom item templates from items_legacy.yml.");
+    private void loadItemsV2(org.bukkit.configuration.ConfigurationSection itemsSection) {
+        if (itemsSection == null) {
+            return;
+        }
+        for (String key : itemsSection.getKeys(false)) {
+            try {
+                org.bukkit.configuration.ConfigurationSection section = itemsSection.getConfigurationSection(key);
+                if (section == null) {
+                    continue;
+                }
+                int numericId = Integer.parseInt(key);
+                String name = section.getString("name", "Unknown Item");
+                ItemRarity rarity = ItemRarity.valueOf(section.getString("rarity", "COMMON").toUpperCase());
+
+                org.bukkit.configuration.ConfigurationSection reqSection = section.getConfigurationSection("requirements");
+                int levelReq = reqSection != null ? reqSection.getInt("level", 1) : 1;
+                String classReq = resolveClassRequirement(reqSection != null ? reqSection.getStringList("classes") : null);
+
+                org.bukkit.configuration.ConfigurationSection visuals = section.getConfigurationSection("visuals");
+                Material material = visuals != null
+                        ? Material.valueOf(visuals.getString("baseMaterial", "STONE").toUpperCase())
+                        : Material.STONE;
+
+                me.nakilex.levelplugin.items.data.WeaponType wt =
+                        me.nakilex.levelplugin.items.data.WeaponType.matchType(new org.bukkit.inventory.ItemStack(material));
+                if (wt != null) {
+                    classReq = switch (wt) {
+                        case WAND -> "MAGE";
+                        case BOW -> "ARCHER";
+                        case SHOVEL, AXE -> "WARRIOR";
+                        case SWORD -> "ROGUE";
+                    };
+                }
+
+                org.bukkit.configuration.ConfigurationSection statsSection = section.getConfigurationSection("stats");
+                StatRange hpRange = parseStatRange(statsSection, "hp");
+                StatRange defRange = parseStatRange(statsSection, "def");
+                StatRange strRange = parseStatRange(statsSection, "str");
+                StatRange agiRange = parseStatRange(statsSection, "agi");
+                StatRange intelRange = parseStatRange(statsSection, "intel");
+                StatRange dexRange = parseStatRange(statsSection, "dex");
+                StatRange wilRange = parseStatRange(statsSection, "wil");
+                StatRange tecRange = parseStatRange(statsSection, "tec");
+
+                addTemplate(numericId, name, rarity, levelReq, classReq, material,
+                        hpRange, defRange, strRange, agiRange, intelRange, dexRange, wilRange, tecRange);
+            } catch (Exception e) {
+                Main.getInstance().getLogger().warning("Failed to load item with key: " + key);
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private void addTemplate(int numericId,
+                             String name,
+                             ItemRarity rarity,
+                             int levelReq,
+                             String classReq,
+                             Material material,
+                             StatRange hpRange,
+                             StatRange defRange,
+                             StatRange strRange,
+                             StatRange agiRange,
+                             StatRange intelRange,
+                             StatRange dexRange,
+                             StatRange wilRange,
+                             StatRange tecRange) {
+        TemplateRanges normalized = normalizeTemplateRanges(
+                levelReq,
+                rarity,
+                material,
+                hpRange,
+                defRange,
+                strRange,
+                agiRange,
+                intelRange,
+                dexRange,
+                wilRange,
+                tecRange);
+
+        CustomItem template = new CustomItem(
+                numericId,
+                name,
+                rarity,
+                levelReq,
+                classReq,
+                material,
+                normalized.hpRange(),
+                normalized.defRange(),
+                normalized.strRange(),
+                normalized.agiRange(),
+                normalized.intelRange(),
+                normalized.dexRange(),
+                normalized.wilRange(),
+                normalized.tecRange()
+        );
+
+        templatesMap.put(numericId, template);
+    }
+
+    private StatRange parseStatRange(org.bukkit.configuration.ConfigurationSection statsSection, String key) {
+        if (statsSection == null || key == null) {
+            return new StatRange(0, 0);
+        }
+        Object raw = statsSection.get(key);
+        if (raw instanceof Number number) {
+            int value = (int) Math.round(number.doubleValue());
+            return new StatRange(value, value);
+        }
+        if (raw instanceof String str) {
+            try {
+                return StatRange.fromString(str);
+            } catch (IllegalArgumentException ignored) {
+                return new StatRange(0, 0);
+            }
+        }
+        if (raw instanceof org.bukkit.configuration.ConfigurationSection section) {
+            if (section.contains("fixed")) {
+                int value = (int) Math.round(section.getDouble("fixed"));
+                return new StatRange(value, value);
+            }
+            org.bukkit.configuration.ConfigurationSection rangeSection = section.getConfigurationSection("range");
+            if (rangeSection != null) {
+                int min = (int) Math.round(rangeSection.getDouble("min"));
+                int max = (int) Math.round(rangeSection.getDouble("max"));
+                return new StatRange(min, max);
+            }
+        }
+        return new StatRange(0, 0);
+    }
+
+    private String resolveClassRequirement(java.util.List<String> classes) {
+        if (classes == null || classes.isEmpty()) {
+            return "ANY";
+        }
+        for (String entry : classes) {
+            if (entry == null || entry.isBlank()) {
+                continue;
+            }
+            String normalized = entry.trim().toUpperCase();
+            if (normalized.equals("ROGUE")
+                    || normalized.equals("ARCHER")
+                    || normalized.equals("MAGE")
+                    || normalized.equals("WARRIOR")) {
+                return normalized;
+            }
+        }
+        return "ANY";
     }
 
     private TemplateRanges normalizeTemplateRanges(int levelRequirement,

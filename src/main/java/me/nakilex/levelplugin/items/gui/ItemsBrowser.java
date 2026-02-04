@@ -7,6 +7,7 @@ import me.nakilex.levelplugin.items.v2.ItemRegistry;
 import me.nakilex.levelplugin.items.v2.ItemStatType;
 import me.nakilex.levelplugin.items.v2.ItemType;
 import me.nakilex.levelplugin.items.v2.StatValue;
+import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
@@ -26,6 +27,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.ArrayList;
@@ -250,6 +252,7 @@ public class ItemsBrowser implements CommandExecutor, Listener {
             pm.setLore(lore);
             pm.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_UNBREAKABLE);
             pm.setUnbreakable(true);
+            pm.getPersistentDataContainer().set(ItemUtil.ITEM_ID_KEY, PersistentDataType.INTEGER, tpl.id());
             preview.setItemMeta(pm);
             ItemUtil.applyRarityTooltipStyle(preview, tpl.rarity());
 
@@ -377,9 +380,17 @@ public class ItemsBrowser implements CommandExecutor, Listener {
             return;
         }
 
-        ItemStack display = clicked.clone();
-        player.getInventory().addItem(display);
+        int templateId = ItemUtil.getCustomItemId(clicked);
+        if (templateId == -1) {
+            return;
+        }
+        me.nakilex.levelplugin.items.data.CustomItem instance = ItemManager.getInstance().rollNewInstance(templateId);
+        if (instance == null) {
+            return;
+        }
+        ItemStack toGive = ItemUtil.createItemStackFromCustomItem(instance, 1, player);
+        player.getInventory().addItem(toGive);
         player.sendMessage(ChatColor.GREEN + "You received: "
-                + display.getItemMeta().getDisplayName());
+                + toGive.getItemMeta().getDisplayName());
     }
 }

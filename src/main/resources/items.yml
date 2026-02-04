@@ -139,7 +139,7 @@ items:
     requirements:
       level: 20
       classes:
-        - BARBARIAN
+        - WARRIOR
     visuals:
       baseMaterial: DIAMOND_AXE
       modelKey: weapon_dread_greataxe
@@ -173,7 +173,7 @@ items:
     requirements:
       level: 24
       classes:
-        - ARCHMAGE
+        - MAGE
     visuals:
       baseMaterial: BLAZE_ROD
       modelKey: weapon_moonstaff
@@ -190,7 +190,7 @@ items:
     requirements:
       level: 30
       classes:
-        - DEADEYE
+        - ARCHER
     visuals:
       baseMaterial: BOW
       modelKey: weapon_stormpiercer
@@ -207,7 +207,7 @@ items:
     requirements:
       level: 32
       classes:
-        - DEATHKNIGHT
+        - WARRIOR
     visuals:
       baseMaterial: NETHERITE_SWORD
       modelKey: weapon_frostbite_edge
@@ -224,7 +224,7 @@ items:
     requirements:
       level: 40
       classes:
-        - DRAGONWARRIOR
+        - WARRIOR
     visuals:
       baseMaterial: NETHERITE_AXE
       modelKey: weapon_dragoncore_glaive
@@ -241,7 +241,7 @@ items:
     requirements:
       level: 42
       classes:
-        - AWAKMAGE
+        - MAGE
     visuals:
       baseMaterial: BLAZE_ROD
       modelKey: weapon_astral_staff
@@ -258,7 +258,7 @@ items:
     requirements:
       level: 50
       classes:
-        - AWAKROGUE
+        - ROGUE
     visuals:
       baseMaterial: NETHERITE_SWORD
       modelKey: weapon_serpent_quickstep
@@ -289,7 +289,7 @@ items:
     requirements:
       level: 1
       classes:
-        - CLERIC
+        - MAGE
     visuals:
       baseMaterial: LEATHER_CHESTPLATE
       modelKey: armor_pilgrim_vest
@@ -390,7 +390,7 @@ items:
     requirements:
       level: 20
       classes:
-        - CLERIC
+        - MAGE
     visuals:
       baseMaterial: DIAMOND_BOOTS
       modelKey: armor_lifebinder_treads
@@ -407,7 +407,7 @@ items:
     requirements:
       level: 24
       classes:
-        - DRAGONIAN
+        - WARRIOR
     visuals:
       baseMaterial: DIAMOND_CHESTPLATE
       modelKey: armor_runebound_chestguard
@@ -424,7 +424,7 @@ items:
     requirements:
       level: 30
       classes:
-        - ABYSSION
+        - WARRIOR
     visuals:
       baseMaterial: NETHERITE_HELMET
       modelKey: armor_abyssal_warden_helm
@@ -441,7 +441,7 @@ items:
     requirements:
       level: 32
       classes:
-        - GALEGLAIVE
+        - ARCHER
     visuals:
       baseMaterial: NETHERITE_BOOTS
       modelKey: armor_galeglide_boots
@@ -458,7 +458,7 @@ items:
     requirements:
       level: 40
       classes:
-        - PALADIN
+        - WARRIOR
     visuals:
       baseMaterial: NETHERITE_CHESTPLATE
       modelKey: armor_celestial_wardplate
@@ -475,7 +475,7 @@ items:
     requirements:
       level: 45
       classes:
-        - PHOENIXHUNTER
+        - ARCHER
     visuals:
       baseMaterial: NETHERITE_LEGGINGS
       modelKey: armor_phoenixhunter_greaves
@@ -492,7 +492,7 @@ items:
     requirements:
       level: 55
       classes:
-        - ARCTICKNIGHT
+        - WARRIOR
     visuals:
       baseMaterial: NETHERITE_BOOTS
       modelKey: armor_frostveil_boots
@@ -522,7 +522,7 @@ items:
     requirements:
       level: 18
       classes:
-        - CLERIC
+        - MAGE
     visuals:
       baseMaterial: TOTEM_OF_UNDYING
       modelKey: gift_sanctified_relic

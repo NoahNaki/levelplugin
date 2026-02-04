@@ -307,10 +307,17 @@ public class ItemRegistry {
                 continue;
             }
             PlayerClass playerClass = PlayerClass.fromString(entry);
-            if (playerClass != null && playerClass != PlayerClass.VILLAGER) {
+            if (playerClass != null && isSupportedClass(playerClass)) {
                 classes.add(playerClass);
             }
         }
         return classes;
+    }
+
+    private boolean isSupportedClass(PlayerClass playerClass) {
+        return playerClass == PlayerClass.ROGUE
+                || playerClass == PlayerClass.ARCHER
+                || playerClass == PlayerClass.MAGE
+                || playerClass == PlayerClass.WARRIOR;
     }
 }

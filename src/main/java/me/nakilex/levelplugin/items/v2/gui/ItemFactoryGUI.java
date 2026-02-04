@@ -45,6 +45,12 @@ import java.util.UUID;
 
 public class ItemFactoryGUI implements CommandExecutor, Listener {
     private static final int SIZE = 54;
+    private static final List<PlayerClass> SUPPORTED_CLASSES = List.of(
+            PlayerClass.ROGUE,
+            PlayerClass.ARCHER,
+            PlayerClass.MAGE,
+            PlayerClass.WARRIOR
+    );
 
     private static final int NAME_SLOT = 10;
     private static final int TYPE_SLOT = 12;
@@ -277,7 +283,7 @@ public class ItemFactoryGUI implements CommandExecutor, Listener {
         }
 
         if (slot == CLASS_SLOT) {
-            startTextPrompt(player, "Enter classes (comma-separated) or 'any':", input -> {
+            startTextPrompt(player, "Enter classes (rogue, archer, mage, warrior) or 'any':", input -> {
                 draft.classes = parseClasses(input);
                 open(player);
             });
@@ -403,7 +409,7 @@ public class ItemFactoryGUI implements CommandExecutor, Listener {
         List<PlayerClass> classes = new ArrayList<>();
         for (String part : parts) {
             PlayerClass pc = PlayerClass.fromString(part.trim());
-            if (pc != null && pc != PlayerClass.VILLAGER) {
+            if (pc != null && SUPPORTED_CLASSES.contains(pc)) {
                 classes.add(pc);
             }
         }
