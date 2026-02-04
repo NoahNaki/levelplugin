@@ -4,6 +4,10 @@ import me.nakilex.levelplugin.dungeon.DungeonManager;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
+import me.nakilex.levelplugin.utils.gui.widgets.ActionWidget;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiContext;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiLayout;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiWidget;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -25,9 +29,11 @@ public class DungeonLeaveGUI implements Listener {
     private static final int CANCEL_SLOT = 15;
 
     private final DungeonManager dungeonManager;
+    private final List<GuiWidget> widgets;
 
     public DungeonLeaveGUI(DungeonManager dungeonManager) {
         this.dungeonManager = dungeonManager;
+        this.widgets = buildWidgets();
     }
 
     public void open(Player player) {
@@ -42,26 +48,56 @@ public class DungeonLeaveGUI implements Listener {
                 .filler(Material.GRAY_STAINED_GLASS_PANE)
                 .build();
 
-        inv.setItem(CONFIRM_SLOT, createConfirmItem());
-        inv.setItem(CANCEL_SLOT, createCancelItem());
+        renderWidgets(inv, player);
 
         player.openInventory(inv);
     }
 
     @EventHandler
     public void onClick(InventoryClickEvent event) {
-        if (!event.getView().getTitle().equals(TITLE)) return;
+        if (!GuiUtil.titleMatches(event.getView().getTitle(), TITLE)) return;
         event.setCancelled(true);
         if (!(event.getWhoClicked() instanceof Player player)) return;
-        if (event.getCurrentItem() == null || !event.getCurrentItem().hasItemMeta()) return;
+        handleWidgetClick(event, player);
+    }
 
-        int slot = event.getRawSlot();
-        if (slot == CONFIRM_SLOT) {
-            player.closeInventory();
-            dungeonManager.handleInstanceExit(player.getWorld(), player, true);
-        } else if (slot == CANCEL_SLOT) {
-            player.closeInventory();
+    private List<GuiWidget> buildWidgets() {
+        List<GuiWidget> widgetList = new ArrayList<>();
+        widgetList.add(new ActionWidget(CONFIRM_SLOT,
+                context -> createConfirmItem(),
+                (click, context) -> {
+                    Player player = context.player();
+                    player.closeInventory();
+                    dungeonManager.handleInstanceExit(player.getWorld(), player, true);
+                }));
+        widgetList.add(new ActionWidget(CANCEL_SLOT,
+                context -> createCancelItem(),
+                (click, context) -> context.player().closeInventory()));
+        return widgetList;
+    }
+
+    private void renderWidgets(Inventory inventory, Player player) {
+        GuiLayout layout = new GuiLayout(inventory);
+        GuiContext context = new GuiContext(player, inventory);
+        for (GuiWidget widget : widgets) {
+            widget.contribute(layout, context);
         }
+    }
+
+    private boolean handleWidgetClick(InventoryClickEvent event, Player player) {
+        int slot = event.getRawSlot();
+        if (slot < 0 || slot >= event.getView().getTopInventory().getSize()) {
+            return false;
+        }
+        GuiWidget widget = widgets.stream()
+                .filter(w -> w.handlesSlot(slot))
+                .findFirst()
+                .orElse(null);
+        if (widget == null) {
+            return false;
+        }
+        widget.onClick(slot, event.getClick(), new GuiContext(player, event.getView().getTopInventory()));
+        return true;
     }
 
     private ItemStack createConfirmItem() {

@@ -5,6 +5,12 @@ import com.nexomc.nexo.items.ItemBuilder;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.utils.ChatFormatter;
+import me.nakilex.levelplugin.utils.GuiUtil;
+import me.nakilex.levelplugin.utils.TooltipUtil;
+import me.nakilex.levelplugin.utils.gui.widgets.ActionWidget;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiContext;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiLayout;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiWidget;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -55,6 +61,7 @@ public class SubclassGUI implements Listener {
     static final Map<UUID, Integer> FILTER = new HashMap<>();
     static final Map<UUID, Integer> SORT = new HashMap<>();
     private static final Map<UUID, List<PlayerClass>> PAGE_CONTENT = new HashMap<>();
+    private static final Map<UUID, List<GuiWidget>> WIDGETS = new HashMap<>();
 
     public static void open(Player player) {
         int page = PAGE.getOrDefault(player.getUniqueId(), 0);
@@ -98,20 +105,15 @@ public class SubclassGUI implements Listener {
         List<PlayerClass> pageList = new ArrayList<>();
         for (int i = start, slot = 0; i < list.size() && slot < ITEMS_PER_PAGE; i++) {
             PlayerClass pc = list.get(i);
-            boolean unlocked = ps.unlockedClasses.contains(pc);
-            ItemStack item = unlocked ? createItem(pc) : createLockedItem(pc);
-            inv.setItem(CLASS_SLOTS[slot++], item);
             pageList.add(pc);
+            slot++;
         }
         PAGE_CONTENT.put(player.getUniqueId(), pageList);
 
-        if (page > 0) inv.setItem(PREV_SLOT, getNexoItem("arrow_left", ChatColor.GREEN + "Previous"));
-        if (list.size() > (page + 1) * ITEMS_PER_PAGE) inv.setItem(NEXT_SLOT, getNexoItem("arrow_right", ChatColor.GREEN + "Next"));
-        inv.setItem(FILTER_SLOT, createFilterButton(filter));
-        inv.setItem(SORT_SLOT, createSortButton(sort));
-        inv.setItem(INFO_SLOT, getNexoItem("info", ChatColor.YELLOW + "Information"));
-
         OPEN.put(player.getUniqueId(), inv);
+        List<GuiWidget> widgets = buildWidgets(player, ps, list.size(), page, filter, sort, pageList);
+        WIDGETS.put(player.getUniqueId(), widgets);
+        renderWidgets(inv, player, widgets);
         player.openInventory(inv);
     }
 
@@ -251,14 +253,6 @@ public class SubclassGUI implements Listener {
         return item;
     }
 
-    private static ItemStack getNexoItem(String id, String name) {
-        ItemBuilder b = NexoItems.itemFromId(id);
-        ItemStack it = b == null ? new ItemStack(Material.BARRIER) : b.build();
-        ItemMeta meta = it.getItemMeta();
-        if (meta != null) { meta.setDisplayName(name); it.setItemMeta(meta); }
-        return it;
-    }
-
     private static ItemStack createFilterButton(int mode) {
         ItemStack it = new ItemStack(Material.HOPPER);
         ItemMeta meta = it.getItemMeta();
@@ -273,7 +267,7 @@ public class SubclassGUI implements Listener {
                 lore.add(rangeLine(i, mode, opts[i]));
             }
             lore.add(" ");
-            lore.add(ChatColor.WHITE + "Click to cycle");
+            lore.addAll(TooltipUtil.clickInstructions("to cycle", null));
             meta.setLore(lore);
             it.setItemMeta(meta);
         }
@@ -294,7 +288,7 @@ public class SubclassGUI implements Listener {
                 lore.add(rangeLine(i, mode, opts[i]));
             }
             lore.add(" ");
-            lore.add(ChatColor.WHITE + "Click to cycle");
+            lore.addAll(TooltipUtil.clickInstructions("to cycle", null));
             meta.setLore(lore);
             it.setItemMeta(meta);
         }
@@ -312,56 +306,10 @@ public class SubclassGUI implements Listener {
         Player player = (Player) e.getWhoClicked();
         Inventory open = OPEN.get(player.getUniqueId());
         if (open == null || !e.getView().getTopInventory().equals(open)) return;
+        if (handleWidgetClick(e, player)) {
+            return;
+        }
         e.setCancelled(true);
-
-        int slot = e.getRawSlot();
-        if (slot == PREV_SLOT) {
-            int p = PAGE.getOrDefault(player.getUniqueId(), 0);
-            open(player, Math.max(0, p - 1));
-            return;
-        }
-        if (slot == NEXT_SLOT) {
-            int p = PAGE.getOrDefault(player.getUniqueId(), 0);
-            open(player, p + 1);
-            return;
-        }
-        if (slot == FILTER_SLOT) {
-            int f = FILTER.getOrDefault(player.getUniqueId(), 0);
-            f = (f + 1) % 2;
-            FILTER.put(player.getUniqueId(), f);
-            open(player, PAGE.getOrDefault(player.getUniqueId(), 0));
-            return;
-        }
-        if (slot == SORT_SLOT) {
-            int s = SORT.getOrDefault(player.getUniqueId(), 0);
-            s = (s + 1) % 2;
-            SORT.put(player.getUniqueId(), s);
-            open(player, PAGE.getOrDefault(player.getUniqueId(), 0));
-            return;
-        }
-
-        List<PlayerClass> current = PAGE_CONTENT.getOrDefault(player.getUniqueId(), Collections.emptyList());
-        for (int i = 0; i < current.size() && i < CLASS_SLOTS.length; i++) {
-            if (slot == CLASS_SLOTS[i]) {
-                PlayerClass pc = current.get(i);
-                StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
-                if (ps.unlockedClasses.contains(pc)) {
-                    ps.playerClass = pc;
-                    ChatFormatter.constructDivider(player, "§6§l-", 45);
-                    ChatFormatter.sendCenteredMessage(player, "§6§lCLASS SELECTED!");
-                    ChatFormatter.sendCenteredMessage(player, "");
-                    ChatFormatter.sendCenteredMessage(player,
-                            "§7You are now the §e§l" + pc.name() + " §7class!");
-                    ChatFormatter.sendCenteredMessage(player, "");
-                    ChatFormatter.constructDivider(player, "§6§l-", 45);
-                    player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
-                    player.closeInventory();
-                } else {
-                    player.sendMessage(ChatColor.RED + "You cannot select that class!");
-                }
-                return;
-            }
-        }
     }
 
     @EventHandler
@@ -370,6 +318,99 @@ public class SubclassGUI implements Listener {
         if (open != null && e.getInventory().equals(open)) {
             OPEN.remove(e.getPlayer().getUniqueId());
             PAGE_CONTENT.remove(e.getPlayer().getUniqueId());
+            WIDGETS.remove(e.getPlayer().getUniqueId());
+        }
+    }
+
+    private static List<GuiWidget> buildWidgets(Player player,
+                                                StatsManager.PlayerStats ps,
+                                                int totalClasses,
+                                                int page,
+                                                int filter,
+                                                int sort,
+                                                List<PlayerClass> pageList) {
+        List<GuiWidget> widgets = new ArrayList<>();
+        for (int i = 0; i < pageList.size() && i < CLASS_SLOTS.length; i++) {
+            int slot = CLASS_SLOTS[i];
+            PlayerClass pc = pageList.get(i);
+            widgets.add(new ActionWidget(slot,
+                    context -> ps.unlockedClasses.contains(pc) ? createItem(pc) : createLockedItem(pc),
+                    (click, context) -> handleClassClick(context.player(), ps, pc)));
+        }
+
+        if (page > 0) {
+            widgets.add(new ActionWidget(PREV_SLOT,
+                    context -> GuiUtil.getNexoItem("arrow_left", ChatColor.GREEN + "Previous"),
+                    (click, context) -> open(context.player(), Math.max(0, page - 1))));
+        }
+        if (totalClasses > (page + 1) * ITEMS_PER_PAGE) {
+            widgets.add(new ActionWidget(NEXT_SLOT,
+                    context -> GuiUtil.getNexoItem("arrow_right", ChatColor.GREEN + "Next"),
+                    (click, context) -> open(context.player(), page + 1)));
+        }
+        widgets.add(new ActionWidget(FILTER_SLOT,
+                context -> createFilterButton(filter),
+                (click, context) -> {
+                    int updated = (filter + 1) % 2;
+                    FILTER.put(context.player().getUniqueId(), updated);
+                    open(context.player(), PAGE.getOrDefault(context.player().getUniqueId(), 0));
+                }));
+        widgets.add(new ActionWidget(SORT_SLOT,
+                context -> createSortButton(sort),
+                (click, context) -> {
+                    int updated = (sort + 1) % 2;
+                    SORT.put(context.player().getUniqueId(), updated);
+                    open(context.player(), PAGE.getOrDefault(context.player().getUniqueId(), 0));
+                }));
+        widgets.add(new ActionWidget(INFO_SLOT,
+                context -> GuiUtil.getNexoItem("info", ChatColor.YELLOW + "Information"),
+                null));
+        return widgets;
+    }
+
+    private static void handleClassClick(Player player, StatsManager.PlayerStats ps, PlayerClass pc) {
+        if (ps.unlockedClasses.contains(pc)) {
+            ps.playerClass = pc;
+            ChatFormatter.constructDivider(player, "§6§l-", 45);
+            ChatFormatter.sendCenteredMessage(player, "§6§lCLASS SELECTED!");
+            ChatFormatter.sendCenteredMessage(player, "");
+            ChatFormatter.sendCenteredMessage(player,
+                    "§7You are now the §e§l" + pc.name() + " §7class!");
+            ChatFormatter.sendCenteredMessage(player, "");
+            ChatFormatter.constructDivider(player, "§6§l-", 45);
+            player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
+            player.closeInventory();
+        } else {
+            player.sendMessage(ChatColor.RED + "You cannot select that class!");
+        }
+    }
+
+    private static boolean handleWidgetClick(InventoryClickEvent event, Player player) {
+        List<GuiWidget> widgets = WIDGETS.get(player.getUniqueId());
+        if (widgets == null) {
+            return false;
+        }
+        int slot = event.getRawSlot();
+        if (slot < 0 || slot >= event.getView().getTopInventory().getSize()) {
+            return false;
+        }
+        GuiWidget widget = widgets.stream()
+                .filter(w -> w.handlesSlot(slot))
+                .findFirst()
+                .orElse(null);
+        if (widget == null) {
+            return false;
+        }
+        event.setCancelled(true);
+        widget.onClick(slot, event.getClick(), new GuiContext(player, event.getView().getTopInventory()));
+        return true;
+    }
+
+    private static void renderWidgets(Inventory inventory, Player player, List<GuiWidget> widgets) {
+        GuiLayout layout = new GuiLayout(inventory);
+        GuiContext context = new GuiContext(player, inventory);
+        for (GuiWidget widget : widgets) {
+            widget.contribute(layout, context);
         }
     }
 }

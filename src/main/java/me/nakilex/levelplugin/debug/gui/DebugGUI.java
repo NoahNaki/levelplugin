@@ -21,6 +21,10 @@ import me.nakilex.levelplugin.utils.ToggleFeedbackUtil;
 import me.nakilex.levelplugin.utils.RewardBombUtil;
 import me.nakilex.levelplugin.utils.NumericInputPrompt;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
+import me.nakilex.levelplugin.utils.gui.widgets.ActionWidget;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiContext;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiLayout;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiWidget;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.Bukkit;
@@ -31,7 +35,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 
 /**
  * Simple GUI to toggle developer debug features like mob kill info
@@ -57,6 +60,7 @@ public class DebugGUI implements Listener {
     private final CooldownManager cooldownManager;
     private final Map<Integer, String> chatGameSlots = new HashMap<>();
     private final Map<String, ChatGameStatus> chatGameStatusById = new HashMap<>();
+    private final List<GuiWidget> widgets;
 
     public DebugGUI(PlayerToggleManager mobDebugManager,
                     PlayerScoreboardManager scoreboardManager,
@@ -70,6 +74,7 @@ public class DebugGUI implements Listener {
         this.dropDebugManager = dropDebugManager;
         this.chatGameManager = chatGameManager;
         this.cooldownManager = cooldownManager;
+        this.widgets = buildWidgets();
     }
 
     /** Open the debug tools menu for the player. */
@@ -82,49 +87,141 @@ public class DebugGUI implements Listener {
                 .fillEmptySlots(false)
                 .border();
 
-        builder.setItem(MOBINFO_SLOT, GuiUtil.createToggleItem(
-                mobDebugManager.isEnabled(player),
-                "§bMob Info Debug",
-                "§7Show MythicMob rewards on kill"));
-        builder.setItem(TPS_SLOT, GuiUtil.createToggleItem(
-                scoreboardManager.isTpsEnabled(player),
-                "§bShow TPS",
-                "§7Display TPS on sidebar"));
-        boolean fast = me.nakilex.levelplugin.guild.siege.GuildSiegeManager.getInstance().isFastCapture();
-        builder.setItem(SIEGE_SLOT, GuiUtil.createToggleItem(
-                fast,
-                "§bFast Siege",
-                "§750% progress per second"));
-        builder.setItem(EXPEDITION_SLOT, GuiUtil.createToggleItem(
-                expeditionManager.isInstantExpeditions(),
-                "§bInstant Expeditions",
-                "§7Expeditions complete instantly"));
-        builder.setItem(CHEST_RESPAWN_SLOT, createRespawnItem());
-        builder.setItem(DROP_RATE_SLOT, createDropRateItem());
-        builder.setItem(FORCE_DROP_SLOT, GuiUtil.createToggleItem(
-                dropDebugManager.isForceMobDrops(),
-                "§bGuaranteed Mob Drops",
-                "§7Force MythicMob loot and chests",
-                "§7to drop every time."));
-        builder.setItem(REWARD_BOMB_SLOT, createActionItem(
-                Material.TNT,
-                "§dReward Bomb",
-                "§7Spawn debug loot at your",
-                "§7targeted block (20 blocks)."));
+        Inventory inv = builder.build();
+        renderWidgets(inv, player);
 
         if (chatGameManager != null) {
             List<ChatGameStatus> statuses = chatGameManager.getStatuses();
             for (int i = 0; i < statuses.size() && i < CHAT_GAME_SLOTS.length; i++) {
                 ChatGameStatus status = statuses.get(i);
                 int slot = CHAT_GAME_SLOTS[i];
-                builder.setItem(slot, createChatGameItem(status));
+                inv.setItem(slot, createChatGameItem(status));
                 chatGameSlots.put(slot, status.id());
                 recordStatus(status);
             }
         }
 
-        Inventory inv = builder.build();
         player.openInventory(inv);
+    }
+
+    private List<GuiWidget> buildWidgets() {
+        List<GuiWidget> widgetList = new java.util.ArrayList<>();
+        widgetList.add(new ActionWidget(MOBINFO_SLOT, context -> createMobInfoItem(context.player()),
+                (click, context) -> {
+                    boolean enabled = mobDebugManager.toggle(context.player());
+                    context.inventory().setItem(MOBINFO_SLOT, createMobInfoItem(context.player()));
+                    ToggleFeedbackUtil.sendToggle(context.player(), "Mob info debug", enabled);
+                }));
+        widgetList.add(new ActionWidget(TPS_SLOT, context -> createTpsItem(context.player()),
+                (click, context) -> {
+                    boolean enabled = scoreboardManager.toggleTps(context.player());
+                    context.inventory().setItem(TPS_SLOT, createTpsItem(context.player()));
+                    ToggleFeedbackUtil.sendToggle(context.player(), "TPS display", enabled);
+                }));
+        widgetList.add(new ActionWidget(SIEGE_SLOT, context -> createFastSiegeItem(),
+                (click, context) -> {
+                    boolean enabled = me.nakilex.levelplugin.guild.siege.GuildSiegeManager.getInstance().toggleFastCapture();
+                    context.inventory().setItem(SIEGE_SLOT, createFastSiegeItem());
+                    ToggleFeedbackUtil.sendToggle(context.player(), "Fast siege mode", enabled);
+                }));
+        widgetList.add(new ActionWidget(EXPEDITION_SLOT, context -> createExpeditionItem(),
+                (click, context) -> {
+                    boolean enabled = !expeditionManager.isInstantExpeditions();
+                    expeditionManager.setInstantExpeditions(enabled);
+                    context.inventory().setItem(EXPEDITION_SLOT, createExpeditionItem());
+                    ToggleFeedbackUtil.sendToggle(context.player(), "Instant expeditions", enabled);
+                }));
+        widgetList.add(new ActionWidget(CHEST_RESPAWN_SLOT, context -> createRespawnItem(),
+                (click, context) -> openRespawnChatInput(context.player())));
+        widgetList.add(new ActionWidget(DROP_RATE_SLOT, context -> createDropRateItem(),
+                (click, context) -> openDropRateChatInput(context.player())));
+        widgetList.add(new ActionWidget(FORCE_DROP_SLOT, context -> createForceDropItem(),
+                (click, context) -> {
+                    boolean enabled = dropDebugManager.toggleForceMobDrops();
+                    context.inventory().setItem(FORCE_DROP_SLOT, createForceDropItem());
+                    ToggleFeedbackUtil.sendToggle(context.player(), "Guaranteed mob drops", enabled);
+                }));
+        widgetList.add(new ActionWidget(REWARD_BOMB_SLOT, context -> createRewardBombItem(),
+                (click, context) -> triggerRewardBomb(context.player(), context.inventory())));
+        return widgetList;
+    }
+
+    private void renderWidgets(Inventory inventory, Player player) {
+        GuiLayout layout = new GuiLayout(inventory);
+        GuiContext context = new GuiContext(player, inventory);
+        for (GuiWidget widget : widgets) {
+            widget.contribute(layout, context);
+        }
+    }
+
+    private void handleWidgetClick(InventoryClickEvent event, Player player) {
+        int slot = event.getRawSlot();
+        GuiWidget widget = widgets.stream()
+                .filter(w -> w.handlesSlot(slot))
+                .findFirst()
+                .orElse(null);
+        if (widget == null) {
+            return;
+        }
+        widget.onClick(slot, event.getClick(), new GuiContext(player, event.getView().getTopInventory()));
+    }
+
+    private ItemStack createMobInfoItem(Player player) {
+        return GuiUtil.createToggleItem(
+                mobDebugManager.isEnabled(player),
+                "§bMob Info Debug",
+                "§7Show MythicMob rewards on kill");
+    }
+
+    private ItemStack createTpsItem(Player player) {
+        return GuiUtil.createToggleItem(
+                scoreboardManager.isTpsEnabled(player),
+                "§bShow TPS",
+                "§7Display TPS on sidebar");
+    }
+
+    private ItemStack createFastSiegeItem() {
+        boolean fast = me.nakilex.levelplugin.guild.siege.GuildSiegeManager.getInstance().isFastCapture();
+        return GuiUtil.createToggleItem(
+                fast,
+                "§bFast Siege",
+                "§750% progress per second");
+    }
+
+    private ItemStack createExpeditionItem() {
+        return GuiUtil.createToggleItem(
+                expeditionManager.isInstantExpeditions(),
+                "§bInstant Expeditions",
+                "§7Expeditions complete instantly");
+    }
+
+    private ItemStack createForceDropItem() {
+        return GuiUtil.createToggleItem(
+                dropDebugManager.isForceMobDrops(),
+                "§bGuaranteed Mob Drops",
+                "§7Force MythicMob loot and chests",
+                "§7to drop every time.");
+    }
+
+    private ItemStack createRewardBombItem() {
+        return createActionItem(
+                Material.TNT,
+                "§dReward Bomb",
+                "§7Spawn debug loot at your",
+                "§7targeted block (20 blocks).");
+    }
+
+    private void triggerRewardBomb(Player player, Inventory inventory) {
+        var target = player.getTargetBlockExact(20);
+        if (target == null) {
+            ChatMessageUtil.send(player, MessageType.ERROR,
+                    "Look at a block within 20 blocks to start the reward bomb.");
+            return;
+        }
+        RewardBombUtil.startRewardBomb(Main.getInstance(), target.getLocation(),
+                me.nakilex.levelplugin.debug.DebugRewardUtil::rollDebugReward, 100);
+        inventory.setItem(REWARD_BOMB_SLOT, createRewardBombItem());
+        ChatMessageUtil.send(player, MessageType.SUCCESS, ChatColor.LIGHT_PURPLE + "Reward bomb triggered.");
     }
 
     @EventHandler
@@ -134,59 +231,10 @@ public class DebugGUI implements Listener {
         event.setCancelled(true);
 
         int slot = event.getRawSlot();
-        Inventory inv = event.getInventory();
-        if (slot == MOBINFO_SLOT) {
-            boolean enabled = mobDebugManager.toggle(player);
-            inv.setItem(MOBINFO_SLOT, GuiUtil.createToggleItem(enabled,
-                    "§bMob Info Debug",
-                    "§7Show MythicMob rewards on kill"));
-            ToggleFeedbackUtil.sendToggle(player, "Mob info debug", enabled);
-        } else if (slot == TPS_SLOT) {
-            boolean enabled = scoreboardManager.toggleTps(player);
-            inv.setItem(TPS_SLOT, GuiUtil.createToggleItem(enabled,
-                    "§bShow TPS",
-                    "§7Display TPS on sidebar"));
-            ToggleFeedbackUtil.sendToggle(player, "TPS display", enabled);
-        } else if (slot == SIEGE_SLOT) {
-            boolean enabled = me.nakilex.levelplugin.guild.siege.GuildSiegeManager.getInstance().toggleFastCapture();
-            inv.setItem(SIEGE_SLOT, GuiUtil.createToggleItem(enabled,
-                    "§bFast Siege",
-                    "§750% progress per second"));
-            ToggleFeedbackUtil.sendToggle(player, "Fast siege mode", enabled);
-        } else if (slot == EXPEDITION_SLOT) {
-            boolean enabled = !expeditionManager.isInstantExpeditions();
-            expeditionManager.setInstantExpeditions(enabled);
-            inv.setItem(EXPEDITION_SLOT, GuiUtil.createToggleItem(enabled,
-                    "§bInstant Expeditions",
-                    "§7Expeditions complete instantly"));
-            ToggleFeedbackUtil.sendToggle(player, "Instant expeditions", enabled);
-        } else if (slot == CHEST_RESPAWN_SLOT) {
-            openRespawnChatInput(player);
-        } else if (slot == DROP_RATE_SLOT) {
-            openDropRateChatInput(player);
-        } else if (slot == FORCE_DROP_SLOT) {
-            boolean enabled = dropDebugManager.toggleForceMobDrops();
-            inv.setItem(FORCE_DROP_SLOT, GuiUtil.createToggleItem(enabled,
-                    "§bGuaranteed Mob Drops",
-                    "§7Force MythicMob loot and chests",
-                    "§7to drop every time."));
-            ToggleFeedbackUtil.sendToggle(player, "Guaranteed mob drops", enabled);
-        } else if (slot == REWARD_BOMB_SLOT) {
-            var target = player.getTargetBlockExact(20);
-            if (target == null) {
-                ChatMessageUtil.send(player, MessageType.ERROR,
-                        "Look at a block within 20 blocks to start the reward bomb.");
-                return;
-            }
-            RewardBombUtil.startRewardBomb(me.nakilex.levelplugin.Main.getInstance(), target.getLocation(),
-                    me.nakilex.levelplugin.debug.DebugRewardUtil::rollDebugReward, 100);
-            inv.setItem(REWARD_BOMB_SLOT, createActionItem(
-                    Material.TNT,
-                    "§dReward Bomb",
-                    "§7Spawn debug loot at your",
-                    "§7targeted block (20 blocks)."));
-            ChatMessageUtil.send(player, MessageType.SUCCESS, ChatColor.LIGHT_PURPLE + "Reward bomb triggered.");
-        } else if (chatGameManager != null && chatGameSlots.containsKey(slot)) {
+        if (slot < 0 || slot >= event.getView().getTopInventory().getSize()) {
+            return;
+        }
+        if (chatGameManager != null && chatGameSlots.containsKey(slot)) {
             String id = chatGameSlots.get(slot);
             ChatGameStatus status = chatGameStatusById.get(id.toLowerCase(Locale.ROOT));
             boolean enable = status == null || !status.enabled();
@@ -198,10 +246,12 @@ public class DebugGUI implements Listener {
             refreshChatGameStatus(id);
             ChatGameStatus updated = chatGameStatusById.get(id.toLowerCase(Locale.ROOT));
             if (updated != null) {
-                inv.setItem(slot, createChatGameItem(updated));
+                event.getInventory().setItem(slot, createChatGameItem(updated));
                 ToggleFeedbackUtil.sendToggle(player, updated.displayName() + " chat game", updated.enabled());
             }
+            return;
         }
+        handleWidgetClick(event, player);
     }
 
     private ItemStack createChatGameItem(ChatGameStatus status) {
@@ -214,16 +264,10 @@ public class DebugGUI implements Listener {
     }
 
     private ItemStack createActionItem(Material material, String displayName, String... lore) {
-        ItemStack stack = new ItemStack(material);
-        ItemMeta meta = stack.getItemMeta();
-        if (meta != null) {
-            meta.setDisplayName(displayName);
-            if (lore != null && lore.length > 0) {
-                meta.setLore(java.util.Arrays.asList(lore));
-            }
-            stack.setItemMeta(meta);
-        }
-        return stack;
+        List<String> loreLines = lore != null && lore.length > 0
+                ? java.util.Arrays.asList(lore)
+                : java.util.Collections.emptyList();
+        return GuiUtil.createGuiItem(material, displayName, loreLines);
     }
 
     private void recordStatus(ChatGameStatus status) {

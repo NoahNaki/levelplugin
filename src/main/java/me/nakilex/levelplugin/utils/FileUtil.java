@@ -2,9 +2,13 @@ package me.nakilex.levelplugin.utils;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.UUID;
+
+import org.bukkit.configuration.file.FileConfiguration;
 
 /** Utility methods for basic file operations. */
 public final class FileUtil {
@@ -48,5 +52,32 @@ public final class FileUtil {
                 throw new RuntimeException(e);
             }
         });
+    }
+
+    /**
+     * Atomically write a Bukkit {@link FileConfiguration} to disk by saving to a
+     * temporary file and swapping it into place.
+     *
+     * @param target target file to write
+     * @param config configuration to persist
+     * @throws IOException when a write fails
+     */
+    public static void writeYamlAtomic(File target, FileConfiguration config) throws IOException {
+        if (target == null || config == null) {
+            return;
+        }
+        File parent = target.getParentFile();
+        if (parent != null && !parent.exists()) {
+            parent.mkdirs();
+        }
+        String tempName = target.getName() + "." + UUID.randomUUID() + ".tmp";
+        File tempFile = new File(target.getParentFile(), tempName);
+        config.save(tempFile);
+        try {
+            Files.move(tempFile.toPath(), target.toPath(),
+                    StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+        } catch (AtomicMoveNotSupportedException ex) {
+            Files.move(tempFile.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        }
     }
 }

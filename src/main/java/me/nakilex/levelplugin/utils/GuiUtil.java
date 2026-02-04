@@ -54,6 +54,35 @@ public final class GuiUtil {
         return item;
     }
 
+    /** Build a Nexo item with a custom name, lore, and hidden attributes. */
+    public static ItemStack getNexoItem(String id, String name, List<String> lore) {
+        ItemStack item = getNexoItem(id, name);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            if (lore != null) {
+                meta.setLore(lore);
+            }
+            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
+    /** Build a standard GUI item with the provided display name and lore. */
+    public static ItemStack createGuiItem(Material material, String name, List<String> lore) {
+        ItemStack item = new ItemStack(material);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(name);
+            if (lore != null) {
+                meta.setLore(lore);
+            }
+            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
     /**
      * Build a rarity arrow item using the salvage GUI arrow icons.
      */

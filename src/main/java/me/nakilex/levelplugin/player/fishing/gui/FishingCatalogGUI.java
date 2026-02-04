@@ -11,6 +11,10 @@ import me.nakilex.levelplugin.player.fishing.utils.FishingItemUtil;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
+import me.nakilex.levelplugin.utils.gui.widgets.ActionWidget;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiContext;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiLayout;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiWidget;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -43,6 +47,7 @@ public class FishingCatalogGUI implements Listener {
     private final FishingRewardsConfig rewardsConfig;
     private final FishingManager fishingManager;
     private final Map<UUID, Integer> pageMap = new java.util.HashMap<>();
+    private final Map<UUID, List<GuiWidget>> widgetsByPlayer = new java.util.HashMap<>();
 
     private FishingCatalogGUI(Main plugin, FishingRewardsConfig rewardsConfig) {
         this.plugin = plugin;
@@ -71,30 +76,15 @@ public class FishingCatalogGUI implements Listener {
                 .border()
                 .build();
 
-        inv.setItem(INFO_SLOT, createInfoItem());
-        inv.setItem(BACK_SLOT, GuiUtil.getNexoItem("arrow_left", ChatColor.YELLOW + "Back to Rewards"));
-
         List<FishDefinition> fish = rewardsConfig.getFish();
         fish.sort(Comparator
                 .comparingInt(FishDefinition::minLevel)
                 .thenComparing(FishDefinition::displayName, String.CASE_INSENSITIVE_ORDER));
 
-        int start = page * GuiUtil.PAGED_SLOTS.length;
-        int slotIndex = 0;
-        for (int i = start; i < fish.size() && slotIndex < GuiUtil.PAGED_SLOTS.length; i++) {
-            FishDefinition def = fish.get(i);
-            ItemStack item = fishingManager.isFishDiscovered(player.getUniqueId(), def.id())
-                    ? createDiscoveredItem(def)
-                    : createUndiscoveredItem(def);
-            inv.setItem(GuiUtil.PAGED_SLOTS[slotIndex++], item);
-        }
-
-        if (page > 0) {
-            inv.setItem(PREV_SLOT, GuiUtil.getNexoItem("arrow_left", ChatColor.GREEN + "Previous"));
-        }
-        if (fish.size() > (page + 1) * GuiUtil.PAGED_SLOTS.length) {
-            inv.setItem(NEXT_SLOT, GuiUtil.getNexoItem("arrow_right", ChatColor.GREEN + "Next"));
-        }
+        int maxPage = Math.max(0, (fish.size() - 1) / GuiUtil.PAGED_SLOTS.length);
+        List<GuiWidget> widgets = buildWidgets(player, fish, page, maxPage);
+        widgetsByPlayer.put(player.getUniqueId(), widgets);
+        renderWidgets(inv, player, widgets);
 
         player.openInventory(inv);
     }
@@ -179,22 +169,71 @@ public class FishingCatalogGUI implements Listener {
         if (!(event.getWhoClicked() instanceof Player player)) {
             return;
         }
+        if (handleWidgetClick(event, player)) {
+            return;
+        }
         event.setCancelled(true);
-        int rawSlot = event.getRawSlot();
-        if (rawSlot == BACK_SLOT || rawSlot == INFO_SLOT) {
-            LifeSkillRewardsGUI.open(player, ToolDiscipline.FISHING);
-            return;
+    }
+
+    private List<GuiWidget> buildWidgets(Player player, List<FishDefinition> fish, int page, int maxPage) {
+        List<GuiWidget> widgets = new ArrayList<>();
+        widgets.add(new ActionWidget(INFO_SLOT,
+                context -> createInfoItem(),
+                (click, context) -> LifeSkillRewardsGUI.open(context.player(), ToolDiscipline.FISHING)));
+        widgets.add(new ActionWidget(BACK_SLOT,
+                context -> GuiUtil.getNexoItem("arrow_left", ChatColor.YELLOW + "Back to Rewards"),
+                (click, context) -> LifeSkillRewardsGUI.open(context.player(), ToolDiscipline.FISHING)));
+        if (page > 0) {
+            widgets.add(new ActionWidget(PREV_SLOT,
+                    context -> GuiUtil.getNexoItem("arrow_left", ChatColor.GREEN + "Previous"),
+                    (click, context) -> open(context.player(), page - 1)));
         }
-        if (rawSlot == PREV_SLOT) {
-            int page = pageMap.getOrDefault(player.getUniqueId(), 0);
-            if (page > 0) {
-                open(player, page - 1);
-            }
-            return;
+        if (page < maxPage) {
+            widgets.add(new ActionWidget(NEXT_SLOT,
+                    context -> GuiUtil.getNexoItem("arrow_right", ChatColor.GREEN + "Next"),
+                    (click, context) -> open(context.player(), page + 1)));
         }
-        if (rawSlot == NEXT_SLOT) {
-            int page = pageMap.getOrDefault(player.getUniqueId(), 0);
-            open(player, page + 1);
+
+        int start = page * GuiUtil.PAGED_SLOTS.length;
+        int slotIndex = 0;
+        for (int i = start; i < fish.size() && slotIndex < GuiUtil.PAGED_SLOTS.length; i++) {
+            FishDefinition def = fish.get(i);
+            int slot = GuiUtil.PAGED_SLOTS[slotIndex++];
+            widgets.add(new ActionWidget(slot,
+                    context -> fishingManager.isFishDiscovered(context.player().getUniqueId(), def.id())
+                            ? createDiscoveredItem(def)
+                            : createUndiscoveredItem(def),
+                    null));
         }
+        return widgets;
+    }
+
+    private void renderWidgets(Inventory inventory, Player player, List<GuiWidget> widgets) {
+        GuiLayout layout = new GuiLayout(inventory);
+        GuiContext context = new GuiContext(player, inventory);
+        for (GuiWidget widget : widgets) {
+            widget.contribute(layout, context);
+        }
+    }
+
+    private boolean handleWidgetClick(InventoryClickEvent event, Player player) {
+        List<GuiWidget> widgets = widgetsByPlayer.get(player.getUniqueId());
+        if (widgets == null) {
+            return false;
+        }
+        int slot = event.getRawSlot();
+        if (slot < 0 || slot >= event.getView().getTopInventory().getSize()) {
+            return false;
+        }
+        GuiWidget widget = widgets.stream()
+                .filter(w -> w.handlesSlot(slot))
+                .findFirst()
+                .orElse(null);
+        if (widget == null) {
+            return false;
+        }
+        event.setCancelled(true);
+        widget.onClick(slot, event.getClick(), new GuiContext(player, event.getView().getTopInventory()));
+        return true;
     }
 }

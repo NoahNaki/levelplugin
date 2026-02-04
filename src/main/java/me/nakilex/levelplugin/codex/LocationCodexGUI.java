@@ -3,7 +3,10 @@ package me.nakilex.levelplugin.codex;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.codex.CodexGuiUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
-import org.bukkit.Bukkit;
+import me.nakilex.levelplugin.utils.gui.widgets.ActionWidget;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiContext;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiLayout;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiWidget;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -25,6 +28,8 @@ public class LocationCodexGUI implements Listener {
 
     private final CodexManager manager;
     private CodexMainGUI mainGui;
+    private final Map<java.util.UUID, Integer> backSlots = new HashMap<>();
+    private List<GuiWidget> widgets = new ArrayList<>();
 
     public LocationCodexGUI(CodexManager manager, CodexMainGUI mainGui) {
         this.manager = manager;
@@ -55,16 +60,61 @@ public class LocationCodexGUI implements Listener {
             }
             inv.setItem(slot++, item);
         }
-        inv.setItem(inv.getSize() - 1, GuiUtil.getNexoItem("arrow_left", ChatColor.YELLOW + "Back"));
+        int backSlot = inv.getSize() - 1;
+        backSlots.put(player.getUniqueId(), backSlot);
+        widgets = buildWidgets(backSlot);
+        renderWidgets(inv, player);
         player.openInventory(inv);
     }
 
     @EventHandler
     public void onClick(InventoryClickEvent e) {
-        if (!e.getView().getTitle().equals(TITLE)) return;
-        e.setCancelled(true);
-        if (e.getRawSlot() == e.getInventory().getSize() - 1 && e.getWhoClicked() instanceof Player p) {
-            mainGui.open(p);
+        if (!GuiUtil.titleMatches(e.getView().getTitle(), TITLE)) return;
+        if (!(e.getWhoClicked() instanceof Player player)) return;
+        if (handleWidgetClick(e, player)) {
+            return;
         }
+        e.setCancelled(true);
+    }
+
+    private List<GuiWidget> buildWidgets(int backSlot) {
+        List<GuiWidget> widgetList = new ArrayList<>();
+        widgetList.add(new ActionWidget(backSlot,
+                context -> GuiUtil.getNexoItem("arrow_left", ChatColor.YELLOW + "Back"),
+                (click, context) -> {
+                    if (mainGui != null) {
+                        mainGui.open(context.player());
+                    }
+                }));
+        return widgetList;
+    }
+
+    private void renderWidgets(Inventory inventory, Player player) {
+        GuiLayout layout = new GuiLayout(inventory);
+        GuiContext context = new GuiContext(player, inventory);
+        for (GuiWidget widget : widgets) {
+            widget.contribute(layout, context);
+        }
+    }
+
+    private boolean handleWidgetClick(InventoryClickEvent event, Player player) {
+        int slot = event.getRawSlot();
+        if (slot < 0 || slot >= event.getView().getTopInventory().getSize()) {
+            return false;
+        }
+        int backSlot = backSlots.getOrDefault(player.getUniqueId(), -1);
+        if (slot != backSlot) {
+            return false;
+        }
+        GuiWidget widget = widgets.stream()
+                .filter(w -> w.handlesSlot(slot))
+                .findFirst()
+                .orElse(null);
+        if (widget == null) {
+            return false;
+        }
+        event.setCancelled(true);
+        widget.onClick(slot, event.getClick(), new GuiContext(player, event.getView().getTopInventory()));
+        return true;
     }
 }

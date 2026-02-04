@@ -3,8 +3,12 @@ package me.nakilex.levelplugin.npc.wandering;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
-import me.nakilex.levelplugin.utils.GuiUtil;
+import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
+import me.nakilex.levelplugin.utils.gui.widgets.ActionWidget;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiContext;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiLayout;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiWidget;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -31,6 +35,7 @@ public class WanderingMerchantGUI implements Listener {
     private final Inventory inv;
     private final Map<Integer, WanderingMerchantOffer> offers = new HashMap<>();
     private final Set<UUID> viewers = new HashSet<>();
+    private final List<GuiWidget> widgets;
 
     public WanderingMerchantGUI(Plugin plugin, List<WanderingMerchantOffer> list) {
         this.plugin = plugin;
@@ -43,8 +48,9 @@ public class WanderingMerchantGUI implements Listener {
         for (int i = 0; i < list.size(); i++) {
             WanderingMerchantOffer of = list.get(i);
             offers.put(10 + i, of);
-            inv.setItem(10 + i, decorate(of, null));
         }
+        this.widgets = buildWidgets();
+        renderWidgets(inv, null);
         Bukkit.getPluginManager().registerEvents(this, plugin);
     }
 
@@ -60,6 +66,7 @@ public class WanderingMerchantGUI implements Listener {
             if (offer.getStock() > 0) {
                 lore.add(ChatColor.GOLD + "Price: " + ChatColor.YELLOW + offer.getCost() + " <glyph:coins_icon>");
                 lore.add(ChatColor.GRAY + "Stock: " + offer.getStock());
+                lore.addAll(TooltipUtil.clickInstructions("to purchase", null));
             } else {
                 lore.add(ChatColor.RED + "Out of stock!");
             }
@@ -71,9 +78,7 @@ public class WanderingMerchantGUI implements Listener {
 
     public void open(Player player) {
         viewers.add(player.getUniqueId());
-        for (Map.Entry<Integer, WanderingMerchantOffer> entry : offers.entrySet()) {
-            inv.setItem(entry.getKey(), decorate(entry.getValue(), player));
-        }
+        renderWidgets(inv, player);
         player.openInventory(inv);
     }
 
@@ -90,11 +95,57 @@ public class WanderingMerchantGUI implements Listener {
     @EventHandler
     public void onClick(InventoryClickEvent e) {
         if (!e.getInventory().equals(inv)) return;
+        if (handleWidgetClick(e, (Player) e.getWhoClicked())) {
+            return;
+        }
         e.setCancelled(true);
-        int slot = e.getRawSlot();
-        WanderingMerchantOffer offer = offers.get(slot);
-        if (offer == null) return;
-        Player player = (Player) e.getWhoClicked();
+    }
+
+    @EventHandler
+    public void onClose(InventoryCloseEvent e) {
+        if (e.getInventory().equals(inv)) {
+            viewers.remove(e.getPlayer().getUniqueId());
+        }
+    }
+
+    private List<GuiWidget> buildWidgets() {
+        List<GuiWidget> widgetList = new ArrayList<>();
+        for (Map.Entry<Integer, WanderingMerchantOffer> entry : offers.entrySet()) {
+            int slot = entry.getKey();
+            WanderingMerchantOffer offer = entry.getValue();
+            widgetList.add(new ActionWidget(slot,
+                    context -> decorate(offer, context.player()),
+                    (click, context) -> handleOfferPurchase(context.player(), offer)));
+        }
+        return widgetList;
+    }
+
+    private void renderWidgets(Inventory inventory, Player player) {
+        GuiLayout layout = new GuiLayout(inventory);
+        GuiContext context = new GuiContext(player, inventory);
+        for (GuiWidget widget : widgets) {
+            widget.contribute(layout, context);
+        }
+    }
+
+    private boolean handleWidgetClick(InventoryClickEvent event, Player player) {
+        int slot = event.getRawSlot();
+        if (slot < 0 || slot >= event.getView().getTopInventory().getSize()) {
+            return false;
+        }
+        GuiWidget widget = widgets.stream()
+                .filter(w -> w.handlesSlot(slot))
+                .findFirst()
+                .orElse(null);
+        if (widget == null) {
+            return false;
+        }
+        event.setCancelled(true);
+        widget.onClick(slot, event.getClick(), new GuiContext(player, event.getView().getTopInventory()));
+        return true;
+    }
+
+    private void handleOfferPurchase(Player player, WanderingMerchantOffer offer) {
         if (offer.getStock() <= 0) {
             send(player, MessageType.ERROR, "Out of stock!");
             return;
@@ -106,13 +157,6 @@ public class WanderingMerchantGUI implements Listener {
         economy.deductCoins(player, offer.getCost());
         player.getInventory().addItem(offer.getItem());
         offer.decrement();
-        inv.setItem(slot, decorate(offer, player));
-    }
-
-    @EventHandler
-    public void onClose(InventoryCloseEvent e) {
-        if (e.getInventory().equals(inv)) {
-            viewers.remove(e.getPlayer().getUniqueId());
-        }
+        renderWidgets(inv, player);
     }
 }

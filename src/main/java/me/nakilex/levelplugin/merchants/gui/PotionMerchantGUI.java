@@ -7,9 +7,12 @@ import me.nakilex.levelplugin.potions.data.PotionInstance;
 import me.nakilex.levelplugin.potions.data.PotionTemplate;
 import me.nakilex.levelplugin.items.data.ItemRarity;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
-import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
+import me.nakilex.levelplugin.utils.gui.widgets.ActionWidget;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiContext;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiLayout;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiWidget;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -41,6 +44,7 @@ public class PotionMerchantGUI implements Listener {
     private final EconomyManager economyManager;
     private final PotionManager potionManager;
     private final Plugin plugin;
+    private final List<GuiWidget> widgets = new ArrayList<>();
     private int updateTaskId = -1;
 
     public PotionMerchantGUI(Plugin plugin, FileConfiguration merchantConfig) {
@@ -95,9 +99,9 @@ public class PotionMerchantGUI implements Listener {
         for (Map.Entry<Integer, PotionTemplate> entry : potionItems.entrySet()) {
             PotionTemplate potion = entry.getValue();
             Bukkit.getLogger().info("[PotionMerchantGUI] Adding potion '" + potion.getId() + "' to slot " + entry.getKey());
-            ItemStack potionItem = createPotionPreview(entry.getKey(), potion);
-            inventory.setItem(entry.getKey(), potionItem);
         }
+        buildWidgets();
+        renderWidgets(inventory);
 
         Bukkit.getPluginManager().registerEvents(this, plugin);
     }
@@ -208,38 +212,10 @@ public class PotionMerchantGUI implements Listener {
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
         if (event.getInventory() != null && event.getInventory().equals(inventory)) {
+            if (handleWidgetClick(event, (Player) event.getWhoClicked())) {
+                return;
+            }
             event.setCancelled(true);
-            if (event.getCurrentItem() == null) return;
-
-            int slot = event.getRawSlot();
-            PotionTemplate potion = potionItems.get(slot);
-            if (potion == null) return;
-
-            Player player = (Player) event.getWhoClicked();
-            int cost = potionCosts.getOrDefault(slot, potion.getCooldownSeconds());
-            int balance = economyManager.getBalance(player);
-
-            if (balance < cost) {
-                send(player, MessageType.ERROR, "You don't have enough coins!");
-                return;
-            }
-
-            if (player.getInventory().firstEmpty() == -1) {
-                player.sendTitle(ChatColor.RED + "Inventory full!", "", 10, 70, 20);
-                return;
-            }
-
-            try {
-                economyManager.deductCoins(player, cost);
-            } catch (IllegalArgumentException ex) {
-                send(player, MessageType.ERROR, "Transaction failed: " + ex.getMessage());
-                return;
-            }
-
-            PotionInstance instance = new PotionInstance(potion);
-            ItemStack purchasedPotion = instance.toItemStack((JavaPlugin) plugin);
-            player.getInventory().addItem(purchasedPotion);
-            sendPurchaseMessage(player, purchasedPotion.getItemMeta().getDisplayName(), cost);
         }
     }
 
@@ -287,5 +263,68 @@ public class PotionMerchantGUI implements Listener {
             meta.setLore(lore);
             stack.setItemMeta(meta);
         }
+    }
+
+    private void buildWidgets() {
+        widgets.clear();
+        for (Map.Entry<Integer, PotionTemplate> entry : potionItems.entrySet()) {
+            int slot = entry.getKey();
+            PotionTemplate potion = entry.getValue();
+            widgets.add(new ActionWidget(slot,
+                    context -> createPotionPreview(slot, potion),
+                    (click, context) -> handlePurchase(context.player(), slot, potion)));
+        }
+    }
+
+    private void renderWidgets(Inventory inventory) {
+        GuiLayout layout = new GuiLayout(inventory);
+        GuiContext context = new GuiContext(null, inventory);
+        for (GuiWidget widget : widgets) {
+            widget.contribute(layout, context);
+        }
+    }
+
+    private boolean handleWidgetClick(InventoryClickEvent event, Player player) {
+        int slot = event.getRawSlot();
+        if (slot < 0 || slot >= event.getView().getTopInventory().getSize()) {
+            return false;
+        }
+        GuiWidget widget = widgets.stream()
+                .filter(w -> w.handlesSlot(slot))
+                .findFirst()
+                .orElse(null);
+        if (widget == null) {
+            return false;
+        }
+        event.setCancelled(true);
+        widget.onClick(slot, event.getClick(), new GuiContext(player, event.getView().getTopInventory()));
+        return true;
+    }
+
+    private void handlePurchase(Player player, int slot, PotionTemplate potion) {
+        int cost = potionCosts.getOrDefault(slot, potion.getCooldownSeconds());
+        int balance = economyManager.getBalance(player);
+
+        if (balance < cost) {
+            send(player, MessageType.ERROR, "You don't have enough coins!");
+            return;
+        }
+
+        if (player.getInventory().firstEmpty() == -1) {
+            player.sendTitle(ChatColor.RED + "Inventory full!", "", 10, 70, 20);
+            return;
+        }
+
+        try {
+            economyManager.deductCoins(player, cost);
+        } catch (IllegalArgumentException ex) {
+            send(player, MessageType.ERROR, "Transaction failed: " + ex.getMessage());
+            return;
+        }
+
+        PotionInstance instance = new PotionInstance(potion);
+        ItemStack purchasedPotion = instance.toItemStack((JavaPlugin) plugin);
+        player.getInventory().addItem(purchasedPotion);
+        sendPurchaseMessage(player, purchasedPotion.getItemMeta().getDisplayName(), cost);
     }
 }

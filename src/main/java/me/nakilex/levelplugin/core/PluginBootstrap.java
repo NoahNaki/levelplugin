@@ -26,6 +26,7 @@ import me.nakilex.levelplugin.blacksmith.gui.RerollBrowser;
 import me.nakilex.levelplugin.potions.gui.PotionBrowser;
 import me.nakilex.levelplugin.items.listeners.PickupCustomItemListener;
 import me.nakilex.levelplugin.items.managers.ItemManager;
+import me.nakilex.levelplugin.items.v2.ItemRegistry;
 import me.nakilex.levelplugin.player.classes.essence.gui.ClassEssenceUpgradeGUI;
 import me.nakilex.levelplugin.lootchests.config.ConfigManager;
 import me.nakilex.levelplugin.lootchests.managers.CooldownManager;
@@ -99,6 +100,7 @@ public class PluginBootstrap {
     private LevelManager levelManager;
     private EconomyManager economyManager;
     private ItemManager itemManager;
+    private ItemRegistry itemRegistryV2;
     private ItemUpgradeManager itemUpgradeManager;
     private ItemRepairManager itemRepairManager;
     private me.nakilex.levelplugin.items.tools.ToolManager toolManager;
@@ -305,6 +307,8 @@ public class PluginBootstrap {
         serverSelectionManager = new me.nakilex.levelplugin.server.ServerSelectionManager(plugin);
 
         itemManager = new ItemManager(plugin);
+        itemRegistryV2 = new ItemRegistry(plugin);
+        itemRegistryV2.load();
         toolManager = new me.nakilex.levelplugin.items.tools.ToolManager();
         configManager = new ConfigManager(plugin);
         cooldownManager = new CooldownManager(plugin, configManager, null);
@@ -550,6 +554,7 @@ public class PluginBootstrap {
             settingsGUI,
             spellKeybindGUI,
             debugGUI,
+            guildGUI,
             bossConfig,
             gemsManager,
             enchantGUI,
@@ -715,6 +720,7 @@ public class PluginBootstrap {
     public LevelManager getLevelManager() { return levelManager; }
     public EconomyManager getEconomyManager() { return economyManager; }
     public ItemManager getItemManager() { return itemManager; }
+    public ItemRegistry getItemRegistryV2() { return itemRegistryV2; }
     public ItemUpgradeManager getItemUpgradeManager() { return itemUpgradeManager; }
     public ItemRepairManager getItemRepairManager() { return itemRepairManager; }
     public me.nakilex.levelplugin.items.tools.ToolManager getToolManager() { return toolManager; }

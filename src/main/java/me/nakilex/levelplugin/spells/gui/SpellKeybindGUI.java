@@ -15,6 +15,10 @@ import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
+import me.nakilex.levelplugin.utils.gui.widgets.ActionWidget;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiContext;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiLayout;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiWidget;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -58,6 +62,7 @@ public class SpellKeybindGUI implements Listener {
     private final SettingsGUI settingsGUI;
     private final SpellKeybindManager keybindManager = SpellKeybindManager.getInstance();
     private final Map<UUID, ViewState> viewStates = new HashMap<>();
+    private final Map<UUID, List<GuiWidget>> widgetsByPlayer = new HashMap<>();
 
     public SpellKeybindGUI(SettingsManager settingsManager, SettingsGUI settingsGUI) {
         this.settingsManager = settingsManager;
@@ -70,6 +75,9 @@ public class SpellKeybindGUI implements Listener {
         }
         ViewState state = viewStates.computeIfAbsent(player.getUniqueId(), id -> createState(player));
         Inventory gui = buildInventory(player, state);
+        List<GuiWidget> widgets = buildWidgets(player, state);
+        widgetsByPlayer.put(player.getUniqueId(), widgets);
+        renderWidgets(gui, player, widgets);
         player.openInventory(gui);
     }
 
@@ -85,23 +93,6 @@ public class SpellKeybindGUI implements Listener {
                 .filler(Material.GRAY_STAINED_GLASS_PANE)
                 .border()
                 .build();
-        gui.setItem(CLASS_SLOT, createClassItem(player, state));
-        gui.setItem(MODE_SLOT, createModeItem(state.viewMode));
-        Map<SpellInputMode, EnumMap<SpellKeybindSlot, SpellInputType>> profile =
-                getProfile(player.getUniqueId(), state.viewClass, state);
-        EnumMap<SpellKeybindSlot, SpellInputType> bindings = profile.get(state.viewMode);
-        boolean archerFamily = ClassUtil.isArcherFamily(state.viewClass);
-        for (int i = 0; i < KEYBIND_SLOTS.length; i++) {
-            SpellKeybindSlot slot = SpellKeybindSlot.values()[i];
-            SpellInputType bound = bindings.get(slot);
-            gui.setItem(KEYBIND_SLOTS[i], createKeybindItem(state.viewMode, slot, bound, archerFamily));
-        }
-        gui.setItem(CANCEL_SLOT, GuiUtil.getNexoItem("cross", ChatColor.RED + "Cancel"));
-        gui.setItem(SAVE_SLOT, GuiUtil.getNexoItem("save", ChatColor.GREEN + "Save"));
-        ItemStack infoItem = createInfoItem(state.viewMode, bindings, archerFamily);
-        if (infoItem != null) {
-            gui.setItem(INFO_SLOT, infoItem);
-        }
         return gui;
     }
 
@@ -294,57 +285,10 @@ public class SpellKeybindGUI implements Listener {
             event.setCancelled(true);
             return;
         }
+        if (handleWidgetClick(event, player)) {
+            return;
+        }
         event.setCancelled(true);
-        ViewState state = viewStates.computeIfAbsent(player.getUniqueId(), id -> createState(player));
-        int slot = event.getRawSlot();
-        if (slot == CANCEL_SLOT) {
-            viewStates.remove(player.getUniqueId());
-            settingsGUI.openSettingsMenu(player);
-            return;
-        }
-        if (slot == SAVE_SLOT) {
-            saveBindings(player, state);
-            viewStates.remove(player.getUniqueId());
-            settingsGUI.openSettingsMenu(player);
-            return;
-        }
-        if (slot == CLASS_SLOT) {
-            List<PlayerClass> classes = getUnlockedClasses(player);
-            if (classes.size() > 1) {
-                int direction = event.isRightClick() ? -1 : 1;
-                int idx = classes.indexOf(state.viewClass);
-                if (idx < 0) {
-                    idx = 0;
-                }
-                idx = (idx + direction + classes.size()) % classes.size();
-                state.viewClass = classes.get(idx);
-            }
-            refresh(player, state);
-            return;
-        }
-        if (slot == MODE_SLOT) {
-            state.viewMode = state.viewMode.next();
-            refresh(player, state);
-            return;
-        }
-        for (int i = 0; i < KEYBIND_SLOTS.length; i++) {
-            if (slot != KEYBIND_SLOTS[i]) {
-                continue;
-            }
-            SpellKeybindSlot keybindSlot = SpellKeybindSlot.values()[i];
-            Map<SpellInputMode, EnumMap<SpellKeybindSlot, SpellInputType>> profile =
-                    getProfile(player.getUniqueId(), state.viewClass, state);
-            EnumMap<SpellKeybindSlot, SpellInputType> bindings = profile.get(state.viewMode);
-            SpellInputType current = bindings.get(keybindSlot);
-            SpellInputType next = cycleBinding(current, event.isLeftClick());
-            if (next == null) {
-                bindings.remove(keybindSlot);
-            } else {
-                bindings.put(keybindSlot, next);
-            }
-            refresh(player, state);
-            return;
-        }
     }
 
     @EventHandler
@@ -353,10 +297,14 @@ public class SpellKeybindGUI implements Listener {
             return;
         }
         viewStates.remove(event.getPlayer().getUniqueId());
+        widgetsByPlayer.remove(event.getPlayer().getUniqueId());
     }
 
     private void refresh(Player player, ViewState state) {
         Inventory gui = buildInventory(player, state);
+        List<GuiWidget> widgets = buildWidgets(player, state);
+        widgetsByPlayer.put(player.getUniqueId(), widgets);
+        renderWidgets(gui, player, widgets);
         Inventory current = player.getOpenInventory().getTopInventory();
         if (GuiUtil.titleMatches(player.getOpenInventory().getTitle(), TITLE)
                 && current.getSize() == gui.getSize()) {
@@ -364,6 +312,107 @@ public class SpellKeybindGUI implements Listener {
         } else {
             player.openInventory(gui);
         }
+    }
+
+    private List<GuiWidget> buildWidgets(Player player, ViewState state) {
+        List<GuiWidget> widgets = new ArrayList<>();
+        Map<SpellInputMode, EnumMap<SpellKeybindSlot, SpellInputType>> profile =
+                getProfile(player.getUniqueId(), state.viewClass, state);
+        EnumMap<SpellKeybindSlot, SpellInputType> bindings = profile.get(state.viewMode);
+        boolean archerFamily = ClassUtil.isArcherFamily(state.viewClass);
+
+        widgets.add(new ActionWidget(CLASS_SLOT,
+                context -> createClassItem(player, state),
+                (click, context) -> handleClassClick(context.player(), state, click.isRightClick())));
+        widgets.add(new ActionWidget(MODE_SLOT,
+                context -> createModeItem(state.viewMode),
+                (click, context) -> {
+                    state.viewMode = state.viewMode.next();
+                    refresh(context.player(), state);
+                }));
+        widgets.add(new ActionWidget(CANCEL_SLOT,
+                context -> GuiUtil.getNexoItem("cross", ChatColor.RED + "Cancel"),
+                (click, context) -> {
+                    viewStates.remove(context.player().getUniqueId());
+                    settingsGUI.openSettingsMenu(context.player());
+                }));
+        widgets.add(new ActionWidget(SAVE_SLOT,
+                context -> GuiUtil.getNexoItem("save", ChatColor.GREEN + "Save"),
+                (click, context) -> {
+                    saveBindings(context.player(), state);
+                    viewStates.remove(context.player().getUniqueId());
+                    settingsGUI.openSettingsMenu(context.player());
+                }));
+        widgets.add(new ActionWidget(INFO_SLOT,
+                context -> createInfoItem(state.viewMode, bindings, archerFamily),
+                null));
+
+        for (int i = 0; i < KEYBIND_SLOTS.length; i++) {
+            SpellKeybindSlot slot = SpellKeybindSlot.values()[i];
+            SpellInputType bound = bindings.get(slot);
+            int slotIndex = KEYBIND_SLOTS[i];
+            widgets.add(new ActionWidget(slotIndex,
+                    context -> createKeybindItem(state.viewMode, slot, bound, archerFamily),
+                    (click, context) -> handleKeybindClick(context.player(), state, slot, click.isLeftClick())));
+        }
+        return widgets;
+    }
+
+    private void renderWidgets(Inventory inventory, Player player, List<GuiWidget> widgets) {
+        GuiLayout layout = new GuiLayout(inventory);
+        GuiContext context = new GuiContext(player, inventory);
+        for (GuiWidget widget : widgets) {
+            widget.contribute(layout, context);
+        }
+    }
+
+    private boolean handleWidgetClick(InventoryClickEvent event, Player player) {
+        List<GuiWidget> widgets = widgetsByPlayer.get(player.getUniqueId());
+        if (widgets == null) {
+            return false;
+        }
+        int slot = event.getRawSlot();
+        if (slot < 0 || slot >= event.getView().getTopInventory().getSize()) {
+            return false;
+        }
+        GuiWidget widget = widgets.stream()
+                .filter(w -> w.handlesSlot(slot))
+                .findFirst()
+                .orElse(null);
+        if (widget == null) {
+            return false;
+        }
+        event.setCancelled(true);
+        widget.onClick(slot, event.getClick(), new GuiContext(player, event.getView().getTopInventory()));
+        return true;
+    }
+
+    private void handleClassClick(Player player, ViewState state, boolean reverse) {
+        List<PlayerClass> classes = getUnlockedClasses(player);
+        if (classes.size() > 1) {
+            int direction = reverse ? -1 : 1;
+            int idx = classes.indexOf(state.viewClass);
+            if (idx < 0) {
+                idx = 0;
+            }
+            idx = (idx + direction + classes.size()) % classes.size();
+            state.viewClass = classes.get(idx);
+        }
+        refresh(player, state);
+    }
+
+    private void handleKeybindClick(Player player, ViewState state, SpellKeybindSlot keybindSlot, boolean forward) {
+        Map<SpellInputMode, EnumMap<SpellKeybindSlot, SpellInputType>> profile =
+                getProfile(player.getUniqueId(), state.viewClass, state);
+        EnumMap<SpellKeybindSlot, SpellInputType> bindings = profile.get(state.viewMode);
+        SpellInputType current = bindings.get(keybindSlot);
+        SpellInputType next = cycleBinding(current, forward);
+        if (next == null) {
+            bindings.remove(keybindSlot);
+        } else {
+            bindings.put(keybindSlot, next);
+        }
+        refresh(player, state);
     }
 
     private static final class ViewState {
