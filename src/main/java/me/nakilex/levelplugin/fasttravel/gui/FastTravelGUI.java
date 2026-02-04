@@ -9,14 +9,18 @@ import me.nakilex.levelplugin.guild.siege.GuildSiegeManager;
 import me.nakilex.levelplugin.guild.GuildManager;
 import me.nakilex.levelplugin.guild.TownPerk;
 import me.nakilex.levelplugin.guild.TownPerkManager;
+import me.nakilex.levelplugin.utils.GuiUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import me.nakilex.levelplugin.utils.TeleportUtils;
+import me.nakilex.levelplugin.utils.gui.widgets.ActionWidget;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiContext;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiLayout;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiWidget;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -53,11 +57,13 @@ public class FastTravelGUI implements Listener {
     private final Map<UUID,Integer> typeMap = new HashMap<>();
     /** Gate id to exclude when showing options for each player. */
     private final Map<UUID,String> excludeMap = new HashMap<>();
+    private final List<GuiWidget> widgets;
 
     public FastTravelGUI(FastTravelManager manager, EconomyManager economy, ModelGateManager gateManager) {
         this.manager = manager;
         this.economy = economy;
         this.gateManager = gateManager;
+        this.widgets = buildWidgets();
         Bukkit.getPluginManager().registerEvents(this, manager.getPlugin());
     }
 
@@ -90,17 +96,8 @@ public class FastTravelGUI implements Listener {
         for(int i=0;i<SIZE;i++){
             if(i<9 || i>=45 || i%9==0 || i%9==8){ gui.setItem(i,filler); }
         }
-        int filter = typeMap.getOrDefault(player.getUniqueId(),0);
         me.nakilex.levelplugin.guild.Guild guild = GuildManager.getInstance().getGuild(player.getUniqueId());
-        List<ModelGate> list = new ArrayList<>(gateManager.getGates());
-        String exclude = excludeMap.get(player.getUniqueId());
-        if(exclude != null){
-            list.removeIf(gate -> gate.getId().equalsIgnoreCase(exclude));
-        }
-        if(filter==1) list.removeIf(gate -> !gate.isTown());
-        else if(filter==2) list.removeIf(ModelGate::isTown);
-        int mode = sortMap.getOrDefault(player.getUniqueId(),0);
-        list.sort(getComparator(mode,player));
+        List<ModelGate> list = getVisibleGates(player);
         int start = page*ITEMS_PER_PAGE;
         int slot=0;
         for(int i=start;i<list.size() && slot<ITEMS_PER_PAGE;i++){
@@ -124,10 +121,7 @@ public class FastTravelGUI implements Listener {
             }
             gui.setItem(POINT_SLOTS[slot++], item);
         }
-        if(page>0) gui.setItem(PREV_PAGE, createArrow(ChatColor.GREEN+"Previous"));
-        if(list.size()> (page+1)*ITEMS_PER_PAGE) gui.setItem(NEXT_PAGE, createArrow(ChatColor.GREEN+"Next"));
-        gui.setItem(SORT_SLOT, createSortButton(mode));
-        gui.setItem(FILTER_SLOT, createFilterButton(filter));
+        renderWidgets(gui, player);
         player.openInventory(gui);
     }
 
@@ -157,26 +151,17 @@ public class FastTravelGUI implements Listener {
 
     @EventHandler
     public void onClick(InventoryClickEvent event){
-        if(!event.getView().getTitle().equals(TITLE)) return;
-        event.setCancelled(true);
+        if(!GuiUtil.titleMatches(event.getView().getTitle(), TITLE)) return;
         if(!(event.getWhoClicked() instanceof Player player)) return;
+        if (handleWidgetClick(event, player)) {
+            return;
+        }
+        event.setCancelled(true);
         Inventory inv=event.getInventory();
         int slot=event.getRawSlot();
         if(slot<0 || slot>=inv.getSize()) return;
-        if(slot==PREV_PAGE){
-            int p=pageMap.getOrDefault(player.getUniqueId(),0); open(player, Math.max(0,p-1)); return; }
-        if(slot==NEXT_PAGE){
-            int p=pageMap.getOrDefault(player.getUniqueId(),0); open(player,p+1); return; }
-        if(slot==SORT_SLOT){
-            int m=sortMap.getOrDefault(player.getUniqueId(),0); m=(m+1)%4; sortMap.put(player.getUniqueId(),m); open(player,pageMap.getOrDefault(player.getUniqueId(),0)); return; }
-        if(slot==FILTER_SLOT){
-            int f=typeMap.getOrDefault(player.getUniqueId(),0); f=(f+1)%3; typeMap.put(player.getUniqueId(),f); open(player,pageMap.getOrDefault(player.getUniqueId(),0)); return; }
         // find point
-        int filter=typeMap.getOrDefault(player.getUniqueId(),0);
-        List<ModelGate> list=new ArrayList<>(gateManager.getGates());
-        if(filter==1) list.removeIf(g->!g.isTown());
-        else if(filter==2) list.removeIf(ModelGate::isTown);
-        list.sort(getComparator(sortMap.getOrDefault(player.getUniqueId(),0),player));
+        List<ModelGate> list=getVisibleGates(player);
         int index= Arrays.binarySearch(POINT_SLOTS, slot);
         if(index<0) return;
         int start=pageMap.getOrDefault(player.getUniqueId(),0)*ITEMS_PER_PAGE;
@@ -198,6 +183,97 @@ public class FastTravelGUI implements Listener {
         }
         player.closeInventory();
         startCast(player,target,cost);
+    }
+
+    private List<ModelGate> getVisibleGates(Player player) {
+        int filter = typeMap.getOrDefault(player.getUniqueId(),0);
+        int mode = sortMap.getOrDefault(player.getUniqueId(),0);
+        List<ModelGate> list = new ArrayList<>(gateManager.getGates());
+        String exclude = excludeMap.get(player.getUniqueId());
+        if(exclude != null){
+            list.removeIf(gate -> gate.getId().equalsIgnoreCase(exclude));
+        }
+        if(filter==1) list.removeIf(gate -> !gate.isTown());
+        else if(filter==2) list.removeIf(ModelGate::isTown);
+        list.sort(getComparator(mode,player));
+        return list;
+    }
+
+    private List<GuiWidget> buildWidgets() {
+        List<GuiWidget> widgetList = new ArrayList<>();
+        widgetList.add(new ActionWidget(PREV_PAGE,
+                context -> createPrevItem(context.player()),
+                (click, context) -> handlePrev(context.player())));
+        widgetList.add(new ActionWidget(NEXT_PAGE,
+                context -> createNextItem(context.player()),
+                (click, context) -> handleNext(context.player())));
+        widgetList.add(new ActionWidget(SORT_SLOT,
+                context -> createSortButton(sortMap.getOrDefault(context.player().getUniqueId(),0)),
+                (click, context) -> handleSortClick(context.player())));
+        widgetList.add(new ActionWidget(FILTER_SLOT,
+                context -> createFilterButton(typeMap.getOrDefault(context.player().getUniqueId(),0)),
+                (click, context) -> handleFilterClick(context.player())));
+        return widgetList;
+    }
+
+    private void renderWidgets(Inventory inventory, Player player) {
+        GuiLayout layout = new GuiLayout(inventory);
+        GuiContext context = new GuiContext(player, inventory);
+        for (GuiWidget widget : widgets) {
+            widget.contribute(layout, context);
+        }
+    }
+
+    private boolean handleWidgetClick(InventoryClickEvent event, Player player) {
+        int slot = event.getRawSlot();
+        if (slot < 0 || slot >= event.getView().getTopInventory().getSize()) {
+            return false;
+        }
+        GuiWidget widget = widgets.stream()
+                .filter(w -> w.handlesSlot(slot))
+                .findFirst()
+                .orElse(null);
+        if (widget == null) {
+            return false;
+        }
+        event.setCancelled(true);
+        widget.onClick(slot, event.getClick(), new GuiContext(player, event.getView().getTopInventory()));
+        return true;
+    }
+
+    private ItemStack createPrevItem(Player player) {
+        int page = pageMap.getOrDefault(player.getUniqueId(),0);
+        return page>0 ? createArrow(ChatColor.GREEN+"Previous") : null;
+    }
+
+    private ItemStack createNextItem(Player player) {
+        int page = pageMap.getOrDefault(player.getUniqueId(),0);
+        int size = getVisibleGates(player).size();
+        return size > (page+1)*ITEMS_PER_PAGE ? createArrow(ChatColor.GREEN+"Next") : null;
+    }
+
+    private void handlePrev(Player player) {
+        int p = pageMap.getOrDefault(player.getUniqueId(),0);
+        open(player, Math.max(0,p-1));
+    }
+
+    private void handleNext(Player player) {
+        int p = pageMap.getOrDefault(player.getUniqueId(),0);
+        open(player,p+1);
+    }
+
+    private void handleSortClick(Player player) {
+        int m=sortMap.getOrDefault(player.getUniqueId(),0);
+        m=(m+1)%4;
+        sortMap.put(player.getUniqueId(),m);
+        open(player,pageMap.getOrDefault(player.getUniqueId(),0));
+    }
+
+    private void handleFilterClick(Player player) {
+        int f=typeMap.getOrDefault(player.getUniqueId(),0);
+        f=(f+1)%3;
+        typeMap.put(player.getUniqueId(),f);
+        open(player,pageMap.getOrDefault(player.getUniqueId(),0));
     }
 
     private void startCast(Player player, ModelGate target, int cost){

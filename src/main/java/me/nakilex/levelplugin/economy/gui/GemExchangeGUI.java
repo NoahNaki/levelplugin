@@ -9,20 +9,20 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ThreadLocalRandom;
 import me.nakilex.levelplugin.utils.GuiUtil;
+import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
+import me.nakilex.levelplugin.utils.gui.widgets.ActionWidget;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiContext;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiLayout;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiWidget;
 import static me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
 import static me.nakilex.levelplugin.utils.ChatMessageUtil.send;
 
@@ -31,10 +31,15 @@ public class GemExchangeGUI implements Listener {
     private static final Material FRAGMENT = Material.MEDIUM_AMETHYST_BUD;
     private static final Material SHARD    = Material.AMETHYST_SHARD;
     private static final Material CLUSTER  = Material.AMETHYST_CLUSTER;
+    private static final int FRAGMENT_TO_SHARD_SLOT = 10;
+    private static final int SHARD_TO_FRAGMENT_SLOT = 12;
+    private static final int SHARD_TO_CLUSTER_SLOT = 14;
+    private static final int CLUSTER_TO_SHARD_SLOT = 16;
 
     private final Main plugin;
     private final Inventory gui;
     private final GemsManager gemsManager;
+    private final List<GuiWidget> widgets;
 
     public GemExchangeGUI(Main plugin, GemsManager gemsManager) {
         this.plugin = plugin;
@@ -42,63 +47,42 @@ public class GemExchangeGUI implements Listener {
         this.gui = GuiBuilder.create(27, TITLE)
                 .filler(Material.GRAY_STAINED_GLASS_PANE)
                 .build();
-        initItems();
+        this.widgets = buildWidgets();
         Bukkit.getPluginManager().registerEvents(this, plugin);
     }
 
-    private void initItems() {
-        gui.setItem(10, createGuiItem(FRAGMENT,
-            ChatColor.LIGHT_PURPLE + "64 Fragments → 1 Shard",
-            Arrays.asList(
-                "",
-                ChatColor.GRAY + "Combine 64 fragments into 1 shard"
-            )
-        ));
-        gui.setItem(12, createGuiItem(SHARD,
-            ChatColor.LIGHT_PURPLE + "1 Shard → 64 Fragments",
-            Arrays.asList(
-                "",
-                ChatColor.GRAY + "Break 1 shard into 64 fragments"
-            )
-        ));
-        gui.setItem(14, createGuiItem(SHARD,
-            ChatColor.LIGHT_PURPLE + "64 Shards → 1 Cluster",
-            Arrays.asList(
-                "",
-                ChatColor.GRAY + "Combine 64 shards into 1 cluster"
-            )
-        ));
-        gui.setItem(16, createGuiItem(CLUSTER,
-            ChatColor.LIGHT_PURPLE + "1 Cluster → 64 Shards",
-            Arrays.asList(
-                "",
-                ChatColor.GRAY + "Break 1 cluster into 64 shards"
-            )
-        ));
+    private List<GuiWidget> buildWidgets() {
+        List<GuiWidget> widgetList = new ArrayList<>();
+        widgetList.add(new ActionWidget(FRAGMENT_TO_SHARD_SLOT,
+                context -> createExchangeItem(FRAGMENT, "64 Fragments → 1 Shard",
+                        "Combine 64 fragments into 1 shard"),
+                (click, context) -> handleConvert(context.player(), FRAGMENT, 64, SHARD, 1)));
+        widgetList.add(new ActionWidget(SHARD_TO_FRAGMENT_SLOT,
+                context -> createExchangeItem(SHARD, "1 Shard → 64 Fragments",
+                        "Break 1 shard into 64 fragments"),
+                (click, context) -> handleConvert(context.player(), SHARD, 1, FRAGMENT, 64)));
+        widgetList.add(new ActionWidget(SHARD_TO_CLUSTER_SLOT,
+                context -> createExchangeItem(SHARD, "64 Shards → 1 Cluster",
+                        "Combine 64 shards into 1 cluster"),
+                (click, context) -> handleConvert(context.player(), SHARD, 64, CLUSTER, 1)));
+        widgetList.add(new ActionWidget(CLUSTER_TO_SHARD_SLOT,
+                context -> createExchangeItem(CLUSTER, "1 Cluster → 64 Shards",
+                        "Break 1 cluster into 64 shards"),
+                (click, context) -> handleConvert(context.player(), CLUSTER, 1, SHARD, 64)));
+        return widgetList;
     }
 
     public void open(Player player) {
+        renderWidgets(player);
         player.openInventory(gui);
     }
 
     @EventHandler
     public void onClick(InventoryClickEvent ev) {
-        if (!ev.getView().getTitle().equals(TITLE)) return;
+        if (!GuiUtil.titleMatches(ev.getView().getTitle(), TITLE)) return;
         ev.setCancelled(true);
-        if (ev.getCurrentItem() == null) return;
-        Player p = (Player) ev.getWhoClicked();
-        switch (ev.getSlot()) {
-            case 10 -> handleConvert(p, FRAGMENT, 64, SHARD, 1);
-            case 12 -> handleConvert(p, SHARD, 1, FRAGMENT, 64);
-            case 14 -> handleConvert(p, SHARD, 64, CLUSTER, 1);
-            case 16 -> handleConvert(p, CLUSTER, 1, SHARD, 64);
-        }
-    }
-
-    @EventHandler
-    public void onClose(InventoryCloseEvent ev) {
-        if (ev.getView().getTitle().equals(TITLE)) {
-        }
+        if (!(ev.getWhoClicked() instanceof Player player)) return;
+        handleWidgetClick(ev, player);
     }
 
     private void handleConvert(Player p,
@@ -154,17 +138,37 @@ public class GemExchangeGUI implements Listener {
         }.runTaskLater(plugin, 1L);
     }
 
-
-    private ItemStack createGuiItem(Material mat, String name, List<String> lore) {
-        ItemStack item = new ItemStack(mat, 1);
-        ItemMeta meta = item.getItemMeta();
-        if (meta != null) {
-            meta.setDisplayName(name);
-            meta.setLore(lore);
-            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
-            item.setItemMeta(meta);
+    private void renderWidgets(Player player) {
+        GuiLayout layout = new GuiLayout(gui);
+        GuiContext context = new GuiContext(player, gui);
+        for (GuiWidget widget : widgets) {
+            widget.contribute(layout, context);
         }
-        return item;
+    }
+
+    private boolean handleWidgetClick(InventoryClickEvent event, Player player) {
+        int slot = event.getRawSlot();
+        if (slot < 0 || slot >= event.getView().getTopInventory().getSize()) {
+            return false;
+        }
+        GuiWidget widget = widgets.stream()
+                .filter(w -> w.handlesSlot(slot))
+                .findFirst()
+                .orElse(null);
+        if (widget == null) {
+            return false;
+        }
+        widget.onClick(slot, event.getClick(), new GuiContext(player, event.getView().getTopInventory()));
+        return true;
+    }
+
+    private ItemStack createExchangeItem(Material material, String name, String description) {
+        List<String> lore = new ArrayList<>();
+        lore.add("");
+        lore.add(ChatColor.GRAY + description);
+        lore.add("");
+        lore.addAll(TooltipUtil.clickInstructions("to convert", null));
+        return GuiUtil.createGuiItem(material, ChatColor.LIGHT_PURPLE + name, lore);
     }
 
     

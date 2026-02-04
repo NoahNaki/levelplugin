@@ -5,6 +5,10 @@ import me.nakilex.levelplugin.player.classes.essence.ClassEssence;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
+import me.nakilex.levelplugin.utils.gui.widgets.ActionWidget;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiContext;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiLayout;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiWidget;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -14,12 +18,16 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 public class ClassEssenceGUI {
 
     public static final String TITLE = "Class Essences";
     private static final int[] ESSENCE_SLOTS = {11, 13, 15};
+    private static final Map<UUID, List<GuiWidget>> WIDGETS = new HashMap<>();
 
     private ClassEssenceGUI() {}
 
@@ -30,22 +38,9 @@ public class ClassEssenceGUI {
         StatsManager statsManager = StatsManager.getInstance();
         StatsManager.PlayerStats ps = statsManager.getPlayerStats(player.getUniqueId());
         int unlockedSlots = statsManager.getUnlockedEssenceSlots(player);
-        for (int i = 0; i < ESSENCE_SLOTS.length; i++) {
-            if (i >= unlockedSlots) {
-                inv.setItem(ESSENCE_SLOTS[i], createLockedSlotItem(i, statsManager));
-                continue;
-            }
-            ItemStack essence = ps.essenceSlots[i];
-            if (essence != null) {
-                if (ps.equippedEssences[i]) {
-                    ClassEssence.setEquipped(essence, true);
-                }
-                ClassEssence.addSlotTips(essence);
-                inv.setItem(ESSENCE_SLOTS[i], essence);
-            } else {
-                inv.setItem(ESSENCE_SLOTS[i], null);
-            }
-        }
+        List<GuiWidget> widgets = buildWidgets(statsManager, ps, unlockedSlots);
+        WIDGETS.put(player.getUniqueId(), widgets);
+        renderWidgets(inv, player, widgets);
         player.openInventory(inv);
     }
 
@@ -75,5 +70,44 @@ public class ClassEssenceGUI {
 
     public static int slotFromIndex(int index) {
         return ESSENCE_SLOTS[index];
+    }
+
+    private static List<GuiWidget> buildWidgets(StatsManager statsManager,
+                                                StatsManager.PlayerStats ps,
+                                                int unlockedSlots) {
+        List<GuiWidget> widgets = new ArrayList<>();
+        for (int i = 0; i < ESSENCE_SLOTS.length; i++) {
+            int slot = ESSENCE_SLOTS[i];
+            int idx = i;
+            widgets.add(new ActionWidget(slot,
+                    context -> createEssenceItem(statsManager, ps, unlockedSlots, idx),
+                    null));
+        }
+        return widgets;
+    }
+
+    private static ItemStack createEssenceItem(StatsManager statsManager,
+                                               StatsManager.PlayerStats ps,
+                                               int unlockedSlots,
+                                               int slotIndex) {
+        if (slotIndex >= unlockedSlots) {
+            return createLockedSlotItem(slotIndex, statsManager);
+        }
+        ItemStack essence = ps.essenceSlots[slotIndex];
+        if (essence != null) {
+            if (ps.equippedEssences[slotIndex]) {
+                ClassEssence.setEquipped(essence, true);
+            }
+            ClassEssence.addSlotTips(essence);
+        }
+        return essence;
+    }
+
+    private static void renderWidgets(Inventory inventory, Player player, List<GuiWidget> widgets) {
+        GuiLayout layout = new GuiLayout(inventory);
+        GuiContext context = new GuiContext(player, inventory);
+        for (GuiWidget widget : widgets) {
+            widget.contribute(layout, context);
+        }
     }
 }

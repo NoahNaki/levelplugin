@@ -21,6 +21,10 @@ import me.nakilex.levelplugin.items.data.ItemRarity;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
+import me.nakilex.levelplugin.utils.gui.widgets.ActionWidget;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiContext;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiLayout;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiWidget;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -55,6 +59,7 @@ public class MerchantGUI implements Listener {
     private final Plugin plugin;
     private final me.nakilex.levelplugin.player.config.PlayerConfig playerConfig;
     private final String merchantName;
+    private final List<GuiWidget> widgets = new ArrayList<>();
     private int updateTaskId = -1;
 
     /**
@@ -93,6 +98,7 @@ public class MerchantGUI implements Listener {
 
         // Now populate slots with stats‐range + price lore
         populateMerchantItems();
+        widgets.addAll(buildWidgets());
 
         // Register events
         Bukkit.getPluginManager().registerEvents(this, plugin);
@@ -362,89 +368,10 @@ public class MerchantGUI implements Listener {
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
         if (event.getInventory() != null && event.getInventory().equals(inventory)) {
+            if (handleWidgetClick(event)) {
+                return;
+            }
             event.setCancelled(true);
-            if (event.getCurrentItem() == null) return;
-
-            int slot = event.getRawSlot();
-            MerchantItem mItem = merchantItems.get(slot);
-            if (mItem == null) return;
-
-            Player player = (Player) event.getWhoClicked();
-
-            if (hasReachedLimit(player, mItem)) {
-                send(player, MessageType.ERROR, "You have already bought the maximum allowed for this offer.");
-                return;
-            }
-
-            int coinCost = TownPerkManager.getInstance().applyDiscount(
-                    GuildManager.getInstance().getGuild(player.getUniqueId()),
-                    TownPerk.MERCHANT_DISCOUNT,
-                    mItem.getCost());
-            int gemCost = mItem.getGems();
-
-            int coinBalance = economyManager.getBalance(player);
-            int gemBalance = Main.getInstance().getGemsManager().getTotalUnits(player);
-
-            // Check coin requirement
-            if (coinBalance < coinCost) {
-                send(player, MessageType.ERROR, "You don't have enough coins!");
-                return;
-            }
-
-            // Check gem requirement
-            if (gemCost > 0 && gemBalance < gemCost) {
-                send(player, MessageType.ERROR, "You don't have enough gems!");
-                return;
-            }
-
-            if (player.getInventory().firstEmpty() == -1) {
-                player.sendTitle(ChatColor.RED + "Inventory full!", "", 10, 70, 20);
-                return;
-            }
-
-            // Deduct coins
-            try {
-                economyManager.deductCoins(player, coinCost);
-            } catch (IllegalArgumentException ex) {
-                send(player, MessageType.ERROR, "Transaction failed: " + ex.getMessage());
-                return;
-            }
-
-            // Deduct gems if needed
-            if (gemCost > 0) {
-                Main.getInstance().getGemsManager().deductUnits(player, gemCost);
-            }
-
-            // Give item to player
-            if (mItem.isEssence()) {
-                ItemStack purchasedItem = createEssenceStack(mItem.getEssenceData());
-                if (purchasedItem != null) {
-                    Main.getInstance().getQuestManager().handleBuy(player, "essence:" + mItem.getEssenceData().clazz());
-                    player.getInventory().addItem(purchasedItem);
-                    sendPurchaseMessage(player, purchasedItem.getItemMeta().getDisplayName(), coinCost, gemCost);
-                    recordPurchase(player, mItem);
-                }
-            } else if (mItem.isTool()) {
-                CustomTool tool = mItem.getTool();
-                if (tool != null) {
-                    ItemStack purchasedItem = ToolManager.getInstance().createToolItem(tool, player);
-                    purchasedItem.setAmount(mItem.getAmount());
-                    player.getInventory().addItem(purchasedItem);
-                    sendPurchaseMessage(player, purchasedItem.getItemMeta().getDisplayName(), coinCost, gemCost);
-                    recordPurchase(player, mItem);
-                }
-            } else {
-                CustomItem template = ItemManager.getInstance().getTemplateById(mItem.getItemId());
-                if (template != null) {
-
-                    CustomItem newInstance = ItemManager.getInstance().rollNewInstance(template.getId());
-                    ItemStack purchasedItem = ItemUtil.createItemStackFromCustomItem(newInstance, mItem.getAmount(), player);
-                    player.getInventory().addItem(purchasedItem);
-                    Main.getInstance().getQuestManager().handleBuy(player, String.valueOf(mItem.getItemId()));
-                    sendPurchaseMessage(player, purchasedItem.getItemMeta().getDisplayName(), coinCost, gemCost);
-                    recordPurchase(player, mItem);
-                }
-            }
         }
     }
 
@@ -624,6 +551,7 @@ public class MerchantGUI implements Listener {
 
         Player p = (Player)e.getPlayer();
 
+        renderWidgets(inventory, p);
         // Run it immediately once
         updateMerchantTooltips(p);
 
@@ -644,6 +572,120 @@ public class MerchantGUI implements Listener {
         if (updateTaskId != -1) {
             Bukkit.getScheduler().cancelTask(updateTaskId);
             updateTaskId = -1;
+        }
+    }
+
+    private List<GuiWidget> buildWidgets() {
+        List<GuiWidget> built = new ArrayList<>();
+        for (Map.Entry<Integer, MerchantItem> entry : merchantItems.entrySet()) {
+            int slot = entry.getKey();
+            MerchantItem mItem = entry.getValue();
+            built.add(new ActionWidget(slot,
+                    context -> context.inventory().getItem(slot),
+                    (click, context) -> handlePurchaseClick(context.player(), mItem)));
+        }
+        return built;
+    }
+
+    private boolean handleWidgetClick(InventoryClickEvent event) {
+        if (!(event.getWhoClicked() instanceof Player player)) {
+            return false;
+        }
+        int slot = event.getRawSlot();
+        if (slot < 0 || slot >= event.getView().getTopInventory().getSize()) {
+            return false;
+        }
+        GuiWidget widget = widgets.stream()
+                .filter(w -> w.handlesSlot(slot))
+                .findFirst()
+                .orElse(null);
+        if (widget == null) {
+            return false;
+        }
+        event.setCancelled(true);
+        widget.onClick(slot, event.getClick(), new GuiContext(player, event.getView().getTopInventory()));
+        return true;
+    }
+
+    private void renderWidgets(Inventory inventory, Player player) {
+        GuiLayout layout = new GuiLayout(inventory);
+        GuiContext context = new GuiContext(player, inventory);
+        for (GuiWidget widget : widgets) {
+            widget.contribute(layout, context);
+        }
+    }
+
+    private void handlePurchaseClick(Player player, MerchantItem mItem) {
+        if (player == null || mItem == null) {
+            return;
+        }
+        if (hasReachedLimit(player, mItem)) {
+            send(player, MessageType.ERROR, "You have already bought the maximum allowed for this offer.");
+            return;
+        }
+
+        int coinCost = TownPerkManager.getInstance().applyDiscount(
+                GuildManager.getInstance().getGuild(player.getUniqueId()),
+                TownPerk.MERCHANT_DISCOUNT,
+                mItem.getCost());
+        int gemCost = mItem.getGems();
+
+        int coinBalance = economyManager.getBalance(player);
+        int gemBalance = Main.getInstance().getGemsManager().getTotalUnits(player);
+
+        if (coinBalance < coinCost) {
+            send(player, MessageType.ERROR, "You don't have enough coins!");
+            return;
+        }
+
+        if (gemCost > 0 && gemBalance < gemCost) {
+            send(player, MessageType.ERROR, "You don't have enough gems!");
+            return;
+        }
+
+        if (player.getInventory().firstEmpty() == -1) {
+            player.sendTitle(ChatColor.RED + "Inventory full!", "", 10, 70, 20);
+            return;
+        }
+
+        try {
+            economyManager.deductCoins(player, coinCost);
+        } catch (IllegalArgumentException ex) {
+            send(player, MessageType.ERROR, "Transaction failed: " + ex.getMessage());
+            return;
+        }
+
+        if (gemCost > 0) {
+            Main.getInstance().getGemsManager().deductUnits(player, gemCost);
+        }
+
+        if (mItem.isEssence()) {
+            ItemStack purchasedItem = createEssenceStack(mItem.getEssenceData());
+            if (purchasedItem != null) {
+                Main.getInstance().getQuestManager().handleBuy(player, "essence:" + mItem.getEssenceData().clazz());
+                player.getInventory().addItem(purchasedItem);
+                sendPurchaseMessage(player, purchasedItem.getItemMeta().getDisplayName(), coinCost, gemCost);
+                recordPurchase(player, mItem);
+            }
+        } else if (mItem.isTool()) {
+            CustomTool tool = mItem.getTool();
+            if (tool != null) {
+                ItemStack purchasedItem = ToolManager.getInstance().createToolItem(tool, player);
+                purchasedItem.setAmount(mItem.getAmount());
+                player.getInventory().addItem(purchasedItem);
+                sendPurchaseMessage(player, purchasedItem.getItemMeta().getDisplayName(), coinCost, gemCost);
+                recordPurchase(player, mItem);
+            }
+        } else {
+            CustomItem template = ItemManager.getInstance().getTemplateById(mItem.getItemId());
+            if (template != null) {
+                CustomItem newInstance = ItemManager.getInstance().rollNewInstance(template.getId());
+                ItemStack purchasedItem = ItemUtil.createItemStackFromCustomItem(newInstance, mItem.getAmount(), player);
+                player.getInventory().addItem(purchasedItem);
+                Main.getInstance().getQuestManager().handleBuy(player, String.valueOf(mItem.getItemId()));
+                sendPurchaseMessage(player, purchasedItem.getItemMeta().getDisplayName(), coinCost, gemCost);
+                recordPurchase(player, mItem);
+            }
         }
     }
 

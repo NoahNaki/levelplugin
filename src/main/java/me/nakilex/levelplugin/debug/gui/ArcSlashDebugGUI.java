@@ -11,6 +11,10 @@ import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
+import me.nakilex.levelplugin.utils.gui.widgets.ActionWidget;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiContext;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiLayout;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiWidget;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.Particle;
@@ -82,15 +86,17 @@ public class ArcSlashDebugGUI implements Listener {
 
     private final ArcSlashDebugManager arcSlashDebugManager;
     private final Map<UUID, ArcSlashConfig> workingConfigs = new HashMap<>();
+    private final List<GuiWidget> widgets;
 
     public ArcSlashDebugGUI(ArcSlashDebugManager arcSlashDebugManager) {
         this.arcSlashDebugManager = arcSlashDebugManager;
+        this.widgets = buildWidgets();
     }
 
     public void open(Player player) {
         ArcSlashConfig config = arcSlashDebugManager.config();
         workingConfigs.put(player.getUniqueId(), config);
-        player.openInventory(buildInventory(config));
+        player.openInventory(buildInventory(player));
     }
 
     @EventHandler
@@ -106,39 +112,212 @@ public class ArcSlashDebugGUI implements Listener {
         if (slot < 0 || slot >= event.getInventory().getSize()) {
             return;
         }
+        handleWidgetClick(event, player);
+    }
 
-        ArcSlashConfig config = workingConfigs.get(player.getUniqueId());
+    private List<GuiWidget> buildWidgets() {
+        List<GuiWidget> widgetList = new java.util.ArrayList<>();
+        widgetList.add(new ActionWidget(PARTICLE_SLOT,
+                context -> createParamItem(Material.BLAZE_POWDER, ChatColor.AQUA + "Particle",
+                        "Particle type used for the arc.",
+                        List.of("Current: " + ChatColor.WHITE + getConfig(context).particle().name()),
+                        "to cycle forward", "to cycle backward", null, null),
+                (click, context) -> handleConfigInteraction(click, context, PARTICLE_SLOT)));
+        widgetList.add(new ActionWidget(POINTS_SLOT,
+                context -> createParamItem(Material.NETHER_STAR, ChatColor.AQUA + "Points",
+                        "How many particles form each arc.",
+                        List.of("Current: " + ChatColor.WHITE + getConfig(context).points()),
+                        "to increase points", "to decrease points", "to increase faster", "to decrease faster"),
+                (click, context) -> handleConfigInteraction(click, context, POINTS_SLOT)));
+        widgetList.add(new ActionWidget(TICKS_SLOT,
+                context -> createParamItem(Material.CLOCK, ChatColor.AQUA + "Ticks",
+                        "How long the arc travels forward.",
+                        List.of("Current: " + ChatColor.WHITE + getConfig(context).ticks()),
+                        "to increase duration", "to decrease duration", "to increase faster", "to decrease faster"),
+                (click, context) -> handleConfigInteraction(click, context, TICKS_SLOT)));
+        widgetList.add(new ActionWidget(FRAME_STEP_SLOT,
+                context -> createParamItem(Material.REPEATER, ChatColor.AQUA + "Frame Step",
+                        "Spacing between animation frames.",
+                        List.of("Current: " + ChatColor.WHITE + getConfig(context).frameStep()),
+                        "to increase step", "to decrease step", "to increase faster", "to decrease faster"),
+                (click, context) -> handleConfigInteraction(click, context, FRAME_STEP_SLOT)));
+        widgetList.add(new ActionWidget(START_DISTANCE_SLOT,
+                context -> createParamItem(Material.ENDER_PEARL, ChatColor.AQUA + "Start Distance",
+                        "Initial distance in front of the player.",
+                        List.of("Current: " + ChatColor.WHITE + formatDecimal(getConfig(context).startDistance())),
+                        "to push forward", "to pull back", "to push further", "to pull further"),
+                (click, context) -> handleConfigInteraction(click, context, START_DISTANCE_SLOT)));
+        widgetList.add(new ActionWidget(TRAVEL_DISTANCE_SLOT,
+                context -> createParamItem(Material.ELYTRA, ChatColor.AQUA + "Travel Distance",
+                        "How far the arc advances forward.",
+                        List.of("Current: " + ChatColor.WHITE + formatDecimal(getConfig(context).travelDistance())),
+                        "to increase travel", "to decrease travel", "to increase faster", "to decrease faster"),
+                (click, context) -> handleConfigInteraction(click, context, TRAVEL_DISTANCE_SLOT)));
+        widgetList.add(new ActionWidget(RADIUS_X_MIN_SLOT,
+                context -> createParamItem(Material.SHIELD, ChatColor.AQUA + "Radius X (Min)",
+                        "Minimum horizontal size of the arc.",
+                        List.of("Current: " + ChatColor.WHITE + formatDecimal(getConfig(context).radiusXMin())),
+                        "to widen min radius", "to tighten min radius", "to widen faster", "to tighten faster"),
+                (click, context) -> handleConfigInteraction(click, context, RADIUS_X_MIN_SLOT)));
+        widgetList.add(new ActionWidget(RADIUS_X_MAX_SLOT,
+                context -> createParamItem(Material.SHIELD, ChatColor.AQUA + "Radius X (Max)",
+                        "Maximum horizontal size of the arc.",
+                        List.of("Current: " + ChatColor.WHITE + formatDecimal(getConfig(context).radiusXMax())),
+                        "to widen max radius", "to tighten max radius", "to widen faster", "to tighten faster"),
+                (click, context) -> handleConfigInteraction(click, context, RADIUS_X_MAX_SLOT)));
+        widgetList.add(new ActionWidget(RADIUS_Z_MIN_SLOT,
+                context -> createParamItem(Material.IRON_BARS, ChatColor.AQUA + "Radius Z (Min)",
+                        "Minimum vertical depth of the arc.",
+                        List.of("Current: " + ChatColor.WHITE + formatDecimal(getConfig(context).radiusZMin())),
+                        "to widen min depth", "to tighten min depth", "to widen faster", "to tighten faster"),
+                (click, context) -> handleConfigInteraction(click, context, RADIUS_Z_MIN_SLOT)));
+        widgetList.add(new ActionWidget(RADIUS_Z_MAX_SLOT,
+                context -> createParamItem(Material.IRON_BARS, ChatColor.AQUA + "Radius Z (Max)",
+                        "Maximum vertical depth of the arc.",
+                        List.of("Current: " + ChatColor.WHITE + formatDecimal(getConfig(context).radiusZMax())),
+                        "to widen max depth", "to tighten max depth", "to widen faster", "to tighten faster"),
+                (click, context) -> handleConfigInteraction(click, context, RADIUS_Z_MAX_SLOT)));
+        widgetList.add(new ActionWidget(START_ANGLE_SLOT,
+                context -> createParamItem(Material.COMPASS, ChatColor.AQUA + "Start Angle",
+                        "Where the arc begins along the curve.",
+                        List.of("Current: " + ChatColor.WHITE + formatDecimal(getConfig(context).startAngleDegrees()) + "°"),
+                        "to rotate forward", "to rotate backward", "to rotate faster", "to rotate faster"),
+                (click, context) -> handleConfigInteraction(click, context, START_ANGLE_SLOT)));
+        widgetList.add(new ActionWidget(END_ANGLE_SLOT,
+                context -> createParamItem(Material.COMPASS, ChatColor.AQUA + "End Angle",
+                        "Where the arc ends along the curve.",
+                        List.of("Current: " + ChatColor.WHITE + formatDecimal(getConfig(context).endAngleDegrees()) + "°"),
+                        "to rotate forward", "to rotate backward", "to rotate faster", "to rotate faster"),
+                (click, context) -> handleConfigInteraction(click, context, END_ANGLE_SLOT)));
+        widgetList.add(new ActionWidget(BASE_TILT_MIN_SLOT,
+                context -> createParamItem(Material.FEATHER, ChatColor.AQUA + "Base Tilt (Min)",
+                        "Minimum tilt applied to the arc layers.",
+                        List.of("Current: " + ChatColor.WHITE + formatDecimal(getConfig(context).baseTiltMin()) + "°"),
+                        "to increase min tilt", "to decrease min tilt", "to increase faster", "to decrease faster"),
+                (click, context) -> handleConfigInteraction(click, context, BASE_TILT_MIN_SLOT)));
+        widgetList.add(new ActionWidget(BASE_TILT_MAX_SLOT,
+                context -> createParamItem(Material.FEATHER, ChatColor.AQUA + "Base Tilt (Max)",
+                        "Maximum tilt applied to the arc layers.",
+                        List.of("Current: " + ChatColor.WHITE + formatDecimal(getConfig(context).baseTiltMax()) + "°"),
+                        "to increase max tilt", "to decrease max tilt", "to increase faster", "to decrease faster"),
+                (click, context) -> handleConfigInteraction(click, context, BASE_TILT_MAX_SLOT)));
+        widgetList.add(new ActionWidget(LAYER_TILT_SLOT,
+                context -> createParamItem(Material.QUARTZ, ChatColor.AQUA + "Layer Tilt Step",
+                        "Separation between arc layers.",
+                        List.of("Current: " + ChatColor.WHITE + formatDecimal(getConfig(context).layerTiltStep()) + "°"),
+                        "to add separation", "to reduce separation", "to add more", "to reduce more"),
+                (click, context) -> handleConfigInteraction(click, context, LAYER_TILT_SLOT)));
+        widgetList.add(new ActionWidget(SIDE_SHIFT_SLOT,
+                context -> createParamItem(Material.ARROW, ChatColor.AQUA + "Side Shift Factor",
+                        "Scales horizontal offset by arc size.",
+                        List.of("Current: " + ChatColor.WHITE + formatDecimal(getConfig(context).sideShiftFactor())),
+                        "to push right", "to push left", "to push further", "to pull further"),
+                (click, context) -> handleConfigInteraction(click, context, SIDE_SHIFT_SLOT)));
+        widgetList.add(new ActionWidget(WIDTH_SLOT,
+                context -> createParamItem(Material.PAPER, ChatColor.AQUA + "Arc Width",
+                        "Thickness of the arc band.",
+                        List.of("Current: " + ChatColor.WHITE + formatDecimal(getConfig(context).width())),
+                        "to thicken", "to thin", "to thicken faster", "to thin faster"),
+                (click, context) -> handleConfigInteraction(click, context, WIDTH_SLOT)));
+        widgetList.add(new ActionWidget(FORWARD_OFFSET_SLOT,
+                context -> createParamItem(Material.OAK_SIGN, ChatColor.AQUA + "Forward Offset",
+                        "Extra push along the look direction.",
+                        List.of("Current: " + ChatColor.WHITE + formatDecimal(getConfig(context).forwardOffset())),
+                        "to push forward", "to pull back", "to push further", "to pull further"),
+                (click, context) -> handleConfigInteraction(click, context, FORWARD_OFFSET_SLOT)));
+        widgetList.add(new ActionWidget(RIGHT_OFFSET_SLOT,
+                context -> createParamItem(Material.ARROW, ChatColor.AQUA + "Right Offset",
+                        "Shift the arc left or right.",
+                        List.of("Current: " + ChatColor.WHITE + formatDecimal(getConfig(context).rightOffset())),
+                        "to move right", "to move left", "to move further", "to move further"),
+                (click, context) -> handleConfigInteraction(click, context, RIGHT_OFFSET_SLOT)));
+        widgetList.add(new ActionWidget(UP_OFFSET_SLOT,
+                context -> createParamItem(Material.FEATHER, ChatColor.AQUA + "Up Offset",
+                        "Raise or lower the arc.",
+                        List.of("Current: " + ChatColor.WHITE + formatDecimal(getConfig(context).upOffset())),
+                        "to move up", "to move down", "to move further", "to move further"),
+                (click, context) -> handleConfigInteraction(click, context, UP_OFFSET_SLOT)));
+        widgetList.add(new ActionWidget(ROTATE_X_SLOT,
+                context -> createParamItem(Material.IRON_BARS, ChatColor.AQUA + "Rotate X",
+                        "Rotate the arc around the X axis.",
+                        List.of("Current: " + ChatColor.WHITE + formatDecimal(getConfig(context).rotateXDegrees()) + "°"),
+                        "to rotate forward", "to rotate backward", "to rotate faster", "to rotate faster"),
+                (click, context) -> handleConfigInteraction(click, context, ROTATE_X_SLOT)));
+        widgetList.add(new ActionWidget(ROTATE_Y_SLOT,
+                context -> createParamItem(Material.IRON_BLOCK, ChatColor.AQUA + "Rotate Y",
+                        "Rotate the arc around the Y axis.",
+                        List.of("Current: " + ChatColor.WHITE + formatDecimal(getConfig(context).rotateYDegrees()) + "°"),
+                        "to rotate forward", "to rotate backward", "to rotate faster", "to rotate faster"),
+                (click, context) -> handleConfigInteraction(click, context, ROTATE_Y_SLOT)));
+        widgetList.add(new ActionWidget(ROTATE_Z_SLOT,
+                context -> createParamItem(Material.IRON_NUGGET, ChatColor.AQUA + "Rotate Z",
+                        "Rotate the arc around the Z axis.",
+                        List.of("Current: " + ChatColor.WHITE + formatDecimal(getConfig(context).rotateZDegrees()) + "°"),
+                        "to rotate forward", "to rotate backward", "to rotate faster", "to rotate faster"),
+                (click, context) -> handleConfigInteraction(click, context, ROTATE_Z_SLOT)));
+        widgetList.add(new ActionWidget(INFO_SLOT,
+                context -> createInfoItem(getConfig(context)),
+                null));
+        widgetList.add(new ActionWidget(RESET_SLOT,
+                context -> GuiUtil.getNexoItem("refresh", ChatColor.YELLOW + "Reset Defaults"),
+                (click, context) -> {
+                    ArcSlashConfig reset = ArcSlashConfig.defaultConfig();
+                    workingConfigs.put(context.player().getUniqueId(), reset);
+                    arcSlashDebugManager.applyConfig(reset);
+                    context.player().openInventory(buildInventory(context.player()));
+                    ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.INFO,
+                            "Arc slash settings reset to defaults.");
+                }));
+        widgetList.add(new ActionWidget(SAVE_SLOT,
+                context -> GuiUtil.getNexoItem("save", ChatColor.GREEN + "Save Settings"),
+                (click, context) -> {
+                    ArcSlashConfig config = getConfig(context);
+                    arcSlashDebugManager.applyConfig(config);
+                    arcSlashDebugManager.logConfig(config);
+                    ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.SUCCESS,
+                            "Arc slash settings saved.");
+                    context.player().openInventory(buildInventory(context.player()));
+                }));
+        widgetList.add(new ActionWidget(CLOSE_SLOT,
+                context -> GuiUtil.getNexoItem("cross", ChatColor.RED + "Close"),
+                (click, context) -> context.player().closeInventory()));
+        return widgetList;
+    }
+
+    private void renderWidgets(Inventory inventory, Player player) {
+        GuiLayout layout = new GuiLayout(inventory);
+        GuiContext context = new GuiContext(player, inventory);
+        for (GuiWidget widget : widgets) {
+            widget.contribute(layout, context);
+        }
+    }
+
+    private void handleWidgetClick(InventoryClickEvent event, Player player) {
+        int slot = event.getRawSlot();
+        GuiWidget widget = widgets.stream()
+                .filter(w -> w.handlesSlot(slot))
+                .findFirst()
+                .orElse(null);
+        if (widget == null) {
+            return;
+        }
+        widget.onClick(slot, event.getClick(), new GuiContext(player, event.getView().getTopInventory()));
+    }
+
+    private ArcSlashConfig getConfig(GuiContext context) {
+        ArcSlashConfig config = workingConfigs.get(context.player().getUniqueId());
         if (config == null) {
             config = arcSlashDebugManager.config();
-            workingConfigs.put(player.getUniqueId(), config);
+            workingConfigs.put(context.player().getUniqueId(), config);
         }
-        boolean rightClick = event.isRightClick();
-        boolean shiftClick = event.isShiftClick();
-        if (slot == SAVE_SLOT) {
-            arcSlashDebugManager.applyConfig(config);
-            arcSlashDebugManager.logConfig(config);
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                    "Arc slash settings saved.");
-            player.openInventory(buildInventory(config));
-            return;
-        }
-        if (slot == RESET_SLOT) {
-            ArcSlashConfig reset = ArcSlashConfig.defaultConfig();
-            workingConfigs.put(player.getUniqueId(), reset);
-            arcSlashDebugManager.applyConfig(reset);
-            player.openInventory(buildInventory(reset));
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
-                    "Arc slash settings reset to defaults.");
-            return;
-        }
-        if (slot == CLOSE_SLOT) {
-            player.closeInventory();
-            return;
-        }
+        return config;
+    }
 
-        handleConfigClick(config, slot, rightClick, shiftClick);
+    private void handleConfigInteraction(org.bukkit.event.inventory.ClickType click, GuiContext context, int slot) {
+        ArcSlashConfig config = getConfig(context);
+        handleConfigClick(config, slot, click.isRightClick(), click.isShiftClick());
         arcSlashDebugManager.applyConfig(config);
-        player.openInventory(buildInventory(config));
+        context.player().openInventory(buildInventory(context.player()));
     }
 
     @EventHandler
@@ -209,110 +388,14 @@ public class ArcSlashDebugGUI implements Listener {
         }
     }
 
-    private Inventory buildInventory(ArcSlashConfig config) {
+    private Inventory buildInventory(Player player) {
         GuiBuilder builder = GuiBuilder.create(GUI_SIZE, TITLE)
                 .filler(Material.GRAY_STAINED_GLASS_PANE)
                 .border()
                 .fillEmptySlots(false);
-
-        builder.setItem(PARTICLE_SLOT, createParamItem(Material.BLAZE_POWDER, ChatColor.AQUA + "Particle",
-                "Particle type used for the arc.",
-                List.of("Current: " + ChatColor.WHITE + config.particle().name()),
-                "to cycle forward", "to cycle backward", null, null));
-        builder.setItem(POINTS_SLOT, createParamItem(Material.NETHER_STAR, ChatColor.AQUA + "Points",
-                "How many particles form each arc.",
-                List.of("Current: " + ChatColor.WHITE + config.points()),
-                "to increase points", "to decrease points", "to increase faster", "to decrease faster"));
-        builder.setItem(TICKS_SLOT, createParamItem(Material.CLOCK, ChatColor.AQUA + "Ticks",
-                "How long the arc travels forward.",
-                List.of("Current: " + ChatColor.WHITE + config.ticks()),
-                "to increase duration", "to decrease duration", "to increase faster", "to decrease faster"));
-        builder.setItem(FRAME_STEP_SLOT, createParamItem(Material.REPEATER, ChatColor.AQUA + "Frame Step",
-                "Spacing between animation frames.",
-                List.of("Current: " + ChatColor.WHITE + config.frameStep()),
-                "to increase step", "to decrease step", "to increase faster", "to decrease faster"));
-        builder.setItem(START_DISTANCE_SLOT, createParamItem(Material.ENDER_PEARL, ChatColor.AQUA + "Start Distance",
-                "Initial distance in front of the player.",
-                List.of("Current: " + ChatColor.WHITE + formatDecimal(config.startDistance())),
-                "to push forward", "to pull back", "to push further", "to pull further"));
-        builder.setItem(TRAVEL_DISTANCE_SLOT, createParamItem(Material.ELYTRA, ChatColor.AQUA + "Travel Distance",
-                "How far the arc advances forward.",
-                List.of("Current: " + ChatColor.WHITE + formatDecimal(config.travelDistance())),
-                "to increase travel", "to decrease travel", "to increase faster", "to decrease faster"));
-        builder.setItem(RADIUS_X_MIN_SLOT, createParamItem(Material.SHIELD, ChatColor.AQUA + "Radius X (Min)",
-                "Minimum horizontal size of the arc.",
-                List.of("Current: " + ChatColor.WHITE + formatDecimal(config.radiusXMin())),
-                "to widen min radius", "to tighten min radius", "to widen faster", "to tighten faster"));
-        builder.setItem(RADIUS_X_MAX_SLOT, createParamItem(Material.SHIELD, ChatColor.AQUA + "Radius X (Max)",
-                "Maximum horizontal size of the arc.",
-                List.of("Current: " + ChatColor.WHITE + formatDecimal(config.radiusXMax())),
-                "to widen max radius", "to tighten max radius", "to widen faster", "to tighten faster"));
-        builder.setItem(RADIUS_Z_MIN_SLOT, createParamItem(Material.IRON_BARS, ChatColor.AQUA + "Radius Z (Min)",
-                "Minimum vertical depth of the arc.",
-                List.of("Current: " + ChatColor.WHITE + formatDecimal(config.radiusZMin())),
-                "to widen min depth", "to tighten min depth", "to widen faster", "to tighten faster"));
-        builder.setItem(RADIUS_Z_MAX_SLOT, createParamItem(Material.IRON_BARS, ChatColor.AQUA + "Radius Z (Max)",
-                "Maximum vertical depth of the arc.",
-                List.of("Current: " + ChatColor.WHITE + formatDecimal(config.radiusZMax())),
-                "to widen max depth", "to tighten max depth", "to widen faster", "to tighten faster"));
-        builder.setItem(START_ANGLE_SLOT, createParamItem(Material.COMPASS, ChatColor.AQUA + "Start Angle",
-                "Where the arc begins along the curve.",
-                List.of("Current: " + ChatColor.WHITE + formatDecimal(config.startAngleDegrees()) + "°"),
-                "to rotate forward", "to rotate backward", "to rotate faster", "to rotate faster"));
-        builder.setItem(END_ANGLE_SLOT, createParamItem(Material.COMPASS, ChatColor.AQUA + "End Angle",
-                "Where the arc ends along the curve.",
-                List.of("Current: " + ChatColor.WHITE + formatDecimal(config.endAngleDegrees()) + "°"),
-                "to rotate forward", "to rotate backward", "to rotate faster", "to rotate faster"));
-        builder.setItem(BASE_TILT_MIN_SLOT, createParamItem(Material.FEATHER, ChatColor.AQUA + "Base Tilt (Min)",
-                "Minimum tilt applied to the arc layers.",
-                List.of("Current: " + ChatColor.WHITE + formatDecimal(config.baseTiltMin()) + "°"),
-                "to increase min tilt", "to decrease min tilt", "to increase faster", "to decrease faster"));
-        builder.setItem(BASE_TILT_MAX_SLOT, createParamItem(Material.FEATHER, ChatColor.AQUA + "Base Tilt (Max)",
-                "Maximum tilt applied to the arc layers.",
-                List.of("Current: " + ChatColor.WHITE + formatDecimal(config.baseTiltMax()) + "°"),
-                "to increase max tilt", "to decrease max tilt", "to increase faster", "to decrease faster"));
-        builder.setItem(LAYER_TILT_SLOT, createParamItem(Material.QUARTZ, ChatColor.AQUA + "Layer Tilt Step",
-                "Separation between arc layers.",
-                List.of("Current: " + ChatColor.WHITE + formatDecimal(config.layerTiltStep()) + "°"),
-                "to add separation", "to reduce separation", "to add more", "to reduce more"));
-        builder.setItem(SIDE_SHIFT_SLOT, createParamItem(Material.ARROW, ChatColor.AQUA + "Side Shift Factor",
-                "Scales horizontal offset by arc size.",
-                List.of("Current: " + ChatColor.WHITE + formatDecimal(config.sideShiftFactor())),
-                "to push right", "to push left", "to push further", "to pull further"));
-        builder.setItem(WIDTH_SLOT, createParamItem(Material.PAPER, ChatColor.AQUA + "Arc Width",
-                "Thickness of the arc band.",
-                List.of("Current: " + ChatColor.WHITE + formatDecimal(config.width())),
-                "to thicken", "to thin", "to thicken faster", "to thin faster"));
-        builder.setItem(FORWARD_OFFSET_SLOT, createParamItem(Material.OAK_SIGN, ChatColor.AQUA + "Forward Offset",
-                "Extra push along the look direction.",
-                List.of("Current: " + ChatColor.WHITE + formatDecimal(config.forwardOffset())),
-                "to push forward", "to pull back", "to push further", "to pull further"));
-        builder.setItem(RIGHT_OFFSET_SLOT, createParamItem(Material.ARROW, ChatColor.AQUA + "Right Offset",
-                "Shift the arc left or right.",
-                List.of("Current: " + ChatColor.WHITE + formatDecimal(config.rightOffset())),
-                "to move right", "to move left", "to move further", "to move further"));
-        builder.setItem(UP_OFFSET_SLOT, createParamItem(Material.FEATHER, ChatColor.AQUA + "Up Offset",
-                "Raise or lower the arc.",
-                List.of("Current: " + ChatColor.WHITE + formatDecimal(config.upOffset())),
-                "to move up", "to move down", "to move further", "to move further"));
-        builder.setItem(ROTATE_X_SLOT, createParamItem(Material.IRON_BARS, ChatColor.AQUA + "Rotate X",
-                "Rotate the arc around the X axis.",
-                List.of("Current: " + ChatColor.WHITE + formatDecimal(config.rotateXDegrees()) + "°"),
-                "to rotate forward", "to rotate backward", "to rotate faster", "to rotate faster"));
-        builder.setItem(ROTATE_Y_SLOT, createParamItem(Material.IRON_BLOCK, ChatColor.AQUA + "Rotate Y",
-                "Rotate the arc around the Y axis.",
-                List.of("Current: " + ChatColor.WHITE + formatDecimal(config.rotateYDegrees()) + "°"),
-                "to rotate forward", "to rotate backward", "to rotate faster", "to rotate faster"));
-        builder.setItem(ROTATE_Z_SLOT, createParamItem(Material.IRON_NUGGET, ChatColor.AQUA + "Rotate Z",
-                "Rotate the arc around the Z axis.",
-                List.of("Current: " + ChatColor.WHITE + formatDecimal(config.rotateZDegrees()) + "°"),
-                "to rotate forward", "to rotate backward", "to rotate faster", "to rotate faster"));
-        builder.setItem(INFO_SLOT, createInfoItem(config));
-        builder.setItem(RESET_SLOT, GuiUtil.getNexoItem("refresh", ChatColor.YELLOW + "Reset Defaults"));
-        builder.setItem(SAVE_SLOT, GuiUtil.getNexoItem("save", ChatColor.GREEN + "Save Settings"));
-        builder.setItem(CLOSE_SLOT, GuiUtil.getNexoItem("cross", ChatColor.RED + "Close"));
-
-        return builder.build();
+        Inventory inventory = builder.build();
+        renderWidgets(inventory, player);
+        return inventory;
     }
 
     private ItemStack createInfoItem(ArcSlashConfig config) {

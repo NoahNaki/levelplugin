@@ -5,6 +5,10 @@ import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.TextUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
+import me.nakilex.levelplugin.utils.gui.widgets.ActionWidget;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiContext;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiLayout;
+import me.nakilex.levelplugin.utils.gui.widgets.GuiWidget;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -25,9 +29,11 @@ public class GuildSettingsGUI implements Listener {
     private static final String TITLE = "Guild Settings";
     private static final int BACK_SLOT = 0;
     private static final int[] PERM_SLOTS = {10,11,12,13,14,15};
+    private final List<GuiWidget> widgets;
 
     public GuildSettingsGUI(GuildManager manager) {
         this.manager = manager;
+        this.widgets = buildWidgets();
         Bukkit.getPluginManager().registerEvents(this, Main.getInstance());
     }
 
@@ -45,11 +51,7 @@ public class GuildSettingsGUI implements Listener {
                 .fillEmptySlots(false)
                 .border()
                 .build();
-        inv.setItem(BACK_SLOT, GuiUtil.getNexoItem("arrow_left2", ChatColor.GRAY + "Back"));
-        GuildPermission[] perms = GuildPermission.values();
-        for (int i = 0; i < perms.length && i < PERM_SLOTS.length; i++) {
-            inv.setItem(PERM_SLOTS[i], buildItem(g, perms[i], rIdx));
-        }
+        renderWidgets(inv, player);
         for (int i = 0; i < inv.getSize(); i++) {
             if (inv.getItem(i) == null) {
                 inv.setItem(i, filler);
@@ -74,33 +76,79 @@ public class GuildSettingsGUI implements Listener {
 
     @EventHandler
     public void onClick(InventoryClickEvent e) {
-        if (!ChatColor.stripColor(e.getView().getTitle()).equals(ChatColor.stripColor(TITLE))) return;
-        e.setCancelled(true);
+        if (!GuiUtil.titleMatches(e.getView().getTitle(), TITLE)) return;
         Player player = (Player) e.getWhoClicked();
         Guild g = manager.getGuild(player.getUniqueId());
         if (g == null) return;
-        int rIdx = roleIndex.getOrDefault(player.getUniqueId(), 0);
-        int slot = e.getRawSlot();
-        if (slot == BACK_SLOT) {
-            if (memberGUI != null) {
-                memberGUI.open(player);
-            }
+        if (handleWidgetClick(e, player)) {
             return;
         }
+    }
+
+    private List<GuiWidget> buildWidgets() {
+        List<GuiWidget> widgetList = new ArrayList<>();
+        widgetList.add(new ActionWidget(BACK_SLOT,
+                context -> GuiUtil.getNexoItem("arrow_left2", ChatColor.GRAY + "Back"),
+                (click, context) -> {
+                    if (memberGUI != null) {
+                        memberGUI.open(context.player());
+                    }
+                }));
         GuildPermission[] perms = GuildPermission.values();
         for (int i = 0; i < perms.length && i < PERM_SLOTS.length; i++) {
-            if (slot == PERM_SLOTS[i]) {
-                if (e.isRightClick()) {
-                    rIdx = (rIdx + 1) % GuildRole.values().length;
-                    roleIndex.put(player.getUniqueId(), rIdx);
-                } else if (e.isLeftClick()) {
-                    GuildRole role = GuildRole.values()[rIdx];
-                    GuildPermission perm = perms[i];
-                    manager.setPermission(player.getUniqueId(), role, perm, !g.getPermissions(role).has(perm));
-                }
-                open(player);
-                return;
-            }
+            GuildPermission perm = perms[i];
+            int slot = PERM_SLOTS[i];
+            widgetList.add(new ActionWidget(slot,
+                    context -> buildItem(getGuild(context.player()), perm, getRoleIndex(context.player())),
+                    (click, context) -> handlePermissionClick(context.player(), perm, click.isRightClick())));
         }
+        return widgetList;
+    }
+
+    private void renderWidgets(Inventory inventory, Player player) {
+        GuiLayout layout = new GuiLayout(inventory);
+        GuiContext context = new GuiContext(player, inventory);
+        for (GuiWidget widget : widgets) {
+            widget.contribute(layout, context);
+        }
+    }
+
+    private boolean handleWidgetClick(InventoryClickEvent event, Player player) {
+        int slot = event.getRawSlot();
+        if (slot < 0 || slot >= event.getView().getTopInventory().getSize()) {
+            return false;
+        }
+        GuiWidget widget = widgets.stream()
+                .filter(w -> w.handlesSlot(slot))
+                .findFirst()
+                .orElse(null);
+        if (widget == null) {
+            return false;
+        }
+        event.setCancelled(true);
+        widget.onClick(slot, event.getClick(), new GuiContext(player, event.getView().getTopInventory()));
+        return true;
+    }
+
+    private void handlePermissionClick(Player player, GuildPermission perm, boolean rightClick) {
+        Guild guild = getGuild(player);
+        if (guild == null) return;
+        int rIdx = getRoleIndex(player);
+        if (rightClick) {
+            rIdx = (rIdx + 1) % GuildRole.values().length;
+            roleIndex.put(player.getUniqueId(), rIdx);
+        } else {
+            GuildRole role = GuildRole.values()[rIdx];
+            manager.setPermission(player.getUniqueId(), role, perm, !guild.getPermissions(role).has(perm));
+        }
+        open(player);
+    }
+
+    private int getRoleIndex(Player player) {
+        return roleIndex.getOrDefault(player.getUniqueId(), 0);
+    }
+
+    private Guild getGuild(Player player) {
+        return manager.getGuild(player.getUniqueId());
     }
 }
