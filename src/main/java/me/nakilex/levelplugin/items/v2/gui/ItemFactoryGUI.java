@@ -11,6 +11,7 @@ import me.nakilex.levelplugin.items.v2.ItemStatType;
 import me.nakilex.levelplugin.items.v2.ItemType;
 import me.nakilex.levelplugin.items.v2.ItemVisuals;
 import me.nakilex.levelplugin.items.v2.StatValue;
+import me.nakilex.levelplugin.items.utils.ArmorBiasUtil;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.utils.ChatUtil;
@@ -61,6 +62,7 @@ public class ItemFactoryGUI implements CommandExecutor, Listener {
     private static final int MATERIAL_SLOT = 30;
     private static final int MODEL_SLOT = 32;
     private static final int STATS_SLOT = 34;
+    private static final int ARMOR_BIAS_SLOT = 36;
 
     private static final int PREVIEW_SLOT = 49;
     private static final int SAVE_SLOT = 48;
@@ -100,6 +102,7 @@ public class ItemFactoryGUI implements CommandExecutor, Listener {
         inv.setItem(MATERIAL_SLOT, buildMaterialItem(draft));
         inv.setItem(MODEL_SLOT, buildModelItem(draft));
         inv.setItem(STATS_SLOT, buildStatsItem(draft));
+        inv.setItem(ARMOR_BIAS_SLOT, buildArmorBiasItem(draft));
 
         inv.setItem(PREVIEW_SLOT, buildPreviewItem(draft));
         inv.setItem(SAVE_SLOT, buildSaveItem());
@@ -139,11 +142,15 @@ public class ItemFactoryGUI implements CommandExecutor, Listener {
 
     private ItemStack buildClassItem(Draft draft) {
         List<String> lore = new ArrayList<>();
-        String classes = draft.classes.isEmpty()
-                ? "Any"
-                : draft.classes.stream().map(PlayerClass::getDisplayName).reduce((a, b) -> a + ", " + b).orElse("Any");
-        lore.add(ChatColor.GRAY + "Current: " + ChatColor.WHITE + classes);
-        lore.addAll(TooltipUtil.clickInstructions("to edit", null));
+        if (draft.type == ItemType.ARMOR) {
+            lore.add(ChatColor.GRAY + "Not applicable to armor.");
+        } else {
+            String classes = draft.classes.isEmpty()
+                    ? "Any"
+                    : draft.classes.stream().map(PlayerClass::getDisplayName).reduce((a, b) -> a + ", " + b).orElse("Any");
+            lore.add(ChatColor.GRAY + "Current: " + ChatColor.WHITE + classes);
+            lore.addAll(TooltipUtil.clickInstructions("to edit", null));
+        }
         return GuiUtil.createGuiItem(Material.BOOK, ChatColor.AQUA + "Class Requirements", lore);
     }
 
@@ -174,11 +181,31 @@ public class ItemFactoryGUI implements CommandExecutor, Listener {
         return GuiUtil.createGuiItem(Material.WRITABLE_BOOK, ChatColor.AQUA + "Stats", lore);
     }
 
+    private ItemStack buildArmorBiasItem(Draft draft) {
+        List<String> lore = new ArrayList<>();
+        if (draft.type != ItemType.ARMOR) {
+            lore.add(ChatColor.GRAY + "Not applicable to weapons.");
+            return GuiUtil.createGuiItem(Material.LEATHER_CHESTPLATE, ChatColor.AQUA + "Armor Bias", lore);
+        }
+        lore.add(ChatColor.GRAY + "Current: " + ChatColor.WHITE + draft.armorBias.label());
+        lore.addAll(TooltipUtil.clickInstructions("to cycle forward", "to cycle backward"));
+        lore.addAll(TooltipUtil.bulletList(
+                "Cloth: INT/WIL focus",
+                "Leather: AGI/DEX focus",
+                "Plated: STR/VIT focus"
+        ));
+        return GuiUtil.createGuiItem(Material.LEATHER_CHESTPLATE, ChatColor.AQUA + "Armor Bias", lore);
+    }
+
     private ItemStack buildPreviewItem(Draft draft) {
         ItemStack preview = new ItemStack(draft.baseMaterial);
         ItemMeta meta = preview.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName(draft.rarity.getColor() + draft.name);
+            String name = draft.name;
+            if (draft.type == ItemType.ARMOR) {
+                name = ArmorBiasUtil.applyPrefix(name, draft.armorBias);
+            }
+            meta.setDisplayName(draft.rarity.getColor() + name);
             List<String> lore = new ArrayList<>();
             lore.add(ChatColor.GRAY + "Type: " + ChatColor.WHITE + draft.type.name());
             lore.add(ChatColor.GRAY + "Level: " + ChatColor.WHITE + draft.level);
@@ -283,6 +310,9 @@ public class ItemFactoryGUI implements CommandExecutor, Listener {
         }
 
         if (slot == CLASS_SLOT) {
+            if (draft.type == ItemType.ARMOR) {
+                return;
+            }
             startTextPrompt(player, "Enter classes (rogue, archer, mage, warrior) or 'any':", input -> {
                 draft.classes = parseClasses(input);
                 open(player);
@@ -342,17 +372,34 @@ public class ItemFactoryGUI implements CommandExecutor, Listener {
             return;
         }
 
+        if (slot == ARMOR_BIAS_SLOT) {
+            if (draft.type != ItemType.ARMOR) {
+                return;
+            }
+            draft.armorBias = cycleEnum(ArmorBiasUtil.ArmorBias.values(), draft.armorBias, event.isRightClick());
+            open(player);
+            return;
+        }
+
         if (slot == SAVE_SLOT) {
             ItemRegistry registry = Main.getInstance().getItemRegistryV2();
+            String name = draft.name;
+            List<PlayerClass> classes = draft.classes;
+            Map<ItemStatType, StatValue> stats = draft.stats;
+            if (draft.type == ItemType.ARMOR) {
+                name = ArmorBiasUtil.applyPrefix(name, draft.armorBias);
+                classes = List.of();
+                stats = buildArmorStats(draft);
+            }
             ItemDefinition definition = new ItemDefinition(
                     0,
-                    draft.name,
+                    name,
                     draft.type,
                     draft.rarity,
-                    new ItemRequirements(draft.level, draft.classes),
+                    new ItemRequirements(draft.level, classes),
                     new ItemVisuals(draft.baseMaterial, draft.modelKey),
                     new ItemGeneration(ItemGenerationMode.HANDMADE, null),
-                    draft.stats,
+                    stats,
                     Map.of(),
                     2
             );
@@ -476,6 +523,7 @@ public class ItemFactoryGUI implements CommandExecutor, Listener {
         private Material baseMaterial;
         private String modelKey;
         private Map<ItemStatType, StatValue> stats;
+        private ArmorBiasUtil.ArmorBias armorBias;
 
         private static Draft createDefault() {
             Draft draft = new Draft();
@@ -487,7 +535,39 @@ public class ItemFactoryGUI implements CommandExecutor, Listener {
             draft.baseMaterial = Material.DIAMOND;
             draft.modelKey = "unassigned";
             draft.stats = new EnumMap<>(ItemStatType.class);
+            draft.armorBias = ArmorBiasUtil.ArmorBias.PLATED;
             return draft;
         }
+    }
+
+    private Map<ItemStatType, StatValue> buildArmorStats(Draft draft) {
+        int total = 0;
+        if (!draft.stats.isEmpty()) {
+            for (StatValue value : draft.stats.values()) {
+                total += (int) Math.round((value.min() + value.max()) / 2.0);
+            }
+        } else {
+            total = ArmorBiasUtil.estimateTotal(draft.level, draft.rarity);
+        }
+        var allocation = ArmorBiasUtil.allocate(total, draft.level, draft.armorBias);
+        Map<ItemStatType, StatValue> stats = new EnumMap<>(ItemStatType.class);
+        stats.put(ItemStatType.HP, toStatValue(allocation.get(ArmorBiasUtil.ArmorStat.HP)));
+        stats.put(ItemStatType.DEF, toStatValue(allocation.get(ArmorBiasUtil.ArmorStat.DEF)));
+        stats.put(ItemStatType.STR, toStatValue(allocation.get(ArmorBiasUtil.ArmorStat.STR)));
+        stats.put(ItemStatType.AGI, toStatValue(allocation.get(ArmorBiasUtil.ArmorStat.AGI)));
+        stats.put(ItemStatType.INTEL, toStatValue(allocation.get(ArmorBiasUtil.ArmorStat.INT)));
+        stats.put(ItemStatType.DEX, toStatValue(allocation.get(ArmorBiasUtil.ArmorStat.DEX)));
+        stats.put(ItemStatType.WIL, toStatValue(allocation.get(ArmorBiasUtil.ArmorStat.WIL)));
+        stats.put(ItemStatType.TEC, toStatValue(allocation.get(ArmorBiasUtil.ArmorStat.TEC)));
+        return stats;
+    }
+
+    private StatValue toStatValue(int value) {
+        if (value <= 0) {
+            return StatValue.fixed(0);
+        }
+        int min = Math.max(0, (int) Math.round(value * 0.95));
+        int max = Math.max(min + 1, (int) Math.round(value * 1.05));
+        return StatValue.range(min, max);
     }
 }

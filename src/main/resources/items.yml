@@ -288,8 +288,6 @@ items:
     rarity: COMMON
     requirements:
       level: 1
-      classes:
-        - MAGE
     visuals:
       baseMaterial: LEATHER_CHESTPLATE
       modelKey: armor_pilgrim_vest
@@ -304,8 +302,6 @@ items:
     rarity: UNCOMMON
     requirements:
       level: 5
-      classes:
-        - ROGUE
     visuals:
       baseMaterial: CHAINMAIL_BOOTS
       modelKey: armor_scout_footpads
@@ -321,8 +317,6 @@ items:
     rarity: UNCOMMON
     requirements:
       level: 7
-      classes:
-        - WARRIOR
     visuals:
       baseMaterial: IRON_LEGGINGS
       modelKey: armor_ashguard_leggings
@@ -338,8 +332,6 @@ items:
     rarity: RARE
     requirements:
       level: 12
-      classes:
-        - MAGE
     visuals:
       baseMaterial: GOLDEN_HELMET
       modelKey: armor_spellthread_hood
@@ -355,8 +347,6 @@ items:
     rarity: RARE
     requirements:
       level: 15
-      classes:
-        - WARRIOR
     visuals:
       baseMaterial: IRON_CHESTPLATE
       modelKey: armor_rookwatch_cuirass
@@ -372,8 +362,6 @@ items:
     rarity: RARE
     requirements:
       level: 16
-      classes:
-        - ROGUE
     visuals:
       baseMaterial: LEATHER_LEGGINGS
       modelKey: armor_whisperwind_legwraps
@@ -389,8 +377,6 @@ items:
     rarity: EPIC
     requirements:
       level: 20
-      classes:
-        - MAGE
     visuals:
       baseMaterial: DIAMOND_BOOTS
       modelKey: armor_lifebinder_treads
@@ -406,8 +392,6 @@ items:
     rarity: EPIC
     requirements:
       level: 24
-      classes:
-        - WARRIOR
     visuals:
       baseMaterial: DIAMOND_CHESTPLATE
       modelKey: armor_runebound_chestguard
@@ -423,8 +407,6 @@ items:
     rarity: LEGENDARY
     requirements:
       level: 30
-      classes:
-        - WARRIOR
     visuals:
       baseMaterial: NETHERITE_HELMET
       modelKey: armor_abyssal_warden_helm
@@ -440,8 +422,6 @@ items:
     rarity: LEGENDARY
     requirements:
       level: 32
-      classes:
-        - ARCHER
     visuals:
       baseMaterial: NETHERITE_BOOTS
       modelKey: armor_galeglide_boots
@@ -457,8 +437,6 @@ items:
     rarity: MYTHIC
     requirements:
       level: 40
-      classes:
-        - WARRIOR
     visuals:
       baseMaterial: NETHERITE_CHESTPLATE
       modelKey: armor_celestial_wardplate
@@ -474,8 +452,6 @@ items:
     rarity: MYTHIC
     requirements:
       level: 45
-      classes:
-        - ARCHER
     visuals:
       baseMaterial: NETHERITE_LEGGINGS
       modelKey: armor_phoenixhunter_greaves
@@ -491,8 +467,6 @@ items:
     rarity: FABLED
     requirements:
       level: 55
-      classes:
-        - WARRIOR
     visuals:
       baseMaterial: NETHERITE_BOOTS
       modelKey: armor_frostveil_boots

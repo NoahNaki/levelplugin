@@ -5,6 +5,7 @@ import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.data.ArmorType;
 import me.nakilex.levelplugin.items.data.StatRange;
 import me.nakilex.levelplugin.items.data.ItemRarity;
+import me.nakilex.levelplugin.items.utils.ArmorBiasUtil;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.mob.utils.CombatRewardCalculator.GearTarget;
 import org.bukkit.Bukkit;
@@ -109,6 +110,9 @@ public class ItemManager {
                 String classReq   = itemsConfig.getString(path + "class_requirement", "ANY");
                 Material material = Material.valueOf(
                     itemsConfig.getString(path + "material", "STONE").toUpperCase());
+                if (ArmorType.fromMaterial(material) != null) {
+                    classReq = "ANY";
+                }
                 // Normalize class requirement based on weapon family if mismatched
                 me.nakilex.levelplugin.items.data.WeaponType wt =
                         me.nakilex.levelplugin.items.data.WeaponType.matchType(new org.bukkit.inventory.ItemStack(material));
@@ -169,6 +173,9 @@ public class ItemManager {
                 Material material = visuals != null
                         ? Material.valueOf(visuals.getString("baseMaterial", "STONE").toUpperCase())
                         : Material.STONE;
+                if (ArmorType.fromMaterial(material) != null) {
+                    classReq = "ANY";
+                }
 
                 me.nakilex.levelplugin.items.data.WeaponType wt =
                         me.nakilex.levelplugin.items.data.WeaponType.matchType(new org.bukkit.inventory.ItemStack(material));
@@ -426,24 +433,65 @@ public class ItemManager {
         CustomItem tpl = templatesMap.get(templateId);
         if (tpl == null) return null;
 
+        if (ArmorType.fromMaterial(tpl.getMaterial()) != null) {
+            double total = averageRange(tpl.getHpRange())
+                    + averageRange(tpl.getDefRange())
+                    + averageRange(tpl.getStrRange())
+                    + averageRange(tpl.getAgiRange())
+                    + averageRange(tpl.getIntelRange())
+                    + averageRange(tpl.getDexRange())
+                    + averageRange(tpl.getWilRange())
+                    + averageRange(tpl.getTecRange());
+            ArmorBiasUtil.ArmorBias bias = ArmorBiasUtil.ArmorBias.fromPrefix(tpl.getBaseName());
+            if (bias == null) {
+                bias = ArmorBiasUtil.randomBias(new Random());
+            }
+            var allocation = ArmorBiasUtil.allocate((int) Math.round(total), tpl.getLevelRequirement(), bias);
+            CustomItem inst = new CustomItem(
+                    tpl.getId(),
+                    ArmorBiasUtil.applyPrefix(tpl.getBaseName(), bias),
+                    tpl.getRarity(),
+                    tpl.getLevelRequirement(),
+                    "ANY",
+                    tpl.getMaterial(),
+                    ArmorBiasUtil.toRange(allocation.get(ArmorBiasUtil.ArmorStat.HP)),
+                    ArmorBiasUtil.toRange(allocation.get(ArmorBiasUtil.ArmorStat.DEF)),
+                    ArmorBiasUtil.toRange(allocation.get(ArmorBiasUtil.ArmorStat.STR)),
+                    ArmorBiasUtil.toRange(allocation.get(ArmorBiasUtil.ArmorStat.AGI)),
+                    ArmorBiasUtil.toRange(allocation.get(ArmorBiasUtil.ArmorStat.INT)),
+                    ArmorBiasUtil.toRange(allocation.get(ArmorBiasUtil.ArmorStat.DEX)),
+                    ArmorBiasUtil.toRange(allocation.get(ArmorBiasUtil.ArmorStat.WIL)),
+                    ArmorBiasUtil.toRange(allocation.get(ArmorBiasUtil.ArmorStat.TEC))
+            );
+            addInstance(inst);
+            return inst;
+        }
+
         CustomItem inst = new CustomItem(
-            tpl.getId(),
-            tpl.getBaseName(),
-            tpl.getRarity(),
-            tpl.getLevelRequirement(),
-            tpl.getClassRequirement(),
-            tpl.getMaterial(),
-            tpl.getHpRange(),
-            tpl.getDefRange(),
-            tpl.getStrRange(),
-            tpl.getAgiRange(),
-            tpl.getIntelRange(),
-            tpl.getDexRange(),
-            tpl.getWilRange(),
-            tpl.getTecRange()
+                tpl.getId(),
+                tpl.getBaseName(),
+                tpl.getRarity(),
+                tpl.getLevelRequirement(),
+                tpl.getClassRequirement(),
+                tpl.getMaterial(),
+                tpl.getHpRange(),
+                tpl.getDefRange(),
+                tpl.getStrRange(),
+                tpl.getAgiRange(),
+                tpl.getIntelRange(),
+                tpl.getDexRange(),
+                tpl.getWilRange(),
+                tpl.getTecRange()
         );
         addInstance(inst);
         return inst;
+    }
+
+    private double averageRange(StatRange range) {
+        if (range == null) {
+            return 0;
+        }
+        return (range.getMin() + range.getMax()) / 2.0;
     }
 
     /**

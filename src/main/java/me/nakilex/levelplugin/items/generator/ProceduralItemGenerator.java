@@ -6,6 +6,7 @@ import me.nakilex.levelplugin.items.data.ItemRarity;
 import me.nakilex.levelplugin.items.data.StatRange;
 import me.nakilex.levelplugin.items.data.ArmorType;
 import me.nakilex.levelplugin.items.managers.ItemManager;
+import me.nakilex.levelplugin.items.utils.ArmorBiasUtil;
 import me.nakilex.levelplugin.mob.utils.CombatRewardCalculator;
 import me.nakilex.levelplugin.mob.utils.CombatRewardCalculator.GearTarget;
 import me.nakilex.levelplugin.salvage.managers.SalvageManager;
@@ -138,6 +139,7 @@ public class ProceduralItemGenerator {
             baseDisplay = base.getValue();
         }
         int hp = 0, def, str, agi, intel, dex, wil, tec;
+        ArmorBiasUtil.ArmorBias armorBias = null;
 
         if (createArmor) {
             hp  = scaleStat(level, rarity, ARMOR_HP_COEFF);
@@ -158,6 +160,18 @@ public class ProceduralItemGenerator {
                 case 3 -> dex  = (int) Math.round(dex  * (1 + DOMINANT_BONUS));
                 case 4 -> def  = (int) Math.round(def  * (1 + DOMINANT_BONUS));
             }
+
+            int total = hp + def + str + agi + intel + dex + wil + tec;
+            armorBias = ArmorBiasUtil.randomBias(random);
+            var allocation = ArmorBiasUtil.allocate(total, level, armorBias);
+            hp = allocation.get(ArmorBiasUtil.ArmorStat.HP);
+            def = allocation.get(ArmorBiasUtil.ArmorStat.DEF);
+            str = allocation.get(ArmorBiasUtil.ArmorStat.STR);
+            agi = allocation.get(ArmorBiasUtil.ArmorStat.AGI);
+            intel = allocation.get(ArmorBiasUtil.ArmorStat.INT);
+            dex = allocation.get(ArmorBiasUtil.ArmorStat.DEX);
+            wil = allocation.get(ArmorBiasUtil.ArmorStat.WIL);
+            tec = allocation.get(ArmorBiasUtil.ArmorStat.TEC);
         } else {
             def = 0;
             switch (clazz) {
@@ -210,6 +224,9 @@ public class ProceduralItemGenerator {
 
         String dominant = getDominantStatKey(hp, def, str, agi, intel, dex, wil, tec);
         String name = buildName(safeMobType, baseDisplay, rarity, dominant);
+        if (createArmor && armorBias != null) {
+            name = ArmorBiasUtil.applyPrefix(name, armorBias);
+        }
         Material material = createArmor ? resolveArmorMaterial(level, armorSlot) : pickWeaponMaterial(clazz, level);
 
         String classReq = createArmor ? "ANY" : clazz;
