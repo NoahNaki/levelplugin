@@ -388,7 +388,7 @@ public class ProfileSelectionGUI implements Listener {
         FIRST_PROFILE_SLOT.put(player.getUniqueId(), slotIndex);
     }
 
-    private void handleEdit(Player player, int index) {
+    private static void handleEdit(Player player, int index) {
         ProfileManager pm = ProfileManager.getInstance();
         PlayerProfile prof = pm.getProfile(player.getUniqueId(), index);
         if (prof == null) {
@@ -460,7 +460,7 @@ public class ProfileSelectionGUI implements Listener {
         factory.buildConversation(player).begin();
     }
 
-    private void handleLogout(Player player) {
+    private static void handleLogout(Player player) {
         stopSelection(player);
         player.kickPlayer(ChatColor.YELLOW + "Disconnected");
     }
