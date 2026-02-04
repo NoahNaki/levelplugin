@@ -198,6 +198,10 @@ commands:
     description: Opens the custom item browser GUI.
     usage: /itemsbrowser
     permission: none
+  itemfactory:
+    description: Opens the item factory GUI.
+    usage: /itemfactory
+    permission: none
   giftbrowser:
     description: Browse mercenary gifts for testing.
     usage: /giftbrowser

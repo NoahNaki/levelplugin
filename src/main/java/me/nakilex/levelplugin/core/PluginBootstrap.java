@@ -274,6 +274,7 @@ public class PluginBootstrap {
                 new me.nakilex.levelplugin.transmog.gui.TransmogBrowser(plugin, transmogManager);
         new me.nakilex.levelplugin.transmog.gui.TransmogGUI(plugin, transmogManager, tBrowser);
         new ItemsBrowser(plugin);
+        new me.nakilex.levelplugin.items.v2.gui.ItemFactoryGUI(plugin);
         new me.nakilex.levelplugin.items.tools.gui.ToolBrowser(plugin);
         new RerollBrowser(plugin);
         new me.nakilex.levelplugin.potions.gui.PotionBrowser(plugin, potionManager);
