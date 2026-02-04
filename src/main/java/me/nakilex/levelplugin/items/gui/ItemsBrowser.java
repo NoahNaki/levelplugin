@@ -7,11 +7,11 @@ import me.nakilex.levelplugin.items.v2.ItemRegistry;
 import me.nakilex.levelplugin.items.v2.ItemStatType;
 import me.nakilex.levelplugin.items.v2.ItemType;
 import me.nakilex.levelplugin.items.v2.StatValue;
+import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.classes.managers.PlayerClassManager;
 import me.nakilex.levelplugin.utils.GuiUtil;
-import me.nakilex.levelplugin.utils.TooltipUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -246,12 +246,12 @@ public class ItemsBrowser implements CommandExecutor, Listener {
 
             lore.add("");
             lore.add(col + "" + ChatColor.BOLD + tpl.rarity().name());
-            lore.addAll(TooltipUtil.clickInstructions("to receive", null));
 
             pm.setLore(lore);
             pm.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_UNBREAKABLE);
             pm.setUnbreakable(true);
             preview.setItemMeta(pm);
+            ItemUtil.applyRarityTooltipStyle(preview, tpl.rarity());
 
             int row = 1 + (i / 7);
             int colIndex = 1 + (i % 7);

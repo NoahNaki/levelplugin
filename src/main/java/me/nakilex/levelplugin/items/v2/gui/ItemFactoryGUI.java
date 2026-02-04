@@ -11,6 +11,7 @@ import me.nakilex.levelplugin.items.v2.ItemStatType;
 import me.nakilex.levelplugin.items.v2.ItemType;
 import me.nakilex.levelplugin.items.v2.ItemVisuals;
 import me.nakilex.levelplugin.items.v2.StatValue;
+import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.utils.ChatUtil;
 import me.nakilex.levelplugin.utils.GuiUtil;
@@ -162,8 +163,8 @@ public class ItemFactoryGUI implements CommandExecutor, Listener {
             draft.stats.forEach((key, value) ->
                     lore.add(ChatColor.GRAY + key.name() + ": " + ChatColor.WHITE + value.formatForLore()));
         }
-        lore.addAll(TooltipUtil.clickInstructions("to edit", null));
-        lore.addAll(TooltipUtil.bulletList("Format: str 2-4, agi 1-2, hp 5"));
+        lore.addAll(TooltipUtil.clickInstructions("to add/replace stats", "to clear all"));
+        lore.addAll(TooltipUtil.bulletList("Format: str 2-4, agi 1-2, hp 5", "Remove: remove str"));
         return GuiUtil.createGuiItem(Material.WRITABLE_BOOK, ChatColor.AQUA + "Stats", lore);
     }
 
@@ -191,6 +192,7 @@ public class ItemFactoryGUI implements CommandExecutor, Listener {
             meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
             preview.setItemMeta(meta);
         }
+        ItemUtil.applyRarityTooltipStyle(preview, draft.rarity);
         return preview;
     }
 
@@ -305,8 +307,24 @@ public class ItemFactoryGUI implements CommandExecutor, Listener {
         }
 
         if (slot == STATS_SLOT) {
+            if (event.isRightClick()) {
+                draft.stats.clear();
+                open(player);
+                return;
+            }
             startTextPrompt(player, "Enter stats (e.g., str 2-4, agi 1-2, hp 5):", input -> {
-                draft.stats = parseStats(input);
+                String trimmed = input == null ? "" : input.trim();
+                if (trimmed.toLowerCase().startsWith("remove ")) {
+                    String target = trimmed.substring("remove ".length()).trim();
+                    ItemStatType statType = parseStatType(target);
+                    if (statType != null) {
+                        draft.stats.remove(statType);
+                    }
+                    open(player);
+                    return;
+                }
+                Map<ItemStatType, StatValue> additions = parseStats(trimmed);
+                draft.stats.putAll(additions);
                 open(player);
             });
             return;
