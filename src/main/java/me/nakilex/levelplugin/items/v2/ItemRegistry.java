@@ -32,13 +32,13 @@ public class ItemRegistry {
 
     public ItemRegistry(Main plugin) {
         this.plugin = plugin;
-        this.dataFile = new File(plugin.getDataFolder(), "items_v2.yml");
+        this.dataFile = new File(plugin.getDataFolder(), "items.yml");
     }
 
     public void load() {
         byId.clear();
         if (!dataFile.exists()) {
-            return;
+            plugin.saveResource("items.yml", false);
         }
         FileConfiguration config = YamlConfiguration.loadConfiguration(dataFile);
         int schema = config.getInt("schema", SCHEMA_VERSION);
@@ -101,7 +101,7 @@ public class ItemRegistry {
         try {
             FileUtil.writeYamlAtomic(dataFile, config);
         } catch (IOException e) {
-            plugin.getLogger().warning("Failed to save items_v2.yml: " + e.getMessage());
+            plugin.getLogger().warning("Failed to save items.yml: " + e.getMessage());
         }
     }
 

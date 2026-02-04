@@ -43,7 +43,7 @@ public class ItemManager {
     /**
      * Procedurally generated items all receive unique negative IDs. We keep a
      * counter that starts at -1 and decrements for each generated item so the
-     * IDs never collide with the positive template IDs from items.yml.
+     * IDs never collide with the positive template IDs from items_legacy.yml.
      */
     private int nextGeneratedId = -1;
 
@@ -59,13 +59,13 @@ public class ItemManager {
     }
 
     private void loadItemsConfig(Plugin plugin) {
-        File file = new File(plugin.getDataFolder(), "items.yml");
+        File file = new File(plugin.getDataFolder(), "items_legacy.yml");
         if (!file.exists()) {
-            plugin.saveResource("items.yml", true);
+            plugin.saveResource("items_legacy.yml", true);
         }
         itemsConfig = YamlConfiguration.loadConfiguration(file);
 
-        InputStream defStream = plugin.getResource("items.yml");
+        InputStream defStream = plugin.getResource("items_legacy.yml");
         if (defStream != null) {
             YamlConfiguration defConfig = YamlConfiguration.loadConfiguration(
                 new InputStreamReader(defStream, StandardCharsets.UTF_8));
@@ -78,7 +78,7 @@ public class ItemManager {
         itemsMap.clear();
 
         if (!itemsConfig.contains("items")) {
-            Main.getInstance().getLogger().warning("No items found in items.yml!");
+            Main.getInstance().getLogger().warning("No items found in items_legacy.yml!");
             return;
         }
 
@@ -165,7 +165,7 @@ public class ItemManager {
         }
 
         Main.getInstance().getLogger()
-            .info("Loaded " + templatesMap.size() + " custom item templates from items.yml.");
+            .info("Loaded " + templatesMap.size() + " custom item templates from items_legacy.yml.");
     }
 
     private TemplateRanges normalizeTemplateRanges(int levelRequirement,
