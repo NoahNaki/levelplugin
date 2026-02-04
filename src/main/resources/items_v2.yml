@@ -4,7 +4,6 @@ items:
     name: "Recruit's Iron Sword"
     type: WEAPON
     rarity: COMMON
-    schemaVersion: 2
     requirements:
       level: 1
       classes:
@@ -16,19 +15,12 @@ items:
     generation:
       mode: HANDMADE
     stats:
-      str:
-        range:
-          min: 2
-          max: 4
-      agi:
-        range:
-          min: 1
-          max: 2
+      str: 2-4
+      agi: 1-2
   2002:
     name: "Apprentice Oak Wand"
     type: WEAPON
     rarity: COMMON
-    schemaVersion: 2
     requirements:
       level: 1
       classes:
@@ -39,19 +31,12 @@ items:
     generation:
       mode: HANDMADE
     stats:
-      intel:
-        range:
-          min: 2
-          max: 4
-      wil:
-        range:
-          min: 1
-          max: 2
+      intel: 2-4
+      wil: 1-2
   2003:
     name: "Militia Training Bow"
     type: WEAPON
     rarity: COMMON
-    schemaVersion: 2
     requirements:
       level: 1
       classes:
@@ -62,19 +47,12 @@ items:
     generation:
       mode: HANDMADE
     stats:
-      dex:
-        range:
-          min: 2
-          max: 4
-      agi:
-        range:
-          min: 1
-          max: 2
+      dex: 2-4
+      agi: 1-2
   2004:
     name: "Stonecleave Hatchet"
     type: WEAPON
     rarity: UNCOMMON
-    schemaVersion: 2
     requirements:
       level: 4
       classes:
@@ -85,19 +63,12 @@ items:
     generation:
       mode: HANDMADE
     stats:
-      str:
-        range:
-          min: 3
-          max: 5
-      tec:
-        range:
-          min: 1
-          max: 2
+      str: 3-5
+      tec: 1-2
   2005:
     name: "Backline Pike"
     type: WEAPON
     rarity: UNCOMMON
-    schemaVersion: 2
     requirements:
       level: 6
       classes:
@@ -108,19 +79,12 @@ items:
     generation:
       mode: HANDMADE
     stats:
-      str:
-        range:
-          min: 3
-          max: 6
-      def:
-        range:
-          min: 1
-          max: 2
+      str: 3-6
+      def: 1-2
   2006:
     name: "Shadowglass Saber"
     type: WEAPON
     rarity: RARE
-    schemaVersion: 2
     requirements:
       level: 10
       classes:
@@ -131,23 +95,13 @@ items:
     generation:
       mode: HANDMADE
     stats:
-      str:
-        range:
-          min: 5
-          max: 8
-      agi:
-        range:
-          min: 4
-          max: 7
-      dex:
-        range:
-          min: 2
-          max: 4
+      str: 5-8
+      agi: 4-7
+      dex: 2-4
   2007:
     name: "Emberweave Rod"
     type: WEAPON
     rarity: RARE
-    schemaVersion: 2
     requirements:
       level: 12
       classes:
@@ -158,23 +112,13 @@ items:
     generation:
       mode: HANDMADE
     stats:
-      intel:
-        range:
-          min: 6
-          max: 9
-      wil:
-        range:
-          min: 3
-          max: 5
-      tec:
-        range:
-          min: 1
-          max: 2
+      intel: 6-9
+      wil: 3-5
+      tec: 1-2
   2008:
     name: "Hawkeye Crossbow"
     type: WEAPON
     rarity: RARE
-    schemaVersion: 2
     requirements:
       level: 14
       classes:
@@ -185,23 +129,13 @@ items:
     generation:
       mode: HANDMADE
     stats:
-      dex:
-        range:
-          min: 6
-          max: 9
-      agi:
-        range:
-          min: 4
-          max: 6
-      tec:
-        range:
-          min: 2
-          max: 3
+      dex: 6-9
+      agi: 4-6
+      tec: 2-3
   2009:
     name: "Dreadforged Greataxe"
     type: WEAPON
     rarity: EPIC
-    schemaVersion: 2
     requirements:
       level: 20
       classes:
@@ -212,23 +146,13 @@ items:
     generation:
       mode: HANDMADE
     stats:
-      str:
-        range:
-          min: 10
-          max: 14
-      def:
-        range:
-          min: 3
-          max: 5
-      hp:
-        range:
-          min: 5
-          max: 8
+      str: 10-14
+      def: 3-5
+      hp: 5-8
   2010:
     name: "Thornwarden Longsword"
     type: WEAPON
     rarity: EPIC
-    schemaVersion: 2
     requirements:
       level: 22
       classes:
@@ -239,23 +163,13 @@ items:
     generation:
       mode: HANDMADE
     stats:
-      str:
-        range:
-          min: 9
-          max: 12
-      tec:
-        range:
-          min: 3
-          max: 5
-      def:
-        range:
-          min: 2
-          max: 4
+      str: 9-12
+      tec: 3-5
+      def: 2-4
   2011:
     name: "Arcanist's Moonstaff"
     type: WEAPON
     rarity: EPIC
-    schemaVersion: 2
     requirements:
       level: 24
       classes:
@@ -266,23 +180,13 @@ items:
     generation:
       mode: HANDMADE
     stats:
-      intel:
-        range:
-          min: 11
-          max: 15
-      wil:
-        range:
-          min: 5
-          max: 7
-      tec:
-        range:
-          min: 3
-          max: 4
+      intel: 11-15
+      wil: 5-7
+      tec: 3-4
   2012:
     name: "Stormpiercer"
     type: WEAPON
     rarity: LEGENDARY
-    schemaVersion: 2
     requirements:
       level: 30
       classes:
@@ -293,23 +197,13 @@ items:
     generation:
       mode: HANDMADE
     stats:
-      dex:
-        range:
-          min: 14
-          max: 18
-      agi:
-        range:
-          min: 8
-          max: 12
-      tec:
-        range:
-          min: 4
-          max: 6
+      dex: 14-18
+      agi: 8-12
+      tec: 4-6
   2013:
     name: "Frostbite Edge"
     type: WEAPON
     rarity: LEGENDARY
-    schemaVersion: 2
     requirements:
       level: 32
       classes:
@@ -320,23 +214,13 @@ items:
     generation:
       mode: HANDMADE
     stats:
-      str:
-        range:
-          min: 16
-          max: 20
-      def:
-        range:
-          min: 6
-          max: 8
-      wil:
-        range:
-          min: 3
-          max: 5
+      str: 16-20
+      def: 6-8
+      wil: 3-5
   2014:
     name: "Dragoncore Glaive"
     type: WEAPON
     rarity: MYTHIC
-    schemaVersion: 2
     requirements:
       level: 40
       classes:
@@ -347,23 +231,13 @@ items:
     generation:
       mode: HANDMADE
     stats:
-      str:
-        range:
-          min: 22
-          max: 28
-      def:
-        range:
-          min: 8
-          max: 10
-      hp:
-        range:
-          min: 10
-          max: 15
+      str: 22-28
+      def: 8-10
+      hp: 10-15
   2015:
     name: "Astral Cantor Staff"
     type: WEAPON
     rarity: MYTHIC
-    schemaVersion: 2
     requirements:
       level: 42
       classes:
@@ -374,23 +248,13 @@ items:
     generation:
       mode: HANDMADE
     stats:
-      intel:
-        range:
-          min: 22
-          max: 28
-      wil:
-        range:
-          min: 10
-          max: 14
-      tec:
-        range:
-          min: 6
-          max: 8
+      intel: 22-28
+      wil: 10-14
+      tec: 6-8
   2016:
     name: "Serpent's Quickstep"
     type: WEAPON
     rarity: FABLED
-    schemaVersion: 2
     requirements:
       level: 50
       classes:
@@ -401,23 +265,13 @@ items:
     generation:
       mode: HANDMADE
     stats:
-      str:
-        range:
-          min: 26
-          max: 32
-      agi:
-        range:
-          min: 20
-          max: 26
-      dex:
-        range:
-          min: 12
-          max: 16
+      str: 26-32
+      agi: 20-26
+      dex: 12-16
   2017:
     name: "Dawnridge Helm"
     type: ARMOR
     rarity: COMMON
-    schemaVersion: 2
     requirements:
       level: 1
     visuals:
@@ -426,19 +280,12 @@ items:
     generation:
       mode: HANDMADE
     stats:
-      hp:
-        range:
-          min: 2
-          max: 3
-      def:
-        range:
-          min: 1
-          max: 2
+      hp: 2-3
+      def: 1-2
   2018:
     name: "Pilgrim's Vest"
     type: ARMOR
     rarity: COMMON
-    schemaVersion: 2
     requirements:
       level: 1
       classes:
@@ -449,19 +296,12 @@ items:
     generation:
       mode: HANDMADE
     stats:
-      hp:
-        range:
-          min: 3
-          max: 5
-      wil:
-        range:
-          min: 1
-          max: 2
+      hp: 3-5
+      wil: 1-2
   2019:
     name: "Scout's Footpads"
     type: ARMOR
     rarity: UNCOMMON
-    schemaVersion: 2
     requirements:
       level: 5
       classes:
@@ -472,23 +312,13 @@ items:
     generation:
       mode: HANDMADE
     stats:
-      hp:
-        range:
-          min: 3
-          max: 5
-      agi:
-        range:
-          min: 2
-          max: 4
-      dex:
-        range:
-          min: 1
-          max: 2
+      hp: 3-5
+      agi: 2-4
+      dex: 1-2
   2020:
     name: "Ashguard Leggings"
     type: ARMOR
     rarity: UNCOMMON
-    schemaVersion: 2
     requirements:
       level: 7
       classes:
@@ -499,23 +329,13 @@ items:
     generation:
       mode: HANDMADE
     stats:
-      hp:
-        range:
-          min: 5
-          max: 7
-      def:
-        range:
-          min: 2
-          max: 4
-      str:
-        range:
-          min: 1
-          max: 2
+      hp: 5-7
+      def: 2-4
+      str: 1-2
   2021:
     name: "Spellthread Hood"
     type: ARMOR
     rarity: RARE
-    schemaVersion: 2
     requirements:
       level: 12
       classes:
@@ -526,23 +346,13 @@ items:
     generation:
       mode: HANDMADE
     stats:
-      hp:
-        range:
-          min: 4
-          max: 6
-      intel:
-        range:
-          min: 4
-          max: 6
-      wil:
-        range:
-          min: 2
-          max: 3
+      hp: 4-6
+      intel: 4-6
+      wil: 2-3
   2022:
     name: "Rookwatch Cuirass"
     type: ARMOR
     rarity: RARE
-    schemaVersion: 2
     requirements:
       level: 15
       classes:
@@ -553,23 +363,13 @@ items:
     generation:
       mode: HANDMADE
     stats:
-      hp:
-        range:
-          min: 8
-          max: 12
-      def:
-        range:
-          min: 4
-          max: 6
-      str:
-        range:
-          min: 2
-          max: 4
+      hp: 8-12
+      def: 4-6
+      str: 2-4
   2023:
     name: "Whisperwind Legwraps"
     type: ARMOR
     rarity: RARE
-    schemaVersion: 2
     requirements:
       level: 16
       classes:
@@ -580,23 +380,13 @@ items:
     generation:
       mode: HANDMADE
     stats:
-      hp:
-        range:
-          min: 5
-          max: 8
-      agi:
-        range:
-          min: 4
-          max: 6
-      dex:
-        range:
-          min: 2
-          max: 4
+      hp: 5-8
+      agi: 4-6
+      dex: 2-4
   2024:
     name: "Lifebinder Treads"
     type: ARMOR
     rarity: EPIC
-    schemaVersion: 2
     requirements:
       level: 20
       classes:
@@ -607,23 +397,13 @@ items:
     generation:
       mode: HANDMADE
     stats:
-      hp:
-        range:
-          min: 10
-          max: 14
-      wil:
-        range:
-          min: 5
-          max: 7
-      def:
-        range:
-          min: 3
-          max: 5
+      hp: 10-14
+      wil: 5-7
+      def: 3-5
   2025:
     name: "Runebound Chestguard"
     type: ARMOR
     rarity: EPIC
-    schemaVersion: 2
     requirements:
       level: 24
       classes:
@@ -634,23 +414,13 @@ items:
     generation:
       mode: HANDMADE
     stats:
-      hp:
-        range:
-          min: 14
-          max: 18
-      def:
-        range:
-          min: 6
-          max: 8
-      tec:
-        range:
-          min: 3
-          max: 4
+      hp: 14-18
+      def: 6-8
+      tec: 3-4
   2026:
     name: "Abyssal Warden Helm"
     type: ARMOR
     rarity: LEGENDARY
-    schemaVersion: 2
     requirements:
       level: 30
       classes:
@@ -661,23 +431,13 @@ items:
     generation:
       mode: HANDMADE
     stats:
-      hp:
-        range:
-          min: 16
-          max: 22
-      def:
-        range:
-          min: 8
-          max: 10
-      wil:
-        range:
-          min: 4
-          max: 6
+      hp: 16-22
+      def: 8-10
+      wil: 4-6
   2027:
     name: "Galeglide Boots"
     type: ARMOR
     rarity: LEGENDARY
-    schemaVersion: 2
     requirements:
       level: 32
       classes:
@@ -688,23 +448,13 @@ items:
     generation:
       mode: HANDMADE
     stats:
-      hp:
-        range:
-          min: 14
-          max: 20
-      agi:
-        range:
-          min: 8
-          max: 10
-      dex:
-        range:
-          min: 4
-          max: 6
+      hp: 14-20
+      agi: 8-10
+      dex: 4-6
   2028:
     name: "Celestial Wardplate"
     type: ARMOR
     rarity: MYTHIC
-    schemaVersion: 2
     requirements:
       level: 40
       classes:
@@ -715,23 +465,13 @@ items:
     generation:
       mode: HANDMADE
     stats:
-      hp:
-        range:
-          min: 22
-          max: 30
-      def:
-        range:
-          min: 12
-          max: 16
-      wil:
-        range:
-          min: 6
-          max: 8
+      hp: 22-30
+      def: 12-16
+      wil: 6-8
   2029:
     name: "Phoenixhunter Greaves"
     type: ARMOR
     rarity: MYTHIC
-    schemaVersion: 2
     requirements:
       level: 45
       classes:
@@ -742,23 +482,13 @@ items:
     generation:
       mode: HANDMADE
     stats:
-      hp:
-        range:
-          min: 20
-          max: 28
-      def:
-        range:
-          min: 10
-          max: 14
-      tec:
-        range:
-          min: 6
-          max: 8
+      hp: 20-28
+      def: 10-14
+      tec: 6-8
   2030:
     name: "Frostveil Boots"
     type: ARMOR
     rarity: FABLED
-    schemaVersion: 2
     requirements:
       level: 55
       classes:
@@ -769,23 +499,13 @@ items:
     generation:
       mode: HANDMADE
     stats:
-      hp:
-        range:
-          min: 26
-          max: 34
-      def:
-        range:
-          min: 12
-          max: 18
-      wil:
-        range:
-          min: 8
-          max: 10
+      hp: 26-34
+      def: 12-18
+      wil: 8-10
   2031:
     name: "Wayfarer's Charm"
     type: MISC
     rarity: UNCOMMON
-    schemaVersion: 2
     requirements:
       level: 8
     visuals:
@@ -794,13 +514,11 @@ items:
     generation:
       mode: HANDMADE
     stats:
-      tec:
-        fixed: 2
+      tec: 2
   2032:
     name: "Sanctified Relic"
     type: GIFT
     rarity: EPIC
-    schemaVersion: 2
     requirements:
       level: 18
       classes:
@@ -811,19 +529,12 @@ items:
     generation:
       mode: HANDMADE
     stats:
-      wil:
-        range:
-          min: 4
-          max: 6
-      hp:
-        range:
-          min: 6
-          max: 9
+      wil: 4-6
+      hp: 6-9
   2033:
     name: "Aether Prism"
     type: DUNGEON_ITEM
     rarity: LEGENDARY
-    schemaVersion: 2
     requirements:
       level: 35
     visuals:
@@ -832,11 +543,5 @@ items:
     generation:
       mode: HANDMADE
     stats:
-      intel:
-        range:
-          min: 8
-          max: 12
-      tec:
-        range:
-          min: 5
-          max: 7
+      intel: 8-12
+      tec: 5-7
