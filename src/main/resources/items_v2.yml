@@ -1,0 +1,842 @@
+schema: 2
+items:
+  2001:
+    name: "Recruit's Iron Sword"
+    type: WEAPON
+    rarity: COMMON
+    schemaVersion: 2
+    requirements:
+      level: 1
+      classes:
+        - ROGUE
+        - WARRIOR
+    visuals:
+      baseMaterial: IRON_SWORD
+      modelKey: weapon_iron_sword
+    generation:
+      mode: HANDMADE
+    stats:
+      str:
+        range:
+          min: 2
+          max: 4
+      agi:
+        range:
+          min: 1
+          max: 2
+  2002:
+    name: "Apprentice Oak Wand"
+    type: WEAPON
+    rarity: COMMON
+    schemaVersion: 2
+    requirements:
+      level: 1
+      classes:
+        - MAGE
+    visuals:
+      baseMaterial: STICK
+      modelKey: weapon_oak_wand
+    generation:
+      mode: HANDMADE
+    stats:
+      intel:
+        range:
+          min: 2
+          max: 4
+      wil:
+        range:
+          min: 1
+          max: 2
+  2003:
+    name: "Militia Training Bow"
+    type: WEAPON
+    rarity: COMMON
+    schemaVersion: 2
+    requirements:
+      level: 1
+      classes:
+        - ARCHER
+    visuals:
+      baseMaterial: BOW
+      modelKey: weapon_training_bow
+    generation:
+      mode: HANDMADE
+    stats:
+      dex:
+        range:
+          min: 2
+          max: 4
+      agi:
+        range:
+          min: 1
+          max: 2
+  2004:
+    name: "Stonecleave Hatchet"
+    type: WEAPON
+    rarity: UNCOMMON
+    schemaVersion: 2
+    requirements:
+      level: 4
+      classes:
+        - WARRIOR
+    visuals:
+      baseMaterial: STONE_AXE
+      modelKey: weapon_stone_axe
+    generation:
+      mode: HANDMADE
+    stats:
+      str:
+        range:
+          min: 3
+          max: 5
+      tec:
+        range:
+          min: 1
+          max: 2
+  2005:
+    name: "Backline Pike"
+    type: WEAPON
+    rarity: UNCOMMON
+    schemaVersion: 2
+    requirements:
+      level: 6
+      classes:
+        - WARRIOR
+    visuals:
+      baseMaterial: IRON_SHOVEL
+      modelKey: weapon_pike
+    generation:
+      mode: HANDMADE
+    stats:
+      str:
+        range:
+          min: 3
+          max: 6
+      def:
+        range:
+          min: 1
+          max: 2
+  2006:
+    name: "Shadowglass Saber"
+    type: WEAPON
+    rarity: RARE
+    schemaVersion: 2
+    requirements:
+      level: 10
+      classes:
+        - ROGUE
+    visuals:
+      baseMaterial: IRON_SWORD
+      modelKey: weapon_shadow_saber
+    generation:
+      mode: HANDMADE
+    stats:
+      str:
+        range:
+          min: 5
+          max: 8
+      agi:
+        range:
+          min: 4
+          max: 7
+      dex:
+        range:
+          min: 2
+          max: 4
+  2007:
+    name: "Emberweave Rod"
+    type: WEAPON
+    rarity: RARE
+    schemaVersion: 2
+    requirements:
+      level: 12
+      classes:
+        - MAGE
+    visuals:
+      baseMaterial: BLAZE_ROD
+      modelKey: weapon_ember_rod
+    generation:
+      mode: HANDMADE
+    stats:
+      intel:
+        range:
+          min: 6
+          max: 9
+      wil:
+        range:
+          min: 3
+          max: 5
+      tec:
+        range:
+          min: 1
+          max: 2
+  2008:
+    name: "Hawkeye Crossbow"
+    type: WEAPON
+    rarity: RARE
+    schemaVersion: 2
+    requirements:
+      level: 14
+      classes:
+        - ARCHER
+    visuals:
+      baseMaterial: CROSSBOW
+      modelKey: weapon_hawkeye_crossbow
+    generation:
+      mode: HANDMADE
+    stats:
+      dex:
+        range:
+          min: 6
+          max: 9
+      agi:
+        range:
+          min: 4
+          max: 6
+      tec:
+        range:
+          min: 2
+          max: 3
+  2009:
+    name: "Dreadforged Greataxe"
+    type: WEAPON
+    rarity: EPIC
+    schemaVersion: 2
+    requirements:
+      level: 20
+      classes:
+        - BARBARIAN
+    visuals:
+      baseMaterial: DIAMOND_AXE
+      modelKey: weapon_dread_greataxe
+    generation:
+      mode: HANDMADE
+    stats:
+      str:
+        range:
+          min: 10
+          max: 14
+      def:
+        range:
+          min: 3
+          max: 5
+      hp:
+        range:
+          min: 5
+          max: 8
+  2010:
+    name: "Thornwarden Longsword"
+    type: WEAPON
+    rarity: EPIC
+    schemaVersion: 2
+    requirements:
+      level: 22
+      classes:
+        - WARRIOR
+    visuals:
+      baseMaterial: DIAMOND_SWORD
+      modelKey: weapon_thorn_longsword
+    generation:
+      mode: HANDMADE
+    stats:
+      str:
+        range:
+          min: 9
+          max: 12
+      tec:
+        range:
+          min: 3
+          max: 5
+      def:
+        range:
+          min: 2
+          max: 4
+  2011:
+    name: "Arcanist's Moonstaff"
+    type: WEAPON
+    rarity: EPIC
+    schemaVersion: 2
+    requirements:
+      level: 24
+      classes:
+        - ARCHMAGE
+    visuals:
+      baseMaterial: BLAZE_ROD
+      modelKey: weapon_moonstaff
+    generation:
+      mode: HANDMADE
+    stats:
+      intel:
+        range:
+          min: 11
+          max: 15
+      wil:
+        range:
+          min: 5
+          max: 7
+      tec:
+        range:
+          min: 3
+          max: 4
+  2012:
+    name: "Stormpiercer"
+    type: WEAPON
+    rarity: LEGENDARY
+    schemaVersion: 2
+    requirements:
+      level: 30
+      classes:
+        - DEADEYE
+    visuals:
+      baseMaterial: BOW
+      modelKey: weapon_stormpiercer
+    generation:
+      mode: HANDMADE
+    stats:
+      dex:
+        range:
+          min: 14
+          max: 18
+      agi:
+        range:
+          min: 8
+          max: 12
+      tec:
+        range:
+          min: 4
+          max: 6
+  2013:
+    name: "Frostbite Edge"
+    type: WEAPON
+    rarity: LEGENDARY
+    schemaVersion: 2
+    requirements:
+      level: 32
+      classes:
+        - DEATHKNIGHT
+    visuals:
+      baseMaterial: NETHERITE_SWORD
+      modelKey: weapon_frostbite_edge
+    generation:
+      mode: HANDMADE
+    stats:
+      str:
+        range:
+          min: 16
+          max: 20
+      def:
+        range:
+          min: 6
+          max: 8
+      wil:
+        range:
+          min: 3
+          max: 5
+  2014:
+    name: "Dragoncore Glaive"
+    type: WEAPON
+    rarity: MYTHIC
+    schemaVersion: 2
+    requirements:
+      level: 40
+      classes:
+        - DRAGONWARRIOR
+    visuals:
+      baseMaterial: NETHERITE_AXE
+      modelKey: weapon_dragoncore_glaive
+    generation:
+      mode: HANDMADE
+    stats:
+      str:
+        range:
+          min: 22
+          max: 28
+      def:
+        range:
+          min: 8
+          max: 10
+      hp:
+        range:
+          min: 10
+          max: 15
+  2015:
+    name: "Astral Cantor Staff"
+    type: WEAPON
+    rarity: MYTHIC
+    schemaVersion: 2
+    requirements:
+      level: 42
+      classes:
+        - AWAKMAGE
+    visuals:
+      baseMaterial: BLAZE_ROD
+      modelKey: weapon_astral_staff
+    generation:
+      mode: HANDMADE
+    stats:
+      intel:
+        range:
+          min: 22
+          max: 28
+      wil:
+        range:
+          min: 10
+          max: 14
+      tec:
+        range:
+          min: 6
+          max: 8
+  2016:
+    name: "Serpent's Quickstep"
+    type: WEAPON
+    rarity: FABLED
+    schemaVersion: 2
+    requirements:
+      level: 50
+      classes:
+        - AWAKROGUE
+    visuals:
+      baseMaterial: NETHERITE_SWORD
+      modelKey: weapon_serpent_quickstep
+    generation:
+      mode: HANDMADE
+    stats:
+      str:
+        range:
+          min: 26
+          max: 32
+      agi:
+        range:
+          min: 20
+          max: 26
+      dex:
+        range:
+          min: 12
+          max: 16
+  2017:
+    name: "Dawnridge Helm"
+    type: ARMOR
+    rarity: COMMON
+    schemaVersion: 2
+    requirements:
+      level: 1
+    visuals:
+      baseMaterial: LEATHER_HELMET
+      modelKey: armor_dawnridge_helm
+    generation:
+      mode: HANDMADE
+    stats:
+      hp:
+        range:
+          min: 2
+          max: 3
+      def:
+        range:
+          min: 1
+          max: 2
+  2018:
+    name: "Pilgrim's Vest"
+    type: ARMOR
+    rarity: COMMON
+    schemaVersion: 2
+    requirements:
+      level: 1
+      classes:
+        - CLERIC
+    visuals:
+      baseMaterial: LEATHER_CHESTPLATE
+      modelKey: armor_pilgrim_vest
+    generation:
+      mode: HANDMADE
+    stats:
+      hp:
+        range:
+          min: 3
+          max: 5
+      wil:
+        range:
+          min: 1
+          max: 2
+  2019:
+    name: "Scout's Footpads"
+    type: ARMOR
+    rarity: UNCOMMON
+    schemaVersion: 2
+    requirements:
+      level: 5
+      classes:
+        - ROGUE
+    visuals:
+      baseMaterial: CHAINMAIL_BOOTS
+      modelKey: armor_scout_footpads
+    generation:
+      mode: HANDMADE
+    stats:
+      hp:
+        range:
+          min: 3
+          max: 5
+      agi:
+        range:
+          min: 2
+          max: 4
+      dex:
+        range:
+          min: 1
+          max: 2
+  2020:
+    name: "Ashguard Leggings"
+    type: ARMOR
+    rarity: UNCOMMON
+    schemaVersion: 2
+    requirements:
+      level: 7
+      classes:
+        - WARRIOR
+    visuals:
+      baseMaterial: IRON_LEGGINGS
+      modelKey: armor_ashguard_leggings
+    generation:
+      mode: HANDMADE
+    stats:
+      hp:
+        range:
+          min: 5
+          max: 7
+      def:
+        range:
+          min: 2
+          max: 4
+      str:
+        range:
+          min: 1
+          max: 2
+  2021:
+    name: "Spellthread Hood"
+    type: ARMOR
+    rarity: RARE
+    schemaVersion: 2
+    requirements:
+      level: 12
+      classes:
+        - MAGE
+    visuals:
+      baseMaterial: GOLDEN_HELMET
+      modelKey: armor_spellthread_hood
+    generation:
+      mode: HANDMADE
+    stats:
+      hp:
+        range:
+          min: 4
+          max: 6
+      intel:
+        range:
+          min: 4
+          max: 6
+      wil:
+        range:
+          min: 2
+          max: 3
+  2022:
+    name: "Rookwatch Cuirass"
+    type: ARMOR
+    rarity: RARE
+    schemaVersion: 2
+    requirements:
+      level: 15
+      classes:
+        - WARRIOR
+    visuals:
+      baseMaterial: IRON_CHESTPLATE
+      modelKey: armor_rookwatch_cuirass
+    generation:
+      mode: HANDMADE
+    stats:
+      hp:
+        range:
+          min: 8
+          max: 12
+      def:
+        range:
+          min: 4
+          max: 6
+      str:
+        range:
+          min: 2
+          max: 4
+  2023:
+    name: "Whisperwind Legwraps"
+    type: ARMOR
+    rarity: RARE
+    schemaVersion: 2
+    requirements:
+      level: 16
+      classes:
+        - ROGUE
+    visuals:
+      baseMaterial: LEATHER_LEGGINGS
+      modelKey: armor_whisperwind_legwraps
+    generation:
+      mode: HANDMADE
+    stats:
+      hp:
+        range:
+          min: 5
+          max: 8
+      agi:
+        range:
+          min: 4
+          max: 6
+      dex:
+        range:
+          min: 2
+          max: 4
+  2024:
+    name: "Lifebinder Treads"
+    type: ARMOR
+    rarity: EPIC
+    schemaVersion: 2
+    requirements:
+      level: 20
+      classes:
+        - CLERIC
+    visuals:
+      baseMaterial: DIAMOND_BOOTS
+      modelKey: armor_lifebinder_treads
+    generation:
+      mode: HANDMADE
+    stats:
+      hp:
+        range:
+          min: 10
+          max: 14
+      wil:
+        range:
+          min: 5
+          max: 7
+      def:
+        range:
+          min: 3
+          max: 5
+  2025:
+    name: "Runebound Chestguard"
+    type: ARMOR
+    rarity: EPIC
+    schemaVersion: 2
+    requirements:
+      level: 24
+      classes:
+        - DRAGONIAN
+    visuals:
+      baseMaterial: DIAMOND_CHESTPLATE
+      modelKey: armor_runebound_chestguard
+    generation:
+      mode: HANDMADE
+    stats:
+      hp:
+        range:
+          min: 14
+          max: 18
+      def:
+        range:
+          min: 6
+          max: 8
+      tec:
+        range:
+          min: 3
+          max: 4
+  2026:
+    name: "Abyssal Warden Helm"
+    type: ARMOR
+    rarity: LEGENDARY
+    schemaVersion: 2
+    requirements:
+      level: 30
+      classes:
+        - ABYSSION
+    visuals:
+      baseMaterial: NETHERITE_HELMET
+      modelKey: armor_abyssal_warden_helm
+    generation:
+      mode: HANDMADE
+    stats:
+      hp:
+        range:
+          min: 16
+          max: 22
+      def:
+        range:
+          min: 8
+          max: 10
+      wil:
+        range:
+          min: 4
+          max: 6
+  2027:
+    name: "Galeglide Boots"
+    type: ARMOR
+    rarity: LEGENDARY
+    schemaVersion: 2
+    requirements:
+      level: 32
+      classes:
+        - GALEGLAIVE
+    visuals:
+      baseMaterial: NETHERITE_BOOTS
+      modelKey: armor_galeglide_boots
+    generation:
+      mode: HANDMADE
+    stats:
+      hp:
+        range:
+          min: 14
+          max: 20
+      agi:
+        range:
+          min: 8
+          max: 10
+      dex:
+        range:
+          min: 4
+          max: 6
+  2028:
+    name: "Celestial Wardplate"
+    type: ARMOR
+    rarity: MYTHIC
+    schemaVersion: 2
+    requirements:
+      level: 40
+      classes:
+        - PALADIN
+    visuals:
+      baseMaterial: NETHERITE_CHESTPLATE
+      modelKey: armor_celestial_wardplate
+    generation:
+      mode: HANDMADE
+    stats:
+      hp:
+        range:
+          min: 22
+          max: 30
+      def:
+        range:
+          min: 12
+          max: 16
+      wil:
+        range:
+          min: 6
+          max: 8
+  2029:
+    name: "Phoenixhunter Greaves"
+    type: ARMOR
+    rarity: MYTHIC
+    schemaVersion: 2
+    requirements:
+      level: 45
+      classes:
+        - PHOENIXHUNTER
+    visuals:
+      baseMaterial: NETHERITE_LEGGINGS
+      modelKey: armor_phoenixhunter_greaves
+    generation:
+      mode: HANDMADE
+    stats:
+      hp:
+        range:
+          min: 20
+          max: 28
+      def:
+        range:
+          min: 10
+          max: 14
+      tec:
+        range:
+          min: 6
+          max: 8
+  2030:
+    name: "Frostveil Boots"
+    type: ARMOR
+    rarity: FABLED
+    schemaVersion: 2
+    requirements:
+      level: 55
+      classes:
+        - ARCTICKNIGHT
+    visuals:
+      baseMaterial: NETHERITE_BOOTS
+      modelKey: armor_frostveil_boots
+    generation:
+      mode: HANDMADE
+    stats:
+      hp:
+        range:
+          min: 26
+          max: 34
+      def:
+        range:
+          min: 12
+          max: 18
+      wil:
+        range:
+          min: 8
+          max: 10
+  2031:
+    name: "Wayfarer's Charm"
+    type: MISC
+    rarity: UNCOMMON
+    schemaVersion: 2
+    requirements:
+      level: 8
+    visuals:
+      baseMaterial: AMETHYST_SHARD
+      modelKey: misc_wayfarer_charm
+    generation:
+      mode: HANDMADE
+    stats:
+      tec:
+        fixed: 2
+  2032:
+    name: "Sanctified Relic"
+    type: GIFT
+    rarity: EPIC
+    schemaVersion: 2
+    requirements:
+      level: 18
+      classes:
+        - CLERIC
+    visuals:
+      baseMaterial: TOTEM_OF_UNDYING
+      modelKey: gift_sanctified_relic
+    generation:
+      mode: HANDMADE
+    stats:
+      wil:
+        range:
+          min: 4
+          max: 6
+      hp:
+        range:
+          min: 6
+          max: 9
+  2033:
+    name: "Aether Prism"
+    type: DUNGEON_ITEM
+    rarity: LEGENDARY
+    schemaVersion: 2
+    requirements:
+      level: 35
+    visuals:
+      baseMaterial: PRISMARINE_SHARD
+      modelKey: dungeon_aether_prism
+    generation:
+      mode: HANDMADE
+    stats:
+      intel:
+        range:
+          min: 8
+          max: 12
+      tec:
+        range:
+          min: 5
+          max: 7
