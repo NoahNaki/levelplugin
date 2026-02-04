@@ -57,7 +57,7 @@ public class CustomMobManager {
             ParticleRotationAxis.Y
     );
     private static final RingPattern POISON_PATTERN = new RingPattern(
-            Particle.SPELL,
+            Particle.WITCH,
             null,
             0.55,
             12,

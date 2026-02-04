@@ -28,6 +28,8 @@ import org.bukkit.inventory.PlayerInventory;
 
 import java.util.HashMap;
 
+import static me.nakilex.levelplugin.salvage.gui.SalvageGUI.isInputSlot;
+
 public class SalvageListener implements Listener {
 
     private final EconomyManager economyManager;
@@ -93,7 +95,7 @@ public class SalvageListener implements Listener {
                 returnAllItems(player, topInv);
                 return;
             }
-            if (!SalvageGUI.isInputSlot(slot)) {
+            if (!isInputSlot(slot)) {
                 event.setCancelled(true);
                 return;
             }
@@ -112,7 +114,7 @@ public class SalvageListener implements Listener {
         if (!isMerchant(event.getView())) return;
 
         for (int slot : event.getRawSlots()) {
-            if (SalvageGUI.isInputSlot(slot)) {
+            if (isInputSlot(slot)) {
                 ItemStack dragged = event.getOldCursor();
                 if (dragged != null && dragged.getType() != Material.AIR) {
                     if (!ItemUtil.isSalvageable(dragged)) {
@@ -141,7 +143,7 @@ public class SalvageListener implements Listener {
         Inventory topInv = event.getView().getTopInventory();
 
         for (int i = 0; i < 54; i++) {
-            if (!SalvageGUI.isInputSlot(i)) continue;
+            if (!isInputSlot(i)) continue;
             ItemStack leftover = topInv.getItem(i);
             if (leftover != null && leftover.getType() != Material.AIR) {
                 HashMap<Integer, ItemStack> overflow = player.getInventory().addItem(leftover);
