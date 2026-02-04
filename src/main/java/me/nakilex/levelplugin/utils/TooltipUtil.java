@@ -37,10 +37,10 @@ public final class TooltipUtil {
     public static List<String> clickInstructions(String leftAction, String rightAction) {
         List<String> lore = new ArrayList<>(2);
         if (leftAction != null) {
-            lore.add(ChatColor.WHITE + "<glyph:small_left> " + ChatColor.GRAY + leftAction);
+            lore.add(ChatColor.WHITE + "Left-click " + ChatColor.GRAY + leftAction);
         }
         if (rightAction != null) {
-            lore.add(ChatColor.WHITE + "<glyph_small_right> " + ChatColor.GRAY + rightAction);
+            lore.add(ChatColor.WHITE + "Right-click " + ChatColor.GRAY + rightAction);
         }
         return lore;
     }
@@ -56,10 +56,10 @@ public final class TooltipUtil {
     public static List<String> sneakClickInstructions(String leftAction, String rightAction) {
         List<String> lore = new ArrayList<>(2);
         if (leftAction != null) {
-            lore.add(ChatColor.WHITE + "Sneak + <glyph:small_left> " + ChatColor.GRAY + leftAction);
+            lore.add(ChatColor.WHITE + "Sneak + Left-click " + ChatColor.GRAY + leftAction);
         }
         if (rightAction != null) {
-            lore.add(ChatColor.WHITE + "Sneak + <glyph_small_right> " + ChatColor.GRAY + rightAction);
+            lore.add(ChatColor.WHITE + "Sneak + Right-click " + ChatColor.GRAY + rightAction);
         }
         return lore;
     }
