@@ -15,6 +15,7 @@ import me.nakilex.levelplugin.debug.DropDebugManager;
 import me.nakilex.levelplugin.debug.ArcSlashDebugManager;
 import me.nakilex.levelplugin.debug.gui.ArcSlashDebugGUI;
 import me.nakilex.levelplugin.debug.MobStatusDebugItem;
+import me.nakilex.levelplugin.debug.ModelAnimationDebugItem;
 import me.nakilex.levelplugin.debug.SpellInputDebugItem;
 import me.nakilex.levelplugin.mob.custom.CustomMobStatus;
 import me.nakilex.levelplugin.environment.EnvironmentManager;
@@ -108,7 +109,7 @@ public class DebugCommand implements TabExecutor {
                 String statUsage = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|" + statUsage + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|modelanimation|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|" + statUsage + ">");
             }
             return true;
         }
@@ -247,6 +248,13 @@ public class DebugCommand implements TabExecutor {
                 spellPlayer.getInventory().addItem(SpellInputDebugItem.create());
                 ChatMessageUtil.send(spellPlayer, ChatMessageUtil.MessageType.SUCCESS,
                         "Spell input debug stick added to your inventory.");
+                return true;
+            case "modelanimation":
+                if (!(sender instanceof Player modelAnimationPlayer)) {
+                    sender.sendMessage(ChatColor.RED + "Players only.");
+                    return true;
+                }
+                ModelAnimationDebugItem.give(modelAnimationPlayer);
                 return true;
             case "stunstick":
                 if (!(sender instanceof Player stunPlayer)) {
@@ -463,7 +471,7 @@ public class DebugCommand implements TabExecutor {
                 String statUsage2 = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|cityowner|citymax|autocast|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|" + statUsage2 + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|cityowner|citymax|autocast|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|modelanimation|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|" + statUsage2 + ">");
                 return true;
         }
     }
@@ -528,7 +536,7 @@ public class DebugCommand implements TabExecutor {
         if (args.length == 1) {
             List<String> subs = new ArrayList<>(List.of("mobinfo", "tps", "siege", "cityowner", "citymax", "autocast",
                     "hand", "chatgame", "expedition", "dungeonexpedition", "rewardbomb", "drops", "beaconentity",
-                    "spellinput", "stunstick", "poisonstick", "tauntstick", "fearstick", "slowstick",
+                    "spellinput", "modelanimation", "stunstick", "poisonstick", "tauntstick", "fearstick", "slowstick",
                     "particle", "particlepath", "particlepreset"));
             subs.addAll(Arrays.stream(StatType.values()).map(StatType::getAbbrev).toList());
             return subs.stream()

@@ -66,6 +66,7 @@ import me.nakilex.levelplugin.dungeon.DungeonMobSpawnListener;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.debug.BeaconEntityDebugManager;
 import me.nakilex.levelplugin.debug.listeners.MobStatusDebugListener;
+import me.nakilex.levelplugin.debug.listeners.ModelAnimationDebugListener;
 import me.nakilex.levelplugin.debug.listeners.SpellInputDebugListener;
 import me.nakilex.levelplugin.fasttravel.listeners.WaystoneListener;
 import me.nakilex.levelplugin.fasttravel.listeners.ExplorationListener;
@@ -231,6 +232,7 @@ public class ListenerRegistry {
         new DamageIndicatorPacketBlocker(plugin);
         pm.registerEvents(new SpellInputListener(plugin.getSettingsManager()), plugin);
         pm.registerEvents(new SpellInputDebugListener(), plugin);
+        pm.registerEvents(new ModelAnimationDebugListener(), plugin);
         pm.registerEvents(arcSlashDebugManager, plugin);
         pm.registerEvents(arcSlashDebugGUI, plugin);
         pm.registerEvents(settingsGUI, plugin);
