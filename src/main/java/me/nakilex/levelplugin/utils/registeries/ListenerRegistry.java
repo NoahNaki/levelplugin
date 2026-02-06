@@ -266,6 +266,7 @@ public class ListenerRegistry {
         pm.registerEvents(motdManager, plugin);
         pm.registerEvents(upgradeGUI, plugin);
         pm.registerEvents(buildingUpgradeGUI, plugin);
+        pm.registerEvents(new CodexListener(mobRewardsConfig, bossConfig, plugin.getCodexManager(), customMobManager), plugin);
         pm.registerEvents(codexGUI, plugin);
         pm.registerEvents(mobCodexGUI, plugin);
         pm.registerEvents(npcCodexGUI, plugin);

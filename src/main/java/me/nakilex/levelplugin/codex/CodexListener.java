@@ -1,7 +1,8 @@
 package me.nakilex.levelplugin.codex;
 
-import me.nakilex.levelplugin.mob.utils.MobNameUtil;
 import me.nakilex.levelplugin.mob.config.MobRewardsConfig;
+import me.nakilex.levelplugin.mob.custom.CustomMobManager;
+import me.nakilex.levelplugin.mob.utils.MobNameUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.LivingEntity;
@@ -14,13 +15,16 @@ public class CodexListener implements Listener {
     private final MobRewardsConfig mobCfg;
     private final FileConfiguration bossCfg;
     private final CodexManager manager;
+    private final CustomMobManager customMobManager;
 
     public CodexListener(MobRewardsConfig mobCfg,
                          FileConfiguration bossCfg,
-                         CodexManager manager) {
+                         CodexManager manager,
+                         CustomMobManager customMobManager) {
         this.mobCfg = mobCfg;
         this.bossCfg = bossCfg;
         this.manager = manager;
+        this.customMobManager = customMobManager;
     }
 
     @EventHandler
@@ -28,6 +32,18 @@ public class CodexListener implements Listener {
         Player killer = event.getEntity().getKiller();
         if (killer == null) return;
         LivingEntity ent = event.getEntity();
+        if (customMobManager != null) {
+            var instanceOpt = customMobManager.getInstance(ent);
+            if (instanceOpt.isPresent()) {
+                manager.recordKill(killer, instanceOpt.get().id());
+                return;
+            }
+            String customId = MobNameUtil.resolveCustomMobId(ent).orElse(null);
+            if (customId != null && customMobManager.getDefinition(customId).isPresent()) {
+                manager.recordKill(killer, customId);
+                return;
+            }
+        }
         String mobId = MobNameUtil.resolveCustomMobId(ent).orElse(null);
         if (mobId != null && mobCfg.getMobSection(mobId) != null) {
             manager.recordKill(killer, mobId);

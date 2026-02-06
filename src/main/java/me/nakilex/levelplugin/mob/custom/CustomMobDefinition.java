@@ -4,6 +4,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.EntityType;
+import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 
 import java.util.List;
 
@@ -47,6 +48,44 @@ public record CustomMobDefinition(String id,
                                    boolean ai,
                                    boolean silent,
                                    boolean despawn) {
+    }
+
+    public record CustomMobAttributes(double maxHealth,
+                                      double movementSpeed,
+                                      Double attackDamage,
+                                      Double attackSpeed,
+                                      Double followRange,
+                                      Double knockbackResistance) {
+    }
+
+    public CustomMobAttributes computeAttributes() {
+        CustomMobStats stats = stats();
+        CustomMobOptions opts = options();
+        if (stats == null) {
+            stats = CustomMobStats.empty();
+        }
+        if (opts == null) {
+            opts = new CustomMobOptions(null, null, null, null, null, true, false, false);
+        }
+        double baseHealthValue = baseHealth != null ? baseHealth : StatsManager.BASE_HEALTH;
+        double maxHealthValue = stats.computeMaxHealth(baseHealthValue);
+        double moveSpeedValue = opts.movementSpeed() != null
+                ? opts.movementSpeed()
+                : 0.2 + stats.agility() * 0.002;
+        Double attackDamageValue = opts.attackDamage() != null
+                ? opts.attackDamage()
+                : (stats.strength() > 0 ? 1.0 + stats.strength() * 0.5 : null);
+        Double attackSpeedValue = opts.attackSpeed() != null
+                ? opts.attackSpeed()
+                : (stats.technique() > 0 ? 0.5 * (1.0 + 0.0075 * stats.technique()) * 8.0 : null);
+        return new CustomMobAttributes(
+                maxHealthValue,
+                moveSpeedValue,
+                attackDamageValue,
+                attackSpeedValue,
+                opts.followRange(),
+                opts.knockbackResistance()
+        );
     }
 
     public static CustomMobDefinition fromConfig(String fallbackId, FileConfiguration cfg) {
