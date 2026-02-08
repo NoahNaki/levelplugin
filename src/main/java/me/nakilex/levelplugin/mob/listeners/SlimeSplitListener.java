@@ -9,7 +9,9 @@ import org.bukkit.event.entity.SlimeSplitEvent;
 
 public class SlimeSplitListener implements Listener {
     private static final String COMMON_SLIME_KEY = "Slime_Common";
+    private static final String FOREST_SLIME_KEY = "forest_slime";
     private static final String COMMON_SLIME_CANONICAL = MobNameUtil.canonicalMobKey(COMMON_SLIME_KEY);
+    private static final String FOREST_SLIME_CANONICAL = MobNameUtil.canonicalMobKey(FOREST_SLIME_KEY);
 
     @EventHandler
     public void onSlimeSplit(SlimeSplitEvent event) {
@@ -39,6 +41,10 @@ public class SlimeSplitListener implements Listener {
             return false;
         }
         String canonical = MobNameUtil.canonicalMobKey(value);
-        return !canonical.isEmpty() && canonical.equalsIgnoreCase(COMMON_SLIME_CANONICAL);
+        if (canonical.isEmpty()) {
+            return false;
+        }
+        return canonical.equalsIgnoreCase(COMMON_SLIME_CANONICAL)
+                || canonical.equalsIgnoreCase(FOREST_SLIME_CANONICAL);
     }
 }
