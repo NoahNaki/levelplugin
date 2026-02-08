@@ -14,10 +14,12 @@ import me.nakilex.levelplugin.particles.patterns.LemniscatePattern;
 import me.nakilex.levelplugin.particles.patterns.LissajousPattern;
 import me.nakilex.levelplugin.particles.patterns.BulletSpherePattern;
 import me.nakilex.levelplugin.particles.patterns.PointPattern;
+import me.nakilex.levelplugin.particles.patterns.RingPattern;
 import me.nakilex.levelplugin.particles.patterns.RosePattern;
 import me.nakilex.levelplugin.particles.patterns.SpiralPattern;
 import me.nakilex.levelplugin.particles.patterns.StarPattern;
 import me.nakilex.levelplugin.particles.patterns.TrochoidPattern;
+import org.bukkit.Color;
 import org.bukkit.Particle;
 import org.bukkit.util.Vector;
 
@@ -120,6 +122,17 @@ public final class ElementalPresets {
             new ParticlePresetSettings(32, 18, ParticleCenter.SELF, 6.0)
     );
 
+    public static final ParticlePreset BURNING_SIGIL = new ParticlePreset(
+            "BURNING_SIGIL",
+            List.of(
+                    new RingPattern(Particle.REDSTONE, new Particle.DustOptions(Color.fromRGB(255, 120, 0), 1.6f),
+                            2.2, 2.0, ParticlePlane.Y, 0, null),
+                    new RingPattern(Particle.REDSTONE, new Particle.DustOptions(Color.fromRGB(255, 150, 40), 1.2f),
+                            1.4, -3.0, ParticlePlane.Y, 0, null)
+            ),
+            new ParticlePresetSettings(34, 24, ParticleCenter.SELF, 6.0)
+    );
+
     public static final ParticlePreset PIERCING_LANCE = new ParticlePreset(
             "PIERCING_LANCE",
             List.of(
@@ -159,6 +172,7 @@ public final class ElementalPresets {
             Map.entry(CELESTIAL.name(), CELESTIAL),
             Map.entry(RADIANT_SIGIL.name(), RADIANT_SIGIL),
             Map.entry(METEOR_FALL.name(), METEOR_FALL),
+            Map.entry(BURNING_SIGIL.name(), BURNING_SIGIL),
             Map.entry(PIERCING_LANCE.name(), PIERCING_LANCE),
             Map.entry(ARCANE_CIRCLE.name(), ARCANE_CIRCLE),
             Map.entry(BULLETSPHERE.name(), BULLETSPHERE)

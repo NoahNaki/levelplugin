@@ -53,6 +53,7 @@ import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.potions.managers.PotionManager;
 import me.nakilex.levelplugin.settings.gui.SettingsGUI;
 import me.nakilex.levelplugin.spells.gui.SpellKeybindGUI;
+import me.nakilex.levelplugin.spells.SpellCatalog;
 import me.nakilex.levelplugin.settings.managers.SettingsManager;
 import me.nakilex.levelplugin.storage.StorageManager;
 import me.nakilex.levelplugin.storage.events.StorageEvents;
@@ -356,6 +357,7 @@ public class PluginBootstrap {
         broadcastMgr = new BroadcastManager(plugin, this.tipsCfg);
         broadcastMgr.start();
         settingsManager = new SettingsManager();
+        SpellCatalog.registerDefaults(plugin);
         questManager = new QuestManager(plugin, partyManager);
         battlePassManager = new BattlePassManager(plugin, questManager, itemManager);
         battlePassGUI = battlePassManager.getGui();
