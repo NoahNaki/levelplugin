@@ -1,19 +1,24 @@
 package me.nakilex.levelplugin.codex;
 
 import me.nakilex.levelplugin.mob.config.MobRewardsConfig;
+import me.nakilex.levelplugin.mob.custom.CustomMobDefinition;
+import me.nakilex.levelplugin.mob.custom.CustomMobManager;
 import me.nakilex.levelplugin.mob.utils.MobNameUtil;
 import me.nakilex.levelplugin.player.config.PlayerConfig;
 import me.nakilex.levelplugin.utils.NpcNameUtil;
 import me.nakilex.levelplugin.npc.system.NpcApi;
 import me.nakilex.levelplugin.npc.system.NPC;
+import me.nakilex.levelplugin.mob.utils.CombatRewardCalculator;
 import org.bukkit.ChatColor;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
+import org.bukkit.Bukkit;
 
 import java.util.*;
 
 public class CodexManager {
     private final PlayerConfig playerConfig;
+    private final CustomMobManager customMobManager;
     private final Set<String> mobKeys = new HashSet<>();
     private final Set<String> bossKeys = new HashSet<>();
     private final Set<String> canonicalBossKeys = new HashSet<>();
@@ -26,9 +31,11 @@ public class CodexManager {
     };
 
     public CodexManager(PlayerConfig playerConfig,
+                        CustomMobManager customMobManager,
                         MobRewardsConfig mobCfg,
                         FileConfiguration bossCfg) {
         this.playerConfig = playerConfig;
+        this.customMobManager = customMobManager;
         reload(mobCfg, bossCfg);
     }
 
@@ -40,9 +47,21 @@ public class CodexManager {
         if (mobCfg != null && mobCfg.getConfig().isConfigurationSection("mobs")) {
             mobKeys.addAll(mobCfg.getConfig().getConfigurationSection("mobs").getKeys(false));
         }
+        if (customMobManager != null) {
+            for (String id : customMobManager.getMobIds()) {
+                CustomMobDefinition def = customMobManager.getDefinition(id).orElse(null);
+                if (def != null && def.boss()) {
+                    bossKeys.add(def.id());
+                    removeMobKey(def.id());
+                } else {
+                    mobKeys.add(id);
+                }
+            }
+        }
         if (bossCfg != null && bossCfg.isConfigurationSection("mobs")) {
             bossCfg.getConfigurationSection("mobs").getKeys(false).forEach(key -> {
                 bossKeys.add(key);
+                removeMobKey(key);
                 String canonical = MobNameUtil.canonicalMobKey(key);
                 if (!canonical.isEmpty()) {
                     canonicalBossKeys.add(canonical);
@@ -59,8 +78,10 @@ public class CodexManager {
             String display = MobNameUtil.getPlainDisplayName(key);
             notifyDiscovery(player, "Monster", display);
         }
-        playerConfig.getConfig().set(path, kills + 1);
+        int newKills = kills + 1;
+        playerConfig.getConfig().set(path, newKills);
         playerConfig.saveConfigFile();
+        handleMilestoneReached(player, key, kills, newKills);
     }
 
     /**
@@ -79,6 +100,29 @@ public class CodexManager {
         me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player,
                 "§7Use §f/codex §7to view your discoveries.");
         me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§6§l-", 45);
+    }
+
+    private void handleMilestoneReached(Player player, String key, int previousKills, int newKills) {
+        if (player == null || key == null || key.isBlank()) {
+            return;
+        }
+        int previousLevel = resolveMobLevel(previousKills);
+        int newLevel = resolveMobLevel(newKills);
+        if (newLevel <= previousLevel) {
+            return;
+        }
+        int milestoneKills = getKillsForLevel(newLevel);
+        int coins = getMilestoneCoinReward(key, newLevel);
+        String mobName = CodexGuiUtil.resolveMobName(this, key);
+        me.nakilex.levelplugin.utils.ChatMessageUtil.sendMilestoneMessage(player, mobName, milestoneKills, coins);
+    }
+
+    private int resolveMobLevel(int kills) {
+        int level = 0;
+        while (level < KILL_MILESTONES.length && kills >= KILL_MILESTONES[level]) {
+            level++;
+        }
+        return level;
     }
 
     public boolean hasDiscovered(UUID id, String key) {
@@ -125,11 +169,33 @@ public class CodexManager {
         return playerConfig.getConfig().getInt(path, 0);
     }
 
+    public int getKillCountForIdentity(UUID id, String key) {
+        if (id == null || key == null || key.isBlank()) {
+            return 0;
+        }
+        String canonical = MobNameUtil.canonicalMobKey(key);
+        if (canonical.isEmpty()) {
+            return getKillCount(id, key);
+        }
+        String base = "players." + id + ".codex.mobs";
+        var section = playerConfig.getConfig().getConfigurationSection(base);
+        if (section == null) {
+            return 0;
+        }
+        int total = 0;
+        for (String discoveredKey : section.getKeys(false)) {
+            if (canonical.equals(MobNameUtil.canonicalMobKey(discoveredKey))) {
+                total += playerConfig.getConfig().getInt(base + "." + discoveredKey + ".kills", 0);
+            }
+        }
+        return total;
+    }
+
     /**
      * Current codex level for a mob based on total kills.
      */
     public int getMobLevel(UUID id, String key) {
-        int kills = getKillCount(id, key);
+        int kills = getKillCountForIdentity(id, key);
         int level = 0;
         while (level < KILL_MILESTONES.length && kills >= KILL_MILESTONES[level]) {
             level++;
@@ -146,7 +212,7 @@ public class CodexManager {
 
     /** Fractional progress toward the next codex level for a mob. */
     public double getMobProgress(UUID id, String key) {
-        int kills = getKillCount(id, key);
+        int kills = getKillCountForIdentity(id, key);
         int level = getMobLevel(id, key);
         if (level >= KILL_MILESTONES.length) return 1.0;
         int prev = getKillsForLevel(level);
@@ -173,6 +239,89 @@ public class CodexManager {
         all.addAll(mobKeys);
         all.addAll(bossKeys);
         return all;
+    }
+
+    public Optional<CustomMobDefinition> getCustomMobDefinition(String key) {
+        if (customMobManager == null || key == null) {
+            return Optional.empty();
+        }
+        return customMobManager.getDefinition(key);
+    }
+
+    public int getMilestoneCoinReward(String key, int level) {
+        int killsForLevel = getKillsForLevel(level);
+        int prevKills = getKillsForLevel(level - 1);
+        int delta = Math.max(1, killsForLevel - prevKills);
+        int baseCoins = estimateBaseCoinReward(key);
+        return Math.max(0, baseCoins * delta);
+    }
+
+    public List<MobKillEntry> getTopMobKillers(String key, int limit) {
+        List<MobKillEntry> entries = new ArrayList<>();
+        var playersSection = playerConfig.getConfig().getConfigurationSection("players");
+        if (playersSection == null) {
+            return entries;
+        }
+        for (String uuidStr : playersSection.getKeys(false)) {
+            UUID playerId;
+            try {
+                playerId = UUID.fromString(uuidStr);
+            } catch (IllegalArgumentException ex) {
+                continue;
+            }
+            int kills = getKillCountForIdentity(playerId, key);
+            if (kills <= 0) {
+                continue;
+            }
+            entries.add(new MobKillEntry(playerId, resolvePlayerName(playerId), kills));
+        }
+        entries.sort(Comparator.comparingInt(MobKillEntry::kills).reversed()
+                .thenComparing(MobKillEntry::playerName, String.CASE_INSENSITIVE_ORDER));
+        if (limit > 0 && entries.size() > limit) {
+            return entries.subList(0, limit);
+        }
+        return entries;
+    }
+
+    public record MobKillEntry(UUID playerId, String playerName, int kills) {
+    }
+
+    private String resolvePlayerName(UUID playerId) {
+        if (playerId == null) {
+            return "Unknown";
+        }
+        String name = Bukkit.getOfflinePlayer(playerId).getName();
+        return (name == null || name.isBlank()) ? "Unknown" : name;
+    }
+
+    private int estimateBaseCoinReward(String key) {
+        CustomMobDefinition definition = getCustomMobDefinition(key).orElse(null);
+        if (definition == null) {
+            return 0;
+        }
+        CustomMobDefinition.CustomMobAttributes attrs = definition.computeAttributes();
+        double attackDamage = attrs.attackDamage() != null ? attrs.attackDamage() : 0.0;
+        double attackSpeed = attrs.attackSpeed() != null ? attrs.attackSpeed() : 0.0;
+        double combatPower = attrs.maxHealth()
+                + attackDamage * 10.0
+                + attrs.movementSpeed() * 100.0
+                + attackSpeed * 20.0
+                + averageLevel(definition.levelRange()) * 5.0;
+        return CombatRewardCalculator.calculateCoinReward((int) Math.round(combatPower));
+    }
+
+    private double averageLevel(CustomMobDefinition.LevelRange range) {
+        if (range == null) {
+            return 1.0;
+        }
+        return (range.min() + range.max()) / 2.0;
+    }
+
+    private void removeMobKey(String key) {
+        if (key == null || key.isBlank()) {
+            return;
+        }
+        mobKeys.removeIf(entry -> entry.equalsIgnoreCase(key));
     }
 
     /** Determine whether the given mob key represents a field boss. */

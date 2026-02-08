@@ -260,7 +260,7 @@ public class PluginBootstrap {
         mobRewardsConfig = new MobRewardsConfig(plugin);
         customMobManager = new CustomMobManager(plugin);
         GuildQuestManager.getInstance().reloadMobCategories();
-        codexManager = new CodexManager(playerConfig, mobRewardsConfig, bossConfig);
+        codexManager = new CodexManager(playerConfig, customMobManager, mobRewardsConfig, bossConfig);
         mobCodexGUI = new MobCodexGUI(codexManager, null);
         npcCodexGUI = new NpcCodexGUI(plugin, codexManager, null, mercenaryAffinityManager, mercenaryFriendshipGUI);
         locationCodexGUI = new LocationCodexGUI(codexManager, null);

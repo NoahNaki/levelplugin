@@ -1,6 +1,5 @@
 package me.nakilex.levelplugin.codex;
 
-import me.nakilex.levelplugin.mob.utils.MobNameUtil;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import me.nakilex.levelplugin.utils.gui.widgets.ActionWidget;
@@ -87,9 +86,9 @@ public class MobCodexGUI implements Listener {
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
             if (discovered) {
-                String name = MobNameUtil.getPlainDisplayName(key);
-                meta.setDisplayName(ChatColor.GREEN + name);
-                meta.setLore(CodexGuiUtil.mobProgressLore(manager, id, key));
+                String name = CodexGuiUtil.resolveMobName(manager, key);
+                meta.setDisplayName(ChatColor.GOLD + name);
+                meta.setLore(CodexGuiUtil.mobCodexLore(manager, id, key));
             } else {
                 meta.setDisplayName(ChatColor.DARK_GRAY + "???");
             }

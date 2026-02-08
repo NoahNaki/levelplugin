@@ -4,6 +4,7 @@ import org.bukkit.ChatColor;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Helper methods for formatting item tooltips. Provides lightweight utilities
@@ -148,5 +149,71 @@ public final class TooltipUtil {
      */
     public static String accountLimitLine(int limit) {
         return ChatColor.GRAY + "Account Limit: " + ChatColor.WHITE + limit;
+    }
+
+    /**
+     * Format a section header for tooltips using the standard gold styling.
+     *
+     * @param text header label
+     * @return formatted header line
+     */
+    public static String sectionHeader(String text) {
+        if (text == null || text.isBlank()) {
+            return "";
+        }
+        return ChatColor.GOLD + "" + ChatColor.BOLD + text.trim().toUpperCase(Locale.ROOT);
+    }
+
+    /**
+     * Format an arrow-prefixed line using the standard gold arrow symbol.
+     *
+     * @param line content to append after the arrow
+     * @return formatted arrow line
+     */
+    public static String arrowLine(String line) {
+        if (line == null) {
+            return "";
+        }
+        return ChatColor.GOLD + "» " + line;
+    }
+
+    /**
+     * Format a stat line with a label and colored value using the standard arrow prefix.
+     *
+     * @param label      stat label
+     * @param value      value text
+     * @param valueColor color for the value
+     * @return formatted stat line
+     */
+    public static String statLine(String label, String value, ChatColor valueColor) {
+        if (label == null || label.isBlank()) {
+            return "";
+        }
+        String safeValue = value == null ? "" : value;
+        ChatColor valueShade = valueColor == null ? ChatColor.WHITE : valueColor;
+        return arrowLine(ChatColor.YELLOW + label.trim() + ChatColor.GRAY + ": " + valueShade + safeValue);
+    }
+
+    /**
+     * Format a leaderboard line with a rank, name, and value.
+     *
+     * @param rank  ranking position (1-indexed)
+     * @param name  player name
+     * @param value numeric value to display
+     * @param label trailing label (e.g., "Kills")
+     * @return formatted leaderboard line
+     */
+    public static String leaderboardLine(int rank, String name, String value, String label) {
+        ChatColor rankColor = switch (rank) {
+            case 1 -> ChatColor.GOLD;
+            case 2 -> ChatColor.GRAY;
+            case 3 -> ChatColor.DARK_GRAY;
+            default -> ChatColor.GRAY;
+        };
+        String safeName = (name == null || name.isBlank()) ? "Unknown" : name;
+        String safeValue = value == null ? "" : value;
+        String safeLabel = (label == null || label.isBlank()) ? "" : " " + label;
+        return rankColor + "#" + rank + " " + ChatColor.YELLOW + safeName
+                + ChatColor.GRAY + " " + ChatColor.WHITE + safeValue + ChatColor.GRAY + safeLabel;
     }
 }

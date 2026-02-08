@@ -142,6 +142,7 @@ public class ListenerRegistry {
         PluginManager pm = plugin.getServer().getPluginManager();
 
         pm.registerEvents(new MobDamageListener(), plugin);
+        pm.registerEvents(new SlimeSplitListener(), plugin);
         BattlePassManager battlePassManager = plugin.getBattlePassManager();
 
         MobRewardService rewardService = new MobRewardService(
@@ -266,6 +267,7 @@ public class ListenerRegistry {
         pm.registerEvents(motdManager, plugin);
         pm.registerEvents(upgradeGUI, plugin);
         pm.registerEvents(buildingUpgradeGUI, plugin);
+        pm.registerEvents(new CodexListener(mobRewardsConfig, bossConfig, plugin.getCodexManager(), customMobManager), plugin);
         pm.registerEvents(codexGUI, plugin);
         pm.registerEvents(mobCodexGUI, plugin);
         pm.registerEvents(npcCodexGUI, plugin);
