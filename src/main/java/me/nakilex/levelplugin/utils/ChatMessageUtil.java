@@ -81,9 +81,8 @@ public final class ChatMessageUtil {
         send(player, MessageType.REWARD,
                 ChatColor.GOLD + "" + ChatColor.BOLD + "MILESTONE REACHED! "
                         + ChatColor.WHITE + killsText + "x "
-                        + ChatColor.YELLOW + safeName + ChatColor.GOLD + "!");
-        send(player, MessageType.REWARD,
-                ChatColor.GRAY + "You received "
+                        + ChatColor.YELLOW + safeName + ChatColor.GOLD + " "
+                        + ChatColor.GRAY + "You received "
                         + ChatColor.WHITE + coinText + " <glyph:coins_icon>"
                         + ChatColor.GRAY + ".");
     }
