@@ -78,8 +78,10 @@ public class CodexManager {
             String display = MobNameUtil.getPlainDisplayName(key);
             notifyDiscovery(player, "Monster", display);
         }
-        playerConfig.getConfig().set(path, kills + 1);
+        int newKills = kills + 1;
+        playerConfig.getConfig().set(path, newKills);
         playerConfig.saveConfigFile();
+        handleMilestoneReached(player, key, kills, newKills);
     }
 
     /**
@@ -98,6 +100,29 @@ public class CodexManager {
         me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player,
                 "§7Use §f/codex §7to view your discoveries.");
         me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§6§l-", 45);
+    }
+
+    private void handleMilestoneReached(Player player, String key, int previousKills, int newKills) {
+        if (player == null || key == null || key.isBlank()) {
+            return;
+        }
+        int previousLevel = resolveMobLevel(previousKills);
+        int newLevel = resolveMobLevel(newKills);
+        if (newLevel <= previousLevel) {
+            return;
+        }
+        int milestoneKills = getKillsForLevel(newLevel);
+        int coins = getMilestoneCoinReward(key, newLevel);
+        String mobName = CodexGuiUtil.resolveMobName(this, key);
+        me.nakilex.levelplugin.utils.ChatMessageUtil.sendMilestoneMessage(player, mobName, milestoneKills, coins);
+    }
+
+    private int resolveMobLevel(int kills) {
+        int level = 0;
+        while (level < KILL_MILESTONES.length && kills >= KILL_MILESTONES[level]) {
+            level++;
+        }
+        return level;
     }
 
     public boolean hasDiscovered(UUID id, String key) {

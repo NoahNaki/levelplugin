@@ -5,6 +5,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import me.nakilex.levelplugin.utils.NumberUtil;
 
 /**
  * Utility for standardized chat message styling.
@@ -65,6 +66,26 @@ public final class ChatMessageUtil {
 
     public static void send(CommandSender sender, MessageType type, String message) {
         sender.sendMessage(format(type, message));
+    }
+
+    /**
+     * Send a standardized milestone reached message with coin rewards.
+     */
+    public static void sendMilestoneMessage(Player player, String mobName, int killAmount, int coins) {
+        if (player == null) {
+            return;
+        }
+        String safeName = (mobName == null || mobName.isBlank()) ? "Unknown" : mobName;
+        String killsText = NumberUtil.formatCommas(killAmount);
+        String coinText = NumberUtil.formatCommas(coins);
+        send(player, MessageType.REWARD,
+                ChatColor.GOLD + "" + ChatColor.BOLD + "MILESTONE REACHED! "
+                        + ChatColor.WHITE + killsText + "x "
+                        + ChatColor.YELLOW + safeName + ChatColor.GOLD + "!");
+        send(player, MessageType.REWARD,
+                ChatColor.GRAY + "You received "
+                        + ChatColor.WHITE + coinText + " <glyph:coins_icon>"
+                        + ChatColor.GRAY + ".");
     }
     /**
      * Send a standardized purchase confirmation to a player.
