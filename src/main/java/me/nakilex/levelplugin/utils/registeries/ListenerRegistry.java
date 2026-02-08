@@ -142,6 +142,7 @@ public class ListenerRegistry {
         PluginManager pm = plugin.getServer().getPluginManager();
 
         pm.registerEvents(new MobDamageListener(), plugin);
+        pm.registerEvents(new SlimeSplitListener(), plugin);
         BattlePassManager battlePassManager = plugin.getBattlePassManager();
 
         MobRewardService rewardService = new MobRewardService(

@@ -78,7 +78,7 @@ public final class ChatMessageUtil {
         String safeName = (mobName == null || mobName.isBlank()) ? "Unknown" : mobName;
         String killsText = NumberUtil.formatCommas(killAmount);
         String coinText = NumberUtil.formatCommas(coins);
-        send(player, MessageType.REWARD,
+        send((CommandSender) player, MessageType.REWARD,
                 ChatColor.GOLD + "" + ChatColor.BOLD + "MILESTONE REACHED! "
                         + ChatColor.WHITE + killsText + "x "
                         + ChatColor.YELLOW + safeName + ChatColor.GOLD + " "
