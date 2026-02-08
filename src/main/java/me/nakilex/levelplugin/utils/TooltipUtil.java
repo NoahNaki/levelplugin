@@ -214,6 +214,6 @@ public final class TooltipUtil {
         String safeValue = value == null ? "" : value;
         String safeLabel = (label == null || label.isBlank()) ? "" : " " + label;
         return rankColor + "#" + rank + " " + ChatColor.YELLOW + safeName
-                + ChatColor.GRAY + " " + ChatColor.YELLOW + safeValue + ChatColor.GRAY + safeLabel;
+                + ChatColor.GRAY + " " + ChatColor.WHITE + safeValue + ChatColor.GRAY + safeLabel;
     }
 }

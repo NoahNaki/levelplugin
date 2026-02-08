@@ -94,7 +94,7 @@ public final class CodexGuiUtil {
         }
 
         int kills = manager.getKillCountForIdentity(playerId, key);
-        lore.add(ChatColor.GRAY + "You killed this mob " + ChatColor.YELLOW
+        lore.add(ChatColor.GRAY + "You killed this mob " + ChatColor.WHITE
                 + NumberUtil.formatCommas(kills) + "x" + ChatColor.GRAY + " on this profile.");
         lore.add(" ");
 
@@ -109,15 +109,15 @@ public final class CodexGuiUtil {
         lore.add(TooltipUtil.sectionHeader("Next Milestone"));
         int level = manager.getMobLevel(playerId, key);
         if (level >= manager.getMaxMobLevel()) {
-            lore.add(TooltipUtil.arrowLine(ChatColor.YELLOW + NumberUtil.formatCommas(kills)
+            lore.add(TooltipUtil.arrowLine(ChatColor.WHITE + NumberUtil.formatCommas(kills)
                     + ChatColor.GOLD + "/MAX " + ChatColor.GOLD + "<glyph:coins_icon> "
-                    + ChatColor.YELLOW + "0"));
+                    + ChatColor.WHITE + "0"));
         } else {
             int next = manager.getKillsForLevel(level + 1);
             int coins = manager.getMilestoneCoinReward(key, level + 1);
-            lore.add(TooltipUtil.arrowLine(ChatColor.YELLOW + NumberUtil.formatCommas(kills)
-                    + ChatColor.GOLD + "/" + ChatColor.YELLOW + NumberUtil.formatCommas(next)
-                    + ChatColor.GOLD + " <glyph:coins_icon> " + ChatColor.YELLOW
+            lore.add(TooltipUtil.arrowLine(ChatColor.WHITE + NumberUtil.formatCommas(kills)
+                    + ChatColor.GOLD + "/" + ChatColor.WHITE + NumberUtil.formatCommas(next)
+                    + ChatColor.GOLD + " <glyph:coins_icon> " + ChatColor.WHITE
                     + NumberUtil.formatCommas(coins)));
         }
 
@@ -163,19 +163,16 @@ public final class CodexGuiUtil {
             return lines;
         }
         CustomMobDefinition.CustomMobAttributes attrs = def.computeAttributes();
-        lines.add(TooltipUtil.statLine("Health", formatDouble(attrs.maxHealth()), ChatColor.RED));
+        lines.add(TooltipUtil.statLine("Health", formatDouble(attrs.maxHealth()), ChatColor.WHITE));
         if (attrs.attackDamage() != null) {
-            lines.add(TooltipUtil.statLine("Damage", formatDouble(attrs.attackDamage()), ChatColor.RED));
+            lines.add(TooltipUtil.statLine("Damage", formatDouble(attrs.attackDamage()), ChatColor.WHITE));
         }
-        lines.add(TooltipUtil.statLine("Movement Speed", formatDouble(attrs.movementSpeed()), ChatColor.YELLOW));
+        lines.add(TooltipUtil.statLine("Movement Speed", formatDouble(attrs.movementSpeed()), ChatColor.WHITE));
         if (attrs.attackSpeed() != null) {
-            lines.add(TooltipUtil.statLine("Attack Speed", formatDouble(attrs.attackSpeed()), ChatColor.YELLOW));
-        }
-        if (attrs.followRange() != null) {
-            lines.add(TooltipUtil.statLine("Follow Range", formatDouble(attrs.followRange()), ChatColor.YELLOW));
+            lines.add(TooltipUtil.statLine("Attack Speed", formatDouble(attrs.attackSpeed()), ChatColor.WHITE));
         }
         if (attrs.knockbackResistance() != null) {
-            lines.add(TooltipUtil.statLine("Knockback Resist", formatDouble(attrs.knockbackResistance()), ChatColor.YELLOW));
+            lines.add(TooltipUtil.statLine("Knockback Resist", formatDouble(attrs.knockbackResistance()), ChatColor.WHITE));
         }
         return lines;
     }
