@@ -63,6 +63,14 @@ public class PetManager {
             ItemRarity.LEGENDARY, 1.5,
             ItemRarity.MYTHIC, 0.5
     );
+    private static final Map<ItemRarity, Integer> SELL_VALUES = Map.of(
+            ItemRarity.COMMON, 25,
+            ItemRarity.UNCOMMON, 50,
+            ItemRarity.RARE, 100,
+            ItemRarity.EPIC, 200,
+            ItemRarity.LEGENDARY, 500,
+            ItemRarity.MYTHIC, 1000
+    );
 
     private final Main plugin;
     private final Map<String, PetDefinition> definitions = new HashMap<>();
@@ -118,6 +126,14 @@ public class PetManager {
         return GACHA_RARITIES;
     }
 
+    public int getMaxTier() {
+        return MAX_TIER;
+    }
+
+    public int getSellValue(ItemRarity rarity) {
+        return SELL_VALUES.getOrDefault(rarity, 25);
+    }
+
     public Optional<PetDefinition> getDefinition(String id) {
         if (id == null) {
             return Optional.empty();
@@ -140,6 +156,26 @@ public class PetManager {
     public void handlePlayerQuit(Player player) {
         dismissPet(player);
         dataStore.saveProfile(player.getUniqueId());
+    }
+
+    public void handleProfileDeletion(UUID ownerId) {
+        if (ownerId == null) {
+            return;
+        }
+        Player player = Bukkit.getPlayer(ownerId);
+        if (player != null) {
+            dismissPet(player);
+        } else {
+            PetInstance instance = activePets.remove(ownerId);
+            if (instance != null) {
+                instance.cancelTasks();
+                Entity entity = Bukkit.getEntity(instance.entityId());
+                if (entity != null) {
+                    entity.remove();
+                }
+            }
+        }
+        dataStore.clearProfile(ownerId);
     }
 
     public boolean summonPet(Player player, String petId) {
@@ -265,8 +301,7 @@ public class PetManager {
         if (tier >= MAX_TIER) {
             return false;
         }
-        int copies = profile.getPetCopies(def.id());
-        int available = Math.max(0, copies - 1 - tier);
+        int available = getInvestableCopies(profile, def);
         if (available <= 0) {
             return false;
         }
@@ -279,6 +314,54 @@ public class PetManager {
             startEffectTask(player, instance);
         }
         return true;
+    }
+
+    public int getInvestableCopies(Player player, String petId) {
+        if (player == null || petId == null) {
+            return 0;
+        }
+        PetDefinition def = getDefinition(petId).orElse(null);
+        if (def == null) {
+            return 0;
+        }
+        PetProfile profile = dataStore.getProfile(player.getUniqueId());
+        return getInvestableCopies(profile, def);
+    }
+
+    public int getSellableCopies(Player player, String petId) {
+        if (player == null || petId == null) {
+            return 0;
+        }
+        PetDefinition def = getDefinition(petId).orElse(null);
+        if (def == null) {
+            return 0;
+        }
+        PetProfile profile = dataStore.getProfile(player.getUniqueId());
+        return getSellableCopies(profile, def);
+    }
+
+    public int sellPetCopies(Player player, String petId, int amount) {
+        if (player == null || petId == null || amount <= 0) {
+            return 0;
+        }
+        PetDefinition def = getDefinition(petId).orElse(null);
+        if (def == null) {
+            return 0;
+        }
+        PetProfile profile = dataStore.getProfile(player.getUniqueId());
+        int sellable = getSellableCopies(profile, def);
+        int actual = Math.min(amount, sellable);
+        if (actual <= 0) {
+            return 0;
+        }
+        int current = profile.getPetCopies(def.id());
+        profile.setPetCopies(def.id(), Math.max(0, current - actual));
+        int perCopy = SELL_VALUES.getOrDefault(def.rarity(), 25);
+        int total = perCopy * actual;
+        if (plugin.getEconomyManager() != null) {
+            plugin.getEconomyManager().addCoins(player, total);
+        }
+        return total;
     }
 
     public void addPetCopies(Player player, String petId, int amount) {
@@ -389,6 +472,18 @@ public class PetManager {
             return false;
         }
         return def.rarity().ordinal() <= autoDiscardRarity.ordinal();
+    }
+
+    private int getInvestableCopies(PetProfile profile, PetDefinition def) {
+        int copies = profile.getPetCopies(def.id());
+        int tier = profile.getPetTier(def.id());
+        return Math.max(0, copies - 1 - tier);
+    }
+
+    private int getSellableCopies(PetProfile profile, PetDefinition def) {
+        int copies = profile.getPetCopies(def.id());
+        int tier = profile.getPetTier(def.id());
+        return Math.max(0, copies - 1 - tier);
     }
 
     private void updatePetLevel(Player player, PetInstance instance, PetDefinition def, int xp) {

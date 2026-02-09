@@ -41,6 +41,13 @@ public class PetDataStore {
         }
     }
 
+    public void clearProfile(UUID uuid) {
+        profiles.remove(uuid);
+        String root = "players." + uuid;
+        config.set(root, null);
+        saveConfig();
+    }
+
     public void saveAll() {
         for (PetProfile profile : profiles.values()) {
             saveProfile(profile);
