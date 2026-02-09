@@ -6,9 +6,9 @@ pets:
     max-level: 40
     xp-per-level: 90
     effects:
-      - type: REGENERATION
-        base: 0
-        per-level: 0
+      - type: LIFE_STEAL
+        base: 0.02
+        per-level: 0.0003
   forest_sprite:
     name: "§aForest Sprite"
     rarity: UNCOMMON
@@ -16,9 +16,9 @@ pets:
     max-level: 50
     xp-per-level: 100
     effects:
-      - type: SPEED
-        base: 0
-        per-level: 0
+      - type: MOVEMENT_MANA_REDUCTION
+        base: 0.15
+        per-level: 0.002
   ember_cube:
     name: "§cEmber Cube"
     rarity: RARE
@@ -27,9 +27,12 @@ pets:
     max-level: 100
     xp-per-level: 150
     effects:
-      - type: FIRE_RESISTANCE
-        base: 0
-        per-level: 0
+      - type: DAMAGE_BOOST
+        base: 0.06
+        per-level: 0.001
+      - type: EXECUTE
+        base: 0.10
+        per-level: 0.002
   stormwing:
     name: "§dStormwing"
     rarity: EPIC
@@ -37,9 +40,12 @@ pets:
     max-level: 120
     xp-per-level: 180
     effects:
-      - type: SPEED
-        base: 1
-        per-level: 0
+      - type: CRIT_CHANCE
+        base: 0.05
+        per-level: 0.001
+      - type: DAMAGE_BOOST
+        base: 0.04
+        per-level: 0.001
   dawnstag:
     name: "§6Dawnstag"
     rarity: LEGENDARY
@@ -47,9 +53,12 @@ pets:
     max-level: 140
     xp-per-level: 210
     effects:
-      - type: ABSORPTION
-        base: 0
-        per-level: 0
+      - type: DAMAGE_REDUCTION
+        base: 0.08
+        per-level: 0.0015
+      - type: LIFE_STEAL
+        base: 0.03
+        per-level: 0.0005
   voidborn:
     name: "§4Voidborn"
     rarity: MYTHIC
@@ -57,6 +66,9 @@ pets:
     max-level: 160
     xp-per-level: 240
     effects:
-      - type: DAMAGE_RESISTANCE
-        base: 0
-        per-level: 0
+      - type: EXECUTE
+        base: 0.15
+        per-level: 0.003
+      - type: DAMAGE_BOOST
+        base: 0.08
+        per-level: 0.0015

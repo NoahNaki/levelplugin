@@ -42,8 +42,7 @@ public final class PetTooltipUtil {
         if (effect == null || effect.type() == null) {
             return "Unknown";
         }
-        int level = effect.baseAmplifier() + 1;
-        return effect.type().getName() + " " + level;
+        return effect.type().displayName() + ": " + effect.type().formatDescription(effect.baseValue());
     }
 
     private static String rarityLine(ItemRarity rarity) {

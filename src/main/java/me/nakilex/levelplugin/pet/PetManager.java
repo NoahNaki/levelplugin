@@ -7,7 +7,6 @@ import me.nakilex.levelplugin.pet.data.PetProfile;
 import me.nakilex.levelplugin.pet.utils.PetChatUtil;
 import me.nakilex.levelplugin.pet.utils.PetDisplayUtil;
 import me.nakilex.levelplugin.utils.ModelEngineUtil;
-import me.nakilex.levelplugin.utils.PotionEffectUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -40,8 +39,6 @@ public class PetManager {
     public static final String PET_TAG = "pet_entity";
     public static final String PET_OWNER_META = "lp_pet_owner";
 
-    private static final int EFFECT_REFRESH_TICKS = 200;
-    private static final int EFFECT_DURATION_TICKS = 240;
     private static final double TELEPORT_DISTANCE = 32.0;
     private static final double FOLLOW_DISTANCE = 4.0;
     private static final int MAX_TIER = 5;
@@ -232,7 +229,7 @@ public class PetManager {
 
         applyBonuses(player, instance);
         startFollowTask(player, stand, instance);
-        startEffectTask(player, instance);
+        startEffectTask(instance);
         PetChatUtil.send(player, "Summoned " + displayName + ".");
         return true;
     }
@@ -247,7 +244,7 @@ public class PetManager {
             return false;
         }
         removeBonuses(player, instance);
-        removeEffects(player, instance);
+        removeEffects(instance);
         instance.cancelTasks();
         Entity entity = Bukkit.getEntity(instance.entityId());
         if (entity != null) {
@@ -314,7 +311,7 @@ public class PetManager {
             instance.setTier(tier + 1);
             removeBonuses(player, instance);
             applyBonuses(player, instance);
-            startEffectTask(player, instance);
+            startEffectTask(instance);
         }
         return true;
     }
@@ -404,7 +401,7 @@ public class PetManager {
                 instance.setTier(newTier);
                 removeBonuses(player, instance);
                 applyBonuses(player, instance);
-                startEffectTask(player, instance);
+                startEffectTask(instance);
             }
         } else {
             profile.setPetCopies(def.id(), Math.max(1, remainingCopies));
@@ -563,7 +560,7 @@ public class PetManager {
             instance.setLevel(newLevel);
             removeBonuses(player, instance);
             applyBonuses(player, instance);
-            startEffectTask(player, instance);
+            startEffectTask(instance);
             PetChatUtil.send(player, def.displayName() + " reached level " + newLevel + "!");
         }
     }
@@ -611,37 +608,42 @@ public class PetManager {
         instance.setFollowTask(task);
     }
 
-    private void startEffectTask(Player player, PetInstance instance) {
-        if (instance.definition().effects().isEmpty()) {
-            instance.setAppliedEffects(List.of());
-            return;
-        }
-        BukkitTask task = new BukkitRunnable() {
-            @Override
-            public void run() {
-                if (!player.isOnline()) {
-                    cancel();
-                    return;
-                }
-                applyEffects(player, instance);
-            }
-        }.runTaskTimer(plugin, 0L, EFFECT_REFRESH_TICKS);
-        instance.setEffectTask(task);
+    private void startEffectTask(PetInstance instance) {
+        instance.setEffectTask(null);
+        applyEffects(instance);
     }
 
-    private void applyEffects(Player player, PetInstance instance) {
+    private void applyEffects(PetInstance instance) {
         List<PetEffectDefinition> scaled = instance.definition().effectsForLevel(instance.level(), instance.tier());
         instance.setAppliedEffects(scaled);
-        for (PetEffectDefinition effect : scaled) {
-            PotionEffectUtil.applyHiddenEffect(player, effect.type(), EFFECT_DURATION_TICKS, effect.baseAmplifier());
-        }
     }
 
-    private void removeEffects(Player player, PetInstance instance) {
-        for (PetEffectDefinition effect : instance.appliedEffects()) {
-            PotionEffectUtil.removeEffect(player, effect.type());
-        }
+    private void removeEffects(PetInstance instance) {
         instance.setAppliedEffects(List.of());
+    }
+
+    public List<PetEffectDefinition> getActiveEffects(UUID playerId) {
+        if (playerId == null) {
+            return List.of();
+        }
+        PetInstance instance = activePets.get(playerId);
+        if (instance == null) {
+            return List.of();
+        }
+        return instance.appliedEffects();
+    }
+
+    public double getActiveEffectValue(UUID playerId, PetEffectType type) {
+        if (playerId == null || type == null) {
+            return 0.0;
+        }
+        double total = 0.0;
+        for (PetEffectDefinition effect : getActiveEffects(playerId)) {
+            if (type == effect.type()) {
+                total += effect.baseValue();
+            }
+        }
+        return total;
     }
 
     public PetProfile getProfile(UUID uuid) {

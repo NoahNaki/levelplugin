@@ -3,8 +3,6 @@ package me.nakilex.levelplugin.pet;
 import me.nakilex.levelplugin.items.data.ItemRarity;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
 import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.potion.PotionEffectType;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumMap;
@@ -56,32 +54,33 @@ public record PetDefinition(String id,
             if (effect == null || effect.type() == null) {
                 continue;
             }
-            int amp = scaleEffectAmplifier(effect.amplifierForLevel(safeLevel), tier, rarity);
-            scaled.add(new PetEffectDefinition(effect.type(), amp, 0));
+            double value = effect.valueForLevel(safeLevel);
+            double scaledValue = scaleEffectValue(value, tier, rarity);
+            scaled.add(new PetEffectDefinition(effect.type(), scaledValue, 0));
         }
         return scaled;
     }
 
-    private static int scaleEffectAmplifier(int base, int tier, ItemRarity rarity) {
-        int safeBase = Math.max(0, base);
+    private static double scaleEffectValue(double base, int tier, ItemRarity rarity) {
+        double safeBase = Math.max(0.0, base);
         int safeTier = Math.max(1, tier);
-        int tierBonus = Math.max(0, safeTier - 1);
-        int rarityBonus = rarityEffectBonus(rarity);
-        return Math.max(0, safeBase + tierBonus + rarityBonus);
+        double tierMultiplier = 1.0 + (safeTier - 1) * 0.15;
+        double rarityMultiplier = rarityEffectMultiplier(rarity);
+        return safeBase * tierMultiplier * rarityMultiplier;
     }
 
-    private static int rarityEffectBonus(ItemRarity rarity) {
+    private static double rarityEffectMultiplier(ItemRarity rarity) {
         if (rarity == null) {
-            return 0;
+            return 1.0;
         }
         return switch (rarity) {
-            case COMMON -> 0;
-            case UNCOMMON -> 1;
-            case RARE -> 2;
-            case EPIC -> 3;
-            case LEGENDARY -> 4;
-            case MYTHIC -> 5;
-            case FABLED -> 6;
+            case COMMON -> 1.0;
+            case UNCOMMON -> 1.1;
+            case RARE -> 1.25;
+            case EPIC -> 1.4;
+            case LEGENDARY -> 1.6;
+            case MYTHIC -> 1.8;
+            case FABLED -> 2.0;
         };
     }
 
@@ -133,13 +132,12 @@ public record PetDefinition(String id,
             if (typeRaw == null) {
                 continue;
             }
-            String typeName = typeRaw.toString().toUpperCase(Locale.ROOT);
-            PotionEffectType type = PotionEffectType.getByName(typeName);
+            PetEffectType type = PetEffectType.fromToken(typeRaw.toString());
             if (type == null) {
                 continue;
             }
-            int base = parseInt(entry.get("base"), 0);
-            int perLevel = parseInt(entry.get("per-level"), 0);
+            double base = parseDouble(entry.get("base"), 0.0);
+            double perLevel = parseDouble(entry.get("per-level"), 0.0);
             effects.add(new PetEffectDefinition(type, base, perLevel));
         }
         return effects;
@@ -152,6 +150,19 @@ public record PetDefinition(String id,
         if (value != null) {
             try {
                 return Integer.parseInt(value.toString());
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        return fallback;
+    }
+
+    private static double parseDouble(Object value, double fallback) {
+        if (value instanceof Number number) {
+            return number.doubleValue();
+        }
+        if (value != null) {
+            try {
+                return Double.parseDouble(value.toString());
             } catch (NumberFormatException ignored) {
             }
         }

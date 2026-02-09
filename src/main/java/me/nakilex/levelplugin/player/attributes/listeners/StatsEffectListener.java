@@ -5,15 +5,18 @@ import me.nakilex.levelplugin.player.attributes.managers.StatsManager.PlayerStat
 import me.nakilex.levelplugin.mob.utils.SweepAttack;
 import me.nakilex.levelplugin.player.classes.managers.PlayerClassManager;
 import me.nakilex.levelplugin.player.classes.data.ClassUtil;
+import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.pet.PetEffectType;
+import me.nakilex.levelplugin.pet.PetManager;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 
-import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -95,11 +98,30 @@ public class StatsEffectListener implements Listener {
             int totalDexterity = ps.baseDexterity + ps.bonusDexterity;
             double critChance = (double) totalDexterity / (totalDexterity + 100.0);
             critChance = Math.max(0.0, Math.min(1.0, critChance));
+            PetManager petManager = Main.getInstance().getPetManager();
+            if (petManager != null) {
+                double critBonus = petManager.getActiveEffectValue(player.getUniqueId(), PetEffectType.CRIT_CHANCE);
+                critChance = Math.min(1.0, critChance + Math.max(0.0, critBonus));
+            }
 
             boolean isCrit = random.nextDouble() < critChance;
             if (isCrit) finalDamage *= 2;
 
             finalDamage *= BASIC_ATTACK_MULTIPLIER;
+
+            if (petManager != null) {
+                double damageBoost = petManager.getActiveEffectValue(player.getUniqueId(), PetEffectType.DAMAGE_BOOST);
+                if (damageBoost > 0.0) {
+                    finalDamage *= (1.0 + damageBoost);
+                }
+                double executeBoost = petManager.getActiveEffectValue(player.getUniqueId(), PetEffectType.EXECUTE);
+                if (executeBoost > 0.0 && target instanceof LivingEntity livingTarget) {
+                    double maxHealth = livingTarget.getMaxHealth();
+                    if (maxHealth > 0.0 && livingTarget.getHealth() / maxHealth <= PetEffectType.EXECUTE.executeThreshold()) {
+                        finalDamage *= (1.0 + executeBoost);
+                    }
+                }
+            }
 
 //            me.nakilex.levelplugin.Main.getPlugin().getLogger().info(
 //                "[StatsEffect] dmg=" + event.getDamage() + "->" + finalDamage +
@@ -145,6 +167,14 @@ public class StatsEffectListener implements Listener {
             int totalVitality = vs.baseVitality + vs.bonusVitality;
             double percentReduction = (double) totalVitality / (totalVitality + 200.0);
             incoming *= (1.0 - percentReduction);
+
+            PetManager petManager = Main.getInstance().getPetManager();
+            if (petManager != null) {
+                double petReduction = petManager.getActiveEffectValue(attacked.getUniqueId(), PetEffectType.DAMAGE_REDUCTION);
+                if (petReduction > 0.0) {
+                    incoming *= Math.max(0.0, 1.0 - petReduction);
+                }
+            }
 
             event.setDamage(incoming);
         }

@@ -6,7 +6,6 @@ import me.nakilex.levelplugin.pet.PetManager;
 import me.nakilex.levelplugin.pet.PetProgression;
 import me.nakilex.levelplugin.pet.utils.PetChatUtil;
 import me.nakilex.levelplugin.pet.utils.PetDisplayUtil;
-import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
@@ -16,10 +15,8 @@ import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Optional;
 
 public class PetDebugCommand implements CommandExecutor, TabCompleter {
@@ -128,21 +125,16 @@ public class PetDebugCommand implements CommandExecutor, TabCompleter {
                 int xp = petManager.getProfile(target.getUniqueId()).getPetXp(def.id());
                 int tier = petManager.getProfile(target.getUniqueId()).getPetTier(def.id());
                 int level = PetProgression.levelFromXp(xp, def.xpPerLevel(), def.maxLevel());
-                Map<StatType, Integer> stats = def.statsForLevel(level, tier);
                 List<PetEffectDefinition> effects = def.effectsForLevel(level, tier);
                 PetChatUtil.send(target, ChatColor.WHITE + displayName + ChatColor.GRAY
                         + " (" + def.rarity().getSymbol() + "<glyph:pet>" + ChatColor.GRAY + ")");
                 PetChatUtil.send(target, "Level " + level + " (" + xp + " XP)");
                 PetChatUtil.send(target, "Tier " + tier
                         + " | Copies " + petManager.getProfile(target.getUniqueId()).getPetCopies(def.id()));
-                if (!stats.isEmpty()) {
-                    for (Map.Entry<StatType, Integer> entry : stats.entrySet()) {
-                        PetChatUtil.send(target, entry.getKey().getDisplayName() + ": +" + entry.getValue());
-                    }
-                }
                 if (!effects.isEmpty()) {
                     for (PetEffectDefinition effect : effects) {
-                        PetChatUtil.send(target, "Effect: " + effect.type().getName() + " " + (effect.baseAmplifier() + 1));
+                        PetChatUtil.send(target, "Effect: " + effect.type().displayName()
+                                + " (" + effect.type().formatDescription(effect.baseValue()) + ")");
                     }
                 }
                 return true;
