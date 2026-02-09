@@ -38,7 +38,8 @@ public class PetSummonManager implements Listener {
     private static final String CUTSCENE_ID = "pet_pull";
     private static final int SPAWN_DELAY_TICKS = 20;
     private static final int SPAWN_INTERVAL_TICKS = 10;
-    private static final int SPIN_TICKS = 80;
+    private static final int SPIN_TICKS = 120;
+    private static final int REVEAL_START_DELAY_TICKS = 20;
     private static final int REVEAL_INTERVAL_TICKS = 14;
     private static final int END_BUFFER_TICKS = 20;
     private static final double BASE_OFFSET = 6.5;
@@ -146,7 +147,7 @@ public class PetSummonManager implements Listener {
             Item item = spawnSummonItem(session.center, entry.definition());
             item.setCustomNameVisible(false);
             session.spawned.add(item);
-            session.entries.add(new SummonEntry(item, entry.definition()));
+            session.entries.add(new SummonEntry(item, entry.definition(), index));
             applyVisibility(player, item);
             startSpinTask(player, session);
             playSound(player, SPAWN_SOUND, SPAWN_VOLUME, SPAWN_PITCH);
@@ -214,6 +215,7 @@ public class PetSummonManager implements Listener {
         int count = session.totalPulls;
         return SPAWN_DELAY_TICKS
                 + session.spinTicks
+                + REVEAL_START_DELAY_TICKS
                 + count * REVEAL_INTERVAL_TICKS
                 + END_BUFFER_TICKS;
     }
@@ -235,6 +237,7 @@ public class PetSummonManager implements Listener {
                 }
                 double progress = tick / (double) session.spinTicks;
                 double eased = 1.0 - Math.pow(1.0 - progress, 3);
+                session.spinProgress = eased;
                 double baseAngle = eased * (Math.PI * 2.0 * SPIN_TURNS);
                 updateRingPositions(player, session, baseAngle);
                 if (tick % 12 == 0) {
@@ -249,18 +252,19 @@ public class PetSummonManager implements Listener {
 
     private void updateRingPositions(Player player, SummonSession session, double baseAngle) {
         int count = Math.max(1, session.totalPulls);
+        double radius = RING_RADIUS * (0.25 + 0.75 * session.spinProgress);
         for (int i = 0; i < session.entries.size(); i++) {
             SummonEntry entry = session.entries.get(i);
             if (entry.item().isDead()) {
                 continue;
             }
-            double offset = count == 1 ? 0.0 : (Math.PI * 2.0 * i / count);
+            double offset = count == 1 ? 0.0 : (Math.PI * 2.0 * entry.index() / count);
             double theta = baseAngle + offset;
             Vector right = session.right;
             Vector up = session.up;
             Location target = session.center.clone()
-                    .add(right.clone().multiply(Math.cos(theta) * RING_RADIUS))
-                    .add(up.clone().multiply(Math.sin(theta) * RING_RADIUS));
+                    .add(right.clone().multiply(Math.cos(theta) * radius))
+                    .add(up.clone().multiply(Math.sin(theta) * radius));
             entry.item().teleport(target);
             player.spawnParticle(Particle.PORTAL, target, 4, 0.08, 0.08, 0.08, 0.01);
         }
@@ -269,7 +273,7 @@ public class PetSummonManager implements Listener {
     private void scheduleReveal(Player player, SummonSession session) {
         for (int i = 0; i < session.entries.size(); i++) {
             SummonEntry entry = session.entries.get(i);
-            int delay = i * REVEAL_INTERVAL_TICKS;
+            int delay = REVEAL_START_DELAY_TICKS + i * REVEAL_INTERVAL_TICKS;
             BukkitTask task = Bukkit.getScheduler().runTaskLater(plugin, () -> {
                 if (!player.isOnline()) {
                     return;
@@ -408,6 +412,7 @@ public class PetSummonManager implements Listener {
         private final int spinTicks;
         private Location frozenLocation;
         private org.bukkit.scheduler.BukkitRunnable spinTask;
+        private double spinProgress;
 
         private SummonSession(Location returnLocation,
                               PetPullDetailed pulls,
@@ -422,6 +427,7 @@ public class PetSummonManager implements Listener {
             this.up = up;
             this.spinTicks = SPIN_TICKS + (this.totalPulls - 1) * SPAWN_INTERVAL_TICKS;
             this.frozenLocation = null;
+            this.spinProgress = 0.0;
         }
 
         private Location frozenLocation() {
@@ -433,5 +439,5 @@ public class PetSummonManager implements Listener {
         }
     }
 
-    private record SummonEntry(Item item, PetDefinition definition) {}
+    private record SummonEntry(Item item, PetDefinition definition, int index) {}
 }

@@ -2,7 +2,7 @@ id: "pet_pull"
 frames:
   - pos: "234 177 -203 180 0"
     world: "world"
-    duration: 20000
+    duration: 26000
     title: "&dPet Summon"
     subtitle: "&7Calling the stars..."
     actionBar: "&bRevealing your pets..."
