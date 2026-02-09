@@ -42,6 +42,15 @@ public class PetSummonManager implements Listener {
     private static final int END_BUFFER_TICKS = 20;
     private static final double BASE_OFFSET = 6.0;
     private static final double ORBIT_RADIUS = 3.6;
+    private static final String SPAWN_SOUND = "minecraft:entity.experience_orb.pickup";
+    private static final String REVEAL_SOUND = "minecraft:block.beacon.power_select";
+    private static final String ORBIT_SOUND = "minecraft:block.amethyst_block.chime";
+    private static final float SPAWN_VOLUME = 0.7f;
+    private static final float SPAWN_PITCH = 1.3f;
+    private static final float REVEAL_VOLUME = 0.9f;
+    private static final float REVEAL_PITCH = 1.1f;
+    private static final float ORBIT_VOLUME = 0.4f;
+    private static final float ORBIT_PITCH = 1.6f;
     private static final double SUMMON_X = 234;
     private static final double SUMMON_Y = 177;
     private static final double SUMMON_Z = -203;
@@ -124,8 +133,12 @@ public class PetSummonManager implements Listener {
             applyVisibility(player, item);
             double phase = index * Math.PI / 6.0;
             startOrbitAnimation(player, item, slot, phase, session);
+            playSound(player, SPAWN_SOUND, SPAWN_VOLUME, SPAWN_PITCH);
             Bukkit.getScheduler().runTaskLater(plugin,
-                    () -> applyGlow(item, entry.definition()), GLOW_DELAY_TICKS);
+                    () -> {
+                        applyGlow(item, entry.definition());
+                        playSound(player, REVEAL_SOUND, REVEAL_VOLUME, REVEAL_PITCH);
+                    }, GLOW_DELAY_TICKS);
         }, delay);
         session.tasks.add(task);
     }
@@ -228,6 +241,9 @@ public class PetSummonManager implements Listener {
                 item.teleport(target);
                 player.spawnParticle(Particle.PORTAL, target, 6, 0.1, 0.1, 0.1, 0.01);
                 player.spawnParticle(Particle.END_ROD, target, 1, 0.05, 0.15, 0.05, 0.0);
+                if (tick % 12 == 0) {
+                    playSound(player, ORBIT_SOUND, ORBIT_VOLUME, ORBIT_PITCH);
+                }
                 tick++;
             }
         }.runTaskTimer(plugin, 0L, 1L);
@@ -244,6 +260,13 @@ public class PetSummonManager implements Listener {
                 }
             }
         }, 1L);
+    }
+
+    private void playSound(Player player, String sound, float volume, float pitch) {
+        if (player == null || sound == null || sound.isBlank()) {
+            return;
+        }
+        player.playSound(player.getLocation(), sound, volume, pitch);
     }
 
     private void checkCutsceneState(Player player) {
