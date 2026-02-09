@@ -215,7 +215,7 @@ public class PetSummonManager implements Listener {
         if (session.spinTask != null) {
             return;
         }
-        session.spinTask = new org.bukkit.scheduler.BukkitRunnable() {
+        org.bukkit.scheduler.BukkitRunnable runnable = new org.bukkit.scheduler.BukkitRunnable() {
             int tick = 0;
 
             @Override
@@ -235,8 +235,9 @@ public class PetSummonManager implements Listener {
                 }
                 tick++;
             }
-        }.runTaskTimer(plugin, 0L, 1L);
-        session.tasks.add(session.spinTask);
+        };
+        session.spinTask = runnable;
+        session.tasks.add(runnable.runTaskTimer(plugin, 0L, 1L));
     }
 
     private void updateRingPositions(Player player, SummonSession session, double baseAngle) {
