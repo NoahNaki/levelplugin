@@ -20,6 +20,7 @@ import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
@@ -113,6 +114,12 @@ public class PetSummonManager implements Listener {
         sessions.put(player.getUniqueId(), session);
 
         cutsceneManager.playCutscene(player, CUTSCENE_ID);
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            SummonSession active = sessions.get(player.getUniqueId());
+            if (active != null) {
+                active.setFrozenLocation(player.getLocation());
+            }
+        }, 1L);
 
         for (int i = 0; i < detailed.pulls().size(); i++) {
             PetPullEntry entry = detailed.pulls().get(i);
@@ -280,6 +287,28 @@ public class PetSummonManager implements Listener {
         }
     }
 
+    @EventHandler
+    public void onPlayerMove(PlayerMoveEvent event) {
+        Player player = event.getPlayer();
+        SummonSession session = sessions.get(player.getUniqueId());
+        if (session == null) {
+            return;
+        }
+        Location frozen = session.frozenLocation();
+        if (frozen == null) {
+            session.setFrozenLocation(event.getFrom());
+            return;
+        }
+        Location to = event.getTo();
+        if (to == null) {
+            return;
+        }
+        if (to.getX() != frozen.getX() || to.getY() != frozen.getY() || to.getZ() != frozen.getZ()
+                || to.getYaw() != frozen.getYaw() || to.getPitch() != frozen.getPitch()) {
+            event.setTo(frozen.clone());
+        }
+    }
+
     private void applyVisibility(Player viewer, Item item) {
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             for (Player player : Bukkit.getOnlinePlayers()) {
@@ -377,6 +406,7 @@ public class PetSummonManager implements Listener {
         private final Vector up;
         private final int totalPulls;
         private final int spinTicks;
+        private Location frozenLocation;
         private org.bukkit.scheduler.BukkitRunnable spinTask;
 
         private SummonSession(Location returnLocation,
@@ -391,6 +421,15 @@ public class PetSummonManager implements Listener {
             this.right = right;
             this.up = up;
             this.spinTicks = SPIN_TICKS + (this.totalPulls - 1) * SPAWN_INTERVAL_TICKS;
+            this.frozenLocation = null;
+        }
+
+        private Location frozenLocation() {
+            return frozenLocation == null ? null : frozenLocation.clone();
+        }
+
+        private void setFrozenLocation(Location location) {
+            frozenLocation = location == null ? null : location.clone();
         }
     }
 
