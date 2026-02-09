@@ -23,30 +23,41 @@ public record PetDefinition(String id,
                             int xpPerLevel) {
 
     public Map<StatType, Integer> statsForLevel(int level) {
+        return statsForLevel(level, 0);
+    }
+
+    public Map<StatType, Integer> statsForLevel(int level, int tier) {
         int safeLevel = Math.max(1, level);
+        double tierMultiplier = 1.0 + Math.max(0, tier) * 0.1;
         Map<StatType, Integer> totals = new EnumMap<>(StatType.class);
         for (StatType type : StatType.values()) {
             int base = baseStats.getOrDefault(type, 0);
             int perLevel = perLevelStats.getOrDefault(type, 0);
             int total = base + (safeLevel - 1) * perLevel;
-            if (total != 0) {
-                totals.put(type, total);
+            int scaled = (int) Math.round(total * tierMultiplier);
+            if (scaled != 0) {
+                totals.put(type, scaled);
             }
         }
         return totals;
     }
 
     public List<PetEffectDefinition> effectsForLevel(int level) {
+        return effectsForLevel(level, 0);
+    }
+
+    public List<PetEffectDefinition> effectsForLevel(int level, int tier) {
         if (effects.isEmpty()) {
             return List.of();
         }
         int safeLevel = Math.max(1, level);
+        int tierBonus = Math.max(0, tier);
         List<PetEffectDefinition> scaled = new ArrayList<>(effects.size());
         for (PetEffectDefinition effect : effects) {
             if (effect == null || effect.type() == null) {
                 continue;
             }
-            int amp = effect.amplifierForLevel(safeLevel);
+            int amp = effect.amplifierForLevel(safeLevel) + tierBonus;
             scaled.add(new PetEffectDefinition(effect.type(), amp, 0));
         }
         return scaled;

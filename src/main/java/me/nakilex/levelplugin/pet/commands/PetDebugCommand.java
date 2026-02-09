@@ -6,7 +6,6 @@ import me.nakilex.levelplugin.pet.PetManager;
 import me.nakilex.levelplugin.pet.PetProgression;
 import me.nakilex.levelplugin.pet.utils.PetChatUtil;
 import me.nakilex.levelplugin.pet.utils.PetDisplayUtil;
-import me.nakilex.levelplugin.pet.utils.PetTooltipUtil;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -95,6 +94,21 @@ public class PetDebugCommand implements CommandExecutor, TabCompleter {
                 PetChatUtil.send(target, "Added " + amount + " XP to " + petId + ".");
                 return true;
             }
+            case "addcopy" -> {
+                if (args.length < 3) {
+                    sender.sendMessage(ChatColor.RED + "Usage: /" + label + " addcopy <petId> <amount> [player]");
+                    return true;
+                }
+                Player target = resolveTarget(sender, args, 3);
+                if (target == null) {
+                    return true;
+                }
+                String petId = args[1];
+                int amount = parseInt(args[2], 0);
+                petManager.addPetCopies(target, petId, amount);
+                PetChatUtil.send(target, "Added " + amount + " copies to " + petId + ".");
+                return true;
+            }
             case "info" -> {
                 Player target = resolveTarget(sender, args, 2);
                 if (target == null) {
@@ -112,12 +126,15 @@ public class PetDebugCommand implements CommandExecutor, TabCompleter {
                 }
                 String displayName = PetDisplayUtil.formatDisplayName(def);
                 int xp = petManager.getProfile(target.getUniqueId()).getPetXp(def.id());
+                int tier = petManager.getProfile(target.getUniqueId()).getPetTier(def.id());
                 int level = PetProgression.levelFromXp(xp, def.xpPerLevel(), def.maxLevel());
-                Map<StatType, Integer> stats = def.statsForLevel(level);
-                List<PetEffectDefinition> effects = def.effectsForLevel(level);
+                Map<StatType, Integer> stats = def.statsForLevel(level, tier);
+                List<PetEffectDefinition> effects = def.effectsForLevel(level, tier);
                 PetChatUtil.send(target, ChatColor.WHITE + displayName + ChatColor.GRAY
-                        + " (" + PetTooltipUtil.formatRarityName(def.rarity()) + ChatColor.GRAY + ")");
+                        + " (" + def.rarity().getSymbol() + "<glyph:pet>" + ChatColor.GRAY + ")");
                 PetChatUtil.send(target, "Level " + level + " (" + xp + " XP)");
+                PetChatUtil.send(target, "Tier " + tier
+                        + " | Copies " + petManager.getProfile(target.getUniqueId()).getPetCopies(def.id()));
                 if (!stats.isEmpty()) {
                     for (Map.Entry<StatType, Integer> entry : stats.entrySet()) {
                         PetChatUtil.send(target, entry.getKey().getDisplayName() + ": +" + entry.getValue());
@@ -141,9 +158,9 @@ public class PetDebugCommand implements CommandExecutor, TabCompleter {
             }
             default -> {
                 if (sender instanceof Player player) {
-                    PetChatUtil.send(player, "Usage: /" + label + " <list|summon|dismiss|setlevel|addxp|info|reload>");
+                    PetChatUtil.send(player, "Usage: /" + label + " <list|summon|dismiss|setlevel|addxp|addcopy|info|reload>");
                 } else {
-                    sender.sendMessage(ChatColor.RED + "Usage: /" + label + " <list|summon|dismiss|setlevel|addxp|info|reload>");
+                    sender.sendMessage(ChatColor.RED + "Usage: /" + label + " <list|summon|dismiss|setlevel|addxp|addcopy|info|reload>");
                 }
                 return true;
             }
@@ -153,15 +170,15 @@ public class PetDebugCommand implements CommandExecutor, TabCompleter {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            return filterByPrefix(List.of("list", "summon", "dismiss", "setlevel", "addxp", "info", "reload"), args[0]);
+            return filterByPrefix(List.of("list", "summon", "dismiss", "setlevel", "addxp", "addcopy", "info", "reload"), args[0]);
         }
-        if (args.length == 2 && List.of("summon", "setlevel", "addxp", "info").contains(args[0].toLowerCase(Locale.ROOT))) {
+        if (args.length == 2 && List.of("summon", "setlevel", "addxp", "addcopy", "info").contains(args[0].toLowerCase(Locale.ROOT))) {
             return filterByPrefix(petManager.getPetIds(), args[1]);
         }
         if (args.length == 3 && args[0].equalsIgnoreCase("summon")) {
             return filterByPrefix(getOnlineNames(), args[2]);
         }
-        if (args.length == 4 && List.of("setlevel", "addxp").contains(args[0].toLowerCase(Locale.ROOT))) {
+        if (args.length == 4 && List.of("setlevel", "addxp", "addcopy").contains(args[0].toLowerCase(Locale.ROOT))) {
             return filterByPrefix(getOnlineNames(), args[3]);
         }
         return Collections.emptyList();

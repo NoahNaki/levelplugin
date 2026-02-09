@@ -105,8 +105,10 @@ public class PetGUI implements Listener {
         switch (event.getClick()) {
             case LEFT, SHIFT_LEFT -> petManager.summonPet(player, petId);
             case RIGHT, SHIFT_RIGHT -> {
-                if (equipped) {
+                if (event.getClick().isShiftClick() && equipped) {
                     petManager.dismissPet(player);
+                } else {
+                    petManager.investTier(player, petId);
                 }
             }
             default -> {
@@ -124,15 +126,20 @@ public class PetGUI implements Listener {
             PetDefinition def = defs.get(i);
             int slot = GuiUtil.PAGED_SLOTS[i - start];
             int xp = petManager.getProfile(player.getUniqueId()).getPetXp(def.id());
+            int tier = petManager.getProfile(player.getUniqueId()).getPetTier(def.id());
             int level = PetProgression.levelFromXp(xp, def.xpPerLevel(), def.maxLevel());
-            Map<StatType, Integer> stats = def.statsForLevel(level);
-            List<PetEffectDefinition> effects = def.effectsForLevel(level);
+            Map<StatType, Integer> stats = def.statsForLevel(level, tier);
+            List<PetEffectDefinition> effects = def.effectsForLevel(level, tier);
             boolean equipped = activeId != null && activeId.equalsIgnoreCase(def.id());
-            ItemStack icon = PetGuiUtil.createPetIcon(def, level, xp, stats, effects, equipped);
+            ItemStack icon = PetGuiUtil.createPetIcon(def, level, xp, tier, stats, effects, equipped);
             String petId = def.id();
             widgets.add(new ActionWidget(slot, ctx -> icon, (click, context) -> {
                 if (click.isRightClick() && equipped) {
-                    petManager.dismissPet(player);
+                    if (click.isShiftClick()) {
+                        petManager.dismissPet(player);
+                    } else {
+                        petManager.investTier(player, petId);
+                    }
                 } else if (click.isLeftClick()) {
                     petManager.summonPet(player, petId);
                 }

@@ -9,6 +9,8 @@ public class PetProfile {
     private final UUID ownerId;
     private String activePetId;
     private final Map<String, Integer> petXp = new HashMap<>();
+    private final Map<String, Integer> petTiers = new HashMap<>();
+    private final Map<String, Integer> petCopies = new HashMap<>();
 
     public PetProfile(UUID ownerId) {
         this.ownerId = ownerId;
@@ -35,6 +37,37 @@ public class PetProfile {
             return;
         }
         petXp.put(petId, Math.max(0, xp));
+    }
+
+    public int getPetTier(String petId) {
+        return petTiers.getOrDefault(petId, 0);
+    }
+
+    public void setPetTier(String petId, int tier) {
+        if (petId == null || petId.isBlank()) {
+            return;
+        }
+        petTiers.put(petId, Math.max(0, tier));
+    }
+
+    public int getPetCopies(String petId) {
+        return petCopies.getOrDefault(petId, 1);
+    }
+
+    public void addPetCopies(String petId, int amount) {
+        if (petId == null || petId.isBlank()) {
+            return;
+        }
+        int current = getPetCopies(petId);
+        petCopies.put(petId, Math.max(1, current + amount));
+    }
+
+    public Map<String, Integer> petTiers() {
+        return Collections.unmodifiableMap(petTiers);
+    }
+
+    public Map<String, Integer> petCopies() {
+        return Collections.unmodifiableMap(petCopies);
     }
 
     public Map<String, Integer> petXp() {

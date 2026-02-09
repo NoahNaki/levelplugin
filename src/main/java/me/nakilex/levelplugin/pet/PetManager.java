@@ -40,8 +40,9 @@ public class PetManager {
 
     private static final int EFFECT_REFRESH_TICKS = 200;
     private static final int EFFECT_DURATION_TICKS = 240;
-    private static final double TELEPORT_DISTANCE = 24.0;
-    private static final double FOLLOW_DISTANCE = 3.5;
+    private static final double TELEPORT_DISTANCE = 32.0;
+    private static final double FOLLOW_DISTANCE = 4.0;
+    private static final int MAX_TIER = 5;
 
     private final Main plugin;
     private final Map<String, PetDefinition> definitions = new HashMap<>();
@@ -143,8 +144,9 @@ public class PetManager {
         PetProfile profile = dataStore.getProfile(player.getUniqueId());
         profile.setActivePetId(def.id());
         int xp = profile.getPetXp(def.id());
+        int tier = profile.getPetTier(def.id());
         int level = PetProgression.levelFromXp(xp, def.xpPerLevel(), def.maxLevel());
-        PetInstance instance = new PetInstance(player.getUniqueId(), def, stand.getUniqueId(), level, xp);
+        PetInstance instance = new PetInstance(player.getUniqueId(), def, stand.getUniqueId(), level, xp, tier);
         activePets.put(player.getUniqueId(), instance);
 
         applyBonuses(player, instance);
@@ -192,6 +194,54 @@ public class PetManager {
             updatePetLevel(player, instance, def, newXp);
         }
         return true;
+    }
+
+    public void addActivePetXp(UUID ownerId, int amount) {
+        if (ownerId == null || amount <= 0) {
+            return;
+        }
+        PetInstance instance = activePets.get(ownerId);
+        if (instance == null) {
+            return;
+        }
+        addPetXp(Bukkit.getPlayer(ownerId), instance.definition().id(), amount);
+    }
+
+    public boolean investTier(Player player, String petId) {
+        if (player == null || petId == null) {
+            return false;
+        }
+        PetDefinition def = getDefinition(petId).orElse(null);
+        if (def == null) {
+            return false;
+        }
+        PetProfile profile = dataStore.getProfile(player.getUniqueId());
+        int tier = profile.getPetTier(def.id());
+        if (tier >= MAX_TIER) {
+            return false;
+        }
+        int copies = profile.getPetCopies(def.id());
+        int available = Math.max(0, copies - 1 - tier);
+        if (available <= 0) {
+            return false;
+        }
+        profile.setPetTier(def.id(), tier + 1);
+        PetInstance instance = activePets.get(player.getUniqueId());
+        if (instance != null && instance.definition().id().equalsIgnoreCase(def.id())) {
+            instance.setTier(tier + 1);
+            removeBonuses(player, instance);
+            applyBonuses(player, instance);
+            startEffectTask(player, instance);
+        }
+        return true;
+    }
+
+    public void addPetCopies(Player player, String petId, int amount) {
+        if (player == null || petId == null || amount <= 0) {
+            return;
+        }
+        PetProfile profile = dataStore.getProfile(player.getUniqueId());
+        profile.addPetCopies(petId, amount);
     }
 
     public boolean setPetLevel(Player player, String petId, int level) {
@@ -251,7 +301,7 @@ public class PetManager {
     }
 
     private void applyBonuses(Player player, PetInstance instance) {
-        Map<StatType, Integer> bonuses = instance.definition().statsForLevel(instance.level());
+        Map<StatType, Integer> bonuses = instance.definition().statsForLevel(instance.level(), instance.tier());
         instance.setAppliedStats(bonuses);
         if (!bonuses.isEmpty()) {
             StatsManager.getInstance().applyBonusStats(player.getUniqueId(), bonuses);
@@ -292,7 +342,7 @@ public class PetManager {
                 }
                 if (distance > FOLLOW_DISTANCE) {
                     Vector direction = desired.toVector().subtract(petLoc.toVector()).normalize();
-                    Location target = petLoc.add(direction.multiply(0.8));
+                    Location target = petLoc.add(direction.multiply(1.2));
                     target.setY(desired.getY());
                     stand.teleport(target);
                 } else {
@@ -301,7 +351,7 @@ public class PetManager {
                     stand.teleport(hover);
                 }
             }
-        }.runTaskTimer(plugin, 10L, 5L);
+        }.runTaskTimer(plugin, 5L, 3L);
         instance.setFollowTask(task);
     }
 
@@ -324,7 +374,7 @@ public class PetManager {
     }
 
     private void applyEffects(Player player, PetInstance instance) {
-        List<PetEffectDefinition> scaled = instance.definition().effectsForLevel(instance.level());
+        List<PetEffectDefinition> scaled = instance.definition().effectsForLevel(instance.level(), instance.tier());
         instance.setAppliedEffects(scaled);
         for (PetEffectDefinition effect : scaled) {
             PotionEffectUtil.applyHiddenEffect(player, effect.type(), EFFECT_DURATION_TICKS, effect.baseAmplifier());

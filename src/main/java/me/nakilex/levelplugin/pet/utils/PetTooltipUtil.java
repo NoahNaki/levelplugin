@@ -5,6 +5,7 @@ import me.nakilex.levelplugin.pet.PetDefinition;
 import me.nakilex.levelplugin.pet.PetEffectDefinition;
 import me.nakilex.levelplugin.pet.PetProgression;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
+import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import org.bukkit.ChatColor;
 
@@ -18,10 +19,12 @@ public final class PetTooltipUtil {
 
     public static List<String> buildPetLore(PetDefinition definition, int level,
                                             int currentXp,
+                                            int tier,
                                             Map<StatType, Integer> stats,
                                             List<PetEffectDefinition> effects) {
         List<String> lore = new ArrayList<>();
         lore.add(rarityLine(definition.rarity()));
+        lore.add(tierLine(tier));
         lore.add(ChatColor.GRAY + "Level " + ChatColor.WHITE + level);
         lore.add(progressLine(definition, level, currentXp));
         lore.add(progressBarLine(definition, level, currentXp));
@@ -46,14 +49,6 @@ public final class PetTooltipUtil {
         return lore;
     }
 
-    public static String formatRarityName(ItemRarity rarity) {
-        if (rarity == null) {
-            rarity = ItemRarity.COMMON;
-        }
-        String name = rarity.name().charAt(0) + rarity.name().substring(1).toLowerCase();
-        return "" + rarity.getColor() + name;
-    }
-
     private static String formatEffect(PetEffectDefinition effect) {
         if (effect == null || effect.type() == null) {
             return "Unknown";
@@ -66,8 +61,14 @@ public final class PetTooltipUtil {
         if (rarity == null) {
             rarity = ItemRarity.COMMON;
         }
-        String name = rarity.name().charAt(0) + rarity.name().substring(1).toLowerCase();
-        return rarity.getColor() + rarity.getSymbol() + " <glyph:pet> " + rarity.getColor() + name;
+        return rarity.getColor() + rarity.getSymbol() + "<glyph:pet>";
+    }
+
+    private static String tierLine(int tier) {
+        int safeTier = Math.max(0, Math.min(5, tier));
+        String filled = GuiUtil.glyphStars(safeTier);
+        String empty = GuiUtil.glyphStars(5 - safeTier);
+        return ChatColor.GOLD + "TIER " + ChatColor.YELLOW + filled + ChatColor.DARK_GRAY + empty;
     }
 
     private static String progressLine(PetDefinition definition, int level, int currentXp) {

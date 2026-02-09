@@ -57,7 +57,13 @@ public class PetDataStore {
             if (section != null) {
                 for (String petId : section.getKeys(false)) {
                     int xp = config.getInt(petRoot + "." + petId + ".xp", 0);
+                    int tier = config.getInt(petRoot + "." + petId + ".tier", 0);
+                    int copies = config.getInt(petRoot + "." + petId + ".copies", 1);
                     profile.setPetXp(petId, xp);
+                    profile.setPetTier(petId, tier);
+                    if (copies > 1) {
+                        profile.addPetCopies(petId, copies - 1);
+                    }
                 }
             }
         }
@@ -69,6 +75,12 @@ public class PetDataStore {
         config.set(root + ".active", profile.activePetId());
         for (Map.Entry<String, Integer> entry : profile.petXp().entrySet()) {
             config.set(root + ".pets." + entry.getKey() + ".xp", entry.getValue());
+        }
+        for (Map.Entry<String, Integer> entry : profile.petTiers().entrySet()) {
+            config.set(root + ".pets." + entry.getKey() + ".tier", entry.getValue());
+        }
+        for (Map.Entry<String, Integer> entry : profile.petCopies().entrySet()) {
+            config.set(root + ".pets." + entry.getKey() + ".copies", entry.getValue());
         }
     }
 
