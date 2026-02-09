@@ -25,14 +25,18 @@ import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
 
 import java.io.File;
+import java.util.Comparator;
 import java.util.Collections;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class PetManager {
     public static final String PET_TAG = "pet_entity";
@@ -43,6 +47,22 @@ public class PetManager {
     private static final double TELEPORT_DISTANCE = 32.0;
     private static final double FOLLOW_DISTANCE = 4.0;
     private static final int MAX_TIER = 5;
+    private static final List<ItemRarity> GACHA_RARITIES = List.of(
+            ItemRarity.COMMON,
+            ItemRarity.UNCOMMON,
+            ItemRarity.RARE,
+            ItemRarity.EPIC,
+            ItemRarity.LEGENDARY,
+            ItemRarity.MYTHIC
+    );
+    private static final Map<ItemRarity, Double> GACHA_WEIGHTS = Map.of(
+            ItemRarity.COMMON, 55.0,
+            ItemRarity.UNCOMMON, 25.0,
+            ItemRarity.RARE, 12.0,
+            ItemRarity.EPIC, 6.0,
+            ItemRarity.LEGENDARY, 1.5,
+            ItemRarity.MYTHIC, 0.5
+    );
 
     private final Main plugin;
     private final Map<String, PetDefinition> definitions = new HashMap<>();
@@ -85,6 +105,19 @@ public class PetManager {
                 .toList();
     }
 
+    public List<PetDefinition> getOwnedPets(UUID ownerId) {
+        PetProfile profile = dataStore.getProfile(ownerId);
+        return definitions.values().stream()
+                .filter(def -> profile.getPetCopies(def.id()) > 0)
+                .sorted(Comparator.comparing((PetDefinition def) -> def.rarity().ordinal())
+                        .thenComparing(PetDefinition::displayName, String.CASE_INSENSITIVE_ORDER))
+                .toList();
+    }
+
+    public List<ItemRarity> getGachaRarities() {
+        return GACHA_RARITIES;
+    }
+
     public Optional<PetDefinition> getDefinition(String id) {
         if (id == null) {
             return Optional.empty();
@@ -118,6 +151,19 @@ public class PetManager {
             PetChatUtil.send(player, "Unknown pet: " + petId);
             return false;
         }
+        PetProfile profile = dataStore.getProfile(player.getUniqueId());
+        if (profile.getPetCopies(def.id()) <= 0) {
+            PetChatUtil.send(player, "You do not own that pet yet.");
+            if (def.id().equalsIgnoreCase(profile.activePetId())) {
+                profile.setActivePetId(null);
+            }
+            return false;
+        }
+        PetInstance active = activePets.get(player.getUniqueId());
+        if (active != null && active.definition().id().equalsIgnoreCase(def.id())) {
+            PetChatUtil.send(player, "That pet is already summoned.");
+            return false;
+        }
         dismissPet(player);
         Location spawnLoc = player.getLocation().clone().add(0.6, 0.2, 0.6);
         World world = spawnLoc.getWorld();
@@ -141,7 +187,6 @@ public class PetManager {
             ModelEngineUtil.applyModels(stand, def.modelIds(), plugin);
         }
 
-        PetProfile profile = dataStore.getProfile(player.getUniqueId());
         profile.setActivePetId(def.id());
         int xp = profile.getPetXp(def.id());
         int tier = profile.getPetTier(def.id());
@@ -244,6 +289,36 @@ public class PetManager {
         profile.addPetCopies(petId, amount);
     }
 
+    public PetPullResult pullPets(Player player, int amount) {
+        if (player == null || amount <= 0) {
+            return new PetPullResult(Map.of(), Map.of());
+        }
+        Map<ItemRarity, List<PetDefinition>> pools = buildRarityPools();
+        if (pools.isEmpty()) {
+            return new PetPullResult(Map.of(), Map.of());
+        }
+        PetProfile profile = dataStore.getProfile(player.getUniqueId());
+        Map<PetDefinition, Integer> kept = new HashMap<>();
+        Map<PetDefinition, Integer> discarded = new HashMap<>();
+        Random random = ThreadLocalRandom.current();
+        Map<ItemRarity, Double> weights = buildRarityWeights(pools);
+        for (int i = 0; i < amount; i++) {
+            ItemRarity rarity = me.nakilex.levelplugin.utils.RandomUtil.pickWeighted(random, weights);
+            List<PetDefinition> options = pools.get(rarity);
+            if (options == null || options.isEmpty()) {
+                continue;
+            }
+            PetDefinition def = options.get(random.nextInt(options.size()));
+            if (shouldDiscard(def, profile.autoDiscardRarity())) {
+                discarded.merge(def, 1, Integer::sum);
+                continue;
+            }
+            profile.addPetCopies(def.id(), 1);
+            kept.merge(def, 1, Integer::sum);
+        }
+        return new PetPullResult(kept, discarded);
+    }
+
     public boolean setPetLevel(Player player, String petId, int level) {
         if (player == null || petId == null) {
             return false;
@@ -285,6 +360,35 @@ public class PetManager {
 
     public Map<String, PetDefinition> getDefinitions() {
         return Collections.unmodifiableMap(definitions);
+    }
+
+    private Map<ItemRarity, List<PetDefinition>> buildRarityPools() {
+        Map<ItemRarity, List<PetDefinition>> pools = new EnumMap<>(ItemRarity.class);
+        for (PetDefinition def : definitions.values()) {
+            if (!GACHA_RARITIES.contains(def.rarity())) {
+                continue;
+            }
+            pools.computeIfAbsent(def.rarity(), rarity -> new java.util.ArrayList<>()).add(def);
+        }
+        return pools;
+    }
+
+    private Map<ItemRarity, Double> buildRarityWeights(Map<ItemRarity, List<PetDefinition>> pools) {
+        Map<ItemRarity, Double> weights = new EnumMap<>(ItemRarity.class);
+        for (Map.Entry<ItemRarity, List<PetDefinition>> entry : pools.entrySet()) {
+            if (entry.getValue() == null || entry.getValue().isEmpty()) {
+                continue;
+            }
+            weights.put(entry.getKey(), GACHA_WEIGHTS.getOrDefault(entry.getKey(), 1.0));
+        }
+        return weights;
+    }
+
+    private boolean shouldDiscard(PetDefinition def, ItemRarity autoDiscardRarity) {
+        if (def == null || autoDiscardRarity == null) {
+            return false;
+        }
+        return def.rarity().ordinal() <= autoDiscardRarity.ordinal();
     }
 
     private void updatePetLevel(Player player, PetInstance instance, PetDefinition def, int xp) {
@@ -404,4 +508,6 @@ public class PetManager {
         PetDefinition def = getDefinition(petId).orElse(null);
         return def == null ? ItemRarity.COMMON : def.rarity();
     }
+
+    public record PetPullResult(Map<PetDefinition, Integer> kept, Map<PetDefinition, Integer> discarded) {}
 }

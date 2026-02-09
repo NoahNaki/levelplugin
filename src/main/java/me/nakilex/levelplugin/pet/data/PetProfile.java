@@ -5,9 +5,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+import me.nakilex.levelplugin.items.data.ItemRarity;
+
 public class PetProfile {
     private final UUID ownerId;
     private String activePetId;
+    private ItemRarity autoDiscardRarity;
     private final Map<String, Integer> petXp = new HashMap<>();
     private final Map<String, Integer> petTiers = new HashMap<>();
     private final Map<String, Integer> petCopies = new HashMap<>();
@@ -26,6 +29,14 @@ public class PetProfile {
 
     public void setActivePetId(String activePetId) {
         this.activePetId = activePetId;
+    }
+
+    public ItemRarity autoDiscardRarity() {
+        return autoDiscardRarity;
+    }
+
+    public void setAutoDiscardRarity(ItemRarity autoDiscardRarity) {
+        this.autoDiscardRarity = autoDiscardRarity;
     }
 
     public int getPetXp(String petId) {
@@ -51,7 +62,14 @@ public class PetProfile {
     }
 
     public int getPetCopies(String petId) {
-        return petCopies.getOrDefault(petId, 1);
+        return petCopies.getOrDefault(petId, 0);
+    }
+
+    public void setPetCopies(String petId, int amount) {
+        if (petId == null || petId.isBlank()) {
+            return;
+        }
+        petCopies.put(petId, Math.max(0, amount));
     }
 
     public void addPetCopies(String petId, int amount) {
@@ -59,7 +77,7 @@ public class PetProfile {
             return;
         }
         int current = getPetCopies(petId);
-        petCopies.put(petId, Math.max(1, current + amount));
+        petCopies.put(petId, Math.max(0, current + amount));
     }
 
     public Map<String, Integer> petTiers() {

@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.pet.data;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.items.data.ItemRarity;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 
@@ -52,20 +53,30 @@ public class PetDataStore {
         String root = "players." + uuid;
         if (config.contains(root)) {
             profile.setActivePetId(config.getString(root + ".active", null));
+            String autoDiscard = config.getString(root + ".auto-discard", null);
+            if (autoDiscard != null && !autoDiscard.isBlank()) {
+                try {
+                    profile.setAutoDiscardRarity(ItemRarity.valueOf(autoDiscard.toUpperCase()));
+                } catch (IllegalArgumentException ignored) {
+                    profile.setAutoDiscardRarity(null);
+                }
+            }
             String petRoot = root + ".pets";
             var section = config.getConfigurationSection(petRoot);
             if (section != null) {
                 for (String petId : section.getKeys(false)) {
                     int xp = config.getInt(petRoot + "." + petId + ".xp", 0);
                     int tier = config.getInt(petRoot + "." + petId + ".tier", 0);
-                    int copies = config.getInt(petRoot + "." + petId + ".copies", 1);
+                    int copies = config.getInt(petRoot + "." + petId + ".copies", 0);
                     profile.setPetXp(petId, xp);
                     profile.setPetTier(petId, tier);
-                    if (copies > 1) {
-                        profile.addPetCopies(petId, copies - 1);
-                    }
+                    profile.setPetCopies(petId, copies);
                 }
             }
+        }
+        String activeId = profile.activePetId();
+        if (activeId != null && !activeId.isBlank() && profile.getPetCopies(activeId) <= 0) {
+            profile.setPetCopies(activeId, 1);
         }
         return profile;
     }
@@ -73,6 +84,8 @@ public class PetDataStore {
     private void saveProfile(PetProfile profile) {
         String root = "players." + profile.ownerId();
         config.set(root + ".active", profile.activePetId());
+        ItemRarity autoDiscard = profile.autoDiscardRarity();
+        config.set(root + ".auto-discard", autoDiscard == null ? null : autoDiscard.name());
         for (Map.Entry<String, Integer> entry : profile.petXp().entrySet()) {
             config.set(root + ".pets." + entry.getKey() + ".xp", entry.getValue());
         }

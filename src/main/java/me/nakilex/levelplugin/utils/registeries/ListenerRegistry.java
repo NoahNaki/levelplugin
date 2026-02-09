@@ -140,6 +140,7 @@ public class ListenerRegistry {
                                         ServerSelectionManager serverSelectionManager,
                                         PetManager petManager,
                                         PetGUI petGUI,
+                                        me.nakilex.levelplugin.pet.gui.PetSettingsGUI petSettingsGUI,
                                         CustomMobManager customMobManager,
                                         me.nakilex.levelplugin.debug.ArcSlashDebugManager arcSlashDebugManager,
                                         me.nakilex.levelplugin.debug.gui.ArcSlashDebugGUI arcSlashDebugGUI) {
@@ -192,6 +193,9 @@ public class ListenerRegistry {
         }
         if (petGUI != null) {
             pm.registerEvents(petGUI, plugin);
+        }
+        if (petSettingsGUI != null) {
+            pm.registerEvents(petSettingsGUI, plugin);
         }
         pm.registerEvents(new StatsMenuListener(codexGUI), plugin);
         pm.registerEvents(new StatsEffectListener(), plugin);

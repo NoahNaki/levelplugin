@@ -22,9 +22,11 @@ public final class PetGuiUtil {
                                           int tier,
                                           Map<StatType, Integer> stats,
                                           List<PetEffectDefinition> effects,
+                                          int copies,
                                           boolean equipped) {
         List<String> lore = PetTooltipUtil.buildPetLore(definition, level, currentXp, tier, stats, effects);
         lore.add(" ");
+        lore.add("§7Copies: §f" + copies);
         lore.add(TooltipUtil.selectionLine(equipped, equipped ? "Equipped" : "Select to equip"));
         lore.addAll(TooltipUtil.clickInstructions("to equip", "to invest tier"));
         lore.addAll(TooltipUtil.sneakClickInstructions(null, "to unequip"));

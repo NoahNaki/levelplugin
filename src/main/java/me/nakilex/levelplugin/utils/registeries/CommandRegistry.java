@@ -330,7 +330,8 @@ public class CommandRegistry {
                 beaconEntityDebugManager,
                 questManager,
                 arcSlashDebugManager,
-                arcSlashDebugGUI);
+                arcSlashDebugGUI,
+                petManager);
         plugin.getCommand("debug").setExecutor(debugCmd);
         plugin.getCommand("debug").setTabCompleter(debugCmd);
         SpawnEntityModelCommand spawnEntityModelCommand = new SpawnEntityModelCommand(plugin);

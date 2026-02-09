@@ -26,7 +26,6 @@ import org.bukkit.inventory.ItemStack;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 
 public class PetGUI implements Listener {
@@ -37,19 +36,18 @@ public class PetGUI implements Listener {
     private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
 
     private final PetManager petManager;
+    private final PetSettingsGUI petSettingsGUI;
     private final String title = ChatUtil.applyEmojis("§8Pets");
     private final Map<UUID, Integer> pages = new java.util.HashMap<>();
     private final Map<UUID, List<GuiWidget>> widgetsByPlayer = new java.util.HashMap<>();
 
-    public PetGUI(PetManager petManager) {
+    public PetGUI(PetManager petManager, PetSettingsGUI petSettingsGUI) {
         this.petManager = petManager;
+        this.petSettingsGUI = petSettingsGUI;
     }
 
     public void open(Player player, int page) {
-        List<PetDefinition> defs = petManager.getPetIds().stream()
-                .map(petManager::getDefinition)
-                .flatMap(Optional::stream)
-                .toList();
+        List<PetDefinition> defs = petManager.getOwnedPets(player.getUniqueId());
         int maxPage = Math.max(0, (defs.size() - 1) / PAGE_SIZE);
         int current = Math.max(0, Math.min(page, maxPage));
         pages.put(player.getUniqueId(), current);
@@ -80,19 +78,24 @@ public class PetGUI implements Listener {
 
     private List<GuiWidget> buildPetWidgets(Player player, List<PetDefinition> defs, int page, int maxPage) {
         List<GuiWidget> widgets = new ArrayList<>();
+        if (defs.isEmpty()) {
+            widgets.add(new ActionWidget(22, ctx -> createEmptyItem(), (click, context) -> {}));
+        }
         int start = page * PAGE_SIZE;
         int end = Math.min(defs.size(), start + PAGE_SIZE);
-        String activeId = petManager.getProfile(player.getUniqueId()).activePetId();
+        var profile = petManager.getProfile(player.getUniqueId());
+        String activeId = profile.activePetId();
         for (int i = start; i < end; i++) {
             PetDefinition def = defs.get(i);
             int slot = GuiUtil.PAGED_SLOTS[i - start];
-            int xp = petManager.getProfile(player.getUniqueId()).getPetXp(def.id());
-            int tier = petManager.getProfile(player.getUniqueId()).getPetTier(def.id());
+            int xp = profile.getPetXp(def.id());
+            int tier = profile.getPetTier(def.id());
+            int copies = profile.getPetCopies(def.id());
             int level = PetProgression.levelFromXp(xp, def.xpPerLevel(), def.maxLevel());
             Map<StatType, Integer> stats = def.statsForLevel(level, tier);
             List<PetEffectDefinition> effects = def.effectsForLevel(level, tier);
             boolean equipped = activeId != null && activeId.equalsIgnoreCase(def.id());
-            ItemStack icon = PetGuiUtil.createPetIcon(def, level, xp, tier, stats, effects, equipped);
+            ItemStack icon = PetGuiUtil.createPetIcon(def, level, xp, tier, stats, effects, copies, equipped);
             String petId = def.id();
             widgets.add(new ActionWidget(slot, ctx -> icon, (click, context) -> {
                 if (click.isRightClick() && equipped) {
@@ -116,12 +119,29 @@ public class PetGUI implements Listener {
             widgets.add(new ActionWidget(NEXT_SLOT, ctx -> createNavItem("§aNext Page"),
                     (click, context) -> open(player, page + 1)));
         }
+        if (petSettingsGUI != null) {
+            widgets.add(new ActionWidget(49, ctx -> createSettingsItem(),
+                    (click, context) -> petSettingsGUI.open(player)));
+        }
         return widgets;
     }
 
     private ItemStack createNavItem(String name) {
         List<String> lore = TooltipUtil.clickInstructions("to change page", null);
         return GuiUtil.createGuiItem(Material.ARROW, name, lore);
+    }
+
+    private ItemStack createSettingsItem() {
+        List<String> lore = TooltipUtil.clickInstructions("to open settings", null);
+        return GuiUtil.createGuiItem(Material.COMPARATOR, "§bPet Settings", lore);
+    }
+
+    private ItemStack createEmptyItem() {
+        List<String> lore = new ArrayList<>();
+        lore.add(" ");
+        lore.add("§7No pets in your inventory yet.");
+        lore.addAll(TooltipUtil.bulletList("Use /debug petpull to pull pets."));
+        return GuiUtil.createGuiItem(Material.BARRIER, "§cNo Pets Found", lore);
     }
 
     private void renderWidgets(Inventory inv, Player player, List<GuiWidget> widgets) {
@@ -134,10 +154,7 @@ public class PetGUI implements Listener {
 
     private void refresh(Player player, Inventory inventory) {
         int page = pages.getOrDefault(player.getUniqueId(), 0);
-        List<PetDefinition> defs = petManager.getPetIds().stream()
-                .map(petManager::getDefinition)
-                .flatMap(Optional::stream)
-                .toList();
+        List<PetDefinition> defs = petManager.getOwnedPets(player.getUniqueId());
         int maxPage = Math.max(0, (defs.size() - 1) / PAGE_SIZE);
         int current = Math.max(0, Math.min(page, maxPage));
         pages.put(player.getUniqueId(), current);

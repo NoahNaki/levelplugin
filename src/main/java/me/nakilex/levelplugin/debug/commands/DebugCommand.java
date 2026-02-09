@@ -16,6 +16,10 @@ import me.nakilex.levelplugin.debug.ArcSlashDebugManager;
 import me.nakilex.levelplugin.debug.gui.ArcSlashDebugGUI;
 import me.nakilex.levelplugin.debug.MobStatusDebugItem;
 import me.nakilex.levelplugin.debug.SpellInputDebugItem;
+import me.nakilex.levelplugin.pet.PetManager;
+import me.nakilex.levelplugin.pet.PetManager.PetPullResult;
+import me.nakilex.levelplugin.pet.utils.PetChatUtil;
+import me.nakilex.levelplugin.pet.utils.PetDisplayUtil;
 import me.nakilex.levelplugin.mob.custom.CustomMobStatus;
 import me.nakilex.levelplugin.environment.EnvironmentManager;
 import me.nakilex.levelplugin.guild.Guild;
@@ -72,6 +76,7 @@ public class DebugCommand implements TabExecutor {
     private final QuestManager questManager;
     private final ArcSlashDebugManager arcSlashDebugManager;
     private final ArcSlashDebugGUI arcSlashDebugGUI;
+    private final PetManager petManager;
 
     public DebugCommand(PlayerToggleManager mobDebugManager,
                         PlayerScoreboardManager scoreboardManager,
@@ -84,7 +89,8 @@ public class DebugCommand implements TabExecutor {
                         BeaconEntityDebugManager beaconEntityDebugManager,
                         QuestManager questManager,
                         ArcSlashDebugManager arcSlashDebugManager,
-                        ArcSlashDebugGUI arcSlashDebugGUI) {
+                        ArcSlashDebugGUI arcSlashDebugGUI,
+                        PetManager petManager) {
         this.mobDebugManager = mobDebugManager;
         this.scoreboardManager = scoreboardManager;
         this.debugGUI = debugGUI;
@@ -97,6 +103,7 @@ public class DebugCommand implements TabExecutor {
         this.questManager = questManager;
         this.arcSlashDebugManager = arcSlashDebugManager;
         this.arcSlashDebugGUI = arcSlashDebugGUI;
+        this.petManager = petManager;
     }
 
     @Override
@@ -108,7 +115,7 @@ public class DebugCommand implements TabExecutor {
                 String statUsage = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|" + statUsage + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|" + statUsage + ">");
             }
             return true;
         }
@@ -237,6 +244,40 @@ public class DebugCommand implements TabExecutor {
                 RewardBombUtil.startRewardBomb(Main.getInstance(), target.getLocation(),
                         me.nakilex.levelplugin.debug.DebugRewardUtil::rollDebugReward, 100, pRb);
                 pRb.sendMessage(ChatColor.YELLOW + "Reward bomb triggered for testing.");
+                return true;
+
+            case "petpull":
+                if (!(sender instanceof Player petPlayer)) {
+                    sender.sendMessage(ChatColor.RED + "Players only.");
+                    return true;
+                }
+                if (petManager == null) {
+                    PetChatUtil.send(petPlayer, "Pet system is not available.");
+                    return true;
+                }
+                if (args.length < 2) {
+                    PetChatUtil.send(petPlayer, "Usage: /debug petpull <amount>");
+                    return true;
+                }
+                int amount;
+                try {
+                    amount = Integer.parseInt(args[1]);
+                } catch (NumberFormatException e) {
+                    PetChatUtil.send(petPlayer, "Amount must be a number.");
+                    return true;
+                }
+                if (amount <= 0) {
+                    PetChatUtil.send(petPlayer, "Amount must be at least 1.");
+                    return true;
+                }
+                PetPullResult result = petManager.pullPets(petPlayer, amount);
+                if (result.kept().isEmpty() && result.discarded().isEmpty()) {
+                    PetChatUtil.send(petPlayer, "No pets available to pull.");
+                    return true;
+                }
+                PetChatUtil.send(petPlayer, ChatColor.YELLOW + "Pet pulls:");
+                sendPetPullSummary(petPlayer, "Pulled", result.kept());
+                sendPetPullSummary(petPlayer, "Auto-discarded", result.discarded());
                 return true;
 
             case "spellinput":
@@ -463,7 +504,7 @@ public class DebugCommand implements TabExecutor {
                 String statUsage2 = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|cityowner|citymax|autocast|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|" + statUsage2 + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|cityowner|citymax|autocast|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|" + statUsage2 + ">");
                 return true;
         }
     }
@@ -523,12 +564,25 @@ public class DebugCommand implements TabExecutor {
                 + (enable ? ChatColor.GREEN + "enabled" : ChatColor.RED + "disabled") + ChatColor.GRAY + ".");
     }
 
+    private void sendPetPullSummary(Player player, String label, Map<me.nakilex.levelplugin.pet.PetDefinition, Integer> pulls) {
+        if (pulls.isEmpty()) {
+            return;
+        }
+        PetChatUtil.send(player, ChatColor.GRAY + label + ":");
+        for (var entry : pulls.entrySet()) {
+            String name = PetDisplayUtil.formatDisplayName(entry.getKey());
+            int count = entry.getValue();
+            PetChatUtil.send(player, ChatColor.DARK_GRAY + "- " + ChatColor.WHITE + name
+                    + ChatColor.GRAY + " x" + count);
+        }
+    }
+
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
             List<String> subs = new ArrayList<>(List.of("mobinfo", "tps", "siege", "cityowner", "citymax", "autocast",
                     "hand", "chatgame", "expedition", "dungeonexpedition", "rewardbomb", "drops", "beaconentity",
-                    "spellinput", "stunstick", "poisonstick", "tauntstick", "fearstick", "slowstick",
+                    "spellinput", "stunstick", "poisonstick", "tauntstick", "fearstick", "slowstick", "petpull",
                     "particle", "particlepath", "particlepreset"));
             subs.addAll(Arrays.stream(StatType.values()).map(StatType::getAbbrev).toList());
             return subs.stream()
@@ -574,6 +628,10 @@ public class DebugCommand implements TabExecutor {
         } else if (args.length == 3 && args[0].equalsIgnoreCase("chatgame")) {
             return List.of("on", "off", "enable", "disable").stream()
                     .filter(opt -> opt.startsWith(args[2].toLowerCase()))
+                    .toList();
+        } else if (args.length == 2 && args[0].equalsIgnoreCase("petpull")) {
+            return List.of("1", "5", "10").stream()
+                    .filter(opt -> opt.startsWith(args[1].toLowerCase()))
                     .toList();
         }
         return Collections.emptyList();
