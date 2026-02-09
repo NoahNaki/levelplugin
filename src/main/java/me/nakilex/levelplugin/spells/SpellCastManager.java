@@ -1,6 +1,9 @@
 package me.nakilex.levelplugin.spells;
 
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
+import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.pet.PetEffectType;
+import me.nakilex.levelplugin.pet.PetManager;
 import org.bukkit.entity.Player;
 
 import java.util.Map;
@@ -26,16 +29,23 @@ public class SpellCastManager {
         if (!spell.movementSpell()) {
             return baseCost;
         }
+        double cost = baseCost;
         UUID playerId = player.getUniqueId();
-        if (!StatsManager.getInstance().isInCombat(playerId)) {
-            return baseCost;
+        if (StatsManager.getInstance().isInCombat(playerId)) {
+            MovementChain chain = movementChains.get(playerId);
+            if (chain != null && !chain.isExpired()) {
+                double multiplier = 1.0 + (MOVEMENT_SCALE * chain.streak);
+                cost = baseCost * multiplier;
+            }
         }
-        MovementChain chain = movementChains.get(playerId);
-        if (chain == null || chain.isExpired()) {
-            return baseCost;
+        PetManager petManager = Main.getInstance().getPetManager();
+        if (petManager != null) {
+            double reduction = petManager.getActiveEffectValue(playerId, PetEffectType.MOVEMENT_MANA_REDUCTION);
+            if (reduction > 0.0) {
+                cost *= Math.max(0.0, 1.0 - reduction);
+            }
         }
-        double multiplier = 1.0 + (MOVEMENT_SCALE * chain.streak);
-        return (int) Math.ceil(baseCost * multiplier);
+        return (int) Math.ceil(cost);
     }
 
     public void recordCast(Player player, SpellDefinition spell) {

@@ -1,0 +1,134 @@
+pets:
+  meadow_mote:
+    name: "§fMeadow Mote"
+    rarity: COMMON
+    models: []
+    max-level: 40
+    xp-per-level: 90
+    effects:
+      - type: STATIONARY_REGEN
+        base: 0.005
+        per-level: 0.0001
+  emberling:
+    name: "§fEmberling"
+    rarity: COMMON
+    models: []
+    max-level: 40
+    xp-per-level: 90
+    effects:
+      - type: FIRST_STRIKE
+        base: 0.10
+        per-level: 0.002
+  forest_sprite:
+    name: "§aForest Sprite"
+    rarity: UNCOMMON
+    models: []
+    max-level: 50
+    xp-per-level: 100
+    effects:
+      - type: MOVEMENT_MANA_REDUCTION
+        base: 0.15
+        per-level: 0.002
+  skyhopper:
+    name: "§aSkyhopper"
+    rarity: UNCOMMON
+    models: []
+    max-level: 50
+    xp-per-level: 100
+    effects:
+      - type: EXTRA_JUMP
+        base: 1
+        per-level: 0
+  ember_cube:
+    name: "§cEmber Cube"
+    rarity: RARE
+    models:
+      - ember_cube
+    max-level: 100
+    xp-per-level: 150
+    effects:
+      - type: DAMAGE_BOOST
+        base: 0.06
+        per-level: 0.001
+      - type: EXECUTE
+        base: 0.10
+        per-level: 0.002
+  gilded_mite:
+    name: "§bGilded Mite"
+    rarity: RARE
+    models: []
+    max-level: 90
+    xp-per-level: 140
+    effects:
+      - type: COIN_DAMAGE
+        base: 1.0
+        per-level: 0.01
+  stormwing:
+    name: "§dStormwing"
+    rarity: EPIC
+    models: []
+    max-level: 120
+    xp-per-level: 180
+    effects:
+      - type: CRIT_CHANCE
+        base: 0.05
+        per-level: 0.001
+      - type: DAMAGE_BOOST
+        base: 0.04
+        per-level: 0.001
+  dusk_reaper:
+    name: "§dDusk Reaper"
+    rarity: EPIC
+    models: []
+    max-level: 120
+    xp-per-level: 180
+    effects:
+      - type: EXECUTE_NON_BOSS
+        base: 0.05
+        per-level: 0.002
+  dawnstag:
+    name: "§6Dawnstag"
+    rarity: LEGENDARY
+    models: []
+    max-level: 140
+    xp-per-level: 210
+    effects:
+      - type: DAMAGE_REDUCTION
+        base: 0.08
+        per-level: 0.0015
+      - type: LIFE_STEAL
+        base: 0.03
+        per-level: 0.0005
+  phoenix_guard:
+    name: "§6Phoenix Guard"
+    rarity: LEGENDARY
+    models: []
+    max-level: 140
+    xp-per-level: 210
+    effects:
+      - type: LAST_STAND
+        base: 1
+        per-level: 0
+  voidborn:
+    name: "§4Voidborn"
+    rarity: MYTHIC
+    models: []
+    max-level: 160
+    xp-per-level: 240
+    effects:
+      - type: EXECUTE
+        base: 0.15
+        per-level: 0.003
+      - type: DAMAGE_BOOST
+        base: 0.08
+        per-level: 0.0015
+  auric_wyrm:
+    name: "§4Auric Wyrm"
+    rarity: MYTHIC
+    models: []
+    max-level: 160
+    xp-per-level: 240
+    effects:
+      - type: COIN_DAMAGE
+        base: 2.0
+        per-level: 0.02

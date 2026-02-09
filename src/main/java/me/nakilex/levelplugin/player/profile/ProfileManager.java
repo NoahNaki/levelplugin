@@ -145,6 +145,10 @@ public class ProfileManager {
         if (partyManager != null) {
             partyManager.leaveParty(uuid);
         }
+        me.nakilex.levelplugin.pet.PetManager petManager = me.nakilex.levelplugin.Main.getInstance().getPetManager();
+        if (petManager != null) {
+            petManager.handleProfileDeletion(uuid);
+        }
         if (wasActive) {
             wipePlayer(player);
             clearActiveSlot(uuid);

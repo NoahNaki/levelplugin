@@ -24,6 +24,10 @@ import me.nakilex.levelplugin.mob.commands.CustomMobCommand;
 import me.nakilex.levelplugin.mob.dps.DpsDummyManager;
 import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
 import me.nakilex.levelplugin.mob.custom.CustomMobManager;
+import me.nakilex.levelplugin.pet.PetManager;
+import me.nakilex.levelplugin.pet.commands.PetDebugCommand;
+import me.nakilex.levelplugin.pet.commands.PetCommand;
+import me.nakilex.levelplugin.pet.gui.PetGUI;
 import me.nakilex.levelplugin.debug.BeaconEntityDebugManager;
 import me.nakilex.levelplugin.debug.commands.DebugCommand;
 import me.nakilex.levelplugin.debug.commands.SpawnEntityModelCommand;
@@ -152,6 +156,9 @@ public class CommandRegistry {
                                         BeaconEntityDebugManager beaconEntityDebugManager,
                                         DungeonExpeditionManager dungeonExpeditionManager,
                                         ServerSelectionManager serverSelectionManager,
+                                        PetManager petManager,
+                                        PetGUI petGUI,
+                                        me.nakilex.levelplugin.pet.gui.PetSettingsGUI petSettingsGUI,
                                         CustomMobManager customMobManager,
                                         me.nakilex.levelplugin.debug.ArcSlashDebugManager arcSlashDebugManager,
                                         me.nakilex.levelplugin.debug.gui.ArcSlashDebugGUI arcSlashDebugGUI) {
@@ -324,7 +331,8 @@ public class CommandRegistry {
                 beaconEntityDebugManager,
                 questManager,
                 arcSlashDebugManager,
-                arcSlashDebugGUI);
+                arcSlashDebugGUI,
+                petManager);
         plugin.getCommand("debug").setExecutor(debugCmd);
         plugin.getCommand("debug").setTabCompleter(debugCmd);
         SpawnEntityModelCommand spawnEntityModelCommand = new SpawnEntityModelCommand(plugin);
@@ -333,6 +341,16 @@ public class CommandRegistry {
         CustomMobCommand customMobCommand = new CustomMobCommand(customMobManager);
         plugin.getCommand("custommob").setExecutor(customMobCommand);
         plugin.getCommand("custommob").setTabCompleter(customMobCommand);
+        if (petManager != null) {
+            PetDebugCommand petDebugCommand = new PetDebugCommand(petManager);
+            plugin.getCommand("petdebug").setExecutor(petDebugCommand);
+            plugin.getCommand("petdebug").setTabCompleter(petDebugCommand);
+        }
+        if (petManager != null && petGUI != null) {
+            PetCommand petCommand = new PetCommand(petManager, petGUI);
+            plugin.getCommand("pet").setExecutor(petCommand);
+            plugin.getCommand("pet").setTabCompleter(petCommand);
+        }
 
         LevelPluginCommand levelPluginCommand = new LevelPluginCommand(plugin);
         plugin.getCommand("levelplugin").setExecutor(levelPluginCommand);

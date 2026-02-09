@@ -34,6 +34,7 @@ import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
 import me.nakilex.levelplugin.mob.config.MobRewardsConfig;
 import me.nakilex.levelplugin.mob.dps.DpsDummyManager;
 import me.nakilex.levelplugin.mob.custom.CustomMobManager;
+import me.nakilex.levelplugin.pet.PetManager;
 import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
 import me.nakilex.levelplugin.party.PartyManager;
 import me.nakilex.levelplugin.party.PartyGlowManager;
@@ -148,6 +149,9 @@ public class PluginBootstrap {
     private MobRewardsConfig mobRewardsConfig;
     private me.nakilex.levelplugin.mob.config.ModelSetManager modelSetManager;
     private CustomMobManager customMobManager;
+    private PetManager petManager;
+    private me.nakilex.levelplugin.pet.gui.PetGUI petGUI;
+    private me.nakilex.levelplugin.pet.gui.PetSettingsGUI petSettingsGUI;
     private StorageEvents storageEvents;
     private StorageManager storageManager;
     private me.nakilex.levelplugin.guild.GuildVaultManager guildVaultManager;
@@ -260,6 +264,7 @@ public class PluginBootstrap {
         CitizensAPI.getTraitFactory().registerTrait(net.citizensnpcs.api.trait.TraitInfo.create(MetadataTrait.class).withName("MetadataTrait"));
         mobRewardsConfig = new MobRewardsConfig(plugin);
         customMobManager = new CustomMobManager(plugin);
+        petManager = new PetManager(plugin);
         GuildQuestManager.getInstance().reloadMobCategories();
         codexManager = new CodexManager(playerConfig, customMobManager, mobRewardsConfig, bossConfig);
         mobCodexGUI = new MobCodexGUI(codexManager, null);
@@ -454,6 +459,9 @@ public class PluginBootstrap {
                 lootChestManager.getCooldownManager());
         arcSlashDebugManager = new me.nakilex.levelplugin.debug.ArcSlashDebugManager(plugin);
         arcSlashDebugGUI = new me.nakilex.levelplugin.debug.gui.ArcSlashDebugGUI(arcSlashDebugManager);
+        petSettingsGUI = new me.nakilex.levelplugin.pet.gui.PetSettingsGUI(petManager);
+        petGUI = new me.nakilex.levelplugin.pet.gui.PetGUI(petManager, petSettingsGUI);
+        petSettingsGUI.setPetGUI(petGUI);
         this.storageManager = new StorageManager();
         this.guildVaultManager = new me.nakilex.levelplugin.guild.GuildVaultManager(storageEvents, guildMemberGUI);
         CommandRegistry.registerCommands(
@@ -497,6 +505,9 @@ public class PluginBootstrap {
             beaconEntityDebugManager,
             dungeonExpeditionManager,
             serverSelectionManager,
+            petManager,
+            petGUI,
+            petSettingsGUI,
             customMobManager,
             arcSlashDebugManager,
             arcSlashDebugGUI
@@ -586,6 +597,9 @@ public class PluginBootstrap {
             dpsDummyManager,
             beaconEntityDebugManager,
             serverSelectionManager,
+            petManager,
+            petGUI,
+            petSettingsGUI,
             customMobManager,
             arcSlashDebugManager,
             arcSlashDebugGUI
@@ -687,6 +701,7 @@ public class PluginBootstrap {
         if (lootChestManager != null) lootChestManager.removeAllChests();
         if (dpsDummyManager != null) dpsDummyManager.shutdown();
         if (customMobManager != null) customMobManager.getSpawnerManager().shutdown();
+        if (petManager != null) petManager.shutdown();
         if (dungeonManager != null) {
             dungeonManager.cleanupInstances();
             dungeonManager.cleanupOldInstanceWorlds();
@@ -768,6 +783,7 @@ public class PluginBootstrap {
     public MobRewardsConfig getMobRewardsConfig() { return mobRewardsConfig; }
     public me.nakilex.levelplugin.mob.config.ModelSetManager getModelSetManager() { return modelSetManager; }
     public CustomMobManager getCustomMobManager() { return customMobManager; }
+    public PetManager getPetManager() { return petManager; }
     public StorageEvents getStorageEvents() { return storageEvents; }
     public StorageManager getStorageManager() { return storageManager; }
     public me.nakilex.levelplugin.guild.GuildVaultManager getGuildVaultManager() { return guildVaultManager; }
