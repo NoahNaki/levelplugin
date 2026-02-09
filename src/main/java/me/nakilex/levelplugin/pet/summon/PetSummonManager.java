@@ -15,7 +15,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
-import org.bukkit.World;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -100,24 +99,14 @@ public class PetSummonManager implements Listener {
             return;
         }
 
-        Location center = summonBaseLocation(player);
-        Vector forward = player.getLocation().getDirection();
-        if (forward.lengthSquared() < 0.001) {
-            forward = new Vector(0, 0, 1);
-        }
-        forward = forward.normalize();
-        Vector up = new Vector(0, 1, 0);
-        Vector right = forward.clone().crossProduct(up).normalize();
-        if (right.lengthSquared() < 0.001) {
-            right = new Vector(1, 0, 0);
-        }
-        SummonSession session = new SummonSession(returnLocation, detailed, center, right, up);
+        SummonSession session = new SummonSession(returnLocation, detailed);
         sessions.put(player.getUniqueId(), session);
 
         cutsceneManager.playCutscene(player, CUTSCENE_ID);
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             SummonSession active = sessions.get(player.getUniqueId());
             if (active != null) {
+                active.updateOrientationFromPlayer(player);
                 active.setFrozenLocation(player.getLocation());
             }
         }, 1L);
@@ -142,6 +131,12 @@ public class PetSummonManager implements Listener {
                                int index) {
         BukkitTask task = Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (player == null || !player.isOnline()) {
+                return;
+            }
+            if (session.center == null) {
+                session.updateOrientationFromPlayer(player);
+            }
+            if (session.center == null) {
                 return;
             }
             Item item = spawnSummonItem(session.center, entry.definition());
@@ -195,22 +190,6 @@ public class PetSummonManager implements Listener {
         }
     }
 
-    private Location summonBaseLocation(Player player) {
-        World world = Bukkit.getWorld("world");
-        if (world == null) {
-            world = Bukkit.getWorlds().get(0);
-        }
-        Location base = new Location(world, SUMMON_X, SUMMON_Y, SUMMON_Z);
-        Vector direction = player.getLocation().getDirection();
-        if (direction.lengthSquared() < 0.001) {
-            direction = new Vector(0, 0, 1);
-        }
-        Vector offset = direction.normalize().multiply(BASE_OFFSET);
-        base.add(offset);
-        base.add(0, 1.2, 0);
-        return base;
-    }
-
     private int calculateTotalDuration(SummonSession session) {
         int count = session.totalPulls;
         return SPAWN_DELAY_TICKS
@@ -252,6 +231,9 @@ public class PetSummonManager implements Listener {
 
     private void updateRingPositions(Player player, SummonSession session, double baseAngle) {
         int count = Math.max(1, session.totalPulls);
+        if (session.center == null || session.right == null || session.up == null) {
+            return;
+        }
         double radius = RING_RADIUS * (0.25 + 0.75 * session.spinProgress);
         for (int i = 0; i < session.entries.size(); i++) {
             SummonEntry entry = session.entries.get(i);
@@ -350,10 +332,24 @@ public class PetSummonManager implements Listener {
             return;
         }
         if (!cutsceneManager.isInCutscene(player)) {
-            if (session.revealsDone >= session.totalReveals) {
-                finishSession(player, true);
+            if (session.revealsDone < session.totalReveals) {
+                forceRevealAll(player, session);
             }
+            finishSession(player, true);
         }
+    }
+
+    private void forceRevealAll(Player player, SummonSession session) {
+        for (SummonEntry entry : session.entries) {
+            if (entry.item().isDead()) {
+                continue;
+            }
+            entry.item().setCustomNameVisible(true);
+            applyGlow(player, entry.item(), entry.definition());
+            player.spawnParticle(Particle.END_ROD, entry.item().getLocation(),
+                    10, 0.2, 0.2, 0.2, 0.02);
+        }
+        session.revealsDone = session.totalReveals;
     }
 
     private void tryFinishSummon(Player player, SummonSession session) {
@@ -430,33 +426,53 @@ public class PetSummonManager implements Listener {
         private final List<SummonEntry> entries = new ArrayList<>();
         private final List<Item> spawned = new ArrayList<>();
         private final List<BukkitTask> tasks = new ArrayList<>();
-        private final Location center;
-        private final Vector right;
-        private final Vector up;
         private final int totalPulls;
         private final int totalReveals;
         private final int spinTicks;
+        private Location center;
+        private Vector right;
+        private Vector up;
         private Location frozenLocation;
         private org.bukkit.scheduler.BukkitRunnable spinTask;
         private double spinProgress;
         private int revealsDone;
 
         private SummonSession(Location returnLocation,
-                              PetPullDetailed pulls,
-                              Location center,
-                              Vector right,
-                              Vector up) {
+                              PetPullDetailed pulls) {
             this.returnLocation = returnLocation;
             this.pulls = pulls;
             this.totalPulls = Math.max(1, pulls.pulls().size());
             this.totalReveals = this.totalPulls;
-            this.center = center;
-            this.right = right;
-            this.up = up;
+            this.center = null;
+            this.right = null;
+            this.up = null;
             this.spinTicks = SPIN_TICKS + (this.totalPulls - 1) * SPAWN_INTERVAL_TICKS;
             this.frozenLocation = null;
             this.spinProgress = 0.0;
             this.revealsDone = 0;
+        }
+
+        private void updateOrientationFromPlayer(Player player) {
+            if (player == null) {
+                return;
+            }
+            Location base = new Location(player.getWorld(), SUMMON_X, SUMMON_Y, SUMMON_Z);
+            Vector direction = player.getLocation().getDirection();
+            if (direction.lengthSquared() < 0.001) {
+                direction = new Vector(0, 0, 1);
+            }
+            Vector forward = direction.normalize();
+            Vector up = new Vector(0, 1, 0);
+            Vector right = forward.clone().crossProduct(up).normalize();
+            if (right.lengthSquared() < 0.001) {
+                right = new Vector(1, 0, 0);
+            }
+            Vector offset = forward.clone().multiply(BASE_OFFSET);
+            base.add(offset);
+            base.add(0, 1.2, 0);
+            this.center = base;
+            this.right = right;
+            this.up = up;
         }
 
         private Location frozenLocation() {
