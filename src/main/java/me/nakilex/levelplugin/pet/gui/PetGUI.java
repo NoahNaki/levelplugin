@@ -73,48 +73,9 @@ public class PetGUI implements Listener {
         if (!GuiUtil.titleMatches(viewTitle, title)) {
             return;
         }
-        if (handleWidgetClick(event, player)) {
-            return;
+        if (!handleWidgetClick(event, player)) {
+            event.setCancelled(true);
         }
-        int slot = event.getRawSlot();
-        if (slot == PREV_SLOT) {
-            int page = pages.getOrDefault(player.getUniqueId(), 0);
-            if (page > 0) {
-                open(player, page - 1);
-            }
-            return;
-        }
-        if (slot == NEXT_SLOT) {
-            int page = pages.getOrDefault(player.getUniqueId(), 0);
-            open(player, page + 1);
-            return;
-        }
-        if (slot < 0 || slot >= event.getInventory().getSize()) {
-            return;
-        }
-        ItemStack clicked = event.getCurrentItem();
-        if (clicked == null || clicked.getType() == Material.AIR) {
-            return;
-        }
-        String petId = resolvePetId(slot, player);
-        if (petId == null) {
-            return;
-        }
-        boolean equipped = petManager.getProfile(player.getUniqueId()).activePetId() != null
-                && petManager.getProfile(player.getUniqueId()).activePetId().equalsIgnoreCase(petId);
-        switch (event.getClick()) {
-            case LEFT, SHIFT_LEFT -> petManager.summonPet(player, petId);
-            case RIGHT, SHIFT_RIGHT -> {
-                if (event.getClick().isShiftClick() && equipped) {
-                    petManager.dismissPet(player);
-                } else {
-                    petManager.investTier(player, petId);
-                }
-            }
-            default -> {
-            }
-        }
-        refresh(player, event.getView().getTopInventory());
     }
 
     private List<GuiWidget> buildPetWidgets(Player player, List<PetDefinition> defs, int page, int maxPage) {
@@ -206,23 +167,5 @@ public class PetGUI implements Listener {
         return true;
     }
 
-    private String resolvePetId(int slot, Player player) {
-        int page = pages.getOrDefault(player.getUniqueId(), 0);
-        int index = -1;
-        for (int i = 0; i < GuiUtil.PAGED_SLOTS.length; i++) {
-            if (GuiUtil.PAGED_SLOTS[i] == slot) {
-                index = i;
-                break;
-            }
-        }
-        if (index < 0) {
-            return null;
-        }
-        int globalIndex = page * PAGE_SIZE + index;
-        List<String> ids = petManager.getPetIds();
-        if (globalIndex >= ids.size()) {
-            return null;
-        }
-        return ids.get(globalIndex);
-    }
+    // Pet clicks are handled via ActionWidgets in buildPetWidgets.
 }

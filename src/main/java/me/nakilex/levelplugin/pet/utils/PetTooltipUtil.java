@@ -24,7 +24,9 @@ public final class PetTooltipUtil {
                                             List<PetEffectDefinition> effects) {
         List<String> lore = new ArrayList<>();
         lore.add(rarityLine(definition.rarity()));
+        lore.add(" ");
         lore.add(tierLine(tier));
+        lore.add(" ");
         lore.add(ChatColor.GRAY + "Level " + ChatColor.WHITE + level);
         lore.add(progressLine(definition, level, currentXp));
         lore.add(progressBarLine(definition, level, currentXp));
