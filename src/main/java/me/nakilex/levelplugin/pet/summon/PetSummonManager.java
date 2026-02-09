@@ -37,11 +37,12 @@ public class PetSummonManager implements Listener {
     private static final String CUTSCENE_ID = "pet_pull";
     private static final int SPAWN_DELAY_TICKS = 20;
     private static final int SPAWN_INTERVAL_TICKS = 10;
-    private static final int GLOW_DELAY_TICKS = 30;
-    private static final int ORBIT_TICKS = 60;
+    private static final int SPIN_TICKS = 80;
+    private static final int REVEAL_INTERVAL_TICKS = 14;
     private static final int END_BUFFER_TICKS = 20;
-    private static final double BASE_OFFSET = 6.0;
-    private static final double ORBIT_RADIUS = 3.6;
+    private static final double BASE_OFFSET = 6.5;
+    private static final double RING_RADIUS = 3.8;
+    private static final double SPIN_TURNS = 3.5;
     private static final String SPAWN_SOUND = "minecraft:entity.experience_orb.pickup";
     private static final String REVEAL_SOUND = "minecraft:block.beacon.power_select";
     private static final String ORBIT_SOUND = "minecraft:block.amethyst_block.chime";
@@ -97,21 +98,29 @@ public class PetSummonManager implements Listener {
             return;
         }
 
-        SummonSession session = new SummonSession(returnLocation, detailed);
+        Location center = summonBaseLocation(player);
+        Vector forward = player.getLocation().getDirection();
+        if (forward.lengthSquared() < 0.001) {
+            forward = new Vector(0, 0, 1);
+        }
+        forward = forward.normalize();
+        Vector up = new Vector(0, 1, 0);
+        Vector right = forward.clone().crossProduct(up).normalize();
+        if (right.lengthSquared() < 0.001) {
+            right = new Vector(1, 0, 0);
+        }
+        SummonSession session = new SummonSession(returnLocation, detailed, center, right, up);
         sessions.put(player.getUniqueId(), session);
 
         cutsceneManager.playCutscene(player, CUTSCENE_ID);
 
-        Location base = summonBaseLocation(player);
-        List<Location> slots = buildDisplaySlots(detailed.pulls().size(), base);
         for (int i = 0; i < detailed.pulls().size(); i++) {
             PetPullEntry entry = detailed.pulls().get(i);
-            Location slot = slots.get(Math.min(i, slots.size() - 1));
             int spawnDelay = SPAWN_DELAY_TICKS + i * SPAWN_INTERVAL_TICKS;
-            scheduleSpawn(player, session, entry, slot, spawnDelay, i);
+            scheduleSpawn(player, session, entry, spawnDelay, i);
         }
 
-        int totalTicks = calculateTotalDuration(detailed.pulls().size());
+        int totalTicks = calculateTotalDuration(session);
         session.tasks.add(Bukkit.getScheduler().runTaskLater(plugin,
                 () -> finishSession(player, true), totalTicks));
         session.tasks.add(Bukkit.getScheduler().runTaskTimer(plugin,
@@ -121,24 +130,19 @@ public class PetSummonManager implements Listener {
     private void scheduleSpawn(Player player,
                                SummonSession session,
                                PetPullEntry entry,
-                               Location slot,
                                int delay,
                                int index) {
         BukkitTask task = Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (player == null || !player.isOnline()) {
                 return;
             }
-            Item item = spawnSummonItem(slot, entry.definition());
+            Item item = spawnSummonItem(session.center, entry.definition());
+            item.setCustomNameVisible(false);
             session.spawned.add(item);
+            session.entries.add(new SummonEntry(item, entry.definition()));
             applyVisibility(player, item);
-            double phase = index * Math.PI / 6.0;
-            startOrbitAnimation(player, item, slot, phase, session);
+            startSpinTask(player, session);
             playSound(player, SPAWN_SOUND, SPAWN_VOLUME, SPAWN_PITCH);
-            Bukkit.getScheduler().runTaskLater(plugin,
-                    () -> {
-                        applyGlow(item, entry.definition());
-                        playSound(player, REVEAL_SOUND, REVEAL_VOLUME, REVEAL_PITCH);
-                    }, GLOW_DELAY_TICKS);
         }, delay);
         session.tasks.add(task);
     }
@@ -171,32 +175,16 @@ public class PetSummonManager implements Listener {
         return stack;
     }
 
-    private void applyGlow(Item item, PetDefinition definition) {
+    private void applyGlow(Player player, Item item, PetDefinition definition) {
         if (item == null || item.isDead()) {
             return;
         }
         ItemRarity rarity = definition.rarity();
         if (rarity != null) {
-            GlowUtil.applyGlowWithColor(item, rarity.getColor());
+            var sbManager = plugin.getScoreboardManager();
+            var board = sbManager != null ? sbManager.getBoard(player) : null;
+            GlowUtil.applyGlowWithColor(item, rarity.getColor(), board);
         }
-    }
-
-    private List<Location> buildDisplaySlots(int amount, Location base) {
-        int count = Math.max(1, amount);
-        int columns = Math.min(5, count);
-        int rows = (int) Math.ceil(count / (double) columns);
-        double spacing = 2.8;
-        double startX = -((columns - 1) * spacing) / 2.0;
-        double startZ = -((rows - 1) * spacing) / 2.0;
-        List<Location> slots = new ArrayList<>();
-        for (int i = 0; i < count; i++) {
-            int row = i / columns;
-            int col = i % columns;
-            double offsetX = startX + col * spacing;
-            double offsetZ = startZ + row * spacing;
-            slots.add(base.clone().add(offsetX, 0.0, offsetZ));
-        }
-        return slots;
     }
 
     private Location summonBaseLocation(Player player) {
@@ -215,39 +203,80 @@ public class PetSummonManager implements Listener {
         return base;
     }
 
-    private int calculateTotalDuration(int pulls) {
-        int count = Math.max(1, pulls);
-        return SPAWN_DELAY_TICKS + (count - 1) * SPAWN_INTERVAL_TICKS + ORBIT_TICKS + END_BUFFER_TICKS;
+    private int calculateTotalDuration(SummonSession session) {
+        int count = session.totalPulls;
+        return SPAWN_DELAY_TICKS
+                + session.spinTicks
+                + count * REVEAL_INTERVAL_TICKS
+                + END_BUFFER_TICKS;
     }
 
-    private void startOrbitAnimation(Player player, Item item, Location anchor, double phase, SummonSession session) {
-        BukkitTask task = new org.bukkit.scheduler.BukkitRunnable() {
+    private void startSpinTask(Player player, SummonSession session) {
+        if (session.spinTask != null) {
+            return;
+        }
+        session.spinTask = new org.bukkit.scheduler.BukkitRunnable() {
             int tick = 0;
 
             @Override
             public void run() {
-                if (tick >= ORBIT_TICKS || item.isDead()) {
-                    item.teleport(anchor);
+                if (tick >= session.spinTicks) {
                     cancel();
+                    session.spinTask = null;
+                    scheduleReveal(player, session);
                     return;
                 }
-                double angle = tick * 0.35 + phase;
-                double radius = ORBIT_RADIUS + 0.45 * Math.sin(tick * 0.15 + phase);
-                double height = 0.4 + 0.04 * tick + 0.35 * Math.sin(tick * 0.12 + phase);
-                Location target = anchor.clone().add(
-                        Math.cos(angle) * radius,
-                        height,
-                        Math.sin(angle) * radius);
-                item.teleport(target);
-                player.spawnParticle(Particle.PORTAL, target, 6, 0.1, 0.1, 0.1, 0.01);
-                player.spawnParticle(Particle.END_ROD, target, 1, 0.05, 0.15, 0.05, 0.0);
+                double progress = tick / (double) session.spinTicks;
+                double eased = 1.0 - Math.pow(1.0 - progress, 3);
+                double baseAngle = eased * (Math.PI * 2.0 * SPIN_TURNS);
+                updateRingPositions(player, session, baseAngle);
                 if (tick % 12 == 0) {
                     playSound(player, ORBIT_SOUND, ORBIT_VOLUME, ORBIT_PITCH);
                 }
                 tick++;
             }
         }.runTaskTimer(plugin, 0L, 1L);
-        session.tasks.add(task);
+        session.tasks.add(session.spinTask);
+    }
+
+    private void updateRingPositions(Player player, SummonSession session, double baseAngle) {
+        int count = Math.max(1, session.totalPulls);
+        for (int i = 0; i < session.entries.size(); i++) {
+            SummonEntry entry = session.entries.get(i);
+            if (entry.item().isDead()) {
+                continue;
+            }
+            double offset = count == 1 ? 0.0 : (Math.PI * 2.0 * i / count);
+            double theta = baseAngle + offset;
+            Vector right = session.right;
+            Vector up = session.up;
+            Location target = session.center.clone()
+                    .add(right.clone().multiply(Math.cos(theta) * RING_RADIUS))
+                    .add(up.clone().multiply(Math.sin(theta) * RING_RADIUS));
+            entry.item().teleport(target);
+            player.spawnParticle(Particle.PORTAL, target, 4, 0.08, 0.08, 0.08, 0.01);
+        }
+    }
+
+    private void scheduleReveal(Player player, SummonSession session) {
+        for (int i = 0; i < session.entries.size(); i++) {
+            SummonEntry entry = session.entries.get(i);
+            int delay = i * REVEAL_INTERVAL_TICKS;
+            BukkitTask task = Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                if (!player.isOnline()) {
+                    return;
+                }
+                if (entry.item().isDead()) {
+                    return;
+                }
+                entry.item().setCustomNameVisible(true);
+                applyGlow(player, entry.item(), entry.definition());
+                player.spawnParticle(Particle.END_ROD, entry.item().getLocation(),
+                        10, 0.2, 0.2, 0.2, 0.02);
+                playSound(player, REVEAL_SOUND, REVEAL_VOLUME, REVEAL_PITCH);
+            }, delay);
+            session.tasks.add(task);
+        }
     }
 
     private void applyVisibility(Player viewer, Item item) {
@@ -339,12 +368,30 @@ public class PetSummonManager implements Listener {
     private static class SummonSession {
         private final Location returnLocation;
         private final PetPullDetailed pulls;
+        private final List<SummonEntry> entries = new ArrayList<>();
         private final List<Item> spawned = new ArrayList<>();
         private final List<BukkitTask> tasks = new ArrayList<>();
+        private final Location center;
+        private final Vector right;
+        private final Vector up;
+        private final int totalPulls;
+        private final int spinTicks;
+        private org.bukkit.scheduler.BukkitRunnable spinTask;
 
-        private SummonSession(Location returnLocation, PetPullDetailed pulls) {
+        private SummonSession(Location returnLocation,
+                              PetPullDetailed pulls,
+                              Location center,
+                              Vector right,
+                              Vector up) {
             this.returnLocation = returnLocation;
             this.pulls = pulls;
+            this.totalPulls = Math.max(1, pulls.pulls().size());
+            this.center = center;
+            this.right = right;
+            this.up = up;
+            this.spinTicks = SPIN_TICKS + (this.totalPulls - 1) * SPAWN_INTERVAL_TICKS;
         }
     }
+
+    private record SummonEntry(Item item, PetDefinition definition) {}
 }

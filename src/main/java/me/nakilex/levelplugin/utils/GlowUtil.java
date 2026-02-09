@@ -11,18 +11,25 @@ public final class GlowUtil {
     }
 
     public static void applyGlowWithColor(Entity entity, ChatColor color) {
+        applyGlowWithColor(entity, color, null);
+    }
+
+    public static void applyGlowWithColor(Entity entity, ChatColor color, Scoreboard board) {
         if (entity == null || color == null) {
             return;
         }
-        ScoreboardManager manager = entity.getServer().getScoreboardManager();
-        if (manager == null) {
-            return;
+        Scoreboard resolved = board;
+        if (resolved == null) {
+            ScoreboardManager manager = entity.getServer().getScoreboardManager();
+            if (manager == null) {
+                return;
+            }
+            resolved = manager.getMainScoreboard();
         }
-        Scoreboard board = manager.getMainScoreboard();
         String teamName = "glow_" + color.name().toLowerCase();
-        Team team = board.getTeam(teamName);
+        Team team = resolved.getTeam(teamName);
         if (team == null) {
-            team = board.registerNewTeam(teamName);
+            team = resolved.registerNewTeam(teamName);
             team.setColor(color);
             team.setOption(Team.Option.NAME_TAG_VISIBILITY, Team.OptionStatus.NEVER);
             team.setOption(Team.Option.COLLISION_RULE, Team.OptionStatus.NEVER);
