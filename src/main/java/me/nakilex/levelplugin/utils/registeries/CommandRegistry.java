@@ -24,6 +24,8 @@ import me.nakilex.levelplugin.mob.commands.CustomMobCommand;
 import me.nakilex.levelplugin.mob.dps.DpsDummyManager;
 import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
 import me.nakilex.levelplugin.mob.custom.CustomMobManager;
+import me.nakilex.levelplugin.pet.PetManager;
+import me.nakilex.levelplugin.pet.commands.PetDebugCommand;
 import me.nakilex.levelplugin.debug.BeaconEntityDebugManager;
 import me.nakilex.levelplugin.debug.commands.DebugCommand;
 import me.nakilex.levelplugin.debug.commands.SpawnEntityModelCommand;
@@ -152,6 +154,7 @@ public class CommandRegistry {
                                         BeaconEntityDebugManager beaconEntityDebugManager,
                                         DungeonExpeditionManager dungeonExpeditionManager,
                                         ServerSelectionManager serverSelectionManager,
+                                        PetManager petManager,
                                         CustomMobManager customMobManager,
                                         me.nakilex.levelplugin.debug.ArcSlashDebugManager arcSlashDebugManager,
                                         me.nakilex.levelplugin.debug.gui.ArcSlashDebugGUI arcSlashDebugGUI) {
@@ -333,6 +336,11 @@ public class CommandRegistry {
         CustomMobCommand customMobCommand = new CustomMobCommand(customMobManager);
         plugin.getCommand("custommob").setExecutor(customMobCommand);
         plugin.getCommand("custommob").setTabCompleter(customMobCommand);
+        if (petManager != null) {
+            PetDebugCommand petDebugCommand = new PetDebugCommand(petManager);
+            plugin.getCommand("petdebug").setExecutor(petDebugCommand);
+            plugin.getCommand("petdebug").setTabCompleter(petDebugCommand);
+        }
 
         LevelPluginCommand levelPluginCommand = new LevelPluginCommand(plugin);
         plugin.getCommand("levelplugin").setExecutor(levelPluginCommand);

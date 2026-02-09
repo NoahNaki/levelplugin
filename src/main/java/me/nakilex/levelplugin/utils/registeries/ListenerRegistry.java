@@ -83,6 +83,8 @@ import me.nakilex.levelplugin.environment.listeners.LeafDecayBlocker;
 import me.nakilex.levelplugin.codex.*;
 import me.nakilex.levelplugin.npc.wandering.WanderingMerchantListener;
 import me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager;
+import me.nakilex.levelplugin.pet.PetManager;
+import me.nakilex.levelplugin.pet.listeners.PetPlayerListener;
 import me.nakilex.levelplugin.server.LevelPluginCommandGuard;
 import me.nakilex.levelplugin.server.ServerSelectionManager;
 import org.bukkit.Bukkit;
@@ -135,6 +137,7 @@ public class ListenerRegistry {
                                         DpsDummyManager dpsDummyManager,
                                         BeaconEntityDebugManager beaconEntityDebugManager,
                                         ServerSelectionManager serverSelectionManager,
+                                        PetManager petManager,
                                         CustomMobManager customMobManager,
                                         me.nakilex.levelplugin.debug.ArcSlashDebugManager arcSlashDebugManager,
                                         me.nakilex.levelplugin.debug.gui.ArcSlashDebugGUI arcSlashDebugGUI) {
@@ -182,6 +185,9 @@ public class ListenerRegistry {
                 plugin.getEnvironmentManager(),
                 serverSelectionManager), plugin);
         pm.registerEvents(new PlayerQuitListener(plugin.getPlayerConfig(), plugin.getEnvironmentManager()), plugin);
+        if (petManager != null) {
+            pm.registerEvents(new PetPlayerListener(petManager), plugin);
+        }
         pm.registerEvents(new StatsMenuListener(codexGUI), plugin);
         pm.registerEvents(new StatsEffectListener(), plugin);
         pm.registerEvents(new BoosterItemListener(boosterManager), plugin);

@@ -303,6 +303,9 @@ commands:
     description: Manage custom mobs
     usage: /custommob <list|spawn|info|reload|gui|kill|killall|spawner>
     aliases: [cm]
+  petdebug:
+    description: Debug commands for pets
+    usage: /petdebug <list|summon|dismiss|setlevel|addxp|info|reload>
   levelplugin:
     description: LevelPlugin administration command
     usage: /<command> reload

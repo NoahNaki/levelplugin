@@ -247,6 +247,38 @@ public class StatsManager {
         }
     }
 
+    /**
+     * Apply bonus stat deltas to a player and recalc derived stats when online.
+     *
+     * @param uuid   target player UUID
+     * @param deltas stat deltas to apply
+     */
+    public void applyBonusStats(UUID uuid, Map<StatType, Integer> deltas) {
+        if (deltas == null || deltas.isEmpty()) {
+            return;
+        }
+        PlayerStats ps = getPlayerStats(uuid);
+        for (Map.Entry<StatType, Integer> entry : deltas.entrySet()) {
+            int amount = entry.getValue() == null ? 0 : entry.getValue();
+            if (amount == 0) {
+                continue;
+            }
+            switch (entry.getKey()) {
+                case STR -> ps.bonusStrength += amount;
+                case AGI -> ps.bonusAgility += amount;
+                case INT -> ps.bonusIntelligence += amount;
+                case DEX -> ps.bonusDexterity += amount;
+                case VIT -> ps.bonusVitality += amount;
+                case WIL -> ps.bonusWill += amount;
+                case TEC -> ps.bonusTechnique += amount;
+            }
+        }
+        Player player = Bukkit.getPlayer(uuid);
+        if (player != null) {
+            recalcDerivedStats(player);
+        }
+    }
+
     /** Unlock a class for the given player without switching to it. */
     public void unlockClass(UUID uuid, PlayerClass pc) {
         PlayerStats ps = getPlayerStats(uuid);

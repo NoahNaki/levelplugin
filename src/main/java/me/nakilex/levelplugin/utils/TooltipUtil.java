@@ -1,5 +1,6 @@
 package me.nakilex.levelplugin.utils;
 
+import me.nakilex.levelplugin.items.data.ItemRarity;
 import org.bukkit.ChatColor;
 
 import java.util.ArrayList;
@@ -215,5 +216,19 @@ public final class TooltipUtil {
         String safeLabel = (label == null || label.isBlank()) ? "" : " " + label;
         return rankColor + "#" + rank + " " + ChatColor.YELLOW + safeName
                 + ChatColor.GRAY + " " + ChatColor.WHITE + safeValue + ChatColor.GRAY + safeLabel;
+    }
+
+    /**
+     * Format a rarity glyph line using the standard rarity color and symbol.
+     *
+     * @param rarity item rarity to format
+     * @return formatted glyph line
+     */
+    public static String rarityLine(ItemRarity rarity) {
+        if (rarity == null) {
+            rarity = ItemRarity.COMMON;
+        }
+        String name = rarity.name().charAt(0) + rarity.name().substring(1).toLowerCase(Locale.ROOT);
+        return rarity.getColor() + rarity.getSymbol() + ChatColor.GRAY + " " + rarity.getColor() + name;
     }
 }
