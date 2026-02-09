@@ -4,7 +4,6 @@ import me.nakilex.levelplugin.pet.PetDefinition;
 import me.nakilex.levelplugin.pet.PetEffectDefinition;
 import me.nakilex.levelplugin.pet.PetManager;
 import me.nakilex.levelplugin.pet.PetProgression;
-import me.nakilex.levelplugin.pet.utils.PetChatUtil;
 import me.nakilex.levelplugin.pet.utils.PetGuiUtil;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
 import me.nakilex.levelplugin.utils.ChatUtil;
@@ -15,6 +14,7 @@ import me.nakilex.levelplugin.utils.gui.widgets.ActionWidget;
 import me.nakilex.levelplugin.utils.gui.widgets.GuiContext;
 import me.nakilex.levelplugin.utils.gui.widgets.GuiLayout;
 import me.nakilex.levelplugin.utils.gui.widgets.GuiWidget;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -34,10 +34,12 @@ public class PetGUI implements Listener {
     private static final int PAGE_SIZE = GuiUtil.PAGED_SLOTS.length;
     private static final int PREV_SLOT = 45;
     private static final int NEXT_SLOT = 53;
+    private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
 
     private final PetManager petManager;
     private final String title = ChatUtil.applyEmojis("§8Pets");
     private final Map<UUID, Integer> pages = new java.util.HashMap<>();
+    private final Map<UUID, List<GuiWidget>> widgetsByPlayer = new java.util.HashMap<>();
 
     public PetGUI(PetManager petManager) {
         this.petManager = petManager;
@@ -56,7 +58,9 @@ public class PetGUI implements Listener {
                 .filler(Material.GRAY_STAINED_GLASS_PANE)
                 .border()
                 .build();
-        renderWidgets(inv, player, buildPetWidgets(player, defs, current, maxPage));
+        List<GuiWidget> widgets = buildPetWidgets(player, defs, current, maxPage);
+        widgetsByPlayer.put(player.getUniqueId(), widgets);
+        renderWidgets(inv, player, widgets);
         player.openInventory(inv);
     }
 
@@ -65,10 +69,13 @@ public class PetGUI implements Listener {
         if (!(event.getWhoClicked() instanceof Player player)) {
             return;
         }
-        if (!GuiUtil.titleMatches(event.getView().getTitle(), title)) {
+        String viewTitle = LEGACY.serialize(event.getView().title());
+        if (!GuiUtil.titleMatches(viewTitle, title)) {
             return;
         }
-        event.setCancelled(true);
+        if (handleWidgetClick(event, player)) {
+            return;
+        }
         int slot = event.getRawSlot();
         if (slot == PREV_SLOT) {
             int page = pages.getOrDefault(player.getUniqueId(), 0);
@@ -96,20 +103,16 @@ public class PetGUI implements Listener {
         boolean equipped = petManager.getProfile(player.getUniqueId()).activePetId() != null
                 && petManager.getProfile(player.getUniqueId()).activePetId().equalsIgnoreCase(petId);
         switch (event.getClick()) {
-            case LEFT, SHIFT_LEFT -> {
-                petManager.summonPet(player, petId);
-                open(player, pages.getOrDefault(player.getUniqueId(), 0));
-            }
+            case LEFT, SHIFT_LEFT -> petManager.summonPet(player, petId);
             case RIGHT, SHIFT_RIGHT -> {
                 if (equipped) {
                     petManager.dismissPet(player);
-                    PetChatUtil.send(player, "Unequipped pet.");
                 }
-                open(player, pages.getOrDefault(player.getUniqueId(), 0));
             }
             default -> {
             }
         }
+        open(player, pages.getOrDefault(player.getUniqueId(), 0));
     }
 
     private List<GuiWidget> buildPetWidgets(Player player, List<PetDefinition> defs, int page, int maxPage) {
@@ -126,14 +129,24 @@ public class PetGUI implements Listener {
             List<PetEffectDefinition> effects = def.effectsForLevel(level);
             boolean equipped = activeId != null && activeId.equalsIgnoreCase(def.id());
             ItemStack icon = PetGuiUtil.createPetIcon(def, level, stats, effects, equipped);
-            widgets.add(new ActionWidget(slot, ctx -> icon, null));
+            String petId = def.id();
+            widgets.add(new ActionWidget(slot, ctx -> icon, (click, context) -> {
+                if (click.isRightClick() && equipped) {
+                    petManager.dismissPet(player);
+                } else if (click.isLeftClick()) {
+                    petManager.summonPet(player, petId);
+                }
+                open(player, pages.getOrDefault(player.getUniqueId(), 0));
+            }));
         }
 
         if (page > 0) {
-            widgets.add(new ActionWidget(PREV_SLOT, createNavItem("§aPrevious Page"), ctx -> open(player, page - 1)));
+            widgets.add(new ActionWidget(PREV_SLOT, ctx -> createNavItem("§aPrevious Page"),
+                    (click, context) -> open(player, page - 1)));
         }
         if (page < maxPage) {
-            widgets.add(new ActionWidget(NEXT_SLOT, createNavItem("§aNext Page"), ctx -> open(player, page + 1)));
+            widgets.add(new ActionWidget(NEXT_SLOT, ctx -> createNavItem("§aNext Page"),
+                    (click, context) -> open(player, page + 1)));
         }
         return widgets;
     }
@@ -144,8 +157,32 @@ public class PetGUI implements Listener {
     }
 
     private void renderWidgets(Inventory inv, Player player, List<GuiWidget> widgets) {
-        GuiLayout layout = new GuiLayout(widgets);
-        layout.render(inv, new GuiContext(player, inv));
+        GuiLayout layout = new GuiLayout(inv);
+        GuiContext context = new GuiContext(player, inv);
+        for (GuiWidget widget : widgets) {
+            widget.contribute(layout, context);
+        }
+    }
+
+    private boolean handleWidgetClick(InventoryClickEvent event, Player player) {
+        int slot = event.getRawSlot();
+        if (slot < 0 || slot >= event.getView().getTopInventory().getSize()) {
+            return false;
+        }
+        List<GuiWidget> widgets = widgetsByPlayer.get(player.getUniqueId());
+        if (widgets == null) {
+            return false;
+        }
+        GuiWidget widget = widgets.stream()
+                .filter(w -> w.handlesSlot(slot))
+                .findFirst()
+                .orElse(null);
+        if (widget == null) {
+            return false;
+        }
+        event.setCancelled(true);
+        widget.onClick(slot, event.getClick(), new GuiContext(player, event.getView().getTopInventory()));
+        return true;
     }
 
     private String resolvePetId(int slot, Player player) {
