@@ -40,8 +40,8 @@ public class PetManager {
 
     private static final int EFFECT_REFRESH_TICKS = 200;
     private static final int EFFECT_DURATION_TICKS = 240;
-    private static final double TELEPORT_DISTANCE = 14.0;
-    private static final double FOLLOW_DISTANCE = 3.0;
+    private static final double TELEPORT_DISTANCE = 24.0;
+    private static final double FOLLOW_DISTANCE = 3.5;
 
     private final Main plugin;
     private final Map<String, PetDefinition> definitions = new HashMap<>();
@@ -292,7 +292,7 @@ public class PetManager {
                 }
                 if (distance > FOLLOW_DISTANCE) {
                     Vector direction = desired.toVector().subtract(petLoc.toVector()).normalize();
-                    Location target = petLoc.add(direction.multiply(0.4));
+                    Location target = petLoc.add(direction.multiply(0.8));
                     target.setY(desired.getY());
                     stand.teleport(target);
                 } else {
@@ -301,7 +301,7 @@ public class PetManager {
                     stand.teleport(hover);
                 }
             }
-        }.runTaskTimer(plugin, 20L, 10L);
+        }.runTaskTimer(plugin, 10L, 5L);
         instance.setFollowTask(task);
     }
 

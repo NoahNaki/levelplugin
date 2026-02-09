@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.pet.utils;
 import me.nakilex.levelplugin.items.data.ItemRarity;
 import me.nakilex.levelplugin.pet.PetDefinition;
 import me.nakilex.levelplugin.pet.PetEffectDefinition;
+import me.nakilex.levelplugin.pet.PetProgression;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import org.bukkit.ChatColor;
@@ -16,11 +17,14 @@ public final class PetTooltipUtil {
     }
 
     public static List<String> buildPetLore(PetDefinition definition, int level,
+                                            int currentXp,
                                             Map<StatType, Integer> stats,
                                             List<PetEffectDefinition> effects) {
         List<String> lore = new ArrayList<>();
-        lore.add(TooltipUtil.rarityLine(definition.rarity()));
+        lore.add(rarityLine(definition.rarity()));
         lore.add(ChatColor.GRAY + "Level " + ChatColor.WHITE + level);
+        lore.add(progressLine(definition, level, currentXp));
+        lore.add(progressBarLine(definition, level, currentXp));
         lore.add(" ");
         if (!stats.isEmpty()) {
             lore.add(TooltipUtil.sectionHeader("Stat Bonuses"));
@@ -39,7 +43,6 @@ public final class PetTooltipUtil {
             }
             lore.add(" ");
         }
-        lore.addAll(TooltipUtil.bulletList("Cosmetic companion", "Grants passive bonuses"));
         return lore;
     }
 
@@ -57,5 +60,40 @@ public final class PetTooltipUtil {
         }
         int level = effect.baseAmplifier() + 1;
         return effect.type().getName() + " " + level;
+    }
+
+    private static String rarityLine(ItemRarity rarity) {
+        if (rarity == null) {
+            rarity = ItemRarity.COMMON;
+        }
+        String name = rarity.name().charAt(0) + rarity.name().substring(1).toLowerCase();
+        return rarity.getColor() + rarity.getSymbol() + " <glyph:pet> " + rarity.getColor() + name;
+    }
+
+    private static String progressLine(PetDefinition definition, int level, int currentXp) {
+        if (level >= definition.maxLevel()) {
+            return ChatColor.GRAY + "Max level reached.";
+        }
+        int nextLevel = level + 1;
+        int currentLevelXp = PetProgression.xpForLevel(level, definition.xpPerLevel());
+        int nextLevelXp = PetProgression.xpForLevel(nextLevel, definition.xpPerLevel());
+        int span = Math.max(1, nextLevelXp - currentLevelXp);
+        int progress = Math.max(0, currentXp - currentLevelXp);
+        double percent = Math.min(100.0, Math.round((progress * 10000.0 / span)) / 100.0);
+        return ChatColor.GRAY + "Progress to Level " + ChatColor.YELLOW + nextLevel + ChatColor.GRAY + ": "
+                + ChatColor.YELLOW + String.format("%.2f", percent) + "%";
+    }
+
+    private static String progressBarLine(PetDefinition definition, int level, int currentXp) {
+        if (level >= definition.maxLevel()) {
+            return ChatColor.GRAY + TooltipUtil.progressBar(1, 1, 15) + ChatColor.GRAY + " Max";
+        }
+        int currentLevelXp = PetProgression.xpForLevel(level, definition.xpPerLevel());
+        int nextLevelXp = PetProgression.xpForLevel(level + 1, definition.xpPerLevel());
+        int span = Math.max(1, nextLevelXp - currentLevelXp);
+        int progress = Math.max(0, currentXp - currentLevelXp);
+        String bar = TooltipUtil.progressBar(progress, span, 15);
+        return bar + " " + ChatColor.GRAY + progress + ChatColor.GOLD + "/" + ChatColor.GRAY + span
+                + " <glyph:experience_orb_icon>";
     }
 }

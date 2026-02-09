@@ -18,12 +18,13 @@ public final class PetGuiUtil {
     }
 
     public static ItemStack createPetIcon(PetDefinition definition, int level,
+                                          int currentXp,
                                           Map<StatType, Integer> stats,
                                           List<PetEffectDefinition> effects,
                                           boolean equipped) {
-        List<String> lore = PetTooltipUtil.buildPetLore(definition, level, stats, effects);
+        List<String> lore = PetTooltipUtil.buildPetLore(definition, level, currentXp, stats, effects);
         lore.add(" ");
-        lore.add(TooltipUtil.selectionLine(equipped, equipped ? "Equipped" : "Click to equip"));
+        lore.add(TooltipUtil.selectionLine(equipped, equipped ? "Equipped" : "Select to equip"));
         lore.addAll(TooltipUtil.clickInstructions("to equip", "to unequip"));
         String name = PetDisplayUtil.formatDisplayName(definition);
         ItemStack item = GuiUtil.createGuiItem(Material.ARMOR_STAND, name, lore);

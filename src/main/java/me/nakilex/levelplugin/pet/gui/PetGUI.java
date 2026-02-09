@@ -112,7 +112,7 @@ public class PetGUI implements Listener {
             default -> {
             }
         }
-        open(player, pages.getOrDefault(player.getUniqueId(), 0));
+        refresh(player, event.getView().getTopInventory());
     }
 
     private List<GuiWidget> buildPetWidgets(Player player, List<PetDefinition> defs, int page, int maxPage) {
@@ -128,7 +128,7 @@ public class PetGUI implements Listener {
             Map<StatType, Integer> stats = def.statsForLevel(level);
             List<PetEffectDefinition> effects = def.effectsForLevel(level);
             boolean equipped = activeId != null && activeId.equalsIgnoreCase(def.id());
-            ItemStack icon = PetGuiUtil.createPetIcon(def, level, stats, effects, equipped);
+            ItemStack icon = PetGuiUtil.createPetIcon(def, level, xp, stats, effects, equipped);
             String petId = def.id();
             widgets.add(new ActionWidget(slot, ctx -> icon, (click, context) -> {
                 if (click.isRightClick() && equipped) {
@@ -136,7 +136,7 @@ public class PetGUI implements Listener {
                 } else if (click.isLeftClick()) {
                     petManager.summonPet(player, petId);
                 }
-                open(player, pages.getOrDefault(player.getUniqueId(), 0));
+                refresh(player, context.inventory());
             }));
         }
 
@@ -162,6 +162,20 @@ public class PetGUI implements Listener {
         for (GuiWidget widget : widgets) {
             widget.contribute(layout, context);
         }
+    }
+
+    private void refresh(Player player, Inventory inventory) {
+        int page = pages.getOrDefault(player.getUniqueId(), 0);
+        List<PetDefinition> defs = petManager.getPetIds().stream()
+                .map(petManager::getDefinition)
+                .flatMap(Optional::stream)
+                .toList();
+        int maxPage = Math.max(0, (defs.size() - 1) / PAGE_SIZE);
+        int current = Math.max(0, Math.min(page, maxPage));
+        pages.put(player.getUniqueId(), current);
+        List<GuiWidget> widgets = buildPetWidgets(player, defs, current, maxPage);
+        widgetsByPlayer.put(player.getUniqueId(), widgets);
+        renderWidgets(inventory, player, widgets);
     }
 
     private boolean handleWidgetClick(InventoryClickEvent event, Player player) {
