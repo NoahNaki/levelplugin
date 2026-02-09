@@ -51,14 +51,14 @@ public class PetProfile {
     }
 
     public int getPetTier(String petId) {
-        return petTiers.getOrDefault(petId, 0);
+        return petTiers.getOrDefault(petId, 1);
     }
 
     public void setPetTier(String petId, int tier) {
         if (petId == null || petId.isBlank()) {
             return;
         }
-        petTiers.put(petId, Math.max(0, tier));
+        petTiers.put(petId, Math.max(1, tier));
     }
 
     public int getPetCopies(String petId) {

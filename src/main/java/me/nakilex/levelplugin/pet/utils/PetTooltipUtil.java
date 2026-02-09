@@ -67,7 +67,7 @@ public final class PetTooltipUtil {
     }
 
     private static String tierLine(int tier) {
-        int safeTier = Math.max(0, Math.min(5, tier));
+        int safeTier = Math.max(1, Math.min(5, tier));
         String filled = GuiUtil.glyphStars(safeTier);
         String empty = GuiUtil.glyphStars(5 - safeTier);
         return ChatColor.GOLD + "TIER " + ChatColor.YELLOW + filled + ChatColor.DARK_GRAY + empty;

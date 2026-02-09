@@ -113,8 +113,12 @@ public class PetGUI implements Listener {
             widgets.add(new ActionWidget(slot, ctx -> icon, (click, context) -> {
                 if (click.isShiftClick() && click.isRightClick() && equipped) {
                     petManager.dismissPet(player);
+                    refresh(player, context.inventory());
+                    return;
                 } else if (click.isRightClick()) {
-                    handleInvestOrSell(player, def, tier);
+                    if (handleInvestOrSell(player, def, tier)) {
+                        return;
+                    }
                 } else if (click.isLeftClick()) {
                     petManager.summonPet(player, petId);
                 }
@@ -155,22 +159,23 @@ public class PetGUI implements Listener {
         return GuiUtil.createGuiItem(Material.BARRIER, "§cNo Pets Found", lore);
     }
 
-    private void handleInvestOrSell(Player player, PetDefinition def, int tier) {
+    private boolean handleInvestOrSell(Player player, PetDefinition def, int tier) {
         int investable = petManager.getInvestableCopies(player, def.id());
         if (tier >= petManager.getMaxTier()) {
             int sellable = petManager.getSellableCopies(player, def.id());
             if (sellable <= 0) {
                 PetChatUtil.send(player, "No extra copies to sell.");
-                return;
+                return false;
             }
             openConfirm(player, new PendingAction(ActionType.SELL, def.id(), sellable));
-            return;
+            return true;
         }
         if (investable <= 0) {
             PetChatUtil.send(player, "Not enough copies to invest.");
-            return;
+            return false;
         }
         openConfirm(player, new PendingAction(ActionType.INVEST, def.id(), 1));
+        return true;
     }
 
     private void openConfirm(Player player, PendingAction action) {

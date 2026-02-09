@@ -175,6 +175,7 @@ public class PetManager {
                 }
             }
         }
+        removePetEntities(ownerId);
         dataStore.clearProfile(ownerId);
     }
 
@@ -201,6 +202,7 @@ public class PetManager {
             return false;
         }
         dismissPet(player);
+        removePetEntities(player.getUniqueId());
         Location spawnLoc = player.getLocation().clone().add(0.6, 0.2, 0.6);
         World world = spawnLoc.getWorld();
         if (world == null) {
@@ -243,6 +245,7 @@ public class PetManager {
         }
         PetInstance instance = activePets.remove(player.getUniqueId());
         if (instance == null) {
+            removePetEntities(player.getUniqueId());
             return false;
         }
         removeBonuses(player, instance);
@@ -301,10 +304,12 @@ public class PetManager {
         if (tier >= MAX_TIER) {
             return false;
         }
+        int copies = profile.getPetCopies(def.id());
         int available = getInvestableCopies(profile, def);
         if (available <= 0) {
             return false;
         }
+        profile.setPetCopies(def.id(), Math.max(1, copies - 1));
         profile.setPetTier(def.id(), tier + 1);
         PetInstance instance = activePets.get(player.getUniqueId());
         if (instance != null && instance.definition().id().equalsIgnoreCase(def.id())) {
@@ -474,16 +479,34 @@ public class PetManager {
         return def.rarity().ordinal() <= autoDiscardRarity.ordinal();
     }
 
+    private void removePetEntities(UUID ownerId) {
+        if (ownerId == null) {
+            return;
+        }
+        String ownerToken = ownerId.toString();
+        for (World world : Bukkit.getWorlds()) {
+            for (Entity entity : world.getEntities()) {
+                if (!entity.hasMetadata(PET_OWNER_META)) {
+                    continue;
+                }
+                for (var value : entity.getMetadata(PET_OWNER_META)) {
+                    if (ownerToken.equalsIgnoreCase(value.asString())) {
+                        entity.remove();
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
     private int getInvestableCopies(PetProfile profile, PetDefinition def) {
         int copies = profile.getPetCopies(def.id());
-        int tier = profile.getPetTier(def.id());
-        return Math.max(0, copies - 1 - tier);
+        return Math.max(0, copies - 1);
     }
 
     private int getSellableCopies(PetProfile profile, PetDefinition def) {
         int copies = profile.getPetCopies(def.id());
-        int tier = profile.getPetTier(def.id());
-        return Math.max(0, copies - 1 - tier);
+        return Math.max(0, copies - 1);
     }
 
     private void updatePetLevel(Player player, PetInstance instance, PetDefinition def, int xp) {
