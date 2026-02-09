@@ -5,11 +5,6 @@ pets:
     models: []
     max-level: 40
     xp-per-level: 90
-    stats:
-      base:
-        vit: 1
-      per-level:
-        vit: 1
     effects:
       - type: REGENERATION
         base: 0
@@ -20,12 +15,6 @@ pets:
     models: []
     max-level: 50
     xp-per-level: 100
-    stats:
-      base:
-        vit: 2
-        agi: 1
-      per-level:
-        vit: 1
     effects:
       - type: SPEED
         base: 0
@@ -37,12 +26,6 @@ pets:
       - ember_cube
     max-level: 100
     xp-per-level: 150
-    stats:
-      base:
-        str: 3
-        vit: 2
-      per-level:
-        str: 1
     effects:
       - type: FIRE_RESISTANCE
         base: 0
@@ -53,12 +36,6 @@ pets:
     models: []
     max-level: 120
     xp-per-level: 180
-    stats:
-      base:
-        agi: 3
-        dex: 2
-      per-level:
-        agi: 1
     effects:
       - type: SPEED
         base: 1
@@ -69,12 +46,6 @@ pets:
     models: []
     max-level: 140
     xp-per-level: 210
-    stats:
-      base:
-        vit: 4
-        wil: 2
-      per-level:
-        vit: 1
     effects:
       - type: ABSORPTION
         base: 0
@@ -85,12 +56,6 @@ pets:
     models: []
     max-level: 160
     xp-per-level: 240
-    stats:
-      base:
-        intel: 4
-        str: 2
-      per-level:
-        intel: 1
     effects:
       - type: DAMAGE_RESISTANCE
         base: 0

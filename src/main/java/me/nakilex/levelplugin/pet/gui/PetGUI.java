@@ -7,7 +7,6 @@ import me.nakilex.levelplugin.pet.PetManager.InvestResult;
 import me.nakilex.levelplugin.pet.PetProgression;
 import me.nakilex.levelplugin.pet.utils.PetChatUtil;
 import me.nakilex.levelplugin.pet.utils.PetGuiUtil;
-import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
 import me.nakilex.levelplugin.utils.ChatUtil;
 import me.nakilex.levelplugin.utils.CurrencyMessageUtil;
 import me.nakilex.levelplugin.utils.GuiUtil;
@@ -107,25 +106,19 @@ public class PetGUI implements Listener {
             int tier = profile.getPetTier(def.id());
             int copies = profile.getPetCopies(def.id());
             int level = PetProgression.levelFromXp(xp, def.xpPerLevel(), def.maxLevel());
-            Map<StatType, Integer> stats = def.statsForLevel(level, tier);
             List<PetEffectDefinition> effects = def.effectsForLevel(level, tier);
             boolean equipped = activeId != null && activeId.equalsIgnoreCase(def.id());
-            ItemStack icon = PetGuiUtil.createPetIcon(def, level, xp, tier, stats, effects, copies, equipped);
+            ItemStack icon = PetGuiUtil.createPetIcon(def, level, xp, tier, effects, copies, equipped);
             String petId = def.id();
             widgets.add(new ActionWidget(slot, ctx -> icon, (click, context) -> {
-                if (click.isShiftClick() && click.isRightClick() && equipped) {
-                    petManager.dismissPet(player);
-                    logClick(player, petId, "shift-right-dismiss", true);
-                    refresh(player, context.inventory());
-                    return;
-                } else if (click.isRightClick()) {
+                if (click.isRightClick()) {
                     if (handleInvestOrSell(player, def, tier)) {
                         logClick(player, petId, "right-invest-sell", true);
                         return;
                     }
                 } else if (click.isLeftClick()) {
-                    boolean summoned = petManager.summonPet(player, petId);
-                    logClick(player, petId, "left-summon", summoned);
+                    boolean success = equipped ? petManager.dismissPet(player) : petManager.summonPet(player, petId);
+                    logClick(player, petId, equipped ? "left-unequip" : "left-equip", success);
                 }
                 refresh(player, context.inventory());
             }));

@@ -51,16 +51,38 @@ public record PetDefinition(String id,
             return List.of();
         }
         int safeLevel = Math.max(1, level);
-        int tierBonus = Math.max(0, tier);
         List<PetEffectDefinition> scaled = new ArrayList<>(effects.size());
         for (PetEffectDefinition effect : effects) {
             if (effect == null || effect.type() == null) {
                 continue;
             }
-            int amp = effect.amplifierForLevel(safeLevel) + tierBonus;
+            int amp = scaleEffectAmplifier(effect.amplifierForLevel(safeLevel), tier, rarity);
             scaled.add(new PetEffectDefinition(effect.type(), amp, 0));
         }
         return scaled;
+    }
+
+    private static int scaleEffectAmplifier(int base, int tier, ItemRarity rarity) {
+        int safeBase = Math.max(0, base);
+        int safeTier = Math.max(1, tier);
+        int tierBonus = Math.max(0, safeTier - 1);
+        int rarityBonus = rarityEffectBonus(rarity);
+        return Math.max(0, safeBase + tierBonus + rarityBonus);
+    }
+
+    private static int rarityEffectBonus(ItemRarity rarity) {
+        if (rarity == null) {
+            return 0;
+        }
+        return switch (rarity) {
+            case COMMON -> 0;
+            case UNCOMMON -> 1;
+            case RARE -> 2;
+            case EPIC -> 3;
+            case LEGENDARY -> 4;
+            case MYTHIC -> 5;
+            case FABLED -> 6;
+        };
     }
 
     public static PetDefinition fromConfig(String id, ConfigurationSection section) {

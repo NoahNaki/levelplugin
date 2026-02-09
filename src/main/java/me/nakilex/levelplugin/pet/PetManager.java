@@ -6,8 +6,6 @@ import me.nakilex.levelplugin.pet.data.PetDataStore;
 import me.nakilex.levelplugin.pet.data.PetProfile;
 import me.nakilex.levelplugin.pet.utils.PetChatUtil;
 import me.nakilex.levelplugin.pet.utils.PetDisplayUtil;
-import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
-import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
 import me.nakilex.levelplugin.utils.ModelEngineUtil;
 import me.nakilex.levelplugin.utils.PotionEffectUtil;
 import org.bukkit.Bukkit;
@@ -571,22 +569,10 @@ public class PetManager {
     }
 
     private void applyBonuses(Player player, PetInstance instance) {
-        Map<StatType, Integer> bonuses = instance.definition().statsForLevel(instance.level(), instance.tier());
-        instance.setAppliedStats(bonuses);
-        if (!bonuses.isEmpty()) {
-            StatsManager.getInstance().applyBonusStats(player.getUniqueId(), bonuses);
-        }
+        instance.setAppliedStats(Collections.emptyMap());
     }
 
     private void removeBonuses(Player player, PetInstance instance) {
-        Map<StatType, Integer> applied = instance.appliedStats();
-        if (!applied.isEmpty()) {
-            Map<StatType, Integer> negative = new HashMap<>();
-            for (Map.Entry<StatType, Integer> entry : applied.entrySet()) {
-                negative.put(entry.getKey(), -entry.getValue());
-            }
-            StatsManager.getInstance().applyBonusStats(player.getUniqueId(), negative);
-        }
         instance.setAppliedStats(Collections.emptyMap());
     }
 
@@ -660,14 +646,6 @@ public class PetManager {
 
     public PetProfile getProfile(UUID uuid) {
         return dataStore.getProfile(uuid);
-    }
-
-    public Map<StatType, Integer> getPetStats(String petId, int level) {
-        PetDefinition def = getDefinition(petId).orElse(null);
-        if (def == null) {
-            return Map.of();
-        }
-        return def.statsForLevel(level);
     }
 
     public ItemRarity getPetRarity(String petId) {
