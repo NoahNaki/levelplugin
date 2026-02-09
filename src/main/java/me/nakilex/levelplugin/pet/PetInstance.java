@@ -71,7 +71,11 @@ public class PetInstance {
     }
 
     public void setAppliedStats(Map<StatType, Integer> appliedStats) {
-        this.appliedStats = appliedStats == null ? new EnumMap<>(StatType.class) : new EnumMap<>(appliedStats);
+        if (appliedStats == null || appliedStats.isEmpty()) {
+            this.appliedStats = new EnumMap<>(StatType.class);
+            return;
+        }
+        this.appliedStats = new EnumMap<>(appliedStats);
     }
 
     public List<PetEffectDefinition> appliedEffects() {
