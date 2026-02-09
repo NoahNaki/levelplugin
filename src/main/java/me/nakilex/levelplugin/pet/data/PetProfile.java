@@ -6,11 +6,13 @@ import java.util.Map;
 import java.util.UUID;
 
 import me.nakilex.levelplugin.items.data.ItemRarity;
+import org.bukkit.Location;
 
 public class PetProfile {
     private final UUID ownerId;
     private String activePetId;
     private ItemRarity autoDiscardRarity;
+    private Location pendingSummonReturn;
     private final Map<String, Integer> petXp = new HashMap<>();
     private final Map<String, Integer> petTiers = new HashMap<>();
     private final Map<String, Integer> petCopies = new HashMap<>();
@@ -37,6 +39,18 @@ public class PetProfile {
 
     public void setAutoDiscardRarity(ItemRarity autoDiscardRarity) {
         this.autoDiscardRarity = autoDiscardRarity;
+    }
+
+    public Location pendingSummonReturn() {
+        return pendingSummonReturn == null ? null : pendingSummonReturn.clone();
+    }
+
+    public void setPendingSummonReturn(Location location) {
+        pendingSummonReturn = location == null ? null : location.clone();
+    }
+
+    public void clearPendingSummonReturn() {
+        pendingSummonReturn = null;
     }
 
     public int getPetXp(String petId) {

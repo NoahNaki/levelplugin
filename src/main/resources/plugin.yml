@@ -306,6 +306,9 @@ commands:
   pet:
     description: Open the pet menu
     usage: /pet [reload]
+  petsummon:
+    description: Open the pet summon menu
+    usage: /petsummon
   petdebug:
     description: Debug commands for pets
     usage: /petdebug <list|summon|dismiss|setlevel|addxp|info|reload>

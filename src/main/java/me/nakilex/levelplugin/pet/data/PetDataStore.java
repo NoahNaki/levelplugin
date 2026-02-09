@@ -80,6 +80,10 @@ public class PetDataStore {
                     profile.setPetCopies(petId, copies);
                 }
             }
+            var pendingReturn = config.getLocation(root + ".summon.return");
+            if (pendingReturn != null) {
+                profile.setPendingSummonReturn(pendingReturn);
+            }
         }
         String activeId = profile.activePetId();
         if (activeId != null && !activeId.isBlank() && profile.getPetCopies(activeId) <= 0) {
@@ -102,6 +106,7 @@ public class PetDataStore {
         for (Map.Entry<String, Integer> entry : profile.petCopies().entrySet()) {
             config.set(root + ".pets." + entry.getKey() + ".copies", entry.getValue());
         }
+        config.set(root + ".summon.return", profile.pendingSummonReturn());
     }
 
     private void saveConfig() {

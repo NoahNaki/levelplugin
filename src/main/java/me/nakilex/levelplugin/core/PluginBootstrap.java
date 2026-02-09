@@ -152,6 +152,8 @@ public class PluginBootstrap {
     private PetManager petManager;
     private me.nakilex.levelplugin.pet.gui.PetGUI petGUI;
     private me.nakilex.levelplugin.pet.gui.PetSettingsGUI petSettingsGUI;
+    private me.nakilex.levelplugin.pet.gui.PetSummonGUI petSummonGUI;
+    private me.nakilex.levelplugin.pet.summon.PetSummonManager petSummonManager;
     private StorageEvents storageEvents;
     private StorageManager storageManager;
     private me.nakilex.levelplugin.guild.GuildVaultManager guildVaultManager;
@@ -462,6 +464,8 @@ public class PluginBootstrap {
         petSettingsGUI = new me.nakilex.levelplugin.pet.gui.PetSettingsGUI(petManager);
         petGUI = new me.nakilex.levelplugin.pet.gui.PetGUI(petManager, petSettingsGUI);
         petSettingsGUI.setPetGUI(petGUI);
+        petSummonManager = new me.nakilex.levelplugin.pet.summon.PetSummonManager(plugin, petManager, plugin.getCutsceneManager());
+        petSummonGUI = new me.nakilex.levelplugin.pet.gui.PetSummonGUI(petSummonManager);
         this.storageManager = new StorageManager();
         this.guildVaultManager = new me.nakilex.levelplugin.guild.GuildVaultManager(storageEvents, guildMemberGUI);
         CommandRegistry.registerCommands(
@@ -508,6 +512,7 @@ public class PluginBootstrap {
             petManager,
             petGUI,
             petSettingsGUI,
+            petSummonGUI,
             customMobManager,
             arcSlashDebugManager,
             arcSlashDebugGUI
@@ -600,6 +605,8 @@ public class PluginBootstrap {
             petManager,
             petGUI,
             petSettingsGUI,
+            petSummonGUI,
+            petSummonManager,
             customMobManager,
             arcSlashDebugManager,
             arcSlashDebugGUI

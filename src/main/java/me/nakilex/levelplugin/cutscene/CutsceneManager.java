@@ -48,10 +48,15 @@ public class CutsceneManager {
             dir.mkdirs();
             // Copy example cutscene from the jar on first run
             plugin.saveResource("cutscenes/intro.yml", false);
+            plugin.saveResource("cutscenes/pet_pull.yml", false);
         } else {
             File intro = new File(dir, "intro.yml");
             if (!intro.exists()) {
                 plugin.saveResource("cutscenes/intro.yml", false);
+            }
+            File petPull = new File(dir, "pet_pull.yml");
+            if (!petPull.exists()) {
+                plugin.saveResource("cutscenes/pet_pull.yml", false);
             }
         }
         File[] files = dir.listFiles((d, name) -> name.endsWith(".yml"));

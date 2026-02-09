@@ -485,14 +485,20 @@ public class PetManager {
     }
 
     public PetPullResult pullPets(Player player, int amount) {
+        PetPullDetailed detailed = pullPetsDetailed(player, amount);
+        return new PetPullResult(detailed.kept(), detailed.discarded());
+    }
+
+    public PetPullDetailed pullPetsDetailed(Player player, int amount) {
         if (player == null || amount <= 0) {
-            return new PetPullResult(Map.of(), Map.of());
+            return new PetPullDetailed(List.of(), Map.of(), Map.of());
         }
         Map<ItemRarity, List<PetDefinition>> pools = buildRarityPools();
         if (pools.isEmpty()) {
-            return new PetPullResult(Map.of(), Map.of());
+            return new PetPullDetailed(List.of(), Map.of(), Map.of());
         }
         PetProfile profile = dataStore.getProfile(player.getUniqueId());
+        List<PetPullEntry> pulls = new ArrayList<>(amount);
         Map<PetDefinition, Integer> kept = new HashMap<>();
         Map<PetDefinition, Integer> discarded = new HashMap<>();
         Random random = ThreadLocalRandom.current();
@@ -506,6 +512,7 @@ public class PetManager {
             PetDefinition def = options.get(random.nextInt(options.size()));
             if (shouldDiscard(def, profile.autoDiscardRarity())) {
                 discarded.merge(def, 1, Integer::sum);
+                pulls.add(new PetPullEntry(def, false));
                 continue;
             }
             if (profile.getPetCopies(def.id()) <= 0) {
@@ -513,8 +520,9 @@ public class PetManager {
             }
             profile.addPetCopies(def.id(), 1);
             kept.merge(def, 1, Integer::sum);
+            pulls.add(new PetPullEntry(def, true));
         }
-        return new PetPullResult(kept, discarded);
+        return new PetPullDetailed(pulls, kept, discarded);
     }
 
     public boolean setPetLevel(Player player, String petId, int level) {
@@ -717,12 +725,43 @@ public class PetManager {
         return dataStore.getProfile(uuid);
     }
 
+    public Location getPendingSummonReturn(UUID playerId) {
+        if (playerId == null) {
+            return null;
+        }
+        return dataStore.getProfile(playerId).pendingSummonReturn();
+    }
+
+    public void setPendingSummonReturn(UUID playerId, Location location) {
+        if (playerId == null) {
+            return;
+        }
+        PetProfile profile = dataStore.getProfile(playerId);
+        profile.setPendingSummonReturn(location);
+        dataStore.saveProfile(playerId);
+    }
+
+    public void clearPendingSummonReturn(UUID playerId) {
+        if (playerId == null) {
+            return;
+        }
+        PetProfile profile = dataStore.getProfile(playerId);
+        profile.clearPendingSummonReturn();
+        dataStore.saveProfile(playerId);
+    }
+
     public ItemRarity getPetRarity(String petId) {
         PetDefinition def = getDefinition(petId).orElse(null);
         return def == null ? ItemRarity.COMMON : def.rarity();
     }
 
     public record InvestResult(int investedCopies, int soldCopies, int coinsEarned) {}
+
+    public record PetPullEntry(PetDefinition definition, boolean kept) {}
+
+    public record PetPullDetailed(List<PetPullEntry> pulls,
+                                  Map<PetDefinition, Integer> kept,
+                                  Map<PetDefinition, Integer> discarded) {}
 
     public record PetPullResult(Map<PetDefinition, Integer> kept, Map<PetDefinition, Integer> discarded) {}
 }

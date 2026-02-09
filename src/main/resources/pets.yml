@@ -33,7 +33,7 @@ pets:
     name: "§aSkyhopper"
     rarity: UNCOMMON
     models: []
-    max-level: 50
+    max-level: 100
     xp-per-level: 100
     effects:
       - type: EXTRA_JUMP

@@ -56,9 +56,20 @@ public record PetDefinition(String id,
             }
             double value = effect.valueForLevel(safeLevel);
             double scaledValue = scaleEffectValue(value, tier, rarity);
+            scaledValue = applySpecialScaling(effect.type(), scaledValue, safeLevel, tier);
             scaled.add(new PetEffectDefinition(effect.type(), scaledValue, 0));
         }
         return scaled;
+    }
+
+    private double applySpecialScaling(PetEffectType type, double scaledValue, int level, int tier) {
+        if (type == PetEffectType.EXTRA_JUMP
+                && "skyhopper".equalsIgnoreCase(id)
+                && level >= 100
+                && tier >= 5) {
+            return Math.max(scaledValue, 2.0);
+        }
+        return scaledValue;
     }
 
     private static double scaleEffectValue(double base, int tier, ItemRarity rarity) {

@@ -85,6 +85,8 @@ import me.nakilex.levelplugin.npc.wandering.WanderingMerchantListener;
 import me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager;
 import me.nakilex.levelplugin.pet.PetManager;
 import me.nakilex.levelplugin.pet.gui.PetGUI;
+import me.nakilex.levelplugin.pet.gui.PetSummonGUI;
+import me.nakilex.levelplugin.pet.summon.PetSummonManager;
 import me.nakilex.levelplugin.pet.listeners.PetPlayerListener;
 import me.nakilex.levelplugin.pet.listeners.PetCombatEffectListener;
 import me.nakilex.levelplugin.pet.listeners.PetMovementListener;
@@ -143,6 +145,8 @@ public class ListenerRegistry {
                                         PetManager petManager,
                                         PetGUI petGUI,
                                         me.nakilex.levelplugin.pet.gui.PetSettingsGUI petSettingsGUI,
+                                        PetSummonGUI petSummonGUI,
+                                        PetSummonManager petSummonManager,
                                         CustomMobManager customMobManager,
                                         me.nakilex.levelplugin.debug.ArcSlashDebugManager arcSlashDebugManager,
                                         me.nakilex.levelplugin.debug.gui.ArcSlashDebugGUI arcSlashDebugGUI) {
@@ -200,6 +204,12 @@ public class ListenerRegistry {
         }
         if (petSettingsGUI != null) {
             pm.registerEvents(petSettingsGUI, plugin);
+        }
+        if (petSummonGUI != null) {
+            pm.registerEvents(petSummonGUI, plugin);
+        }
+        if (petSummonManager != null) {
+            pm.registerEvents(petSummonManager, plugin);
         }
         pm.registerEvents(new StatsMenuListener(codexGUI), plugin);
         pm.registerEvents(new StatsEffectListener(), plugin);
