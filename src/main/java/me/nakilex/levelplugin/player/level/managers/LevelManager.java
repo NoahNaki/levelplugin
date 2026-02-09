@@ -74,6 +74,11 @@ public class LevelManager {
         int newXP = getXP(uuid) + adjusted;
         playerXp.put(uuid, newXP);
 
+        if (plugin.getPetManager() != null) {
+            int petXp = Math.max(0, Math.round(adjusted * 0.1f));
+            plugin.getPetManager().addActivePetXp(uuid, petXp);
+        }
+
         checkLevelUp(uuid);
 
         Player player = Bukkit.getPlayer(uuid);

@@ -5,15 +5,19 @@ import me.nakilex.levelplugin.player.attributes.managers.StatsManager.PlayerStat
 import me.nakilex.levelplugin.mob.utils.SweepAttack;
 import me.nakilex.levelplugin.player.classes.managers.PlayerClassManager;
 import me.nakilex.levelplugin.player.classes.data.ClassUtil;
+import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.pet.PetEffectType;
+import me.nakilex.levelplugin.pet.PetManager;
+import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 
-import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -95,11 +99,61 @@ public class StatsEffectListener implements Listener {
             int totalDexterity = ps.baseDexterity + ps.bonusDexterity;
             double critChance = (double) totalDexterity / (totalDexterity + 100.0);
             critChance = Math.max(0.0, Math.min(1.0, critChance));
+            PetManager petManager = Main.getInstance().getPetManager();
+            if (petManager != null) {
+                double critBonus = petManager.getActiveEffectValue(player.getUniqueId(), PetEffectType.CRIT_CHANCE);
+                critChance = Math.min(1.0, critChance + Math.max(0.0, critBonus));
+            }
 
             boolean isCrit = random.nextDouble() < critChance;
             if (isCrit) finalDamage *= 2;
 
             finalDamage *= BASIC_ATTACK_MULTIPLIER;
+
+            if (petManager != null) {
+                double damageBoost = petManager.getActiveEffectValue(player.getUniqueId(), PetEffectType.DAMAGE_BOOST);
+                if (damageBoost > 0.0) {
+                    finalDamage *= (1.0 + damageBoost);
+                }
+                double coinCap = petManager.getActiveEffectValue(player.getUniqueId(), PetEffectType.COIN_DAMAGE);
+                if (coinCap > 0.0) {
+                    EconomyManager economyManager = Main.getInstance().getEconomyManager();
+                    if (economyManager != null) {
+                        int coins = economyManager.getBalance(player);
+                        double coinBonus = (coins / 1000.0) * 0.01;
+                        double cap = Math.min(2.0, coinCap);
+                        finalDamage *= (1.0 + Math.min(coinBonus, cap));
+                    }
+                }
+                double firstStrike = petManager.getActiveEffectValue(player.getUniqueId(), PetEffectType.FIRST_STRIKE);
+                if (firstStrike > 0.0 && target instanceof LivingEntity livingTarget) {
+                    double maxHealth = livingTarget.getMaxHealth();
+                    if (maxHealth > 0.0 && livingTarget.getHealth() >= maxHealth - 0.01) {
+                        finalDamage *= (1.0 + Math.min(0.3, firstStrike));
+                    }
+                }
+                double executeBoost = petManager.getActiveEffectValue(player.getUniqueId(), PetEffectType.EXECUTE);
+                if (executeBoost > 0.0 && target instanceof LivingEntity livingTarget) {
+                    double maxHealth = livingTarget.getMaxHealth();
+                    if (maxHealth > 0.0 && livingTarget.getHealth() / maxHealth <= PetEffectType.EXECUTE.executeThreshold()) {
+                        finalDamage *= (1.0 + executeBoost);
+                    }
+                }
+                double executeThreshold = petManager.getActiveEffectValue(player.getUniqueId(), PetEffectType.EXECUTE_NON_BOSS);
+                if (executeThreshold > 0.0 && target instanceof LivingEntity livingTarget) {
+                    if (!isBossEntity(livingTarget)) {
+                        double maxHealth = livingTarget.getMaxHealth();
+                        double threshold = Math.min(0.25, executeThreshold);
+                        if (maxHealth > 0.0 && livingTarget.getHealth() / maxHealth <= threshold) {
+                            finalDamage = Math.max(finalDamage, livingTarget.getHealth());
+                        }
+                    }
+                }
+                double lastStandBoost = petManager.getLastStandDamageBoost(player.getUniqueId());
+                if (lastStandBoost > 0.0) {
+                    finalDamage *= (1.0 + lastStandBoost);
+                }
+            }
 
 //            me.nakilex.levelplugin.Main.getPlugin().getLogger().info(
 //                "[StatsEffect] dmg=" + event.getDamage() + "->" + finalDamage +
@@ -146,6 +200,14 @@ public class StatsEffectListener implements Listener {
             double percentReduction = (double) totalVitality / (totalVitality + 200.0);
             incoming *= (1.0 - percentReduction);
 
+            PetManager petManager = Main.getInstance().getPetManager();
+            if (petManager != null) {
+                double petReduction = petManager.getActiveEffectValue(attacked.getUniqueId(), PetEffectType.DAMAGE_REDUCTION);
+                if (petReduction > 0.0) {
+                    incoming *= Math.max(0.0, 1.0 - petReduction);
+                }
+            }
+
             event.setDamage(incoming);
         }
     }
@@ -171,6 +233,16 @@ public class StatsEffectListener implements Listener {
             return shooter;
         }
         return null;
+    }
+
+    private boolean isBossEntity(LivingEntity entity) {
+        if (entity instanceof org.bukkit.entity.Boss) {
+            return true;
+        }
+        if (entity.getScoreboardTags().contains("field_boss")) {
+            return true;
+        }
+        return entity.getScoreboardTags().contains("dungeon_boss");
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)

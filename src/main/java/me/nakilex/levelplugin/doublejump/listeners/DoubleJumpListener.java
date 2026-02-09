@@ -2,6 +2,9 @@ package me.nakilex.levelplugin.doublejump.listeners;
 
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
+import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.pet.PetEffectType;
+import me.nakilex.levelplugin.pet.PetManager;
 import org.bukkit.GameMode;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
@@ -13,6 +16,10 @@ import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerToggleFlightEvent;
 import org.bukkit.util.Vector;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
 public class DoubleJumpListener implements Listener {
 
     private static final double BASE_LIFT_VELOCITY       = 0.3;   // how much up
@@ -21,6 +28,7 @@ public class DoubleJumpListener implements Listener {
     private static final double AGI_FORWARD_MULTIPLIER   = 0.02;  // extra forward per Agi
     private static final double MAX_LIFT_VELOCITY        = 0.6;
     private static final double MAX_FORWARD_VELOCITY     = 1.2;
+    private final Map<UUID, Integer> remainingJumps = new HashMap<>();
 
     private boolean canDoubleJump(PlayerClass pc) {
         return pc == PlayerClass.ARCHER
@@ -38,7 +46,7 @@ public class DoubleJumpListener implements Listener {
         PlayerClass playerClass = StatsManager.getInstance()
             .getPlayerStats(player.getUniqueId())
             .playerClass;
-        player.setAllowFlight(canDoubleJump(playerClass));
+        refreshJumpCharges(player, playerClass);
     }
 
     @EventHandler
@@ -49,11 +57,14 @@ public class DoubleJumpListener implements Listener {
         StatsManager.PlayerStats ps = StatsManager
             .getInstance()
             .getPlayerStats(player.getUniqueId());
-        if (!canDoubleJump(ps.playerClass)) return;
+        int remaining = remainingJumps.getOrDefault(player.getUniqueId(), 0);
+        if (remaining <= 0) return;
 
         if (!player.isFlying()) {
             event.setCancelled(true);
-            player.setAllowFlight(false);
+            remaining--;
+            remainingJumps.put(player.getUniqueId(), remaining);
+            player.setAllowFlight(remaining > 0);
 
             int totalAgi = ps.baseAgility + ps.bonusAgility;
 
@@ -90,8 +101,25 @@ public class DoubleJumpListener implements Listener {
             .getInstance()
             .getPlayerStats(player.getUniqueId());
 
-        if (player.isOnGround() && canDoubleJump(ps.playerClass)) {
-            player.setAllowFlight(true);
+        if (player.isOnGround()) {
+            refreshJumpCharges(player, ps.playerClass);
         }
+    }
+
+    private void refreshJumpCharges(Player player, PlayerClass playerClass) {
+        int baseJumps = canDoubleJump(playerClass) ? 1 : 0;
+        int bonusJumps = getBonusJumps(player.getUniqueId());
+        int total = Math.max(0, baseJumps + bonusJumps);
+        remainingJumps.put(player.getUniqueId(), total);
+        player.setAllowFlight(total > 0);
+    }
+
+    private int getBonusJumps(UUID playerId) {
+        PetManager petManager = Main.getInstance().getPetManager();
+        if (petManager == null) {
+            return 0;
+        }
+        double bonus = petManager.getActiveEffectValue(playerId, PetEffectType.EXTRA_JUMP);
+        return (int) Math.floor(Math.max(0.0, bonus));
     }
 }
