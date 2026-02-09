@@ -456,7 +456,7 @@ public class PetSummonManager implements Listener {
             if (player == null) {
                 return;
             }
-            Location base = new Location(player.getWorld(), SUMMON_X, SUMMON_Y, SUMMON_Z);
+            Location base = player.getLocation().clone();
             Vector direction = player.getLocation().getDirection();
             if (direction.lengthSquared() < 0.001) {
                 direction = new Vector(0, 0, 1);
