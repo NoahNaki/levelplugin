@@ -599,6 +599,7 @@ public class PluginBootstrap {
             serverSelectionManager,
             petManager,
             petGUI,
+            petSettingsGUI,
             customMobManager,
             arcSlashDebugManager,
             arcSlashDebugGUI
