@@ -130,7 +130,7 @@ public class PetSummonManager implements Listener {
 
         int totalTicks = calculateTotalDuration(session);
         session.tasks.add(Bukkit.getScheduler().runTaskLater(plugin,
-                () -> finishSession(player, true), totalTicks));
+                () -> tryFinishSummon(player, session), totalTicks));
         session.tasks.add(Bukkit.getScheduler().runTaskTimer(plugin,
                 () -> checkCutsceneState(player), 20L, 20L));
     }
@@ -286,6 +286,11 @@ public class PetSummonManager implements Listener {
                 player.spawnParticle(Particle.END_ROD, entry.item().getLocation(),
                         10, 0.2, 0.2, 0.2, 0.02);
                 playSound(player, REVEAL_SOUND, REVEAL_VOLUME, REVEAL_PITCH);
+                session.revealsDone++;
+                if (session.revealsDone >= session.totalReveals) {
+                    Bukkit.getScheduler().runTaskLater(plugin,
+                            () -> tryFinishSummon(player, session), END_BUFFER_TICKS);
+                }
             }, delay);
             session.tasks.add(task);
         }
@@ -340,9 +345,29 @@ public class PetSummonManager implements Listener {
         if (session == null) {
             return;
         }
-        if (!player.isOnline() || !cutsceneManager.isInCutscene(player)) {
-            finishSession(player, player.isOnline());
+        if (!player.isOnline()) {
+            finishSession(player, false);
+            return;
         }
+        if (!cutsceneManager.isInCutscene(player)) {
+            if (session.revealsDone >= session.totalReveals) {
+                finishSession(player, true);
+            }
+        }
+    }
+
+    private void tryFinishSummon(Player player, SummonSession session) {
+        if (player == null || session == null) {
+            return;
+        }
+        SummonSession active = sessions.get(player.getUniqueId());
+        if (active != session) {
+            return;
+        }
+        if (session.revealsDone < session.totalReveals) {
+            return;
+        }
+        finishSession(player, true);
     }
 
     private void finishSession(Player player, boolean teleport) {
@@ -409,10 +434,12 @@ public class PetSummonManager implements Listener {
         private final Vector right;
         private final Vector up;
         private final int totalPulls;
+        private final int totalReveals;
         private final int spinTicks;
         private Location frozenLocation;
         private org.bukkit.scheduler.BukkitRunnable spinTask;
         private double spinProgress;
+        private int revealsDone;
 
         private SummonSession(Location returnLocation,
                               PetPullDetailed pulls,
@@ -422,12 +449,14 @@ public class PetSummonManager implements Listener {
             this.returnLocation = returnLocation;
             this.pulls = pulls;
             this.totalPulls = Math.max(1, pulls.pulls().size());
+            this.totalReveals = this.totalPulls;
             this.center = center;
             this.right = right;
             this.up = up;
             this.spinTicks = SPIN_TICKS + (this.totalPulls - 1) * SPAWN_INTERVAL_TICKS;
             this.frozenLocation = null;
             this.spinProgress = 0.0;
+            this.revealsDone = 0;
         }
 
         private Location frozenLocation() {
