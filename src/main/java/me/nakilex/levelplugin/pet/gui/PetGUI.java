@@ -3,11 +3,13 @@ package me.nakilex.levelplugin.pet.gui;
 import me.nakilex.levelplugin.pet.PetDefinition;
 import me.nakilex.levelplugin.pet.PetEffectDefinition;
 import me.nakilex.levelplugin.pet.PetManager;
+import me.nakilex.levelplugin.pet.PetManager.InvestResult;
 import me.nakilex.levelplugin.pet.PetProgression;
 import me.nakilex.levelplugin.pet.utils.PetChatUtil;
 import me.nakilex.levelplugin.pet.utils.PetGuiUtil;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
 import me.nakilex.levelplugin.utils.ChatUtil;
+import me.nakilex.levelplugin.utils.CurrencyMessageUtil;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
@@ -113,14 +115,17 @@ public class PetGUI implements Listener {
             widgets.add(new ActionWidget(slot, ctx -> icon, (click, context) -> {
                 if (click.isShiftClick() && click.isRightClick() && equipped) {
                     petManager.dismissPet(player);
+                    logClick(player, petId, "shift-right-dismiss", true);
                     refresh(player, context.inventory());
                     return;
                 } else if (click.isRightClick()) {
                     if (handleInvestOrSell(player, def, tier)) {
+                        logClick(player, petId, "right-invest-sell", true);
                         return;
                     }
                 } else if (click.isLeftClick()) {
-                    petManager.summonPet(player, petId);
+                    boolean summoned = petManager.summonPet(player, petId);
+                    logClick(player, petId, "left-summon", summoned);
                 }
                 refresh(player, context.inventory());
             }));
@@ -174,7 +179,7 @@ public class PetGUI implements Listener {
             PetChatUtil.send(player, "Not enough copies to invest.");
             return false;
         }
-        openConfirm(player, new PendingAction(ActionType.INVEST, def.id(), 1));
+        openConfirm(player, new PendingAction(ActionType.INVEST, def.id(), investable));
         return true;
     }
 
@@ -203,9 +208,21 @@ public class PetGUI implements Listener {
             lore.add("§7Pet: §f" + def.displayName());
             if (action.type() == ActionType.INVEST) {
                 int tier = petManager.getProfile(player.getUniqueId()).getPetTier(def.id());
-                lore.addAll(TooltipUtil.bulletList(
-                        "Increase tier from " + tier + " to " + (tier + 1),
-                        "Consumes 1 extra copy"));
+                int maxTier = petManager.getMaxTier();
+                int investable = petManager.getInvestableCopies(player, def.id());
+                int investCount = Math.min(investable, Math.max(0, maxTier - tier));
+                int newTier = tier + investCount;
+                int copies = petManager.getProfile(player.getUniqueId()).getPetCopies(def.id());
+                int remaining = Math.max(0, copies - 1 - investCount);
+                List<String> bullets = new ArrayList<>();
+                bullets.add("Increase tier from " + tier + " to " + newTier);
+                bullets.add("Consumes " + investCount + " extra copies");
+                if (newTier >= maxTier && remaining > 0) {
+                    int coins = remaining * petManager.getSellValue(def.rarity());
+                    bullets.add("Sell " + remaining + " extra copies");
+                    bullets.add("Earn " + coins + " coins");
+                }
+                lore.addAll(TooltipUtil.bulletList(bullets.toArray(new String[0])));
             } else {
                 int coins = action.amount() * petManager.getSellValue(def.rarity());
                 lore.addAll(TooltipUtil.bulletList(
@@ -230,11 +247,22 @@ public class PetGUI implements Listener {
 
     private void handleConfirm(Player player, PendingAction action) {
         if (action.type() == ActionType.INVEST) {
-            boolean invested = petManager.investTier(player, action.petId());
-            PetChatUtil.send(player, invested ? "Pet tier upgraded." : "Unable to invest copies.");
+            InvestResult result = petManager.investAllCopies(player, action.petId());
+            if (result.investedCopies() > 0) {
+                PetChatUtil.send(player, "Pet tier upgraded.");
+            } else {
+                PetChatUtil.send(player, "Unable to invest copies.");
+            }
+            if (result.coinsEarned() > 0) {
+                CurrencyMessageUtil.sendReceive(player, CurrencyMessageUtil.Currency.COINS, result.coinsEarned());
+            }
         } else {
             int coins = petManager.sellPetCopies(player, action.petId(), action.amount());
-            PetChatUtil.send(player, coins > 0 ? "Sold copies for " + coins + " coins." : "No copies sold.");
+            if (coins > 0) {
+                CurrencyMessageUtil.sendReceive(player, CurrencyMessageUtil.Currency.COINS, coins);
+            } else {
+                PetChatUtil.send(player, "No copies sold.");
+            }
         }
         pendingActions.remove(player.getUniqueId());
         open(player, pages.getOrDefault(player.getUniqueId(), 0));
@@ -285,6 +313,7 @@ public class PetGUI implements Listener {
         if (widgets == null) {
             return false;
         }
+        logConfirmClick(player, event.getRawSlot());
         return handleWidgetClick(event, player, widgets);
     }
 
@@ -312,5 +341,24 @@ public class PetGUI implements Listener {
     private enum ActionType {
         INVEST,
         SELL
+    }
+
+    private void logClick(Player player, String petId, String action, boolean success) {
+        var logger = me.nakilex.levelplugin.Main.getInstance().getLogger();
+        String activeId = petManager.getProfile(player.getUniqueId()).activePetId();
+        logger.info("[PetGUI] player=" + player.getName()
+                + " action=" + action
+                + " pet=" + petId
+                + " success=" + success
+                + " active=" + (activeId == null ? "none" : activeId));
+    }
+
+    private void logConfirmClick(Player player, int slot) {
+        var action = pendingActions.get(player.getUniqueId());
+        var logger = me.nakilex.levelplugin.Main.getInstance().getLogger();
+        logger.info("[PetGUI] confirm-click player=" + player.getName()
+                + " slot=" + slot
+                + " action=" + (action == null ? "none" : action.type())
+                + " pet=" + (action == null ? "none" : action.petId()));
     }
 }

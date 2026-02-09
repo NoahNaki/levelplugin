@@ -369,6 +369,51 @@ public class PetManager {
         return total;
     }
 
+    public InvestResult investAllCopies(Player player, String petId) {
+        if (player == null || petId == null) {
+            return new InvestResult(0, 0, 0);
+        }
+        PetDefinition def = getDefinition(petId).orElse(null);
+        if (def == null) {
+            return new InvestResult(0, 0, 0);
+        }
+        PetProfile profile = dataStore.getProfile(player.getUniqueId());
+        int tier = profile.getPetTier(def.id());
+        int copies = profile.getPetCopies(def.id());
+        int available = Math.max(0, copies - 1);
+        int maxTier = MAX_TIER;
+        int investable = Math.min(available, Math.max(0, maxTier - tier));
+        if (investable <= 0 && tier < maxTier) {
+            return new InvestResult(0, 0, 0);
+        }
+        int newTier = tier + investable;
+        int remainingCopies = copies - investable;
+        int soldCopies = 0;
+        int coins = 0;
+        if (newTier >= maxTier && remainingCopies > 1) {
+            soldCopies = remainingCopies - 1;
+            remainingCopies = 1;
+            coins = soldCopies * SELL_VALUES.getOrDefault(def.rarity(), 25);
+            if (plugin.getEconomyManager() != null && coins > 0) {
+                plugin.getEconomyManager().addCoins(player, coins);
+            }
+        }
+        if (investable > 0) {
+            profile.setPetTier(def.id(), newTier);
+            profile.setPetCopies(def.id(), Math.max(1, remainingCopies));
+            PetInstance instance = activePets.get(player.getUniqueId());
+            if (instance != null && instance.definition().id().equalsIgnoreCase(def.id())) {
+                instance.setTier(newTier);
+                removeBonuses(player, instance);
+                applyBonuses(player, instance);
+                startEffectTask(player, instance);
+            }
+        } else {
+            profile.setPetCopies(def.id(), Math.max(1, remainingCopies));
+        }
+        return new InvestResult(investable, soldCopies, coins);
+    }
+
     public void addPetCopies(Player player, String petId, int amount) {
         if (player == null || petId == null || amount <= 0) {
             return;
@@ -400,6 +445,9 @@ public class PetManager {
             if (shouldDiscard(def, profile.autoDiscardRarity())) {
                 discarded.merge(def, 1, Integer::sum);
                 continue;
+            }
+            if (profile.getPetCopies(def.id()) <= 0) {
+                profile.setPetTier(def.id(), 1);
             }
             profile.addPetCopies(def.id(), 1);
             kept.merge(def, 1, Integer::sum);
@@ -626,6 +674,8 @@ public class PetManager {
         PetDefinition def = getDefinition(petId).orElse(null);
         return def == null ? ItemRarity.COMMON : def.rarity();
     }
+
+    public record InvestResult(int investedCopies, int soldCopies, int coinsEarned) {}
 
     public record PetPullResult(Map<PetDefinition, Integer> kept, Map<PetDefinition, Integer> discarded) {}
 }
