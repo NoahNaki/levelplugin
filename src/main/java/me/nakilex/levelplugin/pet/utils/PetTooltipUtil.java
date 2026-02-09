@@ -47,7 +47,8 @@ public final class PetTooltipUtil {
         if (rarity == null) {
             rarity = ItemRarity.COMMON;
         }
-        return rarity.getColor() + rarity.name().charAt(0) + rarity.name().substring(1).toLowerCase();
+        String name = rarity.name().charAt(0) + rarity.name().substring(1).toLowerCase();
+        return "" + rarity.getColor() + name;
     }
 
     private static String formatEffect(PetEffectDefinition effect) {
