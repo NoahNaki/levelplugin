@@ -5,9 +5,9 @@ import me.nakilex.levelplugin.items.data.ItemRarity;
 import me.nakilex.levelplugin.pet.data.PetDataStore;
 import me.nakilex.levelplugin.pet.data.PetProfile;
 import me.nakilex.levelplugin.pet.utils.PetChatUtil;
+import me.nakilex.levelplugin.pet.utils.PetDisplayUtil;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
-import me.nakilex.levelplugin.utils.ChatUtil;
 import me.nakilex.levelplugin.utils.ModelEngineUtil;
 import me.nakilex.levelplugin.utils.PotionEffectUtil;
 import org.bukkit.Bukkit;
@@ -124,9 +124,10 @@ public class PetManager {
             return false;
         }
 
+        String displayName = PetDisplayUtil.formatDisplayName(def);
         ArmorStand stand = world.spawn(spawnLoc, ArmorStand.class, entity -> {
             entity.setCustomNameVisible(true);
-            entity.setCustomName(ChatUtil.applyEmojis(def.displayName()));
+            entity.setCustomName(displayName);
             entity.setGravity(false);
             entity.setSmall(true);
             entity.setInvulnerable(true);
@@ -149,7 +150,7 @@ public class PetManager {
         applyBonuses(player, instance);
         startFollowTask(player, stand, instance);
         startEffectTask(player, instance);
-        PetChatUtil.send(player, "Summoned " + def.displayName() + ".");
+        PetChatUtil.send(player, "Summoned " + displayName + ".");
         return true;
     }
 
@@ -271,23 +272,33 @@ public class PetManager {
 
     private void startFollowTask(Player player, ArmorStand stand, PetInstance instance) {
         BukkitTask task = new BukkitRunnable() {
+            private double ticks = 0;
+
             @Override
             public void run() {
                 if (!player.isOnline() || stand.isDead()) {
                     cancel();
                     return;
                 }
+                ticks += 10;
                 Location ownerLoc = player.getLocation();
                 Location petLoc = stand.getLocation();
+                double bob = Math.sin(ticks / 20.0) * 0.12;
+                Location desired = ownerLoc.clone().add(0.8, 0.4 + bob, 0.8);
                 double distance = ownerLoc.distance(petLoc);
                 if (distance > TELEPORT_DISTANCE) {
-                    stand.teleport(ownerLoc.clone().add(0.6, 0.2, 0.6));
+                    stand.teleport(desired);
                     return;
                 }
                 if (distance > FOLLOW_DISTANCE) {
-                    Vector direction = ownerLoc.toVector().subtract(petLoc.toVector()).normalize();
+                    Vector direction = desired.toVector().subtract(petLoc.toVector()).normalize();
                     Location target = petLoc.add(direction.multiply(0.4));
+                    target.setY(desired.getY());
                     stand.teleport(target);
+                } else {
+                    Location hover = petLoc.clone();
+                    hover.setY(desired.getY());
+                    stand.teleport(hover);
                 }
             }
         }.runTaskTimer(plugin, 20L, 10L);

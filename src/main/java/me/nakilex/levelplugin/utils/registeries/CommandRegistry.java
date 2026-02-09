@@ -26,6 +26,8 @@ import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
 import me.nakilex.levelplugin.mob.custom.CustomMobManager;
 import me.nakilex.levelplugin.pet.PetManager;
 import me.nakilex.levelplugin.pet.commands.PetDebugCommand;
+import me.nakilex.levelplugin.pet.commands.PetCommand;
+import me.nakilex.levelplugin.pet.gui.PetGUI;
 import me.nakilex.levelplugin.debug.BeaconEntityDebugManager;
 import me.nakilex.levelplugin.debug.commands.DebugCommand;
 import me.nakilex.levelplugin.debug.commands.SpawnEntityModelCommand;
@@ -155,6 +157,7 @@ public class CommandRegistry {
                                         DungeonExpeditionManager dungeonExpeditionManager,
                                         ServerSelectionManager serverSelectionManager,
                                         PetManager petManager,
+                                        PetGUI petGUI,
                                         CustomMobManager customMobManager,
                                         me.nakilex.levelplugin.debug.ArcSlashDebugManager arcSlashDebugManager,
                                         me.nakilex.levelplugin.debug.gui.ArcSlashDebugGUI arcSlashDebugGUI) {
@@ -340,6 +343,11 @@ public class CommandRegistry {
             PetDebugCommand petDebugCommand = new PetDebugCommand(petManager);
             plugin.getCommand("petdebug").setExecutor(petDebugCommand);
             plugin.getCommand("petdebug").setTabCompleter(petDebugCommand);
+        }
+        if (petManager != null && petGUI != null) {
+            PetCommand petCommand = new PetCommand(petManager, petGUI);
+            plugin.getCommand("pet").setExecutor(petCommand);
+            plugin.getCommand("pet").setTabCompleter(petCommand);
         }
 
         LevelPluginCommand levelPluginCommand = new LevelPluginCommand(plugin);

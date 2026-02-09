@@ -84,6 +84,7 @@ import me.nakilex.levelplugin.codex.*;
 import me.nakilex.levelplugin.npc.wandering.WanderingMerchantListener;
 import me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager;
 import me.nakilex.levelplugin.pet.PetManager;
+import me.nakilex.levelplugin.pet.gui.PetGUI;
 import me.nakilex.levelplugin.pet.listeners.PetPlayerListener;
 import me.nakilex.levelplugin.server.LevelPluginCommandGuard;
 import me.nakilex.levelplugin.server.ServerSelectionManager;
@@ -138,6 +139,7 @@ public class ListenerRegistry {
                                         BeaconEntityDebugManager beaconEntityDebugManager,
                                         ServerSelectionManager serverSelectionManager,
                                         PetManager petManager,
+                                        PetGUI petGUI,
                                         CustomMobManager customMobManager,
                                         me.nakilex.levelplugin.debug.ArcSlashDebugManager arcSlashDebugManager,
                                         me.nakilex.levelplugin.debug.gui.ArcSlashDebugGUI arcSlashDebugGUI) {
@@ -187,6 +189,9 @@ public class ListenerRegistry {
         pm.registerEvents(new PlayerQuitListener(plugin.getPlayerConfig(), plugin.getEnvironmentManager()), plugin);
         if (petManager != null) {
             pm.registerEvents(new PetPlayerListener(petManager), plugin);
+        }
+        if (petGUI != null) {
+            pm.registerEvents(petGUI, plugin);
         }
         pm.registerEvents(new StatsMenuListener(codexGUI), plugin);
         pm.registerEvents(new StatsEffectListener(), plugin);

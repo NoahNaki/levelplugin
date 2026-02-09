@@ -150,6 +150,7 @@ public class PluginBootstrap {
     private me.nakilex.levelplugin.mob.config.ModelSetManager modelSetManager;
     private CustomMobManager customMobManager;
     private PetManager petManager;
+    private me.nakilex.levelplugin.pet.gui.PetGUI petGUI;
     private StorageEvents storageEvents;
     private StorageManager storageManager;
     private me.nakilex.levelplugin.guild.GuildVaultManager guildVaultManager;
@@ -457,6 +458,7 @@ public class PluginBootstrap {
                 lootChestManager.getCooldownManager());
         arcSlashDebugManager = new me.nakilex.levelplugin.debug.ArcSlashDebugManager(plugin);
         arcSlashDebugGUI = new me.nakilex.levelplugin.debug.gui.ArcSlashDebugGUI(arcSlashDebugManager);
+        petGUI = new me.nakilex.levelplugin.pet.gui.PetGUI(petManager);
         this.storageManager = new StorageManager();
         this.guildVaultManager = new me.nakilex.levelplugin.guild.GuildVaultManager(storageEvents, guildMemberGUI);
         CommandRegistry.registerCommands(
@@ -501,6 +503,7 @@ public class PluginBootstrap {
             dungeonExpeditionManager,
             serverSelectionManager,
             petManager,
+            petGUI,
             customMobManager,
             arcSlashDebugManager,
             arcSlashDebugGUI
@@ -591,6 +594,7 @@ public class PluginBootstrap {
             beaconEntityDebugManager,
             serverSelectionManager,
             petManager,
+            petGUI,
             customMobManager,
             arcSlashDebugManager,
             arcSlashDebugGUI

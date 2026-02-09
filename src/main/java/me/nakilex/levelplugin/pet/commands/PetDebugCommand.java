@@ -5,6 +5,7 @@ import me.nakilex.levelplugin.pet.PetEffectDefinition;
 import me.nakilex.levelplugin.pet.PetManager;
 import me.nakilex.levelplugin.pet.PetProgression;
 import me.nakilex.levelplugin.pet.utils.PetChatUtil;
+import me.nakilex.levelplugin.pet.utils.PetDisplayUtil;
 import me.nakilex.levelplugin.pet.utils.PetTooltipUtil;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
 import org.bukkit.Bukkit;
@@ -109,11 +110,12 @@ public class PetDebugCommand implements CommandExecutor, TabCompleter {
                     PetChatUtil.send(target, "No pet to inspect.");
                     return true;
                 }
+                String displayName = PetDisplayUtil.formatDisplayName(def);
                 int xp = petManager.getProfile(target.getUniqueId()).getPetXp(def.id());
                 int level = PetProgression.levelFromXp(xp, def.xpPerLevel(), def.maxLevel());
                 Map<StatType, Integer> stats = def.statsForLevel(level);
                 List<PetEffectDefinition> effects = def.effectsForLevel(level);
-                PetChatUtil.send(target, ChatColor.WHITE + def.displayName() + ChatColor.GRAY
+                PetChatUtil.send(target, ChatColor.WHITE + displayName + ChatColor.GRAY
                         + " (" + PetTooltipUtil.formatRarityName(def.rarity()) + ChatColor.GRAY + ")");
                 PetChatUtil.send(target, "Level " + level + " (" + xp + " XP)");
                 if (!stats.isEmpty()) {
