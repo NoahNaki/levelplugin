@@ -38,7 +38,10 @@ public class PetSummonManager implements Listener {
     private static final int SPAWN_DELAY_TICKS = 20;
     private static final int SPAWN_INTERVAL_TICKS = 10;
     private static final int GLOW_DELAY_TICKS = 30;
+    private static final int ORBIT_TICKS = 60;
     private static final int END_BUFFER_TICKS = 20;
+    private static final double BASE_OFFSET = 6.0;
+    private static final double ORBIT_RADIUS = 3.6;
     private static final double SUMMON_X = 234;
     private static final double SUMMON_Y = 177;
     private static final double SUMMON_Z = -203;
@@ -90,12 +93,13 @@ public class PetSummonManager implements Listener {
 
         cutsceneManager.playCutscene(player, CUTSCENE_ID);
 
-        List<Location> slots = buildDisplaySlots(detailed.pulls().size());
+        Location base = summonBaseLocation(player);
+        List<Location> slots = buildDisplaySlots(detailed.pulls().size(), base);
         for (int i = 0; i < detailed.pulls().size(); i++) {
             PetPullEntry entry = detailed.pulls().get(i);
             Location slot = slots.get(Math.min(i, slots.size() - 1));
             int spawnDelay = SPAWN_DELAY_TICKS + i * SPAWN_INTERVAL_TICKS;
-            scheduleSpawn(player, session, entry, slot, spawnDelay);
+            scheduleSpawn(player, session, entry, slot, spawnDelay, i);
         }
 
         int totalTicks = calculateTotalDuration(detailed.pulls().size());
@@ -105,16 +109,21 @@ public class PetSummonManager implements Listener {
                 () -> checkCutsceneState(player), 20L, 20L));
     }
 
-    private void scheduleSpawn(Player player, SummonSession session, PetPullEntry entry, Location slot, int delay) {
+    private void scheduleSpawn(Player player,
+                               SummonSession session,
+                               PetPullEntry entry,
+                               Location slot,
+                               int delay,
+                               int index) {
         BukkitTask task = Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (player == null || !player.isOnline()) {
                 return;
             }
             Item item = spawnSummonItem(slot, entry.definition());
             session.spawned.add(item);
-            if (slot.getWorld() != null) {
-                slot.getWorld().spawnParticle(Particle.END_ROD, slot, 12, 0.2, 0.4, 0.2, 0.01);
-            }
+            applyVisibility(player, item);
+            double phase = index * Math.PI / 6.0;
+            startOrbitAnimation(player, item, slot, phase, session);
             Bukkit.getScheduler().runTaskLater(plugin,
                     () -> applyGlow(item, entry.definition()), GLOW_DELAY_TICKS);
         }, delay);
@@ -159,15 +168,14 @@ public class PetSummonManager implements Listener {
         }
     }
 
-    private List<Location> buildDisplaySlots(int amount) {
+    private List<Location> buildDisplaySlots(int amount, Location base) {
         int count = Math.max(1, amount);
         int columns = Math.min(5, count);
         int rows = (int) Math.ceil(count / (double) columns);
-        double spacing = 2.2;
+        double spacing = 2.8;
         double startX = -((columns - 1) * spacing) / 2.0;
         double startZ = -((rows - 1) * spacing) / 2.0;
         List<Location> slots = new ArrayList<>();
-        Location base = summonBaseLocation();
         for (int i = 0; i < count; i++) {
             int row = i / columns;
             int col = i % columns;
@@ -178,17 +186,64 @@ public class PetSummonManager implements Listener {
         return slots;
     }
 
-    private Location summonBaseLocation() {
+    private Location summonBaseLocation(Player player) {
         World world = Bukkit.getWorld("world");
         if (world == null) {
             world = Bukkit.getWorlds().get(0);
         }
-        return new Location(world, SUMMON_X, SUMMON_Y, SUMMON_Z);
+        Location base = new Location(world, SUMMON_X, SUMMON_Y, SUMMON_Z);
+        Vector direction = player.getLocation().getDirection();
+        if (direction.lengthSquared() < 0.001) {
+            direction = new Vector(0, 0, 1);
+        }
+        Vector offset = direction.normalize().multiply(BASE_OFFSET);
+        base.add(offset);
+        base.add(0, 1.2, 0);
+        return base;
     }
 
     private int calculateTotalDuration(int pulls) {
         int count = Math.max(1, pulls);
-        return SPAWN_DELAY_TICKS + (count - 1) * SPAWN_INTERVAL_TICKS + GLOW_DELAY_TICKS + END_BUFFER_TICKS;
+        return SPAWN_DELAY_TICKS + (count - 1) * SPAWN_INTERVAL_TICKS + ORBIT_TICKS + END_BUFFER_TICKS;
+    }
+
+    private void startOrbitAnimation(Player player, Item item, Location anchor, double phase, SummonSession session) {
+        BukkitTask task = new org.bukkit.scheduler.BukkitRunnable() {
+            int tick = 0;
+
+            @Override
+            public void run() {
+                if (tick >= ORBIT_TICKS || item.isDead()) {
+                    item.teleport(anchor);
+                    cancel();
+                    return;
+                }
+                double angle = tick * 0.35 + phase;
+                double radius = ORBIT_RADIUS + 0.45 * Math.sin(tick * 0.15 + phase);
+                double height = 0.4 + 0.04 * tick + 0.35 * Math.sin(tick * 0.12 + phase);
+                Location target = anchor.clone().add(
+                        Math.cos(angle) * radius,
+                        height,
+                        Math.sin(angle) * radius);
+                item.teleport(target);
+                player.spawnParticle(Particle.PORTAL, target, 6, 0.1, 0.1, 0.1, 0.01);
+                player.spawnParticle(Particle.END_ROD, target, 1, 0.05, 0.15, 0.05, 0.0);
+                tick++;
+            }
+        }.runTaskTimer(plugin, 0L, 1L);
+        session.tasks.add(task);
+    }
+
+    private void applyVisibility(Player viewer, Item item) {
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                if (player.equals(viewer)) {
+                    player.showEntity(plugin, item);
+                } else {
+                    player.hideEntity(plugin, item);
+                }
+            }
+        }, 1L);
     }
 
     private void checkCutsceneState(Player player) {
