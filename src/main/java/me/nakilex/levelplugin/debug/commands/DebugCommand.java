@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import me.nakilex.levelplugin.Main;
@@ -270,14 +271,14 @@ public class DebugCommand implements TabExecutor {
                     PetChatUtil.send(petPlayer, "Amount must be at least 1.");
                     return true;
                 }
-                PetPullResult result = petManager.pullPets(petPlayer, amount);
-                if (result.kept().isEmpty() && result.discarded().isEmpty()) {
+                PetPullResult pullResult = petManager.pullPets(petPlayer, amount);
+                if (pullResult.kept().isEmpty() && pullResult.discarded().isEmpty()) {
                     PetChatUtil.send(petPlayer, "No pets available to pull.");
                     return true;
                 }
                 PetChatUtil.send(petPlayer, ChatColor.YELLOW + "Pet pulls:");
-                sendPetPullSummary(petPlayer, "Pulled", result.kept());
-                sendPetPullSummary(petPlayer, "Auto-discarded", result.discarded());
+                sendPetPullSummary(petPlayer, "Pulled", pullResult.kept());
+                sendPetPullSummary(petPlayer, "Auto-discarded", pullResult.discarded());
                 return true;
 
             case "spellinput":
