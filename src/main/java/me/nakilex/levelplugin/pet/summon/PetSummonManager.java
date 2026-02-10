@@ -26,6 +26,7 @@ import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerToggleSneakEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.scheduler.BukkitTask;
@@ -620,6 +621,20 @@ public class PetSummonManager implements Listener {
         if (session != null) {
             finishSession(player, false);
         }
+    }
+
+    @EventHandler
+    public void onPlayerToggleSneak(PlayerToggleSneakEvent event) {
+        if (!event.isSneaking()) {
+            return;
+        }
+        Player player = event.getPlayer();
+        SummonSession session = sessions.get(player.getUniqueId());
+        if (session == null) {
+            return;
+        }
+        forceRevealAll(player, session);
+        finishSession(player, true);
     }
 
     @EventHandler
