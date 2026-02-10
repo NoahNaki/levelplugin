@@ -26,13 +26,16 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.scheduler.BukkitTask;
+import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.Set;
 
 public class PetSummonManager implements Listener {
     private static final String CUTSCENE_ID = "pet_pull";
@@ -46,9 +49,9 @@ public class PetSummonManager implements Listener {
     private static final double RING_RADIUS = 3.8;
     private static final double SPIN_TURNS = 3.5;
     private static final String SPAWN_SOUND = "minecraft:entity.experience_orb.pickup";
-    private static final String REVEAL_SOUND = "minecraft:block.beacon.power_select";
+    private static final String REVEAL_SOUND = "minecraft:block.note_block.chime";
     private static final String ORBIT_SOUND = "minecraft:block.amethyst_block.chime";
-    private static final String LEGENDARY_REVEAL_SOUND = "minecraft:entity.firework_rocket.twinkle_far";
+    private static final String LEGENDARY_REVEAL_SOUND = "minecraft:ui.toast.challenge_complete";
     private static final float SPAWN_VOLUME = 0.7f;
     private static final float SPAWN_PITCH = 1.3f;
     private static final float REVEAL_VOLUME = 0.9f;
@@ -73,6 +76,23 @@ public class PetSummonManager implements Listener {
         this.petManager = petManager;
         this.cutsceneManager = cutsceneManager;
     }
+
+    public int getPityPullsSinceLegendary(UUID playerId) {
+        return petManager == null ? 0 : petManager.getPityPullsSinceLegendary(playerId);
+    }
+
+    public int getPityThreshold() {
+        return petManager == null ? 60 : petManager.getPityThreshold();
+    }
+
+    public Map<ItemRarity, Double> getGachaRates() {
+        return petManager == null ? Map.of() : petManager.getGachaRates();
+    }
+
+    public List<ItemRarity> getGachaRarities() {
+        return petManager == null ? List.of() : petManager.getGachaRarities();
+    }
+
 
     public void startSummon(Player player, int amount) {
         if (player == null || petManager == null || cutsceneManager == null) {
@@ -124,6 +144,8 @@ public class PetSummonManager implements Listener {
             if (active != null) {
                 active.updateOrientationFromPlayer(player);
                 active.setFrozenLocation(player.getLocation());
+                hideCutsceneScoreboard(player, active);
+                hideOtherPlayersForCutscene(player, active);
             }
         }, 1L);
 
@@ -200,8 +222,11 @@ public class PetSummonManager implements Listener {
         }
         ItemRarity rarity = definition.rarity();
         if (rarity != null) {
-            var sbManager = plugin.getScoreboardManager();
-            var board = sbManager != null ? sbManager.getBoard(player) : null;
+            Scoreboard board = player.getScoreboard();
+            if (board == null) {
+                var sbManager = plugin.getScoreboardManager();
+                board = sbManager != null ? sbManager.getBoard(player) : null;
+            }
             GlowUtil.applyGlowWithColor(item, rarity.getColor(), board);
         }
     }
@@ -481,6 +506,8 @@ public class PetSummonManager implements Listener {
                 item.remove();
             }
         }
+        showOtherPlayersAfterCutscene(player, session);
+        restoreCutsceneScoreboard(player, session);
         if (teleport) {
             Location returnLocation = session.returnLocation;
             if (returnLocation != null) {
@@ -491,6 +518,58 @@ public class PetSummonManager implements Listener {
             PetPullSummaryUtil.sendSummary(player, "Pulled", session.pulls.kept());
             PetPullSummaryUtil.sendSummary(player, "Auto-discarded", session.pulls.discarded());
         }
+    }
+
+    private void hideCutsceneScoreboard(Player player, SummonSession session) {
+        if (player == null || session == null) {
+            return;
+        }
+        session.originalScoreboard = player.getScoreboard();
+        var manager = Bukkit.getScoreboardManager();
+        if (manager == null) {
+            return;
+        }
+        player.setScoreboard(manager.getNewScoreboard());
+    }
+
+    private void restoreCutsceneScoreboard(Player player, SummonSession session) {
+        if (player == null || session == null) {
+            return;
+        }
+        if (session.originalScoreboard != null) {
+            player.setScoreboard(session.originalScoreboard);
+            return;
+        }
+        var manager = Bukkit.getScoreboardManager();
+        if (manager != null) {
+            player.setScoreboard(manager.getMainScoreboard());
+        }
+    }
+
+    private void hideOtherPlayersForCutscene(Player viewer, SummonSession session) {
+        if (viewer == null || session == null) {
+            return;
+        }
+        for (Player other : Bukkit.getOnlinePlayers()) {
+            if (other.getUniqueId().equals(viewer.getUniqueId())) {
+                continue;
+            }
+            viewer.hideEntity(plugin, other);
+            session.hiddenPlayers.add(other.getUniqueId());
+        }
+    }
+
+    private void showOtherPlayersAfterCutscene(Player viewer, SummonSession session) {
+        if (viewer == null || session == null) {
+            return;
+        }
+        for (UUID hiddenId : Set.copyOf(session.hiddenPlayers)) {
+            Player hidden = Bukkit.getPlayer(hiddenId);
+            if (hidden != null && hidden.isOnline()) {
+                viewer.showEntity(plugin, hidden);
+            }
+        }
+        session.hiddenPlayers.clear();
     }
 
     @EventHandler
@@ -514,6 +593,15 @@ public class PetSummonManager implements Listener {
             petManager.clearPendingSummonReturn(player.getUniqueId());
             PetChatUtil.send(player, "Your pet summon was interrupted; you were returned safely.");
         });
+
+        for (Map.Entry<UUID, SummonSession> activeEntry : sessions.entrySet()) {
+            Player viewer = Bukkit.getPlayer(activeEntry.getKey());
+            if (viewer == null || !viewer.isOnline()) {
+                continue;
+            }
+            viewer.hideEntity(plugin, player);
+            activeEntry.getValue().hiddenPlayers.add(player.getUniqueId());
+        }
     }
 
     private static class SummonSession {
@@ -526,11 +614,13 @@ public class PetSummonManager implements Listener {
         private final int totalReveals;
         private final int spinTicks;
         private final int summonCost;
+        private final Set<UUID> hiddenPlayers = new HashSet<>();
         private Location center;
         private Vector right;
         private Vector up;
         private Location frozenLocation;
         private org.bukkit.scheduler.BukkitRunnable spinTask;
+        private Scoreboard originalScoreboard;
         private double spinProgress;
         private int revealsDone;
 
@@ -549,6 +639,7 @@ public class PetSummonManager implements Listener {
             this.frozenLocation = null;
             this.spinProgress = 0.0;
             this.revealsDone = 0;
+            this.originalScoreboard = null;
         }
 
         private void updateOrientationFromPlayer(Player player) {

@@ -14,6 +14,7 @@ public class PetProfile {
     private ItemRarity autoDiscardRarity;
     private Location pendingSummonReturn;
     private boolean autoSkipSummonAnimation;
+    private int pityPullsSinceLegendary;
     private final Map<String, Integer> petXp = new HashMap<>();
     private final Map<String, Integer> petTiers = new HashMap<>();
     private final Map<String, Integer> petCopies = new HashMap<>();
@@ -49,6 +50,15 @@ public class PetProfile {
     public void setAutoSkipSummonAnimation(boolean autoSkipSummonAnimation) {
         this.autoSkipSummonAnimation = autoSkipSummonAnimation;
     }
+
+    public int pityPullsSinceLegendary() {
+        return Math.max(0, pityPullsSinceLegendary);
+    }
+
+    public void setPityPullsSinceLegendary(int pityPullsSinceLegendary) {
+        this.pityPullsSinceLegendary = Math.max(0, pityPullsSinceLegendary);
+    }
+
     public Location pendingSummonReturn() {
         return pendingSummonReturn == null ? null : pendingSummonReturn.clone();
     }

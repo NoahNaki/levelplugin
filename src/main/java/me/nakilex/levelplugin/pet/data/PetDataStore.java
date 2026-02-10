@@ -69,6 +69,7 @@ public class PetDataStore {
                 }
             }
             profile.setAutoSkipSummonAnimation(config.getBoolean(root + ".summon.auto-skip-animation", false));
+            profile.setPityPullsSinceLegendary(config.getInt(root + ".summon.pity-legendary", 0));
             String petRoot = root + ".pets";
             var section = config.getConfigurationSection(petRoot);
             if (section != null) {
@@ -109,6 +110,7 @@ public class PetDataStore {
         }
         config.set(root + ".summon.return", profile.pendingSummonReturn());
         config.set(root + ".summon.auto-skip-animation", profile.autoSkipSummonAnimation());
+        config.set(root + ".summon.pity-legendary", profile.pityPullsSinceLegendary());
     }
 
     private void saveConfig() {

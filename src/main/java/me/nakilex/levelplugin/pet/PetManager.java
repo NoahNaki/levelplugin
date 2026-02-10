@@ -45,6 +45,7 @@ public class PetManager {
     private static final double TELEPORT_DISTANCE = 32.0;
     private static final double FOLLOW_DISTANCE = 4.0;
     private static final int MAX_TIER = 5;
+    private static final int PITY_THRESHOLD = 60;
     private static final List<ItemRarity> GACHA_RARITIES = List.of(
             ItemRarity.COMMON,
             ItemRarity.UNCOMMON,
@@ -127,6 +128,26 @@ public class PetManager {
 
     public List<ItemRarity> getGachaRarities() {
         return GACHA_RARITIES;
+    }
+
+    public Map<ItemRarity, Double> getGachaRates() {
+        return Collections.unmodifiableMap(GACHA_WEIGHTS);
+    }
+
+    public int getPityThreshold() {
+        return PITY_THRESHOLD;
+    }
+
+    public int getPityPullsSinceLegendary(UUID playerId) {
+        if (playerId == null) {
+            return 0;
+        }
+        return dataStore.getProfile(playerId).pityPullsSinceLegendary();
+    }
+
+    public int getPullsUntilPityLegendary(UUID playerId) {
+        int current = getPityPullsSinceLegendary(playerId);
+        return Math.max(0, PITY_THRESHOLD - current);
     }
 
     public int getMaxTier() {
@@ -515,12 +536,18 @@ public class PetManager {
         Random random = ThreadLocalRandom.current();
         Map<ItemRarity, Double> weights = buildRarityWeights(pools);
         for (int i = 0; i < amount; i++) {
-            ItemRarity rarity = me.nakilex.levelplugin.utils.RandomUtil.pickWeighted(random, weights);
-            List<PetDefinition> options = pools.get(rarity);
-            if (options == null || options.isEmpty()) {
+            boolean pityGuaranteed = profile.pityPullsSinceLegendary() >= (PITY_THRESHOLD - 1);
+            PetDefinition def = rollPullDefinition(random, pools, weights, pityGuaranteed);
+            if (def == null) {
                 continue;
             }
-            PetDefinition def = options.get(random.nextInt(options.size()));
+
+            if (isLegendaryOrAbove(def.rarity())) {
+                profile.setPityPullsSinceLegendary(0);
+            } else {
+                profile.setPityPullsSinceLegendary(profile.pityPullsSinceLegendary() + 1);
+            }
+
             if (shouldDiscard(def, profile.autoDiscardRarity())) {
                 discarded.merge(def, 1, Integer::sum);
                 pulls.add(new PetPullEntry(def, false));
@@ -661,6 +688,57 @@ public class PetManager {
 
     public Map<String, PetDefinition> getDefinitions() {
         return Collections.unmodifiableMap(definitions);
+    }
+
+    private PetDefinition rollPullDefinition(Random random,
+                                         Map<ItemRarity, List<PetDefinition>> pools,
+                                         Map<ItemRarity, Double> weights,
+                                         boolean pityGuaranteed) {
+        if (random == null || pools == null || pools.isEmpty()) {
+            return null;
+        }
+        ItemRarity rarity = null;
+        if (pityGuaranteed) {
+            rarity = pickWeightedRarityAtOrAbove(random, pools, ItemRarity.LEGENDARY);
+        }
+        if (rarity == null) {
+            rarity = me.nakilex.levelplugin.utils.RandomUtil.pickWeighted(random, weights);
+        }
+        if (rarity == null) {
+            return null;
+        }
+        List<PetDefinition> options = pools.get(rarity);
+        if (options == null || options.isEmpty()) {
+            return null;
+        }
+        return options.get(random.nextInt(options.size()));
+    }
+
+    private ItemRarity pickWeightedRarityAtOrAbove(Random random,
+                                                   Map<ItemRarity, List<PetDefinition>> pools,
+                                                   ItemRarity minimum) {
+        if (random == null || minimum == null || pools == null || pools.isEmpty()) {
+            return null;
+        }
+        Map<ItemRarity, Double> eligible = new EnumMap<>(ItemRarity.class);
+        for (Map.Entry<ItemRarity, List<PetDefinition>> entry : pools.entrySet()) {
+            ItemRarity rarity = entry.getKey();
+            if (rarity == null || rarity.ordinal() < minimum.ordinal()) {
+                continue;
+            }
+            if (entry.getValue() == null || entry.getValue().isEmpty()) {
+                continue;
+            }
+            eligible.put(rarity, GACHA_WEIGHTS.getOrDefault(rarity, 1.0));
+        }
+        if (eligible.isEmpty()) {
+            return null;
+        }
+        return me.nakilex.levelplugin.utils.RandomUtil.pickWeighted(random, eligible);
+    }
+
+    private boolean isLegendaryOrAbove(ItemRarity rarity) {
+        return rarity != null && rarity.ordinal() >= ItemRarity.LEGENDARY.ordinal();
     }
 
     private Map<ItemRarity, List<PetDefinition>> buildRarityPools() {

@@ -28,6 +28,7 @@ public class PetSummonGUI implements Listener {
     private static final int GUI_SIZE = 27;
     private static final int SINGLE_SLOT = 11;
     private static final int TEN_SLOT = 15;
+    private static final int INFO_SLOT = 8;
     private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
     private final PetSummonManager summonManager;
     private final String title = ChatUtil.applyEmojis("§8Pet Summon");
@@ -65,25 +66,64 @@ public class PetSummonGUI implements Listener {
     private List<GuiWidget> buildWidgets(Player player) {
         List<GuiWidget> widgets = new ArrayList<>();
         widgets.add(new ActionWidget(SINGLE_SLOT, ctx -> createOptionItem(
-                        Material.NETHER_STAR,
+                        player, Material.NETHER_STAR,
                         "§a1x Pet Pull",
                         "Summon 1 random pet", PetSummonManager.summonCostForAmount(1)),
                 (click, context) -> handleSummon(player, 1)));
         widgets.add(new ActionWidget(TEN_SLOT, ctx -> createOptionItem(
-                        Material.BEACON,
+                        player, Material.BEACON,
                         "§b10x Pet Pull",
                         "Summon 10 random pets", PetSummonManager.summonCostForAmount(10)),
                 (click, context) -> handleSummon(player, 10)));
+        widgets.add(new ActionWidget(INFO_SLOT, ctx -> createRatesInfoItem(player), (click, context) -> {}));
         return widgets;
     }
 
-    private ItemStack createOptionItem(Material material, String name, String action, int cost) {
+    private ItemStack createOptionItem(Player player, Material material, String name, String action, int cost) {
         List<String> lore = new ArrayList<>();
         lore.add(" ");
         lore.addAll(TooltipUtil.bulletList(action, "Cost: " + cost + " <glyph:purple_orb_icon>"));
         lore.add(" ");
+        lore.addAll(buildPityLore(player));
+        lore.add(" ");
         lore.addAll(TooltipUtil.clickInstructions("to confirm", null));
         return GuiUtil.createGuiItem(material, name, lore);
+    }
+
+
+    private List<String> buildPityLore(Player player) {
+        List<String> lore = new ArrayList<>();
+        int threshold = summonManager.getPityThreshold();
+        int current = summonManager.getPityPullsSinceLegendary(player.getUniqueId());
+        int clamped = Math.max(0, Math.min(current, threshold));
+        int remaining = Math.max(0, threshold - clamped);
+        lore.add("§ePity Progress");
+        lore.add(TooltipUtil.progressBar(clamped, threshold, 15));
+        lore.add("§7Pulls: §f" + clamped + "§7/§f" + threshold);
+        if (remaining > 0) {
+            lore.add("§7Guaranteed Legendary+ in §e" + remaining + "§7 pull(s)");
+        } else {
+            lore.add("§aGuaranteed Legendary+ on next pull");
+        }
+        return lore;
+    }
+
+    private ItemStack createRatesInfoItem(Player player) {
+        List<String> lore = new ArrayList<>();
+        lore.add(" ");
+        lore.add("§7Base pull rates:");
+        var rates = summonManager.getGachaRates();
+        for (var rarity : summonManager.getGachaRarities()) {
+            String name = rarity.name().toLowerCase(java.util.Locale.ROOT);
+            String label = name.substring(0, 1).toUpperCase(java.util.Locale.ROOT) + name.substring(1);
+            lore.add("§7• " + rarity.getColor() + label + "§7: §f" + String.format("%.1f", rates.getOrDefault(rarity, 0.0)) + "%");
+        }
+        lore.add(" ");
+        lore.add("§7Pity: §f" + summonManager.getPityThreshold() + " pulls");
+        lore.add("§7Legendary+ resets pity counter.");
+        lore.add(" ");
+        lore.addAll(buildPityLore(player));
+        return GuiUtil.getNexoItem("info", "§eSummon Rates", lore);
     }
 
     private void handleSummon(Player player, int amount) {
