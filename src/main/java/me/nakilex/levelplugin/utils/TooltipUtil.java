@@ -113,6 +113,20 @@ public final class TooltipUtil {
         return lore;
     }
 
+
+    /**
+     * Format a standard bullet lore line.
+     *
+     * @param content line content placed after the bullet
+     * @return formatted bullet line
+     */
+    public static String bulletLine(String content) {
+        if (content == null) {
+            return ChatColor.DARK_GRAY + "• " + ChatColor.GRAY;
+        }
+        return ChatColor.DARK_GRAY + "• " + content;
+    }
+
     /**
      * Generate a coloured bullet list using the standard grey styling. This is useful for
      * describing key points in GUI tooltips without hand-writing the prefix every time.
@@ -129,7 +143,7 @@ public final class TooltipUtil {
             if (entry == null || entry.isBlank()) {
                 continue;
             }
-            lore.add(ChatColor.DARK_GRAY + "• " + ChatColor.GRAY + entry.trim());
+            lore.add(bulletLine(ChatColor.GRAY + entry.trim()));
         }
         return lore;
     }

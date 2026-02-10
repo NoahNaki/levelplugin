@@ -32,25 +32,36 @@ public final class PetTooltipUtil {
         lore.add(progressBarLine(definition, level, currentXp));
 
         lore.add(" ");
-        if (ownershipStats != null && !ownershipStats.isEmpty()) {
-            lore.add(TooltipUtil.sectionHeader("Ownership Effect"));
-            for (StatType stat : StatType.DISPLAY_ORDER) {
-                int value = ownershipStats.getOrDefault(stat, 0);
-                if (value != 0) {
-                    lore.add(ChatColor.GRAY + "• " + GuiUtil.formatStatLine(stat, value, false));
-                }
-            }
-            lore.add(" ");
-        }
-        if (!effects.isEmpty()) {
-            lore.add(TooltipUtil.sectionHeader("Equipped Effect"));
-            for (PetEffectDefinition effect : effects) {
-                String line = ChatColor.GRAY + "• " + ChatColor.WHITE + formatEffect(effect);
-                lore.addAll(TooltipUtil.wrapLoreLine(line, 220, ChatColor.DARK_GRAY + "  " + ChatColor.GRAY));
-            }
-            lore.add(" ");
-        }
+        appendOwnershipSection(lore, ownershipStats);
+        appendEffectSection(lore, effects);
         return lore;
+    }
+
+    private static void appendOwnershipSection(List<String> lore, Map<StatType, Integer> ownershipStats) {
+        if (ownershipStats == null || ownershipStats.isEmpty()) {
+            return;
+        }
+        lore.add(TooltipUtil.sectionHeader("Ownership Effect"));
+        for (StatType stat : StatType.DISPLAY_ORDER) {
+            int value = ownershipStats.getOrDefault(stat, 0);
+            if (value == 0) {
+                continue;
+            }
+            lore.add(TooltipUtil.bulletLine(GuiUtil.formatStatLine(stat, value, false)));
+        }
+        lore.add(" ");
+    }
+
+    private static void appendEffectSection(List<String> lore, List<PetEffectDefinition> effects) {
+        if (effects == null || effects.isEmpty()) {
+            return;
+        }
+        lore.add(TooltipUtil.sectionHeader("Equipped Effect"));
+        for (PetEffectDefinition effect : effects) {
+            String line = TooltipUtil.bulletLine(ChatColor.WHITE + formatEffect(effect));
+            lore.addAll(TooltipUtil.wrapLoreLine(line, 220, ChatColor.DARK_GRAY + "  " + ChatColor.GRAY));
+        }
+        lore.add(" ");
     }
 
     private static String formatEffect(PetEffectDefinition effect) {
