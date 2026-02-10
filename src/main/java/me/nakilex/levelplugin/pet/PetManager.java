@@ -7,6 +7,7 @@ import me.nakilex.levelplugin.pet.data.PetProfile;
 import me.nakilex.levelplugin.pet.utils.PetChatUtil;
 import me.nakilex.levelplugin.pet.utils.PetDisplayUtil;
 import me.nakilex.levelplugin.utils.ModelEngineUtil;
+import me.nakilex.levelplugin.utils.EntityTextDisplay;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
 import org.bukkit.Bukkit;
@@ -15,8 +16,8 @@ import org.bukkit.World;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.Interaction;
 import org.bukkit.entity.Player;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -31,9 +32,13 @@ import java.util.concurrent.ThreadLocalRandom;
 public class PetManager {
     public static final String PET_TAG = "pet_entity";
     public static final String PET_OWNER_META = "lp_pet_owner";
+    public static final String PET_DISPLAY_META = "lp_pet_display";
 
     private static final double TELEPORT_DISTANCE = 32.0;
     private static final double FOLLOW_DISTANCE = 4.0;
+    private static final double FOLLOW_STEP_DISTANCE = 0.45;
+    private static final long FOLLOW_INITIAL_DELAY_TICKS = 2L;
+    private static final long FOLLOW_UPDATE_TICKS = 1L;
     private static final int MAX_TIER = 5;
     private static final int PITY_THRESHOLD = 60;
     private static final List<ItemRarity> GACHA_RARITIES = List.of(
@@ -155,22 +160,61 @@ public class PetManager {
         return Optional.ofNullable(definitions.get(id.toLowerCase(Locale.ROOT)));
     }
 
+
+    public boolean isManagedPetEntity(Entity entity) {
+        if (entity == null) {
+            return false;
+        }
+        if (entity.getScoreboardTags().contains(PET_TAG)) {
+            return true;
+        }
+        if (!entity.hasMetadata(PET_OWNER_META)) {
+            return false;
+        }
+        for (var value : entity.getMetadata(PET_OWNER_META)) {
+            if (value != null && value.asString() != null && !value.asString().isBlank()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public Optional<PetInstance> getActivePet(UUID ownerId) {
         return Optional.ofNullable(activePets.get(ownerId));
     }
 
     public void handlePlayerJoin(Player player) {
-        PetProfile profile = dataStore.getProfile(player.getUniqueId());
-        String activeId = profile.activePetId();
+        if (player == null) {
+            return;
+        }
+        // Do not auto-summon on join. Profiles may not be selected yet,
+        // and different profiles can have different active pets.
+        // Summoning is handled after explicit profile activation.
         recordMovement(player.getUniqueId());
         refreshOwnershipBonuses(player.getUniqueId());
-        if (activeId != null && !activeId.isBlank()) {
-            summonPet(player, activeId);
+        removePetEntities(player.getUniqueId());
+    }
+
+
+    public void handleProfileActivated(Player player) {
+        if (player == null) {
+            return;
         }
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            if (!player.isOnline()) {
+                return;
+            }
+            dismissPet(player, false);
+            PetProfile profile = dataStore.getProfile(player.getUniqueId());
+            String activeId = profile.activePetId();
+            if (activeId != null && !activeId.isBlank()) {
+                summonPet(player, activeId);
+            }
+        }, 2L);
     }
 
     public void handlePlayerQuit(Player player) {
-        dismissPet(player);
+        dismissPet(player, false);
         dataStore.saveProfile(player.getUniqueId());
         clearPlayerState(player.getUniqueId());
     }
@@ -288,37 +332,44 @@ public class PetManager {
             return false;
         }
 
-        String displayName = PetDisplayUtil.formatDisplayName(def);
-        ArmorStand stand = world.spawn(spawnLoc, ArmorStand.class, entity -> {
-            entity.setCustomNameVisible(true);
-            entity.setCustomName(displayName);
+        int xp = profile.getPetXp(def.id());
+        int tier = profile.getPetTier(def.id());
+        int level = PetProgression.levelFromXp(xp, def.xpPerLevel(), def.maxLevel());
+        String displayName = PetDisplayUtil.formatSummonedName(player.getName(), def, level);
+        Interaction anchor = world.spawn(spawnLoc, Interaction.class, entity -> {
+            entity.setInteractionWidth(0.8f);
+            entity.setInteractionHeight(0.8f);
             entity.setGravity(false);
-            entity.setSmall(true);
             entity.setInvulnerable(true);
             entity.setPersistent(false);
             entity.addScoreboardTag(PET_TAG);
         });
-        stand.setMetadata(PET_OWNER_META, new FixedMetadataValue(plugin, player.getUniqueId().toString()));
+        String ownerToken = player.getUniqueId().toString();
+        anchor.setMetadata(PET_OWNER_META, new FixedMetadataValue(plugin, ownerToken));
 
         if (!def.modelIds().isEmpty()) {
-            ModelEngineUtil.applyModels(stand, def.modelIds(), plugin);
+            ModelEngineUtil.applyModels(anchor, def.modelIds(), plugin);
         }
 
         profile.setActivePetId(def.id());
-        int xp = profile.getPetXp(def.id());
-        int tier = profile.getPetTier(def.id());
-        int level = PetProgression.levelFromXp(xp, def.xpPerLevel(), def.maxLevel());
-        PetInstance instance = new PetInstance(player.getUniqueId(), def, stand.getUniqueId(), level, xp, tier);
+        PetInstance instance = new PetInstance(player.getUniqueId(), def, anchor.getUniqueId(), level, xp, tier);
+        EntityTextDisplay hologram = new EntityTextDisplay(plugin, anchor, 1.15);
+        hologram.update(displayName);
+        instance.setNameDisplay(hologram);
         activePets.put(player.getUniqueId(), instance);
 
         applyBonuses(player, instance);
-        startFollowTask(player, stand, instance);
+        startFollowTask(player, anchor, instance);
         startEffectTask(instance);
         PetChatUtil.send(player, "Summoned " + displayName + ".");
         return true;
     }
 
     public boolean dismissPet(Player player) {
+        return dismissPet(player, true);
+    }
+
+    public boolean dismissPet(Player player, boolean clearActiveSelection) {
         if (player == null) {
             return false;
         }
@@ -334,8 +385,10 @@ public class PetManager {
         if (entity != null) {
             entity.remove();
         }
-        PetProfile profile = dataStore.getProfile(player.getUniqueId());
-        profile.setActivePetId(null);
+        if (clearActiveSelection) {
+            PetProfile profile = dataStore.getProfile(player.getUniqueId());
+            profile.setActivePetId(null);
+        }
         return true;
     }
 
@@ -578,7 +631,7 @@ public class PetManager {
         for (UUID ownerId : Set.copyOf(activePets.keySet())) {
             Player player = Bukkit.getPlayer(ownerId);
             if (player != null) {
-                dismissPet(player);
+                dismissPet(player, false);
             } else {
                 PetInstance instance = activePets.remove(ownerId);
                 if (instance != null) {
@@ -799,6 +852,7 @@ public class PetManager {
             removeBonuses(player, instance);
             applyBonuses(player, instance);
             startEffectTask(instance);
+            refreshSummonedPetDisplayName(player, instance);
             PetChatUtil.send(player, def.displayName() + " reached level " + newLevel + "!");
         }
     }
@@ -811,39 +865,66 @@ public class PetManager {
         instance.setAppliedStats(Collections.emptyMap());
     }
 
-    private void startFollowTask(Player player, ArmorStand stand, PetInstance instance) {
+    private void startFollowTask(Player player, Interaction anchor, PetInstance instance) {
         BukkitTask task = new BukkitRunnable() {
             private double ticks = 0;
 
             @Override
             public void run() {
-                if (!player.isOnline() || stand.isDead()) {
+                if (!player.isOnline() || anchor.isDead()) {
                     cancel();
                     return;
                 }
-                ticks += 10;
+                ticks += 2;
                 Location ownerLoc = player.getLocation();
-                Location petLoc = stand.getLocation();
+                Location petLoc = anchor.getLocation();
                 double bob = Math.sin(ticks / 20.0) * 0.12;
                 Location desired = ownerLoc.clone().add(0.8, 0.4 + bob, 0.8);
+                desired = faceTarget(desired, ownerLoc);
                 double distance = ownerLoc.distance(petLoc);
                 if (distance > TELEPORT_DISTANCE) {
-                    stand.teleport(desired);
+                    anchor.teleport(desired);
                     return;
                 }
                 if (distance > FOLLOW_DISTANCE) {
-                    Vector direction = desired.toVector().subtract(petLoc.toVector()).normalize();
-                    Location target = petLoc.add(direction.multiply(1.2));
-                    target.setY(desired.getY());
-                    stand.teleport(target);
-                } else {
-                    Location hover = petLoc.clone();
-                    hover.setY(desired.getY());
-                    stand.teleport(hover);
+                    Vector delta = desired.toVector().subtract(petLoc.toVector());
+                    if (delta.lengthSquared() > 0.0001) {
+                        Vector step = delta.normalize().multiply(Math.min(FOLLOW_STEP_DISTANCE, delta.length()));
+                        Location target = petLoc.clone().add(step);
+                        target.setY(desired.getY());
+                        target = faceTarget(target, ownerLoc);
+                        anchor.teleport(target);
+                        return;
+                    }
                 }
+                Location hover = petLoc.clone();
+                hover.setY(desired.getY());
+                hover = faceTarget(hover, ownerLoc);
+                anchor.teleport(hover);
             }
-        }.runTaskTimer(plugin, 5L, 3L);
+        }.runTaskTimer(plugin, FOLLOW_INITIAL_DELAY_TICKS, FOLLOW_UPDATE_TICKS);
         instance.setFollowTask(task);
+    }
+
+
+    private void refreshSummonedPetDisplayName(Player player, PetInstance instance) {
+        if (player == null || instance == null || instance.nameDisplay() == null) {
+            return;
+        }
+        String customName = PetDisplayUtil.formatSummonedName(player.getName(), instance.definition(), instance.level());
+        instance.nameDisplay().update(customName);
+    }
+
+    private Location faceTarget(Location source, Location target) {
+        if (source == null || target == null) {
+            return source;
+        }
+        Vector dir = target.toVector().subtract(source.toVector());
+        if (dir.lengthSquared() <= 0.0001) {
+            return source;
+        }
+        source.setDirection(dir);
+        return source;
     }
 
     private void startEffectTask(PetInstance instance) {

@@ -13,10 +13,14 @@ import me.nakilex.levelplugin.pet.utils.PetDisplayUtil;
 import me.nakilex.levelplugin.pet.utils.PetPullSummaryUtil;
 import me.nakilex.levelplugin.utils.BetterHudUtil;
 import me.nakilex.levelplugin.utils.GlowUtil;
+import me.nakilex.levelplugin.utils.ModelEngineUtil;
 import org.bukkit.*;
 import org.bukkit.World;
+import org.bukkit.entity.Interaction;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.TextDisplay;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerMoveEvent;
@@ -66,6 +70,8 @@ public class PetSummonManager implements Listener {
     private static final double SUMMON_Z = -203;
     private static final int SINGLE_PULL_COST = 100;
     private static final int TEN_PULL_COST = 900;
+    private static final double REVEAL_MODEL_VERTICAL_OFFSET = -0.9;
+    private static final double REVEAL_NAME_VERTICAL_OFFSET = 1.55;
 
     private final Main plugin;
     private final PetManager petManager;
@@ -189,7 +195,9 @@ public class PetSummonManager implements Listener {
             Item item = spawnSummonItem(session.center, entry.definition());
             item.setCustomNameVisible(false);
             session.spawned.add(item);
-            session.entries.add(new SummonEntry(item, entry.definition(), index));
+            Interaction modelAnchor = spawnModelAnchor(item.getLocation());
+            session.entries.add(new SummonEntry(item, modelAnchor, entry.definition(), index));
+            applyVisibility(player, modelAnchor);
             applyVisibility(player, item);
             startSpinTask(player, session);
             playSound(player, SPAWN_SOUND, SPAWN_VOLUME, SPAWN_PITCH);
@@ -215,6 +223,57 @@ public class PetSummonManager implements Listener {
         return item;
     }
 
+    private Interaction spawnModelAnchor(Location location) {
+        World world = location == null ? null : location.getWorld();
+        if (world == null) {
+            return null;
+        }
+        Location spawn = location.clone().add(0, REVEAL_MODEL_VERTICAL_OFFSET, 0);
+        return world.spawn(spawn, Interaction.class, inter -> {
+            inter.setInteractionWidth(0.8f);
+            inter.setInteractionHeight(0.8f);
+            inter.setGravity(false);
+            inter.setInvulnerable(true);
+            inter.setPersistent(false);
+        });
+    }
+
+    private void revealModelForEntry(SummonEntry entry) {
+        if (entry == null || entry.modelAnchor() == null || entry.modelAnchor().isDead()) {
+            return;
+        }
+        if (entry.definition().modelIds().isEmpty()) {
+            return;
+        }
+        ModelEngineUtil.applyModels(entry.modelAnchor(), entry.definition().modelIds(), plugin);
+    }
+
+    private void showRevealName(SummonEntry entry) {
+        if (entry == null || entry.item().isDead()) {
+            return;
+        }
+        if (entry.nameDisplay() != null && !entry.nameDisplay().isDead()) {
+            return;
+        }
+        Location base = entry.modelAnchor() != null && !entry.modelAnchor().isDead()
+                ? entry.modelAnchor().getLocation()
+                : entry.item().getLocation();
+        Location labelLoc = base.clone().add(0, REVEAL_NAME_VERTICAL_OFFSET, 0);
+        TextDisplay display = labelLoc.getWorld().spawn(labelLoc, TextDisplay.class);
+        display.setBillboard(org.bukkit.entity.Display.Billboard.CENTER);
+        display.setBackgroundColor(Color.fromARGB(0, 0, 0, 0));
+        display.setShadowed(false);
+        display.setText(PetDisplayUtil.formatDisplayName(entry.definition()));
+        entry.setNameDisplay(display);
+    }
+
+    private void removeRevealPlaceholder(SummonEntry entry) {
+        if (entry == null || entry.item().isDead()) {
+            return;
+        }
+        entry.item().remove();
+    }
+
     private ItemStack createSummonStack(PetDefinition definition) {
         ItemStack stack = new ItemStack(Material.NETHER_STAR);
         ItemMeta meta = stack.getItemMeta();
@@ -238,6 +297,18 @@ public class PetSummonManager implements Listener {
             }
             GlowUtil.applyGlowWithColor(item, rarity.getColor(), board);
         }
+    }
+
+    private Location faceTarget(Location source, Location target) {
+        if (source == null || target == null) {
+            return source;
+        }
+        Vector direction = target.toVector().subtract(source.toVector());
+        if (direction.lengthSquared() <= 0.0001) {
+            return source;
+        }
+        source.setDirection(direction);
+        return source;
     }
 
     private int calculateTotalDuration(SummonSession session) {
@@ -298,6 +369,14 @@ public class PetSummonManager implements Listener {
                     .add(right.clone().multiply(Math.cos(theta) * radius))
                     .add(up.clone().multiply(Math.sin(theta) * radius));
             applySmoothVelocity(entry.item(), target);
+            if (entry.modelAnchor() != null && !entry.modelAnchor().isDead()) {
+                Location modelLoc = target.clone().add(0, REVEAL_MODEL_VERTICAL_OFFSET, 0);
+                modelLoc = faceTarget(modelLoc, player.getEyeLocation());
+                entry.modelAnchor().teleport(modelLoc);
+            }
+            if (entry.nameDisplay() != null && !entry.nameDisplay().isDead()) {
+                entry.nameDisplay().teleport(target.clone().add(0, REVEAL_NAME_VERTICAL_OFFSET, 0));
+            }
             player.spawnParticle(Particle.PORTAL, target, 4, 0.08, 0.08, 0.08, 0.01);
         }
     }
@@ -314,7 +393,10 @@ public class PetSummonManager implements Listener {
                     return;
                 }
                 entry.item().setCustomNameVisible(true);
+                revealModelForEntry(entry);
+                showRevealName(entry);
                 applyGlow(player, entry.item(), entry.definition());
+                removeRevealPlaceholder(entry);
                 spawnRevealParticles(player, entry.item().getLocation(), entry.definition().rarity());
                 playRevealSound(player, entry.definition().rarity());
                 session.revealsDone++;
@@ -349,13 +431,19 @@ public class PetSummonManager implements Listener {
         }
     }
 
-    private void applyVisibility(Player viewer, Item item) {
+    private void applyVisibility(Player viewer, Entity entity) {
+        if (viewer == null || entity == null || entity.isDead()) {
+            return;
+        }
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            if (entity.isDead()) {
+                return;
+            }
             for (Player player : Bukkit.getOnlinePlayers()) {
                 if (player.equals(viewer)) {
-                    player.showEntity(plugin, item);
+                    player.showEntity(plugin, entity);
                 } else {
-                    player.hideEntity(plugin, item);
+                    player.hideEntity(plugin, entity);
                 }
             }
         }, 1L);
@@ -476,7 +564,10 @@ public class PetSummonManager implements Listener {
                 continue;
             }
             entry.item().setCustomNameVisible(true);
+            revealModelForEntry(entry);
+            showRevealName(entry);
             applyGlow(player, entry.item(), entry.definition());
+            removeRevealPlaceholder(entry);
             spawnRevealParticles(player, entry.item().getLocation(), entry.definition().rarity());
         }
         session.revealsDone = session.totalReveals;
@@ -513,6 +604,16 @@ public class PetSummonManager implements Listener {
         for (Item item : session.spawned) {
             if (item != null && !item.isDead()) {
                 item.remove();
+            }
+        }
+        for (SummonEntry entry : session.entries) {
+            Interaction modelAnchor = entry.modelAnchor();
+            if (modelAnchor != null && !modelAnchor.isDead()) {
+                modelAnchor.remove();
+            }
+            TextDisplay revealName = entry.nameDisplay();
+            if (revealName != null && !revealName.isDead()) {
+                revealName.remove();
             }
         }
         showOtherPlayersAfterCutscene(player, session);
@@ -734,5 +835,25 @@ public class PetSummonManager implements Listener {
         }
     }
 
-    private record SummonEntry(Item item, PetDefinition definition, int index) {}
+    private static class SummonEntry {
+        private final Item item;
+        private final Interaction modelAnchor;
+        private final PetDefinition definition;
+        private final int index;
+        private TextDisplay nameDisplay;
+
+        private SummonEntry(Item item, Interaction modelAnchor, PetDefinition definition, int index) {
+            this.item = item;
+            this.modelAnchor = modelAnchor;
+            this.definition = definition;
+            this.index = index;
+        }
+
+        private Item item() { return item; }
+        private Interaction modelAnchor() { return modelAnchor; }
+        private PetDefinition definition() { return definition; }
+        private int index() { return index; }
+        private TextDisplay nameDisplay() { return nameDisplay; }
+        private void setNameDisplay(TextDisplay nameDisplay) { this.nameDisplay = nameDisplay; }
+    }
 }

@@ -12,10 +12,26 @@ public final class PetDisplayUtil {
         if (definition == null) {
             return "";
         }
+        String stripped = getStrippedPetName(definition);
+        return "" + definition.rarity().getColor() + ChatUtil.applyEmojis(stripped);
+    }
+
+    public static String formatSummonedName(String ownerName, PetDefinition definition, int level) {
+        if (definition == null) {
+            return "";
+        }
+        String safeOwner = ownerName == null || ownerName.isBlank() ? "Unknown" : ownerName;
+        int safeLevel = Math.max(1, level);
+        String petName = getStrippedPetName(definition);
+        ChatColor rarityColor = definition.rarity().getColor();
+        return ChatColor.DARK_GRAY + "[" + ChatColor.GRAY + "Lv" + safeLevel + ChatColor.DARK_GRAY + "] "
+                + rarityColor + ChatUtil.applyEmojis(safeOwner + "'s " + petName);
+    }
+
+    private static String getStrippedPetName(PetDefinition definition) {
         String raw = definition.displayName() == null || definition.displayName().isBlank()
                 ? definition.id()
                 : definition.displayName();
-        String stripped = ChatColor.stripColor(raw);
-        return "" + definition.rarity().getColor() + ChatUtil.applyEmojis(stripped);
+        return ChatColor.stripColor(raw);
     }
 }

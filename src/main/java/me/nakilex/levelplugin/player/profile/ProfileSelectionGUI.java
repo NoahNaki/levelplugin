@@ -362,6 +362,7 @@ public class ProfileSelectionGUI implements Listener {
         player.closeInventory();
         BetterHudUtil.addHud(player);
         resyncScoreboardAfterHud(player);
+        Main.getInstance().getPetManager().handleProfileActivated(player);
 
     }
 
