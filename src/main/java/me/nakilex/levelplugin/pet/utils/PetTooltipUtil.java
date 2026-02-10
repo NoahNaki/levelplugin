@@ -32,6 +32,7 @@ public final class PetTooltipUtil {
         lore.add(progressBarLine(definition, level, currentXp));
         lore.add(" ");
         if (ownershipStats != null && !ownershipStats.isEmpty()) {
+            lore.add(TooltipUtil.sectionDivider());
             lore.add(TooltipUtil.sectionHeader("Ownership Effect"));
             for (StatType stat : StatType.DISPLAY_ORDER) {
                 int value = ownershipStats.getOrDefault(stat, 0);
@@ -42,6 +43,7 @@ public final class PetTooltipUtil {
             lore.add(" ");
         }
         if (!effects.isEmpty()) {
+            lore.add(TooltipUtil.sectionDivider());
             lore.add(TooltipUtil.sectionHeader("Equipped Effect"));
             for (PetEffectDefinition effect : effects) {
                 String line = ChatColor.GRAY + "• " + ChatColor.WHITE + formatEffect(effect);

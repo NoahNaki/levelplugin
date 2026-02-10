@@ -154,6 +154,27 @@ public final class TooltipUtil {
         return wrapped;
     }
 
+
+    /**
+     * Build a lightweight strikethrough divider line for lore sections.
+     *
+     * @param spaces number of strikethrough spaces to render
+     * @return formatted divider line
+     */
+    public static String sectionDivider(int spaces) {
+        int width = Math.max(10, spaces);
+        return ChatColor.DARK_GRAY + "" + ChatColor.STRIKETHROUGH + " ".repeat(width) + ChatColor.RESET;
+    }
+
+    /**
+     * Build a standard strikethrough divider width for lore sections.
+     *
+     * @return formatted divider line
+     */
+    public static String sectionDivider() {
+        return sectionDivider(30);
+    }
+
     /**
      * Generate standard lore for quest items so they share the same divider and
      * label styling everywhere.

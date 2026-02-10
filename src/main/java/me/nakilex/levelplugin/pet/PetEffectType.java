@@ -43,10 +43,10 @@ public enum PetEffectType {
             value -> "Regen " + ChatColor.GREEN + formatPercent(value)
                     + ChatColor.GRAY + " HP/sec while still"),
     LAST_STAND("last_stand", "Last Stand",
-            value -> "Fatal hit: " + ChatColor.RED + "Immune 5s"
+            value -> "On lethal hit: " + ChatColor.RED + "Immune 5s"
                     + ChatColor.GRAY + ", " + ChatColor.GREEN + "+150% dmg"
                     + ChatColor.GRAY + ", " + ChatColor.AQUA + "+25% speed"
-                    + ChatColor.GRAY + " (10m cd)");
+                    + ChatColor.GRAY + " (10m cooldown)");
 
     private final String id;
     private final String displayName;
