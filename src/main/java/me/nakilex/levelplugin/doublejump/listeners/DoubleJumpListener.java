@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.doublejump.listeners;
 
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
+import me.nakilex.levelplugin.player.classes.data.ClassUtil;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.pet.PetEffectType;
 import me.nakilex.levelplugin.pet.PetManager;
@@ -30,14 +31,12 @@ public class DoubleJumpListener implements Listener {
     private static final double MAX_FORWARD_VELOCITY     = 1.2;
     private final Map<UUID, Integer> remainingJumps = new HashMap<>();
 
-    private boolean canDoubleJump(PlayerClass pc) {
-        return pc == PlayerClass.ARCHER
-            || pc == PlayerClass.ROGUE
-            || pc == PlayerClass.AWAKARCHER
-            || pc == PlayerClass.AWAKROGUE
-            || pc == PlayerClass.AWAKWARRIOR
-            || pc == PlayerClass.DEADEYE
-            || pc == PlayerClass.PHOENIXHUNTER;
+    private int getBaseAirJumps(PlayerClass playerClass) {
+        if (ClassUtil.isArcherFamily(playerClass) || ClassUtil.isRogueFamily(playerClass)) {
+            // Archer/Rogue families keep their existing multi-jump behavior.
+            return 2;
+        }
+        return 0;
     }
 
     @EventHandler
@@ -107,7 +106,7 @@ public class DoubleJumpListener implements Listener {
     }
 
     private void refreshJumpCharges(Player player, PlayerClass playerClass) {
-        int baseJumps = canDoubleJump(playerClass) ? 1 : 0;
+        int baseJumps = getBaseAirJumps(playerClass);
         int bonusJumps = getBonusJumps(player.getUniqueId());
         int total = Math.max(0, baseJumps + bonusJumps);
         remainingJumps.put(player.getUniqueId(), total);
