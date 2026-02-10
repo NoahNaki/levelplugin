@@ -4,7 +4,7 @@ import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.EntityType;
-import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.TextDisplay;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
@@ -20,7 +20,7 @@ public class EntityTextDisplay {
     public static final String DISPLAY_TAG = "lp_entity_display";
 
     private final JavaPlugin plugin;
-    private final LivingEntity target;
+    private final Entity target;
     private final double yOffset;
     private TextDisplay display;
     private BukkitTask followTask;
@@ -30,7 +30,7 @@ public class EntityTextDisplay {
      * @param target  entity to follow
      * @param yOffset extra vertical offset above the entity's height
      */
-    public EntityTextDisplay(JavaPlugin plugin, LivingEntity target, double yOffset) {
+    public EntityTextDisplay(JavaPlugin plugin, Entity target, double yOffset) {
         this.plugin = plugin;
         this.target = target;
         this.yOffset = yOffset;

@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.pet;
 
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
+import me.nakilex.levelplugin.utils.EntityTextDisplay;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.util.Collections;
@@ -20,6 +21,7 @@ public class PetInstance {
     private List<PetEffectDefinition> appliedEffects = List.of();
     private BukkitTask followTask;
     private BukkitTask effectTask;
+    private EntityTextDisplay nameDisplay;
 
     public PetInstance(UUID ownerId, PetDefinition definition, UUID entityId, int level, int xp, int tier) {
         this.ownerId = ownerId;
@@ -100,6 +102,17 @@ public class PetInstance {
         this.effectTask = effectTask;
     }
 
+    public EntityTextDisplay nameDisplay() {
+        return nameDisplay;
+    }
+
+    public void setNameDisplay(EntityTextDisplay nameDisplay) {
+        if (this.nameDisplay != null && this.nameDisplay != nameDisplay) {
+            this.nameDisplay.remove();
+        }
+        this.nameDisplay = nameDisplay;
+    }
+
     public void cancelTasks() {
         if (followTask != null) {
             followTask.cancel();
@@ -108,6 +121,10 @@ public class PetInstance {
         if (effectTask != null) {
             effectTask.cancel();
             effectTask = null;
+        }
+        if (nameDisplay != null) {
+            nameDisplay.remove();
+            nameDisplay = null;
         }
     }
 }
