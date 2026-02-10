@@ -31,6 +31,32 @@ public final class TooltipUtil {
     }
 
     /**
+     * Create a strikethrough-styled progress bar intended for experience style progress displays.
+     *
+     * @param current current progress value
+     * @param max maximum progress value
+     * @param length number of strikethrough characters
+     * @return coloured strikethrough progress bar
+     */
+    public static String expProgressBar(double current, double max, int length) {
+        int safeLength = Math.max(1, length);
+        double ratio = max <= 0 ? 0.0 : Math.max(0.0, Math.min(1.0, current / max));
+        int filled = (int) Math.round(ratio * safeLength);
+        filled = Math.max(0, Math.min(safeLength, filled));
+        int empty = safeLength - filled;
+
+        StringBuilder sb = new StringBuilder();
+        if (filled > 0) {
+            sb.append(ChatColor.GREEN).append(ChatColor.STRIKETHROUGH).append(" ".repeat(filled));
+        }
+        if (empty > 0) {
+            sb.append(ChatColor.DARK_GRAY).append(ChatColor.STRIKETHROUGH).append(" ".repeat(empty));
+        }
+        sb.append(ChatColor.RESET);
+        return sb.toString();
+    }
+
+    /**
      * Generate standard left/right click instruction lines.
      *
      * @param leftAction  description following "Left-click" or {@code null}
@@ -167,12 +193,26 @@ public final class TooltipUtil {
     }
 
     /**
+     * Build a strikethrough divider targeting a visual lore width in pixels.
+     *
+     * @param pixelWidth target width in pixels
+     * @return formatted divider line
+     */
+    public static String sectionDividerByPixels(int pixelWidth) {
+        int target = Math.max(80, pixelWidth);
+        String segment = ChatColor.DARK_GRAY + "" + ChatColor.STRIKETHROUGH + " ";
+        int segmentPx = Math.max(1, ChatFormatter.pixelLength(segment + ChatColor.RESET));
+        int spaces = Math.max(10, (int) Math.ceil(target / (double) segmentPx));
+        return sectionDivider(spaces);
+    }
+
+    /**
      * Build a standard strikethrough divider width for lore sections.
      *
      * @return formatted divider line
      */
     public static String sectionDivider() {
-        return sectionDivider(30);
+        return sectionDividerByPixels(240);
     }
 
     /**

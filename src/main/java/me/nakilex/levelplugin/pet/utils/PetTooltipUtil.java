@@ -90,13 +90,13 @@ public final class PetTooltipUtil {
 
     private static String progressBarLine(PetDefinition definition, int level, int currentXp) {
         if (level >= definition.maxLevel()) {
-            return ChatColor.GRAY + TooltipUtil.progressBar(1, 1, 15) + ChatColor.GRAY + " Max";
+            return ChatColor.GRAY + TooltipUtil.expProgressBar(1, 1, 40) + ChatColor.GRAY + " Max";
         }
         int currentLevelXp = PetProgression.xpForLevel(level, definition.xpPerLevel());
         int nextLevelXp = PetProgression.xpForLevel(level + 1, definition.xpPerLevel());
         int span = Math.max(1, nextLevelXp - currentLevelXp);
         int progress = Math.max(0, currentXp - currentLevelXp);
-        String bar = TooltipUtil.progressBar(progress, span, 15);
+        String bar = TooltipUtil.expProgressBar(progress, span, 40);
         return bar + " " + ChatColor.GRAY + progress + ChatColor.GOLD + "/" + ChatColor.GRAY + span
                 + " <glyph:experience_orb_icon>";
     }

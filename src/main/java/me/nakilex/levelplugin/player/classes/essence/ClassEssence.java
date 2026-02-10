@@ -611,7 +611,7 @@ public final class ClassEssence {
             }
         }
         lore.add("");
-        String bar = TooltipUtil.progressBar(exp, next, 15);
+        String bar = TooltipUtil.expProgressBar(exp, next, 40);
         String expColor = ChatFormatter.experienceColor();
         String expLabel = ChatFormatter.experienceLabel();
         lore.add(bar + " " + expColor + exp + ChatColor.GOLD + "/" + expColor + next + " <glyph:experience_orb_icon> " + expLabel);

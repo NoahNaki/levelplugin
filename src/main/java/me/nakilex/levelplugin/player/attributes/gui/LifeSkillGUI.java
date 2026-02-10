@@ -145,7 +145,7 @@ public final class LifeSkillGUI {
                 lore.add(ChatColor.GRAY + "You've reached the cap for this life skill.");
             } else {
                 lore.add(ChatColor.GRAY + "Progress toward the next level:");
-                lore.add(ChatColor.GOLD + TooltipUtil.progressBar(xp, displayRequired, 20));
+                lore.add(ChatColor.GOLD + TooltipUtil.expProgressBar(xp, displayRequired, 40));
                 String progressLine = ChatColor.WHITE + "" + xp
                         + ChatColor.GRAY + "/" + ChatColor.WHITE + displayRequired
                         + ChatColor.GRAY + " (" + ChatColor.YELLOW + String.format("%.2f", percent) + "%" + ChatColor.GRAY + ")";
