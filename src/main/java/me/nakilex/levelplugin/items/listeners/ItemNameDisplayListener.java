@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.items.listeners;
 import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
+import me.nakilex.levelplugin.utils.GlowUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Item;
@@ -10,9 +11,6 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.ItemSpawnEvent;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.scoreboard.Scoreboard;
-import org.bukkit.scoreboard.ScoreboardManager;
-import org.bukkit.scoreboard.Team;
 
 import java.util.EnumSet;
 import java.util.UUID;
@@ -52,27 +50,7 @@ public class ItemNameDisplayListener implements Listener {
 
         // 4) Glow if it's armor/weapon/shovel
         if (ARMOR_AND_WEAPONS.contains(customItem.getMaterial())) {
-            applyGlowWithColor(itemEntity, rarityColor);
+            GlowUtil.applyGlowWithColor(itemEntity, rarityColor);
         }
-    }
-
-    private void applyGlowWithColor(Item itemEntity, ChatColor rarityColor) {
-        ScoreboardManager manager = itemEntity.getServer().getScoreboardManager();
-        if (manager == null) return;
-
-        Scoreboard board = manager.getMainScoreboard();
-        String teamName = "glow_" + rarityColor.name().toLowerCase();
-
-        Team team = board.getTeam(teamName);
-        if (team == null) {
-            team = board.registerNewTeam(teamName);
-            team.setColor(rarityColor);
-            team.setOption(Team.Option.NAME_TAG_VISIBILITY, Team.OptionStatus.NEVER);
-            team.setOption(Team.Option.COLLISION_RULE,    Team.OptionStatus.NEVER);
-        }
-
-        // Add the entity by its unique entry
-        team.addEntry(itemEntity.getUniqueId().toString());
-        itemEntity.setGlowing(true);
     }
 }

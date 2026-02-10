@@ -7,6 +7,8 @@ import me.nakilex.levelplugin.pet.data.PetProfile;
 import me.nakilex.levelplugin.pet.utils.PetChatUtil;
 import me.nakilex.levelplugin.pet.utils.PetDisplayUtil;
 import me.nakilex.levelplugin.utils.ModelEngineUtil;
+import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
+import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -22,6 +24,7 @@ import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Collections;
 import java.util.EnumMap;
@@ -42,6 +45,7 @@ public class PetManager {
     private static final double TELEPORT_DISTANCE = 32.0;
     private static final double FOLLOW_DISTANCE = 4.0;
     private static final int MAX_TIER = 5;
+    private static final int PITY_THRESHOLD = 60;
     private static final List<ItemRarity> GACHA_RARITIES = List.of(
             ItemRarity.COMMON,
             ItemRarity.UNCOMMON,
@@ -75,6 +79,7 @@ public class PetManager {
     private final Map<UUID, Long> lastStandCooldownAt = new HashMap<>();
     private final Map<UUID, Long> lastStandImmuneUntil = new HashMap<>();
     private final Map<UUID, Long> lastStandBuffUntil = new HashMap<>();
+    private final Map<UUID, Map<StatType, Integer>> appliedOwnershipStats = new HashMap<>();
 
     public PetManager(Main plugin) {
         this.plugin = plugin;
@@ -125,6 +130,26 @@ public class PetManager {
         return GACHA_RARITIES;
     }
 
+    public Map<ItemRarity, Double> getGachaRates() {
+        return Collections.unmodifiableMap(GACHA_WEIGHTS);
+    }
+
+    public int getPityThreshold() {
+        return PITY_THRESHOLD;
+    }
+
+    public int getPityPullsSinceLegendary(UUID playerId) {
+        if (playerId == null) {
+            return 0;
+        }
+        return dataStore.getProfile(playerId).pityPullsSinceLegendary();
+    }
+
+    public int getPullsUntilPityLegendary(UUID playerId) {
+        int current = getPityPullsSinceLegendary(playerId);
+        return Math.max(0, PITY_THRESHOLD - current);
+    }
+
     public int getMaxTier() {
         return MAX_TIER;
     }
@@ -148,6 +173,7 @@ public class PetManager {
         PetProfile profile = dataStore.getProfile(player.getUniqueId());
         String activeId = profile.activePetId();
         recordMovement(player.getUniqueId());
+        refreshOwnershipBonuses(player.getUniqueId());
         if (activeId != null && !activeId.isBlank()) {
             summonPet(player, activeId);
         }
@@ -177,6 +203,7 @@ public class PetManager {
             }
         }
         removePetEntities(ownerId);
+        clearOwnershipBonuses(ownerId);
         dataStore.clearProfile(ownerId);
         clearPlayerState(ownerId);
     }
@@ -373,6 +400,7 @@ public class PetManager {
         }
         profile.setPetCopies(def.id(), Math.max(1, copies - 1));
         profile.setPetTier(def.id(), tier + 1);
+        refreshOwnershipBonuses(player.getUniqueId());
         PetInstance instance = activePets.get(player.getUniqueId());
         if (instance != null && instance.definition().id().equalsIgnoreCase(def.id())) {
             instance.setTier(tier + 1);
@@ -423,6 +451,7 @@ public class PetManager {
         }
         int current = profile.getPetCopies(def.id());
         profile.setPetCopies(def.id(), Math.max(0, current - actual));
+        refreshOwnershipBonuses(player.getUniqueId());
         int perCopy = SELL_VALUES.getOrDefault(def.rarity(), 25);
         int total = perCopy * actual;
         if (plugin.getEconomyManager() != null) {
@@ -463,6 +492,7 @@ public class PetManager {
         if (investable > 0) {
             profile.setPetTier(def.id(), newTier);
             profile.setPetCopies(def.id(), Math.max(1, remainingCopies));
+            refreshOwnershipBonuses(player.getUniqueId());
             PetInstance instance = activePets.get(player.getUniqueId());
             if (instance != null && instance.definition().id().equalsIgnoreCase(def.id())) {
                 instance.setTier(newTier);
@@ -472,6 +502,7 @@ public class PetManager {
             }
         } else {
             profile.setPetCopies(def.id(), Math.max(1, remainingCopies));
+            refreshOwnershipBonuses(player.getUniqueId());
         }
         return new InvestResult(investable, soldCopies, coins);
     }
@@ -482,30 +513,44 @@ public class PetManager {
         }
         PetProfile profile = dataStore.getProfile(player.getUniqueId());
         profile.addPetCopies(petId, amount);
+        refreshOwnershipBonuses(player.getUniqueId());
     }
 
     public PetPullResult pullPets(Player player, int amount) {
+        PetPullDetailed detailed = pullPetsDetailed(player, amount);
+        return new PetPullResult(detailed.kept(), detailed.discarded());
+    }
+
+    public PetPullDetailed pullPetsDetailed(Player player, int amount) {
         if (player == null || amount <= 0) {
-            return new PetPullResult(Map.of(), Map.of());
+            return new PetPullDetailed(List.of(), Map.of(), Map.of());
         }
         Map<ItemRarity, List<PetDefinition>> pools = buildRarityPools();
         if (pools.isEmpty()) {
-            return new PetPullResult(Map.of(), Map.of());
+            return new PetPullDetailed(List.of(), Map.of(), Map.of());
         }
         PetProfile profile = dataStore.getProfile(player.getUniqueId());
+        List<PetPullEntry> pulls = new ArrayList<>(amount);
         Map<PetDefinition, Integer> kept = new HashMap<>();
         Map<PetDefinition, Integer> discarded = new HashMap<>();
         Random random = ThreadLocalRandom.current();
         Map<ItemRarity, Double> weights = buildRarityWeights(pools);
         for (int i = 0; i < amount; i++) {
-            ItemRarity rarity = me.nakilex.levelplugin.utils.RandomUtil.pickWeighted(random, weights);
-            List<PetDefinition> options = pools.get(rarity);
-            if (options == null || options.isEmpty()) {
+            boolean pityGuaranteed = profile.pityPullsSinceLegendary() >= (PITY_THRESHOLD - 1);
+            PetDefinition def = rollPullDefinition(random, pools, weights, pityGuaranteed);
+            if (def == null) {
                 continue;
             }
-            PetDefinition def = options.get(random.nextInt(options.size()));
+
+            if (isLegendaryOrAbove(def.rarity())) {
+                profile.setPityPullsSinceLegendary(0);
+            } else {
+                profile.setPityPullsSinceLegendary(profile.pityPullsSinceLegendary() + 1);
+            }
+
             if (shouldDiscard(def, profile.autoDiscardRarity())) {
                 discarded.merge(def, 1, Integer::sum);
+                pulls.add(new PetPullEntry(def, false));
                 continue;
             }
             if (profile.getPetCopies(def.id()) <= 0) {
@@ -513,8 +558,10 @@ public class PetManager {
             }
             profile.addPetCopies(def.id(), 1);
             kept.merge(def, 1, Integer::sum);
+            pulls.add(new PetPullEntry(def, true));
         }
-        return new PetPullResult(kept, discarded);
+        refreshOwnershipBonuses(player.getUniqueId());
+        return new PetPullDetailed(pulls, kept, discarded);
     }
 
     public boolean setPetLevel(Player player, String petId, int level) {
@@ -553,11 +600,145 @@ public class PetManager {
                 }
             }
         }
+        for (UUID ownerId : Set.copyOf(appliedOwnershipStats.keySet())) {
+            clearOwnershipBonuses(ownerId);
+        }
         dataStore.saveAll();
+    }
+
+    public Map<StatType, Integer> getTotalOwnedStatBonuses(UUID playerId) {
+        Map<StatType, Integer> totals = calculateOwnershipBonuses(playerId);
+        return totals.isEmpty() ? Map.of() : Collections.unmodifiableMap(totals);
+    }
+
+    public void refreshOwnershipBonuses(UUID playerId) {
+        if (playerId == null) {
+            return;
+        }
+        Map<StatType, Integer> previous = appliedOwnershipStats.getOrDefault(playerId, Map.of());
+        Map<StatType, Integer> current = calculateOwnershipBonuses(playerId);
+        Map<StatType, Integer> delta = subtractStats(current, previous);
+        if (!delta.isEmpty()) {
+            StatsManager.getInstance().applyBonusStats(playerId, delta);
+        }
+        if (current.isEmpty()) {
+            appliedOwnershipStats.remove(playerId);
+        } else {
+            appliedOwnershipStats.put(playerId, current);
+        }
+    }
+
+    private void clearOwnershipBonuses(UUID playerId) {
+        Map<StatType, Integer> applied = appliedOwnershipStats.remove(playerId);
+        if (applied == null || applied.isEmpty()) {
+            return;
+        }
+        Map<StatType, Integer> negative = new EnumMap<>(StatType.class);
+        for (Map.Entry<StatType, Integer> entry : applied.entrySet()) {
+            if (entry.getValue() != null && entry.getValue() != 0) {
+                negative.put(entry.getKey(), -entry.getValue());
+            }
+        }
+        if (!negative.isEmpty()) {
+            StatsManager.getInstance().applyBonusStats(playerId, negative);
+        }
+    }
+
+    private Map<StatType, Integer> calculateOwnershipBonuses(UUID playerId) {
+        if (playerId == null) {
+            return Map.of();
+        }
+        PetProfile profile = dataStore.getProfile(playerId);
+        Map<StatType, Integer> totals = new EnumMap<>(StatType.class);
+        for (PetDefinition definition : definitions.values()) {
+            if (profile.getPetCopies(definition.id()) <= 0) {
+                continue;
+            }
+            mergeStats(totals, definition.ownershipStats());
+        }
+        return totals;
+    }
+
+    private static void mergeStats(Map<StatType, Integer> target, Map<StatType, Integer> additions) {
+        if (target == null || additions == null || additions.isEmpty()) {
+            return;
+        }
+        for (Map.Entry<StatType, Integer> entry : additions.entrySet()) {
+            StatType type = entry.getKey();
+            int value = entry.getValue() == null ? 0 : entry.getValue();
+            if (type == null || value == 0) {
+                continue;
+            }
+            target.merge(type, value, Integer::sum);
+        }
+    }
+
+    private static Map<StatType, Integer> subtractStats(Map<StatType, Integer> lhs, Map<StatType, Integer> rhs) {
+        Map<StatType, Integer> delta = new EnumMap<>(StatType.class);
+        for (StatType type : StatType.values()) {
+            int left = lhs == null ? 0 : lhs.getOrDefault(type, 0);
+            int right = rhs == null ? 0 : rhs.getOrDefault(type, 0);
+            int diff = left - right;
+            if (diff != 0) {
+                delta.put(type, diff);
+            }
+        }
+        return delta;
     }
 
     public Map<String, PetDefinition> getDefinitions() {
         return Collections.unmodifiableMap(definitions);
+    }
+
+    private PetDefinition rollPullDefinition(Random random,
+                                         Map<ItemRarity, List<PetDefinition>> pools,
+                                         Map<ItemRarity, Double> weights,
+                                         boolean pityGuaranteed) {
+        if (random == null || pools == null || pools.isEmpty()) {
+            return null;
+        }
+        ItemRarity rarity = null;
+        if (pityGuaranteed) {
+            rarity = pickWeightedRarityAtOrAbove(random, pools, ItemRarity.LEGENDARY);
+        }
+        if (rarity == null) {
+            rarity = me.nakilex.levelplugin.utils.RandomUtil.pickWeighted(random, weights);
+        }
+        if (rarity == null) {
+            return null;
+        }
+        List<PetDefinition> options = pools.get(rarity);
+        if (options == null || options.isEmpty()) {
+            return null;
+        }
+        return options.get(random.nextInt(options.size()));
+    }
+
+    private ItemRarity pickWeightedRarityAtOrAbove(Random random,
+                                                   Map<ItemRarity, List<PetDefinition>> pools,
+                                                   ItemRarity minimum) {
+        if (random == null || minimum == null || pools == null || pools.isEmpty()) {
+            return null;
+        }
+        Map<ItemRarity, Double> eligible = new EnumMap<>(ItemRarity.class);
+        for (Map.Entry<ItemRarity, List<PetDefinition>> entry : pools.entrySet()) {
+            ItemRarity rarity = entry.getKey();
+            if (rarity == null || rarity.ordinal() < minimum.ordinal()) {
+                continue;
+            }
+            if (entry.getValue() == null || entry.getValue().isEmpty()) {
+                continue;
+            }
+            eligible.put(rarity, GACHA_WEIGHTS.getOrDefault(rarity, 1.0));
+        }
+        if (eligible.isEmpty()) {
+            return null;
+        }
+        return me.nakilex.levelplugin.utils.RandomUtil.pickWeighted(random, eligible);
+    }
+
+    private boolean isLegendaryOrAbove(ItemRarity rarity) {
+        return rarity != null && rarity.ordinal() >= ItemRarity.LEGENDARY.ordinal();
     }
 
     private Map<ItemRarity, List<PetDefinition>> buildRarityPools() {
@@ -717,12 +898,43 @@ public class PetManager {
         return dataStore.getProfile(uuid);
     }
 
+    public Location getPendingSummonReturn(UUID playerId) {
+        if (playerId == null) {
+            return null;
+        }
+        return dataStore.getProfile(playerId).pendingSummonReturn();
+    }
+
+    public void setPendingSummonReturn(UUID playerId, Location location) {
+        if (playerId == null) {
+            return;
+        }
+        PetProfile profile = dataStore.getProfile(playerId);
+        profile.setPendingSummonReturn(location);
+        dataStore.saveProfile(playerId);
+    }
+
+    public void clearPendingSummonReturn(UUID playerId) {
+        if (playerId == null) {
+            return;
+        }
+        PetProfile profile = dataStore.getProfile(playerId);
+        profile.clearPendingSummonReturn();
+        dataStore.saveProfile(playerId);
+    }
+
     public ItemRarity getPetRarity(String petId) {
         PetDefinition def = getDefinition(petId).orElse(null);
         return def == null ? ItemRarity.COMMON : def.rarity();
     }
 
     public record InvestResult(int investedCopies, int soldCopies, int coinsEarned) {}
+
+    public record PetPullEntry(PetDefinition definition, boolean kept) {}
+
+    public record PetPullDetailed(List<PetPullEntry> pulls,
+                                  Map<PetDefinition, Integer> kept,
+                                  Map<PetDefinition, Integer> discarded) {}
 
     public record PetPullResult(Map<PetDefinition, Integer> kept, Map<PetDefinition, Integer> discarded) {}
 }

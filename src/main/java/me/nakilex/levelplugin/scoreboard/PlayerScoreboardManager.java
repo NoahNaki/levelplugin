@@ -42,6 +42,8 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
     private final Map<UUID, String[]> lastLines = new HashMap<>();
     /** Players that enabled TPS display. */
     private final java.util.Set<UUID> showTps = new java.util.HashSet<>();
+    /** Players with temporarily suppressed scoreboards (modal experiences/cutscenes). */
+    private final java.util.Set<UUID> suppressedBoards = new java.util.HashSet<>();
 
     /**
      * Exposes the internal scoreboard instance for other managers.
@@ -107,6 +109,28 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
         lastLines.remove(player.getUniqueId());
         player.setScoreboard(Bukkit.getScoreboardManager().getMainScoreboard());
         showTps.remove(player.getUniqueId());
+        suppressedBoards.remove(player.getUniqueId());
+    }
+
+    public void setBoardSuppressed(Player player, boolean suppressed) {
+        if (player == null) {
+            return;
+        }
+        UUID id = player.getUniqueId();
+        if (suppressed) {
+            suppressedBoards.add(id);
+            ScoreboardManager sm = Bukkit.getScoreboardManager();
+            if (sm != null) {
+                player.setScoreboard(sm.getNewScoreboard());
+            }
+            return;
+        }
+        suppressedBoards.remove(id);
+        updateBoard(player);
+    }
+
+    public boolean isBoardSuppressed(UUID playerId) {
+        return playerId != null && suppressedBoards.contains(playerId);
     }
 
     /** Toggle TPS display for this player. */
@@ -158,6 +182,14 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
         if (me.nakilex.levelplugin.utils.WorldExclusionUtil.isExcluded(player)) {
             if (boards.containsKey(id)) {
                 removeBoard(player);
+            }
+            return;
+        }
+
+        if (suppressedBoards.contains(id)) {
+            ScoreboardManager sm = Bukkit.getScoreboardManager();
+            if (sm != null) {
+                player.setScoreboard(sm.getNewScoreboard());
             }
             return;
         }

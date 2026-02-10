@@ -20,7 +20,7 @@ import me.nakilex.levelplugin.debug.SpellInputDebugItem;
 import me.nakilex.levelplugin.pet.PetManager;
 import me.nakilex.levelplugin.pet.PetManager.PetPullResult;
 import me.nakilex.levelplugin.pet.utils.PetChatUtil;
-import me.nakilex.levelplugin.pet.utils.PetDisplayUtil;
+import me.nakilex.levelplugin.pet.utils.PetPullSummaryUtil;
 import me.nakilex.levelplugin.mob.custom.CustomMobStatus;
 import me.nakilex.levelplugin.environment.EnvironmentManager;
 import me.nakilex.levelplugin.guild.Guild;
@@ -277,8 +277,8 @@ public class DebugCommand implements TabExecutor {
                     return true;
                 }
                 PetChatUtil.send(petPlayer, ChatColor.YELLOW + "Pet pulls:");
-                sendPetPullSummary(petPlayer, "Pulled", pullResult.kept());
-                sendPetPullSummary(petPlayer, "Auto-discarded", pullResult.discarded());
+                PetPullSummaryUtil.sendSummary(petPlayer, "Pulled", pullResult.kept());
+                PetPullSummaryUtil.sendSummary(petPlayer, "Auto-discarded", pullResult.discarded());
                 return true;
 
             case "spellinput":
@@ -563,19 +563,6 @@ public class DebugCommand implements TabExecutor {
         }
         sender.sendMessage(ChatColor.GRAY + "Chat game '" + ChatColor.AQUA + id + ChatColor.GRAY + "' is now "
                 + (enable ? ChatColor.GREEN + "enabled" : ChatColor.RED + "disabled") + ChatColor.GRAY + ".");
-    }
-
-    private void sendPetPullSummary(Player player, String label, Map<me.nakilex.levelplugin.pet.PetDefinition, Integer> pulls) {
-        if (pulls.isEmpty()) {
-            return;
-        }
-        PetChatUtil.send(player, ChatColor.GRAY + label + ":");
-        for (var entry : pulls.entrySet()) {
-            String name = PetDisplayUtil.formatDisplayName(entry.getKey());
-            int count = entry.getValue();
-            PetChatUtil.send(player, ChatColor.DARK_GRAY + "- " + ChatColor.WHITE + name
-                    + ChatColor.GRAY + " x" + count);
-        }
     }
 
     @Override

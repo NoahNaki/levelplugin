@@ -28,7 +28,8 @@ import java.util.UUID;
 
 public class PetSettingsGUI implements Listener {
     private static final int GUI_SIZE = 45;
-    private static final int AUTO_DISCARD_SLOT = 22;
+    private static final int AUTO_DISCARD_SLOT = 20;
+    private static final int AUTO_SKIP_SUMMON_SLOT = 24;
     private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
 
     private final PetManager petManager;
@@ -80,6 +81,8 @@ public class PetSettingsGUI implements Listener {
                 }));
         widgets.add(new ActionWidget(AUTO_DISCARD_SLOT, ctx -> createAutoDiscardItem(profile),
                 (click, context) -> cycleAutoDiscard(profile, click.isLeftClick(), context.player())));
+        widgets.add(new ActionWidget(AUTO_SKIP_SUMMON_SLOT, ctx -> createAutoSkipSummonItem(profile),
+                (click, context) -> toggleAutoSkipSummon(profile, context.player())));
         return widgets;
     }
 
@@ -105,6 +108,34 @@ public class PetSettingsGUI implements Listener {
             item.setItemMeta(meta);
         }
         return item;
+    }
+
+
+    private ItemStack createAutoSkipSummonItem(PetProfile profile) {
+        boolean enabled = profile.autoSkipSummonAnimation();
+        ItemStack item = GuiUtil.createGuiItem(enabled ? Material.LIME_DYE : Material.GRAY_DYE,
+                "§dAuto Skip Pull Animation",
+                List.of());
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            List<String> lore = new ArrayList<>();
+            lore.add(" ");
+            lore.add("§7Automatically skip the summon");
+            lore.add("§7cutscene/animation after pulling.");
+            lore.add(" ");
+            lore.add(TooltipUtil.selectionLine(enabled, "On"));
+            lore.add(TooltipUtil.selectionLine(!enabled, "Off"));
+            lore.add(" ");
+            lore.addAll(TooltipUtil.clickInstructions("to toggle", null));
+            meta.setLore(lore);
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
+    private void toggleAutoSkipSummon(PetProfile profile, Player player) {
+        profile.setAutoSkipSummonAnimation(!profile.autoSkipSummonAnimation());
+        open(player);
     }
 
     private String formatRarityLabel(ItemRarity rarity) {

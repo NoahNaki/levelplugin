@@ -4,12 +4,14 @@ import me.nakilex.levelplugin.items.data.ItemRarity;
 import me.nakilex.levelplugin.pet.PetDefinition;
 import me.nakilex.levelplugin.pet.PetEffectDefinition;
 import me.nakilex.levelplugin.pet.PetProgression;
+import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import org.bukkit.ChatColor;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public final class PetTooltipUtil {
     private PetTooltipUtil() {
@@ -18,6 +20,7 @@ public final class PetTooltipUtil {
     public static List<String> buildPetLore(PetDefinition definition, int level,
                                             int currentXp,
                                             int tier,
+                                            Map<StatType, Integer> ownershipStats,
                                             List<PetEffectDefinition> effects) {
         List<String> lore = new ArrayList<>();
         lore.add(rarityLine(definition.rarity()));
@@ -28,10 +31,21 @@ public final class PetTooltipUtil {
         lore.add(progressLine(definition, level, currentXp));
         lore.add(progressBarLine(definition, level, currentXp));
         lore.add(" ");
+        if (ownershipStats != null && !ownershipStats.isEmpty()) {
+            lore.add(TooltipUtil.sectionHeader("Ownership Effect"));
+            for (StatType stat : StatType.DISPLAY_ORDER) {
+                int value = ownershipStats.getOrDefault(stat, 0);
+                if (value != 0) {
+                    lore.add(ChatColor.GRAY + "• " + GuiUtil.formatStatLine(stat, value, false));
+                }
+            }
+            lore.add(" ");
+        }
         if (!effects.isEmpty()) {
-            lore.add(TooltipUtil.sectionHeader("Effects"));
+            lore.add(TooltipUtil.sectionHeader("Equipped Effect"));
             for (PetEffectDefinition effect : effects) {
-                lore.add(ChatColor.GRAY + "• " + ChatColor.WHITE + formatEffect(effect));
+                String line = ChatColor.GRAY + "• " + ChatColor.WHITE + formatEffect(effect);
+                lore.addAll(TooltipUtil.wrapLoreLine(line, 220, ChatColor.DARK_GRAY + "  " + ChatColor.GRAY));
             }
             lore.add(" ");
         }

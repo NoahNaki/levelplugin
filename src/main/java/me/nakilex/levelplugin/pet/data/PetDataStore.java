@@ -68,6 +68,8 @@ public class PetDataStore {
                     profile.setAutoDiscardRarity(null);
                 }
             }
+            profile.setAutoSkipSummonAnimation(config.getBoolean(root + ".summon.auto-skip-animation", false));
+            profile.setPityPullsSinceLegendary(config.getInt(root + ".summon.pity-legendary", 0));
             String petRoot = root + ".pets";
             var section = config.getConfigurationSection(petRoot);
             if (section != null) {
@@ -79,6 +81,10 @@ public class PetDataStore {
                     profile.setPetTier(petId, tier);
                     profile.setPetCopies(petId, copies);
                 }
+            }
+            var pendingReturn = config.getLocation(root + ".summon.return");
+            if (pendingReturn != null) {
+                profile.setPendingSummonReturn(pendingReturn);
             }
         }
         String activeId = profile.activePetId();
@@ -102,6 +108,9 @@ public class PetDataStore {
         for (Map.Entry<String, Integer> entry : profile.petCopies().entrySet()) {
             config.set(root + ".pets." + entry.getKey() + ".copies", entry.getValue());
         }
+        config.set(root + ".summon.return", profile.pendingSummonReturn());
+        config.set(root + ".summon.auto-skip-animation", profile.autoSkipSummonAnimation());
+        config.set(root + ".summon.pity-legendary", profile.pityPullsSinceLegendary());
     }
 
     private void saveConfig() {

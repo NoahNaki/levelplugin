@@ -6,11 +6,15 @@ import java.util.Map;
 import java.util.UUID;
 
 import me.nakilex.levelplugin.items.data.ItemRarity;
+import org.bukkit.Location;
 
 public class PetProfile {
     private final UUID ownerId;
     private String activePetId;
     private ItemRarity autoDiscardRarity;
+    private Location pendingSummonReturn;
+    private boolean autoSkipSummonAnimation;
+    private int pityPullsSinceLegendary;
     private final Map<String, Integer> petXp = new HashMap<>();
     private final Map<String, Integer> petTiers = new HashMap<>();
     private final Map<String, Integer> petCopies = new HashMap<>();
@@ -37,6 +41,34 @@ public class PetProfile {
 
     public void setAutoDiscardRarity(ItemRarity autoDiscardRarity) {
         this.autoDiscardRarity = autoDiscardRarity;
+    }
+
+    public boolean autoSkipSummonAnimation() {
+        return autoSkipSummonAnimation;
+    }
+
+    public void setAutoSkipSummonAnimation(boolean autoSkipSummonAnimation) {
+        this.autoSkipSummonAnimation = autoSkipSummonAnimation;
+    }
+
+    public int pityPullsSinceLegendary() {
+        return Math.max(0, pityPullsSinceLegendary);
+    }
+
+    public void setPityPullsSinceLegendary(int pityPullsSinceLegendary) {
+        this.pityPullsSinceLegendary = Math.max(0, pityPullsSinceLegendary);
+    }
+
+    public Location pendingSummonReturn() {
+        return pendingSummonReturn == null ? null : pendingSummonReturn.clone();
+    }
+
+    public void setPendingSummonReturn(Location location) {
+        pendingSummonReturn = location == null ? null : location.clone();
+    }
+
+    public void clearPendingSummonReturn() {
+        pendingSummonReturn = null;
     }
 
     public int getPetXp(String petId) {

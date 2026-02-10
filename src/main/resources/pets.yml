@@ -5,6 +5,8 @@ pets:
     models: []
     max-level: 40
     xp-per-level: 90
+    owned-stats:
+      vit: 2
     effects:
       - type: STATIONARY_REGEN
         base: 0.005
@@ -15,6 +17,9 @@ pets:
     models: []
     max-level: 40
     xp-per-level: 90
+    owned-stats:
+      str: 1
+      wil: 2
     effects:
       - type: FIRST_STRIKE
         base: 0.10
@@ -25,6 +30,9 @@ pets:
     models: []
     max-level: 50
     xp-per-level: 100
+    owned-stats:
+      agi: 2
+      wil: 3
     effects:
       - type: MOVEMENT_MANA_REDUCTION
         base: 0.15
@@ -33,8 +41,11 @@ pets:
     name: "§aSkyhopper"
     rarity: UNCOMMON
     models: []
-    max-level: 50
+    max-level: 100
     xp-per-level: 100
+    owned-stats:
+      agi: 3
+      dex: 2
     effects:
       - type: EXTRA_JUMP
         base: 1
@@ -46,6 +57,9 @@ pets:
       - ember_cube
     max-level: 100
     xp-per-level: 150
+    owned-stats:
+      str: 4
+      tec: 2
     effects:
       - type: DAMAGE_BOOST
         base: 0.06
@@ -59,6 +73,9 @@ pets:
     models: []
     max-level: 90
     xp-per-level: 140
+    owned-stats:
+      wil: 4
+      tec: 2
     effects:
       - type: COIN_DAMAGE
         base: 1.0
@@ -69,6 +86,9 @@ pets:
     models: []
     max-level: 120
     xp-per-level: 180
+    owned-stats:
+      agi: 5
+      dex: 3
     effects:
       - type: CRIT_CHANCE
         base: 0.05
@@ -82,6 +102,9 @@ pets:
     models: []
     max-level: 120
     xp-per-level: 180
+    owned-stats:
+      str: 5
+      tec: 3
     effects:
       - type: EXECUTE_NON_BOSS
         base: 0.05
@@ -92,6 +115,9 @@ pets:
     models: []
     max-level: 140
     xp-per-level: 210
+    owned-stats:
+      vit: 8
+      wil: 4
     effects:
       - type: DAMAGE_REDUCTION
         base: 0.08
@@ -105,6 +131,9 @@ pets:
     models: []
     max-level: 140
     xp-per-level: 210
+    owned-stats:
+      vit: 6
+      str: 4
     effects:
       - type: LAST_STAND
         base: 1
@@ -115,6 +144,9 @@ pets:
     models: []
     max-level: 160
     xp-per-level: 240
+    owned-stats:
+      str: 10
+      tec: 5
     effects:
       - type: EXECUTE
         base: 0.15
@@ -128,6 +160,9 @@ pets:
     models: []
     max-level: 160
     xp-per-level: 240
+    owned-stats:
+      wil: 10
+      int: 5
     effects:
       - type: COIN_DAMAGE
         base: 2.0
