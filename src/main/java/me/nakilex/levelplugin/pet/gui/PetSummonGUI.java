@@ -98,8 +98,10 @@ public class PetSummonGUI implements Listener {
         int clamped = Math.max(0, Math.min(current, threshold));
         int remaining = Math.max(0, threshold - clamped);
         lore.add("§ePity Progress");
-        lore.add(TooltipUtil.expProgressBarByPixels(clamped, Math.max(1, threshold), 156));
-        lore.add("§7Pulls: §f" + clamped + "§7/§f" + threshold);
+        String bar = TooltipUtil.expProgressBarByPixels(clamped, Math.max(1, threshold), 156);
+        lore.add(bar + " " + org.bukkit.ChatColor.GRAY + clamped
+                + org.bukkit.ChatColor.GOLD + "/" + org.bukkit.ChatColor.GRAY + threshold
+                + " <glyph:experience_orb_icon>");
         if (remaining > 0) {
             lore.add("§7Guaranteed Legendary+ in §e" + remaining + "§7 pull(s)");
         } else {
