@@ -184,13 +184,15 @@ public class PetManager {
     }
 
     public void handlePlayerJoin(Player player) {
-        PetProfile profile = dataStore.getProfile(player.getUniqueId());
-        String activeId = profile.activePetId();
+        if (player == null) {
+            return;
+        }
+        // Do not auto-summon on join. Profiles may not be selected yet,
+        // and different profiles can have different active pets.
+        // Summoning is handled after explicit profile activation.
         recordMovement(player.getUniqueId());
         refreshOwnershipBonuses(player.getUniqueId());
-        if (activeId != null && !activeId.isBlank()) {
-            summonPet(player, activeId);
-        }
+        removePetEntities(player.getUniqueId());
     }
 
 
