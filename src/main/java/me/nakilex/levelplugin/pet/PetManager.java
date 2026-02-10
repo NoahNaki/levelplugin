@@ -160,6 +160,25 @@ public class PetManager {
         return Optional.ofNullable(definitions.get(id.toLowerCase(Locale.ROOT)));
     }
 
+
+    public boolean isManagedPetEntity(Entity entity) {
+        if (entity == null) {
+            return false;
+        }
+        if (entity.getScoreboardTags().contains(PET_TAG)) {
+            return true;
+        }
+        if (!entity.hasMetadata(PET_OWNER_META)) {
+            return false;
+        }
+        for (var value : entity.getMetadata(PET_OWNER_META)) {
+            if (value != null && value.asString() != null && !value.asString().isBlank()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public Optional<PetInstance> getActivePet(UUID ownerId) {
         return Optional.ofNullable(activePets.get(ownerId));
     }

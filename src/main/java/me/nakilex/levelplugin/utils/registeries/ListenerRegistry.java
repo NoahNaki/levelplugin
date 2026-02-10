@@ -90,6 +90,7 @@ import me.nakilex.levelplugin.pet.summon.PetSummonManager;
 import me.nakilex.levelplugin.pet.listeners.PetPlayerListener;
 import me.nakilex.levelplugin.pet.listeners.PetCombatEffectListener;
 import me.nakilex.levelplugin.pet.listeners.PetMovementListener;
+import me.nakilex.levelplugin.pet.listeners.PetProtectionListener;
 import me.nakilex.levelplugin.server.LevelPluginCommandGuard;
 import me.nakilex.levelplugin.server.ServerSelectionManager;
 import org.bukkit.Bukkit;
@@ -198,6 +199,7 @@ public class ListenerRegistry {
             pm.registerEvents(new PetPlayerListener(petManager), plugin);
             pm.registerEvents(new PetCombatEffectListener(petManager), plugin);
             pm.registerEvents(new PetMovementListener(petManager), plugin);
+            pm.registerEvents(new PetProtectionListener(petManager), plugin);
         }
         if (petGUI != null) {
             pm.registerEvents(petGUI, plugin);
