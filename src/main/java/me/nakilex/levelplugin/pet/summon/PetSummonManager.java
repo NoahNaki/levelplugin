@@ -247,7 +247,7 @@ public class PetSummonManager implements Listener {
             Location target = session.center.clone()
                     .add(right.clone().multiply(Math.cos(theta) * radius))
                     .add(up.clone().multiply(Math.sin(theta) * radius));
-            entry.item().teleport(target);
+            applySmoothVelocity(entry.item(), target);
             player.spawnParticle(Particle.PORTAL, target, 4, 0.08, 0.08, 0.08, 0.01);
         }
     }
@@ -317,6 +317,15 @@ public class PetSummonManager implements Listener {
             return;
         }
         player.playSound(player.getLocation(), sound, volume, pitch);
+    }
+
+    private void applySmoothVelocity(Item item, Location target) {
+        if (item == null || target == null) {
+            return;
+        }
+        Location current = item.getLocation();
+        Vector velocity = target.toVector().subtract(current.toVector());
+        item.setVelocity(velocity);
     }
 
     private void checkCutsceneState(Player player) {
