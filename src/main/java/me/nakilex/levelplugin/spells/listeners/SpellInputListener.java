@@ -27,6 +27,7 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerToggleSneakEvent;
 import org.bukkit.event.block.Action;
 import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.inventory.ItemStack;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -95,6 +96,9 @@ public class SpellInputListener implements Listener {
             return;
         }
         Player player = event.getPlayer();
+        if (!isHoldingValidClassWeapon(player)) {
+            return;
+        }
         PlayerSettings settings = settingsManager.getSettings(player);
         if (settings.getSpellInputMode() != SpellInputMode.MOUSE_AND_KEYBOARD) {
             return;
@@ -203,6 +207,9 @@ public class SpellInputListener implements Listener {
     }
 
     private void handleClick(Player player, boolean leftClick) {
+        if (!isHoldingValidClassWeapon(player)) {
+            return;
+        }
         sendClickDebug(player, leftClick);
         PlayerSettings settings = settingsManager.getSettings(player);
         SpellInputMode mode = settings.getSpellInputMode();
@@ -257,6 +264,12 @@ public class SpellInputListener implements Listener {
     private String getPlayerClassName(Player player) {
         PlayerClass playerClass = PlayerClassManager.getInstance().getPlayerClass(player);
         return playerClass != null ? playerClass.getDisplayName() : "Unknown";
+    }
+
+    private boolean isHoldingValidClassWeapon(Player player) {
+        PlayerClass playerClass = PlayerClassManager.getInstance().getPlayerClass(player);
+        ItemStack mainHand = player.getInventory().getItemInMainHand();
+        return ClassUtil.isValidWeaponForClass(playerClass, mainHand);
     }
 
     private static final class SneakState {

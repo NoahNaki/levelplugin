@@ -258,9 +258,8 @@ public final class LifeSkillRewardsGUI {
                 lore.add(ChatColor.RED + "Reach the required level to claim." );
             }
             lore.add("");
-            double progress = Math.min(1.0, playerLevel / (double) Math.max(1, reward.levelRequired()));
             lore.add(ChatColor.GRAY + "Progress:");
-            lore.add(ChatColor.YELLOW + TooltipUtil.progressBar(playerLevel, reward.levelRequired(), 20));
+            lore.add(TooltipUtil.expProgressBarByPixels(playerLevel, reward.levelRequired(), 156));
             meta.setLore(lore);
             stack.setItemMeta(meta);
         }
