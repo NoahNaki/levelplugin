@@ -204,13 +204,13 @@ public class StatsInventory {
         }
         lore.add("");
         lore.add(ChatColor.DARK_GRAY + "Stat Breakdown");
-        lore.add(ChatColor.GRAY + "• Base: " + ChatColor.WHITE + baseValue);
-        lore.add(ChatColor.GRAY + "• Bonus: " + ChatColor.GREEN + "+" + bonusValue);
-        lore.add(ChatColor.GRAY + "• Total: " + ChatColor.YELLOW + (baseValue + bonusValue));
+        lore.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Base: " + ChatColor.WHITE + baseValue));
+        lore.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Bonus: " + ChatColor.GREEN + "+" + bonusValue));
+        lore.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Total: " + ChatColor.YELLOW + (baseValue + bonusValue)));
         lore.add("");
         lore.add(ChatColor.GOLD + "Perks");
         for (String line : effectDetails) {
-            lore.add(ChatColor.GRAY + "• " + line);
+            lore.add(TooltipUtil.bulletLine(ChatColor.GRAY + line));
         }
         lore.add("");
         lore.addAll(TooltipUtil.clickInstructions("to invest a point", "to remove a point"));
@@ -250,7 +250,7 @@ public class StatsInventory {
             double progress = nextLevelXP > 0 ? (double) currentXP / nextLevelXP : 0.0;
             double percent = Math.round(progress * 10000.0) / 100.0;
             lore.add(ChatColor.GRAY + "Progress to Level " + ChatColor.YELLOW + (StatsManager.getInstance().getLevel(player) + 1) + ChatColor.GRAY + ": " + ChatColor.YELLOW + String.format("%.2f", percent) + "%");
-            String bar = TooltipUtil.progressBar(currentXP, nextLevelXP, 15);
+            String bar = TooltipUtil.expProgressBarByPixels(currentXP, nextLevelXP, 140);
             String expLabel = me.nakilex.levelplugin.utils.ChatFormatter.experienceLabel();
             String expColor = me.nakilex.levelplugin.utils.ChatFormatter.experienceColor();
             lore.add(bar + " " + expColor + currentXP + ChatColor.GOLD + "/" + expColor + nextLevelXP + " <glyph:experience_orb_icon> " + expLabel);

@@ -31,8 +31,11 @@ public enum PetEffectType {
     EXECUTE_NON_BOSS("execute_non_boss", "Reaper",
             value -> "Execute non-bosses below " + ChatColor.RED + formatPercent(value)),
     EXTRA_JUMP("extra_jump", "Skybound",
-            value -> ChatColor.AQUA + "+" + formatWhole(value)
-                    + ChatColor.GRAY + " max jump"),
+            value -> {
+                int jumps = Math.max(0, (int) Math.floor(value));
+                return ChatColor.AQUA + "+" + jumps + ChatColor.GRAY
+                        + (jumps == 1 ? " mid-air jump" : " mid-air jumps");
+            }),
     FIRST_STRIKE("first_strike", "Ambush",
             value -> "First hit vs full HP: " + ChatColor.GREEN + "+" + formatPercent(value)
                     + ChatColor.GRAY + " dmg"),
@@ -40,10 +43,10 @@ public enum PetEffectType {
             value -> "Regen " + ChatColor.GREEN + formatPercent(value)
                     + ChatColor.GRAY + " HP/sec while still"),
     LAST_STAND("last_stand", "Last Stand",
-            value -> "Fatal hit: " + ChatColor.RED + "Immune 5s"
+            value -> "On lethal hit: " + ChatColor.RED + "Immune 5s"
                     + ChatColor.GRAY + ", " + ChatColor.GREEN + "+150% dmg"
                     + ChatColor.GRAY + ", " + ChatColor.AQUA + "+25% speed"
-                    + ChatColor.GRAY + " (10m cd)");
+                    + ChatColor.GRAY + " (10m cooldown)");
 
     private final String id;
     private final String displayName;
@@ -92,8 +95,4 @@ public enum PetEffectType {
         return String.format("%.1f%%", percent);
     }
 
-    private static String formatWhole(double value) {
-        int whole = (int) Math.floor(Math.max(0.0, value));
-        return Integer.toString(whole);
-    }
 }

@@ -30,26 +30,38 @@ public final class PetTooltipUtil {
         lore.add(ChatColor.GRAY + "Level " + ChatColor.WHITE + level);
         lore.add(progressLine(definition, level, currentXp));
         lore.add(progressBarLine(definition, level, currentXp));
+
         lore.add(" ");
-        if (ownershipStats != null && !ownershipStats.isEmpty()) {
-            lore.add(TooltipUtil.sectionHeader("Ownership Effect"));
-            for (StatType stat : StatType.DISPLAY_ORDER) {
-                int value = ownershipStats.getOrDefault(stat, 0);
-                if (value != 0) {
-                    lore.add(ChatColor.GRAY + "• " + GuiUtil.formatStatLine(stat, value, false));
-                }
-            }
-            lore.add(" ");
-        }
-        if (!effects.isEmpty()) {
-            lore.add(TooltipUtil.sectionHeader("Equipped Effect"));
-            for (PetEffectDefinition effect : effects) {
-                String line = ChatColor.GRAY + "• " + ChatColor.WHITE + formatEffect(effect);
-                lore.addAll(TooltipUtil.wrapLoreLine(line, 220, ChatColor.DARK_GRAY + "  " + ChatColor.GRAY));
-            }
-            lore.add(" ");
-        }
+        appendOwnershipSection(lore, ownershipStats);
+        appendEffectSection(lore, effects);
         return lore;
+    }
+
+    private static void appendOwnershipSection(List<String> lore, Map<StatType, Integer> ownershipStats) {
+        if (ownershipStats == null || ownershipStats.isEmpty()) {
+            return;
+        }
+        lore.add(TooltipUtil.sectionHeader("Ownership Effect"));
+        for (StatType stat : StatType.DISPLAY_ORDER) {
+            int value = ownershipStats.getOrDefault(stat, 0);
+            if (value == 0) {
+                continue;
+            }
+            lore.add(TooltipUtil.bulletLine(GuiUtil.formatStatLine(stat, value, false)));
+        }
+        lore.add(" ");
+    }
+
+    private static void appendEffectSection(List<String> lore, List<PetEffectDefinition> effects) {
+        if (effects == null || effects.isEmpty()) {
+            return;
+        }
+        lore.add(TooltipUtil.sectionHeader("Equipped Effect"));
+        for (PetEffectDefinition effect : effects) {
+            String line = TooltipUtil.bulletLine(ChatColor.WHITE + formatEffect(effect));
+            lore.addAll(TooltipUtil.wrapLoreLine(line, 220, ChatColor.DARK_GRAY + "  " + ChatColor.GRAY));
+        }
+        lore.add(" ");
     }
 
     private static String formatEffect(PetEffectDefinition effect) {
@@ -88,13 +100,13 @@ public final class PetTooltipUtil {
 
     private static String progressBarLine(PetDefinition definition, int level, int currentXp) {
         if (level >= definition.maxLevel()) {
-            return ChatColor.GRAY + TooltipUtil.progressBar(1, 1, 15) + ChatColor.GRAY + " Max";
+            return ChatColor.GRAY + TooltipUtil.expProgressBarByPixels(1, 1, 168) + ChatColor.GRAY + " Max";
         }
         int currentLevelXp = PetProgression.xpForLevel(level, definition.xpPerLevel());
         int nextLevelXp = PetProgression.xpForLevel(level + 1, definition.xpPerLevel());
         int span = Math.max(1, nextLevelXp - currentLevelXp);
         int progress = Math.max(0, currentXp - currentLevelXp);
-        String bar = TooltipUtil.progressBar(progress, span, 15);
+        String bar = TooltipUtil.expProgressBarByPixels(progress, span, 168);
         return bar + " " + ChatColor.GRAY + progress + ChatColor.GOLD + "/" + ChatColor.GRAY + span
                 + " <glyph:experience_orb_icon>";
     }

@@ -30,6 +30,52 @@ public final class TooltipUtil {
         return GuiUtil.createProgressBar(progress, length);
     }
 
+    private static int strikethroughSpacePixelWidth() {
+        String unit = ChatColor.DARK_GRAY + "" + ChatColor.STRIKETHROUGH + " " + ChatColor.RESET;
+        return Math.max(1, ChatFormatter.pixelLength(unit));
+    }
+
+    private static int dividerUnitPixelWidth() {
+        String unit = ChatColor.DARK_GRAY + "-";
+        return Math.max(1, ChatFormatter.pixelLength(unit));
+    }
+
+    /**
+     * Create a strikethrough-styled progress bar intended for experience style progress displays.
+     *
+     * @param current current progress value
+     * @param max maximum progress value
+     * @param length number of strikethrough characters
+     * @return coloured strikethrough progress bar
+     */
+    public static String expProgressBar(double current, double max, int length) {
+        int safeLength = Math.max(1, length);
+        double ratio = max <= 0 ? 0.0 : Math.max(0.0, Math.min(1.0, current / max));
+        int filled = (int) Math.round(ratio * safeLength);
+        filled = Math.max(0, Math.min(safeLength, filled));
+        int empty = safeLength - filled;
+
+        StringBuilder sb = new StringBuilder();
+        if (filled > 0) {
+            sb.append(ChatColor.GREEN).append(ChatColor.STRIKETHROUGH).append(" ".repeat(filled));
+        }
+        if (empty > 0) {
+            sb.append(ChatColor.DARK_GRAY).append(ChatColor.STRIKETHROUGH).append(" ".repeat(empty));
+        }
+        sb.append(ChatColor.RESET);
+        return sb.toString();
+    }
+
+    /**
+     * Create a strikethrough-styled experience bar that targets a visual width in pixels.
+     */
+    public static String expProgressBarByPixels(double current, double max, int pixelWidth) {
+        int target = Math.max(80, pixelWidth);
+        int segments = (int) Math.ceil(target / (double) strikethroughSpacePixelWidth());
+        segments = Math.max(16, Math.min(34, segments));
+        return expProgressBar(current, max, segments);
+    }
+
     /**
      * Generate standard left/right click instruction lines.
      *
@@ -67,6 +113,20 @@ public final class TooltipUtil {
         return lore;
     }
 
+
+    /**
+     * Format a standard bullet lore line.
+     *
+     * @param content line content placed after the bullet
+     * @return formatted bullet line
+     */
+    public static String bulletLine(String content) {
+        if (content == null) {
+            return ChatColor.DARK_GRAY + "• " + ChatColor.GRAY;
+        }
+        return ChatColor.DARK_GRAY + "• " + content;
+    }
+
     /**
      * Generate a coloured bullet list using the standard grey styling. This is useful for
      * describing key points in GUI tooltips without hand-writing the prefix every time.
@@ -83,7 +143,7 @@ public final class TooltipUtil {
             if (entry == null || entry.isBlank()) {
                 continue;
             }
-            lore.add(ChatColor.DARK_GRAY + "• " + ChatColor.GRAY + entry.trim());
+            lore.add(bulletLine(ChatColor.GRAY + entry.trim()));
         }
         return lore;
     }
@@ -152,6 +212,57 @@ public final class TooltipUtil {
             wrapped.add(current);
         }
         return wrapped;
+    }
+
+
+    /**
+     * Build a lightweight plain divider line for lore sections.
+     *
+     * @param chars number of divider characters to render
+     * @return formatted divider line
+     */
+    public static String sectionDivider(int chars) {
+        int width = Math.max(10, chars);
+        return ChatColor.DARK_GRAY + "-".repeat(width);
+    }
+
+    /**
+     * Build a divider targeting a visual lore width in pixels.
+     *
+     * @param pixelWidth target width in pixels
+     * @return formatted divider line
+     */
+    public static String sectionDividerByPixels(int pixelWidth) {
+        int target = Math.max(80, pixelWidth);
+        int chars = (int) Math.ceil(target / (double) dividerUnitPixelWidth());
+        chars = Math.max(16, Math.min(34, chars));
+        return sectionDivider(chars);
+    }
+
+    /**
+     * Build a lore-aware section divider based on current visible lines.
+     */
+    public static String sectionDividerForLore(List<String> loreLines) {
+        int width = 0;
+        if (loreLines != null) {
+            for (String line : loreLines) {
+                if (line == null || line.isBlank()) {
+                    continue;
+                }
+                width = Math.max(width, ChatFormatter.pixelLength(line));
+            }
+        }
+        width = Math.max(140, Math.min(190, width + 10));
+        return sectionDividerByPixels(width);
+    }
+
+    /**
+     * Build a standard divider width for lore sections.
+     *
+     * @return formatted divider line
+     */
+    public static String sectionDivider() {
+        return sectionDividerByPixels(170);
     }
 
     /**
