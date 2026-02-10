@@ -1,5 +1,8 @@
 package me.nakilex.levelplugin.player.classes.data;
 
+import me.nakilex.levelplugin.items.data.WeaponType;
+import org.bukkit.inventory.ItemStack;
+
 /** Utility methods related to player classes and families. */
 public final class ClassUtil {
     private ClassUtil() {}
@@ -66,5 +69,38 @@ public final class ClassUtil {
             case CLERIC -> playerClass == PlayerClass.CLERIC;
             default -> false;
         };
+    }
+
+    /**
+     * Determine whether the supplied weapon type matches the expected family for a class.
+     */
+    public static boolean isValidWeaponForClass(PlayerClass playerClass, ItemStack weapon) {
+        WeaponType type = WeaponType.matchType(weapon);
+        if (type == null || playerClass == null) {
+            return false;
+        }
+        if (isMageFamily(playerClass)) {
+            return type == WeaponType.WAND;
+        }
+        if (isArcherFamily(playerClass)) {
+            return type == WeaponType.BOW;
+        }
+        if (isRogueFamily(playerClass)) {
+            return type == WeaponType.SWORD;
+        }
+        if (isWarriorFamily(playerClass)) {
+            return type == WeaponType.SWORD
+                    || type == WeaponType.AXE
+                    || type == WeaponType.SHOVEL;
+        }
+        return false;
+    }
+
+    /**
+     * Determine whether a weapon can be used by a class when both family weapon type and
+     * explicit item class requirement must pass.
+     */
+    public static boolean canUseWeapon(PlayerClass playerClass, ItemStack weapon, PlayerClass requiredClass) {
+        return isValidWeaponForClass(playerClass, weapon) && meetsRequirement(playerClass, requiredClass);
     }
 }

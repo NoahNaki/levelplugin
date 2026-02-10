@@ -125,9 +125,9 @@ public final class ElementalPresets {
     public static final ParticlePreset BURNING_SIGIL = new ParticlePreset(
             "BURNING_SIGIL",
             List.of(
-                    new RingPattern(Particle.REDSTONE, new Particle.DustOptions(Color.fromRGB(255, 120, 0), 1.6f),
+                    new RingPattern(Particle.DUST, new Particle.DustOptions(Color.fromRGB(255, 120, 0), 1.6f),
                             2.2, 2.0, ParticlePlane.Y, 0, null),
-                    new RingPattern(Particle.REDSTONE, new Particle.DustOptions(Color.fromRGB(255, 150, 40), 1.2f),
+                    new RingPattern(Particle.DUST, new Particle.DustOptions(Color.fromRGB(255, 150, 40), 1.2f),
                             1.4, -3.0, ParticlePlane.Y, 0, null)
             ),
             new ParticlePresetSettings(34, 24, ParticleCenter.SELF, 6.0)
