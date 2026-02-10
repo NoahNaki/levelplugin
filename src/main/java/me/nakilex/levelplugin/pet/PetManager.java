@@ -34,6 +34,9 @@ public class PetManager {
 
     private static final double TELEPORT_DISTANCE = 32.0;
     private static final double FOLLOW_DISTANCE = 4.0;
+    private static final double FOLLOW_STEP_DISTANCE = 0.45;
+    private static final long FOLLOW_INITIAL_DELAY_TICKS = 2L;
+    private static final long FOLLOW_UPDATE_TICKS = 1L;
     private static final int MAX_TIER = 5;
     private static final int PITY_THRESHOLD = 60;
     private static final List<ItemRarity> GACHA_RARITIES = List.of(
@@ -288,7 +291,10 @@ public class PetManager {
             return false;
         }
 
-        String displayName = PetDisplayUtil.formatDisplayName(def);
+        int xp = profile.getPetXp(def.id());
+        int tier = profile.getPetTier(def.id());
+        int level = PetProgression.levelFromXp(xp, def.xpPerLevel(), def.maxLevel());
+        String displayName = PetDisplayUtil.formatSummonedName(player.getName(), def, level);
         ArmorStand stand = world.spawn(spawnLoc, ArmorStand.class, entity -> {
             entity.setCustomNameVisible(true);
             entity.setCustomName(displayName);
@@ -305,9 +311,6 @@ public class PetManager {
         }
 
         profile.setActivePetId(def.id());
-        int xp = profile.getPetXp(def.id());
-        int tier = profile.getPetTier(def.id());
-        int level = PetProgression.levelFromXp(xp, def.xpPerLevel(), def.maxLevel());
         PetInstance instance = new PetInstance(player.getUniqueId(), def, stand.getUniqueId(), level, xp, tier);
         activePets.put(player.getUniqueId(), instance);
 
@@ -799,6 +802,7 @@ public class PetManager {
             removeBonuses(player, instance);
             applyBonuses(player, instance);
             startEffectTask(instance);
+            refreshSummonedPetDisplayName(player, instance);
             PetChatUtil.send(player, def.displayName() + " reached level " + newLevel + "!");
         }
     }
@@ -821,7 +825,7 @@ public class PetManager {
                     cancel();
                     return;
                 }
-                ticks += 10;
+                ticks += 2;
                 Location ownerLoc = player.getLocation();
                 Location petLoc = stand.getLocation();
                 double bob = Math.sin(ticks / 20.0) * 0.12;
@@ -832,18 +836,34 @@ public class PetManager {
                     return;
                 }
                 if (distance > FOLLOW_DISTANCE) {
-                    Vector direction = desired.toVector().subtract(petLoc.toVector()).normalize();
-                    Location target = petLoc.add(direction.multiply(1.2));
-                    target.setY(desired.getY());
-                    stand.teleport(target);
-                } else {
-                    Location hover = petLoc.clone();
-                    hover.setY(desired.getY());
-                    stand.teleport(hover);
+                    Vector delta = desired.toVector().subtract(petLoc.toVector());
+                    if (delta.lengthSquared() > 0.0001) {
+                        Vector step = delta.normalize().multiply(Math.min(FOLLOW_STEP_DISTANCE, delta.length()));
+                        Location target = petLoc.clone().add(step);
+                        target.setY(desired.getY());
+                        stand.teleport(target);
+                        return;
+                    }
                 }
+                Location hover = petLoc.clone();
+                hover.setY(desired.getY());
+                stand.teleport(hover);
             }
-        }.runTaskTimer(plugin, 5L, 3L);
+        }.runTaskTimer(plugin, FOLLOW_INITIAL_DELAY_TICKS, FOLLOW_UPDATE_TICKS);
         instance.setFollowTask(task);
+    }
+
+
+    private void refreshSummonedPetDisplayName(Player player, PetInstance instance) {
+        if (player == null || instance == null) {
+            return;
+        }
+        Entity entity = Bukkit.getEntity(instance.entityId());
+        if (!(entity instanceof ArmorStand stand)) {
+            return;
+        }
+        String customName = PetDisplayUtil.formatSummonedName(player.getName(), instance.definition(), instance.level());
+        stand.setCustomName(customName);
     }
 
     private void startEffectTask(PetInstance instance) {
