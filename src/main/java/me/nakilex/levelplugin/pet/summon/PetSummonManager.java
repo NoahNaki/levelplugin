@@ -7,6 +7,7 @@ import me.nakilex.levelplugin.pet.PetDefinition;
 import me.nakilex.levelplugin.pet.PetManager;
 import me.nakilex.levelplugin.pet.PetManager.PetPullDetailed;
 import me.nakilex.levelplugin.pet.PetManager.PetPullEntry;
+import me.nakilex.levelplugin.pet.gui.PetSummonGUI;
 import me.nakilex.levelplugin.pet.utils.PetChatUtil;
 import me.nakilex.levelplugin.pet.utils.PetDisplayUtil;
 import me.nakilex.levelplugin.pet.utils.PetPullSummaryUtil;
@@ -72,11 +73,16 @@ public class PetSummonManager implements Listener {
     private final PetManager petManager;
     private final CutsceneManager cutsceneManager;
     private final Map<UUID, SummonSession> sessions = new HashMap<>();
+    private PetSummonGUI summonGUI;
 
     public PetSummonManager(Main plugin, PetManager petManager, CutsceneManager cutsceneManager) {
         this.plugin = plugin;
         this.petManager = petManager;
         this.cutsceneManager = cutsceneManager;
+    }
+
+    public void setSummonGUI(PetSummonGUI summonGUI) {
+        this.summonGUI = summonGUI;
     }
 
     public int getPityPullsSinceLegendary(UUID playerId) {
@@ -141,6 +147,7 @@ public class PetSummonManager implements Listener {
         sessions.put(player.getUniqueId(), session);
 
         cutsceneManager.playCutscene(player, CUTSCENE_ID);
+        PetChatUtil.send(player, "Crouch to skip animation.");
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             SummonSession active = sessions.get(player.getUniqueId());
             if (active != null) {
@@ -522,6 +529,9 @@ public class PetSummonManager implements Listener {
             PetChatUtil.send(player, "Pet summons complete. Spent §d" + session.summonCost + " <glyph:purple_orb_icon>§7.");
             PetPullSummaryUtil.sendSummary(player, "Pulled", session.pulls.kept());
             PetPullSummaryUtil.sendSummary(player, "Auto-discarded", session.pulls.discarded());
+            if (summonGUI != null && player.isOnline()) {
+                Bukkit.getScheduler().runTaskLater(plugin, () -> summonGUI.open(player), 2L);
+            }
         }
     }
 
@@ -529,13 +539,13 @@ public class PetSummonManager implements Listener {
         if (player == null || session == null) {
             return;
         }
+        var sbManager = plugin.getScoreboardManager();
+        if (sbManager != null) {
+            sbManager.setBoardSuppressed(player, true);
+            return;
+        }
         if (session.originalScoreboard == null) {
             session.originalScoreboard = player.getScoreboard();
-        }
-        var sbManager = plugin.getScoreboardManager();
-        if (sbManager != null && sbManager.getBoard(player) != null) {
-            sbManager.removeBoard(player);
-            return;
         }
         var manager = Bukkit.getScoreboardManager();
         if (manager != null) {
@@ -549,11 +559,7 @@ public class PetSummonManager implements Listener {
         }
         var sbManager = plugin.getScoreboardManager();
         if (sbManager != null) {
-            if (sbManager.getBoard(player) == null) {
-                sbManager.createBoard(player);
-            } else {
-                sbManager.updateBoard(player);
-            }
+            sbManager.setBoardSuppressed(player, false);
             return;
         }
         if (session.originalScoreboard != null) {
@@ -589,7 +595,6 @@ public class PetSummonManager implements Listener {
             if (active != session || !viewer.isOnline()) {
                 return;
             }
-            hideCutsceneScoreboard(viewer, session);
             hideOtherPlayersForCutscene(viewer, session);
         }, 10L, 10L);
         session.tasks.add(task);

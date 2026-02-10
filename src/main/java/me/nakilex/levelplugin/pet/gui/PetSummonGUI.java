@@ -68,12 +68,12 @@ public class PetSummonGUI implements Listener {
         widgets.add(new ActionWidget(SINGLE_SLOT, ctx -> createOptionItem(
                         player, Material.NETHER_STAR,
                         "§a1x Pet Pull",
-                        "Summon 1 random pet", PetSummonManager.summonCostForAmount(1)),
+                        "Summon §e1§7 random pet", PetSummonManager.summonCostForAmount(1)),
                 (click, context) -> handleSummon(player, 1)));
         widgets.add(new ActionWidget(TEN_SLOT, ctx -> createOptionItem(
                         player, Material.BEACON,
                         "§b10x Pet Pull",
-                        "Summon 10 random pets", PetSummonManager.summonCostForAmount(10)),
+                        "Summon §e10§7 random pets", PetSummonManager.summonCostForAmount(10)),
                 (click, context) -> handleSummon(player, 10)));
         widgets.add(new ActionWidget(INFO_SLOT, ctx -> createRatesInfoItem(player), (click, context) -> {}));
         return widgets;
@@ -82,7 +82,7 @@ public class PetSummonGUI implements Listener {
     private ItemStack createOptionItem(Player player, Material material, String name, String action, int cost) {
         List<String> lore = new ArrayList<>();
         lore.add(" ");
-        lore.addAll(TooltipUtil.bulletList(action, "Cost: " + cost + " <glyph:purple_orb_icon>"));
+        lore.addAll(TooltipUtil.bulletList(action, "Cost: §d" + cost + " <glyph:purple_orb_icon>"));
         lore.add(" ");
         lore.addAll(buildPityLore(player));
         lore.add(" ");

@@ -466,6 +466,7 @@ public class PluginBootstrap {
         petSettingsGUI.setPetGUI(petGUI);
         petSummonManager = new me.nakilex.levelplugin.pet.summon.PetSummonManager(plugin, petManager, plugin.getCutsceneManager());
         petSummonGUI = new me.nakilex.levelplugin.pet.gui.PetSummonGUI(petSummonManager);
+        petSummonManager.setSummonGUI(petSummonGUI);
         this.storageManager = new StorageManager();
         this.guildVaultManager = new me.nakilex.levelplugin.guild.GuildVaultManager(storageEvents, guildMemberGUI);
         CommandRegistry.registerCommands(
