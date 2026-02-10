@@ -30,9 +30,26 @@ public final class PetTooltipUtil {
         lore.add(ChatColor.GRAY + "Level " + ChatColor.WHITE + level);
         lore.add(progressLine(definition, level, currentXp));
         lore.add(progressBarLine(definition, level, currentXp));
+
+        List<String> widthProbe = new ArrayList<>(lore);
+        if (ownershipStats != null && !ownershipStats.isEmpty()) {
+            for (StatType stat : StatType.DISPLAY_ORDER) {
+                int value = ownershipStats.getOrDefault(stat, 0);
+                if (value != 0) {
+                    widthProbe.add(ChatColor.GRAY + "• " + GuiUtil.formatStatLine(stat, value, false));
+                }
+            }
+        }
+        if (effects != null) {
+            for (PetEffectDefinition effect : effects) {
+                widthProbe.add(ChatColor.GRAY + "• " + ChatColor.WHITE + formatEffect(effect));
+            }
+        }
+
+        String sectionDivider = TooltipUtil.sectionDividerForLore(widthProbe);
         lore.add(" ");
         if (ownershipStats != null && !ownershipStats.isEmpty()) {
-            lore.add(TooltipUtil.sectionDivider());
+            lore.add(sectionDivider);
             lore.add(TooltipUtil.sectionHeader("Ownership Effect"));
             for (StatType stat : StatType.DISPLAY_ORDER) {
                 int value = ownershipStats.getOrDefault(stat, 0);
@@ -43,7 +60,7 @@ public final class PetTooltipUtil {
             lore.add(" ");
         }
         if (!effects.isEmpty()) {
-            lore.add(TooltipUtil.sectionDivider());
+            lore.add(sectionDivider);
             lore.add(TooltipUtil.sectionHeader("Equipped Effect"));
             for (PetEffectDefinition effect : effects) {
                 String line = ChatColor.GRAY + "• " + ChatColor.WHITE + formatEffect(effect);
@@ -90,13 +107,13 @@ public final class PetTooltipUtil {
 
     private static String progressBarLine(PetDefinition definition, int level, int currentXp) {
         if (level >= definition.maxLevel()) {
-            return ChatColor.GRAY + TooltipUtil.expProgressBar(1, 1, 40) + ChatColor.GRAY + " Max";
+            return ChatColor.GRAY + TooltipUtil.expProgressBarByPixels(1, 1, 168) + ChatColor.GRAY + " Max";
         }
         int currentLevelXp = PetProgression.xpForLevel(level, definition.xpPerLevel());
         int nextLevelXp = PetProgression.xpForLevel(level + 1, definition.xpPerLevel());
         int span = Math.max(1, nextLevelXp - currentLevelXp);
         int progress = Math.max(0, currentXp - currentLevelXp);
-        String bar = TooltipUtil.expProgressBar(progress, span, 40);
+        String bar = TooltipUtil.expProgressBarByPixels(progress, span, 168);
         return bar + " " + ChatColor.GRAY + progress + ChatColor.GOLD + "/" + ChatColor.GRAY + span
                 + " <glyph:experience_orb_icon>";
     }

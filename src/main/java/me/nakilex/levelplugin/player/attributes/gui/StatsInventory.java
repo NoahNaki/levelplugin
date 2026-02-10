@@ -250,7 +250,7 @@ public class StatsInventory {
             double progress = nextLevelXP > 0 ? (double) currentXP / nextLevelXP : 0.0;
             double percent = Math.round(progress * 10000.0) / 100.0;
             lore.add(ChatColor.GRAY + "Progress to Level " + ChatColor.YELLOW + (StatsManager.getInstance().getLevel(player) + 1) + ChatColor.GRAY + ": " + ChatColor.YELLOW + String.format("%.2f", percent) + "%");
-            String bar = TooltipUtil.expProgressBar(currentXP, nextLevelXP, 40);
+            String bar = TooltipUtil.expProgressBarByPixels(currentXP, nextLevelXP, 140);
             String expLabel = me.nakilex.levelplugin.utils.ChatFormatter.experienceLabel();
             String expColor = me.nakilex.levelplugin.utils.ChatFormatter.experienceColor();
             lore.add(bar + " " + expColor + currentXP + ChatColor.GOLD + "/" + expColor + nextLevelXP + " <glyph:experience_orb_icon> " + expLabel);

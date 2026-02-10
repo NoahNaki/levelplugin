@@ -30,6 +30,11 @@ public final class TooltipUtil {
         return GuiUtil.createProgressBar(progress, length);
     }
 
+    private static int strikethroughSpacePixelWidth() {
+        String unit = ChatColor.DARK_GRAY + "" + ChatColor.STRIKETHROUGH + " " + ChatColor.RESET;
+        return Math.max(1, ChatFormatter.pixelLength(unit));
+    }
+
     /**
      * Create a strikethrough-styled progress bar intended for experience style progress displays.
      *
@@ -54,6 +59,16 @@ public final class TooltipUtil {
         }
         sb.append(ChatColor.RESET);
         return sb.toString();
+    }
+
+    /**
+     * Create a strikethrough-styled experience bar that targets a visual width in pixels.
+     */
+    public static String expProgressBarByPixels(double current, double max, int pixelWidth) {
+        int target = Math.max(80, pixelWidth);
+        int segments = (int) Math.ceil(target / (double) strikethroughSpacePixelWidth());
+        segments = Math.max(16, Math.min(34, segments));
+        return expProgressBar(current, max, segments);
     }
 
     /**
@@ -200,10 +215,26 @@ public final class TooltipUtil {
      */
     public static String sectionDividerByPixels(int pixelWidth) {
         int target = Math.max(80, pixelWidth);
-        String segment = ChatColor.DARK_GRAY + "" + ChatColor.STRIKETHROUGH + " ";
-        int segmentPx = Math.max(1, ChatFormatter.pixelLength(segment + ChatColor.RESET));
-        int spaces = Math.max(10, (int) Math.ceil(target / (double) segmentPx));
+        int spaces = (int) Math.ceil(target / (double) strikethroughSpacePixelWidth());
+        spaces = Math.max(16, Math.min(34, spaces));
         return sectionDivider(spaces);
+    }
+
+    /**
+     * Build a lore-aware section divider based on current visible lines.
+     */
+    public static String sectionDividerForLore(List<String> loreLines) {
+        int width = 0;
+        if (loreLines != null) {
+            for (String line : loreLines) {
+                if (line == null || line.isBlank()) {
+                    continue;
+                }
+                width = Math.max(width, ChatFormatter.pixelLength(line));
+            }
+        }
+        width = Math.max(140, Math.min(190, width + 10));
+        return sectionDividerByPixels(width);
     }
 
     /**
@@ -212,7 +243,7 @@ public final class TooltipUtil {
      * @return formatted divider line
      */
     public static String sectionDivider() {
-        return sectionDividerByPixels(240);
+        return sectionDividerByPixels(170);
     }
 
     /**
