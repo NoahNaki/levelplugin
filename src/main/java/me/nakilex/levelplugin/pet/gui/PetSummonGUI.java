@@ -29,7 +29,6 @@ public class PetSummonGUI implements Listener {
     private static final int SINGLE_SLOT = 11;
     private static final int TEN_SLOT = 15;
     private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
-
     private final PetSummonManager summonManager;
     private final String title = ChatUtil.applyEmojis("§8Pet Summon");
     private final Map<UUID, List<GuiWidget>> widgetsByPlayer = new HashMap<>();
@@ -68,20 +67,20 @@ public class PetSummonGUI implements Listener {
         widgets.add(new ActionWidget(SINGLE_SLOT, ctx -> createOptionItem(
                         Material.NETHER_STAR,
                         "§a1x Pet Pull",
-                        "Summon 1 random pet"),
+                        "Summon 1 random pet", PetSummonManager.summonCostForAmount(1)),
                 (click, context) -> handleSummon(player, 1)));
         widgets.add(new ActionWidget(TEN_SLOT, ctx -> createOptionItem(
                         Material.BEACON,
                         "§b10x Pet Pull",
-                        "Summon 10 random pets"),
+                        "Summon 10 random pets", PetSummonManager.summonCostForAmount(10)),
                 (click, context) -> handleSummon(player, 10)));
         return widgets;
     }
 
-    private ItemStack createOptionItem(Material material, String name, String action) {
+    private ItemStack createOptionItem(Material material, String name, String action, int cost) {
         List<String> lore = new ArrayList<>();
         lore.add(" ");
-        lore.addAll(TooltipUtil.bulletList(action, "Cost: Free"));
+        lore.addAll(TooltipUtil.bulletList(action, "Cost: " + cost + " <glyph:purple_orb_icon>"));
         lore.add(" ");
         lore.addAll(TooltipUtil.clickInstructions("to confirm", null));
         return GuiUtil.createGuiItem(material, name, lore);

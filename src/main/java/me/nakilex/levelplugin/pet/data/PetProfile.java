@@ -13,6 +13,7 @@ public class PetProfile {
     private String activePetId;
     private ItemRarity autoDiscardRarity;
     private Location pendingSummonReturn;
+    private boolean autoSkipSummonAnimation;
     private final Map<String, Integer> petXp = new HashMap<>();
     private final Map<String, Integer> petTiers = new HashMap<>();
     private final Map<String, Integer> petCopies = new HashMap<>();
@@ -41,6 +42,13 @@ public class PetProfile {
         this.autoDiscardRarity = autoDiscardRarity;
     }
 
+    public boolean autoSkipSummonAnimation() {
+        return autoSkipSummonAnimation;
+    }
+
+    public void setAutoSkipSummonAnimation(boolean autoSkipSummonAnimation) {
+        this.autoSkipSummonAnimation = autoSkipSummonAnimation;
+    }
     public Location pendingSummonReturn() {
         return pendingSummonReturn == null ? null : pendingSummonReturn.clone();
     }

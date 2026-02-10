@@ -68,6 +68,7 @@ public class PetDataStore {
                     profile.setAutoDiscardRarity(null);
                 }
             }
+            profile.setAutoSkipSummonAnimation(config.getBoolean(root + ".summon.auto-skip-animation", false));
             String petRoot = root + ".pets";
             var section = config.getConfigurationSection(petRoot);
             if (section != null) {
@@ -107,6 +108,7 @@ public class PetDataStore {
             config.set(root + ".pets." + entry.getKey() + ".copies", entry.getValue());
         }
         config.set(root + ".summon.return", profile.pendingSummonReturn());
+        config.set(root + ".summon.auto-skip-animation", profile.autoSkipSummonAnimation());
     }
 
     private void saveConfig() {

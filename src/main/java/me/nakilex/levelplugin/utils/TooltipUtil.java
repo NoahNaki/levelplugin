@@ -101,6 +101,59 @@ public final class TooltipUtil {
         return bullet + "- " + color + label;
     }
 
+
+    /**
+     * Wrap a lore line to a max pixel width using Minecraft font metrics.
+     *
+     * @param line      source lore line
+     * @param maxPixels maximum pixel width for a line
+     * @return wrapped lore lines
+     */
+    public static List<String> wrapLoreLine(String line, int maxPixels) {
+        return wrapLoreLine(line, maxPixels, ChatColor.GRAY.toString());
+    }
+
+    /**
+     * Wrap a lore line to a max pixel width using Minecraft font metrics,
+     * with a custom prefix for continuation lines.
+     *
+     * @param line               source lore line
+     * @param maxPixels          maximum pixel width for a line
+     * @param continuationPrefix prefix used for continuation lines
+     * @return wrapped lore lines
+     */
+    public static List<String> wrapLoreLine(String line, int maxPixels, String continuationPrefix) {
+        List<String> wrapped = new ArrayList<>();
+        if (line == null || line.isBlank()) {
+            return wrapped;
+        }
+        int targetPixels = Math.max(80, maxPixels);
+        String[] words = line.trim().split("\\s+");
+        String current = "";
+        String continuation = continuationPrefix == null ? "" : continuationPrefix;
+        for (String word : words) {
+            if (word == null || word.isBlank()) {
+                continue;
+            }
+            String candidate = current.isEmpty() ? word : current + " " + word;
+            if (ChatFormatter.pixelLength(candidate) <= targetPixels) {
+                current = candidate;
+                continue;
+            }
+            if (!current.isEmpty()) {
+                wrapped.add(current);
+                String carryColor = ChatColor.getLastColors(current);
+                current = (continuation + carryColor + word).trim();
+                continue;
+            }
+            wrapped.add(word);
+        }
+        if (!current.isEmpty()) {
+            wrapped.add(current);
+        }
+        return wrapped;
+    }
+
     /**
      * Generate standard lore for quest items so they share the same divider and
      * label styling everywhere.

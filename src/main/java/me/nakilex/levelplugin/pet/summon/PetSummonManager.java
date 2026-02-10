@@ -42,21 +42,26 @@ public class PetSummonManager implements Listener {
     private static final int REVEAL_START_DELAY_TICKS = 20;
     private static final int REVEAL_INTERVAL_TICKS = 14;
     private static final int END_BUFFER_TICKS = 20;
-    private static final double BASE_OFFSET = 6.5;
+    private static final double BASE_OFFSET = 5.5;
     private static final double RING_RADIUS = 3.8;
     private static final double SPIN_TURNS = 3.5;
     private static final String SPAWN_SOUND = "minecraft:entity.experience_orb.pickup";
     private static final String REVEAL_SOUND = "minecraft:block.beacon.power_select";
     private static final String ORBIT_SOUND = "minecraft:block.amethyst_block.chime";
+    private static final String LEGENDARY_REVEAL_SOUND = "minecraft:entity.firework_rocket.twinkle_far";
     private static final float SPAWN_VOLUME = 0.7f;
     private static final float SPAWN_PITCH = 1.3f;
     private static final float REVEAL_VOLUME = 0.9f;
     private static final float REVEAL_PITCH = 1.1f;
+    private static final float LEGENDARY_REVEAL_VOLUME = 1.25f;
+    private static final float LEGENDARY_REVEAL_PITCH = 0.9f;
     private static final float ORBIT_VOLUME = 0.4f;
     private static final float ORBIT_PITCH = 1.6f;
     private static final double SUMMON_X = 234;
     private static final double SUMMON_Y = 177;
     private static final double SUMMON_Z = -203;
+    private static final int SINGLE_PULL_COST = 100;
+    private static final int TEN_PULL_COST = 900;
 
     private final Main plugin;
     private final PetManager petManager;
@@ -90,17 +95,27 @@ public class PetSummonManager implements Listener {
             return;
         }
 
-        Location returnLocation = player.getLocation().clone();
-        petManager.setPendingSummonReturn(player.getUniqueId(), returnLocation);
+        int summonCost = summonCostForAmount(amount);
+        if (!chargeSummonCost(player, summonCost)) {
+            return;
+        }
 
         PetPullDetailed detailed = petManager.pullPetsDetailed(player, amount);
         if (detailed.kept().isEmpty() && detailed.discarded().isEmpty()) {
             PetChatUtil.send(player, "No pets available to pull.");
-            petManager.clearPendingSummonReturn(player.getUniqueId());
+            refundSummonCost(player, summonCost);
             return;
         }
 
-        SummonSession session = new SummonSession(returnLocation, detailed);
+        if (petManager.getProfile(player.getUniqueId()).autoSkipSummonAnimation()) {
+            finishInstantSummon(player, detailed, summonCost);
+            return;
+        }
+
+        Location returnLocation = player.getLocation().clone();
+        petManager.setPendingSummonReturn(player.getUniqueId(), returnLocation);
+
+        SummonSession session = new SummonSession(returnLocation, detailed, summonCost);
         sessions.put(player.getUniqueId(), session);
 
         cutsceneManager.playCutscene(player, CUTSCENE_ID);
@@ -266,9 +281,8 @@ public class PetSummonManager implements Listener {
                 }
                 entry.item().setCustomNameVisible(true);
                 applyGlow(player, entry.item(), entry.definition());
-                player.spawnParticle(Particle.END_ROD, entry.item().getLocation(),
-                        10, 0.2, 0.2, 0.2, 0.02);
-                playSound(player, REVEAL_SOUND, REVEAL_VOLUME, REVEAL_PITCH);
+                spawnRevealParticles(player, entry.item().getLocation(), entry.definition().rarity());
+                playRevealSound(player, entry.definition().rarity());
                 session.revealsDone++;
                 if (session.revealsDone >= session.totalReveals) {
                     Bukkit.getScheduler().runTaskLater(plugin,
@@ -311,6 +325,79 @@ public class PetSummonManager implements Listener {
                 }
             }
         }, 1L);
+    }
+
+
+    private void playRevealSound(Player player, ItemRarity rarity) {
+        if (rarity == ItemRarity.LEGENDARY || rarity == ItemRarity.MYTHIC || rarity == ItemRarity.FABLED) {
+            playSound(player, LEGENDARY_REVEAL_SOUND, LEGENDARY_REVEAL_VOLUME, LEGENDARY_REVEAL_PITCH);
+            return;
+        }
+        playSound(player, REVEAL_SOUND, REVEAL_VOLUME, REVEAL_PITCH);
+    }
+
+    private void spawnRevealParticles(Player player, Location location, ItemRarity rarity) {
+        if (player == null || location == null) {
+            return;
+        }
+        int count = 10;
+        double spread = 0.2;
+        double speed = 0.02;
+        Particle accent = Particle.END_ROD;
+        if (rarity == ItemRarity.LEGENDARY || rarity == ItemRarity.MYTHIC || rarity == ItemRarity.FABLED) {
+            count = 28;
+            spread = 0.35;
+            speed = 0.04;
+            accent = Particle.FIREWORK;
+            player.spawnParticle(Particle.TOTEM_OF_UNDYING, location, 8, 0.22, 0.22, 0.22, 0.01);
+            player.spawnParticle(Particle.ENCHANT, location, 18, 0.45, 0.45, 0.45, 0.03);
+        }
+        player.spawnParticle(Particle.END_ROD, location, count, spread, spread, spread, speed);
+        if (accent != Particle.END_ROD) {
+            player.spawnParticle(accent, location, 16, 0.35, 0.35, 0.35, 0.02);
+        }
+    }
+
+    public static int summonCostForAmount(int amount) {
+        return amount >= 10 ? TEN_PULL_COST : SINGLE_PULL_COST;
+    }
+
+    private boolean chargeSummonCost(Player player, int cost) {
+        if (player == null || cost <= 0) {
+            return true;
+        }
+        if (plugin.getGemsManager() == null) {
+            PetChatUtil.send(player, "Gem economy is unavailable right now.");
+            return false;
+        }
+        int gems = plugin.getGemsManager().getTotalUnits(player);
+        if (gems < cost) {
+            PetChatUtil.send(player, "Not enough gems. Need §d" + cost + " <glyph:purple_orb_icon>§7.");
+            return false;
+        }
+        try {
+            plugin.getGemsManager().deductUnits(player, cost);
+            return true;
+        } catch (IllegalArgumentException ex) {
+            PetChatUtil.send(player, "Not enough gems. Need §d" + cost + " <glyph:purple_orb_icon>§7.");
+            return false;
+        }
+    }
+
+    private void refundSummonCost(Player player, int cost) {
+        if (player == null || cost <= 0 || plugin.getGemsManager() == null) {
+            return;
+        }
+        plugin.getGemsManager().addUnits(player, cost);
+    }
+
+    private void finishInstantSummon(Player player, PetPullDetailed detailed, int cost) {
+        if (player == null) {
+            return;
+        }
+        PetChatUtil.send(player, "Pet summon complete. Spent §d" + cost + " <glyph:purple_orb_icon>§7.");
+        PetPullSummaryUtil.sendSummary(player, "Pulled", detailed.kept());
+        PetPullSummaryUtil.sendSummary(player, "Auto-discarded", detailed.discarded());
     }
 
     private void playSound(Player player, String sound, float volume, float pitch) {
@@ -356,8 +443,7 @@ public class PetSummonManager implements Listener {
             }
             entry.item().setCustomNameVisible(true);
             applyGlow(player, entry.item(), entry.definition());
-            player.spawnParticle(Particle.END_ROD, entry.item().getLocation(),
-                    10, 0.2, 0.2, 0.2, 0.02);
+            spawnRevealParticles(player, entry.item().getLocation(), entry.definition().rarity());
         }
         session.revealsDone = session.totalReveals;
     }
@@ -401,7 +487,7 @@ public class PetSummonManager implements Listener {
                 player.teleport(returnLocation);
             }
             petManager.clearPendingSummonReturn(player.getUniqueId());
-            PetChatUtil.send(player, "Pet summons complete.");
+            PetChatUtil.send(player, "Pet summons complete. Spent §d" + session.summonCost + " <glyph:purple_orb_icon>§7.");
             PetPullSummaryUtil.sendSummary(player, "Pulled", session.pulls.kept());
             PetPullSummaryUtil.sendSummary(player, "Auto-discarded", session.pulls.discarded());
         }
@@ -439,6 +525,7 @@ public class PetSummonManager implements Listener {
         private final int totalPulls;
         private final int totalReveals;
         private final int spinTicks;
+        private final int summonCost;
         private Location center;
         private Vector right;
         private Vector up;
@@ -448,7 +535,8 @@ public class PetSummonManager implements Listener {
         private int revealsDone;
 
         private SummonSession(Location returnLocation,
-                              PetPullDetailed pulls) {
+                              PetPullDetailed pulls,
+                              int summonCost) {
             this.returnLocation = returnLocation;
             this.pulls = pulls;
             this.totalPulls = Math.max(1, pulls.pulls().size());
@@ -457,6 +545,7 @@ public class PetSummonManager implements Listener {
             this.right = null;
             this.up = null;
             this.spinTicks = SPIN_TICKS + (this.totalPulls - 1) * SPAWN_INTERVAL_TICKS;
+            this.summonCost = Math.max(0, summonCost);
             this.frozenLocation = null;
             this.spinProgress = 0.0;
             this.revealsDone = 0;

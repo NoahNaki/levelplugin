@@ -44,7 +44,8 @@ public final class PetTooltipUtil {
         if (!effects.isEmpty()) {
             lore.add(TooltipUtil.sectionHeader("Equipped Effect"));
             for (PetEffectDefinition effect : effects) {
-                lore.add(ChatColor.GRAY + "• " + ChatColor.WHITE + formatEffect(effect));
+                String line = ChatColor.GRAY + "• " + ChatColor.WHITE + formatEffect(effect);
+                lore.addAll(TooltipUtil.wrapLoreLine(line, 220, ChatColor.DARK_GRAY + "  " + ChatColor.GRAY));
             }
             lore.add(" ");
         }
