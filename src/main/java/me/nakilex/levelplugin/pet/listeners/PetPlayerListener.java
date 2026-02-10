@@ -32,7 +32,7 @@ public class PetPlayerListener implements Listener {
             return;
         }
         if (plugin.getDungeonManager().isInstanceWorld(event.getPlayer().getWorld())) {
-            petManager.dismissPet(event.getPlayer());
+            petManager.dismissPet(event.getPlayer(), false);
             return;
         }
         petManager.handleProfileActivated(event.getPlayer());

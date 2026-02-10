@@ -202,7 +202,7 @@ public class PetManager {
             if (!player.isOnline()) {
                 return;
             }
-            dismissPet(player);
+            dismissPet(player, false);
             PetProfile profile = dataStore.getProfile(player.getUniqueId());
             String activeId = profile.activePetId();
             if (activeId != null && !activeId.isBlank()) {
@@ -212,7 +212,7 @@ public class PetManager {
     }
 
     public void handlePlayerQuit(Player player) {
-        dismissPet(player);
+        dismissPet(player, false);
         dataStore.saveProfile(player.getUniqueId());
         clearPlayerState(player.getUniqueId());
     }
@@ -364,6 +364,10 @@ public class PetManager {
     }
 
     public boolean dismissPet(Player player) {
+        return dismissPet(player, true);
+    }
+
+    public boolean dismissPet(Player player, boolean clearActiveSelection) {
         if (player == null) {
             return false;
         }
@@ -379,8 +383,10 @@ public class PetManager {
         if (entity != null) {
             entity.remove();
         }
-        PetProfile profile = dataStore.getProfile(player.getUniqueId());
-        profile.setActivePetId(null);
+        if (clearActiveSelection) {
+            PetProfile profile = dataStore.getProfile(player.getUniqueId());
+            profile.setActivePetId(null);
+        }
         return true;
     }
 
@@ -623,7 +629,7 @@ public class PetManager {
         for (UUID ownerId : Set.copyOf(activePets.keySet())) {
             Player player = Bukkit.getPlayer(ownerId);
             if (player != null) {
-                dismissPet(player);
+                dismissPet(player, false);
             } else {
                 PetInstance instance = activePets.remove(ownerId);
                 if (instance != null) {
