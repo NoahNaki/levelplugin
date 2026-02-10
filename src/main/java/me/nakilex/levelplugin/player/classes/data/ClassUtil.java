@@ -95,4 +95,12 @@ public final class ClassUtil {
         }
         return false;
     }
+
+    /**
+     * Determine whether a weapon can be used by a class when both family weapon type and
+     * explicit item class requirement must pass.
+     */
+    public static boolean canUseWeapon(PlayerClass playerClass, ItemStack weapon, PlayerClass requiredClass) {
+        return isValidWeaponForClass(playerClass, weapon) && meetsRequirement(playerClass, requiredClass);
+    }
 }

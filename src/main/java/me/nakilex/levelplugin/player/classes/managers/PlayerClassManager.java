@@ -28,11 +28,10 @@ public class PlayerClassManager {
         if (uuid == null) {
             return PlayerClass.VILLAGER;
         }
-        PlayerClass cached = classMap.get(uuid);
-        if (cached != null) {
-            return cached;
-        }
         PlayerClass fromStats = StatsManager.getInstance().getPlayerStats(uuid).playerClass;
+        if (fromStats == null) {
+            fromStats = PlayerClass.VILLAGER;
+        }
         classMap.put(uuid, fromStats);
         return fromStats;
     }

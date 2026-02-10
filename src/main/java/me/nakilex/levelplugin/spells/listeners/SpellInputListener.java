@@ -3,6 +3,8 @@ package me.nakilex.levelplugin.spells.listeners;
 import me.nakilex.levelplugin.player.classes.data.ClassUtil;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.classes.managers.PlayerClassManager;
+import me.nakilex.levelplugin.items.data.CustomItem;
+import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.settings.data.PlayerSettings;
 import me.nakilex.levelplugin.settings.managers.SettingsManager;
 import me.nakilex.levelplugin.spells.input.SpellComboTracker;
@@ -44,6 +46,7 @@ public class SpellInputListener implements Listener {
     private final Map<UUID, Long> lastRightClickAt = new HashMap<>();
     private final SpellInputDisplayManager displayManager = SpellInputDisplayManager.getInstance();
     private final SpellKeybindManager keybindManager = SpellKeybindManager.getInstance();
+    private final ItemManager itemManager = ItemManager.getInstance();
 
     public SpellInputListener(SettingsManager settingsManager) {
         this.settingsManager = settingsManager;
@@ -269,7 +272,9 @@ public class SpellInputListener implements Listener {
     private boolean isHoldingValidClassWeapon(Player player) {
         PlayerClass playerClass = PlayerClassManager.getInstance().getPlayerClass(player);
         ItemStack mainHand = player.getInventory().getItemInMainHand();
-        return ClassUtil.isValidWeaponForClass(playerClass, mainHand);
+        CustomItem customItem = itemManager.getCustomItemFromItemStack(mainHand);
+        PlayerClass required = customItem == null ? null : PlayerClass.fromString(customItem.getClassRequirement());
+        return ClassUtil.canUseWeapon(playerClass, mainHand, required);
     }
 
     private static final class SneakState {
