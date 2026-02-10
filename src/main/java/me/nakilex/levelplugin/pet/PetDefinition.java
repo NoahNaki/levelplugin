@@ -14,6 +14,7 @@ public record PetDefinition(String id,
                             String displayName,
                             ItemRarity rarity,
                             List<String> modelIds,
+                            Map<StatType, Integer> ownershipStats,
                             Map<StatType, Integer> baseStats,
                             Map<StatType, Integer> perLevelStats,
                             List<PetEffectDefinition> effects,
@@ -105,11 +106,12 @@ public record PetDefinition(String id,
         List<String> models = section.getStringList("models");
         int maxLevel = Math.max(1, section.getInt("max-level", 100));
         int xpPerLevel = Math.max(1, section.getInt("xp-per-level", 100));
+        Map<StatType, Integer> ownershipStats = parseStats(section.getConfigurationSection("owned-stats"));
         Map<StatType, Integer> base = parseStats(section.getConfigurationSection("stats.base"));
         Map<StatType, Integer> perLevel = parseStats(section.getConfigurationSection("stats.per-level"));
         List<PetEffectDefinition> effects = parseEffects(section.getMapList("effects"));
 
-        return new PetDefinition(id, name, rarity, models, base, perLevel, effects, maxLevel, xpPerLevel);
+        return new PetDefinition(id, name, rarity, models, ownershipStats, base, perLevel, effects, maxLevel, xpPerLevel);
     }
 
     private static Map<StatType, Integer> parseStats(ConfigurationSection section) {

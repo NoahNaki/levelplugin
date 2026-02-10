@@ -7,6 +7,8 @@ import me.nakilex.levelplugin.pet.data.PetProfile;
 import me.nakilex.levelplugin.pet.utils.PetChatUtil;
 import me.nakilex.levelplugin.pet.utils.PetDisplayUtil;
 import me.nakilex.levelplugin.utils.ModelEngineUtil;
+import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
+import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -22,6 +24,7 @@ import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Collections;
 import java.util.EnumMap;
@@ -75,6 +78,7 @@ public class PetManager {
     private final Map<UUID, Long> lastStandCooldownAt = new HashMap<>();
     private final Map<UUID, Long> lastStandImmuneUntil = new HashMap<>();
     private final Map<UUID, Long> lastStandBuffUntil = new HashMap<>();
+    private final Map<UUID, Map<StatType, Integer>> appliedOwnershipStats = new HashMap<>();
 
     public PetManager(Main plugin) {
         this.plugin = plugin;
@@ -148,6 +152,7 @@ public class PetManager {
         PetProfile profile = dataStore.getProfile(player.getUniqueId());
         String activeId = profile.activePetId();
         recordMovement(player.getUniqueId());
+        refreshOwnershipBonuses(player.getUniqueId());
         if (activeId != null && !activeId.isBlank()) {
             summonPet(player, activeId);
         }
@@ -177,6 +182,7 @@ public class PetManager {
             }
         }
         removePetEntities(ownerId);
+        clearOwnershipBonuses(ownerId);
         dataStore.clearProfile(ownerId);
         clearPlayerState(ownerId);
     }
@@ -373,6 +379,7 @@ public class PetManager {
         }
         profile.setPetCopies(def.id(), Math.max(1, copies - 1));
         profile.setPetTier(def.id(), tier + 1);
+        refreshOwnershipBonuses(player.getUniqueId());
         PetInstance instance = activePets.get(player.getUniqueId());
         if (instance != null && instance.definition().id().equalsIgnoreCase(def.id())) {
             instance.setTier(tier + 1);
@@ -423,6 +430,7 @@ public class PetManager {
         }
         int current = profile.getPetCopies(def.id());
         profile.setPetCopies(def.id(), Math.max(0, current - actual));
+        refreshOwnershipBonuses(player.getUniqueId());
         int perCopy = SELL_VALUES.getOrDefault(def.rarity(), 25);
         int total = perCopy * actual;
         if (plugin.getEconomyManager() != null) {
@@ -463,6 +471,7 @@ public class PetManager {
         if (investable > 0) {
             profile.setPetTier(def.id(), newTier);
             profile.setPetCopies(def.id(), Math.max(1, remainingCopies));
+            refreshOwnershipBonuses(player.getUniqueId());
             PetInstance instance = activePets.get(player.getUniqueId());
             if (instance != null && instance.definition().id().equalsIgnoreCase(def.id())) {
                 instance.setTier(newTier);
@@ -472,6 +481,7 @@ public class PetManager {
             }
         } else {
             profile.setPetCopies(def.id(), Math.max(1, remainingCopies));
+            refreshOwnershipBonuses(player.getUniqueId());
         }
         return new InvestResult(investable, soldCopies, coins);
     }
@@ -482,6 +492,7 @@ public class PetManager {
         }
         PetProfile profile = dataStore.getProfile(player.getUniqueId());
         profile.addPetCopies(petId, amount);
+        refreshOwnershipBonuses(player.getUniqueId());
     }
 
     public PetPullResult pullPets(Player player, int amount) {
@@ -522,6 +533,7 @@ public class PetManager {
             kept.merge(def, 1, Integer::sum);
             pulls.add(new PetPullEntry(def, true));
         }
+        refreshOwnershipBonuses(player.getUniqueId());
         return new PetPullDetailed(pulls, kept, discarded);
     }
 
@@ -561,7 +573,90 @@ public class PetManager {
                 }
             }
         }
+        for (UUID ownerId : Set.copyOf(appliedOwnershipStats.keySet())) {
+            clearOwnershipBonuses(ownerId);
+        }
         dataStore.saveAll();
+    }
+
+    public Map<StatType, Integer> getTotalOwnedStatBonuses(UUID playerId) {
+        Map<StatType, Integer> totals = calculateOwnershipBonuses(playerId);
+        return totals.isEmpty() ? Map.of() : Collections.unmodifiableMap(totals);
+    }
+
+    public void refreshOwnershipBonuses(UUID playerId) {
+        if (playerId == null) {
+            return;
+        }
+        Map<StatType, Integer> previous = appliedOwnershipStats.getOrDefault(playerId, Map.of());
+        Map<StatType, Integer> current = calculateOwnershipBonuses(playerId);
+        Map<StatType, Integer> delta = subtractStats(current, previous);
+        if (!delta.isEmpty()) {
+            StatsManager.getInstance().applyBonusStats(playerId, delta);
+        }
+        if (current.isEmpty()) {
+            appliedOwnershipStats.remove(playerId);
+        } else {
+            appliedOwnershipStats.put(playerId, current);
+        }
+    }
+
+    private void clearOwnershipBonuses(UUID playerId) {
+        Map<StatType, Integer> applied = appliedOwnershipStats.remove(playerId);
+        if (applied == null || applied.isEmpty()) {
+            return;
+        }
+        Map<StatType, Integer> negative = new EnumMap<>(StatType.class);
+        for (Map.Entry<StatType, Integer> entry : applied.entrySet()) {
+            if (entry.getValue() != null && entry.getValue() != 0) {
+                negative.put(entry.getKey(), -entry.getValue());
+            }
+        }
+        if (!negative.isEmpty()) {
+            StatsManager.getInstance().applyBonusStats(playerId, negative);
+        }
+    }
+
+    private Map<StatType, Integer> calculateOwnershipBonuses(UUID playerId) {
+        if (playerId == null) {
+            return Map.of();
+        }
+        PetProfile profile = dataStore.getProfile(playerId);
+        Map<StatType, Integer> totals = new EnumMap<>(StatType.class);
+        for (PetDefinition definition : definitions.values()) {
+            if (profile.getPetCopies(definition.id()) <= 0) {
+                continue;
+            }
+            mergeStats(totals, definition.ownershipStats());
+        }
+        return totals;
+    }
+
+    private static void mergeStats(Map<StatType, Integer> target, Map<StatType, Integer> additions) {
+        if (target == null || additions == null || additions.isEmpty()) {
+            return;
+        }
+        for (Map.Entry<StatType, Integer> entry : additions.entrySet()) {
+            StatType type = entry.getKey();
+            int value = entry.getValue() == null ? 0 : entry.getValue();
+            if (type == null || value == 0) {
+                continue;
+            }
+            target.merge(type, value, Integer::sum);
+        }
+    }
+
+    private static Map<StatType, Integer> subtractStats(Map<StatType, Integer> lhs, Map<StatType, Integer> rhs) {
+        Map<StatType, Integer> delta = new EnumMap<>(StatType.class);
+        for (StatType type : StatType.values()) {
+            int left = lhs == null ? 0 : lhs.getOrDefault(type, 0);
+            int right = rhs == null ? 0 : rhs.getOrDefault(type, 0);
+            int diff = left - right;
+            if (diff != 0) {
+                delta.put(type, diff);
+            }
+        }
+        return delta;
     }
 
     public Map<String, PetDefinition> getDefinitions() {

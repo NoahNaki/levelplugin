@@ -5,6 +5,7 @@ import me.nakilex.levelplugin.pet.PetEffectDefinition;
 import me.nakilex.levelplugin.pet.PetManager;
 import me.nakilex.levelplugin.pet.PetManager.InvestResult;
 import me.nakilex.levelplugin.pet.PetProgression;
+import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
 import me.nakilex.levelplugin.pet.utils.PetChatUtil;
 import me.nakilex.levelplugin.pet.utils.PetGuiUtil;
 import me.nakilex.levelplugin.utils.ChatUtil;
@@ -108,7 +109,7 @@ public class PetGUI implements Listener {
             int level = PetProgression.levelFromXp(xp, def.xpPerLevel(), def.maxLevel());
             List<PetEffectDefinition> effects = def.effectsForLevel(level, tier);
             boolean equipped = activeId != null && activeId.equalsIgnoreCase(def.id());
-            ItemStack icon = PetGuiUtil.createPetIcon(def, level, xp, tier, effects, copies, equipped);
+            ItemStack icon = PetGuiUtil.createPetIcon(def, level, xp, tier, def.ownershipStats(), effects, copies, equipped);
             String petId = def.id();
             widgets.add(new ActionWidget(slot, ctx -> icon, (click, context) -> {
                 if (click.isRightClick()) {
@@ -136,6 +137,7 @@ public class PetGUI implements Listener {
             widgets.add(new ActionWidget(49, ctx -> createSettingsItem(),
                     (click, context) -> petSettingsGUI.open(player)));
         }
+        widgets.add(new ActionWidget(50, ctx -> createOwnershipSummaryItem(player), (click, context) -> {}));
         return widgets;
     }
 
@@ -147,6 +149,25 @@ public class PetGUI implements Listener {
     private ItemStack createSettingsItem() {
         List<String> lore = TooltipUtil.clickInstructions("to open settings", null);
         return GuiUtil.createGuiItem(Material.COMPARATOR, "§bPet Settings", lore);
+    }
+
+    private ItemStack createOwnershipSummaryItem(Player player) {
+        Map<StatType, Integer> totals = petManager.getTotalOwnedStatBonuses(player.getUniqueId());
+        List<String> lore = new ArrayList<>();
+        lore.add(" ");
+        if (totals.isEmpty()) {
+            lore.addAll(TooltipUtil.bulletList("Unlock pets to gain ownership stat bonuses."));
+        } else {
+            lore.add("§7Total bonuses from unlocked pets:");
+            lore.add(" ");
+            for (StatType stat : StatType.DISPLAY_ORDER) {
+                int value = totals.getOrDefault(stat, 0);
+                if (value != 0) {
+                    lore.add("§7• " + GuiUtil.formatStatLine(stat, value, false));
+                }
+            }
+        }
+        return GuiUtil.createGuiItem(Material.BOOK, "§aOwnership Bonuses", lore);
     }
 
     private ItemStack createEmptyItem() {
