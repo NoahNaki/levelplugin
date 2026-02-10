@@ -10,6 +10,7 @@ import me.nakilex.levelplugin.pet.PetManager.PetPullEntry;
 import me.nakilex.levelplugin.pet.utils.PetChatUtil;
 import me.nakilex.levelplugin.pet.utils.PetDisplayUtil;
 import me.nakilex.levelplugin.pet.utils.PetPullSummaryUtil;
+import me.nakilex.levelplugin.utils.BetterHudUtil;
 import me.nakilex.levelplugin.utils.GlowUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -21,6 +22,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
@@ -146,6 +148,8 @@ public class PetSummonManager implements Listener {
                 active.setFrozenLocation(player.getLocation());
                 hideCutsceneScoreboard(player, active);
                 hideOtherPlayersForCutscene(player, active);
+                BetterHudUtil.removeHud(player);
+                startVisibilityEnforcementTask(player, active);
             }
         }, 1L);
 
@@ -508,6 +512,7 @@ public class PetSummonManager implements Listener {
         }
         showOtherPlayersAfterCutscene(player, session);
         restoreCutsceneScoreboard(player, session);
+        BetterHudUtil.addHud(player);
         if (teleport) {
             Location returnLocation = session.returnLocation;
             if (returnLocation != null) {
@@ -524,16 +529,31 @@ public class PetSummonManager implements Listener {
         if (player == null || session == null) {
             return;
         }
-        session.originalScoreboard = player.getScoreboard();
-        var manager = Bukkit.getScoreboardManager();
-        if (manager == null) {
+        if (session.originalScoreboard == null) {
+            session.originalScoreboard = player.getScoreboard();
+        }
+        var sbManager = plugin.getScoreboardManager();
+        if (sbManager != null && sbManager.getBoard(player) != null) {
+            sbManager.removeBoard(player);
             return;
         }
-        player.setScoreboard(manager.getNewScoreboard());
+        var manager = Bukkit.getScoreboardManager();
+        if (manager != null) {
+            player.setScoreboard(manager.getNewScoreboard());
+        }
     }
 
     private void restoreCutsceneScoreboard(Player player, SummonSession session) {
         if (player == null || session == null) {
+            return;
+        }
+        var sbManager = plugin.getScoreboardManager();
+        if (sbManager != null) {
+            if (sbManager.getBoard(player) == null) {
+                sbManager.createBoard(player);
+            } else {
+                sbManager.updateBoard(player);
+            }
             return;
         }
         if (session.originalScoreboard != null) {
@@ -559,6 +579,22 @@ public class PetSummonManager implements Listener {
         }
     }
 
+
+    private void startVisibilityEnforcementTask(Player viewer, SummonSession session) {
+        if (viewer == null || session == null) {
+            return;
+        }
+        BukkitTask task = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            SummonSession active = sessions.get(viewer.getUniqueId());
+            if (active != session || !viewer.isOnline()) {
+                return;
+            }
+            hideCutsceneScoreboard(viewer, session);
+            hideOtherPlayersForCutscene(viewer, session);
+        }, 10L, 10L);
+        session.tasks.add(task);
+    }
+
     private void showOtherPlayersAfterCutscene(Player viewer, SummonSession session) {
         if (viewer == null || session == null) {
             return;
@@ -578,6 +614,13 @@ public class PetSummonManager implements Listener {
         SummonSession session = sessions.get(player.getUniqueId());
         if (session != null) {
             finishSession(player, false);
+        }
+    }
+
+    @EventHandler
+    public void onPlayerChat(AsyncPlayerChatEvent event) {
+        if (sessions.containsKey(event.getPlayer().getUniqueId())) {
+            event.setCancelled(true);
         }
     }
 
