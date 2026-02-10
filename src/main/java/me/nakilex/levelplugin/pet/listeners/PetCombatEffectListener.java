@@ -33,7 +33,7 @@ public class PetCombatEffectListener implements Listener {
         if (healAmount <= 0.0) {
             return;
         }
-        var maxHealthAttr = attacker.getAttribute(Attribute.GENERIC_MAX_HEALTH);
+        var maxHealthAttr = attacker.getAttribute(Attribute.MAX_HEALTH);
         if (maxHealthAttr == null) {
             return;
         }
