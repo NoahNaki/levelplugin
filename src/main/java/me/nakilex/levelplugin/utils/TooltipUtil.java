@@ -35,6 +35,11 @@ public final class TooltipUtil {
         return Math.max(1, ChatFormatter.pixelLength(unit));
     }
 
+    private static int dividerUnitPixelWidth() {
+        String unit = ChatColor.DARK_GRAY + "-";
+        return Math.max(1, ChatFormatter.pixelLength(unit));
+    }
+
     /**
      * Create a strikethrough-styled progress bar intended for experience style progress displays.
      *
@@ -197,27 +202,27 @@ public final class TooltipUtil {
 
 
     /**
-     * Build a lightweight strikethrough divider line for lore sections.
+     * Build a lightweight plain divider line for lore sections.
      *
-     * @param spaces number of strikethrough spaces to render
+     * @param chars number of divider characters to render
      * @return formatted divider line
      */
-    public static String sectionDivider(int spaces) {
-        int width = Math.max(10, spaces);
-        return ChatColor.DARK_GRAY + "" + ChatColor.STRIKETHROUGH + " ".repeat(width) + ChatColor.RESET;
+    public static String sectionDivider(int chars) {
+        int width = Math.max(10, chars);
+        return ChatColor.DARK_GRAY + "-".repeat(width);
     }
 
     /**
-     * Build a strikethrough divider targeting a visual lore width in pixels.
+     * Build a divider targeting a visual lore width in pixels.
      *
      * @param pixelWidth target width in pixels
      * @return formatted divider line
      */
     public static String sectionDividerByPixels(int pixelWidth) {
         int target = Math.max(80, pixelWidth);
-        int spaces = (int) Math.ceil(target / (double) strikethroughSpacePixelWidth());
-        spaces = Math.max(16, Math.min(34, spaces));
-        return sectionDivider(spaces);
+        int chars = (int) Math.ceil(target / (double) dividerUnitPixelWidth());
+        chars = Math.max(16, Math.min(34, chars));
+        return sectionDivider(chars);
     }
 
     /**
@@ -238,7 +243,7 @@ public final class TooltipUtil {
     }
 
     /**
-     * Build a standard strikethrough divider width for lore sections.
+     * Build a standard divider width for lore sections.
      *
      * @return formatted divider line
      */
