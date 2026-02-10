@@ -2,7 +2,8 @@ pets:
   meadow_mote:
     name: "§fMeadow Mote"
     rarity: COMMON
-    models: []
+    models:
+      - cubee-zombie
     max-level: 40
     xp-per-level: 90
     owned-stats:
@@ -14,7 +15,8 @@ pets:
   emberling:
     name: "§fEmberling"
     rarity: COMMON
-    models: []
+    models:
+      - cubee-creeper
     max-level: 40
     xp-per-level: 90
     owned-stats:
@@ -27,7 +29,8 @@ pets:
   forest_sprite:
     name: "§aForest Sprite"
     rarity: UNCOMMON
-    models: []
+    models:
+      - cubee-witch
     max-level: 50
     xp-per-level: 100
     owned-stats:
@@ -40,7 +43,8 @@ pets:
   skyhopper:
     name: "§aSkyhopper"
     rarity: UNCOMMON
-    models: []
+    models:
+      - cubee-creaking
     max-level: 100
     xp-per-level: 100
     owned-stats:
@@ -54,7 +58,7 @@ pets:
     name: "§cEmber Cube"
     rarity: RARE
     models:
-      - ember_cube
+      - cubee-warden
     max-level: 100
     xp-per-level: 150
     owned-stats:
@@ -70,7 +74,8 @@ pets:
   gilded_mite:
     name: "§bGilded Mite"
     rarity: RARE
-    models: []
+    models:
+      - cubee-enderman
     max-level: 90
     xp-per-level: 140
     owned-stats:
@@ -83,7 +88,8 @@ pets:
   stormwing:
     name: "§dStormwing"
     rarity: EPIC
-    models: []
+    models:
+      - cubee-ender_dragon
     max-level: 120
     xp-per-level: 180
     owned-stats:
@@ -99,7 +105,8 @@ pets:
   dusk_reaper:
     name: "§dDusk Reaper"
     rarity: EPIC
-    models: []
+    models:
+      - cubee-wither
     max-level: 120
     xp-per-level: 180
     owned-stats:
@@ -112,7 +119,8 @@ pets:
   dawnstag:
     name: "§6Dawnstag"
     rarity: LEGENDARY
-    models: []
+    models:
+      - cubee-warden
     max-level: 140
     xp-per-level: 210
     owned-stats:
@@ -128,7 +136,8 @@ pets:
   phoenix_guard:
     name: "§6Phoenix Guard"
     rarity: LEGENDARY
-    models: []
+    models:
+      - cubee-ender_dragon
     max-level: 140
     xp-per-level: 210
     owned-stats:
@@ -141,7 +150,8 @@ pets:
   voidborn:
     name: "§4Voidborn"
     rarity: MYTHIC
-    models: []
+    models:
+      - cubee-wither
     max-level: 160
     xp-per-level: 240
     owned-stats:
@@ -157,7 +167,8 @@ pets:
   auric_wyrm:
     name: "§4Auric Wyrm"
     rarity: MYTHIC
-    models: []
+    models:
+      - cubee-enderman
     max-level: 160
     xp-per-level: 240
     owned-stats:
