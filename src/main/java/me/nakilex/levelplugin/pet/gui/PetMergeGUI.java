@@ -362,7 +362,7 @@ public class PetMergeGUI implements Listener {
             selectedEntryKeys.remove(player.getUniqueId());
             visibleEntries.remove(player.getUniqueId());
             entryIndexByPlayer.remove(player.getUniqueId());
-            PetFeedbackUtil.playMergeResult(player, true);
+            PetFeedbackUtil.playMergeResult(player, result.upgraded());
             PetChatUtil.send(player, result.message());
             PetDefinition reward = petManager.getDefinition(result.rewardPetId()).orElse(null);
             if (reward != null) {
