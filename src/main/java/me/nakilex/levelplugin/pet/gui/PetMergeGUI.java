@@ -108,7 +108,7 @@ public class PetMergeGUI implements Listener {
         List<String> lore = new ArrayList<>();
         lore.add(" ");
         if (ids.isEmpty()) {
-            lore.addAll(TooltipUtil.bulletList("Select up to 5 pets to merge."));
+            lore.addAll(TooltipUtil.bulletList("Select 2-5 pets to merge."));
         } else {
             int chance = Math.min(100, ids.size() * 20);
             ItemRarity baseRarity = petManager.getPetRarity(ids.get(0));
@@ -201,6 +201,10 @@ public class PetMergeGUI implements Listener {
         if (selected.contains(entry.entryKey())) {
             selected.remove(entry.entryKey());
         } else {
+            if (petManager.isPetCopyLocked(player.getUniqueId(), entry.entryKey())) {
+                PetChatUtil.send(player, "§cThat pet is locked and cannot be merged until you unlock it.");
+                return;
+            }
             if (selected.size() >= 5) {
                 PetChatUtil.send(player, "You can only select up to 5 pets.");
                 return;
@@ -315,8 +319,8 @@ public class PetMergeGUI implements Listener {
 
     private void openConfirm(Player player) {
         List<String> selected = selectedPetIds(player);
-        if (selected.isEmpty()) {
-            PetChatUtil.send(player, "Select pets before merging.");
+        if (selected.size() < 2) {
+            PetChatUtil.send(player, "§cSelect at least 2 pets before merging.");
             return;
         }
         Inventory inv = GuiBuilder.create(CONFIRM_SIZE, confirmTitle).filler(Material.GRAY_STAINED_GLASS_PANE).build();
@@ -341,8 +345,8 @@ public class PetMergeGUI implements Listener {
 
     private void handleMergeConfirm(Player player) {
         List<String> selected = List.copyOf(selectedCopyIds(player));
-        if (selected.isEmpty()) {
-            PetChatUtil.send(player, "Select pets before merging.");
+        if (selected.size() < 2) {
+            PetChatUtil.send(player, "§cSelect at least 2 pets before merging.");
             openMerge(player);
             return;
         }
@@ -481,6 +485,7 @@ public class PetMergeGUI implements Listener {
         }
         Map<String, CopyEntry> byKey = entryIndexByPlayer.getOrDefault(id, Map.of());
         selected.removeIf(key -> !byKey.containsKey(key));
+        selected.removeIf(key -> petManager.isPetCopyLocked(id, key));
         ItemRarity rarity = selectedRarity(player, selected);
         if (rarity != null) {
             selected.removeIf(key -> {

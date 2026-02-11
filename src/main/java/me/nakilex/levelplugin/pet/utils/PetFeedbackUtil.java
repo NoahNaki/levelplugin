@@ -37,11 +37,11 @@ public final class PetFeedbackUtil {
 
     public static void playMergeResult(Player player, boolean success) {
         play(player,
-                success ? Sound.UI_TOAST_CHALLENGE_COMPLETE : Sound.BLOCK_ANVIL_LAND,
+                success ? Sound.UI_TOAST_CHALLENGE_COMPLETE : Sound.ENTITY_ITEM_BREAK,
                 success ? 1.0f : 0.7f,
                 success ? 1.05f : 0.6f);
         play(player,
-                success ? Sound.ENTITY_EXPERIENCE_ORB_PICKUP : Sound.ENTITY_VILLAGER_NO,
+                success ? Sound.ENTITY_EXPERIENCE_ORB_PICKUP : Sound.BLOCK_ANVIL_BREAK,
                 success ? 0.8f : 0.75f,
                 success ? 1.2f : 0.9f);
     }

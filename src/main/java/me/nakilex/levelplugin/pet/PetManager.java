@@ -727,6 +727,9 @@ public class PetManager {
     }
 
     private MergeResult mergeSelectedPetCopiesInternal(Player player, PetProfile profile, List<String> selectedCopyIds, Random random) {
+        if (selectedCopyIds.size() < 2) {
+            return new MergeResult(false, "Select at least 2 pets to merge.", null);
+        }
         if (selectedCopyIds.size() > 5) {
             return new MergeResult(false, "You can only merge up to 5 pets at once.", null);
         }
