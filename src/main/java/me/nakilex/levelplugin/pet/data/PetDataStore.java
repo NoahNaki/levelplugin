@@ -8,6 +8,7 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -69,6 +70,12 @@ public class PetDataStore {
                 }
             }
             profile.setAutoSkipSummonAnimation(config.getBoolean(root + ".summon.auto-skip-animation", false));
+            String visibility = config.getString(root + ".pet-visibility", PetVisibility.ALL.name());
+            try {
+                profile.setPetVisibility(PetVisibility.valueOf(visibility.toUpperCase(java.util.Locale.ROOT)));
+            } catch (IllegalArgumentException ignored) {
+                profile.setPetVisibility(PetVisibility.ALL);
+            }
             profile.setPityPullsSinceLegendary(config.getInt(root + ".summon.pity-legendary", 0));
             String petRoot = root + ".pets";
             var section = config.getConfigurationSection(petRoot);
@@ -80,7 +87,19 @@ public class PetDataStore {
                     profile.setPetXp(petId, xp);
                     profile.setPetTier(petId, tier);
                     profile.setPetCopies(petId, copies);
+                    profile.setLastAcquiredAt(petId, config.getLong(petRoot + "." + petId + ".last-acquired", 0L));
+                    List<Long> acquiredHistory = new java.util.ArrayList<>();
+                    for (Long value : config.getLongList(petRoot + "." + petId + ".acquired-history")) {
+                        if (value != null && value > 0L) {
+                            acquiredHistory.add(value);
+                        }
+                    }
+                    profile.setPetCopyAcquiredHistory(petId, acquiredHistory);
+                    profile.setPetCopyIds(petId, config.getStringList(petRoot + "." + petId + ".copy-ids"));
                 }
+            }
+            for (String locked : config.getStringList(root + ".merge.locked-copies")) {
+                profile.setMergeLockedCopy(locked, true);
             }
             var pendingReturn = config.getLocation(root + ".summon.return");
             if (pendingReturn != null) {
@@ -108,8 +127,20 @@ public class PetDataStore {
         for (Map.Entry<String, Integer> entry : profile.petCopies().entrySet()) {
             config.set(root + ".pets." + entry.getKey() + ".copies", entry.getValue());
         }
+        for (Map.Entry<String, Long> entry : profile.lastAcquiredAt().entrySet()) {
+            config.set(root + ".pets." + entry.getKey() + ".last-acquired", entry.getValue());
+        }
+        for (Map.Entry<String, java.util.List<Long>> entry : profile.petCopyAcquiredAt().entrySet()) {
+            config.set(root + ".pets." + entry.getKey() + ".acquired-history", entry.getValue());
+        }
+        for (Map.Entry<String, java.util.List<String>> entry : profile.petCopyIds().entrySet()) {
+            config.set(root + ".pets." + entry.getKey() + ".copy-ids", entry.getValue());
+        }
+        config.set(root + ".merge.locked-copies", new java.util.ArrayList<>(profile.mergeLockedCopyIds()));
+        config.set(root + ".merge.locked", null);
         config.set(root + ".summon.return", profile.pendingSummonReturn());
         config.set(root + ".summon.auto-skip-animation", profile.autoSkipSummonAnimation());
+        config.set(root + ".pet-visibility", profile.petVisibility().name());
         config.set(root + ".summon.pity-legendary", profile.pityPullsSinceLegendary());
     }
 

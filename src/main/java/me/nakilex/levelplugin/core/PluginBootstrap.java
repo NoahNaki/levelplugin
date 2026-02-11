@@ -152,6 +152,7 @@ public class PluginBootstrap {
     private PetManager petManager;
     private me.nakilex.levelplugin.pet.gui.PetGUI petGUI;
     private me.nakilex.levelplugin.pet.gui.PetSettingsGUI petSettingsGUI;
+    private me.nakilex.levelplugin.pet.gui.PetMergeGUI petMergeGUI;
     private me.nakilex.levelplugin.pet.gui.PetSummonGUI petSummonGUI;
     private me.nakilex.levelplugin.pet.summon.PetSummonManager petSummonManager;
     private StorageEvents storageEvents;
@@ -463,6 +464,9 @@ public class PluginBootstrap {
         arcSlashDebugGUI = new me.nakilex.levelplugin.debug.gui.ArcSlashDebugGUI(arcSlashDebugManager);
         petSettingsGUI = new me.nakilex.levelplugin.pet.gui.PetSettingsGUI(petManager);
         petGUI = new me.nakilex.levelplugin.pet.gui.PetGUI(petManager, petSettingsGUI);
+        petMergeGUI = new me.nakilex.levelplugin.pet.gui.PetMergeGUI(petManager);
+        petGUI.setPetMergeGUI(petMergeGUI);
+        petMergeGUI.setPetGUI(petGUI);
         petSettingsGUI.setPetGUI(petGUI);
         petSummonManager = new me.nakilex.levelplugin.pet.summon.PetSummonManager(plugin, petManager, plugin.getCutsceneManager());
         petSummonGUI = new me.nakilex.levelplugin.pet.gui.PetSummonGUI(petSummonManager);
@@ -513,6 +517,7 @@ public class PluginBootstrap {
             petManager,
             petGUI,
             petSettingsGUI,
+            petMergeGUI,
             petSummonGUI,
             customMobManager,
             arcSlashDebugManager,
@@ -606,6 +611,7 @@ public class PluginBootstrap {
             petManager,
             petGUI,
             petSettingsGUI,
+            petMergeGUI,
             petSummonGUI,
             petSummonManager,
             customMobManager,

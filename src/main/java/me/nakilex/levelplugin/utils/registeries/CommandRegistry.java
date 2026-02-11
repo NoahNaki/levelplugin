@@ -161,6 +161,7 @@ public class CommandRegistry {
                                         PetManager petManager,
                                         PetGUI petGUI,
                                         me.nakilex.levelplugin.pet.gui.PetSettingsGUI petSettingsGUI,
+                                        me.nakilex.levelplugin.pet.gui.PetMergeGUI petMergeGUI,
                                         PetSummonGUI petSummonGUI,
                                         CustomMobManager customMobManager,
                                         me.nakilex.levelplugin.debug.ArcSlashDebugManager arcSlashDebugManager,

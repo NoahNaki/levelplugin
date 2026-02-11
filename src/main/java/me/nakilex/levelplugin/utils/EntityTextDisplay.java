@@ -6,6 +6,7 @@ import org.bukkit.entity.Display;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.TextDisplay;
+import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
 import me.nakilex.levelplugin.utils.MultiLineHologram;
@@ -79,6 +80,17 @@ public class EntityTextDisplay {
             display.remove();
         }
         display = null;
+    }
+
+    public Entity displayEntity() {
+        return display;
+    }
+
+    public void setDisplayMetadata(String key, Object value) {
+        if (display == null || display.isDead() || key == null || key.isBlank()) {
+            return;
+        }
+        display.setMetadata(key, new FixedMetadataValue(plugin, value));
     }
 
     /** Remove any lingering displays spawned by this helper. */

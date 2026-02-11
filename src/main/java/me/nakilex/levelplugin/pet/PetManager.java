@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.items.data.ItemRarity;
 import me.nakilex.levelplugin.pet.data.PetDataStore;
 import me.nakilex.levelplugin.pet.data.PetProfile;
+import me.nakilex.levelplugin.pet.data.PetVisibility;
 import me.nakilex.levelplugin.pet.utils.PetChatUtil;
 import me.nakilex.levelplugin.pet.utils.PetDisplayUtil;
 import me.nakilex.levelplugin.utils.ModelEngineUtil;
@@ -11,6 +12,7 @@ import me.nakilex.levelplugin.utils.EntityTextDisplay;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.configuration.ConfigurationSection;
@@ -36,7 +38,8 @@ public class PetManager {
 
     private static final double TELEPORT_DISTANCE = 32.0;
     private static final double FOLLOW_DISTANCE = 4.0;
-    private static final double FOLLOW_STEP_DISTANCE = 0.45;
+    private static final double FOLLOW_STEP_DISTANCE = 0.35;
+    private static final float FOLLOW_TURN_SMOOTHING = 0.28f;
     private static final long FOLLOW_INITIAL_DELAY_TICKS = 2L;
     private static final long FOLLOW_UPDATE_TICKS = 1L;
     private static final int MAX_TIER = 5;
@@ -68,6 +71,7 @@ public class PetManager {
 
     private final Main plugin;
     private final Map<String, PetDefinition> definitions = new HashMap<>();
+    private final Map<ItemRarity, List<PetDefinition>> mergeRarityPools = new EnumMap<>(ItemRarity.class);
     private final Map<UUID, PetInstance> activePets = new HashMap<>();
     private final PetDataStore dataStore;
     private final Map<UUID, Long> lastMoveAt = new HashMap<>();
@@ -84,6 +88,7 @@ public class PetManager {
 
     public void loadDefinitions() {
         definitions.clear();
+        mergeRarityPools.clear();
         plugin.saveResource("pets.yml", false);
         File file = new File(plugin.getDataFolder(), "pets.yml");
         FileConfiguration config = YamlConfiguration.loadConfiguration(file);
@@ -99,6 +104,7 @@ public class PetManager {
                 definitions.put(key.toLowerCase(Locale.ROOT), def);
             }
         }
+        rebuildMergeRarityPools();
     }
 
     public void reload() {
@@ -153,6 +159,13 @@ public class PetManager {
         return SELL_VALUES.getOrDefault(rarity, 25);
     }
 
+    public int getMergePoolSize(ItemRarity rarity) {
+        if (rarity == null) {
+            return 0;
+        }
+        return mergeRarityPools.getOrDefault(rarity, List.of()).size();
+    }
+
     public Optional<PetDefinition> getDefinition(String id) {
         if (id == null) {
             return Optional.empty();
@@ -183,6 +196,22 @@ public class PetManager {
         return Optional.ofNullable(activePets.get(ownerId));
     }
 
+    public int getEquippedPetCount(UUID ownerId) {
+        if (ownerId == null) {
+            return 0;
+        }
+        PetProfile profile = dataStore.getProfile(ownerId);
+        String activeId = profile.activePetId();
+        if (activeId == null || activeId.isBlank()) {
+            return 0;
+        }
+        return profile.getPetCopies(activeId) > 0 ? 1 : 0;
+    }
+
+    public int getMaxEquippablePets(UUID ownerId) {
+        return 1;
+    }
+
     public void handlePlayerJoin(Player player) {
         if (player == null) {
             return;
@@ -193,6 +222,7 @@ public class PetManager {
         recordMovement(player.getUniqueId());
         refreshOwnershipBonuses(player.getUniqueId());
         removePetEntities(player.getUniqueId());
+        Bukkit.getScheduler().runTaskLater(plugin, () -> applyPetVisibilityForViewer(player), 5L);
     }
 
 
@@ -210,6 +240,7 @@ public class PetManager {
             if (activeId != null && !activeId.isBlank()) {
                 summonPet(player, activeId);
             }
+            applyPetVisibilityForViewer(player);
         }, 2L);
     }
 
@@ -355,12 +386,14 @@ public class PetManager {
         PetInstance instance = new PetInstance(player.getUniqueId(), def, anchor.getUniqueId(), level, xp, tier);
         EntityTextDisplay hologram = new EntityTextDisplay(plugin, anchor, 1.15);
         hologram.update(displayName);
+        hologram.setDisplayMetadata(PET_OWNER_META, ownerToken);
         instance.setNameDisplay(hologram);
         activePets.put(player.getUniqueId(), instance);
 
         applyBonuses(player, instance);
         startFollowTask(player, anchor, instance);
         startEffectTask(instance);
+        refreshPetVisibilityForAllViewers();
         PetChatUtil.send(player, "Summoned " + displayName + ".");
         return true;
     }
@@ -389,7 +422,87 @@ public class PetManager {
             PetProfile profile = dataStore.getProfile(player.getUniqueId());
             profile.setActivePetId(null);
         }
+        refreshPetVisibilityForAllViewers();
         return true;
+    }
+
+    public PetVisibility getPetVisibility(UUID playerId) {
+        if (playerId == null) {
+            return PetVisibility.ALL;
+        }
+        return dataStore.getProfile(playerId).petVisibility();
+    }
+
+    public void cyclePetVisibility(UUID playerId, boolean forward) {
+        if (playerId == null) {
+            return;
+        }
+        PetProfile profile = dataStore.getProfile(playerId);
+        profile.setPetVisibility(profile.petVisibility().next(forward));
+        Player viewer = Bukkit.getPlayer(playerId);
+        if (viewer != null && viewer.isOnline()) {
+            applyPetVisibilityForViewer(viewer);
+        }
+    }
+
+    public void applyPetVisibilityForViewer(Player viewer) {
+        if (viewer == null || !viewer.isOnline()) {
+            return;
+        }
+        PetVisibility mode = getPetVisibility(viewer.getUniqueId());
+        for (PetInstance instance : activePets.values()) {
+            Entity pet = Bukkit.getEntity(instance.entityId());
+            boolean visible = switch (mode) {
+                case ALL -> true;
+                case OWN -> viewer.getUniqueId().equals(instance.ownerId());
+                case NONE -> false;
+            };
+            if (pet != null) {
+                if (visible) {
+                    viewer.showEntity(plugin, pet);
+                } else {
+                    viewer.hideEntity(plugin, pet);
+                }
+            }
+        }
+        applyDisplayVisibility(viewer, mode);
+    }
+
+    public void refreshPetVisibilityForAllViewers() {
+        for (Player viewer : Bukkit.getOnlinePlayers()) {
+            applyPetVisibilityForViewer(viewer);
+        }
+    }
+
+    private void applyDisplayVisibility(Player viewer, PetVisibility mode) {
+        String viewerToken = viewer.getUniqueId().toString();
+        for (World world : Bukkit.getWorlds()) {
+            for (Entity entity : world.getEntities()) {
+                if (!(entity instanceof org.bukkit.entity.TextDisplay)) {
+                    continue;
+                }
+                if (!entity.hasMetadata(PET_OWNER_META)) {
+                    continue;
+                }
+                boolean own = false;
+                for (var value : entity.getMetadata(PET_OWNER_META)) {
+                    if (viewerToken.equalsIgnoreCase(value.asString())) {
+                        own = true;
+                        break;
+                    }
+                }
+                boolean visible = switch (mode) {
+                    case ALL -> true;
+                    case OWN -> own;
+                    case NONE -> false;
+                };
+                if (visible) {
+                    viewer.showEntity(plugin, entity);
+                } else {
+                    viewer.hideEntity(plugin, entity);
+                }
+            }
+        }
     }
 
     public boolean addPetXp(Player player, String petId, int amount) {
@@ -441,7 +554,8 @@ public class PetManager {
         if (available <= 0) {
             return false;
         }
-        profile.setPetCopies(def.id(), Math.max(1, copies - 1));
+        profile.removePetCopies(def.id(), 1);
+        profile.setPetCopies(def.id(), Math.max(1, profile.getPetCopies(def.id())));
         profile.setPetTier(def.id(), tier + 1);
         refreshOwnershipBonuses(player.getUniqueId());
         PetInstance instance = activePets.get(player.getUniqueId());
@@ -492,8 +606,7 @@ public class PetManager {
         if (actual <= 0) {
             return 0;
         }
-        int current = profile.getPetCopies(def.id());
-        profile.setPetCopies(def.id(), Math.max(0, current - actual));
+        profile.removePetCopies(def.id(), actual);
         refreshOwnershipBonuses(player.getUniqueId());
         int perCopy = SELL_VALUES.getOrDefault(def.rarity(), 25);
         int total = perCopy * actual;
@@ -548,6 +661,160 @@ public class PetManager {
             refreshOwnershipBonuses(player.getUniqueId());
         }
         return new InvestResult(investable, soldCopies, coins);
+    }
+
+
+    public boolean isPetCopyLocked(UUID playerId, String copyId) {
+        if (playerId == null || copyId == null) {
+            return false;
+        }
+        return dataStore.getProfile(playerId).isMergeLockedCopy(copyId);
+    }
+
+    public void setPetCopyLocked(UUID playerId, String copyId, boolean locked) {
+        if (playerId == null || copyId == null) {
+            return;
+        }
+        dataStore.getProfile(playerId).setMergeLockedCopy(copyId, locked);
+    }
+
+    // Backwards-compatible wrappers.
+    public boolean isPetLocked(UUID playerId, String petId) {
+        return false;
+    }
+
+    public void setPetLocked(UUID playerId, String petId, boolean locked) {
+    }
+
+    public MergeResult mergeSelectedPetCopies(Player player, List<String> selectedCopyIds) {
+        if (player == null || selectedCopyIds == null || selectedCopyIds.isEmpty()) {
+            return new MergeResult(false, false, "No pets selected for merge.", null);
+        }
+        PetProfile profile = dataStore.getProfile(player.getUniqueId());
+        MergeResult result = mergeSelectedPetCopiesInternal(player, profile, selectedCopyIds, ThreadLocalRandom.current());
+        if (!result.success()) {
+            return result;
+        }
+        refreshOwnershipBonuses(player.getUniqueId());
+        return result;
+    }
+
+    public MergeResult mergeSelectedPets(Player player, List<String> selectedPetIds) {
+        return mergeSelectedPetCopies(player, selectedPetIds);
+    }
+
+    public MergeAllResult mergeAllDuplicates(Player player) {
+        if (player == null) {
+            return new MergeAllResult(Map.of(), 0);
+        }
+        PetProfile profile = dataStore.getProfile(player.getUniqueId());
+        Map<PetDefinition, Integer> gained = new HashMap<>();
+        Random random = ThreadLocalRandom.current();
+        boolean changed = false;
+        int merges = 0;
+        for (PetDefinition def : getOwnedPets(player.getUniqueId())) {
+            int copies = profile.getUnlockedCopyCount(def.id());
+            int groups = copies / 5;
+            for (int i = 0; i < groups; i++) {
+                List<String> copyIds = profile.getFirstUnlockedCopyIds(def.id(), 5);
+                MergeResult result = mergeSelectedPetCopiesInternal(player, profile, copyIds, random);
+                if (result.success()) {
+                    changed = true;
+                    merges++;
+                    PetDefinition reward = getDefinition(result.rewardPetId()).orElse(null);
+                    if (reward != null) {
+                        gained.merge(reward, 1, Integer::sum);
+                    }
+                }
+            }
+        }
+        if (changed) {
+            refreshOwnershipBonuses(player.getUniqueId());
+        }
+        return new MergeAllResult(gained, merges);
+    }
+
+    private PetDefinition rollRandomPetByRarity(ItemRarity rarity) {
+        List<PetDefinition> candidates = mergeRarityPools.getOrDefault(rarity, List.of());
+        if (candidates.isEmpty()) {
+            return null;
+        }
+        return candidates.get(ThreadLocalRandom.current().nextInt(candidates.size()));
+    }
+
+    private MergeResult mergeSelectedPetCopiesInternal(Player player, PetProfile profile, List<String> selectedCopyIds, Random random) {
+        if (selectedCopyIds.size() < 2) {
+            return new MergeResult(false, false, "Select at least 2 pets to merge.", null);
+        }
+        if (selectedCopyIds.size() > 5) {
+            return new MergeResult(false, false, "You can only merge up to 5 pets at once.", null);
+        }
+        Map<String, List<String>> byPet = new HashMap<>();
+        List<PetDefinition> defs = new ArrayList<>();
+        for (String copyId : selectedCopyIds) {
+            if (profile.isMergeLockedCopy(copyId)) {
+                return new MergeResult(false, false, "One of the selected pets is locked.", null);
+            }
+            String petId = profile.findPetIdByCopyId(copyId);
+            if (petId == null) {
+                return new MergeResult(false, false, "Invalid pet selection.", null);
+            }
+            PetDefinition def = getDefinition(petId).orElse(null);
+            if (def == null) {
+                return new MergeResult(false, false, "Invalid pet selection.", null);
+            }
+            defs.add(def);
+            byPet.computeIfAbsent(petId, key -> new ArrayList<>()).add(copyId);
+        }
+        ItemRarity base = defs.get(0).rarity();
+        if (defs.stream().anyMatch(def -> def.rarity() != base)) {
+            return new MergeResult(false, false, "All selected pets must have the same rarity.", null);
+        }
+        for (Map.Entry<String, List<String>> entry : byPet.entrySet()) {
+            if (profile.getPetCopyIds(entry.getKey()).size() < entry.getValue().size()) {
+                return new MergeResult(false, false, "You no longer have enough copies for merge.", null);
+            }
+        }
+        for (Map.Entry<String, List<String>> entry : byPet.entrySet()) {
+            profile.removePetCopiesByIds(entry.getKey(), entry.getValue());
+            if (player != null && entry.getKey().equalsIgnoreCase(profile.activePetId()) && profile.getPetCopies(entry.getKey()) <= 0) {
+                dismissPet(player, true);
+            }
+        }
+        int chance = Math.min(100, selectedCopyIds.size() * 20);
+        boolean success = random.nextInt(100) < chance;
+        ItemRarity target = success ? nextRarity(base) : base;
+        PetDefinition reward = rollRandomPetByRarity(target);
+        if (reward == null) {
+            return new MergeResult(false, false, "No reward pet available for that rarity.", null);
+        }
+        if (profile.getPetCopies(reward.id()) <= 0) {
+            profile.setPetTier(reward.id(), 1);
+        }
+        profile.addPetCopies(reward.id(), 1);
+        String resultText = success ? "success" : "failed";
+        return new MergeResult(true, success,
+                "Merge " + resultText + ": received " + reward.rarity().getColor() + reward.displayName() + "§7.",
+                reward.id());
+    }
+
+    private void rebuildMergeRarityPools() {
+        mergeRarityPools.clear();
+        for (PetDefinition definition : definitions.values()) {
+            mergeRarityPools.computeIfAbsent(definition.rarity(), key -> new ArrayList<>()).add(definition);
+        }
+        for (List<PetDefinition> pool : mergeRarityPools.values()) {
+            pool.sort(Comparator.comparing(PetDefinition::displayName, String.CASE_INSENSITIVE_ORDER));
+        }
+    }
+
+    private ItemRarity nextRarity(ItemRarity rarity) {
+        if (rarity == null) {
+            return ItemRarity.COMMON;
+        }
+        ItemRarity[] values = ItemRarity.values();
+        int i = rarity.ordinal();
+        return i >= values.length - 1 ? rarity : values[i + 1];
     }
 
     public void addPetCopies(Player player, String petId, int amount) {
@@ -875,12 +1142,12 @@ public class PetManager {
                     cancel();
                     return;
                 }
-                ticks += 2;
+                ticks += 1;
                 Location ownerLoc = player.getLocation();
                 Location petLoc = anchor.getLocation();
                 double bob = Math.sin(ticks / 20.0) * 0.12;
                 Location desired = ownerLoc.clone().add(0.8, 0.4 + bob, 0.8);
-                desired = faceTarget(desired, ownerLoc);
+                desired = faceTarget(desired, ownerLoc, FOLLOW_TURN_SMOOTHING);
                 double distance = ownerLoc.distance(petLoc);
                 if (distance > TELEPORT_DISTANCE) {
                     anchor.teleport(desired);
@@ -892,14 +1159,14 @@ public class PetManager {
                         Vector step = delta.normalize().multiply(Math.min(FOLLOW_STEP_DISTANCE, delta.length()));
                         Location target = petLoc.clone().add(step);
                         target.setY(desired.getY());
-                        target = faceTarget(target, ownerLoc);
+                        target = faceTarget(target, ownerLoc, FOLLOW_TURN_SMOOTHING);
                         anchor.teleport(target);
                         return;
                     }
                 }
                 Location hover = petLoc.clone();
                 hover.setY(desired.getY());
-                hover = faceTarget(hover, ownerLoc);
+                hover = faceTarget(hover, ownerLoc, FOLLOW_TURN_SMOOTHING);
                 anchor.teleport(hover);
             }
         }.runTaskTimer(plugin, FOLLOW_INITIAL_DELAY_TICKS, FOLLOW_UPDATE_TICKS);
@@ -916,6 +1183,10 @@ public class PetManager {
     }
 
     private Location faceTarget(Location source, Location target) {
+        return faceTarget(source, target, 1.0f);
+    }
+
+    private Location faceTarget(Location source, Location target, float smoothing) {
         if (source == null || target == null) {
             return source;
         }
@@ -923,8 +1194,28 @@ public class PetManager {
         if (dir.lengthSquared() <= 0.0001) {
             return source;
         }
-        source.setDirection(dir);
+        Location targetLook = source.clone();
+        targetLook.setDirection(dir);
+        float clamped = Math.max(0.0f, Math.min(1.0f, smoothing));
+        source.setYaw(lerpAngle(source.getYaw(), targetLook.getYaw(), clamped));
+        source.setPitch(lerpAngle(source.getPitch(), targetLook.getPitch(), clamped));
         return source;
+    }
+
+    private float lerpAngle(float from, float to, float alpha) {
+        float delta = wrapDegrees(to - from);
+        return from + (delta * alpha);
+    }
+
+    private float wrapDegrees(float angle) {
+        float wrapped = angle;
+        while (wrapped <= -180.0f) {
+            wrapped += 360.0f;
+        }
+        while (wrapped > 180.0f) {
+            wrapped -= 360.0f;
+        }
+        return wrapped;
     }
 
     private void startEffectTask(PetInstance instance) {
@@ -1000,6 +1291,10 @@ public class PetManager {
     }
 
     public record InvestResult(int investedCopies, int soldCopies, int coinsEarned) {}
+
+    public record MergeResult(boolean success, boolean upgraded, String message, String rewardPetId) {}
+
+    public record MergeAllResult(Map<PetDefinition, Integer> gainedPets, int mergesCompleted) {}
 
     public record PetPullEntry(PetDefinition definition, boolean kept) {}
 

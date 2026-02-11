@@ -44,7 +44,8 @@ public class PetGUI implements Listener {
 
     private final PetManager petManager;
     private final PetSettingsGUI petSettingsGUI;
-    private final String title = ChatUtil.applyEmojis("§8Pets");
+    private PetMergeGUI petMergeGUI;
+    private final String titlePrefix = ChatUtil.applyEmojis("§8Pets equipped");
     private final String confirmTitle = ChatUtil.applyEmojis("§8Confirm Pet Action");
     private final Map<UUID, Integer> pages = new java.util.HashMap<>();
     private final Map<UUID, List<GuiWidget>> widgetsByPlayer = new java.util.HashMap<>();
@@ -56,13 +57,23 @@ public class PetGUI implements Listener {
         this.petSettingsGUI = petSettingsGUI;
     }
 
+    public void setPetMergeGUI(PetMergeGUI petMergeGUI) {
+        this.petMergeGUI = petMergeGUI;
+    }
+
+    private String buildTitle(Player player) {
+        int equipped = petManager.getEquippedPetCount(player.getUniqueId());
+        int maxEquippable = petManager.getMaxEquippablePets(player.getUniqueId());
+        return ChatUtil.applyEmojis("§8Pets equipped (§f" + equipped + "§8/§f" + maxEquippable + "§8)");
+    }
+
     public void open(Player player, int page) {
         List<PetDefinition> defs = petManager.getOwnedPets(player.getUniqueId());
         int maxPage = Math.max(0, (defs.size() - 1) / PAGE_SIZE);
         int current = Math.max(0, Math.min(page, maxPage));
         pages.put(player.getUniqueId(), current);
 
-        Inventory inv = GuiBuilder.create(GUI_SIZE, title)
+        Inventory inv = GuiBuilder.create(GUI_SIZE, buildTitle(player))
                 .filler(Material.GRAY_STAINED_GLASS_PANE)
                 .border()
                 .build();
@@ -78,7 +89,7 @@ public class PetGUI implements Listener {
             return;
         }
         String viewTitle = LEGACY.serialize(event.getView().title());
-        if (GuiUtil.titleMatches(viewTitle, title)) {
+        if (GuiUtil.titleStartsWith(viewTitle, titlePrefix)) {
             if (!handleWidgetClick(event, player)) {
                 event.setCancelled(true);
             }
@@ -121,7 +132,7 @@ public class PetGUI implements Listener {
                     boolean success = equipped ? petManager.dismissPet(player) : petManager.summonPet(player, petId);
                     logClick(player, petId, equipped ? "left-unequip" : "left-equip", success);
                 }
-                refresh(player, context.inventory());
+                open(player, pages.getOrDefault(player.getUniqueId(), 0));
             }));
         }
 
@@ -137,6 +148,10 @@ public class PetGUI implements Listener {
             widgets.add(new ActionWidget(49, ctx -> createSettingsItem(),
                     (click, context) -> petSettingsGUI.open(player)));
         }
+        if (petMergeGUI != null) {
+            widgets.add(new ActionWidget(48, ctx -> createMergeItem(player),
+                    (click, context) -> petMergeGUI.openMerge(player)));
+        }
         widgets.add(new ActionWidget(50, ctx -> createOwnershipSummaryItem(player), (click, context) -> {}));
         return widgets;
     }
@@ -149,6 +164,16 @@ public class PetGUI implements Listener {
     private ItemStack createSettingsItem() {
         List<String> lore = TooltipUtil.clickInstructions("to open settings", null);
         return GuiUtil.createGuiItem(Material.COMPARATOR, "§bPet Settings", lore);
+    }
+
+
+    private ItemStack createMergeItem(Player player) {
+        List<String> lore = new ArrayList<>();
+        lore.add(" ");
+        lore.addAll(TooltipUtil.bulletList("Merge up to 5 pets into one", "Success chance scales with selected amount"));
+        lore.add(" ");
+        lore.addAll(TooltipUtil.clickInstructions("to open merge menu", null));
+        return GuiUtil.getNexoItem("plus", "§dPet Merge", lore);
     }
 
     private ItemStack createOwnershipSummaryItem(Player player) {
