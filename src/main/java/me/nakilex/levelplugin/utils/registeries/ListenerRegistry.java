@@ -146,6 +146,7 @@ public class ListenerRegistry {
                                         PetManager petManager,
                                         PetGUI petGUI,
                                         me.nakilex.levelplugin.pet.gui.PetSettingsGUI petSettingsGUI,
+                                        me.nakilex.levelplugin.pet.gui.PetMergeGUI petMergeGUI,
                                         PetSummonGUI petSummonGUI,
                                         PetSummonManager petSummonManager,
                                         CustomMobManager customMobManager,
@@ -206,6 +207,9 @@ public class ListenerRegistry {
         }
         if (petSettingsGUI != null) {
             pm.registerEvents(petSettingsGUI, plugin);
+        }
+        if (petMergeGUI != null) {
+            pm.registerEvents(petMergeGUI, plugin);
         }
         if (petSummonGUI != null) {
             pm.registerEvents(petSummonGUI, plugin);

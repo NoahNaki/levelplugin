@@ -44,6 +44,7 @@ public class PetGUI implements Listener {
 
     private final PetManager petManager;
     private final PetSettingsGUI petSettingsGUI;
+    private PetMergeGUI petMergeGUI;
     private final String title = ChatUtil.applyEmojis("§8Pets");
     private final String confirmTitle = ChatUtil.applyEmojis("§8Confirm Pet Action");
     private final Map<UUID, Integer> pages = new java.util.HashMap<>();
@@ -54,6 +55,10 @@ public class PetGUI implements Listener {
     public PetGUI(PetManager petManager, PetSettingsGUI petSettingsGUI) {
         this.petManager = petManager;
         this.petSettingsGUI = petSettingsGUI;
+    }
+
+    public void setPetMergeGUI(PetMergeGUI petMergeGUI) {
+        this.petMergeGUI = petMergeGUI;
     }
 
     public void open(Player player, int page) {
@@ -137,6 +142,10 @@ public class PetGUI implements Listener {
             widgets.add(new ActionWidget(49, ctx -> createSettingsItem(),
                     (click, context) -> petSettingsGUI.open(player)));
         }
+        if (petMergeGUI != null) {
+            widgets.add(new ActionWidget(48, ctx -> createMergeItem(player),
+                    (click, context) -> petMergeGUI.openMerge(player)));
+        }
         widgets.add(new ActionWidget(50, ctx -> createOwnershipSummaryItem(player), (click, context) -> {}));
         return widgets;
     }
@@ -149,6 +158,16 @@ public class PetGUI implements Listener {
     private ItemStack createSettingsItem() {
         List<String> lore = TooltipUtil.clickInstructions("to open settings", null);
         return GuiUtil.createGuiItem(Material.COMPARATOR, "§bPet Settings", lore);
+    }
+
+
+    private ItemStack createMergeItem(Player player) {
+        List<String> lore = new ArrayList<>();
+        lore.add(" ");
+        lore.addAll(TooltipUtil.bulletList("Merge up to 5 pets into one", "Success chance scales with selected amount"));
+        lore.add(" ");
+        lore.addAll(TooltipUtil.clickInstructions("to open merge menu", null));
+        return GuiUtil.getNexoItem("plus", "§dPet Merge", lore);
     }
 
     private ItemStack createOwnershipSummaryItem(Player player) {

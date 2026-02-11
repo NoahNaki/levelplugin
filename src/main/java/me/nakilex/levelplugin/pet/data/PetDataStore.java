@@ -80,7 +80,11 @@ public class PetDataStore {
                     profile.setPetXp(petId, xp);
                     profile.setPetTier(petId, tier);
                     profile.setPetCopies(petId, copies);
+                    profile.setLastAcquiredAt(petId, config.getLong(petRoot + "." + petId + ".last-acquired", 0L));
                 }
+            }
+            for (String locked : config.getStringList(root + ".merge.locked")) {
+                profile.setMergeLocked(locked, true);
             }
             var pendingReturn = config.getLocation(root + ".summon.return");
             if (pendingReturn != null) {
@@ -108,6 +112,10 @@ public class PetDataStore {
         for (Map.Entry<String, Integer> entry : profile.petCopies().entrySet()) {
             config.set(root + ".pets." + entry.getKey() + ".copies", entry.getValue());
         }
+        for (Map.Entry<String, Long> entry : profile.lastAcquiredAt().entrySet()) {
+            config.set(root + ".pets." + entry.getKey() + ".last-acquired", entry.getValue());
+        }
+        config.set(root + ".merge.locked", new java.util.ArrayList<>(profile.mergeLockedPets()));
         config.set(root + ".summon.return", profile.pendingSummonReturn());
         config.set(root + ".summon.auto-skip-animation", profile.autoSkipSummonAnimation());
         config.set(root + ".summon.pity-legendary", profile.pityPullsSinceLegendary());
