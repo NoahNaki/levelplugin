@@ -15,6 +15,7 @@ import me.nakilex.levelplugin.utils.gui.widgets.GuiContext;
 import me.nakilex.levelplugin.utils.gui.widgets.GuiLayout;
 import me.nakilex.levelplugin.utils.gui.widgets.GuiWidget;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import org.bukkit.ChatColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -102,6 +103,7 @@ public class PetMergeGUI implements Listener {
     }
 
     private ItemStack mergeButton(Player player) {
+        sanitizeSelected(player);
         List<String> ids = selectedPetIds(player);
         List<String> lore = new ArrayList<>();
         lore.add(" ");
@@ -109,17 +111,14 @@ public class PetMergeGUI implements Listener {
             lore.addAll(TooltipUtil.bulletList("Select up to 5 pets to merge."));
         } else {
             int chance = Math.min(100, ids.size() * 20);
-            int failChance = Math.max(0, 100 - chance);
             ItemRarity baseRarity = petManager.getPetRarity(ids.get(0));
             ItemRarity upgradedRarity = nextRarity(baseRarity);
+            ChatColor chanceColor = chanceColor(chance);
             lore.addAll(TooltipUtil.bulletList(
-                    "Selected pets: " + ids.size() + "/5",
-                    "Success chance: " + chance + "%",
-                    "Fail chance: " + failChance + "%",
+                    "Selected pets: §f" + ids.size() + "§7/§f5",
+                    "Success chance: " + chanceColor + "● §f" + chance + "§7%",
                     "Success gives " + upgradedRarity.getColor() + upgradedRarity.name() + "§7 pet",
-                    "Fail gives " + baseRarity.getColor() + baseRarity.name() + "§7 pet",
-                    "Pool sizes: " + upgradedRarity.name() + "=" + petManager.getMergePoolSize(upgradedRarity)
-                            + ", " + baseRarity.name() + "=" + petManager.getMergePoolSize(baseRarity)));
+                    "Fail gives " + baseRarity.getColor() + baseRarity.name() + "§7 pet"));
         }
         lore.add(" ");
         lore.addAll(TooltipUtil.clickInstructions("to open merge confirmation", null));
@@ -157,6 +156,7 @@ public class PetMergeGUI implements Listener {
         List<GuiWidget> widgets = new ArrayList<>();
         List<CopyEntry> all = buildCopies(player, filterByPlayer.getOrDefault(id, null), sortByPlayer.getOrDefault(id, SortMode.DATE_ACQUIRED));
         visibleEntries.put(id, all);
+        sanitizeSelected(player);
         int maxPage = Math.max(0, (all.size() - 1) / GuiUtil.PAGED_SLOTS.length);
         int current = Math.min(page, maxPage);
         pageByPlayer.put(id, current);
@@ -203,6 +203,11 @@ public class PetMergeGUI implements Listener {
         } else {
             if (selected.size() >= 5) {
                 PetChatUtil.send(player, "You can only select up to 5 pets.");
+                return;
+            }
+            ItemRarity selectedRarity = selectedRarity(player, selected);
+            if (selectedRarity != null && selectedRarity != entry.rarity()) {
+                PetChatUtil.send(player, "All selected pets must be the same rarity.");
                 return;
             }
             selected.add(entry.entryKey());
@@ -333,9 +338,15 @@ public class PetMergeGUI implements Listener {
     }
 
     private void handleMergeConfirm(Player player) {
+        List<String> selected = List.copyOf(selectedPetIds(player));
+        if (selected.isEmpty()) {
+            PetChatUtil.send(player, "Select pets before merging.");
+            openMerge(player);
+            return;
+        }
         player.closeInventory();
         PetFeedbackUtil.runMergeAnimation(player, () -> {
-            PetManager.MergeResult result = petManager.mergeSelectedPets(player, selectedPetIds(player));
+            PetManager.MergeResult result = petManager.mergeSelectedPets(player, selected);
             if (!result.success()) {
                 PetFeedbackUtil.playMergeResult(player, false);
                 PetChatUtil.send(player, result.message());
@@ -343,8 +354,16 @@ public class PetMergeGUI implements Listener {
                 return;
             }
             selectedEntryKeys.remove(player.getUniqueId());
+            visibleEntries.remove(player.getUniqueId());
+            entryIndexByPlayer.remove(player.getUniqueId());
             PetFeedbackUtil.playMergeResult(player, true);
             PetChatUtil.send(player, result.message());
+            PetDefinition reward = petManager.getDefinition(result.rewardPetId()).orElse(null);
+            if (reward != null) {
+                Map<PetDefinition, Integer> gained = new HashMap<>();
+                gained.put(reward, 1);
+                PetPullSummaryUtil.sendSummary(player, "Gained", gained);
+            }
             openMerge(player);
         });
     }
@@ -358,6 +377,8 @@ public class PetMergeGUI implements Listener {
             PetPullSummaryUtil.sendSummary(player, "Gained", result.gainedPets());
         }
         selectedEntryKeys.remove(player.getUniqueId());
+        visibleEntries.remove(player.getUniqueId());
+        entryIndexByPlayer.remove(player.getUniqueId());
         PetFeedbackUtil.playMergeResult(player, result.mergesCompleted() > 0);
         openMerge(player);
     }
@@ -420,6 +441,45 @@ public class PetMergeGUI implements Listener {
         ItemRarity[] values = ItemRarity.values();
         int index = rarity.ordinal();
         return index >= values.length - 1 ? rarity : values[index + 1];
+    }
+
+    private ItemRarity selectedRarity(Player player, Set<String> selectedKeys) {
+        if (selectedKeys == null || selectedKeys.isEmpty()) {
+            return null;
+        }
+        Map<String, CopyEntry> byKey = entryIndexByPlayer.getOrDefault(player.getUniqueId(), Map.of());
+        for (String key : selectedKeys) {
+            CopyEntry copy = byKey.get(key);
+            if (copy != null) {
+                return copy.rarity();
+            }
+        }
+        return null;
+    }
+
+    private void sanitizeSelected(Player player) {
+        UUID id = player.getUniqueId();
+        LinkedHashSet<String> selected = selectedEntryKeys.get(id);
+        if (selected == null || selected.isEmpty()) {
+            return;
+        }
+        Map<String, CopyEntry> byKey = entryIndexByPlayer.getOrDefault(id, Map.of());
+        selected.removeIf(key -> !byKey.containsKey(key));
+        ItemRarity rarity = selectedRarity(player, selected);
+        if (rarity != null) {
+            selected.removeIf(key -> {
+                CopyEntry copy = byKey.get(key);
+                return copy != null && copy.rarity() != rarity;
+            });
+        }
+    }
+
+    private ChatColor chanceColor(int chance) {
+        if (chance <= 20) return ChatColor.RED;
+        if (chance <= 40) return ChatColor.GOLD;
+        if (chance <= 60) return ChatColor.YELLOW;
+        if (chance <= 80) return ChatColor.GREEN;
+        return ChatColor.AQUA;
     }
 
     @EventHandler

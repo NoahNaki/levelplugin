@@ -1,8 +1,6 @@
 package me.nakilex.levelplugin.pet.utils;
 
 import me.nakilex.levelplugin.Main;
-import org.bukkit.Location;
-import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
@@ -35,8 +33,6 @@ public final class PetFeedbackUtil {
         }
         float pitch = 1.0f + (Math.max(0, step) * 0.08f);
         play(player, Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.55f, pitch);
-        Location loc = player.getLocation().clone().add(0, 1.1, 0);
-        player.spawnParticle(Particle.ENCHANT, loc, 12, 0.2, 0.2, 0.2, 0.01);
     }
 
     public static void playMergeResult(Player player, boolean success) {
@@ -44,10 +40,10 @@ public final class PetFeedbackUtil {
                 success ? Sound.UI_TOAST_CHALLENGE_COMPLETE : Sound.BLOCK_NOTE_BLOCK_BASS,
                 success ? 1.0f : 0.8f,
                 success ? 1.05f : 0.8f);
-        if (success && player != null) {
-            player.spawnParticle(Particle.FIREWORK, player.getLocation().clone().add(0, 1.1, 0),
-                    20, 0.4, 0.25, 0.4, 0.02);
-        }
+        play(player,
+                success ? Sound.ENTITY_EXPERIENCE_ORB_PICKUP : Sound.BLOCK_CHAIN_BREAK,
+                success ? 0.8f : 0.6f,
+                success ? 1.2f : 0.75f);
     }
 
     public static void playSummonTransition(Player player) {
