@@ -189,8 +189,8 @@ public class PetMergeGUI implements Listener {
     private void handleSelectionClick(Player player, CopyEntry entry, ClickType click) {
         UUID id = player.getUniqueId();
         if (click.isShiftClick() && click.isRightClick()) {
-            boolean locked = !petManager.isPetLocked(player.getUniqueId(), entry.petId());
-            petManager.setPetLocked(player.getUniqueId(), entry.petId(), locked);
+            boolean locked = !petManager.isPetCopyLocked(player.getUniqueId(), entry.entryKey());
+            petManager.setPetCopyLocked(player.getUniqueId(), entry.entryKey(), locked);
             PetFeedbackUtil.playLockToggle(player, locked);
             PetChatUtil.send(player, (locked ? "Locked " : "Unlocked ") + entry.displayName() + " from merge.");
             PetFeedbackUtil.playMenuSelect(player);
@@ -225,9 +225,11 @@ public class PetMergeGUI implements Listener {
             int copies = profile.getPetCopies(def.id());
             int level = me.nakilex.levelplugin.pet.PetProgression.levelFromXp(profile.getPetXp(def.id()), def.xpPerLevel(), def.maxLevel());
             List<Long> history = profile.getPetCopyAcquiredHistory(def.id());
+            List<String> copyIds = profile.getPetCopyIds(def.id());
             for (int i = 0; i < copies; i++) {
                 long acquiredAt = i < history.size() ? history.get(i) : profile.getLastAcquiredAt(def.id());
-                list.add(new CopyEntry(def.id() + "#" + i, def.id(), def.displayName(), def.rarity(), level, acquiredAt));
+                String copyId = i < copyIds.size() ? copyIds.get(i) : def.id() + "#" + i;
+                list.add(new CopyEntry(copyId, def.id(), def.displayName(), def.rarity(), level, acquiredAt));
             }
         }
         Comparator<CopyEntry> comparator = switch (sortMode) {
@@ -247,7 +249,7 @@ public class PetMergeGUI implements Listener {
     private ItemStack selectionItem(Player player, CopyEntry entry) {
         UUID id = player.getUniqueId();
         boolean selected = selectedEntryKeys.getOrDefault(id, new LinkedHashSet<>()).contains(entry.entryKey());
-        boolean locked = petManager.isPetLocked(id, entry.petId());
+        boolean locked = petManager.isPetCopyLocked(id, entry.entryKey());
         String icon = selected ? "check" : (locked ? "lock" : "plus");
         String name = (selected ? "§aSelected " : "§b") + entry.displayName();
         List<String> lore = new ArrayList<>();
@@ -338,7 +340,7 @@ public class PetMergeGUI implements Listener {
     }
 
     private void handleMergeConfirm(Player player) {
-        List<String> selected = List.copyOf(selectedPetIds(player));
+        List<String> selected = List.copyOf(selectedCopyIds(player));
         if (selected.isEmpty()) {
             PetChatUtil.send(player, "Select pets before merging.");
             openMerge(player);
@@ -346,7 +348,7 @@ public class PetMergeGUI implements Listener {
         }
         player.closeInventory();
         PetFeedbackUtil.runMergeAnimation(player, () -> {
-            PetManager.MergeResult result = petManager.mergeSelectedPets(player, selected);
+            PetManager.MergeResult result = petManager.mergeSelectedPetCopies(player, selected);
             if (!result.success()) {
                 PetFeedbackUtil.playMergeResult(player, false);
                 PetChatUtil.send(player, result.message());
@@ -391,6 +393,20 @@ public class PetMergeGUI implements Listener {
         for (String key : keys) {
             CopyEntry entry = byKey.get(key);
             if (entry != null) result.add(entry.petId());
+        }
+        return result;
+    }
+
+    private List<String> selectedCopyIds(Player player) {
+        UUID id = player.getUniqueId();
+        LinkedHashSet<String> keys = selectedEntryKeys.getOrDefault(id, new LinkedHashSet<>());
+        Map<String, CopyEntry> byKey = entryIndexByPlayer.getOrDefault(id, Map.of());
+        List<String> result = new ArrayList<>();
+        for (String key : keys) {
+            CopyEntry entry = byKey.get(key);
+            if (entry != null) {
+                result.add(entry.entryKey());
+            }
         }
         return result;
     }

@@ -4,7 +4,9 @@ import java.util.Collections;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import me.nakilex.levelplugin.items.data.ItemRarity;
@@ -23,7 +25,8 @@ public class PetProfile {
     private final Map<String, Integer> petCopies = new HashMap<>();
     private final Map<String, Long> lastAcquiredAt = new HashMap<>();
     private final Map<String, List<Long>> petCopyAcquiredAt = new HashMap<>();
-    private final java.util.Set<String> mergeLockedPets = new java.util.HashSet<>();
+    private final Map<String, List<String>> petCopyIds = new HashMap<>();
+    private final Set<String> mergeLockedCopyIds = new HashSet<>();
 
     public PetProfile(UUID ownerId) {
         this.ownerId = ownerId;
@@ -117,7 +120,7 @@ public class PetProfile {
         }
         int clamped = Math.max(0, amount);
         petCopies.put(petId, clamped);
-        syncCopyHistorySize(petId, clamped);
+        syncCopyStateSize(petId, clamped);
     }
 
     public void addPetCopies(String petId, int amount) {
@@ -131,11 +134,13 @@ public class PetProfile {
             long now = System.currentTimeMillis();
             lastAcquiredAt.put(petId, now);
             List<Long> history = petCopyAcquiredAt.computeIfAbsent(petId, key -> new ArrayList<>());
+            List<String> ids = petCopyIds.computeIfAbsent(petId, key -> new ArrayList<>());
             for (int i = 0; i < amount; i++) {
                 history.add(now);
+                ids.add(UUID.randomUUID().toString());
             }
         }
-        syncCopyHistorySize(petId, newAmount);
+        syncCopyStateSize(petId, newAmount);
     }
 
     public int removePetCopies(String petId, int amount) {
@@ -147,11 +152,46 @@ public class PetProfile {
         int remaining = Math.max(0, current - removed);
         petCopies.put(petId, remaining);
         List<Long> history = petCopyAcquiredAt.get(petId);
+        List<String> ids = petCopyIds.get(petId);
         if (history != null && !history.isEmpty()) {
             int trim = Math.min(removed, history.size());
             history.subList(0, trim).clear();
         }
-        syncCopyHistorySize(petId, remaining);
+        if (ids != null && !ids.isEmpty()) {
+            int trim = Math.min(removed, ids.size());
+            List<String> removedIds = new ArrayList<>(ids.subList(0, trim));
+            ids.subList(0, trim).clear();
+            mergeLockedCopyIds.removeAll(removedIds);
+        }
+        syncCopyStateSize(petId, remaining);
+        return removed;
+    }
+
+    public int removePetCopiesByIds(String petId, List<String> copyIdsToRemove) {
+        if (petId == null || petId.isBlank() || copyIdsToRemove == null || copyIdsToRemove.isEmpty()) {
+            return 0;
+        }
+        List<String> ids = petCopyIds.get(petId);
+        if (ids == null || ids.isEmpty()) {
+            return 0;
+        }
+        Set<String> targets = new HashSet<>(copyIdsToRemove);
+        List<Long> history = petCopyAcquiredAt.getOrDefault(petId, new ArrayList<>());
+        int removed = 0;
+        for (int i = ids.size() - 1; i >= 0; i--) {
+            String id = ids.get(i);
+            if (!targets.contains(id)) {
+                continue;
+            }
+            ids.remove(i);
+            if (i < history.size()) {
+                history.remove(i);
+            }
+            mergeLockedCopyIds.remove(id);
+            removed++;
+        }
+        petCopies.put(petId, Math.max(0, getPetCopies(petId) - removed));
+        syncCopyStateSize(petId, getPetCopies(petId));
         return removed;
     }
 
@@ -187,7 +227,31 @@ public class PetProfile {
             }
         }
         petCopyAcquiredAt.put(petId, values);
-        syncCopyHistorySize(petId, getPetCopies(petId));
+        syncCopyStateSize(petId, getPetCopies(petId));
+    }
+
+    public List<String> getPetCopyIds(String petId) {
+        List<String> ids = petCopyIds.get(petId);
+        if (ids == null || ids.isEmpty()) {
+            return List.of();
+        }
+        return Collections.unmodifiableList(ids);
+    }
+
+    public void setPetCopyIds(String petId, List<String> ids) {
+        if (petId == null || petId.isBlank()) {
+            return;
+        }
+        List<String> values = new ArrayList<>();
+        if (ids != null) {
+            for (String id : ids) {
+                if (id != null && !id.isBlank()) {
+                    values.add(id);
+                }
+            }
+        }
+        petCopyIds.put(petId, values);
+        syncCopyStateSize(petId, getPetCopies(petId));
     }
 
     public Map<String, List<Long>> petCopyAcquiredAt() {
@@ -198,15 +262,20 @@ public class PetProfile {
         return Collections.unmodifiableMap(snapshot);
     }
 
-    private void syncCopyHistorySize(String petId, int targetCopies) {
+    private void syncCopyStateSize(String petId, int targetCopies) {
         if (petId == null || petId.isBlank()) {
             return;
         }
         int expected = Math.max(0, targetCopies);
         List<Long> history = petCopyAcquiredAt.computeIfAbsent(petId, key -> new ArrayList<>());
+        List<String> ids = petCopyIds.computeIfAbsent(petId, key -> new ArrayList<>());
         if (history.size() > expected) {
             history.subList(expected, history.size()).clear();
-            return;
+        }
+        if (ids.size() > expected) {
+            List<String> removedIds = new ArrayList<>(ids.subList(expected, ids.size()));
+            ids.subList(expected, ids.size()).clear();
+            mergeLockedCopyIds.removeAll(removedIds);
         }
         if (history.size() < expected) {
             long fallback = getLastAcquiredAt(petId);
@@ -218,33 +287,85 @@ public class PetProfile {
                 history.add(fallback);
             }
         }
+        while (ids.size() < expected) {
+            ids.add(UUID.randomUUID().toString());
+        }
     }
 
-    public boolean isMergeLocked(String petId) {
-        if (petId == null || petId.isBlank()) {
+    public boolean isMergeLockedCopy(String copyId) {
+        if (copyId == null || copyId.isBlank()) {
             return false;
         }
-        return mergeLockedPets.contains(petId.toLowerCase(java.util.Locale.ROOT));
+        return mergeLockedCopyIds.contains(copyId);
     }
 
-    public void setMergeLocked(String petId, boolean locked) {
-        if (petId == null || petId.isBlank()) {
+    public void setMergeLockedCopy(String copyId, boolean locked) {
+        if (copyId == null || copyId.isBlank()) {
             return;
         }
-        String key = petId.toLowerCase(java.util.Locale.ROOT);
         if (locked) {
-            mergeLockedPets.add(key);
+            mergeLockedCopyIds.add(copyId);
         } else {
-            mergeLockedPets.remove(key);
+            mergeLockedCopyIds.remove(copyId);
         }
     }
 
-    public java.util.Set<String> mergeLockedPets() {
-        return java.util.Collections.unmodifiableSet(mergeLockedPets);
+    public Set<String> mergeLockedCopyIds() {
+        return Collections.unmodifiableSet(mergeLockedCopyIds);
+    }
+
+    public int getUnlockedCopyCount(String petId) {
+        if (petId == null || petId.isBlank()) {
+            return 0;
+        }
+        int count = 0;
+        for (String copyId : getPetCopyIds(petId)) {
+            if (!isMergeLockedCopy(copyId)) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    public List<String> getFirstUnlockedCopyIds(String petId, int amount) {
+        List<String> result = new ArrayList<>();
+        if (petId == null || petId.isBlank() || amount <= 0) {
+            return result;
+        }
+        for (String copyId : getPetCopyIds(petId)) {
+            if (isMergeLockedCopy(copyId)) {
+                continue;
+            }
+            result.add(copyId);
+            if (result.size() >= amount) {
+                break;
+            }
+        }
+        return result;
+    }
+
+    public String findPetIdByCopyId(String copyId) {
+        if (copyId == null || copyId.isBlank()) {
+            return null;
+        }
+        for (Map.Entry<String, List<String>> entry : petCopyIds.entrySet()) {
+            if (entry.getValue().contains(copyId)) {
+                return entry.getKey();
+            }
+        }
+        return null;
     }
 
     public java.util.Map<String, Long> lastAcquiredAt() {
         return java.util.Collections.unmodifiableMap(lastAcquiredAt);
+    }
+
+    public Map<String, List<String>> petCopyIds() {
+        Map<String, List<String>> snapshot = new HashMap<>();
+        for (Map.Entry<String, List<String>> entry : petCopyIds.entrySet()) {
+            snapshot.put(entry.getKey(), Collections.unmodifiableList(new ArrayList<>(entry.getValue())));
+        }
+        return Collections.unmodifiableMap(snapshot);
     }
 
     public Map<String, Integer> petTiers() {

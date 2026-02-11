@@ -95,10 +95,11 @@ public class PetDataStore {
                         }
                     }
                     profile.setPetCopyAcquiredHistory(petId, acquiredHistory);
+                    profile.setPetCopyIds(petId, config.getStringList(petRoot + "." + petId + ".copy-ids"));
                 }
             }
-            for (String locked : config.getStringList(root + ".merge.locked")) {
-                profile.setMergeLocked(locked, true);
+            for (String locked : config.getStringList(root + ".merge.locked-copies")) {
+                profile.setMergeLockedCopy(locked, true);
             }
             var pendingReturn = config.getLocation(root + ".summon.return");
             if (pendingReturn != null) {
@@ -132,7 +133,11 @@ public class PetDataStore {
         for (Map.Entry<String, java.util.List<Long>> entry : profile.petCopyAcquiredAt().entrySet()) {
             config.set(root + ".pets." + entry.getKey() + ".acquired-history", entry.getValue());
         }
-        config.set(root + ".merge.locked", new java.util.ArrayList<>(profile.mergeLockedPets()));
+        for (Map.Entry<String, java.util.List<String>> entry : profile.petCopyIds().entrySet()) {
+            config.set(root + ".pets." + entry.getKey() + ".copy-ids", entry.getValue());
+        }
+        config.set(root + ".merge.locked-copies", new java.util.ArrayList<>(profile.mergeLockedCopyIds()));
+        config.set(root + ".merge.locked", null);
         config.set(root + ".summon.return", profile.pendingSummonReturn());
         config.set(root + ".summon.auto-skip-animation", profile.autoSkipSummonAnimation());
         config.set(root + ".pet-visibility", profile.petVisibility().name());

@@ -648,31 +648,43 @@ public class PetManager {
     }
 
 
-    public boolean isPetLocked(UUID playerId, String petId) {
-        if (playerId == null || petId == null) {
+    public boolean isPetCopyLocked(UUID playerId, String copyId) {
+        if (playerId == null || copyId == null) {
             return false;
         }
-        return dataStore.getProfile(playerId).isMergeLocked(petId);
+        return dataStore.getProfile(playerId).isMergeLockedCopy(copyId);
+    }
+
+    public void setPetCopyLocked(UUID playerId, String copyId, boolean locked) {
+        if (playerId == null || copyId == null) {
+            return;
+        }
+        dataStore.getProfile(playerId).setMergeLockedCopy(copyId, locked);
+    }
+
+    // Backwards-compatible wrappers.
+    public boolean isPetLocked(UUID playerId, String petId) {
+        return false;
     }
 
     public void setPetLocked(UUID playerId, String petId, boolean locked) {
-        if (playerId == null || petId == null) {
-            return;
-        }
-        dataStore.getProfile(playerId).setMergeLocked(petId, locked);
     }
 
-    public MergeResult mergeSelectedPets(Player player, List<String> selectedPetIds) {
-        if (player == null || selectedPetIds == null || selectedPetIds.isEmpty()) {
+    public MergeResult mergeSelectedPetCopies(Player player, List<String> selectedCopyIds) {
+        if (player == null || selectedCopyIds == null || selectedCopyIds.isEmpty()) {
             return new MergeResult(false, "No pets selected for merge.", null);
         }
         PetProfile profile = dataStore.getProfile(player.getUniqueId());
-        MergeResult result = mergeSelectedPetsInternal(player, profile, selectedPetIds, ThreadLocalRandom.current());
+        MergeResult result = mergeSelectedPetCopiesInternal(player, profile, selectedCopyIds, ThreadLocalRandom.current());
         if (!result.success()) {
             return result;
         }
         refreshOwnershipBonuses(player.getUniqueId());
         return result;
+    }
+
+    public MergeResult mergeSelectedPets(Player player, List<String> selectedPetIds) {
+        return mergeSelectedPetCopies(player, selectedPetIds);
     }
 
     public MergeAllResult mergeAllDuplicates(Player player) {
@@ -685,13 +697,11 @@ public class PetManager {
         boolean changed = false;
         int merges = 0;
         for (PetDefinition def : getOwnedPets(player.getUniqueId())) {
-            if (profile.isMergeLocked(def.id())) {
-                continue;
-            }
-            int copies = profile.getPetCopies(def.id());
+            int copies = profile.getUnlockedCopyCount(def.id());
             int groups = copies / 5;
             for (int i = 0; i < groups; i++) {
-                MergeResult result = mergeSelectedPetsInternal(player, profile, java.util.Collections.nCopies(5, def.id()), random);
+                List<String> copyIds = profile.getFirstUnlockedCopyIds(def.id(), 5);
+                MergeResult result = mergeSelectedPetCopiesInternal(player, profile, copyIds, random);
                 if (result.success()) {
                     changed = true;
                     merges++;
@@ -716,41 +726,43 @@ public class PetManager {
         return candidates.get(ThreadLocalRandom.current().nextInt(candidates.size()));
     }
 
-    private MergeResult mergeSelectedPetsInternal(Player player, PetProfile profile, List<String> selectedPetIds, Random random) {
-        if (selectedPetIds.size() > 5) {
+    private MergeResult mergeSelectedPetCopiesInternal(Player player, PetProfile profile, List<String> selectedCopyIds, Random random) {
+        if (selectedCopyIds.size() > 5) {
             return new MergeResult(false, "You can only merge up to 5 pets at once.", null);
         }
+        Map<String, List<String>> byPet = new HashMap<>();
         List<PetDefinition> defs = new ArrayList<>();
-        for (String petId : selectedPetIds) {
+        for (String copyId : selectedCopyIds) {
+            if (profile.isMergeLockedCopy(copyId)) {
+                return new MergeResult(false, "One of the selected pets is locked.", null);
+            }
+            String petId = profile.findPetIdByCopyId(copyId);
+            if (petId == null) {
+                return new MergeResult(false, "Invalid pet selection.", null);
+            }
             PetDefinition def = getDefinition(petId).orElse(null);
             if (def == null) {
                 return new MergeResult(false, "Invalid pet selection.", null);
             }
-            if (profile.isMergeLocked(def.id())) {
-                return new MergeResult(false, "One of the selected pets is locked.", null);
-            }
             defs.add(def);
+            byPet.computeIfAbsent(petId, key -> new ArrayList<>()).add(copyId);
         }
         ItemRarity base = defs.get(0).rarity();
         if (defs.stream().anyMatch(def -> def.rarity() != base)) {
             return new MergeResult(false, "All selected pets must have the same rarity.", null);
         }
-        Map<String, Integer> toConsume = new HashMap<>();
-        for (String petId : selectedPetIds) {
-            toConsume.merge(petId, 1, Integer::sum);
-        }
-        for (Map.Entry<String, Integer> entry : toConsume.entrySet()) {
-            if (profile.getPetCopies(entry.getKey()) < entry.getValue()) {
+        for (Map.Entry<String, List<String>> entry : byPet.entrySet()) {
+            if (profile.getPetCopyIds(entry.getKey()).size() < entry.getValue().size()) {
                 return new MergeResult(false, "You no longer have enough copies for merge.", null);
             }
         }
-        for (Map.Entry<String, Integer> entry : toConsume.entrySet()) {
-            profile.removePetCopies(entry.getKey(), entry.getValue());
+        for (Map.Entry<String, List<String>> entry : byPet.entrySet()) {
+            profile.removePetCopiesByIds(entry.getKey(), entry.getValue());
             if (player != null && entry.getKey().equalsIgnoreCase(profile.activePetId()) && profile.getPetCopies(entry.getKey()) <= 0) {
                 dismissPet(player, true);
             }
         }
-        int chance = Math.min(100, selectedPetIds.size() * 20);
+        int chance = Math.min(100, selectedCopyIds.size() * 20);
         boolean success = random.nextInt(100) < chance;
         ItemRarity target = success ? nextRarity(base) : base;
         PetDefinition reward = rollRandomPetByRarity(target);
