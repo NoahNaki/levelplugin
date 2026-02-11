@@ -11,6 +11,7 @@ import me.nakilex.levelplugin.pet.gui.PetSummonGUI;
 import me.nakilex.levelplugin.pet.utils.PetChatUtil;
 import me.nakilex.levelplugin.pet.utils.PetDisplayUtil;
 import me.nakilex.levelplugin.pet.utils.PetPullSummaryUtil;
+import me.nakilex.levelplugin.pet.utils.PetFeedbackUtil;
 import me.nakilex.levelplugin.utils.BetterHudUtil;
 import me.nakilex.levelplugin.utils.GlowUtil;
 import me.nakilex.levelplugin.utils.ModelEngineUtil;
@@ -50,6 +51,7 @@ public class PetSummonManager implements Listener {
     private static final int REVEAL_START_DELAY_TICKS = 20;
     private static final int REVEAL_INTERVAL_TICKS = 14;
     private static final int END_BUFFER_TICKS = 20;
+    private static final int CUTSCENE_TRANSITION_TICKS = 24;
     private static final double BASE_OFFSET = 5.5;
     private static final double RING_RADIUS = 3.8;
     private static final double SPIN_TURNS = 3.5;
@@ -150,6 +152,8 @@ public class PetSummonManager implements Listener {
         SummonSession session = new SummonSession(returnLocation, detailed, summonCost);
         sessions.put(player.getUniqueId(), session);
 
+        PetFeedbackUtil.applyBlindnessTransition(player, CUTSCENE_TRANSITION_TICKS);
+        PetFeedbackUtil.playSummonTransition(player);
         cutsceneManager.playCutscene(player, CUTSCENE_ID);
         PetChatUtil.send(player, "Crouch to skip animation.");
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
@@ -517,6 +521,7 @@ public class PetSummonManager implements Listener {
         if (player == null) {
             return;
         }
+        PetFeedbackUtil.playSummonComplete(player);
         PetChatUtil.send(player, "Pet summon complete. Spent §d" + cost + " <glyph:purple_orb_icon>§7.");
         PetPullSummaryUtil.sendSummary(player, "Pulled", detailed.kept());
         PetPullSummaryUtil.sendSummary(player, "Auto-discarded", detailed.discarded());
@@ -625,6 +630,7 @@ public class PetSummonManager implements Listener {
                 player.teleport(returnLocation);
             }
             petManager.clearPendingSummonReturn(player.getUniqueId());
+            PetFeedbackUtil.playSummonComplete(player);
             PetChatUtil.send(player, "Pet summons complete. Spent §d" + session.summonCost + " <glyph:purple_orb_icon>§7.");
             PetPullSummaryUtil.sendSummary(player, "Pulled", session.pulls.kept());
             PetPullSummaryUtil.sendSummary(player, "Auto-discarded", session.pulls.discarded());

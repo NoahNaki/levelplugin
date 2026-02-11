@@ -37,7 +37,8 @@ public class PetManager {
 
     private static final double TELEPORT_DISTANCE = 32.0;
     private static final double FOLLOW_DISTANCE = 4.0;
-    private static final double FOLLOW_STEP_DISTANCE = 0.45;
+    private static final double FOLLOW_STEP_DISTANCE = 0.35;
+    private static final float FOLLOW_TURN_SMOOTHING = 0.28f;
     private static final long FOLLOW_INITIAL_DELAY_TICKS = 2L;
     private static final long FOLLOW_UPDATE_TICKS = 1L;
     private static final int MAX_TIER = 5;
@@ -986,12 +987,12 @@ public class PetManager {
                     cancel();
                     return;
                 }
-                ticks += 2;
+                ticks += 1;
                 Location ownerLoc = player.getLocation();
                 Location petLoc = anchor.getLocation();
                 double bob = Math.sin(ticks / 20.0) * 0.12;
                 Location desired = ownerLoc.clone().add(0.8, 0.4 + bob, 0.8);
-                desired = faceTarget(desired, ownerLoc);
+                desired = faceTarget(desired, ownerLoc, FOLLOW_TURN_SMOOTHING);
                 double distance = ownerLoc.distance(petLoc);
                 if (distance > TELEPORT_DISTANCE) {
                     anchor.teleport(desired);
@@ -1003,14 +1004,14 @@ public class PetManager {
                         Vector step = delta.normalize().multiply(Math.min(FOLLOW_STEP_DISTANCE, delta.length()));
                         Location target = petLoc.clone().add(step);
                         target.setY(desired.getY());
-                        target = faceTarget(target, ownerLoc);
+                        target = faceTarget(target, ownerLoc, FOLLOW_TURN_SMOOTHING);
                         anchor.teleport(target);
                         return;
                     }
                 }
                 Location hover = petLoc.clone();
                 hover.setY(desired.getY());
-                hover = faceTarget(hover, ownerLoc);
+                hover = faceTarget(hover, ownerLoc, FOLLOW_TURN_SMOOTHING);
                 anchor.teleport(hover);
             }
         }.runTaskTimer(plugin, FOLLOW_INITIAL_DELAY_TICKS, FOLLOW_UPDATE_TICKS);
@@ -1027,6 +1028,10 @@ public class PetManager {
     }
 
     private Location faceTarget(Location source, Location target) {
+        return faceTarget(source, target, 1.0f);
+    }
+
+    private Location faceTarget(Location source, Location target, float smoothing) {
         if (source == null || target == null) {
             return source;
         }
@@ -1034,8 +1039,28 @@ public class PetManager {
         if (dir.lengthSquared() <= 0.0001) {
             return source;
         }
-        source.setDirection(dir);
+        Location targetLook = source.clone();
+        targetLook.setDirection(dir);
+        float clamped = Math.max(0.0f, Math.min(1.0f, smoothing));
+        source.setYaw(lerpAngle(source.getYaw(), targetLook.getYaw(), clamped));
+        source.setPitch(lerpAngle(source.getPitch(), targetLook.getPitch(), clamped));
         return source;
+    }
+
+    private float lerpAngle(float from, float to, float alpha) {
+        float delta = wrapDegrees(to - from);
+        return from + (delta * alpha);
+    }
+
+    private float wrapDegrees(float angle) {
+        float wrapped = angle;
+        while (wrapped <= -180.0f) {
+            wrapped += 360.0f;
+        }
+        while (wrapped > 180.0f) {
+            wrapped -= 360.0f;
+        }
+        return wrapped;
     }
 
     private void startEffectTask(PetInstance instance) {

@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.items.data.ItemRarity;
 import me.nakilex.levelplugin.pet.PetDefinition;
 import me.nakilex.levelplugin.pet.PetManager;
 import me.nakilex.levelplugin.pet.utils.PetChatUtil;
+import me.nakilex.levelplugin.pet.utils.PetFeedbackUtil;
 import me.nakilex.levelplugin.utils.ChatUtil;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
@@ -58,6 +59,7 @@ public class PetMergeGUI implements Listener {
         widgetsByPlayer.put(player.getUniqueId(), widgets);
         render(inv, player, widgets);
         player.openInventory(inv);
+        PetFeedbackUtil.playMenuOpen(player);
     }
 
     private List<GuiWidget> buildMergeWidgets(Player player) {
@@ -136,6 +138,7 @@ public class PetMergeGUI implements Listener {
         widgetsByPlayer.put(player.getUniqueId(), widgets);
         render(inv, player, widgets);
         player.openInventory(inv);
+        PetFeedbackUtil.playMenuOpen(player);
     }
 
     private List<GuiWidget> buildSelectWidgets(Player player, int page) {
@@ -177,7 +180,9 @@ public class PetMergeGUI implements Listener {
         if (click.isShiftClick() && click.isRightClick()) {
             boolean locked = !petManager.isPetLocked(player.getUniqueId(), entry.petId());
             petManager.setPetLocked(player.getUniqueId(), entry.petId(), locked);
+            PetFeedbackUtil.playLockToggle(player, locked);
             PetChatUtil.send(player, (locked ? "Locked " : "Unlocked ") + entry.displayName() + " from merge.");
+            PetFeedbackUtil.playMenuSelect(player);
             openSelect(player, pageByPlayer.getOrDefault(id, 0));
             return;
         }
@@ -191,6 +196,7 @@ public class PetMergeGUI implements Listener {
             }
             selected.add(entry.entryKey());
         }
+        PetFeedbackUtil.playMenuSelect(player);
         openSelect(player, pageByPlayer.getOrDefault(id, 0));
     }
 
@@ -203,13 +209,14 @@ public class PetMergeGUI implements Listener {
             int copies = profile.getPetCopies(def.id());
             int level = me.nakilex.levelplugin.pet.PetProgression.levelFromXp(profile.getPetXp(def.id()), def.xpPerLevel(), def.maxLevel());
             for (int i = 0; i < copies; i++) {
-                list.add(new CopyEntry(def.id() + "#" + i, def.id(), def.displayName(), def.rarity(), level));
+                long acquiredAt = profile.getLastAcquiredAt(def.id());
+                list.add(new CopyEntry(def.id() + "#" + i, def.id(), def.displayName(), def.rarity(), level, acquiredAt));
             }
         }
         Comparator<CopyEntry> comparator = switch (sortMode) {
             case LEVEL -> Comparator.comparingInt(CopyEntry::level).reversed();
             case RARITY -> Comparator.comparingInt((CopyEntry e) -> e.rarity().ordinal()).reversed();
-            case DATE_ACQUIRED -> Comparator.comparing(CopyEntry::entryKey);
+            case DATE_ACQUIRED -> Comparator.comparingLong(CopyEntry::acquiredAt).reversed();
         };
         list.sort(comparator.thenComparing(CopyEntry::displayName, String.CASE_INSENSITIVE_ORDER));
         return list;
@@ -303,18 +310,24 @@ public class PetMergeGUI implements Listener {
         widgetsByPlayer.put(player.getUniqueId(), widgets);
         render(inv, player, widgets);
         player.openInventory(inv);
+        PetFeedbackUtil.playMenuOpen(player);
     }
 
     private void handleMergeConfirm(Player player) {
-        PetManager.MergeResult result = petManager.mergeSelectedPets(player, selectedPetIds(player));
-        if (!result.success()) {
+        player.closeInventory();
+        PetFeedbackUtil.runMergeAnimation(player, () -> {
+            PetManager.MergeResult result = petManager.mergeSelectedPets(player, selectedPetIds(player));
+            if (!result.success()) {
+                PetFeedbackUtil.playMergeResult(player, false);
+                PetChatUtil.send(player, result.message());
+                openMerge(player);
+                return;
+            }
+            selectedEntryKeys.remove(player.getUniqueId());
+            PetFeedbackUtil.playMergeResult(player, true);
             PetChatUtil.send(player, result.message());
             openMerge(player);
-            return;
-        }
-        selectedEntryKeys.remove(player.getUniqueId());
-        PetChatUtil.send(player, result.message());
-        openMerge(player);
+        });
     }
 
     private void mergeAllDuplicates(Player player) {
@@ -328,6 +341,7 @@ public class PetMergeGUI implements Listener {
             }
         }
         selectedEntryKeys.remove(player.getUniqueId());
+        PetFeedbackUtil.playMergeResult(player, !summary.isEmpty());
         openMerge(player);
     }
 
@@ -374,7 +388,7 @@ public class PetMergeGUI implements Listener {
         for (GuiWidget widget : widgets) widget.contribute(layout, context);
     }
 
-    private record CopyEntry(String entryKey, String petId, String displayName, ItemRarity rarity, int level) {}
+    private record CopyEntry(String entryKey, String petId, String displayName, ItemRarity rarity, int level, long acquiredAt) {}
 
     private enum SortMode {
         DATE_ACQUIRED("Date Acquired"),
