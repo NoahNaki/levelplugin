@@ -45,7 +45,7 @@ public class PetGUI implements Listener {
     private final PetManager petManager;
     private final PetSettingsGUI petSettingsGUI;
     private PetMergeGUI petMergeGUI;
-    private final String title = ChatUtil.applyEmojis("§8Pets");
+    private final String titlePrefix = ChatUtil.applyEmojis("§8Pets equipped");
     private final String confirmTitle = ChatUtil.applyEmojis("§8Confirm Pet Action");
     private final Map<UUID, Integer> pages = new java.util.HashMap<>();
     private final Map<UUID, List<GuiWidget>> widgetsByPlayer = new java.util.HashMap<>();
@@ -61,13 +61,19 @@ public class PetGUI implements Listener {
         this.petMergeGUI = petMergeGUI;
     }
 
+    private String buildTitle(Player player) {
+        int equipped = petManager.getEquippedPetCount(player.getUniqueId());
+        int maxEquippable = petManager.getMaxEquippablePets(player.getUniqueId());
+        return ChatUtil.applyEmojis("§8Pets equipped (§f" + equipped + "§8/§f" + maxEquippable + "§8)");
+    }
+
     public void open(Player player, int page) {
         List<PetDefinition> defs = petManager.getOwnedPets(player.getUniqueId());
         int maxPage = Math.max(0, (defs.size() - 1) / PAGE_SIZE);
         int current = Math.max(0, Math.min(page, maxPage));
         pages.put(player.getUniqueId(), current);
 
-        Inventory inv = GuiBuilder.create(GUI_SIZE, title)
+        Inventory inv = GuiBuilder.create(GUI_SIZE, buildTitle(player))
                 .filler(Material.GRAY_STAINED_GLASS_PANE)
                 .border()
                 .build();
@@ -83,7 +89,7 @@ public class PetGUI implements Listener {
             return;
         }
         String viewTitle = LEGACY.serialize(event.getView().title());
-        if (GuiUtil.titleMatches(viewTitle, title)) {
+        if (GuiUtil.titleStartsWith(viewTitle, titlePrefix)) {
             if (!handleWidgetClick(event, player)) {
                 event.setCancelled(true);
             }
@@ -126,7 +132,7 @@ public class PetGUI implements Listener {
                     boolean success = equipped ? petManager.dismissPet(player) : petManager.summonPet(player, petId);
                     logClick(player, petId, equipped ? "left-unequip" : "left-equip", success);
                 }
-                refresh(player, context.inventory());
+                open(player, pages.getOrDefault(player.getUniqueId(), 0));
             }));
         }
 

@@ -230,4 +230,9 @@ public final class GuiUtil {
     public static boolean titleMatches(String title, String expected) {
         return normalizeTitle(title).equalsIgnoreCase(normalizeTitle(expected));
     }
+
+    /** Compare normalized titles by prefix, useful for dynamic counters in GUI titles. */
+    public static boolean titleStartsWith(String title, String expectedPrefix) {
+        return normalizeTitle(title).startsWith(normalizeTitle(expectedPrefix));
+    }
 }

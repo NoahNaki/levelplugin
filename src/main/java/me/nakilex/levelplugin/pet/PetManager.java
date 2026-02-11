@@ -196,6 +196,22 @@ public class PetManager {
         return Optional.ofNullable(activePets.get(ownerId));
     }
 
+    public int getEquippedPetCount(UUID ownerId) {
+        if (ownerId == null) {
+            return 0;
+        }
+        PetProfile profile = dataStore.getProfile(ownerId);
+        String activeId = profile.activePetId();
+        if (activeId == null || activeId.isBlank()) {
+            return 0;
+        }
+        return profile.getPetCopies(activeId) > 0 ? 1 : 0;
+    }
+
+    public int getMaxEquippablePets(UUID ownerId) {
+        return 1;
+    }
+
     public void handlePlayerJoin(Player player) {
         if (player == null) {
             return;
