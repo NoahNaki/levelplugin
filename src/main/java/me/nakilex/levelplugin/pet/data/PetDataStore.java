@@ -70,6 +70,12 @@ public class PetDataStore {
                 }
             }
             profile.setAutoSkipSummonAnimation(config.getBoolean(root + ".summon.auto-skip-animation", false));
+            String visibility = config.getString(root + ".pet-visibility", PetVisibility.ALL.name());
+            try {
+                profile.setPetVisibility(PetVisibility.valueOf(visibility.toUpperCase(java.util.Locale.ROOT)));
+            } catch (IllegalArgumentException ignored) {
+                profile.setPetVisibility(PetVisibility.ALL);
+            }
             profile.setPityPullsSinceLegendary(config.getInt(root + ".summon.pity-legendary", 0));
             String petRoot = root + ".pets";
             var section = config.getConfigurationSection(petRoot);
@@ -129,6 +135,7 @@ public class PetDataStore {
         config.set(root + ".merge.locked", new java.util.ArrayList<>(profile.mergeLockedPets()));
         config.set(root + ".summon.return", profile.pendingSummonReturn());
         config.set(root + ".summon.auto-skip-animation", profile.autoSkipSummonAnimation());
+        config.set(root + ".pet-visibility", profile.petVisibility().name());
         config.set(root + ".summon.pity-legendary", profile.pityPullsSinceLegendary());
     }
 

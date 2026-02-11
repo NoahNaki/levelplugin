@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.pet.gui;
 import me.nakilex.levelplugin.items.data.ItemRarity;
 import me.nakilex.levelplugin.pet.PetManager;
 import me.nakilex.levelplugin.pet.data.PetProfile;
+import me.nakilex.levelplugin.pet.data.PetVisibility;
 import me.nakilex.levelplugin.utils.ChatUtil;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
@@ -29,6 +30,7 @@ import java.util.UUID;
 public class PetSettingsGUI implements Listener {
     private static final int GUI_SIZE = 45;
     private static final int AUTO_DISCARD_SLOT = 20;
+    private static final int PET_VISIBILITY_SLOT = 22;
     private static final int AUTO_SKIP_SUMMON_SLOT = 24;
     private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
 
@@ -81,9 +83,32 @@ public class PetSettingsGUI implements Listener {
                 }));
         widgets.add(new ActionWidget(AUTO_DISCARD_SLOT, ctx -> createAutoDiscardItem(profile),
                 (click, context) -> cycleAutoDiscard(profile, click.isLeftClick(), context.player())));
+        widgets.add(new ActionWidget(PET_VISIBILITY_SLOT, ctx -> createPetVisibilityItem(profile),
+                (click, context) -> cyclePetVisibility(context.player(), click.isLeftClick())));
         widgets.add(new ActionWidget(AUTO_SKIP_SUMMON_SLOT, ctx -> createAutoSkipSummonItem(profile),
                 (click, context) -> toggleAutoSkipSummon(profile, context.player())));
         return widgets;
+    }
+
+    private ItemStack createPetVisibilityItem(PetProfile profile) {
+        PetVisibility active = profile.petVisibility();
+        ItemStack item = GuiUtil.getNexoItem("server_icon", "§bPet Visibility");
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            List<String> lore = new ArrayList<>();
+            lore.add(" ");
+            lore.add("§7Choose which pets are visible");
+            lore.add("§7for your client.");
+            lore.add(" ");
+            lore.add(TooltipUtil.selectionLine(active == PetVisibility.ALL, "All"));
+            lore.add(TooltipUtil.selectionLine(active == PetVisibility.OWN, "Only your pets"));
+            lore.add(TooltipUtil.selectionLine(active == PetVisibility.NONE, "None"));
+            lore.add(" ");
+            lore.addAll(TooltipUtil.clickInstructions("to go forward", "to go backward"));
+            meta.setLore(lore);
+            item.setItemMeta(meta);
+        }
+        return item;
     }
 
     private ItemStack createAutoDiscardItem(PetProfile profile) {
@@ -135,6 +160,11 @@ public class PetSettingsGUI implements Listener {
 
     private void toggleAutoSkipSummon(PetProfile profile, Player player) {
         profile.setAutoSkipSummonAnimation(!profile.autoSkipSummonAnimation());
+        open(player);
+    }
+
+    private void cyclePetVisibility(Player player, boolean forward) {
+        petManager.cyclePetVisibility(player.getUniqueId(), forward);
         open(player);
     }
 

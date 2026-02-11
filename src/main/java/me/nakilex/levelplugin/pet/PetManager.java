@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.items.data.ItemRarity;
 import me.nakilex.levelplugin.pet.data.PetDataStore;
 import me.nakilex.levelplugin.pet.data.PetProfile;
+import me.nakilex.levelplugin.pet.data.PetVisibility;
 import me.nakilex.levelplugin.pet.utils.PetChatUtil;
 import me.nakilex.levelplugin.pet.utils.PetDisplayUtil;
 import me.nakilex.levelplugin.utils.ModelEngineUtil;
@@ -205,6 +206,7 @@ public class PetManager {
         recordMovement(player.getUniqueId());
         refreshOwnershipBonuses(player.getUniqueId());
         removePetEntities(player.getUniqueId());
+        Bukkit.getScheduler().runTaskLater(plugin, () -> applyPetVisibilityForViewer(player), 5L);
     }
 
 
@@ -222,6 +224,7 @@ public class PetManager {
             if (activeId != null && !activeId.isBlank()) {
                 summonPet(player, activeId);
             }
+            applyPetVisibilityForViewer(player);
         }, 2L);
     }
 
@@ -367,12 +370,14 @@ public class PetManager {
         PetInstance instance = new PetInstance(player.getUniqueId(), def, anchor.getUniqueId(), level, xp, tier);
         EntityTextDisplay hologram = new EntityTextDisplay(plugin, anchor, 1.15);
         hologram.update(displayName);
+        hologram.setDisplayMetadata(PET_OWNER_META, ownerToken);
         instance.setNameDisplay(hologram);
         activePets.put(player.getUniqueId(), instance);
 
         applyBonuses(player, instance);
         startFollowTask(player, anchor, instance);
         startEffectTask(instance);
+        refreshPetVisibilityForAllViewers();
         PetChatUtil.send(player, "Summoned " + displayName + ".");
         return true;
     }
@@ -401,7 +406,87 @@ public class PetManager {
             PetProfile profile = dataStore.getProfile(player.getUniqueId());
             profile.setActivePetId(null);
         }
+        refreshPetVisibilityForAllViewers();
         return true;
+    }
+
+    public PetVisibility getPetVisibility(UUID playerId) {
+        if (playerId == null) {
+            return PetVisibility.ALL;
+        }
+        return dataStore.getProfile(playerId).petVisibility();
+    }
+
+    public void cyclePetVisibility(UUID playerId, boolean forward) {
+        if (playerId == null) {
+            return;
+        }
+        PetProfile profile = dataStore.getProfile(playerId);
+        profile.setPetVisibility(profile.petVisibility().next(forward));
+        Player viewer = Bukkit.getPlayer(playerId);
+        if (viewer != null && viewer.isOnline()) {
+            applyPetVisibilityForViewer(viewer);
+        }
+    }
+
+    public void applyPetVisibilityForViewer(Player viewer) {
+        if (viewer == null || !viewer.isOnline()) {
+            return;
+        }
+        PetVisibility mode = getPetVisibility(viewer.getUniqueId());
+        for (PetInstance instance : activePets.values()) {
+            Entity pet = Bukkit.getEntity(instance.entityId());
+            boolean visible = switch (mode) {
+                case ALL -> true;
+                case OWN -> viewer.getUniqueId().equals(instance.ownerId());
+                case NONE -> false;
+            };
+            if (pet != null) {
+                if (visible) {
+                    viewer.showEntity(plugin, pet);
+                } else {
+                    viewer.hideEntity(plugin, pet);
+                }
+            }
+        }
+        applyDisplayVisibility(viewer, mode);
+    }
+
+    public void refreshPetVisibilityForAllViewers() {
+        for (Player viewer : Bukkit.getOnlinePlayers()) {
+            applyPetVisibilityForViewer(viewer);
+        }
+    }
+
+    private void applyDisplayVisibility(Player viewer, PetVisibility mode) {
+        String viewerToken = viewer.getUniqueId().toString();
+        for (World world : Bukkit.getWorlds()) {
+            for (Entity entity : world.getEntities()) {
+                if (!(entity instanceof org.bukkit.entity.TextDisplay)) {
+                    continue;
+                }
+                if (!entity.hasMetadata(PET_OWNER_META)) {
+                    continue;
+                }
+                boolean own = false;
+                for (var value : entity.getMetadata(PET_OWNER_META)) {
+                    if (viewerToken.equalsIgnoreCase(value.asString())) {
+                        own = true;
+                        break;
+                    }
+                }
+                boolean visible = switch (mode) {
+                    case ALL -> true;
+                    case OWN -> own;
+                    case NONE -> false;
+                };
+                if (visible) {
+                    viewer.showEntity(plugin, entity);
+                } else {
+                    viewer.hideEntity(plugin, entity);
+                }
+            }
+        }
     }
 
     public boolean addPetXp(Player player, String petId, int amount) {

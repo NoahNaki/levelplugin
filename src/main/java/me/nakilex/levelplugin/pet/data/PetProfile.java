@@ -16,6 +16,7 @@ public class PetProfile {
     private ItemRarity autoDiscardRarity;
     private Location pendingSummonReturn;
     private boolean autoSkipSummonAnimation;
+    private PetVisibility petVisibility = PetVisibility.ALL;
     private int pityPullsSinceLegendary;
     private final Map<String, Integer> petXp = new HashMap<>();
     private final Map<String, Integer> petTiers = new HashMap<>();
@@ -54,6 +55,14 @@ public class PetProfile {
 
     public void setAutoSkipSummonAnimation(boolean autoSkipSummonAnimation) {
         this.autoSkipSummonAnimation = autoSkipSummonAnimation;
+    }
+
+    public PetVisibility petVisibility() {
+        return petVisibility == null ? PetVisibility.ALL : petVisibility;
+    }
+
+    public void setPetVisibility(PetVisibility petVisibility) {
+        this.petVisibility = petVisibility == null ? PetVisibility.ALL : petVisibility;
     }
 
     public int pityPullsSinceLegendary() {
