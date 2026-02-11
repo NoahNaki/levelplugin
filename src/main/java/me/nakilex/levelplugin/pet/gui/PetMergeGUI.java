@@ -5,6 +5,7 @@ import me.nakilex.levelplugin.pet.PetDefinition;
 import me.nakilex.levelplugin.pet.PetManager;
 import me.nakilex.levelplugin.pet.utils.PetChatUtil;
 import me.nakilex.levelplugin.pet.utils.PetFeedbackUtil;
+import me.nakilex.levelplugin.pet.utils.PetPullSummaryUtil;
 import me.nakilex.levelplugin.utils.ChatUtil;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
@@ -14,6 +15,7 @@ import me.nakilex.levelplugin.utils.gui.widgets.GuiContext;
 import me.nakilex.levelplugin.utils.gui.widgets.GuiLayout;
 import me.nakilex.levelplugin.utils.gui.widgets.GuiWidget;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -166,8 +168,8 @@ public class PetMergeGUI implements Listener {
             widgets.add(new ActionWidget(slot, ctx -> selectionItem(player, entry),
                     (click, context) -> handleSelectionClick(player, entry, click)));
         }
-        if (current > 0) widgets.add(new ActionWidget(45, ctx -> navItem("§aPrevious Page"), (click, context) -> openSelect(player, current - 1)));
-        if (current < maxPage) widgets.add(new ActionWidget(53, ctx -> navItem("§aNext Page"), (click, context) -> openSelect(player, current + 1)));
+        if (current > 0) widgets.add(new ActionWidget(45, ctx -> navItem(false), (click, context) -> openSelect(player, current - 1)));
+        if (current < maxPage) widgets.add(new ActionWidget(53, ctx -> navItem(true), (click, context) -> openSelect(player, current + 1)));
 
         widgets.add(new ActionWidget(50, ctx -> sortButton(player), (click, context) -> {
             SortMode next = SortMode.next(sortByPlayer.getOrDefault(id, SortMode.DATE_ACQUIRED), click.isLeftClick());
@@ -254,8 +256,10 @@ public class PetMergeGUI implements Listener {
         return GuiUtil.getNexoItem(icon, name, lore);
     }
 
-    private ItemStack navItem(String name) {
-        return GuiUtil.createGuiItem(Material.ARROW, name, TooltipUtil.clickInstructions("to change page", null));
+    private ItemStack navItem(boolean next) {
+        String name = next ? "§aNext Page" : "§aPrevious Page";
+        String id = next ? "arrow_right" : "arrow_left";
+        return GuiUtil.getNexoItem(id, name, TooltipUtil.clickInstructions("to change page", null));
     }
 
     private ItemStack sortButton(Player player) {
@@ -346,17 +350,15 @@ public class PetMergeGUI implements Listener {
     }
 
     private void mergeAllDuplicates(Player player) {
-        List<String> summary = petManager.mergeAllDuplicates(player);
-        if (summary.isEmpty()) {
+        PetManager.MergeAllResult result = petManager.mergeAllDuplicates(player);
+        if (result.mergesCompleted() <= 0) {
             PetChatUtil.send(player, "No duplicates available to merge.");
         } else {
-            PetChatUtil.send(player, "Merge all duplicates results:");
-            for (String line : summary) {
-                PetChatUtil.send(player, " - " + line);
-            }
+            PetChatUtil.send(player, "Merge all complete: " + result.mergesCompleted() + " merge(s).");
+            PetPullSummaryUtil.sendSummary(player, "Gained", result.gainedPets());
         }
         selectedEntryKeys.remove(player.getUniqueId());
-        PetFeedbackUtil.playMergeResult(player, !summary.isEmpty());
+        PetFeedbackUtil.playMergeResult(player, result.mergesCompleted() > 0);
         openMerge(player);
     }
 
@@ -383,9 +385,20 @@ public class PetMergeGUI implements Listener {
                 && !GuiUtil.titleMatches(viewTitle, confirmTitle)) {
             return;
         }
-        widgetsByPlayer.remove(player.getUniqueId());
-        visibleEntries.remove(player.getUniqueId());
-        entryIndexByPlayer.remove(player.getUniqueId());
+        Bukkit.getScheduler().runTaskLater(me.nakilex.levelplugin.Main.getInstance(), () -> {
+            if (!player.isOnline()) {
+                return;
+            }
+            String topTitle = LEGACY.serialize(player.getOpenInventory().title());
+            if (GuiUtil.titleMatches(topTitle, mergeTitle)
+                    || GuiUtil.titleMatches(topTitle, selectTitle)
+                    || GuiUtil.titleMatches(topTitle, confirmTitle)) {
+                return;
+            }
+            widgetsByPlayer.remove(player.getUniqueId());
+            visibleEntries.remove(player.getUniqueId());
+            entryIndexByPlayer.remove(player.getUniqueId());
+        }, 1L);
     }
 
     @EventHandler
