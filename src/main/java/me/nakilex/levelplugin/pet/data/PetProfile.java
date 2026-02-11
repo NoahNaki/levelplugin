@@ -1,7 +1,9 @@
 package me.nakilex.levelplugin.pet.data;
 
 import java.util.Collections;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -19,6 +21,7 @@ public class PetProfile {
     private final Map<String, Integer> petTiers = new HashMap<>();
     private final Map<String, Integer> petCopies = new HashMap<>();
     private final Map<String, Long> lastAcquiredAt = new HashMap<>();
+    private final Map<String, List<Long>> petCopyAcquiredAt = new HashMap<>();
     private final java.util.Set<String> mergeLockedPets = new java.util.HashSet<>();
 
     public PetProfile(UUID ownerId) {
@@ -103,7 +106,9 @@ public class PetProfile {
         if (petId == null || petId.isBlank()) {
             return;
         }
-        petCopies.put(petId, Math.max(0, amount));
+        int clamped = Math.max(0, amount);
+        petCopies.put(petId, clamped);
+        syncCopyHistorySize(petId, clamped);
     }
 
     public void addPetCopies(String petId, int amount) {
@@ -111,10 +116,34 @@ public class PetProfile {
             return;
         }
         int current = getPetCopies(petId);
-        petCopies.put(petId, Math.max(0, current + amount));
+        int newAmount = Math.max(0, current + amount);
+        petCopies.put(petId, newAmount);
         if (amount > 0) {
-            lastAcquiredAt.put(petId, System.currentTimeMillis());
+            long now = System.currentTimeMillis();
+            lastAcquiredAt.put(petId, now);
+            List<Long> history = petCopyAcquiredAt.computeIfAbsent(petId, key -> new ArrayList<>());
+            for (int i = 0; i < amount; i++) {
+                history.add(now);
+            }
         }
+        syncCopyHistorySize(petId, newAmount);
+    }
+
+    public int removePetCopies(String petId, int amount) {
+        if (petId == null || petId.isBlank() || amount <= 0) {
+            return 0;
+        }
+        int current = getPetCopies(petId);
+        int removed = Math.min(current, amount);
+        int remaining = Math.max(0, current - removed);
+        petCopies.put(petId, remaining);
+        List<Long> history = petCopyAcquiredAt.get(petId);
+        if (history != null && !history.isEmpty()) {
+            int trim = Math.min(removed, history.size());
+            history.subList(0, trim).clear();
+        }
+        syncCopyHistorySize(petId, remaining);
+        return removed;
     }
 
     public long getLastAcquiredAt(String petId) {
@@ -126,6 +155,60 @@ public class PetProfile {
             return;
         }
         lastAcquiredAt.put(petId, Math.max(0L, timestamp));
+    }
+
+    public List<Long> getPetCopyAcquiredHistory(String petId) {
+        List<Long> history = petCopyAcquiredAt.get(petId);
+        if (history == null || history.isEmpty()) {
+            return List.of();
+        }
+        return Collections.unmodifiableList(history);
+    }
+
+    public void setPetCopyAcquiredHistory(String petId, List<Long> timestamps) {
+        if (petId == null || petId.isBlank()) {
+            return;
+        }
+        List<Long> values = new ArrayList<>();
+        if (timestamps != null) {
+            for (Long value : timestamps) {
+                if (value != null && value > 0) {
+                    values.add(value);
+                }
+            }
+        }
+        petCopyAcquiredAt.put(petId, values);
+        syncCopyHistorySize(petId, getPetCopies(petId));
+    }
+
+    public Map<String, List<Long>> petCopyAcquiredAt() {
+        Map<String, List<Long>> snapshot = new HashMap<>();
+        for (Map.Entry<String, List<Long>> entry : petCopyAcquiredAt.entrySet()) {
+            snapshot.put(entry.getKey(), Collections.unmodifiableList(new ArrayList<>(entry.getValue())));
+        }
+        return Collections.unmodifiableMap(snapshot);
+    }
+
+    private void syncCopyHistorySize(String petId, int targetCopies) {
+        if (petId == null || petId.isBlank()) {
+            return;
+        }
+        int expected = Math.max(0, targetCopies);
+        List<Long> history = petCopyAcquiredAt.computeIfAbsent(petId, key -> new ArrayList<>());
+        if (history.size() > expected) {
+            history.subList(expected, history.size()).clear();
+            return;
+        }
+        if (history.size() < expected) {
+            long fallback = getLastAcquiredAt(petId);
+            if (fallback <= 0L) {
+                fallback = System.currentTimeMillis();
+                lastAcquiredAt.put(petId, fallback);
+            }
+            while (history.size() < expected) {
+                history.add(fallback);
+            }
+        }
     }
 
     public boolean isMergeLocked(String petId) {

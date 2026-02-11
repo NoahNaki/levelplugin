@@ -8,6 +8,7 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -81,6 +82,13 @@ public class PetDataStore {
                     profile.setPetTier(petId, tier);
                     profile.setPetCopies(petId, copies);
                     profile.setLastAcquiredAt(petId, config.getLong(petRoot + "." + petId + ".last-acquired", 0L));
+                    List<Long> acquiredHistory = new java.util.ArrayList<>();
+                    for (Long value : config.getLongList(petRoot + "." + petId + ".acquired-history")) {
+                        if (value != null && value > 0L) {
+                            acquiredHistory.add(value);
+                        }
+                    }
+                    profile.setPetCopyAcquiredHistory(petId, acquiredHistory);
                 }
             }
             for (String locked : config.getStringList(root + ".merge.locked")) {
@@ -114,6 +122,9 @@ public class PetDataStore {
         }
         for (Map.Entry<String, Long> entry : profile.lastAcquiredAt().entrySet()) {
             config.set(root + ".pets." + entry.getKey() + ".last-acquired", entry.getValue());
+        }
+        for (Map.Entry<String, java.util.List<Long>> entry : profile.petCopyAcquiredAt().entrySet()) {
+            config.set(root + ".pets." + entry.getKey() + ".acquired-history", entry.getValue());
         }
         config.set(root + ".merge.locked", new java.util.ArrayList<>(profile.mergeLockedPets()));
         config.set(root + ".summon.return", profile.pendingSummonReturn());

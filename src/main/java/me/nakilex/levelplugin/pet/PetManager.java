@@ -70,6 +70,7 @@ public class PetManager {
 
     private final Main plugin;
     private final Map<String, PetDefinition> definitions = new HashMap<>();
+    private final Map<ItemRarity, List<PetDefinition>> mergeRarityPools = new EnumMap<>(ItemRarity.class);
     private final Map<UUID, PetInstance> activePets = new HashMap<>();
     private final PetDataStore dataStore;
     private final Map<UUID, Long> lastMoveAt = new HashMap<>();
@@ -86,6 +87,7 @@ public class PetManager {
 
     public void loadDefinitions() {
         definitions.clear();
+        mergeRarityPools.clear();
         plugin.saveResource("pets.yml", false);
         File file = new File(plugin.getDataFolder(), "pets.yml");
         FileConfiguration config = YamlConfiguration.loadConfiguration(file);
@@ -101,6 +103,7 @@ public class PetManager {
                 definitions.put(key.toLowerCase(Locale.ROOT), def);
             }
         }
+        rebuildMergeRarityPools();
     }
 
     public void reload() {
@@ -153,6 +156,13 @@ public class PetManager {
 
     public int getSellValue(ItemRarity rarity) {
         return SELL_VALUES.getOrDefault(rarity, 25);
+    }
+
+    public int getMergePoolSize(ItemRarity rarity) {
+        if (rarity == null) {
+            return 0;
+        }
+        return mergeRarityPools.getOrDefault(rarity, List.of()).size();
     }
 
     public Optional<PetDefinition> getDefinition(String id) {
@@ -443,7 +453,8 @@ public class PetManager {
         if (available <= 0) {
             return false;
         }
-        profile.setPetCopies(def.id(), Math.max(1, copies - 1));
+        profile.removePetCopies(def.id(), 1);
+        profile.setPetCopies(def.id(), Math.max(1, profile.getPetCopies(def.id())));
         profile.setPetTier(def.id(), tier + 1);
         refreshOwnershipBonuses(player.getUniqueId());
         PetInstance instance = activePets.get(player.getUniqueId());
@@ -494,8 +505,7 @@ public class PetManager {
         if (actual <= 0) {
             return 0;
         }
-        int current = profile.getPetCopies(def.id());
-        profile.setPetCopies(def.id(), Math.max(0, current - actual));
+        profile.removePetCopies(def.id(), actual);
         refreshOwnershipBonuses(player.getUniqueId());
         int perCopy = SELL_VALUES.getOrDefault(def.rarity(), 25);
         int total = perCopy * actual;
@@ -571,10 +581,55 @@ public class PetManager {
         if (player == null || selectedPetIds == null || selectedPetIds.isEmpty()) {
             return new MergeResult(false, "No pets selected for merge.");
         }
+        PetProfile profile = dataStore.getProfile(player.getUniqueId());
+        MergeResult result = mergeSelectedPetsInternal(player, profile, selectedPetIds, ThreadLocalRandom.current());
+        if (!result.success()) {
+            return result;
+        }
+        refreshOwnershipBonuses(player.getUniqueId());
+        return result;
+    }
+
+    public List<String> mergeAllDuplicates(Player player) {
+        if (player == null) {
+            return List.of();
+        }
+        PetProfile profile = dataStore.getProfile(player.getUniqueId());
+        List<String> summary = new ArrayList<>();
+        Random random = ThreadLocalRandom.current();
+        boolean changed = false;
+        for (PetDefinition def : getOwnedPets(player.getUniqueId())) {
+            if (profile.isMergeLocked(def.id())) {
+                continue;
+            }
+            int copies = profile.getPetCopies(def.id());
+            int groups = copies / 5;
+            for (int i = 0; i < groups; i++) {
+                MergeResult result = mergeSelectedPetsInternal(player, profile, java.util.Collections.nCopies(5, def.id()), random);
+                if (result.success()) {
+                    changed = true;
+                    summary.add(def.displayName() + " x5 -> " + ChatColor.stripColor(result.message()));
+                }
+            }
+        }
+        if (changed) {
+            refreshOwnershipBonuses(player.getUniqueId());
+        }
+        return summary;
+    }
+
+    private PetDefinition rollRandomPetByRarity(ItemRarity rarity) {
+        List<PetDefinition> candidates = mergeRarityPools.getOrDefault(rarity, List.of());
+        if (candidates.isEmpty()) {
+            return null;
+        }
+        return candidates.get(ThreadLocalRandom.current().nextInt(candidates.size()));
+    }
+
+    private MergeResult mergeSelectedPetsInternal(Player player, PetProfile profile, List<String> selectedPetIds, Random random) {
         if (selectedPetIds.size() > 5) {
             return new MergeResult(false, "You can only merge up to 5 pets at once.");
         }
-        PetProfile profile = dataStore.getProfile(player.getUniqueId());
         List<PetDefinition> defs = new ArrayList<>();
         for (String petId : selectedPetIds) {
             PetDefinition def = getDefinition(petId).orElse(null);
@@ -600,13 +655,13 @@ public class PetManager {
             }
         }
         for (Map.Entry<String, Integer> entry : toConsume.entrySet()) {
-            profile.setPetCopies(entry.getKey(), Math.max(0, profile.getPetCopies(entry.getKey()) - entry.getValue()));
-            if (entry.getKey().equalsIgnoreCase(profile.activePetId()) && profile.getPetCopies(entry.getKey()) <= 0) {
+            profile.removePetCopies(entry.getKey(), entry.getValue());
+            if (player != null && entry.getKey().equalsIgnoreCase(profile.activePetId()) && profile.getPetCopies(entry.getKey()) <= 0) {
                 dismissPet(player, true);
             }
         }
         int chance = Math.min(100, selectedPetIds.size() * 20);
-        boolean success = ThreadLocalRandom.current().nextInt(100) < chance;
+        boolean success = random.nextInt(100) < chance;
         ItemRarity target = success ? nextRarity(base) : base;
         PetDefinition reward = rollRandomPetByRarity(target);
         if (reward == null) {
@@ -616,41 +671,18 @@ public class PetManager {
             profile.setPetTier(reward.id(), 1);
         }
         profile.addPetCopies(reward.id(), 1);
-        refreshOwnershipBonuses(player.getUniqueId());
         String resultText = success ? "success" : "failed";
         return new MergeResult(true, "Merge " + resultText + ": received " + reward.rarity().getColor() + reward.displayName() + "§7.");
     }
 
-    public List<String> mergeAllDuplicates(Player player) {
-        if (player == null) {
-            return List.of();
+    private void rebuildMergeRarityPools() {
+        mergeRarityPools.clear();
+        for (PetDefinition definition : definitions.values()) {
+            mergeRarityPools.computeIfAbsent(definition.rarity(), key -> new ArrayList<>()).add(definition);
         }
-        PetProfile profile = dataStore.getProfile(player.getUniqueId());
-        List<String> summary = new ArrayList<>();
-        for (PetDefinition def : getOwnedPets(player.getUniqueId())) {
-            if (profile.isMergeLocked(def.id())) {
-                continue;
-            }
-            int copies = profile.getPetCopies(def.id());
-            int groups = copies / 5;
-            for (int i = 0; i < groups; i++) {
-                MergeResult result = mergeSelectedPets(player, java.util.Collections.nCopies(5, def.id()));
-                if (result.success()) {
-                    summary.add(def.displayName() + " x5 -> " + ChatColor.stripColor(result.message()));
-                }
-            }
+        for (List<PetDefinition> pool : mergeRarityPools.values()) {
+            pool.sort(Comparator.comparing(PetDefinition::displayName, String.CASE_INSENSITIVE_ORDER));
         }
-        return summary;
-    }
-
-    private PetDefinition rollRandomPetByRarity(ItemRarity rarity) {
-        List<PetDefinition> candidates = definitions.values().stream()
-                .filter(def -> def.rarity() == rarity)
-                .toList();
-        if (candidates.isEmpty()) {
-            return null;
-        }
-        return candidates.get(ThreadLocalRandom.current().nextInt(candidates.size()));
     }
 
     private ItemRarity nextRarity(ItemRarity rarity) {
