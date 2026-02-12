@@ -83,7 +83,7 @@ public class PetMergeGUI implements Listener {
         widgets.add(new ActionWidget(48, ctx -> mergeAllButton(), (click, context) -> mergeAllDuplicates(context.player())));
         widgets.add(new ActionWidget(45, ctx -> GuiUtil.getNexoItem("arrow_left", "§eBack"),
                 (click, context) -> { if (petGUI != null) petGUI.open(context.player(), 0);}));
-        widgets.add(new ActionWidget(50, ctx -> GuiUtil.getRarityPetIconItem(ItemRarity.UNCOMMON, "§bSelect Pets", TooltipUtil.clickInstructions("to open selection", null)),
+        widgets.add(new ActionWidget(50, ctx -> GuiUtil.getNexoItem("cross", "§bSelect Pets", TooltipUtil.clickInstructions("to open selection", null)),
                 (click, context) -> openSelect(context.player(), 0)));
         return widgets;
     }
@@ -91,11 +91,11 @@ public class PetMergeGUI implements Listener {
     private ItemStack mergeSlotItem(Player player, int index) {
         List<String> ids = selectedPetIds(player);
         if (index >= ids.size()) {
-            return GuiUtil.getRarityPetIconItem(ItemRarity.COMMON, "§7Empty Slot", TooltipUtil.clickInstructions("to select a pet", null));
+            return GuiUtil.getNexoItem("cross", "§7Empty Slot", TooltipUtil.clickInstructions("to select a pet", null));
         }
         String petId = ids.get(index);
         PetDefinition def = petManager.getDefinition(petId).orElse(null);
-        if (def == null) return GuiUtil.getRarityPetIconItem(ItemRarity.COMMON, "§7Empty Slot", null);
+        if (def == null) return GuiUtil.getNexoItem("cross", "§7Empty Slot", null);
         List<String> lore = new ArrayList<>();
         lore.add(" ");
         lore.add("§7Selected: " + def.rarity().getColor() + def.displayName());
