@@ -71,13 +71,13 @@ public enum PetEffectType {
                     + ChatColor.GRAY + " gems"),
     CUSTOM_MOB_DAMAGE("custom_mob_damage", "Monster Hunter",
             value -> "Deal " + ChatColor.GREEN + "+" + formatPercent(value)
-                    + ChatColor.GRAY + " damage to custom mobs"),
+                    + ChatColor.GRAY + " damage to mobs"),
     BOSS_DAMAGE("boss_damage", "Boss Breaker",
             value -> "Deal " + ChatColor.GREEN + "+" + formatPercent(value)
                     + ChatColor.GRAY + " damage to boss mobs"),
     HUNT_MARK("hunt_mark", "Hunt Mark",
             value -> "Hits apply Hunt Mark. Each stack gives " + ChatColor.GREEN + "+" + formatPercent(value)
-                    + ChatColor.GRAY + " damage vs that custom/boss mob (max 20 stacks)"),
+                    + ChatColor.GRAY + " damage vs that mob (max 20 stacks)"),
     MARK_RUPTURE("mark_rupture", "Mark Rupture",
             value -> "At 20 Hunt Mark stacks: consume marks to burst for "
                     + ChatColor.GREEN + formatPercent(value)
@@ -99,7 +99,7 @@ public enum PetEffectType {
                     + ChatColor.GRAY + " damage while above " + ChatColor.YELLOW + "90% HP"),
     CUSTOM_MOB_GUARD("custom_mob_guard", "Monster Shell",
             value -> "Take " + ChatColor.RED + "-" + formatPercent(value)
-                    + ChatColor.GRAY + " damage from custom mobs"),
+                    + ChatColor.GRAY + " damage from mobs"),
     BOSS_GUARD("boss_guard", "Boss Ward",
             value -> "Take " + ChatColor.RED + "-" + formatPercent(value)
                     + ChatColor.GRAY + " damage from bosses"),

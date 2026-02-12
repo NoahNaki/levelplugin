@@ -116,7 +116,8 @@ public final class GuiUtil {
             case UNCOMMON -> "uncommon";
             case RARE -> "rare";
             case EPIC -> "epic";
-            case LEGENDARY, MYTHIC, FABLED -> "legendary";
+            case LEGENDARY -> "legendary";
+            case MYTHIC, FABLED -> "mythic";
         };
     }
 
