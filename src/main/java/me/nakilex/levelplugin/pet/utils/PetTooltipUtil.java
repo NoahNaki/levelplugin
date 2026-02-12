@@ -58,17 +58,14 @@ public final class PetTooltipUtil {
         }
         lore.add(TooltipUtil.sectionHeader("Equipped Effect"));
         for (PetEffectDefinition effect : effects) {
-            String line = TooltipUtil.bulletLine(ChatColor.WHITE + formatEffect(effect));
-            lore.addAll(TooltipUtil.wrapLoreLine(line, 220, ChatColor.DARK_GRAY + "  " + ChatColor.GRAY));
+            if (effect == null || effect.type() == null) {
+                continue;
+            }
+            lore.add(TooltipUtil.bulletLine(ChatColor.WHITE + effect.type().displayName()));
+            String description = ChatColor.GRAY + effect.type().formatDescription(effect.baseValue());
+            lore.addAll(TooltipUtil.wrapLoreLine(description, 210, ChatColor.DARK_GRAY + "  " + ChatColor.GRAY));
         }
         lore.add(" ");
-    }
-
-    private static String formatEffect(PetEffectDefinition effect) {
-        if (effect == null || effect.type() == null) {
-            return "Unknown";
-        }
-        return effect.type().displayName() + ": " + effect.type().formatDescription(effect.baseValue());
     }
 
     private static String rarityLine(ItemRarity rarity) {

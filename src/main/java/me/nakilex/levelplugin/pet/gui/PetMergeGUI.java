@@ -83,7 +83,7 @@ public class PetMergeGUI implements Listener {
         widgets.add(new ActionWidget(48, ctx -> mergeAllButton(), (click, context) -> mergeAllDuplicates(context.player())));
         widgets.add(new ActionWidget(45, ctx -> GuiUtil.getNexoItem("arrow_left", "§eBack"),
                 (click, context) -> { if (petGUI != null) petGUI.open(context.player(), 0);}));
-        widgets.add(new ActionWidget(50, ctx -> GuiUtil.getNexoItem("cross", "§bSelect Pets", TooltipUtil.clickInstructions("to open selection", null)),
+        widgets.add(new ActionWidget(50, ctx -> GuiUtil.getNexoItem("plus", "§bSelect Pets", TooltipUtil.clickInstructions("to open selection", null)),
                 (click, context) -> openSelect(context.player(), 0)));
         return widgets;
     }
