@@ -30,6 +30,7 @@ public final class PetGuiUtil {
         String name = PetDisplayUtil.formatDisplayName(definition);
         ItemStack item = GuiUtil.getRarityPetIconItem(definition.rarity(), name, lore);
         ItemUtil.applyRarityTooltipStyle(item, definition.rarity());
+        ItemUtil.setVisualEnchanted(item, equipped);
         TooltipUtil.centerItemName(item);
         return item;
     }
