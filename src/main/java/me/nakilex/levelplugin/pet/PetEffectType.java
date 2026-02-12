@@ -42,6 +42,67 @@ public enum PetEffectType {
     STATIONARY_REGEN("stationary_regen", "Stillness",
             value -> "Regen " + ChatColor.GREEN + formatPercent(value)
                     + ChatColor.GRAY + " HP/sec while still"),
+    XP_BOOST("xp_boost", "Mentor",
+            value -> "Gain " + ChatColor.GREEN + "+" + formatPercent(value)
+                    + ChatColor.GRAY + " combat XP"),
+    GATHERING_XP_BOOST("gathering_xp_boost", "Harvester",
+            value -> "Gain " + ChatColor.GREEN + "+" + formatPercent(value)
+                    + ChatColor.GRAY + " gathering XP"),
+    SALVAGE_COINS_BONUS("salvage_coins_bonus", "Scrapper's Cut",
+            value -> "Gain " + ChatColor.GREEN + "+" + formatPercent(value)
+                    + ChatColor.GRAY + " coins from salvage"),
+    SALVAGE_GEMS_BONUS("salvage_gems_bonus", "Gem Dredge",
+            value -> "Gain " + ChatColor.GREEN + "+" + formatPercent(value)
+                    + ChatColor.GRAY + " gems from salvage"),
+    QUEST_COINS_BONUS("quest_coins_bonus", "Contractor",
+            value -> "Gain " + ChatColor.GREEN + "+" + formatPercent(value)
+                    + ChatColor.GRAY + " quest coin rewards"),
+    QUEST_GEMS_BONUS("quest_gems_bonus", "Relic Appraiser",
+            value -> "Gain " + ChatColor.GREEN + "+" + formatPercent(value)
+                    + ChatColor.GRAY + " quest gem rewards"),
+    MERGE_SUCCESS_BONUS("merge_success_bonus", "Fusion Savant",
+            value -> "Gain " + ChatColor.GREEN + "+" + formatPercent(value)
+                    + ChatColor.GRAY + " merge success chance"),
+    GACHA_PITY_REDUCTION("gacha_pity_reduction", "Pitybreaker",
+            value -> "Legendary pity triggers " + ChatColor.GREEN + formatFlat(value)
+                    + ChatColor.GRAY + " pulls earlier"),
+    GACHA_GEM_COST_REDUCTION("gacha_gem_cost_reduction", "Bargain Caller",
+            value -> "Pet summons cost " + ChatColor.AQUA + "-" + formatPercent(value)
+                    + ChatColor.GRAY + " gems"),
+    CUSTOM_MOB_DAMAGE("custom_mob_damage", "Monster Hunter",
+            value -> "Deal " + ChatColor.GREEN + "+" + formatPercent(value)
+                    + ChatColor.GRAY + " damage to mobs"),
+    BOSS_DAMAGE("boss_damage", "Boss Breaker",
+            value -> "Deal " + ChatColor.GREEN + "+" + formatPercent(value)
+                    + ChatColor.GRAY + " damage to boss mobs"),
+    HUNT_MARK("hunt_mark", "Hunt Mark",
+            value -> "Hits apply Hunt Mark. Each stack gives " + ChatColor.GREEN + "+" + formatPercent(value)
+                    + ChatColor.GRAY + " damage vs that mob (max 20 stacks)"),
+    MARK_RUPTURE("mark_rupture", "Mark Rupture",
+            value -> "At 20 Hunt Mark stacks: consume marks to burst for "
+                    + ChatColor.GREEN + formatPercent(value)
+                    + ChatColor.GRAY + " target max HP"),
+    LOW_HEALTH_DAMAGE("low_health_damage", "Berserker Heart",
+            value -> "Deal " + ChatColor.GREEN + "+" + formatPercent(value)
+                    + ChatColor.GRAY + " damage while below " + ChatColor.RED + "50% HP"),
+    HEALTHY_PREY_DAMAGE("healthy_prey_damage", "Opportunist",
+            value -> "Deal " + ChatColor.GREEN + "+" + formatPercent(value)
+                    + ChatColor.GRAY + " vs targets above " + ChatColor.YELLOW + "70% HP"),
+    WOUNDED_PREY_DAMAGE("wounded_prey_damage", "Bloodtrail",
+            value -> "Deal " + ChatColor.GREEN + "+" + formatPercent(value)
+                    + ChatColor.GRAY + " vs targets below " + ChatColor.RED + "40% HP"),
+    HIGH_HEALTH_DAMAGE("high_health_damage", "Peak Form",
+            value -> "Deal " + ChatColor.GREEN + "+" + formatPercent(value)
+                    + ChatColor.GRAY + " while above " + ChatColor.YELLOW + "80% HP"),
+    FULL_HEALTH_GUARD("full_health_guard", "Aegis Opening",
+            value -> "Take " + ChatColor.RED + "-" + formatPercent(value)
+                    + ChatColor.GRAY + " damage while above " + ChatColor.YELLOW + "90% HP"),
+    CUSTOM_MOB_GUARD("custom_mob_guard", "Monster Shell",
+            value -> "Take " + ChatColor.RED + "-" + formatPercent(value)
+                    + ChatColor.GRAY + " damage from mobs"),
+    BOSS_GUARD("boss_guard", "Boss Ward",
+            value -> "Take " + ChatColor.RED + "-" + formatPercent(value)
+                    + ChatColor.GRAY + " damage from bosses"),
     LAST_STAND("last_stand", "Last Stand",
             value -> "On lethal hit: " + ChatColor.RED + "Immune 5s"
                     + ChatColor.GRAY + ", " + ChatColor.GREEN + "+150% dmg"
@@ -93,6 +154,13 @@ public enum PetEffectType {
             return String.format("%.0f%%", percent);
         }
         return String.format("%.1f%%", percent);
+    }
+
+    private static String formatFlat(double value) {
+        if (Math.abs(value - Math.round(value)) < 0.01) {
+            return String.format("%.0f", value);
+        }
+        return String.format("%.1f", value);
     }
 
 }

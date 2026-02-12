@@ -1,5 +1,6 @@
 package me.nakilex.levelplugin.utils;
 
+import me.nakilex.levelplugin.mob.custom.CustomMobManager;
 import org.bukkit.Location;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Monster;
@@ -24,6 +25,36 @@ public final class MobUtil {
                 .map(e -> (LivingEntity) e)
                 .min(Comparator.comparingDouble(e -> e.getLocation().distanceSquared(loc)))
                 .orElse(null);
+    }
+
+
+    /**
+     * Returns true when the entity is one of our configured custom mobs.
+     */
+    public static boolean isCustomMob(LivingEntity entity) {
+        if (entity == null) {
+            return false;
+        }
+        if (entity.getScoreboardTags().contains(CustomMobManager.CUSTOM_MOB_TAG)) {
+            return true;
+        }
+        return entity.hasMetadata(CustomMobManager.CUSTOM_MOB_ID_META);
+    }
+
+    /**
+     * Returns true when the entity should be treated as a boss target.
+     */
+    public static boolean isBossLike(LivingEntity entity) {
+        if (entity == null) {
+            return false;
+        }
+        if (entity instanceof org.bukkit.entity.Boss) {
+            return true;
+        }
+        if (entity.getScoreboardTags().contains("field_boss")) {
+            return true;
+        }
+        return entity.getScoreboardTags().contains("dungeon_boss");
     }
 
     /**

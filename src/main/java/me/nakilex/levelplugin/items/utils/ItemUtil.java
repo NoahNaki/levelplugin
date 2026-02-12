@@ -22,6 +22,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -547,6 +548,23 @@ public class ItemUtil {
         ItemMeta meta = stack.getItemMeta();
         if (meta == null) return;
         meta.addItemFlags(flags);
+        stack.setItemMeta(meta);
+    }
+
+    /**
+     * Apply or remove a lightweight enchantment glint for visual emphasis.
+     * Keeps enchant lines hidden while preserving existing item data.
+     */
+    public static void setVisualEnchanted(ItemStack stack, boolean enchanted) {
+        if (stack == null || stack.getType() == Material.AIR) return;
+        ItemMeta meta = stack.getItemMeta();
+        if (meta == null) return;
+        if (enchanted) {
+            meta.addEnchant(Enchantment.UNBREAKING, 1, true);
+            meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+        } else if (meta.hasEnchant(Enchantment.UNBREAKING)) {
+            meta.removeEnchant(Enchantment.UNBREAKING);
+        }
         stack.setItemMeta(meta);
     }
 

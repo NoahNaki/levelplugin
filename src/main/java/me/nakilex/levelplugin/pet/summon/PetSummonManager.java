@@ -6,6 +6,7 @@ import me.nakilex.levelplugin.items.data.ItemRarity;
 import me.nakilex.levelplugin.pet.PetDefinition;
 import me.nakilex.levelplugin.pet.PetManager;
 import me.nakilex.levelplugin.pet.PetManager.PetPullDetailed;
+import me.nakilex.levelplugin.pet.PetEffectType;
 import me.nakilex.levelplugin.pet.PetManager.PetPullEntry;
 import me.nakilex.levelplugin.pet.gui.PetSummonGUI;
 import me.nakilex.levelplugin.pet.utils.PetChatUtil;
@@ -99,6 +100,22 @@ public class PetSummonManager implements Listener {
         return petManager == null ? 60 : petManager.getPityThreshold();
     }
 
+    public int getPityThreshold(UUID playerId) {
+        return petManager == null ? 60 : petManager.getEffectivePityThreshold(playerId);
+    }
+
+    public int getPullsUntilPityLegendary(UUID playerId) {
+        return petManager == null ? 60 : petManager.getPullsUntilPityLegendary(playerId);
+    }
+
+    public int getSummonCost(UUID playerId, int amount) {
+        int base = summonCostForAmount(amount);
+        if (petManager == null) {
+            return base;
+        }
+        return petManager.applyActiveEffectReduction(playerId, PetEffectType.GACHA_GEM_COST_REDUCTION, base, 0.80);
+    }
+
     public Map<ItemRarity, Double> getGachaRates() {
         return petManager == null ? Map.of() : petManager.getGachaRates();
     }
@@ -129,7 +146,7 @@ public class PetSummonManager implements Listener {
             return;
         }
 
-        int summonCost = summonCostForAmount(amount);
+        int summonCost = getSummonCost(player.getUniqueId(), amount);
         if (!chargeSummonCost(player, summonCost)) {
             return;
         }

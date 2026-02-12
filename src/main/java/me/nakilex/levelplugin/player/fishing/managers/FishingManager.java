@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.player.fishing.managers;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.pet.PetEffectType;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -61,7 +62,11 @@ public class FishingManager {
             }
             return;
         }
-        int newXP = getXP(uuid) + amount;
+        int adjusted = amount;
+        if (plugin.getPetManager() != null) {
+            adjusted = plugin.getPetManager().applyActiveEffectMultiplier(uuid, PetEffectType.GATHERING_XP_BOOST, adjusted);
+        }
+        int newXP = getXP(uuid) + adjusted;
         fishingXp.put(uuid, newXP);
         checkLevelUp(uuid);
     }

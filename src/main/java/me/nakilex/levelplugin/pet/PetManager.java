@@ -20,6 +20,7 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Interaction;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -72,6 +73,7 @@ public class PetManager {
     private final Main plugin;
     private final Map<String, PetDefinition> definitions = new HashMap<>();
     private final Map<ItemRarity, List<PetDefinition>> mergeRarityPools = new EnumMap<>(ItemRarity.class);
+    private final Map<UUID, Map<UUID, HuntMarkState>> huntMarksByPlayer = new HashMap<>();
     private final Map<UUID, PetInstance> activePets = new HashMap<>();
     private final PetDataStore dataStore;
     private final Map<UUID, Long> lastMoveAt = new HashMap<>();
@@ -148,7 +150,7 @@ public class PetManager {
 
     public int getPullsUntilPityLegendary(UUID playerId) {
         int current = getPityPullsSinceLegendary(playerId);
-        return Math.max(0, PITY_THRESHOLD - current);
+        return Math.max(0, getEffectivePityThreshold(playerId) - current);
     }
 
     public int getMaxTier() {
@@ -331,6 +333,7 @@ public class PetManager {
         lastStandCooldownAt.remove(playerId);
         lastStandImmuneUntil.remove(playerId);
         lastStandBuffUntil.remove(playerId);
+        huntMarksByPlayer.remove(playerId);
     }
 
     public boolean summonPet(Player player, String petId) {
@@ -742,6 +745,25 @@ public class PetManager {
         return candidates.get(ThreadLocalRandom.current().nextInt(candidates.size()));
     }
 
+    public int getMergeSuccessChance(UUID playerId, int selectedCount) {
+        int baseChance = Math.min(100, Math.max(0, selectedCount) * 20);
+        if (playerId == null) {
+            return baseChance;
+        }
+        double bonus = getActiveEffectValue(playerId, PetEffectType.MERGE_SUCCESS_BONUS);
+        int boosted = baseChance + (int) Math.round(bonus * 100.0);
+        return Math.max(0, Math.min(100, boosted));
+    }
+
+    public int getEffectivePityThreshold(UUID playerId) {
+        if (playerId == null) {
+            return PITY_THRESHOLD;
+        }
+        double reduction = getActiveEffectValue(playerId, PetEffectType.GACHA_PITY_REDUCTION);
+        int threshold = PITY_THRESHOLD - (int) Math.round(reduction);
+        return Math.max(1, threshold);
+    }
+
     private MergeResult mergeSelectedPetCopiesInternal(Player player, PetProfile profile, List<String> selectedCopyIds, Random random) {
         if (selectedCopyIds.size() < 2) {
             return new MergeResult(false, false, "Select at least 2 pets to merge.", null);
@@ -781,7 +803,7 @@ public class PetManager {
                 dismissPet(player, true);
             }
         }
-        int chance = Math.min(100, selectedCopyIds.size() * 20);
+        int chance = getMergeSuccessChance(player == null ? null : player.getUniqueId(), selectedCopyIds.size());
         boolean success = random.nextInt(100) < chance;
         ItemRarity target = success ? nextRarity(base) : base;
         PetDefinition reward = rollRandomPetByRarity(target);
@@ -846,7 +868,8 @@ public class PetManager {
         Random random = ThreadLocalRandom.current();
         Map<ItemRarity, Double> weights = buildRarityWeights(pools);
         for (int i = 0; i < amount; i++) {
-            boolean pityGuaranteed = profile.pityPullsSinceLegendary() >= (PITY_THRESHOLD - 1);
+            int effectivePity = getEffectivePityThreshold(player.getUniqueId());
+            boolean pityGuaranteed = profile.pityPullsSinceLegendary() >= (effectivePity - 1);
             PetDefinition def = rollPullDefinition(random, pools, weights, pityGuaranteed);
             if (def == null) {
                 continue;
@@ -1256,6 +1279,184 @@ public class PetManager {
         return total;
     }
 
+    public int applyActiveEffectMultiplier(UUID playerId, PetEffectType type, int baseAmount) {
+        if (baseAmount <= 0) {
+            return baseAmount;
+        }
+        double bonus = getActiveEffectValue(playerId, type);
+        if (bonus <= 0.0) {
+            return baseAmount;
+        }
+        return (int) Math.round(baseAmount * (1.0 + bonus));
+    }
+
+    public int applyActiveEffectReduction(UUID playerId, PetEffectType type, int baseAmount, double maxReduction) {
+        if (baseAmount <= 0) {
+            return baseAmount;
+        }
+        if (maxReduction <= 0.0) {
+            return baseAmount;
+        }
+        double reduction = getActiveEffectValue(playerId, type);
+        if (reduction <= 0.0) {
+            return baseAmount;
+        }
+        double clamped = Math.max(0.0, Math.min(maxReduction, reduction));
+        return (int) Math.max(0, Math.round(baseAmount * (1.0 - clamped)));
+    }
+
+    public double applyHuntMarkComboDamage(Player attacker, LivingEntity target, double baseDamage) {
+        if (attacker == null || target == null || baseDamage <= 0.0) {
+            return baseDamage;
+        }
+        if (!me.nakilex.levelplugin.utils.MobUtil.isCustomMob(target)
+                && !me.nakilex.levelplugin.utils.MobUtil.isBossLike(target)) {
+            return baseDamage;
+        }
+        UUID attackerId = attacker.getUniqueId();
+        double markPerStack = getActiveEffectValue(attackerId, PetEffectType.HUNT_MARK);
+        double rupturePct = getActiveEffectValue(attackerId, PetEffectType.MARK_RUPTURE);
+        if (markPerStack <= 0.0 && rupturePct <= 0.0) {
+            return baseDamage;
+        }
+
+        Map<UUID, HuntMarkState> byTarget = huntMarksByPlayer.computeIfAbsent(attackerId, id -> new HashMap<>());
+        UUID targetId = target.getUniqueId();
+        HuntMarkState state = byTarget.computeIfAbsent(targetId, id -> new HuntMarkState());
+
+        if (markPerStack > 0.0) {
+            state.stacks = Math.min(20, state.stacks + 1);
+        }
+
+        double damage = baseDamage;
+        if (state.stacks > 0 && markPerStack > 0.0) {
+            damage *= (1.0 + (state.stacks * markPerStack));
+        }
+
+        if (rupturePct > 0.0 && state.stacks >= 20) {
+            double maxHealth = target.getMaxHealth();
+            if (maxHealth > 0.0) {
+                double burst = maxHealth * rupturePct;
+                burst = Math.min(burst, baseDamage * 3.0);
+                damage += Math.max(0.0, burst);
+            }
+            state.stacks = 0;
+        }
+
+        if (state.stacks <= 0) {
+            byTarget.remove(targetId);
+        }
+        if (byTarget.isEmpty()) {
+            huntMarksByPlayer.remove(attackerId);
+        }
+        return damage;
+    }
+
+    public double applyOutgoingCombatPetBonuses(Player attacker, LivingEntity target, double baseDamage) {
+        if (attacker == null || target == null || baseDamage <= 0.0) {
+            return baseDamage;
+        }
+        double damage = baseDamage;
+        UUID attackerId = attacker.getUniqueId();
+
+        double customMobDamage = getActiveEffectValue(attackerId, PetEffectType.CUSTOM_MOB_DAMAGE);
+        if (customMobDamage > 0.0 && me.nakilex.levelplugin.utils.MobUtil.isCustomMob(target)) {
+            damage *= (1.0 + customMobDamage);
+        }
+        double bossDamage = getActiveEffectValue(attackerId, PetEffectType.BOSS_DAMAGE);
+        if (bossDamage > 0.0 && me.nakilex.levelplugin.utils.MobUtil.isBossLike(target)) {
+            damage *= (1.0 + bossDamage);
+        }
+
+        double lowHealthDamage = getActiveEffectValue(attackerId, PetEffectType.LOW_HEALTH_DAMAGE);
+        double attackerMaxHealth = attacker.getMaxHealth();
+        if (lowHealthDamage > 0.0 && attackerMaxHealth > 0.0
+                && attacker.getHealth() / attackerMaxHealth <= 0.50) {
+            damage *= (1.0 + lowHealthDamage);
+        }
+
+        double healthyPreyDamage = getActiveEffectValue(attackerId, PetEffectType.HEALTHY_PREY_DAMAGE);
+        double targetMaxHealth = target.getMaxHealth();
+        if (healthyPreyDamage > 0.0 && targetMaxHealth > 0.0
+                && target.getHealth() / targetMaxHealth >= 0.70) {
+            damage *= (1.0 + healthyPreyDamage);
+        }
+
+        double woundedPreyDamage = getActiveEffectValue(attackerId, PetEffectType.WOUNDED_PREY_DAMAGE);
+        if (woundedPreyDamage > 0.0 && targetMaxHealth > 0.0
+                && target.getHealth() / targetMaxHealth <= 0.40) {
+            damage *= (1.0 + woundedPreyDamage);
+        }
+
+        double highHealthDamage = getActiveEffectValue(attackerId, PetEffectType.HIGH_HEALTH_DAMAGE);
+        double attackerMax = attacker.getMaxHealth();
+        if (highHealthDamage > 0.0 && attackerMax > 0.0
+                && attacker.getHealth() / attackerMax >= 0.80) {
+            damage *= (1.0 + highHealthDamage);
+        }
+
+        return applyHuntMarkComboDamage(attacker, target, damage);
+    }
+
+    public double applyIncomingCombatPetReductions(Player attacked, double incomingDamage) {
+        if (attacked == null || incomingDamage <= 0.0) {
+            return incomingDamage;
+        }
+        double incoming = incomingDamage;
+        UUID playerId = attacked.getUniqueId();
+
+        double petReduction = getActiveEffectValue(playerId, PetEffectType.DAMAGE_REDUCTION);
+        if (petReduction > 0.0) {
+            incoming *= Math.max(0.0, 1.0 - petReduction);
+        }
+
+        double fullHealthGuard = getActiveEffectValue(playerId, PetEffectType.FULL_HEALTH_GUARD);
+        double maxHealth = attacked.getMaxHealth();
+        if (fullHealthGuard > 0.0 && maxHealth > 0.0
+                && attacked.getHealth() / maxHealth >= 0.90) {
+            incoming *= Math.max(0.0, 1.0 - fullHealthGuard);
+        }
+
+        double customMobGuard = getActiveEffectValue(playerId, PetEffectType.CUSTOM_MOB_GUARD);
+        if (customMobGuard > 0.0 && lastAttackerIsCustomMob(attacked)) {
+            incoming *= Math.max(0.0, 1.0 - customMobGuard);
+        }
+
+        double bossGuard = getActiveEffectValue(playerId, PetEffectType.BOSS_GUARD);
+        if (bossGuard > 0.0 && lastAttackerIsBossLike(attacked)) {
+            incoming *= Math.max(0.0, 1.0 - bossGuard);
+        }
+        return incoming;
+    }
+
+    private boolean lastAttackerIsCustomMob(Player attacked) {
+        if (attacked == null || attacked.getLastDamageCause() == null) {
+            return false;
+        }
+        var damageCause = attacked.getLastDamageCause();
+        if (!(damageCause instanceof org.bukkit.event.entity.EntityDamageByEntityEvent byEntity)) {
+            return false;
+        }
+        if (!(byEntity.getDamager() instanceof org.bukkit.entity.LivingEntity livingDamager)) {
+            return false;
+        }
+        return me.nakilex.levelplugin.utils.MobUtil.isCustomMob(livingDamager);
+    }
+
+    private boolean lastAttackerIsBossLike(Player attacked) {
+        if (attacked == null || attacked.getLastDamageCause() == null) {
+            return false;
+        }
+        var damageCause = attacked.getLastDamageCause();
+        if (!(damageCause instanceof org.bukkit.event.entity.EntityDamageByEntityEvent byEntity)) {
+            return false;
+        }
+        if (!(byEntity.getDamager() instanceof org.bukkit.entity.LivingEntity livingDamager)) {
+            return false;
+        }
+        return me.nakilex.levelplugin.utils.MobUtil.isBossLike(livingDamager);
+    }
+
     public PetProfile getProfile(UUID uuid) {
         return dataStore.getProfile(uuid);
     }
@@ -1288,6 +1489,10 @@ public class PetManager {
     public ItemRarity getPetRarity(String petId) {
         PetDefinition def = getDefinition(petId).orElse(null);
         return def == null ? ItemRarity.COMMON : def.rarity();
+    }
+
+    private static class HuntMarkState {
+        private int stacks;
     }
 
     public record InvestResult(int investedCopies, int soldCopies, int coinsEarned) {}

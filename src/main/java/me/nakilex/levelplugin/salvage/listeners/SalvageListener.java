@@ -7,6 +7,7 @@ import me.nakilex.levelplugin.items.data.ItemRarity;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.items.tools.CustomTool;
 import me.nakilex.levelplugin.items.tools.ToolManager;
+import me.nakilex.levelplugin.pet.PetEffectType;
 import me.nakilex.levelplugin.salvage.managers.SalvageManager;
 import me.nakilex.levelplugin.salvage.gui.SalvageGUI;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
@@ -198,6 +199,13 @@ public class SalvageListener implements Listener {
                 totalCoins += SalvageManager.getInstance().getVanillaPotionSellPrice();
                 inv.setItem(i, null);
             }
+        }
+
+        if (Main.getInstance().getPetManager() != null) {
+            totalCoins = Main.getInstance().getPetManager()
+                    .applyActiveEffectMultiplier(player.getUniqueId(), PetEffectType.SALVAGE_COINS_BONUS, totalCoins);
+            totalGems = Main.getInstance().getPetManager()
+                    .applyActiveEffectMultiplier(player.getUniqueId(), PetEffectType.SALVAGE_GEMS_BONUS, totalGems);
         }
 
         economyManager.addCoins(player, totalCoins);

@@ -1,5 +1,6 @@
 package me.nakilex.levelplugin.pet.gui;
 
+import me.nakilex.levelplugin.items.data.ItemRarity;
 import me.nakilex.levelplugin.pet.PetDefinition;
 import me.nakilex.levelplugin.pet.PetEffectDefinition;
 import me.nakilex.levelplugin.pet.PetManager;
@@ -49,6 +50,8 @@ public class PetGUI implements Listener {
     private final String confirmTitle = ChatUtil.applyEmojis("§8Confirm Pet Action");
     private final Map<UUID, Integer> pages = new java.util.HashMap<>();
     private final Map<UUID, List<GuiWidget>> widgetsByPlayer = new java.util.HashMap<>();
+    private final Map<UUID, ItemRarity> filterByPlayer = new java.util.HashMap<>();
+    private final Map<UUID, SortMode> sortByPlayer = new java.util.HashMap<>();
     private final Map<UUID, List<GuiWidget>> confirmWidgetsByPlayer = new java.util.HashMap<>();
     private final Map<UUID, PendingAction> pendingActions = new java.util.HashMap<>();
 
@@ -68,7 +71,7 @@ public class PetGUI implements Listener {
     }
 
     public void open(Player player, int page) {
-        List<PetDefinition> defs = petManager.getOwnedPets(player.getUniqueId());
+        List<PetDefinition> defs = applySortAndFilter(player, petManager.getOwnedPets(player.getUniqueId()));
         int maxPage = Math.max(0, (defs.size() - 1) / PAGE_SIZE);
         int current = Math.max(0, Math.min(page, maxPage));
         pages.put(player.getUniqueId(), current);
@@ -137,11 +140,11 @@ public class PetGUI implements Listener {
         }
 
         if (page > 0) {
-            widgets.add(new ActionWidget(PREV_SLOT, ctx -> createNavItem("§aPrevious Page"),
+            widgets.add(new ActionWidget(PREV_SLOT, ctx -> createNavItem(false),
                     (click, context) -> open(player, page - 1)));
         }
         if (page < maxPage) {
-            widgets.add(new ActionWidget(NEXT_SLOT, ctx -> createNavItem("§aNext Page"),
+            widgets.add(new ActionWidget(NEXT_SLOT, ctx -> createNavItem(true),
                     (click, context) -> open(player, page + 1)));
         }
         if (petSettingsGUI != null) {
@@ -152,18 +155,29 @@ public class PetGUI implements Listener {
             widgets.add(new ActionWidget(48, ctx -> createMergeItem(player),
                     (click, context) -> petMergeGUI.openMerge(player)));
         }
+        widgets.add(new ActionWidget(51, ctx -> sortButton(player), (click, context) -> {
+            UUID id = player.getUniqueId();
+            SortMode next = SortMode.next(sortByPlayer.getOrDefault(id, SortMode.NAME), click.isLeftClick());
+            sortByPlayer.put(id, next);
+            open(player, 0);
+        }));
+        widgets.add(new ActionWidget(52, ctx -> filterButton(player), (click, context) -> {
+            UUID id = player.getUniqueId();
+            filterByPlayer.put(id, nextFilter(filterByPlayer.get(id), click.isLeftClick()));
+            open(player, 0);
+        }));
         widgets.add(new ActionWidget(50, ctx -> createOwnershipSummaryItem(player), (click, context) -> {}));
         return widgets;
     }
 
-    private ItemStack createNavItem(String name) {
-        List<String> lore = TooltipUtil.clickInstructions("to change page", null);
-        return GuiUtil.createGuiItem(Material.ARROW, name, lore);
+    private ItemStack createNavItem(boolean next) {
+        String name = next ? "§aNext Page" : "§aPrevious Page";
+        String id = next ? "arrow_right" : "arrow_left";
+        return GuiUtil.getNexoItem(id, name, TooltipUtil.clickInstructions("to change page", null));
     }
 
     private ItemStack createSettingsItem() {
-        List<String> lore = TooltipUtil.clickInstructions("to open settings", null);
-        return GuiUtil.createGuiItem(Material.COMPARATOR, "§bPet Settings", lore);
+        return GuiUtil.getNexoItem("settings", "§bPet Settings", TooltipUtil.clickInstructions("to open settings", null));
     }
 
 
@@ -173,7 +187,68 @@ public class PetGUI implements Listener {
         lore.addAll(TooltipUtil.bulletList("Merge up to 5 pets into one", "Success chance scales with selected amount"));
         lore.add(" ");
         lore.addAll(TooltipUtil.clickInstructions("to open merge menu", null));
-        return GuiUtil.getNexoItem("plus", "§dPet Merge", lore);
+        return GuiUtil.createGuiItem(Material.TURTLE_EGG, "§dPet Merge", lore);
+    }
+
+
+    private ItemStack sortButton(Player player) {
+        SortMode mode = sortByPlayer.getOrDefault(player.getUniqueId(), SortMode.NAME);
+        List<String> lore = new ArrayList<>();
+        lore.add(" ");
+        for (SortMode value : SortMode.values()) {
+            lore.add(TooltipUtil.selectionLine(value == mode, value.label));
+        }
+        lore.add(" ");
+        lore.addAll(TooltipUtil.clickInstructions("to cycle forward", "to cycle backward"));
+        return GuiUtil.createGuiItem(Material.COMPARATOR, "§bSort", lore);
+    }
+
+    private ItemStack filterButton(Player player) {
+        ItemRarity filter = filterByPlayer.get(player.getUniqueId());
+        List<String> lore = new ArrayList<>();
+        lore.add(" ");
+        lore.add(TooltipUtil.selectionLine(filter == null, "All"));
+        for (ItemRarity rarity : ItemRarity.values()) {
+            lore.add(TooltipUtil.selectionLine(filter == rarity, rarity.getColor() + rarity.name()));
+        }
+        lore.add(" ");
+        lore.addAll(TooltipUtil.clickInstructions("to cycle forward", "to cycle backward"));
+        return GuiUtil.createGuiItem(Material.HOPPER, "§bFilter Rarity", lore);
+    }
+
+    private ItemRarity nextFilter(ItemRarity current, boolean forward) {
+        List<ItemRarity> order = new ArrayList<>();
+        order.add(null);
+        order.addAll(List.of(ItemRarity.values()));
+        int idx = order.indexOf(current);
+        idx = forward ? idx + 1 : idx - 1;
+        if (idx >= order.size()) idx = 0;
+        if (idx < 0) idx = order.size() - 1;
+        return order.get(idx);
+    }
+
+    private List<PetDefinition> applySortAndFilter(Player player, List<PetDefinition> defs) {
+        UUID id = player.getUniqueId();
+        ItemRarity filter = filterByPlayer.get(id);
+        SortMode sortMode = sortByPlayer.getOrDefault(id, SortMode.NAME);
+        var profile = petManager.getProfile(id);
+        List<PetDefinition> filtered = new ArrayList<>();
+        for (PetDefinition def : defs) {
+            if (filter != null && def.rarity() != filter) {
+                continue;
+            }
+            filtered.add(def);
+        }
+        filtered.sort((a, b) -> switch (sortMode) {
+            case NAME -> a.displayName().compareToIgnoreCase(b.displayName());
+            case RARITY -> Integer.compare(b.rarity().ordinal(), a.rarity().ordinal());
+            case LEVEL -> {
+                int la = PetProgression.levelFromXp(profile.getPetXp(a.id()), a.xpPerLevel(), a.maxLevel());
+                int lb = PetProgression.levelFromXp(profile.getPetXp(b.id()), b.xpPerLevel(), b.maxLevel());
+                yield Integer.compare(lb, la);
+            }
+        });
+        return filtered;
     }
 
     private ItemStack createOwnershipSummaryItem(Player player) {
@@ -317,7 +392,7 @@ public class PetGUI implements Listener {
 
     private void refresh(Player player, Inventory inventory) {
         int page = pages.getOrDefault(player.getUniqueId(), 0);
-        List<PetDefinition> defs = petManager.getOwnedPets(player.getUniqueId());
+        List<PetDefinition> defs = applySortAndFilter(player, petManager.getOwnedPets(player.getUniqueId()));
         int maxPage = Math.max(0, (defs.size() - 1) / PAGE_SIZE);
         int current = Math.max(0, Math.min(page, maxPage));
         pages.put(player.getUniqueId(), current);
@@ -374,6 +449,22 @@ public class PetGUI implements Listener {
     }
 
     // Pet clicks are handled via ActionWidgets in buildPetWidgets.
+
+
+    private enum SortMode {
+        NAME("Name"),
+        RARITY("Rarity"),
+        LEVEL("Level");
+        private final String label;
+        SortMode(String label) { this.label = label; }
+        private static SortMode next(SortMode current, boolean forward) {
+            SortMode[] values = values();
+            int i = current.ordinal() + (forward ? 1 : -1);
+            if (i >= values.length) i = 0;
+            if (i < 0) i = values.length - 1;
+            return values[i];
+        }
+    }
 
     private record PendingAction(ActionType type, String petId, int amount) {}
 
