@@ -1,483 +1,448 @@
 pets:
   meadow_mote:
-    name: "§fMeadow Mote"
+    name: §fMeadow Mote
     rarity: COMMON
     models:
-      - cubee-zombie
+    - cubee-zombie
     max-level: 40
     xp-per-level: 90
     owned-stats:
       vit: 2
     effects:
-      - type: STATIONARY_REGEN
-        base: 0.005
-        per-level: 0.0001
+    - type: STATIONARY_REGEN
+      base: 0.005
+      per-level: 0.0001
   emberling:
-    name: "§fEmberling"
+    name: §fEmberling
     rarity: COMMON
     models:
-      - cubee-creeper
+    - cubee-creeper
     max-level: 40
     xp-per-level: 90
     owned-stats:
       str: 1
       wil: 2
     effects:
-      - type: FIRST_STRIKE
-        base: 0.10
-        per-level: 0.002
+    - type: FIRST_STRIKE
+      base: 0.1
+      per-level: 0.002
   forest_sprite:
-    name: "§aForest Sprite"
+    name: §aForest Sprite
     rarity: UNCOMMON
     models:
-      - cubee-witch
+    - cubee-witch
     max-level: 50
     xp-per-level: 100
     owned-stats:
       agi: 2
       wil: 3
     effects:
-      - type: MOVEMENT_MANA_REDUCTION
-        base: 0.15
-        per-level: 0.002
+    - type: MOVEMENT_MANA_REDUCTION
+      base: 0.15
+      per-level: 0.002
   skyhopper:
-    name: "§aSkyhopper"
+    name: §aSkyhopper
     rarity: UNCOMMON
     models:
-      - cubee-creaking
+    - cubee-creaking
     max-level: 100
     xp-per-level: 100
     owned-stats:
       agi: 3
       dex: 2
     effects:
-      - type: EXTRA_JUMP
-        base: 1
-        per-level: 0
+    - type: EXTRA_JUMP
+      base: 1
+      per-level: 0
   ember_cube:
-    name: "§cEmber Cube"
+    name: §cEmber Cube
     rarity: RARE
     models:
-      - cubee-warden
+    - cubee-warden
     max-level: 100
     xp-per-level: 150
     owned-stats:
       str: 4
       tec: 2
     effects:
-      - type: DAMAGE_BOOST
-        base: 0.06
-        per-level: 0.001
-      - type: EXECUTE
-        base: 0.10
-        per-level: 0.002
+    - type: DAMAGE_BOOST
+      base: 0.07
+      per-level: 0.0012
   gilded_mite:
-    name: "§bGilded Mite"
+    name: §bGilded Mite
     rarity: RARE
     models:
-      - cubee-enderman
+    - cubee-enderman
     max-level: 90
     xp-per-level: 140
     owned-stats:
       wil: 4
       tec: 2
     effects:
-      - type: COIN_DAMAGE
-        base: 1.0
-        per-level: 0.01
+    - type: COIN_DAMAGE
+      base: 1.0
+      per-level: 0.01
   stormwing:
-    name: "§dStormwing"
+    name: §dStormwing
     rarity: EPIC
     models:
-      - cubee-ender_dragon
+    - cubee-ender_dragon
     max-level: 120
     xp-per-level: 180
     owned-stats:
       agi: 5
       dex: 3
     effects:
-      - type: CRIT_CHANCE
-        base: 0.05
-        per-level: 0.001
-      - type: DAMAGE_BOOST
-        base: 0.04
-        per-level: 0.001
+    - type: CRIT_CHANCE
+      base: 0.06
+      per-level: 0.0012
   dusk_reaper:
-    name: "§dDusk Reaper"
+    name: §dDusk Reaper
     rarity: EPIC
     models:
-      - cubee-wither
+    - cubee-wither
     max-level: 120
     xp-per-level: 180
     owned-stats:
       str: 5
       tec: 3
     effects:
-      - type: EXECUTE_NON_BOSS
-        base: 0.05
-        per-level: 0.002
+    - type: EXECUTE_NON_BOSS
+      base: 0.06
+      per-level: 0.002
   warped_fungus_sprite:
-    name: "§aWarped Fungus Sprite"
+    name: §aWarped Fungus Sprite
     rarity: UNCOMMON
     models:
-      - cubee-warped_fungus
+    - cubee-warped_fungus
     max-level: 90
     xp-per-level: 110
     owned-stats:
       wil: 2
       int: 2
     effects:
-      - type: MOVEMENT_MANA_REDUCTION
-        base: 0.04
-        per-level: 0.0008
+    - type: GATHERING_XP_BOOST
+      base: 0.04
+      per-level: 0.0008
   soul_valley_shade:
-    name: "§aSoul Valley Shade"
+    name: §aSoul Valley Shade
     rarity: UNCOMMON
     models:
-      - cubee-soul_valley
+    - cubee-soul_valley
     max-level: 90
     xp-per-level: 110
     owned-stats:
       vit: 2
       wil: 2
     effects:
-      - type: STATIONARY_REGEN
-        base: 0.003
-        per-level: 0.00008
+    - type: LIFE_STEAL
+      base: 0.02
+      per-level: 0.0004
   nether_waste_raider:
-    name: "§cNether Waste Raider"
+    name: §cNether Waste Raider
     rarity: RARE
     models:
-      - cubee-nether_waste
+    - cubee-nether_waste
     max-level: 100
     xp-per-level: 150
     owned-stats:
       str: 3
       tec: 2
     effects:
-      - type: DAMAGE_BOOST
-        base: 0.025
-        per-level: 0.0007
+    - type: CUSTOM_MOB_DAMAGE
+      base: 0.03
+      per-level: 0.0008
   portal_tunneler:
-    name: "§cPortal Tunneler"
+    name: §cPortal Tunneler
     rarity: RARE
     models:
-      - cubee-nether_portal
+    - cubee-nether_portal
     max-level: 100
     xp-per-level: 150
     owned-stats:
       int: 3
       agi: 2
     effects:
-      - type: GACHA_GEM_COST_REDUCTION
-        base: 0.07
-        per-level: 0.001
+    - type: GACHA_GEM_COST_REDUCTION
+      base: 0.07
+      per-level: 0.001
   magma_hopper:
-    name: "§cMagma Hopper"
+    name: §cMagma Hopper
     rarity: RARE
     models:
-      - cubee-magma
+    - cubee-magma
     max-level: 100
     xp-per-level: 150
     owned-stats:
       str: 3
       vit: 2
     effects:
-      - type: LOW_HEALTH_DAMAGE
-        base: 0.05
-        per-level: 0.001
+    - type: LOW_HEALTH_DAMAGE
+      base: 0.05
+      per-level: 0.001
   crimson_bloom:
-    name: "§cCrimson Bloom"
+    name: §cCrimson Bloom
     rarity: RARE
     models:
-      - cubee-crimson_fungus
+    - cubee-crimson_fungus
     max-level: 100
     xp-per-level: 150
     owned-stats:
       dex: 3
       tec: 2
     effects:
-      - type: FIRST_STRIKE
-        base: 0.05
-        per-level: 0.001
+    - type: WOUNDED_PREY_DAMAGE
+      base: 0.05
+      per-level: 0.001
   blackstone_sentinel:
-    name: "§dBlackstone Sentinel"
+    name: §dBlackstone Sentinel
     rarity: EPIC
     models:
-      - cubee-blackstone
+    - cubee-blackstone
     max-level: 120
     xp-per-level: 180
     owned-stats:
       vit: 5
       wil: 2
     effects:
-      - type: FULL_HEALTH_GUARD
-        base: 0.06
-        per-level: 0.001
+    - type: FULL_HEALTH_GUARD
+      base: 0.06
+      per-level: 0.001
   basalt_vanguard:
-    name: "§dBasalt Vanguard"
+    name: §dBasalt Vanguard
     rarity: EPIC
     models:
-      - cubee-basalt_delta
+    - cubee-basalt_delta
     max-level: 120
     xp-per-level: 180
     owned-stats:
       vit: 4
       str: 2
     effects:
-      - type: DAMAGE_REDUCTION
-        base: 0.04
-        per-level: 0.001
-
+    - type: DAMAGE_REDUCTION
+      base: 0.04
+      per-level: 0.001
   shulker_marshal:
-    name: "§aShulker Marshal"
+    name: §aShulker Marshal
     rarity: UNCOMMON
     models:
-      - cubee-shulker
+    - cubee-shulker
     max-level: 90
     xp-per-level: 110
     owned-stats:
       tec: 2
       dex: 2
     effects:
-      - type: MERGE_SUCCESS_BONUS
-        base: 0.025
-        per-level: 0.0006
+    - type: MERGE_SUCCESS_BONUS
+      base: 0.025
+      per-level: 0.0006
   ender_pearl_runner:
-    name: "§aEnder Pearl Runner"
+    name: §aEnder Pearl Runner
     rarity: UNCOMMON
     models:
-      - cubee-ender_pearl
+    - cubee-ender_pearl
     max-level: 90
     xp-per-level: 110
     owned-stats:
       agi: 3
       int: 1
     effects:
-      - type: MOVEMENT_MANA_REDUCTION
-        base: 0.05
-        per-level: 0.0008
+    - type: HIGH_HEALTH_DAMAGE
+      base: 0.035
+      per-level: 0.0007
   ender_flame_orb:
-    name: "§cEnder Flame Orb"
+    name: §cEnder Flame Orb
     rarity: RARE
     models:
-      - cubee-ender_flame
+    - cubee-ender_flame
     max-level: 105
     xp-per-level: 155
     owned-stats:
       str: 3
       int: 2
     effects:
-      - type: HEALTHY_PREY_DAMAGE
-        base: 0.05
-        per-level: 0.0009
+    - type: HEALTHY_PREY_DAMAGE
+      base: 0.05
+      per-level: 0.0009
   ender_chest_keeper:
-    name: "§cEnder Chest Keeper"
+    name: §cEnder Chest Keeper
     rarity: RARE
     models:
-      - cubee-ender_chest
+    - cubee-ender_chest
     max-level: 105
     xp-per-level: 155
     owned-stats:
       tec: 4
       wil: 1
     effects:
-      - type: SALVAGE_COINS_BONUS
-        base: 0.05
-        per-level: 0.001
+    - type: SALVAGE_COINS_BONUS
+      base: 0.05
+      per-level: 0.001
   end_stone_ward:
-    name: "§cEnd Stone Ward"
+    name: §cEnd Stone Ward
     rarity: RARE
     models:
-      - cubee-end_stone
+    - cubee-end_stone
     max-level: 105
     xp-per-level: 155
     owned-stats:
       vit: 4
       wil: 1
     effects:
-      - type: FULL_HEALTH_GUARD
-        base: 0.05
-        per-level: 0.0009
+    - type: CUSTOM_MOB_GUARD
+      base: 0.045
+      per-level: 0.0009
   end_portal_weaver:
-    name: "§dEnd Portal Weaver"
+    name: §dEnd Portal Weaver
     rarity: EPIC
     models:
-      - cubee-end_portal
+    - cubee-end_portal
     max-level: 120
     xp-per-level: 180
     owned-stats:
       int: 4
       tec: 3
     effects:
-      - type: GACHA_PITY_REDUCTION
-        base: 1
-        per-level: 0
+    - type: GACHA_PITY_REDUCTION
+      base: 1
+      per-level: 0
   end_crystal_harrier:
-    name: "§dEnd Crystal Harrier"
+    name: §dEnd Crystal Harrier
     rarity: EPIC
     models:
-      - cubee-end_crystal
+    - cubee-end_crystal
     max-level: 120
     xp-per-level: 180
     owned-stats:
       str: 4
       dex: 3
     effects:
-      - type: HUNT_MARK
-        base: 0.009
-        per-level: 0.0002
-      - type: MARK_RUPTURE
-        base: 0.02
-        per-level: 0.0004
+    - type: HUNT_MARK
+      base: 0.01
+      per-level: 0.0002
   chorus_binder:
-    name: "§dChorus Binder"
+    name: §dChorus Binder
     rarity: EPIC
     models:
-      - cubee-chorus_plant
+    - cubee-chorus_plant
     max-level: 120
     xp-per-level: 180
     owned-stats:
       int: 4
       agi: 3
     effects:
-      - type: GACHA_GEM_COST_REDUCTION
-        base: 0.10
-        per-level: 0.0012
-
+    - type: QUEST_GEMS_BONUS
+      base: 0.08
+      per-level: 0.0012
   nature_dragon:
-    name: "§6Nature Dragon"
+    name: §6Nature Dragon
     rarity: LEGENDARY
     models:
-      - cubee-nature_dragon
+    - cubee-nature_dragon
     max-level: 140
     xp-per-level: 210
     owned-stats:
       vit: 5
       wil: 5
     effects:
-      - type: STATIONARY_REGEN
-        base: 0.006
-        per-level: 0.00012
-      - type: DAMAGE_REDUCTION
-        base: 0.04
-        per-level: 0.0009
+    - type: XP_BOOST
+      base: 0.1
+      per-level: 0.0014
   light_dragon:
-    name: "§6Light Dragon"
+    name: §6Light Dragon
     rarity: LEGENDARY
     models:
-      - cubee-light_dragon
+    - cubee-light_dragon
     max-level: 140
     xp-per-level: 210
     owned-stats:
       int: 6
       dex: 3
     effects:
-      - type: HEALTHY_PREY_DAMAGE
-        base: 0.07
-        per-level: 0.001
-      - type: FIRST_STRIKE
-        base: 0.06
-        per-level: 0.001
+    - type: QUEST_COINS_BONUS
+      base: 0.12
+      per-level: 0.0016
   ice_dragon:
-    name: "§6Ice Dragon"
+    name: §6Ice Dragon
     rarity: LEGENDARY
     models:
-      - cubee-ice_dragon
+    - cubee-ice_dragon
     max-level: 140
     xp-per-level: 210
     owned-stats:
       vit: 6
       tec: 3
     effects:
-      - type: FULL_HEALTH_GUARD
-        base: 0.08
-        per-level: 0.001
-      - type: BOSS_DAMAGE
-        base: 0.05
-        per-level: 0.001
+    - type: BOSS_GUARD
+      base: 0.08
+      per-level: 0.001
   galaxy_dragon:
-    name: "§4Galaxy Dragon"
+    name: §4Galaxy Dragon
     rarity: MYTHIC
     models:
-      - cubee-galaxy_dragon
+    - cubee-galaxy_dragon
     max-level: 160
     xp-per-level: 240
     owned-stats:
       int: 8
       tec: 5
     effects:
-      - type: GACHA_GEM_COST_REDUCTION
-        base: 0.16
-        per-level: 0.0018
-      - type: GACHA_PITY_REDUCTION
-        base: 2
-        per-level: 0
+    - type: SALVAGE_GEMS_BONUS
+      base: 0.16
+      per-level: 0.0018
   fire_dragon:
-    name: "§6Fire Dragon"
+    name: §6Fire Dragon
     rarity: LEGENDARY
     models:
-      - cubee-fire_dragon
+    - cubee-fire_dragon
     max-level: 140
     xp-per-level: 210
     owned-stats:
       str: 6
       dex: 3
     effects:
-      - type: LOW_HEALTH_DAMAGE
-        base: 0.09
-        per-level: 0.0012
-      - type: DAMAGE_BOOST
-        base: 0.04
-        per-level: 0.0009
+    - type: EXECUTE
+      base: 0.16
+      per-level: 0.0018
   earth_dragon:
-    name: "§6Earth Dragon"
+    name: §6Earth Dragon
     rarity: LEGENDARY
     models:
-      - cubee-earth_dragon
+    - cubee-earth_dragon
     max-level: 140
     xp-per-level: 210
     owned-stats:
       vit: 7
       str: 2
     effects:
-      - type: DAMAGE_REDUCTION
-        base: 0.06
-        per-level: 0.001
-      - type: CUSTOM_MOB_DAMAGE
-        base: 0.05
-        per-level: 0.0008
+    - type: BOSS_DAMAGE
+      base: 0.08
+      per-level: 0.0012
   darkness_dragon:
-    name: "§4Darkness Dragon"
+    name: §4Darkness Dragon
     rarity: MYTHIC
     models:
-      - cubee-darkness_dragon
+    - cubee-darkness_dragon
     max-level: 160
     xp-per-level: 240
     owned-stats:
       str: 8
       dex: 4
     effects:
-      - type: HUNT_MARK
-        base: 0.013
-        per-level: 0.0003
-      - type: MARK_RUPTURE
-        base: 0.05
-        per-level: 0.0008
+    - type: MARK_RUPTURE
+      base: 0.05
+      per-level: 0.0008
   air_dragon:
-    name: "§6Air Dragon"
+    name: §6Air Dragon
     rarity: LEGENDARY
     models:
-      - cubee-air_dragon
+    - cubee-air_dragon
     max-level: 140
     xp-per-level: 210
     owned-stats:
       agi: 6
       int: 3
     effects:
-      - type: MOVEMENT_MANA_REDUCTION
-        base: 0.10
-        per-level: 0.0012
-      - type: CRIT_CHANCE
-        base: 0.04
-        per-level: 0.0008
+    - type: LAST_STAND
+      base: 1
+      per-level: 0

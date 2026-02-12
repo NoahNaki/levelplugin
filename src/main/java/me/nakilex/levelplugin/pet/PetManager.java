@@ -1382,6 +1382,19 @@ public class PetManager {
             damage *= (1.0 + healthyPreyDamage);
         }
 
+        double woundedPreyDamage = getActiveEffectValue(attackerId, PetEffectType.WOUNDED_PREY_DAMAGE);
+        if (woundedPreyDamage > 0.0 && targetMaxHealth > 0.0
+                && target.getHealth() / targetMaxHealth <= 0.40) {
+            damage *= (1.0 + woundedPreyDamage);
+        }
+
+        double highHealthDamage = getActiveEffectValue(attackerId, PetEffectType.HIGH_HEALTH_DAMAGE);
+        double attackerMax = attacker.getMaxHealth();
+        if (highHealthDamage > 0.0 && attackerMax > 0.0
+                && attacker.getHealth() / attackerMax >= 0.80) {
+            damage *= (1.0 + highHealthDamage);
+        }
+
         return applyHuntMarkComboDamage(attacker, target, damage);
     }
 
@@ -1403,7 +1416,45 @@ public class PetManager {
                 && attacked.getHealth() / maxHealth >= 0.90) {
             incoming *= Math.max(0.0, 1.0 - fullHealthGuard);
         }
+
+        double customMobGuard = getActiveEffectValue(playerId, PetEffectType.CUSTOM_MOB_GUARD);
+        if (customMobGuard > 0.0 && lastAttackerIsCustomMob(attacked)) {
+            incoming *= Math.max(0.0, 1.0 - customMobGuard);
+        }
+
+        double bossGuard = getActiveEffectValue(playerId, PetEffectType.BOSS_GUARD);
+        if (bossGuard > 0.0 && lastAttackerIsBossLike(attacked)) {
+            incoming *= Math.max(0.0, 1.0 - bossGuard);
+        }
         return incoming;
+    }
+
+    private boolean lastAttackerIsCustomMob(Player attacked) {
+        if (attacked == null || attacked.getLastDamageCause() == null) {
+            return false;
+        }
+        var damageCause = attacked.getLastDamageCause();
+        if (!(damageCause instanceof org.bukkit.event.entity.EntityDamageByEntityEvent byEntity)) {
+            return false;
+        }
+        if (!(byEntity.getDamager() instanceof org.bukkit.entity.LivingEntity livingDamager)) {
+            return false;
+        }
+        return me.nakilex.levelplugin.utils.MobUtil.isCustomMob(livingDamager);
+    }
+
+    private boolean lastAttackerIsBossLike(Player attacked) {
+        if (attacked == null || attacked.getLastDamageCause() == null) {
+            return false;
+        }
+        var damageCause = attacked.getLastDamageCause();
+        if (!(damageCause instanceof org.bukkit.event.entity.EntityDamageByEntityEvent byEntity)) {
+            return false;
+        }
+        if (!(byEntity.getDamager() instanceof org.bukkit.entity.LivingEntity livingDamager)) {
+            return false;
+        }
+        return me.nakilex.levelplugin.utils.MobUtil.isBossLike(livingDamager);
     }
 
     public PetProfile getProfile(UUID uuid) {

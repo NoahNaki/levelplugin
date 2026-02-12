@@ -88,9 +88,21 @@ public enum PetEffectType {
     HEALTHY_PREY_DAMAGE("healthy_prey_damage", "Opportunist",
             value -> "Deal " + ChatColor.GREEN + "+" + formatPercent(value)
                     + ChatColor.GRAY + " vs targets above " + ChatColor.YELLOW + "70% HP"),
+    WOUNDED_PREY_DAMAGE("wounded_prey_damage", "Bloodtrail",
+            value -> "Deal " + ChatColor.GREEN + "+" + formatPercent(value)
+                    + ChatColor.GRAY + " vs targets below " + ChatColor.RED + "40% HP"),
+    HIGH_HEALTH_DAMAGE("high_health_damage", "Peak Form",
+            value -> "Deal " + ChatColor.GREEN + "+" + formatPercent(value)
+                    + ChatColor.GRAY + " while above " + ChatColor.YELLOW + "80% HP"),
     FULL_HEALTH_GUARD("full_health_guard", "Aegis Opening",
             value -> "Take " + ChatColor.RED + "-" + formatPercent(value)
                     + ChatColor.GRAY + " damage while above " + ChatColor.YELLOW + "90% HP"),
+    CUSTOM_MOB_GUARD("custom_mob_guard", "Monster Shell",
+            value -> "Take " + ChatColor.RED + "-" + formatPercent(value)
+                    + ChatColor.GRAY + " damage from custom mobs"),
+    BOSS_GUARD("boss_guard", "Boss Ward",
+            value -> "Take " + ChatColor.RED + "-" + formatPercent(value)
+                    + ChatColor.GRAY + " damage from bosses"),
     LAST_STAND("last_stand", "Last Stand",
             value -> "On lethal hit: " + ChatColor.RED + "Immune 5s"
                     + ChatColor.GRAY + ", " + ChatColor.GREEN + "+150% dmg"

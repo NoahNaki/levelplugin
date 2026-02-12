@@ -177,8 +177,7 @@ public class PetGUI implements Listener {
     }
 
     private ItemStack createSettingsItem() {
-        List<String> lore = TooltipUtil.clickInstructions("to open settings", null);
-        return GuiUtil.createGuiItem(Material.COMPARATOR, "§bPet Settings", lore);
+        return GuiUtil.getNexoItem("settings", "§bPet Settings", TooltipUtil.clickInstructions("to open settings", null));
     }
 
 
@@ -201,7 +200,7 @@ public class PetGUI implements Listener {
         }
         lore.add(" ");
         lore.addAll(TooltipUtil.clickInstructions("to cycle forward", "to cycle backward"));
-        return GuiUtil.getNexoItem("server_icon", "§bSort", lore);
+        return GuiUtil.createGuiItem(Material.COMPARATOR, "§bSort", lore);
     }
 
     private ItemStack filterButton(Player player) {
@@ -214,7 +213,7 @@ public class PetGUI implements Listener {
         }
         lore.add(" ");
         lore.addAll(TooltipUtil.clickInstructions("to cycle forward", "to cycle backward"));
-        return GuiUtil.getNexoItem("filter", "§bFilter Rarity", lore);
+        return GuiUtil.createGuiItem(Material.HOPPER, "§bFilter Rarity", lore);
     }
 
     private ItemRarity nextFilter(ItemRarity current, boolean forward) {
