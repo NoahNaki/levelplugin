@@ -6,7 +6,6 @@ import me.nakilex.levelplugin.pet.PetEffectDefinition;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.GuiUtil;
-import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.List;
@@ -29,7 +28,14 @@ public final class PetGuiUtil {
         lore.add(TooltipUtil.selectionLine(equipped, equipped ? "Equipped" : "Select to equip"));
         lore.addAll(TooltipUtil.clickInstructions(equipped ? "to unequip" : "to equip", "to invest tier"));
         String name = PetDisplayUtil.formatDisplayName(definition);
-        ItemStack item = GuiUtil.createGuiItem(Material.ARMOR_STAND, name, lore);
+        ItemStack item = GuiUtil.getRarityPetIconItem(definition.rarity(), name, lore);
+        ItemUtil.applyRarityTooltipStyle(item, definition.rarity());
+        TooltipUtil.centerItemName(item);
+        return item;
+    }
+
+    public static ItemStack createRarityPetIcon(PetDefinition definition, String name, List<String> lore) {
+        ItemStack item = GuiUtil.getRarityPetIconItem(definition.rarity(), name, lore);
         ItemUtil.applyRarityTooltipStyle(item, definition.rarity());
         TooltipUtil.centerItemName(item);
         return item;

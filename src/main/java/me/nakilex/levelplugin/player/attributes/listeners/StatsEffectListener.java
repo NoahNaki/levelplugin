@@ -9,6 +9,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.pet.PetEffectType;
 import me.nakilex.levelplugin.pet.PetManager;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
+import me.nakilex.levelplugin.utils.MobUtil;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.LivingEntity;
@@ -142,13 +143,16 @@ public class StatsEffectListener implements Listener {
                 }
                 double executeThreshold = petManager.getActiveEffectValue(player.getUniqueId(), PetEffectType.EXECUTE_NON_BOSS);
                 if (executeThreshold > 0.0 && target instanceof LivingEntity livingTarget) {
-                    if (!isBossEntity(livingTarget)) {
+                    if (!MobUtil.isBossLike(livingTarget)) {
                         double maxHealth = livingTarget.getMaxHealth();
                         double threshold = Math.min(0.25, executeThreshold);
                         if (maxHealth > 0.0 && livingTarget.getHealth() / maxHealth <= threshold) {
                             finalDamage = Math.max(finalDamage, livingTarget.getHealth());
                         }
                     }
+                }
+                if (target instanceof LivingEntity livingTarget) {
+                    finalDamage = petManager.applyOutgoingCombatPetBonuses(player, livingTarget, finalDamage);
                 }
                 double lastStandBoost = petManager.getLastStandDamageBoost(player.getUniqueId());
                 if (lastStandBoost > 0.0) {
@@ -203,10 +207,7 @@ public class StatsEffectListener implements Listener {
 
             PetManager petManager = Main.getInstance().getPetManager();
             if (petManager != null) {
-                double petReduction = petManager.getActiveEffectValue(attacked.getUniqueId(), PetEffectType.DAMAGE_REDUCTION);
-                if (petReduction > 0.0) {
-                    incoming *= Math.max(0.0, 1.0 - petReduction);
-                }
+                incoming = petManager.applyIncomingCombatPetReductions(attacked, incoming);
             }
 
             event.setDamage(incoming);
@@ -234,16 +235,6 @@ public class StatsEffectListener implements Listener {
             return shooter;
         }
         return null;
-    }
-
-    private boolean isBossEntity(LivingEntity entity) {
-        if (entity instanceof org.bukkit.entity.Boss) {
-            return true;
-        }
-        if (entity.getScoreboardTags().contains("field_boss")) {
-            return true;
-        }
-        return entity.getScoreboardTags().contains("dungeon_boss");
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)

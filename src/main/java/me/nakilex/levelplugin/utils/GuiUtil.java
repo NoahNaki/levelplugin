@@ -90,19 +90,33 @@ public final class GuiUtil {
         return getNexoItem(getRarityArrowId(rarity), name);
     }
 
+    /** Build a rarity-themed pet icon item using pet paw glyph models. */
+    public static ItemStack getRarityPetIconItem(ItemRarity rarity, String name, List<String> lore) {
+        return getNexoItem(getRarityPetIconId(rarity), name, lore);
+    }
+
+    /** Map an item rarity to a Nexo pet icon id. */
+    public static String getRarityPetIconId(ItemRarity rarity) {
+        return "pet_icon_" + normalizeRarityToken(rarity);
+    }
+
     /**
      * Map an item rarity to a Nexo arrow icon id.
      */
     public static String getRarityArrowId(ItemRarity rarity) {
+        return "arrow_" + normalizeRarityToken(rarity);
+    }
+
+    private static String normalizeRarityToken(ItemRarity rarity) {
         if (rarity == null) {
-            return "arrow_common";
+            return "common";
         }
         return switch (rarity) {
-            case COMMON -> "arrow_common";
-            case UNCOMMON -> "arrow_uncommon";
-            case RARE -> "arrow_rare";
-            case EPIC -> "arrow_epic";
-            case LEGENDARY, MYTHIC, FABLED -> "arrow_legendary";
+            case COMMON -> "common";
+            case UNCOMMON -> "uncommon";
+            case RARE -> "rare";
+            case EPIC -> "epic";
+            case LEGENDARY, MYTHIC, FABLED -> "legendary";
         };
     }
 

@@ -1,5 +1,6 @@
 package me.nakilex.levelplugin.pet.gui;
 
+import me.nakilex.levelplugin.items.data.ItemRarity;
 import me.nakilex.levelplugin.pet.PetDefinition;
 import me.nakilex.levelplugin.pet.PetEffectDefinition;
 import me.nakilex.levelplugin.pet.PetManager;
@@ -173,7 +174,7 @@ public class PetGUI implements Listener {
         lore.addAll(TooltipUtil.bulletList("Merge up to 5 pets into one", "Success chance scales with selected amount"));
         lore.add(" ");
         lore.addAll(TooltipUtil.clickInstructions("to open merge menu", null));
-        return GuiUtil.getNexoItem("plus", "§dPet Merge", lore);
+        return GuiUtil.getRarityPetIconItem(ItemRarity.EPIC, "§dPet Merge", lore);
     }
 
     private ItemStack createOwnershipSummaryItem(Player player) {

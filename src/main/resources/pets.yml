@@ -178,3 +178,692 @@ pets:
       - type: COIN_DAMAGE
         base: 2.0
         per-level: 0.02
+  lorekeeper_owl:
+    name: "§aLorekeeper Owl"
+    rarity: UNCOMMON
+    models:
+      - cubee-witch
+    max-level: 80
+    xp-per-level: 110
+    owned-stats:
+      int: 3
+      wil: 2
+    effects:
+      - type: XP_BOOST
+        base: 0.05
+        per-level: 0.001
+  quarry_crab:
+    name: "§cQuarry Crab"
+    rarity: RARE
+    models:
+      - cubee-zombie
+    max-level: 90
+    xp-per-level: 140
+    owned-stats:
+      tec: 4
+      vit: 2
+    effects:
+      - type: GATHERING_XP_BOOST
+        base: 0.08
+        per-level: 0.001
+  tidecaller_koi:
+    name: "§dTidecaller Koi"
+    rarity: EPIC
+    models:
+      - cubee-enderman
+    max-level: 120
+    xp-per-level: 180
+    owned-stats:
+      int: 4
+      agi: 4
+    effects:
+      - type: GATHERING_XP_BOOST
+        base: 0.10
+        per-level: 0.0015
+      - type: MOVEMENT_MANA_REDUCTION
+        base: 0.08
+        per-level: 0.001
+  master_chronowl:
+    name: "§6Master Chronowl"
+    rarity: LEGENDARY
+    models:
+      - cubee-witch
+    max-level: 140
+    xp-per-level: 210
+    owned-stats:
+      int: 6
+      wil: 6
+    effects:
+      - type: XP_BOOST
+        base: 0.12
+        per-level: 0.0015
+      - type: GATHERING_XP_BOOST
+        base: 0.12
+        per-level: 0.0015
+  salvage_ferret:
+    name: "§cSalvage Ferret"
+    rarity: RARE
+    models:
+      - cubee-enderman
+    max-level: 100
+    xp-per-level: 150
+    owned-stats:
+      tec: 4
+      wil: 2
+    effects:
+      - type: SALVAGE_COINS_BONUS
+        base: 0.10
+        per-level: 0.0012
+  crystal_mantis:
+    name: "§aCrystal Mantis"
+    rarity: UNCOMMON
+    models:
+      - cubee-creaking
+    max-level: 90
+    xp-per-level: 110
+    owned-stats:
+      dex: 3
+      tec: 2
+    effects:
+      - type: SALVAGE_GEMS_BONUS
+        base: 0.08
+        per-level: 0.001
+  contract_rook:
+    name: "§dContract Rook"
+    rarity: EPIC
+    models:
+      - cubee-witch
+    max-level: 120
+    xp-per-level: 180
+    owned-stats:
+      int: 4
+      wil: 4
+    effects:
+      - type: QUEST_COINS_BONUS
+        base: 0.12
+        per-level: 0.0015
+  reliquary_newt:
+    name: "§6Reliquary Newt"
+    rarity: LEGENDARY
+    models:
+      - cubee-wither
+    max-level: 140
+    xp-per-level: 210
+    owned-stats:
+      int: 6
+      tec: 4
+    effects:
+      - type: QUEST_GEMS_BONUS
+        base: 0.15
+        per-level: 0.0015
+      - type: QUEST_COINS_BONUS
+        base: 0.08
+        per-level: 0.001
+  fusion_gecko:
+    name: "§aFusion Gecko"
+    rarity: UNCOMMON
+    models:
+      - cubee-creaking
+    max-level: 90
+    xp-per-level: 110
+    owned-stats:
+      tec: 3
+      agi: 2
+    effects:
+      - type: MERGE_SUCCESS_BONUS
+        base: 0.05
+        per-level: 0.001
+  anvil_otter:
+    name: "§cAnvil Otter"
+    rarity: RARE
+    models:
+      - cubee-zombie
+    max-level: 100
+    xp-per-level: 150
+    owned-stats:
+      tec: 4
+      dex: 2
+    effects:
+      - type: MERGE_SUCCESS_BONUS
+        base: 0.08
+        per-level: 0.0012
+      - type: SALVAGE_COINS_BONUS
+        base: 0.06
+        per-level: 0.0008
+  comet_lynx:
+    name: "§4Comet Lynx"
+    rarity: MYTHIC
+    models:
+      - cubee-witch
+    max-level: 120
+    xp-per-level: 180
+    owned-stats:
+      int: 4
+      agi: 4
+    effects:
+      - type: GACHA_PITY_REDUCTION
+        base: 1
+        per-level: 0
+  starforged_ibis:
+    name: "§4Starforged Ibis"
+    rarity: MYTHIC
+    models:
+      - cubee-ender_dragon
+    max-level: 140
+    xp-per-level: 210
+    owned-stats:
+      int: 6
+      wil: 4
+    effects:
+      - type: GACHA_PITY_REDUCTION
+        base: 2
+        per-level: 0
+      - type: MERGE_SUCCESS_BONUS
+        base: 0.10
+        per-level: 0.001
+  sapphire_imp:
+    name: "§aSapphire Imp"
+    rarity: UNCOMMON
+    models:
+      - cubee-creaking
+    max-level: 90
+    xp-per-level: 110
+    owned-stats:
+      int: 3
+      tec: 2
+    effects:
+      - type: GACHA_GEM_COST_REDUCTION
+        base: 0.06
+        per-level: 0.001
+  market_fox:
+    name: "§cMarket Fox"
+    rarity: RARE
+    models:
+      - cubee-enderman
+    max-level: 100
+    xp-per-level: 150
+    owned-stats:
+      agi: 3
+      tec: 3
+    effects:
+      - type: GACHA_GEM_COST_REDUCTION
+        base: 0.10
+        per-level: 0.0012
+      - type: QUEST_COINS_BONUS
+        base: 0.05
+        per-level: 0.0008
+  nebula_kirin:
+    name: "§dNebula Kirin"
+    rarity: EPIC
+    models:
+      - cubee-witch
+    max-level: 120
+    xp-per-level: 180
+    owned-stats:
+      int: 5
+      wil: 3
+    effects:
+      - type: GACHA_GEM_COST_REDUCTION
+        base: 0.14
+        per-level: 0.0015
+      - type: GACHA_PITY_REDUCTION
+        base: 1
+        per-level: 0
+  mythic_broker:
+    name: "§4Mythic Broker"
+    rarity: MYTHIC
+    models:
+      - cubee-ender_dragon
+    max-level: 160
+    xp-per-level: 240
+    owned-stats:
+      int: 8
+      tec: 5
+    effects:
+      - type: GACHA_GEM_COST_REDUCTION
+        base: 0.18
+        per-level: 0.002
+      - type: GACHA_PITY_REDUCTION
+        base: 2
+        per-level: 0
+  coupon_sprite:
+    name: "§aCoupon Sprite"
+    rarity: UNCOMMON
+    models:
+      - cubee-creaking
+    max-level: 80
+    xp-per-level: 105
+    owned-stats:
+      tec: 2
+      int: 2
+    effects:
+      - type: GACHA_GEM_COST_REDUCTION
+        base: 0.03
+        per-level: 0.0007
+  pity_wisp:
+    name: "§aPity Wisp"
+    rarity: UNCOMMON
+    models:
+      - cubee-witch
+    max-level: 80
+    xp-per-level: 105
+    owned-stats:
+      wil: 3
+      int: 1
+    effects:
+      - type: GACHA_PITY_REDUCTION
+        base: 0.5
+        per-level: 0.0
+  fuse_pixie:
+    name: "§cFuse Pixie"
+    rarity: RARE
+    models:
+      - cubee-enderman
+    max-level: 95
+    xp-per-level: 145
+    owned-stats:
+      tec: 4
+      agi: 1
+    effects:
+      - type: MERGE_SUCCESS_BONUS
+        base: 0.03
+        per-level: 0.0008
+  salvage_mole:
+    name: "§cSalvage Mole"
+    rarity: RARE
+    models:
+      - cubee-zombie
+    max-level: 95
+    xp-per-level: 145
+    owned-stats:
+      tec: 3
+      wil: 2
+    effects:
+      - type: SALVAGE_COINS_BONUS
+        base: 0.04
+        per-level: 0.0009
+  contract_owl:
+    name: "§dContract Owl"
+    rarity: EPIC
+    models:
+      - cubee-witch
+    max-level: 115
+    xp-per-level: 175
+    owned-stats:
+      int: 4
+      wil: 3
+    effects:
+      - type: QUEST_COINS_BONUS
+        base: 0.04
+        per-level: 0.0009
+      - type: QUEST_GEMS_BONUS
+        base: 0.03
+        per-level: 0.0008
+  recycler_drake:
+    name: "§dRecycler Drake"
+    rarity: EPIC
+    models:
+      - cubee-ender_dragon
+    max-level: 120
+    xp-per-level: 180
+    owned-stats:
+      tec: 4
+      int: 3
+    effects:
+      - type: SALVAGE_GEMS_BONUS
+        base: 0.05
+        per-level: 0.001
+      - type: SALVAGE_COINS_BONUS
+        base: 0.03
+        per-level: 0.0008
+  bloodthorn_imp:
+    name: "§aBloodthorn Imp"
+    rarity: UNCOMMON
+    models:
+      - cubee-creaking
+    max-level: 85
+    xp-per-level: 110
+    owned-stats:
+      str: 2
+      dex: 2
+    effects:
+      - type: FIRST_STRIKE
+        base: 0.05
+        per-level: 0.001
+      - type: CRIT_CHANCE
+        base: 0.015
+        per-level: 0.0003
+  duskfang_hound:
+    name: "§cDuskfang Hound"
+    rarity: RARE
+    models:
+      - cubee-zombie
+    max-level: 100
+    xp-per-level: 150
+    owned-stats:
+      str: 4
+      agi: 2
+    effects:
+      - type: EXECUTE
+        base: 0.06
+        per-level: 0.0012
+      - type: DAMAGE_BOOST
+        base: 0.03
+        per-level: 0.0008
+  mirror_mantis:
+    name: "§cMirror Mantis"
+    rarity: RARE
+    models:
+      - cubee-enderman
+    max-level: 100
+    xp-per-level: 150
+    owned-stats:
+      dex: 4
+      tec: 2
+    effects:
+      - type: CRIT_CHANCE
+        base: 0.03
+        per-level: 0.0008
+      - type: FIRST_STRIKE
+        base: 0.04
+        per-level: 0.0008
+  bulwark_ram:
+    name: "§dBulwark Ram"
+    rarity: EPIC
+    models:
+      - cubee-witch
+    max-level: 120
+    xp-per-level: 180
+    owned-stats:
+      vit: 6
+      wil: 2
+    effects:
+      - type: DAMAGE_REDUCTION
+        base: 0.05
+        per-level: 0.001
+      - type: STATIONARY_REGEN
+        base: 0.004
+        per-level: 0.0001
+  grave_courser:
+    name: "§dGrave Courser"
+    rarity: EPIC
+    models:
+      - cubee-wither
+    max-level: 120
+    xp-per-level: 180
+    owned-stats:
+      str: 4
+      tec: 4
+    effects:
+      - type: EXECUTE_NON_BOSS
+        base: 0.04
+        per-level: 0.0012
+      - type: DAMAGE_BOOST
+        base: 0.02
+        per-level: 0.0007
+  aether_valkyrie:
+    name: "§6Aether Valkyrie"
+    rarity: LEGENDARY
+    models:
+      - cubee-ender_dragon
+    max-level: 140
+    xp-per-level: 210
+    owned-stats:
+      str: 6
+      dex: 4
+    effects:
+      - type: CRIT_CHANCE
+        base: 0.05
+        per-level: 0.001
+      - type: EXECUTE
+        base: 0.08
+        per-level: 0.0015
+      - type: LIFE_STEAL
+        base: 0.02
+        per-level: 0.0004
+  tracker_beetle:
+    name: "§aTracker Beetle"
+    rarity: UNCOMMON
+    models:
+      - cubee-creaking
+    max-level: 85
+    xp-per-level: 110
+    owned-stats:
+      dex: 2
+      tec: 2
+    effects:
+      - type: CUSTOM_MOB_DAMAGE
+        base: 0.05
+        per-level: 0.001
+  siege_kobold:
+    name: "§cSiege Kobold"
+    rarity: RARE
+    models:
+      - cubee-zombie
+    max-level: 100
+    xp-per-level: 150
+    owned-stats:
+      str: 3
+      tec: 3
+    effects:
+      - type: BOSS_DAMAGE
+        base: 0.06
+        per-level: 0.0012
+  rift_stalker:
+    name: "§cRift Stalker"
+    rarity: RARE
+    models:
+      - cubee-enderman
+    max-level: 105
+    xp-per-level: 155
+    owned-stats:
+      dex: 4
+      agi: 1
+    effects:
+      - type: CUSTOM_MOB_DAMAGE
+        base: 0.06
+        per-level: 0.001
+      - type: CRIT_CHANCE
+        base: 0.02
+        per-level: 0.0005
+  war_drum_tortoise:
+    name: "§dWar Drum Tortoise"
+    rarity: EPIC
+    models:
+      - cubee-witch
+    max-level: 120
+    xp-per-level: 180
+    owned-stats:
+      vit: 5
+      wil: 3
+    effects:
+      - type: BOSS_DAMAGE
+        base: 0.08
+        per-level: 0.0012
+      - type: DAMAGE_REDUCTION
+        base: 0.03
+        per-level: 0.0008
+  abyss_harrier:
+    name: "§6Abyss Harrier"
+    rarity: LEGENDARY
+    models:
+      - cubee-wither
+    max-level: 140
+    xp-per-level: 210
+    owned-stats:
+      str: 6
+      tec: 4
+    effects:
+      - type: CUSTOM_MOB_DAMAGE
+        base: 0.10
+        per-level: 0.0015
+      - type: BOSS_DAMAGE
+        base: 0.10
+        per-level: 0.0015
+      - type: EXECUTE
+        base: 0.05
+        per-level: 0.001
+  brand_scout:
+    name: "§aBrand Scout"
+    rarity: UNCOMMON
+    models:
+      - cubee-creaking
+    max-level: 90
+    xp-per-level: 110
+    owned-stats:
+      dex: 3
+      tec: 1
+    effects:
+      - type: HUNT_MARK
+        base: 0.008
+        per-level: 0.0002
+  rupture_mite:
+    name: "§cRupture Mite"
+    rarity: RARE
+    models:
+      - cubee-enderman
+    max-level: 105
+    xp-per-level: 150
+    owned-stats:
+      str: 3
+      tec: 2
+    effects:
+      - type: MARK_RUPTURE
+        base: 0.03
+        per-level: 0.0005
+  warbrand_coyote:
+    name: "§dWarbrand Coyote"
+    rarity: EPIC
+    models:
+      - cubee-wither
+    max-level: 120
+    xp-per-level: 180
+    owned-stats:
+      str: 4
+      dex: 3
+    effects:
+      - type: HUNT_MARK
+        base: 0.010
+        per-level: 0.00025
+      - type: CUSTOM_MOB_DAMAGE
+        base: 0.05
+        per-level: 0.0008
+  citadel_hydra:
+    name: "§6Citadel Hydra"
+    rarity: LEGENDARY
+    models:
+      - cubee-ender_dragon
+    max-level: 140
+    xp-per-level: 210
+    owned-stats:
+      str: 6
+      tec: 4
+    effects:
+      - type: HUNT_MARK
+        base: 0.012
+        per-level: 0.0003
+      - type: MARK_RUPTURE
+        base: 0.04
+        per-level: 0.0007
+      - type: BOSS_DAMAGE
+        base: 0.06
+        per-level: 0.001
+  frenzy_shrew:
+    name: "§aFrenzy Shrew"
+    rarity: UNCOMMON
+    models:
+      - cubee-creaking
+    max-level: 90
+    xp-per-level: 110
+    owned-stats:
+      str: 2
+      agi: 2
+    effects:
+      - type: LOW_HEALTH_DAMAGE
+        base: 0.06
+        per-level: 0.001
+  vanguard_heron:
+    name: "§cVanguard Heron"
+    rarity: RARE
+    models:
+      - cubee-witch
+    max-level: 100
+    xp-per-level: 150
+    owned-stats:
+      vit: 3
+      wil: 2
+    effects:
+      - type: FULL_HEALTH_GUARD
+        base: 0.05
+        per-level: 0.001
+  ambush_lark:
+    name: "§cAmbush Lark"
+    rarity: RARE
+    models:
+      - cubee-enderman
+    max-level: 100
+    xp-per-level: 150
+    owned-stats:
+      dex: 3
+      tec: 2
+    effects:
+      - type: HEALTHY_PREY_DAMAGE
+        base: 0.05
+        per-level: 0.001
+      - type: FIRST_STRIKE
+        base: 0.04
+        per-level: 0.0008
+  bloodwake_boar:
+    name: "§dBloodwake Boar"
+    rarity: EPIC
+    models:
+      - cubee-zombie
+    max-level: 120
+    xp-per-level: 180
+    owned-stats:
+      str: 5
+      vit: 2
+    effects:
+      - type: LOW_HEALTH_DAMAGE
+        base: 0.08
+        per-level: 0.0012
+      - type: LIFE_STEAL
+        base: 0.015
+        per-level: 0.0004
+  sentinel_gryphon:
+    name: "§dSentinel Gryphon"
+    rarity: EPIC
+    models:
+      - cubee-ender_dragon
+    max-level: 120
+    xp-per-level: 180
+    owned-stats:
+      vit: 4
+      dex: 3
+    effects:
+      - type: FULL_HEALTH_GUARD
+        base: 0.07
+        per-level: 0.0012
+      - type: HEALTHY_PREY_DAMAGE
+        base: 0.04
+        per-level: 0.0009
+  duel_arbiter:
+    name: "§6Duel Arbiter"
+    rarity: LEGENDARY
+    models:
+      - cubee-wither
+    max-level: 140
+    xp-per-level: 210
+    owned-stats:
+      str: 6
+      dex: 4
+    effects:
+      - type: LOW_HEALTH_DAMAGE
+        base: 0.10
+        per-level: 0.0015
+      - type: HEALTHY_PREY_DAMAGE
+        base: 0.06
+        per-level: 0.001
+      - type: FULL_HEALTH_GUARD
+        base: 0.06
+        per-level: 0.001

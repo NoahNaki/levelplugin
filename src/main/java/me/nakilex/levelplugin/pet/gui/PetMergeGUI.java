@@ -6,6 +6,7 @@ import me.nakilex.levelplugin.pet.PetManager;
 import me.nakilex.levelplugin.pet.utils.PetChatUtil;
 import me.nakilex.levelplugin.pet.utils.PetFeedbackUtil;
 import me.nakilex.levelplugin.pet.utils.PetPullSummaryUtil;
+import me.nakilex.levelplugin.pet.utils.PetGuiUtil;
 import me.nakilex.levelplugin.utils.ChatUtil;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
@@ -82,7 +83,7 @@ public class PetMergeGUI implements Listener {
         widgets.add(new ActionWidget(48, ctx -> mergeAllButton(), (click, context) -> mergeAllDuplicates(context.player())));
         widgets.add(new ActionWidget(45, ctx -> GuiUtil.getNexoItem("arrow_left", "§eBack"),
                 (click, context) -> { if (petGUI != null) petGUI.open(context.player(), 0);}));
-        widgets.add(new ActionWidget(50, ctx -> GuiUtil.getNexoItem("plus", "§bSelect Pets", TooltipUtil.clickInstructions("to open selection", null)),
+        widgets.add(new ActionWidget(50, ctx -> GuiUtil.getRarityPetIconItem(ItemRarity.UNCOMMON, "§bSelect Pets", TooltipUtil.clickInstructions("to open selection", null)),
                 (click, context) -> openSelect(context.player(), 0)));
         return widgets;
     }
@@ -90,16 +91,16 @@ public class PetMergeGUI implements Listener {
     private ItemStack mergeSlotItem(Player player, int index) {
         List<String> ids = selectedPetIds(player);
         if (index >= ids.size()) {
-            return GuiUtil.getNexoItem("cross", "§7Empty Slot", TooltipUtil.clickInstructions("to select a pet", null));
+            return GuiUtil.getRarityPetIconItem(ItemRarity.COMMON, "§7Empty Slot", TooltipUtil.clickInstructions("to select a pet", null));
         }
         String petId = ids.get(index);
         PetDefinition def = petManager.getDefinition(petId).orElse(null);
-        if (def == null) return GuiUtil.getNexoItem("cross", "§7Empty Slot");
+        if (def == null) return GuiUtil.getRarityPetIconItem(ItemRarity.COMMON, "§7Empty Slot", null);
         List<String> lore = new ArrayList<>();
         lore.add(" ");
         lore.add("§7Selected: " + def.rarity().getColor() + def.displayName());
         lore.addAll(TooltipUtil.clickInstructions("to edit selection", null));
-        return GuiUtil.getNexoItem("check", "§aSelected", lore);
+        return PetGuiUtil.createRarityPetIcon(def, "§aSelected " + def.displayName(), lore);
     }
 
     private ItemStack mergeButton(Player player) {
@@ -110,7 +111,7 @@ public class PetMergeGUI implements Listener {
         if (ids.isEmpty()) {
             lore.addAll(TooltipUtil.bulletList("Select 2-5 pets to merge."));
         } else {
-            int chance = Math.min(100, ids.size() * 20);
+            int chance = petManager.getMergeSuccessChance(player.getUniqueId(), ids.size());
             ItemRarity baseRarity = petManager.getPetRarity(ids.get(0));
             ItemRarity upgradedRarity = nextRarity(baseRarity);
             ChatColor chanceColor = chanceColor(chance);
@@ -254,7 +255,6 @@ public class PetMergeGUI implements Listener {
         UUID id = player.getUniqueId();
         boolean selected = selectedEntryKeys.getOrDefault(id, new LinkedHashSet<>()).contains(entry.entryKey());
         boolean locked = petManager.isPetCopyLocked(id, entry.entryKey());
-        String icon = selected ? "check" : (locked ? "lock" : "plus");
         String name = (selected ? "§aSelected " : "§b") + entry.displayName();
         List<String> lore = new ArrayList<>();
         lore.add(" ");
@@ -264,7 +264,11 @@ public class PetMergeGUI implements Listener {
         lore.add(" ");
         lore.addAll(TooltipUtil.clickInstructions(selected ? "to unselect" : "to select", null));
         lore.addAll(TooltipUtil.sneakClickInstructions(null, locked ? "to unlock this pet" : "to lock this pet"));
-        return GuiUtil.getNexoItem(icon, name, lore);
+        PetDefinition definition = petManager.getDefinition(entry.petId()).orElse(null);
+        if (definition != null) {
+            return PetGuiUtil.createRarityPetIcon(definition, name, lore);
+        }
+        return GuiUtil.getRarityPetIconItem(entry.rarity(), name, lore);
     }
 
     private ItemStack navItem(boolean next) {
@@ -328,7 +332,7 @@ public class PetMergeGUI implements Listener {
         lore.add(" ");
         lore.addAll(TooltipUtil.bulletList(
                 "Selected pets: " + selected.size(),
-                "Success chance: " + Math.min(100, selected.size() * 20) + "%"));
+                "Success chance: " + petManager.getMergeSuccessChance(player.getUniqueId(), selected.size()) + "%"));
         lore.add(" ");
         lore.addAll(TooltipUtil.clickInstructions("to confirm merge", null));
 

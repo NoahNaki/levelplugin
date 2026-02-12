@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.booster.BoosterType;
 import me.nakilex.levelplugin.booster.GlobalBoosterManager;
+import me.nakilex.levelplugin.pet.PetEffectType;
 import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.Bukkit;
@@ -69,6 +70,9 @@ public class LevelManager {
         if (getLevel(uuid) >= MAX_LEVEL) return;
 
         int adjusted = applyCombatBoost(amount);
+        if (plugin.getPetManager() != null) {
+            adjusted = plugin.getPetManager().applyActiveEffectMultiplier(uuid, PetEffectType.XP_BOOST, adjusted);
+        }
         if (adjusted == 0) return;
 
         int newXP = getXP(uuid) + adjusted;

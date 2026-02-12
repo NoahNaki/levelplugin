@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.quests.managers;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.party.Party;
 import me.nakilex.levelplugin.party.PartyManager;
+import me.nakilex.levelplugin.pet.PetEffectType;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
@@ -1401,10 +1402,12 @@ public class QuestManager {
             levelManager.addXP(player, reward.getXp());
         }
         if (reward.getCoins() > 0) {
-            plugin.getEconomyManager().addCoins(player, reward.getCoins());
+            int coins = applyPetRewardMultiplier(player, reward.getCoins(), PetEffectType.QUEST_COINS_BONUS);
+            plugin.getEconomyManager().addCoins(player, coins);
         }
         if (reward.getGems() > 0) {
-            plugin.getGemsManager().addUnits(player, reward.getGems());
+            int gems = applyPetRewardMultiplier(player, reward.getGems(), PetEffectType.QUEST_GEMS_BONUS);
+            plugin.getGemsManager().addUnits(player, gems);
         }
         if (!reward.getItemIds().isEmpty()) {
             for (int id : reward.getItemIds()) {
@@ -1421,6 +1424,16 @@ public class QuestManager {
         for (me.nakilex.levelplugin.player.classes.data.PlayerClass pc : reward.getUnlockClasses()) {
             StatsManager.getInstance().unlockClass(player.getUniqueId(), pc);
         }
+    }
+
+    private int applyPetRewardMultiplier(Player player, int amount, PetEffectType type) {
+        if (player == null || amount <= 0 || type == null) {
+            return amount;
+        }
+        if (plugin.getPetManager() == null) {
+            return amount;
+        }
+        return plugin.getPetManager().applyActiveEffectMultiplier(player.getUniqueId(), type, amount);
     }
 
     /**

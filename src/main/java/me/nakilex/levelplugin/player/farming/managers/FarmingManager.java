@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.player.farming.managers;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.pet.PetEffectType;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.boss.BarColor;
@@ -61,7 +62,11 @@ public class FarmingManager {
             }
             return;
         }
-        int newXP = getXP(uuid) + amount;
+        int adjusted = amount;
+        if (plugin.getPetManager() != null) {
+            adjusted = plugin.getPetManager().applyActiveEffectMultiplier(uuid, PetEffectType.GATHERING_XP_BOOST, adjusted);
+        }
+        int newXP = getXP(uuid) + adjusted;
         farmingXp.put(uuid, newXP);
         checkLevelUp(uuid);
     }

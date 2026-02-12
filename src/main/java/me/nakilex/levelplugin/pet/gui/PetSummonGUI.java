@@ -68,12 +68,12 @@ public class PetSummonGUI implements Listener {
         widgets.add(new ActionWidget(SINGLE_SLOT, ctx -> createOptionItem(
                         player, Material.NETHER_STAR,
                         "§a1x Pet Pull",
-                        "Summon §e1§7 random pet", PetSummonManager.summonCostForAmount(1)),
+                        "Summon §e1§7 random pet", summonManager.getSummonCost(player.getUniqueId(), 1)),
                 (click, context) -> handleSummon(player, 1)));
         widgets.add(new ActionWidget(TEN_SLOT, ctx -> createOptionItem(
                         player, Material.BEACON,
                         "§b10x Pet Pull",
-                        "Summon §e10§7 random pets", PetSummonManager.summonCostForAmount(10)),
+                        "Summon §e10§7 random pets", summonManager.getSummonCost(player.getUniqueId(), 10)),
                 (click, context) -> handleSummon(player, 10)));
         widgets.add(new ActionWidget(INFO_SLOT, ctx -> createRatesInfoItem(player), (click, context) -> {}));
         return widgets;
@@ -93,10 +93,10 @@ public class PetSummonGUI implements Listener {
 
     private List<String> buildPityLore(Player player) {
         List<String> lore = new ArrayList<>();
-        int threshold = summonManager.getPityThreshold();
+        int threshold = summonManager.getPityThreshold(player.getUniqueId());
         int current = summonManager.getPityPullsSinceLegendary(player.getUniqueId());
         int clamped = Math.max(0, Math.min(current, threshold));
-        int remaining = Math.max(0, threshold - clamped);
+        int remaining = summonManager.getPullsUntilPityLegendary(player.getUniqueId());
         lore.add("§ePity Progress");
         String bar = TooltipUtil.expProgressBarByPixels(clamped, Math.max(1, threshold), 156);
         lore.add(bar + " " + org.bukkit.ChatColor.GRAY + clamped
@@ -121,7 +121,7 @@ public class PetSummonGUI implements Listener {
             lore.add("§7• " + rarity.getColor() + label + "§7: §f" + String.format("%.1f", rates.getOrDefault(rarity, 0.0)) + "%");
         }
         lore.add(" ");
-        lore.add("§7Pity: §f" + summonManager.getPityThreshold() + " pulls");
+        lore.add("§7Pity: §f" + summonManager.getPityThreshold(player.getUniqueId()) + " pulls");
         lore.add("§7Legendary+ resets pity counter.");
         lore.add(" ");
         lore.addAll(buildPityLore(player));
