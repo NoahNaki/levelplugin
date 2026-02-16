@@ -316,6 +316,9 @@ public class ItemManager {
                                                    StatRange wilRange,
                                                    StatRange tecRange) {
         boolean isArmor = ArmorType.fromMaterial(material) != null;
+        boolean isWeapon = me.nakilex.levelplugin.items.data.WeaponType
+                .matchType(new org.bukkit.inventory.ItemStack(material)) != null;
+        boolean isGear = isArmor || isWeapon;
         StatRange safeHpRange = isArmor ? hpRange : new StatRange(0, 0);
         int desired = me.nakilex.levelplugin.items.generator.ProceduralItemGenerator.getStatSlotsForRarity(rarity);
         List<StatSlot> missing = new ArrayList<>();
@@ -342,7 +345,7 @@ public class ItemManager {
             missing.remove(StatSlot.HP);
         }
 
-        if (count < desired && !missing.isEmpty()) {
+        if (isGear && count < desired && !missing.isEmpty()) {
             java.util.Collections.shuffle(missing, new Random());
             int toAdd = Math.min(desired - count, missing.size());
             for (int i = 0; i < toAdd; i++) {
@@ -361,6 +364,45 @@ public class ItemManager {
                     case WIL -> wilRange = generated;
                     case TEC -> tecRange = generated;
                 }
+            }
+        }
+
+        if (isGear && count > desired) {
+            int toTrim = count - desired;
+            List<StatSlot> removable = new ArrayList<>();
+            if (isRangeNonZero(tecRange)) {
+                removable.add(StatSlot.TEC);
+            }
+            if (isRangeNonZero(wilRange)) {
+                removable.add(StatSlot.WIL);
+            }
+            if (isRangeNonZero(dexRange)) {
+                removable.add(StatSlot.DEX);
+            }
+            if (isRangeNonZero(intelRange)) {
+                removable.add(StatSlot.INT);
+            }
+            if (isRangeNonZero(agiRange)) {
+                removable.add(StatSlot.AGI);
+            }
+            if (isRangeNonZero(strRange)) {
+                removable.add(StatSlot.STR);
+            }
+
+            for (StatSlot slot : removable) {
+                if (toTrim <= 0) {
+                    break;
+                }
+                switch (slot) {
+                    case STR -> strRange = new StatRange(0, 0);
+                    case AGI -> agiRange = new StatRange(0, 0);
+                    case INT -> intelRange = new StatRange(0, 0);
+                    case DEX -> dexRange = new StatRange(0, 0);
+                    case WIL -> wilRange = new StatRange(0, 0);
+                    case TEC -> tecRange = new StatRange(0, 0);
+                    case HP -> safeHpRange = new StatRange(0, 0);
+                }
+                toTrim--;
             }
         }
 

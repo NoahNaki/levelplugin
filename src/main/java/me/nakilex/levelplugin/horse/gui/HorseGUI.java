@@ -46,6 +46,8 @@ public class HorseGUI implements Listener {
     // Open or refresh the horse GUI
     public void openHorseMenu(Player player) {
         if (!StableKeeperQuest.hasUnlockedHorseMenu(player.getUniqueId())) {
+            send(player, MessageType.WARNING,
+                    "Complete 'Feathered Famine' with the Stable Keeper to unlock horse rerolls.");
             return;
         }
         UUID playerUUID = player.getUniqueId();
