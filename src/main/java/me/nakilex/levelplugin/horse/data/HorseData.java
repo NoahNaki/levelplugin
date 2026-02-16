@@ -12,14 +12,20 @@ public class HorseData {
     private int speed;
     private int jumpHeight;
     private UUID ownerUUID;
+    private String trailPreset;
 
     // Constructor
     public HorseData(String type, boolean isVariant, int speed, int jumpHeight, UUID ownerUUID) {
+        this(type, isVariant, speed, jumpHeight, ownerUUID, "OFF");
+    }
+
+    public HorseData(String type, boolean isVariant, int speed, int jumpHeight, UUID ownerUUID, String trailPreset) {
         this.type = type;
         this.isVariant = isVariant;
         this.speed = speed;
         this.jumpHeight = jumpHeight;
         this.ownerUUID = ownerUUID;
+        this.trailPreset = (trailPreset == null || trailPreset.isBlank()) ? "OFF" : trailPreset.toUpperCase();
     }
 
     // Getters
@@ -43,6 +49,14 @@ public class HorseData {
         return ownerUUID;
     }
 
+    public String getTrailPreset() {
+        return trailPreset;
+    }
+
+    public boolean hasTrailPreset() {
+        return trailPreset != null && !trailPreset.equalsIgnoreCase("OFF");
+    }
+
     // Setters
     public void setType(String type) {
         this.type = type;
@@ -62,6 +76,10 @@ public class HorseData {
 
     public void setOwnerUUID(UUID ownerUUID) {
         this.ownerUUID = ownerUUID;
+    }
+
+    public void setTrailPreset(String trailPreset) {
+        this.trailPreset = (trailPreset == null || trailPreset.isBlank()) ? "OFF" : trailPreset.toUpperCase();
     }
 
     /** Pick a value based on weighted probabilities. */
@@ -99,13 +117,14 @@ public class HorseData {
         int baseSpeed = pickWeighted(random, statWeights);
         int baseJump  = pickWeighted(random, statWeights);
 
-        return new HorseData(pickedType, isVariant, baseSpeed, baseJump, ownerUUID);
+        return new HorseData(pickedType, isVariant, baseSpeed, baseJump, ownerUUID, "OFF");
     }
 
 
     // Display horse stats as a string
     @Override
     public String toString() {
-        return "Type: " + type + ", Variant: " + isVariant + ", Speed: " + speed + ", Jump Height: " + jumpHeight;
+        return "Type: " + type + ", Variant: " + isVariant + ", Speed: " + speed + ", Jump Height: " + jumpHeight
+                + ", Trail: " + trailPreset;
     }
 }

@@ -128,7 +128,7 @@ public class BattlePassGUI implements Listener {
                 context -> createSeasonItem(view),
                 null));
         widgets.add(new ActionWidget(INFO_SLOT,
-                context -> createXpInfoItem(),
+                context -> createXpInfoItem(context.player().getUniqueId()),
                 null));
         return widgets;
     }
@@ -169,7 +169,7 @@ public class BattlePassGUI implements Listener {
         return icon;
     }
 
-    private ItemStack createXpInfoItem() {
+    private ItemStack createXpInfoItem(UUID playerId) {
         ItemStack icon = GuiUtil.getNexoItem("info", ChatColor.AQUA + "Earning Battle Pass XP");
         ItemMeta meta = icon.getItemMeta();
         if (meta != null) {
@@ -180,6 +180,14 @@ public class BattlePassGUI implements Listener {
                     ChatColor.YELLOW + "Open loot chests",
                     ChatColor.YELLOW + "Discover fast travel points"
             ));
+            lore.add(" ");
+            lore.add(ChatColor.GRAY + "Horse Challenges:");
+            java.util.List<String> challenges = provider.activeChallenges(playerId);
+            if (challenges.isEmpty()) {
+                lore.add(ChatColor.DARK_GRAY + "No active challenges.");
+            } else {
+                lore.addAll(challenges);
+            }
             lore.add(" ");
             lore.add(ChatColor.GRAY + "Level up to unlock additional rewards.");
             meta.setLore(lore);

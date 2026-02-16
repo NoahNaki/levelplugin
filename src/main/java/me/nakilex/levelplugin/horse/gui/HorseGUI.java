@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.horse.data.HorseData;
 import me.nakilex.levelplugin.horse.managers.HorseManager;
+import me.nakilex.levelplugin.particles.presets.ElementalPresets;
 import me.nakilex.levelplugin.quests.def.StableKeeperQuest;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
@@ -28,6 +29,7 @@ import java.util.UUID;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Locale;
 
 import static me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
 import static me.nakilex.levelplugin.utils.ChatMessageUtil.send;
@@ -83,6 +85,7 @@ public class HorseGUI implements Listener {
             lore.add("§7Type: §f" + formattedType);
             lore.add("§7Speed: §6" + speedStars);
             lore.add("§7Jump: §6" + jumpStars);
+            lore.add("§7Trail: §d" + formatTrailName(horseData.getTrailPreset()));
             return GuiUtil.createGuiItem(Material.BOOK, "§bYour Horse", lore);
         }
         // Fallback if no horse data is found
@@ -218,6 +221,77 @@ public class HorseGUI implements Listener {
         return StableKeeperQuest.shouldReceiveFreeReroll(playerUUID) ? 0 : REROLL_COST;
     }
 
+
+    private ItemStack createTrailButton(UUID playerUUID) {
+        HorseData horseData = horseManager.getHorse(playerUUID);
+        String current = horseData != null ? horseData.getTrailPreset() : "OFF";
+        String prettyCurrent = formatTrailName(current);
+        List<String> lore = new ArrayList<>();
+        lore.add(" ");
+        lore.add("§7Current Trail: §b" + prettyCurrent);
+        lore.add(" ");
+        lore.add("§7Available:");
+        lore.add(TooltipUtil.selectionLine("OFF".equalsIgnoreCase(current), "Off"));
+        for (String name : ElementalPresets.getPresetNames().stream().limit(4).toList()) {
+            lore.add(TooltipUtil.selectionLine(name.equalsIgnoreCase(current), formatTrailName(name)));
+        }
+        lore.add(" ");
+        lore.addAll(TooltipUtil.clickInstructions("to cycle trail", "to cycle backwards"));
+        return GuiUtil.createGuiItem(Material.BLAZE_POWDER, "§dHorse Trail", lore);
+    }
+
+    private String formatTrailName(String name) {
+        if (name == null || name.isBlank() || "OFF".equalsIgnoreCase(name)) {
+            return "Off";
+        }
+        String lower = name.toLowerCase(Locale.ROOT).replace('_', ' ');
+        String[] parts = lower.split(" ");
+        StringBuilder out = new StringBuilder();
+        for (String part : parts) {
+            if (part.isBlank()) {
+                continue;
+            }
+            if (!out.isEmpty()) {
+                out.append(' ');
+            }
+            out.append(Character.toUpperCase(part.charAt(0))).append(part.substring(1));
+        }
+        return out.toString();
+    }
+
+    private String cycleTrailPreset(String current, boolean backwards) {
+        List<String> options = new ArrayList<>();
+        options.add("OFF");
+        options.addAll(ElementalPresets.getPresetNames());
+
+        int index = 0;
+        for (int i = 0; i < options.size(); i++) {
+            if (options.get(i).equalsIgnoreCase(current)) {
+                index = i;
+                break;
+            }
+        }
+
+        index = backwards ? index - 1 : index + 1;
+        if (index < 0) {
+            index = options.size() - 1;
+        } else if (index >= options.size()) {
+            index = 0;
+        }
+        return options.get(index);
+    }
+
+    private void handleTrailCycle(Player player, boolean backwards, Inventory inventory) {
+        HorseData horseData = horseManager.getHorse(player.getUniqueId());
+        if (horseData == null) {
+            return;
+        }
+        String next = cycleTrailPreset(horseData.getTrailPreset(), backwards);
+        horseManager.setTrailPreset(player.getUniqueId(), next);
+        updateHorseInfo(inventory, player.getUniqueId());
+        send(player, MessageType.SUCCESS, "Horse trail set to §b" + formatTrailName(next) + "§a.");
+    }
+
     private List<GuiWidget> buildWidgets(Player player) {
         List<GuiWidget> widgets = new ArrayList<>();
         widgets.add(new ActionWidget(11,
@@ -228,6 +302,13 @@ public class HorseGUI implements Listener {
                 (click, context) -> {
                     if (click == org.bukkit.event.inventory.ClickType.LEFT) {
                         handleReroll(context.player(), context.inventory());
+                    }
+                }));
+        widgets.add(new ActionWidget(15,
+                context -> createTrailButton(context.player().getUniqueId()),
+                (click, context) -> {
+                    if (click == org.bukkit.event.inventory.ClickType.LEFT || click == org.bukkit.event.inventory.ClickType.RIGHT) {
+                        handleTrailCycle(context.player(), click == org.bukkit.event.inventory.ClickType.RIGHT, context.inventory());
                     }
                 }));
         return widgets;

@@ -33,6 +33,7 @@ public class HorseConfigManager {
         config.set(base + ".isVariant", horseData.isVariant());
         config.set(base + ".speed", horseData.getSpeed());
         config.set(base + ".jumpHeight", horseData.getJumpHeight());
+        config.set(base + ".trailPreset", horseData.getTrailPreset());
         try {
             config.save(file);
         } catch (IOException e) {
@@ -48,7 +49,8 @@ public class HorseConfigManager {
             boolean isVariant = config.getBoolean(base + ".isVariant");
             int speed = config.getInt(base + ".speed");
             int jumpHeight = config.getInt(base + ".jumpHeight");
-            return new HorseData(type, isVariant, speed, jumpHeight, uuid);
+            String trailPreset = config.getString(base + ".trailPreset", "OFF");
+            return new HorseData(type, isVariant, speed, jumpHeight, uuid, trailPreset);
         }
         return null;
     }
