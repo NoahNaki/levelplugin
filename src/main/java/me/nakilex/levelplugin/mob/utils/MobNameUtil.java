@@ -47,7 +47,7 @@ public final class MobNameUtil {
     }
 
     /**
-     * Resolve a custom mob id from metadata, if one is present.
+     * Resolve a mob id from metadata, if one is present.
      */
     public static Optional<String> resolveCustomMobId(LivingEntity entity) {
         if (entity == null || !entity.hasMetadata(CustomMobManager.CUSTOM_MOB_ID_META)) {
@@ -133,7 +133,7 @@ public final class MobNameUtil {
     }
 
     /**
-     * Check whether a custom mob name contains a numeric health component such as
+     * Check whether a mob name contains a numeric health component such as
      * "35/50". Color codes are stripped before checking.
      *
      * @param customName the mob's custom name

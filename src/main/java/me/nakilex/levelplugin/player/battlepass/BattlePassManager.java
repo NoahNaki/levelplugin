@@ -57,6 +57,11 @@ public class BattlePassManager implements BattlePassProvider {
     private static final DateTimeFormatter DATE_FORMATTER =
             DateTimeFormatter.ofPattern("MMM d, yyyy").withLocale(Locale.US).withZone(ZoneId.systemDefault());
 
+    private static final int[] HORSE_DISTANCE_MILESTONES_METERS = {250, 1000, 2500, 5000};
+    private static final int[] HORSE_DISTANCE_MILESTONE_XP = {100, 220, 360, 520};
+    private static final int[] HORSE_JUMP_MILESTONES = {25, 75, 150, 300};
+    private static final int[] HORSE_JUMP_MILESTONE_XP = {80, 160, 280, 420};
+
     private final Main plugin;
     private final QuestManager questManager;
     private final ItemManager itemManager;
@@ -241,6 +246,68 @@ public class BattlePassManager implements BattlePassProvider {
         ChatMessageUtil.send(player, MessageType.INFO, "Use /battlepass to reopen the menu anytime.");
     }
 
+    @Override
+    public List<String> activeChallenges(UUID playerId) {
+        PlayerProgress progress = progress(playerId);
+        List<String> lines = new ArrayList<>();
+        int distanceStage = Math.min(progress.horseDistanceStage, HORSE_DISTANCE_MILESTONES_METERS.length - 1);
+        int jumpStage = Math.min(progress.horseJumpStage, HORSE_JUMP_MILESTONES.length - 1);
+
+        if (progress.horseDistanceStage >= HORSE_DISTANCE_MILESTONES_METERS.length) {
+            lines.add(ChatColor.GREEN + "• Horse Travel: Complete");
+        } else {
+            int target = HORSE_DISTANCE_MILESTONES_METERS[distanceStage];
+            int current = (int) Math.floor(progress.horseDistanceMeters);
+            lines.add(ChatColor.YELLOW + "• Travel " + target + "m while mounted: "
+                    + ChatColor.WHITE + Math.min(current, target) + ChatColor.GRAY + "/" + ChatColor.WHITE + target);
+        }
+
+        if (progress.horseJumpStage >= HORSE_JUMP_MILESTONES.length) {
+            lines.add(ChatColor.GREEN + "• Horse Jumping: Complete");
+        } else {
+            int target = HORSE_JUMP_MILESTONES[jumpStage];
+            lines.add(ChatColor.YELLOW + "• Complete " + target + " mounted jumps: "
+                    + ChatColor.WHITE + Math.min(progress.horseJumpCount, target) + ChatColor.GRAY + "/" + ChatColor.WHITE + target);
+        }
+        return lines;
+    }
+
+    public void recordHorseChallengeProgress(Player player, double distanceMeters, int jumps) {
+        if (player == null || (!Double.isFinite(distanceMeters) && jumps <= 0)) {
+            return;
+        }
+        PlayerProgress progress = progress(player.getUniqueId());
+        if (Double.isFinite(distanceMeters) && distanceMeters > 0) {
+            progress.horseDistanceMeters += distanceMeters;
+            while (progress.horseDistanceStage < HORSE_DISTANCE_MILESTONES_METERS.length
+                    && progress.horseDistanceMeters >= HORSE_DISTANCE_MILESTONES_METERS[progress.horseDistanceStage]) {
+                int stage = progress.horseDistanceStage;
+                int xp = HORSE_DISTANCE_MILESTONE_XP[stage];
+                addProgress(player, xp, "for horse travel challenge");
+                ChatMessageUtil.send(player, MessageType.SUCCESS,
+                        "Horse challenge complete: traveled " + HORSE_DISTANCE_MILESTONES_METERS[stage]
+                                + "m mounted (" + ChatColor.YELLOW + "+" + xp + " Battle Pass XP" + ChatColor.GREEN + ").");
+                progress.horseDistanceStage++;
+            }
+        }
+
+        if (jumps > 0) {
+            progress.horseJumpCount += jumps;
+            while (progress.horseJumpStage < HORSE_JUMP_MILESTONES.length
+                    && progress.horseJumpCount >= HORSE_JUMP_MILESTONES[progress.horseJumpStage]) {
+                int stage = progress.horseJumpStage;
+                int xp = HORSE_JUMP_MILESTONE_XP[stage];
+                addProgress(player, xp, "for horse jumping challenge");
+                ChatMessageUtil.send(player, MessageType.SUCCESS,
+                        "Horse challenge complete: performed " + HORSE_JUMP_MILESTONES[stage]
+                                + " mounted jumps (" + ChatColor.YELLOW + "+" + xp + " Battle Pass XP" + ChatColor.GREEN + ").");
+                progress.horseJumpStage++;
+            }
+        }
+
+        persist(player.getUniqueId());
+    }
+
     public void saveProgress(UUID uuid, FileConfiguration config, String path) {
         PlayerProgress progress = progressMap.get(uuid);
         if (progress == null) return;
@@ -249,6 +316,10 @@ public class BattlePassManager implements BattlePassProvider {
         config.set(path + ".premium", progress.premiumActive);
         config.set(path + ".claimed.free", new ArrayList<>(progress.claimedFree));
         config.set(path + ".claimed.premium", new ArrayList<>(progress.claimedPremium));
+        config.set(path + ".horse.distance", progress.horseDistanceMeters);
+        config.set(path + ".horse.distance-stage", progress.horseDistanceStage);
+        config.set(path + ".horse.jumps", progress.horseJumpCount);
+        config.set(path + ".horse.jump-stage", progress.horseJumpStage);
     }
 
     public void loadProgress(UUID uuid, FileConfiguration config, String path) {
@@ -268,6 +339,10 @@ public class BattlePassManager implements BattlePassProvider {
         } else {
             progress.progress = 0;
         }
+        progress.horseDistanceMeters = Math.max(0.0, config.getDouble(path + ".horse.distance", 0.0));
+        progress.horseDistanceStage = clamp(config.getInt(path + ".horse.distance-stage", 0), 0, HORSE_DISTANCE_MILESTONES_METERS.length);
+        progress.horseJumpCount = Math.max(0, config.getInt(path + ".horse.jumps", 0));
+        progress.horseJumpStage = clamp(config.getInt(path + ".horse.jump-stage", 0), 0, HORSE_JUMP_MILESTONES.length);
     }
 
     private void grantDirectItems(Player player, List<DirectItemGrant> grants) {
@@ -771,6 +846,10 @@ public class BattlePassManager implements BattlePassProvider {
         private boolean premiumActive;
         private final Set<Integer> claimedFree = new HashSet<>();
         private final Set<Integer> claimedPremium = new HashSet<>();
+        private double horseDistanceMeters;
+        private int horseDistanceStage;
+        private int horseJumpCount;
+        private int horseJumpStage;
 
         public boolean premiumActive() {
             return premiumActive;

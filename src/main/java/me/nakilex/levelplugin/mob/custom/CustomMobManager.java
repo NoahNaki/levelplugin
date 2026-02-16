@@ -286,7 +286,7 @@ public class CustomMobManager {
         if (Bukkit.getPluginManager().isPluginEnabled("ModelEngine") && !definition.models().isEmpty()) {
             ModelEngineUtil.ModelApplyResult result = ModelEngineUtil.applyModels(entity, definition.models(), plugin);
             if (!result.failed().isEmpty()) {
-                plugin.getLogger().warning("Custom mob " + definition.id()
+                plugin.getLogger().warning("Mob " + definition.id()
                         + " failed to apply ModelEngine models: " + String.join(", ", result.failed()));
             }
         }

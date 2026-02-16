@@ -27,4 +27,11 @@ public interface BattlePassProvider {
      */
     void handleBack(Player player);
 
+    /**
+     * Optional activity challenge lines shown in the GUI.
+     */
+    default java.util.List<String> activeChallenges(UUID playerId) {
+        return java.util.List.of();
+    }
+
 }

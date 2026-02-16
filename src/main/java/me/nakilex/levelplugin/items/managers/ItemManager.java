@@ -23,6 +23,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
@@ -316,6 +317,7 @@ public class ItemManager {
                                                    StatRange wilRange,
                                                    StatRange tecRange) {
         boolean isArmor = ArmorType.fromMaterial(material) != null;
+        boolean isGear = isArmor || isWeaponMaterial(material);
         StatRange safeHpRange = isArmor ? hpRange : new StatRange(0, 0);
         int desired = me.nakilex.levelplugin.items.generator.ProceduralItemGenerator.getStatSlotsForRarity(rarity);
         List<StatSlot> missing = new ArrayList<>();
@@ -327,12 +329,22 @@ public class ItemManager {
         } else if (isArmor) {
             missing.add(StatSlot.HP);
         }
-        if (isRangeNonZero(strRange)) count++; else missing.add(StatSlot.STR);
-        if (isRangeNonZero(agiRange)) count++; else missing.add(StatSlot.AGI);
-        if (isRangeNonZero(intelRange)) count++; else missing.add(StatSlot.INT);
-        if (isRangeNonZero(dexRange)) count++; else missing.add(StatSlot.DEX);
-        if (isRangeNonZero(wilRange)) count++; else missing.add(StatSlot.WIL);
-        if (isRangeNonZero(tecRange)) count++; else missing.add(StatSlot.TEC);
+
+        EnumMap<StatSlot, StatRange> ranges = new EnumMap<>(StatSlot.class);
+        ranges.put(StatSlot.STR, strRange);
+        ranges.put(StatSlot.AGI, agiRange);
+        ranges.put(StatSlot.INT, intelRange);
+        ranges.put(StatSlot.DEX, dexRange);
+        ranges.put(StatSlot.WIL, wilRange);
+        ranges.put(StatSlot.TEC, tecRange);
+
+        for (StatSlot slot : NON_VITALITY_STAT_ORDER) {
+            if (isRangeNonZero(ranges.get(slot))) {
+                count++;
+            } else {
+                missing.add(slot);
+            }
+        }
 
         if (isArmor && rarity == ItemRarity.COMMON && !hasVitality) {
             safeHpRange = me.nakilex.levelplugin.items.generator.ProceduralItemGenerator
@@ -342,7 +354,7 @@ public class ItemManager {
             missing.remove(StatSlot.HP);
         }
 
-        if (count < desired && !missing.isEmpty()) {
+        if (isGear && count < desired && !missing.isEmpty()) {
             java.util.Collections.shuffle(missing, new Random());
             int toAdd = Math.min(desired - count, missing.size());
             for (int i = 0; i < toAdd; i++) {
@@ -352,24 +364,82 @@ public class ItemManager {
                                 slot == StatSlot.HP
                                         ? me.nakilex.levelplugin.items.generator.ProceduralItemGenerator.ARMOR_HP_COEFF
                                         : 1.0);
-                switch (slot) {
-                    case HP -> safeHpRange = generated;
-                    case STR -> strRange = generated;
-                    case AGI -> agiRange = generated;
-                    case INT -> intelRange = generated;
-                    case DEX -> dexRange = generated;
-                    case WIL -> wilRange = generated;
-                    case TEC -> tecRange = generated;
+                if (slot == StatSlot.HP) {
+                    safeHpRange = generated;
+                } else {
+                    ranges.put(slot, generated);
                 }
+            }
+            count += toAdd;
+        }
+
+        if (isGear && count > desired) {
+            int toTrim = count - desired;
+            for (StatSlot slot : TRIM_PRIORITY) {
+                if (toTrim <= 0) {
+                    break;
+                }
+                if (slot == StatSlot.HP) {
+                    if (!isRangeNonZero(safeHpRange) || isRangeNonZero(defRange)) {
+                        continue;
+                    }
+                    safeHpRange = new StatRange(0, 0);
+                } else {
+                    if (!isRangeNonZero(ranges.get(slot))) {
+                        continue;
+                    }
+                    ranges.put(slot, new StatRange(0, 0));
+                }
+                toTrim--;
             }
         }
 
-        return new TemplateRanges(safeHpRange, defRange, strRange, agiRange, intelRange, dexRange, wilRange, tecRange);
+        return new TemplateRanges(
+                safeHpRange,
+                defRange,
+                ranges.get(StatSlot.STR),
+                ranges.get(StatSlot.AGI),
+                ranges.get(StatSlot.INT),
+                ranges.get(StatSlot.DEX),
+                ranges.get(StatSlot.WIL),
+                ranges.get(StatSlot.TEC)
+        );
+    }
+
+    private boolean isWeaponMaterial(Material material) {
+        if (material == null) {
+            return false;
+        }
+        for (me.nakilex.levelplugin.items.data.WeaponType weaponType : me.nakilex.levelplugin.items.data.WeaponType.values()) {
+            if (weaponType.getMaterials().contains(material)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private boolean isRangeNonZero(StatRange range) {
         return range != null && (range.getMin() > 0 || range.getMax() > 0);
     }
+
+    private static final List<StatSlot> NON_VITALITY_STAT_ORDER = List.of(
+            StatSlot.STR,
+            StatSlot.AGI,
+            StatSlot.INT,
+            StatSlot.DEX,
+            StatSlot.WIL,
+            StatSlot.TEC
+    );
+
+    private static final List<StatSlot> TRIM_PRIORITY = List.of(
+            StatSlot.TEC,
+            StatSlot.WIL,
+            StatSlot.DEX,
+            StatSlot.INT,
+            StatSlot.AGI,
+            StatSlot.STR,
+            StatSlot.HP
+    );
 
     private enum StatSlot {
         HP,

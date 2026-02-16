@@ -400,7 +400,7 @@ public class CustomMobSpawnerManager implements Listener {
         try {
             cfg.save(file);
         } catch (IOException e) {
-            plugin.getLogger().warning("Failed to save custom mob spawners: " + e.getMessage());
+            plugin.getLogger().warning("Failed to save mob spawners: " + e.getMessage());
         }
     }
 

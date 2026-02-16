@@ -44,17 +44,17 @@ public class CustomMobCommand implements CommandExecutor, TabCompleter {
                 List<String> ids = mobManager.getMobIds();
                 if (ids.isEmpty()) {
                     ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.WARNING,
-                            "No custom mobs are configured.");
+                            "No mobs are configured.");
                 } else {
                     ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.INFO,
-                            "Custom mobs: " + String.join(", ", ids));
+                            "Mobs: " + String.join(", ", ids));
                 }
                 return true;
             }
             case "reload" -> {
                 mobManager.reload();
                 ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.SUCCESS,
-                        "Reloaded custom mobs.");
+                        "Reloaded mobs.");
                 return true;
             }
             case "info" -> {
@@ -67,7 +67,7 @@ public class CustomMobCommand implements CommandExecutor, TabCompleter {
                 var opt = mobManager.getDefinition(id);
                 if (opt.isEmpty()) {
                     ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.ERROR,
-                            "Unknown custom mob: " + id);
+                            "Unknown mob: " + id);
                     return true;
                 }
                 var def = opt.get();
@@ -82,7 +82,7 @@ public class CustomMobCommand implements CommandExecutor, TabCompleter {
             case "spawn" -> {
                 if (!(sender instanceof Player player)) {
                     ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.ERROR,
-                            "Only players can spawn custom mobs.");
+                            "Only players can spawn mobs.");
                     return true;
                 }
                 if (args.length < 2) {
@@ -104,7 +104,7 @@ public class CustomMobCommand implements CommandExecutor, TabCompleter {
                 var spawned = mobManager.spawn(id, player.getLocation(), amount);
                 if (spawned.isEmpty()) {
                     ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.ERROR,
-                            "Failed to spawn custom mob: " + id);
+                            "Failed to spawn mob: " + id);
                     return true;
                 }
                 ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.SUCCESS,
@@ -114,7 +114,7 @@ public class CustomMobCommand implements CommandExecutor, TabCompleter {
             case "gui" -> {
                 if (!(sender instanceof Player player)) {
                     ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.ERROR,
-                            "Only players can open the custom mob GUI.");
+                            "Only players can open the mob GUI.");
                     return true;
                 }
                 adminGui.openMain(player);
@@ -123,24 +123,24 @@ public class CustomMobCommand implements CommandExecutor, TabCompleter {
             case "kill" -> {
                 if (!(sender instanceof Player player)) {
                     ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.ERROR,
-                            "Only players can kill custom mobs.");
+                            "Only players can kill mobs.");
                     return true;
                 }
                 org.bukkit.entity.Entity target = player.getTargetEntity(8);
                 if (!(target instanceof org.bukkit.entity.LivingEntity living)) {
                     ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
-                            "Look at a custom mob to kill it.");
+                            "Look at a mob to kill it.");
                     return true;
                 }
                 CustomMobInstance instance = mobManager.getInstance(living).orElse(null);
                 if (instance == null) {
                     ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
-                            "That entity is not a custom mob.");
+                            "That entity is not a mob.");
                     return true;
                 }
                 living.setHealth(0);
                 ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                        "Removed custom mob: " + instance.id());
+                        "Removed mob: " + instance.id());
                 return true;
             }
             case "killall" -> {
@@ -152,7 +152,7 @@ public class CustomMobCommand implements CommandExecutor, TabCompleter {
                     }
                 }
                 ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.SUCCESS,
-                        ChatUtil.applyEmojis("Removed " + removed + " custom mobs."));
+                        ChatUtil.applyEmojis("Removed " + removed + " mobs."));
                 return true;
             }
             case "spawner" -> {
@@ -192,7 +192,7 @@ public class CustomMobCommand implements CommandExecutor, TabCompleter {
                 List<String> names = spawnerManager.getSpawnerNames();
                 if (names.isEmpty()) {
                     ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.WARNING,
-                            "No custom mob spawners are configured.");
+                            "No mob spawners are configured.");
                     return true;
                 }
                 ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.INFO,
@@ -235,7 +235,7 @@ public class CustomMobCommand implements CommandExecutor, TabCompleter {
                 String mobId = args[3];
                 if (mobManager.getDefinition(mobId).isEmpty()) {
                     ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.ERROR,
-                            "Unknown custom mob: " + mobId);
+                            "Unknown mob: " + mobId);
                     return true;
                 }
                 boolean created = spawnerManager.createSpawner(name, mobId, player.getLocation());

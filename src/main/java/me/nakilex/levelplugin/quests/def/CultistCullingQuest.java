@@ -350,7 +350,7 @@ public class CultistCullingQuest extends Quest implements QuestScript, QuestComp
             Entity mob;
             CustomMobManager customMobManager = Main.getInstance().getCustomMobManager();
             if (customMobManager == null) {
-                Main.getInstance().getLogger().warning("Unable to spawn ritual mob '" + site.mobId() + "' (custom mobs unavailable).");
+                Main.getInstance().getLogger().warning("Unable to spawn ritual mob '" + site.mobId() + "' (mobs unavailable).");
                 return;
             }
             java.util.List<LivingEntity> spawned = customMobManager.spawn(site.mobId(), spawnLoc, 1, site.level());

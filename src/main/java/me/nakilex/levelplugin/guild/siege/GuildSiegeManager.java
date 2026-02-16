@@ -257,6 +257,9 @@ public class GuildSiegeManager {
                 }
 
                 tickCapture();
+                if (captureTask == null) {
+                    return;
+                }
                 captureElapsed++;
                 if (captureElapsed >= SIEGE_DURATION) {
                     end(ownerGuild);
@@ -354,12 +357,18 @@ public class GuildSiegeManager {
         if (progress > 100) progress = 100;
         updateBossBar();
         if (progress >= 100) {
-            end(capturingGuild);
+            end(top);
         }
     }
 
     private void end(String winner) {
-        if (captureTask != null) captureTask.cancel();
+        if (countdownTask != null) {
+            countdownTask.cancel();
+            countdownTask = null;
+        }
+        if (captureTask != null) {
+            captureTask.cancel();
+        }
         captureTask = null;
         captureElapsed = 0;
         Main.getInstance().getModelGateManager().setGateHidden("rowan", false);
