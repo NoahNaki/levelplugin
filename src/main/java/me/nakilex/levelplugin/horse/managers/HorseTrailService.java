@@ -1,9 +1,7 @@
 package me.nakilex.levelplugin.horse.managers;
 
-import me.nakilex.levelplugin.particles.ParticlePreset;
-import me.nakilex.levelplugin.particles.ParticleService;
-import me.nakilex.levelplugin.particles.presets.ElementalPresets;
 import org.bukkit.Bukkit;
+import org.bukkit.Particle;
 import org.bukkit.entity.AbstractHorse;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
@@ -21,18 +19,20 @@ public class HorseTrailService {
 
     public static final String OFF_PRESET = "OFF";
 
-    private final ParticleService particleService;
+    private static final List<String> PRESET_OPTIONS = List.of(
+            OFF_PRESET,
+            "FLAME",
+            "HEART",
+            "HAPPY_VILLAGER",
+            "CRIT",
+            "ENCHANT",
+            "END_ROD"
+    );
+
     private final Map<UUID, BukkitTask> trailTasks = new java.util.HashMap<>();
 
-    public HorseTrailService(ParticleService particleService) {
-        this.particleService = particleService;
-    }
-
     public List<String> getPresetOptions() {
-        List<String> options = new ArrayList<>();
-        options.add(OFF_PRESET);
-        options.addAll(ElementalPresets.getPresetNames());
-        return options;
+        return PRESET_OPTIONS;
     }
 
     public String normalizePreset(String presetName) {
@@ -40,8 +40,10 @@ public class HorseTrailService {
             return OFF_PRESET;
         }
         String normalized = presetName.toUpperCase(Locale.ROOT);
-        if (OFF_PRESET.equals(normalized) || ElementalPresets.getPreset(normalized) != null) {
-            return normalized;
+        for (String option : PRESET_OPTIONS) {
+            if (option.equalsIgnoreCase(normalized)) {
+                return option;
+            }
         }
         return OFF_PRESET;
     }
@@ -98,21 +100,28 @@ public class HorseTrailService {
             return;
         }
 
-        ParticlePreset preset = ElementalPresets.getPreset(normalized);
-        if (preset == null) {
+        Particle particle = parseParticle(normalized);
+        if (particle == null) {
             return;
         }
 
-        BukkitTask task = particleService.renderPresetWhile(
-                player,
-                preset,
-                () -> horse.isValid() ? horse.getLocation().clone().add(0, 1.1, 0) : null,
-                () -> player.isOnline()
-                        && horse.isValid()
-                        && player.isInsideVehicle()
-                        && player.getVehicle() != null
-                        && player.getVehicle().getUniqueId().equals(horse.getUniqueId())
-                        && ownerId.equals(player.getUniqueId())
+        BukkitTask task = Bukkit.getScheduler().runTaskTimer(
+                me.nakilex.levelplugin.Main.getInstance(),
+                () -> {
+                    if (!player.isOnline()
+                            || !horse.isValid()
+                            || !player.isInsideVehicle()
+                            || player.getVehicle() == null
+                            || !player.getVehicle().getUniqueId().equals(horse.getUniqueId())
+                            || !ownerId.equals(player.getUniqueId())) {
+                        stopTrail(ownerId);
+                        return;
+                    }
+                    var loc = horse.getLocation().clone().add(0, 0.6, 0);
+                    horse.getWorld().spawnParticle(particle, loc, 2, 0.08, 0.02, 0.08, 0.0);
+                },
+                0L,
+                4L
         );
         trailTasks.put(ownerId, task);
     }
@@ -139,5 +148,13 @@ public class HorseTrailService {
             return horse;
         }
         return null;
+    }
+
+    private Particle parseParticle(String normalized) {
+        try {
+            return Particle.valueOf(normalized.toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
     }
 }

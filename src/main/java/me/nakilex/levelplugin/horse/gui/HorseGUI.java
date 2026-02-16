@@ -35,11 +35,15 @@ import static me.nakilex.levelplugin.utils.ChatMessageUtil.send;
 
 public class HorseGUI implements Listener {
 
+    private static final String MAIN_TITLE = "Horse Menu";
+    private static final String TRAIL_TITLE = "Horse Trail Menu";
+    private static final int REROLL_COST = 300;
+    private static final int[] TRAIL_OPTION_SLOTS = {10, 11, 12, 13, 14, 15, 16};
+
     private final HorseManager horseManager;
     private final EconomyManager economyManager;
     private final Map<UUID, List<GuiWidget>> widgetsByPlayer = new HashMap<>();
     private final Map<UUID, BukkitTask> refreshTasks = new HashMap<>();
-    private static final int REROLL_COST = 300;
 
     public HorseGUI(HorseManager horseManager, EconomyManager economyManager) {
         this.horseManager = horseManager;
@@ -53,10 +57,28 @@ public class HorseGUI implements Listener {
             return;
         }
         UUID playerUUID = player.getUniqueId();
-        Inventory gui = GuiBuilder.create(36, "Horse Menu")
+        Inventory gui = GuiBuilder.create(36, MAIN_TITLE)
                 .filler(Material.GRAY_STAINED_GLASS_PANE)
                 .build();
-        List<GuiWidget> widgets = buildWidgets();
+        List<GuiWidget> widgets = buildMainWidgets();
+        widgetsByPlayer.put(playerUUID, widgets);
+        renderWidgets(gui, player, widgets);
+
+        player.openInventory(gui);
+        startAutoUpdate(player, gui);
+    }
+
+    public void openTrailMenu(Player player) {
+        if (!StableKeeperQuest.hasUnlockedHorseMenu(player.getUniqueId())) {
+            send(player, MessageType.WARNING,
+                    "Complete 'Feathered Famine' with the Stable Keeper to unlock horse rerolls.");
+            return;
+        }
+        UUID playerUUID = player.getUniqueId();
+        Inventory gui = GuiBuilder.create(36, TRAIL_TITLE)
+                .filler(Material.GRAY_STAINED_GLASS_PANE)
+                .build();
+        List<GuiWidget> widgets = buildTrailWidgets();
         widgetsByPlayer.put(playerUUID, widgets);
         renderWidgets(gui, player, widgets);
 
@@ -105,29 +127,38 @@ public class HorseGUI implements Listener {
         return GuiUtil.createGuiItem(Material.SADDLE, "§aBuy a New Horse", lore);
     }
 
-    private ItemStack createTrailButton(UUID playerUUID) {
+    private ItemStack createTrailMenuButton(UUID playerUUID) {
         HorseData horseData = horseManager.getHorse(playerUUID);
         String current = horseData != null ? horseData.getTrailPreset() : HorseTrailService.OFF_PRESET;
-        List<String> options = horseManager.getTrailPresetOptions();
 
         List<String> lore = new ArrayList<>();
         lore.add(" ");
-        lore.add("§7Current Trail: §b" + horseManager.formatTrailPresetName(current));
+        lore.add("§7Current Trail: §d" + horseManager.formatTrailPresetName(current));
+        lore.add("§7Open trail selection menu.");
         lore.add(" ");
-        lore.add("§7Available:");
+        lore.addAll(TooltipUtil.clickInstructions("to open trail menu", null));
+        return GuiUtil.createGuiItem(Material.BLAZE_POWDER, "§dTrail Settings", lore);
+    }
 
-        int preview = Math.min(5, options.size());
-        for (int i = 0; i < preview; i++) {
-            String option = options.get(i);
-            lore.add(TooltipUtil.selectionLine(option.equalsIgnoreCase(current), horseManager.formatTrailPresetName(option)));
-        }
-        if (options.size() > preview) {
-            lore.add("§8... and " + (options.size() - preview) + " more");
-        }
-
+    private ItemStack createTrailOptionItem(String option, String current) {
+        boolean selected = option.equalsIgnoreCase(current);
+        Material material = selected ? Material.LIME_DYE : Material.GRAY_DYE;
+        String label = horseManager.formatTrailPresetName(option);
+        List<String> lore = new ArrayList<>();
         lore.add(" ");
-        lore.addAll(TooltipUtil.clickInstructions("to cycle trail", "to cycle backwards"));
-        return GuiUtil.createGuiItem(Material.BLAZE_POWDER, "§dHorse Trail", lore);
+        lore.add(TooltipUtil.selectionLine(selected, label));
+        lore.add(" ");
+        lore.addAll(TooltipUtil.clickInstructions("to select", null));
+        return GuiUtil.createGuiItem(material, "§b" + label, lore);
+    }
+
+    private ItemStack createBackButton() {
+        List<String> lore = new ArrayList<>();
+        lore.add(" ");
+        lore.add("§7Return to horse reroll menu.");
+        lore.add(" ");
+        lore.addAll(TooltipUtil.clickInstructions("to go back", null));
+        return GuiUtil.createGuiItem(Material.ARROW, "§aBack", lore);
     }
 
     private void updateHorseInfo(Inventory inventory, UUID playerUUID) {
@@ -172,7 +203,7 @@ public class HorseGUI implements Listener {
         if (!(event.getWhoClicked() instanceof Player player)) {
             return;
         }
-        if (!"Horse Menu".equals(event.getView().getTitle())) {
+        if (!isManagedTitle(event.getView().getTitle())) {
             return;
         }
         if (handleWidgetClick(event, player)) {
@@ -186,7 +217,7 @@ public class HorseGUI implements Listener {
         if (!(event.getPlayer() instanceof Player player)) {
             return;
         }
-        if (!"Horse Menu".equals(event.getView().getTitle())) {
+        if (!isManagedTitle(event.getView().getTitle())) {
             return;
         }
         stopAutoUpdate(player.getUniqueId());
@@ -223,23 +254,22 @@ public class HorseGUI implements Listener {
         }
     }
 
-    private void handleTrailCycle(Player player, boolean backwards, Inventory inventory) {
-        HorseData horseData = horseManager.getHorse(player.getUniqueId());
-        if (horseData == null) {
-            return;
-        }
-        String next = horseManager.cycleTrailPreset(horseData.getTrailPreset(), backwards);
-        horseManager.setTrailPreset(player.getUniqueId(), next);
+    private void selectTrail(Player player, String trailPreset, Inventory inventory) {
+        horseManager.setTrailPreset(player.getUniqueId(), trailPreset);
         updateHorseInfo(inventory, player.getUniqueId());
         send(player, MessageType.SUCCESS,
-                "Horse trail set to §b" + horseManager.formatTrailPresetName(next) + "§a.");
+                "Horse trail set to §b" + horseManager.formatTrailPresetName(trailPreset) + "§a.");
     }
 
     private int getRerollCost(UUID playerUUID) {
         return StableKeeperQuest.shouldReceiveFreeReroll(playerUUID) ? 0 : REROLL_COST;
     }
 
-    private List<GuiWidget> buildWidgets() {
+    private boolean isManagedTitle(String title) {
+        return MAIN_TITLE.equals(title) || TRAIL_TITLE.equals(title);
+    }
+
+    private List<GuiWidget> buildMainWidgets() {
         List<GuiWidget> widgets = new ArrayList<>();
         widgets.add(new ActionWidget(11,
                 context -> createHorseInfoItem(horseManager.getHorse(context.player().getUniqueId())),
@@ -252,10 +282,41 @@ public class HorseGUI implements Listener {
                     }
                 }));
         widgets.add(new ActionWidget(15,
-                context -> createTrailButton(context.player().getUniqueId()),
+                context -> createTrailMenuButton(context.player().getUniqueId()),
                 (click, context) -> {
-                    if (click == org.bukkit.event.inventory.ClickType.LEFT || click == org.bukkit.event.inventory.ClickType.RIGHT) {
-                        handleTrailCycle(context.player(), click == org.bukkit.event.inventory.ClickType.RIGHT, context.inventory());
+                    if (click == org.bukkit.event.inventory.ClickType.LEFT) {
+                        openTrailMenu(context.player());
+                    }
+                }));
+        return widgets;
+    }
+
+    private List<GuiWidget> buildTrailWidgets() {
+        List<GuiWidget> widgets = new ArrayList<>();
+        UUID playerId = null;
+        List<String> options = horseManager.getTrailPresetOptions();
+
+        for (int i = 0; i < Math.min(TRAIL_OPTION_SLOTS.length, options.size()); i++) {
+            int slot = TRAIL_OPTION_SLOTS[i];
+            String option = options.get(i);
+            widgets.add(new ActionWidget(slot,
+                    context -> {
+                        HorseData horseData = horseManager.getHorse(context.player().getUniqueId());
+                        String current = horseData != null ? horseData.getTrailPreset() : HorseTrailService.OFF_PRESET;
+                        return createTrailOptionItem(option, current);
+                    },
+                    (click, context) -> {
+                        if (click == org.bukkit.event.inventory.ClickType.LEFT) {
+                            selectTrail(context.player(), option, context.inventory());
+                        }
+                    }));
+        }
+
+        widgets.add(new ActionWidget(31,
+                context -> createBackButton(),
+                (click, context) -> {
+                    if (click == org.bukkit.event.inventory.ClickType.LEFT) {
+                        openHorseMenu(context.player());
                     }
                 }));
         return widgets;

@@ -2,7 +2,6 @@ package me.nakilex.levelplugin.horse.managers;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.horse.data.HorseData;
-import me.nakilex.levelplugin.particles.ParticleService;
 import me.nakilex.levelplugin.player.battlepass.BattlePassManager;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -48,7 +47,7 @@ public class HorseManager implements Listener {
     // Constructor to accept HorseConfigManager
     public HorseManager(HorseConfigManager configManager) {
         this.configManager = configManager;
-        this.trailService = new HorseTrailService(new ParticleService(Main.getInstance()));
+        this.trailService = new HorseTrailService();
         Bukkit.getPluginManager().registerEvents(this, Main.getInstance());
 
         // Load all previously saved horses into memory
