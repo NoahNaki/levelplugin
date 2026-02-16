@@ -18,8 +18,10 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.scheduler.BukkitTask;
 
 import java.util.List;
 import java.util.UUID;
@@ -35,6 +37,7 @@ public class HorseGUI implements Listener {
     private final HorseManager horseManager;
     private final EconomyManager economyManager; // Added EconomyManager for handling costs
     private final Map<UUID, List<GuiWidget>> widgetsByPlayer = new HashMap<>();
+    private final Map<UUID, BukkitTask> refreshTasks = new HashMap<>();
     private final int REROLL_COST = 300; // Set the cost for rerolling horses
 
     // Constructor
@@ -122,16 +125,31 @@ public class HorseGUI implements Listener {
     // Automatically refresh the GUI every second
     public void startAutoUpdate(Player player, Inventory inventory) {
         UUID playerUUID = player.getUniqueId();
+        stopAutoUpdate(playerUUID);
 
-        Bukkit.getScheduler().runTaskTimer(
-            me.nakilex.levelplugin.Main.getInstance(),
-            () -> {
-                if (player.getOpenInventory().getTitle().equals("Horse Menu")) {
+        BukkitTask task = Bukkit.getScheduler().runTaskTimer(
+                me.nakilex.levelplugin.Main.getInstance(),
+                () -> {
+                    if (!player.isOnline()) {
+                        stopAutoUpdate(playerUUID);
+                        return;
+                    }
+                    if (player.getOpenInventory().getTopInventory() != inventory) {
+                        stopAutoUpdate(playerUUID);
+                        return;
+                    }
                     updateHorseInfo(inventory, playerUUID); // Refresh stats
-                }
-            },
-            0L, 20L // 20 ticks = 1 second
+                },
+                0L, 20L // 20 ticks = 1 second
         );
+        refreshTasks.put(playerUUID, task);
+    }
+
+    private void stopAutoUpdate(UUID playerUUID) {
+        BukkitTask task = refreshTasks.remove(playerUUID);
+        if (task != null) {
+            task.cancel();
+        }
     }
 
     // Handle GUI clicks
@@ -148,6 +166,17 @@ public class HorseGUI implements Listener {
             return;
         }
         event.setCancelled(true); // Prevent taking/moving items
+    }
+
+    @EventHandler
+    public void handleHorseMenuClose(InventoryCloseEvent event) {
+        if (!(event.getPlayer() instanceof Player player)) {
+            return;
+        }
+        if (!"Horse Menu".equals(event.getView().getTitle())) {
+            return;
+        }
+        stopAutoUpdate(player.getUniqueId());
     }
 
     private void handleReroll(Player player, Inventory inventory) {
