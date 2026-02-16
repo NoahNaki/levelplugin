@@ -177,7 +177,8 @@ public class DebugCommand implements TabExecutor {
 
             case "siege":
                 boolean fast = me.nakilex.levelplugin.guild.siege.GuildSiegeManager.getInstance().toggleFastCapture();
-                sender.sendMessage("Fast siege mode " + (fast ? "enabled" : "disabled"));
+                sender.sendMessage("Fast siege mode " + (fast ? "enabled" : "disabled")
+                        + " (quick timer + boosted capture)");
                 return true;
 
             case "expedition":

@@ -7,7 +7,6 @@ import me.nakilex.levelplugin.environment.EnvironmentManager;
 import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.utils.MultiLineHologram;
 import me.nakilex.levelplugin.utils.FireworkUtil;
-import me.nakilex.levelplugin.quests.managers.QuestManager;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
@@ -28,6 +27,7 @@ import org.bukkit.boss.BarStyle;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
+import java.util.function.Consumer;
 
 /**
  * Manages the periodic guild siege event.
@@ -61,7 +61,12 @@ public class GuildSiegeManager {
     private String capturingGuild = null;
     private int progress = 0;
     private static final int CAPTURE_RATE = 1;
-    private static final int SIEGE_DURATION = 600; // seconds
+    private static final int NORMAL_SIEGE_DURATION = 600; // seconds
+    private static final int FAST_SIEGE_DURATION = 45; // seconds
+    private static final int PARTICIPATION_COINS = 1000;
+    private static final int PARTICIPATION_EXP = 500;
+    private static final int WIN_BONUS_COINS = 9000;
+    private static final int WIN_BONUS_EXP = 2000;
     private int captureElapsed = 0;
     private MultiLineHologram ownerHologram;
     private org.bukkit.boss.BossBar bossBar;
@@ -127,7 +132,6 @@ public class GuildSiegeManager {
                 + ChatColor.GRAY + "to sign up for the guild siege! " + ChatColor.RESET + "<glyph:flagright_icon>";
         Component msg = LEGACY.deserialize(ChatFormatter.getCenteredText(raw))
                 .clickEvent(ClickEvent.runCommand("/siege join"));
-        QuestManager qm = Main.getInstance().getQuestManager();
         for (Player p : Bukkit.getOnlinePlayers()) {
             if (!p.getWorld().getName().equals("world")) continue;
             // Temporarily disabled quest completion check for testing
@@ -161,6 +165,15 @@ public class GuildSiegeManager {
     public boolean leave(UUID id) {
         boolean removed = queue.remove(id) | active.remove(id) | attackers.remove(id) | defenders.remove(id);
         respawnPoints.remove(id);
+        Player player = Bukkit.getPlayer(id);
+        if (player != null) {
+            if (bossBar != null) {
+                bossBar.removePlayer(player);
+            }
+            if (removed) {
+                Main.getInstance().getLocationMusicManager().stopSiege(player);
+            }
+        }
         if (removed && queue.isEmpty() && countdownTask != null) {
             countdownTask.cancel();
             countdownTask = null;
@@ -193,7 +206,8 @@ public class GuildSiegeManager {
         active.addAll(defenders);
         progress = 0;
         capturingGuild = null;
-        Main.getInstance().getModelGateManager().setGateHidden("rowan", true);
+        runSiegeStep("hide Rowan gate for siege", () ->
+                Main.getInstance().getModelGateManager().setGateHidden("rowan", true));
 
         if (ownerHologram != null) {
             ownerHologram.despawn();
@@ -206,29 +220,21 @@ public class GuildSiegeManager {
         bossBar.setVisible(true);
         updateBossBar();
 
-        for (UUID id : attackers) {
-            Player p = Bukkit.getPlayer(id);
-            if (p != null) {
-                bossBar.addPlayer(p);
-                respawnPoints.put(id, teleportLocation.clone());
-                me.nakilex.levelplugin.utils.TeleportUtils.teleportWithEffect(p, teleportLocation);
-                Main.getInstance().getLocationMusicManager().startSiege(p);
-            }
-        }
-        for (UUID id : defenders) {
-            Player p = Bukkit.getPlayer(id);
-            if (p != null) {
-                bossBar.addPlayer(p);
-                respawnPoints.put(id, center.clone());
-                me.nakilex.levelplugin.utils.TeleportUtils.teleportWithEffect(p, center);
-                Main.getInstance().getLocationMusicManager().startSiege(p);
-            }
-        }
+        forEachOnline(attackers, p -> {
+            bossBar.addPlayer(p);
+            respawnPoints.put(p.getUniqueId(), teleportLocation.clone());
+            me.nakilex.levelplugin.utils.TeleportUtils.teleportWithEffect(p, teleportLocation);
+            Main.getInstance().getLocationMusicManager().startSiege(p);
+        });
+        forEachOnline(defenders, p -> {
+            bossBar.addPlayer(p);
+            respawnPoints.put(p.getUniqueId(), center.clone());
+            me.nakilex.levelplugin.utils.TeleportUtils.teleportWithEffect(p, center);
+            Main.getInstance().getLocationMusicManager().startSiege(p);
+        });
 
         for (Player p : Bukkit.getOnlinePlayers()) {
-            ChatFormatter.sendCenteredMessage(p, " ");
-            ChatFormatter.sendCenteredMessage(p, "<glyph:flagleft_icon> " + ChatColor.GRAY + "The siege has begun!" + ChatColor.RESET + " <glyph:flagright_icon>");
-            ChatFormatter.sendCenteredMessage(p, " ");
+            sendCenteredBlock(p, "<glyph:flagleft_icon> " + ChatColor.GRAY + "The siege has begun!" + ChatColor.RESET + " <glyph:flagright_icon>");
             p.playSound(p.getLocation(), Sound.ENTITY_WITHER_SPAWN, 1f, 1f);
         }
 
@@ -237,31 +243,16 @@ public class GuildSiegeManager {
         captureTask = new BukkitRunnable() {
             @Override
             public void run() {
-                int remaining = SIEGE_DURATION - captureElapsed;
-                switch (remaining) {
-                    case 600: broadcast(ChatColor.GRAY + "Siege ends in " + ChatColor.YELLOW + "10m"); break;
-                    case 300: broadcast(ChatColor.GRAY + "Siege ends in " + ChatColor.YELLOW + "5m"); break;
-                    case 60: broadcast(ChatColor.GRAY + "Siege ends in " + ChatColor.YELLOW + "1m"); break;
-                    case 30: broadcast(ChatColor.GRAY + "Siege ends in " + ChatColor.YELLOW + "30s"); break;
-                    case 10: broadcast(ChatColor.GRAY + "Siege ends in " + ChatColor.YELLOW + "10s"); break;
-                    case 5: case 4: case 3: case 2: case 1:
-                        for (UUID id : active) {
-                            Player p = Bukkit.getPlayer(id);
-                            if (p != null) {
-                                ChatFormatter.sendCenteredMessage(p, ChatColor.GRAY + "Siege ends in "
-                                        + ChatColor.YELLOW + remaining + "s");
-                                p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_HAT, 1f, 1f);
-                            }
-                        }
-                        break;
-                }
+                int siegeDuration = getSiegeDurationSeconds();
+                int remaining = siegeDuration - captureElapsed;
+                broadcastRemainingTime(remaining, siegeDuration);
 
                 tickCapture();
                 if (captureTask == null) {
                     return;
                 }
                 captureElapsed++;
-                if (captureElapsed >= SIEGE_DURATION) {
+                if (captureElapsed >= siegeDuration) {
                     end(ownerGuild);
                 }
             }
@@ -286,15 +277,12 @@ public class GuildSiegeManager {
                 }
                 if (seconds == 60 || seconds == 30 || seconds == 15 || seconds <= 5) {
                     String msg = ChatColor.GRAY + "Siege starts in " + ChatColor.YELLOW + seconds + "s";
-                    for (UUID id : queue) {
-                        Player p = Bukkit.getPlayer(id);
-                        if (p != null) {
-                            ChatFormatter.sendCenteredMessage(p, msg);
-                            if (seconds <= 5) {
-                                p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_HAT, 1f, 1f);
-                            }
+                    forEachOnline(queue, p -> {
+                        ChatFormatter.sendCenteredMessage(p, msg);
+                        if (seconds <= 5) {
+                            p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_HAT, 1f, 1f);
                         }
-                    }
+                    });
                 }
                 seconds--;
             }
@@ -303,34 +291,22 @@ public class GuildSiegeManager {
 
     private void tickCapture() {
         spawnParticles();
-        // Defenders inside the circle prevent capture progress entirely
-        for (UUID id : defenders) {
-            Player p = Bukkit.getPlayer(id);
-            if (p == null) continue;
-            if (!p.getWorld().equals(center.getWorld())) continue;
-            if (p.getLocation().distanceSquared(center) <= RADIUS * RADIUS) {
-                capturingGuild = null;
-                progress = 0;
-                updateBossBar();
-                return;
-            }
-        }
-
-        Map<String, Integer> counts = new HashMap<>();
-        for (UUID id : attackers) {
-            Player p = Bukkit.getPlayer(id);
-            if (p == null) continue;
-            if (!p.getWorld().equals(center.getWorld())) continue;
-            if (p.getLocation().distanceSquared(center) > RADIUS * RADIUS) continue;
-            Guild g = GuildManager.getInstance().getGuild(id);
-            if (g != null) counts.merge(g.getName(), 1, Integer::sum);
-        }
-        if (counts.isEmpty()) {
+        // Defenders inside the circle pause capture progress while they contest.
+        if (hasDefenderOnPoint()) {
             capturingGuild = null;
-            progress = 0;
             updateBossBar();
             return;
         }
+
+        Map<String, Integer> counts = getAttackersOnPointByGuild();
+        if (counts.isEmpty()) {
+            // Keep progress when the point is temporarily empty so teams can
+            // continue pushing toward completion instead of starting over.
+            capturingGuild = null;
+            updateBossBar();
+            return;
+        }
+
         // Determine top guild and difference
         String top = null;
         int topCount = 0;
@@ -347,9 +323,11 @@ public class GuildSiegeManager {
         }
         int diff = topCount - second;
         if (diff <= 0) return; // contested
-        if (!top.equals(capturingGuild)) {
+        if (!Objects.equals(top, capturingGuild)) {
+            if (capturingGuild != null && !capturingGuild.equals(top)) {
+                progress = 0;
+            }
             capturingGuild = top;
-            progress = 0;
             updateBossBar();
         }
         int rate = fastCapture ? 50 : CAPTURE_RATE;
@@ -359,6 +337,41 @@ public class GuildSiegeManager {
         if (progress >= 100) {
             end(top);
         }
+    }
+
+    private boolean hasDefenderOnPoint() {
+        for (UUID id : defenders) {
+            Player p = Bukkit.getPlayer(id);
+            if (isInsideCaptureZone(p)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private Map<String, Integer> getAttackersOnPointByGuild() {
+        Map<String, Integer> counts = new HashMap<>();
+        for (UUID id : attackers) {
+            Player p = Bukkit.getPlayer(id);
+            if (!isInsideCaptureZone(p)) {
+                continue;
+            }
+            Guild g = GuildManager.getInstance().getGuild(id);
+            if (g != null) {
+                counts.merge(g.getName(), 1, Integer::sum);
+            }
+        }
+        return counts;
+    }
+
+    private boolean isInsideCaptureZone(Player player) {
+        if (player == null || center.getWorld() == null) {
+            return false;
+        }
+        if (!player.getWorld().equals(center.getWorld())) {
+            return false;
+        }
+        return player.getLocation().distanceSquared(center) <= RADIUS * RADIUS;
     }
 
     private void end(String winner) {
@@ -371,20 +384,17 @@ public class GuildSiegeManager {
         }
         captureTask = null;
         captureElapsed = 0;
-        Main.getInstance().getModelGateManager().setGateHidden("rowan", false);
         Set<String> participantGuilds = new HashSet<>();
         for (UUID id : active) {
             Guild g = GuildManager.getInstance().getGuild(id);
             if (g != null) participantGuilds.add(g.getName());
             Player p = Bukkit.getPlayer(id);
             if (p != null) {
-                ChatFormatter.sendCenteredMessage(p, " ");
                 if (winner != null) {
-                    ChatFormatter.sendCenteredMessage(p, ChatColor.GOLD + "Siege has ended!");
+                    sendCenteredBlock(p, ChatColor.GOLD + "Siege has ended!");
                 } else {
-                    ChatFormatter.sendCenteredMessage(p, ChatColor.RED + "Siege ended with no capture.");
+                    sendCenteredBlock(p, ChatColor.RED + "Siege ended with no capture.");
                 }
-                ChatFormatter.sendCenteredMessage(p, " ");
                 Main.getInstance().getLocationMusicManager().stopSiege(p);
             }
         }
@@ -423,55 +433,75 @@ public class GuildSiegeManager {
         GuildManager gm = GuildManager.getInstance();
         for (String name : participantGuilds) {
             Guild g = gm.getGuild(name);
-            if (g != null) {
-                g.addCoins(1000);
-                g.addExp(500);
-                for (UUID id : g.getMembers()) {
-                    Player p = Bukkit.getPlayer(id);
-                    if (p != null) {
-                        ChatFormatter.sendCenteredMessage(p, " ");
-                        String expColor = ChatFormatter.experienceColor();
-                        ChatFormatter.sendCenteredMessage(p, ChatColor.GRAY + "Your guild earned " + ChatColor.GOLD + "1000 <glyph:coins_icon>" + ChatColor.GRAY + " and " + expColor + "500 <glyph:experience_orb_icon>" + ChatColor.GRAY + " for participating in the siege!");
-                        ChatFormatter.sendCenteredMessage(p, " ");
-                    }
-                }
-            }
+            awardGuildRewards(g,
+                    PARTICIPATION_COINS,
+                    PARTICIPATION_EXP,
+                    ChatColor.GRAY + "Your guild earned "
+                            + ChatColor.GOLD + PARTICIPATION_COINS + " <glyph:coins_icon>"
+                            + ChatColor.GRAY + " and %s" + PARTICIPATION_EXP + " <glyph:experience_orb_icon>"
+                            + ChatColor.GRAY + " for participating in the siege!");
         }
         if (winner != null) {
             Guild g = gm.getGuild(winner);
-            if (g != null) {
-                g.addCoins(9000);
-                g.addExp(2000);
-                for (UUID id : g.getMembers()) {
-                    Player p = Bukkit.getPlayer(id);
-                    if (p != null) {
-                        ChatFormatter.sendCenteredMessage(p, " ");
-                        String expColorWin = ChatFormatter.experienceColor();
-                        ChatFormatter.sendCenteredMessage(p, ChatColor.GRAY + "Your guild won the siege and earned " + ChatColor.GOLD + "10000 <glyph:coins_icon>" + ChatColor.GRAY + " and " + expColorWin + "2000 <glyph:experience_orb_icon>" + ChatColor.GRAY + "!");
-                        ChatFormatter.sendCenteredMessage(p, " ");
-                    }
-                }
-            }
+            awardGuildRewards(g,
+                    WIN_BONUS_COINS,
+                    WIN_BONUS_EXP,
+                    ChatColor.GRAY + "Your guild won the siege and earned "
+                            + ChatColor.GOLD + (PARTICIPATION_COINS + WIN_BONUS_COINS) + " <glyph:coins_icon>"
+                            + ChatColor.GRAY + " and %s" + WIN_BONUS_EXP + " <glyph:experience_orb_icon>"
+                            + ChatColor.GRAY + "!");
         }
         gm.save();
 
         for (Player p : Bukkit.getOnlinePlayers()) {
-            ChatFormatter.sendCenteredMessage(p, " ");
-            ChatFormatter.sendCenteredMessage(p, msg);
-            ChatFormatter.sendCenteredMessage(p, " ");
+            sendCenteredBlock(p, msg);
             if (winner != null) {
                 p.playSound(p.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 1f, 1f);
             }
         }
+
+        runSiegeStep("restore Rowan gate after siege", () ->
+                Main.getInstance().getModelGateManager().setGateHidden("rowan", false));
         save();
         applyTownVisibility();
         updateOwnerHologram();
     }
 
     private void broadcast(String msg) {
-        for (UUID id : active) {
+        forEachOnline(active, p -> ChatFormatter.sendCenteredMessage(p, msg));
+    }
+
+    private void forEachOnline(Collection<UUID> playerIds, Consumer<Player> action) {
+        for (UUID id : playerIds) {
             Player p = Bukkit.getPlayer(id);
-            if (p != null) ChatFormatter.sendCenteredMessage(p, msg);
+            if (p != null) {
+                action.accept(p);
+            }
+        }
+    }
+
+    private void sendCenteredBlock(Player player, String message) {
+        ChatFormatter.sendCenteredMessage(player, " ");
+        ChatFormatter.sendCenteredMessage(player, message);
+        ChatFormatter.sendCenteredMessage(player, " ");
+    }
+
+    private void awardGuildRewards(Guild guild, int coins, int exp, String messageTemplate) {
+        if (guild == null) {
+            return;
+        }
+        guild.addCoins(coins);
+        guild.addExp(exp);
+        String expColor = ChatFormatter.experienceColor();
+        String message = String.format(messageTemplate, expColor);
+        forEachOnline(guild.getMembers(), p -> sendCenteredBlock(p, message));
+    }
+
+    private void runSiegeStep(String stepName, Runnable action) {
+        try {
+            action.run();
+        } catch (Exception ex) {
+            plugin.getLogger().warning("[Siege] Failed to " + stepName + ": " + ex.getMessage());
         }
     }
 
@@ -494,8 +524,39 @@ public class GuildSiegeManager {
         return fastCapture;
     }
 
+    private int getSiegeDurationSeconds() {
+        return fastCapture ? FAST_SIEGE_DURATION : NORMAL_SIEGE_DURATION;
+    }
+
+    private void broadcastRemainingTime(int remaining, int totalDuration) {
+        if (remaining <= 0) {
+            return;
+        }
+        if (remaining <= 5) {
+            forEachOnline(active, p -> {
+                ChatFormatter.sendCenteredMessage(p, ChatColor.GRAY + "Siege ends in "
+                        + ChatColor.YELLOW + remaining + "s");
+                p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_HAT, 1f, 1f);
+            });
+            return;
+        }
+
+        if (totalDuration >= 600) {
+            if (remaining == 600) broadcast(ChatColor.GRAY + "Siege ends in " + ChatColor.YELLOW + "10m");
+            else if (remaining == 300) broadcast(ChatColor.GRAY + "Siege ends in " + ChatColor.YELLOW + "5m");
+            else if (remaining == 60) broadcast(ChatColor.GRAY + "Siege ends in " + ChatColor.YELLOW + "1m");
+            else if (remaining == 30) broadcast(ChatColor.GRAY + "Siege ends in " + ChatColor.YELLOW + "30s");
+            else if (remaining == 10) broadcast(ChatColor.GRAY + "Siege ends in " + ChatColor.YELLOW + "10s");
+            return;
+        }
+
+        if (remaining == 30 || remaining == 15 || remaining == 10) {
+            broadcast(ChatColor.GRAY + "Siege ends in " + ChatColor.YELLOW + remaining + "s");
+        }
+    }
+
     public int getRemainingSeconds() {
-        return captureTask != null ? Math.max(0, SIEGE_DURATION - captureElapsed) : 0;
+        return captureTask != null ? Math.max(0, getSiegeDurationSeconds() - captureElapsed) : 0;
     }
 
     public String getFormattedRemaining() {
@@ -506,6 +567,9 @@ public class GuildSiegeManager {
     }
 
     private void spawnParticles() {
+        if (center.getWorld() == null) {
+            return;
+        }
         for (int i = 0; i < 40; i++) {
             double angle = (2 * Math.PI * i) / 40;
             double x = center.getX() + RADIUS * Math.cos(angle);
@@ -541,14 +605,11 @@ public class GuildSiegeManager {
     }
 
     public void refreshTownVisibility(Player p) {
-        plugin.getLogger().info("[SiegeDebug] Refresh visibility for " + p.getName());
         EnvironmentManager env = Main.getInstance().getEnvironmentManager();
         env.hideAllBuildingHolograms(p);
         env.removeAllBuildingHolograms(p.getUniqueId());
         Guild g = GuildManager.getInstance().getGuild(p.getUniqueId());
-        String gName = g != null ? g.getName() : "none";
         boolean allowed = ownerGuild == null || (g != null && ownerGuild.equalsIgnoreCase(g.getName()));
-        plugin.getLogger().info("[SiegeDebug] owner=" + ownerGuild + " playerGuild=" + gName + " allowed=" + allowed);
         if (allowed) {
             if (g != null && !g.getLeader().equals(p.getUniqueId())) {
                 env.shareTownWithMember(g.getLeader(), p.getUniqueId());
@@ -557,7 +618,6 @@ public class GuildSiegeManager {
                 env.markTownLoaded(p, true);
             }
             env.initializePlayer(p);
-            plugin.getLogger().info("[SiegeDebug] Initialized holograms for " + p.getName());
         } else {
             env.removeGuildMember(p.getUniqueId());
             env.unloadPlayerTown(p);

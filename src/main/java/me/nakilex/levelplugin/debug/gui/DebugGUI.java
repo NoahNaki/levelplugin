@@ -185,7 +185,8 @@ public class DebugGUI implements Listener {
         return GuiUtil.createToggleItem(
                 fast,
                 "§bFast Siege",
-                "§750% progress per second");
+                "§750% progress per second",
+                "§7~45s siege duration");
     }
 
     private ItemStack createExpeditionItem() {
