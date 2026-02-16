@@ -4,7 +4,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.horse.data.HorseData;
 import me.nakilex.levelplugin.horse.managers.HorseManager;
-import me.nakilex.levelplugin.particles.presets.ElementalPresets;
+import me.nakilex.levelplugin.horse.managers.HorseTrailService;
 import me.nakilex.levelplugin.quests.def.StableKeeperQuest;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
@@ -24,12 +24,11 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitTask;
 
-import java.util.List;
-import java.util.UUID;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Locale;
+import java.util.UUID;
 
 import static me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
 import static me.nakilex.levelplugin.utils.ChatMessageUtil.send;
@@ -37,18 +36,16 @@ import static me.nakilex.levelplugin.utils.ChatMessageUtil.send;
 public class HorseGUI implements Listener {
 
     private final HorseManager horseManager;
-    private final EconomyManager economyManager; // Added EconomyManager for handling costs
+    private final EconomyManager economyManager;
     private final Map<UUID, List<GuiWidget>> widgetsByPlayer = new HashMap<>();
     private final Map<UUID, BukkitTask> refreshTasks = new HashMap<>();
-    private final int REROLL_COST = 300; // Set the cost for rerolling horses
+    private static final int REROLL_COST = 300;
 
-    // Constructor
     public HorseGUI(HorseManager horseManager, EconomyManager economyManager) {
         this.horseManager = horseManager;
         this.economyManager = economyManager;
     }
 
-    // Open or refresh the horse GUI
     public void openHorseMenu(Player player) {
         if (!StableKeeperQuest.hasUnlockedHorseMenu(player.getUniqueId())) {
             send(player, MessageType.WARNING,
@@ -59,43 +56,35 @@ public class HorseGUI implements Listener {
         Inventory gui = GuiBuilder.create(36, "Horse Menu")
                 .filler(Material.GRAY_STAINED_GLASS_PANE)
                 .build();
-        List<GuiWidget> widgets = buildWidgets(player);
+        List<GuiWidget> widgets = buildWidgets();
         widgetsByPlayer.put(playerUUID, widgets);
         renderWidgets(gui, player, widgets);
 
-        // Open the GUI
         player.openInventory(gui);
-
-        // Start auto-update for live refresh
         startAutoUpdate(player, gui);
     }
 
     private ItemStack createHorseInfoItem(HorseData horseData) {
         if (horseData != null) {
-            // Generate star ratings for speed and jump height
             String speedStars = GuiUtil.glyphStars(Math.min(horseData.getSpeed(), 5));
             String jumpStars = GuiUtil.glyphStars(Math.min(horseData.getJumpHeight(), 5));
-
-            // Format horse type (capitalize first letter)
             String formattedType = horseData.getType().substring(0, 1).toUpperCase() + horseData.getType().substring(1).toLowerCase();
 
-            // Create and return the horse info item
             List<String> lore = new ArrayList<>();
             lore.add(" ");
             lore.add("§7Type: §f" + formattedType);
             lore.add("§7Speed: §6" + speedStars);
             lore.add("§7Jump: §6" + jumpStars);
-            lore.add("§7Trail: §d" + formatTrailName(horseData.getTrailPreset()));
+            lore.add("§7Trail: §d" + horseManager.formatTrailPresetName(horseData.getTrailPreset()));
             return GuiUtil.createGuiItem(Material.BOOK, "§bYour Horse", lore);
         }
-        // Fallback if no horse data is found
+
         List<String> lore = new ArrayList<>();
         lore.add(" ");
         lore.add("§7You don't own a horse yet!");
         return GuiUtil.createGuiItem(Material.BARRIER, "§cNo Horse Owned", lore);
     }
 
-    // Create the reroll button with cost details
     private ItemStack createRerollButton(UUID playerUUID) {
         boolean free = StableKeeperQuest.shouldReceiveFreeReroll(playerUUID);
         String costLine = free
@@ -116,7 +105,31 @@ public class HorseGUI implements Listener {
         return GuiUtil.createGuiItem(Material.SADDLE, "§aBuy a New Horse", lore);
     }
 
-    // Update the GUI dynamically without closing it
+    private ItemStack createTrailButton(UUID playerUUID) {
+        HorseData horseData = horseManager.getHorse(playerUUID);
+        String current = horseData != null ? horseData.getTrailPreset() : HorseTrailService.OFF_PRESET;
+        List<String> options = horseManager.getTrailPresetOptions();
+
+        List<String> lore = new ArrayList<>();
+        lore.add(" ");
+        lore.add("§7Current Trail: §b" + horseManager.formatTrailPresetName(current));
+        lore.add(" ");
+        lore.add("§7Available:");
+
+        int preview = Math.min(5, options.size());
+        for (int i = 0; i < preview; i++) {
+            String option = options.get(i);
+            lore.add(TooltipUtil.selectionLine(option.equalsIgnoreCase(current), horseManager.formatTrailPresetName(option)));
+        }
+        if (options.size() > preview) {
+            lore.add("§8... and " + (options.size() - preview) + " more");
+        }
+
+        lore.add(" ");
+        lore.addAll(TooltipUtil.clickInstructions("to cycle trail", "to cycle backwards"));
+        return GuiUtil.createGuiItem(Material.BLAZE_POWDER, "§dHorse Trail", lore);
+    }
+
     private void updateHorseInfo(Inventory inventory, UUID playerUUID) {
         List<GuiWidget> widgets = widgetsByPlayer.get(playerUUID);
         if (widgets == null) {
@@ -125,13 +138,12 @@ public class HorseGUI implements Listener {
         renderWidgets(inventory, Bukkit.getPlayer(playerUUID), widgets);
     }
 
-    // Automatically refresh the GUI every second
     public void startAutoUpdate(Player player, Inventory inventory) {
         UUID playerUUID = player.getUniqueId();
         stopAutoUpdate(playerUUID);
 
         BukkitTask task = Bukkit.getScheduler().runTaskTimer(
-                me.nakilex.levelplugin.Main.getInstance(),
+                Main.getInstance(),
                 () -> {
                     if (!player.isOnline()) {
                         stopAutoUpdate(playerUUID);
@@ -141,9 +153,9 @@ public class HorseGUI implements Listener {
                         stopAutoUpdate(playerUUID);
                         return;
                     }
-                    updateHorseInfo(inventory, playerUUID); // Refresh stats
+                    updateHorseInfo(inventory, playerUUID);
                 },
-                0L, 20L // 20 ticks = 1 second
+                0L, 20L
         );
         refreshTasks.put(playerUUID, task);
     }
@@ -155,20 +167,18 @@ public class HorseGUI implements Listener {
         }
     }
 
-    // Handle GUI clicks
     @EventHandler
     public void handleSaddleClick(InventoryClickEvent event) {
-        if (!(event.getWhoClicked() instanceof Player)) return;
-
-        Player player = (Player) event.getWhoClicked();
-        Inventory inventory = event.getInventory();
-
-        // Check if the inventory is the horse menu
-        if (!event.getView().getTitle().equals("Horse Menu")) return;
+        if (!(event.getWhoClicked() instanceof Player player)) {
+            return;
+        }
+        if (!"Horse Menu".equals(event.getView().getTitle())) {
+            return;
+        }
         if (handleWidgetClick(event, player)) {
             return;
         }
-        event.setCancelled(true); // Prevent taking/moving items
+        event.setCancelled(true);
     }
 
     @EventHandler
@@ -193,14 +203,11 @@ public class HorseGUI implements Listener {
                         "You don't have enough coins to buy a new horse! (Cost: §6" + rerollCost + " <glyph:coins_icon>§c)");
                 return;
             }
-
-            // Deduct coins and reroll the horse
             economyManager.deductCoins(player, rerollCost);
         }
-        horseManager.dismountHorse(player); // Force dismount before rerolling
-        horseManager.rerollHorse(playerUUID);
 
-        // Update the horse stats immediately in the GUI
+        horseManager.dismountHorse(player);
+        horseManager.rerollHorse(playerUUID);
         updateHorseInfo(inventory, playerUUID);
 
         var questManager = Main.getInstance().getQuestManager();
@@ -209,76 +216,11 @@ public class HorseGUI implements Listener {
         }
 
         if (rerollCost == 0) {
-            send(player, MessageType.SUCCESS,
-                    "You received your first horse on the house!");
+            send(player, MessageType.SUCCESS, "You received your first horse on the house!");
         } else {
             send(player, MessageType.SUCCESS,
                     "You bought a new horse for §6" + rerollCost + " <glyph:coins_icon>§a!");
         }
-    }
-
-    private int getRerollCost(UUID playerUUID) {
-        return StableKeeperQuest.shouldReceiveFreeReroll(playerUUID) ? 0 : REROLL_COST;
-    }
-
-
-    private ItemStack createTrailButton(UUID playerUUID) {
-        HorseData horseData = horseManager.getHorse(playerUUID);
-        String current = horseData != null ? horseData.getTrailPreset() : "OFF";
-        String prettyCurrent = formatTrailName(current);
-        List<String> lore = new ArrayList<>();
-        lore.add(" ");
-        lore.add("§7Current Trail: §b" + prettyCurrent);
-        lore.add(" ");
-        lore.add("§7Available:");
-        lore.add(TooltipUtil.selectionLine("OFF".equalsIgnoreCase(current), "Off"));
-        for (String name : ElementalPresets.getPresetNames().stream().limit(4).toList()) {
-            lore.add(TooltipUtil.selectionLine(name.equalsIgnoreCase(current), formatTrailName(name)));
-        }
-        lore.add(" ");
-        lore.addAll(TooltipUtil.clickInstructions("to cycle trail", "to cycle backwards"));
-        return GuiUtil.createGuiItem(Material.BLAZE_POWDER, "§dHorse Trail", lore);
-    }
-
-    private String formatTrailName(String name) {
-        if (name == null || name.isBlank() || "OFF".equalsIgnoreCase(name)) {
-            return "Off";
-        }
-        String lower = name.toLowerCase(Locale.ROOT).replace('_', ' ');
-        String[] parts = lower.split(" ");
-        StringBuilder out = new StringBuilder();
-        for (String part : parts) {
-            if (part.isBlank()) {
-                continue;
-            }
-            if (!out.isEmpty()) {
-                out.append(' ');
-            }
-            out.append(Character.toUpperCase(part.charAt(0))).append(part.substring(1));
-        }
-        return out.toString();
-    }
-
-    private String cycleTrailPreset(String current, boolean backwards) {
-        List<String> options = new ArrayList<>();
-        options.add("OFF");
-        options.addAll(ElementalPresets.getPresetNames());
-
-        int index = 0;
-        for (int i = 0; i < options.size(); i++) {
-            if (options.get(i).equalsIgnoreCase(current)) {
-                index = i;
-                break;
-            }
-        }
-
-        index = backwards ? index - 1 : index + 1;
-        if (index < 0) {
-            index = options.size() - 1;
-        } else if (index >= options.size()) {
-            index = 0;
-        }
-        return options.get(index);
     }
 
     private void handleTrailCycle(Player player, boolean backwards, Inventory inventory) {
@@ -286,13 +228,18 @@ public class HorseGUI implements Listener {
         if (horseData == null) {
             return;
         }
-        String next = cycleTrailPreset(horseData.getTrailPreset(), backwards);
+        String next = horseManager.cycleTrailPreset(horseData.getTrailPreset(), backwards);
         horseManager.setTrailPreset(player.getUniqueId(), next);
         updateHorseInfo(inventory, player.getUniqueId());
-        send(player, MessageType.SUCCESS, "Horse trail set to §b" + formatTrailName(next) + "§a.");
+        send(player, MessageType.SUCCESS,
+                "Horse trail set to §b" + horseManager.formatTrailPresetName(next) + "§a.");
     }
 
-    private List<GuiWidget> buildWidgets(Player player) {
+    private int getRerollCost(UUID playerUUID) {
+        return StableKeeperQuest.shouldReceiveFreeReroll(playerUUID) ? 0 : REROLL_COST;
+    }
+
+    private List<GuiWidget> buildWidgets() {
         List<GuiWidget> widgets = new ArrayList<>();
         widgets.add(new ActionWidget(11,
                 context -> createHorseInfoItem(horseManager.getHorse(context.player().getUniqueId())),

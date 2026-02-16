@@ -2,9 +2,7 @@ package me.nakilex.levelplugin.horse.managers;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.horse.data.HorseData;
-import me.nakilex.levelplugin.particles.ParticlePreset;
 import me.nakilex.levelplugin.particles.ParticleService;
-import me.nakilex.levelplugin.particles.presets.ElementalPresets;
 import me.nakilex.levelplugin.player.battlepass.BattlePassManager;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -22,9 +20,9 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.scheduler.BukkitTask;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -40,18 +38,17 @@ public class HorseManager implements Listener {
     private static final double JUMP_DELTA_Y_THRESHOLD = 0.35;
 
     private final HorseConfigManager configManager;
-    private final ParticleService particleService;
+    private final HorseTrailService trailService;
     private final Map<UUID, HorseData> horses = new HashMap<>();
     private final Map<UUID, Long> lastSpawnTimestamps = new HashMap<>();
     private final Map<UUID, UUID> activeHorseByPlayer = new HashMap<>();
-    private final Map<UUID, BukkitTask> trailTasks = new HashMap<>();
     private final Map<UUID, Location> lastRideLocation = new HashMap<>();
     private final Map<UUID, Boolean> wasOnGround = new HashMap<>();
 
     // Constructor to accept HorseConfigManager
     public HorseManager(HorseConfigManager configManager) {
         this.configManager = configManager;
-        this.particleService = new ParticleService(Main.getInstance());
+        this.trailService = new HorseTrailService(new ParticleService(Main.getInstance()));
         Bukkit.getPluginManager().registerEvents(this, Main.getInstance());
 
         // Load all previously saved horses into memory
@@ -87,7 +84,7 @@ public class HorseManager implements Listener {
         if (data == null) {
             return;
         }
-        data.setTrailPreset(presetName);
+        data.setTrailPreset(trailService.normalizePreset(presetName));
         configManager.saveHorseData(uuid, data);
 
         Player player = Bukkit.getPlayer(uuid);
@@ -154,40 +151,21 @@ public class HorseManager implements Listener {
 
     public void updateActiveHorseTrail(Player player) {
         UUID ownerId = player.getUniqueId();
-        stopTrail(ownerId);
+        trailService.stopTrail(ownerId);
 
         HorseData data = horses.get(ownerId);
-        if (data == null || !data.hasTrailPreset()) {
+        if (data == null) {
             return;
         }
 
         UUID activeHorseId = activeHorseByPlayer.get(ownerId);
-        if (activeHorseId == null) {
-            return;
-        }
-
-        Entity entity = Bukkit.getEntity(activeHorseId);
-        if (!(entity instanceof AbstractHorse horse) || !horse.isValid()) {
+        AbstractHorse horse = trailService.resolveOwnedHorse(ownerId, activeHorseId);
+        if (horse == null) {
             activeHorseByPlayer.remove(ownerId);
             return;
         }
 
-        ParticlePreset preset = ElementalPresets.getPreset(data.getTrailPreset());
-        if (preset == null) {
-            return;
-        }
-
-        BukkitTask task = particleService.renderPresetWhile(
-                player,
-                preset,
-                () -> horse.isValid() ? horse.getLocation().clone().add(0, 1.1, 0) : null,
-                () -> player.isOnline()
-                        && horse.isValid()
-                        && player.isInsideVehicle()
-                        && player.getVehicle() != null
-                        && player.getVehicle().getUniqueId().equals(horse.getUniqueId())
-        );
-        trailTasks.put(ownerId, task);
+        trailService.startTrail(ownerId, player, horse, data.getTrailPreset());
     }
 
     public void dismountHorse(Player player) {
@@ -202,7 +180,7 @@ public class HorseManager implements Listener {
     public void clearPlayerData(UUID uuid) {
         horses.remove(uuid);
         lastSpawnTimestamps.remove(uuid);
-        stopTrail(uuid);
+        trailService.stopTrail(uuid);
         activeHorseByPlayer.remove(uuid);
         lastRideLocation.remove(uuid);
         wasOnGround.remove(uuid);
@@ -287,7 +265,7 @@ public class HorseManager implements Listener {
         if (active instanceof AbstractHorse horse) {
             cleanupActiveHorse(playerId, horse, true);
         } else {
-            stopTrail(playerId);
+            trailService.stopTrail(playerId);
             activeHorseByPlayer.remove(playerId);
             lastRideLocation.remove(playerId);
             wasOnGround.remove(playerId);
@@ -303,7 +281,7 @@ public class HorseManager implements Listener {
     }
 
     private void cleanupActiveHorse(UUID ownerId, AbstractHorse horse, boolean removeEntity) {
-        stopTrail(ownerId);
+        trailService.stopTrail(ownerId);
         activeHorseByPlayer.remove(ownerId);
         lastRideLocation.remove(ownerId);
         wasOnGround.remove(ownerId);
@@ -312,10 +290,15 @@ public class HorseManager implements Listener {
         }
     }
 
-    private void stopTrail(UUID ownerId) {
-        BukkitTask task = trailTasks.remove(ownerId);
-        if (task != null) {
-            task.cancel();
-        }
+    public List<String> getTrailPresetOptions() {
+        return trailService.getPresetOptions();
+    }
+
+    public String cycleTrailPreset(String current, boolean backwards) {
+        return trailService.cyclePreset(current, backwards);
+    }
+
+    public String formatTrailPresetName(String presetName) {
+        return trailService.formatPresetName(presetName);
     }
 }
