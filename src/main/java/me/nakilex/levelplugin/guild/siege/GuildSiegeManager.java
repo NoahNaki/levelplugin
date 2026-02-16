@@ -206,7 +206,8 @@ public class GuildSiegeManager {
         active.addAll(defenders);
         progress = 0;
         capturingGuild = null;
-        Main.getInstance().getModelGateManager().setGateHidden("rowan", true);
+        runSiegeStep("hide Rowan gate for siege", () ->
+                Main.getInstance().getModelGateManager().setGateHidden("rowan", true));
 
         if (ownerHologram != null) {
             ownerHologram.despawn();
@@ -383,7 +384,6 @@ public class GuildSiegeManager {
         }
         captureTask = null;
         captureElapsed = 0;
-        Main.getInstance().getModelGateManager().setGateHidden("rowan", false);
         Set<String> participantGuilds = new HashSet<>();
         for (UUID id : active) {
             Guild g = GuildManager.getInstance().getGuild(id);
@@ -459,6 +459,9 @@ public class GuildSiegeManager {
                 p.playSound(p.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 1f, 1f);
             }
         }
+
+        runSiegeStep("restore Rowan gate after siege", () ->
+                Main.getInstance().getModelGateManager().setGateHidden("rowan", false));
         save();
         applyTownVisibility();
         updateOwnerHologram();
@@ -492,6 +495,14 @@ public class GuildSiegeManager {
         String expColor = ChatFormatter.experienceColor();
         String message = String.format(messageTemplate, expColor);
         forEachOnline(guild.getMembers(), p -> sendCenteredBlock(p, message));
+    }
+
+    private void runSiegeStep(String stepName, Runnable action) {
+        try {
+            action.run();
+        } catch (Exception ex) {
+            plugin.getLogger().warning("[Siege] Failed to " + stepName + ": " + ex.getMessage());
+        }
     }
 
     public boolean isActive(UUID id) { return active.contains(id); }
