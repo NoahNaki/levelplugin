@@ -117,11 +117,11 @@ public class HorseTrailService {
                         stopTrail(ownerId);
                         return;
                     }
-                    var loc = horse.getLocation().clone().add(0, 0.6, 0);
-                    horse.getWorld().spawnParticle(particle, loc, 2, 0.08, 0.02, 0.08, 0.0);
+                    var loc = horse.getLocation().clone().add(0, 0.65, 0);
+                    horse.getWorld().spawnParticle(particle, loc, 5, 0.14, 0.04, 0.14, 0.0);
                 },
                 0L,
-                4L
+                2L
         );
         trailTasks.put(ownerId, task);
     }

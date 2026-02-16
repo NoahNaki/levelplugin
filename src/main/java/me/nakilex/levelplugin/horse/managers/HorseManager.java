@@ -35,6 +35,7 @@ public class HorseManager implements Listener {
     private static final long COOLDOWN_MS = 5_000L; // 5 seconds
     private static final double MOVE_EPSILON_SQUARED = 0.0001;
     private static final double JUMP_DELTA_Y_THRESHOLD = 0.35;
+    private static final String OWNED_HORSE_TAG = "levelplugin_owned_horse";
 
     private final HorseConfigManager configManager;
     private final HorseTrailService trailService;
@@ -125,6 +126,7 @@ public class HorseManager implements Listener {
                 break;
         }
 
+        horse.addScoreboardTag(OWNED_HORSE_TAG);
         horse.setOwner(player);
         horse.setTamed(true);
         horse.setCustomName(player.getName() + "'s Horse");
@@ -286,6 +288,38 @@ public class HorseManager implements Listener {
         wasOnGround.remove(ownerId);
         if (removeEntity && horse != null && horse.isValid()) {
             horse.remove();
+        }
+    }
+
+
+    /**
+     * Cleanup mounted horses and trail tasks on plugin shutdown/reload.
+     */
+    public void shutdown() {
+        for (UUID ownerId : new java.util.ArrayList<>(activeHorseByPlayer.keySet())) {
+            Entity active = getActiveHorseEntity(ownerId);
+            if (active instanceof AbstractHorse horse) {
+                cleanupActiveHorse(ownerId, horse, true);
+            } else {
+                trailService.stopTrail(ownerId);
+                activeHorseByPlayer.remove(ownerId);
+                lastRideLocation.remove(ownerId);
+                wasOnGround.remove(ownerId);
+            }
+        }
+
+        trailService.stopAll();
+
+        for (org.bukkit.World world : Bukkit.getWorlds()) {
+            for (Entity entity : world.getEntities()) {
+                if (!(entity instanceof AbstractHorse horse)) {
+                    continue;
+                }
+                if (!horse.getScoreboardTags().contains(OWNED_HORSE_TAG)) {
+                    continue;
+                }
+                horse.remove();
+            }
         }
     }
 

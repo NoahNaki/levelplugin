@@ -716,6 +716,7 @@ public class PluginBootstrap {
         if (dpsDummyManager != null) dpsDummyManager.shutdown();
         if (customMobManager != null) customMobManager.getSpawnerManager().shutdown();
         if (petManager != null) petManager.shutdown();
+        if (horseManager != null) horseManager.shutdown();
         if (dungeonManager != null) {
             dungeonManager.cleanupInstances();
             dungeonManager.cleanupOldInstanceWorlds();
