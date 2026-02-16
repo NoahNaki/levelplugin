@@ -74,7 +74,7 @@ commands:
     description: Change to an unlocked subclass
     usage: /subclass
   addmob:
-    description: Spawns custom mobs
+    description: Spawns mobs
     usage: /addmob <mobid> <amount>
     permission: none
   balance:
@@ -300,7 +300,7 @@ commands:
     description: Spawn an entity with ModelEngine models for testing
     usage: /se <entity> <model...> | /se list
   custommob:
-    description: Manage custom mobs
+    description: Manage mobs
     usage: /custommob <list|spawn|info|reload|gui|kill|killall|spawner>
     aliases: [cm]
   pet:

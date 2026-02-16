@@ -29,7 +29,7 @@ public final class MobUtil {
 
 
     /**
-     * Returns true when the entity is one of our configured custom mobs.
+     * Returns true when the entity is one of our configured mobs.
      */
     public static boolean isCustomMob(LivingEntity entity) {
         if (entity == null) {

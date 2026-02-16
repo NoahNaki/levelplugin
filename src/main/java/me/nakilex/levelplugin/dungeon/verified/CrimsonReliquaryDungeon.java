@@ -955,7 +955,7 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
     private java.util.List<org.bukkit.entity.LivingEntity> spawnCustomMob(String mobId, Location location) {
         CustomMobManager manager = plugin.getCustomMobManager();
         if (manager == null || manager.getDefinition(mobId).isEmpty()) {
-            plugin.getLogger().warning("[Dungeon] Custom mob '" + mobId + "' is not configured.");
+            plugin.getLogger().warning("[Dungeon] Mob '" + mobId + "' is not configured.");
             return java.util.List.of();
         }
         return manager.spawn(mobId, location, 1);

@@ -45,8 +45,8 @@ public class CustomMobAdminGUI implements Listener {
     private final Map<UUID, Integer> mobPages = new java.util.HashMap<>();
     private final Map<UUID, Integer> spawnerPages = new java.util.HashMap<>();
 
-    private final String mainTitle = ChatUtil.applyEmojis("§8Custom Mob Admin");
-    private final String mobsTitle = ChatUtil.applyEmojis("§8Custom Mobs");
+    private final String mainTitle = ChatUtil.applyEmojis("§8Mob Admin");
+    private final String mobsTitle = ChatUtil.applyEmojis("§8Mobs");
     private final String spawnersTitle = ChatUtil.applyEmojis("§8Custom Spawners");
 
     public CustomMobAdminGUI(Main plugin,
@@ -220,13 +220,13 @@ public class CustomMobAdminGUI implements Listener {
     private List<GuiWidget> buildMainWidgets() {
         List<GuiWidget> widgets = new ArrayList<>();
         widgets.add(new ActionWidget(11,
-                context -> createMenuItem(Material.SPAWNER, "§aCustom Mobs",
-                        TooltipUtil.bulletList("Spawn or inspect custom mobs."),
+                context -> createMenuItem(Material.SPAWNER, "§aMobs",
+                        TooltipUtil.bulletList("Spawn or inspect mobs."),
                         TooltipUtil.clickInstructions("to open mob list", null)),
                 (click, context) -> openMobs(context.player(), mobPages.getOrDefault(context.player().getUniqueId(), 0))));
         widgets.add(new ActionWidget(15,
                 context -> createMenuItem(Material.END_CRYSTAL, "§bSpawners",
-                        TooltipUtil.bulletList("Manage custom mob spawners."),
+                        TooltipUtil.bulletList("Manage mob spawners."),
                         TooltipUtil.clickInstructions("to open spawner list", null)),
                 (click, context) -> openSpawners(context.player(), spawnerPages.getOrDefault(context.player().getUniqueId(), 0))));
         return widgets;
@@ -310,7 +310,7 @@ public class CustomMobAdminGUI implements Listener {
         var spawned = mobManager.spawn(mobId, player.getLocation(), amount);
         if (spawned.isEmpty()) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
-                    "Failed to spawn custom mob: " + mobId);
+                    "Failed to spawn mob: " + mobId);
             return;
         }
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,

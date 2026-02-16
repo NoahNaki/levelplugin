@@ -118,7 +118,7 @@ public class DungeonMobSpawnListener implements Listener {
             Location spawn = new Location(room.center.getWorld(), x + 0.5, room.center.getY(), z + 0.5);
             if (customMobManager == null || customMobManager.getDefinition(spawnKey).isEmpty()) {
                 plugin.getLogger().warning(String.format(
-                        "[DungeonSpawn] Custom mob '%s' failed to spawn at %s",
+                        "[DungeonSpawn] Mob '%s' failed to spawn at %s",
                         key,
                         LocationUtils.blockLocationString(spawn)));
                 continue;
@@ -130,7 +130,7 @@ public class DungeonMobSpawnListener implements Listener {
                 spawned++;
             } else {
                 plugin.getLogger().warning(String.format(
-                        "[DungeonSpawn] Custom mob '%s' failed to spawn at %s",
+                        "[DungeonSpawn] Mob '%s' failed to spawn at %s",
                         key,
                         LocationUtils.blockLocationString(spawn)));
             }
@@ -159,7 +159,7 @@ public class DungeonMobSpawnListener implements Listener {
                     mobId));
         }
         if (customMobManager == null || customMobManager.getDefinition(mobId).isEmpty()) {
-            Main.getInstance().getLogger().warning("[DungeonBoss] Custom mob '" + mobId + "' could not be spawned");
+            Main.getInstance().getLogger().warning("[DungeonBoss] Mob '" + mobId + "' could not be spawned");
             return;
         }
         var mobs = customMobManager.spawn(mobId, room.bossSpawn, 1);
@@ -171,7 +171,7 @@ public class DungeonMobSpawnListener implements Listener {
                     mobId,
                     LocationUtils.blockLocationString(room.bossSpawn)));
         } else {
-            Main.getInstance().getLogger().warning("[DungeonBoss] Custom mob '" + mobId + "' could not be spawned");
+            Main.getInstance().getLogger().warning("[DungeonBoss] Mob '" + mobId + "' could not be spawned");
         }
     }
 

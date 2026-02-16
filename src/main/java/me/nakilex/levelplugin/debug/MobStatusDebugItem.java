@@ -68,11 +68,11 @@ public final class MobStatusDebugItem {
 
     private static String getDescription(CustomMobStatus status) {
         return switch (status) {
-            case STUNNED -> "Hit a custom mob to stun it.";
-            case POISONED -> "Hit a custom mob to poison it.";
-            case TAUNTED -> "Hit a custom mob to taunt it.";
-            case FEARED -> "Hit a custom mob to fear it.";
-            case SLOWED -> "Hit a custom mob to slow it.";
+            case STUNNED -> "Hit a mob to stun it.";
+            case POISONED -> "Hit a mob to poison it.";
+            case TAUNTED -> "Hit a mob to taunt it.";
+            case FEARED -> "Hit a mob to fear it.";
+            case SLOWED -> "Hit a mob to slow it.";
         };
     }
 

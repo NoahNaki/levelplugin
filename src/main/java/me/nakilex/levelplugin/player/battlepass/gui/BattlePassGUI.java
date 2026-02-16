@@ -176,7 +176,7 @@ public class BattlePassGUI implements Listener {
             List<String> lore = new ArrayList<>();
             lore.add(ChatColor.GRAY + "Complete activities to earn XP:");
             lore.addAll(TooltipUtil.bulletList(
-                    ChatColor.YELLOW + "Defeat custom mobs",
+                    ChatColor.YELLOW + "Defeat mobs",
                     ChatColor.YELLOW + "Open loot chests",
                     ChatColor.YELLOW + "Discover fast travel points"
             ));
