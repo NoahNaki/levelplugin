@@ -61,7 +61,8 @@ public class GuildSiegeManager {
     private String capturingGuild = null;
     private int progress = 0;
     private static final int CAPTURE_RATE = 1;
-    private static final int SIEGE_DURATION = 600; // seconds
+    private static final int NORMAL_SIEGE_DURATION = 600; // seconds
+    private static final int FAST_SIEGE_DURATION = 45; // seconds
     private static final int PARTICIPATION_COINS = 1000;
     private static final int PARTICIPATION_EXP = 500;
     private static final int WIN_BONUS_COINS = 9000;
@@ -241,28 +242,16 @@ public class GuildSiegeManager {
         captureTask = new BukkitRunnable() {
             @Override
             public void run() {
-                int remaining = SIEGE_DURATION - captureElapsed;
-                switch (remaining) {
-                    case 600: broadcast(ChatColor.GRAY + "Siege ends in " + ChatColor.YELLOW + "10m"); break;
-                    case 300: broadcast(ChatColor.GRAY + "Siege ends in " + ChatColor.YELLOW + "5m"); break;
-                    case 60: broadcast(ChatColor.GRAY + "Siege ends in " + ChatColor.YELLOW + "1m"); break;
-                    case 30: broadcast(ChatColor.GRAY + "Siege ends in " + ChatColor.YELLOW + "30s"); break;
-                    case 10: broadcast(ChatColor.GRAY + "Siege ends in " + ChatColor.YELLOW + "10s"); break;
-                    case 5: case 4: case 3: case 2: case 1:
-                        forEachOnline(active, p -> {
-                            ChatFormatter.sendCenteredMessage(p, ChatColor.GRAY + "Siege ends in "
-                                    + ChatColor.YELLOW + remaining + "s");
-                            p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_HAT, 1f, 1f);
-                        });
-                        break;
-                }
+                int siegeDuration = getSiegeDurationSeconds();
+                int remaining = siegeDuration - captureElapsed;
+                broadcastRemainingTime(remaining, siegeDuration);
 
                 tickCapture();
                 if (captureTask == null) {
                     return;
                 }
                 captureElapsed++;
-                if (captureElapsed >= SIEGE_DURATION) {
+                if (captureElapsed >= siegeDuration) {
                     end(ownerGuild);
                 }
             }
@@ -333,9 +322,11 @@ public class GuildSiegeManager {
         }
         int diff = topCount - second;
         if (diff <= 0) return; // contested
-        if (!top.equals(capturingGuild)) {
+        if (!Objects.equals(top, capturingGuild)) {
+            if (capturingGuild != null && !capturingGuild.equals(top)) {
+                progress = 0;
+            }
             capturingGuild = top;
-            progress = 0;
             updateBossBar();
         }
         int rate = fastCapture ? 50 : CAPTURE_RATE;
@@ -522,8 +513,39 @@ public class GuildSiegeManager {
         return fastCapture;
     }
 
+    private int getSiegeDurationSeconds() {
+        return fastCapture ? FAST_SIEGE_DURATION : NORMAL_SIEGE_DURATION;
+    }
+
+    private void broadcastRemainingTime(int remaining, int totalDuration) {
+        if (remaining <= 0) {
+            return;
+        }
+        if (remaining <= 5) {
+            forEachOnline(active, p -> {
+                ChatFormatter.sendCenteredMessage(p, ChatColor.GRAY + "Siege ends in "
+                        + ChatColor.YELLOW + remaining + "s");
+                p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_HAT, 1f, 1f);
+            });
+            return;
+        }
+
+        if (totalDuration >= 600) {
+            if (remaining == 600) broadcast(ChatColor.GRAY + "Siege ends in " + ChatColor.YELLOW + "10m");
+            else if (remaining == 300) broadcast(ChatColor.GRAY + "Siege ends in " + ChatColor.YELLOW + "5m");
+            else if (remaining == 60) broadcast(ChatColor.GRAY + "Siege ends in " + ChatColor.YELLOW + "1m");
+            else if (remaining == 30) broadcast(ChatColor.GRAY + "Siege ends in " + ChatColor.YELLOW + "30s");
+            else if (remaining == 10) broadcast(ChatColor.GRAY + "Siege ends in " + ChatColor.YELLOW + "10s");
+            return;
+        }
+
+        if (remaining == 30 || remaining == 15 || remaining == 10) {
+            broadcast(ChatColor.GRAY + "Siege ends in " + ChatColor.YELLOW + remaining + "s");
+        }
+    }
+
     public int getRemainingSeconds() {
-        return captureTask != null ? Math.max(0, SIEGE_DURATION - captureElapsed) : 0;
+        return captureTask != null ? Math.max(0, getSiegeDurationSeconds() - captureElapsed) : 0;
     }
 
     public String getFormattedRemaining() {
