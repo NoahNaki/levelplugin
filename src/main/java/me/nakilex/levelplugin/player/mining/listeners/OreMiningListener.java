@@ -418,6 +418,9 @@ public class OreMiningListener implements Listener {
         if (xp > 0) {
             miningManager.addXP(p, xp);
         }
+        if (plugin.getQuestManager() != null) {
+            plugin.getQuestManager().handleMineOre(p, type);
+        }
 
         // Give material drops directly to the contributing player
         me.nakilex.levelplugin.player.mining.items.MiningMaterial mat =

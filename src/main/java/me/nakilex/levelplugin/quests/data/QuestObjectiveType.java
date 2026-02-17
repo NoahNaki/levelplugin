@@ -39,5 +39,6 @@ public enum QuestObjectiveType {
     DUNGEON_CREATE,
     DUNGEON_COMPLETE,
     CAPTURE_FISH,
-    GATHER_CROPS
+    GATHER_CROPS,
+    MINE_ORE
 }

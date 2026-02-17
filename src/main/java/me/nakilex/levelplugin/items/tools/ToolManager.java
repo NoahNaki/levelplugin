@@ -46,6 +46,13 @@ public class ToolManager {
         addTool(Material.DIAMOND_PICKAXE, ToolTier.TIER_V, ToolDiscipline.MINING);
         addTool(Material.NETHERITE_PICKAXE, ToolTier.TIER_VI, ToolDiscipline.MINING);
 
+        addTool(Material.WOODEN_AXE, ToolTier.TIER_I, ToolDiscipline.WOODCUTTING);
+        addTool(Material.STONE_AXE, ToolTier.TIER_II, ToolDiscipline.WOODCUTTING);
+        addTool(Material.GOLDEN_AXE, ToolTier.TIER_III, ToolDiscipline.WOODCUTTING);
+        addTool(Material.IRON_AXE, ToolTier.TIER_IV, ToolDiscipline.WOODCUTTING);
+        addTool(Material.DIAMOND_AXE, ToolTier.TIER_V, ToolDiscipline.WOODCUTTING);
+        addTool(Material.NETHERITE_AXE, ToolTier.TIER_VI, ToolDiscipline.WOODCUTTING);
+
         addTool(Material.WOODEN_HOE, ToolTier.TIER_I, ToolDiscipline.FARMING);
         addTool(Material.STONE_HOE, ToolTier.TIER_II, ToolDiscipline.FARMING);
         addTool(Material.GOLDEN_HOE, ToolTier.TIER_III, ToolDiscipline.FARMING);
@@ -70,6 +77,7 @@ public class ToolManager {
             case MINING -> " Pickaxe";
             case FARMING -> " Scythe";
             case FISHING -> " Fishing Rod";
+            case WOODCUTTING -> " Axe";
         };
         String name = "Tier " + tier.getTierName() + suffix;
         CustomTool tool = new CustomTool(UUID.randomUUID(), name, mat, tier, discipline, nexoId);
@@ -141,6 +149,7 @@ public class ToolManager {
             case FARMING -> Main.getInstance().getFarmingManager().getLevel(player);
             case FISHING -> Main.getInstance().getFishingManager().getLevel(player);
             case MINING -> Main.getInstance().getMiningManager().getLevel(player);
+            case WOODCUTTING -> Main.getInstance().getWoodcuttingManager().getLevel(player);
         };
     }
 

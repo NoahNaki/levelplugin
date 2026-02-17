@@ -37,10 +37,12 @@ public class ToolBrowser implements CommandExecutor, Listener {
         List<CustomTool> mining = ToolManager.getInstance().getTools(ToolDiscipline.MINING);
         List<CustomTool> farming = ToolManager.getInstance().getTools(ToolDiscipline.FARMING);
         List<CustomTool> fishing = ToolManager.getInstance().getTools(ToolDiscipline.FISHING);
-        Inventory inv = Bukkit.createInventory(null, 27, TITLE);
+        List<CustomTool> woodcutting = ToolManager.getInstance().getTools(ToolDiscipline.WOODCUTTING);
+        Inventory inv = Bukkit.createInventory(null, 36, TITLE);
         fillRow(inv, 0, mining, player);
         fillRow(inv, 9, farming, player);
         fillRow(inv, 18, fishing, player);
+        fillRow(inv, 27, woodcutting, player);
         player.openInventory(inv);
     }
 
