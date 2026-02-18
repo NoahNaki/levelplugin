@@ -3,8 +3,10 @@ package me.nakilex.levelplugin.spells;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.particles.ParticleService;
 import me.nakilex.levelplugin.player.classes.data.ClassUtil;
+import me.nakilex.levelplugin.spells.impl.MageBasicAttackSpell;
 import me.nakilex.levelplugin.spells.impl.MeteorSpell;
 import me.nakilex.levelplugin.spells.input.SpellInputMode;
+import me.nakilex.levelplugin.spells.input.SpellInputType;
 
 public final class SpellCatalog {
     private SpellCatalog() {
@@ -16,6 +18,12 @@ public final class SpellCatalog {
         }
         SpellRegistry registry = SpellRegistry.getInstance();
         ParticleService particleService = new ParticleService(plugin);
+
+        SpellDefinition mageBasicAttack = new SpellDefinition("mage_basic_attack", "Mage Basic Attack", 0, false);
+        registry.registerSpell(mageBasicAttack, new MageBasicAttackSpell(plugin));
+        registry.registerProgression(new SpellProgression(mageBasicAttack.id(), null));
+        registry.registerBinding(SpellBinding.forInputType(mageBasicAttack.id(), ClassUtil::isMageFamily,
+                SpellInputType.BASIC_ATTACK));
 
         SpellDefinition meteor = new SpellDefinition("meteor", "Meteor", 18, false);
         registry.registerSpell(meteor, new MeteorSpell(plugin, particleService));
