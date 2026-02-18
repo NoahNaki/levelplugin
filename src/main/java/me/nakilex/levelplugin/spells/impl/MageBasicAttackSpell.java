@@ -55,6 +55,8 @@ public class MageBasicAttackSpell implements SpellHandler {
         Location spawn = eye.clone().add(direction.clone().multiply(0.6)).add(0.0, MODEL_HEIGHT_OFFSET, 0.0);
         Location spawnFacing = resolveFacingLocation(spawn, castYaw, castPitch);
 
+        float finalYaw = castYaw + MODEL_YAW_OFFSET;
+        float finalPitch = castPitch;
         ArmorStand projectile = world.spawn(spawnFacing, ArmorStand.class, stand -> {
             stand.setInvisible(true);
             stand.setMarker(true);
@@ -62,13 +64,26 @@ public class MageBasicAttackSpell implements SpellHandler {
             stand.setSilent(true);
             stand.setCollidable(false);
             stand.setInvulnerable(true);
+            stand.setRotation(finalYaw, finalPitch);
         });
+        syncModelTransform(projectile, spawn, castYaw, castPitch);
+
         ModelEngineUtil.ModelApplyResult result = ModelEngineUtil.applyModels(projectile, List.of(MODEL_ID), plugin);
         if (!result.failed().isEmpty()) {
             plugin.getLogger().warning("Mage basic attack failed to apply model: " + String.join(", ", result.failed()));
         }
         syncModelTransform(projectile, spawn, castYaw, castPitch);
         logCastFacingDebug(caster, projectile, castYaw, castPitch);
+
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                if (!projectile.isValid()) {
+                    return;
+                }
+                syncModelTransform(projectile, spawn, castYaw, castPitch);
+            }
+        }.runTask(plugin);
 
         launchProjectile(caster, projectile, direction, castYaw, castPitch);
     }
