@@ -30,7 +30,7 @@ public class MageBasicAttackSpell implements SpellHandler {
     private static final double INTELLIGENCE_SCALING = 0.35;
     private static final double TECHNIQUE_SCALING = 0.001;
     private static final double MODEL_HEIGHT_OFFSET = -1.55;
-    private static final float MODEL_YAW_OFFSET = 90.0f;
+    private static final float MODEL_YAW_OFFSET = 0.0f;
     private static final double PARTICLE_HEIGHT_OFFSET = 1.0;
 
     private final Main plugin;
