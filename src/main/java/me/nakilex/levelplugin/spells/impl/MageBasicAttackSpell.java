@@ -29,7 +29,7 @@ public class MageBasicAttackSpell implements SpellHandler {
     private static final double BASE_DAMAGE = 3.0;
     private static final double INTELLIGENCE_SCALING = 0.35;
     private static final double TECHNIQUE_SCALING = 0.001;
-    private static final double MODEL_HEIGHT_OFFSET = -1.5;
+    private static final double MODEL_HEIGHT_OFFSET = -1.55;
     private static final float MODEL_YAW_OFFSET = 90.0f;
     private static final double PARTICLE_HEIGHT_OFFSET = 1.0;
 
@@ -64,7 +64,8 @@ public class MageBasicAttackSpell implements SpellHandler {
         if (!result.failed().isEmpty()) {
             plugin.getLogger().warning("Mage basic attack failed to apply model: " + String.join(", ", result.failed()));
         }
-        applyModelRotation(projectile, eye.getYaw(), eye.getPitch());
+        syncModelTransform(projectile, projectile.getLocation(), eye.getYaw(), eye.getPitch());
+        logCastFacingDebug(caster, projectile, direction);
 
         launchProjectile(caster, projectile, direction);
     }
@@ -115,12 +116,12 @@ public class MageBasicAttackSpell implements SpellHandler {
                     return;
                 }
 
-                Location moved = current.clone().add(direction.clone().multiply(SPEED_PER_TICK));
-                float nextYaw = yawFromDirection(direction);
-                float nextPitch = pitchFromDirection(direction);
+                Vector runtimeDirection = direction.clone().normalize();
+                Location moved = current.clone().add(runtimeDirection.clone().multiply(SPEED_PER_TICK));
+                float nextYaw = yawFromDirection(runtimeDirection);
+                float nextPitch = pitchFromDirection(runtimeDirection);
                 Location next = resolveFacingLocation(moved, nextYaw, nextPitch);
-                projectile.teleport(next);
-                applyModelRotation(projectile, nextYaw, nextPitch);
+                syncModelTransform(projectile, moved, nextYaw, nextPitch);
                 renderTravel(next);
                 travelled += SPEED_PER_TICK;
             }
@@ -172,11 +173,36 @@ public class MageBasicAttackSpell implements SpellHandler {
         return (float) Math.toDegrees(-Math.atan2(direction.getY(), horizontal));
     }
 
-    private void applyModelRotation(ArmorStand projectile, float baseYaw, float basePitch) {
-        if (projectile == null) {
+    private void syncModelTransform(ArmorStand projectile, Location target, float baseYaw, float basePitch) {
+        if (projectile == null || !projectile.isValid() || target == null) {
             return;
         }
-        projectile.setRotation(baseYaw + MODEL_YAW_OFFSET, basePitch);
+        float finalYaw = baseYaw + MODEL_YAW_OFFSET;
+        Location transformed = target.clone();
+        transformed.setYaw(finalYaw);
+        transformed.setPitch(basePitch);
+        projectile.teleport(transformed);
+        projectile.setRotation(finalYaw, basePitch);
+    }
+
+    private void logCastFacingDebug(Player caster, ArmorStand projectile, Vector castDirection) {
+        if (plugin == null || caster == null || projectile == null || castDirection == null) {
+            return;
+        }
+        float castYaw = yawFromDirection(castDirection);
+        float castPitch = pitchFromDirection(castDirection);
+        Location projectileLoc = projectile.getLocation();
+        plugin.getLogger().info("[MageFireballDebug] player=" + caster.getName()
+                + " playerYaw=" + eyeFmt(caster.getEyeLocation().getYaw())
+                + " playerPitch=" + eyeFmt(caster.getEyeLocation().getPitch())
+                + " castYaw=" + eyeFmt(castYaw)
+                + " castPitch=" + eyeFmt(castPitch)
+                + " modelYaw=" + eyeFmt(projectileLoc.getYaw())
+                + " modelPitch=" + eyeFmt(projectileLoc.getPitch()));
+    }
+
+    private String eyeFmt(float value) {
+        return String.format(java.util.Locale.ROOT, "%.2f", value);
     }
 
     private void hitEntity(Player caster, LivingEntity target, Location impact) {
