@@ -74,16 +74,10 @@ public class MageBasicAttackSpell implements SpellHandler {
         }
         syncModelTransform(projectile, spawn, castYaw, castPitch);
         logCastFacingDebug(caster, projectile, castYaw, castPitch);
-
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                if (!projectile.isValid()) {
-                    return;
-                }
-                syncModelTransform(projectile, spawn, castYaw, castPitch);
-            }
-        }.runTask(plugin);
+        plugin.getLogger().info("[MageFireballDebugSpawn] y=" + eyeFmt(projectile.getLocation().getYaw())
+                + " p=" + eyeFmt(projectile.getLocation().getPitch())
+                + " expectedY=" + eyeFmt(castYaw + MODEL_YAW_OFFSET)
+                + " expectedP=" + eyeFmt(castPitch));
 
         launchProjectile(caster, projectile, direction, castYaw, castPitch);
     }
@@ -158,7 +152,7 @@ public class MageBasicAttackSpell implements SpellHandler {
                 }
                 cancel();
             }
-        }.runTaskTimer(plugin, 0L, 1L);
+        }.runTaskTimer(plugin, 1L, 1L);
     }
 
     private boolean isValidTarget(Entity entity, Player caster) {
