@@ -16,6 +16,7 @@ import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Snowball;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
@@ -49,43 +50,40 @@ public class MageBasicAttackSpell implements SpellHandler {
             return;
         }
 
-        ArmorStand projectile = spawnProjectile(transform);
+        Snowball projectile = spawnProjectile(caster, transform);
         if (projectile == null) {
             return;
         }
 
         applyModel(projectile);
-        lockFacing(projectile, transform);
+        syncProjectileTransform(projectile, transform, transform.spawn());
         logCastFacingDebug(caster, projectile, transform);
         launchProjectile(caster, projectile, transform);
     }
 
-    private ArmorStand spawnProjectile(CastTransform transform) {
+    private Snowball spawnProjectile(Player caster, CastTransform transform) {
         World world = transform.spawn().getWorld();
         if (world == null) {
             return null;
         }
-        return world.spawn(transform.spawn(), ArmorStand.class, stand -> {
-            stand.setInvisible(true);
-            stand.setMarker(false);
-            stand.setSmall(true);
-            stand.setGravity(false);
-            stand.setSilent(true);
-            stand.setCollidable(false);
-            stand.setInvulnerable(true);
-            stand.teleport(transform.oriented(transform.spawn()));
-            stand.setRotation(transform.facingYaw(), transform.facingPitch());
+        return world.spawn(transform.spawn(), Snowball.class, snowball -> {
+            snowball.setShooter(caster);
+            snowball.setGravity(false);
+            snowball.setSilent(true);
+            snowball.setInvulnerable(true);
+            snowball.setVelocity(new Vector(0, 0, 0));
+            syncProjectileTransform(snowball, transform, transform.spawn());
         });
     }
 
-    private void applyModel(ArmorStand projectile) {
+    private void applyModel(Entity projectile) {
         ModelEngineUtil.ModelApplyResult result = ModelEngineUtil.applyModels(projectile, List.of(MODEL_ID), plugin);
         if (!result.failed().isEmpty()) {
             plugin.getLogger().warning("Mage basic attack failed to apply model: " + String.join(", ", result.failed()));
         }
     }
 
-    private void launchProjectile(Player caster, ArmorStand projectile, CastTransform transform) {
+    private void launchProjectile(Player caster, Snowball projectile, CastTransform transform) {
         new BukkitRunnable() {
             private double travelled;
             private double remainingGroundPenetration = GROUND_PENETRATION_BLOCKS;
@@ -141,7 +139,7 @@ public class MageBasicAttackSpell implements SpellHandler {
                 }
 
                 Location moved = current.clone().add(transform.travelDirection().clone().multiply(step));
-                lockFacing(projectile, transform, moved);
+                syncProjectileTransform(projectile, transform, moved);
                 renderTravel(moved);
                 travelled += step;
             }
@@ -174,20 +172,16 @@ public class MageBasicAttackSpell implements SpellHandler {
         return entityDistance <= blockDistance;
     }
 
-    private void lockFacing(ArmorStand projectile, CastTransform transform) {
-        lockFacing(projectile, transform, projectile.getLocation());
-    }
-
-    private void lockFacing(ArmorStand projectile, CastTransform transform, Location target) {
+    private void syncProjectileTransform(Snowball projectile, CastTransform transform, Location target) {
         if (projectile == null || !projectile.isValid() || transform == null || target == null) {
             return;
         }
         Location transformed = transform.oriented(target);
         projectile.teleport(transformed);
-        projectile.setRotation(transform.facingYaw(), transform.facingPitch());
+        projectile.setVelocity(new Vector(0, 0, 0));
     }
 
-    private void logCastFacingDebug(Player caster, ArmorStand projectile, CastTransform transform) {
+    private void logCastFacingDebug(Player caster, Entity projectile, CastTransform transform) {
         if (plugin == null || caster == null || projectile == null || transform == null) {
             return;
         }
@@ -245,8 +239,7 @@ public class MageBasicAttackSpell implements SpellHandler {
     private record CastTransform(Location spawn,
                                  Vector travelDirection,
                                  float facingYaw,
-                                 float facingPitch,
-                                 float yawOffset) {
+                                 float facingPitch) {
         static CastTransform fromCaster(Player caster, float yawOffset, double heightOffset) {
             if (caster == null) {
                 return null;
@@ -257,8 +250,7 @@ public class MageBasicAttackSpell implements SpellHandler {
             return new CastTransform(spawn,
                     direction,
                     eye.getYaw() + yawOffset,
-                    eye.getPitch(),
-                    yawOffset);
+                    eye.getPitch());
         }
 
         Location oriented(Location location) {
@@ -266,6 +258,7 @@ public class MageBasicAttackSpell implements SpellHandler {
                 return null;
             }
             Location oriented = location.clone();
+            oriented.setDirection(travelDirection);
             oriented.setYaw(facingYaw);
             oriented.setPitch(facingPitch);
             return oriented;
