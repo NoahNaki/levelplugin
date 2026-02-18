@@ -21,6 +21,7 @@ import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 
 import java.util.List;
+import java.util.Locale;
 
 public class MageBasicAttackSpell implements SpellHandler {
     private static final String MODEL_ID = "fireball";
@@ -43,46 +44,48 @@ public class MageBasicAttackSpell implements SpellHandler {
     @Override
     public void cast(SpellContext context) {
         Player caster = context.player();
-        Location eye = caster.getEyeLocation();
-        World world = eye.getWorld();
-        if (world == null) {
+        CastTransform transform = CastTransform.fromCaster(caster, MODEL_YAW_OFFSET, MODEL_HEIGHT_OFFSET);
+        if (transform == null || transform.spawn().getWorld() == null) {
             return;
         }
 
-        Vector direction = eye.getDirection().normalize();
-        float castYaw = eye.getYaw();
-        float castPitch = eye.getPitch();
-        Location spawn = eye.clone().add(direction.clone().multiply(0.6)).add(0.0, MODEL_HEIGHT_OFFSET, 0.0);
-        Location spawnFacing = resolveFacingLocation(spawn, castYaw, castPitch);
+        ArmorStand projectile = spawnProjectile(transform);
+        if (projectile == null) {
+            return;
+        }
 
-        float finalYaw = castYaw + MODEL_YAW_OFFSET;
-        float finalPitch = castPitch;
-        ArmorStand projectile = world.spawn(spawnFacing, ArmorStand.class, stand -> {
+        applyModel(projectile);
+        lockFacing(projectile, transform);
+        logCastFacingDebug(caster, projectile, transform);
+        launchProjectile(caster, projectile, transform);
+    }
+
+    private ArmorStand spawnProjectile(CastTransform transform) {
+        World world = transform.spawn().getWorld();
+        if (world == null) {
+            return null;
+        }
+        return world.spawn(transform.spawn(), ArmorStand.class, stand -> {
             stand.setInvisible(true);
-            stand.setMarker(true);
+            stand.setMarker(false);
+            stand.setSmall(true);
             stand.setGravity(false);
             stand.setSilent(true);
             stand.setCollidable(false);
             stand.setInvulnerable(true);
-            stand.setRotation(finalYaw, finalPitch);
+            stand.teleport(transform.oriented(transform.spawn()));
+            stand.setRotation(transform.facingYaw(), transform.facingPitch());
         });
-        syncModelTransform(projectile, spawn, castYaw, castPitch);
+    }
 
+    private void applyModel(ArmorStand projectile) {
         ModelEngineUtil.ModelApplyResult result = ModelEngineUtil.applyModels(projectile, List.of(MODEL_ID), plugin);
         if (!result.failed().isEmpty()) {
             plugin.getLogger().warning("Mage basic attack failed to apply model: " + String.join(", ", result.failed()));
         }
-        syncModelTransform(projectile, spawn, castYaw, castPitch);
-        logCastFacingDebug(caster, projectile, castYaw, castPitch);
-        plugin.getLogger().info("[MageFireballDebugSpawn] y=" + eyeFmt(projectile.getLocation().getYaw())
-                + " p=" + eyeFmt(projectile.getLocation().getPitch())
-                + " expectedY=" + eyeFmt(castYaw + MODEL_YAW_OFFSET)
-                + " expectedP=" + eyeFmt(castPitch));
-
-        launchProjectile(caster, projectile, direction, castYaw, castPitch);
     }
 
-    private void launchProjectile(Player caster, ArmorStand projectile, Vector direction, float castYaw, float castPitch) {
+    private void launchProjectile(Player caster, ArmorStand projectile, CastTransform transform) {
         new BukkitRunnable() {
             private double travelled;
             private double remainingGroundPenetration = GROUND_PENETRATION_BLOCKS;
@@ -102,14 +105,14 @@ public class MageBasicAttackSpell implements SpellHandler {
                 Location current = projectile.getLocation();
                 RayTraceResult blockHit = current.getWorld().rayTraceBlocks(
                         current,
-                        direction,
+                        transform.travelDirection(),
                         SPEED_PER_TICK,
                         FluidCollisionMode.NEVER,
                         true);
 
                 RayTraceResult entityHit = current.getWorld().rayTraceEntities(
                         current,
-                        direction,
+                        transform.travelDirection(),
                         SPEED_PER_TICK,
                         0.5,
                         entity -> isValidTarget(entity, caster));
@@ -122,28 +125,25 @@ public class MageBasicAttackSpell implements SpellHandler {
                     return;
                 }
 
-                Vector runtimeDirection = direction.clone().normalize();
-                if (blockHit != null) {
-                    double step = Math.min(SPEED_PER_TICK, Math.max(0.0, remainingGroundPenetration));
-                    Location moved = current.clone().add(runtimeDirection.clone().multiply(step));
-                    Location next = resolveFacingLocation(moved, castYaw, castPitch);
-                    syncModelTransform(projectile, moved, castYaw, castPitch);
-                    renderTravel(next);
-                    travelled += step;
-                    remainingGroundPenetration -= step;
-                    if (remainingGroundPenetration <= 0.0) {
-                        despawnAt(moved);
-                        cleanup();
-                    }
+                if (blockHit != null && remainingGroundPenetration <= 0.0) {
+                    Location impact = blockHit.getHitPosition().toLocation(current.getWorld());
+                    despawnAt(impact);
+                    cleanup();
                     return;
                 }
 
-                Location moved = current.clone().add(runtimeDirection.clone().multiply(SPEED_PER_TICK));
-                Location next = resolveFacingLocation(moved, castYaw, castPitch);
-                syncModelTransform(projectile, moved, castYaw, castPitch);
-                renderTravel(next);
-                travelled += SPEED_PER_TICK;
-                remainingGroundPenetration = GROUND_PENETRATION_BLOCKS;
+                double step = SPEED_PER_TICK;
+                if (blockHit != null) {
+                    step = Math.min(SPEED_PER_TICK, Math.max(0.0, remainingGroundPenetration));
+                    remainingGroundPenetration -= step;
+                } else {
+                    remainingGroundPenetration = GROUND_PENETRATION_BLOCKS;
+                }
+
+                Location moved = current.clone().add(transform.travelDirection().clone().multiply(step));
+                lockFacing(projectile, transform, moved);
+                renderTravel(moved);
+                travelled += step;
             }
 
             private void cleanup() {
@@ -174,44 +174,35 @@ public class MageBasicAttackSpell implements SpellHandler {
         return entityDistance <= blockDistance;
     }
 
-    private Location resolveFacingLocation(Location location, float baseYaw, float basePitch) {
-        if (location == null) {
-            return null;
-        }
-        Location oriented = location.clone();
-        oriented.setYaw(baseYaw + MODEL_YAW_OFFSET);
-        oriented.setPitch(basePitch);
-        return oriented;
+    private void lockFacing(ArmorStand projectile, CastTransform transform) {
+        lockFacing(projectile, transform, projectile.getLocation());
     }
 
-    private void syncModelTransform(ArmorStand projectile, Location target, float baseYaw, float basePitch) {
-        if (projectile == null || !projectile.isValid() || target == null) {
+    private void lockFacing(ArmorStand projectile, CastTransform transform, Location target) {
+        if (projectile == null || !projectile.isValid() || transform == null || target == null) {
             return;
         }
-        float finalYaw = baseYaw + MODEL_YAW_OFFSET;
-        Location transformed = target.clone();
-        transformed.setYaw(finalYaw);
-        transformed.setPitch(basePitch);
+        Location transformed = transform.oriented(target);
         projectile.teleport(transformed);
-        projectile.setRotation(finalYaw, basePitch);
+        projectile.setRotation(transform.facingYaw(), transform.facingPitch());
     }
 
-    private void logCastFacingDebug(Player caster, ArmorStand projectile, float castYaw, float castPitch) {
-        if (plugin == null || caster == null || projectile == null) {
+    private void logCastFacingDebug(Player caster, ArmorStand projectile, CastTransform transform) {
+        if (plugin == null || caster == null || projectile == null || transform == null) {
             return;
         }
         Location projectileLoc = projectile.getLocation();
-        plugin.getLogger().info("[MageFireballDebug] player=" + caster.getName()
-                + " playerYaw=" + eyeFmt(caster.getEyeLocation().getYaw())
-                + " playerPitch=" + eyeFmt(caster.getEyeLocation().getPitch())
-                + " castYaw=" + eyeFmt(castYaw)
-                + " castPitch=" + eyeFmt(castPitch)
-                + " modelYaw=" + eyeFmt(projectileLoc.getYaw())
-                + " modelPitch=" + eyeFmt(projectileLoc.getPitch()));
+        plugin.getLogger().info("[MageFireballDebugSpawn] player=" + caster.getName()
+                + " playerYaw=" + fmt(caster.getEyeLocation().getYaw())
+                + " playerPitch=" + fmt(caster.getEyeLocation().getPitch())
+                + " facingYaw=" + fmt(transform.facingYaw())
+                + " facingPitch=" + fmt(transform.facingPitch())
+                + " modelYaw=" + fmt(projectileLoc.getYaw())
+                + " modelPitch=" + fmt(projectileLoc.getPitch()));
     }
 
-    private String eyeFmt(float value) {
-        return String.format(java.util.Locale.ROOT, "%.2f", value);
+    private String fmt(float value) {
+        return String.format(Locale.ROOT, "%.2f", value);
     }
 
     private void hitEntity(Player caster, LivingEntity target, Location impact) {
@@ -249,5 +240,35 @@ public class MageBasicAttackSpell implements SpellHandler {
             return;
         }
         world.spawnParticle(Particle.SMOKE, impact, 4, 0.15, 0.15, 0.15, 0.01);
+    }
+
+    private record CastTransform(Location spawn,
+                                 Vector travelDirection,
+                                 float facingYaw,
+                                 float facingPitch,
+                                 float yawOffset) {
+        static CastTransform fromCaster(Player caster, float yawOffset, double heightOffset) {
+            if (caster == null) {
+                return null;
+            }
+            Location eye = caster.getEyeLocation();
+            Vector direction = eye.getDirection().normalize();
+            Location spawn = eye.clone().add(direction.clone().multiply(0.6)).add(0.0, heightOffset, 0.0);
+            return new CastTransform(spawn,
+                    direction,
+                    eye.getYaw() + yawOffset,
+                    eye.getPitch(),
+                    yawOffset);
+        }
+
+        Location oriented(Location location) {
+            if (location == null) {
+                return null;
+            }
+            Location oriented = location.clone();
+            oriented.setYaw(facingYaw);
+            oriented.setPitch(facingPitch);
+            return oriented;
+        }
     }
 }
