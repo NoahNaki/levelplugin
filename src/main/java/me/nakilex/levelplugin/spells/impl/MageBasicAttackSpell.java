@@ -31,6 +31,7 @@ public class MageBasicAttackSpell implements SpellHandler {
     private static final double TECHNIQUE_SCALING = 0.001;
     private static final double MODEL_HEIGHT_OFFSET = -1.0;
     private static final float MODEL_YAW_OFFSET = 90.0f;
+    private static final double PARTICLE_HEIGHT_OFFSET = 1.0;
 
     private final Main plugin;
 
@@ -58,6 +59,7 @@ public class MageBasicAttackSpell implements SpellHandler {
             stand.setCollidable(false);
             stand.setInvulnerable(true);
         });
+        applyModelRotation(projectile, direction);
 
         ModelEngineUtil.ModelApplyResult result = ModelEngineUtil.applyModels(projectile, List.of(MODEL_ID), plugin);
         if (!result.failed().isEmpty()) {
@@ -115,6 +117,7 @@ public class MageBasicAttackSpell implements SpellHandler {
 
                 Location next = orientForModel(current.clone().add(direction.clone().multiply(SPEED_PER_TICK)), direction);
                 projectile.teleport(next);
+                applyModelRotation(projectile, direction);
                 renderTravel(next);
                 travelled += SPEED_PER_TICK;
             }
@@ -157,6 +160,15 @@ public class MageBasicAttackSpell implements SpellHandler {
         return oriented;
     }
 
+    private void applyModelRotation(ArmorStand projectile, Vector direction) {
+        if (projectile == null || direction == null) {
+            return;
+        }
+        Location facing = projectile.getLocation().clone();
+        facing.setDirection(direction);
+        projectile.setRotation(facing.getYaw() + MODEL_YAW_OFFSET, facing.getPitch());
+    }
+
     private void hitEntity(Player caster, LivingEntity target, Location impact) {
         double damage = SpellDamageUtil.computeScaledDamage(
                 caster,
@@ -182,7 +194,8 @@ public class MageBasicAttackSpell implements SpellHandler {
         if (world == null) {
             return;
         }
-        world.spawnParticle(Particle.SMALL_FLAME, location, 2, 0.05, 0.05, 0.05, 0.0);
+        Location trail = location.clone().add(0.0, PARTICLE_HEIGHT_OFFSET, 0.0);
+        world.spawnParticle(Particle.SMALL_FLAME, trail, 2, 0.05, 0.05, 0.05, 0.0);
     }
 
     private void despawnAt(Location impact) {
