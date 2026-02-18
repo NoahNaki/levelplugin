@@ -29,6 +29,8 @@ public class MageBasicAttackSpell implements SpellHandler {
     private static final double BASE_DAMAGE = 3.0;
     private static final double INTELLIGENCE_SCALING = 0.35;
     private static final double TECHNIQUE_SCALING = 0.001;
+    private static final double MODEL_HEIGHT_OFFSET = -1.0;
+    private static final float MODEL_YAW_OFFSET = 90.0f;
 
     private final Main plugin;
 
@@ -46,7 +48,7 @@ public class MageBasicAttackSpell implements SpellHandler {
         }
 
         Vector direction = eye.getDirection().normalize();
-        Location spawn = eye.clone().add(direction.clone().multiply(0.6));
+        Location spawn = orientForModel(eye.clone().add(direction.clone().multiply(0.6)).add(0.0, MODEL_HEIGHT_OFFSET, 0.0), direction);
 
         ArmorStand projectile = world.spawn(spawn, ArmorStand.class, stand -> {
             stand.setInvisible(true);
@@ -111,7 +113,7 @@ public class MageBasicAttackSpell implements SpellHandler {
                     return;
                 }
 
-                Location next = current.clone().add(direction.clone().multiply(SPEED_PER_TICK));
+                Location next = orientForModel(current.clone().add(direction.clone().multiply(SPEED_PER_TICK)), direction);
                 projectile.teleport(next);
                 renderTravel(next);
                 travelled += SPEED_PER_TICK;
@@ -143,6 +145,16 @@ public class MageBasicAttackSpell implements SpellHandler {
         double entityDistance = origin.toVector().distance(entityHit.getHitPosition());
         double blockDistance = origin.toVector().distance(blockHit.getHitPosition());
         return entityDistance <= blockDistance;
+    }
+
+    private Location orientForModel(Location location, Vector direction) {
+        if (location == null || direction == null) {
+            return location;
+        }
+        Location oriented = location.clone();
+        oriented.setDirection(direction);
+        oriented.setYaw(oriented.getYaw() + MODEL_YAW_OFFSET);
+        return oriented;
     }
 
     private void hitEntity(Player caster, LivingEntity target, Location impact) {
