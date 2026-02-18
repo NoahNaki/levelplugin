@@ -1,9 +1,12 @@
 package me.nakilex.levelplugin.spells;
 
+import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
+import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.Location;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
@@ -13,6 +16,8 @@ import java.util.List;
 import java.util.function.Predicate;
 
 public final class SpellEffectUtil {
+    public static final String BYPASS_STAT_SCALING_META = "BypassStatScaling";
+
     private SpellEffectUtil() {
     }
 
@@ -47,6 +52,35 @@ public final class SpellEffectUtil {
         }
         for (LivingEntity target : getLivingTargets(center, radius, living -> !living.equals(source))) {
             target.damage(damage, source);
+        }
+    }
+
+    public static double computeIntTecScaledDamage(Player caster,
+                                                   double baseDamage,
+                                                   double intelligenceScale,
+                                                   double techniqueScale) {
+        if (caster == null) {
+            return Math.max(0.0, baseDamage);
+        }
+        StatsManager.PlayerStats stats = StatsManager.getInstance().getPlayerStats(caster.getUniqueId());
+        int intelligence = stats.baseIntelligence + stats.bonusIntelligence;
+        int technique = stats.baseTechnique + stats.bonusTechnique;
+        double value = Math.max(0.0, baseDamage + intelligence * intelligenceScale);
+        return value * (1.0 + technique * techniqueScale);
+    }
+
+    public static void applyDirectSpellDamage(Plugin plugin,
+                                              Player caster,
+                                              LivingEntity target,
+                                              double damage) {
+        if (plugin == null || caster == null || target == null || damage <= 0.0) {
+            return;
+        }
+        caster.setMetadata(BYPASS_STAT_SCALING_META, new FixedMetadataValue(plugin, true));
+        try {
+            target.damage(damage, caster);
+        } finally {
+            caster.removeMetadata(BYPASS_STAT_SCALING_META, plugin);
         }
     }
 
