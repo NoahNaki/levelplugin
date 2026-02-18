@@ -29,7 +29,7 @@ public class MageBasicAttackSpell implements SpellHandler {
     private static final double BASE_DAMAGE = 3.0;
     private static final double INTELLIGENCE_SCALING = 0.35;
     private static final double TECHNIQUE_SCALING = 0.001;
-    private static final double MODEL_HEIGHT_OFFSET = -1.25;
+    private static final double MODEL_HEIGHT_OFFSET = -1.5;
     private static final float MODEL_YAW_OFFSET = 90.0f;
     private static final double PARTICLE_HEIGHT_OFFSET = 1.0;
 
@@ -49,9 +49,10 @@ public class MageBasicAttackSpell implements SpellHandler {
         }
 
         Vector direction = eye.getDirection().normalize();
-        Location spawn = orientForModel(eye.clone().add(direction.clone().multiply(0.6)).add(0.0, MODEL_HEIGHT_OFFSET, 0.0), direction);
+        Location spawn = eye.clone().add(direction.clone().multiply(0.6)).add(0.0, MODEL_HEIGHT_OFFSET, 0.0);
+        Location spawnFacing = resolveFacingLocation(spawn, eye.getYaw(), eye.getPitch());
 
-        ArmorStand projectile = world.spawn(spawn, ArmorStand.class, stand -> {
+        ArmorStand projectile = world.spawn(spawnFacing, ArmorStand.class, stand -> {
             stand.setInvisible(true);
             stand.setMarker(true);
             stand.setGravity(false);
@@ -59,12 +60,11 @@ public class MageBasicAttackSpell implements SpellHandler {
             stand.setCollidable(false);
             stand.setInvulnerable(true);
         });
-        applyModelRotation(projectile, direction, spawn);
-
         ModelEngineUtil.ModelApplyResult result = ModelEngineUtil.applyModels(projectile, List.of(MODEL_ID), plugin);
         if (!result.failed().isEmpty()) {
             plugin.getLogger().warning("Mage basic attack failed to apply model: " + String.join(", ", result.failed()));
         }
+        applyModelRotation(projectile, eye.getYaw(), eye.getPitch());
 
         launchProjectile(caster, projectile, direction);
     }
@@ -115,9 +115,12 @@ public class MageBasicAttackSpell implements SpellHandler {
                     return;
                 }
 
-                Location next = orientForModel(current.clone().add(direction.clone().multiply(SPEED_PER_TICK)), direction);
-                applyModelRotation(projectile, direction, next);
+                Location moved = current.clone().add(direction.clone().multiply(SPEED_PER_TICK));
+                float nextYaw = yawFromDirection(direction);
+                float nextPitch = pitchFromDirection(direction);
+                Location next = resolveFacingLocation(moved, nextYaw, nextPitch);
                 projectile.teleport(next);
+                applyModelRotation(projectile, nextYaw, nextPitch);
                 renderTravel(next);
                 travelled += SPEED_PER_TICK;
             }
@@ -150,27 +153,30 @@ public class MageBasicAttackSpell implements SpellHandler {
         return entityDistance <= blockDistance;
     }
 
-    private Location orientForModel(Location location, Vector direction) {
-        if (location == null || direction == null) {
-            return location;
+    private Location resolveFacingLocation(Location location, float baseYaw, float basePitch) {
+        if (location == null) {
+            return null;
         }
         Location oriented = location.clone();
-        oriented.setDirection(direction);
-        oriented.setYaw(oriented.getYaw() + MODEL_YAW_OFFSET);
+        oriented.setYaw(baseYaw + MODEL_YAW_OFFSET);
+        oriented.setPitch(basePitch);
         return oriented;
     }
 
-    private void applyModelRotation(ArmorStand projectile, Vector direction, Location atLocation) {
-        if (projectile == null || direction == null || atLocation == null) {
+    private float yawFromDirection(Vector direction) {
+        return (float) Math.toDegrees(Math.atan2(-direction.getX(), direction.getZ()));
+    }
+
+    private float pitchFromDirection(Vector direction) {
+        double horizontal = Math.sqrt(direction.getX() * direction.getX() + direction.getZ() * direction.getZ());
+        return (float) Math.toDegrees(-Math.atan2(direction.getY(), horizontal));
+    }
+
+    private void applyModelRotation(ArmorStand projectile, float baseYaw, float basePitch) {
+        if (projectile == null) {
             return;
         }
-        Location facing = atLocation.clone();
-        facing.setDirection(direction);
-        float yaw = facing.getYaw() + MODEL_YAW_OFFSET;
-        float pitch = facing.getPitch();
-        facing.setYaw(yaw);
-        facing.setPitch(pitch);
-        projectile.setRotation(yaw, pitch);
+        projectile.setRotation(baseYaw + MODEL_YAW_OFFSET, basePitch);
     }
 
     private void hitEntity(Player caster, LivingEntity target, Location impact) {
