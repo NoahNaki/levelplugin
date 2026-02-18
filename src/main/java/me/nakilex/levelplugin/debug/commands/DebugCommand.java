@@ -3,8 +3,10 @@ package me.nakilex.levelplugin.debug.commands;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import me.nakilex.levelplugin.Main;
@@ -38,20 +40,25 @@ import me.nakilex.levelplugin.utils.RewardBombUtil;
 import me.nakilex.levelplugin.utils.ToggleFeedbackUtil;
 import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
+import me.nakilex.levelplugin.utils.ModelEngineUtil;
 import me.nakilex.levelplugin.guild.siege.GuildSiegeManager;
 import me.nakilex.levelplugin.guild.GuildManager;
 import org.bukkit.ChatColor;
+import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
+import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.scheduler.BukkitRunnable;
 import io.papermc.paper.datacomponent.DataComponentTypes;
+import org.bukkit.util.Vector;
 import net.kyori.adventure.key.Key;
 import net.citizensnpcs.api.CitizensAPI;
 
@@ -78,6 +85,11 @@ public class DebugCommand implements TabExecutor {
     private final ArcSlashDebugManager arcSlashDebugManager;
     private final ArcSlashDebugGUI arcSlashDebugGUI;
     private final PetManager petManager;
+
+    private static final String FIREBALL_DEBUG_MODEL_ID = "fireball";
+    private static final long FIREBALL_DEBUG_LIFETIME_TICKS = 100L;
+    private double fireballDebugYawOffset = 90.0;
+    private final Map<UUID, ArmorStand> activeFireballDebug = new HashMap<>();
 
     public DebugCommand(PlayerToggleManager mobDebugManager,
                         PlayerScoreboardManager scoreboardManager,
@@ -290,6 +302,39 @@ public class DebugCommand implements TabExecutor {
                 spellPlayer.getInventory().addItem(SpellInputDebugItem.create());
                 ChatMessageUtil.send(spellPlayer, ChatMessageUtil.MessageType.SUCCESS,
                         "Spell input debug stick added to your inventory.");
+                return true;
+            case "fireballcast":
+                if (!(sender instanceof Player fireballCaster)) {
+                    sender.sendMessage(ChatColor.RED + "Players only.");
+                    return true;
+                }
+                spawnDebugFireball(fireballCaster);
+                ChatMessageUtil.send(fireballCaster, ChatMessageUtil.MessageType.SUCCESS,
+                        "Spawned stationary fireball debug cast for 5s with yaw offset "
+                                + ChatColor.YELLOW + formatDouble(fireballDebugYawOffset) + ChatColor.GREEN + "°.");
+                return true;
+            case "fireballrotate":
+                if (!(sender instanceof Player rotatePlayer)) {
+                    sender.sendMessage(ChatColor.RED + "Players only.");
+                    return true;
+                }
+                if (args.length < 2) {
+                    ChatMessageUtil.send(rotatePlayer, ChatMessageUtil.MessageType.WARNING,
+                            "Usage: /debug fireballrotate <degrees>");
+                    return true;
+                }
+                double degrees;
+                try {
+                    degrees = Double.parseDouble(args[1]);
+                } catch (NumberFormatException ex) {
+                    ChatMessageUtil.send(rotatePlayer, ChatMessageUtil.MessageType.ERROR,
+                            "Degrees must be a number.");
+                    return true;
+                }
+                fireballDebugYawOffset = normalizeDegrees(degrees);
+                ChatMessageUtil.send(rotatePlayer, ChatMessageUtil.MessageType.SUCCESS,
+                        "Fireball debug yaw offset set to " + ChatColor.YELLOW
+                                + formatDouble(fireballDebugYawOffset) + ChatColor.GREEN + "°.");
                 return true;
             case "stunstick":
                 if (!(sender instanceof Player stunPlayer)) {
@@ -566,12 +611,76 @@ public class DebugCommand implements TabExecutor {
                 + (enable ? ChatColor.GREEN + "enabled" : ChatColor.RED + "disabled") + ChatColor.GRAY + ".");
     }
 
+
+    private void spawnDebugFireball(Player player) {
+        if (player == null) {
+            return;
+        }
+        ArmorStand existing = activeFireballDebug.remove(player.getUniqueId());
+        if (existing != null && existing.isValid()) {
+            existing.remove();
+        }
+        Location eye = player.getEyeLocation();
+        Vector direction = eye.getDirection().normalize();
+        Location spawn = eye.clone().add(direction.clone().multiply(1.25));
+        spawn.setYaw((float) (eye.getYaw() + fireballDebugYawOffset));
+        spawn.setPitch(eye.getPitch());
+
+        ArmorStand stand = spawn.getWorld().spawn(spawn, ArmorStand.class, entity -> {
+            entity.setInvisible(true);
+            entity.setMarker(true);
+            entity.setGravity(false);
+            entity.setSilent(true);
+            entity.setCollidable(false);
+            entity.setInvulnerable(true);
+        });
+        ModelEngineUtil.ModelApplyResult applyResult = ModelEngineUtil.applyModels(stand, List.of(FIREBALL_DEBUG_MODEL_ID), Main.getInstance());
+        if (!applyResult.failed().isEmpty()) {
+            Main.getInstance().getLogger().warning("Debug fireball failed to apply model: " + String.join(", ", applyResult.failed()));
+        }
+        stand.setRotation(spawn.getYaw(), spawn.getPitch());
+        activeFireballDebug.put(player.getUniqueId(), stand);
+
+        Main.getInstance().getLogger().info("[MageFireballDebugCast] player=" + player.getName()
+                + " playerYaw=" + formatDouble(eye.getYaw())
+                + " playerPitch=" + formatDouble(eye.getPitch())
+                + " debugOffset=" + formatDouble(fireballDebugYawOffset)
+                + " modelYaw=" + formatDouble(stand.getLocation().getYaw())
+                + " modelPitch=" + formatDouble(stand.getLocation().getPitch()));
+
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                ArmorStand tracked = activeFireballDebug.get(player.getUniqueId());
+                if (tracked == null || !tracked.getUniqueId().equals(stand.getUniqueId())) {
+                    return;
+                }
+                activeFireballDebug.remove(player.getUniqueId());
+                if (stand.isValid()) {
+                    stand.remove();
+                }
+            }
+        }.runTaskLater(Main.getInstance(), FIREBALL_DEBUG_LIFETIME_TICKS);
+    }
+
+    private double normalizeDegrees(double degrees) {
+        double normalized = degrees % 360.0;
+        if (normalized < 0) {
+            normalized += 360.0;
+        }
+        return normalized;
+    }
+
+    private String formatDouble(double value) {
+        return String.format(java.util.Locale.ROOT, "%.2f", value);
+    }
+
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
             List<String> subs = new ArrayList<>(List.of("mobinfo", "tps", "siege", "cityowner", "citymax", "autocast",
                     "hand", "chatgame", "expedition", "dungeonexpedition", "rewardbomb", "drops", "beaconentity",
-                    "spellinput", "stunstick", "poisonstick", "tauntstick", "fearstick", "slowstick", "petpull",
+                    "spellinput", "fireballcast", "fireballrotate", "stunstick", "poisonstick", "tauntstick", "fearstick", "slowstick", "petpull",
                     "particle", "particlepath", "particlepreset"));
             subs.addAll(Arrays.stream(StatType.values()).map(StatType::getAbbrev).toList());
             return subs.stream()
@@ -620,6 +729,10 @@ public class DebugCommand implements TabExecutor {
                     .toList();
         } else if (args.length == 2 && args[0].equalsIgnoreCase("petpull")) {
             return List.of("1", "5", "10").stream()
+                    .filter(opt -> opt.startsWith(args[1].toLowerCase()))
+                    .toList();
+        } else if (args.length == 2 && args[0].equalsIgnoreCase("fireballrotate")) {
+            return List.of("0", "90", "180", "270", String.valueOf((int) Math.round(fireballDebugYawOffset))).stream()
                     .filter(opt -> opt.startsWith(args[1].toLowerCase()))
                     .toList();
         }
