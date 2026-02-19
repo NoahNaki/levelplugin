@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.spells.SpellContext;
 import me.nakilex.levelplugin.spells.SpellEffectUtil;
 import me.nakilex.levelplugin.spells.SpellHandler;
+import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.ModelEngineUtil;
 import org.bukkit.Location;
 import org.bukkit.Particle;
@@ -19,7 +20,7 @@ import org.bukkit.util.Vector;
 import java.util.List;
 
 public class MageFireballBasicAttackSpell implements SpellHandler {
-    public static final String MODEL_ID = "fireball";
+    private static final List<String> MODEL_CANDIDATES = List.of("fireball", "fireball.bbmodel", "fireball_bbmodel");
     public static final double DEFAULT_FORWARD_OFFSET = 0.65;
     public static final double DEFAULT_VERTICAL_OFFSET = -0.15;
 
@@ -56,13 +57,18 @@ public class MageFireballBasicAttackSpell implements SpellHandler {
 
         ArmorStand projectile = world.spawn(spawn, ArmorStand.class, stand -> {
             stand.setInvisible(true);
-            stand.setMarker(true);
+            stand.setMarker(false);
+            stand.setSmall(true);
             stand.setGravity(false);
             stand.setSilent(true);
             stand.setCollidable(false);
             stand.setInvulnerable(true);
         });
-        ModelEngineUtil.applyModels(projectile, List.of(MODEL_ID), plugin);
+        ModelEngineUtil.ModelApplyResult modelResult = ModelEngineUtil.applyFirstAvailableModel(projectile, MODEL_CANDIDATES, plugin);
+        if (modelResult.applied().isEmpty()) {
+            ChatMessageUtil.send(caster, ChatMessageUtil.MessageType.WARNING,
+                    "Fireball model was not found in ModelEngine. Showing particles only.");
+        }
         ModelEngineUtil.orientEntityToVector(projectile, direction);
 
         launchProjectile(caster, projectile, direction);

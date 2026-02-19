@@ -112,6 +112,21 @@ public final class ModelEngineUtil {
         return new ModelApplyResult(appliedModels, failedModels, blueprintOnlyModels);
     }
 
+    public static ModelApplyResult applyFirstAvailableModel(Entity entity,
+                                                             List<String> modelCandidates,
+                                                             Plugin plugin) {
+        if (entity == null || modelCandidates == null || modelCandidates.isEmpty()) {
+            return new ModelApplyResult(List.of(), List.of(), List.of());
+        }
+        for (String candidate : modelCandidates) {
+            ModelApplyResult result = applyModels(entity, List.of(candidate), plugin);
+            if (!result.applied().isEmpty()) {
+                return result;
+            }
+        }
+        return applyModels(entity, modelCandidates, plugin);
+    }
+
     /**
      * Updates a location's yaw/pitch so it faces the provided direction vector.
      */
