@@ -63,23 +63,16 @@ public class MageFireballDebugCommand implements CommandExecutor, TabCompleter {
 
     private boolean handleSpawn(Player player, String[] args) {
         removePreview(player);
-        Vector dir = player.getEyeLocation().getDirection().clone().normalize();
-        Location spawn = player.getEyeLocation().clone()
-                .add(dir.multiply(MageFireballBasicAttackSpell.DEFAULT_FORWARD_OFFSET))
-                .add(0.0, MageFireballBasicAttackSpell.DEFAULT_VERTICAL_OFFSET, 0.0);
-
-        ArmorStand stand = player.getWorld().spawn(spawn, ArmorStand.class, it -> {
-            it.setInvisible(true);
-            it.setMarker(false);
-            it.setSmall(true);
-            it.setGravity(false);
-            it.setSilent(true);
-            it.setInvulnerable(true);
-            it.setCollidable(false);
-        });
-        ModelEngineUtil.ModelApplyResult result =
-                ModelEngineUtil.applyFirstAvailableModel(stand, MageFireballBasicAttackSpell.modelCandidates(), plugin);
-        ModelEngineUtil.orientEntityToVector(stand, player.getEyeLocation().getDirection());
+        Vector dir = player.getEyeLocation().getDirection().clone();
+        MageFireballBasicAttackSpell.FireballSpawnResult spawnResult =
+                MageFireballBasicAttackSpell.spawnProjectileAnchor(plugin, player.getEyeLocation().clone(), dir);
+        if (spawnResult == null) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                    "Unable to spawn fireball preview (invalid world or direction).");
+            return true;
+        }
+        ArmorStand stand = spawnResult.anchor();
+        ModelEngineUtil.ModelApplyResult result = spawnResult.modelResult();
         previewMap.put(player.getUniqueId(), stand);
 
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,

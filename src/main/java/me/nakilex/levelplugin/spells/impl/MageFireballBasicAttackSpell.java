@@ -42,6 +42,48 @@ public class MageFireballBasicAttackSpell implements SpellHandler {
         this.plugin = plugin;
     }
 
+    public record FireballSpawnResult(ArmorStand anchor,
+                                      ModelEngineUtil.ModelApplyResult modelResult,
+                                      Location spawnLocation,
+                                      Vector direction) {
+    }
+
+    public static Location resolveSpawnLocation(Location eyeLocation, Vector rawDirection) {
+        if (eyeLocation == null || rawDirection == null || rawDirection.lengthSquared() <= 0.000001) {
+            return null;
+        }
+        Vector direction = rawDirection.clone().normalize();
+        Location spawn = eyeLocation.clone().add(direction.clone().multiply(DEFAULT_FORWARD_OFFSET));
+        spawn.add(0.0, DEFAULT_VERTICAL_OFFSET, 0.0);
+        return spawn;
+    }
+
+    public static FireballSpawnResult spawnProjectileAnchor(Main plugin,
+                                                            Location eyeLocation,
+                                                            Vector rawDirection) {
+        if (plugin == null || eyeLocation == null || rawDirection == null || rawDirection.lengthSquared() <= 0.000001) {
+            return null;
+        }
+        Vector direction = rawDirection.clone().normalize();
+        Location spawn = resolveSpawnLocation(eyeLocation, direction);
+        if (spawn == null || spawn.getWorld() == null) {
+            return null;
+        }
+        ArmorStand projectile = spawn.getWorld().spawn(spawn, ArmorStand.class, stand -> {
+            stand.setInvisible(true);
+            stand.setMarker(false);
+            stand.setSmall(true);
+            stand.setGravity(false);
+            stand.setSilent(true);
+            stand.setCollidable(false);
+            stand.setInvulnerable(true);
+        });
+        ModelEngineUtil.ModelApplyResult modelResult =
+                ModelEngineUtil.applyFirstAvailableModel(projectile, MODEL_CANDIDATES, plugin);
+        ModelEngineUtil.orientEntityToVector(projectile, direction);
+        return new FireballSpawnResult(projectile, modelResult, spawn, direction);
+    }
+
     public static List<String> modelCandidates() {
         return MODEL_CANDIDATES;
     }
@@ -67,30 +109,13 @@ public class MageFireballBasicAttackSpell implements SpellHandler {
         boolean debug = isDebugEnabled(caster.getUniqueId());
         Location eye = caster.getEyeLocation().clone();
         Vector direction = eye.getDirection().clone();
-        if (direction.lengthSquared() <= 0.000001) {
+        FireballSpawnResult spawnResult = spawnProjectileAnchor(plugin, eye, direction);
+        if (spawnResult == null) {
             return;
         }
-        direction.normalize();
-
-        Location spawn = eye.add(direction.clone().multiply(DEFAULT_FORWARD_OFFSET));
-        spawn.add(0.0, DEFAULT_VERTICAL_OFFSET, 0.0);
-
-        World world = spawn.getWorld();
-        if (world == null) {
-            return;
-        }
-
-        ArmorStand projectile = world.spawn(spawn, ArmorStand.class, stand -> {
-            stand.setInvisible(true);
-            stand.setMarker(false);
-            stand.setSmall(true);
-            stand.setGravity(false);
-            stand.setSilent(true);
-            stand.setCollidable(false);
-            stand.setInvulnerable(true);
-        });
-        ModelEngineUtil.ModelApplyResult modelResult =
-                ModelEngineUtil.applyFirstAvailableModel(projectile, MODEL_CANDIDATES, plugin);
+        ArmorStand projectile = spawnResult.anchor();
+        direction = spawnResult.direction();
+        ModelEngineUtil.ModelApplyResult modelResult = spawnResult.modelResult();
         if (modelResult.applied().isEmpty()) {
             ChatMessageUtil.send(caster, ChatMessageUtil.MessageType.WARNING,
                     "Fireball model was not found in ModelEngine. Showing particles only.");
@@ -103,8 +128,6 @@ public class MageFireballBasicAttackSpell implements SpellHandler {
                     "[FireballDebug] Model result applied=" + modelResult.applied()
                             + " failed=" + modelResult.failed() + " blueprintOnly=" + modelResult.blueprintOnly());
         }
-        ModelEngineUtil.orientEntityToVector(projectile, direction);
-
         launchProjectile(caster, projectile, direction, debug);
     }
 
