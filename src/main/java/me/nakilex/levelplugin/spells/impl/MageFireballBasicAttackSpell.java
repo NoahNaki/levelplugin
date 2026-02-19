@@ -13,7 +13,6 @@ import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 
 import java.util.List;
@@ -29,7 +28,6 @@ public class MageFireballBasicAttackSpell implements SpellHandler {
     private static final double SPEED_PER_TICK = 1.15;
     private static final double MAX_RANGE = 30.0;
     private static final double HIT_RADIUS = 0.45;
-    private static final int BLOCK_COLLISION_GRACE_TICKS = 3;
     private static final double BASE_DAMAGE = 3.0;
     private static final double INTELLIGENCE_SCALE = 0.45;
     private static final double TECHNIQUE_SCALE = 0.001;
@@ -150,6 +148,7 @@ public class MageFireballBasicAttackSpell implements SpellHandler {
                     cancel();
                     return;
                 }
+
                 Location current = projectile.getLocation();
                 if (current.distanceSquared(origin) >= maxDistanceSq) {
                     if (debug) {
@@ -161,46 +160,23 @@ public class MageFireballBasicAttackSpell implements SpellHandler {
                     return;
                 }
 
-                World world = current.getWorld();
-                if (world == null) {
+                Location next = current.clone().add(step);
+                projectile.teleport(next);
+                ModelEngineUtil.orientEntityToVector(projectile, step);
+
+                LivingEntity target = findTargetAt(next, caster, projectile);
+                if (target != null) {
+                    if (debug) {
+                        ChatMessageUtil.send(caster, ChatMessageUtil.MessageType.INFO,
+                                "[FireballDebug] Entity hit at " + format(next)
+                                        + " target=" + target.getType().name() + " tick=" + ticks);
+                    }
+                    onImpact(caster, next, target);
                     removeProjectile();
                     cancel();
                     return;
                 }
 
-                RayTraceResult hit = world.rayTrace(current, step.clone().normalize(), step.length() + HIT_RADIUS,
-                        org.bukkit.FluidCollisionMode.NEVER,
-                        true,
-                        HIT_RADIUS,
-                        entity -> entity instanceof LivingEntity living
-                                && !living.equals(caster)
-                                && !living.isDead());
-                if (hit != null) {
-                    Location impact = hit.getHitPosition().toLocation(world);
-                    LivingEntity target = hit.getHitEntity() instanceof LivingEntity living ? living : null;
-                    boolean blockHit = hit.getHitBlock() != null;
-                    if (blockHit && target == null && ticks <= BLOCK_COLLISION_GRACE_TICKS) {
-                        if (debug) {
-                            ChatMessageUtil.send(caster, ChatMessageUtil.MessageType.INFO,
-                                    "[FireballDebug] Ignored early block collision at tick=" + ticks + " loc=" + format(impact));
-                        }
-                    } else {
-                        if (debug) {
-                            ChatMessageUtil.send(caster, ChatMessageUtil.MessageType.INFO,
-                                    "[FireballDebug] Hit at " + format(impact)
-                                            + " target=" + (target == null ? "none" : target.getType().name())
-                                            + " block=" + blockHit + " tick=" + ticks);
-                        }
-                        onImpact(caster, impact, target);
-                        removeProjectile();
-                        cancel();
-                        return;
-                    }
-                }
-
-                Location next = current.clone().add(step);
-                projectile.teleport(next);
-                ModelEngineUtil.orientEntityToVector(projectile, step);
                 ticks++;
                 if (debug && ticks % 10 == 0) {
                     ChatMessageUtil.send(caster, ChatMessageUtil.MessageType.INFO,
@@ -214,6 +190,26 @@ public class MageFireballBasicAttackSpell implements SpellHandler {
                 }
             }
         }.runTaskTimer(plugin, 0L, 1L);
+    }
+
+    private LivingEntity findTargetAt(Location center, Player caster, ArmorStand projectile) {
+        if (center == null || center.getWorld() == null) {
+            return null;
+        }
+        double radius = HIT_RADIUS;
+        for (var entity : center.getWorld().getNearbyEntities(center, radius, radius, radius)) {
+            if (!(entity instanceof LivingEntity living)) {
+                continue;
+            }
+            if (living.isDead() || living.equals(caster) || living.equals(projectile)) {
+                continue;
+            }
+            if (living instanceof ArmorStand) {
+                continue;
+            }
+            return living;
+        }
+        return null;
     }
 
     private void onImpact(Player caster, Location impact, LivingEntity target) {
