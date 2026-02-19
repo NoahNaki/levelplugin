@@ -301,7 +301,7 @@ commands:
     usage: /se <entity> <model...> | /se list
   fireballdebug:
     description: Debug placement and rotation for the mage fireball model
-    usage: /fireballdebug <spawn|move|rotate|face|info|remove>
+    usage: /fireballdebug <spawn|move|rotate|face|info|diagnose|trace|remove>
   custommob:
     description: Manage mobs
     usage: /custommob <list|spawn|info|reload|gui|kill|killall|spawner>

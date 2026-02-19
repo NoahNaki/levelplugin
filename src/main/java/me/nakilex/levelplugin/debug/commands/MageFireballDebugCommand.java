@@ -22,8 +22,6 @@ import java.util.Map;
 import java.util.UUID;
 
 public class MageFireballDebugCommand implements CommandExecutor, TabCompleter {
-    private static final String MODEL_ID = "fireball";
-
     private final Main plugin;
     private final Map<UUID, ArmorStand> previewMap = new HashMap<>();
 
@@ -53,6 +51,8 @@ public class MageFireballDebugCommand implements CommandExecutor, TabCompleter {
             case "rotate" -> handleRotate(player, args);
             case "face" -> handleFace(player);
             case "info" -> handleInfo(player);
+            case "diag", "diagnose" -> handleDiagnose(player);
+            case "trace" -> handleTrace(player, args);
             case "remove" -> handleRemove(player);
             default -> {
                 sendUsage(player);
@@ -70,21 +70,74 @@ public class MageFireballDebugCommand implements CommandExecutor, TabCompleter {
 
         ArmorStand stand = player.getWorld().spawn(spawn, ArmorStand.class, it -> {
             it.setInvisible(true);
-            it.setMarker(true);
+            it.setMarker(false);
+            it.setSmall(true);
             it.setGravity(false);
             it.setSilent(true);
             it.setInvulnerable(true);
             it.setCollidable(false);
         });
-        ModelEngineUtil.applyModels(stand, List.of(MODEL_ID), plugin);
+        ModelEngineUtil.ModelApplyResult result =
+                ModelEngineUtil.applyFirstAvailableModel(stand, MageFireballBasicAttackSpell.modelCandidates(), plugin);
         ModelEngineUtil.orientEntityToVector(stand, player.getEyeLocation().getDirection());
         previewMap.put(player.getUniqueId(), stand);
 
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
+                "Spawned fireball preview. applied=" + result.applied() + " failed=" + result.failed());
         if (args.length == 4) {
             return handleMove(player, new String[]{"move", "relative", args[1], args[2], args[3]});
         }
+        return true;
+    }
+
+    private boolean handleDiagnose(Player player) {
+        List<String> loaded = ModelEngineUtil.getModelIdsSafely(plugin);
+        List<String> blueprints = ModelEngineUtil.getBlueprintModelIds(plugin);
+        List<String> candidates = MageFireballBasicAttackSpell.modelCandidates();
+
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                "Loaded ModelEngine ids count=" + loaded.size());
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                "Blueprint ids count=" + blueprints.size());
+
+        for (String candidate : candidates) {
+            boolean loadedMatch = loaded.stream().anyMatch(id -> id.equalsIgnoreCase(candidate));
+            boolean blueprintMatch = blueprints.stream().anyMatch(id -> id.equalsIgnoreCase(candidate));
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                    "Candidate '" + candidate + "': loaded=" + loadedMatch + " blueprint=" + blueprintMatch);
+        }
+
+        ArmorStand test = player.getWorld().spawn(player.getLocation().add(0, 1.2, 0), ArmorStand.class, it -> {
+            it.setInvisible(true);
+            it.setMarker(false);
+            it.setSmall(true);
+            it.setGravity(false);
+        });
+        ModelEngineUtil.ModelApplyResult result =
+                ModelEngineUtil.applyFirstAvailableModel(test, candidates, plugin);
+        test.remove();
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                "Apply test result: applied=" + result.applied()
+                        + " failed=" + result.failed() + " blueprintOnly=" + result.blueprintOnly());
+        return true;
+    }
+
+    private boolean handleTrace(Player player, String[] args) {
+        if (args.length < 2) {
+            boolean enabled = MageFireballBasicAttackSpell.isDebugEnabled(player.getUniqueId());
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                    "Fireball trace is " + (enabled ? "ON" : "OFF") + ". Use /fireballdebug trace <on|off>.");
+            return true;
+        }
+        boolean enable = args[1].equalsIgnoreCase("on");
+        if (!enable && !args[1].equalsIgnoreCase("off")) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                    "Usage: /fireballdebug trace <on|off>");
+            return true;
+        }
+        MageFireballBasicAttackSpell.setDebugEnabled(player.getUniqueId(), enable);
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                "Spawned fireball preview. Use /fireballdebug move|rotate|face and /fireballdebug info.");
+                "Fireball trace set to " + (enable ? "ON" : "OFF") + ".");
         return true;
     }
 
@@ -248,20 +301,23 @@ public class MageFireballDebugCommand implements CommandExecutor, TabCompleter {
 
     private void sendUsage(Player player) {
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
-                "/fireballdebug spawn - spawn a fireball model preview");
+                "/fireballdebug spawn | move | rotate | face | info | remove");
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
-                "/fireballdebug move <forward|back|right|left|up|down> <amount>");
+                "/fireballdebug diagnose - checks loaded model ids and apply result");
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
-                "/fireballdebug rotate <yawDelta> [pitchDelta], /fireballdebug face, /fireballdebug info, /fireballdebug remove");
+                "/fireballdebug trace <on|off> - verbose cast/runtime debug chat");
     }
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            return CommandUtil.filterStartingWith(List.of("spawn", "move", "rotate", "face", "info", "remove"), args[0]);
+            return CommandUtil.filterStartingWith(List.of("spawn", "move", "rotate", "face", "info", "diagnose", "trace", "remove"), args[0]);
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("move")) {
             return CommandUtil.filterStartingWith(List.of("forward", "back", "right", "left", "up", "down"), args[1]);
+        }
+        if (args.length == 2 && args[0].equalsIgnoreCase("trace")) {
+            return CommandUtil.filterStartingWith(List.of("on", "off"), args[1]);
         }
         return List.of();
     }
