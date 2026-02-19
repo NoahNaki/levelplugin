@@ -210,7 +210,13 @@ public class SpellInputListener implements Listener {
     }
 
     private void handleClick(Player player, boolean leftClick) {
-        if (!isHoldingValidClassWeapon(player)) {
+        boolean validWeapon = isHoldingValidClassWeapon(player);
+        if (!validWeapon) {
+            if (!isMageBasicFallbackAllowed(player, leftClick)) {
+                return;
+            }
+            dispatch(player, SpellInputType.BASIC_ATTACK, SpellInputMode.MOUSE_AND_KEYBOARD,
+                    leftClick ? "Left" : "Right");
             return;
         }
         sendClickDebug(player, leftClick);
@@ -239,6 +245,18 @@ public class SpellInputListener implements Listener {
     private void sendClickDebug(Player player, boolean leftClick) {
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                 "Click " + (leftClick ? "Left" : "Right") + " Class: " + getPlayerClassName(player));
+    }
+
+
+    private boolean isMageBasicFallbackAllowed(Player player, boolean leftClick) {
+        if (player == null || !leftClick) {
+            return false;
+        }
+        if (player.getInventory().getItemInMainHand().getType().isAir()) {
+            return false;
+        }
+        PlayerClass playerClass = PlayerClassManager.getInstance().getPlayerClass(player);
+        return ClassUtil.isMageFamily(playerClass);
     }
 
     private boolean shouldProcessRightClick(Player player) {

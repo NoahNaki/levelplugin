@@ -119,7 +119,8 @@ public class MageFireballBasicAttackSpell implements SpellHandler {
                 Location next = current.clone().add(step);
                 projectile.teleport(next);
                 ModelEngineUtil.orientEntityToVector(projectile, step);
-                world.spawnParticle(Particle.FLAME, next, 2, 0.05, 0.05, 0.05, 0.01);
+                world.spawnParticle(Particle.FLAME, next, 8, 0.08, 0.08, 0.08, 0.02);
+                world.spawnParticle(Particle.SMALL_FLAME, next, 2, 0.02, 0.02, 0.02, 0.0);
             }
 
             private void removeProjectile() {
