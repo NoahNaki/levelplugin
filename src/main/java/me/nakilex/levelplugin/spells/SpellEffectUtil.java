@@ -92,8 +92,8 @@ public final class SpellEffectUtil {
             return;
         }
         World world = location.getWorld();
-        world.spawnParticle(Particle.FLAME, location, 6, 0.07, 0.07, 0.07, 0.01);
-        world.spawnParticle(Particle.SMOKE, location, 2, 0.04, 0.04, 0.04, 0.003);
+        world.spawnParticle(Particle.FLAME, location, 3, 0.05, 0.05, 0.05, 0.008);
+        world.spawnParticle(Particle.SMOKE, location, 1, 0.03, 0.03, 0.03, 0.002);
     }
 
     public static void spawnFireImpactEffect(Location impact) {
@@ -101,8 +101,8 @@ public final class SpellEffectUtil {
             return;
         }
         World world = impact.getWorld();
-        world.spawnParticle(Particle.FLAME, impact, 24, 0.35, 0.2, 0.35, 0.04);
-        world.spawnParticle(Particle.SMOKE, impact, 12, 0.25, 0.15, 0.25, 0.01);
+        world.spawnParticle(Particle.FLAME, impact, 12, 0.28, 0.18, 0.28, 0.03);
+        world.spawnParticle(Particle.SMOKE, impact, 6, 0.2, 0.1, 0.2, 0.008);
     }
 
     public static BukkitTask startDamageOverTime(JavaPlugin plugin,

@@ -7,6 +7,7 @@ import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.settings.data.PlayerSettings;
 import me.nakilex.levelplugin.settings.managers.SettingsManager;
+import me.nakilex.levelplugin.spells.SpellEffectUtil;
 import me.nakilex.levelplugin.spells.input.SpellComboTracker;
 import me.nakilex.levelplugin.spells.input.SpellClickInput;
 import me.nakilex.levelplugin.spells.input.SpellInputDisplayManager;
@@ -85,6 +86,9 @@ public class SpellInputListener implements Listener {
     @EventHandler
     public void onEntityDamage(EntityDamageByEntityEvent event) {
         if (!(event.getDamager() instanceof Player player)) {
+            return;
+        }
+        if (player.hasMetadata(SpellEffectUtil.BYPASS_STAT_SCALING_META)) {
             return;
         }
         if (event.getCause() != EntityDamageEvent.DamageCause.ENTITY_ATTACK) {

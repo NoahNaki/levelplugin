@@ -22,8 +22,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class MageFireballBasicAttackSpell implements SpellHandler {
     private static final List<String> MODEL_CANDIDATES = List.of("fireball", "fireball.bbmodel", "fireball_bbmodel");
-    public static final double DEFAULT_FORWARD_OFFSET = 1.1;
-    public static final double DEFAULT_VERTICAL_OFFSET = -0.15;
+    public static final double DEFAULT_FORWARD_OFFSET = 0.95;
+    public static final double DEFAULT_VERTICAL_OFFSET = 0.0;
 
     private static final double SPEED_PER_TICK = 1.15;
     private static final double MAX_RANGE = 30.0;
@@ -126,6 +126,7 @@ public class MageFireballBasicAttackSpell implements SpellHandler {
                     "[FireballDebug] Model result applied=" + modelResult.applied()
                             + " failed=" + modelResult.failed() + " blueprintOnly=" + modelResult.blueprintOnly());
         }
+        caster.getWorld().playSound(caster.getLocation(), Sound.ITEM_FIRECHARGE_USE, 0.7f, 1.2f);
         launchProjectile(caster, projectile, direction, debug);
     }
 
@@ -219,7 +220,7 @@ public class MageFireballBasicAttackSpell implements SpellHandler {
             return;
         }
         SpellEffectUtil.spawnFireImpactEffect(impact);
-        world.playSound(impact, Sound.ENTITY_BLAZE_SHOOT, 0.8f, 1.25f);
+        world.playSound(impact, Sound.BLOCK_FIRE_EXTINGUISH, 0.85f, 0.75f);
 
         if (target != null) {
             double damage = SpellEffectUtil.computeIntTecScaledDamage(caster, BASE_DAMAGE, INTELLIGENCE_SCALE, TECHNIQUE_SCALE);
