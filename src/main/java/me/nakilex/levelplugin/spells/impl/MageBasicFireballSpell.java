@@ -42,6 +42,7 @@ public class MageBasicFireballSpell implements SpellHandler, Listener {
         Vector direction = caster.getEyeLocation().getDirection().normalize();
         Snowball projectile = caster.launchProjectile(Snowball.class);
         projectile.setGravity(false);
+        projectile.setRotation(0f, 0f);
         projectile.setVelocity(direction.multiply(SPEED));
         projectile.setMetadata(BASIC_ATTACK_META, new FixedMetadataValue(plugin, caster.getUniqueId()));
         projectile.setMetadata(MAGE_FIREBALL_META, new FixedMetadataValue(plugin, true));

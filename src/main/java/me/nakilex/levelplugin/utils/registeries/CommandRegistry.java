@@ -31,6 +31,7 @@ import me.nakilex.levelplugin.pet.commands.PetSummonCommand;
 import me.nakilex.levelplugin.pet.gui.PetGUI;
 import me.nakilex.levelplugin.pet.gui.PetSummonGUI;
 import me.nakilex.levelplugin.debug.BeaconEntityDebugManager;
+import me.nakilex.levelplugin.debug.FireballDebugManager;
 import me.nakilex.levelplugin.debug.commands.DebugCommand;
 import me.nakilex.levelplugin.debug.commands.SpawnEntityModelCommand;
 import me.nakilex.levelplugin.player.attributes.commands.AddPointsCommand;
@@ -324,6 +325,7 @@ public class CommandRegistry {
         plugin.getCommand("profile").setTabCompleter(profileCmd);
         plugin.getCommand("wipeprofile").setExecutor(new WipeProfileCommand());
 
+        FireballDebugManager fireballDebugManager = new FireballDebugManager(plugin);
         DebugCommand debugCmd = new DebugCommand(mobDebugToggleManager,
                 plugin.getScoreboardManager(),
                 debugGUI,
@@ -336,7 +338,8 @@ public class CommandRegistry {
                 questManager,
                 arcSlashDebugManager,
                 arcSlashDebugGUI,
-                petManager);
+                petManager,
+                fireballDebugManager);
         plugin.getCommand("debug").setExecutor(debugCmd);
         plugin.getCommand("debug").setTabCompleter(debugCmd);
         SpawnEntityModelCommand spawnEntityModelCommand = new SpawnEntityModelCommand(plugin);

@@ -13,6 +13,7 @@ import me.nakilex.levelplugin.chat.games.ChatGameStatus;
 import me.nakilex.levelplugin.debug.gui.DebugGUI;
 import me.nakilex.levelplugin.debug.BeaconEntityDebugManager;
 import me.nakilex.levelplugin.debug.DropDebugManager;
+import me.nakilex.levelplugin.debug.FireballDebugManager;
 import me.nakilex.levelplugin.debug.ArcSlashDebugManager;
 import me.nakilex.levelplugin.debug.gui.ArcSlashDebugGUI;
 import me.nakilex.levelplugin.debug.MobStatusDebugItem;
@@ -78,6 +79,7 @@ public class DebugCommand implements TabExecutor {
     private final ArcSlashDebugManager arcSlashDebugManager;
     private final ArcSlashDebugGUI arcSlashDebugGUI;
     private final PetManager petManager;
+    private final FireballDebugManager fireballDebugManager;
 
     public DebugCommand(PlayerToggleManager mobDebugManager,
                         PlayerScoreboardManager scoreboardManager,
@@ -91,7 +93,8 @@ public class DebugCommand implements TabExecutor {
                         QuestManager questManager,
                         ArcSlashDebugManager arcSlashDebugManager,
                         ArcSlashDebugGUI arcSlashDebugGUI,
-                        PetManager petManager) {
+                        PetManager petManager,
+                        FireballDebugManager fireballDebugManager) {
         this.mobDebugManager = mobDebugManager;
         this.scoreboardManager = scoreboardManager;
         this.debugGUI = debugGUI;
@@ -105,6 +108,7 @@ public class DebugCommand implements TabExecutor {
         this.arcSlashDebugManager = arcSlashDebugManager;
         this.arcSlashDebugGUI = arcSlashDebugGUI;
         this.petManager = petManager;
+        this.fireballDebugManager = fireballDebugManager;
     }
 
     @Override
@@ -116,7 +120,7 @@ public class DebugCommand implements TabExecutor {
                 String statUsage = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|" + statUsage + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|fireball|" + statUsage + ">");
             }
             return true;
         }
@@ -337,6 +341,58 @@ public class DebugCommand implements TabExecutor {
                         "Slow stick added to your inventory.");
                 return true;
 
+            case "fireball":
+                if (!(sender instanceof Player fireballPlayer)) {
+                    sender.sendMessage(ChatColor.RED + "Players only.");
+                    return true;
+                }
+                if (args.length < 2) {
+                    ChatMessageUtil.send(fireballPlayer, ChatMessageUtil.MessageType.WARNING,
+                            "Usage: /debug fireball <spawn|rotate|info|remove> [yaw] [pitch]");
+                    return true;
+                }
+                String fireballAction = args[1].toLowerCase();
+                switch (fireballAction) {
+                    case "spawn": {
+                        float yaw = parseFloatArg(args, 2, 0f);
+                        float pitch = parseFloatArg(args, 3, 0f);
+                        ChatMessageUtil.send(fireballPlayer, ChatMessageUtil.MessageType.INFO,
+                                fireballDebugManager.spawn(fireballPlayer, yaw, pitch));
+                        return true;
+                    }
+                    case "rotate": {
+                        if (args.length < 3) {
+                            ChatMessageUtil.send(fireballPlayer, ChatMessageUtil.MessageType.WARNING,
+                                    "Usage: /debug fireball rotate <yaw> [pitch]");
+                            return true;
+                        }
+                        Float yaw = parseOptionalFloat(args[2]);
+                        if (yaw == null) {
+                            ChatMessageUtil.send(fireballPlayer, ChatMessageUtil.MessageType.ERROR,
+                                    "Yaw must be a valid number.");
+                            return true;
+                        }
+                        float pitch = parseFloatArg(args, 3, 0f);
+                        ChatMessageUtil.send(fireballPlayer, ChatMessageUtil.MessageType.INFO,
+                                fireballDebugManager.rotate(fireballPlayer, yaw, pitch));
+                        return true;
+                    }
+                    case "info":
+                        ChatMessageUtil.send(fireballPlayer, ChatMessageUtil.MessageType.INFO,
+                                fireballDebugManager.describe(fireballPlayer));
+                        return true;
+                    case "remove":
+                    case "clear":
+                        boolean removed = fireballDebugManager.remove(fireballPlayer);
+                        ChatMessageUtil.send(fireballPlayer, ChatMessageUtil.MessageType.INFO,
+                                removed ? "Removed debug fireball." : "No debug fireball to remove.");
+                        return true;
+                    default:
+                        ChatMessageUtil.send(fireballPlayer, ChatMessageUtil.MessageType.WARNING,
+                                "Usage: /debug fireball <spawn|rotate|info|remove> [yaw] [pitch]");
+                        return true;
+                }
+
             case "beaconentity":
                 if (!(sender instanceof Player beaconPlayer)) {
                     sender.sendMessage(ChatColor.RED + "Players only.");
@@ -506,7 +562,7 @@ public class DebugCommand implements TabExecutor {
                 String statUsage2 = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|cityowner|citymax|autocast|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|" + statUsage2 + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|cityowner|citymax|autocast|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|fireball|" + statUsage2 + ">");
                 return true;
         }
     }
@@ -566,13 +622,32 @@ public class DebugCommand implements TabExecutor {
                 + (enable ? ChatColor.GREEN + "enabled" : ChatColor.RED + "disabled") + ChatColor.GRAY + ".");
     }
 
+    private static float parseFloatArg(String[] args, int index, float fallback) {
+        if (index >= args.length) {
+            return fallback;
+        }
+        Float parsed = parseOptionalFloat(args[index]);
+        return parsed != null ? parsed : fallback;
+    }
+
+    private static Float parseOptionalFloat(String token) {
+        if (token == null || token.isBlank()) {
+            return null;
+        }
+        try {
+            return Float.parseFloat(token);
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
+    }
+
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
             List<String> subs = new ArrayList<>(List.of("mobinfo", "tps", "siege", "cityowner", "citymax", "autocast",
                     "hand", "chatgame", "expedition", "dungeonexpedition", "rewardbomb", "drops", "beaconentity",
                     "spellinput", "stunstick", "poisonstick", "tauntstick", "fearstick", "slowstick", "petpull",
-                    "particle", "particlepath", "particlepreset"));
+                    "particle", "particlepath", "particlepreset", "fireball"));
             subs.addAll(Arrays.stream(StatType.values()).map(StatType::getAbbrev).toList());
             return subs.stream()
                     .filter(s -> s.startsWith(args[0].toLowerCase()))
@@ -613,6 +688,25 @@ public class DebugCommand implements TabExecutor {
         } else if (args.length == 2 && args[0].equalsIgnoreCase("particle")) {
             return ArcSlashDebugManager.getPresetIds().stream()
                     .filter(name -> name.toLowerCase().startsWith(args[1].toLowerCase()))
+                    .toList();
+        } else if (args.length == 2 && args[0].equalsIgnoreCase("fireball")) {
+            return List.of("spawn", "rotate", "info", "remove", "clear").stream()
+                    .filter(option -> option.startsWith(args[1].toLowerCase()))
+                    .toList();
+        } else if (args.length == 3 && args[0].equalsIgnoreCase("fireball")
+                && args[1].equalsIgnoreCase("rotate")) {
+            return List.of("0", "90", "180", "270").stream()
+                    .filter(option -> option.startsWith(args[2].toLowerCase()))
+                    .toList();
+        } else if (args.length == 3 && args[0].equalsIgnoreCase("fireball")
+                && args[1].equalsIgnoreCase("spawn")) {
+            return List.of("0", "90", "180", "270").stream()
+                    .filter(option -> option.startsWith(args[2].toLowerCase()))
+                    .toList();
+        } else if (args.length == 4 && args[0].equalsIgnoreCase("fireball")
+                && (args[1].equalsIgnoreCase("spawn") || args[1].equalsIgnoreCase("rotate"))) {
+            return List.of("0").stream()
+                    .filter(option -> option.startsWith(args[3].toLowerCase()))
                     .toList();
         } else if (args.length == 3 && args[0].equalsIgnoreCase("chatgame")) {
             return List.of("on", "off", "enable", "disable").stream()
