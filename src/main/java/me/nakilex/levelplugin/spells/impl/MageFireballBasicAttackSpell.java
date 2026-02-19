@@ -163,6 +163,7 @@ public class MageFireballBasicAttackSpell implements SpellHandler {
                 Location next = current.clone().add(step);
                 projectile.teleport(next);
                 ModelEngineUtil.orientEntityToVector(projectile, step);
+                SpellEffectUtil.spawnFireProjectileTrail(next);
 
                 LivingEntity target = findTargetAt(next, caster, projectile);
                 if (target != null) {
@@ -217,6 +218,7 @@ public class MageFireballBasicAttackSpell implements SpellHandler {
         if (world == null) {
             return;
         }
+        SpellEffectUtil.spawnFireImpactEffect(impact);
         world.playSound(impact, Sound.ENTITY_BLAZE_SHOOT, 0.8f, 1.25f);
 
         if (target != null) {

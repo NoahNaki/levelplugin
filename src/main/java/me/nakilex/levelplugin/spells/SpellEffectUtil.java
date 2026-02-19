@@ -3,6 +3,8 @@ package me.nakilex.levelplugin.spells;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.Location;
+import org.bukkit.Particle;
+import org.bukkit.World;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -82,6 +84,25 @@ public final class SpellEffectUtil {
         } finally {
             caster.removeMetadata(BYPASS_STAT_SCALING_META, plugin);
         }
+    }
+
+
+    public static void spawnFireProjectileTrail(Location location) {
+        if (location == null || location.getWorld() == null) {
+            return;
+        }
+        World world = location.getWorld();
+        world.spawnParticle(Particle.FLAME, location, 6, 0.07, 0.07, 0.07, 0.01);
+        world.spawnParticle(Particle.SMOKE, location, 2, 0.04, 0.04, 0.04, 0.003);
+    }
+
+    public static void spawnFireImpactEffect(Location impact) {
+        if (impact == null || impact.getWorld() == null) {
+            return;
+        }
+        World world = impact.getWorld();
+        world.spawnParticle(Particle.FLAME, impact, 24, 0.35, 0.2, 0.35, 0.04);
+        world.spawnParticle(Particle.SMOKE, impact, 12, 0.25, 0.15, 0.25, 0.01);
     }
 
     public static BukkitTask startDamageOverTime(JavaPlugin plugin,
