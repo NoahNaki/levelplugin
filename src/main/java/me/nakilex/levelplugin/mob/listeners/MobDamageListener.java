@@ -76,9 +76,13 @@ public class MobDamageListener implements Listener {
                 }
             }
 
-        } else if (damager instanceof Arrow arrow && arrow.hasMetadata("BasicAttack")) {
-            UUID shooterId = (UUID) arrow.getMetadata("BasicAttack").get(0).value();
-            player = Bukkit.getPlayer(shooterId);
+        } else if (damager instanceof Projectile projectile) {
+            if (projectile.getShooter() instanceof Player shooter) {
+                player = shooter;
+            } else if (projectile.hasMetadata("BasicAttack")
+                    && projectile.getMetadata("BasicAttack").get(0).value() instanceof UUID shooterId) {
+                player = Bukkit.getPlayer(shooterId);
+            }
         }
 
         if (player == null) return;

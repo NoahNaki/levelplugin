@@ -1,5 +1,6 @@
 package me.nakilex.levelplugin.spells;
 
+import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import org.bukkit.Location;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.LivingEntity;
@@ -78,5 +79,19 @@ public final class SpellEffectUtil {
                 }
             }
         }.runTaskTimer(plugin, 0L, safePeriod);
+    }
+
+    public static double computeIntTechniqueDamage(Player source,
+                                                   double baseDamage,
+                                                   double intelligenceScale,
+                                                   double techniqueScale) {
+        if (source == null) {
+            return baseDamage;
+        }
+        StatsManager.PlayerStats stats = StatsManager.getInstance().getPlayerStats(source.getUniqueId());
+        int totalIntelligence = stats.baseIntelligence + stats.bonusIntelligence;
+        int totalTechnique = stats.baseTechnique + stats.bonusTechnique;
+        double damage = baseDamage + (totalIntelligence * intelligenceScale);
+        return damage * (1.0 + (totalTechnique * techniqueScale));
     }
 }
