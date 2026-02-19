@@ -7,7 +7,6 @@ import me.nakilex.levelplugin.spells.SpellHandler;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.ModelEngineUtil;
 import org.bukkit.Location;
-import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.entity.ArmorStand;
@@ -24,12 +23,13 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class MageFireballBasicAttackSpell implements SpellHandler {
     private static final List<String> MODEL_CANDIDATES = List.of("fireball", "fireball.bbmodel", "fireball_bbmodel");
-    public static final double DEFAULT_FORWARD_OFFSET = 0.65;
+    public static final double DEFAULT_FORWARD_OFFSET = 1.1;
     public static final double DEFAULT_VERTICAL_OFFSET = -0.15;
 
     private static final double SPEED_PER_TICK = 1.15;
     private static final double MAX_RANGE = 30.0;
     private static final double HIT_RADIUS = 0.45;
+    private static final int BLOCK_COLLISION_GRACE_TICKS = 3;
     private static final double BASE_DAMAGE = 3.0;
     private static final double INTELLIGENCE_SCALE = 0.45;
     private static final double TECHNIQUE_SCALE = 0.001;
@@ -178,22 +178,29 @@ public class MageFireballBasicAttackSpell implements SpellHandler {
                 if (hit != null) {
                     Location impact = hit.getHitPosition().toLocation(world);
                     LivingEntity target = hit.getHitEntity() instanceof LivingEntity living ? living : null;
-                    if (debug) {
-                        ChatMessageUtil.send(caster, ChatMessageUtil.MessageType.INFO,
-                                "[FireballDebug] Hit at " + format(impact)
-                                        + " target=" + (target == null ? "none" : target.getType().name()));
+                    boolean blockHit = hit.getHitBlock() != null;
+                    if (blockHit && target == null && ticks <= BLOCK_COLLISION_GRACE_TICKS) {
+                        if (debug) {
+                            ChatMessageUtil.send(caster, ChatMessageUtil.MessageType.INFO,
+                                    "[FireballDebug] Ignored early block collision at tick=" + ticks + " loc=" + format(impact));
+                        }
+                    } else {
+                        if (debug) {
+                            ChatMessageUtil.send(caster, ChatMessageUtil.MessageType.INFO,
+                                    "[FireballDebug] Hit at " + format(impact)
+                                            + " target=" + (target == null ? "none" : target.getType().name())
+                                            + " block=" + blockHit + " tick=" + ticks);
+                        }
+                        onImpact(caster, impact, target);
+                        removeProjectile();
+                        cancel();
+                        return;
                     }
-                    onImpact(caster, impact, target);
-                    removeProjectile();
-                    cancel();
-                    return;
                 }
 
                 Location next = current.clone().add(step);
                 projectile.teleport(next);
                 ModelEngineUtil.orientEntityToVector(projectile, step);
-                world.spawnParticle(Particle.FLAME, next, 8, 0.08, 0.08, 0.08, 0.02);
-                world.spawnParticle(Particle.SMALL_FLAME, next, 2, 0.02, 0.02, 0.02, 0.0);
                 ticks++;
                 if (debug && ticks % 10 == 0) {
                     ChatMessageUtil.send(caster, ChatMessageUtil.MessageType.INFO,
@@ -214,8 +221,6 @@ public class MageFireballBasicAttackSpell implements SpellHandler {
         if (world == null) {
             return;
         }
-        world.spawnParticle(Particle.FLAME, impact, 24, 0.35, 0.2, 0.35, 0.04);
-        world.spawnParticle(Particle.SMOKE, impact, 10, 0.2, 0.1, 0.2, 0.01);
         world.playSound(impact, Sound.ENTITY_BLAZE_SHOOT, 0.8f, 1.25f);
 
         if (target != null) {
