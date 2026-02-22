@@ -299,6 +299,9 @@ commands:
   se:
     description: Spawn an entity with ModelEngine models for testing
     usage: /se <entity> <model...> | /se list
+  fireballdebug:
+    description: Debug placement and rotation for the mage fireball model
+    usage: /fireballdebug <spawn|move|rotate|face|info|diagnose|trace|remove>
   custommob:
     description: Manage mobs
     usage: /custommob <list|spawn|info|reload|gui|kill|killall|spawner>
