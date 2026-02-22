@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.player.fishing.managers.FishingManager;
+import me.nakilex.levelplugin.player.woodcutting.managers.WoodcuttingManager;
 import me.nakilex.levelplugin.player.mining.managers.MiningManager;
 import me.nakilex.levelplugin.environment.EnvironmentManager;
 import org.bukkit.Bukkit;
@@ -24,6 +25,7 @@ public class PlayerJoinListener implements Listener {
     private final MiningManager miningManager;
     private final me.nakilex.levelplugin.player.farming.managers.FarmingManager farmingManager;
     private final FishingManager fishingManager;
+    private final WoodcuttingManager woodcuttingManager;
     private final EnvironmentManager environmentManager;
     private final me.nakilex.levelplugin.environment.stage.TownStageManager stageManager;
     private final ServerSelectionManager serverSelectionManager;
@@ -31,12 +33,14 @@ public class PlayerJoinListener implements Listener {
     public PlayerJoinListener(LevelManager levelManager, MiningManager miningManager,
                               me.nakilex.levelplugin.player.farming.managers.FarmingManager farmingManager,
                               FishingManager fishingManager,
+                              WoodcuttingManager woodcuttingManager,
                               EnvironmentManager envManager,
                               ServerSelectionManager serverSelectionManager) {
         this.levelManager  = levelManager;
         this.miningManager = miningManager;
         this.farmingManager = farmingManager;
         this.fishingManager = fishingManager;
+        this.woodcuttingManager = woodcuttingManager;
         this.environmentManager = envManager;
         this.stageManager = envManager.getStageManager();
         this.serverSelectionManager = serverSelectionManager;
@@ -57,6 +61,7 @@ public class PlayerJoinListener implements Listener {
             miningManager.initializePlayer(player);
             farmingManager.initializePlayer(player);
             fishingManager.initializePlayer(player);
+            woodcuttingManager.initializePlayer(player);
             environmentManager.loadPlayerState(player);
             stageManager.hideNPCsFrom(player);
             player.setHealthScaled(true);

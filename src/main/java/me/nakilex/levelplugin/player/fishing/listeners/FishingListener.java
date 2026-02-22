@@ -157,10 +157,12 @@ public class FishingListener implements Listener {
         ToolTier tier = resolveTier(rod);
         boolean highestTier = tier != null && tier.isHighestTier();
 
+        double rarityBonus = tier == null ? 0.0 : Math.max(0.0, tier.getFishRarityBonus() - 1.0);
         FishDefinition definition = rewardsConfig.rollFish(
                 fishingManager.getLevel(player),
                 inLava,
                 highestTier,
+                rarityBonus,
                 random);
         double size = rollSize(definition);
         ItemStack fishItem = FishingItemUtil.createFishItem(definition, size);

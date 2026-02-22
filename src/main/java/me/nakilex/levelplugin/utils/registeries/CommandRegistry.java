@@ -192,6 +192,10 @@ public class CommandRegistry {
         plugin.getCommand("addfishingxp").setExecutor(fishingLegacy);
         plugin.getCommand("addfishingxp").setTabCompleter(fishingLegacy);
 
+        var woodcuttingLegacy = LifeSkillCommand.legacyHandler(me.nakilex.levelplugin.items.tools.ToolDiscipline.WOODCUTTING);
+        plugin.getCommand("addwoodcuttingxp").setExecutor(woodcuttingLegacy);
+        plugin.getCommand("addwoodcuttingxp").setTabCompleter(woodcuttingLegacy);
+
         plugin.getCommand("mininglevel").setExecutor(new MiningLevelCommand(miningManager));
         plugin.getCommand("farminglevel").setExecutor(new FarmingLevelCommand(plugin.getFarmingManager()));
         new me.nakilex.levelplugin.player.farming.gui.FarmingRewardsGUI(plugin, economyManager);

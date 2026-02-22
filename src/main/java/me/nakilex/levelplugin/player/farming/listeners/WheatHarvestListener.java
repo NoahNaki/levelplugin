@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.items.tools.FarmingToolEnchant;
 import me.nakilex.levelplugin.items.tools.ToolDiscipline;
 import me.nakilex.levelplugin.items.tools.ToolManager;
+import me.nakilex.levelplugin.player.farming.config.FarmingRewardsConfig;
 import me.nakilex.levelplugin.player.farming.data.FarmingCrop;
 import me.nakilex.levelplugin.player.farming.managers.FarmingManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
@@ -27,11 +28,13 @@ import java.util.concurrent.ThreadLocalRandom;
 public class WheatHarvestListener implements Listener {
 
     private final FarmingManager farmingManager;
+    private final FarmingRewardsConfig rewardsConfig;
     private static final double ABUNDANCE_CHANCE = 0.03;
     private static final int ABUNDANCE_RADIUS = 5;
 
-    public WheatHarvestListener(FarmingManager farmingManager) {
+    public WheatHarvestListener(FarmingManager farmingManager, FarmingRewardsConfig rewardsConfig) {
         this.farmingManager = farmingManager;
+        this.rewardsConfig = rewardsConfig;
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -68,9 +71,10 @@ public class WheatHarvestListener implements Listener {
             return;
         }
         int level = farmingManager.getLevel(player);
-        if (level < crop.getLevelRequirement()) {
+        int cropRequiredLevel = rewardsConfig.getLevelRequirement(crop);
+        if (level < cropRequiredLevel) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
-                    "You need Farming level " + crop.getLevelRequirement() + " to harvest that crop.");
+                    "You need Farming level " + cropRequiredLevel + " to harvest that crop.");
             return;
         }
 
@@ -122,16 +126,17 @@ public class WheatHarvestListener implements Listener {
             if (targetCrop == null || !targetCrop.isMature(target)) {
                 continue;
             }
-            if (level < targetCrop.getLevelRequirement()) {
+            int targetRequiredLevel = rewardsConfig.getLevelRequirement(targetCrop);
+            if (level < targetRequiredLevel) {
                 ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
-                        "You need Farming level " + targetCrop.getLevelRequirement() + " to harvest "
+                        "You need Farming level " + targetRequiredLevel + " to harvest "
                                 + targetCrop.getItemMaterial().name().toLowerCase().replace('_', ' ') + ".");
                 continue;
             }
 
-            farmingManager.addXP(player, targetCrop.getXpReward());
+            farmingManager.addXP(player, rewardsConfig.getXpReward(targetCrop));
             if (Main.getInstance().getQuestManager() != null) {
-                Main.getInstance().getQuestManager().handleGatherCrops(player, targetCrop.getQuestId());
+                Main.getInstance().getQuestManager().handleGatherCrops(player, rewardsConfig.getQuestId(targetCrop));
             }
             harvested++;
 

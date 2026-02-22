@@ -100,6 +100,7 @@ public final class LifeSkillRewardsGUI {
             case MINING -> MiningManager.getInstance().getLevel(player);
             case FARMING -> FarmingManager.getInstance().getLevel(player);
             case FISHING -> FishingManager.getInstance().getLevel(player);
+            case WOODCUTTING -> me.nakilex.levelplugin.player.woodcutting.managers.WoodcuttingManager.getInstance().getLevel(player);
         };
 
         Inventory inventory = builder.build();
@@ -124,6 +125,7 @@ public final class LifeSkillRewardsGUI {
             case MINING -> MiningManager.getInstance().getLevel(player);
             case FARMING -> FarmingManager.getInstance().getLevel(player);
             case FISHING -> FishingManager.getInstance().getLevel(player);
+            case WOODCUTTING -> me.nakilex.levelplugin.player.woodcutting.managers.WoodcuttingManager.getInstance().getLevel(player);
         };
         GuiWidget widget = buildWidgets(player, discipline, rewards, clampedPage, maxPage, level).stream()
                 .filter(w -> w.handlesSlot(slot))

@@ -909,6 +909,9 @@ public class ItemUtil {
         } else if (discipline == ToolDiscipline.FISHING) {
             level = (viewer != null) ? me.nakilex.levelplugin.player.fishing.managers.FishingManager.getInstance().getLevel(viewer) : 0;
             requirementLabel = "Fishing";
+        } else if (discipline == ToolDiscipline.WOODCUTTING) {
+            level = (viewer != null) ? me.nakilex.levelplugin.player.woodcutting.managers.WoodcuttingManager.getInstance().getLevel(viewer) : 0;
+            requirementLabel = "Woodcutting";
         } else {
             level = (viewer != null) ? MiningManager.getInstance().getLevel(viewer) : 0;
             requirementLabel = "Mining";
@@ -930,6 +933,8 @@ public class ItemUtil {
             lore.add(ChatColor.GRAY + "Fishing Speed: " + ChatColor.GREEN + "+" + (int) (tier.getFishingSpeed() * 100 - 100) + "%");
             lore.add(ChatColor.GRAY + "Fish Rarity: " + ChatColor.GREEN + "+" + (int) (tier.getFishRarityBonus() * 100 - 100) + "%");
             meta.setUnbreakable(true);
+        } else if (discipline == ToolDiscipline.WOODCUTTING) {
+            lore.add(ChatColor.GRAY + "Woodcutting Speed: " + ChatColor.GREEN + "+" + tier.getMiningSpeed());
         } else {
             lore.add(ChatColor.GRAY + "Mining Speed: " + ChatColor.GREEN + "+" + tier.getMiningSpeed());
         }

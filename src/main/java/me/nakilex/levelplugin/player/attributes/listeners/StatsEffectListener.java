@@ -11,6 +11,7 @@ import me.nakilex.levelplugin.pet.PetManager;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.utils.MobUtil;
 import org.bukkit.entity.Entity;
+import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.event.EventHandler;
@@ -30,6 +31,9 @@ public class StatsEffectListener implements Listener {
 
     // Basic attacks scaling
     public static final double BASIC_ATTACK_MULTIPLIER = 0.60;
+
+    private static final String SKIP_SCALING_META = "lp_skip_scaling_once";
+
 
     // Track whether each player's last hit was a crit
     private static final Map<UUID, Boolean> lastCritMap = new ConcurrentHashMap<>();
@@ -53,6 +57,28 @@ public class StatsEffectListener implements Listener {
         }
     }
 
+    public static void markSkipNextScaling(Player player) {
+        if (player == null) {
+            return;
+        }
+        Main plugin = Main.getInstance();
+        if (plugin == null) {
+            return;
+        }
+        player.setMetadata(SKIP_SCALING_META, new FixedMetadataValue(plugin, true));
+    }
+
+    private static boolean consumeSkipScaling(Player player) {
+        if (player == null || !player.hasMetadata(SKIP_SCALING_META)) {
+            return false;
+        }
+        Main plugin = Main.getInstance();
+        if (plugin != null) {
+            player.removeMetadata(SKIP_SCALING_META, plugin);
+        }
+        return true;
+    }
+
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
         Entity damager = event.getDamager();
@@ -62,11 +88,12 @@ public class StatsEffectListener implements Listener {
         Player player = null;
         if (damager instanceof Player p) {
             boolean sweeping = p.hasMetadata(SweepAttack.SWEEP_META);
-            if (!sweeping && p.getAttackCooldown() < 1.0f) {
+            boolean skipScaling = consumeSkipScaling(p);
+            if (!sweeping && !skipScaling && p.getAttackCooldown() < 1.0f) {
                 event.setCancelled(true);
                 return;
             }
-            player = p;
+            player = skipScaling ? null : p;
         } else if (damager instanceof org.bukkit.entity.Projectile proj && proj.getShooter() instanceof Player shooter) {
             // Skip scaling for our own custom projectiles which already embed stats
             if (proj.hasMetadata("ArcherSpell") || proj.hasMetadata("BasicAttack") || proj.hasMetadata("Meteor") || proj.hasMetadata("Shockwave")) {
@@ -129,14 +156,14 @@ public class StatsEffectListener implements Listener {
                 }
                 double firstStrike = petManager.getActiveEffectValue(player.getUniqueId(), PetEffectType.FIRST_STRIKE);
                 if (firstStrike > 0.0 && target instanceof LivingEntity livingTarget) {
-                    double maxHealth = livingTarget.getMaxHealth();
+                    double maxHealth = getMaxHealth(livingTarget);
                     if (maxHealth > 0.0 && livingTarget.getHealth() >= maxHealth - 0.01) {
                         finalDamage *= (1.0 + Math.min(0.3, firstStrike));
                     }
                 }
                 double executeBoost = petManager.getActiveEffectValue(player.getUniqueId(), PetEffectType.EXECUTE);
                 if (executeBoost > 0.0 && target instanceof LivingEntity livingTarget) {
-                    double maxHealth = livingTarget.getMaxHealth();
+                    double maxHealth = getMaxHealth(livingTarget);
                     if (maxHealth > 0.0 && livingTarget.getHealth() / maxHealth <= PetEffectType.EXECUTE.executeThreshold()) {
                         finalDamage *= (1.0 + executeBoost);
                     }
@@ -144,7 +171,7 @@ public class StatsEffectListener implements Listener {
                 double executeThreshold = petManager.getActiveEffectValue(player.getUniqueId(), PetEffectType.EXECUTE_NON_BOSS);
                 if (executeThreshold > 0.0 && target instanceof LivingEntity livingTarget) {
                     if (!MobUtil.isBossLike(livingTarget)) {
-                        double maxHealth = livingTarget.getMaxHealth();
+                        double maxHealth = getMaxHealth(livingTarget);
                         double threshold = Math.min(0.25, executeThreshold);
                         if (maxHealth > 0.0 && livingTarget.getHealth() / maxHealth <= threshold) {
                             finalDamage = Math.max(finalDamage, livingTarget.getHealth());
@@ -237,6 +264,18 @@ public class StatsEffectListener implements Listener {
         return null;
     }
 
+
+    private double getMaxHealth(LivingEntity entity) {
+        if (entity == null) {
+            return 0.0;
+        }
+        var attribute = entity.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
+        if (attribute == null) {
+            return 0.0;
+        }
+        return Math.max(0.0, attribute.getValue());
+    }
+
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onFireTick(EntityDamageEvent event) {
         if (event.getCause() != EntityDamageEvent.DamageCause.FIRE_TICK) {
@@ -245,7 +284,7 @@ public class StatsEffectListener implements Listener {
         if (!(event.getEntity() instanceof Player player)) {
             return;
         }
-        double maxHealth = player.getMaxHealth();
+        double maxHealth = getMaxHealth(player);
         if (maxHealth <= 0) {
             return;
         }

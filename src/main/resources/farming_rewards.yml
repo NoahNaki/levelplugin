@@ -1,0 +1,25 @@
+crops:
+  wheat:
+    level: 1
+    xp: 12
+    quest: WHEAT
+  potato:
+    level: 5
+    xp: 15
+    quest: POTATO
+  carrot:
+    level: 10
+    xp: 18
+    quest: CARROT
+  beetroot:
+    level: 15
+    xp: 22
+    quest: BEETROOT
+  sweet_berries:
+    level: 20
+    xp: 26
+    quest: SWEET_BERRIES
+  pumpkin:
+    level: 24
+    xp: 30
+    quest: PUMPKIN

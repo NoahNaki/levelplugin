@@ -86,10 +86,13 @@ public class Main extends JavaPlugin {
     public me.nakilex.levelplugin.player.mining.managers.MiningManager getMiningManager() { return bootstrap.getMiningManager(); }
     public me.nakilex.levelplugin.player.farming.managers.FarmingManager getFarmingManager() { return bootstrap.getFarmingManager(); }
     public me.nakilex.levelplugin.player.fishing.managers.FishingManager getFishingManager() { return bootstrap.getFishingManager(); }
+    public me.nakilex.levelplugin.player.woodcutting.managers.WoodcuttingManager getWoodcuttingManager() { return bootstrap.getWoodcuttingManager(); }
     public me.nakilex.levelplugin.player.attributes.managers.LifeSkillRewardManager getLifeSkillRewardManager() { return bootstrap.getLifeSkillRewardManager(); }
     public me.nakilex.levelplugin.items.tools.ToolManager getToolManager() { return bootstrap.getToolManager(); }
     public me.nakilex.levelplugin.player.mining.config.MiningRewardsConfig getMiningRewardsConfig() { return bootstrap.getMiningRewardsConfig(); }
+    public me.nakilex.levelplugin.player.farming.config.FarmingRewardsConfig getFarmingRewardsConfig() { return bootstrap.getFarmingRewardsConfig(); }
     public me.nakilex.levelplugin.player.fishing.config.FishingRewardsConfig getFishingRewardsConfig() { return bootstrap.getFishingRewardsConfig(); }
+    public me.nakilex.levelplugin.player.woodcutting.config.WoodcuttingConfig getWoodcuttingConfig() { return bootstrap.getWoodcuttingConfig(); }
     public me.nakilex.levelplugin.economy.managers.GemsManager getGemsManager() { return bootstrap.getGemsManager(); }
     public ItemManager getItemManager() { return bootstrap.getItemManager(); }
     public me.nakilex.levelplugin.items.v2.ItemRegistry getItemRegistryV2() { return bootstrap.getItemRegistryV2(); }

@@ -182,17 +182,22 @@ public class ListenerRegistry {
                 plugin,
                 plugin.getMiningRewardsConfig(),
                 plugin.getMiningManager()), plugin);
-        pm.registerEvents(new me.nakilex.levelplugin.player.farming.listeners.WheatHarvestListener(plugin.getFarmingManager()), plugin);
+        pm.registerEvents(new me.nakilex.levelplugin.player.farming.listeners.WheatHarvestListener(plugin.getFarmingManager(), plugin.getFarmingRewardsConfig()), plugin);
         pm.registerEvents(new me.nakilex.levelplugin.player.fishing.listeners.FishingListener(
                 plugin,
                 plugin.getFishingRewardsConfig(),
                 plugin.getFishingManager()), plugin);
+        pm.registerEvents(new me.nakilex.levelplugin.player.woodcutting.listeners.WoodcuttingNodeListener(
+                plugin,
+                plugin.getWoodcuttingManager(),
+                plugin.getWoodcuttingConfig()), plugin);
         pm.registerEvents(new LevelPluginCommandGuard(plugin, serverSelectionManager), plugin);
         pm.registerEvents(new PlayerJoinListener(
                 plugin.getLevelManager(),
                 plugin.getMiningManager(),
                 plugin.getFarmingManager(),
                 plugin.getFishingManager(),
+                plugin.getWoodcuttingManager(),
                 plugin.getEnvironmentManager(),
                 serverSelectionManager), plugin);
         pm.registerEvents(new PlayerQuitListener(plugin.getPlayerConfig(), plugin.getEnvironmentManager()), plugin);
