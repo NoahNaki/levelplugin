@@ -12,8 +12,11 @@ import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitTask;
 
@@ -58,41 +61,32 @@ public class WoodcuttingNodeListener implements Listener {
         if (event.getPlayer() == null || event.getBlock() == null || event.getMechanic() == null) {
             return;
         }
-
         String id = event.getMechanic().getItemID();
-        if (id == null || id.isBlank()) {
+        if (!harvestNode(event.getPlayer(), event.getBlock().getLocation(), id)) {
             return;
         }
-        String normalizedId = id.toLowerCase(Locale.ROOT);
-        if (!config.getNodeIds().contains(normalizedId)) {
-            return;
-        }
-
-        Player player = event.getPlayer();
-        Location location = event.getBlock().getLocation();
-        String key = key(location);
-
-        if (hiddenNodes.containsKey(key)) {
-            event.setCancelled(true);
-            return;
-        }
-
         event.setCancelled(true);
-        NexoBlocks.remove(location, player, false);
+    }
 
-        woodcuttingManager.addXP(player, config.getBaseXp());
-        giveDrops(player);
-
-        long respawnAt = System.currentTimeMillis() + (config.getRespawnSeconds() * 1000L);
-        HiddenNodeState hidden = new HiddenNodeState(normalizedId,
-                location.getWorld() != null ? location.getWorld().getName() : "world",
-                location.getBlockX(),
-                location.getBlockY(),
-                location.getBlockZ(),
-                respawnAt);
-        hiddenNodes.put(key, hidden);
-        saveState();
-        scheduleRespawn(hidden);
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onNodeRightClick(PlayerInteractEvent event) {
+        if (event.getHand() != EquipmentSlot.HAND) {
+            return;
+        }
+        if (event.getAction() != Action.RIGHT_CLICK_BLOCK) {
+            return;
+        }
+        if (event.getClickedBlock() == null || !NexoBlocks.isCustomBlock(event.getClickedBlock())) {
+            return;
+        }
+        var mechanic = NexoBlocks.customBlockMechanic(event.getClickedBlock());
+        if (mechanic == null) {
+            return;
+        }
+        if (!harvestNode(event.getPlayer(), event.getClickedBlock().getLocation(), mechanic.getItemID())) {
+            return;
+        }
+        event.setCancelled(true);
     }
 
     @EventHandler
@@ -107,6 +101,37 @@ public class WoodcuttingNodeListener implements Listener {
             if (hidden.respawnAtMillis > now) continue;
             tryRespawn(hidden);
         }
+    }
+
+
+    private boolean harvestNode(Player player, Location location, String blockId) {
+        if (player == null || location == null || blockId == null || blockId.isBlank()) {
+            return false;
+        }
+        String normalizedId = blockId.toLowerCase(Locale.ROOT);
+        if (!config.getNodeIds().contains(normalizedId)) {
+            return false;
+        }
+        String nodeKey = key(location);
+        if (hiddenNodes.containsKey(nodeKey)) {
+            return true;
+        }
+
+        NexoBlocks.remove(location, player, false);
+        woodcuttingManager.addXP(player, config.getBaseXp());
+        giveDrops(player);
+
+        long respawnAt = System.currentTimeMillis() + (config.getRespawnSeconds() * 1000L);
+        HiddenNodeState hidden = new HiddenNodeState(normalizedId,
+                location.getWorld() != null ? location.getWorld().getName() : "world",
+                location.getBlockX(),
+                location.getBlockY(),
+                location.getBlockZ(),
+                respawnAt);
+        hiddenNodes.put(nodeKey, hidden);
+        saveState();
+        scheduleRespawn(hidden);
+        return true;
     }
 
     public void shutdown() {
