@@ -27,6 +27,10 @@ commands:
     description: Grants Fishing XP to a player
     usage: /addfishingxp <player> <amount>
     permission: none
+  addwoodcuttingxp:
+    description: Grants Woodcutting XP to a player
+    usage: /addwoodcuttingxp <player> <amount>
+    permission: none
   lifeskill:
     description: Manage lifeskill experience and resets
     usage: /lifeskill <addxp|reset> <lifeskill> <player> [amount]

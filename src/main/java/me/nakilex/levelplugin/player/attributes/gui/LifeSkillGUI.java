@@ -72,6 +72,7 @@ public final class LifeSkillGUI {
         MiningManager miningManager = MiningManager.getInstance();
         FarmingManager farmingManager = FarmingManager.getInstance();
         FishingManager fishingManager = FishingManager.getInstance();
+        me.nakilex.levelplugin.player.woodcutting.managers.WoodcuttingManager woodcuttingManager = me.nakilex.levelplugin.player.woodcutting.managers.WoodcuttingManager.getInstance();
         List<GuiWidget> widgets = new ArrayList<>();
 
         widgets.add(new ActionWidget(20,
@@ -118,6 +119,21 @@ public final class LifeSkillGUI {
                         )
                 ),
                 (click, context) -> LifeSkillRewardsGUI.open(context.player(), ToolDiscipline.FARMING)));
+
+        widgets.add(new ActionWidget(31,
+                context -> createSkillItem(
+                        "Woodcutting",
+                        Material.DIAMOND_AXE,
+                        woodcuttingManager.getLevel(context.player()),
+                        woodcuttingManager.getXP(context.player()),
+                        woodcuttingManager.getXpRequired(woodcuttingManager.getLevel(context.player())),
+                        woodcuttingManager.getMaxLevel(),
+                        TooltipUtil.bulletList(
+                                "Cut configured Nexo wood nodes for XP and logs.",
+                                "Nodes vanish temporarily, then safely respawn."
+                        )
+                ),
+                (click, context) -> LifeSkillRewardsGUI.open(context.player(), ToolDiscipline.WOODCUTTING)));
 
         widgets.add(new ActionWidget(40,
                 context -> createBackButton(),

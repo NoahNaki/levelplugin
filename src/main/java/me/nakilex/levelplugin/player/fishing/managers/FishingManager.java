@@ -8,6 +8,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BossBar;
 import org.bukkit.entity.Player;
+import me.nakilex.levelplugin.player.attributes.lifeskill.LifeSkillProgression;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -16,7 +17,7 @@ import java.util.UUID;
 /**
  * Handles Fishing profession XP and levels.
  */
-public class FishingManager {
+public class FishingManager implements LifeSkillProgression {
 
     private static FishingManager instance;
 

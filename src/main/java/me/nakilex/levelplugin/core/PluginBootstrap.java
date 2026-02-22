@@ -109,9 +109,12 @@ public class PluginBootstrap {
     private me.nakilex.levelplugin.player.mining.managers.MiningManager miningManager;
     private me.nakilex.levelplugin.player.farming.managers.FarmingManager farmingManager;
     private me.nakilex.levelplugin.player.fishing.managers.FishingManager fishingManager;
+    private me.nakilex.levelplugin.player.woodcutting.managers.WoodcuttingManager woodcuttingManager;
     private me.nakilex.levelplugin.player.attributes.managers.LifeSkillRewardManager lifeSkillRewardManager;
     private me.nakilex.levelplugin.player.mining.config.MiningRewardsConfig miningRewardsConfig;
+    private me.nakilex.levelplugin.player.farming.config.FarmingRewardsConfig farmingRewardsConfig;
     private me.nakilex.levelplugin.player.fishing.config.FishingRewardsConfig fishingRewardsConfig;
+    private me.nakilex.levelplugin.player.woodcutting.config.WoodcuttingConfig woodcuttingConfig;
     private GlobalBoosterManager boosterManager;
     private HorseManager horseManager;
     private PartyManager partyManager;
@@ -333,8 +336,11 @@ public class PluginBootstrap {
         miningManager = new me.nakilex.levelplugin.player.mining.managers.MiningManager(plugin);
         farmingManager = new me.nakilex.levelplugin.player.farming.managers.FarmingManager(plugin);
         fishingManager = new me.nakilex.levelplugin.player.fishing.managers.FishingManager(plugin);
+        woodcuttingManager = new me.nakilex.levelplugin.player.woodcutting.managers.WoodcuttingManager(plugin);
         miningRewardsConfig = new me.nakilex.levelplugin.player.mining.config.MiningRewardsConfig(plugin);
+        farmingRewardsConfig = new me.nakilex.levelplugin.player.farming.config.FarmingRewardsConfig(plugin);
         fishingRewardsConfig = new me.nakilex.levelplugin.player.fishing.config.FishingRewardsConfig(plugin);
+        woodcuttingConfig = new me.nakilex.levelplugin.player.woodcutting.config.WoodcuttingConfig(plugin);
         boosterManager = new GlobalBoosterManager(plugin, 2.0);
         economyManager = new EconomyManager(plugin);
         lifeSkillRewardManager = new me.nakilex.levelplugin.player.attributes.managers.LifeSkillRewardManager(plugin);
@@ -760,9 +766,12 @@ public class PluginBootstrap {
     public me.nakilex.levelplugin.player.mining.managers.MiningManager getMiningManager() { return miningManager; }
     public me.nakilex.levelplugin.player.farming.managers.FarmingManager getFarmingManager() { return farmingManager; }
     public me.nakilex.levelplugin.player.fishing.managers.FishingManager getFishingManager() { return fishingManager; }
+    public me.nakilex.levelplugin.player.woodcutting.managers.WoodcuttingManager getWoodcuttingManager() { return woodcuttingManager; }
     public me.nakilex.levelplugin.player.attributes.managers.LifeSkillRewardManager getLifeSkillRewardManager() { return lifeSkillRewardManager; }
     public me.nakilex.levelplugin.player.mining.config.MiningRewardsConfig getMiningRewardsConfig() { return miningRewardsConfig; }
+    public me.nakilex.levelplugin.player.farming.config.FarmingRewardsConfig getFarmingRewardsConfig() { return farmingRewardsConfig; }
     public me.nakilex.levelplugin.player.fishing.config.FishingRewardsConfig getFishingRewardsConfig() { return fishingRewardsConfig; }
+    public me.nakilex.levelplugin.player.woodcutting.config.WoodcuttingConfig getWoodcuttingConfig() { return woodcuttingConfig; }
     public GlobalBoosterManager getBoosterManager() { return boosterManager; }
     public HorseManager getHorseManager() { return horseManager; }
     public PartyManager getPartyManager() { return partyManager; }
@@ -906,6 +915,15 @@ public class PluginBootstrap {
         }
         if (miningRewardsConfig != null) {
             miningRewardsConfig.reloadConfig();
+        }
+        if (farmingRewardsConfig != null) {
+            farmingRewardsConfig.reloadConfig();
+        }
+        if (fishingRewardsConfig != null) {
+            fishingRewardsConfig.reloadConfig();
+        }
+        if (woodcuttingConfig != null) {
+            woodcuttingConfig.reload();
         }
         if (configManager != null) {
             configManager.reloadLootChestsConfig();

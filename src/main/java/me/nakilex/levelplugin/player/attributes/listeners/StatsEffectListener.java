@@ -12,6 +12,7 @@ import me.nakilex.levelplugin.pet.PetManager;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.utils.MobUtil;
 import org.bukkit.entity.Entity;
+import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.event.EventHandler;
@@ -31,6 +32,9 @@ public class StatsEffectListener implements Listener {
 
     // Basic attacks scaling
     public static final double BASIC_ATTACK_MULTIPLIER = 0.60;
+
+    private static final String SKIP_SCALING_META = "lp_skip_scaling_once";
+
 
     // Track whether each player's last hit was a crit
     private static final Map<UUID, Boolean> lastCritMap = new ConcurrentHashMap<>();
@@ -54,6 +58,28 @@ public class StatsEffectListener implements Listener {
         }
     }
 
+    public static void markSkipNextScaling(Player player) {
+        if (player == null) {
+            return;
+        }
+        Main plugin = Main.getInstance();
+        if (plugin == null) {
+            return;
+        }
+        player.setMetadata(SKIP_SCALING_META, new FixedMetadataValue(plugin, true));
+    }
+
+    private static boolean consumeSkipScaling(Player player) {
+        if (player == null || !player.hasMetadata(SKIP_SCALING_META)) {
+            return false;
+        }
+        Main plugin = Main.getInstance();
+        if (plugin != null) {
+            player.removeMetadata(SKIP_SCALING_META, plugin);
+        }
+        return true;
+    }
+
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
         Entity damager = event.getDamager();
@@ -62,6 +88,13 @@ public class StatsEffectListener implements Listener {
         // Determine if a player is responsible for the damage
         Player player = null;
         if (damager instanceof Player p) {
+            boolean sweeping = p.hasMetadata(SweepAttack.SWEEP_META);
+            boolean skipScaling = consumeSkipScaling(p);
+            if (!sweeping && !skipScaling && p.getAttackCooldown() < 1.0f) {
+                event.setCancelled(true);
+                return;
+            }
+            player = skipScaling ? null : p;
             if (p.hasMetadata(SpellEffectUtil.BYPASS_STAT_SCALING_META)) {
                 player = null;
             } else {

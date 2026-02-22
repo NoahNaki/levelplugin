@@ -79,6 +79,7 @@ public class DebugCommand implements TabExecutor {
     private final ArcSlashDebugGUI arcSlashDebugGUI;
     private final PetManager petManager;
 
+
     public DebugCommand(PlayerToggleManager mobDebugManager,
                         PlayerScoreboardManager scoreboardManager,
                         DebugGUI debugGUI,
@@ -565,6 +566,7 @@ public class DebugCommand implements TabExecutor {
         sender.sendMessage(ChatColor.GRAY + "Chat game '" + ChatColor.AQUA + id + ChatColor.GRAY + "' is now "
                 + (enable ? ChatColor.GREEN + "enabled" : ChatColor.RED + "disabled") + ChatColor.GRAY + ".");
     }
+
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {

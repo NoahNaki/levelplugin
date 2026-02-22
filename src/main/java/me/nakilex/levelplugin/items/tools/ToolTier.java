@@ -8,17 +8,17 @@ import java.util.List;
 
 public enum ToolTier {
     TIER_I(1, ItemRarity.COMMON, 1.0f, 1.05f, 1.05f, 1.02f,
-            Arrays.asList(Material.WOODEN_PICKAXE, Material.WOODEN_HOE)),
+            Arrays.asList(Material.WOODEN_PICKAXE, Material.WOODEN_HOE, Material.WOODEN_AXE)),
     TIER_II(10, ItemRarity.UNCOMMON, 1.2f, 1.1f, 1.1f, 1.05f,
-            Arrays.asList(Material.STONE_PICKAXE, Material.STONE_HOE)),
+            Arrays.asList(Material.STONE_PICKAXE, Material.STONE_HOE, Material.STONE_AXE)),
     TIER_III(15, ItemRarity.RARE, 1.5f, 1.15f, 1.15f, 1.08f,
-            Arrays.asList(Material.GOLDEN_PICKAXE, Material.GOLDEN_HOE)),
+            Arrays.asList(Material.GOLDEN_PICKAXE, Material.GOLDEN_HOE, Material.GOLDEN_AXE)),
     TIER_IV(25, ItemRarity.EPIC, 1.8f, 1.2f, 1.2f, 1.12f,
-            Arrays.asList(Material.IRON_PICKAXE, Material.IRON_HOE)),
+            Arrays.asList(Material.IRON_PICKAXE, Material.IRON_HOE, Material.IRON_AXE)),
     TIER_V(40, ItemRarity.LEGENDARY, 2.0f, 1.25f, 1.25f, 1.16f,
-            Arrays.asList(Material.DIAMOND_PICKAXE, Material.DIAMOND_HOE)),
+            Arrays.asList(Material.DIAMOND_PICKAXE, Material.DIAMOND_HOE, Material.DIAMOND_AXE)),
     TIER_VI(60, ItemRarity.MYTHIC, 2.2f, 1.3f, 1.35f, 1.2f,
-            Arrays.asList(Material.NETHERITE_PICKAXE, Material.NETHERITE_HOE, Material.FISHING_ROD));
+            Arrays.asList(Material.NETHERITE_PICKAXE, Material.NETHERITE_HOE, Material.FISHING_ROD, Material.NETHERITE_AXE));
 
     private final int levelReq;
     private final ItemRarity rarity;

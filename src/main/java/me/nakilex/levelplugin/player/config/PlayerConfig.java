@@ -53,6 +53,7 @@ public class PlayerConfig {
         me.nakilex.levelplugin.player.mining.managers.MiningManager miningManager = me.nakilex.levelplugin.player.mining.managers.MiningManager.getInstance();
         me.nakilex.levelplugin.player.farming.managers.FarmingManager farmingManager = me.nakilex.levelplugin.player.farming.managers.FarmingManager.getInstance();
         me.nakilex.levelplugin.player.fishing.managers.FishingManager fishingManager = me.nakilex.levelplugin.player.fishing.managers.FishingManager.getInstance();
+        me.nakilex.levelplugin.player.woodcutting.managers.WoodcuttingManager woodcuttingManager = me.nakilex.levelplugin.player.woodcutting.managers.WoodcuttingManager.getInstance();
 
         String path = "players." + uuid.toString();
         // Use UUID-based lookups so offline players save correctly
@@ -64,6 +65,8 @@ public class PlayerConfig {
         config.set(path + ".farming.xp",    farmingManager.getXP(uuid));
         config.set(path + ".fishing.level", fishingManager.getLevel(uuid));
         config.set(path + ".fishing.xp",    fishingManager.getXP(uuid));
+        config.set(path + ".woodcutting.level", woodcuttingManager.getLevel(uuid));
+        config.set(path + ".woodcutting.xp",    woodcuttingManager.getXP(uuid));
         config.set(path + ".fishing.discovered", new ArrayList<>(fishingManager.getDiscoveredFish(uuid)));
         LifeSkillRewardManager rewardManager = LifeSkillRewardManager.getInstance();
         if (rewardManager != null) {
@@ -135,6 +138,8 @@ public class PlayerConfig {
         int farmingXp = config.getInt(root + ".farming.xp", 0);
         int fishingLevel = config.getInt(root + ".fishing.level", 1);
         int fishingXp = config.getInt(root + ".fishing.xp", 0);
+        int woodcuttingLevel = config.getInt(root + ".woodcutting.level", 1);
+        int woodcuttingXp = config.getInt(root + ".woodcutting.xp", 0);
         List<String> discoveredFish = config.getStringList(root + ".fishing.discovered");
         LifeSkillRewardManager rewardManager = LifeSkillRewardManager.getInstance();
         int skillPoints = config.getInt(root + ".skill_points", 0);
@@ -153,6 +158,9 @@ public class PlayerConfig {
         fim.setLevel(uuid, fishingLevel);
         fim.addXP(uuid, fishingXp);
         fim.setDiscoveredFish(uuid, new HashSet<>(discoveredFish));
+        me.nakilex.levelplugin.player.woodcutting.managers.WoodcuttingManager wcm = me.nakilex.levelplugin.player.woodcutting.managers.WoodcuttingManager.getInstance();
+        wcm.setLevel(uuid, woodcuttingLevel);
+        wcm.addXP(uuid, woodcuttingXp);
         if (rewardManager != null) {
             for (ToolDiscipline discipline : ToolDiscipline.values()) {
                 List<Integer> claimed = config.getIntegerList(root + ".lifeskills." + discipline.name().toLowerCase() + ".claimed");

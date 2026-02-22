@@ -4,6 +4,8 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.items.tools.ToolDiscipline;
 import me.nakilex.levelplugin.mercenary.MercenaryAffinityManager;
+import me.nakilex.levelplugin.player.attributes.lifeskill.LifeSkillProgression;
+import me.nakilex.levelplugin.player.attributes.lifeskill.LifeSkillRegistry;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
 import me.nakilex.levelplugin.player.config.PlayerConfig;
@@ -38,6 +40,7 @@ public class LifeSkillRewardManager {
     private final FarmingManager farmingManager;
     private final FishingManager fishingManager;
     private final Supplier<MercenaryAffinityManager> affinitySupplier;
+    private final Map<ToolDiscipline, LifeSkillProgression> progressionByDiscipline;
 
     public LifeSkillRewardManager(Main plugin) {
         this.plugin = plugin;
@@ -46,6 +49,7 @@ public class LifeSkillRewardManager {
         this.farmingManager = plugin.getFarmingManager();
         this.fishingManager = plugin.getFishingManager();
         this.affinitySupplier = plugin::getMercenaryAffinityManager;
+        this.progressionByDiscipline = LifeSkillRegistry.progressions(plugin);
         instance = this;
 
         initialiseRewards();
@@ -62,6 +66,7 @@ public class LifeSkillRewardManager {
         rewards.put(ToolDiscipline.FARMING, createRewardList("Farming"));
         rewards.put(ToolDiscipline.MINING, createRewardList("Mining"));
         rewards.put(ToolDiscipline.FISHING, createRewardList("Fishing"));
+        rewards.put(ToolDiscipline.WOODCUTTING, createRewardList("Woodcutting"));
     }
 
     private List<LifeSkillReward> createRewardList(String skillName) {
@@ -277,11 +282,8 @@ public class LifeSkillRewardManager {
     }
 
     private int getLevel(ToolDiscipline discipline, UUID uuid) {
-        return switch (discipline) {
-            case MINING -> miningManager.getLevel(uuid);
-            case FARMING -> farmingManager.getLevel(uuid);
-            case FISHING -> fishingManager.getLevel(uuid);
-        };
+        LifeSkillProgression progression = progressionByDiscipline.get(discipline);
+        return progression == null ? 1 : progression.getLevel(uuid);
     }
 
     public record LifeSkillReward(int levelRequired, String displayName, List<String> lore, Consumer<Player> rewardAction) {

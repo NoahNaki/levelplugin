@@ -111,6 +111,9 @@ public class ProfileManager {
         if (plugin.getMiningManager() != null) {
             plugin.getMiningManager().clearPlayerData(uuid);
         }
+        if (plugin.getWoodcuttingManager() != null) {
+            plugin.getWoodcuttingManager().clearPlayerData(uuid);
+        }
         if (plugin.getHorseManager() != null) {
             plugin.getHorseManager().clearPlayerData(uuid);
         }

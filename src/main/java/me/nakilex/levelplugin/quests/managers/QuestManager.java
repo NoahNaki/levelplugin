@@ -1074,6 +1074,14 @@ public class QuestManager {
         updateObjectiveWithAny(player, QuestObjectiveType.GATHER_CROPS, cropId);
     }
 
+    public void handleMineOre(Player player, String oreId) {
+        if (debug) {
+            plugin.getLogger().info("[QuestDebug] " + player.getName() + " mined ore " + oreId);
+        }
+        updateObjectiveWithAny(player, QuestObjectiveType.MINE_ORE, oreId);
+    }
+
+
     public void handleAuctionBuy(Player player, String itemId) {
         if (debug) {
             plugin.getLogger().info("[QuestDebug] " + player.getName() + " bought from auction " + itemId);

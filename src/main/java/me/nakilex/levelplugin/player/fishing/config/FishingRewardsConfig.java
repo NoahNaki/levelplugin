@@ -45,7 +45,7 @@ public class FishingRewardsConfig {
         return new ArrayList<>(fish);
     }
 
-    public FishDefinition rollFish(int fishingLevel, boolean inLava, boolean hasHighestTier, Random random) {
+    public FishDefinition rollFish(int fishingLevel, boolean inLava, boolean hasHighestTier, double rarityBonus, Random random) {
         List<FishDefinition> available = new ArrayList<>();
         for (FishDefinition def : fish) {
             if (def.minLevel() > fishingLevel) continue;
@@ -60,12 +60,33 @@ public class FishingRewardsConfig {
 
         Map<FishDefinition, Double> weights = new LinkedHashMap<>();
         for (FishDefinition def : available) {
-            double weight = Math.max(0.01, def.weight());
-            weights.put(def, weight);
+            weights.put(def, applyRarityBonus(def, rarityBonus, hasHighestTier));
         }
         return RandomUtil.pickWeighted(random, weights);
     }
 
+
+    private double applyRarityBonus(FishDefinition definition, double rarityBonus, boolean hasHighestTier) {
+        double safeBonus = Math.max(0.0, rarityBonus);
+        if (safeBonus <= 0.0) {
+            return Math.max(0.01, definition.weight());
+        }
+
+        double rarityModifier = switch (definition.rarity()) {
+            case COMMON -> Math.max(0.40, 1.0 - (safeBonus * 0.70));
+            case UNCOMMON -> Math.max(0.55, 1.0 - (safeBonus * 0.35));
+            case RARE -> 1.0 + (safeBonus * 0.45);
+            case EPIC -> 1.0 + (safeBonus * 0.70);
+            case LEGENDARY -> 1.0 + (safeBonus * 1.00);
+            case MYTHIC, FABLED -> 1.0 + (safeBonus * 1.20);
+        };
+
+        if (!hasHighestTier && (definition.rarity() == ItemRarity.LEGENDARY || definition.rarity() == ItemRarity.MYTHIC || definition.rarity() == ItemRarity.FABLED)) {
+            rarityModifier *= 0.85;
+        }
+
+        return Math.max(0.01, definition.weight() * rarityModifier);
+    }
     public void reloadConfig() {
         config = YamlConfiguration.loadConfiguration(configFile);
         fish.clear();

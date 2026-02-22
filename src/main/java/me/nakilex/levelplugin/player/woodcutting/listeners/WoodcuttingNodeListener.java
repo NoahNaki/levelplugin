@@ -1,0 +1,268 @@
+package me.nakilex.levelplugin.player.woodcutting.listeners;
+
+import com.nexomc.nexo.api.NexoBlocks;
+import com.nexomc.nexo.api.events.custom_block.NexoBlockBreakEvent;
+import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.player.woodcutting.config.WoodcuttingConfig;
+import me.nakilex.levelplugin.player.woodcutting.managers.WoodcuttingManager;
+import me.nakilex.levelplugin.utils.FullInventoryListener;
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.World;
+import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.Listener;
+import org.bukkit.event.world.ChunkLoadEvent;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.scheduler.BukkitTask;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
+
+/**
+ * Handles woodcutting on configured Nexo custom blocks by temporarily hiding
+ * nodes and restoring them after a cooldown. Hidden node state is persisted so
+ * restart/chunk-unload scenarios are safe.
+ */
+public class WoodcuttingNodeListener implements Listener {
+
+    private final Main plugin;
+    private final WoodcuttingManager woodcuttingManager;
+    private final WoodcuttingConfig config;
+    private final File stateFile;
+    private org.bukkit.configuration.file.FileConfiguration state;
+
+    private final Map<String, HiddenNodeState> hiddenNodes = new HashMap<>();
+    private final Map<String, BukkitTask> respawnTasks = new HashMap<>();
+    private BukkitTask heartbeatTask;
+
+    public WoodcuttingNodeListener(Main plugin,
+                                   WoodcuttingManager woodcuttingManager,
+                                   WoodcuttingConfig config) {
+        this.plugin = plugin;
+        this.woodcuttingManager = woodcuttingManager;
+        this.config = config;
+        this.stateFile = new File(plugin.getDataFolder(), "woodcutting_state.yml");
+        this.state = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(stateFile);
+        loadState();
+        startHeartbeat();
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onNexoBlockBreak(NexoBlockBreakEvent event) {
+        if (event.getPlayer() == null || event.getBlock() == null || event.getMechanic() == null) {
+            return;
+        }
+
+        String id = event.getMechanic().getItemID();
+        if (id == null || id.isBlank()) {
+            return;
+        }
+        String normalizedId = id.toLowerCase(Locale.ROOT);
+        if (!config.getNodeIds().contains(normalizedId)) {
+            return;
+        }
+
+        Player player = event.getPlayer();
+        Location location = event.getBlock().getLocation();
+        String key = key(location);
+
+        if (hiddenNodes.containsKey(key)) {
+            event.setCancelled(true);
+            return;
+        }
+
+        event.setCancelled(true);
+        NexoBlocks.remove(location, player, false);
+
+        woodcuttingManager.addXP(player, config.getBaseXp());
+        giveDrops(player);
+
+        long respawnAt = System.currentTimeMillis() + (config.getRespawnSeconds() * 1000L);
+        HiddenNodeState hidden = new HiddenNodeState(normalizedId,
+                location.getWorld() != null ? location.getWorld().getName() : "world",
+                location.getBlockX(),
+                location.getBlockY(),
+                location.getBlockZ(),
+                respawnAt);
+        hiddenNodes.put(key, hidden);
+        saveState();
+        scheduleRespawn(hidden);
+    }
+
+    @EventHandler
+    public void onChunkLoad(ChunkLoadEvent event) {
+        String world = event.getWorld().getName();
+        int cx = event.getChunk().getX();
+        int cz = event.getChunk().getZ();
+        long now = System.currentTimeMillis();
+        for (HiddenNodeState hidden : hiddenNodes.values()) {
+            if (!hidden.worldName.equalsIgnoreCase(world)) continue;
+            if ((hidden.x >> 4) != cx || (hidden.z >> 4) != cz) continue;
+            if (hidden.respawnAtMillis > now) continue;
+            tryRespawn(hidden);
+        }
+    }
+
+    public void shutdown() {
+        for (BukkitTask task : respawnTasks.values()) {
+            task.cancel();
+        }
+        respawnTasks.clear();
+        if (heartbeatTask != null) {
+            heartbeatTask.cancel();
+            heartbeatTask = null;
+        }
+        saveState();
+    }
+
+    private void giveDrops(Player player) {
+        int min = config.getDropAmountMin();
+        int max = config.getDropAmountMax();
+        int amount = max > min ? ThreadLocalRandom.current().nextInt(min, max + 1) : min;
+        ItemStack drop = new ItemStack(config.getDropMaterial(), amount);
+        Map<Integer, ItemStack> overflow = player.getInventory().addItem(drop);
+        if (!overflow.isEmpty()) {
+            FullInventoryListener.sendFullInventoryTitle(player, Main.getInstance().getSettingsManager());
+            overflow.values().forEach(item -> player.getWorld().dropItemNaturally(player.getLocation(), item));
+        }
+    }
+
+    private void scheduleRespawn(HiddenNodeState hidden) {
+        String key = hidden.key();
+        BukkitTask existing = respawnTasks.remove(key);
+        if (existing != null) {
+            existing.cancel();
+        }
+
+        long delayMs = Math.max(1L, hidden.respawnAtMillis - System.currentTimeMillis());
+        long delayTicks = Math.max(1L, delayMs / 50L);
+        BukkitTask task = Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            respawnTasks.remove(key);
+            tryRespawn(hidden);
+        }, delayTicks);
+        respawnTasks.put(key, task);
+    }
+
+    private void startHeartbeat() {
+        heartbeatTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            long now = System.currentTimeMillis();
+            for (HiddenNodeState hidden : hiddenNodes.values()) {
+                if (hidden.respawnAtMillis <= now) {
+                    tryRespawn(hidden);
+                }
+            }
+        }, 20L * 30, 20L * 30);
+    }
+
+    private void tryRespawn(HiddenNodeState hidden) {
+        World world = Bukkit.getWorld(hidden.worldName);
+        if (world == null) {
+            return;
+        }
+
+        int chunkX = hidden.x >> 4;
+        int chunkZ = hidden.z >> 4;
+        if (!world.isChunkLoaded(chunkX, chunkZ)) {
+            return;
+        }
+
+        Location location = new Location(world, hidden.x, hidden.y, hidden.z);
+        if (NexoBlocks.isCustomBlock(location.getBlock())) {
+            com.nexomc.nexo.mechanics.custom_block.CustomBlockMechanic mechanic = NexoBlocks.customBlockMechanic(location.getBlock());
+            if (mechanic != null && hidden.blockId.equalsIgnoreCase(mechanic.getItemID())) {
+                hiddenNodes.remove(hidden.key());
+                respawnTasks.remove(hidden.key());
+                saveState();
+                return;
+            }
+        }
+
+        NexoBlocks.place(hidden.blockId, location);
+        hiddenNodes.remove(hidden.key());
+        respawnTasks.remove(hidden.key());
+        saveState();
+    }
+
+    private void loadState() {
+        hiddenNodes.clear();
+        if (!state.isConfigurationSection("hidden")) {
+            return;
+        }
+        long now = System.currentTimeMillis();
+        for (String key : state.getConfigurationSection("hidden").getKeys(false)) {
+            String base = "hidden." + key;
+            String blockId = state.getString(base + ".id", "");
+            String world = state.getString(base + ".world", "world");
+            int x = state.getInt(base + ".x");
+            int y = state.getInt(base + ".y");
+            int z = state.getInt(base + ".z");
+            long respawnAt = state.getLong(base + ".respawnAt", now);
+
+            if (blockId.isBlank()) {
+                continue;
+            }
+            HiddenNodeState hidden = new HiddenNodeState(blockId.toLowerCase(Locale.ROOT), world, x, y, z, respawnAt);
+            hiddenNodes.put(hidden.key(), hidden);
+            if (respawnAt > now) {
+                scheduleRespawn(hidden);
+            }
+        }
+    }
+
+    private void saveState() {
+        state.set("hidden", null);
+        for (HiddenNodeState hidden : hiddenNodes.values()) {
+            String base = "hidden." + hidden.key();
+            state.set(base + ".id", hidden.blockId);
+            state.set(base + ".world", hidden.worldName);
+            state.set(base + ".x", hidden.x);
+            state.set(base + ".y", hidden.y);
+            state.set(base + ".z", hidden.z);
+            state.set(base + ".respawnAt", hidden.respawnAtMillis);
+        }
+        try {
+            state.save(stateFile);
+        } catch (IOException e) {
+            plugin.getLogger().warning("Failed to save woodcutting_state.yml: " + e.getMessage());
+        }
+    }
+
+    private String key(Location location) {
+        if (location == null || location.getWorld() == null) {
+            return "unknown:0:0:0";
+        }
+        return key(location.getWorld().getName(), location.getBlockX(), location.getBlockY(), location.getBlockZ());
+    }
+
+    private String key(String world, int x, int y, int z) {
+        return world.toLowerCase(Locale.ROOT) + ":" + x + ":" + y + ":" + z;
+    }
+
+    private final class HiddenNodeState {
+        private final String blockId;
+        private final String worldName;
+        private final int x;
+        private final int y;
+        private final int z;
+        private final long respawnAtMillis;
+
+        private HiddenNodeState(String blockId, String worldName, int x, int y, int z, long respawnAtMillis) {
+            this.blockId = blockId;
+            this.worldName = worldName;
+            this.x = x;
+            this.y = y;
+            this.z = z;
+            this.respawnAtMillis = respawnAtMillis;
+        }
+
+        private String key() {
+            return WoodcuttingNodeListener.this.key(worldName, x, y, z);
+        }
+    }
+}
