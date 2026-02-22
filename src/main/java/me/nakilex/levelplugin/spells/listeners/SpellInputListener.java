@@ -7,6 +7,7 @@ import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.settings.data.PlayerSettings;
 import me.nakilex.levelplugin.settings.managers.SettingsManager;
+import me.nakilex.levelplugin.spells.SpellEffectUtil;
 import me.nakilex.levelplugin.spells.input.SpellComboTracker;
 import me.nakilex.levelplugin.spells.input.SpellClickInput;
 import me.nakilex.levelplugin.spells.input.SpellInputDisplayManager;
@@ -85,6 +86,9 @@ public class SpellInputListener implements Listener {
     @EventHandler
     public void onEntityDamage(EntityDamageByEntityEvent event) {
         if (!(event.getDamager() instanceof Player player)) {
+            return;
+        }
+        if (player.hasMetadata(SpellEffectUtil.BYPASS_STAT_SCALING_META)) {
             return;
         }
         if (event.getCause() != EntityDamageEvent.DamageCause.ENTITY_ATTACK) {
@@ -210,7 +214,13 @@ public class SpellInputListener implements Listener {
     }
 
     private void handleClick(Player player, boolean leftClick) {
-        if (!isHoldingValidClassWeapon(player)) {
+        boolean validWeapon = isHoldingValidClassWeapon(player);
+        if (!validWeapon) {
+            if (!isMageBasicFallbackAllowed(player, leftClick)) {
+                return;
+            }
+            dispatch(player, SpellInputType.BASIC_ATTACK, SpellInputMode.MOUSE_AND_KEYBOARD,
+                    leftClick ? "Left" : "Right");
             return;
         }
         sendClickDebug(player, leftClick);
@@ -239,6 +249,18 @@ public class SpellInputListener implements Listener {
     private void sendClickDebug(Player player, boolean leftClick) {
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                 "Click " + (leftClick ? "Left" : "Right") + " Class: " + getPlayerClassName(player));
+    }
+
+
+    private boolean isMageBasicFallbackAllowed(Player player, boolean leftClick) {
+        if (player == null || !leftClick) {
+            return false;
+        }
+        if (player.getInventory().getItemInMainHand().getType().isAir()) {
+            return false;
+        }
+        PlayerClass playerClass = PlayerClassManager.getInstance().getPlayerClass(player);
+        return ClassUtil.isMageFamily(playerClass);
     }
 
     private boolean shouldProcessRightClick(Player player) {
