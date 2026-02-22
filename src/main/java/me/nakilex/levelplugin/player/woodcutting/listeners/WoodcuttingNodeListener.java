@@ -76,12 +76,13 @@ public class WoodcuttingNodeListener implements Listener {
         handleNodeHit(event.getPlayer(), event.getBlock().getLocation(), id);
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onNodeRightClick(PlayerInteractEvent event) {
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onNodeInteract(PlayerInteractEvent event) {
         if (event.getHand() != EquipmentSlot.HAND) {
             return;
         }
-        if (event.getAction() != Action.RIGHT_CLICK_BLOCK) {
+        Action action = event.getAction();
+        if (action != Action.RIGHT_CLICK_BLOCK && action != Action.LEFT_CLICK_BLOCK) {
             return;
         }
         if (event.getClickedBlock() == null || !NexoBlocks.isCustomBlock(event.getClickedBlock())) {
@@ -116,6 +117,8 @@ public class WoodcuttingNodeListener implements Listener {
         }
         String normalizedId = blockId.toLowerCase(Locale.ROOT);
         if (!config.getNodeIds().contains(normalizedId)) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                    ChatColor.RED + "That custom block is not a configured woodcutting node.");
             return;
         }
         String nodeKey = key(location);
