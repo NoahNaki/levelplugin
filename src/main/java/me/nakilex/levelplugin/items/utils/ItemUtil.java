@@ -386,6 +386,7 @@ public class ItemUtil {
             lore.add(ChatColor.RED + "Soulbound");
             pdc.set(SOULBOUND_KEY, PersistentDataType.BYTE, (byte)1);
         }
+        meta.setUnbreakable(true);
         meta.setLore(lore);
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES); // Hide item attributes
         meta.setUnbreakable(true); // Make the item unbreakable
@@ -506,6 +507,7 @@ public class ItemUtil {
             lore.add(index, line);
         }
 
+        meta.setUnbreakable(true);
         meta.setLore(lore);
         stack.setItemMeta(meta);
     }
@@ -779,6 +781,7 @@ public class ItemUtil {
                 + "/" + cItem.getMaxDurability());
         }
         // Update the item meta with the new lore.
+        meta.setUnbreakable(true);
         meta.setLore(lore);
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_UNBREAKABLE, ItemFlag.HIDE_DYE);
         meta.setUnbreakable(true);
@@ -932,12 +935,18 @@ public class ItemUtil {
         } else if (discipline == ToolDiscipline.FISHING) {
             lore.add(ChatColor.GRAY + "Fishing Speed: " + ChatColor.GREEN + "+" + (int) (tier.getFishingSpeed() * 100 - 100) + "%");
             lore.add(ChatColor.GRAY + "Fish Rarity: " + ChatColor.GREEN + "+" + (int) (tier.getFishRarityBonus() * 100 - 100) + "%");
-            meta.setUnbreakable(true);
         } else if (discipline == ToolDiscipline.WOODCUTTING) {
             lore.add(ChatColor.GRAY + "Woodcutting Speed: " + ChatColor.GREEN + "+" + tier.getMiningSpeed());
+            me.nakilex.levelplugin.items.tools.WoodcuttingToolEnchant enchant =
+                    ToolManager.getInstance().getWoodcuttingEnchant(stack);
+            if (enchant != null) {
+                lore.add(ChatColor.GRAY + "Enchant: " + ChatColor.LIGHT_PURPLE + enchant.getDisplayName());
+                lore.addAll(me.nakilex.levelplugin.utils.TooltipUtil.bulletList(enchant.getDescription()));
+            }
         } else {
             lore.add(ChatColor.GRAY + "Mining Speed: " + ChatColor.GREEN + "+" + tier.getMiningSpeed());
         }
+        meta.setUnbreakable(true);
         meta.setLore(lore);
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_UNBREAKABLE);
         stack.setItemMeta(meta);

@@ -28,6 +28,8 @@ public class ToolManager {
     private final NamespacedKey toolDisciplineKey = new NamespacedKey(Main.getInstance(), "tool_discipline");
     private final NamespacedKey farmingEnchantKey = new NamespacedKey(Main.getInstance(), "farming_enchant");
     private final NamespacedKey farmingEnchantCountKey = new NamespacedKey(Main.getInstance(), "farming_enchant_count");
+    private final NamespacedKey woodcuttingEnchantKey = new NamespacedKey(Main.getInstance(), "woodcutting_enchant");
+    private final NamespacedKey woodcuttingEnchantCountKey = new NamespacedKey(Main.getInstance(), "woodcutting_enchant_count");
 
     public ToolManager() {
         instance = this;
@@ -209,6 +211,45 @@ public class ToolManager {
         stack.setItemMeta(meta);
     }
 
+
+    public WoodcuttingToolEnchant getWoodcuttingEnchant(ItemStack stack) {
+        if (stack == null || !stack.hasItemMeta()) return null;
+        ItemMeta meta = stack.getItemMeta();
+        if (meta == null) return null;
+        String value = meta.getPersistentDataContainer().get(woodcuttingEnchantKey, PersistentDataType.STRING);
+        return WoodcuttingToolEnchant.fromKey(value);
+    }
+
+    public int getWoodcuttingEnchantCount(ItemStack stack) {
+        if (stack == null || !stack.hasItemMeta()) return 0;
+        ItemMeta meta = stack.getItemMeta();
+        if (meta == null) return 0;
+        return meta.getPersistentDataContainer().getOrDefault(woodcuttingEnchantCountKey, PersistentDataType.INTEGER, 0);
+    }
+
+    public void setWoodcuttingEnchant(ItemStack stack, WoodcuttingToolEnchant enchant) {
+        if (stack == null || !stack.hasItemMeta()) return;
+        ItemMeta meta = stack.getItemMeta();
+        if (meta == null) return;
+        PersistentDataContainer container = meta.getPersistentDataContainer();
+        if (enchant != null) {
+            container.set(woodcuttingEnchantKey, PersistentDataType.STRING, enchant.getKey());
+        } else {
+            container.remove(woodcuttingEnchantKey);
+        }
+        stack.setItemMeta(meta);
+    }
+
+    public void incrementWoodcuttingEnchantCount(ItemStack stack) {
+        if (stack == null || !stack.hasItemMeta()) return;
+        ItemMeta meta = stack.getItemMeta();
+        if (meta == null) return;
+        PersistentDataContainer container = meta.getPersistentDataContainer();
+        int current = container.getOrDefault(woodcuttingEnchantCountKey, PersistentDataType.INTEGER, 0);
+        container.set(woodcuttingEnchantCountKey, PersistentDataType.INTEGER, current + 1);
+        stack.setItemMeta(meta);
+    }
+
     public ItemStack createToolItem(CustomTool tool, org.bukkit.entity.Player viewer) {
         ItemStack stack;
         String name = tool.getTier().getRarity().getColor() + tool.getName();
@@ -226,6 +267,7 @@ public class ToolManager {
         ItemUtil.updateCustomToolTooltip(stack, viewer);
         ItemMeta meta = stack.getItemMeta();
         if (meta != null) {
+            meta.setUnbreakable(true);
             meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ATTRIBUTES, org.bukkit.inventory.ItemFlag.HIDE_UNBREAKABLE);
             stack.setItemMeta(meta);
         }
