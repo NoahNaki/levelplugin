@@ -6,6 +6,12 @@ nodes:
   ids:
     - woodcutting_log_node
   respawn-seconds: 90
+  durability:
+    default: 10
+    overrides:
+      woodcutting_log_node: 12
+  hp-bar:
+    segments: 10
 
 drops:
   material: OAK_LOG

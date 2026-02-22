@@ -40,6 +40,18 @@ public class WoodcuttingConfig {
         return Math.max(1, config.getInt("nodes.respawn-seconds", 90));
     }
 
+    public int getNodeDurability(String nodeId) {
+        int fallback = Math.max(1, config.getInt("nodes.durability.default", 10));
+        if (nodeId == null || nodeId.isBlank()) {
+            return fallback;
+        }
+        return Math.max(1, config.getInt("nodes.durability.overrides." + nodeId.toLowerCase(Locale.ROOT), fallback));
+    }
+
+    public int getHpBarSegments() {
+        return Math.max(5, config.getInt("nodes.hp-bar.segments", 10));
+    }
+
     public Set<String> getNodeIds() {
         Set<String> set = new HashSet<>();
         for (String id : config.getStringList("nodes.ids")) {
