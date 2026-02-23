@@ -71,8 +71,8 @@ public final class SpellCatalog {
         registry.registerSpell(blinkPhase, new MageBlinkSpell(plugin, 11.0));
         registry.registerSpell(blinkRift, new MageBlinkSpell(plugin, 14.0));
         registry.registerProgression(new SpellProgression(blink.id(), java.util.List.of(blinkPhase.id(), blinkRift.id())));
-        registry.registerBinding(SpellBinding.forInputType(blink.id(), ClassUtil::isMageFamily, SpellInputType.SPELL_4));
+        registry.registerBinding(SpellBinding.forInputType(blink.id(), ClassUtil::isMageFamily, SpellInputType.SPELL_3));
 
-        registry.registerBinding(SpellBinding.forInputType(meteor.id(), ClassUtil::isMageFamily, SpellInputType.SPELL_3));
+        registry.registerBinding(SpellBinding.forInputType(meteor.id(), ClassUtil::isMageFamily, SpellInputType.SPELL_4));
     }
 }
