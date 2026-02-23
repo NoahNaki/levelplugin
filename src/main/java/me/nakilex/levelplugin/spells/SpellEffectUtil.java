@@ -1,10 +1,14 @@
 package me.nakilex.levelplugin.spells;
 
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
-import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.World;
+import org.bukkit.block.Block;
+import org.bukkit.block.data.BlockData;
+import org.bukkit.block.data.type.Light;
+import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -86,6 +90,75 @@ public final class SpellEffectUtil {
         }
     }
 
+
+
+    public static Location moveTemporaryLight(Location currentLight, Location target, int lightLevel) {
+        Location targetLight = normalizeToBlock(target);
+        if (targetLight == null) {
+            clearTemporaryLight(currentLight);
+            return null;
+        }
+
+        Location existing = normalizeToBlock(currentLight);
+        if (existing != null
+                && existing.getWorld() != null
+                && targetLight.getWorld() != null
+                && existing.getWorld().equals(targetLight.getWorld())
+                && existing.getBlockX() == targetLight.getBlockX()
+                && existing.getBlockY() == targetLight.getBlockY()
+                && existing.getBlockZ() == targetLight.getBlockZ()) {
+            return existing;
+        }
+
+        clearTemporaryLight(existing);
+        return placeTemporaryLight(targetLight, lightLevel) ? targetLight : null;
+    }
+
+    public static void clearTemporaryLight(Location location) {
+        Location normalized = normalizeToBlock(location);
+        if (normalized == null || normalized.getWorld() == null) {
+            return;
+        }
+        Material lightMaterial = Material.matchMaterial("LIGHT");
+        if (lightMaterial == null) {
+            return;
+        }
+
+        Block block = normalized.getWorld().getBlockAt(normalized);
+        if (block.getType() == lightMaterial) {
+            block.setType(Material.AIR, false);
+        }
+    }
+
+    private static boolean placeTemporaryLight(Location location, int lightLevel) {
+        if (location == null || location.getWorld() == null) {
+            return false;
+        }
+        Material lightMaterial = Material.matchMaterial("LIGHT");
+        if (lightMaterial == null) {
+            return false;
+        }
+
+        Block block = location.getWorld().getBlockAt(location);
+        if (!block.isEmpty()) {
+            return false;
+        }
+
+        BlockData blockData = lightMaterial.createBlockData();
+        if (blockData instanceof Light light) {
+            light.setLevel(Math.max(1, Math.min(15, lightLevel)));
+            blockData = light;
+        }
+        block.setBlockData(blockData, false);
+        return true;
+    }
+
+    private static Location normalizeToBlock(Location location) {
+        if (location == null || location.getWorld() == null) {
+            return null;
+        }
+        return new Location(location.getWorld(), location.getBlockX(), location.getBlockY(), location.getBlockZ());
+    }
 
     public static void spawnFireProjectileTrail(Location location) {
         if (location == null || location.getWorld() == null) {
