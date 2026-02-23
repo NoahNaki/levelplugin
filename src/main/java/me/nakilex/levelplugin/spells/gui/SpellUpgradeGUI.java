@@ -156,6 +156,13 @@ public class SpellUpgradeGUI implements Listener {
             lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Healing: " + ChatColor.GREEN + String.format("%.1f", heal)));
             return lines;
         }
+        if (baseSpellId.startsWith("mage_blink")) {
+            double distance = effectiveSpellId.contains("rift") ? 14.0 : effectiveSpellId.contains("phase") ? 11.0 : 8.0;
+            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Teleports toward your aim while respecting line-of-sight."));
+            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Blink Range: " + ChatColor.AQUA + String.format("%.1f", distance) + " blocks"));
+            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Will not pass through walls or place you inside terrain."));
+            return lines;
+        }
         return lines;
     }
 
@@ -184,6 +191,11 @@ public class SpellUpgradeGUI implements Listener {
             return tier == 1
                     ? "Bigger impact radius with stronger impact and DoT damage."
                     : "Cataclysm tier massively increases radius and impact damage.";
+        }
+        if (baseSpellId.startsWith("mage_blink")) {
+            return tier == 1
+                    ? "Extends blink range while retaining safe wall/ground collision checks."
+                    : "Master blink reaches farther while still snapping to valid standable space.";
         }
         return "Enhances this spell's power and utility.";
     }
