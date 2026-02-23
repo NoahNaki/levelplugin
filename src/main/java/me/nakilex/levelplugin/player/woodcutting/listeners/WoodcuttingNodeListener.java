@@ -27,17 +27,6 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.inventory.EquipmentSlot;
-import me.nakilex.levelplugin.player.woodcutting.config.WoodcuttingConfig;
-import me.nakilex.levelplugin.player.woodcutting.managers.WoodcuttingManager;
-import me.nakilex.levelplugin.utils.FullInventoryListener;
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.World;
-import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.EventPriority;
-import org.bukkit.event.Listener;
-import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitTask;
 
@@ -49,14 +38,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ThreadLocalRandom;
-
-public class WoodcuttingNodeListener implements Listener {
-
-    private static final int CLEAVING_ADJACENT_LIMIT = 3;
-
-import java.util.Locale;
-import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
@@ -71,6 +52,7 @@ public class WoodcuttingNodeListener implements Listener {
     private final WoodcuttingConfig config;
     private final File stateFile;
     private org.bukkit.configuration.file.FileConfiguration state;
+    private static final int CLEAVING_ADJACENT_LIMIT = 3;
 
     private final Map<String, HiddenNodeState> hiddenNodes = new HashMap<>();
     private final Map<UUID, Map<String, NodeProgressState>> progressByPlayer = new HashMap<>();
