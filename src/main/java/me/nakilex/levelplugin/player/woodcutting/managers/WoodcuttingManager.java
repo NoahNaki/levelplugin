@@ -146,6 +146,7 @@ public class WoodcuttingManager implements LifeSkillProgression {
                 required,
                 "Woodcutting",
                 ChatColor.GOLD,
+                BarColor.GREEN
                 BarColor.YELLOW
         );
     }

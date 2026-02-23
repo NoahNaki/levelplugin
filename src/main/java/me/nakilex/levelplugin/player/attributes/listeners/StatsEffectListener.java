@@ -167,14 +167,14 @@ public class StatsEffectListener implements Listener {
                 }
                 double firstStrike = petManager.getActiveEffectValue(player.getUniqueId(), PetEffectType.FIRST_STRIKE);
                 if (firstStrike > 0.0 && target instanceof LivingEntity livingTarget) {
-                    double maxHealth = livingTarget.getMaxHealth();
+                    double maxHealth = getMaxHealth(livingTarget);
                     if (maxHealth > 0.0 && livingTarget.getHealth() >= maxHealth - 0.01) {
                         finalDamage *= (1.0 + Math.min(0.3, firstStrike));
                     }
                 }
                 double executeBoost = petManager.getActiveEffectValue(player.getUniqueId(), PetEffectType.EXECUTE);
                 if (executeBoost > 0.0 && target instanceof LivingEntity livingTarget) {
-                    double maxHealth = livingTarget.getMaxHealth();
+                    double maxHealth = getMaxHealth(livingTarget);
                     if (maxHealth > 0.0 && livingTarget.getHealth() / maxHealth <= PetEffectType.EXECUTE.executeThreshold()) {
                         finalDamage *= (1.0 + executeBoost);
                     }
@@ -182,7 +182,7 @@ public class StatsEffectListener implements Listener {
                 double executeThreshold = petManager.getActiveEffectValue(player.getUniqueId(), PetEffectType.EXECUTE_NON_BOSS);
                 if (executeThreshold > 0.0 && target instanceof LivingEntity livingTarget) {
                     if (!MobUtil.isBossLike(livingTarget)) {
-                        double maxHealth = livingTarget.getMaxHealth();
+                        double maxHealth = getMaxHealth(livingTarget);
                         double threshold = Math.min(0.25, executeThreshold);
                         if (maxHealth > 0.0 && livingTarget.getHealth() / maxHealth <= threshold) {
                             finalDamage = Math.max(finalDamage, livingTarget.getHealth());
@@ -275,6 +275,18 @@ public class StatsEffectListener implements Listener {
         return null;
     }
 
+
+    private double getMaxHealth(LivingEntity entity) {
+        if (entity == null) {
+            return 0.0;
+        }
+        var attribute = entity.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
+        if (attribute == null) {
+            return 0.0;
+        }
+        return Math.max(0.0, attribute.getValue());
+    }
+
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onFireTick(EntityDamageEvent event) {
         if (event.getCause() != EntityDamageEvent.DamageCause.FIRE_TICK) {
@@ -283,7 +295,7 @@ public class StatsEffectListener implements Listener {
         if (!(event.getEntity() instanceof Player player)) {
             return;
         }
-        double maxHealth = player.getMaxHealth();
+        double maxHealth = getMaxHealth(player);
         if (maxHealth <= 0) {
             return;
         }
