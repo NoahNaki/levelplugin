@@ -4,6 +4,7 @@ import java.util.*;
 import org.bukkit.entity.Player;
 
 import me.nakilex.levelplugin.utils.PotionEffectUtil;
+import me.nakilex.levelplugin.spells.progression.SpellProgressionManager;
 
 public class ProfileManager {
     private static final ProfileManager instance = new ProfileManager();
@@ -89,6 +90,7 @@ public class ProfileManager {
         me.nakilex.levelplugin.player.attributes.managers.StatsManager stats =
                 me.nakilex.levelplugin.player.attributes.managers.StatsManager.getInstance();
         stats.resetPlayer(uuid);
+        SpellProgressionManager.getInstance().clearPlayer(uuid);
         me.nakilex.levelplugin.player.level.managers.LevelManager lm =
                 me.nakilex.levelplugin.player.level.managers.LevelManager.getInstance();
         lm.setLevel(uuid, 1);
@@ -157,6 +159,7 @@ public class ProfileManager {
             clearActiveSlot(uuid);
         }
         list.set(slot, null);
+        SpellProgressionManager.getInstance().clearProfile(uuid, slot);
         me.nakilex.levelplugin.player.config.PlayerConfig cfg =
                 me.nakilex.levelplugin.Main.getInstance().getPlayerConfig();
         cfg.clearProfileData(uuid, slot);
@@ -205,6 +208,9 @@ public class ProfileManager {
         cfg.setProfileInventory(id, slot, player.getInventory().getContents());
         cfg.setProfileArmor(id, slot, player.getInventory().getArmorContents());
         cfg.setProfileLocation(id, slot, player.getLocation());
+        SpellProgressionManager progressionManager = SpellProgressionManager.getInstance();
+        cfg.setProfileSpellPoints(id, slot, progressionManager.getSpellPoints(id));
+        cfg.setProfileSpellLevels(id, slot, progressionManager.serializeSpellLevels(id, slot));
         cfg.saveConfigFile();
     }
 

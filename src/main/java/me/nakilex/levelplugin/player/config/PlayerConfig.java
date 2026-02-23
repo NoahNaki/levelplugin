@@ -78,8 +78,11 @@ public class PlayerConfig {
         }
         config.set(path + ".skill_points", stats.skillPoints);
         SpellProgressionManager progressionManager = SpellProgressionManager.getInstance();
-        config.set(path + ".spell_points", progressionManager.getSpellPoints(uuid));
-        config.set(path + ".spell_levels", serializeSpellLevels(uuid, progressionManager));
+        Integer activeSlot = me.nakilex.levelplugin.player.profile.ProfileManager.getInstance().getActiveSlot(uuid);
+        if (activeSlot != null && activeSlot >= 0) {
+            setProfileSpellPoints(uuid, activeSlot, progressionManager.getSpellPoints(uuid));
+            setProfileSpellLevels(uuid, activeSlot, progressionManager.serializeSpellLevels(uuid, activeSlot));
+        }
         config.set(path + ".stats.base_strength", stats.baseStrength);
         config.set(path + ".stats.base_agility", stats.baseAgility);
         config.set(path + ".stats.base_intelligence", stats.baseIntelligence);
@@ -147,9 +150,7 @@ public class PlayerConfig {
         List<String> discoveredFish = config.getStringList(root + ".fishing.discovered");
         LifeSkillRewardManager rewardManager = LifeSkillRewardManager.getInstance();
         int skillPoints = config.getInt(root + ".skill_points", 0);
-        SpellProgressionManager progressionManager = SpellProgressionManager.getInstance();
-        progressionManager.setSpellPoints(uuid, config.getInt(root + ".spell_points", 0));
-        deserializeSpellLevels(uuid, progressionManager, config.getStringList(root + ".spell_levels"));
+        // Spell progression is profile-scoped and loaded on profile selection.
         List<String> unlockedList = config.getStringList(root + ".unlocked_classes");
 
         LevelManager lm = LevelManager.getInstance();
@@ -222,40 +223,20 @@ public class PlayerConfig {
         }
     }
 
-    private List<String> serializeSpellLevels(UUID uuid, SpellProgressionManager progressionManager) {
-        List<String> values = new ArrayList<>();
-        for (var progression : me.nakilex.levelplugin.spells.SpellRegistry.getInstance().getAllProgressions()) {
-            int level = progressionManager.getSpellLevel(uuid, progression.baseSpellId());
-            if (level > 0) {
-                values.add(progression.baseSpellId() + ":" + level);
-            }
-        }
-        return values;
+    public int getProfileSpellPoints(UUID uuid, int slot) {
+        return config.getInt("players." + uuid + ".profiles." + slot + ".spells.points", 0);
     }
 
-    private void deserializeSpellLevels(UUID uuid, SpellProgressionManager progressionManager, List<String> entries) {
-        if (entries == null) {
-            return;
-        }
-        for (String line : entries) {
-            if (line == null || !line.contains(":")) {
-                continue;
-            }
-            String[] parts = line.split(":", 2);
-            if (parts.length != 2) {
-                continue;
-            }
-            try {
-                int level = Math.max(0, Integer.parseInt(parts[1]));
-                int capped = Math.min(level, progressionManager.getMaxLevel(parts[0]));
-                for (int i = 0; i < capped; i++) {
-                    progressionManager.addSpellPoints(uuid, 1);
-                    progressionManager.investPoint(uuid, parts[0]);
-                }
-            } catch (NumberFormatException ignored) {
-                // Ignore malformed entry.
-            }
-        }
+    public void setProfileSpellPoints(UUID uuid, int slot, int points) {
+        config.set("players." + uuid + ".profiles." + slot + ".spells.points", Math.max(0, points));
+    }
+
+    public List<String> getProfileSpellLevels(UUID uuid, int slot) {
+        return config.getStringList("players." + uuid + ".profiles." + slot + ".spells.levels");
+    }
+
+    public void setProfileSpellLevels(UUID uuid, int slot, List<String> levels) {
+        config.set("players." + uuid + ".profiles." + slot + ".spells.levels", levels == null ? List.of() : new ArrayList<>(levels));
     }
 
     /** Saves data for all players. */

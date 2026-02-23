@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.spells.progression;
 
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.classes.managers.PlayerClassManager;
+import me.nakilex.levelplugin.player.profile.ProfileManager;
 import me.nakilex.levelplugin.spells.SpellProgression;
 import me.nakilex.levelplugin.spells.SpellRegistry;
 import org.bukkit.entity.Player;
@@ -20,18 +21,21 @@ public final class SpellProgressionManager {
         return INSTANCE;
     }
 
-    private final Map<UUID, Integer> spellPoints = new HashMap<>();
-    private final Map<UUID, Map<String, Integer>> spellLevels = new HashMap<>();
+    private record ProfileKey(UUID playerId, int slot) {
+    }
+
+    private final Map<ProfileKey, Integer> spellPoints = new HashMap<>();
+    private final Map<ProfileKey, Map<String, Integer>> spellLevels = new HashMap<>();
 
     private SpellProgressionManager() {
     }
 
     public int getSpellPoints(UUID playerId) {
-        return spellPoints.getOrDefault(playerId, 0);
+        return spellPoints.getOrDefault(resolveKey(playerId), 0);
     }
 
     public void setSpellPoints(UUID playerId, int amount) {
-        spellPoints.put(playerId, Math.max(0, amount));
+        spellPoints.put(resolveKey(playerId), Math.max(0, amount));
     }
 
     public void addSpellPoints(UUID playerId, int amount) {
@@ -45,7 +49,7 @@ public final class SpellProgressionManager {
         if (playerId == null || baseSpellId == null) {
             return 0;
         }
-        return spellLevels.getOrDefault(playerId, Map.of()).getOrDefault(normalize(baseSpellId), 0);
+        return spellLevels.getOrDefault(resolveKey(playerId), Map.of()).getOrDefault(normalize(baseSpellId), 0);
     }
 
     public int getMaxLevel(String baseSpellId) {
@@ -66,9 +70,10 @@ public final class SpellProgressionManager {
         if (level >= max) {
             return false;
         }
-        Map<String, Integer> levels = spellLevels.computeIfAbsent(playerId, id -> new HashMap<>());
+        ProfileKey key = resolveKey(playerId);
+        Map<String, Integer> levels = spellLevels.computeIfAbsent(key, id -> new HashMap<>());
         levels.put(normalize(baseSpellId), level + 1);
-        spellPoints.put(playerId, points - 1);
+        spellPoints.put(key, points - 1);
         return true;
     }
 
@@ -80,14 +85,76 @@ public final class SpellProgressionManager {
         if (level <= 0) {
             return false;
         }
-        Map<String, Integer> levels = spellLevels.computeIfAbsent(playerId, id -> new HashMap<>());
+        ProfileKey key = resolveKey(playerId);
+        Map<String, Integer> levels = spellLevels.computeIfAbsent(key, id -> new HashMap<>());
         if (level == 1) {
             levels.remove(normalize(baseSpellId));
         } else {
             levels.put(normalize(baseSpellId), level - 1);
         }
-        spellPoints.put(playerId, getSpellPoints(playerId) + 1);
+        spellPoints.put(key, getSpellPoints(playerId) + 1);
         return true;
+    }
+
+    public void clearProfile(UUID playerId, int slot) {
+        if (playerId == null || slot < 0) {
+            return;
+        }
+        ProfileKey key = new ProfileKey(playerId, slot);
+        spellPoints.remove(key);
+        spellLevels.remove(key);
+    }
+
+    public void clearPlayer(UUID playerId) {
+        if (playerId == null) {
+            return;
+        }
+        spellPoints.keySet().removeIf(key -> key.playerId().equals(playerId));
+        spellLevels.keySet().removeIf(key -> key.playerId().equals(playerId));
+    }
+
+    public void loadProfileData(UUID playerId, int slot, int points, List<String> levelEntries) {
+        clearProfile(playerId, slot);
+        ProfileKey key = new ProfileKey(playerId, slot);
+        spellPoints.put(key, Math.max(0, points));
+        if (levelEntries == null) {
+            return;
+        }
+        for (String line : levelEntries) {
+            if (line == null || !line.contains(":")) {
+                continue;
+            }
+            String[] parts = line.split(":", 2);
+            if (parts.length != 2) {
+                continue;
+            }
+            int level;
+            try {
+                level = Integer.parseInt(parts[1]);
+            } catch (NumberFormatException ex) {
+                continue;
+            }
+            int capped = Math.max(0, Math.min(level, getMaxLevel(parts[0])));
+            if (capped > 0) {
+                spellLevels.computeIfAbsent(key, id -> new HashMap<>()).put(normalize(parts[0]), capped);
+            }
+        }
+    }
+
+    public int getSpellPoints(UUID playerId, int slot) {
+        return spellPoints.getOrDefault(new ProfileKey(playerId, slot), 0);
+    }
+
+    public List<String> serializeSpellLevels(UUID playerId, int slot) {
+        ProfileKey key = new ProfileKey(playerId, slot);
+        Map<String, Integer> levels = spellLevels.getOrDefault(key, Map.of());
+        List<String> values = new ArrayList<>();
+        for (Map.Entry<String, Integer> entry : levels.entrySet()) {
+            if (entry.getValue() > 0) {
+                values.add(entry.getKey() + ":" + entry.getValue());
+            }
+        }
+        return values;
     }
 
     public String getEffectiveSpellId(UUID playerId, String baseSpellId) {
@@ -134,5 +201,16 @@ public final class SpellProgressionManager {
 
     private String normalize(String spellId) {
         return spellId.toLowerCase(Locale.ROOT);
+    }
+
+    private ProfileKey resolveKey(UUID playerId) {
+        int slot = 0;
+        if (playerId != null) {
+            Integer active = ProfileManager.getInstance().getActiveSlot(playerId);
+            if (active != null && active >= 0) {
+                slot = active;
+            }
+        }
+        return new ProfileKey(playerId, slot);
     }
 }

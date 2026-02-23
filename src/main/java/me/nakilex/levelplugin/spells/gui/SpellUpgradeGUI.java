@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.spells.gui;
 
 import me.nakilex.levelplugin.player.classes.data.ClassUtil;
 import me.nakilex.levelplugin.player.classes.managers.PlayerClassManager;
+import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.spells.SpellProgression;
 import me.nakilex.levelplugin.spells.SpellRegistry;
 import me.nakilex.levelplugin.spells.progression.SpellProgressionManager;
@@ -66,7 +67,7 @@ public class SpellUpgradeGUI implements Listener {
                             if (progressionManager.refundPoint(ctx.player().getUniqueId(), spellId)) {
                                 ChatMessageUtil.send(ctx.player(), ChatMessageUtil.MessageType.SUCCESS,
                                         "Refunded 1 spell point from " + getSpellName(spellId) + ".");
-                                open(ctx.player());
+                                refresh(ctx.player());
                             } else {
                                 ChatMessageUtil.send(ctx.player(), ChatMessageUtil.MessageType.WARNING,
                                         "No invested points to refund for this spell.");
@@ -75,7 +76,7 @@ public class SpellUpgradeGUI implements Listener {
                             if (progressionManager.investPoint(ctx.player().getUniqueId(), spellId)) {
                                 ChatMessageUtil.send(ctx.player(), ChatMessageUtil.MessageType.SUCCESS,
                                         "Invested 1 spell point into " + getSpellName(spellId) + ".");
-                                open(ctx.player());
+                                refresh(ctx.player());
                             } else {
                                 ChatMessageUtil.send(ctx.player(), ChatMessageUtil.MessageType.WARNING,
                                         "Cannot invest in this spell right now.");
@@ -97,10 +98,13 @@ public class SpellUpgradeGUI implements Listener {
         int level = progressionManager.getSpellLevel(player.getUniqueId(), baseSpellId);
         int max = progressionManager.getMaxLevel(baseSpellId);
         String name = getSpellName(baseSpellId);
+        String effectiveSpellId = progressionManager.getEffectiveSpellId(player.getUniqueId(), baseSpellId);
         List<String> lore = new ArrayList<>();
-        lore.add(ChatColor.GRAY + "Current Tier: " + ChatColor.WHITE + tierName(level));
-        lore.add(ChatColor.GRAY + "Progress: " + TooltipUtil.progressBar(level, Math.max(1, max), 12));
+        lore.add(ChatColor.GRAY + "Current Tier: " + ChatColor.LIGHT_PURPLE + tierName(level));
+        lore.add(ChatColor.GRAY + "Progress: " + TooltipUtil.expProgressBar(level, Math.max(1, max), 14));
         lore.add(ChatColor.GRAY + "Invested: " + ChatColor.WHITE + level + ChatColor.DARK_GRAY + "/" + ChatColor.WHITE + max);
+        lore.add(" ");
+        lore.addAll(describeSpell(player, baseSpellId, effectiveSpellId));
         lore.add(" ");
         SpellProgression progression = SpellRegistry.getInstance().getProgression(baseSpellId);
         if (progression != null) {
@@ -113,6 +117,71 @@ public class SpellUpgradeGUI implements Listener {
         lore.add(" ");
         lore.addAll(TooltipUtil.clickInstructions("to invest 1 spell point", "to refund 1 spell point"));
         return GuiUtil.createGuiItem(Material.ENCHANTED_BOOK, ChatColor.LIGHT_PURPLE + name, lore);
+    }
+
+    private List<String> describeSpell(Player player, String baseSpellId, String effectiveSpellId) {
+        List<String> lines = new ArrayList<>();
+        var stats = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
+        int intelligence = stats.baseIntelligence + stats.bonusIntelligence;
+        int technique = stats.baseTechnique + stats.bonusTechnique;
+
+        if (baseSpellId.startsWith("mage_fireball")) {
+            double damage = compute(intelligence, technique, effectiveSpellId.contains("inferno") ? 5.0 : effectiveSpellId.contains("barrage") ? 3.8 : 3.2,
+                    effectiveSpellId.contains("inferno") ? 0.72 : effectiveSpellId.contains("barrage") ? 0.58 : 0.48);
+            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Hurls " + ChatColor.GOLD + (effectiveSpellId.contains("barrage") || effectiveSpellId.contains("inferno") ? "3" : "1")
+                    + ChatColor.GRAY + " fireballs in a cone."));
+            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Direct Damage: " + ChatColor.RED + String.format("%.1f", damage)));
+            if (effectiveSpellId.contains("barrage") || effectiveSpellId.contains("inferno")) {
+                lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Explosion Splash: " + ChatColor.GOLD + (effectiveSpellId.contains("inferno") ? "Heavy" : "Medium")));
+            }
+            return lines;
+        }
+        if (baseSpellId.startsWith("meteor")) {
+            double damage = compute(intelligence, technique, effectiveSpellId.contains("big") ? 23.0 : effectiveSpellId.contains("double") ? 18.0 : 14.5,
+                    0.0);
+            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Calls down a " + ChatColor.GOLD + "devastating meteor" + ChatColor.GRAY + "."));
+            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Impact Damage: " + ChatColor.RED + String.format("%.1f", damage)));
+            return lines;
+        }
+        if (baseSpellId.startsWith("blackhole")) {
+            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Creates a " + ChatColor.DARK_PURPLE + "pulling singularity" + ChatColor.GRAY + "."));
+            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Core DoT and pull strength increase per tier."));
+            return lines;
+        }
+        if (baseSpellId.startsWith("mage_heal")) {
+            double heal = compute(intelligence, technique, effectiveSpellId.contains("rejuvenation") ? 11.0 : effectiveSpellId.contains("party") ? 9.0 : 8.0,
+                    0.35);
+            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Restores health and grants support effects."));
+            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Healing: " + ChatColor.GREEN + String.format("%.1f", heal)));
+            return lines;
+        }
+        if (baseSpellId.startsWith("mage_blink")) {
+            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Teleports to a safe location with momentum."));
+            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Higher tiers add damage pathing and buffs."));
+        }
+        return lines;
+    }
+
+    private double compute(int intelligence, int technique, double base, double intScale) {
+        double value = Math.max(0.0, base + intelligence * intScale);
+        return value * (1.0 + technique * 0.001);
+    }
+
+    private void refresh(Player player) {
+        Inventory gui = GuiBuilder.create(45, TITLE).filler(Material.BLACK_STAINED_GLASS_PANE).build();
+        List<GuiWidget> widgets = buildWidgets(player);
+        widgetsByPlayer.put(player.getUniqueId(), widgets);
+        GuiLayout layout = new GuiLayout(gui);
+        GuiContext context = new GuiContext(player, gui);
+        for (GuiWidget widget : widgets) {
+            widget.contribute(layout, context);
+        }
+        if (GuiUtil.titleMatches(player.getOpenInventory().getTitle(), TITLE)
+                && player.getOpenInventory().getTopInventory().getSize() == gui.getSize()) {
+            player.getOpenInventory().getTopInventory().setContents(gui.getContents());
+        } else {
+            player.openInventory(gui);
+        }
     }
 
     private String getSpellName(String spellId) {
