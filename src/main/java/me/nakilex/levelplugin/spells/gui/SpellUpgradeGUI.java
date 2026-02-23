@@ -156,10 +156,6 @@ public class SpellUpgradeGUI implements Listener {
             lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Healing: " + ChatColor.GREEN + String.format("%.1f", heal)));
             return lines;
         }
-        if (baseSpellId.startsWith("mage_blink")) {
-            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Teleports to a safe location with momentum."));
-            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Higher tiers add damage pathing and buffs."));
-        }
         return lines;
     }
 
@@ -183,11 +179,6 @@ public class SpellUpgradeGUI implements Listener {
             return tier == 1
                     ? "Adds stronger heal burst, regeneration and larger mana restore."
                     : "Converts to party pulse heal with shared support effects.";
-        }
-        if (baseSpellId.startsWith("mage_blink")) {
-            return tier == 1
-                    ? "Leaves a damaging rift trail along your blink path."
-                    : "Adds post-blink defensive buffs (speed + resistance).";
         }
         if (baseSpellId.startsWith("meteor")) {
             return tier == 1
