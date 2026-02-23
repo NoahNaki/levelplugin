@@ -72,6 +72,24 @@ public final class SpellProgressionManager {
         return true;
     }
 
+    public boolean refundPoint(UUID playerId, String baseSpellId) {
+        if (playerId == null || baseSpellId == null) {
+            return false;
+        }
+        int level = getSpellLevel(playerId, baseSpellId);
+        if (level <= 0) {
+            return false;
+        }
+        Map<String, Integer> levels = spellLevels.computeIfAbsent(playerId, id -> new HashMap<>());
+        if (level == 1) {
+            levels.remove(normalize(baseSpellId));
+        } else {
+            levels.put(normalize(baseSpellId), level - 1);
+        }
+        spellPoints.put(playerId, getSpellPoints(playerId) + 1);
+        return true;
+    }
+
     public String getEffectiveSpellId(UUID playerId, String baseSpellId) {
         if (baseSpellId == null) {
             return null;

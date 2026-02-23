@@ -62,13 +62,24 @@ public class SpellUpgradeGUI implements Listener {
             widgets.add(new ActionWidget(slot,
                     ctx -> createSpellItem(ctx.player(), spellId),
                     (click, ctx) -> {
-                        if (progressionManager.investPoint(ctx.player().getUniqueId(), spellId)) {
-                            ChatMessageUtil.send(ctx.player(), ChatMessageUtil.MessageType.SUCCESS,
-                                    "Invested 1 spell point into " + getSpellName(spellId) + ".");
-                            open(ctx.player());
+                        if (click.isRightClick()) {
+                            if (progressionManager.refundPoint(ctx.player().getUniqueId(), spellId)) {
+                                ChatMessageUtil.send(ctx.player(), ChatMessageUtil.MessageType.SUCCESS,
+                                        "Refunded 1 spell point from " + getSpellName(spellId) + ".");
+                                open(ctx.player());
+                            } else {
+                                ChatMessageUtil.send(ctx.player(), ChatMessageUtil.MessageType.WARNING,
+                                        "No invested points to refund for this spell.");
+                            }
                         } else {
-                            ChatMessageUtil.send(ctx.player(), ChatMessageUtil.MessageType.WARNING,
-                                    "Cannot invest in this spell right now.");
+                            if (progressionManager.investPoint(ctx.player().getUniqueId(), spellId)) {
+                                ChatMessageUtil.send(ctx.player(), ChatMessageUtil.MessageType.SUCCESS,
+                                        "Invested 1 spell point into " + getSpellName(spellId) + ".");
+                                open(ctx.player());
+                            } else {
+                                ChatMessageUtil.send(ctx.player(), ChatMessageUtil.MessageType.WARNING,
+                                        "Cannot invest in this spell right now.");
+                            }
                         }
                     }));
         }
@@ -100,7 +111,7 @@ public class SpellUpgradeGUI implements Listener {
             }
         }
         lore.add(" ");
-        lore.addAll(TooltipUtil.clickInstructions("to invest 1 spell point", null));
+        lore.addAll(TooltipUtil.clickInstructions("to invest 1 spell point", "to refund 1 spell point"));
         return GuiUtil.createGuiItem(Material.ENCHANTED_BOOK, ChatColor.LIGHT_PURPLE + name, lore);
     }
 

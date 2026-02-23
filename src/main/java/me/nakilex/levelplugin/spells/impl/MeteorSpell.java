@@ -15,6 +15,7 @@ import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Player;
+import org.bukkit.Particle.DustOptions;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
@@ -26,6 +27,7 @@ public class MeteorSpell implements SpellHandler {
     private static final int DOT_DURATION_TICKS = 60;
     private static final int DOT_PERIOD_TICKS = 10;
     private static final double SPEED_PER_TICK = 1.2;
+    private static final DustOptions METEOR_ORANGE_DUST = new DustOptions(org.bukkit.Color.fromRGB(255, 140, 0), 1.2f);
 
     private final Main plugin;
     private final ParticleService particleService;
@@ -122,13 +124,31 @@ public class MeteorSpell implements SpellHandler {
         }
         world.spawnParticle(Particle.EXPLOSION, impact, 1, 0.0, 0.0, 0.0, 0.0);
         world.spawnParticle(Particle.LAVA, impact, 36, 0.9, 0.4, 0.9, 0.03);
-        SpellEffectUtil.spawnRosePatternParticles(impact, flowerRadius, flowerPetals, 220, Particle.FLAME, 0.12);
-        SpellEffectUtil.spawnRosePatternParticles(impact, flowerRadius * 0.8, flowerPetals + 2, 200, Particle.SOUL_FIRE_FLAME, 0.08);
-        SpellEffectUtil.spawnRingParticles(impact, impactRadius, Particle.CRIT, 64, 0.14);
+        spawnOrangeGroundFlower(impact);
         world.playSound(impact, Sound.ENTITY_GENERIC_EXPLODE, 1.3f, 0.8f);
         SpellEffectUtil.applyAreaDamage(caster, impact, impactRadius, impactDamage);
         particleService.renderPreset(caster, ElementalPresets.BURNING_SIGIL, impact);
         SpellEffectUtil.startDamageOverTime(plugin, caster, impact, dotRadius, dotDamage,
                 DOT_PERIOD_TICKS, DOT_DURATION_TICKS);
+    }
+
+    private void spawnOrangeGroundFlower(Location impact) {
+        World world = impact.getWorld();
+        if (world == null) {
+            return;
+        }
+        for (int i = 0; i < 220; i++) {
+            double t = (Math.PI * 2.0 * i) / 220.0;
+            double roseRadius = flowerRadius * Math.cos(flowerPetals * t);
+            double x = roseRadius * Math.cos(t);
+            double z = roseRadius * Math.sin(t);
+            world.spawnParticle(Particle.DUST, impact.clone().add(x, 0.08, z), 1, 0.0, 0.0, 0.0, 0.0, METEOR_ORANGE_DUST);
+        }
+        for (int i = 0; i < 64; i++) {
+            double angle = (Math.PI * 2.0 * i) / 64.0;
+            double x = Math.cos(angle) * impactRadius;
+            double z = Math.sin(angle) * impactRadius;
+            world.spawnParticle(Particle.DUST, impact.clone().add(x, 0.1, z), 1, 0.0, 0.0, 0.0, 0.0, METEOR_ORANGE_DUST);
+        }
     }
 }

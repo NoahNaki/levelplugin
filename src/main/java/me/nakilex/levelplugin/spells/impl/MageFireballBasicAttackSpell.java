@@ -41,9 +41,10 @@ public class MageFireballBasicAttackSpell implements SpellHandler {
     private final double intelligenceScale;
     private final double splashRadius;
     private final double splashDamageFactor;
+    private final int burnTicks;
 
     public MageFireballBasicAttackSpell(Main plugin) {
-        this(plugin, 1, 0.0, 3.0, 0.45, 0.0, 0.0);
+        this(plugin, 1, 0.0, 3.0, 0.45, 0.0, 0.0, 0);
     }
 
     public MageFireballBasicAttackSpell(Main plugin,
@@ -52,14 +53,16 @@ public class MageFireballBasicAttackSpell implements SpellHandler {
                                         double baseDamage,
                                         double intelligenceScale,
                                         double splashRadius,
-                                        double splashDamageFactor) {
+                                        double splashDamageFactor,
+                                        int burnTicks) {
         this.plugin = plugin;
-        this.projectileCount = Math.max(1, projectileCount);
+        this.projectileCount = Math.max(1, Math.min(3, projectileCount));
         this.coneDegrees = Math.max(0.0, coneDegrees);
         this.baseDamage = Math.max(0.0, baseDamage);
         this.intelligenceScale = Math.max(0.0, intelligenceScale);
         this.splashRadius = Math.max(0.0, splashRadius);
         this.splashDamageFactor = Math.max(0.0, splashDamageFactor);
+        this.burnTicks = Math.max(0, burnTicks);
     }
 
     public record FireballSpawnResult(ArmorStand anchor,
@@ -189,7 +192,6 @@ public class MageFireballBasicAttackSpell implements SpellHandler {
                 Location next = current.clone().add(step);
                 projectile.teleport(next);
                 ModelEngineUtil.orientEntityToVector(projectile, step);
-                SpellEffectUtil.spawnFireProjectileTrail(next);
                 activeLight = SpellEffectUtil.moveTemporaryLight(activeLight, next, PROJECTILE_LIGHT_LEVEL);
 
                 LivingEntity target = findTargetAt(next, caster, projectile);
@@ -243,6 +245,9 @@ public class MageFireballBasicAttackSpell implements SpellHandler {
 
         double damage = SpellEffectUtil.computeIntTecScaledDamage(caster, baseDamage, intelligenceScale, TECHNIQUE_SCALE);
         SpellEffectUtil.applyDirectSpellDamage(plugin, caster, target, damage);
+        if (burnTicks > 0) {
+            target.setFireTicks(Math.max(target.getFireTicks(), burnTicks));
+        }
 
         if (splashRadius > 0.0 && splashDamageFactor > 0.0) {
             double splashDamage = damage * splashDamageFactor;

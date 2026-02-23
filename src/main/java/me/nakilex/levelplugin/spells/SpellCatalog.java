@@ -25,9 +25,9 @@ public final class SpellCatalog {
         SpellDefinition mageBasicAttack = new SpellDefinition("mage_fireball_basic", "Mage Fireball", 0, false);
         SpellDefinition mageBasicBarrage = new SpellDefinition("mage_fireball_barrage", "Mage Fireball: Arc Barrage", 0, false);
         SpellDefinition mageBasicInferno = new SpellDefinition("mage_fireball_inferno", "Mage Fireball: Inferno Volley", 0, false);
-        registry.registerSpell(mageBasicAttack, new MageFireballBasicAttackSpell(plugin, 1, 0.0, 3.2, 0.48, 0.0, 0.0));
-        registry.registerSpell(mageBasicBarrage, new MageFireballBasicAttackSpell(plugin, 3, 28.0, 3.8, 0.58, 1.4, 0.35));
-        registry.registerSpell(mageBasicInferno, new MageFireballBasicAttackSpell(plugin, 5, 40.0, 4.5, 0.66, 2.3, 0.55));
+        registry.registerSpell(mageBasicAttack, new MageFireballBasicAttackSpell(plugin, 1, 0.0, 3.2, 0.48, 0.0, 0.0, 0));
+        registry.registerSpell(mageBasicBarrage, new MageFireballBasicAttackSpell(plugin, 3, 28.0, 3.8, 0.58, 1.4, 0.35, 30));
+        registry.registerSpell(mageBasicInferno, new MageFireballBasicAttackSpell(plugin, 3, 34.0, 5.0, 0.72, 2.9, 0.80, 70));
         registry.registerProgression(new SpellProgression(mageBasicAttack.id(), java.util.List.of(
                 mageBasicBarrage.id(), mageBasicInferno.id())));
         registry.registerBinding(SpellBinding.forInputType(mageBasicAttack.id(), ClassUtil::isMageFamily,
