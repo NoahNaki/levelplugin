@@ -94,17 +94,7 @@ public class StatsEffectListener implements Listener {
                 event.setCancelled(true);
                 return;
             }
-            player = skipScaling ? null : p;
-            if (p.hasMetadata(SpellEffectUtil.BYPASS_STAT_SCALING_META)) {
-                player = null;
-            } else {
-                boolean sweeping = p.hasMetadata(SweepAttack.SWEEP_META);
-                if (!sweeping && p.getAttackCooldown() < 1.0f) {
-                    event.setCancelled(true);
-                    return;
-                }
-                player = p;
-            }
+            player = (skipScaling || p.hasMetadata(SpellEffectUtil.BYPASS_STAT_SCALING_META)) ? null : p;
         } else if (damager instanceof org.bukkit.entity.Projectile proj && proj.getShooter() instanceof Player shooter) {
             // Skip scaling for our own custom projectiles which already embed stats
             if (proj.hasMetadata("ArcherSpell") || proj.hasMetadata("BasicAttack") || proj.hasMetadata("Meteor") || proj.hasMetadata("Shockwave")) {
