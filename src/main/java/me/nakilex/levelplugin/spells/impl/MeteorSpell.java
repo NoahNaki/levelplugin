@@ -34,14 +34,17 @@ public class MeteorSpell implements SpellHandler {
     private final double impactRadius;
     private final double dotRadius;
     private final double dotDamage;
+    private final double flowerRadius;
+    private final int flowerPetals;
 
     public MeteorSpell(Main plugin, ParticleService particleService) {
-        this(plugin, particleService, 18.0, 12.0, 4.0, 3.5, 2.0);
+        this(plugin, particleService, 18.0, 12.0, 5.5, 3.5, 2.0, 4.8, 6);
     }
 
     public MeteorSpell(Main plugin, ParticleService particleService,
                        double spawnHeight, double impactDamage, double impactRadius,
-                       double dotRadius, double dotDamage) {
+                       double dotRadius, double dotDamage,
+                       double flowerRadius, int flowerPetals) {
         this.plugin = plugin;
         this.particleService = particleService;
         this.spawnHeight = spawnHeight;
@@ -49,6 +52,8 @@ public class MeteorSpell implements SpellHandler {
         this.impactRadius = impactRadius;
         this.dotRadius = dotRadius;
         this.dotDamage = dotDamage;
+        this.flowerRadius = flowerRadius;
+        this.flowerPetals = flowerPetals;
     }
 
     @Override
@@ -116,7 +121,10 @@ public class MeteorSpell implements SpellHandler {
             return;
         }
         world.spawnParticle(Particle.EXPLOSION, impact, 1, 0.0, 0.0, 0.0, 0.0);
-        world.spawnParticle(Particle.LAVA, impact, 20, 0.6, 0.3, 0.6, 0.02);
+        world.spawnParticle(Particle.LAVA, impact, 36, 0.9, 0.4, 0.9, 0.03);
+        SpellEffectUtil.spawnRosePatternParticles(impact, flowerRadius, flowerPetals, 220, Particle.FLAME, 0.12);
+        SpellEffectUtil.spawnRosePatternParticles(impact, flowerRadius * 0.8, flowerPetals + 2, 200, Particle.SOUL_FIRE_FLAME, 0.08);
+        SpellEffectUtil.spawnRingParticles(impact, impactRadius, Particle.CRIT, 64, 0.14);
         world.playSound(impact, Sound.ENTITY_GENERIC_EXPLODE, 1.3f, 0.8f);
         SpellEffectUtil.applyAreaDamage(caster, impact, impactRadius, impactDamage);
         particleService.renderPreset(caster, ElementalPresets.BURNING_SIGIL, impact);

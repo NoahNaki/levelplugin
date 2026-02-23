@@ -17,16 +17,19 @@ import org.bukkit.util.Vector;
 
 public class BlackholeSpell implements SpellHandler {
     private final Main plugin;
-    private final double radius;
+    private final double pullRadius;
+    private final double dotRadius;
     private final double pullStrength;
     private final double tickDamage;
     private final int durationTicks;
     private final double collapseDamage;
 
-    public BlackholeSpell(Main plugin, double radius, double pullStrength, double tickDamage,
+    public BlackholeSpell(Main plugin, double pullRadius, double dotRadius,
+                          double pullStrength, double tickDamage,
                           int durationTicks, double collapseDamage) {
         this.plugin = plugin;
-        this.radius = radius;
+        this.pullRadius = pullRadius;
+        this.dotRadius = dotRadius;
         this.pullStrength = pullStrength;
         this.tickDamage = tickDamage;
         this.durationTicks = durationTicks;
@@ -51,24 +54,27 @@ public class BlackholeSpell implements SpellHandler {
                     return;
                 }
                 World world = center.getWorld();
-                world.spawnParticle(Particle.PORTAL, center, 24, radius * 0.3, 0.5, radius * 0.3, 0.2);
-                world.spawnParticle(Particle.WITCH, center, 8, 0.2, 0.1, 0.2, 0.0);
+                SpellEffectUtil.spawnRingParticles(center, pullRadius, Particle.WITCH, 48, 0.15);
+                SpellEffectUtil.spawnRingParticles(center, dotRadius, Particle.ENCHANT, 28, 0.1);
+                world.spawnParticle(Particle.PORTAL, center, 36, dotRadius * 0.4, 0.4, dotRadius * 0.4, 0.25);
                 if (elapsed % 10 == 0) {
                     world.playSound(center, Sound.BLOCK_BEACON_AMBIENT, 0.35f, 0.65f);
                 }
-                for (LivingEntity target : SpellEffectUtil.getLivingTargets(center, radius, living -> !living.equals(caster))) {
+                for (LivingEntity target : SpellEffectUtil.getLivingTargets(center, pullRadius, living -> !living.equals(caster))) {
                     Vector pull = center.toVector().subtract(target.getLocation().toVector());
                     if (pull.lengthSquared() > 0.0001) {
                         target.setVelocity(target.getVelocity().multiply(0.7).add(pull.normalize().multiply(pullStrength)));
                     }
-                    SpellEffectUtil.applyDirectSpellDamage(plugin, caster, target, tickDamage);
+                    if (target.getLocation().distanceSquared(center) <= dotRadius * dotRadius) {
+                        SpellEffectUtil.applyDirectSpellDamage(plugin, caster, target, tickDamage);
+                    }
                 }
                 elapsed += 5;
                 if (elapsed >= durationTicks) {
                     if (collapseDamage > 0.0) {
                         world.spawnParticle(Particle.EXPLOSION, center, 1, 0, 0, 0, 0);
                         world.playSound(center, Sound.ENTITY_GENERIC_EXPLODE, 0.8f, 1.6f);
-                        SpellEffectUtil.applyAreaDamage(caster, center, radius + 0.75, collapseDamage);
+                        SpellEffectUtil.applyAreaDamage(caster, center, pullRadius + 0.75, collapseDamage);
                     }
                     cancel();
                 }

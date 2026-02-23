@@ -23,16 +23,22 @@ public final class SpellCatalog {
         ParticleService particleService = new ParticleService(plugin);
 
         SpellDefinition mageBasicAttack = new SpellDefinition("mage_fireball_basic", "Mage Fireball", 0, false);
-        registry.registerSpell(mageBasicAttack, new MageFireballBasicAttackSpell(plugin));
+        SpellDefinition mageBasicBarrage = new SpellDefinition("mage_fireball_barrage", "Mage Fireball: Arc Barrage", 0, false);
+        SpellDefinition mageBasicInferno = new SpellDefinition("mage_fireball_inferno", "Mage Fireball: Inferno Volley", 0, false);
+        registry.registerSpell(mageBasicAttack, new MageFireballBasicAttackSpell(plugin, 1, 0.0, 3.2, 0.48, 0.0, 0.0));
+        registry.registerSpell(mageBasicBarrage, new MageFireballBasicAttackSpell(plugin, 3, 28.0, 3.8, 0.58, 1.4, 0.35));
+        registry.registerSpell(mageBasicInferno, new MageFireballBasicAttackSpell(plugin, 5, 40.0, 4.5, 0.66, 2.3, 0.55));
+        registry.registerProgression(new SpellProgression(mageBasicAttack.id(), java.util.List.of(
+                mageBasicBarrage.id(), mageBasicInferno.id())));
         registry.registerBinding(SpellBinding.forInputType(mageBasicAttack.id(), ClassUtil::isMageFamily,
                 SpellInputType.BASIC_ATTACK));
 
         SpellDefinition meteor = new SpellDefinition("meteor", "Meteor", 18, false);
         SpellDefinition meteorDouble = new SpellDefinition("meteor_double", "Meteor: Emberfall", 18, false);
         SpellDefinition meteorBig = new SpellDefinition("meteor_big", "Meteor: Cataclysm", 18, false);
-        registry.registerSpell(meteor, new MeteorSpell(plugin, particleService, 18.0, 12.0, 4.0, 3.5, 2.0));
-        registry.registerSpell(meteorDouble, new MeteorSpell(plugin, particleService, 20.0, 14.0, 4.8, 4.1, 2.4));
-        registry.registerSpell(meteorBig, new MeteorSpell(plugin, particleService, 22.0, 17.0, 5.5, 4.8, 3.0));
+        registry.registerSpell(meteor, new MeteorSpell(plugin, particleService, 18.0, 14.5, 6.2, 3.8, 2.4, 5.5, 6));
+        registry.registerSpell(meteorDouble, new MeteorSpell(plugin, particleService, 20.0, 18.0, 7.6, 4.6, 3.1, 6.8, 7));
+        registry.registerSpell(meteorBig, new MeteorSpell(plugin, particleService, 24.0, 23.0, 9.2, 5.4, 4.1, 8.2, 8));
         registry.registerProgression(new SpellProgression(meteor.id(), java.util.List.of(meteorDouble.id(), meteorBig.id())));
         registry.registerBinding(SpellBinding.forSequence(meteor.id(), ClassUtil::isMageFamily,
                 SpellInputMode.MOUSE_COMBO, "RLL"));
@@ -42,9 +48,9 @@ public final class SpellCatalog {
         SpellDefinition blackhole = new SpellDefinition("blackhole", "Blackhole", 22, false);
         SpellDefinition blackholeGravity = new SpellDefinition("blackhole_gravitywell", "Blackhole: Gravity Well", 22, false);
         SpellDefinition blackholeSingularity = new SpellDefinition("blackhole_singularity", "Blackhole: Singularity", 22, false);
-        registry.registerSpell(blackhole, new BlackholeSpell(plugin, 3.4, 0.22, 1.1, 50, 0.0));
-        registry.registerSpell(blackholeGravity, new BlackholeSpell(plugin, 4.3, 0.30, 1.4, 60, 0.0));
-        registry.registerSpell(blackholeSingularity, new BlackholeSpell(plugin, 5.0, 0.34, 1.8, 65, 6.0));
+        registry.registerSpell(blackhole, new BlackholeSpell(plugin, 4.2, 1.7, 0.24, 1.2, 60, 0.0));
+        registry.registerSpell(blackholeGravity, new BlackholeSpell(plugin, 5.4, 2.2, 0.31, 1.8, 70, 0.0));
+        registry.registerSpell(blackholeSingularity, new BlackholeSpell(plugin, 6.5, 2.8, 0.37, 2.5, 80, 9.5));
         registry.registerProgression(new SpellProgression(blackhole.id(), java.util.List.of(
                 blackholeGravity.id(), blackholeSingularity.id())));
         registry.registerBinding(SpellBinding.forInputType(blackhole.id(), ClassUtil::isMageFamily, SpellInputType.SPELL_1));
@@ -52,9 +58,9 @@ public final class SpellCatalog {
         SpellDefinition heal = new SpellDefinition("mage_heal", "Arcane Mend", 16, false);
         SpellDefinition healRegen = new SpellDefinition("mage_heal_rejuvenation", "Arcane Mend: Rejuvenation", 16, false);
         SpellDefinition healParty = new SpellDefinition("mage_heal_party", "Arcane Mend: Party Pulse", 16, false);
-        registry.registerSpell(heal, new MageHealSpell(plugin, 6.0, false, false));
-        registry.registerSpell(healRegen, new MageHealSpell(plugin, 7.5, false, true));
-        registry.registerSpell(healParty, new MageHealSpell(plugin, 6.5, true, true));
+        registry.registerSpell(heal, new MageHealSpell(plugin, 8.0, false, false, 8, 0));
+        registry.registerSpell(healRegen, new MageHealSpell(plugin, 11.0, false, true, 16, 1));
+        registry.registerSpell(healParty, new MageHealSpell(plugin, 9.0, true, true, 12, 1));
         registry.registerProgression(new SpellProgression(heal.id(), java.util.List.of(healRegen.id(), healParty.id())));
         registry.registerBinding(SpellBinding.forInputType(heal.id(), ClassUtil::isMageFamily, SpellInputType.SPELL_2));
 

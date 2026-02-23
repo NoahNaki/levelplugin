@@ -99,7 +99,7 @@ public final class SpellProgressionManager {
         for (SpellProgression progression : SpellRegistry.getInstance().getAllProgressions()) {
             String id = progression.baseSpellId();
             SpellRegistry.SpellEntry entry = SpellRegistry.getInstance().getSpell(id);
-            if (entry == null || entry.definition().baseManaCost() == 0) {
+            if (entry == null) {
                 continue;
             }
             if (isBoundForClass(playerClass, id)) {
