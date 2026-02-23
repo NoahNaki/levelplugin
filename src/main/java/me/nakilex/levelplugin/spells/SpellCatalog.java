@@ -5,6 +5,7 @@ import me.nakilex.levelplugin.particles.ParticleService;
 import me.nakilex.levelplugin.player.classes.data.ClassUtil;
 import me.nakilex.levelplugin.spells.impl.MageFireballBasicAttackSpell;
 import me.nakilex.levelplugin.spells.impl.MageHealSpell;
+import me.nakilex.levelplugin.spells.impl.MageBlinkSpell;
 import me.nakilex.levelplugin.spells.impl.MeteorSpell;
 import me.nakilex.levelplugin.spells.impl.BlackholeSpell;
 import me.nakilex.levelplugin.spells.input.SpellInputMode;
@@ -62,6 +63,15 @@ public final class SpellCatalog {
         registry.registerSpell(healParty, new MageHealSpell(plugin, 9.0, true, true, 12, 1));
         registry.registerProgression(new SpellProgression(heal.id(), java.util.List.of(healRegen.id(), healParty.id())));
         registry.registerBinding(SpellBinding.forInputType(heal.id(), ClassUtil::isMageFamily, SpellInputType.SPELL_2));
+
+        SpellDefinition blink = new SpellDefinition("mage_blink", "Blink", 14, true);
+        SpellDefinition blinkPhase = new SpellDefinition("mage_blink_phase", "Blink: Phase Step", 14, true);
+        SpellDefinition blinkRift = new SpellDefinition("mage_blink_rift", "Blink: Riftstride", 14, true);
+        registry.registerSpell(blink, new MageBlinkSpell(plugin, 8.0));
+        registry.registerSpell(blinkPhase, new MageBlinkSpell(plugin, 11.0));
+        registry.registerSpell(blinkRift, new MageBlinkSpell(plugin, 14.0));
+        registry.registerProgression(new SpellProgression(blink.id(), java.util.List.of(blinkPhase.id(), blinkRift.id())));
+        registry.registerBinding(SpellBinding.forInputType(blink.id(), ClassUtil::isMageFamily, SpellInputType.SPELL_4));
 
         registry.registerBinding(SpellBinding.forInputType(meteor.id(), ClassUtil::isMageFamily, SpellInputType.SPELL_3));
     }
