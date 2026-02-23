@@ -4,8 +4,10 @@ import com.ticxo.modelengine.api.ModelEngineAPI;
 import com.ticxo.modelengine.api.model.ActiveModel;
 import com.ticxo.modelengine.api.model.ModeledEntity;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.util.Vector;
 
 import java.io.File;
 import java.io.IOException;
@@ -108,6 +110,47 @@ public final class ModelEngineUtil {
             appliedModels.add(modelId);
         }
         return new ModelApplyResult(appliedModels, failedModels, blueprintOnlyModels);
+    }
+
+    public static ModelApplyResult applyFirstAvailableModel(Entity entity,
+                                                             List<String> modelCandidates,
+                                                             Plugin plugin) {
+        if (entity == null || modelCandidates == null || modelCandidates.isEmpty()) {
+            return new ModelApplyResult(List.of(), List.of(), List.of());
+        }
+        for (String candidate : modelCandidates) {
+            ModelApplyResult result = applyModels(entity, List.of(candidate), plugin);
+            if (!result.applied().isEmpty()) {
+                return result;
+            }
+        }
+        return applyModels(entity, modelCandidates, plugin);
+    }
+
+    /**
+     * Updates a location's yaw/pitch so it faces the provided direction vector.
+     */
+    public static void orientLocationToVector(Location location, Vector direction) {
+        if (location == null || direction == null || direction.lengthSquared() <= 0.000001) {
+            return;
+        }
+        Vector normalized = direction.clone().normalize();
+        float yaw = (float) Math.toDegrees(Math.atan2(-normalized.getX(), normalized.getZ()));
+        float pitch = (float) Math.toDegrees(-Math.asin(normalized.getY()));
+        location.setYaw(yaw);
+        location.setPitch(pitch);
+    }
+
+    /**
+     * Reorients and teleports an entity so attached models face the given vector.
+     */
+    public static void orientEntityToVector(Entity entity, Vector direction) {
+        if (entity == null) {
+            return;
+        }
+        Location oriented = entity.getLocation().clone();
+        orientLocationToVector(oriented, direction);
+        entity.teleport(oriented);
     }
 
     private static ActiveModel createActiveModelSafely(String modelId, Plugin plugin) {

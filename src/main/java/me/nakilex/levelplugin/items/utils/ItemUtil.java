@@ -943,6 +943,9 @@ public class ItemUtil {
                 lore.add(ChatColor.GRAY + "Enchant: " + ChatColor.LIGHT_PURPLE + enchant.getDisplayName());
                 lore.addAll(me.nakilex.levelplugin.utils.TooltipUtil.bulletList(enchant.getDescription()));
             }
+            meta.setUnbreakable(true);
+        } else if (discipline == ToolDiscipline.WOODCUTTING) {
+            lore.add(ChatColor.GRAY + "Woodcutting Speed: " + ChatColor.GREEN + "+" + tier.getMiningSpeed());
         } else {
             lore.add(ChatColor.GRAY + "Mining Speed: " + ChatColor.GREEN + "+" + tier.getMiningSpeed());
         }

@@ -27,6 +27,17 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.inventory.EquipmentSlot;
+import me.nakilex.levelplugin.player.woodcutting.config.WoodcuttingConfig;
+import me.nakilex.levelplugin.player.woodcutting.managers.WoodcuttingManager;
+import me.nakilex.levelplugin.utils.FullInventoryListener;
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.World;
+import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.Listener;
+import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitTask;
 
@@ -44,6 +55,17 @@ public class WoodcuttingNodeListener implements Listener {
 
     private static final int CLEAVING_ADJACENT_LIMIT = 3;
 
+import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
+
+/**
+ * Handles woodcutting on configured Nexo custom blocks by temporarily hiding
+ * nodes and restoring them after a cooldown. Hidden node state is persisted so
+ * restart/chunk-unload scenarios are safe.
+ */
+public class WoodcuttingNodeListener implements Listener {
+
     private final Main plugin;
     private final WoodcuttingManager woodcuttingManager;
     private final WoodcuttingConfig config;
@@ -56,6 +78,12 @@ public class WoodcuttingNodeListener implements Listener {
     private BukkitTask heartbeatTask;
 
     public WoodcuttingNodeListener(Main plugin, WoodcuttingManager woodcuttingManager, WoodcuttingConfig config) {
+    private final Map<String, BukkitTask> respawnTasks = new HashMap<>();
+    private BukkitTask heartbeatTask;
+
+    public WoodcuttingNodeListener(Main plugin,
+                                   WoodcuttingManager woodcuttingManager,
+                                   WoodcuttingConfig config) {
         this.plugin = plugin;
         this.woodcuttingManager = woodcuttingManager;
         this.config = config;
@@ -187,6 +215,30 @@ public class WoodcuttingNodeListener implements Listener {
         woodcuttingManager.addXP(player, xp);
         giveDrops(player, enchant);
 
+        String id = event.getMechanic().getItemID();
+        if (id == null || id.isBlank()) {
+            return;
+        }
+        String normalizedId = id.toLowerCase(Locale.ROOT);
+        if (!config.getNodeIds().contains(normalizedId)) {
+            return;
+        }
+
+        Player player = event.getPlayer();
+        Location location = event.getBlock().getLocation();
+        String key = key(location);
+
+        if (hiddenNodes.containsKey(key)) {
+            event.setCancelled(true);
+            return;
+        }
+
+        event.setCancelled(true);
+        NexoBlocks.remove(location, player, false);
+
+        woodcuttingManager.addXP(player, config.getBaseXp());
+        giveDrops(player);
+
         long respawnAt = System.currentTimeMillis() + (config.getRespawnSeconds() * 1000L);
         HiddenNodeState hidden = new HiddenNodeState(normalizedId,
                 location.getWorld() != null ? location.getWorld().getName() : "world",
@@ -226,6 +278,22 @@ public class WoodcuttingNodeListener implements Listener {
                     harvested++;
                 }
             }
+        hiddenNodes.put(key, hidden);
+        saveState();
+        scheduleRespawn(hidden);
+    }
+
+    @EventHandler
+    public void onChunkLoad(ChunkLoadEvent event) {
+        String world = event.getWorld().getName();
+        int cx = event.getChunk().getX();
+        int cz = event.getChunk().getZ();
+        long now = System.currentTimeMillis();
+        for (HiddenNodeState hidden : hiddenNodes.values()) {
+            if (!hidden.worldName.equalsIgnoreCase(world)) continue;
+            if ((hidden.x >> 4) != cx || (hidden.z >> 4) != cz) continue;
+            if (hidden.respawnAtMillis > now) continue;
+            tryRespawn(hidden);
         }
     }
 
@@ -318,6 +386,13 @@ public class WoodcuttingNodeListener implements Listener {
         if (enchant == WoodcuttingToolEnchant.IRONWOOD && ThreadLocalRandom.current().nextDouble() < 0.25D) {
             amount += 1;
         }
+        saveState();
+    }
+
+    private void giveDrops(Player player) {
+        int min = config.getDropAmountMin();
+        int max = config.getDropAmountMax();
+        int amount = max > min ? ThreadLocalRandom.current().nextInt(min, max + 1) : min;
         ItemStack drop = new ItemStack(config.getDropMaterial(), amount);
         Map<Integer, ItemStack> overflow = player.getInventory().addItem(drop);
         if (!overflow.isEmpty()) {

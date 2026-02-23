@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.player.attributes.listeners;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.PlayerStats;
 import me.nakilex.levelplugin.mob.utils.SweepAttack;
+import me.nakilex.levelplugin.spells.SpellEffectUtil;
 import me.nakilex.levelplugin.player.classes.managers.PlayerClassManager;
 import me.nakilex.levelplugin.player.classes.data.ClassUtil;
 import me.nakilex.levelplugin.Main;
@@ -94,6 +95,16 @@ public class StatsEffectListener implements Listener {
                 return;
             }
             player = skipScaling ? null : p;
+            if (p.hasMetadata(SpellEffectUtil.BYPASS_STAT_SCALING_META)) {
+                player = null;
+            } else {
+                boolean sweeping = p.hasMetadata(SweepAttack.SWEEP_META);
+                if (!sweeping && p.getAttackCooldown() < 1.0f) {
+                    event.setCancelled(true);
+                    return;
+                }
+                player = p;
+            }
         } else if (damager instanceof org.bukkit.entity.Projectile proj && proj.getShooter() instanceof Player shooter) {
             // Skip scaling for our own custom projectiles which already embed stats
             if (proj.hasMetadata("ArcherSpell") || proj.hasMetadata("BasicAttack") || proj.hasMetadata("Meteor") || proj.hasMetadata("Shockwave")) {
