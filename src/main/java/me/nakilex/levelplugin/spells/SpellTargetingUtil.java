@@ -60,6 +60,10 @@ public final class SpellTargetingUtil {
             Location endpoint = eye.clone().add(direction.multiply(maxDistance));
             fallback = findNearestSafeLocation(endpoint, 5);
         }
+        if (fallback == null) {
+            Location los = player.getLocation().clone().add(direction.multiply(Math.max(2.0, Math.min(maxDistance, 8.0))));
+            fallback = findNearbySafeLocation(los, 2, 6);
+        }
         return fallback;
     }
 
@@ -93,6 +97,28 @@ public final class SpellTargetingUtil {
             Location up = around.clone().add(0, dy, 0);
             if (isSafeTeleportLocation(up)) {
                 return snapToCenter(up);
+            }
+        }
+        return null;
+    }
+
+    public static Location findNearbySafeLocation(Location around, int horizontalRadius, int verticalRange) {
+        if (around == null || around.getWorld() == null) {
+            return null;
+        }
+        int hz = Math.max(0, horizontalRadius);
+        for (int r = 0; r <= hz; r++) {
+            for (int dx = -r; dx <= r; dx++) {
+                for (int dz = -r; dz <= r; dz++) {
+                    if (Math.max(Math.abs(dx), Math.abs(dz)) != r) {
+                        continue;
+                    }
+                    Location candidate = around.clone().add(dx, 0, dz);
+                    Location safe = findNearestSafeLocation(candidate, verticalRange);
+                    if (safe != null) {
+                        return safe;
+                    }
+                }
             }
         }
         return null;
