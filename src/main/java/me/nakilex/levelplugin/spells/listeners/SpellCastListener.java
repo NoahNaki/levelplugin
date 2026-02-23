@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.player.classes.managers.PlayerClassManager;
 import me.nakilex.levelplugin.spells.SpellContext;
 import me.nakilex.levelplugin.spells.SpellRegistry;
+import me.nakilex.levelplugin.spells.progression.SpellProgressionManager;
 import me.nakilex.levelplugin.spells.input.SpellInputEvent;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -24,6 +25,12 @@ public class SpellCastListener implements Listener {
                 event.getInputMode(), event.getInputSequence(), event.getInputType());
         if (entry == null) {
             return;
+        }
+        String effectiveSpellId = SpellProgressionManager.getInstance()
+                .getEffectiveSpellId(player.getUniqueId(), entry.definition().id());
+        SpellRegistry.SpellEntry effectiveEntry = SpellRegistry.getInstance().getSpell(effectiveSpellId);
+        if (effectiveEntry != null) {
+            entry = effectiveEntry;
         }
         entry.handler().cast(new SpellContext(plugin, player, entry.definition(), event));
     }

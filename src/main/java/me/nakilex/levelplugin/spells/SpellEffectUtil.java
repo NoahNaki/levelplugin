@@ -207,4 +207,36 @@ public final class SpellEffectUtil {
             }
         }.runTaskTimer(plugin, 0L, safePeriod);
     }
+
+    public static void spawnRingParticles(Location center, double radius, Particle particle, int points, double yOffset) {
+        if (center == null || center.getWorld() == null || radius <= 0.0 || points <= 0) {
+            return;
+        }
+        World world = center.getWorld();
+        for (int i = 0; i < points; i++) {
+            double angle = (Math.PI * 2.0 * i) / points;
+            double x = Math.cos(angle) * radius;
+            double z = Math.sin(angle) * radius;
+            world.spawnParticle(particle, center.clone().add(x, yOffset, z), 1, 0.0, 0.0, 0.0, 0.0);
+        }
+    }
+
+    public static void spawnRosePatternParticles(Location center,
+                                                 double radius,
+                                                 int petals,
+                                                 int points,
+                                                 Particle particle,
+                                                 double yOffset) {
+        if (center == null || center.getWorld() == null || radius <= 0.0 || petals <= 0 || points <= 0) {
+            return;
+        }
+        World world = center.getWorld();
+        for (int i = 0; i < points; i++) {
+            double t = (Math.PI * 2.0 * i) / points;
+            double roseRadius = radius * Math.cos(petals * t);
+            double x = roseRadius * Math.cos(t);
+            double z = roseRadius * Math.sin(t);
+            world.spawnParticle(particle, center.clone().add(x, yOffset, z), 1, 0.0, 0.0, 0.0, 0.0);
+        }
+    }
 }

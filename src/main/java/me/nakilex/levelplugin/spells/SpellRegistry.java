@@ -5,6 +5,7 @@ import me.nakilex.levelplugin.spells.input.SpellInputMode;
 import me.nakilex.levelplugin.spells.input.SpellInputType;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -69,5 +70,30 @@ public final class SpellRegistry {
             return null;
         }
         return progressions.get(spellId.toLowerCase(Locale.ROOT));
+    }
+
+    public boolean isSpellBoundForClass(String spellId, PlayerClass playerClass) {
+        if (spellId == null || playerClass == null) {
+            return false;
+        }
+        String normalized = spellId.toLowerCase(Locale.ROOT);
+        for (SpellBinding binding : bindings) {
+            if (binding.spellId().equalsIgnoreCase(normalized)
+                    && binding.classPredicate().test(playerClass)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public SpellEntry getSpell(String spellId) {
+        if (spellId == null) {
+            return null;
+        }
+        return spells.get(spellId.toLowerCase(Locale.ROOT));
+    }
+
+    public Collection<SpellProgression> getAllProgressions() {
+        return List.copyOf(progressions.values());
     }
 }

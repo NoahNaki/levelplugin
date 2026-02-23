@@ -60,6 +60,9 @@ import me.nakilex.levelplugin.lootchests.commands.LootChestCommand;
 import me.nakilex.levelplugin.salvage.commands.SalvageCommand;
 import me.nakilex.levelplugin.settings.commands.SettingsCommand;
 import me.nakilex.levelplugin.settings.gui.SettingsGUI;
+import me.nakilex.levelplugin.spells.commands.AddSpellPointsCommand;
+import me.nakilex.levelplugin.spells.commands.SpellUpgradeCommand;
+import me.nakilex.levelplugin.spells.gui.SpellUpgradeGUI;
 import me.nakilex.levelplugin.storage.StorageManager;
 import me.nakilex.levelplugin.storage.commands.StorageCommand;
 import me.nakilex.levelplugin.tips.BroadcastManager;
@@ -137,6 +140,7 @@ public class CommandRegistry {
                                         PlayerToggleManager dmgToggleManager,
                                         PlayerToggleManager mobDebugToggleManager,
                                         SettingsGUI settingsGUI,
+                                        SpellUpgradeGUI spellUpgradeGUI,
                                         me.nakilex.levelplugin.debug.gui.DebugGUI debugGUI,
                                         GemsManager gemsManager,
                                         GemExchangeGUI gemGui,
@@ -172,6 +176,10 @@ public class CommandRegistry {
         AddPointsCommand addPointsCmd = new AddPointsCommand();
         plugin.getCommand("addpoints").setExecutor(addPointsCmd);
         plugin.getCommand("addpoints").setTabCompleter(addPointsCmd);
+        AddSpellPointsCommand addSpellPointsCommand = new AddSpellPointsCommand();
+        plugin.getCommand("addsp").setExecutor(addSpellPointsCommand);
+        plugin.getCommand("addsp").setTabCompleter(addSpellPointsCommand);
+        plugin.getCommand("spellupgrade").setExecutor(new SpellUpgradeCommand(spellUpgradeGUI));
 
         AddXPCommand addXpCmd = new AddXPCommand(levelManager);
         plugin.getCommand("addxp").setExecutor(addXpCmd);

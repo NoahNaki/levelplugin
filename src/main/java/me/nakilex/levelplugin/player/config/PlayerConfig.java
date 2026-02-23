@@ -7,6 +7,7 @@ import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.battlepass.BattlePassManager;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
+import me.nakilex.levelplugin.spells.progression.SpellProgressionManager;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -76,6 +77,12 @@ public class PlayerConfig {
             }
         }
         config.set(path + ".skill_points", stats.skillPoints);
+        SpellProgressionManager progressionManager = SpellProgressionManager.getInstance();
+        Integer activeSlot = me.nakilex.levelplugin.player.profile.ProfileManager.getInstance().getActiveSlot(uuid);
+        if (activeSlot != null && activeSlot >= 0) {
+            setProfileSpellPoints(uuid, activeSlot, progressionManager.getSpellPoints(uuid));
+            setProfileSpellLevels(uuid, activeSlot, progressionManager.serializeSpellLevels(uuid, activeSlot));
+        }
         config.set(path + ".stats.base_strength", stats.baseStrength);
         config.set(path + ".stats.base_agility", stats.baseAgility);
         config.set(path + ".stats.base_intelligence", stats.baseIntelligence);
@@ -143,6 +150,7 @@ public class PlayerConfig {
         List<String> discoveredFish = config.getStringList(root + ".fishing.discovered");
         LifeSkillRewardManager rewardManager = LifeSkillRewardManager.getInstance();
         int skillPoints = config.getInt(root + ".skill_points", 0);
+        // Spell progression is profile-scoped and loaded on profile selection.
         List<String> unlockedList = config.getStringList(root + ".unlocked_classes");
 
         LevelManager lm = LevelManager.getInstance();
@@ -213,6 +221,22 @@ public class PlayerConfig {
         if (battlePass != null) {
             battlePass.loadProgress(uuid, config, root + ".battlepass");
         }
+    }
+
+    public int getProfileSpellPoints(UUID uuid, int slot) {
+        return config.getInt("players." + uuid + ".profiles." + slot + ".spells.points", 0);
+    }
+
+    public void setProfileSpellPoints(UUID uuid, int slot, int points) {
+        config.set("players." + uuid + ".profiles." + slot + ".spells.points", Math.max(0, points));
+    }
+
+    public List<String> getProfileSpellLevels(UUID uuid, int slot) {
+        return config.getStringList("players." + uuid + ".profiles." + slot + ".spells.levels");
+    }
+
+    public void setProfileSpellLevels(UUID uuid, int slot, List<String> levels) {
+        config.set("players." + uuid + ".profiles." + slot + ".spells.levels", levels == null ? List.of() : new ArrayList<>(levels));
     }
 
     /** Saves data for all players. */
