@@ -53,8 +53,35 @@ public final class SpellRegistry {
                                    SpellInputMode mode,
                                    String sequence,
                                    SpellInputType inputType) {
+        SpellEntry inputTypeEntry = resolveByInputType(playerClass, inputType);
+        if (inputTypeEntry != null) {
+            return inputTypeEntry;
+        }
+        return resolveBySequence(playerClass, mode, sequence);
+    }
+
+    private SpellEntry resolveByInputType(PlayerClass playerClass, SpellInputType inputType) {
+        if (inputType == null) {
+            return null;
+        }
         for (SpellBinding binding : bindings) {
-            if (!binding.matches(playerClass, mode, sequence, inputType)) {
+            if (binding.inputType() == null || !binding.matches(playerClass, null, null, inputType)) {
+                continue;
+            }
+            SpellEntry entry = spells.get(binding.spellId().toLowerCase(Locale.ROOT));
+            if (entry != null) {
+                return entry;
+            }
+        }
+        return null;
+    }
+
+    private SpellEntry resolveBySequence(PlayerClass playerClass, SpellInputMode mode, String sequence) {
+        if (mode == null || sequence == null) {
+            return null;
+        }
+        for (SpellBinding binding : bindings) {
+            if (binding.inputType() != null || !binding.matches(playerClass, mode, sequence, null)) {
                 continue;
             }
             SpellEntry entry = spells.get(binding.spellId().toLowerCase(Locale.ROOT));
