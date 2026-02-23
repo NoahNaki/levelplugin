@@ -7,7 +7,6 @@ import me.nakilex.levelplugin.spells.impl.MageFireballBasicAttackSpell;
 import me.nakilex.levelplugin.spells.impl.MageHealSpell;
 import me.nakilex.levelplugin.spells.impl.MeteorSpell;
 import me.nakilex.levelplugin.spells.impl.BlackholeSpell;
-import me.nakilex.levelplugin.spells.impl.BlinkSpell;
 import me.nakilex.levelplugin.spells.input.SpellInputMode;
 import me.nakilex.levelplugin.spells.input.SpellInputType;
 
@@ -64,15 +63,6 @@ public final class SpellCatalog {
         registry.registerProgression(new SpellProgression(heal.id(), java.util.List.of(healRegen.id(), healParty.id())));
         registry.registerBinding(SpellBinding.forInputType(heal.id(), ClassUtil::isMageFamily, SpellInputType.SPELL_2));
 
-        SpellDefinition blink = new SpellDefinition("mage_blink", "Blink", 14, true);
-        SpellDefinition blinkRift = new SpellDefinition("mage_blink_rift", "Blink: Rift Step", 14, true);
-        SpellDefinition blinkAegis = new SpellDefinition("mage_blink_aegis", "Blink: Arcane Aegis", 14, true);
-        registry.registerSpell(blink, new BlinkSpell(plugin, 10, false, false));
-        registry.registerSpell(blinkRift, new BlinkSpell(plugin, 12, true, false));
-        registry.registerSpell(blinkAegis, new BlinkSpell(plugin, 14, true, true));
-        registry.registerProgression(new SpellProgression(blink.id(), java.util.List.of(blinkRift.id(), blinkAegis.id())));
-        registry.registerBinding(SpellBinding.forInputType(blink.id(), ClassUtil::isMageFamily, SpellInputType.SPELL_3));
-
-        registry.registerBinding(SpellBinding.forInputType(meteor.id(), ClassUtil::isMageFamily, SpellInputType.SPELL_4));
+        registry.registerBinding(SpellBinding.forInputType(meteor.id(), ClassUtil::isMageFamily, SpellInputType.SPELL_3));
     }
 }
