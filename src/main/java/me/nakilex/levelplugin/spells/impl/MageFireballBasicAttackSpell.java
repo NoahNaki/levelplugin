@@ -31,6 +31,7 @@ public class MageFireballBasicAttackSpell implements SpellHandler {
     private static final double BASE_DAMAGE = 3.0;
     private static final double INTELLIGENCE_SCALE = 0.45;
     private static final double TECHNIQUE_SCALE = 0.001;
+    private static final int PROJECTILE_LIGHT_LEVEL = 12;
 
     private static final Set<UUID> DEBUG_PLAYERS = ConcurrentHashMap.newKeySet();
 
@@ -136,6 +137,7 @@ public class MageFireballBasicAttackSpell implements SpellHandler {
         Location origin = projectile.getLocation().clone();
         new BukkitRunnable() {
             private int ticks;
+            private Location activeLight;
 
             @Override
             public void run() {
@@ -165,6 +167,7 @@ public class MageFireballBasicAttackSpell implements SpellHandler {
                 projectile.teleport(next);
                 ModelEngineUtil.orientEntityToVector(projectile, step);
                 SpellEffectUtil.spawnFireProjectileTrail(next);
+                activeLight = SpellEffectUtil.moveTemporaryLight(activeLight, next, PROJECTILE_LIGHT_LEVEL);
 
                 LivingEntity target = findTargetAt(next, caster, projectile);
                 if (target != null) {
@@ -187,6 +190,8 @@ public class MageFireballBasicAttackSpell implements SpellHandler {
             }
 
             private void removeProjectile() {
+                SpellEffectUtil.clearTemporaryLight(activeLight);
+                activeLight = null;
                 if (projectile.isValid()) {
                     projectile.remove();
                 }

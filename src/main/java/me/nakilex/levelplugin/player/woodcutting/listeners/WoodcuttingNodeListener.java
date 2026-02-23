@@ -59,10 +59,6 @@ public class WoodcuttingNodeListener implements Listener {
     private final Map<String, BukkitTask> respawnTasks = new HashMap<>();
     private BukkitTask heartbeatTask;
 
-    public WoodcuttingNodeListener(Main plugin, WoodcuttingManager woodcuttingManager, WoodcuttingConfig config) {
-    private final Map<String, BukkitTask> respawnTasks = new HashMap<>();
-    private BukkitTask heartbeatTask;
-
     public WoodcuttingNodeListener(Main plugin,
                                    WoodcuttingManager woodcuttingManager,
                                    WoodcuttingConfig config) {
@@ -118,6 +114,25 @@ public class WoodcuttingNodeListener implements Listener {
         }
     }
 
+    public void shutdown() {
+        for (BukkitTask task : respawnTasks.values()) {
+            task.cancel();
+        }
+        respawnTasks.clear();
+        if (heartbeatTask != null) {
+            heartbeatTask.cancel();
+            heartbeatTask = null;
+        }
+        for (UUID playerId : progressByPlayer.keySet().toArray(new UUID[0])) {
+            Map<String, NodeProgressState> states = progressByPlayer.get(playerId);
+            if (states == null) continue;
+            for (String nodeKey : states.keySet().toArray(new String[0])) {
+                clearNodeProgress(playerId, nodeKey);
+            }
+        }
+        saveState();
+    }
+
     private void handleNodeHit(Player player, Location location, String blockId) {
         if (player == null || location == null || blockId == null || blockId.isBlank()) {
             return;
@@ -158,7 +173,7 @@ public class WoodcuttingNodeListener implements Listener {
         }
 
         clearNodeProgress(player.getUniqueId(), nodeKey);
-        harvestNode(player, location, normalizedId, tool, true, new HashSet<>());
+        harvestNode(player, location, normalizedId, true, new HashSet<>());
     }
 
     private boolean isValidTool(Player player, CustomTool tool) {
@@ -178,7 +193,6 @@ public class WoodcuttingNodeListener implements Listener {
     private void harvestNode(Player player,
                              Location location,
                              String normalizedId,
-                             CustomTool tool,
                              boolean allowCleaving,
                              Set<String> visited) {
         String nodeKey = key(location);
@@ -189,37 +203,13 @@ public class WoodcuttingNodeListener implements Listener {
 
         NexoBlocks.remove(location, player, false);
 
-        int xp = config.getBaseXp();
         WoodcuttingToolEnchant enchant = ToolManager.getInstance().getWoodcuttingEnchant(player.getInventory().getItemInMainHand());
+        int xp = config.getBaseXp();
         if (enchant == WoodcuttingToolEnchant.WISDOM && ThreadLocalRandom.current().nextDouble() < 0.20D) {
             xp = (int) Math.ceil(xp * 1.5D);
         }
         woodcuttingManager.addXP(player, xp);
         giveDrops(player, enchant);
-
-        String id = event.getMechanic().getItemID();
-        if (id == null || id.isBlank()) {
-            return;
-        }
-        String normalizedId = id.toLowerCase(Locale.ROOT);
-        if (!config.getNodeIds().contains(normalizedId)) {
-            return;
-        }
-
-        Player player = event.getPlayer();
-        Location location = event.getBlock().getLocation();
-        String key = key(location);
-
-        if (hiddenNodes.containsKey(key)) {
-            event.setCancelled(true);
-            return;
-        }
-
-        event.setCancelled(true);
-        NexoBlocks.remove(location, player, false);
-
-        woodcuttingManager.addXP(player, config.getBaseXp());
-        giveDrops(player);
 
         long respawnAt = System.currentTimeMillis() + (config.getRespawnSeconds() * 1000L);
         HiddenNodeState hidden = new HiddenNodeState(normalizedId,
@@ -234,16 +224,17 @@ public class WoodcuttingNodeListener implements Listener {
         scheduleRespawn(hidden);
 
         if (allowCleaving && enchant == WoodcuttingToolEnchant.CLEAVING) {
-            harvestAdjacent(player, location, normalizedId, tool, visited);
+            harvestAdjacent(player, location, normalizedId, visited);
         }
     }
 
-    private void harvestAdjacent(Player player, Location origin, String nodeId, CustomTool tool, Set<String> visited) {
+    private void harvestAdjacent(Player player, Location origin, String nodeId, Set<String> visited) {
         int harvested = 0;
         World world = origin.getWorld();
         if (world == null) {
             return;
         }
+
         for (int x = -1; x <= 1; x++) {
             for (int y = -1; y <= 1; y++) {
                 for (int z = -1; z <= 1; z++) {
@@ -256,46 +247,11 @@ public class WoodcuttingNodeListener implements Listener {
                     if (mechanic == null || !nodeId.equalsIgnoreCase(mechanic.getItemID())) continue;
                     if (hiddenNodes.containsKey(key(target))) continue;
 
-                    harvestNode(player, target, nodeId, tool, false, visited);
+                    harvestNode(player, target, nodeId, false, visited);
                     harvested++;
                 }
             }
-        hiddenNodes.put(key, hidden);
-        saveState();
-        scheduleRespawn(hidden);
-    }
-
-    @EventHandler
-    public void onChunkLoad(ChunkLoadEvent event) {
-        String world = event.getWorld().getName();
-        int cx = event.getChunk().getX();
-        int cz = event.getChunk().getZ();
-        long now = System.currentTimeMillis();
-        for (HiddenNodeState hidden : hiddenNodes.values()) {
-            if (!hidden.worldName.equalsIgnoreCase(world)) continue;
-            if ((hidden.x >> 4) != cx || (hidden.z >> 4) != cz) continue;
-            if (hidden.respawnAtMillis > now) continue;
-            tryRespawn(hidden);
         }
-    }
-
-    public void shutdown() {
-        for (BukkitTask task : respawnTasks.values()) {
-            task.cancel();
-        }
-        respawnTasks.clear();
-        if (heartbeatTask != null) {
-            heartbeatTask.cancel();
-            heartbeatTask = null;
-        }
-        for (UUID playerId : progressByPlayer.keySet().toArray(new UUID[0])) {
-            Map<String, NodeProgressState> states = progressByPlayer.get(playerId);
-            if (states == null) continue;
-            for (String nodeKey : states.keySet().toArray(new String[0])) {
-                clearNodeProgress(playerId, nodeKey);
-            }
-        }
-        saveState();
     }
 
     private void updateProgressDisplay(Player player, NodeProgressState progress) {
@@ -368,13 +324,7 @@ public class WoodcuttingNodeListener implements Listener {
         if (enchant == WoodcuttingToolEnchant.IRONWOOD && ThreadLocalRandom.current().nextDouble() < 0.25D) {
             amount += 1;
         }
-        saveState();
-    }
 
-    private void giveDrops(Player player) {
-        int min = config.getDropAmountMin();
-        int max = config.getDropAmountMax();
-        int amount = max > min ? ThreadLocalRandom.current().nextInt(min, max + 1) : min;
         ItemStack drop = new ItemStack(config.getDropMaterial(), amount);
         Map<Integer, ItemStack> overflow = player.getInventory().addItem(drop);
         if (!overflow.isEmpty()) {
