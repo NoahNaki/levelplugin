@@ -112,6 +112,7 @@ public class SpellUpgradeGUI implements Listener {
             for (int i = 0; i < progression.upgradeSpellIds().size(); i++) {
                 lore.add(TooltipUtil.selectionLine(i < level,
                         ChatColor.GRAY + "Tier " + (i + 1) + ": " + getSpellName(progression.upgradeSpellIds().get(i))));
+                lore.add(ChatColor.DARK_GRAY + "   ↳ " + ChatColor.GRAY + describeUpgradeTier(baseSpellId, i + 1));
             }
         }
         lore.add(" ");
@@ -165,6 +166,35 @@ public class SpellUpgradeGUI implements Listener {
     private double compute(int intelligence, int technique, double base, double intScale) {
         double value = Math.max(0.0, base + intelligence * intScale);
         return value * (1.0 + technique * 0.001);
+    }
+
+    private String describeUpgradeTier(String baseSpellId, int tier) {
+        if (baseSpellId.startsWith("mage_fireball")) {
+            return tier == 1
+                    ? "Unlocks 3-shot cone + medium splash explosion."
+                    : "Upgrades to inferno volley: larger splash and stronger burn.";
+        }
+        if (baseSpellId.startsWith("blackhole")) {
+            return tier == 1
+                    ? "Wider pull radius and stronger core damage-over-time."
+                    : "Singularity collapse detonates at the end for burst damage.";
+        }
+        if (baseSpellId.startsWith("mage_heal")) {
+            return tier == 1
+                    ? "Adds stronger heal burst, regeneration and larger mana restore."
+                    : "Converts to party pulse heal with shared support effects.";
+        }
+        if (baseSpellId.startsWith("mage_blink")) {
+            return tier == 1
+                    ? "Leaves a damaging rift trail along your blink path."
+                    : "Adds post-blink defensive buffs (speed + resistance).";
+        }
+        if (baseSpellId.startsWith("meteor")) {
+            return tier == 1
+                    ? "Bigger impact radius with stronger impact and DoT damage."
+                    : "Cataclysm tier massively increases radius and impact damage.";
+        }
+        return "Enhances this spell's power and utility.";
     }
 
     private void refresh(Player player) {

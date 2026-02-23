@@ -1,5 +1,6 @@
 package me.nakilex.levelplugin.spells;
 
+import me.nakilex.levelplugin.utils.TeleportUtils;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -65,6 +66,59 @@ public final class SpellTargetingUtil {
             fallback = findNearbySafeLocation(los, 2, 6);
         }
         return fallback;
+    }
+
+    /**
+     * Resolve a practical blink destination that stops before walls and adjusts
+     * vertically so the player does not spawn inside blocks.
+     */
+    public static Location resolveBlinkDestination(Player player, double maxDistance) {
+        if (player == null || player.getWorld() == null || maxDistance <= 0) {
+            return null;
+        }
+        Location base = TeleportUtils.resolveLineOfSightTarget(
+                player,
+                player.getEyeLocation().getDirection().clone().normalize(),
+                maxDistance,
+                0.65);
+        if (base == null) {
+            return null;
+        }
+        Location candidate = base.clone();
+        candidate.setY(candidate.getY() + 0.05);
+        Location safe = findNearestSafeLocation(candidate, 5);
+        if (safe != null) {
+            return safe;
+        }
+        safe = findNearbySafeLocation(candidate, 2, 6);
+        if (safe != null) {
+            return safe;
+        }
+
+        Location highest = resolveHighestGroundFallback(player, candidate, maxDistance);
+        if (highest != null) {
+            return highest;
+        }
+        return null;
+    }
+
+    private static Location resolveHighestGroundFallback(Player player, Location around, double maxDistance) {
+        if (player == null || around == null || around.getWorld() == null) {
+            return null;
+        }
+        World world = around.getWorld();
+        int x = around.getBlockX();
+        int z = around.getBlockZ();
+        int highestY = world.getHighestBlockYAt(x, z);
+        Location candidate = new Location(world, x + 0.5, highestY + 1.0, z + 0.5,
+                player.getLocation().getYaw(), player.getLocation().getPitch());
+        if (candidate.distanceSquared(player.getLocation()) > (maxDistance + 3.0) * (maxDistance + 3.0)) {
+            return null;
+        }
+        if (!isSafeTeleportLocation(candidate)) {
+            return null;
+        }
+        return candidate;
     }
 
     public static boolean isSafeTeleportLocation(Location location) {

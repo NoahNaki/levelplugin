@@ -33,13 +33,10 @@ public class BlinkSpell implements SpellHandler {
     public void cast(SpellContext context) {
         Player caster = context.player();
         Location from = caster.getLocation().clone();
-        Location to = SpellTargetingUtil.resolveSafeTeleportTarget(caster, range);
+        Location to = SpellTargetingUtil.resolveBlinkDestination(caster, range);
         if (to == null) {
-            Location coarse = caster.getLocation().clone().add(caster.getEyeLocation().getDirection().normalize().multiply(Math.max(2.0, Math.min(range, 8.0))));
-            to = SpellTargetingUtil.findNearbySafeLocation(coarse, 2, 6);
-        }
-        if (to == null || !SpellTargetingUtil.isSafeTeleportLocation(to)) {
-            ChatMessageUtil.send(caster, ChatMessageUtil.MessageType.WARNING, "Blink failed: no safe teleport location in sight.");
+            ChatMessageUtil.send(caster, ChatMessageUtil.MessageType.WARNING,
+                    "Blink failed: no valid destination in line of sight.");
             return;
         }
         Vector preservedVelocity = caster.getVelocity().clone();
