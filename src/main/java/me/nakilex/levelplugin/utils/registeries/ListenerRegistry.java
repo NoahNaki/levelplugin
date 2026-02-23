@@ -47,6 +47,7 @@ import me.nakilex.levelplugin.salvage.listeners.SalvageListener;
 import me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager;
 import me.nakilex.levelplugin.settings.gui.SettingsGUI;
 import me.nakilex.levelplugin.spells.gui.SpellKeybindGUI;
+import me.nakilex.levelplugin.spells.gui.SpellUpgradeGUI;
 import me.nakilex.levelplugin.spells.listeners.SpellCastListener;
 import me.nakilex.levelplugin.spells.listeners.SpellInputListener;
 import me.nakilex.levelplugin.player.classes.gui.SubclassGUI;
@@ -113,6 +114,7 @@ public class ListenerRegistry {
                                          PickupCustomItemListener pickupCustomItemListener,
                                          SettingsGUI settingsGUI,
                                          SpellKeybindGUI spellKeybindGUI,
+                                         SpellUpgradeGUI spellUpgradeGUI,
                                          me.nakilex.levelplugin.debug.gui.DebugGUI debugGUI,
                                          GuildGUI guildGUI,
                                          FileConfiguration bossConfig,
@@ -278,6 +280,7 @@ public class ListenerRegistry {
         pm.registerEvents(arcSlashDebugGUI, plugin);
         pm.registerEvents(settingsGUI, plugin);
         pm.registerEvents(spellKeybindGUI, plugin);
+        pm.registerEvents(spellUpgradeGUI, plugin);
         pm.registerEvents(debugGUI, plugin);
         pm.registerEvents(new GuildGUIListener(guildGUI), plugin);
         pm.registerEvents(new GuildQuestGUIListener(), plugin);

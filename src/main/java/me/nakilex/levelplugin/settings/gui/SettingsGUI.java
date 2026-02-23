@@ -8,6 +8,7 @@ import me.nakilex.levelplugin.leaderboards.LeaderboardType;
 import me.nakilex.levelplugin.player.attributes.gui.StatsInventory;
 import me.nakilex.levelplugin.mob.managers.ChatToggleManager;
 import me.nakilex.levelplugin.spells.gui.SpellKeybindGUI;
+import me.nakilex.levelplugin.spells.gui.SpellUpgradeGUI;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.ToggleFeedbackUtil;
@@ -41,11 +42,13 @@ public class SettingsGUI implements Listener {
     private static final int CHAT_GAMES_SLOT = 27;
     private static final int SPELL_INPUT_SLOT = 33;
     private static final int SPELL_KEYBINDS_SLOT = 34;
+    private static final int SPELL_UPGRADES_SLOT = 35;
 
     private final SettingsManager settingsManager;
     private final Map<UUID, Filter> filters = new HashMap<>();
     private final Map<UUID, List<GuiWidget>> widgetsByPlayer = new HashMap<>();
     private SpellKeybindGUI spellKeybindGUI;
+    private SpellUpgradeGUI spellUpgradeGUI;
 
     public SettingsGUI(SettingsManager settingsManager) {
         this.settingsManager = settingsManager;
@@ -57,6 +60,10 @@ public class SettingsGUI implements Listener {
 
     public void setSpellKeybindGUI(SpellKeybindGUI spellKeybindGUI) {
         this.spellKeybindGUI = spellKeybindGUI;
+    }
+
+    public void setSpellUpgradeGUI(SpellUpgradeGUI spellUpgradeGUI) {
+        this.spellUpgradeGUI = spellUpgradeGUI;
     }
 
     public void openSettingsMenu(Player player) {
@@ -185,6 +192,12 @@ public class SettingsGUI implements Listener {
         return item;
     }
 
+    private ItemStack createSpellUpgradesItem() {
+        return GuiUtil.createGuiItem(Material.ENCHANTED_BOOK, ChatColor.AQUA + "Spell Upgrades",
+                List.of(" ", ChatColor.GRAY + "Spend spell points to evolve spells.", " ",
+                        ChatColor.WHITE + "Left-click " + ChatColor.GRAY + "to open"));
+    }
+
     private String formatRarityLabel(ItemRarity rarity) {
         String name = rarity.name().toLowerCase(Locale.ROOT);
         return name.substring(0, 1).toUpperCase(Locale.ROOT) + name.substring(1);
@@ -241,6 +254,13 @@ public class SettingsGUI implements Listener {
                     (click, context) -> {
                         if (spellKeybindGUI != null) {
                             spellKeybindGUI.open(context.player());
+                        }
+                    }));
+            widgets.add(new ActionWidget(SPELL_UPGRADES_SLOT,
+                    context -> createSpellUpgradesItem(),
+                    (click, context) -> {
+                        if (spellUpgradeGUI != null) {
+                            spellUpgradeGUI.open(context.player());
                         }
                     }));
         }

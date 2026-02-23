@@ -11,6 +11,14 @@ commands:
     description: Grants skill points to a player
     usage: /addpoints <player> <amount>
     permission: none
+  addsp:
+    description: Grants spell points to a player
+    usage: /addsp <player> <amount>
+    permission: none
+  spellupgrade:
+    description: Opens the spell upgrade menu
+    usage: /spellupgrade
+    permission: none
   addxp:
     description: Grants XP to a player
     usage: /addxp <player> <amount>

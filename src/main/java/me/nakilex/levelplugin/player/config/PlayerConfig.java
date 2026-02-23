@@ -7,6 +7,7 @@ import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.battlepass.BattlePassManager;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
+import me.nakilex.levelplugin.spells.progression.SpellProgressionManager;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -76,6 +77,9 @@ public class PlayerConfig {
             }
         }
         config.set(path + ".skill_points", stats.skillPoints);
+        SpellProgressionManager progressionManager = SpellProgressionManager.getInstance();
+        config.set(path + ".spell_points", progressionManager.getSpellPoints(uuid));
+        config.set(path + ".spell_levels", serializeSpellLevels(uuid, progressionManager));
         config.set(path + ".stats.base_strength", stats.baseStrength);
         config.set(path + ".stats.base_agility", stats.baseAgility);
         config.set(path + ".stats.base_intelligence", stats.baseIntelligence);
@@ -143,6 +147,9 @@ public class PlayerConfig {
         List<String> discoveredFish = config.getStringList(root + ".fishing.discovered");
         LifeSkillRewardManager rewardManager = LifeSkillRewardManager.getInstance();
         int skillPoints = config.getInt(root + ".skill_points", 0);
+        SpellProgressionManager progressionManager = SpellProgressionManager.getInstance();
+        progressionManager.setSpellPoints(uuid, config.getInt(root + ".spell_points", 0));
+        deserializeSpellLevels(uuid, progressionManager, config.getStringList(root + ".spell_levels"));
         List<String> unlockedList = config.getStringList(root + ".unlocked_classes");
 
         LevelManager lm = LevelManager.getInstance();
@@ -212,6 +219,42 @@ public class PlayerConfig {
         BattlePassManager battlePass = Main.getInstance().getBattlePassManager();
         if (battlePass != null) {
             battlePass.loadProgress(uuid, config, root + ".battlepass");
+        }
+    }
+
+    private List<String> serializeSpellLevels(UUID uuid, SpellProgressionManager progressionManager) {
+        List<String> values = new ArrayList<>();
+        for (var progression : me.nakilex.levelplugin.spells.SpellRegistry.getInstance().getAllProgressions()) {
+            int level = progressionManager.getSpellLevel(uuid, progression.baseSpellId());
+            if (level > 0) {
+                values.add(progression.baseSpellId() + ":" + level);
+            }
+        }
+        return values;
+    }
+
+    private void deserializeSpellLevels(UUID uuid, SpellProgressionManager progressionManager, List<String> entries) {
+        if (entries == null) {
+            return;
+        }
+        for (String line : entries) {
+            if (line == null || !line.contains(":")) {
+                continue;
+            }
+            String[] parts = line.split(":", 2);
+            if (parts.length != 2) {
+                continue;
+            }
+            try {
+                int level = Math.max(0, Integer.parseInt(parts[1]));
+                int capped = Math.min(level, progressionManager.getMaxLevel(parts[0]));
+                for (int i = 0; i < capped; i++) {
+                    progressionManager.addSpellPoints(uuid, 1);
+                    progressionManager.investPoint(uuid, parts[0]);
+                }
+            } catch (NumberFormatException ignored) {
+                // Ignore malformed entry.
+            }
         }
     }
 

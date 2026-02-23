@@ -23,21 +23,32 @@ import java.util.List;
 public class MeteorSpell implements SpellHandler {
     private static final String MODEL_ID = "meteor_of_doom";
     private static final double TARGET_RANGE = 40.0;
-    private static final double SPAWN_HEIGHT = 18.0;
-    private static final double IMPACT_DAMAGE = 12.0;
-    private static final double IMPACT_RADIUS = 4.0;
-    private static final double DOT_RADIUS = 3.5;
-    private static final double DOT_DAMAGE = 2.0;
     private static final int DOT_DURATION_TICKS = 60;
     private static final int DOT_PERIOD_TICKS = 10;
     private static final double SPEED_PER_TICK = 1.2;
 
     private final Main plugin;
     private final ParticleService particleService;
+    private final double spawnHeight;
+    private final double impactDamage;
+    private final double impactRadius;
+    private final double dotRadius;
+    private final double dotDamage;
 
     public MeteorSpell(Main plugin, ParticleService particleService) {
+        this(plugin, particleService, 18.0, 12.0, 4.0, 3.5, 2.0);
+    }
+
+    public MeteorSpell(Main plugin, ParticleService particleService,
+                       double spawnHeight, double impactDamage, double impactRadius,
+                       double dotRadius, double dotDamage) {
         this.plugin = plugin;
         this.particleService = particleService;
+        this.spawnHeight = spawnHeight;
+        this.impactDamage = impactDamage;
+        this.impactRadius = impactRadius;
+        this.dotRadius = dotRadius;
+        this.dotDamage = dotDamage;
     }
 
     @Override
@@ -49,7 +60,7 @@ public class MeteorSpell implements SpellHandler {
                     "No ground target in sight for Meteor.");
             return;
         }
-        Location spawn = player.getLocation().clone().add(0, SPAWN_HEIGHT, 0);
+        Location spawn = player.getLocation().clone().add(0, spawnHeight, 0);
         World world = spawn.getWorld();
         if (world == null) {
             return;
@@ -107,9 +118,9 @@ public class MeteorSpell implements SpellHandler {
         world.spawnParticle(Particle.EXPLOSION, impact, 1, 0.0, 0.0, 0.0, 0.0);
         world.spawnParticle(Particle.LAVA, impact, 20, 0.6, 0.3, 0.6, 0.02);
         world.playSound(impact, Sound.ENTITY_GENERIC_EXPLODE, 1.3f, 0.8f);
-        SpellEffectUtil.applyAreaDamage(caster, impact, IMPACT_RADIUS, IMPACT_DAMAGE);
+        SpellEffectUtil.applyAreaDamage(caster, impact, impactRadius, impactDamage);
         particleService.renderPreset(caster, ElementalPresets.BURNING_SIGIL, impact);
-        SpellEffectUtil.startDamageOverTime(plugin, caster, impact, DOT_RADIUS, DOT_DAMAGE,
+        SpellEffectUtil.startDamageOverTime(plugin, caster, impact, dotRadius, dotDamage,
                 DOT_PERIOD_TICKS, DOT_DURATION_TICKS);
     }
 }
