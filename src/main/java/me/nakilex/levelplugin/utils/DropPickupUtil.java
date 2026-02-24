@@ -26,7 +26,7 @@ public final class DropPickupUtil {
             return;
         }
         long pickupDelayTicks = Math.max(0L, delayTicks);
-        dropped.setPickupDelay((int) pickupDelayTicks);
+        dropped.setPickupDelay(Integer.MAX_VALUE);
 
         Main plugin = Main.getInstance();
         if (plugin == null) {

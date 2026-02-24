@@ -77,8 +77,9 @@ public class WoodcuttingNodeListener implements Listener {
         if (event.getPlayer() == null || event.getBlock() == null || event.getMechanic() == null) {
             return;
         }
+        // Break events can trigger Nexo's own drop pipeline, so we only cancel here.
+        // Node hit/progress is handled from interact events to avoid duplicate drops.
         event.setCancelled(true);
-        handleNodeHit(event.getPlayer(), event.getBlock().getLocation(), event.getMechanic().getItemID());
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
