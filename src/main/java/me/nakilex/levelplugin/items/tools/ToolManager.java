@@ -119,12 +119,16 @@ public class ToolManager {
     }
 
     public CustomTool getTool(ItemStack stack) {
+        return getTool(stack, true);
+    }
+
+    public CustomTool getTool(ItemStack stack, boolean allowMaterialFallback) {
         if (stack == null || !stack.hasItemMeta()) {
-            return getTool(stack != null ? stack.getType() : null);
+            return allowMaterialFallback ? getTool(stack != null ? stack.getType() : null) : null;
         }
         ItemMeta meta = stack.getItemMeta();
         if (meta == null) {
-            return getTool(stack.getType());
+            return allowMaterialFallback ? getTool(stack.getType()) : null;
         }
         PersistentDataContainer container = meta.getPersistentDataContainer();
         String tierName = container.get(toolTierKey, PersistentDataType.STRING);
@@ -140,7 +144,7 @@ public class ToolManager {
             } catch (IllegalArgumentException ignored) {
             }
         }
-        return getTool(stack.getType());
+        return allowMaterialFallback ? getTool(stack.getType()) : null;
     }
 
     public int getPlayerLevel(Player player, ToolDiscipline discipline) {

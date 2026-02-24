@@ -53,6 +53,7 @@ public class WoodcuttingNodeListener implements Listener {
     private final File stateFile;
     private org.bukkit.configuration.file.FileConfiguration state;
     private static final int CLEAVING_ADJACENT_LIMIT = 3;
+    private static final long NODE_PROGRESS_RESET_MS = 20_000L;
 
     private final Map<String, HiddenNodeState> hiddenNodes = new HashMap<>();
     private final Map<UUID, Map<String, NodeProgressState>> progressByPlayer = new HashMap<>();
@@ -149,7 +150,7 @@ public class WoodcuttingNodeListener implements Listener {
             return;
         }
 
-        CustomTool tool = ToolManager.getInstance().getTool(player.getInventory().getItemInMainHand());
+        CustomTool tool = ToolManager.getInstance().getTool(player.getInventory().getItemInMainHand(), false);
         if (!isValidTool(player, tool)) {
             return;
         }
@@ -166,6 +167,7 @@ public class WoodcuttingNodeListener implements Listener {
                         durability));
 
         progress.damage += toolDamage;
+        progress.lastInteractionAt = System.currentTimeMillis();
         updateProgressDisplay(player, progress);
 
         if (progress.damage < progress.maxDurability) {
@@ -179,7 +181,7 @@ public class WoodcuttingNodeListener implements Listener {
     private boolean isValidTool(Player player, CustomTool tool) {
         if (tool == null || tool.getDiscipline() != ToolDiscipline.WOODCUTTING) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
-                    ChatColor.RED + "You need an axe to cut this node.");
+                    ChatColor.RED + "You need a valid woodcutting axe to cut this node.");
             return false;
         }
         if (!ToolManager.getInstance().meetsLevelRequirement(player, tool)) {
@@ -357,7 +359,20 @@ public class WoodcuttingNodeListener implements Listener {
                     tryRespawn(hidden);
                 }
             }
-        }, 20L * 30, 20L * 30);
+            for (UUID playerId : progressByPlayer.keySet().toArray(new UUID[0])) {
+                Map<String, NodeProgressState> states = progressByPlayer.get(playerId);
+                if (states == null) {
+                    continue;
+                }
+                for (Map.Entry<String, NodeProgressState> entry : new java.util.ArrayList<>(states.entrySet())) {
+                    NodeProgressState progress = entry.getValue();
+                    if (progress == null || now - progress.lastInteractionAt <= NODE_PROGRESS_RESET_MS) {
+                        continue;
+                    }
+                    clearNodeProgress(playerId, entry.getKey());
+                }
+            }
+        }, 20L, 20L);
     }
 
     private void tryRespawn(HiddenNodeState hidden) {
@@ -476,6 +491,7 @@ public class WoodcuttingNodeListener implements Listener {
         private final double maxDurability;
         private double damage;
         private TextDisplay display;
+        private long lastInteractionAt;
 
         private NodeProgressState(String worldName, int x, int y, int z, double maxDurability) {
             this.worldName = worldName;
@@ -483,6 +499,7 @@ public class WoodcuttingNodeListener implements Listener {
             this.y = y;
             this.z = z;
             this.maxDurability = maxDurability;
+            this.lastInteractionAt = System.currentTimeMillis();
         }
     }
 }
