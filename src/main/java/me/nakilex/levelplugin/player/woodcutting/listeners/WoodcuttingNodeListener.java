@@ -10,7 +10,6 @@ import me.nakilex.levelplugin.items.tools.WoodcuttingToolEnchant;
 import me.nakilex.levelplugin.player.woodcutting.config.WoodcuttingConfig;
 import me.nakilex.levelplugin.player.woodcutting.managers.WoodcuttingManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
-import me.nakilex.levelplugin.utils.DropPickupUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Color;
@@ -28,7 +27,6 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.inventory.EquipmentSlot;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.io.File;
@@ -221,7 +219,7 @@ public class WoodcuttingNodeListener implements Listener {
         }
         visited.add(nodeKey);
 
-        NexoBlocks.remove(location, player, false);
+        NexoBlocks.remove(location, player, true);
 
         WoodcuttingToolEnchant enchant = ToolManager.getInstance().getWoodcuttingEnchant(player.getInventory().getItemInMainHand());
         int xp = config.getBaseXp();
@@ -229,7 +227,6 @@ public class WoodcuttingNodeListener implements Listener {
             xp = (int) Math.ceil(xp * 1.5D);
         }
         woodcuttingManager.addXP(player, xp);
-        giveDrops(player, enchant);
 
         long respawnAt = System.currentTimeMillis() + (config.getRespawnSeconds() * 1000L);
         HiddenNodeState hidden = new HiddenNodeState(normalizedId,
@@ -335,18 +332,6 @@ public class WoodcuttingNodeListener implements Listener {
         for (UUID playerId : progressByPlayer.keySet().toArray(new UUID[0])) {
             clearNodeProgress(playerId, nodeKey);
         }
-    }
-
-    private void giveDrops(Player player, WoodcuttingToolEnchant enchant) {
-        int min = config.getDropAmountMin();
-        int max = config.getDropAmountMax();
-        int amount = max > min ? ThreadLocalRandom.current().nextInt(min, max + 1) : min;
-        if (enchant == WoodcuttingToolEnchant.IRONWOOD && ThreadLocalRandom.current().nextDouble() < 0.25D) {
-            amount += 1;
-        }
-
-        ItemStack drop = new ItemStack(config.getDropMaterial(), amount);
-        DropPickupUtil.dropForPlayerWithDelayedAutoPickup(player, drop, 20L);
     }
 
     private void scheduleRespawn(HiddenNodeState hidden) {
