@@ -24,6 +24,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.inventory.EquipmentSlot;
@@ -72,7 +73,7 @@ public class WoodcuttingNodeListener implements Listener {
         startHeartbeat();
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = false)
     public void onNexoBlockBreak(NexoBlockBreakEvent event) {
         if (event.getPlayer() == null || event.getBlock() == null || event.getMechanic() == null) {
             return;
@@ -80,6 +81,22 @@ public class WoodcuttingNodeListener implements Listener {
         // Break events can trigger Nexo's own drop pipeline, so we only cancel here.
         // Node hit/progress is handled from interact events to avoid duplicate drops.
         event.setCancelled(true);
+    }
+
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = false)
+    public void onVanillaBreak(BlockBreakEvent event) {
+        if (event.getBlock() == null || !NexoBlocks.isCustomBlock(event.getBlock())) {
+            return;
+        }
+        var mechanic = NexoBlocks.customBlockMechanic(event.getBlock());
+        if (mechanic == null) {
+            return;
+        }
+        String normalizedId = mechanic.getItemID().toLowerCase(Locale.ROOT);
+        if (config.getNodeIds().contains(normalizedId)) {
+            event.setCancelled(true);
+        }
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
