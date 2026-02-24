@@ -10,6 +10,7 @@ import me.nakilex.levelplugin.items.tools.WoodcuttingToolEnchant;
 import me.nakilex.levelplugin.player.woodcutting.config.WoodcuttingConfig;
 import me.nakilex.levelplugin.player.woodcutting.managers.WoodcuttingManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
+import me.nakilex.levelplugin.utils.DropPickupUtil;
 import me.nakilex.levelplugin.utils.FullInventoryListener;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -331,7 +332,7 @@ public class WoodcuttingNodeListener implements Listener {
         Map<Integer, ItemStack> overflow = player.getInventory().addItem(drop);
         if (!overflow.isEmpty()) {
             FullInventoryListener.sendFullInventoryTitle(player, Main.getInstance().getSettingsManager());
-            overflow.values().forEach(item -> player.getWorld().dropItemNaturally(player.getLocation(), item));
+            overflow.values().forEach(item -> DropPickupUtil.dropForPlayerWithDelayedAutoPickup(player, item, 20L));
         }
     }
 

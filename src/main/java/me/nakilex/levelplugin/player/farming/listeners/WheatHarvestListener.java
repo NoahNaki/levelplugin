@@ -8,6 +8,7 @@ import me.nakilex.levelplugin.player.farming.config.FarmingRewardsConfig;
 import me.nakilex.levelplugin.player.farming.data.FarmingCrop;
 import me.nakilex.levelplugin.player.farming.managers.FarmingManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
+import me.nakilex.levelplugin.utils.DropPickupUtil;
 import me.nakilex.levelplugin.utils.FullInventoryListener;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
@@ -146,7 +147,7 @@ public class WheatHarvestListener implements Listener {
             if (!overflow.isEmpty()) {
                 FullInventoryListener.sendFullInventoryTitle(player, Main.getInstance().getSettingsManager());
                 overflow.values().forEach(item ->
-                        player.getWorld().dropItemNaturally(player.getLocation(), item));
+                        DropPickupUtil.dropForPlayerWithDelayedAutoPickup(player, item, 20L));
             }
 
             Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
