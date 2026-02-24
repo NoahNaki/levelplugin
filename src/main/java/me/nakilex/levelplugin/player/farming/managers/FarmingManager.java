@@ -220,7 +220,7 @@ public class FarmingManager implements LifeSkillProgression {
                 required,
                 "Farming",
                 ChatColor.GOLD,
-                BarColor.YELLOW
+                BarColor.GREEN
         );
     }
 

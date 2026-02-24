@@ -30,6 +30,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
@@ -85,6 +86,24 @@ public class EnchantGUI implements Listener {
 
         if (handleWidgetClick(e, p)) {
             return;
+        }
+
+        // Prevent taking filler/placeholder items from GUI slots.
+        e.setCancelled(true);
+    }
+
+    @EventHandler
+    public void onDrag(InventoryDragEvent event) {
+        if (!(event.getWhoClicked() instanceof Player player)) {
+            return;
+        }
+        Inventory gui = open.get(player.getUniqueId());
+        if (gui == null || !event.getView().getTopInventory().equals(gui)) {
+            return;
+        }
+        boolean touchesTopInventory = event.getRawSlots().stream().anyMatch(slot -> slot < gui.getSize() && slot != 13);
+        if (touchesTopInventory) {
+            event.setCancelled(true);
         }
     }
 

@@ -10,7 +10,6 @@ import me.nakilex.levelplugin.items.tools.WoodcuttingToolEnchant;
 import me.nakilex.levelplugin.player.woodcutting.config.WoodcuttingConfig;
 import me.nakilex.levelplugin.player.woodcutting.managers.WoodcuttingManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
-import me.nakilex.levelplugin.utils.FullInventoryListener;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Color;
@@ -24,10 +23,10 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.inventory.EquipmentSlot;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.io.File;
@@ -53,6 +52,7 @@ public class WoodcuttingNodeListener implements Listener {
     private final File stateFile;
     private org.bukkit.configuration.file.FileConfiguration state;
     private static final int CLEAVING_ADJACENT_LIMIT = 3;
+    private static final long NODE_PROGRESS_RESET_MS = 20_000L;
 
     private final Map<String, HiddenNodeState> hiddenNodes = new HashMap<>();
     private final Map<UUID, Map<String, NodeProgressState>> progressByPlayer = new HashMap<>();
@@ -71,13 +71,30 @@ public class WoodcuttingNodeListener implements Listener {
         startHeartbeat();
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = false)
     public void onNexoBlockBreak(NexoBlockBreakEvent event) {
         if (event.getPlayer() == null || event.getBlock() == null || event.getMechanic() == null) {
             return;
         }
+        // Break events can trigger Nexo's own drop pipeline, so we only cancel here.
+        // Node hit/progress is handled from interact events to avoid duplicate drops.
         event.setCancelled(true);
-        handleNodeHit(event.getPlayer(), event.getBlock().getLocation(), event.getMechanic().getItemID());
+    }
+
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = false)
+    public void onVanillaBreak(BlockBreakEvent event) {
+        if (event.getBlock() == null || !NexoBlocks.isCustomBlock(event.getBlock())) {
+            return;
+        }
+        var mechanic = NexoBlocks.customBlockMechanic(event.getBlock());
+        if (mechanic == null) {
+            return;
+        }
+        String normalizedId = mechanic.getItemID().toLowerCase(Locale.ROOT);
+        if (config.getNodeIds().contains(normalizedId)) {
+            event.setCancelled(true);
+        }
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
@@ -149,7 +166,7 @@ public class WoodcuttingNodeListener implements Listener {
             return;
         }
 
-        CustomTool tool = ToolManager.getInstance().getTool(player.getInventory().getItemInMainHand());
+        CustomTool tool = ToolManager.getInstance().getTool(player.getInventory().getItemInMainHand(), false);
         if (!isValidTool(player, tool)) {
             return;
         }
@@ -166,6 +183,7 @@ public class WoodcuttingNodeListener implements Listener {
                         durability));
 
         progress.damage += toolDamage;
+        progress.lastInteractionAt = System.currentTimeMillis();
         updateProgressDisplay(player, progress);
 
         if (progress.damage < progress.maxDurability) {
@@ -179,7 +197,7 @@ public class WoodcuttingNodeListener implements Listener {
     private boolean isValidTool(Player player, CustomTool tool) {
         if (tool == null || tool.getDiscipline() != ToolDiscipline.WOODCUTTING) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
-                    ChatColor.RED + "You need an axe to cut this node.");
+                    ChatColor.RED + "You need a valid woodcutting axe to cut this node.");
             return false;
         }
         if (!ToolManager.getInstance().meetsLevelRequirement(player, tool)) {
@@ -201,7 +219,7 @@ public class WoodcuttingNodeListener implements Listener {
         }
         visited.add(nodeKey);
 
-        NexoBlocks.remove(location, player, false);
+        NexoBlocks.remove(location, player, true);
 
         WoodcuttingToolEnchant enchant = ToolManager.getInstance().getWoodcuttingEnchant(player.getInventory().getItemInMainHand());
         int xp = config.getBaseXp();
@@ -209,7 +227,6 @@ public class WoodcuttingNodeListener implements Listener {
             xp = (int) Math.ceil(xp * 1.5D);
         }
         woodcuttingManager.addXP(player, xp);
-        giveDrops(player, enchant);
 
         long respawnAt = System.currentTimeMillis() + (config.getRespawnSeconds() * 1000L);
         HiddenNodeState hidden = new HiddenNodeState(normalizedId,
@@ -317,22 +334,6 @@ public class WoodcuttingNodeListener implements Listener {
         }
     }
 
-    private void giveDrops(Player player, WoodcuttingToolEnchant enchant) {
-        int min = config.getDropAmountMin();
-        int max = config.getDropAmountMax();
-        int amount = max > min ? ThreadLocalRandom.current().nextInt(min, max + 1) : min;
-        if (enchant == WoodcuttingToolEnchant.IRONWOOD && ThreadLocalRandom.current().nextDouble() < 0.25D) {
-            amount += 1;
-        }
-
-        ItemStack drop = new ItemStack(config.getDropMaterial(), amount);
-        Map<Integer, ItemStack> overflow = player.getInventory().addItem(drop);
-        if (!overflow.isEmpty()) {
-            FullInventoryListener.sendFullInventoryTitle(player, Main.getInstance().getSettingsManager());
-            overflow.values().forEach(item -> player.getWorld().dropItemNaturally(player.getLocation(), item));
-        }
-    }
-
     private void scheduleRespawn(HiddenNodeState hidden) {
         String key = hidden.key();
         BukkitTask existing = respawnTasks.remove(key);
@@ -357,7 +358,20 @@ public class WoodcuttingNodeListener implements Listener {
                     tryRespawn(hidden);
                 }
             }
-        }, 20L * 30, 20L * 30);
+            for (UUID playerId : progressByPlayer.keySet().toArray(new UUID[0])) {
+                Map<String, NodeProgressState> states = progressByPlayer.get(playerId);
+                if (states == null) {
+                    continue;
+                }
+                for (Map.Entry<String, NodeProgressState> entry : new java.util.ArrayList<>(states.entrySet())) {
+                    NodeProgressState progress = entry.getValue();
+                    if (progress == null || now - progress.lastInteractionAt <= NODE_PROGRESS_RESET_MS) {
+                        continue;
+                    }
+                    clearNodeProgress(playerId, entry.getKey());
+                }
+            }
+        }, 20L, 20L);
     }
 
     private void tryRespawn(HiddenNodeState hidden) {
@@ -476,6 +490,7 @@ public class WoodcuttingNodeListener implements Listener {
         private final double maxDurability;
         private double damage;
         private TextDisplay display;
+        private long lastInteractionAt;
 
         private NodeProgressState(String worldName, int x, int y, int z, double maxDurability) {
             this.worldName = worldName;
@@ -483,6 +498,7 @@ public class WoodcuttingNodeListener implements Listener {
             this.y = y;
             this.z = z;
             this.maxDurability = maxDurability;
+            this.lastInteractionAt = System.currentTimeMillis();
         }
     }
 }

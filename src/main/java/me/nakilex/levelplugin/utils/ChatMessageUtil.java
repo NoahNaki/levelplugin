@@ -7,6 +7,11 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import me.nakilex.levelplugin.utils.NumberUtil;
 
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Pattern;
+
 /**
  * Utility for standardized chat message styling.
  * <p>
@@ -15,6 +20,10 @@ import me.nakilex.levelplugin.utils.NumberUtil;
  * </p>
  */
 public final class ChatMessageUtil {
+
+    private static final long WARNING_COOLDOWN_MS = 3_000L;
+    private static final Map<UUID, Long> LAST_WARNING_AT = new ConcurrentHashMap<>();
+    private static final Pattern NUMBER_PATTERN = Pattern.compile("(?<![A-Za-z0-9_])(\\d[\\d,]*(?:\\.\\d+)?)");
 
     private ChatMessageUtil() {
     }
@@ -25,7 +34,7 @@ public final class ChatMessageUtil {
     public enum MessageType {
         INFO(ChatColor.WHITE, ""),
         SUCCESS(ChatColor.GREEN, ""),
-        WARNING(ChatColor.YELLOW, ""),
+        WARNING(ChatColor.RED, ""),
         ERROR(ChatColor.RED, ""),
         REWARD(ChatColor.GOLD, "");
 
@@ -61,11 +70,20 @@ public final class ChatMessageUtil {
      * @param message message text
      */
     public static void send(Player player, MessageType type, String message) {
-        ChatFormatter.sendIndentedMessage(player, format(type, message));
+        if (player == null || !shouldSend(player, type)) {
+            return;
+        }
+        ChatFormatter.sendIndentedMessage(player, format(type, transformMessage(type, message)));
     }
 
     public static void send(CommandSender sender, MessageType type, String message) {
-        sender.sendMessage(format(type, message));
+        if (sender == null) {
+            return;
+        }
+        if (sender instanceof Player player && !shouldSend(player, type)) {
+            return;
+        }
+        sender.sendMessage(format(type, transformMessage(type, message)));
     }
 
     /**
@@ -119,6 +137,31 @@ public final class ChatMessageUtil {
         }
         message.append(ChatColor.GREEN).append('.');
         return message.toString();
+    }
+
+    private static boolean shouldSend(Player player, MessageType type) {
+        if (type != MessageType.WARNING) {
+            return true;
+        }
+        long now = System.currentTimeMillis();
+        UUID id = player.getUniqueId();
+        Long previous = LAST_WARNING_AT.get(id);
+        if (previous != null && now - previous < WARNING_COOLDOWN_MS) {
+            return false;
+        }
+        LAST_WARNING_AT.put(id, now);
+        return true;
+    }
+
+    private static String transformMessage(MessageType type, String message) {
+        if (message == null) {
+            return "";
+        }
+        if (type != MessageType.WARNING) {
+            return message;
+        }
+        return NUMBER_PATTERN.matcher(message).replaceAll(
+                ChatColor.DARK_RED + "" + ChatColor.BOLD + "$1" + ChatColor.RED);
     }
 
     /** Broadcast a formatted message to all online players. */

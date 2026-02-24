@@ -8,7 +8,7 @@ import me.nakilex.levelplugin.player.farming.config.FarmingRewardsConfig;
 import me.nakilex.levelplugin.player.farming.data.FarmingCrop;
 import me.nakilex.levelplugin.player.farming.managers.FarmingManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
-import me.nakilex.levelplugin.utils.FullInventoryListener;
+import me.nakilex.levelplugin.utils.DropPickupUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Material;
@@ -21,7 +21,6 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -142,12 +141,7 @@ public class WheatHarvestListener implements Listener {
 
             int amount = Math.max(1, (int) Math.round(yieldMultiplier));
             ItemStack drop = new ItemStack(targetCrop.getItemMaterial(), amount);
-            Map<Integer, ItemStack> overflow = player.getInventory().addItem(drop);
-            if (!overflow.isEmpty()) {
-                FullInventoryListener.sendFullInventoryTitle(player, Main.getInstance().getSettingsManager());
-                overflow.values().forEach(item ->
-                        player.getWorld().dropItemNaturally(player.getLocation(), item));
-            }
+            DropPickupUtil.dropForPlayerWithDelayedAutoPickup(player, drop, 20L);
 
             Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
                 targetCrop.replant(target);
