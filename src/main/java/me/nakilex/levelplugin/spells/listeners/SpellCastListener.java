@@ -36,8 +36,10 @@ public class SpellCastListener implements Listener {
             entry = effectiveEntry;
         }
         if (ClassUtil.isMageFamily(playerClass) && !SpellAccessUtil.isHoldingValidClassWeapon(player)) {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
-                    "You must be a mage and hold a valid wand to cast mage skills.");
+            if (!SpellAccessUtil.isHoldingLifeSkillTool(player) && SpellAccessUtil.isHoldingWeapon(player)) {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                        "You must hold a valid class weapon to cast mage skills.");
+            }
             return;
         }
         entry.handler().cast(new SpellContext(plugin, player, entry.definition(), event));

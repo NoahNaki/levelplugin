@@ -18,6 +18,13 @@ public final class DropPickupUtil {
         }
         World world = player.getWorld();
         Item dropped = world.dropItemNaturally(player.getLocation(), stack.clone());
+        scheduleAutoPickup(player, dropped, delayTicks);
+    }
+
+    private static void scheduleAutoPickup(Player player, Item dropped, long delayTicks) {
+        if (player == null || dropped == null) {
+            return;
+        }
         long pickupDelayTicks = Math.max(0L, delayTicks);
         dropped.setPickupDelay((int) pickupDelayTicks);
 
@@ -37,6 +44,7 @@ public final class DropPickupUtil {
             ItemStack remaining = overflow.values().iterator().next();
             dropped.setItemStack(remaining);
             dropped.setPickupDelay(0);
+            FullInventoryListener.sendFullInventoryTitle(player, Main.getInstance().getSettingsManager());
         }, pickupDelayTicks);
     }
 }
