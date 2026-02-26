@@ -6,6 +6,7 @@ import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.utils.CommandUtil;
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.utils.gui.dynamic.DynamicMenuManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Sound;
@@ -91,26 +92,8 @@ public class ClassCommand implements TabExecutor {
                 sender.sendMessage(ChatColor.RED + "Unknown class: " + args[2]);
                 return true;
             }
-            StatsManager.PlayerStats tps = StatsManager.getInstance().getPlayerStats(target.getUniqueId());
-            tps.playerClass = chosen;
-            tps.unlockedClasses.add(chosen);
-            boolean flight = chosen == PlayerClass.ARCHER || chosen == PlayerClass.ROGUE;
-            target.setAllowFlight(flight);
-            if (!flight) target.setFlying(false);
+            applyClassSelection(target, chosen);
             sender.sendMessage(ChatColor.GREEN + "Class for " + target.getName() + " set to " + chosen.name());
-
-            ChatFormatter.constructDivider(target, "§6§l-", 45);
-            ChatFormatter.sendCenteredMessage(target, "§6§lCLASS SELECTED!");
-            ChatFormatter.sendCenteredMessage(target, "");
-            ChatFormatter.sendCenteredMessage(target,
-                    "§7You are now the §e§l" + chosen.name() + " §7class!");
-            ChatFormatter.sendCenteredMessage(target, "");
-            ChatFormatter.constructDivider(target, "§6§l-", 45);
-            target.playSound(target.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
-            target.closeInventory();
-            Main.getInstance().getQuestManager().handleClassSelect(target);
-
-            me.nakilex.levelplugin.items.utils.ItemUtil.refreshTooltips(target);
             return true;
         }
 
@@ -122,9 +105,10 @@ public class ClassCommand implements TabExecutor {
         Player player = (Player) sender;
 
         if (args.length == 0) {
-            // Open the DeluxeMenus GUI for this player
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
-                    "dm open mmocore_class_warrior " + player.getName());
+            boolean opened = DynamicMenuManager.getInstance(Main.getInstance()).openMenu(player, "class_select");
+            if (!opened) {
+                player.sendMessage(ChatColor.RED + "Class menu is not configured. Ask an admin to check dynamic_menus.yml.");
+            }
             return true;
         }
 
@@ -151,11 +135,20 @@ public class ClassCommand implements TabExecutor {
             return true;
         }
 
-        ps.playerClass = chosen;
-        ps.unlockedClasses.add(chosen);
+        applyClassSelection(player, chosen);
+        return true;
+    }
+
+    private void applyClassSelection(Player player, PlayerClass chosen) {
+        StatsManager.PlayerStats stats = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
+        stats.playerClass = chosen;
+        stats.unlockedClasses.add(chosen);
+
         boolean flight = chosen == PlayerClass.ARCHER || chosen == PlayerClass.ROGUE;
         player.setAllowFlight(flight);
-        if (!flight) player.setFlying(false);
+        if (!flight) {
+            player.setFlying(false);
+        }
 
         ChatFormatter.constructDivider(player, "§6§l-", 45);
         ChatFormatter.sendCenteredMessage(player, "§6§lCLASS SELECTED!");
@@ -167,9 +160,7 @@ public class ClassCommand implements TabExecutor {
         player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
         player.closeInventory();
         Main.getInstance().getQuestManager().handleClassSelect(player);
-
-        me.nakilex.levelplugin.items.utils.ItemUtil.refreshTooltips(player);
-        return true;
+        ItemUtil.refreshTooltips(player);
     }
 
     @Override

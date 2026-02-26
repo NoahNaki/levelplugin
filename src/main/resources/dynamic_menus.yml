@@ -1,0 +1,94 @@
+menus:
+  class_select:
+    title: "<glyph:class_icon> &6Class Selection"
+    size: 54
+    filler: GRAY_STAINED_GLASS_PANE
+    border: true
+    fill-empty-slots: true
+    items:
+      info:
+        slot: 4
+        type: NEXO
+        id: info
+        name: "&6Choose Your Class"
+        lore:
+          - " "
+          - "&7This menu is now powered by"
+          - "&7the internal dynamic menu engine."
+          - " "
+          - "&fLeft-click &7a class to select it."
+
+      warrior:
+        slot: 20
+        type: NEXO
+        id: sword
+        name: "&c&lWarrior"
+        lore:
+          - " "
+          - "&7Frontline melee specialist"
+          - "&7with durable sustain."
+          - " "
+          - "&fLeft-click &7to select Warrior"
+        left-click-commands:
+          - "[player] class warrior"
+        close-on-click: true
+
+      mage:
+        slot: 21
+        type: NEXO
+        id: spellbook
+        name: "&b&lMage"
+        lore:
+          - " "
+          - "&7Ranged spellcaster with"
+          - "&7burst elemental damage."
+          - " "
+          - "&fLeft-click &7to select Mage"
+        left-click-commands:
+          - "[player] class mage"
+        close-on-click: true
+
+      archer:
+        slot: 22
+        type: NEXO
+        id: bow
+        name: "&a&lArcher"
+        lore:
+          - " "
+          - "&7Mobile ranged fighter with"
+          - "&7precision sustained DPS."
+          - " "
+          - "&fLeft-click &7to select Archer"
+        left-click-commands:
+          - "[player] class archer"
+        close-on-click: true
+
+      rogue:
+        slot: 23
+        type: NEXO
+        id: dagger
+        name: "&d&lRogue"
+        lore:
+          - " "
+          - "&7Agile assassin focused on"
+          - "&7mobility and quick strikes."
+          - " "
+          - "&fLeft-click &7to select Rogue"
+        left-click-commands:
+          - "[player] class rogue"
+        close-on-click: true
+
+      cleric:
+        slot: 24
+        type: NEXO
+        id: heal
+        name: "&e&lCleric"
+        lore:
+          - " "
+          - "&7Support specialist with"
+          - "&7healing and protection."
+          - " "
+          - "&fLeft-click &7to select Cleric"
+        left-click-commands:
+          - "[player] class cleric"
+        close-on-click: true
