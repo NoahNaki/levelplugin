@@ -13,6 +13,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -133,6 +134,12 @@ public final class DynamicMenuManager implements Listener {
         if (!GuiUtil.titleMatches(event.getView().getTitle(), state.rawTitle())) {
             return;
         }
+
+        DynamicMenuDefinition definition = menus.get(state.menuId().toLowerCase(Locale.ROOT));
+        if (definition != null && definition.lockPlayerInventory()) {
+            event.setCancelled(true);
+        }
+
         if (event.getClickedInventory() == null || event.getClickedInventory() != event.getView().getTopInventory()) {
             return;
         }
@@ -150,6 +157,25 @@ public final class DynamicMenuManager implements Listener {
         }
     }
 
+
+    @EventHandler
+    public void onDrag(InventoryDragEvent event) {
+        if (!(event.getWhoClicked() instanceof Player player)) {
+            return;
+        }
+        OpenMenuState state = openMenus.get(player.getUniqueId());
+        if (state == null) {
+            return;
+        }
+        if (!GuiUtil.titleMatches(event.getView().getTitle(), state.rawTitle())) {
+            return;
+        }
+        DynamicMenuDefinition definition = menus.get(state.menuId().toLowerCase(Locale.ROOT));
+        if (definition == null || !definition.lockPlayerInventory()) {
+            return;
+        }
+        event.setCancelled(true);
+    }
     @EventHandler
     public void onClose(InventoryCloseEvent event) {
         if (!(event.getPlayer() instanceof Player player)) {

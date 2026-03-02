@@ -5,6 +5,9 @@ placeholders:
   space_neg_16: "<glyph:space_neg_16>"
   space_pos_8: "<glyph:space_pos_8>"
   class_header: "<glyph:class_gui_header>"
+  # Optional vertical nudge token. Set to a font glyph that shifts subsequent text downward.
+  # Keep empty if your font pack does not provide one.
+  shift_down: ""
 
 menus:
   class_select:
@@ -17,8 +20,8 @@ menus:
 
     # Optional prefix/suffix for fine alignment (e.g. negative-space glyphs).
     # Use configured placeholders above so artists can tweak spacing without code edits.
-    # Example chain: %space_neg_24%%class_header%
-    title-prefix: "%space_neg_24%%class_header%"
+    # Example chain: %space_neg_24%%shift_down%%class_header%
+    title-prefix: "%space_neg_24%%shift_down%%class_header%"
     title-suffix: "%space_pos_8%"
 
     # NOTE: The bottom "INVENTORY" label is client-side (container.inventory).
@@ -27,6 +30,7 @@ menus:
     filler: GRAY_STAINED_GLASS_PANE
     border: true
     fill-empty-slots: true
+    lock-player-inventory: true
     items:
       info:
         slot: 4

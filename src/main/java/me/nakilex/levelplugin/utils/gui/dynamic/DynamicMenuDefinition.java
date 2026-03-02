@@ -16,6 +16,7 @@ public record DynamicMenuDefinition(
         Material filler,
         boolean border,
         boolean fillEmptySlots,
+        boolean lockPlayerInventory,
         List<DynamicMenuItemDefinition> items
 ) {
     public static DynamicMenuDefinition fromSection(String id, ConfigurationSection section) {
@@ -27,6 +28,7 @@ public record DynamicMenuDefinition(
         Material filler = parseMaterial(section.getString("filler", "GRAY_STAINED_GLASS_PANE"));
         boolean border = section.getBoolean("border", true);
         boolean fillEmptySlots = section.getBoolean("fill-empty-slots", true);
+        boolean lockPlayerInventory = section.getBoolean("lock-player-inventory", true);
 
         List<DynamicMenuItemDefinition> items = new ArrayList<>();
         ConfigurationSection itemsSection = section.getConfigurationSection("items");
@@ -43,7 +45,7 @@ public record DynamicMenuDefinition(
             }
         }
 
-        return new DynamicMenuDefinition(id, title, centerTitle, titlePrefix, titleSuffix, size, filler, border, fillEmptySlots, items);
+        return new DynamicMenuDefinition(id, title, centerTitle, titlePrefix, titleSuffix, size, filler, border, fillEmptySlots, lockPlayerInventory, items);
     }
 
     private static Material parseMaterial(String value) {
