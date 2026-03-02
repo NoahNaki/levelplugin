@@ -25,6 +25,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Config-backed inventory menu system inspired by DeluxeMenus style workflows.
@@ -38,6 +40,7 @@ import java.util.UUID;
  */
 public final class DynamicMenuManager implements Listener {
     private static final String CONFIG_NAME = "dynamic_menus.yml";
+    private static final Pattern UNICODE_ESCAPE_PATTERN = Pattern.compile("\\u([0-9a-fA-F]{4})");
     private static DynamicMenuManager instance;
 
     private final JavaPlugin plugin;
@@ -71,7 +74,7 @@ public final class DynamicMenuManager implements Listener {
         if (placeholders != null) {
             for (String key : placeholders.getKeys(false)) {
                 String value = placeholders.getString(key, "");
-                configuredPlaceholders.put("%" + key.toLowerCase(Locale.ROOT) + "%", value);
+                configuredPlaceholders.put("%" + key.toLowerCase(Locale.ROOT) + "%", decodeUnicodeEscapes(value));
             }
         }
         ConfigurationSection root = cfg.getConfigurationSection("menus");
@@ -257,7 +260,22 @@ public final class DynamicMenuManager implements Listener {
         for (Map.Entry<String, String> entry : configuredPlaceholders.entrySet()) {
             resolved = resolved.replace(entry.getKey(), entry.getValue());
         }
-        return resolved;
+        return decodeUnicodeEscapes(resolved);
+    }
+
+
+    private String decodeUnicodeEscapes(String input) {
+        if (input == null || input.isEmpty()) {
+            return "";
+        }
+        Matcher matcher = UNICODE_ESCAPE_PATTERN.matcher(input);
+        StringBuffer out = new StringBuffer();
+        while (matcher.find()) {
+            int codePoint = Integer.parseInt(matcher.group(1), 16);
+            matcher.appendReplacement(out, Matcher.quoteReplacement(String.valueOf((char) codePoint)));
+        }
+        matcher.appendTail(out);
+        return out.toString();
     }
 
     private void ensureConfigExists() {

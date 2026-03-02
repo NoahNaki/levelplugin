@@ -1,13 +1,13 @@
 placeholders:
-  # Optional helper tokens for title alignment using your resource-pack spacing glyphs.
-  # Replace these values with the glyph IDs that exist in your font provider.
-  space_neg_24: "<glyph:space_neg_24>"
-  space_neg_16: "<glyph:space_neg_16>"
-  space_pos_8: "<glyph:space_pos_8>"
-  class_header: "<glyph:class_gui_header>"
-  # Optional vertical nudge token. Set this to your DOWN offset glyph from the resource pack.
-  # Example ids in many packs: offset_down_8 / gui_down_8 (adjust to your actual glyph id).
-  shift_down: ""
+  # Use real unicode/private-use chars for inventory title glyphs (recommended).
+  # These values are examples; map these codepoints in your resource-pack font provider.
+  # Format supported by the plugin: "\uE000" style escapes.
+  space_neg_24: "\uE101"
+  space_neg_16: "\uE102"
+  space_pos_8: "\uE103"
+  class_header: "\uE120"
+  # Optional vertical shift glyph codepoint (leave empty if not mapped in your font file).
+  shift_down: "\uE130"
 
 # Use /class reloadmenu after editing this file on a live server.
 menus:
@@ -19,9 +19,8 @@ menus:
     # but large background glyphs may require custom ascent/height in your font provider.
     title: "&6Class Selection"
 
-    # Optional prefix/suffix for fine alignment (e.g. negative-space glyphs).
-    # Use configured placeholders above so artists can tweak spacing without code edits.
-    # Example chain: %space_neg_24%%shift_down%%class_header%
+    # Prefix/suffix chain uses configured unicode glyph placeholders above.
+    # Example: negative space + vertical shift + header icon
     title-prefix: "%space_neg_24%%shift_down%%class_header%"
     title-suffix: "%space_pos_8%"
 
