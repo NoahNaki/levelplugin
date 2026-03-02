@@ -5,10 +5,11 @@ placeholders:
   space_neg_16: "<glyph:space_neg_16>"
   space_pos_8: "<glyph:space_pos_8>"
   class_header: "<glyph:class_gui_header>"
-  # Optional vertical nudge token. Set to a font glyph that shifts subsequent text downward.
-  # Keep empty if your font pack does not provide one.
+  # Optional vertical nudge token. Set this to your DOWN offset glyph from the resource pack.
+  # Example ids in many packs: offset_down_8 / gui_down_8 (adjust to your actual glyph id).
   shift_down: ""
 
+# Use /class reloadmenu after editing this file on a live server.
 menus:
   class_select:
     # Keep title text centered by default for cleaner alignment.

@@ -42,6 +42,7 @@ public final class DynamicMenuManager implements Listener {
 
     private final JavaPlugin plugin;
     private final Map<String, DynamicMenuDefinition> menus = new HashMap<>();
+    private long lastConfigModified = -1L;
     private final Map<String, String> configuredPlaceholders = new LinkedHashMap<>();
     private final Map<UUID, OpenMenuState> openMenus = new HashMap<>();
 
@@ -63,6 +64,7 @@ public final class DynamicMenuManager implements Listener {
         menus.clear();
         configuredPlaceholders.clear();
         File file = new File(plugin.getDataFolder(), CONFIG_NAME);
+        lastConfigModified = file.exists() ? file.lastModified() : -1L;
         FileConfiguration cfg = YamlConfiguration.loadConfiguration(file);
 
         ConfigurationSection placeholders = cfg.getConfigurationSection("placeholders");
@@ -90,7 +92,20 @@ public final class DynamicMenuManager implements Listener {
         plugin.getLogger().info("[DynamicMenu] Loaded " + menus.size() + " menu definitions.");
     }
 
+    public void forceReload() {
+        reload();
+    }
+
+    private void ensureLatestConfig() {
+        File file = new File(plugin.getDataFolder(), CONFIG_NAME);
+        long modified = file.exists() ? file.lastModified() : -1L;
+        if (modified > 0 && modified != lastConfigModified) {
+            reload();
+        }
+    }
+
     public boolean openMenu(Player player, String menuId) {
+        ensureLatestConfig();
         DynamicMenuDefinition definition = menus.get(menuId.toLowerCase(Locale.ROOT));
         if (definition == null) {
             return false;

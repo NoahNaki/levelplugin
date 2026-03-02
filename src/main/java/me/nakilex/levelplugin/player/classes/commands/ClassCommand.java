@@ -22,6 +22,16 @@ public class ClassCommand implements TabExecutor {
 
     @Override
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
+        if (args.length >= 1 && args[0].equalsIgnoreCase("reloadmenu")) {
+            if (!sender.hasPermission("levelplugin.class.admin")) {
+                sender.sendMessage(ChatColor.RED + "You do not have permission to do that.");
+                return true;
+            }
+            DynamicMenuManager.getInstance(Main.getInstance()).forceReload();
+            sender.sendMessage(ChatColor.GREEN + "Reloaded dynamic_menus.yml");
+            return true;
+        }
+
         if (args.length >= 1 && args[0].equalsIgnoreCase("unlock")) {
             if (args.length != 3) {
                 sender.sendMessage(ChatColor.YELLOW + "Usage: /class unlock <player> <class>");
@@ -166,7 +176,7 @@ public class ClassCommand implements TabExecutor {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            List<String> options = new ArrayList<>(List.of("unlock", "unlockall", "lock", "admin",
+            List<String> options = new ArrayList<>(List.of("reloadmenu", "unlock", "unlockall", "lock", "admin",
                     "mage", "archer", "rogue", "warrior", "cleric"));
             return CommandUtil.filterStartingWith(options, args[0]);
         } else if (args.length == 2) {
