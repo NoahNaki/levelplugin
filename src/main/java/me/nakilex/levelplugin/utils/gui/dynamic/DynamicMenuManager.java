@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.utils.gui.dynamic;
 
 import me.nakilex.levelplugin.utils.GuiUtil;
+import me.nakilex.levelplugin.utils.TextUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -83,7 +84,7 @@ public final class DynamicMenuManager implements Listener {
             return false;
         }
 
-        String renderedTitle = applyPlaceholders(definition.title(), player);
+        String renderedTitle = renderTitle(definition, player);
         Inventory inventory = GuiBuilder.create(definition.size(), renderedTitle)
                 .filler(definition.filler())
                 .fillEmptySlots(definition.fillEmptySlots())
@@ -104,7 +105,7 @@ public final class DynamicMenuManager implements Listener {
             }
         }
 
-        openMenus.put(player.getUniqueId(), new OpenMenuState(definition.id(), definition.title(), clickMap));
+        openMenus.put(player.getUniqueId(), new OpenMenuState(definition.id(), renderedTitle, clickMap));
         player.openInventory(inventory);
         return true;
     }
@@ -151,6 +152,17 @@ public final class DynamicMenuManager implements Listener {
             return;
         }
         openMenus.remove(player.getUniqueId());
+    }
+
+    private String renderTitle(DynamicMenuDefinition definition, Player player) {
+        String base = applyPlaceholders(definition.title(), player);
+        String prefix = applyPlaceholders(definition.titlePrefix(), player);
+        String suffix = applyPlaceholders(definition.titleSuffix(), player);
+        String composed = prefix + base + suffix;
+        if (definition.centerTitle()) {
+            return TextUtil.centerInventoryTitle(composed);
+        }
+        return composed;
     }
 
     private void executeCommands(Player player, List<String> commands) {

@@ -9,6 +9,9 @@ import java.util.List;
 public record DynamicMenuDefinition(
         String id,
         String title,
+        boolean centerTitle,
+        String titlePrefix,
+        String titleSuffix,
         int size,
         Material filler,
         boolean border,
@@ -17,6 +20,9 @@ public record DynamicMenuDefinition(
 ) {
     public static DynamicMenuDefinition fromSection(String id, ConfigurationSection section) {
         String title = section.getString("title", id);
+        boolean centerTitle = section.getBoolean("center-title", false);
+        String titlePrefix = section.getString("title-prefix", "");
+        String titleSuffix = section.getString("title-suffix", "");
         int size = section.getInt("size", 54);
         Material filler = parseMaterial(section.getString("filler", "GRAY_STAINED_GLASS_PANE"));
         boolean border = section.getBoolean("border", true);
@@ -37,7 +43,7 @@ public record DynamicMenuDefinition(
             }
         }
 
-        return new DynamicMenuDefinition(id, title, size, filler, border, fillEmptySlots, items);
+        return new DynamicMenuDefinition(id, title, centerTitle, titlePrefix, titleSuffix, size, filler, border, fillEmptySlots, items);
     }
 
     private static Material parseMaterial(String value) {

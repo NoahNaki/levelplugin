@@ -1,6 +1,19 @@
 menus:
   class_select:
-    title: "<glyph:class_icon> &6Class Selection"
+    # Keep title text centered by default for cleaner alignment.
+    center-title: true
+
+    # The actual chest title text. You can include glyphs here,
+    # but large background glyphs may require custom ascent/height in your font provider.
+    title: "&6Class Selection"
+
+    # Optional prefix/suffix for fine alignment (e.g. negative-space glyphs).
+    # Example: title-prefix: "<glyph:space_neg_32><glyph:class_gui_header>"
+    title-prefix: ""
+    title-suffix: ""
+
+    # NOTE: The bottom "INVENTORY" label is client-side (container.inventory).
+    # To skin that row, override the lang key in your resource pack.
     size: 54
     filler: GRAY_STAINED_GLASS_PANE
     border: true
