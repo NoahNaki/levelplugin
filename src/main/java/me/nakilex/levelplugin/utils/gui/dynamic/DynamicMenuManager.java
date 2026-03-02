@@ -40,7 +40,7 @@ import java.util.regex.Pattern;
  */
 public final class DynamicMenuManager implements Listener {
     private static final String CONFIG_NAME = "dynamic_menus.yml";
-    private static final Pattern UNICODE_ESCAPE_PATTERN = Pattern.compile("\\u([0-9a-fA-F]{4})");
+    private static final Pattern UNICODE_ESCAPE_PATTERN = Pattern.compile("\\\\u([0-9a-fA-F]{4})");
     private static DynamicMenuManager instance;
 
     private final JavaPlugin plugin;
@@ -297,4 +297,3 @@ public final class DynamicMenuManager implements Listener {
     ) {
     }
 }
-
