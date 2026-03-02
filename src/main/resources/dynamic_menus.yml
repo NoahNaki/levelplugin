@@ -1,3 +1,11 @@
+placeholders:
+  # Optional helper tokens for title alignment using your resource-pack spacing glyphs.
+  # Replace these values with the glyph IDs that exist in your font provider.
+  space_neg_24: "<glyph:space_neg_24>"
+  space_neg_16: "<glyph:space_neg_16>"
+  space_pos_8: "<glyph:space_pos_8>"
+  class_header: "<glyph:class_gui_header>"
+
 menus:
   class_select:
     # Keep title text centered by default for cleaner alignment.
@@ -8,9 +16,10 @@ menus:
     title: "&6Class Selection"
 
     # Optional prefix/suffix for fine alignment (e.g. negative-space glyphs).
-    # Example: title-prefix: "<glyph:space_neg_32><glyph:class_gui_header>"
-    title-prefix: ""
-    title-suffix: ""
+    # Use configured placeholders above so artists can tweak spacing without code edits.
+    # Example chain: %space_neg_24%%class_header%
+    title-prefix: "%space_neg_24%%class_header%"
+    title-suffix: "%space_pos_8%"
 
     # NOTE: The bottom "INVENTORY" label is client-side (container.inventory).
     # To skin that row, override the lang key in your resource pack.

@@ -19,6 +19,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -40,6 +41,7 @@ public final class DynamicMenuManager implements Listener {
 
     private final JavaPlugin plugin;
     private final Map<String, DynamicMenuDefinition> menus = new HashMap<>();
+    private final Map<String, String> configuredPlaceholders = new LinkedHashMap<>();
     private final Map<UUID, OpenMenuState> openMenus = new HashMap<>();
 
     private DynamicMenuManager(JavaPlugin plugin) {
@@ -58,8 +60,17 @@ public final class DynamicMenuManager implements Listener {
 
     public void reload() {
         menus.clear();
+        configuredPlaceholders.clear();
         File file = new File(plugin.getDataFolder(), CONFIG_NAME);
         FileConfiguration cfg = YamlConfiguration.loadConfiguration(file);
+
+        ConfigurationSection placeholders = cfg.getConfigurationSection("placeholders");
+        if (placeholders != null) {
+            for (String key : placeholders.getKeys(false)) {
+                String value = placeholders.getString(key, "");
+                configuredPlaceholders.put("%" + key.toLowerCase(Locale.ROOT) + "%", value);
+            }
+        }
         ConfigurationSection root = cfg.getConfigurationSection("menus");
         if (root == null) {
             plugin.getLogger().warning("[DynamicMenu] No menus section found in " + CONFIG_NAME);
@@ -199,9 +210,13 @@ public final class DynamicMenuManager implements Listener {
         if (input == null) {
             return "";
         }
-        return ChatColor.translateAlternateColorCodes('&', input)
+        String resolved = ChatColor.translateAlternateColorCodes('&', input)
                 .replace("%player_name%", player.getName())
                 .replace("%player_display_name%", player.getDisplayName());
+        for (Map.Entry<String, String> entry : configuredPlaceholders.entrySet()) {
+            resolved = resolved.replace(entry.getKey(), entry.getValue());
+        }
+        return resolved;
     }
 
     private void ensureConfigExists() {
