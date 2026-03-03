@@ -41,12 +41,14 @@ import java.util.regex.Pattern;
 public final class DynamicMenuManager implements Listener {
     private static final String CONFIG_NAME = "dynamic_menus.yml";
     private static final Pattern UNICODE_ESCAPE_PATTERN = Pattern.compile("\\\\u([0-9a-fA-F]{4})");
+    private static final Pattern GLYPH_TAG_PATTERN = Pattern.compile("<glyph:([a-z0-9_\\-]+)>", Pattern.CASE_INSENSITIVE);
     private static DynamicMenuManager instance;
 
     private final JavaPlugin plugin;
     private final Map<String, DynamicMenuDefinition> menus = new HashMap<>();
     private long lastConfigModified = -1L;
     private final Map<String, String> configuredPlaceholders = new LinkedHashMap<>();
+    private final Map<String, String> configuredGlyphs = new LinkedHashMap<>();
     private final Map<UUID, OpenMenuState> openMenus = new HashMap<>();
 
     private DynamicMenuManager(JavaPlugin plugin) {
@@ -66,6 +68,7 @@ public final class DynamicMenuManager implements Listener {
     public void reload() {
         menus.clear();
         configuredPlaceholders.clear();
+        configuredGlyphs.clear();
         File file = new File(plugin.getDataFolder(), CONFIG_NAME);
         lastConfigModified = file.exists() ? file.lastModified() : -1L;
         FileConfiguration cfg = YamlConfiguration.loadConfiguration(file);
@@ -75,6 +78,14 @@ public final class DynamicMenuManager implements Listener {
             for (String key : placeholders.getKeys(false)) {
                 String value = placeholders.getString(key, "");
                 configuredPlaceholders.put("%" + key.toLowerCase(Locale.ROOT) + "%", decodeUnicodeEscapes(value));
+            }
+        }
+
+        ConfigurationSection glyphs = cfg.getConfigurationSection("glyphs");
+        if (glyphs != null) {
+            for (String key : glyphs.getKeys(false)) {
+                String value = glyphs.getString(key, "");
+                configuredGlyphs.put(key.toLowerCase(Locale.ROOT), decodeUnicodeEscapes(value));
             }
         }
         ConfigurationSection root = cfg.getConfigurationSection("menus");
@@ -260,9 +271,28 @@ public final class DynamicMenuManager implements Listener {
         for (Map.Entry<String, String> entry : configuredPlaceholders.entrySet()) {
             resolved = resolved.replace(entry.getKey(), entry.getValue());
         }
-        return decodeUnicodeEscapes(resolved);
+        resolved = decodeUnicodeEscapes(resolved);
+        return resolveGlyphTags(resolved);
     }
 
+
+
+    private String resolveGlyphTags(String input) {
+        if (input == null || input.isEmpty()) {
+            return "";
+        }
+        Matcher matcher = GLYPH_TAG_PATTERN.matcher(input);
+        StringBuffer out = new StringBuffer();
+        while (matcher.find()) {
+            String key = matcher.group(1).toLowerCase(Locale.ROOT);
+            String replacement = configuredGlyphs.get(key);
+            if (replacement != null) {
+                matcher.appendReplacement(out, Matcher.quoteReplacement(replacement));
+            }
+        }
+        matcher.appendTail(out);
+        return out.toString();
+    }
 
     private String decodeUnicodeEscapes(String input) {
         if (input == null || input.isEmpty()) {

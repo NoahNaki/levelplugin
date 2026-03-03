@@ -2,12 +2,23 @@ placeholders:
   # Use real unicode/private-use chars for inventory title glyphs (recommended).
   # These values are examples; map these codepoints in your resource-pack font provider.
   # Format supported by the plugin: "\uE000" style escapes.
+  # Placeholder tokens can now reference glyph tags directly.
+  # These glyph tags are resolved through the `glyphs` section below.
+  space_neg_24: "<glyph:space_neg_24>"
+  space_neg_16: "<glyph:space_neg_16>"
+  space_pos_8: "<glyph:space_pos_8>"
+  class_header: "<glyph:class_gui_header>"
+  # Optional vertical shift glyph codepoint (leave empty if not mapped in your font file).
+  shift_down: "<glyph:offset_down_8>"
+
+glyphs:
+  # Glyph-tag compatibility for dynamic menu titles/lore.
+  # Map glyph ids to your font provider PUA codepoints.
   space_neg_24: "\uE101"
   space_neg_16: "\uE102"
   space_pos_8: "\uE103"
-  class_header: "\uE120"
-  # Optional vertical shift glyph codepoint (leave empty if not mapped in your font file).
-  shift_down: "\uE130"
+  class_gui_header: "\uE120"
+  offset_down_8: "\uE130"
 
 # Use /class reloadmenu after editing this file on a live server.
 menus:
