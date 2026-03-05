@@ -21,6 +21,7 @@ import me.nakilex.levelplugin.utils.gui.widgets.ActionWidget;
 import me.nakilex.levelplugin.utils.gui.widgets.GuiContext;
 import me.nakilex.levelplugin.utils.gui.widgets.GuiLayout;
 import me.nakilex.levelplugin.utils.gui.widgets.GuiWidget;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -264,6 +265,9 @@ public class SpellKeybindGUI implements Listener {
 
     private void saveBindings(Player player, ViewState state) {
         UUID playerId = player.getUniqueId();
+        Bukkit.getLogger().info("[LevelPlugin][SpellKeybindGUI] Save clicked by " + player.getName()
+                + " (viewMode=" + state.viewMode + ")");
+
         for (Map.Entry<PlayerClass, Map<SpellInputMode, EnumMap<SpellKeybindSlot, SpellInputType>>> entry
                 : state.bindings.entrySet()) {
             PlayerClass playerClass = entry.getKey();
@@ -272,12 +276,23 @@ public class SpellKeybindGUI implements Listener {
                 keybindManager.setBindings(playerId, playerClass, modeEntry.getKey(), modeEntry.getValue());
             }
         }
+
+        settingsManager.getSettings(player).setSpellInputMode(state.viewMode);
+
         Integer slot = ProfileManager.getInstance().getActiveSlot(playerId);
         if (slot != null && slot >= 0) {
+            Bukkit.getLogger().info("[LevelPlugin][SpellKeybindGUI] Persisting spell input mode + keybinds for "
+                    + player.getName() + " profileSlot=" + slot);
+            settingsManager.saveProfileSettings(playerId, slot);
             keybindManager.saveProfileBindings(playerId, slot);
+        } else {
+            Bukkit.getLogger().warning("[LevelPlugin][SpellKeybindGUI] Could not persist keybind/profile settings for "
+                    + player.getName() + " because no active profile slot is set.");
         }
+
         Main.getInstance().getPlayerConfig().saveConfigFile();
-        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, "Spell keybinds saved.");
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
+                "Spell keybinds and input mode saved.");
     }
 
     @EventHandler
