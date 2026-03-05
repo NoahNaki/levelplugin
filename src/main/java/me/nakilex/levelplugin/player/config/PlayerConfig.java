@@ -7,6 +7,9 @@ import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.battlepass.BattlePassManager;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
+import me.nakilex.levelplugin.spells.input.SpellInputMode;
+import me.nakilex.levelplugin.spells.input.SpellInputType;
+import me.nakilex.levelplugin.spells.input.SpellKeybindSlot;
 import me.nakilex.levelplugin.spells.progression.SpellProgressionManager;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -16,6 +19,7 @@ import org.bukkit.inventory.ItemStack;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -221,6 +225,72 @@ public class PlayerConfig {
         if (battlePass != null) {
             battlePass.loadProgress(uuid, config, root + ".battlepass");
         }
+    }
+
+
+    public SpellInputMode getProfileSpellInputMode(UUID uuid, int slot) {
+        String raw = config.getString("players." + uuid + ".profiles." + slot + ".spells.input_mode");
+        if (raw == null || raw.isBlank()) {
+            return SpellInputMode.MOUSE_COMBO;
+        }
+        try {
+            return SpellInputMode.valueOf(raw);
+        } catch (IllegalArgumentException ignored) {
+            return SpellInputMode.MOUSE_COMBO;
+        }
+    }
+
+    public void setProfileSpellInputMode(UUID uuid, int slot, SpellInputMode mode) {
+        String path = "players." + uuid + ".profiles." + slot + ".spells.input_mode";
+        config.set(path, mode == null ? SpellInputMode.MOUSE_COMBO.name() : mode.name());
+    }
+
+    public EnumMap<SpellKeybindSlot, SpellInputType> getProfileSpellKeybinds(UUID uuid, int slot,
+                                                                              PlayerClass playerClass,
+                                                                              SpellInputMode mode) {
+        EnumMap<SpellKeybindSlot, SpellInputType> bindings = new EnumMap<>(SpellKeybindSlot.class);
+        if (playerClass == null || mode == null) {
+            return bindings;
+        }
+        String path = "players." + uuid + ".profiles." + slot + ".spells.keybinds."
+                + playerClass.name() + "." + mode.name();
+        List<String> entries = config.getStringList(path);
+        for (String entry : entries) {
+            String[] parts = entry.split(":", 2);
+            if (parts.length != 2) {
+                continue;
+            }
+            try {
+                SpellKeybindSlot bindSlot = SpellKeybindSlot.valueOf(parts[0]);
+                SpellInputType inputType = SpellInputType.valueOf(parts[1]);
+                bindings.put(bindSlot, inputType);
+            } catch (IllegalArgumentException ignored) {
+            }
+        }
+        return bindings;
+    }
+
+    public void setProfileSpellKeybinds(UUID uuid, int slot,
+                                        PlayerClass playerClass,
+                                        SpellInputMode mode,
+                                        java.util.Map<SpellKeybindSlot, SpellInputType> bindings) {
+        if (playerClass == null || mode == null) {
+            return;
+        }
+        String path = "players." + uuid + ".profiles." + slot + ".spells.keybinds."
+                + playerClass.name() + "." + mode.name();
+        List<String> entries = new ArrayList<>();
+        if (bindings != null) {
+            for (java.util.Map.Entry<SpellKeybindSlot, SpellInputType> entry : bindings.entrySet()) {
+                SpellKeybindSlot bindSlot = entry.getKey();
+                SpellInputType inputType = entry.getValue();
+                if (bindSlot == null || inputType == null) {
+                    continue;
+                }
+                entries.add(bindSlot.name() + ":" + inputType.name());
+            }
+        }
+        config.set(path, entries);
     }
 
     public int getProfileSpellPoints(UUID uuid, int slot) {

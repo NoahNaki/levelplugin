@@ -1,6 +1,9 @@
 package me.nakilex.levelplugin.spells.input;
 
+import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.player.config.PlayerConfig;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
+import org.bukkit.Bukkit;
 
 import java.util.EnumMap;
 import java.util.Map;
@@ -55,6 +58,36 @@ public class SpellKeybindManager {
         if (newBindings != null) {
             target.putAll(newBindings);
         }
+    }
+
+
+    public void saveProfileBindings(UUID playerId, int slot) {
+        if (playerId == null || slot < 0) {
+            return;
+        }
+        PlayerConfig config = Main.getInstance().getPlayerConfig();
+        for (PlayerClass playerClass : PlayerClass.values()) {
+            for (SpellInputMode mode : SpellInputMode.values()) {
+                config.setProfileSpellKeybinds(playerId, slot, playerClass, mode,
+                        getBindings(playerId, playerClass, mode));
+            }
+        }
+        Bukkit.getLogger().info("[LevelPlugin][SpellKeybindManager] Saved spell keybinds for player="
+                + playerId + " slot=" + slot);
+    }
+
+    public void loadProfileBindings(UUID playerId, int slot) {
+        if (playerId == null || slot < 0) {
+            return;
+        }
+        for (PlayerClass playerClass : PlayerClass.values()) {
+            for (SpellInputMode mode : SpellInputMode.values()) {
+                setBindings(playerId, playerClass, mode,
+                        Main.getInstance().getPlayerConfig().getProfileSpellKeybinds(playerId, slot, playerClass, mode));
+            }
+        }
+        Bukkit.getLogger().info("[LevelPlugin][SpellKeybindManager] Loaded spell keybinds for player="
+                + playerId + " slot=" + slot);
     }
 
     private EnumMap<SpellKeybindSlot, SpellInputType> getOrCreateBindings(UUID playerId, PlayerClass playerClass,

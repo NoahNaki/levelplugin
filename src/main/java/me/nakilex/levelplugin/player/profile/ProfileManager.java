@@ -5,6 +5,8 @@ import org.bukkit.entity.Player;
 
 import me.nakilex.levelplugin.utils.PotionEffectUtil;
 import me.nakilex.levelplugin.spells.progression.SpellProgressionManager;
+import me.nakilex.levelplugin.settings.managers.SettingsManager;
+import me.nakilex.levelplugin.spells.input.SpellKeybindManager;
 
 public class ProfileManager {
     private static final ProfileManager instance = new ProfileManager();
@@ -211,6 +213,11 @@ public class ProfileManager {
         SpellProgressionManager progressionManager = SpellProgressionManager.getInstance();
         cfg.setProfileSpellPoints(id, slot, progressionManager.getSpellPoints(id));
         cfg.setProfileSpellLevels(id, slot, progressionManager.serializeSpellLevels(id, slot));
+        SettingsManager settingsManager = me.nakilex.levelplugin.Main.getInstance().getSettingsManager();
+        if (settingsManager != null) {
+            settingsManager.saveProfileSettings(id, slot);
+        }
+        SpellKeybindManager.getInstance().saveProfileBindings(id, slot);
         cfg.saveConfigFile();
     }
 

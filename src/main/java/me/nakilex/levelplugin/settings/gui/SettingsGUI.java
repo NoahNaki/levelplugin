@@ -481,6 +481,7 @@ public class SettingsGUI implements Listener {
 
     private void cycleSpellInputMode(Player player, PlayerSettings settings) {
         settings.cycleSpellInputMode();
+        settingsManager.saveActiveProfileSettings(player);
         openSettingsMenu(player);
     }
 }
