@@ -174,6 +174,13 @@ public class PlayerSettings {
         spellInputMode = spellInputMode.next();
     }
 
+    public void setSpellInputMode(SpellInputMode spellInputMode) {
+        if (spellInputMode == null) {
+            return;
+        }
+        this.spellInputMode = spellInputMode;
+    }
+
     public ItemRarity getLootPickupRarity() {
         return lootPickupRarity;
     }
