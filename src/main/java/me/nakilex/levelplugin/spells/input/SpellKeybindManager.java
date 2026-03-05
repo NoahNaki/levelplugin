@@ -2,7 +2,10 @@ package me.nakilex.levelplugin.spells.input;
 
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 
+import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -125,6 +128,44 @@ public class SpellKeybindManager {
             return;
         }
         bindings.put(playerId, new ConcurrentHashMap<>(normalized));
+    }
+
+
+    public String describeBindings(UUID playerId) {
+        return describeBindingsMap(getAllBindings(playerId));
+    }
+
+    public static String describeBindingsMap(
+            Map<PlayerClass, EnumMap<SpellInputMode, EnumMap<SpellKeybindSlot, SpellInputType>>> data) {
+        if (data == null || data.isEmpty()) {
+            return "<empty>";
+        }
+        List<String> classParts = new ArrayList<>();
+        List<PlayerClass> classes = new ArrayList<>(data.keySet());
+        classes.sort(Comparator.comparing(Enum::name));
+        for (PlayerClass playerClass : classes) {
+            Map<SpellInputMode, EnumMap<SpellKeybindSlot, SpellInputType>> modes = data.get(playerClass);
+            if (modes == null || modes.isEmpty()) {
+                classParts.add(playerClass.name() + "{}");
+                continue;
+            }
+            List<String> modeParts = new ArrayList<>();
+            for (SpellInputMode mode : SpellInputMode.values()) {
+                Map<SpellKeybindSlot, SpellInputType> slots = modes.get(mode);
+                if (slots == null || slots.isEmpty()) {
+                    modeParts.add(mode.name() + "=[]");
+                    continue;
+                }
+                List<String> slotParts = new ArrayList<>();
+                for (SpellKeybindSlot slot : SpellKeybindSlot.values()) {
+                    SpellInputType input = slots.get(slot);
+                    slotParts.add(slot.name() + "=" + (input == null ? "null" : input.name()));
+                }
+                modeParts.add(mode.name() + "=[" + String.join(",", slotParts) + "]");
+            }
+            classParts.add(playerClass.name() + "{" + String.join(";", modeParts) + "}");
+        }
+        return String.join(" | ", classParts);
     }
 
     private EnumMap<SpellKeybindSlot, SpellInputType> getOrCreateBindings(UUID playerId, PlayerClass playerClass,

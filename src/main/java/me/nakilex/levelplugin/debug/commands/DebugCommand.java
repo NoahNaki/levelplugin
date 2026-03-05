@@ -29,6 +29,9 @@ import me.nakilex.levelplugin.pathfinding.DungeonExpeditionManager;
 import me.nakilex.levelplugin.particles.ParticlePreset;
 import me.nakilex.levelplugin.particles.ParticleService;
 import me.nakilex.levelplugin.particles.presets.ElementalPresets;
+import me.nakilex.levelplugin.player.config.PlayerConfig;
+import me.nakilex.levelplugin.player.profile.ProfileManager;
+import me.nakilex.levelplugin.spells.input.SpellKeybindManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
 import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
@@ -117,7 +120,7 @@ public class DebugCommand implements TabExecutor {
                 String statUsage = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|" + statUsage + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput [state]|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|" + statUsage + ">");
             }
             return true;
         }
@@ -288,9 +291,24 @@ public class DebugCommand implements TabExecutor {
                     sender.sendMessage(ChatColor.RED + "Players only.");
                     return true;
                 }
+                if (args.length >= 2 && "state".equalsIgnoreCase(args[1])) {
+                    java.util.UUID playerId = spellPlayer.getUniqueId();
+                    Integer activeSlot = ProfileManager.getInstance().getActiveSlot(playerId);
+                    int slot = activeSlot != null && activeSlot >= 0 ? activeSlot : 0;
+                    PlayerConfig cfg = Main.getInstance().getPlayerConfig();
+                    String runtime = SpellKeybindManager.getInstance().describeBindings(playerId);
+                    String stored = SpellKeybindManager.describeBindingsMap(cfg.getProfileSpellKeybinds(playerId, slot));
+                    ChatMessageUtil.send(spellPlayer, ChatMessageUtil.MessageType.INFO,
+                            "Spellinput state -> slot=" + slot + " active=" + activeSlot);
+                    ChatMessageUtil.send(spellPlayer, ChatMessageUtil.MessageType.INFO,
+                            "Runtime keybinds: " + runtime);
+                    ChatMessageUtil.send(spellPlayer, ChatMessageUtil.MessageType.INFO,
+                            "Stored keybinds: " + stored);
+                    return true;
+                }
                 spellPlayer.getInventory().addItem(SpellInputDebugItem.create());
                 ChatMessageUtil.send(spellPlayer, ChatMessageUtil.MessageType.SUCCESS,
-                        "Spell input debug stick added to your inventory.");
+                        "Spell input debug stick added to your inventory. Use /debug spellinput state for keybind persistence info.");
                 return true;
             case "stunstick":
                 if (!(sender instanceof Player stunPlayer)) {
@@ -507,7 +525,7 @@ public class DebugCommand implements TabExecutor {
                 String statUsage2 = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|cityowner|citymax|autocast|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|" + statUsage2 + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|cityowner|citymax|autocast|chatgame|expedition|dungeonexpedition|beaconentity|spellinput [state]|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|" + statUsage2 + ">");
                 return true;
         }
     }
