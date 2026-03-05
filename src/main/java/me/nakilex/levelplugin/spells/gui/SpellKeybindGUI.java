@@ -1,10 +1,10 @@
 package me.nakilex.levelplugin.spells.gui;
 
-import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.classes.data.ClassUtil;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.classes.managers.PlayerClassManager;
+import me.nakilex.levelplugin.player.profile.ProfileEntryUtil;
 import me.nakilex.levelplugin.settings.gui.SettingsGUI;
 import me.nakilex.levelplugin.settings.managers.SettingsManager;
 import me.nakilex.levelplugin.spells.input.SpellInputMode;
@@ -271,13 +271,7 @@ public class SpellKeybindGUI implements Listener {
                 keybindManager.setBindings(playerId, playerClass, modeEntry.getKey(), modeEntry.getValue());
             }
         }
-        Integer activeSlot = me.nakilex.levelplugin.player.profile.ProfileManager.getInstance()
-                .getActiveSlot(playerId);
-        if (activeSlot != null && activeSlot >= 0) {
-            Main.getInstance().getPlayerConfig().setProfileSpellKeybinds(playerId, activeSlot,
-                    keybindManager.getAllBindings(playerId));
-            Main.getInstance().getPlayerConfig().saveConfigFile();
-        }
+        ProfileEntryUtil.saveActiveProfile(player);
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, "Spell keybinds saved.");
     }
 

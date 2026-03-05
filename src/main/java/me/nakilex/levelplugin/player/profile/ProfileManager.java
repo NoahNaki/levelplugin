@@ -217,9 +217,14 @@ public class ProfileManager {
     }
 
     public void saveActiveProfile(org.bukkit.entity.Player player) {
-        Integer slot = activeSlot.get(player.getUniqueId());
+        UUID playerId = player.getUniqueId();
+        Integer slot = activeSlot.get(playerId);
         if (slot != null) {
             saveProfile(player, slot);
+            return;
+        }
+        if (getProfile(playerId, 0) != null) {
+            saveProfile(player, 0);
         }
     }
 
