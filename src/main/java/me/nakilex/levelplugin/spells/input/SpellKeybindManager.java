@@ -57,6 +57,76 @@ public class SpellKeybindManager {
         }
     }
 
+    public Map<PlayerClass, EnumMap<SpellInputMode, EnumMap<SpellKeybindSlot, SpellInputType>>>
+    getAllBindings(UUID playerId) {
+        if (playerId == null) {
+            return Map.of();
+        }
+        Map<PlayerClass, EnumMap<SpellInputMode, EnumMap<SpellKeybindSlot, SpellInputType>>> playerBindings =
+                bindings.get(playerId);
+        if (playerBindings == null) {
+            return Map.of();
+        }
+        Map<PlayerClass, EnumMap<SpellInputMode, EnumMap<SpellKeybindSlot, SpellInputType>>> snapshot =
+                new EnumMap<>(PlayerClass.class);
+        for (Map.Entry<PlayerClass, EnumMap<SpellInputMode, EnumMap<SpellKeybindSlot, SpellInputType>>> classEntry
+                : playerBindings.entrySet()) {
+            EnumMap<SpellInputMode, EnumMap<SpellKeybindSlot, SpellInputType>> modeMap =
+                    new EnumMap<>(SpellInputMode.class);
+            for (Map.Entry<SpellInputMode, EnumMap<SpellKeybindSlot, SpellInputType>> modeEntry
+                    : classEntry.getValue().entrySet()) {
+                modeMap.put(modeEntry.getKey(), new EnumMap<>(modeEntry.getValue()));
+            }
+            snapshot.put(classEntry.getKey(), modeMap);
+        }
+        return snapshot;
+    }
+
+    public void replaceAllBindings(UUID playerId,
+                                   Map<PlayerClass, EnumMap<SpellInputMode, EnumMap<SpellKeybindSlot, SpellInputType>>> loadedBindings) {
+        if (playerId == null) {
+            return;
+        }
+        if (loadedBindings == null || loadedBindings.isEmpty()) {
+            bindings.remove(playerId);
+            return;
+        }
+        Map<PlayerClass, EnumMap<SpellInputMode, EnumMap<SpellKeybindSlot, SpellInputType>>> normalized =
+                new EnumMap<>(PlayerClass.class);
+        for (Map.Entry<PlayerClass, EnumMap<SpellInputMode, EnumMap<SpellKeybindSlot, SpellInputType>>> classEntry
+                : loadedBindings.entrySet()) {
+            if (classEntry.getKey() == null || classEntry.getValue() == null) {
+                continue;
+            }
+            EnumMap<SpellInputMode, EnumMap<SpellKeybindSlot, SpellInputType>> modeMap =
+                    new EnumMap<>(SpellInputMode.class);
+            for (Map.Entry<SpellInputMode, EnumMap<SpellKeybindSlot, SpellInputType>> modeEntry
+                    : classEntry.getValue().entrySet()) {
+                if (modeEntry.getKey() == null) {
+                    continue;
+                }
+                EnumMap<SpellKeybindSlot, SpellInputType> slotMap = defaultBindings();
+                slotMap.clear();
+                if (modeEntry.getValue() != null) {
+                    for (Map.Entry<SpellKeybindSlot, SpellInputType> slotEntry : modeEntry.getValue().entrySet()) {
+                        if (slotEntry.getKey() != null && slotEntry.getValue() != null) {
+                            slotMap.put(slotEntry.getKey(), slotEntry.getValue());
+                        }
+                    }
+                }
+                modeMap.put(modeEntry.getKey(), slotMap);
+            }
+            if (!modeMap.isEmpty()) {
+                normalized.put(classEntry.getKey(), modeMap);
+            }
+        }
+        if (normalized.isEmpty()) {
+            bindings.remove(playerId);
+            return;
+        }
+        bindings.put(playerId, new ConcurrentHashMap<>(normalized));
+    }
+
     private EnumMap<SpellKeybindSlot, SpellInputType> getOrCreateBindings(UUID playerId, PlayerClass playerClass,
                                                                           SpellInputMode mode) {
         return bindings

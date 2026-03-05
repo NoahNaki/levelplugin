@@ -7,6 +7,10 @@ import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.battlepass.BattlePassManager;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
+import me.nakilex.levelplugin.spells.input.SpellInputMode;
+import me.nakilex.levelplugin.spells.input.SpellInputType;
+import me.nakilex.levelplugin.spells.input.SpellKeybindManager;
+import me.nakilex.levelplugin.spells.input.SpellKeybindSlot;
 import me.nakilex.levelplugin.spells.progression.SpellProgressionManager;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -19,6 +23,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Map;
+import java.util.EnumMap;
 import java.util.UUID;
 
 /**
@@ -82,6 +88,7 @@ public class PlayerConfig {
         if (activeSlot != null && activeSlot >= 0) {
             setProfileSpellPoints(uuid, activeSlot, progressionManager.getSpellPoints(uuid));
             setProfileSpellLevels(uuid, activeSlot, progressionManager.serializeSpellLevels(uuid, activeSlot));
+            setProfileSpellKeybinds(uuid, activeSlot, SpellKeybindManager.getInstance().getAllBindings(uuid));
         }
         config.set(path + ".stats.base_strength", stats.baseStrength);
         config.set(path + ".stats.base_agility", stats.baseAgility);
@@ -237,6 +244,99 @@ public class PlayerConfig {
 
     public void setProfileSpellLevels(UUID uuid, int slot, List<String> levels) {
         config.set("players." + uuid + ".profiles." + slot + ".spells.levels", levels == null ? List.of() : new ArrayList<>(levels));
+    }
+
+
+    public Map<PlayerClass, EnumMap<SpellInputMode, EnumMap<SpellKeybindSlot, SpellInputType>>> getProfileSpellKeybinds(UUID uuid,
+                                                                                                                           int slot) {
+        Map<PlayerClass, EnumMap<SpellInputMode, EnumMap<SpellKeybindSlot, SpellInputType>>> result =
+                new EnumMap<>(PlayerClass.class);
+        String root = "players." + uuid + ".profiles." + slot + ".spells.keybinds";
+        if (!config.isConfigurationSection(root)) {
+            return result;
+        }
+        var classSection = config.getConfigurationSection(root);
+        if (classSection == null) {
+            return result;
+        }
+        for (String classKey : classSection.getKeys(false)) {
+            PlayerClass playerClass = PlayerClass.fromString(classKey);
+            if (playerClass == null) {
+                continue;
+            }
+            String classPath = root + "." + classKey;
+            var modeSection = config.getConfigurationSection(classPath);
+            if (modeSection == null) {
+                continue;
+            }
+            EnumMap<SpellInputMode, EnumMap<SpellKeybindSlot, SpellInputType>> modeMap =
+                    new EnumMap<>(SpellInputMode.class);
+            for (String modeKey : modeSection.getKeys(false)) {
+                SpellInputMode mode;
+                try {
+                    mode = SpellInputMode.valueOf(modeKey);
+                } catch (IllegalArgumentException ignored) {
+                    continue;
+                }
+                String modePath = classPath + "." + modeKey;
+                var slotSection = config.getConfigurationSection(modePath);
+                if (slotSection == null) {
+                    continue;
+                }
+                EnumMap<SpellKeybindSlot, SpellInputType> slotMap = new EnumMap<>(SpellKeybindSlot.class);
+                for (String slotKey : slotSection.getKeys(false)) {
+                    SpellKeybindSlot slotType;
+                    try {
+                        slotType = SpellKeybindSlot.valueOf(slotKey);
+                    } catch (IllegalArgumentException ignored) {
+                        continue;
+                    }
+                    String inputKey = config.getString(modePath + "." + slotKey);
+                    if (inputKey == null) {
+                        continue;
+                    }
+                    try {
+                        slotMap.put(slotType, SpellInputType.valueOf(inputKey));
+                    } catch (IllegalArgumentException ignored) {
+                        // Ignore malformed entries.
+                    }
+                }
+                modeMap.put(mode, slotMap);
+            }
+            if (!modeMap.isEmpty()) {
+                result.put(playerClass, modeMap);
+            }
+        }
+        return result;
+    }
+
+    public void setProfileSpellKeybinds(UUID uuid, int slot,
+                                        Map<PlayerClass, EnumMap<SpellInputMode, EnumMap<SpellKeybindSlot, SpellInputType>>> keybinds) {
+        String root = "players." + uuid + ".profiles." + slot + ".spells.keybinds";
+        config.set(root, null);
+        if (keybinds == null || keybinds.isEmpty()) {
+            return;
+        }
+        for (Map.Entry<PlayerClass, EnumMap<SpellInputMode, EnumMap<SpellKeybindSlot, SpellInputType>>> classEntry
+                : keybinds.entrySet()) {
+            if (classEntry.getKey() == null || classEntry.getValue() == null) {
+                continue;
+            }
+            for (Map.Entry<SpellInputMode, EnumMap<SpellKeybindSlot, SpellInputType>> modeEntry
+                    : classEntry.getValue().entrySet()) {
+                if (modeEntry.getKey() == null || modeEntry.getValue() == null) {
+                    continue;
+                }
+                for (Map.Entry<SpellKeybindSlot, SpellInputType> slotEntry : modeEntry.getValue().entrySet()) {
+                    if (slotEntry.getKey() == null || slotEntry.getValue() == null) {
+                        continue;
+                    }
+                    String path = root + "." + classEntry.getKey().name() + "." + modeEntry.getKey().name()
+                            + "." + slotEntry.getKey().name();
+                    config.set(path, slotEntry.getValue().name());
+                }
+            }
+        }
     }
 
     /** Saves data for all players. */

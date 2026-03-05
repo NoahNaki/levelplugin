@@ -9,6 +9,7 @@ import me.nakilex.levelplugin.utils.gui.widgets.GuiContext;
 import me.nakilex.levelplugin.utils.gui.widgets.GuiLayout;
 import me.nakilex.levelplugin.utils.gui.widgets.GuiWidget;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
+import me.nakilex.levelplugin.spells.input.SpellKeybindManager;
 import me.nakilex.levelplugin.spells.progression.SpellProgressionManager;
 import me.nakilex.levelplugin.utils.BetterHudUtil;
 import org.bukkit.Bukkit;
@@ -345,6 +346,9 @@ public class ProfileSelectionGUI implements Listener {
                 index,
                 cfg.getProfileSpellPoints(player.getUniqueId(), index),
                 cfg.getProfileSpellLevels(player.getUniqueId(), index));
+        SpellKeybindManager.getInstance().replaceAllBindings(
+                player.getUniqueId(),
+                cfg.getProfileSpellKeybinds(player.getUniqueId(), index));
         org.bukkit.Location loc = cfg.getProfileLocation(player.getUniqueId(), index);
         if (loc != null) player.teleport(loc);
 

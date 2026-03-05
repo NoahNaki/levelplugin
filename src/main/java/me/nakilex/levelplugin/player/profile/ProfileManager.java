@@ -4,6 +4,7 @@ import java.util.*;
 import org.bukkit.entity.Player;
 
 import me.nakilex.levelplugin.utils.PotionEffectUtil;
+import me.nakilex.levelplugin.spells.input.SpellKeybindManager;
 import me.nakilex.levelplugin.spells.progression.SpellProgressionManager;
 
 public class ProfileManager {
@@ -211,6 +212,7 @@ public class ProfileManager {
         SpellProgressionManager progressionManager = SpellProgressionManager.getInstance();
         cfg.setProfileSpellPoints(id, slot, progressionManager.getSpellPoints(id));
         cfg.setProfileSpellLevels(id, slot, progressionManager.serializeSpellLevels(id, slot));
+        cfg.setProfileSpellKeybinds(id, slot, SpellKeybindManager.getInstance().getAllBindings(id));
         cfg.saveConfigFile();
     }
 
