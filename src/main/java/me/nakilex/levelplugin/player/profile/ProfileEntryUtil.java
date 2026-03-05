@@ -3,6 +3,8 @@ package me.nakilex.levelplugin.player.profile;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.items.listeners.StaticItemListener;
 import me.nakilex.levelplugin.player.config.PlayerConfig;
+import me.nakilex.levelplugin.spells.input.SpellKeybindManager;
+import me.nakilex.levelplugin.spells.progression.SpellProgressionManager;
 import me.nakilex.levelplugin.utils.BetterHudUtil;
 import me.nakilex.levelplugin.utils.WorldExclusionUtil;
 import org.bukkit.Bukkit;
@@ -50,6 +52,20 @@ public final class ProfileEntryUtil {
         }
     }
 
+    public static void loadProfileSpellState(UUID playerId, int slot, PlayerConfig cfg) {
+        if (playerId == null || slot < 0 || cfg == null) {
+            return;
+        }
+        SpellProgressionManager.getInstance().loadProfileData(
+                playerId,
+                slot,
+                cfg.getProfileSpellPoints(playerId, slot),
+                cfg.getProfileSpellLevels(playerId, slot));
+        SpellKeybindManager.getInstance().replaceAllBindings(
+                playerId,
+                cfg.getProfileSpellKeybinds(playerId, slot));
+    }
+
     public static void handleProfileEntry(Player player) {
         if (player == null) {
             return;
@@ -65,6 +81,7 @@ public final class ProfileEntryUtil {
             }
             pm.setActiveSlot(pid, 0);
             PlayerConfig cfg = Main.getInstance().getPlayerConfig();
+            loadProfileSpellState(pid, 0, cfg);
             org.bukkit.Location loc = cfg.getProfileLocation(pid, 0);
             if (loc != null) {
                 player.teleport(loc);
