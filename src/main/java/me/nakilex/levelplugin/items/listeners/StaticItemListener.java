@@ -12,6 +12,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -30,6 +31,8 @@ public class StaticItemListener implements Listener {
     private static final ItemStack STATIC_COMPASS;        // Compass (Server Selector)
     private static final ItemStack STATIC_CODEX;          // Spyglass (Codex)
     private static final ItemStack STATIC_SETTINGS;       // Comparator (Settings)
+    private static final int[] CRAFTING_MENU_SLOTS = {1, 2, 3, 4};
+
 
     static {
         // --- Stats Viewer (Nether Star) ---
@@ -112,33 +115,33 @@ public class StaticItemListener implements Listener {
     }
 
     /**
-     * Give the standard static items to the player's hotbar.
+     * Give the standard static items to the player's loadout.
      */
     public static void giveStaticItems(Player player) {
         player.getInventory().setItem(6, STATIC_HORSE_SADDLE.clone());
-        setCraftingMenuItems(player);
     }
 
-    private static void setCraftingMenuItems(Player player) {
-        ItemStack[] extra = player.getInventory().getExtraContents();
-        if (extra == null || extra.length == 0) {
-            return;
-        }
-
-        ItemStack[] updated = extra.clone();
-        ItemStack[] menuItems = {
+    private static ItemStack[] getCraftingMenuItems() {
+        return new ItemStack[] {
                 STATIC_ITEM.clone(),
                 STATIC_QUEST_BOOK.clone(),
                 STATIC_CODEX.clone(),
                 STATIC_SETTINGS.clone()
         };
+    }
 
-        int limit = Math.min(updated.length, menuItems.length);
-        for (int i = 0; i < limit; i++) {
-            updated[i] = menuItems[i];
+    private static void setCraftingMenuItems(org.bukkit.inventory.Inventory topInventory) {
+        if (topInventory == null || topInventory.getType() != InventoryType.CRAFTING) {
+            return;
         }
-
-        player.getInventory().setExtraContents(updated);
+        ItemStack[] menuItems = getCraftingMenuItems();
+        int limit = Math.min(CRAFTING_MENU_SLOTS.length, menuItems.length);
+        for (int i = 0; i < limit; i++) {
+            int slot = CRAFTING_MENU_SLOTS[i];
+            if (slot >= 0 && slot < topInventory.getSize()) {
+                topInventory.setItem(slot, menuItems[i]);
+            }
+        }
     }
 
     public static void giveHubItems(Player player) {
@@ -155,17 +158,6 @@ public class StaticItemListener implements Listener {
             if (isStaticItem(item)) {
                 player.getInventory().setItem(i, null);
             }
-        }
-        ItemStack[] extra = player.getInventory().getExtraContents();
-        boolean changed = false;
-        for (int i = 0; i < extra.length; i++) {
-            if (isManagedStaticItem(extra[i])) {
-                extra[i] = null;
-                changed = true;
-            }
-        }
-        if (changed) {
-            player.getInventory().setExtraContents(extra);
         }
     }
 
@@ -193,6 +185,24 @@ public class StaticItemListener implements Listener {
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player p = event.getPlayer();
         applyWorldLoadout(p);
+    }
+
+    @EventHandler
+    public void onInventoryOpen(InventoryOpenEvent event) {
+        if (!(event.getPlayer() instanceof Player player)) {
+            return;
+        }
+        Main main = Main.getInstance();
+        if (main != null) {
+            ServerSelectionManager manager = main.getServerSelectionManager();
+            if (manager != null && manager.isHubWorld(player.getWorld())) {
+                return;
+            }
+        }
+        if (WorldExclusionUtil.isExcluded(player)) {
+            return;
+        }
+        setCraftingMenuItems(event.getView().getTopInventory());
     }
 
     @EventHandler
