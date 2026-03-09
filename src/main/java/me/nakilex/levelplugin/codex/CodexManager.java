@@ -9,6 +9,9 @@ import me.nakilex.levelplugin.utils.NpcNameUtil;
 import me.nakilex.levelplugin.npc.system.NpcApi;
 import me.nakilex.levelplugin.npc.system.NPC;
 import me.nakilex.levelplugin.mob.utils.CombatRewardCalculator;
+import me.nakilex.levelplugin.progression.objectives.ObjectiveProgressBus;
+import me.nakilex.levelplugin.progression.objectives.ObjectiveProgressEvent;
+import me.nakilex.levelplugin.progression.objectives.ObjectiveType;
 import org.bukkit.ChatColor;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
@@ -89,6 +92,12 @@ public class CodexManager {
      * same styled message format as level ups and quest completion.
      */
     private void notifyDiscovery(Player player, String category, String name) {
+        ObjectiveProgressBus.getInstance().publish(new ObjectiveProgressEvent(
+                player.getUniqueId(),
+                ObjectiveType.DISCOVER_CODEX,
+                category,
+                1
+        ));
         String title = ChatColor.WHITE + "" + ChatColor.BOLD + "CODEX UPDATED";
         String subtitle = ChatColor.GRAY + category + ": " + ChatColor.YELLOW + name;
         player.sendTitle(title, subtitle, 10, 40, 10);

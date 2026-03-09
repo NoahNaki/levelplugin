@@ -5,6 +5,7 @@ import me.nakilex.levelplugin.utils.AttributeUtil;
 import me.nakilex.levelplugin.utils.ModelEngineUtil;
 import me.nakilex.levelplugin.mob.custom.spawner.CustomMobSpawnerManager;
 import me.nakilex.levelplugin.mob.custom.gui.CustomMobAdminGUI;
+import me.nakilex.levelplugin.mob.custom.spells.CustomMobSpellController;
 import me.nakilex.levelplugin.particles.ParticlePlane;
 import me.nakilex.levelplugin.particles.ParticleRenderContext;
 import me.nakilex.levelplugin.particles.ParticleRotationAxis;
@@ -43,7 +44,11 @@ public class CustomMobManager {
 
     private static final List<String> DEFAULT_EXAMPLES = List.of(
             "custom_mobs/cursed_archer.yml",
-            "custom_mobs/forest_slime.yml"
+            "custom_mobs/forest_slime.yml",
+            "custom_mobs/moss_zombie.yml",
+            "custom_mobs/cave_stalker.yml",
+            "custom_mobs/crypt_skeleton.yml",
+            "custom_mobs/ember_witch.yml"
     );
     private static final ArcPattern STUN_PATTERN = new ArcPattern(
             Particle.CRIT,
@@ -102,6 +107,7 @@ public class CustomMobManager {
     private final CustomMobNameManager nameManager;
     private final CustomMobSpawnerManager spawnerManager;
     private final CustomMobAdminGUI adminGui;
+    private final CustomMobSpellController spellController;
     private final Map<String, CustomMobDefinition> definitions = new HashMap<>();
     private final Map<UUID, CustomMobInstance> activeMobs = new HashMap<>();
     private final Random random = new Random();
@@ -111,6 +117,7 @@ public class CustomMobManager {
         this.nameManager = new CustomMobNameManager(plugin, this);
         this.spawnerManager = new CustomMobSpawnerManager(plugin, this);
         this.adminGui = new CustomMobAdminGUI(plugin, this, spawnerManager);
+        this.spellController = new CustomMobSpellController(plugin, this);
         loadDefinitions();
     }
 
@@ -215,6 +222,7 @@ public class CustomMobManager {
         CustomMobInstance instance = activeMobs.remove(uuid);
         if (instance != null) {
             instance.clearAllStatusTasks();
+            spellController.clearMob(uuid);
             nameManager.untrack(uuid);
             spawnerManager.removeActiveMob(uuid);
         }

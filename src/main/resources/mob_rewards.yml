@@ -139,6 +139,17 @@ mobs:
   forest_slime:
     model_set: default
 
+  moss_zombie:
+    model_set: default
+
+  cave_stalker:
+    model_set: default
+
+  crypt_skeleton:
+    model_set: default
+
+  ember_witch:
+    model_set: witchcaster
 
 
 

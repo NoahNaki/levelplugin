@@ -1,0 +1,11 @@
+contracts:
+  weekly_slayer:
+    type: KILL_MOB
+    target: "*"
+    required: 25
+    reward_coins: 1500
+  weekly_codex:
+    type: DISCOVER_CODEX
+    target: "*"
+    required: 3
+    reward_coins: 800

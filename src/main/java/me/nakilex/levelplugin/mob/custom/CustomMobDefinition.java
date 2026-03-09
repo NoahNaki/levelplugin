@@ -15,8 +15,17 @@ public record CustomMobDefinition(String id,
                                   Double baseHealth,
                                   CustomMobStats stats,
                                   List<String> models,
+                                  List<CustomMobSpell> spells,
                                   CustomMobOptions options,
                                   boolean boss) {
+
+    public record CustomMobSpell(String id,
+                                 int intervalTicks,
+                                 double damage,
+                                 double range,
+                                 double speed,
+                                 int burnTicks) {
+    }
 
     public record LevelRange(int min, int max) {
         public LevelRange {
@@ -106,6 +115,7 @@ public record CustomMobDefinition(String id,
             models = model == null ? List.of() : List.of(model);
         }
         CustomMobStats stats = parseStats(cfg.getConfigurationSection("stats"));
+        List<CustomMobSpell> spells = parseSpells(cfg.getConfigurationSection("spells"));
         CustomMobOptions options = parseOptions(cfg.getConfigurationSection("options"));
         boolean boss = cfg.getBoolean("boss", false);
         return new CustomMobDefinition(
@@ -116,9 +126,31 @@ public record CustomMobDefinition(String id,
                 health,
                 stats,
                 models,
+                spells,
                 options,
                 boss
         );
+    }
+
+    private static List<CustomMobSpell> parseSpells(ConfigurationSection cfg) {
+        if (cfg == null) {
+            return List.of();
+        }
+        List<CustomMobSpell> spells = new java.util.ArrayList<>();
+        for (String key : cfg.getKeys(false)) {
+            ConfigurationSection node = cfg.getConfigurationSection(key);
+            if (node == null) {
+                continue;
+            }
+            String id = node.getString("id", key).trim().toLowerCase(java.util.Locale.ROOT);
+            int intervalTicks = Math.max(1, node.getInt("interval-ticks", 40));
+            double damage = Math.max(0.0, node.getDouble("damage", 4.0));
+            double range = Math.max(1.0, node.getDouble("range", 20.0));
+            double speed = Math.max(0.1, node.getDouble("speed", 0.9));
+            int burnTicks = Math.max(0, node.getInt("burn-ticks", 0));
+            spells.add(new CustomMobSpell(id, intervalTicks, damage, range, speed, burnTicks));
+        }
+        return spells;
     }
 
     private static LevelRange parseLevelRange(ConfigurationSection cfg) {

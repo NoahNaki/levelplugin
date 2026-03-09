@@ -1,0 +1,18 @@
+id: cave_stalker
+type: SPIDER
+display: "&8Cave Stalker"
+level: 14
+boss: false
+
+stats:
+  vitality: 20
+  agility: 26
+  strength: 10
+
+options:
+  movement-speed: 0.30
+  follow-range: 32
+  knockback-resistance: 0.20
+  attack-damage: 6.0
+  silent: false
+  despawn: false

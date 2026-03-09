@@ -218,6 +218,8 @@ public class PluginBootstrap {
     private SpellUpgradeGUI spellUpgradeGUI;
     private me.nakilex.levelplugin.debug.gui.DebugGUI debugGUI;
     private CodexManager codexManager;
+    private me.nakilex.levelplugin.contracts.ContractsBoardManager contractsBoardManager;
+    private me.nakilex.levelplugin.codex.mastery.CodexMasteryManager codexMasteryManager;
     private CodexMainGUI codexGUI;
     private MobCodexGUI mobCodexGUI;
     private NpcCodexGUI npcCodexGUI;
@@ -275,6 +277,12 @@ public class PluginBootstrap {
         petManager = new PetManager(plugin);
         GuildQuestManager.getInstance().reloadMobCategories();
         codexManager = new CodexManager(playerConfig, customMobManager, mobRewardsConfig, bossConfig);
+        contractsBoardManager = new me.nakilex.levelplugin.contracts.ContractsBoardManager(economyManager);
+        codexMasteryManager = new me.nakilex.levelplugin.codex.mastery.CodexMasteryManager(economyManager);
+        File contractsFile = new File(plugin.getDataFolder(), "contracts.yml");
+        if (contractsFile.exists()) {
+            contractsBoardManager.load(YamlConfiguration.loadConfiguration(contractsFile));
+        }
         mobCodexGUI = new MobCodexGUI(codexManager, null);
         npcCodexGUI = new NpcCodexGUI(plugin, codexManager, null, mercenaryAffinityManager, mercenaryFriendshipGUI);
         locationCodexGUI = new LocationCodexGUI(codexManager, null);
@@ -299,6 +307,7 @@ public class PluginBootstrap {
     }
 
     private void loadConfigFiles() {
+        plugin.saveResource("contracts.yml", false);
         plugin.saveResource("potions.yml", false);
         File configFile = new File(plugin.getDataFolder(), "potions.yml");
         FileConfiguration config = YamlConfiguration.loadConfiguration(configFile);
@@ -878,6 +887,8 @@ public class PluginBootstrap {
     public me.nakilex.levelplugin.cutscene.CutsceneManager getCutsceneManager() { return cutsceneManager; }
     public me.nakilex.levelplugin.calendar.CalendarManager getCalendarManager() { return calendarManager; }
     public CodexManager getCodexManager() { return codexManager; }
+    public me.nakilex.levelplugin.contracts.ContractsBoardManager getContractsBoardManager() { return contractsBoardManager; }
+    public me.nakilex.levelplugin.codex.mastery.CodexMasteryManager getCodexMasteryManager() { return codexMasteryManager; }
     public CodexMainGUI getCodexGUI() { return codexGUI; }
     public me.nakilex.levelplugin.dungeon.gui.DungeonListGUI getDungeonListGUI() { return dungeonListGUI; }
     public me.nakilex.levelplugin.dungeon.gui.DungeonLeaveGUI getDungeonLeaveGUI() { return dungeonLeaveGUI; }

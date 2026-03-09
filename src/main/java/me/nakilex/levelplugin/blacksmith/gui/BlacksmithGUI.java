@@ -13,6 +13,7 @@ import me.nakilex.levelplugin.guild.GuildManager;
 import me.nakilex.levelplugin.guild.TownPerk;
 import me.nakilex.levelplugin.guild.TownPerkManager;
 import me.nakilex.levelplugin.utils.GuiUtil;
+import me.nakilex.levelplugin.utils.gui.flow.GuiActionOperation;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import me.nakilex.levelplugin.utils.gui.widgets.ActionWidget;
 import me.nakilex.levelplugin.utils.gui.widgets.GuiContext;
@@ -391,139 +392,153 @@ public class BlacksmithGUI implements Listener {
     }
 
     private void handleActionButtonClick(Player player, Inventory gui, BlacksmithMode mode) {
-        ItemStack item = mode == BlacksmithMode.REROLL ? gui.getItem(11) : gui.getItem(13);
-        if (item == null || item.getType().isAir()) return;
-        CustomItem ci = itemManager.getCustomItemFromItemStack(item);
-        if (ci == null) return;
+        resolveOperation(mode).execute(player, gui);
+    }
 
-        if (mode == BlacksmithMode.UPGRADE) {
-            if (ci.getUpgradeLevel() >= 5) {
-                send(player, MessageType.ERROR, "Item has reached the maximum upgrade level.");
-                return;
-            }
-            int cost = TownPerkManager.getInstance().applyDiscount(
-                    GuildManager.getInstance().getGuild(player.getUniqueId()),
-                    TownPerk.BLACKSMITH_DISCOUNT,
-                    upgradeManager.getUpgradeCost(ci));
-            try {
-                economyManager.deductCoins(player, cost);
-            } catch (IllegalArgumentException ex) {
-                send(player, MessageType.ERROR, "Not enough coins! Upgrade cost: §6<glyph:coins_icon> " + cost);
-                return;
-            }
-            if (upgradeManager.attemptUpgrade(player, item, ci)) {
-                send(player, MessageType.SUCCESS, "Upgrade successful!");
-                Main.getInstance().getQuestManager().handleBlacksmithUpgrade(player, String.valueOf(ci.getId()));
-                gui.setItem(13, item);
-            } else {
-                send(player, MessageType.ERROR, "Upgrade failed!");
-            }
-            if (ci.getUpgradeLevel() >= 5) {
-                gui.setItem(22, createUpgradeButton(-1, 0));
-            } else {
-                int nextCost = TownPerkManager.getInstance().applyDiscount(
-                        GuildManager.getInstance().getGuild(player.getUniqueId()),
-                        TownPerk.BLACKSMITH_DISCOUNT,
-                        upgradeManager.getUpgradeCost(ci));
-                gui.setItem(22, createUpgradeButton(nextCost, upgradeManager.getSuccessChance(ci)));
-            }
-        } else if (mode == BlacksmithMode.REPAIR) {
-            int cost = TownPerkManager.getInstance().applyDiscount(
-                    GuildManager.getInstance().getGuild(player.getUniqueId()),
-                    TownPerk.BLACKSMITH_DISCOUNT,
-                    repairManager.getRepairCost(ci));
-            try {
-                economyManager.deductCoins(player, cost);
-            } catch (IllegalArgumentException ex) {
-                send(player, MessageType.ERROR, "Not enough coins to repair! Cost: §6<glyph:coins_icon> " + cost);
-                return;
-            }
-            if (repairManager.repairItem(player, item, ci)) {
-                send(player, MessageType.SUCCESS, "Item repaired!");
-                gui.setItem(13, item);
-                ItemUtil.updateTooltip(item, player);
-                Main.getInstance().getQuestManager().handleRepair(player, String.valueOf(ci.getId()));
-            }
-            gui.setItem(22, createRepairButton(0));
-        } else if (mode == BlacksmithMode.REROLL) {
-            ItemStack placeholder = gui.getItem(15);
-            if (placeholder == null || placeholder.getType().isAir()) {
-                send(player, MessageType.WARNING, "Place a stat placeholder on the right.");
-                return;
-            }
-            StatType stat = materialToStat(placeholder.getType());
-            if (stat == null) {
-                send(player, MessageType.ERROR, "Invalid placeholder item!");
-                return;
-            }
+    private GuiActionOperation resolveOperation(BlacksmithMode mode) {
+        return switch (mode) {
+            case UPGRADE -> new GuiActionOperation() {
+                @Override
+                public ItemStack createActionButton(Player player, Inventory gui) {
+                    ItemStack current = gui.getItem(13);
+                    if (current == null || current.getType().isAir()) return createUpgradeButton(0, 0);
+                    CustomItem ci = itemManager.getCustomItemFromItemStack(current);
+                    if (ci == null) return createUpgradeButton(0, 0);
+                    if (ci.getUpgradeLevel() >= 5) return createUpgradeButton(-1, 0);
+                    int cost = TownPerkManager.getInstance().applyDiscount(
+                            GuildManager.getInstance().getGuild(player.getUniqueId()),
+                            TownPerk.BLACKSMITH_DISCOUNT,
+                            upgradeManager.getUpgradeCost(ci));
+                    return createUpgradeButton(cost, upgradeManager.getSuccessChance(ci));
+                }
 
-            if (!rerollManager.hasStat(ci, stat)) {
-                send(player, MessageType.ERROR, "This item does not have " + statDisplayName(stat) + "!");
-                return;
-            }
+                @Override
+                public void execute(Player player, Inventory gui) {
+                    ItemStack item = gui.getItem(13);
+                    if (item == null || item.getType().isAir()) return;
+                    CustomItem ci = itemManager.getCustomItemFromItemStack(item);
+                    if (ci == null) return;
+                    if (ci.getUpgradeLevel() >= 5) {
+                        send(player, MessageType.ERROR, "Item has reached the maximum upgrade level.");
+                        return;
+                    }
+                    int cost = TownPerkManager.getInstance().applyDiscount(
+                            GuildManager.getInstance().getGuild(player.getUniqueId()),
+                            TownPerk.BLACKSMITH_DISCOUNT,
+                            upgradeManager.getUpgradeCost(ci));
+                    try { economyManager.deductCoins(player, cost); }
+                    catch (IllegalArgumentException ex) {
+                        send(player, MessageType.ERROR, "Not enough coins! Upgrade cost: §6<glyph:coins_icon> " + cost);
+                        return;
+                    }
+                    if (upgradeManager.attemptUpgrade(player, item, ci)) {
+                        send(player, MessageType.SUCCESS, "Upgrade successful!");
+                        Main.getInstance().getQuestManager().handleBlacksmithUpgrade(player, String.valueOf(ci.getId()));
+                        gui.setItem(13, item);
+                    } else {
+                        send(player, MessageType.ERROR, "Upgrade failed!");
+                    }
+                }
+            };
+            case REPAIR -> new GuiActionOperation() {
+                @Override
+                public ItemStack createActionButton(Player player, Inventory gui) {
+                    ItemStack current = gui.getItem(13);
+                    if (current == null || current.getType().isAir()) return createRepairButton(0);
+                    CustomItem ci = itemManager.getCustomItemFromItemStack(current);
+                    if (ci == null) return createRepairButton(0);
+                    int cost = TownPerkManager.getInstance().applyDiscount(
+                            GuildManager.getInstance().getGuild(player.getUniqueId()),
+                            TownPerk.BLACKSMITH_DISCOUNT,
+                            repairManager.getRepairCost(ci));
+                    return createRepairButton(cost);
+                }
 
-            int cost = TownPerkManager.getInstance().applyDiscount(
-                    GuildManager.getInstance().getGuild(player.getUniqueId()),
-                    TownPerk.BLACKSMITH_DISCOUNT,
-                    rerollManager.getRerollCost(ci));
-            try {
-                economyManager.deductCoins(player, cost);
-            } catch (IllegalArgumentException ex) {
-                send(player, MessageType.ERROR, "Not enough coins to reroll! Cost: §6<glyph:coins_icon>" + cost);
-                return;
-            }
+                @Override
+                public void execute(Player player, Inventory gui) {
+                    ItemStack item = gui.getItem(13);
+                    if (item == null || item.getType().isAir()) return;
+                    CustomItem ci = itemManager.getCustomItemFromItemStack(item);
+                    if (ci == null) return;
+                    int cost = TownPerkManager.getInstance().applyDiscount(
+                            GuildManager.getInstance().getGuild(player.getUniqueId()),
+                            TownPerk.BLACKSMITH_DISCOUNT,
+                            repairManager.getRepairCost(ci));
+                    try { economyManager.deductCoins(player, cost); }
+                    catch (IllegalArgumentException ex) {
+                        send(player, MessageType.ERROR, "Not enough coins to repair! Cost: §6<glyph:coins_icon> " + cost);
+                        return;
+                    }
+                    if (repairManager.repairItem(player, item, ci)) {
+                        send(player, MessageType.SUCCESS, "Item repaired!");
+                        gui.setItem(13, item);
+                        ItemUtil.updateTooltip(item, player);
+                        Main.getInstance().getQuestManager().handleRepair(player, String.valueOf(ci.getId()));
+                    }
+                }
+            };
+            case REROLL -> new GuiActionOperation() {
+                @Override
+                public ItemStack createActionButton(Player player, Inventory gui) {
+                    ItemStack current = gui.getItem(11);
+                    if (current == null || current.getType().isAir()) return createRerollButton(0);
+                    CustomItem ci = itemManager.getCustomItemFromItemStack(current);
+                    if (ci == null) return createRerollButton(0);
+                    int cost = TownPerkManager.getInstance().applyDiscount(
+                            GuildManager.getInstance().getGuild(player.getUniqueId()),
+                            TownPerk.BLACKSMITH_DISCOUNT,
+                            rerollManager.getRerollCost(ci));
+                    return createRerollButton(cost);
+                }
 
-            int diff = rerollManager.rerollStat(player, item, ci, stat);
-            Main.getInstance().getQuestManager().handleReroll(player, String.valueOf(ci.getId()));
-            gui.setItem(13, item.clone());
-            gui.setItem(11, null);
-            placeholder.setAmount(placeholder.getAmount() - 1);
-            if (placeholder.getAmount() <= 0) gui.setItem(15, null);
-            String message = ChatColor.GOLD + "" + ChatColor.BOLD + "STAT REROLLED! "
-                    + ChatColor.YELLOW + statDisplayName(stat) + (diff >= 0
-                    ? " increased by " + ChatColor.GREEN + "+" + diff
-                    : " decreased by " + ChatColor.RED + diff);
-            send(player, MessageType.SUCCESS, message);
-        }
+                @Override
+                public void execute(Player player, Inventory gui) {
+                    ItemStack item = gui.getItem(11);
+                    if (item == null || item.getType().isAir()) return;
+                    CustomItem ci = itemManager.getCustomItemFromItemStack(item);
+                    if (ci == null) return;
+                    ItemStack placeholder = gui.getItem(15);
+                    if (placeholder == null || placeholder.getType().isAir()) {
+                        send(player, MessageType.WARNING, "Place a stat placeholder on the right.");
+                        return;
+                    }
+                    StatType stat = materialToStat(placeholder.getType());
+                    if (stat == null) {
+                        send(player, MessageType.ERROR, "Invalid placeholder item!");
+                        return;
+                    }
+                    if (!rerollManager.hasStat(ci, stat)) {
+                        send(player, MessageType.ERROR, "This item does not have " + statDisplayName(stat) + "!");
+                        return;
+                    }
+                    int cost = TownPerkManager.getInstance().applyDiscount(
+                            GuildManager.getInstance().getGuild(player.getUniqueId()),
+                            TownPerk.BLACKSMITH_DISCOUNT,
+                            rerollManager.getRerollCost(ci));
+                    try { economyManager.deductCoins(player, cost); }
+                    catch (IllegalArgumentException ex) {
+                        send(player, MessageType.ERROR, "Not enough coins to reroll! Cost: §6<glyph:coins_icon>" + cost);
+                        return;
+                    }
+                    int diff = rerollManager.rerollStat(player, item, ci, stat);
+                    Main.getInstance().getQuestManager().handleReroll(player, String.valueOf(ci.getId()));
+                    gui.setItem(13, item.clone());
+                    gui.setItem(11, null);
+                    placeholder.setAmount(placeholder.getAmount() - 1);
+                    if (placeholder.getAmount() <= 0) gui.setItem(15, null);
+                    String message = ChatColor.GOLD + "" + ChatColor.BOLD + "STAT REROLLED! "
+                            + ChatColor.YELLOW + statDisplayName(stat) + (diff >= 0
+                            ? " increased by " + ChatColor.GREEN + "+" + diff
+                            : " decreased by " + ChatColor.RED + diff);
+                    send(player, MessageType.SUCCESS, message);
+                }
+            };
+        };
     }
 
     private ItemStack createActionItem(GuiContext context) {
         BlacksmithMode mode = getMode(context.player());
-        Inventory gui = context.inventory();
-        ItemStack current = mode == BlacksmithMode.REROLL ? gui.getItem(11) : gui.getItem(13);
-        if (current == null || current.getType().isAir()) {
-            return mode == BlacksmithMode.REROLL
-                    ? createRerollButton(0)
-                    : (mode == BlacksmithMode.UPGRADE ? createUpgradeButton(0, 0) : createRepairButton(0));
-        }
-        CustomItem ci = itemManager.getCustomItemFromItemStack(current);
-        if (ci == null) {
-            return mode == BlacksmithMode.REROLL
-                    ? createRerollButton(0)
-                    : (mode == BlacksmithMode.UPGRADE ? createUpgradeButton(0, 0) : createRepairButton(0));
-        }
-        if (mode == BlacksmithMode.UPGRADE) {
-            if (ci.getUpgradeLevel() >= 5) {
-                return createUpgradeButton(-1, 0);
-            }
-            int cost = TownPerkManager.getInstance().applyDiscount(
-                    GuildManager.getInstance().getGuild(context.player().getUniqueId()),
-                    TownPerk.BLACKSMITH_DISCOUNT,
-                    upgradeManager.getUpgradeCost(ci));
-            return createUpgradeButton(cost, upgradeManager.getSuccessChance(ci));
-        }
-        if (mode == BlacksmithMode.REPAIR) {
-            int cost = TownPerkManager.getInstance().applyDiscount(
-                    GuildManager.getInstance().getGuild(context.player().getUniqueId()),
-                    TownPerk.BLACKSMITH_DISCOUNT,
-                    repairManager.getRepairCost(ci));
-            return createRepairButton(cost);
-        }
-        int cost = TownPerkManager.getInstance().applyDiscount(
-                GuildManager.getInstance().getGuild(context.player().getUniqueId()),
-                TownPerk.BLACKSMITH_DISCOUNT,
-                rerollManager.getRerollCost(ci));
-        return createRerollButton(cost);
+        return resolveOperation(mode).createActionButton(context.player(), context.inventory());
     }
 
     private void handleRepairAllClick(Player player) {
@@ -561,55 +576,7 @@ public class BlacksmithGUI implements Listener {
     }
 
     private void updateActionButton(Player player, Inventory gui, BlacksmithMode mode) {
-        ItemStack current = mode == BlacksmithMode.REROLL ? gui.getItem(11) : gui.getItem(13);
-        if (current == null || current.getType().isAir()) {
-            if (mode == BlacksmithMode.REROLL) {
-                gui.setItem(22, createRerollButton(0));
-            } else {
-                gui.setItem(22, mode == BlacksmithMode.UPGRADE
-                    ? createUpgradeButton(0, 0)
-                    : createRepairButton(0));
-            }
-            return;
-        }
-
-        CustomItem ci = itemManager.getCustomItemFromItemStack(current);
-        if (ci == null) {
-            if (mode == BlacksmithMode.REROLL) {
-                gui.setItem(22, createRerollButton(0));
-            } else {
-                gui.setItem(22, mode == BlacksmithMode.UPGRADE
-                    ? createUpgradeButton(0, 0)
-                    : createRepairButton(0));
-            }
-            return;
-        }
-
-        if (mode == BlacksmithMode.UPGRADE) {
-            if (ci.getUpgradeLevel() >= 5) {
-                gui.setItem(22, createUpgradeButton(-1, 0));
-            } else {
-                int cost = TownPerkManager.getInstance().applyDiscount(
-                        GuildManager.getInstance().getGuild(player.getUniqueId()),
-                        TownPerk.BLACKSMITH_DISCOUNT,
-                        upgradeManager.getUpgradeCost(ci));
-                gui.setItem(22, createUpgradeButton(cost, upgradeManager.getSuccessChance(ci)));
-            }
-        } else if (mode == BlacksmithMode.REPAIR) {
-            int cost = TownPerkManager.getInstance().applyDiscount(
-                    GuildManager.getInstance().getGuild(player.getUniqueId()),
-                    TownPerk.BLACKSMITH_DISCOUNT,
-                    repairManager.getRepairCost(ci));
-            gui.setItem(22, createRepairButton(cost));
-        } else if (mode == BlacksmithMode.REROLL) {
-            int cost = TownPerkManager.getInstance().applyDiscount(
-                    GuildManager.getInstance().getGuild(player.getUniqueId()),
-                    TownPerk.BLACKSMITH_DISCOUNT,
-                    rerollManager.getRerollCost(ci));
-            gui.setItem(22, createRerollButton(cost));
-        } else {
-            gui.setItem(22, createUpgradeButton(0, 0));
-        }
+        gui.setItem(22, resolveOperation(mode).createActionButton(player, gui));
     }
 
     private StatType materialToStat(Material mat) {

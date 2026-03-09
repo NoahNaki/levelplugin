@@ -398,6 +398,59 @@ public final class TooltipUtil {
     }
 
     /**
+     * Build a standard requirements block to keep requirement lines consistent
+     * across action GUIs and item tooltips.
+     */
+    public static List<String> requirementsBlock(String... requirements) {
+        List<String> lore = new ArrayList<>();
+        lore.add(sectionHeader("Requirements"));
+        if (requirements == null) {
+            lore.add(bulletLine(ChatColor.GRAY + "None"));
+            return lore;
+        }
+        boolean added = false;
+        for (String requirement : requirements) {
+            if (requirement == null || requirement.isBlank()) {
+                continue;
+            }
+            lore.add(bulletLine(ChatColor.GRAY + requirement.trim()));
+            added = true;
+        }
+        if (!added) {
+            lore.add(bulletLine(ChatColor.GRAY + "None"));
+        }
+        return lore;
+    }
+
+    /**
+     * Build a standard reward list block.
+     */
+    public static List<String> rewardList(String... rewards) {
+        List<String> lore = new ArrayList<>();
+        lore.add(sectionHeader("Rewards"));
+        if (rewards == null) {
+            return lore;
+        }
+        for (String reward : rewards) {
+            if (reward == null || reward.isBlank()) {
+                continue;
+            }
+            lore.add(arrowLine(ChatColor.YELLOW + reward.trim()));
+        }
+        return lore;
+    }
+
+    /**
+     * Format a compact status badge line for GUI lore.
+     */
+    public static String statusBadge(String label, boolean active) {
+        String safe = (label == null || label.isBlank()) ? "Status" : label.trim();
+        return (active ? ChatColor.GREEN + "● " : ChatColor.RED + "● ")
+                + ChatColor.GRAY + safe + ": "
+                + (active ? ChatColor.GREEN + "Active" : ChatColor.RED + "Inactive");
+    }
+
+    /**
      * Center only the display name of an item's tooltip.
      *
      * @param item item to update
