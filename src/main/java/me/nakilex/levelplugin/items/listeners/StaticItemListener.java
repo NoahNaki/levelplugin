@@ -31,7 +31,7 @@ public class StaticItemListener implements Listener {
     private static final ItemStack STATIC_COMPASS;        // Compass (Server Selector)
     private static final ItemStack STATIC_CODEX;          // Spyglass (Codex)
     private static final ItemStack STATIC_SETTINGS;       // Comparator (Settings)
-    private static final int[] CRAFTING_MENU_SLOTS = {1, 2, 3, 4};
+    private static final int[] CRAFTING_EXTRA_CONTENT_INDICES = {1, 2, 3, 4};
 
 
     static {
@@ -119,6 +119,7 @@ public class StaticItemListener implements Listener {
      */
     public static void giveStaticItems(Player player) {
         player.getInventory().setItem(6, STATIC_HORSE_SADDLE.clone());
+        applyCraftingMenuItems(player);
     }
 
     private static ItemStack[] getCraftingMenuItems() {
@@ -130,18 +131,24 @@ public class StaticItemListener implements Listener {
         };
     }
 
-    private static void setCraftingMenuItems(org.bukkit.inventory.Inventory topInventory) {
-        if (topInventory == null || topInventory.getType() != InventoryType.CRAFTING) {
+    private static void applyCraftingMenuItems(Player player) {
+        if (player == null) {
             return;
         }
+        ItemStack[] extra = player.getInventory().getExtraContents();
+        if (extra == null || extra.length == 0) {
+            return;
+        }
+        ItemStack[] updated = extra.clone();
         ItemStack[] menuItems = getCraftingMenuItems();
-        int limit = Math.min(CRAFTING_MENU_SLOTS.length, menuItems.length);
+        int limit = Math.min(CRAFTING_EXTRA_CONTENT_INDICES.length, menuItems.length);
         for (int i = 0; i < limit; i++) {
-            int slot = CRAFTING_MENU_SLOTS[i];
-            if (slot >= 0 && slot < topInventory.getSize()) {
-                topInventory.setItem(slot, menuItems[i]);
+            int index = CRAFTING_EXTRA_CONTENT_INDICES[i];
+            if (index >= 0 && index < updated.length) {
+                updated[index] = menuItems[i];
             }
         }
+        player.getInventory().setExtraContents(updated);
     }
 
     public static void giveHubItems(Player player) {
@@ -157,6 +164,20 @@ public class StaticItemListener implements Listener {
             ItemStack item = player.getInventory().getItem(i);
             if (isStaticItem(item)) {
                 player.getInventory().setItem(i, null);
+            }
+        }
+        ItemStack[] extra = player.getInventory().getExtraContents();
+        if (extra != null && extra.length > 0) {
+            ItemStack[] updated = extra.clone();
+            boolean changed = false;
+            for (int i = 0; i < updated.length; i++) {
+                if (isStaticItem(updated[i])) {
+                    updated[i] = null;
+                    changed = true;
+                }
+            }
+            if (changed) {
+                player.getInventory().setExtraContents(updated);
             }
         }
     }
@@ -202,7 +223,7 @@ public class StaticItemListener implements Listener {
         if (WorldExclusionUtil.isExcluded(player)) {
             return;
         }
-        setCraftingMenuItems(event.getView().getTopInventory());
+        applyCraftingMenuItems(player);
     }
 
     @EventHandler
