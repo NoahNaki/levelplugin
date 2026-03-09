@@ -14,6 +14,7 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
+import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -159,6 +160,40 @@ public class StaticItemListener implements Listener {
     }
 
 
+    private static void clearCraftingMenuItems(InventoryView view) {
+        if (view == null) {
+            return;
+        }
+        org.bukkit.inventory.Inventory top = view.getTopInventory();
+        if (top == null || top.getType() != InventoryType.CRAFTING) {
+            return;
+        }
+        if (top instanceof CraftingInventory craftingInventory) {
+            ItemStack[] matrix = craftingInventory.getMatrix();
+            boolean changed = false;
+            for (int i = 0; i < matrix.length; i++) {
+                if (isManagedStaticItem(matrix[i])) {
+                    matrix[i] = null;
+                    changed = true;
+                }
+            }
+            if (changed) {
+                craftingInventory.setResult(null);
+                craftingInventory.setMatrix(matrix);
+            }
+            return;
+        }
+        for (int slot : CRAFTING_RAW_SLOTS) {
+            if (slot >= 0 && slot < top.getSize()) {
+                ItemStack current = top.getItem(slot);
+                if (isManagedStaticItem(current)) {
+                    top.setItem(slot, null);
+                }
+            }
+        }
+    }
+
+
     private static boolean isManagedCraftingRawSlot(int rawSlot) {
         for (int slot : CRAFTING_RAW_SLOTS) {
             if (slot == rawSlot) {
@@ -279,6 +314,20 @@ public class StaticItemListener implements Listener {
         if (isManagedStaticItem(curr)) {
             event.setCancelled(true);
         }
+    }
+
+    @EventHandler
+    public void onInventoryClose(InventoryCloseEvent event) {
+        if (!(event.getPlayer() instanceof Player player)) {
+            return;
+        }
+        if (!isCraftingMenuContext(event.getView())) {
+            return;
+        }
+        if (shouldSkipCraftingMenu(player)) {
+            return;
+        }
+        clearCraftingMenuItems(event.getView());
     }
 
     @EventHandler
