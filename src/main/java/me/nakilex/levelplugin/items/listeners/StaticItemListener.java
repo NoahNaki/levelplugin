@@ -1,5 +1,9 @@
 package me.nakilex.levelplugin.items.listeners;
 
+import com.comphenix.protocol.PacketType;
+import com.comphenix.protocol.ProtocolLibrary;
+import com.comphenix.protocol.ProtocolManager;
+import com.comphenix.protocol.events.PacketContainer;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.player.profile.ProfileEntryUtil;
 import me.nakilex.levelplugin.server.ServerSelectionManager;
@@ -8,24 +12,22 @@ import me.nakilex.levelplugin.utils.WorldExclusionUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
-import org.bukkit.event.Event;
 import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
-import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerSwapHandItemsEvent;
-import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-
 
 public class StaticItemListener implements Listener {
 
@@ -36,10 +38,9 @@ public class StaticItemListener implements Listener {
     private static final ItemStack STATIC_CODEX;          // Spyglass (Codex)
     private static final ItemStack STATIC_SETTINGS;       // Comparator (Settings)
     private static final int[] CRAFTING_RAW_SLOTS = {1, 2, 3, 4};
-
+    private static final ProtocolManager PROTOCOL_MANAGER = initProtocolManager();
 
     static {
-        // --- Stats Viewer (Nether Star) ---
         STATIC_ITEM = new ItemStack(Material.NETHER_STAR);
         ItemMeta statsMeta = STATIC_ITEM.getItemMeta();
         if (statsMeta != null) {
@@ -48,7 +49,6 @@ public class StaticItemListener implements Listener {
             STATIC_ITEM.setItemMeta(statsMeta);
         }
 
-        // --- Horse Spawner (Saddle) ---
         STATIC_HORSE_SADDLE = new ItemStack(Material.SADDLE);
         ItemMeta horseMeta = STATIC_HORSE_SADDLE.getItemMeta();
         if (horseMeta != null) {
@@ -57,7 +57,6 @@ public class StaticItemListener implements Listener {
             STATIC_HORSE_SADDLE.setItemMeta(horseMeta);
         }
 
-        // --- Quest Book (must match your BetonQuest item) ---
         STATIC_QUEST_BOOK = new ItemStack(Material.BOOK);
         ItemMeta bookMeta = STATIC_QUEST_BOOK.getItemMeta();
         if (bookMeta != null) {
@@ -66,7 +65,6 @@ public class StaticItemListener implements Listener {
             STATIC_QUEST_BOOK.setItemMeta(bookMeta);
         }
 
-        // --- Server Selector (Compass) ---
         STATIC_COMPASS = new ItemStack(Material.COMPASS);
         ItemMeta compassMeta = STATIC_COMPASS.getItemMeta();
         if (compassMeta != null) {
@@ -75,7 +73,6 @@ public class StaticItemListener implements Listener {
             STATIC_COMPASS.setItemMeta(compassMeta);
         }
 
-        // --- Codex (Spyglass) ---
         STATIC_CODEX = new ItemStack(Material.SPYGLASS);
         ItemMeta codexMeta = STATIC_CODEX.getItemMeta();
         if (codexMeta != null) {
@@ -84,13 +81,20 @@ public class StaticItemListener implements Listener {
             STATIC_CODEX.setItemMeta(codexMeta);
         }
 
-        // --- Settings (Comparator) ---
         STATIC_SETTINGS = new ItemStack(Material.COMPARATOR);
         ItemMeta settingsMeta = STATIC_SETTINGS.getItemMeta();
         if (settingsMeta != null) {
             settingsMeta.setDisplayName(ChatColor.AQUA + "Settings");
             settingsMeta.setLore(TooltipUtil.clickInstructions(null, "to configure gameplay options."));
             STATIC_SETTINGS.setItemMeta(settingsMeta);
+        }
+    }
+
+    private static ProtocolManager initProtocolManager() {
+        try {
+            return ProtocolLibrary.getProtocolManager();
+        } catch (Throwable ignored) {
+            return null;
         }
     }
 
@@ -105,65 +109,23 @@ public class StaticItemListener implements Listener {
         );
     }
 
-    /**
-     * Determine if the provided item is one of the static menu items.
-     */
     public static boolean isStaticItem(ItemStack item) {
-        if (item == null) return false;
-        return item.isSimilar(STATIC_ITEM)
-                || item.isSimilar(STATIC_HORSE_SADDLE)
-                || item.isSimilar(STATIC_QUEST_BOOK)
-                || item.isSimilar(STATIC_COMPASS)
-                || item.isSimilar(STATIC_CODEX)
-                || item.isSimilar(STATIC_SETTINGS);
+        return isManagedStaticItem(item);
     }
 
-    /**
-     * Give the standard static items to the player's loadout.
-     */
     public static void giveStaticItems(Player player) {
         player.getInventory().setItem(6, STATIC_HORSE_SADDLE.clone());
     }
 
-    private static ItemStack[] getCraftingMenuItems() {
-        return new ItemStack[] {
-                STATIC_ITEM.clone(),
-                STATIC_QUEST_BOOK.clone(),
-                STATIC_CODEX.clone(),
-                STATIC_SETTINGS.clone()
+    private static ItemStack getCraftingMenuItem(int rawSlot) {
+        return switch (rawSlot) {
+            case 1 -> STATIC_ITEM.clone();
+            case 2 -> STATIC_QUEST_BOOK.clone();
+            case 3 -> STATIC_CODEX.clone();
+            case 4 -> STATIC_SETTINGS.clone();
+            default -> null;
         };
     }
-
-    private static void applyCraftingMenuItems(Player player) {
-        applyCraftingMenuItems(player, player != null ? player.getOpenInventory() : null);
-    }
-
-    private static void applyCraftingMenuItems(Player player, InventoryView view) {
-        if (player == null || shouldSkipCraftingMenu(player) || !isCraftingMenuContext(view)) {
-            return;
-        }
-        ItemStack[] menuItems = getCraftingMenuItems();
-        int limit = Math.min(CRAFTING_RAW_SLOTS.length, menuItems.length);
-        for (int i = 0; i < limit; i++) {
-            int slot = CRAFTING_RAW_SLOTS[i];
-            view.getTopInventory().setItem(slot, menuItems[i]);
-        }
-        player.setItemOnCursor(null);
-    }
-
-
-    private static void clearCraftingMenuItems(InventoryView view) {
-        if (!isCraftingMenuContext(view)) {
-            return;
-        }
-        for (int slot : CRAFTING_RAW_SLOTS) {
-            ItemStack item = view.getTopInventory().getItem(slot);
-            if (isManagedStaticItem(item)) {
-                view.getTopInventory().setItem(slot, null);
-            }
-        }
-    }
-
 
     private static boolean isManagedCraftingRawSlot(int rawSlot) {
         for (int slot : CRAFTING_RAW_SLOTS) {
@@ -191,6 +153,46 @@ public class StaticItemListener implements Listener {
         return manager != null && manager.isHubWorld(player.getWorld());
     }
 
+    private static void sendVirtualCraftingSetSlot(Player player, int rawSlot, ItemStack item) {
+        if (player == null || PROTOCOL_MANAGER == null) {
+            return;
+        }
+        try {
+            PacketContainer packet = PROTOCOL_MANAGER.createPacket(PacketType.Play.Server.SET_SLOT);
+            int ints = packet.getIntegers().size();
+            if (ints >= 3) {
+                packet.getIntegers().write(0, 0);      // container id (player inventory)
+                packet.getIntegers().write(1, 0);      // state id
+                packet.getIntegers().write(2, rawSlot);
+            } else if (ints == 2) {
+                packet.getIntegers().write(0, 0);
+                packet.getIntegers().write(1, rawSlot);
+            }
+            packet.getItemModifier().write(0, item);
+            PROTOCOL_MANAGER.sendServerPacket(player, packet);
+        } catch (Exception ignored) {
+        }
+    }
+
+    private static void sendVirtualCraftingMenu(Player player, InventoryView view) {
+        if (player == null || shouldSkipCraftingMenu(player) || !isCraftingMenuContext(view)) {
+            return;
+        }
+        for (int slot : CRAFTING_RAW_SLOTS) {
+            sendVirtualCraftingSetSlot(player, slot, getCraftingMenuItem(slot));
+        }
+        player.setItemOnCursor(null);
+    }
+
+    private static void clearVirtualCraftingMenu(Player player) {
+        if (player == null) {
+            return;
+        }
+        for (int slot : CRAFTING_RAW_SLOTS) {
+            sendVirtualCraftingSetSlot(player, slot, null);
+        }
+    }
+
     private static void scheduleCraftingMenuSync(Player player) {
         if (player == null || shouldSkipCraftingMenu(player)) {
             return;
@@ -205,7 +207,7 @@ public class StaticItemListener implements Listener {
                 if (!player.isOnline()) {
                     return;
                 }
-                applyCraftingMenuItems(player, player.getOpenInventory());
+                sendVirtualCraftingMenu(player, player.getOpenInventory());
                 player.updateInventory();
             }, delay);
         }
@@ -226,19 +228,7 @@ public class StaticItemListener implements Listener {
                 player.getInventory().setItem(i, null);
             }
         }
-    }
-
-
-    private static void sanitizeManagedStaticItems(Player player) {
-        if (player == null) {
-            return;
-        }
-        for (int i = 0; i < player.getInventory().getSize(); i++) {
-            ItemStack item = player.getInventory().getItem(i);
-            if (isManagedStaticItem(item)) {
-                player.getInventory().setItem(i, null);
-            }
-        }
+        clearVirtualCraftingMenu(player);
     }
 
     public static void applyWorldLoadout(Player player) {
@@ -276,7 +266,7 @@ public class StaticItemListener implements Listener {
             return;
         }
         player.setItemOnCursor(null);
-        applyCraftingMenuItems(player, event.getView());
+        sendVirtualCraftingMenu(player, event.getView());
         player.updateInventory();
         scheduleCraftingMenuSync(player);
     }
@@ -290,12 +280,14 @@ public class StaticItemListener implements Listener {
         if (isCraftingMenuContext(event.getView()) && isManagedCraftingRawSlot(event.getRawSlot())) {
             event.setCancelled(true);
             event.setResult(Event.Result.DENY);
-            ItemStack menuItem = event.getView().getTopInventory().getItem(event.getRawSlot());
-            if ((event.getCursor() == null || event.getCursor().getType().isAir()) && isManagedStaticItem(menuItem)) {
-                handleStaticAction(player, menuItem);
-            }
             if (event.getCursor() != null && !event.getCursor().getType().isAir()) {
                 event.setCursor(null);
+            }
+            if ((event.getCursor() == null || event.getCursor().getType().isAir())) {
+                ItemStack menuItem = getCraftingMenuItem(event.getRawSlot());
+                if (menuItem != null) {
+                    handleStaticAction(player, menuItem);
+                }
             }
             scheduleCraftingMenuSync(player);
             return;
@@ -308,26 +300,15 @@ public class StaticItemListener implements Listener {
     }
 
     @EventHandler
-    public void onInventoryClose(InventoryCloseEvent event) {
+    public void onInventoryClose(org.bukkit.event.inventory.InventoryCloseEvent event) {
         if (!(event.getPlayer() instanceof Player player)) {
             return;
         }
         if (!isCraftingMenuContext(event.getView()) || shouldSkipCraftingMenu(player)) {
             return;
         }
-        Main main = Main.getInstance();
-        if (main == null) {
-            return;
-        }
-        clearCraftingMenuItems(event.getView());
-        main.getServer().getScheduler().runTask(main, () -> {
-            if (!player.isOnline()) {
-                return;
-            }
-            player.setItemOnCursor(null);
-            sanitizeManagedStaticItems(player);
-            applyWorldLoadout(player);
-        });
+        player.setItemOnCursor(null);
+        clearVirtualCraftingMenu(player);
     }
 
     @EventHandler
@@ -351,7 +332,7 @@ public class StaticItemListener implements Listener {
     public void onPlayerDropItem(PlayerDropItemEvent event) {
         ItemStack dropped = event.getItemDrop().getItemStack();
         if (isManagedStaticItem(dropped)
-            || me.nakilex.levelplugin.items.utils.ItemUtil.isSoulbound(dropped)) {
+                || me.nakilex.levelplugin.items.utils.ItemUtil.isSoulbound(dropped)) {
             event.setCancelled(true);
         }
     }
@@ -377,7 +358,6 @@ public class StaticItemListener implements Listener {
             handleStaticAction(player, inHand);
             event.setCancelled(true);
         }
-
     }
 
     private static void handleStaticAction(Player player, ItemStack item) {
