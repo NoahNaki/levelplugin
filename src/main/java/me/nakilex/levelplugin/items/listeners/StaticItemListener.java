@@ -18,6 +18,7 @@ import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerSwapHandItemsEvent;
+import org.bukkit.inventory.CraftingInventory;
 import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
@@ -139,7 +140,14 @@ public class StaticItemListener implements Listener {
         if (top == null || top.getType() != InventoryType.CRAFTING) {
             return;
         }
+
         ItemStack[] menuItems = getCraftingMenuItems();
+        if (top instanceof CraftingInventory craftingInventory) {
+            craftingInventory.setResult(null);
+            craftingInventory.setMatrix(menuItems);
+            return;
+        }
+
         int limit = Math.min(CRAFTING_RAW_SLOTS.length, menuItems.length);
         for (int i = 0; i < limit; i++) {
             int slot = CRAFTING_RAW_SLOTS[i];
@@ -226,6 +234,12 @@ public class StaticItemListener implements Listener {
             if (event.getSlotType() == InventoryType.SlotType.CRAFTING) {
                 handleStaticAction((Player) event.getWhoClicked(), curr);
             }
+            return;
+        }
+
+        if (event.getSlotType() == InventoryType.SlotType.CRAFTING
+                && event.getView().getTopInventory().getType() == InventoryType.CRAFTING) {
+            applyCraftingMenuItems(event.getView());
         }
     }
 
