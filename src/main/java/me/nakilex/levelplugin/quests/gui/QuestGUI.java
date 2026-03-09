@@ -45,6 +45,7 @@ public class QuestGUI {
     private static final int ITEMS_PER_PAGE = QUEST_SLOTS.length;
     private static final int PREV_PAGE = 45;
     private static final int NEXT_PAGE = 53;
+    private static final int BACK_SLOT = 46;
     private static final int FILTER_SLOT = 48;
     private static final int REPEAT_FILTER_SLOT = 49;
     private static final int SORT_SLOT = 50;
@@ -482,6 +483,9 @@ public class QuestGUI {
                     context -> GuiUtil.getNexoItem("arrow_right", ChatColor.GREEN + "Next"),
                     (click, context) -> openQuestGUI(context.player(), questManager, page + 1)));
         }
+        widgets.add(new ActionWidget(BACK_SLOT,
+                context -> GuiUtil.getNexoItem("arrow_left2", ChatColor.GRAY + "Back"),
+                (click, context) -> GuiUtil.openPlayerInventory(context.player())));
         widgets.add(new ActionWidget(FILTER_SLOT,
                 context -> createFilterButton(filter),
                 (click, context) -> {

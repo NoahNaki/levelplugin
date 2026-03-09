@@ -229,7 +229,7 @@ public class SettingsGUI implements Listener {
         List<GuiWidget> widgets = new ArrayList<>();
         widgets.add(new ActionWidget(0,
                 context -> GuiUtil.getNexoItem("arrow_left2", "§7Back"),
-                (click, context) -> context.player().closeInventory()));
+                (click, context) -> GuiUtil.openPlayerInventory(context.player())));
         widgets.add(new ActionWidget(FILTER_SLOT,
                 context -> createFilterItem(filter),
                 (click, context) -> cycleFilter(context.player())));

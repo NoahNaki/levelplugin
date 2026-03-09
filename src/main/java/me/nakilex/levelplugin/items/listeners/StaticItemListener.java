@@ -1,5 +1,9 @@
 package me.nakilex.levelplugin.items.listeners;
 
+import com.comphenix.protocol.PacketType;
+import com.comphenix.protocol.ProtocolLibrary;
+import com.comphenix.protocol.ProtocolManager;
+import com.comphenix.protocol.events.PacketContainer;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.player.attributes.gui.StatsInventory;
 import me.nakilex.levelplugin.player.profile.ProfileEntryUtil;
@@ -47,6 +51,7 @@ public class StaticItemListener implements Listener {
     private static final int[] CRAFTING_RAW_SLOTS = {0, 1, 2, 3, 4};
     private static final Set<UUID> PLAYERS_NEEDING_CRAFTING_MENU_REFRESH = ConcurrentHashMap.newKeySet();
     private static volatile boolean craftingMenuRefreshTaskStarted;
+    private static final ProtocolManager PROTOCOL_MANAGER = initProtocolManager();
 
     static {
         STATIC_LIFE_SKILL = StatsInventory.createLifeSkillButton();
@@ -92,9 +97,48 @@ public class StaticItemListener implements Listener {
         }
     }
 
+    private static ProtocolManager initProtocolManager() {
+        try {
+            return ProtocolLibrary.getProtocolManager();
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
+    private static void syncCraftingResultSlot(Player player, ItemStack item) {
+        if (player == null || PROTOCOL_MANAGER == null) {
+            return;
+        }
+        try {
+            PacketContainer packet = PROTOCOL_MANAGER.createPacket(PacketType.Play.Server.SET_SLOT);
+            int ints = packet.getIntegers().size();
+            if (ints >= 3) {
+                packet.getIntegers().write(0, 0);
+                packet.getIntegers().write(1, 0);
+                packet.getIntegers().write(2, 0);
+            } else if (ints == 2) {
+                packet.getIntegers().write(0, 0);
+                packet.getIntegers().write(1, 0);
+            }
+            packet.getItemModifier().write(0, item);
+            PROTOCOL_MANAGER.sendServerPacket(player, packet);
+        } catch (Exception ignored) {
+        }
+    }
+
+    private static boolean isStatsViewerHead(ItemStack item) {
+        if (item == null || item.getType() != Material.PLAYER_HEAD || !item.hasItemMeta()) {
+            return false;
+        }
+        ItemMeta meta = item.getItemMeta();
+        return meta != null && meta.hasDisplayName()
+                && ChatColor.stripColor(meta.getDisplayName()).equalsIgnoreCase("Stats Viewer");
+    }
+
     private static boolean isManagedStaticItem(ItemStack item) {
         return item != null && (
-                item.isSimilar(STATIC_LIFE_SKILL)
+                isStatsViewerHead(item)
+                        || item.isSimilar(STATIC_LIFE_SKILL)
                         || item.isSimilar(STATIC_HORSE_SADDLE)
                         || item.isSimilar(STATIC_QUEST_BOOK)
                         || item.isSimilar(STATIC_COMPASS)
@@ -158,8 +202,12 @@ public class StaticItemListener implements Listener {
             return;
         }
         for (int slot : CRAFTING_RAW_SLOTS) {
+            if (slot == 0) {
+                continue;
+            }
             view.getTopInventory().setItem(slot, applyMenu ? getCraftingMenuItem(player, slot) : null);
         }
+        syncCraftingResultSlot(player, applyMenu ? getCraftingMenuItem(player, 0) : null);
     }
 
     private static void refreshCraftingMenu(Player player) {
@@ -400,7 +448,7 @@ public class StaticItemListener implements Listener {
     }
 
     private static void handleStaticAction(Player player, ItemStack item, boolean delayOneTick) {
-        if (item.getType() == Material.PLAYER_HEAD) {
+        if (isStatsViewerHead(item)) {
             runStaticAction(player, delayOneTick, () -> player.performCommand("stats"));
             return;
         }

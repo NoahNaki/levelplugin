@@ -6,6 +6,7 @@ import me.nakilex.levelplugin.player.attributes.gui.LifeSkillRewardsGUI;
 import me.nakilex.levelplugin.player.attributes.gui.StatsInventory;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.classes.essence.gui.ClassEssenceGUI;
+import me.nakilex.levelplugin.utils.GuiUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.Sound;
@@ -91,6 +92,11 @@ public class StatsMenuListener implements Listener {
 
             if (displayName.equalsIgnoreCase("Life Skills")) {
                 LifeSkillGUI.open(player);
+                return;
+            }
+
+            if (displayName.equalsIgnoreCase("Back")) {
+                GuiUtil.openPlayerInventory(player);
                 return;
             }
 

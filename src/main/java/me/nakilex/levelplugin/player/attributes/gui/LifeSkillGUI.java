@@ -136,7 +136,7 @@ public final class LifeSkillGUI {
 
         widgets.add(new ActionWidget(40,
                 context -> createBackButton(),
-                (click, context) -> context.player().closeInventory()));
+                (click, context) -> GuiUtil.openPlayerInventory(context.player())));
 
         return widgets;
     }
