@@ -70,6 +70,19 @@ import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.BoundingBox;
 
 public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
+    private static final String[] RELIQUARY_NORMAL_MOBS = {
+            "moss_zombie",
+            "cave_stalker",
+            "crypt_skeleton",
+            "forest_slime"
+    };
+    private static final String[] RELIQUARY_MINIBOSS_MOBS = {
+            "cursed_archer",
+            "ember_witch"
+    };
+    private static final String[] RELIQUARY_BOSS_MOBS = {
+            "ember_witch"
+    };
     private static final String DISPLAY = "Crimson Reliquary";
     private static final String KEY = DungeonManager.normalizeKey(DISPLAY);
     private static final String SOURCE_WORLD = "flatland";
@@ -840,27 +853,52 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
     }
 
     private void queueMobs(InstanceState state, TemplateMarkers markers) {
-        String[] mobs = new String[]{
-                "Nocsy_Bokoblin_Shaman",
-                "Nocsy_Bokoblin_Swordsman",
-                "Nocsy_Bokoblin_Warrior"
-        };
+        String[] mobs = RELIQUARY_NORMAL_MOBS;
         plugin.getLogger().info("[Dungeon] queuing mob markers: normal=" + markers.normalMarkers.size()
                 + " miniboss=" + markers.miniBossMarkers.size() + " boss=" + markers.bossMarkers.size());
         for (Location magenta : markers.normalMarkers) {
             for (int i = 0; i < 5; i++) {
-                String mob = mobs[ThreadLocalRandom.current().nextInt(mobs.length)];
+                String mob = pickConfiguredMobId(mobs);
+                if (mob == null) {
+                    continue;
+                }
                 Location spread = magenta.clone().add(ThreadLocalRandom.current().nextDouble(-0.7, 0.7), 0,
                         ThreadLocalRandom.current().nextDouble(-0.7, 0.7));
                 state.mobMarkers.add(new MobMarker(spread, mob));
             }
         }
         for (Location cyan : markers.miniBossMarkers) {
-            state.mobMarkers.add(new MobMarker(cyan, "LRD_eldric"));
+            String mob = pickConfiguredMobId(RELIQUARY_MINIBOSS_MOBS);
+            if (mob != null) {
+                state.mobMarkers.add(new MobMarker(cyan, mob));
+            }
         }
         for (Location boss : markers.bossMarkers) {
-            state.mobMarkers.add(new MobMarker(boss, "MSO_Demon_General"));
+            String mob = pickConfiguredMobId(RELIQUARY_BOSS_MOBS);
+            if (mob != null) {
+                state.mobMarkers.add(new MobMarker(boss, mob));
+            }
         }
+    }
+
+    private String pickConfiguredMobId(String[] candidates) {
+        if (candidates == null || candidates.length == 0) {
+            return null;
+        }
+        CustomMobManager manager = plugin.getCustomMobManager();
+        if (manager == null) {
+            return null;
+        }
+        java.util.List<String> valid = new java.util.ArrayList<>();
+        for (String candidate : candidates) {
+            if (candidate != null && manager.getDefinition(candidate).isPresent()) {
+                valid.add(candidate);
+            }
+        }
+        if (valid.isEmpty()) {
+            return null;
+        }
+        return valid.get(ThreadLocalRandom.current().nextInt(valid.size()));
     }
 
     private void startMobSpawner(InstanceState state) {
@@ -919,7 +957,7 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
                         entity.addScoreboardTag(DUNGEON_MOB_TAG);
                         entity.setRemoveWhenFarAway(false);
                         entity.setPersistent(true);
-                        if (marker.mobId.equals("MSO_Demon_General")) {
+                        if (java.util.Arrays.asList(RELIQUARY_BOSS_MOBS).contains(marker.mobId)) {
                             entity.addScoreboardTag("dungeon_boss");
                         }
                         state.activeMobIds.add(entity.getUniqueId());

@@ -76,7 +76,8 @@ public class CustomMobNameManager implements Listener {
         String prettyType = ChatColor.stripColor(instance.definition().displayName());
         ChatColor nameColor = instance.definition().boss() ? ChatColor.YELLOW : ChatColor.WHITE;
         String displayName = MobNameUtil.buildHealthName(instance.level(), nameColor, prettyType, currentHP, maxHP);
-        entity.setCustomName(displayName);
+        // Keep vanilla nameplate empty; we only want the hologram display.
+        entity.setCustomName(null);
         entity.setCustomNameVisible(false);
         entity.setMetadata("lp_numeric_hp", new FixedMetadataValue(plugin, true));
         EntityTextDisplay disp = healthDisplays.computeIfAbsent(entity.getUniqueId(),
