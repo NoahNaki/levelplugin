@@ -254,16 +254,16 @@ public final class GuiUtil {
         if (player == null) {
             return;
         }
-        player.closeInventory();
         Main main = Main.getInstance();
         if (main == null) {
+            player.openInventory(player.getInventory());
             return;
         }
-        Bukkit.getScheduler().runTaskLater(main, () -> {
+        Bukkit.getScheduler().runTask(main, () -> {
             if (player.isOnline()) {
                 player.openInventory(player.getInventory());
             }
-        }, 1L);
+        });
     }
 
     /** Compare normalized titles by prefix, useful for dynamic counters in GUI titles. */

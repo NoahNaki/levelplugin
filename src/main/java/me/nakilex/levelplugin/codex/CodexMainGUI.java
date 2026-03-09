@@ -81,7 +81,7 @@ public class CodexMainGUI implements Listener {
         if (action != null) {
             action.accept(player);
         } else {
-            player.closeInventory();
+            GuiUtil.openPlayerInventory(player);
         }
     }
 

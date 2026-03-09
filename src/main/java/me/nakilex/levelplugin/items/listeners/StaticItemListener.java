@@ -5,6 +5,7 @@ import com.comphenix.protocol.ProtocolLibrary;
 import com.comphenix.protocol.ProtocolManager;
 import com.comphenix.protocol.events.PacketContainer;
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.player.attributes.gui.LifeSkillGUI;
 import me.nakilex.levelplugin.player.attributes.gui.StatsInventory;
 import me.nakilex.levelplugin.player.profile.ProfileEntryUtil;
 import me.nakilex.levelplugin.server.ServerSelectionManager;
@@ -202,9 +203,6 @@ public class StaticItemListener implements Listener {
             return;
         }
         for (int slot : CRAFTING_RAW_SLOTS) {
-            if (slot == 0) {
-                continue;
-            }
             view.getTopInventory().setItem(slot, applyMenu ? getCraftingMenuItem(player, slot) : null);
         }
         syncCraftingResultSlot(player, applyMenu ? getCraftingMenuItem(player, 0) : null);
@@ -453,7 +451,7 @@ public class StaticItemListener implements Listener {
             return;
         }
         if (item.isSimilar(STATIC_LIFE_SKILL)) {
-            runStaticAction(player, delayOneTick, () -> player.performCommand("lifeskill"));
+            runStaticAction(player, delayOneTick, () -> LifeSkillGUI.open(player));
             return;
         }
         if (item.isSimilar(STATIC_HORSE_SADDLE)) {
