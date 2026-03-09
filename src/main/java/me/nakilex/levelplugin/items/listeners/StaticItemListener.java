@@ -12,6 +12,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
@@ -27,6 +28,8 @@ public class StaticItemListener implements Listener {
     private static final ItemStack STATIC_HORSE_SADDLE;   // Saddle (Horse Spawner)
     private static final ItemStack STATIC_QUEST_BOOK;     // Book (Quest Log)
     private static final ItemStack STATIC_COMPASS;        // Compass (Server Selector)
+    private static final ItemStack STATIC_CODEX;          // Spyglass (Codex)
+    private static final ItemStack STATIC_SETTINGS;       // Comparator (Settings)
 
     static {
         // --- Stats Viewer (Nether Star) ---
@@ -64,6 +67,35 @@ public class StaticItemListener implements Listener {
             compassMeta.setLore(TooltipUtil.clickInstructions(null, "to choose a server."));
             STATIC_COMPASS.setItemMeta(compassMeta);
         }
+
+        // --- Codex (Spyglass) ---
+        STATIC_CODEX = new ItemStack(Material.SPYGLASS);
+        ItemMeta codexMeta = STATIC_CODEX.getItemMeta();
+        if (codexMeta != null) {
+            codexMeta.setDisplayName(ChatColor.YELLOW + "Codex");
+            codexMeta.setLore(TooltipUtil.clickInstructions(null, "to review your discoveries."));
+            STATIC_CODEX.setItemMeta(codexMeta);
+        }
+
+        // --- Settings (Comparator) ---
+        STATIC_SETTINGS = new ItemStack(Material.COMPARATOR);
+        ItemMeta settingsMeta = STATIC_SETTINGS.getItemMeta();
+        if (settingsMeta != null) {
+            settingsMeta.setDisplayName(ChatColor.AQUA + "Settings");
+            settingsMeta.setLore(TooltipUtil.clickInstructions(null, "to configure gameplay options."));
+            STATIC_SETTINGS.setItemMeta(settingsMeta);
+        }
+    }
+
+    private static boolean isManagedStaticItem(ItemStack item) {
+        return item != null && (
+                item.isSimilar(STATIC_ITEM)
+                        || item.isSimilar(STATIC_HORSE_SADDLE)
+                        || item.isSimilar(STATIC_QUEST_BOOK)
+                        || item.isSimilar(STATIC_COMPASS)
+                        || item.isSimilar(STATIC_CODEX)
+                        || item.isSimilar(STATIC_SETTINGS)
+        );
     }
 
     /**
@@ -74,7 +106,9 @@ public class StaticItemListener implements Listener {
         return item.isSimilar(STATIC_ITEM)
                 || item.isSimilar(STATIC_HORSE_SADDLE)
                 || item.isSimilar(STATIC_QUEST_BOOK)
-                || item.isSimilar(STATIC_COMPASS);
+                || item.isSimilar(STATIC_COMPASS)
+                || item.isSimilar(STATIC_CODEX)
+                || item.isSimilar(STATIC_SETTINGS);
     }
 
     /**
@@ -82,8 +116,19 @@ public class StaticItemListener implements Listener {
      */
     public static void giveStaticItems(Player player) {
         player.getInventory().setItem(6, STATIC_HORSE_SADDLE.clone());
-        player.getInventory().setItem(7, STATIC_QUEST_BOOK.clone());
-        player.getInventory().setItem(8, STATIC_ITEM.clone());
+        setCraftingMenuItems(player);
+    }
+
+    private static void setCraftingMenuItems(Player player) {
+        ItemStack[] extra = player.getInventory().getExtraContents();
+        int size = Math.max(extra.length, 4);
+        ItemStack[] updated = new ItemStack[size];
+        System.arraycopy(extra, 0, updated, 0, extra.length);
+        updated[0] = STATIC_ITEM.clone();
+        updated[1] = STATIC_QUEST_BOOK.clone();
+        updated[2] = STATIC_CODEX.clone();
+        updated[3] = STATIC_SETTINGS.clone();
+        player.getInventory().setExtraContents(updated);
     }
 
     public static void giveHubItems(Player player) {
@@ -100,6 +145,17 @@ public class StaticItemListener implements Listener {
             if (isStaticItem(item)) {
                 player.getInventory().setItem(i, null);
             }
+        }
+        ItemStack[] extra = player.getInventory().getExtraContents();
+        boolean changed = false;
+        for (int i = 0; i < extra.length; i++) {
+            if (isManagedStaticItem(extra[i])) {
+                extra[i] = null;
+                changed = true;
+            }
+        }
+        if (changed) {
+            player.getInventory().setExtraContents(extra);
         }
     }
 
@@ -133,22 +189,19 @@ public class StaticItemListener implements Listener {
     public void onInventoryClick(InventoryClickEvent event) {
         ItemStack curr = event.getCurrentItem();
         if (curr != null && (
-            curr.isSimilar(STATIC_ITEM) ||
-                curr.isSimilar(STATIC_HORSE_SADDLE) ||
-                curr.isSimilar(STATIC_QUEST_BOOK) ||
-                curr.isSimilar(STATIC_COMPASS)
+            isManagedStaticItem(curr)
         )) {
             event.setCancelled(true);
+            if (event.getSlotType() == InventoryType.SlotType.CRAFTING) {
+                handleStaticAction((Player) event.getWhoClicked(), curr);
+            }
         }
     }
 
     @EventHandler
     public void onPlayerDropItem(PlayerDropItemEvent event) {
         ItemStack dropped = event.getItemDrop().getItemStack();
-        if (dropped.isSimilar(STATIC_ITEM)
-            || dropped.isSimilar(STATIC_HORSE_SADDLE)
-            || dropped.isSimilar(STATIC_QUEST_BOOK)
-            || dropped.isSimilar(STATIC_COMPASS)
+        if (isManagedStaticItem(dropped)
             || me.nakilex.levelplugin.items.utils.ItemUtil.isSoulbound(dropped)) {
             event.setCancelled(true);
         }
@@ -158,16 +211,7 @@ public class StaticItemListener implements Listener {
     public void onPlayerSwapHandItems(PlayerSwapHandItemsEvent event) {
         ItemStack m = event.getMainHandItem();
         ItemStack o = event.getOffHandItem();
-        if ((m != null && (
-            m.isSimilar(STATIC_ITEM) ||
-                m.isSimilar(STATIC_HORSE_SADDLE) ||
-                m.isSimilar(STATIC_QUEST_BOOK) ||
-                m.isSimilar(STATIC_COMPASS)))
-            || (o != null && (
-            o.isSimilar(STATIC_ITEM) ||
-                o.isSimilar(STATIC_HORSE_SADDLE) ||
-                o.isSimilar(STATIC_QUEST_BOOK) ||
-                o.isSimilar(STATIC_COMPASS)))) {
+        if (isManagedStaticItem(m) || isManagedStaticItem(o)) {
             event.setCancelled(true);
         }
     }
@@ -180,26 +224,39 @@ public class StaticItemListener implements Listener {
         Player player = event.getPlayer();
         ItemStack inHand = player.getInventory().getItemInMainHand();
 
-        if (inHand != null && inHand.isSimilar(STATIC_ITEM)) {
+        if (isManagedStaticItem(inHand)) {
+            handleStaticAction(player, inHand);
+            event.setCancelled(true);
+        }
+
+    }
+
+    private static void handleStaticAction(Player player, ItemStack item) {
+        if (item.isSimilar(STATIC_ITEM)) {
             player.performCommand("stats");
-            event.setCancelled(true);
-
-        } else if (inHand != null && inHand.isSimilar(STATIC_HORSE_SADDLE)) {
+            return;
+        }
+        if (item.isSimilar(STATIC_HORSE_SADDLE)) {
             player.performCommand("horse spawn");
-            event.setCancelled(true);
-
-        } else if (inHand != null && inHand.isSimilar(STATIC_QUEST_BOOK)) {
+            return;
+        }
+        if (item.isSimilar(STATIC_QUEST_BOOK)) {
             player.performCommand("quest");
-            event.setCancelled(true);
-
-        } else if (inHand != null && inHand.isSimilar(STATIC_COMPASS)) {
+            return;
+        }
+        if (item.isSimilar(STATIC_CODEX)) {
+            player.performCommand("codex");
+            return;
+        }
+        if (item.isSimilar(STATIC_SETTINGS)) {
+            player.performCommand("settings");
+            return;
+        }
+        if (item.isSimilar(STATIC_COMPASS)) {
             Main main = Main.getInstance();
             if (main != null && main.getServerSelectionManager() != null) {
                 main.getServerSelectionManager().openSelector(player);
             }
-            event.setCancelled(true);
-
         }
-
     }
 }
