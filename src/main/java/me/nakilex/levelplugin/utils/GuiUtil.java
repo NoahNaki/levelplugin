@@ -1,12 +1,11 @@
 package me.nakilex.levelplugin.utils;
 
 import com.nexomc.nexo.api.NexoItems;
-import me.nakilex.levelplugin.Main;
 import com.nexomc.nexo.items.ItemBuilder;
-import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
+import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -255,16 +254,7 @@ public final class GuiUtil {
             return;
         }
         player.closeInventory();
-        Main main = Main.getInstance();
-        if (main == null) {
-            player.openInventory(player.getInventory());
-            return;
-        }
-        Bukkit.getScheduler().runTaskLater(main, () -> {
-            if (player.isOnline()) {
-                player.openInventory(player.getInventory());
-            }
-        }, 1L);
+        player.openInventory(org.bukkit.Bukkit.createInventory(player, InventoryType.CRAFTING));
     }
 
     /** Compare normalized titles by prefix, useful for dynamic counters in GUI titles. */
