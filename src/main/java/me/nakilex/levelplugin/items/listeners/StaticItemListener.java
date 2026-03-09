@@ -5,6 +5,7 @@ import me.nakilex.levelplugin.player.profile.ProfileEntryUtil;
 import me.nakilex.levelplugin.server.ServerSelectionManager;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.WorldExclusionUtil;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -297,10 +298,12 @@ public class StaticItemListener implements Listener {
             if (event.getCursor() != null && !event.getCursor().getType().isAir()) {
                 event.setCursor(null);
             }
+            player.setItemOnCursor(null);
+            player.updateInventory();
             if ((event.getCursor() == null || event.getCursor().getType().isAir())) {
                 ItemStack menuItem = getCraftingMenuItem(event.getRawSlot());
                 if (menuItem != null) {
-                    handleStaticAction(player, menuItem);
+                    handleStaticAction(player, menuItem, true);
                 }
             }
             queueCraftingMenuRefresh(player);
@@ -370,37 +373,59 @@ public class StaticItemListener implements Listener {
         ItemStack inHand = player.getInventory().getItemInMainHand();
 
         if (isManagedStaticItem(inHand)) {
-            handleStaticAction(player, inHand);
+            handleStaticAction(player, inHand, false);
             event.setCancelled(true);
         }
     }
 
-    private static void handleStaticAction(Player player, ItemStack item) {
+    private static void runStaticAction(Player player, boolean delayOneTick, Runnable action) {
+        if (player == null || action == null) {
+            return;
+        }
+        if (!delayOneTick) {
+            action.run();
+            return;
+        }
+        Main main = Main.getInstance();
+        if (main == null) {
+            action.run();
+            return;
+        }
+        Bukkit.getScheduler().runTaskLater(main, () -> {
+            if (player.isOnline()) {
+                action.run();
+            }
+        }, 1L);
+    }
+
+    private static void handleStaticAction(Player player, ItemStack item, boolean delayOneTick) {
         if (item.isSimilar(STATIC_ITEM)) {
-            player.performCommand("stats");
+            runStaticAction(player, delayOneTick, () -> player.performCommand("stats"));
             return;
         }
         if (item.isSimilar(STATIC_HORSE_SADDLE)) {
-            player.performCommand("horse spawn");
+            runStaticAction(player, delayOneTick, () -> player.performCommand("horse spawn"));
             return;
         }
         if (item.isSimilar(STATIC_QUEST_BOOK)) {
-            player.performCommand("quest");
+            runStaticAction(player, delayOneTick, () -> player.performCommand("quest"));
             return;
         }
         if (item.isSimilar(STATIC_CODEX)) {
-            player.performCommand("codex");
+            runStaticAction(player, delayOneTick, () -> player.performCommand("codex"));
             return;
         }
         if (item.isSimilar(STATIC_SETTINGS)) {
-            player.performCommand("settings");
+            runStaticAction(player, delayOneTick, () -> player.performCommand("settings"));
             return;
         }
         if (item.isSimilar(STATIC_COMPASS)) {
-            Main main = Main.getInstance();
-            if (main != null && main.getServerSelectionManager() != null) {
-                main.getServerSelectionManager().openSelector(player);
-            }
+            runStaticAction(player, delayOneTick, () -> {
+                Main main = Main.getInstance();
+                if (main != null && main.getServerSelectionManager() != null) {
+                    main.getServerSelectionManager().openSelector(player);
+                }
+            });
         }
     }
 }
