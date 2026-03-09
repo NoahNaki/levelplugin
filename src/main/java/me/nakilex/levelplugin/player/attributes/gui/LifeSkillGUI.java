@@ -33,7 +33,7 @@ public final class LifeSkillGUI {
     }
 
     public static Inventory create(Player player) {
-        GuiBuilder builder = GuiBuilder.create(45, TITLE)
+        GuiBuilder builder = GuiBuilder.create(27, TITLE)
                 .filler(Material.GRAY_STAINED_GLASS_PANE)
                 .border();
 
@@ -74,7 +74,7 @@ public final class LifeSkillGUI {
         me.nakilex.levelplugin.player.woodcutting.managers.WoodcuttingManager woodcuttingManager = me.nakilex.levelplugin.player.woodcutting.managers.WoodcuttingManager.getInstance();
         List<GuiWidget> widgets = new ArrayList<>();
 
-        widgets.add(new ActionWidget(20,
+        widgets.add(new ActionWidget(10,
                 context -> createSkillItem(
                         "Mining",
                         Material.DIAMOND_PICKAXE,
@@ -89,7 +89,7 @@ public final class LifeSkillGUI {
                 ),
                 (click, context) -> LifeSkillRewardsGUI.open(context.player(), ToolDiscipline.MINING)));
 
-        widgets.add(new ActionWidget(22,
+        widgets.add(new ActionWidget(12,
                 context -> createSkillItem(
                         "Fishing",
                         Material.FISHING_ROD,
@@ -104,7 +104,7 @@ public final class LifeSkillGUI {
                 ),
                 (click, context) -> LifeSkillRewardsGUI.open(context.player(), ToolDiscipline.FISHING)));
 
-        widgets.add(new ActionWidget(24,
+        widgets.add(new ActionWidget(14,
                 context -> createSkillItem(
                         "Farming",
                         Material.GOLDEN_HOE,
@@ -119,7 +119,7 @@ public final class LifeSkillGUI {
                 ),
                 (click, context) -> LifeSkillRewardsGUI.open(context.player(), ToolDiscipline.FARMING)));
 
-        widgets.add(new ActionWidget(31,
+        widgets.add(new ActionWidget(16,
                 context -> createSkillItem(
                         "Woodcutting",
                         Material.DIAMOND_AXE,
@@ -134,7 +134,7 @@ public final class LifeSkillGUI {
                 ),
                 (click, context) -> LifeSkillRewardsGUI.open(context.player(), ToolDiscipline.WOODCUTTING)));
 
-        widgets.add(new ActionWidget(40,
+        widgets.add(new ActionWidget(22,
                 context -> createBackButton(),
                 (click, context) -> GuiUtil.openPlayerInventory(context.player())));
 
