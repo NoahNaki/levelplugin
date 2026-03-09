@@ -5,7 +5,6 @@ import me.nakilex.levelplugin.player.attributes.gui.LifeSkillGUI;
 import me.nakilex.levelplugin.player.attributes.gui.StatsInventory;
 import me.nakilex.levelplugin.player.profile.ProfileEntryUtil;
 import me.nakilex.levelplugin.server.ServerSelectionManager;
-import me.nakilex.levelplugin.utils.HeadUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.WorldExclusionUtil;
 import org.bukkit.Bukkit;
@@ -40,6 +39,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class StaticItemListener implements Listener {
 
+    private static final ItemStack STATIC_STATS_VIEWER;   // Nether Star (Stats Viewer)
     private static final ItemStack STATIC_LIFE_SKILL;     // Stone Pickaxe (Life Skills)
     private static final ItemStack STATIC_HORSE_SADDLE;   // Saddle (Horse Spawner)
     private static final ItemStack STATIC_QUEST_BOOK;     // Book (Quest Log)
@@ -51,6 +51,14 @@ public class StaticItemListener implements Listener {
     private static volatile boolean craftingMenuRefreshTaskStarted;
 
     static {
+        STATIC_STATS_VIEWER = new ItemStack(Material.NETHER_STAR);
+        ItemMeta statsMeta = STATIC_STATS_VIEWER.getItemMeta();
+        if (statsMeta != null) {
+            statsMeta.setDisplayName(ChatColor.AQUA + "Stats Viewer");
+            statsMeta.setLore(TooltipUtil.clickInstructions(null, "to view your stats."));
+            STATIC_STATS_VIEWER.setItemMeta(statsMeta);
+        }
+
         STATIC_LIFE_SKILL = StatsInventory.createLifeSkillButton();
 
         STATIC_HORSE_SADDLE = new ItemStack(Material.SADDLE);
@@ -94,18 +102,9 @@ public class StaticItemListener implements Listener {
         }
     }
 
-    private static boolean isStatsViewerHead(ItemStack item) {
-        if (item == null || item.getType() != Material.PLAYER_HEAD || !item.hasItemMeta()) {
-            return false;
-        }
-        ItemMeta meta = item.getItemMeta();
-        return meta != null && meta.hasDisplayName()
-                && ChatColor.stripColor(meta.getDisplayName()).equalsIgnoreCase("Stats Viewer");
-    }
-
     private static boolean isManagedStaticItem(ItemStack item) {
         return item != null && (
-                isStatsViewerHead(item)
+                item.isSimilar(STATIC_STATS_VIEWER)
                         || item.isSimilar(STATIC_LIFE_SKILL)
                         || item.isSimilar(STATIC_HORSE_SADDLE)
                         || item.isSimilar(STATIC_QUEST_BOOK)
@@ -125,18 +124,13 @@ public class StaticItemListener implements Listener {
 
     private static ItemStack getCraftingMenuItem(Player player, int rawSlot) {
         return switch (rawSlot) {
-            case 0 -> createStatsViewerHead(player);
+            case 0 -> STATIC_STATS_VIEWER.clone();
             case 1 -> STATIC_LIFE_SKILL.clone();
             case 2 -> STATIC_QUEST_BOOK.clone();
             case 3 -> STATIC_CODEX.clone();
             case 4 -> STATIC_SETTINGS.clone();
             default -> null;
         };
-    }
-
-    private static ItemStack createStatsViewerHead(Player player) {
-        return HeadUtil.createPlayerHead(player, ChatColor.AQUA + "Stats Viewer",
-                TooltipUtil.clickInstructions(null, "to view your stats."));
     }
 
     private static boolean isManagedCraftingRawSlot(int rawSlot) {
@@ -275,7 +269,9 @@ public class StaticItemListener implements Listener {
 
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
-        PLAYERS_NEEDING_CRAFTING_MENU_REFRESH.remove(event.getPlayer().getUniqueId());
+        Player player = event.getPlayer();
+        PLAYERS_NEEDING_CRAFTING_MENU_REFRESH.remove(player.getUniqueId());
+        clearStaticItems(player);
     }
 
     @EventHandler
@@ -417,7 +413,7 @@ public class StaticItemListener implements Listener {
     }
 
     private static void handleStaticAction(Player player, ItemStack item, boolean delayOneTick) {
-        if (isStatsViewerHead(item)) {
+        if (item.isSimilar(STATIC_STATS_VIEWER)) {
             runStaticAction(player, delayOneTick, () -> player.performCommand("stats"));
             return;
         }
