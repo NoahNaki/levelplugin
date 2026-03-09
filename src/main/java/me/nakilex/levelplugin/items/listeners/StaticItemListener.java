@@ -233,6 +233,19 @@ public class StaticItemListener implements Listener {
         clearCraftingMenuItems(player);
     }
 
+
+    private static void sanitizeManagedStaticItems(Player player) {
+        if (player == null) {
+            return;
+        }
+        for (int i = 0; i < player.getInventory().getSize(); i++) {
+            ItemStack item = player.getInventory().getItem(i);
+            if (isManagedStaticItem(item)) {
+                player.getInventory().setItem(i, null);
+            }
+        }
+    }
+
     public static void applyWorldLoadout(Player player) {
         if (player == null) {
             return;
@@ -268,6 +281,7 @@ public class StaticItemListener implements Listener {
             return;
         }
         applyCraftingMenuItems(player, event.getView());
+        player.updateInventory();
         scheduleCraftingMenuSync(player);
     }
 
@@ -302,10 +316,20 @@ public class StaticItemListener implements Listener {
         if (!(event.getPlayer() instanceof Player player)) {
             return;
         }
-        if (shouldSkipCraftingMenu(player)) {
+        if (!isCraftingMenuContext(event.getView()) || shouldSkipCraftingMenu(player)) {
             return;
         }
-        applyCraftingMenuItems(player);
+        Main main = Main.getInstance();
+        if (main == null) {
+            return;
+        }
+        main.getServer().getScheduler().runTask(main, () -> {
+            if (!player.isOnline()) {
+                return;
+            }
+            sanitizeManagedStaticItems(player);
+            applyWorldLoadout(player);
+        });
     }
 
     @EventHandler
