@@ -1,9 +1,5 @@
 package me.nakilex.levelplugin.items.listeners;
 
-import com.comphenix.protocol.PacketType;
-import com.comphenix.protocol.ProtocolLibrary;
-import com.comphenix.protocol.ProtocolManager;
-import com.comphenix.protocol.events.PacketContainer;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.player.attributes.gui.LifeSkillGUI;
 import me.nakilex.levelplugin.player.attributes.gui.StatsInventory;
@@ -32,6 +28,7 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
+import org.bukkit.inventory.CraftingInventory;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
@@ -52,7 +49,6 @@ public class StaticItemListener implements Listener {
     private static final int[] CRAFTING_RAW_SLOTS = {0, 1, 2, 3, 4};
     private static final Set<UUID> PLAYERS_NEEDING_CRAFTING_MENU_REFRESH = ConcurrentHashMap.newKeySet();
     private static volatile boolean craftingMenuRefreshTaskStarted;
-    private static final ProtocolManager PROTOCOL_MANAGER = initProtocolManager();
 
     static {
         STATIC_LIFE_SKILL = StatsInventory.createLifeSkillButton();
@@ -95,35 +91,6 @@ public class StaticItemListener implements Listener {
             settingsMeta.setDisplayName(ChatColor.AQUA + "Settings");
             settingsMeta.setLore(TooltipUtil.clickInstructions(null, "to configure gameplay options."));
             STATIC_SETTINGS.setItemMeta(settingsMeta);
-        }
-    }
-
-    private static ProtocolManager initProtocolManager() {
-        try {
-            return ProtocolLibrary.getProtocolManager();
-        } catch (Throwable ignored) {
-            return null;
-        }
-    }
-
-    private static void syncCraftingResultSlot(Player player, ItemStack item) {
-        if (player == null || PROTOCOL_MANAGER == null) {
-            return;
-        }
-        try {
-            PacketContainer packet = PROTOCOL_MANAGER.createPacket(PacketType.Play.Server.SET_SLOT);
-            int ints = packet.getIntegers().size();
-            if (ints >= 3) {
-                packet.getIntegers().write(0, 0);
-                packet.getIntegers().write(1, 0);
-                packet.getIntegers().write(2, 0);
-            } else if (ints == 2) {
-                packet.getIntegers().write(0, 0);
-                packet.getIntegers().write(1, 0);
-            }
-            packet.getItemModifier().write(0, item);
-            PROTOCOL_MANAGER.sendServerPacket(player, packet);
-        } catch (Exception ignored) {
         }
     }
 
@@ -202,10 +169,14 @@ public class StaticItemListener implements Listener {
         if (!isCraftingMenuContext(view)) {
             return;
         }
+        CraftingInventory craftingInventory = (CraftingInventory) view.getTopInventory();
+        craftingInventory.setResult(applyMenu ? getCraftingMenuItem(player, 0) : null);
         for (int slot : CRAFTING_RAW_SLOTS) {
-            view.getTopInventory().setItem(slot, applyMenu ? getCraftingMenuItem(player, slot) : null);
+            if (slot == 0) {
+                continue;
+            }
+            craftingInventory.setItem(slot, applyMenu ? getCraftingMenuItem(player, slot) : null);
         }
-        syncCraftingResultSlot(player, applyMenu ? getCraftingMenuItem(player, 0) : null);
     }
 
     private static void refreshCraftingMenu(Player player) {
