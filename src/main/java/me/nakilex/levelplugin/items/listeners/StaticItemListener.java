@@ -31,6 +31,9 @@ public class StaticItemListener implements Listener {
     private static final ItemStack STATIC_SETTINGS;       // Redstone Torch (Settings)
     private static final ItemStack STATIC_COMPASS;        // Compass (Server Selector)
 
+    private static final int HOTBAR_SELECTOR_SLOT = 4;
+    private static final int HOTBAR_HORSE_SLOT = 6;
+
     static {
         STATIC_ITEM = createStaticItem(Material.NETHER_STAR, "Stats Viewer", "to view your stats.");
 
@@ -75,24 +78,33 @@ public class StaticItemListener implements Listener {
      * Give the standard static items to the player inventory (hotbar + crafting grid).
      */
     public static void giveStaticItems(Player player) {
-        ItemStack[] extra = player.getInventory().getExtraContents();
-        if (extra == null || extra.length < 5) {
-            extra = new ItemStack[5];
-        }
-        extra[0] = null;
-        extra[1] = STATIC_ITEM.clone();
-        extra[2] = STATIC_QUEST_BOOK.clone();
-        extra[3] = STATIC_CODEX.clone();
-        extra[4] = STATIC_SETTINGS.clone();
-        player.getInventory().setExtraContents(extra);
+        setCraftingStaticItems(player,
+                STATIC_ITEM.clone(),
+                STATIC_QUEST_BOOK.clone(),
+                STATIC_CODEX.clone(),
+                STATIC_SETTINGS.clone());
 
-        player.getInventory().setItem(6, STATIC_HORSE_SADDLE.clone());
+        player.getInventory().setItem(HOTBAR_HORSE_SLOT, STATIC_HORSE_SADDLE.clone());
     }
 
     public static void giveHubItems(Player player) {
         ProfileEntryUtil.clearInventory(player);
-        player.getInventory().setExtraContents(new ItemStack[5]);
-        player.getInventory().setItem(4, STATIC_COMPASS.clone());
+        setCraftingStaticItems(player, null, null, null, null);
+        player.getInventory().setItem(HOTBAR_SELECTOR_SLOT, STATIC_COMPASS.clone());
+    }
+
+    private static void setCraftingStaticItems(Player player, ItemStack topLeft, ItemStack topRight,
+                                               ItemStack bottomLeft, ItemStack bottomRight) {
+        ItemStack[] extra = player.getInventory().getExtraContents();
+        if (extra == null || extra.length < 5) {
+            extra = new ItemStack[5];
+        }
+        extra[0] = null; // crafting output
+        extra[1] = topLeft;
+        extra[2] = topRight;
+        extra[3] = bottomLeft;
+        extra[4] = bottomRight;
+        player.getInventory().setExtraContents(extra);
     }
 
     public static void clearStaticItems(Player player) {
