@@ -139,31 +139,27 @@ public class StaticItemListener implements Listener {
     }
 
     private static void applyCraftingMenuItems(Player player, InventoryView view) {
-        if (player == null || shouldSkipCraftingMenu(player)) {
+        if (player == null || shouldSkipCraftingMenu(player) || !isCraftingMenuContext(view)) {
             return;
         }
         ItemStack[] menuItems = getCraftingMenuItems();
-        org.bukkit.inventory.PlayerInventory inventory = player.getInventory();
         int limit = Math.min(CRAFTING_RAW_SLOTS.length, menuItems.length);
         for (int i = 0; i < limit; i++) {
             int slot = CRAFTING_RAW_SLOTS[i];
-            inventory.setItem(slot, menuItems[i]);
-            if (isCraftingMenuContext(view)) {
-                view.getTopInventory().setItem(slot, menuItems[i]);
-            }
+            view.getTopInventory().setItem(slot, menuItems[i]);
         }
+        player.setItemOnCursor(null);
     }
 
 
-    private static void clearCraftingMenuItems(Player player) {
-        if (player == null) {
+    private static void clearCraftingMenuItems(InventoryView view) {
+        if (!isCraftingMenuContext(view)) {
             return;
         }
-        org.bukkit.inventory.PlayerInventory inventory = player.getInventory();
         for (int slot : CRAFTING_RAW_SLOTS) {
-            ItemStack item = inventory.getItem(slot);
+            ItemStack item = view.getTopInventory().getItem(slot);
             if (isManagedStaticItem(item)) {
-                inventory.setItem(slot, null);
+                view.getTopInventory().setItem(slot, null);
             }
         }
     }
@@ -230,7 +226,6 @@ public class StaticItemListener implements Listener {
                 player.getInventory().setItem(i, null);
             }
         }
-        clearCraftingMenuItems(player);
     }
 
 
@@ -280,6 +275,7 @@ public class StaticItemListener implements Listener {
         if (!isCraftingMenuContext(event.getView())) {
             return;
         }
+        player.setItemOnCursor(null);
         applyCraftingMenuItems(player, event.getView());
         player.updateInventory();
         scheduleCraftingMenuSync(player);
@@ -294,7 +290,7 @@ public class StaticItemListener implements Listener {
         if (isCraftingMenuContext(event.getView()) && isManagedCraftingRawSlot(event.getRawSlot())) {
             event.setCancelled(true);
             event.setResult(Event.Result.DENY);
-            ItemStack menuItem = player.getInventory().getItem(event.getRawSlot());
+            ItemStack menuItem = event.getView().getTopInventory().getItem(event.getRawSlot());
             if ((event.getCursor() == null || event.getCursor().getType().isAir()) && isManagedStaticItem(menuItem)) {
                 handleStaticAction(player, menuItem);
             }
@@ -323,10 +319,12 @@ public class StaticItemListener implements Listener {
         if (main == null) {
             return;
         }
+        clearCraftingMenuItems(event.getView());
         main.getServer().getScheduler().runTask(main, () -> {
             if (!player.isOnline()) {
                 return;
             }
+            player.setItemOnCursor(null);
             sanitizeManagedStaticItems(player);
             applyWorldLoadout(player);
         });
