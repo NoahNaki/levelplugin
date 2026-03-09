@@ -69,6 +69,7 @@ import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.debug.BeaconEntityDebugManager;
 import me.nakilex.levelplugin.debug.listeners.MobStatusDebugListener;
 import me.nakilex.levelplugin.debug.listeners.SpellInputDebugListener;
+import me.nakilex.levelplugin.debug.listeners.InventorySlotDebugListener;
 import me.nakilex.levelplugin.fasttravel.listeners.WaystoneListener;
 import me.nakilex.levelplugin.fasttravel.listeners.ExplorationListener;
 import me.nakilex.levelplugin.fasttravel.listeners.FastTravelRespawnListener;
@@ -276,6 +277,7 @@ public class ListenerRegistry {
         pm.registerEvents(new SpellInputListener(plugin.getSettingsManager()), plugin);
         pm.registerEvents(new SpellCastListener(plugin), plugin);
         pm.registerEvents(new SpellInputDebugListener(), plugin);
+        pm.registerEvents(new InventorySlotDebugListener(), plugin);
         pm.registerEvents(arcSlashDebugManager, plugin);
         pm.registerEvents(arcSlashDebugGUI, plugin);
         pm.registerEvents(settingsGUI, plugin);
