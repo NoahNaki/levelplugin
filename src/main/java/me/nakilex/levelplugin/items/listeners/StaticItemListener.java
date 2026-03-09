@@ -135,6 +135,10 @@ public class StaticItemListener implements Listener {
     }
 
     private static void applyCraftingMenuItems(Player player) {
+        applyCraftingMenuItems(player, player != null ? player.getOpenInventory() : null);
+    }
+
+    private static void applyCraftingMenuItems(Player player, InventoryView view) {
         if (player == null || shouldSkipCraftingMenu(player)) {
             return;
         }
@@ -144,6 +148,9 @@ public class StaticItemListener implements Listener {
         for (int i = 0; i < limit; i++) {
             int slot = CRAFTING_RAW_SLOTS[i];
             inventory.setItem(slot, menuItems[i]);
+            if (isCraftingMenuContext(view)) {
+                view.getTopInventory().setItem(slot, menuItems[i]);
+            }
         }
     }
 
@@ -202,7 +209,7 @@ public class StaticItemListener implements Listener {
                 if (!player.isOnline()) {
                     return;
                 }
-                applyCraftingMenuItems(player);
+                applyCraftingMenuItems(player, player.getOpenInventory());
                 player.updateInventory();
             }, delay);
         }
@@ -260,6 +267,7 @@ public class StaticItemListener implements Listener {
         if (!isCraftingMenuContext(event.getView())) {
             return;
         }
+        applyCraftingMenuItems(player, event.getView());
         scheduleCraftingMenuSync(player);
     }
 
@@ -275,6 +283,9 @@ public class StaticItemListener implements Listener {
             ItemStack menuItem = player.getInventory().getItem(event.getRawSlot());
             if ((event.getCursor() == null || event.getCursor().getType().isAir()) && isManagedStaticItem(menuItem)) {
                 handleStaticAction(player, menuItem);
+            }
+            if (event.getCursor() != null && !event.getCursor().getType().isAir()) {
+                event.setCursor(null);
             }
             scheduleCraftingMenuSync(player);
             return;
@@ -294,7 +305,7 @@ public class StaticItemListener implements Listener {
         if (shouldSkipCraftingMenu(player)) {
             return;
         }
-        scheduleCraftingMenuSync(player);
+        applyCraftingMenuItems(player);
     }
 
     @EventHandler
