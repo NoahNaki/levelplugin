@@ -218,6 +218,7 @@ public class PluginBootstrap {
     private SpellUpgradeGUI spellUpgradeGUI;
     private me.nakilex.levelplugin.debug.gui.DebugGUI debugGUI;
     private CodexManager codexManager;
+    private me.nakilex.levelplugin.codex.mastery.CodexMasteryManager codexMasteryManager;
     private CodexMainGUI codexGUI;
     private MobCodexGUI mobCodexGUI;
     private NpcCodexGUI npcCodexGUI;
@@ -275,6 +276,7 @@ public class PluginBootstrap {
         petManager = new PetManager(plugin);
         GuildQuestManager.getInstance().reloadMobCategories();
         codexManager = new CodexManager(playerConfig, customMobManager, mobRewardsConfig, bossConfig);
+        codexMasteryManager = new me.nakilex.levelplugin.codex.mastery.CodexMasteryManager(economyManager);
         mobCodexGUI = new MobCodexGUI(codexManager, null);
         npcCodexGUI = new NpcCodexGUI(plugin, codexManager, null, mercenaryAffinityManager, mercenaryFriendshipGUI);
         locationCodexGUI = new LocationCodexGUI(codexManager, null);
@@ -878,6 +880,7 @@ public class PluginBootstrap {
     public me.nakilex.levelplugin.cutscene.CutsceneManager getCutsceneManager() { return cutsceneManager; }
     public me.nakilex.levelplugin.calendar.CalendarManager getCalendarManager() { return calendarManager; }
     public CodexManager getCodexManager() { return codexManager; }
+    public me.nakilex.levelplugin.codex.mastery.CodexMasteryManager getCodexMasteryManager() { return codexMasteryManager; }
     public CodexMainGUI getCodexGUI() { return codexGUI; }
     public me.nakilex.levelplugin.dungeon.gui.DungeonListGUI getDungeonListGUI() { return dungeonListGUI; }
     public me.nakilex.levelplugin.dungeon.gui.DungeonLeaveGUI getDungeonLeaveGUI() { return dungeonLeaveGUI; }

@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.mob.listeners;
 
 import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.managers.ItemManager;
+import me.nakilex.levelplugin.mob.custom.CustomMobManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import org.bukkit.Bukkit;
@@ -96,6 +97,10 @@ public class MobDamageListener implements Listener {
 
         // —— Optionally update mob health display ——
         if (entity instanceof LivingEntity livingEntity) {
+            if (livingEntity.hasMetadata("lp_numeric_hp")
+                    || livingEntity.hasMetadata(CustomMobManager.CUSTOM_MOB_ID_META)) {
+                return;
+            }
             double currentHealth = Math.max(livingEntity.getHealth() - damage, 0);
             double maxHealth = livingEntity.getMaxHealth();
 

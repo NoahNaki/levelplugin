@@ -13,6 +13,9 @@ import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.party.Party;
 import me.nakilex.levelplugin.party.PartyManager;
+import me.nakilex.levelplugin.progression.objectives.ObjectiveProgressBus;
+import me.nakilex.levelplugin.progression.objectives.ObjectiveProgressEvent;
+import me.nakilex.levelplugin.progression.objectives.ObjectiveType;
 import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.utils.ExperienceUtil;
 import org.bukkit.Bukkit;
@@ -201,6 +204,12 @@ public class MobRewardService {
                         + ChatColor.GOLD + "!");
             }
             GuildQuestManager.getInstance().handleKill(player, mobType);
+            ObjectiveProgressBus.getInstance().publish(new ObjectiveProgressEvent(
+                    player.getUniqueId(),
+                    ObjectiveType.KILL_MOB,
+                    mobType,
+                    1
+            ));
             maybeAwardBattlePassXp(player, context.displayName(), combatPower, awardedExp);
             if (debugToggle.isEnabled(player)) {
                 sendDebugInfo(player, context);
