@@ -13,6 +13,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -157,6 +158,53 @@ public class StaticItemListener implements Listener {
         }
     }
 
+
+    private static boolean isManagedCraftingRawSlot(int rawSlot) {
+        for (int slot : CRAFTING_RAW_SLOTS) {
+            if (slot == rawSlot) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean isCraftingMenuContext(InventoryView view) {
+        return view != null && view.getTopInventory() != null
+                && view.getTopInventory().getType() == InventoryType.CRAFTING;
+    }
+
+    private static boolean shouldSkipCraftingMenu(Player player) {
+        if (player == null || WorldExclusionUtil.isExcluded(player)) {
+            return true;
+        }
+        Main main = Main.getInstance();
+        if (main == null) {
+            return false;
+        }
+        ServerSelectionManager manager = main.getServerSelectionManager();
+        return manager != null && manager.isHubWorld(player.getWorld());
+    }
+
+    private static void scheduleCraftingMenuSync(Player player) {
+        if (player == null || shouldSkipCraftingMenu(player)) {
+            return;
+        }
+        Main main = Main.getInstance();
+        if (main == null) {
+            return;
+        }
+        int[] delays = {0, 1, 2, 5};
+        for (int delay : delays) {
+            main.getServer().getScheduler().runTaskLater(main, () -> {
+                if (!player.isOnline()) {
+                    return;
+                }
+                applyCraftingMenuItems(player.getOpenInventory());
+                player.updateInventory();
+            }, delay);
+        }
+    }
+
     public static void giveHubItems(Player player) {
         ProfileEntryUtil.clearInventory(player);
         player.getInventory().setItem(4, STATIC_COMPASS.clone());
@@ -205,41 +253,48 @@ public class StaticItemListener implements Listener {
         if (!(event.getPlayer() instanceof Player player)) {
             return;
         }
-        Main main = Main.getInstance();
-        if (main != null) {
-            ServerSelectionManager manager = main.getServerSelectionManager();
-            if (manager != null && manager.isHubWorld(player.getWorld())) {
-                return;
-            }
-        }
-        if (WorldExclusionUtil.isExcluded(player)) {
+        if (!isCraftingMenuContext(event.getView())) {
             return;
         }
-        Main.getInstance().getServer().getScheduler().runTask(Main.getInstance(), () -> {
-            if (!player.isOnline()) {
-                return;
-            }
-            applyCraftingMenuItems(player.getOpenInventory());
-            player.updateInventory();
-        });
+        scheduleCraftingMenuSync(player);
     }
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        ItemStack curr = event.getCurrentItem();
-        if (curr != null && (
-            isManagedStaticItem(curr)
-        )) {
-            event.setCancelled(true);
-            if (event.getSlotType() == InventoryType.SlotType.CRAFTING) {
-                handleStaticAction((Player) event.getWhoClicked(), curr);
-            }
+        if (!(event.getWhoClicked() instanceof Player player)) {
             return;
         }
 
-        if (event.getSlotType() == InventoryType.SlotType.CRAFTING
-                && event.getView().getTopInventory().getType() == InventoryType.CRAFTING) {
-            applyCraftingMenuItems(event.getView());
+        if (isCraftingMenuContext(event.getView()) && isManagedCraftingRawSlot(event.getRawSlot())) {
+            event.setCancelled(true);
+            ItemStack menuItem = event.getView().getTopInventory().getItem(event.getRawSlot());
+            if (isManagedStaticItem(menuItem)) {
+                handleStaticAction(player, menuItem);
+            }
+            scheduleCraftingMenuSync(player);
+            return;
+        }
+
+        ItemStack curr = event.getCurrentItem();
+        if (isManagedStaticItem(curr)) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler
+    public void onInventoryDrag(InventoryDragEvent event) {
+        if (!(event.getWhoClicked() instanceof Player player)) {
+            return;
+        }
+        if (!isCraftingMenuContext(event.getView())) {
+            return;
+        }
+        for (int rawSlot : event.getRawSlots()) {
+            if (isManagedCraftingRawSlot(rawSlot)) {
+                event.setCancelled(true);
+                scheduleCraftingMenuSync(player);
+                return;
+            }
         }
     }
 
