@@ -137,10 +137,6 @@ public class StaticItemListener implements Listener {
         if (player == null) {
             return;
         }
-        if (WorldExclusionUtil.isExcluded(player)) {
-            clearStaticItems(player);
-            return;
-        }
         Main main = Main.getInstance();
         if (main != null) {
             ServerSelectionManager manager = main.getServerSelectionManager();
@@ -149,6 +145,10 @@ public class StaticItemListener implements Listener {
                 me.nakilex.levelplugin.utils.BetterHudUtil.removeHud(player);
                 return;
             }
+        }
+        if (WorldExclusionUtil.isExcluded(player)) {
+            clearStaticItems(player);
+            return;
         }
         giveStaticItems(player);
     }
