@@ -121,13 +121,23 @@ public class StaticItemListener implements Listener {
 
     private static void setCraftingMenuItems(Player player) {
         ItemStack[] extra = player.getInventory().getExtraContents();
-        int size = Math.max(extra.length, 4);
-        ItemStack[] updated = new ItemStack[size];
-        System.arraycopy(extra, 0, updated, 0, extra.length);
-        updated[0] = STATIC_ITEM.clone();
-        updated[1] = STATIC_QUEST_BOOK.clone();
-        updated[2] = STATIC_CODEX.clone();
-        updated[3] = STATIC_SETTINGS.clone();
+        if (extra == null || extra.length == 0) {
+            return;
+        }
+
+        ItemStack[] updated = extra.clone();
+        ItemStack[] menuItems = {
+                STATIC_ITEM.clone(),
+                STATIC_QUEST_BOOK.clone(),
+                STATIC_CODEX.clone(),
+                STATIC_SETTINGS.clone()
+        };
+
+        int limit = Math.min(updated.length, menuItems.length);
+        for (int i = 0; i < limit; i++) {
+            updated[i] = menuItems[i];
+        }
+
         player.getInventory().setExtraContents(updated);
     }
 
