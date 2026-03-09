@@ -131,7 +131,7 @@ public class StatsInventory {
         return builder.build();
     }
 
-    private static ItemStack createLifeSkillButton() {
+    public static ItemStack createLifeSkillButton() {
         ItemStack lifeSkills = new ItemStack(Material.STONE_PICKAXE);
         ItemMeta meta = lifeSkills.getItemMeta();
         if (meta != null) {

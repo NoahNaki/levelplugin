@@ -1,8 +1,10 @@
 package me.nakilex.levelplugin.items.listeners;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.player.attributes.gui.StatsInventory;
 import me.nakilex.levelplugin.player.profile.ProfileEntryUtil;
 import me.nakilex.levelplugin.server.ServerSelectionManager;
+import me.nakilex.levelplugin.utils.HeadUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.WorldExclusionUtil;
 import org.bukkit.Bukkit;
@@ -36,24 +38,18 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class StaticItemListener implements Listener {
 
-    private static final ItemStack STATIC_ITEM;           // Nether Star (Stats Viewer)
+    private static final ItemStack STATIC_LIFE_SKILL;     // Stone Pickaxe (Life Skills)
     private static final ItemStack STATIC_HORSE_SADDLE;   // Saddle (Horse Spawner)
     private static final ItemStack STATIC_QUEST_BOOK;     // Book (Quest Log)
     private static final ItemStack STATIC_COMPASS;        // Compass (Server Selector)
     private static final ItemStack STATIC_CODEX;          // Spyglass (Codex)
     private static final ItemStack STATIC_SETTINGS;       // Comparator (Settings)
-    private static final int[] CRAFTING_RAW_SLOTS = {1, 2, 3, 4};
+    private static final int[] CRAFTING_RAW_SLOTS = {0, 1, 2, 3, 4};
     private static final Set<UUID> PLAYERS_NEEDING_CRAFTING_MENU_REFRESH = ConcurrentHashMap.newKeySet();
     private static volatile boolean craftingMenuRefreshTaskStarted;
 
     static {
-        STATIC_ITEM = new ItemStack(Material.NETHER_STAR);
-        ItemMeta statsMeta = STATIC_ITEM.getItemMeta();
-        if (statsMeta != null) {
-            statsMeta.setDisplayName(ChatColor.AQUA + "Stats Viewer");
-            statsMeta.setLore(TooltipUtil.clickInstructions(null, "to view your stats."));
-            STATIC_ITEM.setItemMeta(statsMeta);
-        }
+        STATIC_LIFE_SKILL = StatsInventory.createLifeSkillButton();
 
         STATIC_HORSE_SADDLE = new ItemStack(Material.SADDLE);
         ItemMeta horseMeta = STATIC_HORSE_SADDLE.getItemMeta();
@@ -98,7 +94,7 @@ public class StaticItemListener implements Listener {
 
     private static boolean isManagedStaticItem(ItemStack item) {
         return item != null && (
-                item.isSimilar(STATIC_ITEM)
+                item.isSimilar(STATIC_LIFE_SKILL)
                         || item.isSimilar(STATIC_HORSE_SADDLE)
                         || item.isSimilar(STATIC_QUEST_BOOK)
                         || item.isSimilar(STATIC_COMPASS)
@@ -115,14 +111,20 @@ public class StaticItemListener implements Listener {
         player.getInventory().setItem(6, STATIC_HORSE_SADDLE.clone());
     }
 
-    private static ItemStack getCraftingMenuItem(int rawSlot) {
+    private static ItemStack getCraftingMenuItem(Player player, int rawSlot) {
         return switch (rawSlot) {
-            case 1 -> STATIC_ITEM.clone();
+            case 0 -> createStatsViewerHead(player);
+            case 1 -> STATIC_LIFE_SKILL.clone();
             case 2 -> STATIC_QUEST_BOOK.clone();
             case 3 -> STATIC_CODEX.clone();
             case 4 -> STATIC_SETTINGS.clone();
             default -> null;
         };
+    }
+
+    private static ItemStack createStatsViewerHead(Player player) {
+        return HeadUtil.createPlayerHead(player, ChatColor.AQUA + "Stats Viewer",
+                TooltipUtil.clickInstructions(null, "to view your stats."));
     }
 
     private static boolean isManagedCraftingRawSlot(int rawSlot) {
@@ -151,14 +153,13 @@ public class StaticItemListener implements Listener {
         return manager != null && manager.isHubWorld(player.getWorld());
     }
 
-    private static void setCraftingMenuSlots(InventoryView view, boolean applyMenu) {
+    private static void setCraftingMenuSlots(Player player, InventoryView view, boolean applyMenu) {
         if (!isCraftingMenuContext(view)) {
             return;
         }
         for (int slot : CRAFTING_RAW_SLOTS) {
-            view.getTopInventory().setItem(slot, applyMenu ? getCraftingMenuItem(slot) : null);
+            view.getTopInventory().setItem(slot, applyMenu ? getCraftingMenuItem(player, slot) : null);
         }
-        view.getTopInventory().setItem(0, null);
     }
 
     private static void refreshCraftingMenu(Player player) {
@@ -170,15 +171,15 @@ public class StaticItemListener implements Listener {
             return;
         }
         boolean applyMenu = !shouldSkipCraftingMenu(player);
-        setCraftingMenuSlots(view, applyMenu);
+        setCraftingMenuSlots(player, view, applyMenu);
         player.setItemOnCursor(null);
         if (applyMenu) {
             player.updateInventory();
         }
     }
 
-    private static void clearCraftingMenu(InventoryView view) {
-        setCraftingMenuSlots(view, false);
+    private static void clearCraftingMenu(Player player, InventoryView view) {
+        setCraftingMenuSlots(player, view, false);
     }
 
     private static void queueCraftingMenuRefresh(Player player) {
@@ -224,7 +225,7 @@ public class StaticItemListener implements Listener {
                 player.getInventory().setItem(i, null);
             }
         }
-        clearCraftingMenu(player.getOpenInventory());
+        clearCraftingMenu(player, player.getOpenInventory());
     }
 
     public static void applyWorldLoadout(Player player) {
@@ -301,7 +302,7 @@ public class StaticItemListener implements Listener {
             player.setItemOnCursor(null);
             player.updateInventory();
             if ((event.getCursor() == null || event.getCursor().getType().isAir())) {
-                ItemStack menuItem = getCraftingMenuItem(event.getRawSlot());
+                ItemStack menuItem = getCraftingMenuItem(player, event.getRawSlot());
                 if (menuItem != null) {
                     handleStaticAction(player, menuItem, true);
                 }
@@ -325,7 +326,7 @@ public class StaticItemListener implements Listener {
             return;
         }
         player.setItemOnCursor(null);
-        clearCraftingMenu(event.getView());
+        clearCraftingMenu(player, event.getView());
         queueCraftingMenuRefresh(player);
     }
 
@@ -399,8 +400,12 @@ public class StaticItemListener implements Listener {
     }
 
     private static void handleStaticAction(Player player, ItemStack item, boolean delayOneTick) {
-        if (item.isSimilar(STATIC_ITEM)) {
+        if (item.getType() == Material.PLAYER_HEAD) {
             runStaticAction(player, delayOneTick, () -> player.performCommand("stats"));
+            return;
+        }
+        if (item.isSimilar(STATIC_LIFE_SKILL)) {
+            runStaticAction(player, delayOneTick, () -> player.performCommand("lifeskill"));
             return;
         }
         if (item.isSimilar(STATIC_HORSE_SADDLE)) {

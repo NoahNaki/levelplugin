@@ -5,7 +5,6 @@ import me.nakilex.levelplugin.settings.managers.SettingsManager;
 import me.nakilex.levelplugin.settings.data.PlayerSettings;
 import me.nakilex.levelplugin.settings.data.PlayerVisibility;
 import me.nakilex.levelplugin.leaderboards.LeaderboardType;
-import me.nakilex.levelplugin.player.attributes.gui.StatsInventory;
 import me.nakilex.levelplugin.mob.managers.ChatToggleManager;
 import me.nakilex.levelplugin.spells.gui.SpellKeybindGUI;
 import me.nakilex.levelplugin.spells.gui.SpellUpgradeGUI;
@@ -230,7 +229,7 @@ public class SettingsGUI implements Listener {
         List<GuiWidget> widgets = new ArrayList<>();
         widgets.add(new ActionWidget(0,
                 context -> GuiUtil.getNexoItem("arrow_left2", "§7Back"),
-                (click, context) -> context.player().openInventory(StatsInventory.getStatsMenu(context.player()))));
+                (click, context) -> context.player().closeInventory()));
         widgets.add(new ActionWidget(FILTER_SLOT,
                 context -> createFilterItem(filter),
                 (click, context) -> cycleFilter(context.player())));

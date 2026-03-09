@@ -11,7 +11,6 @@ import me.nakilex.levelplugin.utils.gui.widgets.GuiContext;
 import me.nakilex.levelplugin.utils.gui.widgets.GuiLayout;
 import me.nakilex.levelplugin.utils.gui.widgets.GuiWidget;
 import me.nakilex.levelplugin.items.tools.ToolDiscipline;
-import me.nakilex.levelplugin.player.attributes.gui.StatsInventory;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -137,8 +136,7 @@ public final class LifeSkillGUI {
 
         widgets.add(new ActionWidget(40,
                 context -> createBackButton(),
-                (click, context) -> context.player().openInventory(
-                        StatsInventory.getStatsMenu(context.player(), StatsInventory.getPage(context.player())))));
+                (click, context) -> context.player().closeInventory()));
 
         return widgets;
     }
