@@ -151,6 +151,8 @@ mobs:
   ember_witch:
     model_set: witchcaster
 
+  reliquary_giant:
+    model_set: default
 
 
 

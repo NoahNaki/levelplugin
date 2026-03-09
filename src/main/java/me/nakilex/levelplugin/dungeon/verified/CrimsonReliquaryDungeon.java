@@ -81,7 +81,7 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
             "ember_witch"
     };
     private static final String[] RELIQUARY_BOSS_MOBS = {
-            "ember_witch"
+            "reliquary_giant"
     };
     private static final String DISPLAY = "Crimson Reliquary";
     private static final String KEY = DungeonManager.normalizeKey(DISPLAY);

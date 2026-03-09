@@ -48,7 +48,8 @@ public class CustomMobManager {
             "custom_mobs/moss_zombie.yml",
             "custom_mobs/cave_stalker.yml",
             "custom_mobs/crypt_skeleton.yml",
-            "custom_mobs/ember_witch.yml"
+            "custom_mobs/ember_witch.yml",
+            "custom_mobs/reliquary_giant.yml"
     );
     private static final ArcPattern STUN_PATTERN = new ArcPattern(
             Particle.CRIT,

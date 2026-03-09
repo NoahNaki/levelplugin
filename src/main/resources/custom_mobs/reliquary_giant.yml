@@ -1,0 +1,20 @@
+id: reliquary_giant
+type: GIANT
+display: "&4Reliquary Giant"
+level: 28
+health: 900
+boss: true
+
+stats:
+  vitality: 120
+  strength: 48
+  technique: 22
+
+options:
+  movement-speed: 0.24
+  follow-range: 45
+  knockback-resistance: 0.9
+  attack-damage: 14.0
+  attack-speed: 8.0
+  silent: false
+  despawn: false

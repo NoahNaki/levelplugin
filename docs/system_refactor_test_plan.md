@@ -15,21 +15,13 @@
    - quest hooks still trigger (upgrade/repair/reroll objectives),
    - resulting item tooltip updates correctly.
 
-## 2) Shared objective progress bus + contracts
-
-1. Ensure `contracts.yml` is present in plugin data folder (auto-copied from resources on first boot).
-2. Kill mobs until `weekly_slayer` completes.
-3. Confirm completion chat message and coin reward payout are granted.
-4. Discover new codex entries (new mob/NPC/location) until `weekly_codex` completes.
-5. Confirm contract completion and coin payout trigger once per threshold completion.
-
-## 3) Codex mastery thresholds
+## 2) Codex mastery thresholds
 
 1. Discover codex entries incrementally.
 2. At 10/25/50 discoveries, verify codex mastery reward message appears and coins are awarded.
 3. Re-log and continue discovering; verify rewards do not re-trigger for already reached levels.
 
-## 4) Tooltip/chat builder consistency
+## 3) Tooltip/chat builder consistency
 
 1. Inspect any new GUI items/lore lines using the new `TooltipUtil` block helpers.
 2. Verify styling consistency:
@@ -38,7 +30,7 @@
    - rewards use arrow formatting,
    - status badge colors reflect active/inactive states.
 
-## 5) Dungeon mutator abstraction (foundation)
+## 4) Dungeon mutator abstraction (foundation)
 
 1. Confirm plugin boots successfully with new modifier abstraction classes present.
 2. (Developer check) Instantiate `RunModifierSet` in a debug command or test harness and verify
