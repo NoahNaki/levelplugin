@@ -11,6 +11,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.Event;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
@@ -20,7 +21,6 @@ import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerSwapHandItemsEvent;
-import org.bukkit.inventory.CraftingInventory;
 import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
@@ -134,61 +134,29 @@ public class StaticItemListener implements Listener {
         };
     }
 
-    private static void applyCraftingMenuItems(InventoryView view) {
-        if (view == null) {
+    private static void applyCraftingMenuItems(Player player) {
+        if (player == null || shouldSkipCraftingMenu(player)) {
             return;
         }
-        org.bukkit.inventory.Inventory top = view.getTopInventory();
-        if (top == null || top.getType() != InventoryType.CRAFTING) {
-            return;
-        }
-
         ItemStack[] menuItems = getCraftingMenuItems();
-        if (top instanceof CraftingInventory craftingInventory) {
-            craftingInventory.setResult(null);
-            craftingInventory.setMatrix(menuItems);
-            return;
-        }
-
+        org.bukkit.inventory.PlayerInventory inventory = player.getInventory();
         int limit = Math.min(CRAFTING_RAW_SLOTS.length, menuItems.length);
         for (int i = 0; i < limit; i++) {
             int slot = CRAFTING_RAW_SLOTS[i];
-            if (slot >= 0 && slot < top.getSize()) {
-                top.setItem(slot, menuItems[i]);
-            }
+            inventory.setItem(slot, menuItems[i]);
         }
     }
 
 
-    private static void clearCraftingMenuItems(InventoryView view) {
-        if (view == null) {
+    private static void clearCraftingMenuItems(Player player) {
+        if (player == null) {
             return;
         }
-        org.bukkit.inventory.Inventory top = view.getTopInventory();
-        if (top == null || top.getType() != InventoryType.CRAFTING) {
-            return;
-        }
-        if (top instanceof CraftingInventory craftingInventory) {
-            ItemStack[] matrix = craftingInventory.getMatrix();
-            boolean changed = false;
-            for (int i = 0; i < matrix.length; i++) {
-                if (isManagedStaticItem(matrix[i])) {
-                    matrix[i] = null;
-                    changed = true;
-                }
-            }
-            if (changed) {
-                craftingInventory.setResult(null);
-                craftingInventory.setMatrix(matrix);
-            }
-            return;
-        }
+        org.bukkit.inventory.PlayerInventory inventory = player.getInventory();
         for (int slot : CRAFTING_RAW_SLOTS) {
-            if (slot >= 0 && slot < top.getSize()) {
-                ItemStack current = top.getItem(slot);
-                if (isManagedStaticItem(current)) {
-                    top.setItem(slot, null);
-                }
+            ItemStack item = inventory.getItem(slot);
+            if (isManagedStaticItem(item)) {
+                inventory.setItem(slot, null);
             }
         }
     }
@@ -234,7 +202,7 @@ public class StaticItemListener implements Listener {
                 if (!player.isOnline()) {
                     return;
                 }
-                applyCraftingMenuItems(player.getOpenInventory());
+                applyCraftingMenuItems(player);
                 player.updateInventory();
             }, delay);
         }
@@ -255,6 +223,7 @@ public class StaticItemListener implements Listener {
                 player.getInventory().setItem(i, null);
             }
         }
+        clearCraftingMenuItems(player);
     }
 
     public static void applyWorldLoadout(Player player) {
@@ -302,8 +271,9 @@ public class StaticItemListener implements Listener {
 
         if (isCraftingMenuContext(event.getView()) && isManagedCraftingRawSlot(event.getRawSlot())) {
             event.setCancelled(true);
-            ItemStack menuItem = event.getView().getTopInventory().getItem(event.getRawSlot());
-            if (isManagedStaticItem(menuItem)) {
+            event.setResult(Event.Result.DENY);
+            ItemStack menuItem = player.getInventory().getItem(event.getRawSlot());
+            if ((event.getCursor() == null || event.getCursor().getType().isAir()) && isManagedStaticItem(menuItem)) {
                 handleStaticAction(player, menuItem);
             }
             scheduleCraftingMenuSync(player);
@@ -321,13 +291,10 @@ public class StaticItemListener implements Listener {
         if (!(event.getPlayer() instanceof Player player)) {
             return;
         }
-        if (!isCraftingMenuContext(event.getView())) {
-            return;
-        }
         if (shouldSkipCraftingMenu(player)) {
             return;
         }
-        clearCraftingMenuItems(event.getView());
+        scheduleCraftingMenuSync(player);
     }
 
     @EventHandler
