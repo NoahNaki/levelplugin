@@ -44,7 +44,6 @@ import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.guild.siege.GuildSiegeManager;
 import me.nakilex.levelplugin.guild.GuildManager;
-import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Material;
@@ -52,7 +51,6 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
-import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.CraftingInventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -559,12 +557,22 @@ public class DebugCommand implements TabExecutor {
         player.getInventory().setArmorContents(armor);
         player.getInventory().setItemInOffHand(wool.clone());
 
-        player.openInventory(Bukkit.createInventory(player, InventoryType.CRAFTING));
-        if (player.getOpenInventory().getTopInventory() instanceof CraftingInventory craftingInventory) {
-            for (int raw = 1; raw <= 4; raw++) {
-                craftingInventory.setItem(raw, wool.clone());
-            }
-            craftingInventory.setResult(wool.clone());
+        player.closeInventory();
+        Main main = Main.getInstance();
+        if (main != null) {
+            main.getServer().getScheduler().runTask(main, () -> {
+                if (!player.isOnline()) {
+                    return;
+                }
+                if (player.getOpenInventory().getTopInventory() instanceof CraftingInventory craftingInventory) {
+                    for (int raw = 1; raw <= 4; raw++) {
+                        craftingInventory.setItem(raw, wool.clone());
+                    }
+                    craftingInventory.setResult(wool.clone());
+                }
+                player.updateInventory();
+            });
+            return;
         }
         player.updateInventory();
     }
