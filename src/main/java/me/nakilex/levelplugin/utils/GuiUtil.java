@@ -5,7 +5,6 @@ import com.nexomc.nexo.items.ItemBuilder;
 import org.bukkit.Material;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
-import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -254,7 +253,6 @@ public final class GuiUtil {
             return;
         }
         player.closeInventory();
-        player.openInventory(org.bukkit.Bukkit.createInventory(player, InventoryType.CRAFTING));
     }
 
     /** Compare normalized titles by prefix, useful for dynamic counters in GUI titles. */

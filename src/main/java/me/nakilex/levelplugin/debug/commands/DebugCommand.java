@@ -568,34 +568,32 @@ public class DebugCommand implements TabExecutor {
     }
 
     private void applyCraftingDebugMenu(Player player, boolean enabled) {
-        player.closeInventory();
-        Main main = Main.getInstance();
-        if (main == null) {
+        if (player == null || !player.isOnline()) {
+            return;
+        }
+        if (!(player.getOpenInventory().getTopInventory() instanceof CraftingInventory craftingInventory)) {
+            player.closeInventory();
             player.updateInventory();
             return;
         }
-        main.getServer().getScheduler().runTask(main, () -> {
-            if (!player.isOnline()) {
-                return;
-            }
-            if (player.getOpenInventory().getTopInventory() instanceof CraftingInventory craftingInventory) {
-                for (int raw = 1; raw <= 4; raw++) {
-                    craftingInventory.setItem(raw, null);
-                }
-                craftingInventory.setResult(null);
-                if (enabled) {
-                    craftingInventory.setResult(createDebugMenuItem(Material.NETHER_STAR,
-                            ChatColor.AQUA + "Stats Viewer", "to view your stats."));
-                    craftingInventory.setItem(1, createDebugMenuItem(Material.STONE_PICKAXE,
-                            ChatColor.GOLD + "Life Skills", "to view life skills."));
-                    craftingInventory.setItem(2, createDebugMenuItem(Material.BOOK,
-                            ChatColor.AQUA + "Quest Book", "to view your quests."));
-                    craftingInventory.setItem(4, createDebugMenuItem(Material.COMPARATOR,
-                            ChatColor.AQUA + "Settings", "to configure gameplay options."));
-                }
-            }
-            player.updateInventory();
-        });
+
+        for (int raw = 1; raw <= 4; raw++) {
+            craftingInventory.setItem(raw, null);
+        }
+        craftingInventory.setResult(null);
+
+        if (enabled) {
+            craftingInventory.setResult(createDebugMenuItem(Material.NETHER_STAR,
+                    ChatColor.AQUA + "Stats Viewer", "to view your stats."));
+            craftingInventory.setItem(1, createDebugMenuItem(Material.STONE_PICKAXE,
+                    ChatColor.GOLD + "Life Skills", "to view life skills."));
+            craftingInventory.setItem(2, createDebugMenuItem(Material.BOOK,
+                    ChatColor.AQUA + "Quest Book", "to view your quests."));
+            craftingInventory.setItem(4, createDebugMenuItem(Material.COMPARATOR,
+                    ChatColor.AQUA + "Settings", "to configure gameplay options."));
+        }
+
+        player.updateInventory();
     }
 
     private boolean hasTownOwnership(Player player) {
