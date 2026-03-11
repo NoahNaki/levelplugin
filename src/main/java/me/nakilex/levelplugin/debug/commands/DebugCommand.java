@@ -42,7 +42,6 @@ import me.nakilex.levelplugin.utils.RewardBombUtil;
 import me.nakilex.levelplugin.utils.ToggleFeedbackUtil;
 import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
-import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.guild.siege.GuildSiegeManager;
 import me.nakilex.levelplugin.guild.GuildManager;
 import org.bukkit.ChatColor;
@@ -52,7 +51,6 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.CraftingInventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
@@ -541,58 +539,31 @@ public class DebugCommand implements TabExecutor {
         INVENTORY_DEBUG_ENABLED.add(player.getUniqueId());
         applyInventoryDebugSession(player);
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                "Inventory debug enabled. Applied crafting menu items to slots 0, 1, 2, and 4.");
+                "Inventory debug enabled. Filled your inventory with white wool.");
     }
 
     private void applyInventoryDebugSession(Player player) {
         ProfileEntryUtil.clearInventory(player);
-        applyCraftingDebugMenu(player, true);
+
+        ItemStack wool = new ItemStack(Material.WHITE_WOOL);
+        ItemMeta meta = wool.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(ChatColor.WHITE + "Inventory Debug Slot");
+            wool.setItemMeta(meta);
+        }
+
+        for (int slot = 0; slot < player.getInventory().getSize(); slot++) {
+            player.getInventory().setItem(slot, wool.clone());
+        }
+        ItemStack[] armor = new ItemStack[player.getInventory().getArmorContents().length];
+        Arrays.fill(armor, wool.clone());
+        player.getInventory().setArmorContents(armor);
+        player.getInventory().setItemInOffHand(wool.clone());
+        player.updateInventory();
     }
 
     private void clearInventoryDebugSession(Player player) {
         ProfileEntryUtil.clearInventory(player);
-        applyCraftingDebugMenu(player, false);
-    }
-
-    private ItemStack createDebugMenuItem(Material material, String name, String action) {
-        ItemStack item = new ItemStack(material);
-        ItemMeta meta = item.getItemMeta();
-        if (meta != null) {
-            meta.setDisplayName(name);
-            if (action != null) {
-                meta.setLore(TooltipUtil.clickInstructions(null, action));
-            }
-            item.setItemMeta(meta);
-        }
-        return item;
-    }
-
-    private void applyCraftingDebugMenu(Player player, boolean enabled) {
-        if (player == null || !player.isOnline()) {
-            return;
-        }
-        if (!(player.getOpenInventory().getTopInventory() instanceof CraftingInventory craftingInventory)) {
-            player.closeInventory();
-            player.updateInventory();
-            return;
-        }
-
-        for (int raw = 1; raw <= 4; raw++) {
-            craftingInventory.setItem(raw, null);
-        }
-        craftingInventory.setResult(null);
-
-        if (enabled) {
-            craftingInventory.setResult(createDebugMenuItem(Material.NETHER_STAR,
-                    ChatColor.AQUA + "Stats Viewer", "to view your stats."));
-            craftingInventory.setItem(1, createDebugMenuItem(Material.STONE_PICKAXE,
-                    ChatColor.GOLD + "Life Skills", "to view life skills."));
-            craftingInventory.setItem(2, createDebugMenuItem(Material.BOOK,
-                    ChatColor.AQUA + "Quest Book", "to view your quests."));
-            craftingInventory.setItem(4, createDebugMenuItem(Material.COMPARATOR,
-                    ChatColor.AQUA + "Settings", "to configure gameplay options."));
-        }
-
         player.updateInventory();
     }
 

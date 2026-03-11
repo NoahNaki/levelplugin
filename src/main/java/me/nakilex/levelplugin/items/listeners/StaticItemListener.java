@@ -1,7 +1,6 @@
 package me.nakilex.levelplugin.items.listeners;
 
 import me.nakilex.levelplugin.Main;
-import me.nakilex.levelplugin.debug.commands.DebugCommand;
 import me.nakilex.levelplugin.player.attributes.gui.LifeSkillGUI;
 import me.nakilex.levelplugin.player.attributes.gui.StatsInventory;
 import me.nakilex.levelplugin.player.profile.ProfileEntryUtil;
@@ -149,18 +148,7 @@ public class StaticItemListener implements Listener {
     }
 
     private static boolean shouldSkipCraftingMenu(Player player) {
-        if (player == null || WorldExclusionUtil.isExcluded(player)) {
-            return true;
-        }
-        if (DebugCommand.isInventoryDebugEnabled(player.getUniqueId())) {
-            return true;
-        }
-        Main main = Main.getInstance();
-        if (main == null) {
-            return false;
-        }
-        ServerSelectionManager manager = main.getServerSelectionManager();
-        return manager != null && manager.isHubWorld(player.getWorld());
+        return true;
     }
 
     private static void setCraftingMenuSlots(Player player, InventoryView view, boolean applyMenu) {
@@ -240,7 +228,6 @@ public class StaticItemListener implements Listener {
                 player.getInventory().setItem(i, null);
             }
         }
-        clearCraftingMenu(player, player.getOpenInventory());
     }
 
     public static void applyWorldLoadout(Player player) {
@@ -298,7 +285,7 @@ public class StaticItemListener implements Listener {
         if (!(event.getPlayer() instanceof Player player)) {
             return;
         }
-        if (!isCraftingMenuContext(event.getView())) {
+        if (shouldSkipCraftingMenu(player) || !isCraftingMenuContext(event.getView())) {
             return;
         }
         refreshCraftingMenu(player);
@@ -310,7 +297,7 @@ public class StaticItemListener implements Listener {
             return;
         }
 
-        if (isCraftingMenuContext(event.getView()) && isManagedCraftingRawSlot(event.getRawSlot())) {
+        if (!shouldSkipCraftingMenu(player) && isCraftingMenuContext(event.getView()) && isManagedCraftingRawSlot(event.getRawSlot())) {
             event.setCancelled(true);
             event.setResult(Event.Result.DENY);
             if (event.getCursor() != null && !event.getCursor().getType().isAir()) {
