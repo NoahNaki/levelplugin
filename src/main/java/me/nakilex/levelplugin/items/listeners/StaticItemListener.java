@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.items.listeners;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.debug.commands.DebugCommand;
 import me.nakilex.levelplugin.player.attributes.gui.LifeSkillGUI;
 import me.nakilex.levelplugin.player.attributes.gui.StatsInventory;
 import me.nakilex.levelplugin.player.profile.ProfileEntryUtil;
@@ -149,6 +150,9 @@ public class StaticItemListener implements Listener {
 
     private static boolean shouldSkipCraftingMenu(Player player) {
         if (player == null || WorldExclusionUtil.isExcluded(player)) {
+            return true;
+        }
+        if (DebugCommand.isInventoryDebugEnabled(player.getUniqueId())) {
             return true;
         }
         Main main = Main.getInstance();

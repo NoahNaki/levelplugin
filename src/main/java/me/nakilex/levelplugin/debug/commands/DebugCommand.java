@@ -71,6 +71,10 @@ import net.citizensnpcs.api.CitizensAPI;
  */
 public class DebugCommand implements TabExecutor {
     private static final Set<UUID> INVENTORY_DEBUG_ENABLED = ConcurrentHashMap.newKeySet();
+
+    public static boolean isInventoryDebugEnabled(UUID playerId) {
+        return playerId != null && INVENTORY_DEBUG_ENABLED.contains(playerId);
+    }
     private final PlayerToggleManager mobDebugManager;
     private final PlayerScoreboardManager scoreboardManager;
     private final DebugGUI debugGUI;
@@ -557,29 +561,33 @@ public class DebugCommand implements TabExecutor {
         player.getInventory().setArmorContents(armor);
         player.getInventory().setItemInOffHand(wool.clone());
 
-        player.closeInventory();
-        Main main = Main.getInstance();
-        if (main != null) {
-            main.getServer().getScheduler().runTask(main, () -> {
-                if (!player.isOnline()) {
-                    return;
-                }
-                if (player.getOpenInventory().getTopInventory() instanceof CraftingInventory craftingInventory) {
-                    for (int raw = 1; raw <= 4; raw++) {
-                        craftingInventory.setItem(raw, wool.clone());
-                    }
-                    craftingInventory.setResult(wool.clone());
-                }
-                player.updateInventory();
-            });
-            return;
-        }
-        player.updateInventory();
+        applyCraftingDebugItems(player, wool);
     }
 
     private void clearInventoryDebugSession(Player player) {
         ProfileEntryUtil.clearInventory(player);
-        player.updateInventory();
+        applyCraftingDebugItems(player, null);
+    }
+
+    private void applyCraftingDebugItems(Player player, ItemStack item) {
+        player.closeInventory();
+        Main main = Main.getInstance();
+        if (main == null) {
+            player.updateInventory();
+            return;
+        }
+        main.getServer().getScheduler().runTask(main, () -> {
+            if (!player.isOnline()) {
+                return;
+            }
+            if (player.getOpenInventory().getTopInventory() instanceof CraftingInventory craftingInventory) {
+                for (int raw = 1; raw <= 4; raw++) {
+                    craftingInventory.setItem(raw, item == null ? null : item.clone());
+                }
+                craftingInventory.setResult(item == null ? null : item.clone());
+            }
+            player.updateInventory();
+        });
     }
 
     private boolean hasTownOwnership(Player player) {
