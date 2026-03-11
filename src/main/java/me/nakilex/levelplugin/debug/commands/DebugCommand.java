@@ -43,6 +43,7 @@ import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.guild.siege.GuildSiegeManager;
 import me.nakilex.levelplugin.guild.GuildManager;
+import me.nakilex.levelplugin.items.listeners.StaticItemListener;
 import org.bukkit.ChatColor;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Material;
@@ -532,31 +533,24 @@ public class DebugCommand implements TabExecutor {
         if (INVENTORY_DEBUG_ENABLED.remove(player.getUniqueId())) {
             clearInventoryDebugSession(player);
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
-                    "Inventory debug disabled. Cleared your inventory.");
+                    "Inventory debug disabled. Cleared crafting slots (0-4).");
             return;
         }
         INVENTORY_DEBUG_ENABLED.add(player.getUniqueId());
         applyInventoryDebugSession(player);
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                "Inventory debug enabled. Filled crafting slots (0-4) with white wool.");
+                "Inventory debug enabled. Filled crafting slots (0-4) with GUI shortcuts.");
     }
 
     private void applyInventoryDebugSession(Player player) {
         if (player == null || !player.isOnline()) {
             return;
         }
-        ItemStack wool = new ItemStack(Material.WHITE_WOOL);
-        ItemMeta meta = wool.getItemMeta();
-        if (meta != null) {
-            meta.setDisplayName(ChatColor.WHITE + "Inventory Debug Slot");
-            wool.setItemMeta(meta);
-        }
-
         if (player.getOpenInventory().getTopInventory() instanceof org.bukkit.inventory.CraftingInventory craftingInventory) {
             for (int raw = 1; raw <= 4; raw++) {
-                craftingInventory.setItem(raw, wool.clone());
+                craftingInventory.setItem(raw, StaticItemListener.createCraftingMenuItem(player, raw));
             }
-            craftingInventory.setResult(wool.clone());
+            craftingInventory.setResult(StaticItemListener.createCraftingMenuItem(player, 0));
         }
         player.updateInventory();
     }

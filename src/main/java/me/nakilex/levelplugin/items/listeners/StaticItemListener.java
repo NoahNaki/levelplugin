@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.items.listeners;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.debug.commands.DebugCommand;
 import me.nakilex.levelplugin.player.attributes.gui.LifeSkillGUI;
 import me.nakilex.levelplugin.player.attributes.gui.StatsInventory;
 import me.nakilex.levelplugin.player.profile.ProfileEntryUtil;
@@ -133,6 +134,11 @@ public class StaticItemListener implements Listener {
         };
     }
 
+    public static ItemStack createCraftingMenuItem(Player player, int rawSlot) {
+        ItemStack item = getCraftingMenuItem(player, rawSlot);
+        return item == null ? null : item.clone();
+    }
+
     private static boolean isManagedCraftingRawSlot(int rawSlot) {
         for (int slot : CRAFTING_RAW_SLOTS) {
             if (slot == rawSlot) {
@@ -140,6 +146,15 @@ public class StaticItemListener implements Listener {
             }
         }
         return false;
+    }
+
+    public static boolean runCraftingSlotAction(Player player, int rawSlot, boolean delayOneTick) {
+        ItemStack menuItem = getCraftingMenuItem(player, rawSlot);
+        if (menuItem == null) {
+            return false;
+        }
+        handleStaticAction(player, menuItem, delayOneTick);
+        return true;
     }
 
     private static boolean isCraftingMenuContext(InventoryView view) {
@@ -306,12 +321,25 @@ public class StaticItemListener implements Listener {
             player.setItemOnCursor(null);
             player.updateInventory();
             if ((event.getCursor() == null || event.getCursor().getType().isAir())) {
-                ItemStack menuItem = getCraftingMenuItem(player, event.getRawSlot());
-                if (menuItem != null) {
-                    handleStaticAction(player, menuItem, true);
-                }
+                runCraftingSlotAction(player, event.getRawSlot(), true);
             }
             queueCraftingMenuRefresh(player);
+            return;
+        }
+
+        if (DebugCommand.isInventoryDebugEnabled(player.getUniqueId())
+                && isCraftingMenuContext(event.getView())
+                && isManagedCraftingRawSlot(event.getRawSlot())) {
+            event.setCancelled(true);
+            event.setResult(Event.Result.DENY);
+            if (event.getCursor() != null && !event.getCursor().getType().isAir()) {
+                event.setCursor(null);
+            }
+            player.setItemOnCursor(null);
+            player.updateInventory();
+            if (event.getCursor() == null || event.getCursor().getType().isAir()) {
+                runCraftingSlotAction(player, event.getRawSlot(), true);
+            }
             return;
         }
 
