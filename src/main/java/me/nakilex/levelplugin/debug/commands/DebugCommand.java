@@ -33,7 +33,6 @@ import me.nakilex.levelplugin.particles.ParticlePreset;
 import me.nakilex.levelplugin.particles.ParticleService;
 import me.nakilex.levelplugin.particles.presets.ElementalPresets;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
-import me.nakilex.levelplugin.player.profile.ProfileEntryUtil;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
 import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
@@ -539,12 +538,13 @@ public class DebugCommand implements TabExecutor {
         INVENTORY_DEBUG_ENABLED.add(player.getUniqueId());
         applyInventoryDebugSession(player);
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                "Inventory debug enabled. Filled your inventory with white wool.");
+                "Inventory debug enabled. Filled crafting slots (0-4) with white wool.");
     }
 
     private void applyInventoryDebugSession(Player player) {
-        ProfileEntryUtil.clearInventory(player);
-
+        if (player == null || !player.isOnline()) {
+            return;
+        }
         ItemStack wool = new ItemStack(Material.WHITE_WOOL);
         ItemMeta meta = wool.getItemMeta();
         if (meta != null) {
@@ -552,18 +552,25 @@ public class DebugCommand implements TabExecutor {
             wool.setItemMeta(meta);
         }
 
-        for (int slot = 0; slot < player.getInventory().getSize(); slot++) {
-            player.getInventory().setItem(slot, wool.clone());
+        if (player.getOpenInventory().getTopInventory() instanceof org.bukkit.inventory.CraftingInventory craftingInventory) {
+            for (int raw = 1; raw <= 4; raw++) {
+                craftingInventory.setItem(raw, wool.clone());
+            }
+            craftingInventory.setResult(wool.clone());
         }
-        ItemStack[] armor = new ItemStack[player.getInventory().getArmorContents().length];
-        Arrays.fill(armor, wool.clone());
-        player.getInventory().setArmorContents(armor);
-        player.getInventory().setItemInOffHand(wool.clone());
         player.updateInventory();
     }
 
     private void clearInventoryDebugSession(Player player) {
-        ProfileEntryUtil.clearInventory(player);
+        if (player == null || !player.isOnline()) {
+            return;
+        }
+        if (player.getOpenInventory().getTopInventory() instanceof org.bukkit.inventory.CraftingInventory craftingInventory) {
+            for (int raw = 1; raw <= 4; raw++) {
+                craftingInventory.setItem(raw, null);
+            }
+            craftingInventory.setResult(null);
+        }
         player.updateInventory();
     }
 
