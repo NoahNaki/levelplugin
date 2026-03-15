@@ -313,16 +313,31 @@ public class StaticItemListener implements Listener {
         }
         craftingMenuRefreshTaskStarted = true;
         main.getServer().getScheduler().runTaskTimer(main, () -> {
-            if (PLAYERS_NEEDING_CRAFTING_MENU_REFRESH.isEmpty()) {
-                return;
+            if (!PLAYERS_NEEDING_CRAFTING_MENU_REFRESH.isEmpty()) {
+                for (UUID uuid : Set.copyOf(PLAYERS_NEEDING_CRAFTING_MENU_REFRESH)) {
+                    Player player = main.getServer().getPlayer(uuid);
+                    PLAYERS_NEEDING_CRAFTING_MENU_REFRESH.remove(uuid);
+                    if (player == null || !player.isOnline()) {
+                        continue;
+                    }
+                    refreshCraftingMenu(player);
+                }
             }
-            for (UUID uuid : Set.copyOf(PLAYERS_NEEDING_CRAFTING_MENU_REFRESH)) {
-                Player player = main.getServer().getPlayer(uuid);
-                PLAYERS_NEEDING_CRAFTING_MENU_REFRESH.remove(uuid);
-                if (player == null || !player.isOnline()) {
+
+            for (Player online : main.getServer().getOnlinePlayers()) {
+                if (online == null || !online.isOnline()) {
                     continue;
                 }
-                refreshCraftingMenu(player);
+                InventoryView openView = online.getOpenInventory();
+                if (!isCraftingMenuContext(openView)) {
+                    continue;
+                }
+                if (hasCraftingShortcutItems(openView)) {
+                    continue;
+                }
+                logInventoryDebug("heartbeat apply player=" + online.getName() + " topType="
+                        + openView.getTopInventory().getType());
+                applyInventoryDebugSession(online, openView);
             }
         }, 1L, 2L);
     }
