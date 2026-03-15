@@ -547,10 +547,7 @@ public class DebugCommand implements TabExecutor {
             return;
         }
         if (player.getOpenInventory().getTopInventory() instanceof org.bukkit.inventory.CraftingInventory craftingInventory) {
-            for (int raw = 1; raw <= 4; raw++) {
-                craftingInventory.setItem(raw, StaticItemListener.createCraftingMenuItem(player, raw));
-            }
-            craftingInventory.setResult(StaticItemListener.createCraftingMenuItem(player, 0));
+            StaticItemListener.applyCraftingShortcutItems(player, craftingInventory);
         }
         player.updateInventory();
     }

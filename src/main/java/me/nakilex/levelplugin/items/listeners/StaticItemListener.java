@@ -139,6 +139,34 @@ public class StaticItemListener implements Listener {
         return item == null ? null : item.clone();
     }
 
+    public static void applyCraftingShortcutItems(Player player, CraftingInventory craftingInventory) {
+        if (craftingInventory == null) {
+            return;
+        }
+        for (int raw = 1; raw <= 4; raw++) {
+            craftingInventory.setItem(raw, createCraftingMenuItem(player, raw));
+        }
+        craftingInventory.setResult(createCraftingMenuItem(player, 0));
+    }
+
+    private static void reapplyDebugCraftingShortcutsNextTick(Player player) {
+        Main main = Main.getInstance();
+        if (main == null) {
+            return;
+        }
+        Bukkit.getScheduler().runTaskLater(main, () -> {
+            if (player == null || !player.isOnline() || !DebugCommand.isInventoryDebugEnabled(player.getUniqueId())) {
+                return;
+            }
+            InventoryView view = player.getOpenInventory();
+            if (!isCraftingMenuContext(view) || !(view.getTopInventory() instanceof CraftingInventory craftingInventory)) {
+                return;
+            }
+            applyCraftingShortcutItems(player, craftingInventory);
+            player.updateInventory();
+        }, 1L);
+    }
+
     private static boolean isManagedCraftingRawSlot(int rawSlot) {
         for (int slot : CRAFTING_RAW_SLOTS) {
             if (slot == rawSlot) {
@@ -300,6 +328,13 @@ public class StaticItemListener implements Listener {
         if (!(event.getPlayer() instanceof Player player)) {
             return;
         }
+        if (DebugCommand.isInventoryDebugEnabled(player.getUniqueId())
+                && isCraftingMenuContext(event.getView())
+                && event.getView().getTopInventory() instanceof CraftingInventory craftingInventory) {
+            applyCraftingShortcutItems(player, craftingInventory);
+            player.updateInventory();
+            return;
+        }
         if (shouldSkipCraftingMenu(player) || !isCraftingMenuContext(event.getView())) {
             return;
         }
@@ -340,6 +375,7 @@ public class StaticItemListener implements Listener {
             if (event.getCursor() == null || event.getCursor().getType().isAir()) {
                 runCraftingSlotAction(player, event.getRawSlot(), true);
             }
+            reapplyDebugCraftingShortcutsNextTick(player);
             return;
         }
 
