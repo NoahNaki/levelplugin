@@ -116,30 +116,43 @@ public class SettingsGUI implements Listener {
 
 
     private ItemStack createFilterItem(Filter filter) {
-        String name = switch (filter) {
-            case ALL -> "§bFilter: All";
-            case SOCIAL -> "§bFilter: Social";
-            case VISUAL -> "§bFilter: Visual";
-            case COMBAT -> "§bFilter: Combat";
-        };
-        ItemStack it = GuiUtil.getNexoItem("refresh", name);
-        ItemMeta meta = it.getItemMeta();
+        ItemStack item = new ItemStack(Material.NETHER_STAR);
+        ItemMeta meta = item.getItemMeta();
         if (meta != null) {
-            meta.setLore(Collections.singletonList("§7Click to change filter"));
-            it.setItemMeta(meta);
+            meta.setDisplayName(ChatColor.AQUA + "Category Filter");
+            List<String> lore = new ArrayList<>();
+            lore.add(ChatColor.GRAY + "");
+            lore.add(ChatColor.DARK_GRAY + "Filter settings by category.");
+            lore.add(" ");
+            lore.add(TooltipUtil.selectionLine(filter == Filter.ALL, ChatColor.WHITE + "Show All"));
+            lore.add(TooltipUtil.selectionLine(filter == Filter.SOCIAL, ChatColor.WHITE + "Social"));
+            lore.add(TooltipUtil.selectionLine(filter == Filter.VISUAL, ChatColor.WHITE + "Visual"));
+            lore.add(TooltipUtil.selectionLine(filter == Filter.COMBAT, ChatColor.WHITE + "Combat"));
+            lore.add(" ");
+            lore.addAll(TooltipUtil.clickInstructions("to go forward", "to go backward"));
+            meta.setLore(lore);
+            item.setItemMeta(meta);
         }
-        return it;
+        return item;
     }
 
     private ItemStack createSortItem(SortMode sortMode) {
-        String name = sortMode == SortMode.DEFAULT ? "§bSort: Default" : "§bSort: A → Z";
-        ItemStack it = GuiUtil.getNexoItem("refresh", name);
-        ItemMeta meta = it.getItemMeta();
+        ItemStack item = new ItemStack(Material.COMPARATOR);
+        ItemMeta meta = item.getItemMeta();
         if (meta != null) {
-            meta.setLore(Collections.singletonList("§7Click to change sort"));
-            it.setItemMeta(meta);
+            meta.setDisplayName(ChatColor.AQUA + "Sorting");
+            List<String> lore = new ArrayList<>();
+            lore.add(ChatColor.GRAY + "");
+            lore.add(ChatColor.DARK_GRAY + "Sort the settings list.");
+            lore.add(" ");
+            lore.add(TooltipUtil.selectionLine(sortMode == SortMode.DEFAULT, ChatColor.WHITE + "Default"));
+            lore.add(TooltipUtil.selectionLine(sortMode == SortMode.A_TO_Z, ChatColor.WHITE + "A → Z"));
+            lore.add(" ");
+            lore.addAll(TooltipUtil.clickInstructions("to go forward", "to go backward"));
+            meta.setLore(lore);
+            item.setItemMeta(meta);
         }
-        return it;
+        return item;
     }
 
     private ItemStack createLootPickupFilterItem(PlayerSettings settings) {
@@ -247,10 +260,10 @@ public class SettingsGUI implements Listener {
         SortMode sortMode = sorts.getOrDefault(player.getUniqueId(), SortMode.DEFAULT);
         widgets.add(new ActionWidget(FILTER_SLOT,
                 context -> createFilterItem(filter),
-                (click, context) -> cycleFilter(context.player())));
+                (click, context) -> cycleFilter(context.player(), !click.isRightClick())));
         widgets.add(new ActionWidget(SORT_SLOT,
                 context -> createSortItem(sortMode),
-                (click, context) -> cycleSort(context.player())));
+                (click, context) -> cycleSort(context.player(), !click.isRightClick())));
 
         List<SettingEntry> entries = new ArrayList<>();
 
@@ -390,23 +403,25 @@ public class SettingsGUI implements Listener {
         return true;
     }
 
-    private void cycleFilter(Player player) {
-        Filter next = switch (filters.getOrDefault(player.getUniqueId(), Filter.ALL)) {
-            case ALL -> Filter.SOCIAL;
-            case SOCIAL -> Filter.VISUAL;
-            case VISUAL -> Filter.COMBAT;
-            case COMBAT -> Filter.ALL;
-        };
-        filters.put(player.getUniqueId(), next);
+    private void cycleFilter(Player player, boolean forward) {
+        Filter[] values = Filter.values();
+        Filter current = filters.getOrDefault(player.getUniqueId(), Filter.ALL);
+        int currentIndex = current.ordinal();
+        int nextIndex = forward
+                ? (currentIndex + 1) % values.length
+                : (currentIndex - 1 + values.length) % values.length;
+        filters.put(player.getUniqueId(), values[nextIndex]);
         openSettingsMenu(player);
     }
 
-    private void cycleSort(Player player) {
-        SortMode next = switch (sorts.getOrDefault(player.getUniqueId(), SortMode.DEFAULT)) {
-            case DEFAULT -> SortMode.A_TO_Z;
-            case A_TO_Z -> SortMode.DEFAULT;
-        };
-        sorts.put(player.getUniqueId(), next);
+    private void cycleSort(Player player, boolean forward) {
+        SortMode[] values = SortMode.values();
+        SortMode current = sorts.getOrDefault(player.getUniqueId(), SortMode.DEFAULT);
+        int currentIndex = current.ordinal();
+        int nextIndex = forward
+                ? (currentIndex + 1) % values.length
+                : (currentIndex - 1 + values.length) % values.length;
+        sorts.put(player.getUniqueId(), values[nextIndex]);
         openSettingsMenu(player);
     }
 

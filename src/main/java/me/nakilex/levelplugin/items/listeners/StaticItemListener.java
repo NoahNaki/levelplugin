@@ -58,6 +58,23 @@ public class StaticItemListener implements Listener {
         main.getLogger().info("[InventoryDebug] " + message);
     }
 
+    private static boolean isStatsViewerItem(ItemStack item) {
+        if (item == null || item.getType().isAir()) {
+            return false;
+        }
+        if (item.isSimilar(STATIC_STATS_VIEWER)) {
+            return true;
+        }
+        if (item.getType() != Material.PLAYER_HEAD) {
+            return false;
+        }
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null || !meta.hasDisplayName()) {
+            return false;
+        }
+        return ChatColor.stripColor(meta.getDisplayName()).equalsIgnoreCase("Stats Viewer");
+    }
+
     static {
         STATIC_STATS_VIEWER = new ItemStack(Material.NETHER_STAR);
         ItemMeta statsMeta = STATIC_STATS_VIEWER.getItemMeta();
@@ -112,7 +129,7 @@ public class StaticItemListener implements Listener {
 
     private static boolean isManagedStaticItem(ItemStack item) {
         return item != null && (
-                item.isSimilar(STATIC_STATS_VIEWER)
+                isStatsViewerItem(item)
                         || item.isSimilar(STATIC_LIFE_SKILL)
                         || item.isSimilar(STATIC_HORSE_SADDLE)
                         || item.isSimilar(STATIC_QUEST_BOOK)
@@ -132,13 +149,32 @@ public class StaticItemListener implements Listener {
 
     private static ItemStack getCraftingMenuItem(Player player, int rawSlot) {
         return switch (rawSlot) {
-            case 0 -> STATIC_STATS_VIEWER.clone();
+            case 0 -> createStatsViewerItem(player);
             case 1 -> STATIC_LIFE_SKILL.clone();
             case 2 -> STATIC_QUEST_BOOK.clone();
             case 3 -> STATIC_CODEX.clone();
             case 4 -> STATIC_SETTINGS.clone();
             default -> null;
         };
+    }
+
+    private static ItemStack createStatsViewerItem(Player player) {
+        if (player == null) {
+            return STATIC_STATS_VIEWER.clone();
+        }
+        ItemStack head = new ItemStack(Material.PLAYER_HEAD);
+        ItemMeta baseMeta = STATIC_STATS_VIEWER.getItemMeta();
+        ItemMeta headMeta = head.getItemMeta();
+        if (headMeta instanceof org.bukkit.inventory.meta.SkullMeta skullMeta) {
+            skullMeta.setOwningPlayer(player);
+            if (baseMeta != null) {
+                skullMeta.setDisplayName(baseMeta.getDisplayName());
+                skullMeta.setLore(baseMeta.getLore());
+            }
+            head.setItemMeta(skullMeta);
+            return head;
+        }
+        return STATIC_STATS_VIEWER.clone();
     }
 
     public static ItemStack createCraftingMenuItem(Player player, int rawSlot) {
@@ -271,12 +307,29 @@ public class StaticItemListener implements Listener {
     }
 
     public static boolean runCraftingSlotAction(Player player, int rawSlot, boolean delayOneTick) {
-        ItemStack menuItem = getCraftingMenuItem(player, rawSlot);
-        if (menuItem == null) {
-            return false;
-        }
-        handleStaticAction(player, menuItem, delayOneTick);
-        return true;
+        return switch (rawSlot) {
+            case 0 -> {
+                runStaticAction(player, delayOneTick, () -> player.performCommand("stats"));
+                yield true;
+            }
+            case 1 -> {
+                runStaticAction(player, delayOneTick, () -> LifeSkillGUI.open(player));
+                yield true;
+            }
+            case 2 -> {
+                runStaticAction(player, delayOneTick, () -> player.performCommand("quest"));
+                yield true;
+            }
+            case 3 -> {
+                runStaticAction(player, delayOneTick, () -> player.performCommand("codex"));
+                yield true;
+            }
+            case 4 -> {
+                runStaticAction(player, delayOneTick, () -> player.performCommand("settings"));
+                yield true;
+            }
+            default -> false;
+        };
     }
 
     private static boolean isCraftingMenuContext(InventoryView view) {
@@ -580,7 +633,7 @@ public class StaticItemListener implements Listener {
     }
 
     private static void handleStaticAction(Player player, ItemStack item, boolean delayOneTick) {
-        if (item.isSimilar(STATIC_STATS_VIEWER)) {
+        if (isStatsViewerItem(item)) {
             runStaticAction(player, delayOneTick, () -> player.performCommand("stats"));
             return;
         }
