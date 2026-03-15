@@ -48,7 +48,6 @@ public class StaticItemListener implements Listener {
     private static final ItemStack STATIC_SETTINGS;       // Comparator (Settings)
     private static final int[] CRAFTING_RAW_SLOTS = {0, 1, 2, 3, 4};
     private static final Set<UUID> PLAYERS_NEEDING_CRAFTING_MENU_REFRESH = ConcurrentHashMap.newKeySet();
-    private static final Set<UUID> ACTIVE_CRAFTING_SHORTCUT_SESSION = ConcurrentHashMap.newKeySet();
     private static volatile boolean craftingMenuRefreshTaskStarted;
 
     private static void logInventoryDebug(String message) {
@@ -170,45 +169,28 @@ public class StaticItemListener implements Listener {
         craftingInventory.setItem(0, null);
     }
 
-    private static void applyDebugCraftingSession(Player player, InventoryView view) {
-        if (player == null || view == null || !(view.getTopInventory() instanceof CraftingInventory craftingInventory)) {
+    private static void applyInventoryDebugSession(Player player, InventoryView view) {
+        if (player == null || !player.isOnline() || view == null) {
             return;
         }
-        logInventoryDebug("apply debug session player=" + player.getName() + " topType=" + view.getTopInventory().getType());
-        ACTIVE_CRAFTING_SHORTCUT_SESSION.add(player.getUniqueId());
-        applyCraftingShortcutItems(player, craftingInventory);
+        if (view.getTopInventory() instanceof CraftingInventory craftingInventory) {
+            applyCraftingShortcutItems(player, craftingInventory);
+            logInventoryDebug("apply session wrote crafting slots for player=" + player.getName());
+        }
         player.updateInventory();
     }
 
-    private static void clearDebugCraftingSession(Player player, InventoryView view) {
-        if (player == null || view == null || !(view.getTopInventory() instanceof CraftingInventory craftingInventory)) {
+    private static void clearInventoryDebugSession(Player player, InventoryView view) {
+        if (player == null || !player.isOnline() || view == null) {
             return;
         }
-        logInventoryDebug("clear debug session player=" + player.getName() + " topType=" + view.getTopInventory().getType());
-        ACTIVE_CRAFTING_SHORTCUT_SESSION.remove(player.getUniqueId());
-        player.setItemOnCursor(null);
-        clearCraftingShortcutItems(craftingInventory);
+        logInventoryDebug("clear session player=" + player.getName() + " topType=" + view.getTopInventory().getType());
+        if (view.getTopInventory() instanceof CraftingInventory craftingInventory) {
+            player.setItemOnCursor(null);
+            clearCraftingShortcutItems(craftingInventory);
+            logInventoryDebug("clear session removed crafting slots for player=" + player.getName());
+        }
         player.updateInventory();
-    }
-
-    private static boolean isCraftingShortcutSessionActive(Player player) {
-        return player != null && ACTIVE_CRAFTING_SHORTCUT_SESSION.contains(player.getUniqueId());
-    }
-
-    private static boolean hasCraftingShortcutItems(InventoryView view) {
-        if (view == null || !(view.getTopInventory() instanceof CraftingInventory craftingInventory)) {
-            return false;
-        }
-        ItemStack result = craftingInventory.getResult();
-        if (isManagedStaticItem(result) || isManagedStaticItem(craftingInventory.getItem(0))) {
-            return true;
-        }
-        for (int raw = 1; raw <= 4; raw++) {
-            if (isManagedStaticItem(craftingInventory.getItem(raw))) {
-                return true;
-            }
-        }
-        return false;
     }
 
     private static boolean isManagedCraftingRawSlot(int rawSlot) {
@@ -348,12 +330,10 @@ public class StaticItemListener implements Listener {
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
         Player player = event.getPlayer();
-        logInventoryDebug("quit player=" + player.getName() + " sessionActive="
-                + isCraftingShortcutSessionActive(player));
+        logInventoryDebug("quit player=" + player.getName());
         PLAYERS_NEEDING_CRAFTING_MENU_REFRESH.remove(player.getUniqueId());
-        ACTIVE_CRAFTING_SHORTCUT_SESSION.remove(player.getUniqueId());
-        if (isCraftingMenuContext(player.getOpenInventory()) && hasCraftingShortcutItems(player.getOpenInventory())) {
-            clearDebugCraftingSession(player, player.getOpenInventory());
+        if (isCraftingMenuContext(player.getOpenInventory())) {
+            clearInventoryDebugSession(player, player.getOpenInventory());
         }
         clearStaticItems(player);
     }
@@ -379,11 +359,10 @@ public class StaticItemListener implements Listener {
             return;
         }
         logInventoryDebug("inventory open player=" + player.getName() + " topType="
-                + event.getView().getTopInventory().getType() + " sessionActive="
-                + isCraftingShortcutSessionActive(player));
+                + event.getView().getTopInventory().getType());
         if (isCraftingMenuContext(event.getView())
                 && event.getView().getTopInventory() instanceof CraftingInventory craftingInventory) {
-            applyDebugCraftingSession(player, event.getView());
+            applyInventoryDebugSession(player, event.getView());
             return;
         }
         if (shouldSkipCraftingMenu(player) || !isCraftingMenuContext(event.getView())) {
@@ -398,7 +377,7 @@ public class StaticItemListener implements Listener {
             return;
         }
 
-        if (isCraftingShortcutSessionActive(player) && isCraftingMenuContext(event.getView())) {
+        if (isCraftingMenuContext(event.getView())) {
             logInventoryDebug("inventory click player=" + player.getName() + " rawSlot=" + event.getRawSlot()
                     + " slot=" + event.getSlot() + " click=" + event.getClick() + " action=" + event.getAction());
         }
@@ -418,15 +397,14 @@ public class StaticItemListener implements Listener {
             return;
         }
 
-        if ((isCraftingShortcutSessionActive(player) || hasCraftingShortcutItems(event.getView()))
-                && isCraftingMenuContext(event.getView())
+        if (isCraftingMenuContext(event.getView())
                 && isManagedCraftingRawSlot(event.getRawSlot())) {
             event.setCancelled(true);
             event.setResult(Event.Result.DENY);
             if (event.getCursor() != null && !event.getCursor().getType().isAir()) {
                 event.setCursor(null);
             }
-            clearDebugCraftingSession(player, event.getView());
+            clearInventoryDebugSession(player, event.getView());
             if (event.getCursor() == null || event.getCursor().getType().isAir()) {
                 logInventoryDebug("run slot action player=" + player.getName() + " rawSlot=" + event.getRawSlot());
                 runCraftingSlotAction(player, event.getRawSlot(), true);
@@ -446,12 +424,10 @@ public class StaticItemListener implements Listener {
             return;
         }
         logInventoryDebug("inventory close player=" + player.getName() + " topType="
-                + event.getView().getTopInventory().getType() + " sessionActive="
-                + isCraftingShortcutSessionActive(player));
-        if ((isCraftingShortcutSessionActive(player) || hasCraftingShortcutItems(event.getView()))
-                && isCraftingMenuContext(event.getView())
+                + event.getView().getTopInventory().getType());
+        if (isCraftingMenuContext(event.getView())
                 && event.getView().getTopInventory() instanceof CraftingInventory craftingInventory) {
-            clearDebugCraftingSession(player, event.getView());
+            clearInventoryDebugSession(player, event.getView());
             return;
         }
         if (!isCraftingMenuContext(event.getView()) || shouldSkipCraftingMenu(player)) {
