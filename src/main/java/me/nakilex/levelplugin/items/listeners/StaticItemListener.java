@@ -50,15 +50,6 @@ public class StaticItemListener implements Listener {
     private static final int[] CRAFTING_RAW_SLOTS = {0, 1, 2, 3, 4};
     private static final Set<UUID> PLAYERS_NEEDING_CRAFTING_MENU_REFRESH = ConcurrentHashMap.newKeySet();
     private static volatile boolean craftingMenuRefreshTaskStarted;
-
-    private static void logInventoryDebug(String message) {
-        Main main = Main.getInstance();
-        if (main == null) {
-            return;
-        }
-        main.getLogger().info("[InventoryDebug] " + message);
-    }
-
     private static boolean isStatsViewerItem(ItemStack item) {
         if (item == null || item.getType().isAir()) {
             return false;
@@ -212,7 +203,6 @@ public class StaticItemListener implements Listener {
         }
         if (view.getTopInventory() instanceof CraftingInventory craftingInventory) {
             applyCraftingShortcutItems(player, craftingInventory);
-            logInventoryDebug("apply session wrote crafting slots for player=" + player.getName());
         }
         player.updateInventory();
     }
@@ -236,12 +226,10 @@ public class StaticItemListener implements Listener {
             return;
         }
         for (int tick = 1; tick <= attempts; tick++) {
-            final int currentTick = tick;
             Bukkit.getScheduler().runTaskLater(main, () -> {
                 if (!player.isOnline()) {
                     return;
                 }
-                logInventoryDebug("apply burst tick=" + currentTick + " player=" + player.getName());
                 applyInventoryDebugSession(player, player.getOpenInventory());
             }, tick);
         }
@@ -253,7 +241,6 @@ public class StaticItemListener implements Listener {
             return;
         }
         for (int tick = 1; tick <= 3; tick++) {
-            final int currentTick = tick;
             Bukkit.getScheduler().runTaskLater(main, () -> {
                 if (!player.isOnline()) {
                     return;
@@ -262,8 +249,6 @@ public class StaticItemListener implements Listener {
                 if (!isCraftingMenuContext(view)) {
                     return;
                 }
-                logInventoryDebug("close reapply tick=" + currentTick + " player=" + player.getName() + " topType="
-                        + view.getTopInventory().getType());
                 applyInventoryDebugSession(player, view);
                 applyInventoryDebugSessionBurst(player, 2);
             }, tick);
@@ -274,11 +259,9 @@ public class StaticItemListener implements Listener {
         if (player == null || !player.isOnline() || view == null) {
             return;
         }
-        logInventoryDebug("clear session player=" + player.getName() + " topType=" + view.getTopInventory().getType());
         if (view.getTopInventory() instanceof CraftingInventory craftingInventory) {
             player.setItemOnCursor(null);
             clearCraftingShortcutItems(craftingInventory);
-            logInventoryDebug("clear session removed crafting slots for player=" + player.getName());
         }
         player.updateInventory();
     }
@@ -467,7 +450,6 @@ public class StaticItemListener implements Listener {
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
         Player player = event.getPlayer();
-        logInventoryDebug("quit player=" + player.getName());
         PLAYERS_NEEDING_CRAFTING_MENU_REFRESH.remove(player.getUniqueId());
         if (isCraftingMenuContext(player.getOpenInventory())) {
             clearInventoryDebugSession(player, player.getOpenInventory());
@@ -495,10 +477,8 @@ public class StaticItemListener implements Listener {
         if (!(event.getPlayer() instanceof Player player)) {
             return;
         }
-        logInventoryDebug("inventory open player=" + player.getName() + " topType="
-                + event.getView().getTopInventory().getType());
         if (isCraftingMenuContext(event.getView())
-                && event.getView().getTopInventory() instanceof CraftingInventory craftingInventory) {
+                && event.getView().getTopInventory() instanceof CraftingInventory) {
             applyInventoryDebugSession(player, event.getView());
             applyInventoryDebugSessionNextTick(player);
             applyInventoryDebugSessionBurst(player, 3);
@@ -514,11 +494,6 @@ public class StaticItemListener implements Listener {
     public void onInventoryClick(InventoryClickEvent event) {
         if (!(event.getWhoClicked() instanceof Player player)) {
             return;
-        }
-
-        if (isCraftingMenuContext(event.getView())) {
-            logInventoryDebug("inventory click player=" + player.getName() + " rawSlot=" + event.getRawSlot()
-                    + " slot=" + event.getSlot() + " click=" + event.getClick() + " action=" + event.getAction());
         }
 
         if (!shouldSkipCraftingMenu(player) && isCraftingMenuContext(event.getView()) && isManagedCraftingRawSlot(event.getRawSlot())) {
@@ -546,7 +521,6 @@ public class StaticItemListener implements Listener {
             }
             clearInventoryDebugSession(player, event.getView());
             if (event.getCursor() == null || event.getCursor().getType().isAir()) {
-                logInventoryDebug("run slot action player=" + player.getName() + " rawSlot=" + event.getRawSlot());
                 runCraftingSlotAction(player, event.getRawSlot(), true);
             }
             return;
@@ -563,10 +537,8 @@ public class StaticItemListener implements Listener {
         if (!(event.getPlayer() instanceof Player player)) {
             return;
         }
-        logInventoryDebug("inventory close player=" + player.getName() + " topType="
-                + event.getView().getTopInventory().getType());
         if (isCraftingMenuContext(event.getView())
-                && event.getView().getTopInventory() instanceof CraftingInventory craftingInventory) {
+                && event.getView().getTopInventory() instanceof CraftingInventory) {
             clearInventoryDebugSession(player, event.getView());
             reapplyInventoryDebugSessionAfterClose(player);
             return;
