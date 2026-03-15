@@ -210,6 +210,22 @@ public class StaticItemListener implements Listener {
         }
     }
 
+    private static void reapplyInventoryDebugSessionAfterClose(Player player) {
+        Main main = Main.getInstance();
+        if (main == null || player == null) {
+            return;
+        }
+        Bukkit.getScheduler().runTaskLater(main, () -> {
+            if (!player.isOnline()) {
+                return;
+            }
+            logInventoryDebug("close reapply player=" + player.getName() + " topType="
+                    + player.getOpenInventory().getTopInventory().getType());
+            applyInventoryDebugSession(player, player.getOpenInventory());
+            applyInventoryDebugSessionBurst(player, 2);
+        }, 1L);
+    }
+
     private static void clearInventoryDebugSession(Player player, InventoryView view) {
         if (player == null || !player.isOnline() || view == null) {
             return;
@@ -322,22 +338,6 @@ public class StaticItemListener implements Listener {
                     }
                     refreshCraftingMenu(player);
                 }
-            }
-
-            for (Player online : main.getServer().getOnlinePlayers()) {
-                if (online == null || !online.isOnline()) {
-                    continue;
-                }
-                InventoryView openView = online.getOpenInventory();
-                if (!isCraftingMenuContext(openView)) {
-                    continue;
-                }
-                if (hasCraftingShortcutItems(openView)) {
-                    continue;
-                }
-                logInventoryDebug("heartbeat apply player=" + online.getName() + " topType="
-                        + openView.getTopInventory().getType());
-                applyInventoryDebugSession(online, openView);
             }
         }, 1L, 2L);
     }
@@ -491,6 +491,7 @@ public class StaticItemListener implements Listener {
         if (isCraftingMenuContext(event.getView())
                 && event.getView().getTopInventory() instanceof CraftingInventory craftingInventory) {
             clearInventoryDebugSession(player, event.getView());
+            reapplyInventoryDebugSessionAfterClose(player);
             return;
         }
         if (!isCraftingMenuContext(event.getView()) || shouldSkipCraftingMenu(player)) {
