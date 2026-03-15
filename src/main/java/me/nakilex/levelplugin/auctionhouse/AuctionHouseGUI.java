@@ -534,7 +534,7 @@ public class AuctionHouseGUI implements Listener {
     }
 
     private ItemStack createRarityFilterButton(int filter) {
-        ItemStack it = new ItemStack(Material.NETHER_STAR);
+        ItemStack it = new ItemStack(Material.HOPPER);
         ItemMeta meta = it.getItemMeta();
         if (meta != null) {
             meta.setDisplayName(ChatColor.AQUA + "Rarity Filter");

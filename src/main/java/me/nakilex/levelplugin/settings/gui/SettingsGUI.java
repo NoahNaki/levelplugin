@@ -39,9 +39,9 @@ public class SettingsGUI implements Listener {
     private record SettingEntry(String key, java.util.function.Function<GuiContext, ItemStack> icon,
                                 java.util.function.BiConsumer<org.bukkit.event.inventory.ClickType, GuiContext> clickHandler) {}
 
-    private static final int GUI_SIZE = 45;
-    private static final int FILTER_SLOT = 36;
-    private static final int SORT_SLOT = 37;
+    private static final int GUI_SIZE = 54;
+    private static final int FILTER_SLOT = 48;
+    private static final int SORT_SLOT = 50;
     private static final int[] CONTENT_SLOTS = {
             10, 11, 12, 13, 14, 15, 16,
             19, 20, 21, 22, 23, 24, 25,
@@ -77,6 +77,7 @@ public class SettingsGUI implements Listener {
 
         Inventory gui = GuiBuilder.create(GUI_SIZE, "Settings")
                 .filler(Material.GRAY_STAINED_GLASS_PANE)
+                .border()
                 .build();
         List<GuiWidget> widgets = buildWidgets(player, playerSettings, filter, isOfficeErrandsLocked(player));
         widgetsByPlayer.put(player.getUniqueId(), widgets);
@@ -116,13 +117,12 @@ public class SettingsGUI implements Listener {
 
 
     private ItemStack createFilterItem(Filter filter) {
-        ItemStack item = new ItemStack(Material.NETHER_STAR);
+        ItemStack item = new ItemStack(Material.HOPPER);
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName(ChatColor.AQUA + "Category Filter");
+            meta.setDisplayName(ChatColor.AQUA + "Filter");
             List<String> lore = new ArrayList<>();
-            lore.add(ChatColor.GRAY + "");
-            lore.add(ChatColor.DARK_GRAY + "Filter settings by category.");
+            lore.add(ChatColor.DARK_GRAY + "Filter settings by category");
             lore.add(" ");
             lore.add(TooltipUtil.selectionLine(filter == Filter.ALL, ChatColor.WHITE + "Show All"));
             lore.add(TooltipUtil.selectionLine(filter == Filter.SOCIAL, ChatColor.WHITE + "Social"));

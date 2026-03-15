@@ -19,6 +19,7 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.inventory.InventoryType;
+import org.bukkit.event.server.PluginDisableEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerGameModeChangeEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -437,6 +438,22 @@ public class StaticItemListener implements Listener {
             }
         }
         giveStaticItems(player);
+    }
+
+
+    @EventHandler
+    public void onPluginDisable(PluginDisableEvent event) {
+        Main main = Main.getInstance();
+        if (main == null || event.getPlugin() != main) {
+            return;
+        }
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            PLAYERS_NEEDING_CRAFTING_MENU_REFRESH.remove(player.getUniqueId());
+            if (isCraftingMenuContext(player.getOpenInventory())) {
+                clearInventoryDebugSession(player, player.getOpenInventory());
+            }
+            clearStaticItems(player);
+        }
     }
 
     @EventHandler

@@ -123,8 +123,6 @@ public class StatsInventory {
         ));
         builder.setItem(13, GuiUtil.getNexoItem("refresh", ChatColor.RED + "Refund All Skill Points"));
         builder.setItem(8, createPlayerHead(player, ps, page));
-        builder.setItem(37, GuiUtil.getNexoItem("arrow_left", ChatColor.GRAY + "Back"));
-        builder.setItem(43, GuiUtil.getNexoItem("arrow_right", ChatColor.GRAY + "Forward"));
         builder.setItem(40, createEssenceButton());
 
         return builder.build();
