@@ -3,7 +3,6 @@ package me.nakilex.levelplugin.player.attributes.gui;
 import me.nakilex.levelplugin.player.farming.managers.FarmingManager;
 import me.nakilex.levelplugin.player.fishing.managers.FishingManager;
 import me.nakilex.levelplugin.player.mining.managers.MiningManager;
-import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import me.nakilex.levelplugin.utils.gui.widgets.ActionWidget;
@@ -134,10 +133,6 @@ public final class LifeSkillGUI {
                 ),
                 (click, context) -> LifeSkillRewardsGUI.open(context.player(), ToolDiscipline.WOODCUTTING)));
 
-        widgets.add(new ActionWidget(22,
-                context -> createBackButton(),
-                (click, context) -> GuiUtil.openPlayerInventory(context.player())));
-
         return widgets;
     }
 
@@ -180,17 +175,4 @@ public final class LifeSkillGUI {
         return stack;
     }
 
-    private static ItemStack createBackButton() {
-        ItemStack back = GuiUtil.getNexoItem("arrow_left", ChatColor.RED + "Back to Stats");
-        ItemMeta meta = back.getItemMeta();
-        if (meta != null) {
-            List<String> lore = new ArrayList<>();
-            lore.add(ChatColor.GRAY + "Return to your attribute overview.");
-            lore.add("");
-            lore.addAll(TooltipUtil.clickInstructions("to go back", null));
-            meta.setLore(lore);
-            back.setItemMeta(meta);
-        }
-        return back;
-    }
 }
