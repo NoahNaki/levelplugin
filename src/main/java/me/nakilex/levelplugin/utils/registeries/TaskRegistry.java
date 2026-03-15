@@ -16,6 +16,7 @@ import me.nakilex.levelplugin.waypoints.bukkit.BukkitPathfindingService;
 import me.nakilex.levelplugin.world.LeafParticleTask;
 import me.nakilex.levelplugin.leaderboards.LeaderboardUpdateTask;
 import me.nakilex.levelplugin.leaderboards.LeaderboardManager;
+import me.nakilex.levelplugin.utils.AnnouncementTimingUtil;
 import org.bukkit.entity.Player;
 import me.nakilex.levelplugin.environment.EnvironmentManager;
 
@@ -64,6 +65,10 @@ public class TaskRegistry {
         new QuestPlayTimeTask(plugin.getQuestManager()).runTaskTimer(plugin, 1200L, 1200L);
 
         // Notify players about unused skill points every minute
+        long skillPointReminderInterval = 1200L;
+        long skillPointReminderInitialDelay = AnnouncementTimingUtil.computeInitialDelayTicks(
+                skillPointReminderInterval, 2, 3, 20L);
+
         new org.bukkit.scheduler.BukkitRunnable() {
             @Override
             public void run() {
@@ -78,7 +83,7 @@ public class TaskRegistry {
                     }
                 }
             }
-        }.runTaskTimer(plugin, 1200L, 1200L);
+        }.runTaskTimer(plugin, skillPointReminderInitialDelay, skillPointReminderInterval);
 
         new org.bukkit.scheduler.BukkitRunnable() {
             @Override
