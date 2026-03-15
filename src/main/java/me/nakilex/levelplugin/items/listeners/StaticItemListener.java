@@ -180,6 +180,19 @@ public class StaticItemListener implements Listener {
         player.updateInventory();
     }
 
+    private static void applyInventoryDebugSessionNextTick(Player player) {
+        Main main = Main.getInstance();
+        if (main == null || player == null) {
+            return;
+        }
+        Bukkit.getScheduler().runTaskLater(main, () -> {
+            if (!player.isOnline()) {
+                return;
+            }
+            applyInventoryDebugSession(player, player.getOpenInventory());
+        }, 1L);
+    }
+
     private static void clearInventoryDebugSession(Player player, InventoryView view) {
         if (player == null || !player.isOnline() || view == null) {
             return;
@@ -191,6 +204,21 @@ public class StaticItemListener implements Listener {
             logInventoryDebug("clear session removed crafting slots for player=" + player.getName());
         }
         player.updateInventory();
+    }
+
+    private static boolean hasCraftingShortcutItems(InventoryView view) {
+        if (view == null || !(view.getTopInventory() instanceof CraftingInventory craftingInventory)) {
+            return false;
+        }
+        if (isManagedStaticItem(craftingInventory.getResult()) || isManagedStaticItem(craftingInventory.getItem(0))) {
+            return true;
+        }
+        for (int raw = 1; raw <= 4; raw++) {
+            if (isManagedStaticItem(craftingInventory.getItem(raw))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static boolean isManagedCraftingRawSlot(int rawSlot) {
@@ -363,6 +391,7 @@ public class StaticItemListener implements Listener {
         if (isCraftingMenuContext(event.getView())
                 && event.getView().getTopInventory() instanceof CraftingInventory craftingInventory) {
             applyInventoryDebugSession(player, event.getView());
+            applyInventoryDebugSessionNextTick(player);
             return;
         }
         if (shouldSkipCraftingMenu(player) || !isCraftingMenuContext(event.getView())) {
@@ -398,7 +427,8 @@ public class StaticItemListener implements Listener {
         }
 
         if (isCraftingMenuContext(event.getView())
-                && isManagedCraftingRawSlot(event.getRawSlot())) {
+                && isManagedCraftingRawSlot(event.getRawSlot())
+                && hasCraftingShortcutItems(event.getView())) {
             event.setCancelled(true);
             event.setResult(Event.Result.DENY);
             if (event.getCursor() != null && !event.getCursor().getType().isAir()) {
