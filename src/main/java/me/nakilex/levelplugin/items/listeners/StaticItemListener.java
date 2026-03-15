@@ -151,42 +151,6 @@ public class StaticItemListener implements Listener {
         craftingInventory.setItem(0, resultItem == null ? null : resultItem.clone());
     }
 
-    private static boolean hasMissingCraftingShortcutItems(Player player, CraftingInventory craftingInventory) {
-        if (craftingInventory == null) {
-            return true;
-        }
-        ItemStack expectedResult = createCraftingMenuItem(player, 0);
-        ItemStack renderedResult = craftingInventory.getResult();
-        ItemStack slotZeroItem = craftingInventory.getItem(0);
-        if (expectedResult != null && (!expectedResult.isSimilar(renderedResult) || !expectedResult.isSimilar(slotZeroItem))) {
-            return true;
-        }
-        for (int raw = 1; raw <= 4; raw++) {
-            ItemStack expected = createCraftingMenuItem(player, raw);
-            if (expected != null && !expected.isSimilar(craftingInventory.getItem(raw))) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static void refreshDebugCraftingShortcuts(Main main) {
-        for (Player player : main.getServer().getOnlinePlayers()) {
-            if (!DebugCommand.isInventoryDebugEnabled(player.getUniqueId())) {
-                continue;
-            }
-            InventoryView view = player.getOpenInventory();
-            if (!isCraftingMenuContext(view) || !(view.getTopInventory() instanceof CraftingInventory craftingInventory)) {
-                continue;
-            }
-            if (!hasMissingCraftingShortcutItems(player, craftingInventory)) {
-                continue;
-            }
-            applyCraftingShortcutItems(player, craftingInventory);
-            player.updateInventory();
-        }
-    }
-
     public static void clearCraftingShortcutItems(CraftingInventory craftingInventory) {
         if (craftingInventory == null) {
             return;
@@ -198,22 +162,21 @@ public class StaticItemListener implements Listener {
         craftingInventory.setItem(0, null);
     }
 
-    private static void reapplyDebugCraftingShortcutsNextTick(Player player) {
-        Main main = Main.getInstance();
-        if (main == null) {
+    private static void applyDebugCraftingSession(Player player, InventoryView view) {
+        if (player == null || view == null || !(view.getTopInventory() instanceof CraftingInventory craftingInventory)) {
             return;
         }
-        Bukkit.getScheduler().runTaskLater(main, () -> {
-            if (player == null || !player.isOnline() || !DebugCommand.isInventoryDebugEnabled(player.getUniqueId())) {
-                return;
-            }
-            InventoryView view = player.getOpenInventory();
-            if (!isCraftingMenuContext(view) || !(view.getTopInventory() instanceof CraftingInventory craftingInventory)) {
-                return;
-            }
-            applyCraftingShortcutItems(player, craftingInventory);
-            player.updateInventory();
-        }, 1L);
+        applyCraftingShortcutItems(player, craftingInventory);
+        player.updateInventory();
+    }
+
+    private static void clearDebugCraftingSession(Player player, InventoryView view) {
+        if (player == null || view == null || !(view.getTopInventory() instanceof CraftingInventory craftingInventory)) {
+            return;
+        }
+        player.setItemOnCursor(null);
+        clearCraftingShortcutItems(craftingInventory);
+        player.updateInventory();
     }
 
     private static boolean isManagedCraftingRawSlot(int rawSlot) {
@@ -292,7 +255,6 @@ public class StaticItemListener implements Listener {
         craftingMenuRefreshTaskStarted = true;
         main.getServer().getScheduler().runTaskTimer(main, () -> {
             if (PLAYERS_NEEDING_CRAFTING_MENU_REFRESH.isEmpty()) {
-                refreshDebugCraftingShortcuts(main);
                 return;
             }
             for (UUID uuid : Set.copyOf(PLAYERS_NEEDING_CRAFTING_MENU_REFRESH)) {
@@ -303,8 +265,6 @@ public class StaticItemListener implements Listener {
                 }
                 refreshCraftingMenu(player);
             }
-
-            refreshDebugCraftingShortcuts(main);
         }, 1L, 2L);
     }
 
@@ -357,6 +317,9 @@ public class StaticItemListener implements Listener {
     public void onPlayerQuit(PlayerQuitEvent event) {
         Player player = event.getPlayer();
         PLAYERS_NEEDING_CRAFTING_MENU_REFRESH.remove(player.getUniqueId());
+        if (isCraftingMenuContext(player.getOpenInventory())) {
+            clearDebugCraftingSession(player, player.getOpenInventory());
+        }
         clearStaticItems(player);
     }
 
@@ -383,9 +346,7 @@ public class StaticItemListener implements Listener {
         if (DebugCommand.isInventoryDebugEnabled(player.getUniqueId())
                 && isCraftingMenuContext(event.getView())
                 && event.getView().getTopInventory() instanceof CraftingInventory craftingInventory) {
-            applyCraftingShortcutItems(player, craftingInventory);
-            player.updateInventory();
-            reapplyDebugCraftingShortcutsNextTick(player);
+            applyDebugCraftingSession(player, event.getView());
             return;
         }
         if (shouldSkipCraftingMenu(player) || !isCraftingMenuContext(event.getView())) {
@@ -423,12 +384,10 @@ public class StaticItemListener implements Listener {
             if (event.getCursor() != null && !event.getCursor().getType().isAir()) {
                 event.setCursor(null);
             }
-            player.setItemOnCursor(null);
-            player.updateInventory();
+            clearDebugCraftingSession(player, event.getView());
             if (event.getCursor() == null || event.getCursor().getType().isAir()) {
                 runCraftingSlotAction(player, event.getRawSlot(), true);
             }
-            reapplyDebugCraftingShortcutsNextTick(player);
             return;
         }
 
@@ -446,9 +405,7 @@ public class StaticItemListener implements Listener {
         if (DebugCommand.isInventoryDebugEnabled(player.getUniqueId())
                 && isCraftingMenuContext(event.getView())
                 && event.getView().getTopInventory() instanceof CraftingInventory craftingInventory) {
-            player.setItemOnCursor(null);
-            clearCraftingShortcutItems(craftingInventory);
-            player.updateInventory();
+            clearDebugCraftingSession(player, event.getView());
             return;
         }
         if (!isCraftingMenuContext(event.getView()) || shouldSkipCraftingMenu(player)) {
