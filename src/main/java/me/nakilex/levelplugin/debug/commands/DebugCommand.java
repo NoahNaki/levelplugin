@@ -88,6 +88,14 @@ public class DebugCommand implements TabExecutor {
     private final ArcSlashDebugGUI arcSlashDebugGUI;
     private final PetManager petManager;
 
+    private static void logInventoryDebug(String message) {
+        Main main = Main.getInstance();
+        if (main == null) {
+            return;
+        }
+        main.getLogger().info("[InventoryDebug] " + message);
+    }
+
 
     public DebugCommand(PlayerToggleManager mobDebugManager,
                         PlayerScoreboardManager scoreboardManager,
@@ -530,24 +538,31 @@ public class DebugCommand implements TabExecutor {
     }
 
     private void toggleInventoryDebug(Player player) {
+        logInventoryDebug("toggle called player=" + player.getName() + " enabledBefore="
+                + INVENTORY_DEBUG_ENABLED.contains(player.getUniqueId()));
         if (INVENTORY_DEBUG_ENABLED.remove(player.getUniqueId())) {
             clearInventoryDebugSession(player);
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
                     "Inventory debug disabled. Cleared crafting slots (0-4).");
+            logInventoryDebug("disabled player=" + player.getName());
             return;
         }
         INVENTORY_DEBUG_ENABLED.add(player.getUniqueId());
         applyInventoryDebugSession(player);
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
                 "Inventory debug enabled. Filled crafting slots (0-4) with GUI shortcuts.");
+        logInventoryDebug("enabled player=" + player.getName());
     }
 
     private void applyInventoryDebugSession(Player player) {
         if (player == null || !player.isOnline()) {
             return;
         }
+        logInventoryDebug("apply session player=" + player.getName() + " topType="
+                + player.getOpenInventory().getTopInventory().getType());
         if (player.getOpenInventory().getTopInventory() instanceof org.bukkit.inventory.CraftingInventory craftingInventory) {
             StaticItemListener.applyCraftingShortcutItems(player, craftingInventory);
+            logInventoryDebug("apply session wrote crafting slots for player=" + player.getName());
         }
         player.updateInventory();
     }
@@ -556,8 +571,11 @@ public class DebugCommand implements TabExecutor {
         if (player == null || !player.isOnline()) {
             return;
         }
+        logInventoryDebug("clear session player=" + player.getName() + " topType="
+                + player.getOpenInventory().getTopInventory().getType());
         if (player.getOpenInventory().getTopInventory() instanceof org.bukkit.inventory.CraftingInventory craftingInventory) {
             StaticItemListener.clearCraftingShortcutItems(craftingInventory);
+            logInventoryDebug("clear session removed crafting slots for player=" + player.getName());
         }
         player.updateInventory();
     }
