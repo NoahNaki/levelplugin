@@ -195,6 +195,22 @@ public class StaticItemListener implements Listener {
         return player != null && ACTIVE_CRAFTING_SHORTCUT_SESSION.contains(player.getUniqueId());
     }
 
+    private static boolean hasCraftingShortcutItems(InventoryView view) {
+        if (view == null || !(view.getTopInventory() instanceof CraftingInventory craftingInventory)) {
+            return false;
+        }
+        ItemStack result = craftingInventory.getResult();
+        if (isManagedStaticItem(result) || isManagedStaticItem(craftingInventory.getItem(0))) {
+            return true;
+        }
+        for (int raw = 1; raw <= 4; raw++) {
+            if (isManagedStaticItem(craftingInventory.getItem(raw))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private static boolean isManagedCraftingRawSlot(int rawSlot) {
         for (int slot : CRAFTING_RAW_SLOTS) {
             if (slot == rawSlot) {
@@ -336,7 +352,7 @@ public class StaticItemListener implements Listener {
                 + isCraftingShortcutSessionActive(player));
         PLAYERS_NEEDING_CRAFTING_MENU_REFRESH.remove(player.getUniqueId());
         ACTIVE_CRAFTING_SHORTCUT_SESSION.remove(player.getUniqueId());
-        if (isCraftingMenuContext(player.getOpenInventory())) {
+        if (isCraftingMenuContext(player.getOpenInventory()) && hasCraftingShortcutItems(player.getOpenInventory())) {
             clearDebugCraftingSession(player, player.getOpenInventory());
         }
         clearStaticItems(player);
@@ -402,7 +418,7 @@ public class StaticItemListener implements Listener {
             return;
         }
 
-        if (isCraftingShortcutSessionActive(player)
+        if ((isCraftingShortcutSessionActive(player) || hasCraftingShortcutItems(event.getView()))
                 && isCraftingMenuContext(event.getView())
                 && isManagedCraftingRawSlot(event.getRawSlot())) {
             event.setCancelled(true);
@@ -432,7 +448,7 @@ public class StaticItemListener implements Listener {
         logInventoryDebug("inventory close player=" + player.getName() + " topType="
                 + event.getView().getTopInventory().getType() + " sessionActive="
                 + isCraftingShortcutSessionActive(player));
-        if (isCraftingShortcutSessionActive(player)
+        if ((isCraftingShortcutSessionActive(player) || hasCraftingShortcutItems(event.getView()))
                 && isCraftingMenuContext(event.getView())
                 && event.getView().getTopInventory() instanceof CraftingInventory craftingInventory) {
             clearDebugCraftingSession(player, event.getView());
