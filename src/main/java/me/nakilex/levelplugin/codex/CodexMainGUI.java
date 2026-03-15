@@ -1,13 +1,12 @@
 package me.nakilex.levelplugin.codex;
 
-import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.HeadUtil;
+import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import me.nakilex.levelplugin.utils.gui.widgets.ActionWidget;
 import me.nakilex.levelplugin.utils.gui.widgets.GuiContext;
 import me.nakilex.levelplugin.utils.gui.widgets.GuiLayout;
 import me.nakilex.levelplugin.utils.gui.widgets.GuiWidget;
-import me.nakilex.levelplugin.utils.gui.widgets.NexoButtonWidget;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -17,17 +16,13 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.UUID;
 import java.util.function.Consumer;
 
 /** Main Codex menu providing category selection. */
 public class CodexMainGUI implements Listener {
     private static final String TITLE = "Codex";
     private static final int SIZE = 27;
-    private static final int BACK_SLOT = 18;
 
     // base64 textures for category icons
     private static final String LOC_HEAD = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNmVlZjdlNTZjZGU3NDA3NzJkZmI3NmRkZDJmNTg0YmU4OTA3Yjg1OTc2NjhlNDAyNjM0OTg2NDY5MjMwYWE0OSJ9fX0=";
@@ -37,7 +32,6 @@ public class CodexMainGUI implements Listener {
     private final MobCodexGUI mobGui;
     private final NpcCodexGUI npcGui;
     private final LocationCodexGUI locGui;
-    private final Map<UUID, Consumer<Player>> backActions = new HashMap<>();
     private final List<GuiWidget> widgets;
 
     public CodexMainGUI(MobCodexGUI m, NpcCodexGUI n, LocationCodexGUI l) {
@@ -56,12 +50,7 @@ public class CodexMainGUI implements Listener {
     }
 
     public void openFrom(Player player, Consumer<Player> backAction) {
-        UUID id = player.getUniqueId();
-        if (backAction == null) {
-            backActions.remove(id);
-        } else {
-            backActions.put(id, backAction);
-        }
+        // Kept for API compatibility with callers that provide a back action.
         open(player);
     }
 
@@ -76,19 +65,8 @@ public class CodexMainGUI implements Listener {
         handleWidgetClick(e, player);
     }
 
-    private void runBackAction(Player player) {
-        Consumer<Player> action = backActions.get(player.getUniqueId());
-        if (action != null) {
-            action.accept(player);
-        } else {
-            player.closeInventory();
-        }
-    }
-
     private List<GuiWidget> buildWidgets() {
         List<GuiWidget> widgetList = new java.util.ArrayList<>();
-        widgetList.add(new NexoButtonWidget(BACK_SLOT, "arrow_left", ChatColor.YELLOW + "Back",
-                null, (click, context) -> runBackAction(context.player())));
         widgetList.add(new ActionWidget(11,
                 context -> createHead(LOC_HEAD, ChatColor.GREEN + "Locations"),
                 (click, context) -> locGui.open(context.player())));

@@ -5,7 +5,6 @@ import me.nakilex.levelplugin.settings.managers.SettingsManager;
 import me.nakilex.levelplugin.settings.data.PlayerSettings;
 import me.nakilex.levelplugin.settings.data.PlayerVisibility;
 import me.nakilex.levelplugin.leaderboards.LeaderboardType;
-import me.nakilex.levelplugin.player.attributes.gui.StatsInventory;
 import me.nakilex.levelplugin.mob.managers.ChatToggleManager;
 import me.nakilex.levelplugin.spells.gui.SpellKeybindGUI;
 import me.nakilex.levelplugin.spells.gui.SpellUpgradeGUI;
@@ -35,17 +34,23 @@ import java.util.*;
 public class SettingsGUI implements Listener {
 
     private enum Filter { ALL, SOCIAL, VISUAL, COMBAT }
+    private enum SortMode { DEFAULT, A_TO_Z }
 
-    private static final int GUI_SIZE = 45;
-    private static final int FILTER_SLOT = 36;
-    private static final int LOOT_FILTER_SLOT = 32;
-    private static final int CHAT_GAMES_SLOT = 27;
-    private static final int SPELL_INPUT_SLOT = 33;
-    private static final int SPELL_KEYBINDS_SLOT = 34;
-    private static final int SPELL_UPGRADES_SLOT = 35;
+    private record SettingEntry(String key, java.util.function.Function<GuiContext, ItemStack> icon,
+                                java.util.function.BiConsumer<org.bukkit.event.inventory.ClickType, GuiContext> clickHandler) {}
+
+    private static final int GUI_SIZE = 54;
+    private static final int FILTER_SLOT = 48;
+    private static final int SORT_SLOT = 50;
+    private static final int[] CONTENT_SLOTS = {
+            10, 11, 12, 13, 14, 15, 16,
+            19, 20, 21, 22, 23, 24, 25,
+            28, 29, 30, 31, 32, 33, 34
+    };
 
     private final SettingsManager settingsManager;
     private final Map<UUID, Filter> filters = new HashMap<>();
+    private final Map<UUID, SortMode> sorts = new HashMap<>();
     private final Map<UUID, List<GuiWidget>> widgetsByPlayer = new HashMap<>();
     private SpellKeybindGUI spellKeybindGUI;
     private SpellUpgradeGUI spellUpgradeGUI;
@@ -72,6 +77,7 @@ public class SettingsGUI implements Listener {
 
         Inventory gui = GuiBuilder.create(GUI_SIZE, "Settings")
                 .filler(Material.GRAY_STAINED_GLASS_PANE)
+                .border()
                 .build();
         List<GuiWidget> widgets = buildWidgets(player, playerSettings, filter, isOfficeErrandsLocked(player));
         widgetsByPlayer.put(player.getUniqueId(), widgets);
@@ -111,19 +117,42 @@ public class SettingsGUI implements Listener {
 
 
     private ItemStack createFilterItem(Filter filter) {
-        String name = switch (filter) {
-            case ALL -> "§bFilter: All";
-            case SOCIAL -> "§bFilter: Social";
-            case VISUAL -> "§bFilter: Visual";
-            case COMBAT -> "§bFilter: Combat";
-        };
-        ItemStack it = GuiUtil.getNexoItem("refresh", name);
-        ItemMeta meta = it.getItemMeta();
+        ItemStack item = new ItemStack(Material.HOPPER);
+        ItemMeta meta = item.getItemMeta();
         if (meta != null) {
-            meta.setLore(Collections.singletonList("§7Click to change filter"));
-            it.setItemMeta(meta);
+            meta.setDisplayName(ChatColor.AQUA + "Filter");
+            List<String> lore = new ArrayList<>();
+            lore.add(ChatColor.DARK_GRAY + "Filter settings by category");
+            lore.add(" ");
+            lore.add(TooltipUtil.selectionLine(filter == Filter.ALL, ChatColor.WHITE + "Show All"));
+            lore.add(TooltipUtil.selectionLine(filter == Filter.SOCIAL, ChatColor.WHITE + "Social"));
+            lore.add(TooltipUtil.selectionLine(filter == Filter.VISUAL, ChatColor.WHITE + "Visual"));
+            lore.add(TooltipUtil.selectionLine(filter == Filter.COMBAT, ChatColor.WHITE + "Combat"));
+            lore.add(" ");
+            lore.addAll(TooltipUtil.clickInstructions("to go forward", "to go backward"));
+            meta.setLore(lore);
+            item.setItemMeta(meta);
         }
-        return it;
+        return item;
+    }
+
+    private ItemStack createSortItem(SortMode sortMode) {
+        ItemStack item = new ItemStack(Material.COMPARATOR);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(ChatColor.AQUA + "Sorting");
+            List<String> lore = new ArrayList<>();
+            lore.add(ChatColor.GRAY + "");
+            lore.add(ChatColor.DARK_GRAY + "Sort the settings list.");
+            lore.add(" ");
+            lore.add(TooltipUtil.selectionLine(sortMode == SortMode.DEFAULT, ChatColor.WHITE + "Default"));
+            lore.add(TooltipUtil.selectionLine(sortMode == SortMode.A_TO_Z, ChatColor.WHITE + "A → Z"));
+            lore.add(" ");
+            lore.addAll(TooltipUtil.clickInstructions("to go forward", "to go backward"));
+            meta.setLore(lore);
+            item.setItemMeta(meta);
+        }
+        return item;
     }
 
     private ItemStack createLootPickupFilterItem(PlayerSettings settings) {
@@ -228,35 +257,38 @@ public class SettingsGUI implements Listener {
 
     private List<GuiWidget> buildWidgets(Player player, PlayerSettings settings, Filter filter, boolean lockedVisibility) {
         List<GuiWidget> widgets = new ArrayList<>();
-        widgets.add(new ActionWidget(0,
-                context -> GuiUtil.getNexoItem("arrow_left2", "§7Back"),
-                (click, context) -> context.player().openInventory(StatsInventory.getStatsMenu(context.player()))));
+        SortMode sortMode = sorts.getOrDefault(player.getUniqueId(), SortMode.DEFAULT);
         widgets.add(new ActionWidget(FILTER_SLOT,
                 context -> createFilterItem(filter),
-                (click, context) -> cycleFilter(context.player())));
+                (click, context) -> cycleFilter(context.player(), !click.isRightClick())));
+        widgets.add(new ActionWidget(SORT_SLOT,
+                context -> createSortItem(sortMode),
+                (click, context) -> cycleSort(context.player(), !click.isRightClick())));
+
+        List<SettingEntry> entries = new ArrayList<>();
 
         if (filter == Filter.ALL || filter == Filter.COMBAT) {
-            widgets.add(new ActionWidget(10,
+            entries.add(new SettingEntry("Damage Chat",
                     context -> GuiUtil.createToggleItem(settings.isDmgChatEnabled(), "§bDamage Chat", "§eClick to toggle"),
                     (click, context) -> toggleDamageChat(context.player(), settings)));
-            widgets.add(new ActionWidget(11,
+            entries.add(new SettingEntry("Damage Numbers",
                     context -> GuiUtil.createToggleItem(settings.isDmgNumberEnabled(), "§bDamage Numbers",
                             "§eClick to toggle and run /dmgnumber"),
                     (click, context) -> toggleDamageNumbers(context.player(), settings)));
-            widgets.add(new ActionWidget(LOOT_FILTER_SLOT,
+            entries.add(new SettingEntry("Loot Pickup Filter",
                     context -> createLootPickupFilterItem(settings),
                     (click, context) -> cycleLootFilter(context.player(), settings, click.isLeftClick())));
-            widgets.add(new ActionWidget(SPELL_INPUT_SLOT,
+            entries.add(new SettingEntry("Spell Input Mode",
                     context -> createSpellInputModeItem(settings),
                     (click, context) -> cycleSpellInputMode(context.player(), settings)));
-            widgets.add(new ActionWidget(SPELL_KEYBINDS_SLOT,
+            entries.add(new SettingEntry("Spell Keybinds",
                     context -> createSpellKeybindsItem(),
                     (click, context) -> {
                         if (spellKeybindGUI != null) {
                             spellKeybindGUI.open(context.player());
                         }
                     }));
-            widgets.add(new ActionWidget(SPELL_UPGRADES_SLOT,
+            entries.add(new SettingEntry("Spell Upgrades",
                     context -> createSpellUpgradesItem(),
                     (click, context) -> {
                         if (spellUpgradeGUI != null) {
@@ -266,64 +298,77 @@ public class SettingsGUI implements Listener {
         }
 
         if (filter == Filter.ALL || filter == Filter.VISUAL) {
-            widgets.add(new ActionWidget(12,
+            entries.add(new SettingEntry("Drop Details",
                     context -> GuiUtil.createToggleItem(settings.isDropDetailsEnabled(), "§bDrop Details",
                             "§eClick to toggle and run /toggle dropdetails"),
                     (click, context) -> toggleDropDetails(context.player(), settings)));
-            widgets.add(new ActionWidget(13,
+            entries.add(new SettingEntry("Drop Details Chat",
                     context -> GuiUtil.createToggleItem(settings.isDropDetailsChatEnabled(), "§bDrop Details Chat",
                             "§eClick to toggle and run /toggle dropdetailschat"),
                     (click, context) -> toggleDropDetailsChat(context.player(), settings)));
-            widgets.add(new ActionWidget(22,
+            entries.add(new SettingEntry("Auto Skip Cutscenes",
                     context -> GuiUtil.createToggleItem(settings.isAutoSkipCutscenes(), "§bAuto Skip Cutscenes",
                             "§eClick to toggle"),
                     (click, context) -> toggleAutoSkipCutscenes(context.player(), settings)));
-            widgets.add(new ActionWidget(23,
+            entries.add(new SettingEntry("Auto Skip Songs",
                     context -> GuiUtil.createToggleItem(settings.isAutoSkipSongs(), "§bAuto Skip Songs",
                             "§eClick to toggle and run /toggle songskip"),
                     (click, context) -> toggleAutoSkipSongs(context.player(), settings)));
-            widgets.add(new ActionWidget(24,
+            entries.add(new SettingEntry("Skill Point Reminder",
                     context -> GuiUtil.createToggleItem(settings.isSkillPointReminderEnabled(), "§bSkill Point Reminder",
                             "§eClick to toggle"),
                     (click, context) -> toggleSkillPointReminder(context.player(), settings)));
-            widgets.add(new ActionWidget(25,
+            entries.add(new SettingEntry("Full Inventory Title",
                     context -> GuiUtil.createToggleItem(settings.isFullInventoryTitleEnabled(), "§bFull Inventory Title",
                             "§eClick to toggle"),
                     (click, context) -> toggleFullInventoryTitle(context.player(), settings)));
-            widgets.add(new ActionWidget(26,
+            entries.add(new SettingEntry("Tips",
                     context -> GuiUtil.createToggleItem(settings.isTipsEnabled(), "§bTips",
                             "§eClick to toggle"),
                     (click, context) -> toggleTips(context.player(), settings)));
-            widgets.add(new ActionWidget(31,
+            entries.add(new SettingEntry("Booster Boss Bar",
                     context -> GuiUtil.createToggleItem(settings.isBoosterBossBarEnabled(), "§bBooster Boss Bar",
                             "§eClick to toggle"),
                     (click, context) -> toggleBoosterBossBar(context.player(), settings)));
-            widgets.add(new ActionWidget(30,
+            entries.add(new SettingEntry("Quest Path Particles",
                     context -> GuiUtil.createToggleItem(settings.isQuestTrackingParticlesEnabled(), "§bQuest Path Particles",
                             "§eClick to toggle"),
                     (click, context) -> toggleQuestTrackingParticles(context.player(), settings)));
         }
 
         if (filter == Filter.ALL || filter == Filter.SOCIAL) {
-            widgets.add(new ActionWidget(14,
+            entries.add(new SettingEntry("Party Glow",
                     context -> GuiUtil.createToggleItem(settings.isPartyGlowEnabled(), "§bParty Glow",
                             "§eClick to toggle and run /partyglow"),
                     (click, context) -> togglePartyGlow(context.player(), settings)));
-            widgets.add(new ActionWidget(15,
+            entries.add(new SettingEntry("Friend Glow",
                     context -> GuiUtil.createToggleItem(settings.isFriendGlowEnabled(), "§bFriend Glow",
                             "§eClick to toggle and run /friendglow"),
                     (click, context) -> toggleFriendGlow(context.player(), settings)));
-            widgets.add(new ActionWidget(16,
+            entries.add(new SettingEntry("Public Balance",
                     context -> GuiUtil.createToggleItem(settings.isBalancePublic(), "§ePublic Balance",
                             "§eClick to toggle and run /toggle balancepublic"),
                     (click, context) -> toggleBalancePublic(context.player(), settings)));
-            widgets.add(new ActionWidget(21,
+            entries.add(new SettingEntry("Player Visibility",
                     context -> createVisibilityItem(settings.getPlayerVisibility(), lockedVisibility),
                     (click, context) -> toggleVisibility(context.player(), settings, lockedVisibility)));
-            widgets.add(new ActionWidget(CHAT_GAMES_SLOT,
+            entries.add(new SettingEntry("Chat Games",
                     context -> GuiUtil.createToggleItem(settings.isChatGamesEnabled(), "§bChat Games",
                             "§eClick to toggle"),
                     (click, context) -> toggleChatGames(context.player(), settings)));
+        }
+
+        if (sortMode == SortMode.A_TO_Z) {
+            entries.sort(Comparator.comparing(entry -> ChatColor.stripColor(entry.key()), String.CASE_INSENSITIVE_ORDER));
+        }
+
+        int count = Math.min(entries.size(), CONTENT_SLOTS.length);
+        for (int i = 0; i < count; i++) {
+            SettingEntry entry = entries.get(i);
+            int slot = CONTENT_SLOTS[i];
+            widgets.add(new ActionWidget(slot,
+                    entry.icon,
+                    (click, context) -> entry.clickHandler.accept(click, context)));
         }
 
         return widgets;
@@ -358,14 +403,25 @@ public class SettingsGUI implements Listener {
         return true;
     }
 
-    private void cycleFilter(Player player) {
-        Filter next = switch (filters.getOrDefault(player.getUniqueId(), Filter.ALL)) {
-            case ALL -> Filter.SOCIAL;
-            case SOCIAL -> Filter.VISUAL;
-            case VISUAL -> Filter.COMBAT;
-            case COMBAT -> Filter.ALL;
-        };
-        filters.put(player.getUniqueId(), next);
+    private void cycleFilter(Player player, boolean forward) {
+        Filter[] values = Filter.values();
+        Filter current = filters.getOrDefault(player.getUniqueId(), Filter.ALL);
+        int currentIndex = current.ordinal();
+        int nextIndex = forward
+                ? (currentIndex + 1) % values.length
+                : (currentIndex - 1 + values.length) % values.length;
+        filters.put(player.getUniqueId(), values[nextIndex]);
+        openSettingsMenu(player);
+    }
+
+    private void cycleSort(Player player, boolean forward) {
+        SortMode[] values = SortMode.values();
+        SortMode current = sorts.getOrDefault(player.getUniqueId(), SortMode.DEFAULT);
+        int currentIndex = current.ordinal();
+        int nextIndex = forward
+                ? (currentIndex + 1) % values.length
+                : (currentIndex - 1 + values.length) % values.length;
+        sorts.put(player.getUniqueId(), values[nextIndex]);
         openSettingsMenu(player);
     }
 

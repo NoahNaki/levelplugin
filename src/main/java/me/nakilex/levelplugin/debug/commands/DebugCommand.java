@@ -5,7 +5,10 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.concurrent.ConcurrentHashMap;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.chat.games.ChatGameManager;
@@ -40,6 +43,7 @@ import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.guild.siege.GuildSiegeManager;
 import me.nakilex.levelplugin.guild.GuildManager;
+import me.nakilex.levelplugin.items.listeners.StaticItemListener;
 import org.bukkit.ChatColor;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Material;
@@ -65,6 +69,11 @@ import net.citizensnpcs.api.CitizensAPI;
  * </ul>
  */
 public class DebugCommand implements TabExecutor {
+    private static final Set<UUID> INVENTORY_DEBUG_ENABLED = ConcurrentHashMap.newKeySet();
+
+    public static boolean isInventoryDebugEnabled(UUID playerId) {
+        return playerId != null && INVENTORY_DEBUG_ENABLED.contains(playerId);
+    }
     private final PlayerToggleManager mobDebugManager;
     private final PlayerScoreboardManager scoreboardManager;
     private final DebugGUI debugGUI;
@@ -78,7 +87,6 @@ public class DebugCommand implements TabExecutor {
     private final ArcSlashDebugManager arcSlashDebugManager;
     private final ArcSlashDebugGUI arcSlashDebugGUI;
     private final PetManager petManager;
-
 
     public DebugCommand(PlayerToggleManager mobDebugManager,
                         PlayerScoreboardManager scoreboardManager,
@@ -117,7 +125,7 @@ public class DebugCommand implements TabExecutor {
                 String statUsage = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|" + statUsage + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|inventorydebug|" + statUsage + ">");
             }
             return true;
         }
@@ -502,14 +510,55 @@ public class DebugCommand implements TabExecutor {
                 handleChatGameToggle(sender, args);
                 return true;
 
+            case "inventorydebug":
+                if (!(sender instanceof Player inventoryDebugPlayer)) {
+                    sender.sendMessage(ChatColor.RED + "Players only.");
+                    return true;
+                }
+                toggleInventoryDebug(inventoryDebugPlayer);
+                return true;
+
             default:
                 sender.sendMessage("Unknown debug subcommand: " + sub);
                 String statUsage2 = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|cityowner|citymax|autocast|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|" + statUsage2 + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|cityowner|citymax|autocast|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|inventorydebug|" + statUsage2 + ">");
                 return true;
         }
+    }
+
+    private void toggleInventoryDebug(Player player) {
+        if (INVENTORY_DEBUG_ENABLED.remove(player.getUniqueId())) {
+            clearInventoryDebugSession(player);
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                    "Inventory debug disabled. Cleared crafting slots (0-4).");
+            return;
+        }
+        INVENTORY_DEBUG_ENABLED.add(player.getUniqueId());
+        applyInventoryDebugSession(player);
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
+                "Inventory debug enabled. Filled crafting slots (0-4) with GUI shortcuts.");
+    }
+
+    private void applyInventoryDebugSession(Player player) {
+        if (player == null || !player.isOnline()) {
+            return;
+        }
+        if (player.getOpenInventory().getTopInventory() instanceof org.bukkit.inventory.CraftingInventory craftingInventory) {
+            StaticItemListener.applyCraftingShortcutItems(player, craftingInventory);
+        }
+        player.updateInventory();
+    }
+
+    private void clearInventoryDebugSession(Player player) {
+        if (player == null || !player.isOnline()) {
+            return;
+        }
+        if (player.getOpenInventory().getTopInventory() instanceof org.bukkit.inventory.CraftingInventory craftingInventory) {
+            StaticItemListener.clearCraftingShortcutItems(craftingInventory);
+        }
+        player.updateInventory();
     }
 
     private boolean hasTownOwnership(Player player) {
@@ -574,7 +623,7 @@ public class DebugCommand implements TabExecutor {
             List<String> subs = new ArrayList<>(List.of("mobinfo", "tps", "siege", "cityowner", "citymax", "autocast",
                     "hand", "chatgame", "expedition", "dungeonexpedition", "rewardbomb", "drops", "beaconentity",
                     "spellinput", "stunstick", "poisonstick", "tauntstick", "fearstick", "slowstick", "petpull",
-                    "particle", "particlepath", "particlepreset"));
+                    "particle", "particlepath", "particlepreset", "inventorydebug"));
             subs.addAll(Arrays.stream(StatType.values()).map(StatType::getAbbrev).toList());
             return subs.stream()
                     .filter(s -> s.startsWith(args[0].toLowerCase()))

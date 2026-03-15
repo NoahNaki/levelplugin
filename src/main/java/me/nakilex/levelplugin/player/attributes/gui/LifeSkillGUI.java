@@ -3,7 +3,6 @@ package me.nakilex.levelplugin.player.attributes.gui;
 import me.nakilex.levelplugin.player.farming.managers.FarmingManager;
 import me.nakilex.levelplugin.player.fishing.managers.FishingManager;
 import me.nakilex.levelplugin.player.mining.managers.MiningManager;
-import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import me.nakilex.levelplugin.utils.gui.widgets.ActionWidget;
@@ -11,7 +10,6 @@ import me.nakilex.levelplugin.utils.gui.widgets.GuiContext;
 import me.nakilex.levelplugin.utils.gui.widgets.GuiLayout;
 import me.nakilex.levelplugin.utils.gui.widgets.GuiWidget;
 import me.nakilex.levelplugin.items.tools.ToolDiscipline;
-import me.nakilex.levelplugin.player.attributes.gui.StatsInventory;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -34,7 +32,7 @@ public final class LifeSkillGUI {
     }
 
     public static Inventory create(Player player) {
-        GuiBuilder builder = GuiBuilder.create(45, TITLE)
+        GuiBuilder builder = GuiBuilder.create(27, TITLE)
                 .filler(Material.GRAY_STAINED_GLASS_PANE)
                 .border();
 
@@ -75,7 +73,7 @@ public final class LifeSkillGUI {
         me.nakilex.levelplugin.player.woodcutting.managers.WoodcuttingManager woodcuttingManager = me.nakilex.levelplugin.player.woodcutting.managers.WoodcuttingManager.getInstance();
         List<GuiWidget> widgets = new ArrayList<>();
 
-        widgets.add(new ActionWidget(20,
+        widgets.add(new ActionWidget(10,
                 context -> createSkillItem(
                         "Mining",
                         Material.DIAMOND_PICKAXE,
@@ -90,7 +88,7 @@ public final class LifeSkillGUI {
                 ),
                 (click, context) -> LifeSkillRewardsGUI.open(context.player(), ToolDiscipline.MINING)));
 
-        widgets.add(new ActionWidget(22,
+        widgets.add(new ActionWidget(12,
                 context -> createSkillItem(
                         "Fishing",
                         Material.FISHING_ROD,
@@ -105,7 +103,7 @@ public final class LifeSkillGUI {
                 ),
                 (click, context) -> LifeSkillRewardsGUI.open(context.player(), ToolDiscipline.FISHING)));
 
-        widgets.add(new ActionWidget(24,
+        widgets.add(new ActionWidget(14,
                 context -> createSkillItem(
                         "Farming",
                         Material.GOLDEN_HOE,
@@ -120,7 +118,7 @@ public final class LifeSkillGUI {
                 ),
                 (click, context) -> LifeSkillRewardsGUI.open(context.player(), ToolDiscipline.FARMING)));
 
-        widgets.add(new ActionWidget(31,
+        widgets.add(new ActionWidget(16,
                 context -> createSkillItem(
                         "Woodcutting",
                         Material.DIAMOND_AXE,
@@ -134,11 +132,6 @@ public final class LifeSkillGUI {
                         )
                 ),
                 (click, context) -> LifeSkillRewardsGUI.open(context.player(), ToolDiscipline.WOODCUTTING)));
-
-        widgets.add(new ActionWidget(40,
-                context -> createBackButton(),
-                (click, context) -> context.player().openInventory(
-                        StatsInventory.getStatsMenu(context.player(), StatsInventory.getPage(context.player())))));
 
         return widgets;
     }
@@ -182,17 +175,4 @@ public final class LifeSkillGUI {
         return stack;
     }
 
-    private static ItemStack createBackButton() {
-        ItemStack back = GuiUtil.getNexoItem("arrow_left", ChatColor.RED + "Back to Stats");
-        ItemMeta meta = back.getItemMeta();
-        if (meta != null) {
-            List<String> lore = new ArrayList<>();
-            lore.add(ChatColor.GRAY + "Return to your attribute overview.");
-            lore.add("");
-            lore.addAll(TooltipUtil.clickInstructions("to go back", null));
-            meta.setLore(lore);
-            back.setItemMeta(meta);
-        }
-        return back;
-    }
 }

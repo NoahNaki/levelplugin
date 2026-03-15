@@ -4,6 +4,7 @@ import com.nexomc.nexo.api.NexoItems;
 import com.nexomc.nexo.items.ItemBuilder;
 import org.bukkit.Material;
 import org.bukkit.ChatColor;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -244,6 +245,14 @@ public final class GuiUtil {
     /** Compare titles after normalization to avoid glyph/color mismatches. */
     public static boolean titleMatches(String title, String expected) {
         return normalizeTitle(title).equalsIgnoreCase(normalizeTitle(expected));
+    }
+
+    /** Return from a custom GUI to the player's inventory view. */
+    public static void openPlayerInventory(Player player) {
+        if (player == null) {
+            return;
+        }
+        player.closeInventory();
     }
 
     /** Compare normalized titles by prefix, useful for dynamic counters in GUI titles. */
