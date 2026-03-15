@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.tips;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.utils.AnnouncementTimingUtil;
 import org.bukkit.scheduler.BukkitTask;
 
 public class BroadcastManager {
@@ -26,9 +27,12 @@ public class BroadcastManager {
         cfg.load();
         int delay = cfg.getDelaySeconds();
 
-        // Schedule broadcast: first run immediately, then every 'delay' seconds
+        long intervalTicks = delay * 30L;
+        long initialDelayTicks = AnnouncementTimingUtil.computeInitialDelayTicks(intervalTicks, 1, 3, 20L);
+
+        // Schedule broadcast with a staggered startup offset.
         broadcastTask = new TipBroadcastTask(plugin, cfg, this)
-            .runTaskTimer(plugin, 0L, delay * 30L);
+            .runTaskTimer(plugin, initialDelayTicks, intervalTicks);
 
         plugin.getLogger().info("[Tips] BroadcastManager started.");
     }
