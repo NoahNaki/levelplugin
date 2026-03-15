@@ -146,7 +146,9 @@ public class StaticItemListener implements Listener {
         for (int raw = 1; raw <= 4; raw++) {
             craftingInventory.setItem(raw, createCraftingMenuItem(player, raw));
         }
-        craftingInventory.setResult(createCraftingMenuItem(player, 0));
+        ItemStack resultItem = createCraftingMenuItem(player, 0);
+        craftingInventory.setResult(resultItem);
+        craftingInventory.setItem(0, resultItem == null ? null : resultItem.clone());
     }
 
     private static boolean hasMissingCraftingShortcutItems(Player player, CraftingInventory craftingInventory) {
@@ -154,7 +156,9 @@ public class StaticItemListener implements Listener {
             return true;
         }
         ItemStack expectedResult = createCraftingMenuItem(player, 0);
-        if (expectedResult != null && !expectedResult.isSimilar(craftingInventory.getResult())) {
+        ItemStack renderedResult = craftingInventory.getResult();
+        ItemStack slotZeroItem = craftingInventory.getItem(0);
+        if (expectedResult != null && (!expectedResult.isSimilar(renderedResult) || !expectedResult.isSimilar(slotZeroItem))) {
             return true;
         }
         for (int raw = 1; raw <= 4; raw++) {
@@ -191,6 +195,7 @@ public class StaticItemListener implements Listener {
             craftingInventory.setItem(raw, null);
         }
         craftingInventory.setResult(null);
+        craftingInventory.setItem(0, null);
     }
 
     private static void reapplyDebugCraftingShortcutsNextTick(Player player) {
@@ -380,6 +385,7 @@ public class StaticItemListener implements Listener {
                 && event.getView().getTopInventory() instanceof CraftingInventory craftingInventory) {
             applyCraftingShortcutItems(player, craftingInventory);
             player.updateInventory();
+            reapplyDebugCraftingShortcutsNextTick(player);
             return;
         }
         if (shouldSkipCraftingMenu(player) || !isCraftingMenuContext(event.getView())) {
