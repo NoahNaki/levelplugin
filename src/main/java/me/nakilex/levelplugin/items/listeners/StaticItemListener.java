@@ -149,6 +149,40 @@ public class StaticItemListener implements Listener {
         craftingInventory.setResult(createCraftingMenuItem(player, 0));
     }
 
+    private static boolean hasMissingCraftingShortcutItems(Player player, CraftingInventory craftingInventory) {
+        if (craftingInventory == null) {
+            return true;
+        }
+        ItemStack expectedResult = createCraftingMenuItem(player, 0);
+        if (expectedResult != null && !expectedResult.isSimilar(craftingInventory.getResult())) {
+            return true;
+        }
+        for (int raw = 1; raw <= 4; raw++) {
+            ItemStack expected = createCraftingMenuItem(player, raw);
+            if (expected != null && !expected.isSimilar(craftingInventory.getItem(raw))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static void refreshDebugCraftingShortcuts(Main main) {
+        for (Player player : main.getServer().getOnlinePlayers()) {
+            if (!DebugCommand.isInventoryDebugEnabled(player.getUniqueId())) {
+                continue;
+            }
+            InventoryView view = player.getOpenInventory();
+            if (!isCraftingMenuContext(view) || !(view.getTopInventory() instanceof CraftingInventory craftingInventory)) {
+                continue;
+            }
+            if (!hasMissingCraftingShortcutItems(player, craftingInventory)) {
+                continue;
+            }
+            applyCraftingShortcutItems(player, craftingInventory);
+            player.updateInventory();
+        }
+    }
+
     public static void clearCraftingShortcutItems(CraftingInventory craftingInventory) {
         if (craftingInventory == null) {
             return;
@@ -253,6 +287,7 @@ public class StaticItemListener implements Listener {
         craftingMenuRefreshTaskStarted = true;
         main.getServer().getScheduler().runTaskTimer(main, () -> {
             if (PLAYERS_NEEDING_CRAFTING_MENU_REFRESH.isEmpty()) {
+                refreshDebugCraftingShortcuts(main);
                 return;
             }
             for (UUID uuid : Set.copyOf(PLAYERS_NEEDING_CRAFTING_MENU_REFRESH)) {
@@ -263,6 +298,8 @@ public class StaticItemListener implements Listener {
                 }
                 refreshCraftingMenu(player);
             }
+
+            refreshDebugCraftingShortcuts(main);
         }, 1L, 2L);
     }
 
