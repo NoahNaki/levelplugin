@@ -149,6 +149,16 @@ public class StaticItemListener implements Listener {
         craftingInventory.setResult(createCraftingMenuItem(player, 0));
     }
 
+    public static void clearCraftingShortcutItems(CraftingInventory craftingInventory) {
+        if (craftingInventory == null) {
+            return;
+        }
+        for (int raw = 1; raw <= 4; raw++) {
+            craftingInventory.setItem(raw, null);
+        }
+        craftingInventory.setResult(null);
+    }
+
     private static void reapplyDebugCraftingShortcutsNextTick(Player player) {
         Main main = Main.getInstance();
         if (main == null) {
@@ -388,6 +398,14 @@ public class StaticItemListener implements Listener {
     @EventHandler
     public void onInventoryClose(org.bukkit.event.inventory.InventoryCloseEvent event) {
         if (!(event.getPlayer() instanceof Player player)) {
+            return;
+        }
+        if (DebugCommand.isInventoryDebugEnabled(player.getUniqueId())
+                && isCraftingMenuContext(event.getView())
+                && event.getView().getTopInventory() instanceof CraftingInventory craftingInventory) {
+            player.setItemOnCursor(null);
+            clearCraftingShortcutItems(craftingInventory);
+            player.updateInventory();
             return;
         }
         if (!isCraftingMenuContext(event.getView()) || shouldSkipCraftingMenu(player)) {
