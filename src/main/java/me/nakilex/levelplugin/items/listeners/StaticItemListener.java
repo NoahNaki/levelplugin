@@ -215,15 +215,22 @@ public class StaticItemListener implements Listener {
         if (main == null || player == null) {
             return;
         }
-        Bukkit.getScheduler().runTaskLater(main, () -> {
-            if (!player.isOnline()) {
-                return;
-            }
-            logInventoryDebug("close reapply player=" + player.getName() + " topType="
-                    + player.getOpenInventory().getTopInventory().getType());
-            applyInventoryDebugSession(player, player.getOpenInventory());
-            applyInventoryDebugSessionBurst(player, 2);
-        }, 1L);
+        for (int tick = 1; tick <= 3; tick++) {
+            final int currentTick = tick;
+            Bukkit.getScheduler().runTaskLater(main, () -> {
+                if (!player.isOnline()) {
+                    return;
+                }
+                InventoryView view = player.getOpenInventory();
+                if (!isCraftingMenuContext(view)) {
+                    return;
+                }
+                logInventoryDebug("close reapply tick=" + currentTick + " player=" + player.getName() + " topType="
+                        + view.getTopInventory().getType());
+                applyInventoryDebugSession(player, view);
+                applyInventoryDebugSessionBurst(player, 2);
+            }, tick);
+        }
     }
 
     private static void clearInventoryDebugSession(Player player, InventoryView view) {
@@ -494,6 +501,7 @@ public class StaticItemListener implements Listener {
             reapplyInventoryDebugSessionAfterClose(player);
             return;
         }
+        reapplyInventoryDebugSessionAfterClose(player);
         if (!isCraftingMenuContext(event.getView()) || shouldSkipCraftingMenu(player)) {
             return;
         }
