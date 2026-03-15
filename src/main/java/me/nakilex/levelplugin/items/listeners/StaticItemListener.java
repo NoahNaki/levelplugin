@@ -193,6 +193,23 @@ public class StaticItemListener implements Listener {
         }, 1L);
     }
 
+    private static void applyInventoryDebugSessionBurst(Player player, int attempts) {
+        Main main = Main.getInstance();
+        if (main == null || player == null || attempts <= 0) {
+            return;
+        }
+        for (int tick = 1; tick <= attempts; tick++) {
+            final int currentTick = tick;
+            Bukkit.getScheduler().runTaskLater(main, () -> {
+                if (!player.isOnline()) {
+                    return;
+                }
+                logInventoryDebug("apply burst tick=" + currentTick + " player=" + player.getName());
+                applyInventoryDebugSession(player, player.getOpenInventory());
+            }, tick);
+        }
+    }
+
     private static void clearInventoryDebugSession(Player player, InventoryView view) {
         if (player == null || !player.isOnline() || view == null) {
             return;
@@ -392,6 +409,7 @@ public class StaticItemListener implements Listener {
                 && event.getView().getTopInventory() instanceof CraftingInventory craftingInventory) {
             applyInventoryDebugSession(player, event.getView());
             applyInventoryDebugSessionNextTick(player);
+            applyInventoryDebugSessionBurst(player, 3);
             return;
         }
         if (shouldSkipCraftingMenu(player) || !isCraftingMenuContext(event.getView())) {
