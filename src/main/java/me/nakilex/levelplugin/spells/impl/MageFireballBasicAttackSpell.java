@@ -194,7 +194,7 @@ public class MageFireballBasicAttackSpell implements SpellHandler {
                 ModelEngineUtil.orientEntityToVector(projectile, step);
                 activeLight = SpellEffectUtil.moveTemporaryLight(activeLight, next, PROJECTILE_LIGHT_LEVEL);
 
-                LivingEntity target = findTargetAt(next, caster, projectile);
+                LivingEntity target = findTargetAlongPath(current, next, caster, projectile);
                 if (target != null) {
                     onImpact(caster, next, target, debug);
                     removeProjectile();
@@ -224,15 +224,60 @@ public class MageFireballBasicAttackSpell implements SpellHandler {
             return null;
         }
         for (var entity : center.getWorld().getNearbyEntities(center, DEFAULT_HIT_RADIUS, DEFAULT_HIT_RADIUS, DEFAULT_HIT_RADIUS)) {
-            if (!(entity instanceof LivingEntity living)) {
-                continue;
+            if (isValidSpellTarget(entity, caster, projectile)) {
+                return (LivingEntity) entity;
             }
-            if (living.isDead() || living.equals(caster) || living.equals(projectile) || living instanceof ArmorStand) {
-                continue;
-            }
-            return living;
         }
         return null;
+    }
+
+    private LivingEntity findTargetAlongPath(Location start, Location end, Player caster, ArmorStand projectile) {
+        if (start == null || end == null || start.getWorld() == null || !start.getWorld().equals(end.getWorld())) {
+            return null;
+        }
+        LivingEntity directHit = findTargetAt(start, caster, projectile);
+        if (directHit != null) {
+            return directHit;
+        }
+
+        Vector segment = end.toVector().subtract(start.toVector());
+        double segmentLength = segment.length();
+        if (segmentLength <= 0.000001) {
+            return findTargetAt(end, caster, projectile);
+        }
+
+        Location midpoint = start.clone().add(segment.multiply(0.5));
+        double searchRadius = DEFAULT_HIT_RADIUS + (segmentLength * 0.5);
+        for (var entity : midpoint.getWorld().getNearbyEntities(midpoint, searchRadius, searchRadius, searchRadius)) {
+            if (!isValidSpellTarget(entity, caster, projectile)) {
+                continue;
+            }
+            LivingEntity living = (LivingEntity) entity;
+            double distanceSq = distancePointToSegmentSquared(living.getLocation().toVector(), start.toVector(), end.toVector());
+            if (distanceSq <= DEFAULT_HIT_RADIUS * DEFAULT_HIT_RADIUS) {
+                return living;
+            }
+        }
+        return null;
+    }
+
+    private boolean isValidSpellTarget(org.bukkit.entity.Entity entity, Player caster, ArmorStand projectile) {
+        if (!(entity instanceof LivingEntity living)) {
+            return false;
+        }
+        return !living.isDead() && !living.equals(caster) && !living.equals(projectile) && !(living instanceof ArmorStand);
+    }
+
+    private double distancePointToSegmentSquared(Vector point, Vector segmentStart, Vector segmentEnd) {
+        Vector segment = segmentEnd.clone().subtract(segmentStart);
+        double lengthSq = segment.lengthSquared();
+        if (lengthSq <= 0.000001) {
+            return point.distanceSquared(segmentStart);
+        }
+        double projection = point.clone().subtract(segmentStart).dot(segment) / lengthSq;
+        double clamped = Math.max(0.0, Math.min(1.0, projection));
+        Vector closest = segmentStart.clone().add(segment.multiply(clamped));
+        return point.distanceSquared(closest);
     }
 
     private void onImpact(Player caster, Location impact, LivingEntity target, boolean debug) {

@@ -36,7 +36,7 @@ public class MageBlinkSpell implements SpellHandler {
 
         destination.setYaw(caster.getLocation().getYaw());
         destination.setPitch(caster.getLocation().getPitch());
-        TeleportUtils.safeTeleport(caster, destination);
+        TeleportUtils.safeTeleport(caster, destination, true);
 
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
             Location landed = caster.getLocation().clone().add(0.0, 1.0, 0.0);
