@@ -306,8 +306,8 @@ commands:
     description: Opens the enchanting GUI
     usage: /enchant
   debug:
-    descri ption: Developer debug tools
-    usage: /debug [mobinfo|tps|siege|autocast|drops|hand|chatgame|expedition|spellinput]
+    description: Developer debug tools
+    usage: /debug [mobinfo|tps|siege|drops|hand|chatgame|expedition|dungeonexpedition|spellinput|beaconentity|particle|particlepath|particlepreset|petpull|inventorydebug|rewardbomb|cityowner|citymax]
   se:
     description: Spawn an entity with ModelEngine models for testing
     usage: /se <entity> <model...> | /se list
