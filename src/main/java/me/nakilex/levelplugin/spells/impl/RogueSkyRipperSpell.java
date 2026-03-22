@@ -39,19 +39,21 @@ public class RogueSkyRipperSpell implements SpellHandler {
 
             @Override
             public void run() {
-                if (!caster.isOnline() || hitIndex >= 3) {
+                if (!caster.isOnline() || hitIndex >= 4) {
                     cancel();
                     return;
                 }
-                double travel = 2.0 + hitIndex * 1.6;
+                double travel = 1.8 + hitIndex * 1.45;
                 Location impact = origin.clone().add(forward.clone().multiply(travel));
                 Location orientation = caster.getLocation().clone();
                 orientation.setDirection(forward.clone());
 
-                double damage = hitIndex < 2 ? 4.8 : 7.1;
+                double damage = hitIndex < 3 ? 4.6 + (hitIndex * 0.35) : 7.8;
                 ArcSlashCombatUtil.strike(caster, impact, orientation, damage, 2.0);
+                ArcSlashCombatUtil.strike(caster, impact.clone().add(0.0, 0.22, 0.0), orientation, damage * 0.65, 1.8);
                 caster.getWorld().playSound(impact, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 0.9f, 1.12f + (hitIndex * 0.14f));
-                caster.getWorld().spawnParticle(Particle.CLOUD, impact, 7 + hitIndex * 2, 0.28, 0.18, 0.28, 0.02);
+                caster.getWorld().spawnParticle(Particle.CLOUD, impact, 8 + hitIndex * 2, 0.28, 0.18, 0.28, 0.02);
+                caster.getWorld().spawnParticle(Particle.CRIT, impact, 10 + hitIndex * 2, 0.24, 0.25, 0.24, 0.02);
 
                 for (LivingEntity targetEntity : SpellEffectUtil.getLivingTargets(impact, 1.9,
                         living -> !living.equals(caster))) {

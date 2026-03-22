@@ -9,6 +9,7 @@ import me.nakilex.levelplugin.spells.impl.MageBlinkSpell;
 import me.nakilex.levelplugin.spells.impl.MeteorSpell;
 import me.nakilex.levelplugin.spells.impl.BlackholeSpell;
 import me.nakilex.levelplugin.spells.impl.RoguePhantomCrossSpell;
+import me.nakilex.levelplugin.spells.impl.RogueArcBasicAttackSpell;
 import me.nakilex.levelplugin.spells.impl.RogueRazorDashSpell;
 import me.nakilex.levelplugin.spells.impl.RogueSkyRipperSpell;
 import me.nakilex.levelplugin.spells.impl.RogueVeilCounterSpell;
@@ -83,12 +84,15 @@ public final class SpellCatalog {
         SpellDefinition rogueVeilCounter = new SpellDefinition("rogue_veil_counter", "Veil Counter", 16, false);
         SpellDefinition rogueRazorDash = new SpellDefinition("rogue_razor_dash", "Razor Dash", 12, true);
         SpellDefinition roguePhantomCross = new SpellDefinition("rogue_phantom_cross", "Phantom Cross", 18, false);
+        SpellDefinition rogueArcBasic = new SpellDefinition("rogue_arc_basic", "Rogue Arc Slash", 0, false);
 
         registry.registerSpell(rogueSkyRipper, new RogueSkyRipperSpell(plugin));
         registry.registerSpell(rogueVeilCounter, new RogueVeilCounterSpell(plugin));
         registry.registerSpell(rogueRazorDash, new RogueRazorDashSpell(plugin, 1.28));
         registry.registerSpell(roguePhantomCross, new RoguePhantomCrossSpell(plugin));
+        registry.registerSpell(rogueArcBasic, new RogueArcBasicAttackSpell());
 
+        registry.registerBinding(SpellBinding.forInputType(rogueArcBasic.id(), ClassUtil::isRogueFamily, SpellInputType.BASIC_ATTACK));
         registry.registerBinding(SpellBinding.forInputType(rogueSkyRipper.id(), ClassUtil::isRogueFamily, SpellInputType.SPELL_1));
         registry.registerBinding(SpellBinding.forInputType(rogueVeilCounter.id(), ClassUtil::isRogueFamily, SpellInputType.SPELL_2));
         registry.registerBinding(SpellBinding.forInputType(rogueRazorDash.id(), ClassUtil::isRogueFamily, SpellInputType.SPELL_3));

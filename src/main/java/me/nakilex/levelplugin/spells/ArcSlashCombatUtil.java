@@ -7,6 +7,7 @@ import me.nakilex.levelplugin.particles.ParticleRotationAxis;
 import me.nakilex.levelplugin.particles.patterns.EllipseArcPattern;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
+import org.bukkit.util.Vector;
 
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -41,5 +42,26 @@ public final class ArcSlashCombatUtil {
         arcPreset.render(context);
 
         SpellEffectUtil.applyAreaDamage(caster, center, damageRadius, damage);
+    }
+
+    public static void strikeForward(Player caster,
+                                     double forwardDistance,
+                                     double upOffset,
+                                     double damage,
+                                     double damageRadius) {
+        if (caster == null) {
+            return;
+        }
+        Vector forward = caster.getLocation().getDirection().setY(0.0);
+        if (forward.lengthSquared() <= 0.0001) {
+            return;
+        }
+        forward.normalize();
+        Location center = caster.getLocation().clone()
+                .add(forward.multiply(forwardDistance))
+                .add(0.0, upOffset, 0.0);
+        Location orientation = caster.getLocation().clone();
+        orientation.setDirection(center.toVector().subtract(caster.getLocation().toVector()));
+        strike(caster, center, orientation, damage, damageRadius);
     }
 }
