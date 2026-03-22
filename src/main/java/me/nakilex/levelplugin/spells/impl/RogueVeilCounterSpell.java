@@ -6,7 +6,6 @@ import me.nakilex.levelplugin.spells.SpellContext;
 import me.nakilex.levelplugin.spells.SpellEffectUtil;
 import me.nakilex.levelplugin.spells.SpellHandler;
 import org.bukkit.Location;
-import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -27,7 +26,7 @@ public class RogueVeilCounterSpell implements SpellHandler {
         Player caster = context.player();
         caster.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 50, 0, true, false, true));
         caster.getWorld().playSound(caster.getLocation(), Sound.ITEM_SHIELD_BLOCK, 0.8f, 1.2f);
-        caster.getWorld().spawnParticle(Particle.SMOKE, caster.getLocation().clone().add(0.0, 1.0, 0.0),
+        caster.getWorld().spawnParticle(org.bukkit.Particle.SMOKE, caster.getLocation().clone().add(0.0, 1.0, 0.0),
                 16, 0.35, 0.5, 0.35, 0.005);
 
         new BukkitRunnable() {
@@ -42,7 +41,7 @@ public class RogueVeilCounterSpell implements SpellHandler {
                 Location impact = caster.getLocation().clone().add(0.0, 1.0, 0.0);
                 Location orientation = caster.getLocation().clone();
                 double damage = wave == 0 ? 4.0 : 6.6;
-                ArcSlashCombatUtil.strike(caster, impact, orientation, Particle.SWEEP_ATTACK, damage, 2.3);
+                ArcSlashCombatUtil.strike(caster, impact, orientation, damage, 2.3);
                 caster.getWorld().playSound(impact, Sound.ENTITY_PLAYER_ATTACK_STRONG, 0.9f, wave == 0 ? 1.05f : 0.88f);
                 for (LivingEntity target : SpellEffectUtil.getLivingTargets(impact, 2.2,
                         living -> !living.equals(caster))) {

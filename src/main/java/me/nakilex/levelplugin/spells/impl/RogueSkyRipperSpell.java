@@ -49,8 +49,7 @@ public class RogueSkyRipperSpell implements SpellHandler {
                 orientation.setDirection(forward.clone());
 
                 double damage = hitIndex < 2 ? 4.8 : 7.1;
-                Particle particle = hitIndex < 2 ? Particle.CRIT : Particle.SWEEP_ATTACK;
-                ArcSlashCombatUtil.strike(caster, impact, orientation, particle, damage, 2.0);
+                ArcSlashCombatUtil.strike(caster, impact, orientation, damage, 2.0);
                 caster.getWorld().playSound(impact, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 0.9f, 1.12f + (hitIndex * 0.14f));
                 caster.getWorld().spawnParticle(Particle.CLOUD, impact, 7 + hitIndex * 2, 0.28, 0.18, 0.28, 0.02);
 

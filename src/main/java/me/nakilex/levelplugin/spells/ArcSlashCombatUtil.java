@@ -6,7 +6,6 @@ import me.nakilex.levelplugin.particles.ParticleRenderContext;
 import me.nakilex.levelplugin.particles.ParticleRotationAxis;
 import me.nakilex.levelplugin.particles.patterns.EllipseArcPattern;
 import org.bukkit.Location;
-import org.bukkit.Particle;
 import org.bukkit.entity.Player;
 
 import java.util.concurrent.ThreadLocalRandom;
@@ -22,7 +21,6 @@ public final class ArcSlashCombatUtil {
     public static void strike(Player caster,
                               Location center,
                               Location orientation,
-                              Particle particle,
                               double damage,
                               double damageRadius) {
         if (caster == null || center == null || orientation == null || center.getWorld() == null) {
@@ -36,7 +34,7 @@ public final class ArcSlashCombatUtil {
         ParticleRenderContext context = new ParticleRenderContext(caster, center, orientation,
                 Math.max(1, config.points()), 0, 1);
 
-        EllipseArcPattern arcPreset = new EllipseArcPattern(particle, null, radiusX, radiusZ, config.width(),
+        EllipseArcPattern arcPreset = new EllipseArcPattern(config.particle(), null, radiusX, radiusZ, config.width(),
                 config.startAngleDegrees(), config.endAngleDegrees(), 0.0, ParticlePlane.LOOK_VERTICAL,
                 baseTilt, ParticleRotationAxis.LOOK_RIGHT,
                 config.rotateXDegrees(), config.rotateYDegrees(), config.rotateZDegrees());

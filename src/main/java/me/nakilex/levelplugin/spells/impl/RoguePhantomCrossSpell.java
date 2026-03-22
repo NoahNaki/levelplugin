@@ -8,7 +8,6 @@ import me.nakilex.levelplugin.spells.SpellHandler;
 import me.nakilex.levelplugin.spells.SpellTargetingUtil;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.Location;
-import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -53,7 +52,7 @@ public class RoguePhantomCrossSpell implements SpellHandler {
                 Location orientation = caster.getLocation().clone();
                 orientation.setDirection(forward.clone());
                 double damage = 2.7 + (slash * 0.42);
-                ArcSlashCombatUtil.strike(caster, impact, orientation, Particle.SWEEP_ATTACK, damage, 2.1);
+                ArcSlashCombatUtil.strike(caster, impact, orientation, damage, 2.1);
                 SpellEffectUtil.applyDirectSpellDamage(context.plugin(), caster, target, damage, true);
                 caster.getWorld().playSound(impact, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 0.82f, 1.2f + slash * 0.07f);
                 slash++;

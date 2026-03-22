@@ -4,7 +4,6 @@ import me.nakilex.levelplugin.spells.ArcSlashCombatUtil;
 import me.nakilex.levelplugin.spells.SpellContext;
 import me.nakilex.levelplugin.spells.SpellHandler;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
-import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -48,7 +47,7 @@ public class RogueRazorDashSpell implements SpellHandler {
                             .add(0.0, 1.0, 0.0);
                     var orientation = caster.getLocation().clone();
                     orientation.setDirection(dashDirection.clone());
-                    ArcSlashCombatUtil.strike(caster, current, orientation, Particle.SWEEP_ATTACK, 4.2, 1.65);
+                    ArcSlashCombatUtil.strike(caster, current, orientation, 4.2, 1.65);
                     caster.getWorld().playSound(current, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 0.8f, 1.25f + (tick * 0.04f));
                 }
                 tick++;
