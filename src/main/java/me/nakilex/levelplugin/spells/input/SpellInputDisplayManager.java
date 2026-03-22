@@ -105,6 +105,25 @@ public class SpellInputDisplayManager {
         return formatSequence(state.inputs);
     }
 
+    public String debugSnapshot(Player player) {
+        if (player == null) {
+            return "state=null";
+        }
+        DisplayState state = states.get(player.getUniqueId());
+        if (state == null) {
+            return "state=null";
+        }
+        long now = System.currentTimeMillis();
+        applyPendingCastReset(state, now);
+        return "inputs=" + formatSequence(state.inputs)
+                + ", glyphs=" + formatGlyphs(state.inputs)
+                + ", comboStart=" + (state.comboStartInput == null ? "null" : state.comboStartInput.name())
+                + ", active=" + (now < state.activeUntil)
+                + ", castComplete=" + state.castComplete
+                + ", starterPlaceholder=" + state.starterPlaceholder
+                + ", castResetInMs=" + Math.max(0L, state.castResetAt - now);
+    }
+
     public void clear(Player player) {
         if (player == null) {
             return;

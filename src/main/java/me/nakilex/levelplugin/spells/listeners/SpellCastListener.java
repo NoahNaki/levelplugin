@@ -74,6 +74,7 @@ public class SpellCastListener implements Listener {
         plugin.getLogger().info(context + " (casting " + entry.definition().id() + ")");
         entry.handler().cast(new SpellContext(plugin, player, entry.definition(), event));
         SpellInputDisplayManager.getInstance().markSpellCast(player);
+        plugin.getLogger().info(context + " (display " + SpellInputDisplayManager.getInstance().debugSnapshot(player) + ")");
         plugin.getLogger().info(context + " (handler executed " + entry.definition().id() + ")");
         sendDebug(player, ChatColor.GREEN + "Handler executed for "
                 + ChatColor.WHITE + entry.definition().id()
