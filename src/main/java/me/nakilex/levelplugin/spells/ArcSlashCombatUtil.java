@@ -34,7 +34,7 @@ public final class ArcSlashCombatUtil {
         double radiusX = random.nextDouble(config.radiusXMin(), config.radiusXMax());
         double radiusZ = random.nextDouble(config.radiusZMin(), config.radiusZMax());
         double baseTilt = random.nextDouble(config.baseTiltMin(), config.baseTiltMax());
-        double travelDistance = config.travelDistance() * 0.25;
+        double travelDistance = config.travelDistance() * 0.125;
         Vector direction = orientation.getDirection().clone().setY(0.0);
         if (direction.lengthSquared() <= 0.0001) {
             direction = caster.getLocation().getDirection().clone().setY(0.0);
