@@ -1,8 +1,5 @@
 package me.nakilex.levelplugin.spells.listeners;
 
-import me.nakilex.levelplugin.Main;
-import me.nakilex.levelplugin.debug.SpellInputDebugItem;
-import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.classes.data.ClassUtil;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.classes.managers.PlayerClassManager;
@@ -57,9 +54,7 @@ public class SpellInputListener implements Listener {
     @EventHandler
     public void onInteract(PlayerInteractEvent event) {
         Action action = event.getAction();
-        logInputFlow(event.getPlayer(), "onInteract action=" + action + ", hand=" + event.getHand());
         if (event.getHand() != EquipmentSlot.HAND) {
-            logInputFlow(event.getPlayer(), "onInteract ignored: offhand");
             return;
         }
         Player player = event.getPlayer();
@@ -69,7 +64,6 @@ public class SpellInputListener implements Listener {
         }
         if (isRightClickAction(action)) {
             if (!shouldProcessRightClick(player)) {
-                logInputFlow(player, "right-click ignored by debounce");
                 return;
             }
             handleClick(player, false);
@@ -78,13 +72,10 @@ public class SpellInputListener implements Listener {
 
     @EventHandler
     public void onInteractEntity(PlayerInteractEntityEvent event) {
-        logInputFlow(event.getPlayer(), "onInteractEntity hand=" + event.getHand());
         if (event.getHand() != EquipmentSlot.HAND) {
-            logInputFlow(event.getPlayer(), "onInteractEntity ignored: offhand");
             return;
         }
         if (!shouldProcessRightClick(event.getPlayer())) {
-            logInputFlow(event.getPlayer(), "onInteractEntity ignored by debounce");
             return;
         }
         handleClick(event.getPlayer(), false);
@@ -141,45 +132,34 @@ public class SpellInputListener implements Listener {
 
     private void handleComboClick(Player player, boolean leftClick, boolean archerFamily) {
         if (isMainHandEmpty(player)) {
-            debugInput(player, "combo ignored: main hand empty");
             return;
         }
         SpellComboTracker tracker = comboTrackers.computeIfAbsent(player.getUniqueId(),
                 id -> new SpellComboTracker(COMBO_TIMEOUT_MS));
         boolean comboStarted = tracker.hasInputs();
         boolean validComboStart = isComboStartClick(leftClick, archerFamily);
-        debugInput(player, "combo click=" + (leftClick ? "L" : "R")
-                + ", started=" + comboStarted
-                + ", validStart=" + validComboStart
-                + ", trackerBefore=" + tracker.getSequence()
-                + ", displayBefore=" + displayManager.debugSnapshot(player));
         if (!comboStarted && !validComboStart) {
             if (isBasicAttackClick(leftClick, archerFamily)) {
-                debugInput(player, "combo start invalid -> basic attack dispatch");
                 dispatch(player, SpellInputType.BASIC_ATTACK, SpellInputMode.MOUSE_COMBO, leftClick ? "L" : "R");
             }
             return;
         }
         if (!comboStarted && isBasicAttackClick(leftClick, archerFamily)) {
-            debugInput(player, "basic attack click while combo idle -> basic attack dispatch");
             dispatch(player, SpellInputType.BASIC_ATTACK, SpellInputMode.MOUSE_COMBO, leftClick ? "L" : "R");
             return;
+        }
+        if (!comboStarted && validComboStart) {
+            displayManager.clearInputs(player);
         }
         displayManager.recordClick(player, leftClick ? SpellClickInput.LEFT : SpellClickInput.RIGHT);
         String sequence = tracker.recordClick(
                 leftClick ? SpellClickInput.LEFT : SpellClickInput.RIGHT,
                 archerFamily);
-        debugInput(player, "recorded combo click, sequence=" + sequence
-                + ", trackerLast=" + tracker.getLastSequence()
-                + ", displayAfter=" + displayManager.debugSnapshot(player));
         if (sequence != null) {
             SpellInputType bound = getBoundSpell(player, SpellInputMode.MOUSE_COMBO,
                     SpellKeybindLayout.comboSlotForSequence(archerFamily, sequence));
             if (bound != null) {
-                debugInput(player, "sequence " + sequence + " bound -> " + bound);
                 dispatch(player, bound, SpellInputMode.MOUSE_COMBO, tracker.getLastSequence());
-            } else {
-                debugInput(player, "sequence " + sequence + " produced no bound spell");
             }
         }
     }
@@ -194,9 +174,6 @@ public class SpellInputListener implements Listener {
 
     private void handleModifierClick(Player player, boolean leftClick, boolean archerFamily) {
         displayManager.recordClick(player, leftClick ? SpellClickInput.LEFT : SpellClickInput.RIGHT);
-        debugInput(player, "modifier click=" + (leftClick ? "L" : "R")
-                + ", sneaking=" + player.isSneaking()
-                + ", display=" + displayManager.debugSnapshot(player));
         if (player.isSneaking()) {
             SpellKeybindSlot slot = leftClick ? SpellKeybindSlot.SLOT_1 : SpellKeybindSlot.SLOT_2;
             dispatchBoundSpell(player, SpellInputMode.MOUSE_AND_KEYBOARD, slot,
@@ -237,22 +214,11 @@ public class SpellInputListener implements Listener {
     }
 
     private void handleClick(Player player, boolean leftClick) {
-        PlayerClass managerClass = PlayerClassManager.getInstance().getPlayerClass(player);
-        PlayerClass statsClass = StatsManager.getInstance().getPlayerStats(player.getUniqueId()).playerClass;
-        logInputFlow(player, "handleClick start click=" + (leftClick ? "L" : "R")
-                + ", managerClass=" + managerClass
-                + ", statsClass=" + statsClass
-                + ", held=" + player.getInventory().getItemInMainHand().getType());
         boolean validWeapon = isHoldingValidClassWeapon(player);
-        debugInput(player, "handleClick " + (leftClick ? "L" : "R")
-                + ", validWeapon=" + validWeapon
-                + ", mode=" + settingsManager.getSettings(player).getSpellInputMode());
         if (!validWeapon) {
             if (!isMageBasicFallbackAllowed(player, leftClick)) {
-                debugInput(player, "blocked: invalid weapon and no mage fallback");
                 return;
             }
-            debugInput(player, "invalid weapon but mage fallback basic attack dispatch");
             dispatch(player, SpellInputType.BASIC_ATTACK, SpellInputMode.MOUSE_AND_KEYBOARD,
                     leftClick ? "Left" : "Right");
             return;
@@ -284,27 +250,6 @@ public class SpellInputListener implements Listener {
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                 "Click " + (leftClick ? "Left" : "Right") + " Class: " + getPlayerClassName(player));
     }
-
-    private void debugInput(Player player, String message) {
-        if (player == null) {
-            return;
-        }
-        ItemStack held = player.getInventory().getItemInMainHand();
-        if (!SpellInputDebugItem.isDebugStick(held)) {
-            return;
-        }
-        Main.getInstance().getLogger().info("[SpellInputDebug] player=" + player.getName() + " " + message);
-        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
-                "§bSpell Input Debug§7: " + message);
-    }
-
-    private void logInputFlow(Player player, String message) {
-        if (player == null) {
-            return;
-        }
-        Main.getInstance().getLogger().info("[SpellInputFlow] player=" + player.getName() + " " + message);
-    }
-
 
     private boolean isMageBasicFallbackAllowed(Player player, boolean leftClick) {
         if (player == null || !leftClick) {

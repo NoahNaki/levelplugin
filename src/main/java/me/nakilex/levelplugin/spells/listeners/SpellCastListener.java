@@ -1,8 +1,6 @@
 package me.nakilex.levelplugin.spells.listeners;
 
 import me.nakilex.levelplugin.Main;
-import me.nakilex.levelplugin.debug.SpellInputDebugItem;
-import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.classes.managers.PlayerClassManager;
 import me.nakilex.levelplugin.player.classes.data.ClassUtil;
 import me.nakilex.levelplugin.spells.SpellAccessUtil;
@@ -12,11 +10,9 @@ import me.nakilex.levelplugin.spells.input.SpellInputDisplayManager;
 import me.nakilex.levelplugin.spells.progression.SpellProgressionManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.spells.input.SpellInputEvent;
-import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.inventory.ItemStack;
 
 public class SpellCastListener implements Listener {
     private final Main plugin;
@@ -28,72 +24,26 @@ public class SpellCastListener implements Listener {
     @EventHandler
     public void onSpellInput(SpellInputEvent event) {
         Player player = event.getPlayer();
-        var managerClass = PlayerClassManager.getInstance().getPlayerClass(player);
-        var statsClass = StatsManager.getInstance().getPlayerStats(player.getUniqueId()).playerClass;
-        String context = "[SpellCastDebug] player=" + player.getName()
-                + ", classManager=" + managerClass
-                + ", classStats=" + statsClass
-                + ", type=" + event.getInputType()
-                + ", mode=" + event.getInputMode()
-                + ", seq=" + event.getInputSequence();
-        plugin.getLogger().info(context + " (received)");
-        var playerClass = managerClass;
+        var playerClass = PlayerClassManager.getInstance().getPlayerClass(player);
         SpellRegistry.SpellEntry entry = SpellRegistry.getInstance().resolveSpell(playerClass,
                 event.getInputMode(), event.getInputSequence(), event.getInputType());
         if (entry == null) {
-            plugin.getLogger().info(context + " (no binding)");
-            sendDebug(player, ChatColor.RED + "No spell binding matched for "
-                    + ChatColor.WHITE + event.getInputType().name()
-                    + ChatColor.GRAY + " (" + ChatColor.WHITE + event.getInputMode().name()
-                    + ChatColor.GRAY + ", seq=" + ChatColor.WHITE + event.getInputSequence() + ChatColor.GRAY + ").");
             return;
         }
-        sendDebug(player, ChatColor.GREEN + "Resolved spell binding "
-                + ChatColor.WHITE + entry.definition().id()
-                + ChatColor.GRAY + " from "
-                + ChatColor.WHITE + event.getInputType().name()
-                + ChatColor.GRAY + " (" + ChatColor.WHITE + event.getInputMode().name()
-                + ChatColor.GRAY + ", seq=" + ChatColor.WHITE + event.getInputSequence() + ChatColor.GRAY + ").");
         String effectiveSpellId = SpellProgressionManager.getInstance()
                 .getEffectiveSpellId(player.getUniqueId(), entry.definition().id());
         SpellRegistry.SpellEntry effectiveEntry = SpellRegistry.getInstance().getSpell(effectiveSpellId);
         if (effectiveEntry != null) {
             entry = effectiveEntry;
-            plugin.getLogger().info(context + " (effective=" + effectiveSpellId + ")");
-            sendDebug(player, ChatColor.AQUA + "Effective spell id "
-                    + ChatColor.WHITE + effectiveSpellId + ChatColor.GRAY + ".");
         }
         if (ClassUtil.isMageFamily(playerClass) && !SpellAccessUtil.isHoldingValidClassWeapon(player)) {
-            plugin.getLogger().info(context + " (blocked: invalid weapon)");
             if (!SpellAccessUtil.isHoldingLifeSkillTool(player) && SpellAccessUtil.isHoldingWeapon(player)) {
                 ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
                         "You must hold a valid class weapon to cast mage skills.");
             }
-            sendDebug(player, ChatColor.RED + "Cast blocked: invalid class weapon for mage.");
             return;
         }
-        sendDebug(player, ChatColor.GREEN + "Casting "
-                + ChatColor.WHITE + entry.definition().id()
-                + ChatColor.GRAY + " now.");
-        plugin.getLogger().info(context + " (casting " + entry.definition().id() + ")");
         entry.handler().cast(new SpellContext(plugin, player, entry.definition(), event));
         SpellInputDisplayManager.getInstance().markSpellCast(player);
-        plugin.getLogger().info(context + " (display " + SpellInputDisplayManager.getInstance().debugSnapshot(player) + ")");
-        plugin.getLogger().info(context + " (handler executed " + entry.definition().id() + ")");
-        sendDebug(player, ChatColor.GREEN + "Handler executed for "
-                + ChatColor.WHITE + entry.definition().id()
-                + ChatColor.GRAY + ".");
-    }
-
-    private void sendDebug(Player player, String message) {
-        if (player == null) {
-            return;
-        }
-        ItemStack held = player.getInventory().getItemInMainHand();
-        if (!SpellInputDebugItem.isDebugStick(held)) {
-            return;
-        }
-        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
-                ChatColor.AQUA + "Spell Cast Debug" + ChatColor.GRAY + ": " + message);
     }
 }
