@@ -72,6 +72,7 @@ public final class ArcSlashCombatUtil {
         new BukkitRunnable() {
             private int tick;
             private final Set<java.util.UUID> hitTargets = new HashSet<>();
+            private Location previousCenter = baseCenter.clone();
 
             @Override
             public void run() {
@@ -95,9 +96,12 @@ public final class ArcSlashCombatUtil {
                         Math.max(1, config.points()), tick, renderTicks);
                 arcPreset.render(context);
                 applyCollisionDamage(caster, frameCenter, damageRadius, damage, hitTargets);
+                applySegmentCollisionDamage(caster, previousCenter, frameCenter, damageRadius, damage, hitTargets);
+                previousCenter = frameCenter;
                 tick++;
                 if (tick >= renderTicks) {
                     applyCollisionDamage(caster, finalImpact, damageRadius, damage, hitTargets);
+                    applySegmentCollisionDamage(caster, previousCenter, finalImpact, damageRadius, damage, hitTargets);
                     cancel();
                 }
             }
@@ -139,5 +143,26 @@ public final class ArcSlashCombatUtil {
             }
             SpellEffectUtil.applyDirectSpellDamage(Main.getInstance(), caster, target, damage, true);
         }
+    }
+
+    private static void applySegmentCollisionDamage(Player caster,
+                                                    Location from,
+                                                    Location to,
+                                                    double radius,
+                                                    double damage,
+                                                    Set<java.util.UUID> hitTargets) {
+        if (caster == null || from == null || to == null || from.getWorld() == null || to.getWorld() == null) {
+            return;
+        }
+        Vector segment = to.toVector().subtract(from.toVector());
+        if (segment.lengthSquared() <= 0.0001) {
+            return;
+        }
+        LivingEntity hit = SpellTargetingUtil.rayTraceLivingEntity(from, segment, Math.max(0.35, radius * 0.6),
+                living -> !living.equals(caster));
+        if (hit == null || !hitTargets.add(hit.getUniqueId())) {
+            return;
+        }
+        SpellEffectUtil.applyDirectSpellDamage(Main.getInstance(), caster, hit, damage, true);
     }
 }
