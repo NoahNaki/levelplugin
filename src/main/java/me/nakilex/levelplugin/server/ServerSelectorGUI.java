@@ -39,6 +39,8 @@ public class ServerSelectorGUI implements Listener {
             return;
         }
         Inventory gui = GuiBuilder.create(27, TITLE)
+                .filler(Material.GRAY_STAINED_GLASS_PANE)
+                .border()
                 .fillEmptySlots(false)
                 .build();
         renderWidgets(gui, player);
@@ -98,6 +100,10 @@ public class ServerSelectorGUI implements Listener {
         }
         if (!GuiUtil.titleMatches(event.getView().getTitle(), TITLE)) {
             return;
+        }
+        if (event.getClickedInventory() != null
+                && event.getClickedInventory().equals(event.getView().getTopInventory())) {
+            event.setCancelled(true);
         }
         handleWidgetClick(event, player);
     }
