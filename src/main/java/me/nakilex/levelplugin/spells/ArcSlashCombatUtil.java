@@ -77,6 +77,8 @@ public final class ArcSlashCombatUtil {
             private final Set<java.util.UUID> hitTargets = new HashSet<>();
             private Location previousCenter = baseCenter.clone();
             private final ArmorStand collisionProbe = spawnCollisionProbe(baseCenter);
+            private final LivingEntity guaranteedTarget = SpellTargetingUtil.resolveTargetLivingEntity(caster, 14.0, 0.6,
+                    living -> !living.equals(caster));
 
             @Override
             public void run() {
@@ -110,6 +112,7 @@ public final class ArcSlashCombatUtil {
                     applyCollisionDamage(caster, finalImpact, damageRadius, damage, hitTargets);
                     applyProbeCollisionDamage(caster, collisionProbe, finalImpact, damageRadius, damage, hitTargets);
                     applySegmentCollisionDamage(caster, previousCenter, finalImpact, damageRadius, damage, hitTargets);
+                    applyGuaranteedHitFallback(caster, guaranteedTarget, damage, hitTargets);
                     removeProbe(collisionProbe);
                     cancel();
                 }
@@ -146,7 +149,8 @@ public final class ArcSlashCombatUtil {
         if (caster == null || center == null || radius <= 0.0 || damage <= 0.0) {
             return;
         }
-        for (LivingEntity target : SpellEffectUtil.getLivingTargets(center, radius, living -> !living.equals(caster))) {
+        double effectiveRadius = Math.max(radius, 1.6);
+        for (LivingEntity target : SpellEffectUtil.getLivingTargets(center, effectiveRadius, living -> !living.equals(caster))) {
             if (!hitTargets.add(target.getUniqueId())) {
                 continue;
             }
@@ -208,8 +212,9 @@ public final class ArcSlashCombatUtil {
             return;
         }
         probe.teleport(at);
-        BoundingBox probeBox = probe.getBoundingBox().expand(Math.max(0.20, radius * 0.35));
-        for (var entity : at.getWorld().getNearbyEntities(at, radius, radius, radius)) {
+        double effectiveRadius = Math.max(radius, 1.6);
+        BoundingBox probeBox = probe.getBoundingBox().expand(Math.max(0.90, effectiveRadius));
+        for (var entity : at.getWorld().getNearbyEntities(at, effectiveRadius, effectiveRadius, effectiveRadius)) {
             if (!(entity instanceof LivingEntity living) || living.equals(caster) || living.isDead()) {
                 continue;
             }
@@ -221,5 +226,18 @@ public final class ArcSlashCombatUtil {
             }
             SpellEffectUtil.applyDirectSpellDamage(Main.getInstance(), caster, living, damage, true);
         }
+    }
+
+    private static void applyGuaranteedHitFallback(Player caster,
+                                                   LivingEntity guaranteedTarget,
+                                                   double damage,
+                                                   Set<java.util.UUID> hitTargets) {
+        if (caster == null || guaranteedTarget == null || guaranteedTarget.isDead() || !guaranteedTarget.isValid()) {
+            return;
+        }
+        if (!hitTargets.isEmpty() || !hitTargets.add(guaranteedTarget.getUniqueId())) {
+            return;
+        }
+        SpellEffectUtil.applyDirectSpellDamage(Main.getInstance(), caster, guaranteedTarget, damage, true);
     }
 }
