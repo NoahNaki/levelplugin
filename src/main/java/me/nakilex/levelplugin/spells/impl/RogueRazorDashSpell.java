@@ -29,7 +29,7 @@ public class RogueRazorDashSpell implements SpellHandler {
             return;
         }
         Vector dashDirection = forward.normalize();
-        caster.setVelocity(dashDirection.clone().multiply(dashSpeed).add(new Vector(0.0, 0.04, 0.0)));
+        caster.setVelocity(dashDirection.clone().multiply(dashSpeed).add(new Vector(0.0, 0.18, 0.0)));
         caster.getWorld().playSound(caster.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 0.45f, 1.85f);
 
         new BukkitRunnable() {
@@ -42,7 +42,10 @@ public class RogueRazorDashSpell implements SpellHandler {
                     return;
                 }
                 if (tick % 2 == 0 && tick <= 4) {
-                    var current = caster.getLocation().clone().add(0.0, 1.0, 0.0);
+                    caster.setVelocity(dashDirection.clone().multiply(dashSpeed * 0.72).add(new Vector(0.0, 0.10, 0.0)));
+                    var current = caster.getLocation().clone()
+                            .add(dashDirection.clone().multiply(1.25))
+                            .add(0.0, 1.0, 0.0);
                     var orientation = caster.getLocation().clone();
                     orientation.setDirection(dashDirection.clone());
                     ArcSlashCombatUtil.strike(caster, current, orientation, Particle.SWEEP_ATTACK, 4.2, 1.65);

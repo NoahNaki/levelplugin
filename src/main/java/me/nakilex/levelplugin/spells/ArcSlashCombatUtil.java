@@ -36,16 +36,11 @@ public final class ArcSlashCombatUtil {
         ParticleRenderContext context = new ParticleRenderContext(caster, center, orientation,
                 Math.max(1, config.points()), 0, 1);
 
-        EllipseArcPattern main = new EllipseArcPattern(particle, null, radiusX, radiusZ, config.width(),
+        EllipseArcPattern arcPreset = new EllipseArcPattern(particle, null, radiusX, radiusZ, config.width(),
                 config.startAngleDegrees(), config.endAngleDegrees(), 0.0, ParticlePlane.LOOK_VERTICAL,
                 baseTilt, ParticleRotationAxis.LOOK_RIGHT,
                 config.rotateXDegrees(), config.rotateYDegrees(), config.rotateZDegrees());
-        EllipseArcPattern mirror = new EllipseArcPattern(particle, null, radiusX, radiusZ, config.width(),
-                config.startAngleDegrees(), config.endAngleDegrees(), 0.0, ParticlePlane.LOOK_VERTICAL,
-                baseTilt, ParticleRotationAxis.LOOK_RIGHT,
-                config.rotateXDegrees(), -config.rotateYDegrees(), config.rotateZDegrees());
-        main.render(context);
-        mirror.render(context);
+        arcPreset.render(context);
 
         SpellEffectUtil.applyAreaDamage(caster, center, damageRadius, damage);
     }
