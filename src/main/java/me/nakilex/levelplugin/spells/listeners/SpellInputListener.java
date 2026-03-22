@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.spells.listeners;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.debug.SpellInputDebugItem;
+import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.classes.data.ClassUtil;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.classes.managers.PlayerClassManager;
@@ -56,7 +57,9 @@ public class SpellInputListener implements Listener {
     @EventHandler
     public void onInteract(PlayerInteractEvent event) {
         Action action = event.getAction();
+        logInputFlow(event.getPlayer(), "onInteract action=" + action + ", hand=" + event.getHand());
         if (event.getHand() != EquipmentSlot.HAND) {
+            logInputFlow(event.getPlayer(), "onInteract ignored: offhand");
             return;
         }
         Player player = event.getPlayer();
@@ -66,6 +69,7 @@ public class SpellInputListener implements Listener {
         }
         if (isRightClickAction(action)) {
             if (!shouldProcessRightClick(player)) {
+                logInputFlow(player, "right-click ignored by debounce");
                 return;
             }
             handleClick(player, false);
@@ -74,10 +78,13 @@ public class SpellInputListener implements Listener {
 
     @EventHandler
     public void onInteractEntity(PlayerInteractEntityEvent event) {
+        logInputFlow(event.getPlayer(), "onInteractEntity hand=" + event.getHand());
         if (event.getHand() != EquipmentSlot.HAND) {
+            logInputFlow(event.getPlayer(), "onInteractEntity ignored: offhand");
             return;
         }
         if (!shouldProcessRightClick(event.getPlayer())) {
+            logInputFlow(event.getPlayer(), "onInteractEntity ignored by debounce");
             return;
         }
         handleClick(event.getPlayer(), false);
@@ -230,6 +237,12 @@ public class SpellInputListener implements Listener {
     }
 
     private void handleClick(Player player, boolean leftClick) {
+        PlayerClass managerClass = PlayerClassManager.getInstance().getPlayerClass(player);
+        PlayerClass statsClass = StatsManager.getInstance().getPlayerStats(player.getUniqueId()).playerClass;
+        logInputFlow(player, "handleClick start click=" + (leftClick ? "L" : "R")
+                + ", managerClass=" + managerClass
+                + ", statsClass=" + statsClass
+                + ", held=" + player.getInventory().getItemInMainHand().getType());
         boolean validWeapon = isHoldingValidClassWeapon(player);
         debugInput(player, "handleClick " + (leftClick ? "L" : "R")
                 + ", validWeapon=" + validWeapon
@@ -283,6 +296,13 @@ public class SpellInputListener implements Listener {
         Main.getInstance().getLogger().info("[SpellInputDebug] player=" + player.getName() + " " + message);
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                 "§bSpell Input Debug§7: " + message);
+    }
+
+    private void logInputFlow(Player player, String message) {
+        if (player == null) {
+            return;
+        }
+        Main.getInstance().getLogger().info("[SpellInputFlow] player=" + player.getName() + " " + message);
     }
 
 

@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.spells.listeners;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.debug.SpellInputDebugItem;
+import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.classes.managers.PlayerClassManager;
 import me.nakilex.levelplugin.player.classes.data.ClassUtil;
 import me.nakilex.levelplugin.spells.SpellAccessUtil;
@@ -27,13 +28,16 @@ public class SpellCastListener implements Listener {
     @EventHandler
     public void onSpellInput(SpellInputEvent event) {
         Player player = event.getPlayer();
+        var managerClass = PlayerClassManager.getInstance().getPlayerClass(player);
+        var statsClass = StatsManager.getInstance().getPlayerStats(player.getUniqueId()).playerClass;
         String context = "[SpellCastDebug] player=" + player.getName()
-                + ", class=" + PlayerClassManager.getInstance().getPlayerClass(player)
+                + ", classManager=" + managerClass
+                + ", classStats=" + statsClass
                 + ", type=" + event.getInputType()
                 + ", mode=" + event.getInputMode()
                 + ", seq=" + event.getInputSequence();
         plugin.getLogger().info(context + " (received)");
-        var playerClass = PlayerClassManager.getInstance().getPlayerClass(player);
+        var playerClass = managerClass;
         SpellRegistry.SpellEntry entry = SpellRegistry.getInstance().resolveSpell(playerClass,
                 event.getInputMode(), event.getInputSequence(), event.getInputType());
         if (entry == null) {
