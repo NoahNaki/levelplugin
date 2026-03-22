@@ -59,10 +59,26 @@ public final class TeleportUtils {
      * reused by systems that need a lightweight, server-thread safe move.
      */
     public static void safeTeleport(Player player, Location dest) {
+        safeTeleport(player, dest, false);
+    }
+
+    /**
+     * Teleport the player on the next tick after ensuring the destination
+     * chunk is loaded, with optional velocity carry-over.
+     *
+     * @param keepMomentum whether to keep the player's pre-teleport velocity
+     */
+    public static void safeTeleport(Player player, Location dest, boolean keepMomentum) {
         if (player == null || dest == null || dest.getWorld() == null) return;
         Location target = dest.clone();
         target.getChunk().load();
-        Bukkit.getScheduler().runTask(Main.getInstance(), () -> player.teleport(target));
+        Vector preservedVelocity = keepMomentum ? player.getVelocity().clone() : null;
+        Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
+            player.teleport(target);
+            if (keepMomentum && preservedVelocity != null) {
+                player.setVelocity(preservedVelocity);
+            }
+        });
     }
 
     /**

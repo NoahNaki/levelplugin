@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.spells.SpellContext;
 import me.nakilex.levelplugin.spells.SpellEffectUtil;
 import me.nakilex.levelplugin.spells.SpellHandler;
+import me.nakilex.levelplugin.spells.SpellTargetingUtil;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.ModelEngineUtil;
 import org.bukkit.Location;
@@ -11,9 +12,9 @@ import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.entity.ArmorStand;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
-import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
 import java.util.List;
@@ -23,14 +24,13 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class MageFireballBasicAttackSpell implements SpellHandler {
     private static final List<String> MODEL_CANDIDATES = List.of("fireball", "fireball.bbmodel", "fireball_bbmodel");
-    public static final double DEFAULT_FORWARD_OFFSET = 0.95;
+    public static final double DEFAULT_FORWARD_OFFSET = 0.55;
     public static final double DEFAULT_VERTICAL_OFFSET = 0.0;
 
-    private static final double DEFAULT_SPEED_PER_TICK = 1.15;
-    private static final double DEFAULT_MAX_RANGE = 30.0;
-    private static final double DEFAULT_HIT_RADIUS = 0.45;
+    private static final double DEFAULT_MAX_RANGE = 26.0;
+    private static final double DEFAULT_HIT_RADIUS = 0.35;
+    private static final double DEFAULT_TRAIL_STEP = 0.6;
     private static final double TECHNIQUE_SCALE = 0.001;
-    private static final int PROJECTILE_LIGHT_LEVEL = 12;
 
     private static final Set<UUID> DEBUG_PLAYERS = ConcurrentHashMap.newKeySet();
 
@@ -137,20 +137,11 @@ public class MageFireballBasicAttackSpell implements SpellHandler {
         for (int i = 0; i < projectileCount; i++) {
             double yawOffset = computeYawOffset(i);
             Vector direction = rotateAroundY(baseDirection.clone(), yawOffset);
-            FireballSpawnResult spawnResult = spawnProjectileAnchor(plugin, eye, direction);
-            if (spawnResult == null) {
-                continue;
-            }
-            if (spawnResult.modelResult().applied().isEmpty()) {
-                ChatMessageUtil.send(caster, ChatMessageUtil.MessageType.WARNING,
-                        "Fireball model was not found in ModelEngine. Showing particles only.");
-            }
             if (debug) {
                 ChatMessageUtil.send(caster, ChatMessageUtil.MessageType.INFO,
-                        "[FireballDebug] Spawned projectile anchor id=" + spawnResult.anchor().getEntityId()
-                                + " yawOffset=" + String.format("%.2f", yawOffset));
+                        "[FireballDebug] Fired bolt yawOffset=" + String.format("%.2f", yawOffset));
             }
-            launchProjectile(caster, spawnResult.anchor(), direction, debug);
+            fireInstantBolt(caster, eye, direction, debug);
         }
     }
 
@@ -166,73 +157,29 @@ public class MageFireballBasicAttackSpell implements SpellHandler {
         return vector.rotateAroundY(Math.toRadians(degrees));
     }
 
-    private void launchProjectile(Player caster, ArmorStand projectile, Vector direction, boolean debug) {
-        Vector step = direction.clone().normalize().multiply(DEFAULT_SPEED_PER_TICK);
-        double maxDistanceSq = DEFAULT_MAX_RANGE * DEFAULT_MAX_RANGE;
-        Location origin = projectile.getLocation().clone();
-        new BukkitRunnable() {
-            private int ticks;
-            private Location activeLight;
+    private void fireInstantBolt(Player caster, Location eye, Vector direction, boolean debug) {
+        Vector normalized = direction.clone().normalize();
+        Location start = eye.clone().add(normalized.clone().multiply(0.35));
+        Vector segment = normalized.clone().multiply(DEFAULT_MAX_RANGE);
+        LivingEntity target = SpellTargetingUtil.rayTraceLivingEntity(start, segment, DEFAULT_HIT_RADIUS,
+                living -> isValidSpellTarget(living, caster, null));
 
-            @Override
-            public void run() {
-                if (!projectile.isValid() || !caster.isOnline()) {
-                    removeProjectile();
-                    cancel();
-                    return;
-                }
+        double travelDistance = DEFAULT_MAX_RANGE;
+        Location impact = start.clone().add(segment);
+        if (target != null) {
+            impact = target.getLocation().clone().add(0.0, Math.min(1.1, target.getHeight() * 0.5), 0.0);
+            travelDistance = Math.max(0.2, impact.distance(start));
+        }
 
-                Location current = projectile.getLocation();
-                if (current.distanceSquared(origin) >= maxDistanceSq) {
-                    removeProjectile();
-                    cancel();
-                    return;
-                }
-
-                Location next = current.clone().add(step);
-                projectile.teleport(next);
-                ModelEngineUtil.orientEntityToVector(projectile, step);
-                activeLight = SpellEffectUtil.moveTemporaryLight(activeLight, next, PROJECTILE_LIGHT_LEVEL);
-
-                LivingEntity target = findTargetAt(next, caster, projectile);
-                if (target != null) {
-                    onImpact(caster, next, target, debug);
-                    removeProjectile();
-                    cancel();
-                    return;
-                }
-
-                ticks++;
-                if (debug && ticks % 10 == 0) {
-                    ChatMessageUtil.send(caster, ChatMessageUtil.MessageType.INFO,
-                            "[FireballDebug] Traveling tick=" + ticks + " loc=" + format(next));
-                }
-            }
-
-            private void removeProjectile() {
-                SpellEffectUtil.clearTemporaryLight(activeLight);
-                activeLight = null;
-                if (projectile.isValid()) {
-                    projectile.remove();
-                }
-            }
-        }.runTaskTimer(plugin, 0L, 1L);
+        spawnBoltTrail(start, normalized, travelDistance);
+        onImpact(caster, impact, target, debug);
     }
 
-    private LivingEntity findTargetAt(Location center, Player caster, ArmorStand projectile) {
-        if (center == null || center.getWorld() == null) {
-            return null;
+    private boolean isValidSpellTarget(Entity entity, Player caster, ArmorStand projectile) {
+        if (!(entity instanceof LivingEntity living)) {
+            return false;
         }
-        for (var entity : center.getWorld().getNearbyEntities(center, DEFAULT_HIT_RADIUS, DEFAULT_HIT_RADIUS, DEFAULT_HIT_RADIUS)) {
-            if (!(entity instanceof LivingEntity living)) {
-                continue;
-            }
-            if (living.isDead() || living.equals(caster) || living.equals(projectile) || living instanceof ArmorStand) {
-                continue;
-            }
-            return living;
-        }
-        return null;
+        return !living.isDead() && !living.equals(caster) && !living.equals(projectile) && !(living instanceof ArmorStand);
     }
 
     private void onImpact(Player caster, Location impact, LivingEntity target, boolean debug) {
@@ -244,9 +191,11 @@ public class MageFireballBasicAttackSpell implements SpellHandler {
         world.playSound(impact, Sound.BLOCK_FIRE_EXTINGUISH, 0.85f, 0.75f);
 
         double damage = SpellEffectUtil.computeIntTecScaledDamage(caster, baseDamage, intelligenceScale, TECHNIQUE_SCALE);
-        SpellEffectUtil.applyDirectSpellDamage(plugin, caster, target, damage);
-        if (burnTicks > 0) {
-            target.setFireTicks(Math.max(target.getFireTicks(), burnTicks));
+        if (target != null) {
+            SpellEffectUtil.applyDirectSpellDamage(plugin, caster, target, damage, true);
+            if (burnTicks > 0) {
+                target.setFireTicks(Math.max(target.getFireTicks(), burnTicks));
+            }
         }
 
         if (splashRadius > 0.0 && splashDamageFactor > 0.0) {
@@ -263,7 +212,20 @@ public class MageFireballBasicAttackSpell implements SpellHandler {
         }
     }
 
-    private String format(Location location) {
-        return String.format("%.2f %.2f %.2f", location.getX(), location.getY(), location.getZ());
+    private void spawnBoltTrail(Location start, Vector direction, double distance) {
+        if (start == null || start.getWorld() == null || direction == null || distance <= 0.0) {
+            return;
+        }
+        World world = start.getWorld();
+        double clampedDistance = Math.min(DEFAULT_MAX_RANGE, Math.max(0.2, distance));
+        Vector step = direction.clone().normalize().multiply(DEFAULT_TRAIL_STEP);
+        int points = Math.max(1, (int) Math.ceil(clampedDistance / DEFAULT_TRAIL_STEP));
+        Location point = start.clone();
+        for (int i = 0; i < points; i++) {
+            world.spawnParticle(Particle.FLAME, point, 1, 0.01, 0.01, 0.01, 0.002);
+            point.add(step);
+        }
+        world.spawnParticle(Particle.FLAME, point, 2, 0.02, 0.02, 0.02, 0.006);
     }
+
 }

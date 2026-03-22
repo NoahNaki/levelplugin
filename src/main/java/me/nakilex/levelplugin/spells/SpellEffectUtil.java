@@ -79,8 +79,19 @@ public final class SpellEffectUtil {
                                               Player caster,
                                               LivingEntity target,
                                               double damage) {
+        applyDirectSpellDamage(plugin, caster, target, damage, false);
+    }
+
+    public static void applyDirectSpellDamage(Plugin plugin,
+                                              Player caster,
+                                              LivingEntity target,
+                                              double damage,
+                                              boolean resetInvulnerabilityFrames) {
         if (plugin == null || caster == null || target == null || damage <= 0.0) {
             return;
+        }
+        if (resetInvulnerabilityFrames) {
+            target.setNoDamageTicks(0);
         }
         caster.setMetadata(BYPASS_STAT_SCALING_META, new FixedMetadataValue(plugin, true));
         try {
