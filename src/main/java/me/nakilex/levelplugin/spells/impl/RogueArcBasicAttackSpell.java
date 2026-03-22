@@ -35,7 +35,7 @@ public class RogueArcBasicAttackSpell implements SpellHandler {
             SpellEffectUtil.applyDirectSpellDamage(context.plugin(), caster, lockedTarget, 3.4, true);
         } else {
             SpellEffectUtil.applyAreaDamage(caster, caster.getLocation().clone().add(caster.getLocation().getDirection().setY(0.0).normalize().multiply(1.8)),
-                    2.8, 3.0);
+                    5.0, 3.0);
         }
         caster.getWorld().playSound(caster.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 0.65f, 1.35f);
     }
