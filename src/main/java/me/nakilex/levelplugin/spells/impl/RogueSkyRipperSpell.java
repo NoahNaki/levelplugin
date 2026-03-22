@@ -25,18 +25,13 @@ public class RogueSkyRipperSpell implements SpellHandler {
     @Override
     public void cast(SpellContext context) {
         Player caster = context.player();
-        Location target = SpellTargetingUtil.resolveTargetGround(caster, 16.0);
-        if (target == null) {
+        Vector forward = caster.getLocation().getDirection().setY(0.0);
+        if (forward.lengthSquared() <= 0.0001) {
             ChatMessageUtil.send(caster, ChatMessageUtil.MessageType.WARNING,
-                    "No target in sight for Sky Ripper.");
+                    "No forward direction for Sky Ripper.");
             return;
         }
-        Vector direction = target.toVector().subtract(caster.getLocation().toVector());
-        direction.setY(0.0);
-        if (direction.lengthSquared() <= 0.0001) {
-            direction = caster.getLocation().getDirection().setY(0.0);
-        }
-        Vector forward = direction.normalize();
+        forward.normalize();
         Location origin = caster.getLocation().clone().add(0.0, 1.0, 0.0);
 
         new BukkitRunnable() {
@@ -53,12 +48,15 @@ public class RogueSkyRipperSpell implements SpellHandler {
                 Location orientation = caster.getLocation().clone();
                 orientation.setDirection(forward.clone());
 
-                ArcSlashCombatUtil.strike(caster, impact, orientation, Particle.CRIT, 5.6, 1.9);
-                caster.getWorld().playSound(impact, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 0.85f, 1.2f + (hitIndex * 0.12f));
+                double damage = hitIndex < 2 ? 4.8 : 7.1;
+                Particle particle = hitIndex < 2 ? Particle.CRIT : Particle.SWEEP_ATTACK;
+                ArcSlashCombatUtil.strike(caster, impact, orientation, particle, damage, 2.0);
+                caster.getWorld().playSound(impact, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 0.9f, 1.12f + (hitIndex * 0.14f));
+                caster.getWorld().spawnParticle(Particle.CLOUD, impact, 7 + hitIndex * 2, 0.28, 0.18, 0.28, 0.02);
 
                 for (LivingEntity targetEntity : SpellEffectUtil.getLivingTargets(impact, 1.9,
                         living -> !living.equals(caster))) {
-                    targetEntity.setVelocity(targetEntity.getVelocity().add(new Vector(0.0, 0.18 + hitIndex * 0.08, 0.0)));
+                    targetEntity.setVelocity(targetEntity.getVelocity().add(new Vector(0.0, 0.16 + hitIndex * 0.11, 0.0)));
                 }
                 hitIndex++;
             }

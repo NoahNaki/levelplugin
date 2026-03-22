@@ -3,54 +3,53 @@ package me.nakilex.levelplugin.spells.impl;
 import me.nakilex.levelplugin.spells.ArcSlashCombatUtil;
 import me.nakilex.levelplugin.spells.SpellContext;
 import me.nakilex.levelplugin.spells.SpellHandler;
-import me.nakilex.levelplugin.spells.SpellTargetingUtil;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
-import me.nakilex.levelplugin.utils.TeleportUtils;
-import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
 public class RogueRazorDashSpell implements SpellHandler {
-    private final double dashDistance;
+    private final me.nakilex.levelplugin.Main plugin;
+    private final double dashSpeed;
 
-    public RogueRazorDashSpell(double dashDistance) {
-        this.dashDistance = dashDistance;
+    public RogueRazorDashSpell(me.nakilex.levelplugin.Main plugin, double dashSpeed) {
+        this.plugin = plugin;
+        this.dashSpeed = dashSpeed;
     }
 
     @Override
     public void cast(SpellContext context) {
         Player caster = context.player();
-        Location destination = SpellTargetingUtil.resolveBlinkDestination(caster, dashDistance);
-        if (destination == null) {
+        Vector forward = caster.getLocation().getDirection().setY(0.0);
+        if (forward.lengthSquared() <= 0.0001) {
             ChatMessageUtil.send(caster, ChatMessageUtil.MessageType.WARNING,
-                    "No safe dash destination in sight.");
+                    "No forward direction for Razor Dash.");
             return;
         }
+        Vector dashDirection = forward.normalize();
+        caster.setVelocity(dashDirection.clone().multiply(dashSpeed).add(new Vector(0.0, 0.04, 0.0)));
+        caster.getWorld().playSound(caster.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 0.45f, 1.85f);
 
-        Location start = caster.getLocation().clone();
-        Vector travel = destination.toVector().subtract(start.toVector());
-        double length = travel.length();
-        if (length <= 0.01) {
-            return;
-        }
-        Vector dir = travel.clone().normalize();
-        Location orientation = caster.getLocation().clone();
-        orientation.setDirection(dir.clone());
+        new BukkitRunnable() {
+            private int tick;
 
-        int slashes = Math.max(1, (int) Math.ceil(length / 1.8));
-        for (int i = 1; i <= slashes; i++) {
-            double progress = i / (double) slashes;
-            Location impact = start.clone().add(travel.clone().multiply(progress)).add(0.0, 1.0, 0.0);
-            ArcSlashCombatUtil.strike(caster, impact, orientation, Particle.CRIT, 3.8, 1.45);
-        }
-
-        caster.getWorld().playSound(start, Sound.ENTITY_ENDERMAN_TELEPORT, 0.5f, 1.75f);
-        destination.setYaw(caster.getLocation().getYaw());
-        destination.setPitch(caster.getLocation().getPitch());
-        TeleportUtils.safeTeleport(caster, destination, true);
-        caster.getWorld().spawnParticle(Particle.SWEEP_ATTACK, caster.getLocation().clone().add(0.0, 1.0, 0.0),
-                4, 0.25, 0.2, 0.25, 0.0);
+            @Override
+            public void run() {
+                if (!caster.isOnline() || tick > 6) {
+                    cancel();
+                    return;
+                }
+                if (tick % 2 == 0 && tick <= 4) {
+                    var current = caster.getLocation().clone().add(0.0, 1.0, 0.0);
+                    var orientation = caster.getLocation().clone();
+                    orientation.setDirection(dashDirection.clone());
+                    ArcSlashCombatUtil.strike(caster, current, orientation, Particle.SWEEP_ATTACK, 4.2, 1.65);
+                    caster.getWorld().playSound(current, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 0.8f, 1.25f + (tick * 0.04f));
+                }
+                tick++;
+            }
+        }.runTaskTimer(plugin, 0L, 1L);
     }
 }

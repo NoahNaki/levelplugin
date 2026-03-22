@@ -86,7 +86,7 @@ public final class SpellCatalog {
 
         registry.registerSpell(rogueSkyRipper, new RogueSkyRipperSpell(plugin));
         registry.registerSpell(rogueVeilCounter, new RogueVeilCounterSpell(plugin));
-        registry.registerSpell(rogueRazorDash, new RogueRazorDashSpell(10.0));
+        registry.registerSpell(rogueRazorDash, new RogueRazorDashSpell(plugin, 1.28));
         registry.registerSpell(roguePhantomCross, new RoguePhantomCrossSpell(plugin));
 
         registry.registerBinding(SpellBinding.forInputType(rogueSkyRipper.id(), ClassUtil::isRogueFamily, SpellInputType.SPELL_1));
