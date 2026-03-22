@@ -13,6 +13,7 @@ public class SpellInputDisplayManager {
 
     private static final long COMBO_TIMEOUT_MS = 900L;
     private static final long ACTIVE_WINDOW_MS = 2_000L;
+    private static final long CAST_RESET_DELAY_MS = 1_500L;
     private static final int MAX_INPUTS = 3;
     private static final char EMPTY_GLYPH = 'E';
     private static final char LEFT_GLYPH = 'L';
@@ -30,12 +31,16 @@ public class SpellInputDisplayManager {
         UUID playerId = player.getUniqueId();
         DisplayState state = states.computeIfAbsent(playerId, id -> new DisplayState());
         long now = System.currentTimeMillis();
+        applyPendingCastReset(state, now);
         if (state.castComplete || now - state.lastInputAt > COMBO_TIMEOUT_MS) {
             state.inputs.clear();
         }
         state.castComplete = false;
         state.lastInputAt = now;
         state.activeUntil = now + ACTIVE_WINDOW_MS;
+        if (state.inputs.isEmpty()) {
+            state.comboStartInput = input;
+        }
         if (state.inputs.size() == MAX_INPUTS) {
             state.inputs.removeFirst();
         }
@@ -47,6 +52,9 @@ public class SpellInputDisplayManager {
             return false;
         }
         DisplayState state = states.get(player.getUniqueId());
+        if (state != null) {
+            applyPendingCastReset(state, System.currentTimeMillis());
+        }
         return state != null && System.currentTimeMillis() < state.activeUntil;
     }
 
@@ -84,6 +92,9 @@ public class SpellInputDisplayManager {
             return "";
         }
         DisplayState state = states.get(player.getUniqueId());
+        if (state != null) {
+            applyPendingCastReset(state, System.currentTimeMillis());
+        }
         if (state == null || state.inputs.isEmpty() || !isComboActive(player)) {
             return "";
         }
@@ -105,6 +116,8 @@ public class SpellInputDisplayManager {
         if (state != null) {
             state.inputs.clear();
             state.castComplete = false;
+            state.comboStartInput = null;
+            state.castResetAt = 0L;
         }
     }
 
@@ -119,6 +132,22 @@ public class SpellInputDisplayManager {
         long now = System.currentTimeMillis();
         state.activeUntil = now + ACTIVE_WINDOW_MS;
         state.castComplete = true;
+        state.castResetAt = now + CAST_RESET_DELAY_MS;
+    }
+
+    private void applyPendingCastReset(DisplayState state, long now) {
+        if (state == null || !state.castComplete || state.castResetAt <= 0L || now < state.castResetAt) {
+            return;
+        }
+        SpellClickInput starter = state.comboStartInput;
+        state.inputs.clear();
+        if (starter != null) {
+            state.inputs.addLast(starter);
+        }
+        state.castComplete = false;
+        state.castResetAt = 0L;
+        state.lastInputAt = now;
+        state.activeUntil = now + ACTIVE_WINDOW_MS;
     }
 
     private String formatGlyphs(Deque<SpellClickInput> inputs) {
@@ -165,5 +194,7 @@ public class SpellInputDisplayManager {
         private long lastInputAt;
         private long activeUntil;
         private boolean castComplete;
+        private long castResetAt;
+        private SpellClickInput comboStartInput;
     }
 }
