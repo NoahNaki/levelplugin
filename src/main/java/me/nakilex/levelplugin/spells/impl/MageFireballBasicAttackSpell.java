@@ -274,7 +274,7 @@ public class MageFireballBasicAttackSpell implements SpellHandler {
         world.playSound(impact, Sound.BLOCK_FIRE_EXTINGUISH, 0.85f, 0.75f);
 
         double damage = SpellEffectUtil.computeIntTecScaledDamage(caster, baseDamage, intelligenceScale, TECHNIQUE_SCALE);
-        SpellEffectUtil.applyDirectSpellDamage(plugin, caster, target, damage);
+        SpellEffectUtil.applyDirectSpellDamage(plugin, caster, target, damage, true);
         if (burnTicks > 0) {
             target.setFireTicks(Math.max(target.getFireTicks(), burnTicks));
         }
