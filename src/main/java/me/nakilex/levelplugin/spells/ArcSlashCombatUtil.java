@@ -7,10 +7,13 @@ import me.nakilex.levelplugin.particles.ParticleRenderContext;
 import me.nakilex.levelplugin.particles.ParticleRotationAxis;
 import me.nakilex.levelplugin.particles.patterns.EllipseArcPattern;
 import org.bukkit.Location;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 
 /** Shared arc-slash visual + damage helpers for rogue-style melee spells. */
@@ -56,18 +59,19 @@ public final class ArcSlashCombatUtil {
                 config.rotateXDegrees(), config.rotateYDegrees(), config.rotateZDegrees());
 
         Location finalImpact = baseCenter.clone().add(renderDirection.clone().multiply(travelDistance));
-        SpellEffectUtil.applyAreaDamage(caster, finalImpact, damageRadius, damage);
 
         Main plugin = Main.getInstance();
         if (plugin == null) {
             ParticleRenderContext context = new ParticleRenderContext(caster, finalImpact, orientation,
                     Math.max(1, config.points()), 0, 1);
             arcPreset.render(context);
+            SpellEffectUtil.applyAreaDamage(caster, finalImpact, damageRadius, damage);
             return;
         }
 
         new BukkitRunnable() {
             private int tick;
+            private final Set<java.util.UUID> hitTargets = new HashSet<>();
 
             @Override
             public void run() {
@@ -90,8 +94,10 @@ public final class ArcSlashCombatUtil {
                 ParticleRenderContext context = new ParticleRenderContext(caster, frameCenter, orientation,
                         Math.max(1, config.points()), tick, renderTicks);
                 arcPreset.render(context);
+                applyCollisionDamage(caster, frameCenter, damageRadius, damage, hitTargets);
                 tick++;
                 if (tick >= renderTicks) {
+                    applyCollisionDamage(caster, finalImpact, damageRadius, damage, hitTargets);
                     cancel();
                 }
             }
@@ -117,5 +123,21 @@ public final class ArcSlashCombatUtil {
         Location orientation = caster.getLocation().clone();
         orientation.setDirection(center.toVector().subtract(caster.getLocation().toVector()));
         strike(caster, center, orientation, damage, damageRadius);
+    }
+
+    private static void applyCollisionDamage(Player caster,
+                                             Location center,
+                                             double radius,
+                                             double damage,
+                                             Set<java.util.UUID> hitTargets) {
+        if (caster == null || center == null || radius <= 0.0 || damage <= 0.0) {
+            return;
+        }
+        for (LivingEntity target : SpellEffectUtil.getLivingTargets(center, radius, living -> !living.equals(caster))) {
+            if (!hitTargets.add(target.getUniqueId())) {
+                continue;
+            }
+            SpellEffectUtil.applyDirectSpellDamage(Main.getInstance(), caster, target, damage, true);
+        }
     }
 }
