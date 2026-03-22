@@ -6,11 +6,14 @@ import me.nakilex.levelplugin.particles.ParticlePlane;
 import me.nakilex.levelplugin.particles.ParticleRenderContext;
 import me.nakilex.levelplugin.particles.ParticleRotationAxis;
 import me.nakilex.levelplugin.particles.patterns.EllipseArcPattern;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.ArmorStand;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
+import org.bukkit.util.BoundingBox;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -73,10 +76,12 @@ public final class ArcSlashCombatUtil {
             private int tick;
             private final Set<java.util.UUID> hitTargets = new HashSet<>();
             private Location previousCenter = baseCenter.clone();
+            private final ArmorStand collisionProbe = spawnCollisionProbe(baseCenter);
 
             @Override
             public void run() {
                 if (!caster.isOnline()) {
+                    removeProbe(collisionProbe);
                     cancel();
                     return;
                 }
@@ -84,6 +89,7 @@ public final class ArcSlashCombatUtil {
                 if (tick % frameStep != 0) {
                     tick++;
                     if (tick >= renderTicks) {
+                        removeProbe(collisionProbe);
                         cancel();
                     }
                     return;
@@ -96,12 +102,15 @@ public final class ArcSlashCombatUtil {
                         Math.max(1, config.points()), tick, renderTicks);
                 arcPreset.render(context);
                 applyCollisionDamage(caster, frameCenter, damageRadius, damage, hitTargets);
+                applyProbeCollisionDamage(caster, collisionProbe, frameCenter, damageRadius, damage, hitTargets);
                 applySegmentCollisionDamage(caster, previousCenter, frameCenter, damageRadius, damage, hitTargets);
                 previousCenter = frameCenter;
                 tick++;
                 if (tick >= renderTicks) {
                     applyCollisionDamage(caster, finalImpact, damageRadius, damage, hitTargets);
+                    applyProbeCollisionDamage(caster, collisionProbe, finalImpact, damageRadius, damage, hitTargets);
                     applySegmentCollisionDamage(caster, previousCenter, finalImpact, damageRadius, damage, hitTargets);
+                    removeProbe(collisionProbe);
                     cancel();
                 }
             }
@@ -164,5 +173,53 @@ public final class ArcSlashCombatUtil {
             return;
         }
         SpellEffectUtil.applyDirectSpellDamage(Main.getInstance(), caster, hit, damage, true);
+    }
+
+    private static ArmorStand spawnCollisionProbe(Location at) {
+        if (at == null || at.getWorld() == null) {
+            return null;
+        }
+        return at.getWorld().spawn(at, ArmorStand.class, stand -> {
+            stand.setInvisible(true);
+            stand.setGravity(false);
+            stand.setInvulnerable(true);
+            stand.setMarker(false);
+            stand.setAI(false);
+            stand.setSilent(true);
+            stand.setCollidable(false);
+            stand.setSmall(true);
+            stand.setPersistent(false);
+        });
+    }
+
+    private static void removeProbe(ArmorStand probe) {
+        if (probe != null && probe.isValid()) {
+            probe.remove();
+        }
+    }
+
+    private static void applyProbeCollisionDamage(Player caster,
+                                                  ArmorStand probe,
+                                                  Location at,
+                                                  double radius,
+                                                  double damage,
+                                                  Set<java.util.UUID> hitTargets) {
+        if (caster == null || probe == null || !probe.isValid() || at == null || at.getWorld() == null) {
+            return;
+        }
+        probe.teleport(at);
+        BoundingBox probeBox = probe.getBoundingBox().expand(Math.max(0.20, radius * 0.35));
+        for (var entity : at.getWorld().getNearbyEntities(at, radius, radius, radius)) {
+            if (!(entity instanceof LivingEntity living) || living.equals(caster) || living.isDead()) {
+                continue;
+            }
+            if (!probeBox.overlaps(living.getBoundingBox())) {
+                continue;
+            }
+            if (!hitTargets.add(living.getUniqueId())) {
+                continue;
+            }
+            SpellEffectUtil.applyDirectSpellDamage(Main.getInstance(), caster, living, damage, true);
+        }
     }
 }
