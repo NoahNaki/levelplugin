@@ -222,10 +222,10 @@ public class MageFireballBasicAttackSpell implements SpellHandler {
         int points = Math.max(1, (int) Math.ceil(clampedDistance / DEFAULT_TRAIL_STEP));
         Location point = start.clone();
         for (int i = 0; i < points; i++) {
-            world.spawnParticle(Particle.CRIT, point, 1, 0.015, 0.015, 0.015, 0.0);
+            SpellEffectUtil.spawnFireProjectileTrail(point);
             point.add(step);
         }
-        world.spawnParticle(Particle.CRIT, point, 3, 0.04, 0.04, 0.04, 0.0);
+        world.spawnParticle(Particle.FLAME, point, 4, 0.03, 0.03, 0.03, 0.01);
     }
 
 }

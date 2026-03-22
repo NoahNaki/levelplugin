@@ -39,9 +39,7 @@ public class ServerSelectorGUI implements Listener {
             return;
         }
         Inventory gui = GuiBuilder.create(27, TITLE)
-                .filler(Material.GRAY_STAINED_GLASS_PANE)
-                .border()
-                .fillEmptySlots(true)
+                .fillEmptySlots(false)
                 .build();
         renderWidgets(gui, player);
         player.openInventory(gui);
