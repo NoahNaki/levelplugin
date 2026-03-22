@@ -149,7 +149,7 @@ public final class ArcSlashCombatUtil {
         if (caster == null || center == null || radius <= 0.0 || damage <= 0.0) {
             return;
         }
-        double effectiveRadius = Math.max(radius, 1.6);
+        double effectiveRadius = Math.max(radius, 2.4);
         for (LivingEntity target : SpellEffectUtil.getLivingTargets(center, effectiveRadius, living -> !living.equals(caster))) {
             if (!hitTargets.add(target.getUniqueId())) {
                 continue;
@@ -212,8 +212,8 @@ public final class ArcSlashCombatUtil {
             return;
         }
         probe.teleport(at);
-        double effectiveRadius = Math.max(radius, 1.6);
-        BoundingBox probeBox = probe.getBoundingBox().expand(Math.max(0.90, effectiveRadius));
+        double effectiveRadius = Math.max(radius, 2.4);
+        BoundingBox probeBox = probe.getBoundingBox().expand(Math.max(1.25, effectiveRadius));
         for (var entity : at.getWorld().getNearbyEntities(at, effectiveRadius, effectiveRadius, effectiveRadius)) {
             if (!(entity instanceof LivingEntity living) || living.equals(caster) || living.isDead()) {
                 continue;
