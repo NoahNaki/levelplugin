@@ -1,7 +1,6 @@
 package me.nakilex.levelplugin.spells.impl;
 
 import me.nakilex.levelplugin.Main;
-import me.nakilex.levelplugin.spells.ArcSlashCombatUtil;
 import me.nakilex.levelplugin.spells.SpellContext;
 import me.nakilex.levelplugin.spells.SpellEffectUtil;
 import me.nakilex.levelplugin.spells.SpellHandler;
@@ -49,15 +48,17 @@ public class RoguePhantomCrossSpell implements SpellHandler {
                 Vector right = new Vector(0, 1, 0).crossProduct(forward).normalize();
                 double side = (slash % 2 == 0 ? 1.0 : -1.0) * (0.38 + (slash * 0.05));
                 Location impact = target.getLocation().clone().add(0.0, 1.0, 0.0).add(right.multiply(side));
-                Location echoImpact = impact.clone().add(right.clone().multiply(-side * 0.9)).add(0.0, 0.2, 0.0);
-                Location orientation = caster.getLocation().clone();
-                orientation.setDirection(forward.clone());
                 double damage = 2.7 + (slash * 0.42);
-                ArcSlashCombatUtil.strike(caster, impact, orientation, damage, 2.1);
-                ArcSlashCombatUtil.strike(caster, echoImpact, orientation, damage * 0.58, 1.6);
+                SpellEffectUtil.applyAreaDamage(caster, impact, 2.2, damage);
                 SpellEffectUtil.applyDirectSpellDamage(context.plugin(), caster, target, damage, true);
+                for (int i = 0; i < 10; i++) {
+                    double t = i / 9.0;
+                    Location line = impact.clone().add(forward.clone().multiply((t - 0.5) * 2.4));
+                    caster.getWorld().spawnParticle(org.bukkit.Particle.ELECTRIC_SPARK, line, 1, 0.0, 0.0, 0.0, 0.0);
+                    caster.getWorld().spawnParticle(org.bukkit.Particle.CRIT, line, 1, 0.02, 0.02, 0.02, 0.01);
+                }
+                caster.getWorld().spawnParticle(org.bukkit.Particle.END_ROD, impact, 6 + slash, 0.22, 0.18, 0.22, 0.01);
                 caster.getWorld().playSound(impact, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 0.82f, 1.2f + slash * 0.07f);
-                caster.getWorld().spawnParticle(org.bukkit.Particle.CRIT, impact, 8 + slash, 0.2, 0.25, 0.2, 0.01);
                 slash++;
             }
         }.runTaskTimer(plugin, 0L, 2L);

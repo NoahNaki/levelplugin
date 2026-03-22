@@ -34,6 +34,7 @@ public final class ArcSlashCombatUtil {
         double radiusX = random.nextDouble(config.radiusXMin(), config.radiusXMax());
         double radiusZ = random.nextDouble(config.radiusZMin(), config.radiusZMax());
         double baseTilt = random.nextDouble(config.baseTiltMin(), config.baseTiltMax());
+        double travelDistance = config.travelDistance() * 0.5;
         Vector direction = orientation.getDirection().clone().setY(0.0);
         if (direction.lengthSquared() <= 0.0001) {
             direction = caster.getLocation().getDirection().clone().setY(0.0);
@@ -53,7 +54,7 @@ public final class ArcSlashCombatUtil {
                 baseTilt, ParticleRotationAxis.LOOK_RIGHT,
                 config.rotateXDegrees(), config.rotateYDegrees(), config.rotateZDegrees());
 
-        Location finalImpact = baseCenter.clone().add(renderDirection.clone().multiply(config.travelDistance()));
+        Location finalImpact = baseCenter.clone().add(renderDirection.clone().multiply(travelDistance));
         SpellEffectUtil.applyAreaDamage(caster, finalImpact, damageRadius, damage);
 
         Main plugin = Main.getInstance();
@@ -84,7 +85,7 @@ public final class ArcSlashCombatUtil {
                 int frameCount = (int) Math.ceil((double) config.ticks() / frameStep);
                 int frameIndex = Math.min(frameCount - 1, tick / frameStep);
                 double progress = frameCount <= 1 ? 1.0 : (double) frameIndex / (frameCount - 1);
-                Location frameCenter = baseCenter.clone().add(renderDirection.clone().multiply(config.travelDistance() * progress));
+                Location frameCenter = baseCenter.clone().add(renderDirection.clone().multiply(travelDistance * progress));
                 ParticleRenderContext context = new ParticleRenderContext(caster, frameCenter, orientation,
                         Math.max(1, config.points()), tick, config.ticks());
                 arcPreset.render(context);

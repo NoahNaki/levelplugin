@@ -1,11 +1,9 @@
 package me.nakilex.levelplugin.spells.impl;
 
 import me.nakilex.levelplugin.Main;
-import me.nakilex.levelplugin.spells.ArcSlashCombatUtil;
 import me.nakilex.levelplugin.spells.SpellContext;
 import me.nakilex.levelplugin.spells.SpellEffectUtil;
 import me.nakilex.levelplugin.spells.SpellHandler;
-import me.nakilex.levelplugin.spells.SpellTargetingUtil;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.Location;
 import org.bukkit.Particle;
@@ -45,17 +43,21 @@ public class RogueSkyRipperSpell implements SpellHandler {
                 }
                 double travel = 1.8 + hitIndex * 1.45;
                 Location impact = origin.clone().add(forward.clone().multiply(travel));
-                Location orientation = caster.getLocation().clone();
-                orientation.setDirection(forward.clone());
-
-                double damage = hitIndex < 3 ? 4.6 + (hitIndex * 0.35) : 7.8;
-                ArcSlashCombatUtil.strike(caster, impact, orientation, damage, 2.0);
-                ArcSlashCombatUtil.strike(caster, impact.clone().add(0.0, 0.22, 0.0), orientation, damage * 0.65, 1.8);
+                double damage = hitIndex < 3 ? 4.8 + (hitIndex * 0.35) : 8.4;
+                SpellEffectUtil.applyAreaDamage(caster, impact, 2.0, damage);
                 caster.getWorld().playSound(impact, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 0.9f, 1.12f + (hitIndex * 0.14f));
-                caster.getWorld().spawnParticle(Particle.CLOUD, impact, 8 + hitIndex * 2, 0.28, 0.18, 0.28, 0.02);
-                caster.getWorld().spawnParticle(Particle.CRIT, impact, 10 + hitIndex * 2, 0.24, 0.25, 0.24, 0.02);
+                caster.getWorld().spawnParticle(Particle.CLOUD, impact, 10 + hitIndex * 3, 0.32, 0.20, 0.32, 0.03);
+                caster.getWorld().spawnParticle(Particle.ELECTRIC_SPARK, impact, 8 + hitIndex * 2, 0.22, 0.26, 0.22, 0.03);
+                for (int i = 0; i < 12; i++) {
+                    double angle = (Math.PI * 2.0 * i / 12.0) + (hitIndex * 0.36);
+                    double radius = 0.55 + hitIndex * 0.18;
+                    double x = Math.cos(angle) * radius;
+                    double z = Math.sin(angle) * radius;
+                    caster.getWorld().spawnParticle(Particle.END_ROD, impact.clone().add(x, 0.25 + (i % 3) * 0.06, z),
+                            1, 0.0, 0.0, 0.0, 0.0);
+                }
 
-                for (LivingEntity targetEntity : SpellEffectUtil.getLivingTargets(impact, 1.9,
+                for (LivingEntity targetEntity : SpellEffectUtil.getLivingTargets(impact, 2.0,
                         living -> !living.equals(caster))) {
                     targetEntity.setVelocity(targetEntity.getVelocity().add(new Vector(0.0, 0.16 + hitIndex * 0.11, 0.0)));
                 }
