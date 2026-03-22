@@ -1,14 +1,12 @@
 package me.nakilex.levelplugin.player.classes.commands;
 
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
+import me.nakilex.levelplugin.player.classes.ClassSelectionUtil;
+import me.nakilex.levelplugin.player.classes.gui.ClassSelectionGUI;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
-import me.nakilex.levelplugin.items.utils.ItemUtil;
-import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.utils.CommandUtil;
-import me.nakilex.levelplugin.Main;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
-import org.bukkit.Sound;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
@@ -18,6 +16,7 @@ import java.util.Arrays;
 import java.util.List;
 
 public class ClassCommand implements TabExecutor {
+    private static final ClassSelectionGUI CLASS_SELECTION_GUI = new ClassSelectionGUI();
 
     @Override
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
@@ -91,26 +90,12 @@ public class ClassCommand implements TabExecutor {
                 sender.sendMessage(ChatColor.RED + "Unknown class: " + args[2]);
                 return true;
             }
-            StatsManager.PlayerStats tps = StatsManager.getInstance().getPlayerStats(target.getUniqueId());
-            tps.playerClass = chosen;
-            tps.unlockedClasses.add(chosen);
-            boolean flight = chosen == PlayerClass.ARCHER || chosen == PlayerClass.ROGUE;
-            target.setAllowFlight(flight);
-            if (!flight) target.setFlying(false);
+            if (!ClassSelectionUtil.isSelectableBaseClass(chosen)) {
+                sender.sendMessage(ChatColor.RED + "You cannot set that class with /class admin.");
+                return true;
+            }
+            ClassSelectionUtil.applyClassSelection(target, chosen, true);
             sender.sendMessage(ChatColor.GREEN + "Class for " + target.getName() + " set to " + chosen.name());
-
-            ChatFormatter.constructDivider(target, "§6§l-", 45);
-            ChatFormatter.sendCenteredMessage(target, "§6§lCLASS SELECTED!");
-            ChatFormatter.sendCenteredMessage(target, "");
-            ChatFormatter.sendCenteredMessage(target,
-                    "§7You are now the §e§l" + chosen.name() + " §7class!");
-            ChatFormatter.sendCenteredMessage(target, "");
-            ChatFormatter.constructDivider(target, "§6§l-", 45);
-            target.playSound(target.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
-            target.closeInventory();
-            Main.getInstance().getQuestManager().handleClassSelect(target);
-
-            me.nakilex.levelplugin.items.utils.ItemUtil.refreshTooltips(target);
             return true;
         }
 
@@ -122,9 +107,7 @@ public class ClassCommand implements TabExecutor {
         Player player = (Player) sender;
 
         if (args.length == 0) {
-            // Open the DeluxeMenus GUI for this player
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
-                    "dm open mmocore_class_warrior " + player.getName());
+            CLASS_SELECTION_GUI.open(player);
             return true;
         }
 
@@ -133,42 +116,16 @@ public class ClassCommand implements TabExecutor {
             return true;
         }
 
-        StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
-        if (ps.playerClass != PlayerClass.VILLAGER) {
-            player.sendMessage(ChatColor.RED + "You have already chosen the " + ps.playerClass.name() + " class.");
-            return true;
-        }
-
         PlayerClass chosen = PlayerClass.fromString(args[0]);
         if (chosen == null) {
             player.sendMessage(ChatColor.RED + "Unknown class: " + args[0]);
             return true;
         }
-        if (chosen != PlayerClass.MAGE && chosen != PlayerClass.ARCHER
-                && chosen != PlayerClass.ROGUE && chosen != PlayerClass.WARRIOR
-                && chosen != PlayerClass.CLERIC) {
+        if (!ClassSelectionUtil.isSelectableBaseClass(chosen)) {
             player.sendMessage(ChatColor.RED + "You cannot select that class with /class.");
             return true;
         }
-
-        ps.playerClass = chosen;
-        ps.unlockedClasses.add(chosen);
-        boolean flight = chosen == PlayerClass.ARCHER || chosen == PlayerClass.ROGUE;
-        player.setAllowFlight(flight);
-        if (!flight) player.setFlying(false);
-
-        ChatFormatter.constructDivider(player, "§6§l-", 45);
-        ChatFormatter.sendCenteredMessage(player, "§6§lCLASS SELECTED!");
-        ChatFormatter.sendCenteredMessage(player, "");
-        ChatFormatter.sendCenteredMessage(player,
-                "§7You are now the §e§l" + chosen.name() + " §7class!");
-        ChatFormatter.sendCenteredMessage(player, "");
-        ChatFormatter.constructDivider(player, "§6§l-", 45);
-        player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
-        player.closeInventory();
-        Main.getInstance().getQuestManager().handleClassSelect(player);
-
-        me.nakilex.levelplugin.items.utils.ItemUtil.refreshTooltips(player);
+        ClassSelectionUtil.applyClassSelection(player, chosen, true);
         return true;
     }
 

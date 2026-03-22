@@ -6,6 +6,7 @@ import me.nakilex.levelplugin.player.classes.data.ClassUtil;
 import me.nakilex.levelplugin.spells.SpellAccessUtil;
 import me.nakilex.levelplugin.spells.SpellContext;
 import me.nakilex.levelplugin.spells.SpellRegistry;
+import me.nakilex.levelplugin.spells.input.SpellInputDisplayManager;
 import me.nakilex.levelplugin.spells.progression.SpellProgressionManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.spells.input.SpellInputEvent;
@@ -43,5 +44,6 @@ public class SpellCastListener implements Listener {
             return;
         }
         entry.handler().cast(new SpellContext(plugin, player, entry.definition(), event));
+        SpellInputDisplayManager.getInstance().markSpellCast(player);
     }
 }

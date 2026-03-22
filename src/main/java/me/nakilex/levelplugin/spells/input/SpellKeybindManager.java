@@ -32,7 +32,7 @@ public class SpellKeybindManager {
             return null;
         }
         EnumMap<SpellKeybindSlot, SpellInputType> map = getOrCreateBindings(playerId, playerClass, mode);
-        return map.get(slot);
+        return map.getOrDefault(slot, defaultBindings().get(slot));
     }
 
     public void setBinding(UUID playerId, PlayerClass playerClass, SpellInputMode mode,
@@ -58,6 +58,7 @@ public class SpellKeybindManager {
         if (newBindings != null) {
             target.putAll(newBindings);
         }
+        ensureDefaultBindings(target);
     }
 
 
@@ -92,10 +93,22 @@ public class SpellKeybindManager {
 
     private EnumMap<SpellKeybindSlot, SpellInputType> getOrCreateBindings(UUID playerId, PlayerClass playerClass,
                                                                           SpellInputMode mode) {
-        return bindings
+        EnumMap<SpellKeybindSlot, SpellInputType> map = bindings
                 .computeIfAbsent(playerId, id -> new ConcurrentHashMap<>())
                 .computeIfAbsent(playerClass, cls -> new EnumMap<>(SpellInputMode.class))
                 .computeIfAbsent(mode, ignored -> defaultBindings());
+        ensureDefaultBindings(map);
+        return map;
+    }
+
+    private static void ensureDefaultBindings(EnumMap<SpellKeybindSlot, SpellInputType> map) {
+        if (map == null) {
+            return;
+        }
+        EnumMap<SpellKeybindSlot, SpellInputType> defaults = defaultBindings();
+        for (Map.Entry<SpellKeybindSlot, SpellInputType> entry : defaults.entrySet()) {
+            map.putIfAbsent(entry.getKey(), entry.getValue());
+        }
     }
 
     private static EnumMap<SpellKeybindSlot, SpellInputType> defaultBindings() {

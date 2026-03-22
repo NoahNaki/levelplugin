@@ -148,6 +148,9 @@ public class SpellInputListener implements Listener {
             dispatch(player, SpellInputType.BASIC_ATTACK, SpellInputMode.MOUSE_COMBO, leftClick ? "L" : "R");
             return;
         }
+        if (!comboStarted && validComboStart) {
+            displayManager.clearInputs(player);
+        }
         displayManager.recordClick(player, leftClick ? SpellClickInput.LEFT : SpellClickInput.RIGHT);
         String sequence = tracker.recordClick(
                 leftClick ? SpellClickInput.LEFT : SpellClickInput.RIGHT,
@@ -157,7 +160,6 @@ public class SpellInputListener implements Listener {
                     SpellKeybindLayout.comboSlotForSequence(archerFamily, sequence));
             if (bound != null) {
                 dispatch(player, bound, SpellInputMode.MOUSE_COMBO, tracker.getLastSequence());
-                displayManager.markSpellCast(player);
             }
         }
     }
@@ -248,7 +250,6 @@ public class SpellInputListener implements Listener {
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                 "Click " + (leftClick ? "Left" : "Right") + " Class: " + getPlayerClassName(player));
     }
-
 
     private boolean isMageBasicFallbackAllowed(Player player, boolean leftClick) {
         if (player == null || !leftClick) {
