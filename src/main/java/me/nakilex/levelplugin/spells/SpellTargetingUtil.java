@@ -10,6 +10,8 @@ import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 
 public final class SpellTargetingUtil {
+    private static final double MIN_BLINK_TRAVEL_DISTANCE = 2.0;
+
     private SpellTargetingUtil() {
     }
 
@@ -76,30 +78,63 @@ public final class SpellTargetingUtil {
         if (player == null || player.getWorld() == null || maxDistance <= 0) {
             return null;
         }
-        Location base = TeleportUtils.resolveLineOfSightTarget(
-                player,
-                player.getEyeLocation().getDirection().clone().normalize(),
-                maxDistance,
-                0.65);
-        if (base == null) {
+        Vector direction = player.getEyeLocation().getDirection().clone().normalize();
+        Location forwardSafe = resolveForwardSafeBlinkDestination(player, direction, maxDistance, MIN_BLINK_TRAVEL_DISTANCE);
+        if (forwardSafe != null) {
+            return forwardSafe;
+        }
+
+        Location lineTarget = TeleportUtils.resolveLineOfSightTarget(player, direction, maxDistance, 0.65);
+        if (lineTarget == null) {
             return null;
         }
-        Location candidate = base.clone();
+        Location candidate = lineTarget.clone();
         candidate.setY(candidate.getY() + 0.05);
         Location safe = findNearestSafeLocation(candidate, 5);
-        if (safe != null) {
+        if (isUsableBlinkDestination(player, safe, direction)) {
             return safe;
         }
         safe = findNearbySafeLocation(candidate, 2, 6);
-        if (safe != null) {
+        if (isUsableBlinkDestination(player, safe, direction)) {
             return safe;
         }
 
         Location highest = resolveHighestGroundFallback(player, candidate, maxDistance);
-        if (highest != null) {
+        if (isUsableBlinkDestination(player, highest, direction)) {
             return highest;
         }
         return null;
+    }
+
+    private static Location resolveForwardSafeBlinkDestination(Player player,
+                                                               Vector direction,
+                                                               double maxDistance,
+                                                               double minTravelDistance) {
+        if (player == null || direction == null || direction.lengthSquared() <= 0.000001 || maxDistance <= 0.0) {
+            return null;
+        }
+        Location origin = player.getLocation().clone();
+        for (double distance = maxDistance; distance >= minTravelDistance; distance -= 0.5) {
+            Location probe = origin.clone().add(direction.clone().multiply(distance));
+            probe.setY(probe.getY() + 0.05);
+            Location safe = findNearestSafeLocation(probe, 4);
+            if (isUsableBlinkDestination(player, safe, direction)) {
+                return safe;
+            }
+        }
+        return null;
+    }
+
+    private static boolean isUsableBlinkDestination(Player player, Location destination, Vector lookDirection) {
+        if (player == null || destination == null || lookDirection == null) {
+            return false;
+        }
+        Location origin = player.getLocation();
+        Vector travel = destination.toVector().subtract(origin.toVector());
+        if (travel.lengthSquared() < MIN_BLINK_TRAVEL_DISTANCE * MIN_BLINK_TRAVEL_DISTANCE) {
+            return false;
+        }
+        return travel.normalize().dot(lookDirection.clone().normalize()) >= 0.45;
     }
 
     private static Location resolveHighestGroundFallback(Player player, Location around, double maxDistance) {

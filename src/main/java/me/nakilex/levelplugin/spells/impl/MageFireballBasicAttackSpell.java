@@ -23,7 +23,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class MageFireballBasicAttackSpell implements SpellHandler {
     private static final List<String> MODEL_CANDIDATES = List.of("fireball", "fireball.bbmodel", "fireball_bbmodel");
-    public static final double DEFAULT_FORWARD_OFFSET = 0.95;
+    public static final double DEFAULT_FORWARD_OFFSET = 0.55;
     public static final double DEFAULT_VERTICAL_OFFSET = 0.0;
 
     private static final double DEFAULT_SPEED_PER_TICK = 1.15;
@@ -170,6 +170,19 @@ public class MageFireballBasicAttackSpell implements SpellHandler {
         Vector step = direction.clone().normalize().multiply(DEFAULT_SPEED_PER_TICK);
         double maxDistanceSq = DEFAULT_MAX_RANGE * DEFAULT_MAX_RANGE;
         Location origin = projectile.getLocation().clone();
+
+        LivingEntity immediateHit = findTargetAlongPath(caster.getEyeLocation(), origin, caster, projectile);
+        if (immediateHit == null) {
+            immediateHit = findTargetAlongPath(origin, origin.clone().add(step), caster, projectile);
+        }
+        if (immediateHit != null) {
+            onImpact(caster, origin, immediateHit, debug);
+            if (projectile.isValid()) {
+                projectile.remove();
+            }
+            return;
+        }
+
         new BukkitRunnable() {
             private int ticks;
             private Location activeLight;
