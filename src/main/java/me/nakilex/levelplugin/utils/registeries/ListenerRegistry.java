@@ -50,6 +50,7 @@ import me.nakilex.levelplugin.spells.gui.SpellUpgradeGUI;
 import me.nakilex.levelplugin.spells.listeners.SpellCastListener;
 import me.nakilex.levelplugin.spells.listeners.SpellInputListener;
 import me.nakilex.levelplugin.player.classes.gui.SubclassGUI;
+import me.nakilex.levelplugin.player.classes.gui.ClassSelectionGUI;
 import me.nakilex.levelplugin.player.classes.essence.listener.ClassEssenceMenuListener;
 import me.nakilex.levelplugin.player.classes.essence.listener.ClassEssenceBoundListener;
 import me.nakilex.levelplugin.player.classes.essence.listener.ClassEssenceSwapListener;
@@ -280,6 +281,7 @@ public class ListenerRegistry {
         pm.registerEvents(new GuildGUIListener(guildGUI), plugin);
         pm.registerEvents(new GuildQuestGUIListener(), plugin);
         pm.registerEvents(new SubclassGUI(), plugin);
+        pm.registerEvents(new ClassSelectionGUI(), plugin);
         pm.registerEvents(new ClassEssenceMenuListener(), plugin);
         pm.registerEvents(new ClassEssenceBoundListener(), plugin);
         pm.registerEvents(new ClassEssenceSwapListener(), plugin);

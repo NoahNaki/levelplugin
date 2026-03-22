@@ -32,6 +32,10 @@ public class SpellInputDisplayManager {
         DisplayState state = states.computeIfAbsent(playerId, id -> new DisplayState());
         long now = System.currentTimeMillis();
         applyPendingCastReset(state, now);
+        if (state.starterPlaceholder) {
+            state.inputs.clear();
+            state.starterPlaceholder = false;
+        }
         if (state.castComplete || now - state.lastInputAt > COMBO_TIMEOUT_MS) {
             state.inputs.clear();
         }
@@ -118,6 +122,7 @@ public class SpellInputDisplayManager {
             state.castComplete = false;
             state.comboStartInput = null;
             state.castResetAt = 0L;
+            state.starterPlaceholder = false;
         }
     }
 
@@ -148,6 +153,7 @@ public class SpellInputDisplayManager {
         state.castResetAt = 0L;
         state.lastInputAt = now;
         state.activeUntil = now + ACTIVE_WINDOW_MS;
+        state.starterPlaceholder = starter != null;
     }
 
     private String formatGlyphs(Deque<SpellClickInput> inputs) {
@@ -196,5 +202,6 @@ public class SpellInputDisplayManager {
         private boolean castComplete;
         private long castResetAt;
         private SpellClickInput comboStartInput;
+        private boolean starterPlaceholder;
     }
 }

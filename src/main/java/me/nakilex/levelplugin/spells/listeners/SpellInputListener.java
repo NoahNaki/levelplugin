@@ -157,7 +157,6 @@ public class SpellInputListener implements Listener {
                     SpellKeybindLayout.comboSlotForSequence(archerFamily, sequence));
             if (bound != null) {
                 dispatch(player, bound, SpellInputMode.MOUSE_COMBO, tracker.getLastSequence());
-                displayManager.markSpellCast(player);
             }
         }
     }
