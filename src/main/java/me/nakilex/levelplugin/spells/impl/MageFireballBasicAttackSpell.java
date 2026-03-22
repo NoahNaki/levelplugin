@@ -27,9 +27,9 @@ public class MageFireballBasicAttackSpell implements SpellHandler {
     public static final double DEFAULT_FORWARD_OFFSET = 0.55;
     public static final double DEFAULT_VERTICAL_OFFSET = 0.0;
 
-    private static final double DEFAULT_MAX_RANGE = 30.0;
+    private static final double DEFAULT_MAX_RANGE = 26.0;
     private static final double DEFAULT_HIT_RADIUS = 0.35;
-    private static final double DEFAULT_TRAIL_STEP = 0.35;
+    private static final double DEFAULT_TRAIL_STEP = 0.6;
     private static final double TECHNIQUE_SCALE = 0.001;
 
     private static final Set<UUID> DEBUG_PLAYERS = ConcurrentHashMap.newKeySet();
@@ -222,10 +222,10 @@ public class MageFireballBasicAttackSpell implements SpellHandler {
         int points = Math.max(1, (int) Math.ceil(clampedDistance / DEFAULT_TRAIL_STEP));
         Location point = start.clone();
         for (int i = 0; i < points; i++) {
-            SpellEffectUtil.spawnFireProjectileTrail(point);
+            world.spawnParticle(Particle.CRIT, point, 1, 0.015, 0.015, 0.015, 0.0);
             point.add(step);
         }
-        world.spawnParticle(Particle.END_ROD, point, 3, 0.02, 0.02, 0.02, 0.0);
+        world.spawnParticle(Particle.CRIT, point, 3, 0.04, 0.04, 0.04, 0.0);
     }
 
 }
