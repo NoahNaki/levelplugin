@@ -4,10 +4,13 @@ import me.nakilex.levelplugin.utils.TeleportUtils;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.util.BlockIterator;
 import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
+
+import java.util.function.Predicate;
 
 public final class SpellTargetingUtil {
     private static final double MIN_BLINK_TRAVEL_DISTANCE = 2.0;
@@ -68,6 +71,37 @@ public final class SpellTargetingUtil {
             fallback = findNearbySafeLocation(los, 2, 6);
         }
         return fallback;
+    }
+
+    /**
+     * Ray trace for the first living entity along a segment.
+     *
+     * @param start      segment start
+     * @param segment    direction/length vector from start to end
+     * @param hitRadius  ray trace expansion radius
+     * @param predicate  optional living-entity filter
+     * @return first living entity hit, or null
+     */
+    public static LivingEntity rayTraceLivingEntity(Location start,
+                                                    Vector segment,
+                                                    double hitRadius,
+                                                    Predicate<LivingEntity> predicate) {
+        if (start == null || start.getWorld() == null || segment == null || segment.lengthSquared() <= 0.000001) {
+            return null;
+        }
+        Vector direction = segment.clone().normalize();
+        double distance = segment.length();
+        RayTraceResult hit = start.getWorld().rayTraceEntities(
+                start,
+                direction,
+                distance,
+                Math.max(0.0, hitRadius),
+                entity -> entity instanceof LivingEntity living
+                        && (predicate == null || predicate.test(living)));
+        if (hit == null || !(hit.getHitEntity() instanceof LivingEntity living)) {
+            return null;
+        }
+        return living;
     }
 
     /**
