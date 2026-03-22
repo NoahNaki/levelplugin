@@ -35,6 +35,7 @@ public final class ArcSlashCombatUtil {
         double radiusZ = random.nextDouble(config.radiusZMin(), config.radiusZMax());
         double baseTilt = random.nextDouble(config.baseTiltMin(), config.baseTiltMax());
         double travelDistance = config.travelDistance() * 0.125;
+        int renderTicks = Math.max(1, (int) Math.round(config.ticks() * 0.7));
         Vector direction = orientation.getDirection().clone().setY(0.0);
         if (direction.lengthSquared() <= 0.0001) {
             direction = caster.getLocation().getDirection().clone().setY(0.0);
@@ -77,20 +78,20 @@ public final class ArcSlashCombatUtil {
                 int frameStep = Math.max(1, config.frameStep());
                 if (tick % frameStep != 0) {
                     tick++;
-                    if (tick >= config.ticks()) {
+                    if (tick >= renderTicks) {
                         cancel();
                     }
                     return;
                 }
-                int frameCount = (int) Math.ceil((double) config.ticks() / frameStep);
+                int frameCount = (int) Math.ceil((double) renderTicks / frameStep);
                 int frameIndex = Math.min(frameCount - 1, tick / frameStep);
                 double progress = frameCount <= 1 ? 1.0 : (double) frameIndex / (frameCount - 1);
                 Location frameCenter = baseCenter.clone().add(renderDirection.clone().multiply(travelDistance * progress));
                 ParticleRenderContext context = new ParticleRenderContext(caster, frameCenter, orientation,
-                        Math.max(1, config.points()), tick, config.ticks());
+                        Math.max(1, config.points()), tick, renderTicks);
                 arcPreset.render(context);
                 tick++;
-                if (tick >= config.ticks()) {
+                if (tick >= renderTicks) {
                     cancel();
                 }
             }
