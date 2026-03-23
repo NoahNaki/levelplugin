@@ -111,11 +111,11 @@ When adding a new spell:
 Use these as candidate implementations for the rogue family while reusing the existing arc slash particle debug preset (`/debug particlepreset arc`) for iteration.
 
 ### Offensive (1): **Shadow Flurry**
-- **Fantasy:** Fires a rapid volley of shadow darts that converge on a marked enemy.
-- **Gameplay:** Ranged single-target burst with a heavier final dart that briefly stuns on impact.
+- **Fantasy:** Aerial barrage combo: dash into the target, rebound upward with slow-falling control, and repeat.
+- **Gameplay:** 4-hit assassin juggle that repeatedly re-engages the same target while the rogue stays airborne.
 - **Implementation notes:**
-  - Reuse one projectile-launch helper per dart (timed shot + ray-hit + impact handling).
-  - Use dark dust + crit particles for readability without arc-slice presets.
+  - Apply `SLOW_FALLING` to the caster during the barrage window for controllable aerial rebounds.
+  - Reuse one timed loop for dash → hit → self-knockback sequencing.
   - Keep invalid cast messaging aligned with existing style via `ChatMessageUtil`.
 
 ### Offensive (2): **Nightfall Lunge**
