@@ -183,15 +183,14 @@ public final class ArcSlashCombatUtil {
             if (forwardDistance < 0.0 || forwardDistance > safeRange) {
                 continue;
             }
+            if (toTarget.setY(0.0).lengthSquared() > safeRange * safeRange) {
+                continue;
+            }
             Vector flat = toTarget.clone().setY(0.0);
             if (flat.lengthSquared() <= 0.0001) {
                 continue;
             }
             if (flat.normalize().dot(dir) < cosThreshold) {
-                continue;
-            }
-            Location segmentPoint = origin.clone().add(dir.clone().multiply(forwardDistance));
-            if (living.getLocation().distanceSquared(segmentPoint) > safeRadius * safeRadius) {
                 continue;
             }
             SpellEffectUtil.applyDirectSpellDamage(Main.getInstance(), caster, living, damage, true);
