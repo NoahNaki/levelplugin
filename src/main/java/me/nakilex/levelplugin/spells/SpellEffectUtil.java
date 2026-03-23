@@ -19,11 +19,19 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.function.Predicate;
 
 public final class SpellEffectUtil {
     public static final String BYPASS_STAT_SCALING_META = "BypassStatScaling";
+    private static final int INVULNERABILITY_BYPASS_WINDOW_TICKS = 12;
+    private static final Map<UUID, Integer> INVULNERABILITY_BYPASS_REMAINING = new HashMap<>();
+    private static final Map<UUID, Integer> ORIGINAL_MAX_NO_DAMAGE_TICKS = new HashMap<>();
+    private static BukkitTask invulnerabilityBypassTickerTask;
 
     private SpellEffectUtil() {
     }
@@ -96,7 +104,7 @@ public final class SpellEffectUtil {
         try {
             if (resetInvulnerabilityFrames) {
                 withTemporaryInvulnerabilityBypass(target, () -> target.damage(damage, caster));
-                scheduleNoDamageTickReset(plugin, target);
+                registerInvulnerabilityBypassWindow(plugin, target, INVULNERABILITY_BYPASS_WINDOW_TICKS);
             } else {
                 target.damage(damage, caster);
             }
@@ -105,14 +113,53 @@ public final class SpellEffectUtil {
         }
     }
 
-    private static void scheduleNoDamageTickReset(Plugin plugin, LivingEntity target) {
-        Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            if (target == null || !target.isValid() || target.isDead()) {
+    private static void registerInvulnerabilityBypassWindow(Plugin plugin,
+                                                            LivingEntity target,
+                                                            int durationTicks) {
+        if (plugin == null || target == null || durationTicks <= 0 || !target.isValid() || target.isDead()) {
+            return;
+        }
+        UUID targetId = target.getUniqueId();
+        INVULNERABILITY_BYPASS_REMAINING.put(targetId, durationTicks);
+        ORIGINAL_MAX_NO_DAMAGE_TICKS.putIfAbsent(targetId, target.getMaximumNoDamageTicks());
+        ensureInvulnerabilityBypassTicker(plugin);
+    }
+
+    private static void ensureInvulnerabilityBypassTicker(Plugin plugin) {
+        if (plugin == null) {
+            return;
+        }
+        if (invulnerabilityBypassTickerTask != null && !invulnerabilityBypassTickerTask.isCancelled()) {
+            return;
+        }
+        invulnerabilityBypassTickerTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            if (INVULNERABILITY_BYPASS_REMAINING.isEmpty()) {
                 return;
             }
-            target.setNoDamageTicks(0);
-            target.setLastDamage(0.0);
-        }, 1L);
+            Iterator<Map.Entry<UUID, Integer>> iterator = INVULNERABILITY_BYPASS_REMAINING.entrySet().iterator();
+            while (iterator.hasNext()) {
+                Map.Entry<UUID, Integer> entry = iterator.next();
+                var entity = Bukkit.getEntity(entry.getKey());
+                if (!(entity instanceof LivingEntity living) || !living.isValid() || living.isDead()) {
+                    ORIGINAL_MAX_NO_DAMAGE_TICKS.remove(entry.getKey());
+                    iterator.remove();
+                    continue;
+                }
+                living.setMaximumNoDamageTicks(0);
+                living.setNoDamageTicks(0);
+                living.setLastDamage(0.0);
+
+                int remaining = entry.getValue() - 1;
+                if (remaining <= 0) {
+                    int originalMax = ORIGINAL_MAX_NO_DAMAGE_TICKS.getOrDefault(entry.getKey(), living.getMaximumNoDamageTicks());
+                    living.setMaximumNoDamageTicks(originalMax);
+                    ORIGINAL_MAX_NO_DAMAGE_TICKS.remove(entry.getKey());
+                    iterator.remove();
+                } else {
+                    entry.setValue(remaining);
+                }
+            }
+        }, 0L, 1L);
     }
 
     public static void withTemporaryInvulnerabilityBypass(LivingEntity target, Runnable action) {
