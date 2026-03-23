@@ -111,16 +111,16 @@ When adding a new spell:
 Use these as candidate implementations for the rogue family while reusing the existing arc slash particle debug preset (`/debug particlepreset arc`) for iteration.
 
 ### Offensive (1): **Shadow Flurry**
-- **Fantasy:** Locks onto a single target and unleashes a rapid six-hit slash barrage.
-- **Gameplay:** Focused single-target burst that juggles the enemy upward with each hit.
+- **Fantasy:** Unleashes a three-wave fan of cross-slashes in front of the rogue.
+- **Gameplay:** Forward pressure tool that carves center + side lanes instead of single-target locking.
 - **Implementation notes:**
-  - Reuse one scheduled multi-hit loop to avoid duplicating slash logic per hit.
-  - Blend `ArcSlashCombatUtil.strike(...)` with direct target damage for consistent slash feel.
-  - Keep invalid-target feedback in the existing style using `ChatMessageUtil`.
+  - Reuse shared arc helpers (`ArcSlashCombatUtil.strike/applyConeDamage`) for each lane in the wave.
+  - Keep wave timing in one reusable scheduled loop for easier balancing.
+  - Keep invalid cast messaging aligned with existing style via `ChatMessageUtil`.
 
 ### Offensive (2): **Nightfall Lunge**
-- **Fantasy:** Conjures a rotating cyclone of shadow slashes around a marked target, ending in a finisher cut.
-- **Gameplay:** Sustained single-target pressure with orbiting multi-hit slashes and a final burst hit.
+- **Fantasy:** Conjures a compact rotating cyclone around a marked target, then lands a finisher cut.
+- **Gameplay:** Shorter 4-hit single-target sequence with a clear final burst.
 - **Implementation notes:**
   - Reuse one timed orbit loop (angle + radius) to keep hit pacing/data tuning centralized.
   - Reuse `ArcSlashCombatUtil.strike(...)` + direct damage for mixed AoE/single-target payoff.
