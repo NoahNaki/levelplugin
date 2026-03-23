@@ -1,18 +1,19 @@
 package me.nakilex.levelplugin.spells.impl;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.spells.ArcSlashCombatUtil;
 import me.nakilex.levelplugin.spells.SpellContext;
 import me.nakilex.levelplugin.spells.SpellEffectUtil;
 import me.nakilex.levelplugin.spells.SpellHandler;
+import me.nakilex.levelplugin.spells.SpellTargetingUtil;
+import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
-
-import java.util.HashSet;
-import java.util.Set;
+import org.bukkit.util.Vector;
 
 public class RogueShadowFlurrySpell implements SpellHandler {
     private final Main plugin;
@@ -24,37 +25,48 @@ public class RogueShadowFlurrySpell implements SpellHandler {
     @Override
     public void cast(SpellContext context) {
         Player caster = context.player();
-        Location center = caster.getLocation().clone().add(0.0, 1.0, 0.0);
-        caster.getWorld().playSound(center, Sound.ENTITY_BREEZE_INHALE, 0.7f, 0.85f);
+        LivingEntity target = SpellTargetingUtil.resolveTargetLivingEntity(caster, 14.0, 0.45,
+                living -> !living.equals(caster));
+        if (target == null) {
+            ChatMessageUtil.send(caster, ChatMessageUtil.MessageType.WARNING,
+                    "Look at a target mob for Shadow Flurry.");
+            return;
+        }
 
         new BukkitRunnable() {
-            private int pulse;
+            private int slash;
 
             @Override
             public void run() {
-                if (!caster.isOnline() || pulse >= 4) {
+                if (!caster.isOnline() || !target.isValid() || target.isDead() || slash >= 6) {
                     cancel();
                     return;
                 }
 
-                Location pulseCenter = caster.getLocation().clone().add(0.0, 1.0, 0.0);
-                double radius = 1.5 + (pulse * 0.9);
-                SpellEffectUtil.spawnRingParticles(pulseCenter, radius, Particle.CRIT, 26, 0.0);
-                caster.getWorld().playSound(pulseCenter, Sound.ENTITY_PLAYER_ATTACK_SWEEP,
-                        0.75f, 1.1f + (pulse * 0.1f));
-
-                Set<java.util.UUID> hitTargets = new HashSet<>();
-                for (LivingEntity living : SpellEffectUtil.getLivingTargets(pulseCenter, radius + 0.55,
-                        target -> !target.equals(caster))) {
-                    double distance = living.getLocation().distance(pulseCenter);
-                    if (Math.abs(distance - radius) > 0.8 || !hitTargets.add(living.getUniqueId())) {
-                        continue;
-                    }
-                    SpellEffectUtil.applyDirectSpellDamage(plugin, caster, living, 5.2 + (pulse * 1.1), true);
-                    SpellEffectUtil.applyStun(living, 10, true);
+                Location targetCenter = target.getLocation().clone().add(0.0, 1.0, 0.0);
+                Vector facing = target.getLocation().toVector().subtract(caster.getLocation().toVector()).setY(0.0);
+                if (facing.lengthSquared() <= 0.0001) {
+                    facing = caster.getLocation().getDirection().setY(0.0);
                 }
-                pulse++;
+                facing.normalize();
+                Vector right = new Vector(0, 1, 0).crossProduct(facing).normalize();
+
+                double side = (slash % 2 == 0 ? 0.55 : -0.55) + (slash * 0.04);
+                Location slashPoint = targetCenter.clone().add(right.multiply(side));
+                Location orientation = caster.getLocation().clone();
+                orientation.setDirection(facing);
+
+                ArcSlashCombatUtil.strike(caster, slashPoint, orientation, 4.6 + (slash * 0.55), 2.0);
+                SpellEffectUtil.applyDirectSpellDamage(plugin, caster, target, 3.7 + (slash * 0.45), true);
+
+                double lift = slash < 5 ? 0.10 + (slash * 0.018) : 0.30;
+                target.setVelocity(target.getVelocity().multiply(0.82).add(new Vector(0.0, lift, 0.0)));
+
+                target.getWorld().spawnParticle(Particle.CRIT, targetCenter, 9, 0.24, 0.2, 0.24, 0.03);
+                target.getWorld().playSound(targetCenter, Sound.ENTITY_PLAYER_ATTACK_SWEEP,
+                        0.9f, 1.08f + (slash * 0.06f));
+                slash++;
             }
-        }.runTaskTimer(plugin, 0L, 5L);
+        }.runTaskTimer(plugin, 0L, 2L);
     }
 }

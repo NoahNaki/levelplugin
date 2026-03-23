@@ -16,6 +16,7 @@ import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Mob;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -40,6 +41,8 @@ public final class SpellEffectUtil {
     private static BukkitTask invulnerabilityBypassTickerTask;
     private static final double HURT_KNOCKBACK_HORIZONTAL = 0.067;
     private static final double HURT_KNOCKBACK_VERTICAL = 0.027;
+    private static final Map<UUID, Boolean> FALLBACK_STUN_ORIGINAL_AI = new HashMap<>();
+    private static final Map<UUID, BukkitTask> FALLBACK_STUN_AI_RESTORE_TASKS = new HashMap<>();
 
     private SpellEffectUtil() {
     }
@@ -89,6 +92,9 @@ public final class SpellEffectUtil {
             PotionEffectUtil.applyHiddenEffect(target, PotionEffectType.SLOWNESS, safeDuration, 10);
             PotionEffectUtil.applyHiddenEffect(target, PotionEffectType.WEAKNESS, safeDuration, 2);
             target.setVelocity(new Vector(0.0, Math.min(0.0, target.getVelocity().getY()), 0.0));
+            if (target instanceof Mob mob) {
+                applyFallbackMobStun(mob, safeDuration);
+            }
         }
 
         if (showIndicator) {
@@ -102,6 +108,36 @@ public final class SpellEffectUtil {
         }
         Location indicator = target.getLocation().clone().add(0.0, target.getHeight() + 0.35, 0.0);
         spawnRingParticles(indicator, 0.38, Particle.CRIT, 10, 0.0);
+    }
+
+    private static void applyFallbackMobStun(Mob mob, int durationTicks) {
+        if (mob == null || !mob.isValid() || mob.isDead()) {
+            return;
+        }
+
+        UUID mobId = mob.getUniqueId();
+        FALLBACK_STUN_ORIGINAL_AI.putIfAbsent(mobId, mob.hasAI());
+        mob.setAI(false);
+
+        BukkitTask existingTask = FALLBACK_STUN_AI_RESTORE_TASKS.remove(mobId);
+        if (existingTask != null) {
+            existingTask.cancel();
+        }
+
+        Main plugin = Main.getInstance();
+        if (plugin == null) {
+            return;
+        }
+        FALLBACK_STUN_AI_RESTORE_TASKS.put(mobId, Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            FALLBACK_STUN_AI_RESTORE_TASKS.remove(mobId);
+            if (!mob.isValid() || mob.isDead()) {
+                FALLBACK_STUN_ORIGINAL_AI.remove(mobId);
+                return;
+            }
+            boolean originalAi = FALLBACK_STUN_ORIGINAL_AI.getOrDefault(mobId, true);
+            mob.setAI(originalAi);
+            FALLBACK_STUN_ORIGINAL_AI.remove(mobId);
+        }, Math.max(1, durationTicks)));
     }
 
     public static void applyAreaDamage(Player source, Location center, double radius, double damage) {

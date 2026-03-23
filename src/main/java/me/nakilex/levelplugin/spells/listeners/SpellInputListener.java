@@ -277,7 +277,28 @@ public class SpellInputListener implements Listener {
 
     private void dispatch(Player player, SpellInputType type, SpellInputMode mode, String sequence) {
         Bukkit.getPluginManager().callEvent(new SpellInputEvent(player, type, mode, sequence));
+        if (isSpellSlotCast(type)) {
+            clearComboState(player);
+        }
         sendSpellCastIndicator(player, type);
+    }
+
+    private void clearComboState(Player player) {
+        if (player == null) {
+            return;
+        }
+        SpellComboTracker tracker = comboTrackers.get(player.getUniqueId());
+        if (tracker != null) {
+            tracker.reset();
+        }
+        displayManager.clearInputs(player);
+    }
+
+    private boolean isSpellSlotCast(SpellInputType type) {
+        return type == SpellInputType.SPELL_1
+                || type == SpellInputType.SPELL_2
+                || type == SpellInputType.SPELL_3
+                || type == SpellInputType.SPELL_4;
     }
 
     private void dispatchBoundSpell(Player player, SpellInputMode mode, SpellKeybindSlot slot, String sequence) {
