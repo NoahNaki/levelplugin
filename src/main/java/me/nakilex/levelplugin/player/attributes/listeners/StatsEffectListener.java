@@ -9,6 +9,7 @@ import me.nakilex.levelplugin.player.classes.data.ClassUtil;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.pet.PetEffectType;
 import me.nakilex.levelplugin.pet.PetManager;
+import me.nakilex.levelplugin.spells.impl.ArcherDeflectFieldSpell;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.utils.MobUtil;
 import org.bukkit.entity.Entity;
@@ -217,6 +218,7 @@ public class StatsEffectListener implements Listener {
 
             // 3) Subtract to get “effective” AGI
             int effectiveAgility = Math.max(0, totalAgility - attackerDex);
+            effectiveAgility += ArcherDeflectFieldSpell.getTurretDodgeBonus(attacked);
 
             // 4) Re‐compute dodge with diminishing returns
             double dodgeChance = (double) effectiveAgility / (effectiveAgility + 100.0);

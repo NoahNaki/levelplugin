@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.spells.listeners;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.player.classes.data.ClassUtil;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
+import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.classes.managers.PlayerClassManager;
 import me.nakilex.levelplugin.settings.data.PlayerSettings;
 import me.nakilex.levelplugin.settings.managers.SettingsManager;
@@ -17,6 +18,7 @@ import me.nakilex.levelplugin.spells.input.SpellInputType;
 import me.nakilex.levelplugin.spells.input.SpellKeybindLayout;
 import me.nakilex.levelplugin.spells.input.SpellKeybindManager;
 import me.nakilex.levelplugin.spells.input.SpellKeybindSlot;
+import me.nakilex.levelplugin.spells.impl.ArcherDeflectFieldSpell;
 import me.nakilex.levelplugin.spells.impl.ArcherSkyboundSpell;
 import me.nakilex.levelplugin.spells.impl.RogueShadowFlurrySpell;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
@@ -51,6 +53,7 @@ public class SpellInputListener implements Listener {
     private final Map<UUID, SneakState> sneakStates = new HashMap<>();
     private final Map<UUID, Long> lastRightClickAt = new HashMap<>();
     private final Map<UUID, Long> lastLeftSwingAt = new HashMap<>();
+    private final Map<UUID, Long> lastBasicAttackAt = new HashMap<>();
     private final SpellInputDisplayManager displayManager = SpellInputDisplayManager.getInstance();
     private final SpellKeybindManager keybindManager = SpellKeybindManager.getInstance();
 
@@ -180,6 +183,7 @@ public class SpellInputListener implements Listener {
         sneakStates.remove(playerId);
         lastRightClickAt.remove(playerId);
         lastLeftSwingAt.remove(playerId);
+        lastBasicAttackAt.remove(playerId);
         displayManager.clear(event.getPlayer());
     }
 
@@ -297,6 +301,9 @@ public class SpellInputListener implements Listener {
     }
 
     private void dispatch(Player player, SpellInputType type, SpellInputMode mode, String sequence) {
+        if (type == SpellInputType.BASIC_ATTACK && !canDispatchBasicAttack(player)) {
+            return;
+        }
         Bukkit.getPluginManager().callEvent(new SpellInputEvent(player, type, mode, sequence));
         if (isSpellSlotCast(type)) {
             resetComboTracker(player);
@@ -374,6 +381,24 @@ public class SpellInputListener implements Listener {
 
     private boolean isHoldingValidClassWeapon(Player player) {
         return SpellAccessUtil.isHoldingValidClassWeapon(player);
+    }
+
+    private boolean canDispatchBasicAttack(Player player) {
+        if (player == null) {
+            return false;
+        }
+        var stats = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
+        double baseSpeed = Math.max(0.1, stats.attackSpeed);
+        double turretMultiplier = ArcherDeflectFieldSpell.getTurretAttackSpeedMultiplier(player);
+        double effectiveSpeed = Math.max(0.1, baseSpeed * turretMultiplier);
+        long intervalMs = (long) Math.ceil(1000.0 / effectiveSpeed);
+        long now = System.currentTimeMillis();
+        Long last = lastBasicAttackAt.get(player.getUniqueId());
+        if (last != null && now - last < intervalMs) {
+            return false;
+        }
+        lastBasicAttackAt.put(player.getUniqueId(), now);
+        return true;
     }
 
     private static final class SneakState {

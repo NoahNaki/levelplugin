@@ -5,6 +5,7 @@ import me.nakilex.levelplugin.player.classes.managers.PlayerClassManager;
 import me.nakilex.levelplugin.player.classes.data.ClassUtil;
 import me.nakilex.levelplugin.spells.SpellAccessUtil;
 import me.nakilex.levelplugin.spells.SpellContext;
+import me.nakilex.levelplugin.spells.SpellCastManager;
 import me.nakilex.levelplugin.spells.SpellRegistry;
 import me.nakilex.levelplugin.spells.input.SpellInputDisplayManager;
 import me.nakilex.levelplugin.spells.progression.SpellProgressionManager;
@@ -41,6 +42,25 @@ public class SpellCastListener implements Listener {
                 ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
                         "You must hold a valid class weapon to cast mage skills.");
             }
+            return;
+        }
+        SpellCastManager castManager = SpellCastManager.getInstance();
+        long remainingCooldown = castManager.getRemainingCooldownMs(player, entry.definition());
+        if (SpellCastManager.areCooldownsEnabled() && remainingCooldown > 0L) {
+            int seconds = (int) Math.ceil(remainingCooldown / 1000.0);
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                    entry.definition().displayName() + " is on cooldown for " + seconds + "s.");
+            return;
+        }
+        int manaCost = castManager.getManaCost(player, entry.definition());
+        var stats = me.nakilex.levelplugin.player.attributes.managers.StatsManager.getInstance()
+                .getPlayerStats(player.getUniqueId());
+        if (SpellCastManager.areManaCostsEnabled() && manaCost > 0 && stats.getCurrentMana() < manaCost) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                    "Not enough mana for " + entry.definition().displayName() + " (" + manaCost + ").");
+            return;
+        }
+        if (!castManager.tryConsumeResources(player, entry.definition())) {
             return;
         }
         entry.handler().cast(new SpellContext(plugin, player, entry.definition(), event));

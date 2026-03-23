@@ -89,7 +89,7 @@ public final class SpellCatalog {
         SpellDefinition archerBasicSeeker = new SpellDefinition("archer_quickshot_seeker", "Quickshot: Seeker Tip", 0, false);
         SpellDefinition archerBasicPayload = new SpellDefinition("archer_quickshot_payload", "Quickshot: Payload Arrow", 0, false);
         SpellDefinition archerBarrage = new SpellDefinition("archer_homing_barrage", "Seeker Barrage", 16, false);
-        SpellDefinition archerDeflectField = new SpellDefinition("archer_deflect_field", "Deflect Field", 14, false);
+        SpellDefinition archerDeflectField = new SpellDefinition("archer_deflect_field", "Turret Stance", 18, false);
         SpellDefinition archerSkybound = new SpellDefinition("archer_skybound", "Skybound Vault", 14, true);
         SpellDefinition archerArrowRain = new SpellDefinition("archer_arrow_rain", "Arrow Rain", 18, false);
 
@@ -98,7 +98,7 @@ public final class SpellCatalog {
         registry.registerSpell(archerBasicPayload, new ArcherBasicAttackSpell(plugin, 0.24, 2.6, 0.52));
         registry.registerSpell(archerBarrage, new ArcherHomingBarrageSpell(plugin, 7, 2L, 3.0, 0.25, 3.8, 0.34));
         registry.registerSpell(archerSkybound, new ArcherSkyboundSpell(plugin, 0.82, 80, 3.2, 5.4, 0.62));
-        registry.registerSpell(archerDeflectField, new ArcherDeflectFieldSpell(plugin, 72, 3.2));
+        registry.registerSpell(archerDeflectField, new ArcherDeflectFieldSpell(plugin, 100, 100, 2.0));
         registry.registerSpell(archerArrowRain, new ArcherArrowRainSpell(plugin, 6, 9, 8, 6.8, 14.0, 3.4, 0.30));
 
         registry.registerBinding(SpellBinding.forInputType(archerBasic.id(), ClassUtil::isArcherFamily, SpellInputType.BASIC_ATTACK));
@@ -161,5 +161,47 @@ public final class SpellCatalog {
         registry.registerBinding(SpellBinding.forInputType(rogueSmokeBomb.id(), ClassUtil::isRogueFamily, SpellInputType.SPELL_2));
         registry.registerBinding(SpellBinding.forInputType(rogueRazorDash.id(), ClassUtil::isRogueFamily, SpellInputType.SPELL_3));
         registry.registerBinding(SpellBinding.forInputType(rogueNightfallLunge.id(), ClassUtil::isRogueFamily, SpellInputType.SPELL_4));
+
+        configureCooldowns();
+    }
+
+    private static void configureCooldowns() {
+        SpellCastManager.setSpellCooldownMs("mage_fireball_basic", 0L);
+        SpellCastManager.setSpellCooldownMs("mage_fireball_barrage", 0L);
+        SpellCastManager.setSpellCooldownMs("mage_fireball_inferno", 0L);
+        SpellCastManager.setSpellCooldownMs("meteor", 7500L);
+        SpellCastManager.setSpellCooldownMs("meteor_double", 9000L);
+        SpellCastManager.setSpellCooldownMs("meteor_big", 11500L);
+        SpellCastManager.setSpellCooldownMs("blackhole", 6200L);
+        SpellCastManager.setSpellCooldownMs("blackhole_gravitywell", 7600L);
+        SpellCastManager.setSpellCooldownMs("blackhole_singularity", 9300L);
+        SpellCastManager.setSpellCooldownMs("mage_heal", 6200L);
+        SpellCastManager.setSpellCooldownMs("mage_heal_rejuvenation", 7800L);
+        SpellCastManager.setSpellCooldownMs("mage_heal_party", 8600L);
+        SpellCastManager.setSpellCooldownMs("mage_blink", 4800L);
+        SpellCastManager.setSpellCooldownMs("mage_blink_phase", 5400L);
+        SpellCastManager.setSpellCooldownMs("mage_blink_rift", 6200L);
+
+        SpellCastManager.setSpellCooldownMs("archer_quickshot_basic", 0L);
+        SpellCastManager.setSpellCooldownMs("archer_quickshot_seeker", 0L);
+        SpellCastManager.setSpellCooldownMs("archer_quickshot_payload", 0L);
+        SpellCastManager.setSpellCooldownMs("archer_homing_barrage", 6200L);
+        SpellCastManager.setSpellCooldownMs("archer_deflect_field", 9000L);
+        SpellCastManager.setSpellCooldownMs("archer_skybound", 6200L);
+        SpellCastManager.setSpellCooldownMs("archer_arrow_rain", 9800L);
+
+        SpellCastManager.setSpellCooldownMs("rogue_arc_basic", 0L);
+        SpellCastManager.setSpellCooldownMs("rogue_sky_ripper", 5600L);
+        SpellCastManager.setSpellCooldownMs("rogue_sky_ripper_tempest", 6500L);
+        SpellCastManager.setSpellCooldownMs("rogue_sky_ripper_execution", 7600L);
+        SpellCastManager.setSpellCooldownMs("rogue_veil_counter", 6400L);
+        SpellCastManager.setSpellCooldownMs("rogue_veil_counter_obscure", 7400L);
+        SpellCastManager.setSpellCooldownMs("rogue_veil_counter_dread", 8600L);
+        SpellCastManager.setSpellCooldownMs("rogue_razor_dash", 4200L);
+        SpellCastManager.setSpellCooldownMs("rogue_razor_dash_rift", 5000L);
+        SpellCastManager.setSpellCooldownMs("rogue_razor_dash_shade", 5800L);
+        SpellCastManager.setSpellCooldownMs("rogue_phantom_cross", 6900L);
+        SpellCastManager.setSpellCooldownMs("rogue_phantom_cross_cyclone", 7700L);
+        SpellCastManager.setSpellCooldownMs("rogue_phantom_cross_judgement", 8600L);
     }
 }
