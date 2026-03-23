@@ -19,6 +19,7 @@ public class ArcherArrowRainSpell implements SpellHandler {
     private final Main plugin;
     private final int volleys;
     private final int arrowsPerVolley;
+    private final int volleyIntervalTicks;
     private final double radius;
     private final double height;
     private final double baseDamage;
@@ -27,6 +28,7 @@ public class ArcherArrowRainSpell implements SpellHandler {
     public ArcherArrowRainSpell(Main plugin,
                                 int volleys,
                                 int arrowsPerVolley,
+                                int volleyIntervalTicks,
                                 double radius,
                                 double height,
                                 double baseDamage,
@@ -34,6 +36,7 @@ public class ArcherArrowRainSpell implements SpellHandler {
         this.plugin = plugin;
         this.volleys = Math.max(1, volleys);
         this.arrowsPerVolley = Math.max(1, arrowsPerVolley);
+        this.volleyIntervalTicks = Math.max(1, volleyIntervalTicks);
         this.radius = Math.max(1.0, radius);
         this.height = Math.max(4.0, height);
         this.baseDamage = Math.max(0.1, baseDamage);
@@ -68,7 +71,7 @@ public class ArcherArrowRainSpell implements SpellHandler {
                 spawnVolley(caster, targetCenter, damage);
                 volley++;
             }
-        }.runTaskTimer(plugin, 0L, 4L);
+        }.runTaskTimer(plugin, 0L, volleyIntervalTicks);
     }
 
     private void spawnVolley(Player caster, Location center, double damage) {
@@ -79,7 +82,11 @@ public class ArcherArrowRainSpell implements SpellHandler {
             double x = Math.cos(angle) * distance;
             double z = Math.sin(angle) * distance;
             Location spawn = center.clone().add(x, height + random.nextDouble(-1.2, 1.2), z);
-            Vector velocity = center.toVector().add(new Vector(x * 0.15, 0.0, z * 0.15)).subtract(spawn.toVector()).normalize().multiply(2.7);
+            Location impactPoint = center.clone().add(
+                    random.nextDouble(-radius * 0.75, radius * 0.75),
+                    0.0,
+                    random.nextDouble(-radius * 0.75, radius * 0.75));
+            Vector velocity = impactPoint.toVector().subtract(spawn.toVector()).normalize().multiply(2.7);
             ArcherArrowUtil.spawnClassArrow(plugin, caster, spawn, velocity, damage);
             spawn.getWorld().spawnParticle(Particle.CRIT, spawn, 1, 0.02, 0.02, 0.02, 0.01);
         }

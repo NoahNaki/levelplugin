@@ -24,18 +24,21 @@ public class ArcherSkyboundSpell implements SpellHandler {
     private final double liftVelocity;
     private final int slowFallingTicks;
     private final double slamRadius;
-    private final double slamDamage;
+    private final double baseSlamDamage;
+    private final double slamDamagePerBlock;
 
     public ArcherSkyboundSpell(Main plugin,
                                double liftVelocity,
                                int slowFallingTicks,
                                double slamRadius,
-                               double slamDamage) {
+                               double baseSlamDamage,
+                               double slamDamagePerBlock) {
         this.plugin = plugin;
         this.liftVelocity = Math.max(0.45, liftVelocity);
         this.slowFallingTicks = Math.max(20, slowFallingTicks);
         this.slamRadius = Math.max(1.0, slamRadius);
-        this.slamDamage = Math.max(0.1, slamDamage);
+        this.baseSlamDamage = Math.max(0.1, baseSlamDamage);
+        this.slamDamagePerBlock = Math.max(0.0, slamDamagePerBlock);
     }
 
     @Override
@@ -44,7 +47,11 @@ public class ArcherSkyboundSpell implements SpellHandler {
         caster.setVelocity(caster.getVelocity().add(new Vector(0.0, liftVelocity, 0.0)));
         PotionEffectUtil.applyHiddenEffect(caster, PotionEffectType.SLOW_FALLING, slowFallingTicks, 0);
         ACTIVE_SLAM_WINDOWS.put(caster.getUniqueId(),
-                new SlamWindow(System.currentTimeMillis() + (slowFallingTicks * 50L), slamRadius, slamDamage));
+                new SlamWindow(System.currentTimeMillis() + (slowFallingTicks * 50L),
+                        slamRadius,
+                        baseSlamDamage,
+                        slamDamagePerBlock,
+                        caster.getLocation().getY()));
 
         Location center = caster.getLocation().clone().add(0.0, 1.0, 0.0);
         center.getWorld().spawnParticle(Particle.CLOUD, center, 28, 0.35, 0.18, 0.35, 0.02);
@@ -81,7 +88,9 @@ public class ArcherSkyboundSpell implements SpellHandler {
                 player.setFallDistance(0.0f);
                 if (player.isOnGround() || ticks++ >= 24) {
                     Location impact = player.getLocation().clone().add(0.0, 0.1, 0.0);
-                    SpellEffectUtil.applyAreaDamage(player, impact, window.radius(), window.damage());
+                    double dropDistance = Math.max(0.0, window.castStartY() - impact.getY());
+                    double scaledDamage = window.baseDamage() + (dropDistance * window.damagePerBlock());
+                    SpellEffectUtil.applyAreaDamage(player, impact, window.radius(), scaledDamage);
                     impact.getWorld().spawnParticle(Particle.EXPLOSION, impact, 1, 0.0, 0.0, 0.0, 0.0);
                     impact.getWorld().spawnParticle(Particle.CLOUD, impact, 28, 0.5, 0.12, 0.5, 0.01);
                     impact.getWorld().spawnParticle(Particle.CRIT, impact, 18, 0.45, 0.15, 0.45, 0.04);
@@ -93,6 +102,10 @@ public class ArcherSkyboundSpell implements SpellHandler {
         return true;
     }
 
-    private record SlamWindow(long expiresAt, double radius, double damage) {
+    private record SlamWindow(long expiresAt,
+                              double radius,
+                              double baseDamage,
+                              double damagePerBlock,
+                              double castStartY) {
     }
 }

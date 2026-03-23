@@ -227,6 +227,10 @@ public class SpellInputListener implements Listener {
 
     private void handleModifierClick(Player player, boolean leftClick, boolean archerFamily) {
         displayManager.recordClick(player, leftClick ? SpellClickInput.LEFT : SpellClickInput.RIGHT);
+        if (archerFamily && leftClick && !player.isSneaking()) {
+            dispatchBoundSpell(player, SpellInputMode.MOUSE_AND_KEYBOARD, SpellKeybindSlot.SLOT_2, "Left");
+            return;
+        }
         if (player.isSneaking()) {
             SpellKeybindSlot slot = leftClick ? SpellKeybindSlot.SLOT_1 : SpellKeybindSlot.SLOT_2;
             dispatchBoundSpell(player, SpellInputMode.MOUSE_AND_KEYBOARD, slot,
