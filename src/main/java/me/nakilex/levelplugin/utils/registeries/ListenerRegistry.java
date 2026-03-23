@@ -49,7 +49,6 @@ import me.nakilex.levelplugin.spells.gui.SpellKeybindGUI;
 import me.nakilex.levelplugin.spells.gui.SpellUpgradeGUI;
 import me.nakilex.levelplugin.spells.listeners.SpellCastListener;
 import me.nakilex.levelplugin.spells.listeners.SpellInputListener;
-import me.nakilex.levelplugin.spells.listeners.SpellInvulnerabilityBypassListener;
 import me.nakilex.levelplugin.player.classes.gui.SubclassGUI;
 import me.nakilex.levelplugin.player.classes.gui.ClassSelectionGUI;
 import me.nakilex.levelplugin.player.classes.essence.listener.ClassEssenceMenuListener;
@@ -271,7 +270,6 @@ public class ListenerRegistry {
         pm.registerEvents(new DamageIndicatorListener(dmgToggleManager), plugin);
         new DamageIndicatorPacketBlocker(plugin);
         pm.registerEvents(new SpellInputListener(plugin.getSettingsManager()), plugin);
-        pm.registerEvents(new SpellInvulnerabilityBypassListener(), plugin);
         pm.registerEvents(new SpellCastListener(plugin), plugin);
         pm.registerEvents(new SpellInputDebugListener(), plugin);
         pm.registerEvents(arcSlashDebugManager, plugin);

@@ -5,6 +5,7 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.World;
+import org.bukkit.Bukkit;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.type.Light;
@@ -91,37 +92,27 @@ public final class SpellEffectUtil {
             return;
         }
 
-        double startingHealth = target.getHealth();
         caster.setMetadata(BYPASS_STAT_SCALING_META, new FixedMetadataValue(plugin, true));
         try {
             if (resetInvulnerabilityFrames) {
                 withTemporaryInvulnerabilityBypass(target, () -> target.damage(damage, caster));
+                scheduleNoDamageTickReset(plugin, target);
             } else {
                 target.damage(damage, caster);
             }
         } finally {
             caster.removeMetadata(BYPASS_STAT_SCALING_META, plugin);
         }
-
-        if (resetInvulnerabilityFrames && didNotTakeDamage(startingHealth, target)) {
-            applyGuaranteedHealthDamage(target, damage);
-        }
     }
 
-    private static boolean didNotTakeDamage(double startingHealth, LivingEntity target) {
-        if (target == null || target.isDead()) {
-            return false;
-        }
-        return target.getHealth() >= startingHealth - 0.0001;
-    }
-
-    private static void applyGuaranteedHealthDamage(LivingEntity target, double damage) {
-        if (target == null || damage <= 0.0 || target.isDead()) {
-            return;
-        }
-        double currentHealth = target.getHealth();
-        double nextHealth = Math.max(0.0, currentHealth - damage);
-        target.setHealth(nextHealth);
+    private static void scheduleNoDamageTickReset(Plugin plugin, LivingEntity target) {
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            if (target == null || !target.isValid() || target.isDead()) {
+                return;
+            }
+            target.setNoDamageTicks(0);
+            target.setLastDamage(0.0);
+        }, 1L);
     }
 
     public static void withTemporaryInvulnerabilityBypass(LivingEntity target, Runnable action) {
