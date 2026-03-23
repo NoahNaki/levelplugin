@@ -197,6 +197,9 @@ public final class SpellEffectUtil {
         if (plugin == null || caster == null || target == null || damage <= 0.0 || target.isDead()) {
             return;
         }
+        if (target instanceof ArmorStand) {
+            return;
+        }
         if (target instanceof Player victim
                 && !DuelManager.getInstance().areInDuel(victim.getUniqueId(), caster.getUniqueId())) {
             return;

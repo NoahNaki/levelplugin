@@ -72,7 +72,7 @@ public final class SpellCatalog {
         registry.registerSpell(healRegen, new MageHealSpell(plugin, 11.0, false, true, 16, 1));
         registry.registerSpell(healParty, new MageHealSpell(plugin, 9.0, true, true, 12, 1));
         registry.registerProgression(new SpellProgression(heal.id(), java.util.List.of(healRegen.id(), healParty.id())));
-        registry.registerBinding(SpellBinding.forInputType(heal.id(), ClassUtil::isMageFamily, SpellInputType.SPELL_2));
+        registry.registerBinding(SpellBinding.forInputType(heal.id(), ClassUtil::isMageFamily, SpellInputType.SPELL_4));
 
         SpellDefinition blink = new SpellDefinition("mage_blink", "Blink", 14, true);
         SpellDefinition blinkPhase = new SpellDefinition("mage_blink_phase", "Blink: Phase Step", 14, true);
@@ -83,7 +83,7 @@ public final class SpellCatalog {
         registry.registerProgression(new SpellProgression(blink.id(), java.util.List.of(blinkPhase.id(), blinkRift.id())));
         registry.registerBinding(SpellBinding.forInputType(blink.id(), ClassUtil::isMageFamily, SpellInputType.SPELL_3));
 
-        registry.registerBinding(SpellBinding.forInputType(meteor.id(), ClassUtil::isMageFamily, SpellInputType.SPELL_4));
+        registry.registerBinding(SpellBinding.forInputType(meteor.id(), ClassUtil::isMageFamily, SpellInputType.SPELL_2));
 
         SpellDefinition archerBasic = new SpellDefinition("archer_quickshot_basic", "Quickshot", 0, false);
         SpellDefinition archerBasicSeeker = new SpellDefinition("archer_quickshot_seeker", "Quickshot: Seeker Tip", 0, false);
@@ -157,9 +157,9 @@ public final class SpellCatalog {
 
         registry.registerBinding(SpellBinding.forInputType(rogueArcBasic.id(), ClassUtil::isRogueFamily, SpellInputType.BASIC_ATTACK));
         registry.registerBinding(SpellBinding.forInputType(rogueShadowFlurry.id(), ClassUtil::isRogueFamily, SpellInputType.SPELL_1));
-        registry.registerBinding(SpellBinding.forInputType(rogueSmokeBomb.id(), ClassUtil::isRogueFamily, SpellInputType.SPELL_2));
+        registry.registerBinding(SpellBinding.forInputType(rogueNightfallLunge.id(), ClassUtil::isRogueFamily, SpellInputType.SPELL_2));
         registry.registerBinding(SpellBinding.forInputType(rogueRazorDash.id(), ClassUtil::isRogueFamily, SpellInputType.SPELL_3));
-        registry.registerBinding(SpellBinding.forInputType(rogueNightfallLunge.id(), ClassUtil::isRogueFamily, SpellInputType.SPELL_4));
+        registry.registerBinding(SpellBinding.forInputType(rogueSmokeBomb.id(), ClassUtil::isRogueFamily, SpellInputType.SPELL_4));
 
         configureCooldowns();
     }
