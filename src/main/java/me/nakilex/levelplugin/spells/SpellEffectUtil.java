@@ -19,6 +19,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -118,13 +119,21 @@ public final class SpellEffectUtil {
             if (didNotTakeDamage(startingHealth, target)) {
                 applyGuaranteedHealthDamage(target, damage);
             }
-            playHurtFeedback(target);
+            playHurtFeedback(target, caster);
         }
     }
 
-    private static void playHurtFeedback(LivingEntity target) {
+    private static void playHurtFeedback(LivingEntity target, Player attacker) {
         if (target == null || target.isDead()) {
             return;
+        }
+        float yaw = attacker != null ? attacker.getLocation().getYaw() : target.getLocation().getYaw();
+        try {
+            Method playHurtAnimation = target.getClass().getMethod("playHurtAnimation", float.class);
+            playHurtAnimation.invoke(target, yaw);
+            return;
+        } catch (ReflectiveOperationException ignored) {
+            // Fallback for API versions that do not expose playHurtAnimation(float).
         }
         target.playEffect(EntityEffect.HURT);
     }
