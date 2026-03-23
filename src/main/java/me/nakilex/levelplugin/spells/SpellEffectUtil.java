@@ -35,8 +35,8 @@ public final class SpellEffectUtil {
     private static final Map<UUID, Integer> INVULNERABILITY_BYPASS_REMAINING = new HashMap<>();
     private static final Map<UUID, Integer> ORIGINAL_MAX_NO_DAMAGE_TICKS = new HashMap<>();
     private static BukkitTask invulnerabilityBypassTickerTask;
-    private static final double HURT_KNOCKBACK_HORIZONTAL = 0.20;
-    private static final double HURT_KNOCKBACK_VERTICAL = 0.08;
+    private static final double HURT_KNOCKBACK_HORIZONTAL = 0.067;
+    private static final double HURT_KNOCKBACK_VERTICAL = 0.027;
 
     private SpellEffectUtil() {
     }
@@ -93,7 +93,7 @@ public final class SpellEffectUtil {
                                               Player caster,
                                               LivingEntity target,
                                               double damage) {
-        applyDirectSpellDamage(plugin, caster, target, damage, false);
+        applyDirectSpellDamage(plugin, caster, target, damage, true);
     }
 
     public static void applyDirectSpellDamage(Plugin plugin,

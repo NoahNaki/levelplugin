@@ -63,6 +63,10 @@ public class SpellInputListener implements Listener {
         }
         Player player = event.getPlayer();
         if (isLeftClickAction(action)) {
+            PlayerClass playerClass = PlayerClassManager.getInstance().getPlayerClass(player);
+            if (ClassUtil.isRogueFamily(playerClass)) {
+                return;
+            }
             handleClick(player, true);
             return;
         }
