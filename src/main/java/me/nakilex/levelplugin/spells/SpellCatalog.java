@@ -86,18 +86,24 @@ public final class SpellCatalog {
         registry.registerBinding(SpellBinding.forInputType(meteor.id(), ClassUtil::isMageFamily, SpellInputType.SPELL_4));
 
         SpellDefinition archerBasic = new SpellDefinition("archer_quickshot_basic", "Quickshot", 0, false);
+        SpellDefinition archerBasicSeeker = new SpellDefinition("archer_quickshot_seeker", "Quickshot: Seeker Tip", 0, false);
+        SpellDefinition archerBasicPayload = new SpellDefinition("archer_quickshot_payload", "Quickshot: Payload Arrow", 0, false);
         SpellDefinition archerBarrage = new SpellDefinition("archer_homing_barrage", "Seeker Barrage", 16, false);
         SpellDefinition archerVeilStep = new SpellDefinition("archer_veil_step", "Veil Step", 14, true);
         SpellDefinition archerSkybound = new SpellDefinition("archer_skybound", "Skybound Vault", 14, true);
         SpellDefinition archerArrowRain = new SpellDefinition("archer_arrow_rain", "Arrow Rain", 18, false);
 
-        registry.registerSpell(archerBasic, new ArcherBasicAttackSpell(plugin));
+        registry.registerSpell(archerBasic, new ArcherBasicAttackSpell(plugin, 0.0, 0.0, 0.0));
+        registry.registerSpell(archerBasicSeeker, new ArcherBasicAttackSpell(plugin, 0.22, 0.0, 0.0));
+        registry.registerSpell(archerBasicPayload, new ArcherBasicAttackSpell(plugin, 0.24, 2.6, 0.52));
         registry.registerSpell(archerBarrage, new ArcherHomingBarrageSpell(plugin, 7, 2L, 3.0, 0.25, 3.8, 0.34));
         registry.registerSpell(archerSkybound, new ArcherSkyboundSpell(plugin, 0.82, 80, 3.2, 5.4, 0.62));
         registry.registerSpell(archerVeilStep, new ArcherVeilStepSpell(45, 60, 90));
         registry.registerSpell(archerArrowRain, new ArcherArrowRainSpell(plugin, 6, 9, 8, 6.8, 14.0, 3.4, 0.30));
 
         registry.registerBinding(SpellBinding.forInputType(archerBasic.id(), ClassUtil::isArcherFamily, SpellInputType.BASIC_ATTACK));
+        registry.registerProgression(new SpellProgression(archerBasic.id(), java.util.List.of(
+                archerBasicSeeker.id(), archerBasicPayload.id())));
         registry.registerBinding(SpellBinding.forInputType(archerBarrage.id(), ClassUtil::isArcherFamily, SpellInputType.SPELL_1));
         registry.registerBinding(SpellBinding.forSequence(archerSkybound.id(), ClassUtil::isArcherFamily, SpellInputMode.MOUSE_COMBO, "LLL"));
         registry.registerBinding(SpellBinding.forSequence(archerSkybound.id(), ClassUtil::isArcherFamily, SpellInputMode.MOUSE_AND_KEYBOARD, "Left"));
@@ -127,9 +133,9 @@ public final class SpellCatalog {
         registry.registerSpell(rogueShadowFlurryTempest, new RogueShadowFlurrySpell(plugin, 5, 6.6, 0.9, 95, 3.0, 9.0));
         registry.registerSpell(rogueShadowFlurryExecution, new RogueShadowFlurrySpell(plugin, 6, 7.2, 1.0, 110, 3.4, 11.2));
 
-        registry.registerSpell(rogueSmokeBomb, new RogueSmokeBombSpell(plugin, 90, 3.4, 12));
-        registry.registerSpell(rogueSmokeBombObscure, new RogueSmokeBombSpell(plugin, 105, 3.8, 14));
-        registry.registerSpell(rogueSmokeBombDread, new RogueSmokeBombSpell(plugin, 120, 4.2, 16));
+        registry.registerSpell(rogueSmokeBomb, new RogueSmokeBombSpell(plugin, 90, 3.4, 12, 1, 0.0, 0.0, 20));
+        registry.registerSpell(rogueSmokeBombObscure, new RogueSmokeBombSpell(plugin, 105, 3.8, 14, 3, 26.0, 0.0, 20));
+        registry.registerSpell(rogueSmokeBombDread, new RogueSmokeBombSpell(plugin, 150, 4.4, 16, 3, 30.0, 2.1, 18));
 
         registry.registerSpell(rogueRazorDash, new RogueRazorDashSpell(plugin, 1.28));
         registry.registerSpell(rogueRazorDashRift, new RogueRazorDashSpell(plugin, 1.40));

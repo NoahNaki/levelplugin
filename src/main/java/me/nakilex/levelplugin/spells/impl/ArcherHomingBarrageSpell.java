@@ -5,12 +5,9 @@ import me.nakilex.levelplugin.spells.ArcherArrowUtil;
 import me.nakilex.levelplugin.spells.SpellContext;
 import me.nakilex.levelplugin.spells.SpellEffectUtil;
 import me.nakilex.levelplugin.spells.SpellHandler;
-import me.nakilex.levelplugin.spells.SpellTargetingUtil;
-import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.entity.Arrow;
-import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
@@ -76,47 +73,6 @@ public class ArcherHomingBarrageSpell implements SpellHandler {
             return;
         }
         caster.getWorld().spawnParticle(Particle.CRIT, caster.getEyeLocation(), 5, 0.12, 0.08, 0.12, 0.02);
-        attachHomingTask(caster, arrow);
-    }
-
-    private void attachHomingTask(Player caster, Arrow arrow) {
-        new BukkitRunnable() {
-            private int ticks;
-
-            @Override
-            public void run() {
-                if (!arrow.isValid() || arrow.isInBlock() || arrow.isOnGround() || !caster.isOnline()) {
-                    cancel();
-                    return;
-                }
-                if (ticks++ > 36) {
-                    cancel();
-                    return;
-                }
-
-                Location point = arrow.getLocation();
-                LivingEntity target = SpellTargetingUtil.resolveTargetLivingEntity(caster, 18.0, 0.7,
-                        living -> !living.equals(caster)
-                                && living.getWorld().equals(point.getWorld())
-                                && living.getLocation().distanceSquared(point) <= 20.0 * 20.0);
-                if (target == null) {
-                    return;
-                }
-
-                Location targetPoint = target.getLocation().clone().add(0.0, Math.min(1.2, target.getHeight() * 0.55), 0.0);
-                Vector desired = targetPoint.toVector().subtract(point.toVector());
-                if (desired.lengthSquared() <= 0.000001) {
-                    return;
-                }
-                Vector current = arrow.getVelocity();
-                Vector next = current.multiply(1.0 - homingStrength)
-                        .add(desired.normalize().multiply(current.length() * homingStrength));
-                if (next.lengthSquared() <= 0.000001) {
-                    return;
-                }
-                arrow.setVelocity(next);
-                point.getWorld().spawnParticle(Particle.CRIT, point, 1, 0.01, 0.01, 0.01, 0.01);
-            }
-        }.runTaskTimer(plugin, 1L, 1L);
+        ArcherArrowUtil.attachHomingTask(plugin, caster, arrow, homingStrength, 36, 18.0, 0.7);
     }
 }
