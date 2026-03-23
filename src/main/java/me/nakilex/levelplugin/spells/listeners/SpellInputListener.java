@@ -99,6 +99,11 @@ public class SpellInputListener implements Listener {
         PlayerClass playerClass = PlayerClassManager.getInstance().getPlayerClass(player);
         if (ClassUtil.isRogueFamily(playerClass)) {
             event.setCancelled(true);
+            long now = System.currentTimeMillis();
+            Long lastSwing = lastLeftSwingAt.get(player.getUniqueId());
+            if (lastSwing != null && now - lastSwing < LEFT_SWING_DEBOUNCE_MS) {
+                return;
+            }
         }
         handleClick(player, true);
     }
