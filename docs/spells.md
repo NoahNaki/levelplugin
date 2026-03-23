@@ -126,6 +126,12 @@ Use these as candidate implementations for the rogue family while reusing the ex
   - Reuse `ArcSlashCombatUtil.strike(...)` + direct damage for mixed AoE/single-target payoff.
   - Use `ChatMessageUtil` for invalid-target feedback to match existing spell UX.
 
+### Rogue progression tiers
+- **Shadow Flurry** → *Tempest Dive* → *Execution Drop* (more barrage hits, longer aerial window, stronger slam).
+- **Smoke Bomb** → *Obscure Field* → *Dread Cloud* (longer cloud uptime, larger radius, stronger stun cadence).
+- **Razor Dash** → *Rift Cut* → *Shade Surge* (higher dash speed and lane pressure).
+- **Nightfall Lunge** → *Cyclone* → *Judgement* (more orbit hits and stronger finisher damage).
+
 ### Mobility: **Razor Dash**
 - **Fantasy:** Fast forward dash that cuts enemies in a narrow lane.
 - **Gameplay:** Gap-closer with i-frames for first 0.2s; deals light damage along path.

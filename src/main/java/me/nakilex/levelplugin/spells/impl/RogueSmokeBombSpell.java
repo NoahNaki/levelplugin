@@ -28,17 +28,25 @@ import java.util.Set;
 import java.util.UUID;
 
 public class RogueSmokeBombSpell implements SpellHandler, Listener {
-    private static final int DURATION_TICKS = 90;
-    private static final double STUN_RADIUS = 3.4;
+    private static boolean listenerRegistered;
+    private static final Map<UUID, Item> activeBombs = new HashMap<>();
+    private static final Map<UUID, BukkitTask> bombTasks = new HashMap<>();
+    private static final Map<UUID, Set<UUID>> bombsByOwner = new HashMap<>();
 
     private final Main plugin;
-    private final Map<UUID, Item> activeBombs = new HashMap<>();
-    private final Map<UUID, BukkitTask> bombTasks = new HashMap<>();
-    private final Map<UUID, Set<UUID>> bombsByOwner = new HashMap<>();
+    private final int durationTicks;
+    private final double stunRadius;
+    private final int stunTicks;
 
-    public RogueSmokeBombSpell(Main plugin) {
+    public RogueSmokeBombSpell(Main plugin, int durationTicks, double stunRadius, int stunTicks) {
         this.plugin = plugin;
-        this.plugin.getServer().getPluginManager().registerEvents(this, this.plugin);
+        this.durationTicks = Math.max(20, durationTicks);
+        this.stunRadius = Math.max(1.0, stunRadius);
+        this.stunTicks = Math.max(1, stunTicks);
+        if (!listenerRegistered) {
+            this.plugin.getServer().getPluginManager().registerEvents(this, this.plugin);
+            listenerRegistered = true;
+        }
     }
 
     @Override
@@ -74,7 +82,7 @@ public class RogueSmokeBombSpell implements SpellHandler, Listener {
 
             @Override
             public void run() {
-                if (!bomb.isValid() || bomb.isDead() || elapsed >= DURATION_TICKS) {
+                if (!bomb.isValid() || bomb.isDead() || elapsed >= durationTicks) {
                     cleanupBomb(casterId, bombId, true);
                     return;
                 }
@@ -85,9 +93,9 @@ public class RogueSmokeBombSpell implements SpellHandler, Listener {
                 center.getWorld().spawnParticle(Particle.DUST, center, 8, 0.66, 0.18, 0.66,
                         new Particle.DustOptions(Color.fromRGB(20, 20, 20), 1.3f));
 
-                for (LivingEntity living : SpellEffectUtil.getLivingTargets(center, STUN_RADIUS,
+                for (LivingEntity living : SpellEffectUtil.getLivingTargets(center, stunRadius,
                         target -> !target.equals(caster) && !(target instanceof Player))) {
-                    SpellEffectUtil.applyStun(living, 12);
+                    SpellEffectUtil.applyStun(living, stunTicks);
                 }
                 elapsed += 2;
             }

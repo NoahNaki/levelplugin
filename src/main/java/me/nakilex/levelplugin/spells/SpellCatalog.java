@@ -81,16 +81,49 @@ public final class SpellCatalog {
         registry.registerBinding(SpellBinding.forInputType(meteor.id(), ClassUtil::isMageFamily, SpellInputType.SPELL_4));
 
         SpellDefinition rogueShadowFlurry = new SpellDefinition("rogue_sky_ripper", "Shadow Flurry", 14, false);
+        SpellDefinition rogueShadowFlurryTempest = new SpellDefinition("rogue_sky_ripper_tempest", "Shadow Flurry: Tempest Dive", 14, false);
+        SpellDefinition rogueShadowFlurryExecution = new SpellDefinition("rogue_sky_ripper_execution", "Shadow Flurry: Execution Drop", 14, false);
+
         SpellDefinition rogueSmokeBomb = new SpellDefinition("rogue_veil_counter", "Smoke Bomb", 16, false);
+        SpellDefinition rogueSmokeBombObscure = new SpellDefinition("rogue_veil_counter_obscure", "Smoke Bomb: Obscure Field", 16, false);
+        SpellDefinition rogueSmokeBombDread = new SpellDefinition("rogue_veil_counter_dread", "Smoke Bomb: Dread Cloud", 16, false);
+
         SpellDefinition rogueRazorDash = new SpellDefinition("rogue_razor_dash", "Razor Dash", 12, true);
+        SpellDefinition rogueRazorDashRift = new SpellDefinition("rogue_razor_dash_rift", "Razor Dash: Rift Cut", 12, true);
+        SpellDefinition rogueRazorDashShade = new SpellDefinition("rogue_razor_dash_shade", "Razor Dash: Shade Surge", 12, true);
+
         SpellDefinition rogueNightfallLunge = new SpellDefinition("rogue_phantom_cross", "Nightfall Lunge", 18, false);
+        SpellDefinition rogueNightfallLungeCyclone = new SpellDefinition("rogue_phantom_cross_cyclone", "Nightfall Lunge: Cyclone", 18, false);
+        SpellDefinition rogueNightfallLungeJudgement = new SpellDefinition("rogue_phantom_cross_judgement", "Nightfall Lunge: Judgement", 18, false);
+
         SpellDefinition rogueArcBasic = new SpellDefinition("rogue_arc_basic", "Rogue Arc Slash", 0, false);
 
-        registry.registerSpell(rogueShadowFlurry, new RogueShadowFlurrySpell(plugin));
-        registry.registerSpell(rogueSmokeBomb, new RogueSmokeBombSpell(plugin));
+        registry.registerSpell(rogueShadowFlurry, new RogueShadowFlurrySpell(plugin, 4, 6.0, 0.8, 80, 2.6, 7.4));
+        registry.registerSpell(rogueShadowFlurryTempest, new RogueShadowFlurrySpell(plugin, 5, 6.6, 0.9, 95, 3.0, 9.0));
+        registry.registerSpell(rogueShadowFlurryExecution, new RogueShadowFlurrySpell(plugin, 6, 7.2, 1.0, 110, 3.4, 11.2));
+
+        registry.registerSpell(rogueSmokeBomb, new RogueSmokeBombSpell(plugin, 90, 3.4, 12));
+        registry.registerSpell(rogueSmokeBombObscure, new RogueSmokeBombSpell(plugin, 105, 3.8, 14));
+        registry.registerSpell(rogueSmokeBombDread, new RogueSmokeBombSpell(plugin, 120, 4.2, 16));
+
         registry.registerSpell(rogueRazorDash, new RogueRazorDashSpell(plugin, 1.28));
-        registry.registerSpell(rogueNightfallLunge, new RogueNightfallLungeSpell(plugin));
+        registry.registerSpell(rogueRazorDashRift, new RogueRazorDashSpell(plugin, 1.40));
+        registry.registerSpell(rogueRazorDashShade, new RogueRazorDashSpell(plugin, 1.52));
+
+        registry.registerSpell(rogueNightfallLunge, new RogueNightfallLungeSpell(plugin, 4, 6.0, 0.55, 7.2, 0.6, 11.8));
+        registry.registerSpell(rogueNightfallLungeCyclone, new RogueNightfallLungeSpell(plugin, 5, 6.6, 0.62, 7.8, 0.7, 13.2));
+        registry.registerSpell(rogueNightfallLungeJudgement, new RogueNightfallLungeSpell(plugin, 6, 7.2, 0.68, 8.4, 0.78, 14.8));
+
         registry.registerSpell(rogueArcBasic, new RogueArcBasicAttackSpell());
+
+        registry.registerProgression(new SpellProgression(rogueShadowFlurry.id(), java.util.List.of(
+                rogueShadowFlurryTempest.id(), rogueShadowFlurryExecution.id())));
+        registry.registerProgression(new SpellProgression(rogueSmokeBomb.id(), java.util.List.of(
+                rogueSmokeBombObscure.id(), rogueSmokeBombDread.id())));
+        registry.registerProgression(new SpellProgression(rogueRazorDash.id(), java.util.List.of(
+                rogueRazorDashRift.id(), rogueRazorDashShade.id())));
+        registry.registerProgression(new SpellProgression(rogueNightfallLunge.id(), java.util.List.of(
+                rogueNightfallLungeCyclone.id(), rogueNightfallLungeJudgement.id())));
 
         registry.registerBinding(SpellBinding.forInputType(rogueArcBasic.id(), ClassUtil::isRogueFamily, SpellInputType.BASIC_ATTACK));
         registry.registerBinding(SpellBinding.forInputType(rogueShadowFlurry.id(), ClassUtil::isRogueFamily, SpellInputType.SPELL_1));
