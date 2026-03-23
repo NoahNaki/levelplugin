@@ -187,15 +187,14 @@ public class SpellInputListener implements Listener {
         if (isMainHandEmpty(player)) {
             return;
         }
-        if (archerFamily && !leftClick) {
-            dispatch(player, SpellInputType.BASIC_ATTACK, SpellInputMode.MOUSE_COMBO, "R");
-            resetComboTracker(player);
-            displayManager.clearInputs(player);
-            return;
-        }
         SpellComboTracker tracker = comboTrackers.computeIfAbsent(player.getUniqueId(),
                 id -> new SpellComboTracker(COMBO_TIMEOUT_MS));
         boolean comboStarted = tracker.hasInputs();
+        if (archerFamily && !leftClick && !comboStarted) {
+            dispatch(player, SpellInputType.BASIC_ATTACK, SpellInputMode.MOUSE_COMBO, "R");
+            displayManager.clearInputs(player);
+            return;
+        }
         boolean validComboStart = isComboStartClick(leftClick, archerFamily);
         if (!comboStarted && !validComboStart) {
             if (isBasicAttackClick(leftClick, archerFamily)) {
