@@ -92,6 +92,10 @@ public class SpellInputListener implements Listener {
         if (event.getCause() != EntityDamageEvent.DamageCause.ENTITY_ATTACK) {
             return;
         }
+        PlayerClass playerClass = PlayerClassManager.getInstance().getPlayerClass(player);
+        if (ClassUtil.isRogueFamily(playerClass)) {
+            event.setCancelled(true);
+        }
         handleClick(player, true);
     }
 
