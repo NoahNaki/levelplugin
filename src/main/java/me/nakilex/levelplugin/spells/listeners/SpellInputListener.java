@@ -171,7 +171,7 @@ public class SpellInputListener implements Listener {
         state.lastReleaseAt = now;
         if (state.count >= 2) {
             state.count = 0;
-            dispatchBoundSpell(player, SpellInputMode.MOUSE_AND_KEYBOARD, SpellKeybindSlot.SLOT_3, "Sneak+Sneak");
+            dispatchBoundSpell(player, SpellInputMode.MOUSE_AND_KEYBOARD, SpellKeybindSlot.SLOT_2, "Sneak+Sneak");
         }
     }
 
@@ -235,12 +235,8 @@ public class SpellInputListener implements Listener {
 
     private void handleModifierClick(Player player, boolean leftClick, boolean archerFamily) {
         displayManager.recordClick(player, leftClick ? SpellClickInput.LEFT : SpellClickInput.RIGHT);
-        if (archerFamily && leftClick && !player.isSneaking()) {
-            dispatchBoundSpell(player, SpellInputMode.MOUSE_AND_KEYBOARD, SpellKeybindSlot.SLOT_2, "Left");
-            return;
-        }
         if (player.isSneaking()) {
-            SpellKeybindSlot slot = leftClick ? SpellKeybindSlot.SLOT_1 : SpellKeybindSlot.SLOT_2;
+            SpellKeybindSlot slot = leftClick ? SpellKeybindSlot.SLOT_1 : SpellKeybindSlot.SLOT_3;
             dispatchBoundSpell(player, SpellInputMode.MOUSE_AND_KEYBOARD, slot,
                     leftClick ? "Sneak+Left" : "Sneak+Right");
             return;
