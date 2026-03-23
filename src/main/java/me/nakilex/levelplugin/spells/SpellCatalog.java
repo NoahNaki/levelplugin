@@ -133,9 +133,9 @@ public final class SpellCatalog {
         registry.registerSpell(rogueShadowFlurryTempest, new RogueShadowFlurrySpell(plugin, 5, 6.6, 0.9, 95, 3.0, 9.0));
         registry.registerSpell(rogueShadowFlurryExecution, new RogueShadowFlurrySpell(plugin, 6, 7.2, 1.0, 110, 3.4, 11.2));
 
-        registry.registerSpell(rogueSmokeBomb, new RogueSmokeBombSpell(plugin, 90, 3.4, 12, 1, 0.0, 0.0, 20));
-        registry.registerSpell(rogueSmokeBombObscure, new RogueSmokeBombSpell(plugin, 105, 3.8, 14, 3, 26.0, 0.0, 20));
-        registry.registerSpell(rogueSmokeBombDread, new RogueSmokeBombSpell(plugin, 150, 4.4, 16, 3, 30.0, 2.1, 18));
+        registry.registerSpell(rogueSmokeBomb, new RogueSmokeBombSpell(plugin, 60, 3.4, 12, 1, 0.0, 0.0, 20));
+        registry.registerSpell(rogueSmokeBombObscure, new RogueSmokeBombSpell(plugin, 60, 3.8, 14, 3, 26.0, 0.0, 20));
+        registry.registerSpell(rogueSmokeBombDread, new RogueSmokeBombSpell(plugin, 60, 4.4, 16, 3, 30.0, 2.1, 18));
 
         registry.registerSpell(rogueRazorDash, new RogueRazorDashSpell(plugin, 1.28));
         registry.registerSpell(rogueRazorDashRift, new RogueRazorDashSpell(plugin, 1.40));
@@ -194,9 +194,9 @@ public final class SpellCatalog {
         SpellCastManager.setSpellCooldownMs("rogue_sky_ripper", 5600L);
         SpellCastManager.setSpellCooldownMs("rogue_sky_ripper_tempest", 6500L);
         SpellCastManager.setSpellCooldownMs("rogue_sky_ripper_execution", 7600L);
-        SpellCastManager.setSpellCooldownMs("rogue_veil_counter", 6400L);
-        SpellCastManager.setSpellCooldownMs("rogue_veil_counter_obscure", 7400L);
-        SpellCastManager.setSpellCooldownMs("rogue_veil_counter_dread", 8600L);
+        SpellCastManager.setSpellCooldownMs("rogue_veil_counter", 30000L);
+        SpellCastManager.setSpellCooldownMs("rogue_veil_counter_obscure", 30000L);
+        SpellCastManager.setSpellCooldownMs("rogue_veil_counter_dread", 30000L);
         SpellCastManager.setSpellCooldownMs("rogue_razor_dash", 0L);
         SpellCastManager.setSpellCooldownMs("rogue_razor_dash_rift", 0L);
         SpellCastManager.setSpellCooldownMs("rogue_razor_dash_shade", 0L);

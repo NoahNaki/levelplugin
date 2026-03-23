@@ -1,65 +1,64 @@
 package me.nakilex.levelplugin.spells.impl;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.duels.managers.DuelManager;
 import me.nakilex.levelplugin.spells.SpellContext;
 import me.nakilex.levelplugin.spells.SpellEffectUtil;
 import me.nakilex.levelplugin.spells.SpellHandler;
-import org.bukkit.Color;
+import me.nakilex.levelplugin.utils.ModelEngineUtil;
+import me.nakilex.levelplugin.utils.PotionEffectUtil;
 import org.bukkit.Location;
-import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
-import org.bukkit.entity.Item;
+import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.server.PluginDisableEvent;
-import org.bukkit.inventory.ItemStack;
+import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitTask;
-import org.bukkit.util.Vector;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
 public class RogueSmokeBombSpell implements SpellHandler, Listener {
+    private static final List<String> MODEL_CANDIDATES = List.of("rogue_smokebomb", "rogue_smokebomb.bbmodel");
     private static boolean listenerRegistered;
-    private static final Map<UUID, Item> activeBombs = new HashMap<>();
-    private static final Map<UUID, BukkitTask> bombTasks = new HashMap<>();
-    private static final Map<UUID, Set<UUID>> bombsByOwner = new HashMap<>();
+
+    private static final int PLAYER_STUN_TICKS = 30; // 1.5s
+    private static final int MOB_STUN_TICKS = 60;    // 3.0s
+    private static final int BUFF_REFRESH_TICKS = 10;
+
+    private static final Map<UUID, SmokeBombState> ACTIVE_BOMBS = new HashMap<>();
+    private static final Map<UUID, Set<UUID>> BOMBS_BY_OWNER = new HashMap<>();
 
     private final Main plugin;
     private final int durationTicks;
-    private final double stunRadius;
-    private final int stunTicks;
-    private final int bombCount;
-    private final double coneDegrees;
+    private final double effectRadius;
     private final double dotDamagePerTick;
     private final int dotPeriodTicks;
 
-    public RogueSmokeBombSpell(Main plugin, int durationTicks, double stunRadius, int stunTicks) {
-        this(plugin, durationTicks, stunRadius, stunTicks, 1, 0.0, 0.0, 20);
+    public RogueSmokeBombSpell(Main plugin, int durationTicks, double effectRadius, int unusedStunTicks) {
+        this(plugin, durationTicks, effectRadius, unusedStunTicks, 1, 0.0, 0.0, 20);
     }
 
     public RogueSmokeBombSpell(Main plugin,
                                int durationTicks,
-                               double stunRadius,
-                               int stunTicks,
-                               int bombCount,
-                               double coneDegrees,
+                               double effectRadius,
+                               int unusedStunTicks,
+                               int unusedBombCount,
+                               double unusedConeDegrees,
                                double dotDamagePerTick,
                                int dotPeriodTicks) {
         this.plugin = plugin;
         this.durationTicks = Math.max(20, durationTicks);
-        this.stunRadius = Math.max(1.0, stunRadius);
-        this.stunTicks = Math.max(1, stunTicks);
-        this.bombCount = Math.max(1, bombCount);
-        this.coneDegrees = Math.max(0.0, coneDegrees);
+        this.effectRadius = Math.max(1.0, effectRadius);
         this.dotDamagePerTick = Math.max(0.0, dotDamagePerTick);
         this.dotPeriodTicks = Math.max(1, dotPeriodTicks);
         if (!listenerRegistered) {
@@ -74,59 +73,28 @@ public class RogueSmokeBombSpell implements SpellHandler, Listener {
         UUID casterId = caster.getUniqueId();
         cleanupOwnerBombs(casterId);
 
-        Vector forward = caster.getLocation().getDirection().setY(0.0);
-        if (forward.lengthSquared() <= 0.0001) {
-            forward = new Vector(0.0, 0.0, 1.0);
-        }
-        forward.normalize();
-
-        for (int i = 0; i < bombCount; i++) {
-            double yawOffset = computeYawOffset(i);
-            Vector launchDirection = rotateAroundY(forward.clone(), yawOffset).normalize();
-            Location spawnLocation = caster.getLocation().clone()
-                    .add(launchDirection.clone().multiply(0.65))
-                    .add(0.0, 0.2, 0.0);
-            spawnBombForCaster(caster, casterId, launchDirection, spawnLocation);
+        Location center = caster.getLocation().clone().add(0.0, 0.08, 0.0);
+        ArmorStand anchor = spawnModelAnchor(center);
+        if (anchor == null) {
+            return;
         }
 
-        caster.getWorld().playSound(caster.getLocation(), Sound.ENTITY_BAT_TAKEOFF, 0.6f, 0.75f);
-        caster.getWorld().playSound(caster.getLocation(), Sound.ENTITY_GENERIC_EXTINGUISH_FIRE, 0.8f, 0.9f);
-    }
-
-    private void spawnBombForCaster(Player caster, UUID casterId, Vector launchDirection, Location spawnLocation) {
-        Item bomb = caster.getWorld().dropItem(spawnLocation, new ItemStack(Material.WITHER_SKELETON_SKULL));
-        bomb.setPickupDelay(Integer.MAX_VALUE);
-        bomb.setCanMobPickup(false);
-        bomb.setUnlimitedLifetime(false);
-        bomb.setVelocity(launchDirection.clone().multiply(0.34).setY(0.18));
-
-        UUID bombId = bomb.getUniqueId();
-        activeBombs.put(bombId, bomb);
-        bombsByOwner.computeIfAbsent(casterId, key -> new HashSet<>()).add(bombId);
+        UUID bombId = anchor.getUniqueId();
         BukkitTask task = plugin.getServer().getScheduler().runTaskTimer(plugin, new Runnable() {
             private int elapsed;
             private int dotElapsed;
 
             @Override
             public void run() {
-                if (!bomb.isValid() || bomb.isDead() || elapsed >= durationTicks) {
+                if (!anchor.isValid() || anchor.isDead() || elapsed >= durationTicks) {
                     cleanupBomb(casterId, bombId, true);
                     return;
                 }
 
-                Location center = bomb.getLocation().clone().add(0.0, 0.18, 0.0);
-                center.getWorld().spawnParticle(Particle.LARGE_SMOKE, center, 22, 0.82, 0.36, 0.82, 0.002);
-                center.getWorld().spawnParticle(Particle.SMOKE, center, 12, 0.72, 0.28, 0.72, 0.002);
-                center.getWorld().spawnParticle(Particle.DUST, center, 8, 0.66, 0.18, 0.66,
-                        new Particle.DustOptions(Color.fromRGB(20, 20, 20), 1.3f));
+                Location bombCenter = anchor.getLocation().clone().add(0.0, 0.25, 0.0);
+                spawnSmokeVisuals(bombCenter);
+                applySmokeEffects(caster, bombCenter, dotElapsed <= 0);
 
-                for (LivingEntity living : SpellEffectUtil.getLivingTargets(center, stunRadius,
-                        target -> !target.equals(caster) && !(target instanceof Player))) {
-                    SpellEffectUtil.applyStun(living, stunTicks);
-                    if (dotDamagePerTick > 0.0 && dotElapsed <= 0) {
-                        SpellEffectUtil.applyDirectSpellDamage(plugin, caster, living, dotDamagePerTick, true);
-                    }
-                }
                 elapsed += 2;
                 dotElapsed += 2;
                 if (dotElapsed >= dotPeriodTicks) {
@@ -134,25 +102,59 @@ public class RogueSmokeBombSpell implements SpellHandler, Listener {
                 }
             }
         }, 0L, 2L);
-        bombTasks.put(bombId, task);
+
+        ACTIVE_BOMBS.put(bombId, new SmokeBombState(anchor, task));
+        BOMBS_BY_OWNER.computeIfAbsent(casterId, key -> new HashSet<>()).add(bombId);
+
+        caster.getWorld().playSound(caster.getLocation(), Sound.ENTITY_BAT_TAKEOFF, 0.6f, 0.72f);
+        caster.getWorld().playSound(caster.getLocation(), Sound.ENTITY_GENERIC_EXTINGUISH_FIRE, 0.8f, 0.86f);
     }
 
-    private double computeYawOffset(int index) {
-        if (bombCount <= 1 || coneDegrees <= 0.0) {
-            return 0.0;
+    private ArmorStand spawnModelAnchor(Location center) {
+        if (center == null || center.getWorld() == null) {
+            return null;
         }
-        double step = coneDegrees / Math.max(1, bombCount - 1);
-        return (-coneDegrees / 2.0) + (step * index);
+        ArmorStand anchor = center.getWorld().spawn(center, ArmorStand.class, stand -> {
+            stand.setInvisible(true);
+            stand.setMarker(true);
+            stand.setGravity(false);
+            stand.setSilent(true);
+            stand.setInvulnerable(true);
+            stand.setCollidable(false);
+        });
+        ModelEngineUtil.applyFirstAvailableModel(anchor, MODEL_CANDIDATES, plugin);
+        return anchor;
     }
 
-    private Vector rotateAroundY(Vector vector, double degrees) {
-        return vector.rotateAroundY(Math.toRadians(degrees));
+    private void spawnSmokeVisuals(Location center) {
+        if (center == null || center.getWorld() == null) {
+            return;
+        }
+        center.getWorld().spawnParticle(Particle.SMOKE, center, 10, 0.4, 0.25, 0.4, 0.001);
+        center.getWorld().spawnParticle(Particle.LARGE_SMOKE, center, 16, 0.85, 0.4, 0.85, 0.001);
     }
 
-    @EventHandler
-    public void onBombPickup(EntityPickupItemEvent event) {
-        if (activeBombs.containsKey(event.getItem().getUniqueId())) {
-            event.setCancelled(true);
+    private void applySmokeEffects(Player caster, Location center, boolean applyDotThisTick) {
+        for (LivingEntity living : SpellEffectUtil.getLivingTargets(center, effectRadius,
+                target -> !target.equals(caster))) {
+            if (living instanceof Player targetPlayer) {
+                if (!DuelManager.getInstance().areInDuel(caster.getUniqueId(), targetPlayer.getUniqueId())) {
+                    continue;
+                }
+                SpellEffectUtil.applyStun(targetPlayer, PLAYER_STUN_TICKS);
+            } else {
+                SpellEffectUtil.applyStun(living, MOB_STUN_TICKS);
+            }
+
+            if (dotDamagePerTick > 0.0 && applyDotThisTick) {
+                SpellEffectUtil.applyDirectSpellDamage(plugin, caster, living, dotDamagePerTick, true);
+            }
+        }
+
+        if (caster.getLocation().distanceSquared(center) <= effectRadius * effectRadius) {
+            PotionEffectUtil.applyHiddenEffect(caster, PotionEffectType.INVISIBILITY, BUFF_REFRESH_TICKS + 2, 0);
+            PotionEffectUtil.applyHiddenEffect(caster, PotionEffectType.SPEED, BUFF_REFRESH_TICKS + 2, 1);
+            PotionEffectUtil.applyHiddenEffect(caster, PotionEffectType.REGENERATION, BUFF_REFRESH_TICKS + 2, 0);
         }
     }
 
@@ -169,7 +171,7 @@ public class RogueSmokeBombSpell implements SpellHandler, Listener {
     }
 
     private void cleanupOwnerBombs(UUID ownerId) {
-        Set<UUID> ownerBombs = bombsByOwner.remove(ownerId);
+        Set<UUID> ownerBombs = BOMBS_BY_OWNER.remove(ownerId);
         if (ownerBombs == null || ownerBombs.isEmpty()) {
             return;
         }
@@ -179,32 +181,32 @@ public class RogueSmokeBombSpell implements SpellHandler, Listener {
     }
 
     private void cleanupAllBombs() {
-        for (UUID ownerId : new HashSet<>(bombsByOwner.keySet())) {
+        for (UUID ownerId : new HashSet<>(BOMBS_BY_OWNER.keySet())) {
             cleanupOwnerBombs(ownerId);
         }
-        activeBombs.clear();
-        bombTasks.clear();
-        bombsByOwner.clear();
+        ACTIVE_BOMBS.clear();
+        BOMBS_BY_OWNER.clear();
     }
 
     private void cleanupBomb(UUID ownerId, UUID bombId, boolean removeEntity) {
-        BukkitTask task = bombTasks.remove(bombId);
-        if (task != null) {
-            task.cancel();
+        SmokeBombState state = ACTIVE_BOMBS.remove(bombId);
+        if (state != null) {
+            state.task().cancel();
+            if (removeEntity && state.anchor().isValid()) {
+                state.anchor().remove();
+            }
         }
 
-        Item bomb = activeBombs.remove(bombId);
-        if (removeEntity && bomb != null && bomb.isValid()) {
-            bomb.remove();
-        }
-
-        Set<UUID> ownerBombs = bombsByOwner.get(ownerId);
+        Set<UUID> ownerBombs = BOMBS_BY_OWNER.get(ownerId);
         if (ownerBombs == null) {
             return;
         }
         ownerBombs.remove(bombId);
         if (ownerBombs.isEmpty()) {
-            bombsByOwner.remove(ownerId);
+            BOMBS_BY_OWNER.remove(ownerId);
         }
+    }
+
+    private record SmokeBombState(ArmorStand anchor, BukkitTask task) {
     }
 }
