@@ -9,6 +9,7 @@ import me.nakilex.levelplugin.player.classes.data.ClassUtil;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.pet.PetEffectType;
 import me.nakilex.levelplugin.pet.PetManager;
+import me.nakilex.levelplugin.spells.impl.ArcherWindguardSpell;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.utils.MobUtil;
 import org.bukkit.entity.Entity;
@@ -237,6 +238,7 @@ public class StatsEffectListener implements Listener {
             if (petManager != null) {
                 incoming = petManager.applyIncomingCombatPetReductions(attacked, incoming);
             }
+            incoming *= ArcherWindguardSpell.getIncomingDamageMultiplier(attacked);
 
             event.setDamage(incoming);
         }

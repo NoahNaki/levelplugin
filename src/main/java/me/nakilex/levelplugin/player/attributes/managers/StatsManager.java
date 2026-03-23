@@ -355,7 +355,7 @@ public class StatsManager {
         if (newWalkSpeed > 1.0f) newWalkSpeed = 1.0f;
         player.setWalkSpeed(newWalkSpeed);
 
-        ps.attackSpeed = 0.5 * (1.0 + 0.0075 * (ps.baseTechnique + ps.bonusTechnique));
+        ps.attackSpeed = 0.8 * (1.0 + 0.0075 * (ps.baseTechnique + ps.bonusTechnique));
         AttributeInstance atkAttr = player.getAttribute(Attribute.ATTACK_SPEED);
         if (atkAttr != null) atkAttr.setBaseValue(ps.attackSpeed * 8.0);
     }
@@ -553,7 +553,7 @@ public class StatsManager {
 
         public int maxMana = 50;
         public int currentMana = 50;
-        public double attackSpeed = 0.5; // attacks per second
+        public double attackSpeed = 0.8; // attacks per second
         public int skillPoints = 0;
         public double healthRegenBuffer = 0.0;
         public double manaRegenBuffer = 0.0;

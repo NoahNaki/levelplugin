@@ -37,12 +37,31 @@ public class RogueSmokeBombSpell implements SpellHandler, Listener {
     private final int durationTicks;
     private final double stunRadius;
     private final int stunTicks;
+    private final int bombCount;
+    private final double coneDegrees;
+    private final double dotDamagePerTick;
+    private final int dotPeriodTicks;
 
     public RogueSmokeBombSpell(Main plugin, int durationTicks, double stunRadius, int stunTicks) {
+        this(plugin, durationTicks, stunRadius, stunTicks, 1, 0.0, 0.0, 20);
+    }
+
+    public RogueSmokeBombSpell(Main plugin,
+                               int durationTicks,
+                               double stunRadius,
+                               int stunTicks,
+                               int bombCount,
+                               double coneDegrees,
+                               double dotDamagePerTick,
+                               int dotPeriodTicks) {
         this.plugin = plugin;
         this.durationTicks = Math.max(20, durationTicks);
         this.stunRadius = Math.max(1.0, stunRadius);
         this.stunTicks = Math.max(1, stunTicks);
+        this.bombCount = Math.max(1, bombCount);
+        this.coneDegrees = Math.max(0.0, coneDegrees);
+        this.dotDamagePerTick = Math.max(0.0, dotDamagePerTick);
+        this.dotPeriodTicks = Math.max(1, dotPeriodTicks);
         if (!listenerRegistered) {
             this.plugin.getServer().getPluginManager().registerEvents(this, this.plugin);
             listenerRegistered = true;
@@ -61,24 +80,32 @@ public class RogueSmokeBombSpell implements SpellHandler, Listener {
         }
         forward.normalize();
 
-        Location spawnLocation = caster.getLocation().clone()
-                .add(forward.clone().multiply(0.65))
-                .add(0.0, 0.2, 0.0);
+        for (int i = 0; i < bombCount; i++) {
+            double yawOffset = computeYawOffset(i);
+            Vector launchDirection = rotateAroundY(forward.clone(), yawOffset).normalize();
+            Location spawnLocation = caster.getLocation().clone()
+                    .add(launchDirection.clone().multiply(0.65))
+                    .add(0.0, 0.2, 0.0);
+            spawnBombForCaster(caster, casterId, launchDirection, spawnLocation);
+        }
+
+        caster.getWorld().playSound(caster.getLocation(), Sound.ENTITY_BAT_TAKEOFF, 0.6f, 0.75f);
+        caster.getWorld().playSound(caster.getLocation(), Sound.ENTITY_GENERIC_EXTINGUISH_FIRE, 0.8f, 0.9f);
+    }
+
+    private void spawnBombForCaster(Player caster, UUID casterId, Vector launchDirection, Location spawnLocation) {
         Item bomb = caster.getWorld().dropItem(spawnLocation, new ItemStack(Material.WITHER_SKELETON_SKULL));
         bomb.setPickupDelay(Integer.MAX_VALUE);
         bomb.setCanMobPickup(false);
         bomb.setUnlimitedLifetime(false);
-        bomb.setVelocity(forward.clone().multiply(0.34).setY(0.18));
+        bomb.setVelocity(launchDirection.clone().multiply(0.34).setY(0.18));
 
         UUID bombId = bomb.getUniqueId();
         activeBombs.put(bombId, bomb);
         bombsByOwner.computeIfAbsent(casterId, key -> new HashSet<>()).add(bombId);
-
-        caster.getWorld().playSound(caster.getLocation(), Sound.ENTITY_BAT_TAKEOFF, 0.6f, 0.75f);
-        caster.getWorld().playSound(caster.getLocation(), Sound.ENTITY_GENERIC_EXTINGUISH_FIRE, 0.8f, 0.9f);
-
         BukkitTask task = plugin.getServer().getScheduler().runTaskTimer(plugin, new Runnable() {
             private int elapsed;
+            private int dotElapsed;
 
             @Override
             public void run() {
@@ -96,11 +123,30 @@ public class RogueSmokeBombSpell implements SpellHandler, Listener {
                 for (LivingEntity living : SpellEffectUtil.getLivingTargets(center, stunRadius,
                         target -> !target.equals(caster) && !(target instanceof Player))) {
                     SpellEffectUtil.applyStun(living, stunTicks);
+                    if (dotDamagePerTick > 0.0 && dotElapsed <= 0) {
+                        SpellEffectUtil.applyDirectSpellDamage(plugin, caster, living, dotDamagePerTick, true);
+                    }
                 }
                 elapsed += 2;
+                dotElapsed += 2;
+                if (dotElapsed >= dotPeriodTicks) {
+                    dotElapsed = 0;
+                }
             }
         }, 0L, 2L);
         bombTasks.put(bombId, task);
+    }
+
+    private double computeYawOffset(int index) {
+        if (bombCount <= 1 || coneDegrees <= 0.0) {
+            return 0.0;
+        }
+        double step = coneDegrees / Math.max(1, bombCount - 1);
+        return (-coneDegrees / 2.0) + (step * index);
+    }
+
+    private Vector rotateAroundY(Vector vector, double degrees) {
+        return vector.rotateAroundY(Math.toRadians(degrees));
     }
 
     @EventHandler

@@ -8,6 +8,11 @@ import me.nakilex.levelplugin.spells.impl.MageHealSpell;
 import me.nakilex.levelplugin.spells.impl.MageBlinkSpell;
 import me.nakilex.levelplugin.spells.impl.MeteorSpell;
 import me.nakilex.levelplugin.spells.impl.BlackholeSpell;
+import me.nakilex.levelplugin.spells.impl.ArcherArrowRainSpell;
+import me.nakilex.levelplugin.spells.impl.ArcherBasicAttackSpell;
+import me.nakilex.levelplugin.spells.impl.ArcherHomingBarrageSpell;
+import me.nakilex.levelplugin.spells.impl.ArcherSkyboundSpell;
+import me.nakilex.levelplugin.spells.impl.ArcherWindguardSpell;
 import me.nakilex.levelplugin.spells.impl.RogueArcBasicAttackSpell;
 import me.nakilex.levelplugin.spells.impl.RogueRazorDashSpell;
 import me.nakilex.levelplugin.spells.impl.RogueNightfallLungeSpell;
@@ -80,6 +85,32 @@ public final class SpellCatalog {
 
         registry.registerBinding(SpellBinding.forInputType(meteor.id(), ClassUtil::isMageFamily, SpellInputType.SPELL_4));
 
+        SpellDefinition archerBasic = new SpellDefinition("archer_quickshot_basic", "Quickshot", 0, false);
+        SpellDefinition archerBasicSeeker = new SpellDefinition("archer_quickshot_seeker", "Quickshot: Seeker Tip", 0, false);
+        SpellDefinition archerBasicPayload = new SpellDefinition("archer_quickshot_payload", "Quickshot: Payload Arrow", 0, false);
+        SpellDefinition archerBarrage = new SpellDefinition("archer_homing_barrage", "Seeker Barrage", 16, false);
+        SpellDefinition archerWindguard = new SpellDefinition("archer_windguard", "Windguard", 18, false);
+        SpellDefinition archerSkybound = new SpellDefinition("archer_skybound", "Skybound Vault", 14, true);
+        SpellDefinition archerArrowRain = new SpellDefinition("archer_arrow_rain", "Arrow Rain", 18, false);
+
+        registry.registerSpell(archerBasic, new ArcherBasicAttackSpell(plugin, 0.0, 0.0, 0.0));
+        registry.registerSpell(archerBasicSeeker, new ArcherBasicAttackSpell(plugin, 0.22, 0.0, 0.0));
+        registry.registerSpell(archerBasicPayload, new ArcherBasicAttackSpell(plugin, 0.24, 2.6, 0.52));
+        registry.registerSpell(archerBarrage, new ArcherHomingBarrageSpell(plugin, 7, 2L, 3.0, 0.25, 3.8, 0.34));
+        registry.registerSpell(archerSkybound, new ArcherSkyboundSpell(plugin, 0.82, 80, 3.2, 5.4, 0.62));
+        registry.registerSpell(archerWindguard, new ArcherWindguardSpell(plugin, 80, 0.62));
+        registry.registerSpell(archerArrowRain, new ArcherArrowRainSpell(plugin, 6, 9, 8, 6.8, 14.0, 3.4, 0.30));
+
+        registry.registerBinding(SpellBinding.forInputType(archerBasic.id(), ClassUtil::isArcherFamily, SpellInputType.BASIC_ATTACK));
+        registry.registerProgression(new SpellProgression(archerBasic.id(), java.util.List.of(
+                archerBasicSeeker.id(), archerBasicPayload.id())));
+        registry.registerBinding(SpellBinding.forInputType(archerBarrage.id(), ClassUtil::isArcherFamily, SpellInputType.SPELL_1));
+        registry.registerBinding(SpellBinding.forSequence(archerSkybound.id(), ClassUtil::isArcherFamily, SpellInputMode.MOUSE_COMBO, "LLL"));
+        registry.registerBinding(SpellBinding.forSequence(archerSkybound.id(), ClassUtil::isArcherFamily, SpellInputMode.MOUSE_AND_KEYBOARD, "Left"));
+        registry.registerBinding(SpellBinding.forInputType(archerSkybound.id(), ClassUtil::isArcherFamily, SpellInputType.SPELL_2));
+        registry.registerBinding(SpellBinding.forInputType(archerWindguard.id(), ClassUtil::isArcherFamily, SpellInputType.SPELL_3));
+        registry.registerBinding(SpellBinding.forInputType(archerArrowRain.id(), ClassUtil::isArcherFamily, SpellInputType.SPELL_4));
+
         SpellDefinition rogueShadowFlurry = new SpellDefinition("rogue_sky_ripper", "Shadow Flurry", 14, false);
         SpellDefinition rogueShadowFlurryTempest = new SpellDefinition("rogue_sky_ripper_tempest", "Shadow Flurry: Tempest Dive", 14, false);
         SpellDefinition rogueShadowFlurryExecution = new SpellDefinition("rogue_sky_ripper_execution", "Shadow Flurry: Execution Drop", 14, false);
@@ -102,9 +133,9 @@ public final class SpellCatalog {
         registry.registerSpell(rogueShadowFlurryTempest, new RogueShadowFlurrySpell(plugin, 5, 6.6, 0.9, 95, 3.0, 9.0));
         registry.registerSpell(rogueShadowFlurryExecution, new RogueShadowFlurrySpell(plugin, 6, 7.2, 1.0, 110, 3.4, 11.2));
 
-        registry.registerSpell(rogueSmokeBomb, new RogueSmokeBombSpell(plugin, 90, 3.4, 12));
-        registry.registerSpell(rogueSmokeBombObscure, new RogueSmokeBombSpell(plugin, 105, 3.8, 14));
-        registry.registerSpell(rogueSmokeBombDread, new RogueSmokeBombSpell(plugin, 120, 4.2, 16));
+        registry.registerSpell(rogueSmokeBomb, new RogueSmokeBombSpell(plugin, 90, 3.4, 12, 1, 0.0, 0.0, 20));
+        registry.registerSpell(rogueSmokeBombObscure, new RogueSmokeBombSpell(plugin, 105, 3.8, 14, 3, 26.0, 0.0, 20));
+        registry.registerSpell(rogueSmokeBombDread, new RogueSmokeBombSpell(plugin, 150, 4.4, 16, 3, 30.0, 2.1, 18));
 
         registry.registerSpell(rogueRazorDash, new RogueRazorDashSpell(plugin, 1.28));
         registry.registerSpell(rogueRazorDashRift, new RogueRazorDashSpell(plugin, 1.40));
@@ -130,5 +161,47 @@ public final class SpellCatalog {
         registry.registerBinding(SpellBinding.forInputType(rogueSmokeBomb.id(), ClassUtil::isRogueFamily, SpellInputType.SPELL_2));
         registry.registerBinding(SpellBinding.forInputType(rogueRazorDash.id(), ClassUtil::isRogueFamily, SpellInputType.SPELL_3));
         registry.registerBinding(SpellBinding.forInputType(rogueNightfallLunge.id(), ClassUtil::isRogueFamily, SpellInputType.SPELL_4));
+
+        configureCooldowns();
+    }
+
+    private static void configureCooldowns() {
+        SpellCastManager.setSpellCooldownMs("mage_fireball_basic", 0L);
+        SpellCastManager.setSpellCooldownMs("mage_fireball_barrage", 0L);
+        SpellCastManager.setSpellCooldownMs("mage_fireball_inferno", 0L);
+        SpellCastManager.setSpellCooldownMs("meteor", 7500L);
+        SpellCastManager.setSpellCooldownMs("meteor_double", 9000L);
+        SpellCastManager.setSpellCooldownMs("meteor_big", 11500L);
+        SpellCastManager.setSpellCooldownMs("blackhole", 6200L);
+        SpellCastManager.setSpellCooldownMs("blackhole_gravitywell", 7600L);
+        SpellCastManager.setSpellCooldownMs("blackhole_singularity", 9300L);
+        SpellCastManager.setSpellCooldownMs("mage_heal", 6200L);
+        SpellCastManager.setSpellCooldownMs("mage_heal_rejuvenation", 7800L);
+        SpellCastManager.setSpellCooldownMs("mage_heal_party", 8600L);
+        SpellCastManager.setSpellCooldownMs("mage_blink", 0L);
+        SpellCastManager.setSpellCooldownMs("mage_blink_phase", 0L);
+        SpellCastManager.setSpellCooldownMs("mage_blink_rift", 0L);
+
+        SpellCastManager.setSpellCooldownMs("archer_quickshot_basic", 0L);
+        SpellCastManager.setSpellCooldownMs("archer_quickshot_seeker", 0L);
+        SpellCastManager.setSpellCooldownMs("archer_quickshot_payload", 0L);
+        SpellCastManager.setSpellCooldownMs("archer_homing_barrage", 6200L);
+        SpellCastManager.setSpellCooldownMs("archer_windguard", 9000L);
+        SpellCastManager.setSpellCooldownMs("archer_skybound", 0L);
+        SpellCastManager.setSpellCooldownMs("archer_arrow_rain", 9800L);
+
+        SpellCastManager.setSpellCooldownMs("rogue_arc_basic", 0L);
+        SpellCastManager.setSpellCooldownMs("rogue_sky_ripper", 5600L);
+        SpellCastManager.setSpellCooldownMs("rogue_sky_ripper_tempest", 6500L);
+        SpellCastManager.setSpellCooldownMs("rogue_sky_ripper_execution", 7600L);
+        SpellCastManager.setSpellCooldownMs("rogue_veil_counter", 6400L);
+        SpellCastManager.setSpellCooldownMs("rogue_veil_counter_obscure", 7400L);
+        SpellCastManager.setSpellCooldownMs("rogue_veil_counter_dread", 8600L);
+        SpellCastManager.setSpellCooldownMs("rogue_razor_dash", 0L);
+        SpellCastManager.setSpellCooldownMs("rogue_razor_dash_rift", 0L);
+        SpellCastManager.setSpellCooldownMs("rogue_razor_dash_shade", 0L);
+        SpellCastManager.setSpellCooldownMs("rogue_phantom_cross", 6900L);
+        SpellCastManager.setSpellCooldownMs("rogue_phantom_cross_cyclone", 7700L);
+        SpellCastManager.setSpellCooldownMs("rogue_phantom_cross_judgement", 8600L);
     }
 }
