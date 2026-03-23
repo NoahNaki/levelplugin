@@ -18,6 +18,7 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
+import org.bukkit.util.Vector;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -34,6 +35,8 @@ public final class SpellEffectUtil {
     private static final Map<UUID, Integer> INVULNERABILITY_BYPASS_REMAINING = new HashMap<>();
     private static final Map<UUID, Integer> ORIGINAL_MAX_NO_DAMAGE_TICKS = new HashMap<>();
     private static BukkitTask invulnerabilityBypassTickerTask;
+    private static final double HURT_KNOCKBACK_HORIZONTAL = 0.20;
+    private static final double HURT_KNOCKBACK_VERTICAL = 0.08;
 
     private SpellEffectUtil() {
     }
@@ -120,6 +123,7 @@ public final class SpellEffectUtil {
                 applyGuaranteedHealthDamage(target, damage);
             }
             playHurtFeedback(target, caster);
+            applyHurtKnockback(target, caster);
         }
     }
 
@@ -136,6 +140,26 @@ public final class SpellEffectUtil {
             // Fallback for API versions that do not expose playHurtAnimation(float).
         }
         target.playEffect(EntityEffect.HURT);
+    }
+
+    private static void applyHurtKnockback(LivingEntity target, Player attacker) {
+        if (target == null || attacker == null || target.isDead() || target.getWorld() == null || attacker.getWorld() == null) {
+            return;
+        }
+        if (!target.getWorld().equals(attacker.getWorld())) {
+            return;
+        }
+
+        Vector away = target.getLocation().toVector().subtract(attacker.getLocation().toVector());
+        away.setY(0.0);
+        if (away.lengthSquared() < 0.0001) {
+            away = attacker.getLocation().getDirection().clone().setY(0.0).multiply(-1.0);
+        }
+        if (away.lengthSquared() < 0.0001) {
+            return;
+        }
+        away.normalize().multiply(HURT_KNOCKBACK_HORIZONTAL).setY(HURT_KNOCKBACK_VERTICAL);
+        target.setVelocity(target.getVelocity().multiply(0.8).add(away));
     }
 
     private static boolean didNotTakeDamage(double startingHealth, LivingEntity target) {
