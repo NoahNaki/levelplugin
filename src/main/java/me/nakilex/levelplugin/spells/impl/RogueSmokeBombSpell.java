@@ -31,8 +31,8 @@ public class RogueSmokeBombSpell implements SpellHandler, Listener {
     private static final List<String> MODEL_CANDIDATES = List.of("rogue_smokebomb", "rogue_smokebomb.bbmodel");
     private static boolean listenerRegistered;
 
-    private static final int PLAYER_STUN_TICKS = 30; // 1.5s
-    private static final int MOB_STUN_TICKS = 60;    // 3.0s
+    private static final int PLAYER_STUN_TICKS = 40; // 2.0s
+    private static final int MOB_STUN_TICKS = 40;    // 2.0s
     private static final int BUFF_REFRESH_TICKS = 10;
 
     private static final Map<UUID, SmokeBombState> ACTIVE_BOMBS = new HashMap<>();
@@ -130,8 +130,8 @@ public class RogueSmokeBombSpell implements SpellHandler, Listener {
         if (center == null || center.getWorld() == null) {
             return;
         }
-        center.getWorld().spawnParticle(Particle.SMOKE, center, 10, 0.4, 0.25, 0.4, 0.001);
-        center.getWorld().spawnParticle(Particle.LARGE_SMOKE, center, 16, 0.85, 0.4, 0.85, 0.001);
+        center.getWorld().spawnParticle(Particle.CLOUD, center, 14, 0.6, 0.28, 0.6, 0.001);
+        center.getWorld().spawnParticle(Particle.WHITE_ASH, center, 22, 0.95, 0.42, 0.95, 0.001);
     }
 
     private void applySmokeEffects(Player caster, Location center, boolean applyDotThisTick) {
