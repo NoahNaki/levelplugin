@@ -6,6 +6,7 @@ import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.World;
 import org.bukkit.Bukkit;
+import org.bukkit.EntityEffect;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.type.Light;
@@ -113,9 +114,19 @@ public final class SpellEffectUtil {
             caster.removeMetadata(BYPASS_STAT_SCALING_META, plugin);
         }
 
-        if (resetInvulnerabilityFrames && didNotTakeDamage(startingHealth, target)) {
-            applyGuaranteedHealthDamage(target, damage);
+        if (resetInvulnerabilityFrames) {
+            if (didNotTakeDamage(startingHealth, target)) {
+                applyGuaranteedHealthDamage(target, damage);
+            }
+            playHurtFeedback(target);
         }
+    }
+
+    private static void playHurtFeedback(LivingEntity target) {
+        if (target == null || target.isDead()) {
+            return;
+        }
+        target.playEffect(EntityEffect.HURT);
     }
 
     private static boolean didNotTakeDamage(double startingHealth, LivingEntity target) {

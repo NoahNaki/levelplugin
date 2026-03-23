@@ -87,7 +87,7 @@ public class DoubleJumpListener implements Listener {
             player.setVelocity(lookDir);
 
             // FX/SFX
-            player.getWorld().spawnParticle(Particle.CLOUD, player.getLocation(),
+            player.getWorld().spawnParticle(Particle.CRIT, player.getLocation(),
                 30, 0.5, 0.1, 0.5, 0.1);
             player.getWorld().playSound(player.getLocation(),
                 Sound.ENTITY_BAT_TAKEOFF, 1.0f, 1.0f);
