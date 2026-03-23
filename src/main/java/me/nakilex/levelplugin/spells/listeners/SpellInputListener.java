@@ -278,12 +278,12 @@ public class SpellInputListener implements Listener {
     private void dispatch(Player player, SpellInputType type, SpellInputMode mode, String sequence) {
         Bukkit.getPluginManager().callEvent(new SpellInputEvent(player, type, mode, sequence));
         if (isSpellSlotCast(type)) {
-            clearComboState(player);
+            resetComboTracker(player);
         }
         sendSpellCastIndicator(player, type);
     }
 
-    private void clearComboState(Player player) {
+    private void resetComboTracker(Player player) {
         if (player == null) {
             return;
         }
@@ -291,7 +291,6 @@ public class SpellInputListener implements Listener {
         if (tracker != null) {
             tracker.reset();
         }
-        displayManager.clearInputs(player);
     }
 
     private boolean isSpellSlotCast(SpellInputType type) {

@@ -34,35 +34,41 @@ public class RogueNightfallLungeSpell implements SpellHandler {
         }
 
         new BukkitRunnable() {
-            private int wave;
+            private int tick;
 
             @Override
             public void run() {
-                if (!caster.isOnline() || !target.isValid() || target.isDead() || wave >= 4) {
+                if (!caster.isOnline() || !target.isValid() || target.isDead() || tick >= 10) {
                     cancel();
                     return;
                 }
 
-                Vector toTarget = target.getLocation().toVector().subtract(caster.getLocation().toVector()).setY(0.0);
-                if (toTarget.lengthSquared() <= 0.0001) {
-                    toTarget = caster.getLocation().getDirection().setY(0.0);
+                Location center = target.getLocation().clone().add(0.0, 1.0, 0.0);
+                double angle = (Math.PI * 2.0 * tick) / 10.0;
+                double radius = 1.3;
+                Location orbit = center.clone().add(Math.cos(angle) * radius, 0.0, Math.sin(angle) * radius);
+                Vector inward = center.toVector().subtract(orbit.toVector()).normalize();
+
+                Location orientation = caster.getLocation().clone();
+                orientation.setDirection(inward);
+                ArcSlashCombatUtil.strike(caster, orbit, orientation, 4.9 + (tick * 0.22), 1.9);
+
+                if (tick % 2 == 0) {
+                    SpellEffectUtil.applyDirectSpellDamage(plugin, caster, target, 6.0 + (tick * 0.35), true);
+                    target.setVelocity(target.getVelocity().multiply(0.85).add(new Vector(0.0, 0.08, 0.0)));
                 }
-                toTarget.normalize();
 
-                Location origin = caster.getLocation().clone().add(0.0, 1.0, 0.0);
-                Location impact = origin.clone().add(toTarget.clone().multiply(2.6 + (wave * 1.3)));
+                center.getWorld().spawnParticle(Particle.CRIT, orbit, 7, 0.14, 0.12, 0.14, 0.02);
+                center.getWorld().playSound(center, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 0.78f, 0.92f + (tick * 0.03f));
 
-                ArcSlashCombatUtil.applyConeDamage(caster, origin, toTarget,
-                        4.0 + wave,
-                        34.0 + (wave * 6.0),
-                        2.1 + (wave * 0.25),
-                        5.2 + (wave * 0.9));
-                SpellEffectUtil.applyDirectSpellDamage(plugin, caster, target, 4.4 + (wave * 1.1), true);
+                if (tick == 9) {
+                    SpellEffectUtil.applyDirectSpellDamage(plugin, caster, target, 10.5, true);
+                    center.getWorld().spawnParticle(Particle.CRIT, center, 18, 0.32, 0.22, 0.32, 0.04);
+                    center.getWorld().playSound(center, Sound.ENTITY_PLAYER_ATTACK_CRIT, 1.0f, 0.86f);
+                }
 
-                caster.getWorld().spawnParticle(Particle.CRIT, impact, 12 + (wave * 3), 0.26, 0.14, 0.26, 0.03);
-                caster.getWorld().playSound(impact, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 0.86f, 0.95f + (wave * 0.08f));
-                wave++;
+                tick++;
             }
-        }.runTaskTimer(plugin, 0L, 4L);
+        }.runTaskTimer(plugin, 0L, 2L);
     }
 }

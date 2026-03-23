@@ -119,11 +119,11 @@ Use these as candidate implementations for the rogue family while reusing the ex
   - Keep invalid-target feedback in the existing style using `ChatMessageUtil`.
 
 ### Offensive (2): **Nightfall Lunge**
-- **Fantasy:** Fires four accelerating slash waves toward the targeted enemy.
-- **Gameplay:** Ranged pressure sequence with widening cone coverage per wave, without teleport movement.
+- **Fantasy:** Conjures a rotating cyclone of shadow slashes around a marked target, ending in a finisher cut.
+- **Gameplay:** Sustained single-target pressure with orbiting multi-hit slashes and a final burst hit.
 - **Implementation notes:**
-  - Reuse `ArcSlashCombatUtil.applyConeDamage(...)` for each wave with scalable width/range.
-  - Keep per-wave logic in one reusable timed loop for easier tuning.
+  - Reuse one timed orbit loop (angle + radius) to keep hit pacing/data tuning centralized.
+  - Reuse `ArcSlashCombatUtil.strike(...)` + direct damage for mixed AoE/single-target payoff.
   - Use `ChatMessageUtil` for invalid-target feedback to match existing spell UX.
 
 ### Mobility: **Razor Dash**
