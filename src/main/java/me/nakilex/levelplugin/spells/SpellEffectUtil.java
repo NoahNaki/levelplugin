@@ -109,11 +109,14 @@ public final class SpellEffectUtil {
         }
 
         int originalMaxNoDamageTicks = target.getMaximumNoDamageTicks();
-        target.setNoDamageTicks(0);
         target.setMaximumNoDamageTicks(0);
+        target.setNoDamageTicks(0);
+        target.setLastDamage(0.0);
         try {
             action.run();
         } finally {
+            target.setLastDamage(0.0);
+            target.setNoDamageTicks(0);
             target.setMaximumNoDamageTicks(originalMaxNoDamageTicks);
         }
     }
