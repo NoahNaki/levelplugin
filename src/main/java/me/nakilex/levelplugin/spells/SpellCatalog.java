@@ -106,8 +106,8 @@ public final class SpellCatalog {
                 archerBasicSeeker.id(), archerBasicPayload.id())));
         registry.registerBinding(SpellBinding.forInputType(archerBarrage.id(), ClassUtil::isArcherFamily, SpellInputType.SPELL_1));
         registry.registerBinding(SpellBinding.forSequence(archerSkybound.id(), ClassUtil::isArcherFamily, SpellInputMode.MOUSE_COMBO, "LLL"));
-        registry.registerBinding(SpellBinding.forInputType(archerWindguard.id(), ClassUtil::isArcherFamily, SpellInputType.SPELL_2));
-        registry.registerBinding(SpellBinding.forInputType(archerSkybound.id(), ClassUtil::isArcherFamily, SpellInputType.SPELL_3));
+        registry.registerBinding(SpellBinding.forInputType(archerSkybound.id(), ClassUtil::isArcherFamily, SpellInputType.SPELL_2));
+        registry.registerBinding(SpellBinding.forInputType(archerWindguard.id(), ClassUtil::isArcherFamily, SpellInputType.SPELL_3));
         registry.registerBinding(SpellBinding.forInputType(archerArrowRain.id(), ClassUtil::isArcherFamily, SpellInputType.SPELL_4));
 
         SpellDefinition rogueShadowFlurry = new SpellDefinition("rogue_sky_ripper", "Shadow Flurry", 14, false);
