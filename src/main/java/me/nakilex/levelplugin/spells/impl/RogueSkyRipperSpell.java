@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.spells.impl;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.spells.ArcSlashCombatUtil;
 import me.nakilex.levelplugin.spells.SpellContext;
 import me.nakilex.levelplugin.spells.SpellEffectUtil;
 import me.nakilex.levelplugin.spells.SpellHandler;
@@ -44,7 +45,7 @@ public class RogueSkyRipperSpell implements SpellHandler {
                 double travel = 1.8 + hitIndex * 1.45;
                 Location impact = origin.clone().add(forward.clone().multiply(travel));
                 double damage = hitIndex < 3 ? 4.8 + (hitIndex * 0.35) : 8.4;
-                SpellEffectUtil.applyAreaDamage(caster, impact, 2.0, damage);
+                ArcSlashCombatUtil.applyConeDamage(caster, impact, forward, 2.6, 76.0, 5.0, damage);
                 caster.getWorld().playSound(impact, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 0.9f, 1.12f + (hitIndex * 0.14f));
                 caster.getWorld().spawnParticle(Particle.CLOUD, impact, 10 + hitIndex * 3, 0.32, 0.20, 0.32, 0.03);
                 caster.getWorld().spawnParticle(Particle.ELECTRIC_SPARK, impact, 8 + hitIndex * 2, 0.22, 0.26, 0.22, 0.03);

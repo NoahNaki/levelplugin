@@ -2,11 +2,8 @@ package me.nakilex.levelplugin.spells.impl;
 
 import me.nakilex.levelplugin.spells.ArcSlashCombatUtil;
 import me.nakilex.levelplugin.spells.SpellContext;
-import me.nakilex.levelplugin.spells.SpellEffectUtil;
 import me.nakilex.levelplugin.spells.SpellHandler;
-import me.nakilex.levelplugin.spells.SpellTargetingUtil;
 import org.bukkit.Sound;
-import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 
 import java.util.HashMap;
@@ -29,14 +26,8 @@ public class RogueArcBasicAttackSpell implements SpellHandler {
         lastCastAt.put(caster.getUniqueId(), now);
 
         ArcSlashCombatUtil.strikeForward(caster, 1.2, 1.0, 3.4, 1.55);
-        LivingEntity lockedTarget = SpellTargetingUtil.resolveTargetLivingEntity(caster, 4.5, 1.1,
-                living -> !living.equals(caster));
-        if (lockedTarget != null) {
-            SpellEffectUtil.applyDirectSpellDamage(context.plugin(), caster, lockedTarget, 3.4, true);
-        } else {
-            SpellEffectUtil.applyAreaDamage(caster, caster.getLocation().clone().add(caster.getLocation().getDirection().setY(0.0).normalize().multiply(1.8)),
-                    5.0, 3.0);
-        }
+        ArcSlashCombatUtil.applyConeDamage(caster, caster.getLocation().clone().add(0.0, 1.0, 0.0),
+                caster.getLocation().getDirection(), 3.8, 72.0, 5.0, 3.4);
         caster.getWorld().playSound(caster.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 0.65f, 1.35f);
     }
 }

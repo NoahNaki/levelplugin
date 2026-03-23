@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.spells.impl;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.spells.ArcSlashCombatUtil;
 import me.nakilex.levelplugin.spells.SpellContext;
 import me.nakilex.levelplugin.spells.SpellEffectUtil;
 import me.nakilex.levelplugin.spells.SpellHandler;
@@ -49,7 +50,7 @@ public class RoguePhantomCrossSpell implements SpellHandler {
                 double side = (slash % 2 == 0 ? 1.0 : -1.0) * (0.38 + (slash * 0.05));
                 Location impact = target.getLocation().clone().add(0.0, 1.0, 0.0).add(right.multiply(side));
                 double damage = 2.7 + (slash * 0.42);
-                SpellEffectUtil.applyAreaDamage(caster, impact, 2.2, damage);
+                ArcSlashCombatUtil.applyConeDamage(caster, impact, forward, 3.2, 78.0, 5.0, damage);
                 SpellEffectUtil.applyDirectSpellDamage(context.plugin(), caster, target, damage, true);
                 for (int i = 0; i < 10; i++) {
                     double t = i / 9.0;

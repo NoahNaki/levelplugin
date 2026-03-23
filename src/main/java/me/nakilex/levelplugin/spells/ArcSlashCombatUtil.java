@@ -62,6 +62,9 @@ public final class ArcSlashCombatUtil {
                 config.rotateXDegrees(), config.rotateYDegrees(), config.rotateZDegrees());
 
         Location finalImpact = baseCenter.clone().add(renderDirection.clone().multiply(travelDistance));
+        Set<java.util.UUID> coneHits = new HashSet<>();
+        applyConeDamage(caster, baseCenter, renderDirection, Math.max(2.5, travelDistance + 1.0),
+                70.0, Math.max(damageRadius, 2.0), damage, coneHits);
 
         Main plugin = Main.getInstance();
         if (plugin == null) {
@@ -139,6 +142,62 @@ public final class ArcSlashCombatUtil {
         Location orientation = caster.getLocation().clone();
         orientation.setDirection(center.toVector().subtract(caster.getLocation().toVector()));
         strike(caster, center, orientation, damage, damageRadius);
+    }
+
+    public static int applyConeDamage(Player caster,
+                                      Location origin,
+                                      Vector forward,
+                                      double range,
+                                      double halfAngleDegrees,
+                                      double radius,
+                                      double damage) {
+        return applyConeDamage(caster, origin, forward, range, halfAngleDegrees, radius, damage, new HashSet<>());
+    }
+
+    public static int applyConeDamage(Player caster,
+                                      Location origin,
+                                      Vector forward,
+                                      double range,
+                                      double halfAngleDegrees,
+                                      double radius,
+                                      double damage,
+                                      Set<java.util.UUID> hitTargets) {
+        if (caster == null || origin == null || origin.getWorld() == null || forward == null || damage <= 0.0) {
+            return 0;
+        }
+        Vector dir = forward.clone().setY(0.0);
+        if (dir.lengthSquared() <= 0.0001) {
+            dir = caster.getLocation().getDirection().setY(0.0);
+        }
+        dir.normalize();
+        double safeRange = Math.max(0.5, range);
+        double safeRadius = Math.max(0.1, radius);
+        double cosThreshold = Math.cos(Math.toRadians(Math.max(1.0, halfAngleDegrees)));
+        int hits = 0;
+        for (LivingEntity living : SpellEffectUtil.getLivingTargets(origin, safeRange + safeRadius, t -> !t.equals(caster))) {
+            if (!hitTargets.add(living.getUniqueId())) {
+                continue;
+            }
+            Vector toTarget = living.getLocation().toVector().subtract(origin.toVector());
+            double forwardDistance = toTarget.dot(dir);
+            if (forwardDistance < 0.0 || forwardDistance > safeRange) {
+                continue;
+            }
+            Vector flat = toTarget.clone().setY(0.0);
+            if (flat.lengthSquared() <= 0.0001) {
+                continue;
+            }
+            if (flat.normalize().dot(dir) < cosThreshold) {
+                continue;
+            }
+            Location segmentPoint = origin.clone().add(dir.clone().multiply(forwardDistance));
+            if (living.getLocation().distanceSquared(segmentPoint) > safeRadius * safeRadius) {
+                continue;
+            }
+            SpellEffectUtil.applyDirectSpellDamage(Main.getInstance(), caster, living, damage, true);
+            hits++;
+        }
+        return hits;
     }
 
     private static void applyCollisionDamage(Player caster,
