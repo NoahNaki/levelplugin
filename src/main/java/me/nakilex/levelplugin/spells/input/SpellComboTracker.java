@@ -50,4 +50,10 @@ public class SpellComboTracker {
     public boolean hasInputs() {
         return !inputs.isEmpty();
     }
+
+    public void reset() {
+        inputs.clear();
+        lastInputAt = 0L;
+        lastSequence = null;
+    }
 }

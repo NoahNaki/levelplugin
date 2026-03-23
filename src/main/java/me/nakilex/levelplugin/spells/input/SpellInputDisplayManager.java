@@ -32,19 +32,13 @@ public class SpellInputDisplayManager {
         DisplayState state = states.computeIfAbsent(playerId, id -> new DisplayState());
         long now = System.currentTimeMillis();
         applyPendingCastReset(state, now);
-        if (state.starterPlaceholder) {
-            state.inputs.clear();
-            state.starterPlaceholder = false;
-        }
         if (state.castComplete || now - state.lastInputAt > COMBO_TIMEOUT_MS) {
             state.inputs.clear();
+            state.castComplete = false;
+            state.castResetAt = 0L;
         }
-        state.castComplete = false;
         state.lastInputAt = now;
         state.activeUntil = now + ACTIVE_WINDOW_MS;
-        if (state.inputs.isEmpty()) {
-            state.comboStartInput = input;
-        }
         if (state.inputs.size() == MAX_INPUTS) {
             state.inputs.removeFirst();
         }
@@ -120,9 +114,7 @@ public class SpellInputDisplayManager {
         if (state != null) {
             state.inputs.clear();
             state.castComplete = false;
-            state.comboStartInput = null;
             state.castResetAt = 0L;
-            state.starterPlaceholder = false;
         }
     }
 
@@ -144,16 +136,11 @@ public class SpellInputDisplayManager {
         if (state == null || !state.castComplete || state.castResetAt <= 0L || now < state.castResetAt) {
             return;
         }
-        SpellClickInput starter = state.comboStartInput;
         state.inputs.clear();
-        if (starter != null) {
-            state.inputs.addLast(starter);
-        }
         state.castComplete = false;
         state.castResetAt = 0L;
         state.lastInputAt = now;
         state.activeUntil = now + ACTIVE_WINDOW_MS;
-        state.starterPlaceholder = starter != null;
     }
 
     private String formatGlyphs(Deque<SpellClickInput> inputs) {
@@ -201,7 +188,5 @@ public class SpellInputDisplayManager {
         private long activeUntil;
         private boolean castComplete;
         private long castResetAt;
-        private SpellClickInput comboStartInput;
-        private boolean starterPlaceholder;
     }
 }

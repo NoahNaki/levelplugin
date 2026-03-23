@@ -1,5 +1,6 @@
 package me.nakilex.levelplugin.spells.listeners;
 
+import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.player.classes.data.ClassUtil;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.classes.managers.PlayerClassManager;
@@ -16,6 +17,7 @@ import me.nakilex.levelplugin.spells.input.SpellInputType;
 import me.nakilex.levelplugin.spells.input.SpellKeybindLayout;
 import me.nakilex.levelplugin.spells.input.SpellKeybindManager;
 import me.nakilex.levelplugin.spells.input.SpellKeybindSlot;
+import me.nakilex.levelplugin.spells.impl.RogueShadowFlurrySpell;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -137,10 +139,13 @@ public class SpellInputListener implements Listener {
 
     @EventHandler
     public void onSneak(PlayerToggleSneakEvent event) {
+        Player player = event.getPlayer();
         if (event.isSneaking()) {
+            if (RogueShadowFlurrySpell.tryTriggerAirSlam(Main.getInstance(), player)) {
+                return;
+            }
             return;
         }
-        Player player = event.getPlayer();
         if (!isHoldingValidClassWeapon(player)) {
             return;
         }
@@ -277,7 +282,27 @@ public class SpellInputListener implements Listener {
 
     private void dispatch(Player player, SpellInputType type, SpellInputMode mode, String sequence) {
         Bukkit.getPluginManager().callEvent(new SpellInputEvent(player, type, mode, sequence));
+        if (isSpellSlotCast(type)) {
+            resetComboTracker(player);
+        }
         sendSpellCastIndicator(player, type);
+    }
+
+    private void resetComboTracker(Player player) {
+        if (player == null) {
+            return;
+        }
+        SpellComboTracker tracker = comboTrackers.get(player.getUniqueId());
+        if (tracker != null) {
+            tracker.reset();
+        }
+    }
+
+    private boolean isSpellSlotCast(SpellInputType type) {
+        return type == SpellInputType.SPELL_1
+                || type == SpellInputType.SPELL_2
+                || type == SpellInputType.SPELL_3
+                || type == SpellInputType.SPELL_4;
     }
 
     private void dispatchBoundSpell(Player player, SpellInputMode mode, SpellKeybindSlot slot, String sequence) {

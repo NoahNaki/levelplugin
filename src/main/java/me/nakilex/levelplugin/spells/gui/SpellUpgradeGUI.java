@@ -1,7 +1,5 @@
 package me.nakilex.levelplugin.spells.gui;
 
-import me.nakilex.levelplugin.player.classes.data.ClassUtil;
-import me.nakilex.levelplugin.player.classes.managers.PlayerClassManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.spells.SpellProgression;
 import me.nakilex.levelplugin.spells.SpellRegistry;
@@ -38,10 +36,6 @@ public class SpellUpgradeGUI implements Listener {
     private final Map<UUID, List<GuiWidget>> widgetsByPlayer = new HashMap<>();
 
     public void open(Player player) {
-        if (!ClassUtil.isMageFamily(PlayerClassManager.getInstance().getPlayerClass(player))) {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING, "Spell upgrades are currently available for mage classes.");
-            return;
-        }
         Inventory gui = GuiBuilder.create(45, TITLE).filler(Material.BLACK_STAINED_GLASS_PANE).build();
         List<GuiWidget> widgets = buildWidgets(player);
         widgetsByPlayer.put(player.getUniqueId(), widgets);
@@ -91,7 +85,7 @@ public class SpellUpgradeGUI implements Listener {
         int points = progressionManager.getSpellPoints(player.getUniqueId());
         return GuiUtil.createGuiItem(Material.NETHER_STAR, ChatColor.AQUA + "Spell Points",
                 List.of(" ", ChatColor.GRAY + "Available: " + ChatColor.WHITE + points,
-                        ChatColor.DARK_GRAY + "Invest points to empower mage spells."));
+                        ChatColor.DARK_GRAY + "Invest points to empower your class spells."));
     }
 
     private ItemStack createSpellItem(Player player, String baseSpellId) {
@@ -163,6 +157,24 @@ public class SpellUpgradeGUI implements Listener {
             lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Will not pass through walls or place you inside terrain."));
             return lines;
         }
+        if (baseSpellId.startsWith("rogue_sky_ripper")) {
+            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Aerial barrage that dashes and rebounds between strikes."));
+            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Press " + ChatColor.YELLOW + "Crouch" + ChatColor.GRAY + " in-air to trigger slam impact."));
+            return lines;
+        }
+        if (baseSpellId.startsWith("rogue_veil_counter")) {
+            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Deploys smoke cloud that repeatedly stuns enemies."));
+            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Higher tiers increase duration, radius and stun cadence."));
+            return lines;
+        }
+        if (baseSpellId.startsWith("rogue_razor_dash")) {
+            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Forward dash slash with escalating speed per tier."));
+            return lines;
+        }
+        if (baseSpellId.startsWith("rogue_phantom_cross")) {
+            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Rotating lunge cyclone with burst finisher."));
+            return lines;
+        }
         return lines;
     }
 
@@ -196,6 +208,26 @@ public class SpellUpgradeGUI implements Listener {
             return tier == 1
                     ? "Extends blink range while retaining safe wall/ground collision checks."
                     : "Master blink reaches farther while still snapping to valid standable space.";
+        }
+        if (baseSpellId.startsWith("rogue_sky_ripper")) {
+            return tier == 1
+                    ? "Adds extra barrage strike plus stronger aerial slam impact."
+                    : "Execution tier further boosts strikes, slam radius and air-control window.";
+        }
+        if (baseSpellId.startsWith("rogue_veil_counter")) {
+            return tier == 1
+                    ? "Cloud lasts longer and catches enemies in a wider stun radius."
+                    : "Dread tier greatly amplifies cloud control duration and stun pressure.";
+        }
+        if (baseSpellId.startsWith("rogue_razor_dash")) {
+            return tier == 1
+                    ? "Increases dash speed and slash travel pressure."
+                    : "Final tier maximizes dash burst speed and lane damage uptime.";
+        }
+        if (baseSpellId.startsWith("rogue_phantom_cross")) {
+            return tier == 1
+                    ? "Cyclone performs more orbit hits with stronger direct damage."
+                    : "Judgement tier empowers hit count and final finisher burst.";
         }
         return "Enhances this spell's power and utility.";
     }
