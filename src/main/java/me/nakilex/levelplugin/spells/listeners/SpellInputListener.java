@@ -171,7 +171,10 @@ public class SpellInputListener implements Listener {
         state.lastReleaseAt = now;
         if (state.count >= 2) {
             state.count = 0;
-            dispatchBoundSpell(player, SpellInputMode.MOUSE_AND_KEYBOARD, SpellKeybindSlot.SLOT_2, "Sneak+Sneak");
+            SpellKeybindSlot slot = isArcherFamily(player)
+                    ? SpellKeybindSlot.SLOT_4
+                    : SpellKeybindSlot.SLOT_2;
+            dispatchBoundSpell(player, SpellInputMode.MOUSE_AND_KEYBOARD, slot, "Sneak+Sneak");
         }
     }
 
@@ -249,7 +252,10 @@ public class SpellInputListener implements Listener {
             dispatch(player, SpellInputType.BASIC_ATTACK, SpellInputMode.MOUSE_AND_KEYBOARD,
                     leftClick ? "Left" : "Right");
         } else if (!leftClick) {
-            dispatchBoundSpell(player, SpellInputMode.MOUSE_AND_KEYBOARD, SpellKeybindSlot.SLOT_4, "Right");
+            SpellKeybindSlot slot = isRogueFamily(player)
+                    ? SpellKeybindSlot.SLOT_3
+                    : SpellKeybindSlot.SLOT_4;
+            dispatchBoundSpell(player, SpellInputMode.MOUSE_AND_KEYBOARD, slot, "Right");
         }
     }
 
@@ -264,6 +270,11 @@ public class SpellInputListener implements Listener {
     private boolean isArcherFamily(Player player) {
         PlayerClass playerClass = PlayerClassManager.getInstance().getPlayerClass(player);
         return ClassUtil.isArcherFamily(playerClass);
+    }
+
+    private boolean isRogueFamily(Player player) {
+        PlayerClass playerClass = PlayerClassManager.getInstance().getPlayerClass(player);
+        return ClassUtil.isRogueFamily(playerClass);
     }
 
     private boolean isMainHandEmpty(Player player) {
