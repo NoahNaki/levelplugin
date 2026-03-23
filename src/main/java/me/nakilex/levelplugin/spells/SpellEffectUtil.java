@@ -87,10 +87,11 @@ public final class SpellEffectUtil {
                                               LivingEntity target,
                                               double damage,
                                               boolean resetInvulnerabilityFrames) {
-        if (plugin == null || caster == null || target == null || damage <= 0.0) {
+        if (plugin == null || caster == null || target == null || damage <= 0.0 || target.isDead()) {
             return;
         }
 
+        double startingHealth = target.getHealth();
         caster.setMetadata(BYPASS_STAT_SCALING_META, new FixedMetadataValue(plugin, true));
         try {
             if (resetInvulnerabilityFrames) {
@@ -101,6 +102,26 @@ public final class SpellEffectUtil {
         } finally {
             caster.removeMetadata(BYPASS_STAT_SCALING_META, plugin);
         }
+
+        if (resetInvulnerabilityFrames && didNotTakeDamage(startingHealth, target)) {
+            applyGuaranteedHealthDamage(target, damage);
+        }
+    }
+
+    private static boolean didNotTakeDamage(double startingHealth, LivingEntity target) {
+        if (target == null || target.isDead()) {
+            return false;
+        }
+        return target.getHealth() >= startingHealth - 0.0001;
+    }
+
+    private static void applyGuaranteedHealthDamage(LivingEntity target, double damage) {
+        if (target == null || damage <= 0.0 || target.isDead()) {
+            return;
+        }
+        double currentHealth = target.getHealth();
+        double nextHealth = Math.max(0.0, currentHealth - damage);
+        target.setHealth(nextHealth);
     }
 
     public static void withTemporaryInvulnerabilityBypass(LivingEntity target, Runnable action) {
