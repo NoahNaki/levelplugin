@@ -90,18 +90,33 @@ public final class SpellEffectUtil {
         if (plugin == null || caster == null || target == null || damage <= 0.0) {
             return;
         }
-        if (resetInvulnerabilityFrames) {
-            target.setNoDamageTicks(0);
-        }
+
         caster.setMetadata(BYPASS_STAT_SCALING_META, new FixedMetadataValue(plugin, true));
         try {
-            target.damage(damage, caster);
+            if (resetInvulnerabilityFrames) {
+                withTemporaryInvulnerabilityBypass(target, () -> target.damage(damage, caster));
+            } else {
+                target.damage(damage, caster);
+            }
         } finally {
             caster.removeMetadata(BYPASS_STAT_SCALING_META, plugin);
         }
     }
 
+    public static void withTemporaryInvulnerabilityBypass(LivingEntity target, Runnable action) {
+        if (target == null || action == null) {
+            return;
+        }
 
+        int originalMaxNoDamageTicks = target.getMaximumNoDamageTicks();
+        target.setNoDamageTicks(0);
+        target.setMaximumNoDamageTicks(0);
+        try {
+            action.run();
+        } finally {
+            target.setMaximumNoDamageTicks(originalMaxNoDamageTicks);
+        }
+    }
 
     public static Location moveTemporaryLight(Location currentLight, Location target, int lightLevel) {
         Location targetLight = normalizeToBlock(target);
