@@ -8,11 +8,11 @@ import me.nakilex.levelplugin.spells.impl.MageHealSpell;
 import me.nakilex.levelplugin.spells.impl.MageBlinkSpell;
 import me.nakilex.levelplugin.spells.impl.MeteorSpell;
 import me.nakilex.levelplugin.spells.impl.BlackholeSpell;
-import me.nakilex.levelplugin.spells.impl.RoguePhantomCrossSpell;
 import me.nakilex.levelplugin.spells.impl.RogueArcBasicAttackSpell;
 import me.nakilex.levelplugin.spells.impl.RogueRazorDashSpell;
-import me.nakilex.levelplugin.spells.impl.RogueSkyRipperSpell;
-import me.nakilex.levelplugin.spells.impl.RogueVeilCounterSpell;
+import me.nakilex.levelplugin.spells.impl.RogueNightfallLungeSpell;
+import me.nakilex.levelplugin.spells.impl.RogueShadowFlurrySpell;
+import me.nakilex.levelplugin.spells.impl.RogueSmokeBombSpell;
 import me.nakilex.levelplugin.spells.input.SpellInputMode;
 import me.nakilex.levelplugin.spells.input.SpellInputType;
 
@@ -80,22 +80,22 @@ public final class SpellCatalog {
 
         registry.registerBinding(SpellBinding.forInputType(meteor.id(), ClassUtil::isMageFamily, SpellInputType.SPELL_4));
 
-        SpellDefinition rogueSkyRipper = new SpellDefinition("rogue_sky_ripper", "Sky Ripper Combo", 14, false);
-        SpellDefinition rogueVeilCounter = new SpellDefinition("rogue_veil_counter", "Veil Counter", 16, false);
+        SpellDefinition rogueShadowFlurry = new SpellDefinition("rogue_sky_ripper", "Shadow Flurry", 14, false);
+        SpellDefinition rogueSmokeBomb = new SpellDefinition("rogue_veil_counter", "Smoke Bomb", 16, false);
         SpellDefinition rogueRazorDash = new SpellDefinition("rogue_razor_dash", "Razor Dash", 12, true);
-        SpellDefinition roguePhantomCross = new SpellDefinition("rogue_phantom_cross", "Phantom Cross", 18, false);
+        SpellDefinition rogueNightfallLunge = new SpellDefinition("rogue_phantom_cross", "Nightfall Lunge", 18, false);
         SpellDefinition rogueArcBasic = new SpellDefinition("rogue_arc_basic", "Rogue Arc Slash", 0, false);
 
-        registry.registerSpell(rogueSkyRipper, new RogueSkyRipperSpell(plugin));
-        registry.registerSpell(rogueVeilCounter, new RogueVeilCounterSpell(plugin));
+        registry.registerSpell(rogueShadowFlurry, new RogueShadowFlurrySpell(plugin));
+        registry.registerSpell(rogueSmokeBomb, new RogueSmokeBombSpell(plugin));
         registry.registerSpell(rogueRazorDash, new RogueRazorDashSpell(plugin, 1.28));
-        registry.registerSpell(roguePhantomCross, new RoguePhantomCrossSpell(plugin));
+        registry.registerSpell(rogueNightfallLunge, new RogueNightfallLungeSpell(plugin));
         registry.registerSpell(rogueArcBasic, new RogueArcBasicAttackSpell());
 
         registry.registerBinding(SpellBinding.forInputType(rogueArcBasic.id(), ClassUtil::isRogueFamily, SpellInputType.BASIC_ATTACK));
-        registry.registerBinding(SpellBinding.forInputType(rogueSkyRipper.id(), ClassUtil::isRogueFamily, SpellInputType.SPELL_1));
-        registry.registerBinding(SpellBinding.forInputType(rogueVeilCounter.id(), ClassUtil::isRogueFamily, SpellInputType.SPELL_2));
+        registry.registerBinding(SpellBinding.forInputType(rogueShadowFlurry.id(), ClassUtil::isRogueFamily, SpellInputType.SPELL_1));
+        registry.registerBinding(SpellBinding.forInputType(rogueSmokeBomb.id(), ClassUtil::isRogueFamily, SpellInputType.SPELL_2));
         registry.registerBinding(SpellBinding.forInputType(rogueRazorDash.id(), ClassUtil::isRogueFamily, SpellInputType.SPELL_3));
-        registry.registerBinding(SpellBinding.forInputType(roguePhantomCross.id(), ClassUtil::isRogueFamily, SpellInputType.SPELL_4));
+        registry.registerBinding(SpellBinding.forInputType(rogueNightfallLunge.id(), ClassUtil::isRogueFamily, SpellInputType.SPELL_4));
     }
 }

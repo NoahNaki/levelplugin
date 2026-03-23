@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.spells;
 
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
+import me.nakilex.levelplugin.utils.PotionEffectUtil;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
@@ -18,6 +19,7 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
+import org.bukkit.potion.PotionEffectType;
 import org.bukkit.util.Vector;
 
 import java.lang.reflect.Method;
@@ -64,6 +66,16 @@ public final class SpellEffectUtil {
             targets.add(living);
         }
         return targets;
+    }
+
+    public static void applyStun(LivingEntity target, int durationTicks) {
+        if (target == null || target.isDead()) {
+            return;
+        }
+        int safeDuration = Math.max(1, durationTicks);
+        PotionEffectUtil.applyHiddenEffect(target, PotionEffectType.SLOWNESS, safeDuration, 10);
+        PotionEffectUtil.applyHiddenEffect(target, PotionEffectType.WEAKNESS, safeDuration, 2);
+        target.setVelocity(new Vector(0.0, Math.min(0.0, target.getVelocity().getY()), 0.0));
     }
 
     public static void applyAreaDamage(Player source, Location center, double radius, double damage) {

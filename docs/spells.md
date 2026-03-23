@@ -110,21 +110,21 @@ When adding a new spell:
 
 Use these as candidate implementations for the rogue family while reusing the existing arc slash particle debug preset (`/debug particlepreset arc`) for iteration.
 
-### Offensive (1): **Sky Ripper Combo**
-- **Fantasy:** Launches the target upward with a rising slash, then chains two air cuts.
-- **Gameplay:** 3 hits total over ~1.2s; last hit slams target down with bonus damage if they hit ground.
+### Offensive (1): **Shadow Flurry**
+- **Fantasy:** A rapid sequence of five crescent slashes that weave left/right as you advance.
+- **Gameplay:** Mid-range pressure tool with escalating damage per hit over ~0.75s.
 - **Implementation notes:**
-  - Reuse `SpellEffectUtil.applyAreaDamage` per hit for consistency.
-  - Use the arc slash particle config for each swing with increasing `upOffset`.
-  - Use `ChatMessageUtil` for hit-confirm + cooldown feedback.
+  - Reuse `ArcSlashCombatUtil.strike(...)` for each swing so visuals/damage stay consistent.
+  - Keep one reusable forward+sway calculation per hit instead of bespoke vectors each time.
+  - Use existing warning UX style via `ChatMessageUtil` when no valid forward direction exists.
 
-### Offensive (2): **Phantom Cross**
-- **Fantasy:** Two mirrored dash-through slashes that cross behind the target.
-- **Gameplay:** First pass applies a short bleed; second pass detonates bleed stacks for burst.
+### Offensive (2): **Nightfall Lunge**
+- **Fantasy:** Locks onto a target and executes three puncture lunges with cross-cut finishers.
+- **Gameplay:** Targeted burst sequence with short dashes and stacked single-target pressure.
 - **Implementation notes:**
-  - Reuse one dash mover helper for both passes (direction sign flip), instead of duplicating tasks.
-  - Emit two arc slashes with opposite `rightOffset` values.
-  - Keep tooltip lines concise via `TooltipUtil.bulletList(...)` in UI lore.
+  - Reuse `SpellTargetingUtil.resolveTargetLivingEntity(...)` for target acquisition.
+  - Blend `ArcSlashCombatUtil.applyConeDamage(...)` with direct hit confirmation through `SpellEffectUtil.applyDirectSpellDamage(...)`.
+  - Keep warning/cooldown messaging aligned with existing spell UX via `ChatMessageUtil`.
 
 ### Mobility: **Razor Dash**
 - **Fantasy:** Fast forward dash that cuts enemies in a narrow lane.
@@ -134,10 +134,12 @@ Use these as candidate implementations for the rogue family while reusing the ex
   - Spawn short-lived arc slices every few blocks along travel path.
   - Use the same cooldown/deny messaging style as existing spells with `ChatMessageUtil`.
 
-### Defensive: **Veil Counter**
-- **Fantasy:** Brief parry stance; if hit, retaliates with a circular slash and backstep.
-- **Gameplay:** 0.6s counter window; successful counter grants small damage reduction buff for 2s.
+### Defensive: **Smoke Bomb**
+- **Fantasy:** Tosses a skull-like bomb canister that detonates into dense black smoke.
+- **Gameplay:** Area denial utility that repeatedly stuns enemies inside the smoke cloud.
 - **Implementation notes:**
-  - Model as a reusable "counter window" utility (on-hit callback + timeout callback).
-  - On success, render a compressed arc/ring blend for the counter visual.
-  - Tooltip should clearly call out window duration and reward using `TooltipUtil`.
+  - Use a tracked dropped item (`WITHER_SKELETON_SKULL`) with explicit no-pickup handling.
+  - Emit `SMOKE`/`SMOKE_LARGE` + black dust particles while the bomb is active.
+  - Include cleanup hooks for owner disconnect and plugin shutdown so active bomb entities/tasks are removed reliably.
+
+
