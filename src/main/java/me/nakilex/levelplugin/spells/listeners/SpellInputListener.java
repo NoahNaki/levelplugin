@@ -27,6 +27,8 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerToggleSneakEvent;
+import org.bukkit.event.player.PlayerAnimationEvent;
+import org.bukkit.event.player.PlayerAnimationType;
 import org.bukkit.event.block.Action;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
@@ -39,11 +41,13 @@ public class SpellInputListener implements Listener {
     private static final long COMBO_TIMEOUT_MS = 3_000L;
     private static final long SNEAK_WINDOW_MS = 700L;
     private static final long RIGHT_CLICK_DEBOUNCE_MS = 75L;
+    private static final long LEFT_SWING_DEBOUNCE_MS = 60L;
 
     private final SettingsManager settingsManager;
     private final Map<UUID, SpellComboTracker> comboTrackers = new HashMap<>();
     private final Map<UUID, SneakState> sneakStates = new HashMap<>();
     private final Map<UUID, Long> lastRightClickAt = new HashMap<>();
+    private final Map<UUID, Long> lastLeftSwingAt = new HashMap<>();
     private final SpellInputDisplayManager displayManager = SpellInputDisplayManager.getInstance();
     private final SpellKeybindManager keybindManager = SpellKeybindManager.getInstance();
 
@@ -100,6 +104,29 @@ public class SpellInputListener implements Listener {
     }
 
     @EventHandler
+    public void onAnimation(PlayerAnimationEvent event) {
+        if (event.getAnimationType() != PlayerAnimationType.ARM_SWING) {
+            return;
+        }
+        Player player = event.getPlayer();
+        PlayerClass playerClass = PlayerClassManager.getInstance().getPlayerClass(player);
+        if (!ClassUtil.isRogueFamily(playerClass)) {
+            return;
+        }
+        if (!isHoldingValidClassWeapon(player)) {
+            return;
+        }
+        long now = System.currentTimeMillis();
+        UUID playerId = player.getUniqueId();
+        Long last = lastLeftSwingAt.get(playerId);
+        if (last != null && now - last < LEFT_SWING_DEBOUNCE_MS) {
+            return;
+        }
+        lastLeftSwingAt.put(playerId, now);
+        handleClick(player, true);
+    }
+
+    @EventHandler
     public void onSneak(PlayerToggleSneakEvent event) {
         if (event.isSneaking()) {
             return;
@@ -131,6 +158,7 @@ public class SpellInputListener implements Listener {
         comboTrackers.remove(playerId);
         sneakStates.remove(playerId);
         lastRightClickAt.remove(playerId);
+        lastLeftSwingAt.remove(playerId);
         displayManager.clear(event.getPlayer());
     }
 
