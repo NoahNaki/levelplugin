@@ -101,8 +101,7 @@ public final class SpellEffectUtil {
             return;
         }
         Location indicator = target.getLocation().clone().add(0.0, target.getHeight() + 0.35, 0.0);
-        target.getWorld().spawnParticle(Particle.CRIT, indicator, 4, 0.24, 0.05, 0.24, 0.01);
-        target.getWorld().spawnParticle(Particle.CLOUD, indicator, 2, 0.18, 0.05, 0.18, 0.002);
+        spawnRingParticles(indicator, 0.38, Particle.CRIT, 10, 0.0);
     }
 
     public static void applyAreaDamage(Player source, Location center, double radius, double damage) {

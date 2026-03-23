@@ -14,8 +14,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 public class RogueNightfallLungeSpell implements SpellHandler {
     private final Main plugin;
@@ -27,82 +27,80 @@ public class RogueNightfallLungeSpell implements SpellHandler {
     @Override
     public void cast(SpellContext context) {
         Player caster = context.player();
-        LivingEntity mainTarget = SpellTargetingUtil.resolveTargetLivingEntity(caster, 15.0, 0.45,
+        LivingEntity firstTarget = SpellTargetingUtil.resolveTargetLivingEntity(caster, 16.0, 0.45,
                 living -> !living.equals(caster));
-        if (mainTarget == null) {
+        if (firstTarget == null) {
             ChatMessageUtil.send(caster, ChatMessageUtil.MessageType.WARNING,
                     "Look at a target mob for Nightfall Lunge.");
             return;
         }
 
-        teleportBehindTarget(caster, mainTarget);
-
-        Location detonationCenter = mainTarget.getLocation().clone().add(0.0, 1.0, 0.0);
-        List<LivingEntity> markedTargets = new ArrayList<>(SpellEffectUtil.getLivingTargets(detonationCenter, 3.8,
-                living -> !living.equals(caster) && !(living instanceof Player)));
-        if (markedTargets.isEmpty()) {
-            markedTargets.add(mainTarget);
-        }
-
-        caster.getWorld().playSound(caster.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 0.55f, 1.65f);
-        caster.getWorld().spawnParticle(Particle.LARGE_SMOKE, detonationCenter, 18, 0.45, 0.35, 0.45, 0.01);
+        Set<java.util.UUID> struckTargets = new HashSet<>();
 
         new BukkitRunnable() {
-            private int ticks;
+            private LivingEntity currentTarget = firstTarget;
+            private int jumps;
 
             @Override
             public void run() {
-                if (!caster.isOnline()) {
+                if (!caster.isOnline() || currentTarget == null || !currentTarget.isValid() || currentTarget.isDead() || jumps >= 4) {
                     cancel();
                     return;
                 }
 
-                markedTargets.removeIf(target -> !target.isValid() || target.isDead());
-                if (markedTargets.isEmpty()) {
+                strikeTarget(caster, currentTarget, jumps);
+                struckTargets.add(currentTarget.getUniqueId());
+                jumps++;
+
+                LivingEntity nextTarget = findNearestUnstruckTarget(currentTarget.getLocation(), caster, struckTargets, 8.0);
+                if (nextTarget == null) {
                     cancel();
                     return;
                 }
-
-                for (LivingEntity target : markedTargets) {
-                    Location marker = target.getLocation().clone().add(0.0, target.getHeight() + 0.35, 0.0);
-                    marker.getWorld().spawnParticle(Particle.ENCHANTED_HIT, marker, 4, 0.22, 0.06, 0.22, 0.0);
-                    marker.getWorld().spawnParticle(Particle.SMOKE, marker, 2, 0.14, 0.05, 0.14, 0.002);
-                }
-
-                ticks += 4;
-                if (ticks < 20) {
-                    return;
-                }
-
-                for (LivingEntity target : markedTargets) {
-                    Location hit = target.getLocation().clone().add(0.0, 1.0, 0.0);
-                    double damage = target.equals(mainTarget) ? 11.8 : 8.6;
-                    SpellEffectUtil.applyDirectSpellDamage(plugin, caster, target, damage, true);
-                    hit.getWorld().spawnParticle(Particle.EXPLOSION, hit, 1, 0.0, 0.0, 0.0, 0.0);
-                    hit.getWorld().spawnParticle(Particle.SMOKE, hit, 14, 0.30, 0.18, 0.30, 0.01);
-                    hit.getWorld().playSound(hit, Sound.ENTITY_GENERIC_EXPLODE, 0.58f, 1.45f);
-                }
-                cancel();
+                currentTarget = nextTarget;
             }
-        }.runTaskTimer(plugin, 0L, 4L);
+        }.runTaskTimer(plugin, 0L, 6L);
     }
 
-    private void teleportBehindTarget(Player caster, LivingEntity target) {
-        Vector awayFromCaster = target.getLocation().toVector().subtract(caster.getLocation().toVector()).setY(0.0);
-        if (awayFromCaster.lengthSquared() <= 0.0001) {
-            awayFromCaster = target.getLocation().getDirection().setY(0.0);
+    private void strikeTarget(Player caster, LivingEntity target, int jumpIndex) {
+        Location behind = computeBehindLocation(caster, target);
+        caster.teleport(behind);
+        caster.setVelocity(new Vector(0.0, 0.06, 0.0));
+
+        Location hit = target.getLocation().clone().add(0.0, 1.0, 0.0);
+        SpellEffectUtil.applyDirectSpellDamage(plugin, caster, target, 7.6 + (jumpIndex * 1.2), true);
+        SpellEffectUtil.spawnRingParticles(hit, 0.7, Particle.CRIT, 14, 0.0);
+        hit.getWorld().playSound(hit, Sound.ENTITY_PLAYER_ATTACK_CRIT, 0.85f, 1.0f + (jumpIndex * 0.08f));
+    }
+
+    private LivingEntity findNearestUnstruckTarget(Location from,
+                                                    Player caster,
+                                                    Set<java.util.UUID> struckTargets,
+                                                    double radius) {
+        LivingEntity closest = null;
+        double bestDistanceSquared = Double.MAX_VALUE;
+        for (LivingEntity candidate : SpellEffectUtil.getLivingTargets(from, radius,
+                living -> !living.equals(caster) && !struckTargets.contains(living.getUniqueId()))) {
+            double distanceSquared = candidate.getLocation().distanceSquared(from);
+            if (distanceSquared < bestDistanceSquared) {
+                bestDistanceSquared = distanceSquared;
+                closest = candidate;
+            }
         }
-        if (awayFromCaster.lengthSquared() <= 0.0001) {
-            awayFromCaster = new Vector(0.0, 0.0, 1.0);
+        return closest;
+    }
+
+    private Location computeBehindLocation(Player caster, LivingEntity target) {
+        Vector toCaster = caster.getLocation().toVector().subtract(target.getLocation().toVector()).setY(0.0);
+        if (toCaster.lengthSquared() <= 0.0001) {
+            toCaster = target.getLocation().getDirection().setY(0.0);
+        }
+        if (toCaster.lengthSquared() <= 0.0001) {
+            toCaster = new Vector(0.0, 0.0, 1.0);
         }
 
-        Location destination = target.getLocation().clone()
-                .subtract(awayFromCaster.normalize().multiply(1.35))
-                .add(0.0, 0.1, 0.0);
-        destination.setYaw(target.getLocation().getYaw());
+        Location destination = target.getLocation().clone().add(toCaster.normalize().multiply(1.35)).add(0.0, 0.05, 0.0);
         destination.setPitch(caster.getLocation().getPitch());
-
-        caster.teleport(destination);
-        caster.setVelocity(new Vector(0.0, 0.08, 0.0));
+        return destination;
     }
 }

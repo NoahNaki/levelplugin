@@ -111,20 +111,20 @@ When adding a new spell:
 Use these as candidate implementations for the rogue family while reusing the existing arc slash particle debug preset (`/debug particlepreset arc`) for iteration.
 
 ### Offensive (1): **Shadow Flurry**
-- **Fantasy:** Fires a fan of shadow blades that travel outward like razor projectiles.
-- **Gameplay:** Mid-range burst volley that can tag multiple enemies across a cone.
+- **Fantasy:** Summons expanding crit-wave rings that burst outward from the rogue.
+- **Gameplay:** Multi-pulse zone pressure where each wave strikes enemies on the ring edge.
 - **Implementation notes:**
-  - Use one reusable blade-flight helper (launch delay + spread angle + collision test) for every projectile.
-  - Render dark smoke/dust trails to visually separate it from melee arc-slash skills.
-  - Reuse existing warning UX style via `ChatMessageUtil` when no forward direction exists.
+  - Reuse `SpellEffectUtil.spawnRingParticles(...)` for wave rendering so visuals are data-driven and reusable.
+  - Keep pulse hit logic generic (radius band check) so future ring spells can reuse it.
+  - Reuse existing warning/cooldown UX conventions via shared spell messaging utilities.
 
 ### Offensive (2): **Nightfall Lunge**
-- **Fantasy:** Teleports behind a target, marks nearby foes, then triggers a delayed shadow detonation.
-- **Gameplay:** Reposition + mark-and-burst pattern for setup-oriented single-target pressure with nearby splash payoff.
+- **Fantasy:** Chain-lunges between nearby enemies, striking from behind each target in sequence.
+- **Gameplay:** Assassin-style multi-target execution that rewards clustered enemy packs.
 - **Implementation notes:**
-  - Reuse `SpellTargetingUtil.resolveTargetLivingEntity(...)` for lock-on targeting.
-  - Keep mark visuals and delayed detonation in one reusable timer flow.
-  - Use `ChatMessageUtil` for invalid-target feedback to match existing spell UX.
+  - Reuse `SpellTargetingUtil.resolveTargetLivingEntity(...)` for the first lock-on target.
+  - Use one nearest-unstruck target selector so jump targeting stays generic/reusable.
+  - Keep invalid-target feedback aligned with existing spell UX via `ChatMessageUtil`.
 
 ### Mobility: **Razor Dash**
 - **Fantasy:** Fast forward dash that cuts enemies in a narrow lane.
