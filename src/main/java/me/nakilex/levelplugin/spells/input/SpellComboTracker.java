@@ -48,6 +48,11 @@ public class SpellComboTracker {
     }
 
     public boolean hasInputs() {
+        long now = System.currentTimeMillis();
+        if (now - lastInputAt > comboTimeoutMs) {
+            inputs.clear();
+            return false;
+        }
         return !inputs.isEmpty();
     }
 

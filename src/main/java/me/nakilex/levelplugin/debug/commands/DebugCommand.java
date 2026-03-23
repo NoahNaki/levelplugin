@@ -34,6 +34,7 @@ import me.nakilex.levelplugin.particles.ParticleService;
 import me.nakilex.levelplugin.particles.presets.ElementalPresets;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
+import me.nakilex.levelplugin.spells.SpellCastManager;
 import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager;
@@ -125,7 +126,7 @@ public class DebugCommand implements TabExecutor {
                 String statUsage = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|inventorydebug|rewardbomb|" + statUsage + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|inventorydebug|rewardbomb|" + statUsage + ">");
             }
             return true;
         }
@@ -213,6 +214,18 @@ public class DebugCommand implements TabExecutor {
                 boolean forced = dropDebugManager.toggleForceMobDrops();
                 sender.sendMessage(ChatColor.YELLOW + "Mob loot drops are now "
                         + (forced ? ChatColor.GREEN + "100%" : ChatColor.RED + "respecting configured chances")
+                        + ChatColor.YELLOW + ".");
+                return true;
+            case "spellcooldown":
+                SpellCastManager.setCooldownsEnabled(!SpellCastManager.areCooldownsEnabled());
+                sender.sendMessage(ChatColor.YELLOW + "Spell cooldowns are now "
+                        + (SpellCastManager.areCooldownsEnabled() ? ChatColor.GREEN + "enabled" : ChatColor.RED + "disabled")
+                        + ChatColor.YELLOW + ".");
+                return true;
+            case "spellmanacost":
+                SpellCastManager.setManaCostsEnabled(!SpellCastManager.areManaCostsEnabled());
+                sender.sendMessage(ChatColor.YELLOW + "Spell mana costs are now "
+                        + (SpellCastManager.areManaCostsEnabled() ? ChatColor.GREEN + "enabled" : ChatColor.RED + "disabled")
                         + ChatColor.YELLOW + ".");
                 return true;
 
@@ -523,7 +536,7 @@ public class DebugCommand implements TabExecutor {
                 String statUsage2 = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|inventorydebug|rewardbomb|" + statUsage2 + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|inventorydebug|rewardbomb|" + statUsage2 + ">");
                 return true;
         }
     }
@@ -622,7 +635,7 @@ public class DebugCommand implements TabExecutor {
         if (args.length == 1) {
             List<String> subs = new ArrayList<>(List.of("mobinfo", "tps", "siege", "cityowner", "citymax", "autocast",
                     "hand", "chatgame", "expedition", "dungeonexpedition", "rewardbomb", "drops", "beaconentity",
-                    "spellinput", "stunstick", "poisonstick", "tauntstick", "fearstick", "slowstick", "petpull",
+                    "spellinput", "spellcooldown", "spellmanacost", "stunstick", "poisonstick", "tauntstick", "fearstick", "slowstick", "petpull",
                     "particle", "particlepath", "particlepreset", "inventorydebug"));
             subs.addAll(Arrays.stream(StatType.values()).map(StatType::getAbbrev).toList());
             return subs.stream()

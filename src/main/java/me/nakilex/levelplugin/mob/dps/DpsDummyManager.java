@@ -11,6 +11,7 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Projectile;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Entity;
+import org.bukkit.metadata.MetadataValue;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -154,7 +155,7 @@ public class DpsDummyManager implements Listener {
         entity.addScoreboardTag(DUMMY_TAG);
         entity.setAI(false);
         entity.setGravity(false);
-        entity.setCollidable(false);
+        entity.setCollidable(true);
         entity.setRemoveWhenFarAway(false);
         entity.setSilent(true);
         if (entity.getAttribute(Attribute.KNOCKBACK_RESISTANCE) != null) {
@@ -178,6 +179,36 @@ public class DpsDummyManager implements Listener {
             }
             if (damager instanceof Projectile projectile && projectile.getShooter() instanceof Player player) {
                 return player.getUniqueId();
+            }
+            if (damager instanceof Projectile projectile) {
+                UUID fromMeta = readDamagerFromProjectileMetadata(projectile);
+                if (fromMeta != null) {
+                    return fromMeta;
+                }
+            }
+        }
+        return null;
+    }
+
+    private UUID readDamagerFromProjectileMetadata(Projectile projectile) {
+        if (projectile == null) {
+            return null;
+        }
+        UUID basicAttack = extractUuidMetadata(projectile, "BasicAttack");
+        if (basicAttack != null) {
+            return basicAttack;
+        }
+        return extractUuidMetadata(projectile, "ArcherSpell");
+    }
+
+    private UUID extractUuidMetadata(Projectile projectile, String key) {
+        if (projectile == null || !projectile.hasMetadata(key)) {
+            return null;
+        }
+        for (MetadataValue value : projectile.getMetadata(key)) {
+            Object raw = value.value();
+            if (raw instanceof UUID uuid) {
+                return uuid;
             }
         }
         return null;

@@ -485,7 +485,8 @@ public class ProfileSelectionGUI implements Listener {
             return;
         }
         ProfileManager pm = ProfileManager.getInstance();
-        if (pm.getActiveSlot(id) == null) {
+        Integer activeSlot = pm.getActiveSlot(id);
+        if (activeSlot == null) {
             Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
                 if (player.isOnline() && SELECTING.contains(id)
                         && pm.getActiveSlot(id) == null && !anyGuiOpen(id)) {
@@ -493,9 +494,28 @@ public class ProfileSelectionGUI implements Listener {
                 }
             }, 40L);
         } else {
+            restoreActiveProfileAfterCancelledSelection(player, activeSlot);
             stopSelection(player);
             BetterHudUtil.addHud(player);
         }
+    }
+
+    private static void restoreActiveProfileAfterCancelledSelection(Player player, int slot) {
+        if (player == null || slot < 0) {
+            return;
+        }
+        ProfileManager pm = ProfileManager.getInstance();
+        me.nakilex.levelplugin.player.config.PlayerConfig cfg = Main.getInstance().getPlayerConfig();
+        pm.setActiveSlot(player.getUniqueId(), slot);
+        SpellProgressionManager.getInstance().loadProfileData(
+                player.getUniqueId(),
+                slot,
+                cfg.getProfileSpellPoints(player.getUniqueId(), slot),
+                cfg.getProfileSpellLevels(player.getUniqueId(), slot));
+        Main.getInstance().getSettingsManager().loadProfileSettings(player.getUniqueId(), slot);
+        SpellKeybindManager.getInstance().loadProfileBindings(player.getUniqueId(), slot);
+        loadProfileInventory(player, cfg, slot);
+        me.nakilex.levelplugin.player.attributes.managers.StatsManager.getInstance().recalcDerivedStats(player);
     }
 
     @EventHandler

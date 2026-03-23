@@ -1,20 +1,24 @@
 package me.nakilex.levelplugin.mob.listeners;
 
+import me.nakilex.levelplugin.mob.managers.ChatToggleManager;
 import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
+import me.nakilex.levelplugin.player.attributes.listeners.StatsEffectListener;
 import me.nakilex.levelplugin.utils.HologramUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Projectile;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
-import org.bukkit.potion.PotionEffectType;
 
 public class DamageIndicatorListener implements Listener {
 
     private final PlayerToggleManager toggleManager;
+    private final ChatToggleManager chatToggleManager = ChatToggleManager.getInstance();
 
     public DamageIndicatorListener(PlayerToggleManager toggleManager) {
         this.toggleManager = toggleManager;
@@ -22,30 +26,16 @@ public class DamageIndicatorListener implements Listener {
 
     @EventHandler
     public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
-        // Only handle Player → LivingEntity
-        if (!(event.getDamager() instanceof Player)) return;
+        Player damager = resolveDamager(event.getDamager());
+        if (damager == null) return;
         Entity target = event.getEntity();
         if (!(target instanceof LivingEntity)) return;
+        if (target instanceof ArmorStand) return;
 
-        Player damager = (Player) event.getDamager();
         if (!toggleManager.isEnabled(damager)) return;
 
         double damage = event.getFinalDamage();
-
-        // —— Manual crit detection ——
-        boolean falling     = damager.getFallDistance() > 0.0F;
-        boolean notGround   = !damager.isOnGround();
-        boolean notClimb    = !damager.isClimbing();                         // no ladder/vine
-        boolean notLiquid   = !damager.getLocation().getBlock().isLiquid();  // not in water/lava
-        boolean notBlind    = !damager.hasPotionEffect(PotionEffectType.BLINDNESS);
-        boolean notRiding   = damager.getVehicle() == null;
-        boolean notSprint   = !damager.isSprinting();
-        boolean charged     = ((float) ((Player) damager).getAttackCooldown()) > 0.84F;
-
-        boolean isCrit = falling && notGround && notClimb
-            && notLiquid && notBlind && notRiding
-            && notSprint && charged
-            && damage > 0.0;
+        boolean isCrit = StatsEffectListener.consumeLastCrit(damager);
 
         // Color code
         ChatColor color = isCrit ? ChatColor.GOLD : ChatColor.RED;
@@ -54,5 +44,21 @@ public class DamageIndicatorListener implements Listener {
         // Spawn the floating text
         LivingEntity mob = (LivingEntity) target;
         HologramUtil.spawnDamageHologram(damager, mob.getEyeLocation(), text);
+        if (chatToggleManager.isEnabled(damager)) {
+            damager.sendMessage(ChatColor.DARK_RED + "Damage: " + ChatColor.RED + String.format("%.1f", damage));
+        }
+    }
+
+    private Player resolveDamager(Entity rawDamager) {
+        if (rawDamager instanceof Player player) {
+            return player;
+        }
+        if (!(rawDamager instanceof Projectile projectile)) {
+            return null;
+        }
+        if (projectile.getShooter() instanceof Player shooter) {
+            return shooter;
+        }
+        return null;
     }
 }

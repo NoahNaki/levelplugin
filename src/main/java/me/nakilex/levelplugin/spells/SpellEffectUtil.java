@@ -1,8 +1,13 @@
 package me.nakilex.levelplugin.spells;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.duels.managers.DuelManager;
+import me.nakilex.levelplugin.mob.managers.ChatToggleManager;
+import me.nakilex.levelplugin.player.attributes.listeners.StatsEffectListener;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
+import me.nakilex.levelplugin.utils.HologramUtil;
 import me.nakilex.levelplugin.utils.PotionEffectUtil;
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
@@ -163,6 +168,20 @@ public final class SpellEffectUtil {
         return value * (1.0 + technique * techniqueScale);
     }
 
+    public static double computeDexTecScaledDamage(Player caster,
+                                                   double baseDamage,
+                                                   double dexterityScale,
+                                                   double techniqueScale) {
+        if (caster == null) {
+            return Math.max(0.0, baseDamage);
+        }
+        StatsManager.PlayerStats stats = StatsManager.getInstance().getPlayerStats(caster.getUniqueId());
+        int dexterity = stats.baseDexterity + stats.bonusDexterity;
+        int technique = stats.baseTechnique + stats.bonusTechnique;
+        double value = Math.max(0.0, baseDamage + dexterity * dexterityScale);
+        return value * (1.0 + technique * techniqueScale);
+    }
+
     public static void applyDirectSpellDamage(Plugin plugin,
                                               Player caster,
                                               LivingEntity target,
@@ -178,8 +197,16 @@ public final class SpellEffectUtil {
         if (plugin == null || caster == null || target == null || damage <= 0.0 || target.isDead()) {
             return;
         }
+        if (target instanceof ArmorStand) {
+            return;
+        }
+        if (target instanceof Player victim
+                && !DuelManager.getInstance().areInDuel(victim.getUniqueId(), caster.getUniqueId())) {
+            return;
+        }
 
         double startingHealth = target.getHealth();
+        boolean usedGuaranteedDamage = false;
         caster.setMetadata(BYPASS_STAT_SCALING_META, new FixedMetadataValue(plugin, true));
         try {
             if (resetInvulnerabilityFrames) {
@@ -195,9 +222,27 @@ public final class SpellEffectUtil {
         if (resetInvulnerabilityFrames) {
             if (didNotTakeDamage(startingHealth, target)) {
                 applyGuaranteedHealthDamage(target, damage);
+                usedGuaranteedDamage = true;
             }
             playHurtFeedback(target, caster);
             applyHurtKnockback(target, caster);
+        }
+
+        if (usedGuaranteedDamage) {
+            showSpellDamageFeedback(caster, target, damage);
+        }
+    }
+
+    private static void showSpellDamageFeedback(Player caster, LivingEntity target, double damage) {
+        if (caster == null || target == null || damage <= 0.0) {
+            return;
+        }
+        boolean isCrit = StatsEffectListener.consumeLastCrit(caster);
+        ChatColor color = isCrit ? ChatColor.GOLD : ChatColor.RED;
+        String text = color + String.format(isCrit ? "-%.1f✦" : "-%.1f", damage);
+        HologramUtil.spawnDamageHologram(caster, target.getEyeLocation(), text);
+        if (ChatToggleManager.getInstance().isEnabled(caster)) {
+            caster.sendMessage(ChatColor.DARK_RED + "Damage: " + ChatColor.RED + String.format("%.1f", damage));
         }
     }
 
