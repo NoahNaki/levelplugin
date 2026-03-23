@@ -18,6 +18,8 @@ import org.bukkit.util.Vector;
 
 public class RogueShadowFlurrySpell implements SpellHandler {
     private static final int BARRAGE_HITS = 4;
+    private static final double MAX_CAST_DISTANCE = 5.0;
+    private static final double CONTACT_DISTANCE = 1.9;
 
     private final Main plugin;
 
@@ -33,6 +35,11 @@ public class RogueShadowFlurrySpell implements SpellHandler {
         if (target == null) {
             ChatMessageUtil.send(caster, ChatMessageUtil.MessageType.WARNING,
                     "Look at a target mob for Shadow Flurry.");
+            return;
+        }
+        if (caster.getLocation().distanceSquared(target.getLocation()) > MAX_CAST_DISTANCE * MAX_CAST_DISTANCE) {
+            ChatMessageUtil.send(caster, ChatMessageUtil.MessageType.WARNING,
+                    "Move within 5 blocks to use Shadow Flurry.");
             return;
         }
 
@@ -64,14 +71,33 @@ public class RogueShadowFlurrySpell implements SpellHandler {
 
                 int iteration = hitIndex;
                 Vector dashDirection = toTarget.clone();
-                plugin.getServer().getScheduler().runTaskLater(plugin, () -> applyImpact(caster, target, dashDirection, iteration), 2L);
+                plugin.getServer().getScheduler().runTaskLater(plugin, () -> tryImpact(caster, target, dashDirection, iteration, 0), 2L);
                 hitIndex++;
             }
         }.runTaskTimer(plugin, 0L, 8L);
     }
 
-    private void applyImpact(Player caster, LivingEntity target, Vector dashDirection, int hitIndex) {
+    private void tryImpact(Player caster,
+                           LivingEntity target,
+                           Vector dashDirection,
+                           int hitIndex,
+                           int attempt) {
         if (caster == null || target == null || !caster.isOnline() || !target.isValid() || target.isDead()) {
+            return;
+        }
+
+        double distance = caster.getLocation().distance(target.getLocation());
+        if (distance > CONTACT_DISTANCE && attempt < 2) {
+            Vector correction = target.getLocation().toVector().subtract(caster.getLocation().toVector());
+            if (correction.lengthSquared() > 0.0001) {
+                caster.setVelocity(correction.normalize().multiply(0.78).setY(0.04));
+            }
+            plugin.getServer().getScheduler().runTaskLater(plugin,
+                    () -> tryImpact(caster, target, dashDirection, hitIndex, attempt + 1),
+                    1L);
+            return;
+        }
+        if (distance > CONTACT_DISTANCE + 0.8) {
             return;
         }
 
