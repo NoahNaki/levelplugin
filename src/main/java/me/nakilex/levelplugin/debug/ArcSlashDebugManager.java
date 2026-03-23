@@ -211,7 +211,7 @@ public class ArcSlashDebugManager implements Listener {
         }
 
         public static ArcSlashConfig defaultConfig() {
-            return new ArcSlashConfig(Particle.CRIT, 2, 9, 1, 0.0, 6.9, 3.8, 6.0, 4.0, 6.0,
+            return new ArcSlashConfig(Particle.CRIT, 2, 9, 1, 0.0, 6.9, 1.0, 2.5, 1.0, 2.0,
                     0.05, -75.0, 95.0, -57.0, 72.0, 45.0, 0.0, 0.0, 0.0, 0.0,
                     180.0, -90.0, 180.0);
         }

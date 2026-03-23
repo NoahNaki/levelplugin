@@ -105,6 +105,54 @@ public final class SpellTargetingUtil {
     }
 
     /**
+     * Resolve a living entity the player is looking at. Falls back to the nearest
+     * valid entity in a small forward cone so stationary dummies are easier to lock.
+     */
+    public static LivingEntity resolveTargetLivingEntity(Player player,
+                                                         double maxDistance,
+                                                         double hitRadius,
+                                                         Predicate<LivingEntity> predicate) {
+        if (player == null || player.getWorld() == null || maxDistance <= 0.0) {
+            return null;
+        }
+        Vector look = player.getEyeLocation().getDirection().clone().normalize();
+        Vector segment = look.clone().multiply(maxDistance);
+        LivingEntity rayTarget = rayTraceLivingEntity(player.getEyeLocation(), segment, hitRadius,
+                living -> !living.equals(player) && (predicate == null || predicate.test(living)));
+        if (rayTarget != null) {
+            return rayTarget;
+        }
+
+        Location eye = player.getEyeLocation();
+        LivingEntity best = null;
+        double bestScore = Double.MAX_VALUE;
+        for (var entity : player.getWorld().getNearbyEntities(eye, maxDistance, maxDistance, maxDistance)) {
+            if (!(entity instanceof LivingEntity living) || living.equals(player) || living.isDead()) {
+                continue;
+            }
+            if (predicate != null && !predicate.test(living)) {
+                continue;
+            }
+            Vector to = living.getEyeLocation().toVector().subtract(eye.toVector());
+            double distance = to.length();
+            if (distance > maxDistance || distance <= 0.0001) {
+                continue;
+            }
+            Vector dir = to.clone().normalize();
+            double alignment = dir.dot(look);
+            if (alignment < 0.80) {
+                continue;
+            }
+            double score = distance * (2.0 - alignment);
+            if (score < bestScore) {
+                bestScore = score;
+                best = living;
+            }
+        }
+        return best;
+    }
+
+    /**
      * Resolve a practical blink destination that stops before walls and adjusts
      * vertically so the player does not spawn inside blocks.
      */

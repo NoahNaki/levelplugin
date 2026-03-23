@@ -5,6 +5,8 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.World;
+import org.bukkit.Bukkit;
+import org.bukkit.EntityEffect;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.type.Light;
@@ -16,13 +18,25 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
+import org.bukkit.util.Vector;
 
+import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.function.Predicate;
 
 public final class SpellEffectUtil {
     public static final String BYPASS_STAT_SCALING_META = "BypassStatScaling";
+    private static final int INVULNERABILITY_BYPASS_WINDOW_TICKS = 12;
+    private static final Map<UUID, Integer> INVULNERABILITY_BYPASS_REMAINING = new HashMap<>();
+    private static final Map<UUID, Integer> ORIGINAL_MAX_NO_DAMAGE_TICKS = new HashMap<>();
+    private static BukkitTask invulnerabilityBypassTickerTask;
+    private static final double HURT_KNOCKBACK_HORIZONTAL = 0.067;
+    private static final double HURT_KNOCKBACK_VERTICAL = 0.027;
 
     private SpellEffectUtil() {
     }
@@ -79,7 +93,7 @@ public final class SpellEffectUtil {
                                               Player caster,
                                               LivingEntity target,
                                               double damage) {
-        applyDirectSpellDamage(plugin, caster, target, damage, false);
+        applyDirectSpellDamage(plugin, caster, target, damage, true);
     }
 
     public static void applyDirectSpellDamage(Plugin plugin,
@@ -87,21 +101,147 @@ public final class SpellEffectUtil {
                                               LivingEntity target,
                                               double damage,
                                               boolean resetInvulnerabilityFrames) {
-        if (plugin == null || caster == null || target == null || damage <= 0.0) {
+        if (plugin == null || caster == null || target == null || damage <= 0.0 || target.isDead()) {
             return;
         }
-        if (resetInvulnerabilityFrames) {
-            target.setNoDamageTicks(0);
-        }
+
+        double startingHealth = target.getHealth();
         caster.setMetadata(BYPASS_STAT_SCALING_META, new FixedMetadataValue(plugin, true));
         try {
-            target.damage(damage, caster);
+            if (resetInvulnerabilityFrames) {
+                withTemporaryInvulnerabilityBypass(target, () -> target.damage(damage, caster));
+                registerInvulnerabilityBypassWindow(plugin, target, INVULNERABILITY_BYPASS_WINDOW_TICKS);
+            } else {
+                target.damage(damage, caster);
+            }
         } finally {
             caster.removeMetadata(BYPASS_STAT_SCALING_META, plugin);
         }
+
+        if (resetInvulnerabilityFrames) {
+            if (didNotTakeDamage(startingHealth, target)) {
+                applyGuaranteedHealthDamage(target, damage);
+            }
+            playHurtFeedback(target, caster);
+            applyHurtKnockback(target, caster);
+        }
     }
 
+    private static void playHurtFeedback(LivingEntity target, Player attacker) {
+        if (target == null || target.isDead()) {
+            return;
+        }
+        float yaw = attacker != null ? attacker.getLocation().getYaw() : target.getLocation().getYaw();
+        try {
+            Method playHurtAnimation = target.getClass().getMethod("playHurtAnimation", float.class);
+            playHurtAnimation.invoke(target, yaw);
+            return;
+        } catch (ReflectiveOperationException ignored) {
+            // Fallback for API versions that do not expose playHurtAnimation(float).
+        }
+        target.playEffect(EntityEffect.HURT);
+    }
 
+    private static void applyHurtKnockback(LivingEntity target, Player attacker) {
+        if (target == null || attacker == null || target.isDead() || target.getWorld() == null || attacker.getWorld() == null) {
+            return;
+        }
+        if (!target.getWorld().equals(attacker.getWorld())) {
+            return;
+        }
+
+        Vector away = target.getLocation().toVector().subtract(attacker.getLocation().toVector());
+        away.setY(0.0);
+        if (away.lengthSquared() < 0.0001) {
+            away = attacker.getLocation().getDirection().clone().setY(0.0).multiply(-1.0);
+        }
+        if (away.lengthSquared() < 0.0001) {
+            return;
+        }
+        away.normalize().multiply(HURT_KNOCKBACK_HORIZONTAL).setY(HURT_KNOCKBACK_VERTICAL);
+        target.setVelocity(target.getVelocity().multiply(0.8).add(away));
+    }
+
+    private static boolean didNotTakeDamage(double startingHealth, LivingEntity target) {
+        if (target == null || target.isDead()) {
+            return false;
+        }
+        return target.getHealth() >= startingHealth - 0.0001;
+    }
+
+    private static void applyGuaranteedHealthDamage(LivingEntity target, double damage) {
+        if (target == null || target.isDead() || damage <= 0.0) {
+            return;
+        }
+        target.setHealth(Math.max(0.0, target.getHealth() - damage));
+    }
+
+    private static void registerInvulnerabilityBypassWindow(Plugin plugin,
+                                                            LivingEntity target,
+                                                            int durationTicks) {
+        if (plugin == null || target == null || durationTicks <= 0 || !target.isValid() || target.isDead()) {
+            return;
+        }
+        UUID targetId = target.getUniqueId();
+        INVULNERABILITY_BYPASS_REMAINING.put(targetId, durationTicks);
+        ORIGINAL_MAX_NO_DAMAGE_TICKS.putIfAbsent(targetId, target.getMaximumNoDamageTicks());
+        ensureInvulnerabilityBypassTicker(plugin);
+    }
+
+    private static void ensureInvulnerabilityBypassTicker(Plugin plugin) {
+        if (plugin == null) {
+            return;
+        }
+        if (invulnerabilityBypassTickerTask != null && !invulnerabilityBypassTickerTask.isCancelled()) {
+            return;
+        }
+        invulnerabilityBypassTickerTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            if (INVULNERABILITY_BYPASS_REMAINING.isEmpty()) {
+                return;
+            }
+            Iterator<Map.Entry<UUID, Integer>> iterator = INVULNERABILITY_BYPASS_REMAINING.entrySet().iterator();
+            while (iterator.hasNext()) {
+                Map.Entry<UUID, Integer> entry = iterator.next();
+                var entity = Bukkit.getEntity(entry.getKey());
+                if (!(entity instanceof LivingEntity living) || !living.isValid() || living.isDead()) {
+                    ORIGINAL_MAX_NO_DAMAGE_TICKS.remove(entry.getKey());
+                    iterator.remove();
+                    continue;
+                }
+                living.setMaximumNoDamageTicks(0);
+                living.setNoDamageTicks(0);
+                living.setLastDamage(0.0);
+
+                int remaining = entry.getValue() - 1;
+                if (remaining <= 0) {
+                    int originalMax = ORIGINAL_MAX_NO_DAMAGE_TICKS.getOrDefault(entry.getKey(), living.getMaximumNoDamageTicks());
+                    living.setMaximumNoDamageTicks(originalMax);
+                    ORIGINAL_MAX_NO_DAMAGE_TICKS.remove(entry.getKey());
+                    iterator.remove();
+                } else {
+                    entry.setValue(remaining);
+                }
+            }
+        }, 0L, 1L);
+    }
+
+    public static void withTemporaryInvulnerabilityBypass(LivingEntity target, Runnable action) {
+        if (target == null || action == null) {
+            return;
+        }
+
+        int originalMaxNoDamageTicks = target.getMaximumNoDamageTicks();
+        target.setMaximumNoDamageTicks(0);
+        target.setNoDamageTicks(0);
+        target.setLastDamage(0.0);
+        try {
+            action.run();
+        } finally {
+            target.setLastDamage(0.0);
+            target.setNoDamageTicks(0);
+            target.setMaximumNoDamageTicks(originalMaxNoDamageTicks);
+        }
+    }
 
     public static Location moveTemporaryLight(Location currentLight, Location target, int lightLevel) {
         Location targetLight = normalizeToBlock(target);

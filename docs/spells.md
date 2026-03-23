@@ -105,3 +105,39 @@ When adding a new spell:
 2. Register it in `SpellCatalog`.
 3. Bind it via `SpellBinding` to the correct class + input.
 4. Add particles, model visuals, and DoT/impact logic as needed.
+
+## Rogue arc-slash skill concepts
+
+Use these as candidate implementations for the rogue family while reusing the existing arc slash particle debug preset (`/debug particlepreset arc`) for iteration.
+
+### Offensive (1): **Sky Ripper Combo**
+- **Fantasy:** Launches the target upward with a rising slash, then chains two air cuts.
+- **Gameplay:** 3 hits total over ~1.2s; last hit slams target down with bonus damage if they hit ground.
+- **Implementation notes:**
+  - Reuse `SpellEffectUtil.applyAreaDamage` per hit for consistency.
+  - Use the arc slash particle config for each swing with increasing `upOffset`.
+  - Use `ChatMessageUtil` for hit-confirm + cooldown feedback.
+
+### Offensive (2): **Phantom Cross**
+- **Fantasy:** Two mirrored dash-through slashes that cross behind the target.
+- **Gameplay:** First pass applies a short bleed; second pass detonates bleed stacks for burst.
+- **Implementation notes:**
+  - Reuse one dash mover helper for both passes (direction sign flip), instead of duplicating tasks.
+  - Emit two arc slashes with opposite `rightOffset` values.
+  - Keep tooltip lines concise via `TooltipUtil.bulletList(...)` in UI lore.
+
+### Mobility: **Razor Dash**
+- **Fantasy:** Fast forward dash that cuts enemies in a narrow lane.
+- **Gameplay:** Gap-closer with i-frames for first 0.2s; deals light damage along path.
+- **Implementation notes:**
+  - Use one generic dash routine (distance/speed/i-frame window params) so later rogue skills can reuse it.
+  - Spawn short-lived arc slices every few blocks along travel path.
+  - Use the same cooldown/deny messaging style as existing spells with `ChatMessageUtil`.
+
+### Defensive: **Veil Counter**
+- **Fantasy:** Brief parry stance; if hit, retaliates with a circular slash and backstep.
+- **Gameplay:** 0.6s counter window; successful counter grants small damage reduction buff for 2s.
+- **Implementation notes:**
+  - Model as a reusable "counter window" utility (on-hit callback + timeout callback).
+  - On success, render a compressed arc/ring blend for the counter visual.
+  - Tooltip should clearly call out window duration and reward using `TooltipUtil`.

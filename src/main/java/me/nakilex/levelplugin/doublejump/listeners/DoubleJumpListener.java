@@ -6,6 +6,7 @@ import me.nakilex.levelplugin.player.classes.data.ClassUtil;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.pet.PetEffectType;
 import me.nakilex.levelplugin.pet.PetManager;
+import me.nakilex.levelplugin.spells.ArcSlashCombatUtil;
 import org.bukkit.GameMode;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
@@ -86,10 +87,17 @@ public class DoubleJumpListener implements Listener {
             player.setVelocity(lookDir);
 
             // FX/SFX
-            player.getWorld().spawnParticle(Particle.CLOUD, player.getLocation(),
+            player.getWorld().spawnParticle(Particle.CRIT, player.getLocation(),
                 30, 0.5, 0.1, 0.5, 0.1);
             player.getWorld().playSound(player.getLocation(),
                 Sound.ENTITY_BAT_TAKEOFF, 1.0f, 1.0f);
+
+            if (ClassUtil.isRogueFamily(ps.playerClass)) {
+                Main plugin = Main.getInstance();
+                ArcSlashCombatUtil.strikeForward(player, 1.35, 1.0, 3.8, 1.65);
+                plugin.getServer().getScheduler().runTaskLater(plugin,
+                        () -> ArcSlashCombatUtil.strikeForward(player, 1.85, 1.1, 4.4, 1.75), 2L);
+            }
         }
     }
 
