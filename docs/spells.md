@@ -111,20 +111,20 @@ When adding a new spell:
 Use these as candidate implementations for the rogue family while reusing the existing arc slash particle debug preset (`/debug particlepreset arc`) for iteration.
 
 ### Offensive (1): **Shadow Flurry**
-- **Fantasy:** A rapid sequence of five crescent slashes that weave left/right as you advance.
-- **Gameplay:** Mid-range pressure tool with escalating damage per hit over ~0.75s.
+- **Fantasy:** Fires a fan of shadow blades that travel outward like razor projectiles.
+- **Gameplay:** Mid-range burst volley that can tag multiple enemies across a cone.
 - **Implementation notes:**
-  - Reuse `ArcSlashCombatUtil.strike(...)` for each swing so visuals/damage stay consistent.
-  - Keep one reusable forward+sway calculation per hit instead of bespoke vectors each time.
-  - Use existing warning UX style via `ChatMessageUtil` when no valid forward direction exists.
+  - Use one reusable blade-flight helper (launch delay + spread angle + collision test) for every projectile.
+  - Render dark smoke/dust trails to visually separate it from melee arc-slash skills.
+  - Reuse existing warning UX style via `ChatMessageUtil` when no forward direction exists.
 
 ### Offensive (2): **Nightfall Lunge**
-- **Fantasy:** Locks onto a target and executes three puncture lunges with cross-cut finishers.
-- **Gameplay:** Targeted burst sequence with short dashes and stacked single-target pressure.
+- **Fantasy:** Teleports behind a target, marks nearby foes, then triggers a delayed shadow detonation.
+- **Gameplay:** Reposition + mark-and-burst pattern for setup-oriented single-target pressure with nearby splash payoff.
 - **Implementation notes:**
-  - Reuse `SpellTargetingUtil.resolveTargetLivingEntity(...)` for target acquisition.
-  - Blend `ArcSlashCombatUtil.applyConeDamage(...)` with direct hit confirmation through `SpellEffectUtil.applyDirectSpellDamage(...)`.
-  - Keep warning/cooldown messaging aligned with existing spell UX via `ChatMessageUtil`.
+  - Reuse `SpellTargetingUtil.resolveTargetLivingEntity(...)` for lock-on targeting.
+  - Keep mark visuals and delayed detonation in one reusable timer flow.
+  - Use `ChatMessageUtil` for invalid-target feedback to match existing spell UX.
 
 ### Mobility: **Razor Dash**
 - **Fantasy:** Fast forward dash that cuts enemies in a narrow lane.

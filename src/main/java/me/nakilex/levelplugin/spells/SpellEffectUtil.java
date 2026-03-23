@@ -1,5 +1,6 @@
 package me.nakilex.levelplugin.spells;
 
+import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.utils.PotionEffectUtil;
 import org.bukkit.Location;
@@ -69,13 +70,39 @@ public final class SpellEffectUtil {
     }
 
     public static void applyStun(LivingEntity target, int durationTicks) {
+        applyStun(target, durationTicks, true);
+    }
+
+    public static void applyStun(LivingEntity target, int durationTicks, boolean showIndicator) {
         if (target == null || target.isDead()) {
             return;
         }
+
         int safeDuration = Math.max(1, durationTicks);
-        PotionEffectUtil.applyHiddenEffect(target, PotionEffectType.SLOWNESS, safeDuration, 10);
-        PotionEffectUtil.applyHiddenEffect(target, PotionEffectType.WEAKNESS, safeDuration, 2);
-        target.setVelocity(new Vector(0.0, Math.min(0.0, target.getVelocity().getY()), 0.0));
+        boolean handledByCustomStatus = false;
+        Main plugin = Main.getInstance();
+        if (plugin != null && plugin.getCustomMobManager() != null) {
+            handledByCustomStatus = plugin.getCustomMobManager().stun(target, safeDuration);
+        }
+
+        if (!handledByCustomStatus) {
+            PotionEffectUtil.applyHiddenEffect(target, PotionEffectType.SLOWNESS, safeDuration, 10);
+            PotionEffectUtil.applyHiddenEffect(target, PotionEffectType.WEAKNESS, safeDuration, 2);
+            target.setVelocity(new Vector(0.0, Math.min(0.0, target.getVelocity().getY()), 0.0));
+        }
+
+        if (showIndicator) {
+            spawnStunIndicator(target);
+        }
+    }
+
+    public static void spawnStunIndicator(LivingEntity target) {
+        if (target == null || target.isDead() || target.getWorld() == null) {
+            return;
+        }
+        Location indicator = target.getLocation().clone().add(0.0, target.getHeight() + 0.35, 0.0);
+        target.getWorld().spawnParticle(Particle.CRIT, indicator, 4, 0.24, 0.05, 0.24, 0.01);
+        target.getWorld().spawnParticle(Particle.CLOUD, indicator, 2, 0.18, 0.05, 0.18, 0.002);
     }
 
     public static void applyAreaDamage(Player source, Location center, double radius, double damage) {

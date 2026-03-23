@@ -1,7 +1,6 @@
 package me.nakilex.levelplugin.spells.impl;
 
 import me.nakilex.levelplugin.Main;
-import me.nakilex.levelplugin.spells.ArcSlashCombatUtil;
 import me.nakilex.levelplugin.spells.SpellContext;
 import me.nakilex.levelplugin.spells.SpellEffectUtil;
 import me.nakilex.levelplugin.spells.SpellHandler;
@@ -15,6 +14,9 @@ import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class RogueNightfallLungeSpell implements SpellHandler {
     private final Main plugin;
 
@@ -25,56 +27,82 @@ public class RogueNightfallLungeSpell implements SpellHandler {
     @Override
     public void cast(SpellContext context) {
         Player caster = context.player();
-        LivingEntity target = SpellTargetingUtil.resolveTargetLivingEntity(caster, 16.0, 0.45,
+        LivingEntity mainTarget = SpellTargetingUtil.resolveTargetLivingEntity(caster, 15.0, 0.45,
                 living -> !living.equals(caster));
-        if (target == null) {
+        if (mainTarget == null) {
             ChatMessageUtil.send(caster, ChatMessageUtil.MessageType.WARNING,
                     "Look at a target mob for Nightfall Lunge.");
             return;
         }
 
+        teleportBehindTarget(caster, mainTarget);
+
+        Location detonationCenter = mainTarget.getLocation().clone().add(0.0, 1.0, 0.0);
+        List<LivingEntity> markedTargets = new ArrayList<>(SpellEffectUtil.getLivingTargets(detonationCenter, 3.8,
+                living -> !living.equals(caster) && !(living instanceof Player)));
+        if (markedTargets.isEmpty()) {
+            markedTargets.add(mainTarget);
+        }
+
+        caster.getWorld().playSound(caster.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 0.55f, 1.65f);
+        caster.getWorld().spawnParticle(Particle.LARGE_SMOKE, detonationCenter, 18, 0.45, 0.35, 0.45, 0.01);
+
         new BukkitRunnable() {
-            private int strike;
+            private int ticks;
 
             @Override
             public void run() {
-                if (!caster.isOnline() || !target.isValid() || target.isDead() || strike >= 3) {
+                if (!caster.isOnline()) {
                     cancel();
                     return;
                 }
 
-                Vector toTarget = target.getLocation().toVector().subtract(caster.getLocation().toVector());
-                Vector dash = toTarget.clone().setY(0.0);
-                if (dash.lengthSquared() > 0.0001) {
-                    caster.setVelocity(dash.normalize().multiply(0.74).setY(0.15));
+                markedTargets.removeIf(target -> !target.isValid() || target.isDead());
+                if (markedTargets.isEmpty()) {
+                    cancel();
+                    return;
                 }
 
-                Vector facing = target.getLocation().toVector().subtract(caster.getLocation().toVector()).setY(0.0);
-                if (facing.lengthSquared() <= 0.0001) {
-                    facing = caster.getLocation().getDirection().setY(0.0);
+                for (LivingEntity target : markedTargets) {
+                    Location marker = target.getLocation().clone().add(0.0, target.getHeight() + 0.35, 0.0);
+                    marker.getWorld().spawnParticle(Particle.ENCHANTED_HIT, marker, 4, 0.22, 0.06, 0.22, 0.0);
+                    marker.getWorld().spawnParticle(Particle.SMOKE, marker, 2, 0.14, 0.05, 0.14, 0.002);
                 }
-                facing.normalize();
-                Vector right = new Vector(0, 1, 0).crossProduct(facing).normalize();
 
-                double side = (strike % 2 == 0 ? 0.62 : -0.62);
-                Location impact = target.getLocation().clone().add(0.0, 1.0, 0.0).add(right.multiply(side));
-                Location orientation = caster.getLocation().clone();
-                orientation.setDirection(facing.clone());
+                ticks += 4;
+                if (ticks < 20) {
+                    return;
+                }
 
-                double damage = 5.6 + (strike * 1.8);
-                ArcSlashCombatUtil.applyConeDamage(caster, impact, facing, 3.5, 82.0, 2.4, damage);
-                SpellEffectUtil.applyDirectSpellDamage(context.plugin(), caster, target, damage + 1.2, true);
-
-                caster.getWorld().spawnParticle(Particle.LARGE_SMOKE, impact, 14 + strike * 4,
-                        0.32, 0.22, 0.32, 0.01);
-                caster.getWorld().spawnParticle(Particle.CRIT, impact, 12 + strike * 3,
-                        0.24, 0.14, 0.24, 0.03);
-                caster.getWorld().playSound(impact, Sound.ENTITY_PLAYER_ATTACK_SWEEP,
-                        0.95f, 0.95f + (strike * 0.06f));
-
-                ArcSlashCombatUtil.strike(caster, impact, orientation, 3.3 + strike, 1.85);
-                strike++;
+                for (LivingEntity target : markedTargets) {
+                    Location hit = target.getLocation().clone().add(0.0, 1.0, 0.0);
+                    double damage = target.equals(mainTarget) ? 11.8 : 8.6;
+                    SpellEffectUtil.applyDirectSpellDamage(plugin, caster, target, damage, true);
+                    hit.getWorld().spawnParticle(Particle.EXPLOSION, hit, 1, 0.0, 0.0, 0.0, 0.0);
+                    hit.getWorld().spawnParticle(Particle.SMOKE, hit, 14, 0.30, 0.18, 0.30, 0.01);
+                    hit.getWorld().playSound(hit, Sound.ENTITY_GENERIC_EXPLODE, 0.58f, 1.45f);
+                }
+                cancel();
             }
         }.runTaskTimer(plugin, 0L, 4L);
+    }
+
+    private void teleportBehindTarget(Player caster, LivingEntity target) {
+        Vector awayFromCaster = target.getLocation().toVector().subtract(caster.getLocation().toVector()).setY(0.0);
+        if (awayFromCaster.lengthSquared() <= 0.0001) {
+            awayFromCaster = target.getLocation().getDirection().setY(0.0);
+        }
+        if (awayFromCaster.lengthSquared() <= 0.0001) {
+            awayFromCaster = new Vector(0.0, 0.0, 1.0);
+        }
+
+        Location destination = target.getLocation().clone()
+                .subtract(awayFromCaster.normalize().multiply(1.35))
+                .add(0.0, 0.1, 0.0);
+        destination.setYaw(target.getLocation().getYaw());
+        destination.setPitch(caster.getLocation().getPitch());
+
+        caster.teleport(destination);
+        caster.setVelocity(new Vector(0.0, 0.08, 0.0));
     }
 }
