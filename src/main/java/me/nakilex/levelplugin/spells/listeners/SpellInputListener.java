@@ -171,10 +171,7 @@ public class SpellInputListener implements Listener {
         state.lastReleaseAt = now;
         if (state.count >= 2) {
             state.count = 0;
-            SpellKeybindSlot slot = isArcherFamily(player)
-                    ? SpellKeybindSlot.SLOT_4
-                    : SpellKeybindSlot.SLOT_2;
-            dispatchBoundSpell(player, SpellInputMode.MOUSE_AND_KEYBOARD, slot, "Sneak+Sneak");
+            dispatchBoundSpell(player, SpellInputMode.MOUSE_AND_KEYBOARD, SpellKeybindSlot.SLOT_4, "Sneak+Sneak");
         }
     }
 
@@ -239,11 +236,11 @@ public class SpellInputListener implements Listener {
     private void handleModifierClick(Player player, boolean leftClick, boolean archerFamily) {
         displayManager.recordClick(player, leftClick ? SpellClickInput.LEFT : SpellClickInput.RIGHT);
         if (archerFamily && leftClick && !player.isSneaking()) {
-            dispatchBoundSpell(player, SpellInputMode.MOUSE_AND_KEYBOARD, SpellKeybindSlot.SLOT_2, "Left");
+            dispatchBoundSpell(player, SpellInputMode.MOUSE_AND_KEYBOARD, SpellKeybindSlot.SLOT_3, "Left");
             return;
         }
         if (player.isSneaking()) {
-            SpellKeybindSlot slot = leftClick ? SpellKeybindSlot.SLOT_1 : SpellKeybindSlot.SLOT_3;
+            SpellKeybindSlot slot = leftClick ? SpellKeybindSlot.SLOT_1 : SpellKeybindSlot.SLOT_2;
             dispatchBoundSpell(player, SpellInputMode.MOUSE_AND_KEYBOARD, slot,
                     leftClick ? "Sneak+Left" : "Sneak+Right");
             return;
@@ -252,10 +249,7 @@ public class SpellInputListener implements Listener {
             dispatch(player, SpellInputType.BASIC_ATTACK, SpellInputMode.MOUSE_AND_KEYBOARD,
                     leftClick ? "Left" : "Right");
         } else if (!leftClick) {
-            SpellKeybindSlot slot = isRogueFamily(player)
-                    ? SpellKeybindSlot.SLOT_3
-                    : SpellKeybindSlot.SLOT_4;
-            dispatchBoundSpell(player, SpellInputMode.MOUSE_AND_KEYBOARD, slot, "Right");
+            dispatchBoundSpell(player, SpellInputMode.MOUSE_AND_KEYBOARD, SpellKeybindSlot.SLOT_3, "Right");
         }
     }
 
@@ -270,11 +264,6 @@ public class SpellInputListener implements Listener {
     private boolean isArcherFamily(Player player) {
         PlayerClass playerClass = PlayerClassManager.getInstance().getPlayerClass(player);
         return ClassUtil.isArcherFamily(playerClass);
-    }
-
-    private boolean isRogueFamily(Player player) {
-        PlayerClass playerClass = PlayerClassManager.getInstance().getPlayerClass(player);
-        return ClassUtil.isRogueFamily(playerClass);
     }
 
     private boolean isMainHandEmpty(Player player) {

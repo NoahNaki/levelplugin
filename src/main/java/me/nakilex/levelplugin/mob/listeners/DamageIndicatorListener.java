@@ -7,6 +7,7 @@ import me.nakilex.levelplugin.utils.HologramUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
@@ -29,6 +30,7 @@ public class DamageIndicatorListener implements Listener {
         if (damager == null) return;
         Entity target = event.getEntity();
         if (!(target instanceof LivingEntity)) return;
+        if (target instanceof ArmorStand) return;
 
         if (!toggleManager.isEnabled(damager)) return;
 

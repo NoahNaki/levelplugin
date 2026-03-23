@@ -7,7 +7,7 @@ public final class SpellKeybindLayout {
 
     private static final List<String> DEFAULT_COMBOS = List.of("RRL", "RLR", "RRR", "RLL");
     private static final List<String> ARCHER_COMBOS = List.of("LLR", "LLL", "LRL", "LRR");
-    private static final List<String> KEYBOARD_INPUTS = List.of("Sneak+Left", "Sneak+Sneak", "Sneak+Right", "Right");
+    private static final List<String> KEYBOARD_INPUTS = List.of("Sneak+Left", "Sneak+Right", "Right", "Sneak+Sneak");
 
     public static String comboSequenceForSlot(boolean archerFamily, SpellKeybindSlot slot) {
         List<String> combos = archerFamily ? ARCHER_COMBOS : DEFAULT_COMBOS;
