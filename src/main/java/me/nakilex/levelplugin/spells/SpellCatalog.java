@@ -12,7 +12,7 @@ import me.nakilex.levelplugin.spells.impl.ArcherArrowRainSpell;
 import me.nakilex.levelplugin.spells.impl.ArcherBasicAttackSpell;
 import me.nakilex.levelplugin.spells.impl.ArcherHomingBarrageSpell;
 import me.nakilex.levelplugin.spells.impl.ArcherSkyboundSpell;
-import me.nakilex.levelplugin.spells.impl.ArcherVeilStepSpell;
+import me.nakilex.levelplugin.spells.impl.ArcherDeflectFieldSpell;
 import me.nakilex.levelplugin.spells.impl.RogueArcBasicAttackSpell;
 import me.nakilex.levelplugin.spells.impl.RogueRazorDashSpell;
 import me.nakilex.levelplugin.spells.impl.RogueNightfallLungeSpell;
@@ -89,7 +89,7 @@ public final class SpellCatalog {
         SpellDefinition archerBasicSeeker = new SpellDefinition("archer_quickshot_seeker", "Quickshot: Seeker Tip", 0, false);
         SpellDefinition archerBasicPayload = new SpellDefinition("archer_quickshot_payload", "Quickshot: Payload Arrow", 0, false);
         SpellDefinition archerBarrage = new SpellDefinition("archer_homing_barrage", "Seeker Barrage", 16, false);
-        SpellDefinition archerVeilStep = new SpellDefinition("archer_veil_step", "Veil Step", 14, true);
+        SpellDefinition archerDeflectField = new SpellDefinition("archer_deflect_field", "Deflect Field", 14, false);
         SpellDefinition archerSkybound = new SpellDefinition("archer_skybound", "Skybound Vault", 14, true);
         SpellDefinition archerArrowRain = new SpellDefinition("archer_arrow_rain", "Arrow Rain", 18, false);
 
@@ -98,7 +98,7 @@ public final class SpellCatalog {
         registry.registerSpell(archerBasicPayload, new ArcherBasicAttackSpell(plugin, 0.24, 2.6, 0.52));
         registry.registerSpell(archerBarrage, new ArcherHomingBarrageSpell(plugin, 7, 2L, 3.0, 0.25, 3.8, 0.34));
         registry.registerSpell(archerSkybound, new ArcherSkyboundSpell(plugin, 0.82, 80, 3.2, 5.4, 0.62));
-        registry.registerSpell(archerVeilStep, new ArcherVeilStepSpell(45, 60, 90));
+        registry.registerSpell(archerDeflectField, new ArcherDeflectFieldSpell(plugin, 72, 3.2));
         registry.registerSpell(archerArrowRain, new ArcherArrowRainSpell(plugin, 6, 9, 8, 6.8, 14.0, 3.4, 0.30));
 
         registry.registerBinding(SpellBinding.forInputType(archerBasic.id(), ClassUtil::isArcherFamily, SpellInputType.BASIC_ATTACK));
@@ -108,7 +108,7 @@ public final class SpellCatalog {
         registry.registerBinding(SpellBinding.forSequence(archerSkybound.id(), ClassUtil::isArcherFamily, SpellInputMode.MOUSE_COMBO, "LLL"));
         registry.registerBinding(SpellBinding.forSequence(archerSkybound.id(), ClassUtil::isArcherFamily, SpellInputMode.MOUSE_AND_KEYBOARD, "Left"));
         registry.registerBinding(SpellBinding.forInputType(archerSkybound.id(), ClassUtil::isArcherFamily, SpellInputType.SPELL_2));
-        registry.registerBinding(SpellBinding.forInputType(archerVeilStep.id(), ClassUtil::isArcherFamily, SpellInputType.SPELL_3));
+        registry.registerBinding(SpellBinding.forInputType(archerDeflectField.id(), ClassUtil::isArcherFamily, SpellInputType.SPELL_3));
         registry.registerBinding(SpellBinding.forInputType(archerArrowRain.id(), ClassUtil::isArcherFamily, SpellInputType.SPELL_4));
 
         SpellDefinition rogueShadowFlurry = new SpellDefinition("rogue_sky_ripper", "Shadow Flurry", 14, false);
