@@ -163,6 +163,20 @@ public final class SpellEffectUtil {
         return value * (1.0 + technique * techniqueScale);
     }
 
+    public static double computeDexTecScaledDamage(Player caster,
+                                                   double baseDamage,
+                                                   double dexterityScale,
+                                                   double techniqueScale) {
+        if (caster == null) {
+            return Math.max(0.0, baseDamage);
+        }
+        StatsManager.PlayerStats stats = StatsManager.getInstance().getPlayerStats(caster.getUniqueId());
+        int dexterity = stats.baseDexterity + stats.bonusDexterity;
+        int technique = stats.baseTechnique + stats.bonusTechnique;
+        double value = Math.max(0.0, baseDamage + dexterity * dexterityScale);
+        return value * (1.0 + technique * techniqueScale);
+    }
+
     public static void applyDirectSpellDamage(Plugin plugin,
                                               Player caster,
                                               LivingEntity target,

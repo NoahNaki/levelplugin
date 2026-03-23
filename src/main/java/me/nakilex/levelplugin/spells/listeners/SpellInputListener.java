@@ -17,6 +17,7 @@ import me.nakilex.levelplugin.spells.input.SpellInputType;
 import me.nakilex.levelplugin.spells.input.SpellKeybindLayout;
 import me.nakilex.levelplugin.spells.input.SpellKeybindManager;
 import me.nakilex.levelplugin.spells.input.SpellKeybindSlot;
+import me.nakilex.levelplugin.spells.impl.ArcherSkyboundSpell;
 import me.nakilex.levelplugin.spells.impl.RogueShadowFlurrySpell;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.Bukkit;
@@ -75,6 +76,9 @@ public class SpellInputListener implements Listener {
         if (isRightClickAction(action)) {
             if (!shouldProcessRightClick(player)) {
                 return;
+            }
+            if (isArcherFamily(player) && isHoldingValidClassWeapon(player)) {
+                event.setCancelled(true);
             }
             handleClick(player, false);
         }
@@ -141,6 +145,9 @@ public class SpellInputListener implements Listener {
     public void onSneak(PlayerToggleSneakEvent event) {
         Player player = event.getPlayer();
         if (event.isSneaking()) {
+            if (ArcherSkyboundSpell.tryTriggerAerialBurst(Main.getInstance(), player)) {
+                return;
+            }
             if (RogueShadowFlurrySpell.tryTriggerAirSlam(Main.getInstance(), player)) {
                 return;
             }

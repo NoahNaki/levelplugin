@@ -15,15 +15,12 @@ import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
-import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ThreadLocalRandom;
 
 public class MageFireballBasicAttackSpell implements SpellHandler {
     private static final List<String> MODEL_CANDIDATES = List.of("fireball", "fireball.bbmodel", "fireball_bbmodel");
@@ -32,14 +29,7 @@ public class MageFireballBasicAttackSpell implements SpellHandler {
 
     private static final double DEFAULT_MAX_RANGE = 26.0;
     private static final double DEFAULT_HIT_RADIUS = 0.35;
-    private static final double PROJECTILE_SPEED_PER_TICK = 1.05;
-    private static final double PROJECTILE_HOMING_STRENGTH = 0.22;
-    private static final double PROJECTILE_CURVE_STRENGTH = 0.22;
-    private static final double PROJECTILE_CURVE_FREQUENCY = 0.38;
-    private static final double PROJECTILE_TARGET_LOCK_RANGE = 14.0;
-    private static final int PROJECTILE_MAX_LIFETIME_TICKS = 36;
-    private static final double PROJECTILE_SPAWN_LATERAL_VARIANCE = 0.45;
-    private static final double PROJECTILE_SPAWN_VERTICAL_VARIANCE = 0.20;
+    private static final double DEFAULT_TRAIL_STEP = 0.6;
     private static final double TECHNIQUE_SCALE = 0.001;
 
     private static final Set<UUID> DEBUG_PLAYERS = ConcurrentHashMap.newKeySet();
@@ -82,53 +72,23 @@ public class MageFireballBasicAttackSpell implements SpellHandler {
     }
 
     public static Location resolveSpawnLocation(Location eyeLocation, Vector rawDirection) {
-        return resolveSpawnLocation(eyeLocation, rawDirection, DEFAULT_FORWARD_OFFSET, DEFAULT_VERTICAL_OFFSET, 0.0);
-    }
-
-    public static Location resolveSpawnLocation(Location eyeLocation,
-                                                Vector rawDirection,
-                                                double forwardOffset,
-                                                double verticalOffset,
-                                                double lateralOffset) {
         if (eyeLocation == null || rawDirection == null || rawDirection.lengthSquared() <= 0.000001) {
             return null;
         }
         Vector direction = rawDirection.clone().normalize();
-        Vector right = new Vector(0.0, 1.0, 0.0).crossProduct(direction);
-        if (right.lengthSquared() <= 0.000001) {
-            right = new Vector(1.0, 0.0, 0.0);
-        }
-        right.normalize();
-        Location spawn = eyeLocation.clone().add(direction.clone().multiply(forwardOffset));
-        spawn.add(right.multiply(lateralOffset));
-        spawn.add(0.0, verticalOffset, 0.0);
+        Location spawn = eyeLocation.clone().add(direction.clone().multiply(DEFAULT_FORWARD_OFFSET));
+        spawn.add(0.0, DEFAULT_VERTICAL_OFFSET, 0.0);
         return spawn;
     }
 
     public static FireballSpawnResult spawnProjectileAnchor(Main plugin,
                                                             Location eyeLocation,
                                                             Vector rawDirection) {
-        return spawnProjectileAnchor(plugin, eyeLocation, rawDirection, 0.0);
-    }
-
-    public static FireballSpawnResult spawnProjectileAnchor(Main plugin,
-                                                            Location eyeLocation,
-                                                            Vector rawDirection,
-                                                            double lateralOffset) {
-        return spawnProjectileAnchor(plugin, eyeLocation, rawDirection, lateralOffset, 0.0);
-    }
-
-    public static FireballSpawnResult spawnProjectileAnchor(Main plugin,
-                                                            Location eyeLocation,
-                                                            Vector rawDirection,
-                                                            double lateralOffset,
-                                                            double verticalOffset) {
         if (plugin == null || eyeLocation == null || rawDirection == null || rawDirection.lengthSquared() <= 0.000001) {
             return null;
         }
         Vector direction = rawDirection.clone().normalize();
-        Location spawn = resolveSpawnLocation(eyeLocation, direction, DEFAULT_FORWARD_OFFSET,
-                DEFAULT_VERTICAL_OFFSET + verticalOffset, lateralOffset);
+        Location spawn = resolveSpawnLocation(eyeLocation, direction);
         if (spawn == null || spawn.getWorld() == null) {
             return null;
         }
@@ -172,11 +132,6 @@ public class MageFireballBasicAttackSpell implements SpellHandler {
         boolean debug = isDebugEnabled(caster.getUniqueId());
         Location eye = caster.getEyeLocation().clone();
         Vector baseDirection = eye.getDirection().clone().normalize();
-        LivingEntity lockTarget = SpellTargetingUtil.resolveTargetLivingEntity(
-                caster,
-                DEFAULT_MAX_RANGE,
-                DEFAULT_HIT_RADIUS,
-                living -> isValidSpellTarget(living, caster, null));
 
         caster.getWorld().playSound(caster.getLocation(), Sound.ITEM_FIRECHARGE_USE, 0.7f, 1.2f);
         for (int i = 0; i < projectileCount; i++) {
@@ -186,7 +141,7 @@ public class MageFireballBasicAttackSpell implements SpellHandler {
                 ChatMessageUtil.send(caster, ChatMessageUtil.MessageType.INFO,
                         "[FireballDebug] Fired bolt yawOffset=" + String.format("%.2f", yawOffset));
             }
-            launchHomingBolt(caster, eye, direction, lockTarget, debug, i);
+            fireInstantBolt(caster, eye, direction, debug);
         }
     }
 
@@ -202,135 +157,22 @@ public class MageFireballBasicAttackSpell implements SpellHandler {
         return vector.rotateAroundY(Math.toRadians(degrees));
     }
 
-    private void launchHomingBolt(Player caster,
-                                  Location eye,
-                                  Vector direction,
-                                  LivingEntity preferredTarget,
-                                  boolean debug,
-                                  int projectileIndex) {
-        ThreadLocalRandom random = ThreadLocalRandom.current();
-        double spawnLateralOffset = random.nextDouble(-PROJECTILE_SPAWN_LATERAL_VARIANCE, PROJECTILE_SPAWN_LATERAL_VARIANCE);
-        double spawnVerticalOffset = random.nextDouble(-PROJECTILE_SPAWN_VERTICAL_VARIANCE, PROJECTILE_SPAWN_VERTICAL_VARIANCE);
-        FireballSpawnResult spawnResult = spawnProjectileAnchor(plugin, eye, direction, spawnLateralOffset, spawnVerticalOffset);
-        if (spawnResult == null || spawnResult.anchor() == null || !spawnResult.anchor().isValid()) {
-            return;
-        }
-        ArmorStand projectile = spawnResult.anchor();
-        Vector initialDirection = spawnResult.direction().clone().normalize();
-        double phaseOffset = random.nextDouble(0.0, Math.PI * 2.0) + (projectileIndex * (Math.PI / 2.0));
-        double curveStrength = PROJECTILE_CURVE_STRENGTH * random.nextDouble(0.65, 1.45);
-        double curveFrequency = PROJECTILE_CURVE_FREQUENCY * random.nextDouble(0.75, 1.35);
-        Vector curveAxis = new Vector(random.nextDouble(-0.35, 0.35), 1.0, random.nextDouble(-0.35, 0.35)).normalize();
-
-        new BukkitRunnable() {
-            private Vector travelDirection = initialDirection.clone();
-            private double traveledDistance = 0.0;
-            private int ticksLived = 0;
-
-            @Override
-            public void run() {
-                if (!caster.isOnline() || !projectile.isValid()) {
-                    cleanup();
-                    return;
-                }
-                Location current = projectile.getLocation();
-                World world = current.getWorld();
-                if (world == null) {
-                    cleanup();
-                    return;
-                }
-
-                LivingEntity homingTarget = resolveHomingTarget(caster, current, preferredTarget);
-                Vector desiredDirection = resolveDesiredDirection(current, travelDirection, homingTarget);
-                travelDirection = blendDirection(travelDirection, desiredDirection, PROJECTILE_HOMING_STRENGTH);
-
-                Vector lateral = travelDirection.clone().crossProduct(curveAxis);
-                if (lateral.lengthSquared() <= 0.000001) {
-                    lateral = new Vector(1.0, 0.0, 0.0);
-                }
-                lateral.normalize().multiply(Math.sin((ticksLived * curveFrequency) + phaseOffset) * curveStrength);
-
-                Vector step = travelDirection.clone().multiply(PROJECTILE_SPEED_PER_TICK).add(lateral);
-                Location next = current.clone().add(step);
-
-                LivingEntity hitEntity = SpellTargetingUtil.rayTraceLivingEntity(current, step, DEFAULT_HIT_RADIUS,
-                        living -> isValidSpellTarget(living, caster, projectile));
-                if (hitEntity != null) {
-                    Location impact = hitEntity.getLocation().clone().add(0.0, Math.min(1.1, hitEntity.getHeight() * 0.5), 0.0);
-                    onImpact(caster, impact, hitEntity, debug);
-                    cleanup();
-                    return;
-                }
-
-                RayTraceResult blockHit = world.rayTraceBlocks(current, step.clone().normalize(), step.length());
-                if (blockHit != null && blockHit.getHitPosition() != null) {
-                    Location impact = blockHit.getHitPosition().toLocation(world);
-                    onImpact(caster, impact, null, debug);
-                    cleanup();
-                    return;
-                }
-
-                projectile.teleport(next);
-                ModelEngineUtil.orientEntityToVector(projectile, travelDirection);
-                SpellEffectUtil.spawnFireProjectileTrail(next);
-
-                traveledDistance += step.length();
-                ticksLived++;
-                if (traveledDistance >= DEFAULT_MAX_RANGE || ticksLived >= PROJECTILE_MAX_LIFETIME_TICKS) {
-                    onImpact(caster, next, null, debug);
-                    cleanup();
-                }
-            }
-
-            private void cleanup() {
-                if (projectile.isValid()) {
-                    projectile.remove();
-                }
-                cancel();
-            }
-        }.runTaskTimer(plugin, 0L, 1L);
-    }
-
-    private LivingEntity resolveHomingTarget(Player caster, Location projectileLocation, LivingEntity preferredTarget) {
-        if (preferredTarget != null
-                && preferredTarget.isValid()
-                && !preferredTarget.isDead()
-                && preferredTarget.getWorld().equals(projectileLocation.getWorld())
-                && preferredTarget.getLocation().distanceSquared(projectileLocation)
-                <= PROJECTILE_TARGET_LOCK_RANGE * PROJECTILE_TARGET_LOCK_RANGE
-                && isValidSpellTarget(preferredTarget, caster, null)) {
-            return preferredTarget;
-        }
-        LivingEntity fallback = SpellTargetingUtil.resolveTargetLivingEntity(
-                caster,
-                PROJECTILE_TARGET_LOCK_RANGE,
-                DEFAULT_HIT_RADIUS,
+    private void fireInstantBolt(Player caster, Location eye, Vector direction, boolean debug) {
+        Vector normalized = direction.clone().normalize();
+        Location start = eye.clone().add(normalized.clone().multiply(0.35));
+        Vector segment = normalized.clone().multiply(DEFAULT_MAX_RANGE);
+        LivingEntity target = SpellTargetingUtil.rayTraceLivingEntity(start, segment, DEFAULT_HIT_RADIUS,
                 living -> isValidSpellTarget(living, caster, null));
-        if (fallback == null || !fallback.getWorld().equals(projectileLocation.getWorld())) {
-            return null;
-        }
-        return fallback;
-    }
 
-    private Vector resolveDesiredDirection(Location current, Vector fallbackDirection, LivingEntity homingTarget) {
-        if (homingTarget == null || !homingTarget.isValid() || homingTarget.isDead()) {
-            return fallbackDirection.clone().normalize();
+        double travelDistance = DEFAULT_MAX_RANGE;
+        Location impact = start.clone().add(segment);
+        if (target != null) {
+            impact = target.getLocation().clone().add(0.0, Math.min(1.1, target.getHeight() * 0.5), 0.0);
+            travelDistance = Math.max(0.2, impact.distance(start));
         }
-        Location targetPoint = homingTarget.getLocation().clone().add(0.0, Math.min(1.1, homingTarget.getHeight() * 0.5), 0.0);
-        Vector toTarget = targetPoint.toVector().subtract(current.toVector());
-        if (toTarget.lengthSquared() <= 0.000001) {
-            return fallbackDirection.clone().normalize();
-        }
-        return toTarget.normalize();
-    }
 
-    private Vector blendDirection(Vector current, Vector desired, double homingStrength) {
-        Vector blended = current.clone().normalize().multiply(Math.max(0.0, 1.0 - homingStrength))
-                .add(desired.clone().normalize().multiply(Math.max(0.0, homingStrength)));
-        if (blended.lengthSquared() <= 0.000001) {
-            return desired.clone().normalize();
-        }
-        return blended.normalize();
+        spawnBoltTrail(start, normalized, travelDistance);
+        onImpact(caster, impact, target, debug);
     }
 
     private boolean isValidSpellTarget(Entity entity, Player caster, ArmorStand projectile) {
@@ -368,6 +210,22 @@ public class MageFireballBasicAttackSpell implements SpellHandler {
                     "[FireballDebug] Applied damage=" + String.format("%.2f", damage)
                             + " splashRadius=" + String.format("%.2f", splashRadius));
         }
+    }
+
+    private void spawnBoltTrail(Location start, Vector direction, double distance) {
+        if (start == null || start.getWorld() == null || direction == null || distance <= 0.0) {
+            return;
+        }
+        World world = start.getWorld();
+        double clampedDistance = Math.min(DEFAULT_MAX_RANGE, Math.max(0.2, distance));
+        Vector step = direction.clone().normalize().multiply(DEFAULT_TRAIL_STEP);
+        int points = Math.max(1, (int) Math.ceil(clampedDistance / DEFAULT_TRAIL_STEP));
+        Location point = start.clone();
+        for (int i = 0; i < points; i++) {
+            world.spawnParticle(Particle.FLAME, point, 1, 0.01, 0.01, 0.01, 0.002);
+            point.add(step);
+        }
+        world.spawnParticle(Particle.FLAME, point, 2, 0.02, 0.02, 0.02, 0.006);
     }
 
 }
