@@ -57,36 +57,34 @@ public class RogueShadowFlurrySpell implements SpellHandler {
                 }
                 toTarget.normalize();
 
-                caster.setVelocity(toTarget.clone().multiply(1.08).add(new Vector(0.0, 0.08, 0.0)));
-                spawnDashTrail(casterPoint, targetPoint);
+                caster.setVelocity(toTarget.clone().multiply(1.18).add(new Vector(0.0, 0.06, 0.0)));
+                caster.getWorld().spawnParticle(Particle.CRIT, casterPoint, 8, 0.18, 0.10, 0.18, 0.02);
+                caster.getWorld().playSound(casterPoint, Sound.ENTITY_ENDER_DRAGON_FLAP,
+                        0.48f, 1.24f + (hitIndex * 0.05f));
 
-                double damage = 6.0 + (hitIndex * 0.8);
-                SpellEffectUtil.applyDirectSpellDamage(plugin, caster, target, damage, true);
-                target.setVelocity(target.getVelocity().multiply(0.84).add(new Vector(0.0, 0.15 + (hitIndex * 0.02), 0.0)));
-
-                Vector rebound = toTarget.clone().multiply(-0.68).setY(0.36 + (hitIndex * 0.03));
-                caster.setVelocity(rebound);
-
-                target.getWorld().spawnParticle(Particle.CRIT, targetPoint, 12 + (hitIndex * 2),
-                        0.28, 0.18, 0.28, 0.03);
-                target.getWorld().playSound(targetPoint, Sound.ENTITY_PLAYER_ATTACK_SWEEP,
-                        0.9f, 1.1f + (hitIndex * 0.07f));
-
+                int iteration = hitIndex;
+                Vector dashDirection = toTarget.clone();
+                plugin.getServer().getScheduler().runTaskLater(plugin, () -> applyImpact(caster, target, dashDirection, iteration), 2L);
                 hitIndex++;
             }
-        }.runTaskTimer(plugin, 0L, 6L);
+        }.runTaskTimer(plugin, 0L, 8L);
     }
 
-    private void spawnDashTrail(Location from, Location to) {
-        if (from == null || to == null || from.getWorld() == null || to.getWorld() == null) {
+    private void applyImpact(Player caster, LivingEntity target, Vector dashDirection, int hitIndex) {
+        if (caster == null || target == null || !caster.isOnline() || !target.isValid() || target.isDead()) {
             return;
         }
-        Vector segment = to.toVector().subtract(from.toVector());
-        for (int i = 1; i <= 10; i++) {
-            double t = i / 10.0;
-            Location point = from.clone().add(segment.clone().multiply(t));
-            point.getWorld().spawnParticle(Particle.CRIT, point, 1, 0.02, 0.02, 0.02, 0.0);
-            point.getWorld().spawnParticle(Particle.CLOUD, point, 1, 0.01, 0.01, 0.01, 0.0);
-        }
+
+        Location targetPoint = target.getLocation().clone().add(0.0, 1.0, 0.0);
+        double damage = 6.0 + (hitIndex * 0.8);
+        SpellEffectUtil.applyDirectSpellDamage(plugin, caster, target, damage, true);
+        target.setVelocity(target.getVelocity().multiply(0.84).add(new Vector(0.0, 0.15 + (hitIndex * 0.02), 0.0)));
+
+        Vector rebound = dashDirection.clone().multiply(-0.68).setY(0.36 + (hitIndex * 0.03));
+        caster.setVelocity(rebound);
+
+        target.getWorld().spawnParticle(Particle.CRIT, targetPoint, 12 + (hitIndex * 2), 0.28, 0.18, 0.28, 0.03);
+        target.getWorld().playSound(targetPoint, Sound.ENTITY_PLAYER_ATTACK_SWEEP,
+                0.9f, 1.1f + (hitIndex * 0.07f));
     }
 }
