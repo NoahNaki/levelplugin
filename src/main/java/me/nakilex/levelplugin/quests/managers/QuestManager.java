@@ -34,6 +34,11 @@ import java.io.IOException;
 import java.util.*;
 
 public class QuestManager {
+    private static final Set<Integer> STARTER_ARMOR_TEMPLATE_IDS = Set.of(
+            16, 17, 18, 19,         // legacy starter armor ids
+            2101, 2102, 2103, 2104  // current starter merchant armor ids
+    );
+
     private final Main plugin;
     private final PartyManager partyManager;
     private final LevelManager levelManager;
@@ -949,12 +954,16 @@ public class QuestManager {
                 if (classReq != null && playerClass.name().equalsIgnoreCase(classReq)) {
                     updateObjective(player, QuestObjectiveType.BUY, "class_weapon", 1);
                 }
-                if (id >= 16 && id <= 19) {
+                if (isStarterArmorTemplateId(id)) {
                     updateObjective(player, QuestObjectiveType.BUY, "starter_armor", 1);
                 }
             }
         } catch (NumberFormatException ignore) {
         }
+    }
+
+    private boolean isStarterArmorTemplateId(int itemTemplateId) {
+        return STARTER_ARMOR_TEMPLATE_IDS.contains(itemTemplateId);
     }
 
     public void handleUpgrade(Player player, String itemId) {
