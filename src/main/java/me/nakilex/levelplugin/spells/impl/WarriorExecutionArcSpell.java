@@ -2,53 +2,82 @@ package me.nakilex.levelplugin.spells.impl;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.spells.SpellContext;
+import me.nakilex.levelplugin.spells.SpellEffectUtil;
 import me.nakilex.levelplugin.spells.SpellHandler;
-import me.nakilex.levelplugin.spells.WarriorCombatUtil;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
+import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.util.Vector;
 
 public class WarriorExecutionArcSpell implements SpellHandler {
     private final Main plugin;
-    private final double range;
-    private final double halfAngle;
-    private final double damage;
+    private final int durationTicks;
+    private final double orbitRadius;
+    private final double strikeDamage;
 
-    public WarriorExecutionArcSpell(Main plugin, double range, double halfAngle, double damage) {
+    public WarriorExecutionArcSpell(Main plugin, int durationTicks, double orbitRadius, double strikeDamage) {
         this.plugin = plugin;
-        this.range = range;
-        this.halfAngle = halfAngle;
-        this.damage = damage;
+        this.durationTicks = Math.max(12, durationTicks);
+        this.orbitRadius = Math.max(0.6, orbitRadius);
+        this.strikeDamage = Math.max(0.1, strikeDamage);
     }
 
     @Override
     public void cast(SpellContext context) {
         Player caster = context.player();
-        int hits = WarriorCombatUtil.strikeCone(plugin, caster, caster.getEyeLocation(), range, halfAngle, damage, 0.34);
-        caster.getWorld().spawnParticle(Particle.SWEEP_ATTACK, caster.getLocation().add(0.0, 1.0, 0.0), 1);
-        caster.getWorld().spawnParticle(Particle.FLAME, caster.getLocation().add(0.0, 1.1, 0.0),
-                18, 0.45, 0.25, 0.45, 0.01);
-        caster.getWorld().playSound(caster.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 0.95f, 0.95f);
-        caster.getWorld().playSound(caster.getLocation(), Sound.ITEM_TRIDENT_THUNDER, 0.45f, 1.8f);
-        if (hits <= 0) {
+        ItemStack hand = caster.getInventory().getItemInMainHand();
+        if (hand == null || hand.getType().isAir() || hand.getType() == Material.AIR) {
             ChatMessageUtil.send(caster, ChatMessageUtil.MessageType.WARNING,
-                    "Solar Reaver did not hit a target.");
+                    "Hold your weapon to cast Cyclone Brand.");
             return;
         }
 
+        Item orbitingItem = caster.getWorld().dropItem(caster.getLocation().add(0.0, 1.2, 0.0), hand.clone());
+        orbitingItem.setGravity(false);
+        orbitingItem.setCanMobPickup(false);
+        orbitingItem.setPickupDelay(Integer.MAX_VALUE);
+        orbitingItem.setInvulnerable(true);
+        orbitingItem.setSilent(true);
+
+        caster.getWorld().playSound(caster.getLocation(), Sound.ENTITY_BREEZE_SHOOT, 0.8f, 1.3f);
+
         new BukkitRunnable() {
+            private int ticks;
+            private double angle;
+
             @Override
             public void run() {
-                for (LivingEntity target : me.nakilex.levelplugin.spells.SpellEffectUtil.getLivingTargets(
-                        caster.getLocation(), 3.6, living -> !living.equals(caster))) {
-                    me.nakilex.levelplugin.spells.SpellEffectUtil.applyDirectSpellDamage(plugin, caster, target, damage * 0.45, true);
+                if (!caster.isOnline() || ticks >= durationTicks || !orbitingItem.isValid()) {
+                    orbitingItem.remove();
+                    cancel();
+                    return;
                 }
-                caster.getWorld().spawnParticle(Particle.END_ROD, caster.getLocation().add(0.0, 1.0, 0.0),
-                        14, 0.35, 0.25, 0.35, 0.02);
+                angle += 0.52;
+                Vector offset = new Vector(Math.cos(angle) * orbitRadius, 1.1 + (Math.sin(angle * 1.8) * 0.22), Math.sin(angle) * orbitRadius);
+                var orbitLocation = caster.getLocation().clone().add(offset);
+                orbitingItem.teleport(orbitLocation);
+                caster.getWorld().spawnParticle(Particle.SWEEP_ATTACK, orbitLocation, 1, 0.0, 0.0, 0.0, 0.0);
+                caster.getWorld().spawnParticle(Particle.CRIT, orbitLocation, 3, 0.08, 0.08, 0.08, 0.01);
+
+                if (ticks % 4 == 0) {
+                    for (LivingEntity target : SpellEffectUtil.getLivingTargets(orbitLocation, 1.25,
+                            living -> !living.equals(caster))) {
+                        SpellEffectUtil.applyDirectSpellDamage(plugin, caster, target, strikeDamage, true);
+                        Vector away = target.getLocation().toVector().subtract(caster.getLocation().toVector()).setY(0.08);
+                        if (away.lengthSquared() > 0.0001) {
+                            target.setVelocity(target.getVelocity().multiply(0.74).add(away.normalize().multiply(0.28)));
+                        }
+                    }
+                    caster.getWorld().playSound(orbitLocation, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 0.55f, 1.45f);
+                }
+                ticks++;
             }
-        }.runTaskLater(plugin, 4L);
+        }.runTaskTimer(plugin, 0L, 1L);
     }
 }

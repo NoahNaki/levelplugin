@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.spells.impl;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.spells.SpellContext;
+import me.nakilex.levelplugin.spells.SpellEffectUtil;
 import me.nakilex.levelplugin.spells.SpellHandler;
 import me.nakilex.levelplugin.utils.PotionEffectUtil;
 import org.bukkit.Particle;
@@ -90,6 +91,15 @@ public class WarriorGuardedResolveSpell implements SpellHandler {
                 player.getWorld().spawnParticle(Particle.WAX_OFF, player.getLocation().add(0.0, 1.0, 0.0),
                         5, 0.22, 0.28, 0.22, 0.005);
                 player.getWorld().playSound(player.getLocation(), Sound.ITEM_SHIELD_BLOCK, 0.25f, 1.45f);
+                for (var target : SpellEffectUtil.getLivingTargets(player.getLocation(), 2.2,
+                        living -> !living.equals(player))) {
+                    SpellEffectUtil.applyDirectSpellDamage(Main.getInstance(), player, target,
+                            Math.max(0.8, absorbed * 0.35), true);
+                    var away = target.getLocation().toVector().subtract(player.getLocation().toVector()).setY(0.06);
+                    if (away.lengthSquared() > 0.0001) {
+                        target.setVelocity(target.getVelocity().multiply(0.76).add(away.normalize().multiply(0.24)));
+                    }
+                }
             }
             if (state.absorbRemaining <= 0.0) {
                 state.absorbRemaining = 0.0;

@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.spells;
 
 import me.nakilex.levelplugin.Main;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.Location;
 import org.bukkit.Particle;
@@ -8,6 +9,7 @@ import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.FallingBlock;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
@@ -123,7 +125,7 @@ public final class WarriorCombatUtil {
                 double radius = baseRadius + (pulse * radiusStep);
                 double damage = baseDamage + (pulse * damageStep);
 
-                spawnGroundRipple(world, center, radius);
+                spawnGroundRipple(plugin, world, center, radius);
                 world.playSound(center, Sound.ENTITY_GENERIC_EXPLODE, 0.45f, 1.35f - (pulse * 0.08f));
 
                 for (LivingEntity target : SpellEffectUtil.getLivingTargets(center, radius,
@@ -182,7 +184,7 @@ public final class WarriorCombatUtil {
         }.runTaskTimer(plugin, 1L, 1L);
     }
 
-    private static void spawnGroundRipple(World world, Location center, double radius) {
+    private static void spawnGroundRipple(Main plugin, World world, Location center, double radius) {
         if (world == null || center == null) {
             return;
         }
@@ -199,7 +201,30 @@ public final class WarriorCombatUtil {
             Location fx = ground.getLocation().add(0.5, 1.02, 0.5);
             world.spawnParticle(Particle.BLOCK, fx, 3, 0.16, 0.06, 0.16, 0.01, ground.getBlockData());
             world.spawnParticle(Particle.CLOUD, fx, 1, 0.06, 0.01, 0.06, 0.001);
+            spawnRippleFallingBlock(plugin, fx, ground.getBlockData(), center);
         }
+    }
+
+    private static void spawnRippleFallingBlock(Main plugin, Location spawn, org.bukkit.block.data.BlockData data, Location center) {
+        if (plugin == null || spawn == null || data == null || spawn.getWorld() == null) {
+            return;
+        }
+        FallingBlock fb = spawn.getWorld().spawnFallingBlock(spawn, data);
+        fb.setDropItem(false);
+        fb.setHurtEntities(false);
+        fb.setGravity(true);
+        Vector outward = spawn.toVector().subtract(center.toVector()).setY(0.0);
+        if (outward.lengthSquared() < 0.0001) {
+            outward = new Vector(0.0, 0.0, 0.0);
+        } else {
+            outward.normalize().multiply(0.06);
+        }
+        fb.setVelocity(outward.setY(0.34));
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            if (fb.isValid()) {
+                fb.remove();
+            }
+        }, 10L);
     }
 
     private static Block findGroundBlock(Location sample) {
