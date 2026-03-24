@@ -219,12 +219,12 @@ public final class WarriorCombatUtil {
         } else {
             outward.normalize().multiply(0.06);
         }
-        fb.setVelocity(outward.setY(0.34));
+        fb.setVelocity(outward.setY(0.14));
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (fb.isValid()) {
                 fb.remove();
             }
-        }, 10L);
+        }, 8L);
     }
 
     private static Block findGroundBlock(Location sample) {

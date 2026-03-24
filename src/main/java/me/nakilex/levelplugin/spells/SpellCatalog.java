@@ -171,7 +171,7 @@ public final class SpellCatalog {
         SpellDefinition warriorGuardedResolve = new SpellDefinition("warrior_guarded_resolve", "Bulwark Maelstrom", 16, false);
 
         registry.registerSpell(warriorExecutionArc, new WarriorExecutionArcSpell(plugin, 28, 1.25, 3.2));
-        registry.registerSpell(warriorRuptureCyclone, new WarriorRuptureCycloneSpell(plugin, 5, 5L, 2.0, 0.75, 3.2, 0.9, 0.55));
+        registry.registerSpell(warriorRuptureCyclone, new WarriorRuptureCycloneSpell(plugin, 7, 4L, 0.6, 0.7, 2.8, 0.7, 0.46));
         registry.registerSpell(warriorTitanVault, new WarriorTitanVaultSpell(plugin, 1.18, 0.72, 3.0, 7.2));
         registry.registerSpell(warriorGuardedResolve, new WarriorGuardedResolveSpell(plugin, 90, 0.70, 9.5));
 

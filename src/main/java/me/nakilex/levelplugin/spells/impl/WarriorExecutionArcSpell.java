@@ -8,12 +8,13 @@ import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
+import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
+import org.bukkit.util.EulerAngle;
 
 public class WarriorExecutionArcSpell implements SpellHandler {
     private final Main plugin;
@@ -38,12 +39,17 @@ public class WarriorExecutionArcSpell implements SpellHandler {
             return;
         }
 
-        Item orbitingItem = caster.getWorld().dropItem(caster.getLocation().add(0.0, 1.2, 0.0), hand.clone());
-        orbitingItem.setGravity(false);
-        orbitingItem.setCanMobPickup(false);
-        orbitingItem.setPickupDelay(Integer.MAX_VALUE);
-        orbitingItem.setInvulnerable(true);
-        orbitingItem.setSilent(true);
+        ArmorStand stand = caster.getWorld().spawn(caster.getLocation().add(0.0, 1.0, 0.0), ArmorStand.class, armorStand -> {
+            armorStand.setVisible(false);
+            armorStand.setMarker(true);
+            armorStand.setGravity(false);
+            armorStand.setArms(true);
+            armorStand.setBasePlate(false);
+            armorStand.setInvulnerable(true);
+            armorStand.setSilent(true);
+            armorStand.getEquipment().setItemInMainHand(hand.clone());
+            armorStand.setRightArmPose(new EulerAngle(Math.toRadians(270), 0.0, 0.0));
+        });
 
         caster.getWorld().playSound(caster.getLocation(), Sound.ENTITY_BREEZE_SHOOT, 0.8f, 1.3f);
 
@@ -53,15 +59,18 @@ public class WarriorExecutionArcSpell implements SpellHandler {
 
             @Override
             public void run() {
-                if (!caster.isOnline() || ticks >= durationTicks || !orbitingItem.isValid()) {
-                    orbitingItem.remove();
+                if (!caster.isOnline() || ticks >= durationTicks || !stand.isValid()) {
+                    stand.remove();
                     cancel();
                     return;
                 }
                 angle += 0.52;
                 Vector offset = new Vector(Math.cos(angle) * orbitRadius, 1.1 + (Math.sin(angle * 1.8) * 0.22), Math.sin(angle) * orbitRadius);
                 var orbitLocation = caster.getLocation().clone().add(offset);
-                orbitingItem.teleport(orbitLocation);
+                float yaw = (float) Math.toDegrees(Math.atan2(offset.getZ(), offset.getX())) - 90.0f;
+                orbitLocation.setYaw(yaw);
+                stand.teleport(orbitLocation);
+                stand.setRightArmPose(new EulerAngle(Math.toRadians(270), 0.0, 0.0));
                 caster.getWorld().spawnParticle(Particle.SWEEP_ATTACK, orbitLocation, 1, 0.0, 0.0, 0.0, 0.0);
                 caster.getWorld().spawnParticle(Particle.CRIT, orbitLocation, 3, 0.08, 0.08, 0.08, 0.01);
 
