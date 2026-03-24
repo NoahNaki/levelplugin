@@ -43,6 +43,7 @@ public class WarriorExecutionArcSpell implements SpellHandler {
             CycloneVisualConfig cfg = VISUAL_CONFIG.copy();
             armorStand.setVisible(false);
             armorStand.setMarker(true);
+            armorStand.setCollidable(false);
             armorStand.setGravity(false);
             armorStand.setArms(true);
             armorStand.setBasePlate(false);
@@ -121,7 +122,7 @@ public class WarriorExecutionArcSpell implements SpellHandler {
 
     public static final class CycloneVisualConfig {
         private double orbitRadius = 2.0;
-        private double baseHeight = 0.10;
+        private double baseHeight = -1.0;
         private double heightWaveAmplitude = 0.0;
         private double angularSpeed = 0.30;
         private double armPitchDegrees = 0.0;
@@ -144,7 +145,7 @@ public class WarriorExecutionArcSpell implements SpellHandler {
 
         private void applyFrom(CycloneVisualConfig other) {
             this.orbitRadius = clamp(other.orbitRadius, 0.4, 3.5);
-            this.baseHeight = clamp(other.baseHeight, 0.1, 2.5);
+            this.baseHeight = clamp(other.baseHeight, -1.5, 2.5);
             this.heightWaveAmplitude = clamp(other.heightWaveAmplitude, 0.0, 1.0);
             this.angularSpeed = clamp(other.angularSpeed, 0.1, 1.2);
             this.armPitchDegrees = clamp(other.armPitchDegrees, 0.0, 360.0);
