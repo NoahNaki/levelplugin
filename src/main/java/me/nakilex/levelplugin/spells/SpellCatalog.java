@@ -170,7 +170,7 @@ public final class SpellCatalog {
         SpellDefinition warriorTitanVault = new SpellDefinition("warrior_titan_vault", "Titan Vault", 14, true);
         SpellDefinition warriorGuardedResolve = new SpellDefinition("warrior_guarded_resolve", "Aegis Bastion", 16, false);
 
-        registry.registerSpell(warriorExecutionArc, new WarriorExecutionArcSpell(plugin, 56, 2.0, 6.4));
+        registry.registerSpell(warriorExecutionArc, new WarriorExecutionArcSpell(plugin, 96, 2.0, 6.4));
         registry.registerSpell(warriorRuptureCyclone, new WarriorRuptureCycloneSpell(plugin, 7, 2L, 0.6, 0.7, 2.8, 0.7, 0.46));
         registry.registerSpell(warriorTitanVault, new WarriorTitanVaultSpell(plugin, 1.18, 0.72, 3.0, 7.2));
         registry.registerSpell(warriorGuardedResolve, new WarriorGuardedResolveSpell(plugin, 100, 0.64, 11.0));

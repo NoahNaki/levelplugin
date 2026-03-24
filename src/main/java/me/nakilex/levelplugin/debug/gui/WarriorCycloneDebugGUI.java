@@ -137,9 +137,9 @@ public final class WarriorCycloneDebugGUI implements Listener {
             case 31 -> WarriorExecutionArcSpell.updateVisualConfig(cfg -> cfg.setInvisibleStand(!cfg.invisibleStand()));
             case 49 -> WarriorExecutionArcSpell.updateVisualConfig(cfg -> {
                 cfg.setOrbitRadius(2.0);
-                cfg.setBaseHeight(-1.0);
+                cfg.setBaseHeight(-0.35);
                 cfg.setHeightWaveAmplitude(0.0);
-                cfg.setAngularSpeed(0.30);
+                cfg.setAngularSpeed(0.20);
                 cfg.setArmPitchDegrees(0.0);
                 cfg.setArmYawDegrees(0.0);
                 cfg.setArmRollDegrees(90.0);
