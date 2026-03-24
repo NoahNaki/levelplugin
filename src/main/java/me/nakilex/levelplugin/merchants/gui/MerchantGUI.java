@@ -12,6 +12,7 @@ import me.nakilex.levelplugin.items.tools.ToolTier;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.merchants.data.MerchantItem;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
+import me.nakilex.levelplugin.player.profile.ProfileManager;
 import me.nakilex.levelplugin.guild.GuildManager;
 import me.nakilex.levelplugin.guild.TownPerk;
 import me.nakilex.levelplugin.guild.TownPerkManager;
@@ -210,8 +211,8 @@ public class MerchantGUI implements Listener {
                 + ChatColor.LIGHT_PURPLE + "<glyph:purple_orb_icon>");
         }
 
-        if (mItem.getAccountLimit() > 0) {
-            lore.add(TooltipUtil.accountLimitLine(mItem.getAccountLimit()));
+        if (mItem.getProfileLimit() > 0) {
+            lore.add(TooltipUtil.profileLimitLine(mItem.getProfileLimit()));
         }
     }
 
@@ -237,7 +238,9 @@ public class MerchantGUI implements Listener {
             int gems   = map.containsKey("gems")
                 ? Integer.parseInt(map.get("gems").toString())
                 : 0;
-            int accountLimit = map.containsKey("account_limit")
+            int profileLimit = map.containsKey("profile_limit")
+                ? Integer.parseInt(map.get("profile_limit").toString())
+                : map.containsKey("account_limit")
                 ? Integer.parseInt(map.get("account_limit").toString())
                 : 0;
             String essenceClass = map.containsKey("essence_class") ? map.get("essence_class").toString() : null;
@@ -251,7 +254,7 @@ public class MerchantGUI implements Listener {
                         : 0;
                 if (clazz != null) {
                     merchantItems.put(slot, new MerchantItem(slot,
-                            MerchantItem.essence(clazz, rarity, stars), amount, cost, gems, accountLimit));
+                            MerchantItem.essence(clazz, rarity, stars), amount, cost, gems, profileLimit));
                 }
                 return;
             }
@@ -263,11 +266,11 @@ public class MerchantGUI implements Listener {
                         : ToolDiscipline.MINING;
                 CustomTool tool = ToolManager.getInstance().getTool(tier, discipline);
                 if (tool != null) {
-                    merchantItems.put(slot, new MerchantItem(slot, tool, amount, cost, gems, accountLimit));
+                    merchantItems.put(slot, new MerchantItem(slot, tool, amount, cost, gems, profileLimit));
                 }
             } else {
                 int itemId = Integer.parseInt(map.get("item_id").toString());
-                merchantItems.put(slot, new MerchantItem(slot, itemId, amount, cost, gems, accountLimit));
+                merchantItems.put(slot, new MerchantItem(slot, itemId, amount, cost, gems, profileLimit));
             }
         } catch (Exception e) {
             plugin.getLogger().warning("Failed to load a merchant item from Map: "
@@ -284,7 +287,7 @@ public class MerchantGUI implements Listener {
             int gems   = cs.contains("gems")
                 ? cs.getInt("gems")
                 : 0;
-            int accountLimit = cs.getInt("account_limit", 0);
+            int profileLimit = cs.getInt("profile_limit", cs.getInt("account_limit", 0));
             String essenceClass = cs.getString("essence_class");
             if (essenceClass != null && !essenceClass.isBlank()) {
                 PlayerClass clazz = PlayerClass.fromString(essenceClass);
@@ -292,7 +295,7 @@ public class MerchantGUI implements Listener {
                 int stars = cs.getInt("essence_stars", 0);
                 if (clazz != null) {
                     merchantItems.put(slot, new MerchantItem(slot,
-                            MerchantItem.essence(clazz, rarity, stars), amount, cost, gems, accountLimit));
+                            MerchantItem.essence(clazz, rarity, stars), amount, cost, gems, profileLimit));
                 }
                 return;
             }
@@ -302,11 +305,11 @@ public class MerchantGUI implements Listener {
                 ToolDiscipline discipline = ToolDiscipline.valueOf(cs.getString("tool_discipline", "MINING").toUpperCase());
                 CustomTool tool = ToolManager.getInstance().getTool(tier, discipline);
                 if (tool != null) {
-                    merchantItems.put(slot, new MerchantItem(slot, tool, amount, cost, gems, accountLimit));
+                    merchantItems.put(slot, new MerchantItem(slot, tool, amount, cost, gems, profileLimit));
                 }
             } else {
                 int itemId = cs.getInt("item_id");
-                merchantItems.put(slot, new MerchantItem(slot, itemId, amount, cost, gems, accountLimit));
+                merchantItems.put(slot, new MerchantItem(slot, itemId, amount, cost, gems, profileLimit));
             }
         } catch (Exception e) {
             plugin.getLogger().warning("Failed to load a merchant item from Section: "
@@ -518,15 +521,18 @@ public class MerchantGUI implements Listener {
     }
 
     private int getPurchaseCount(Player player, MerchantItem item) {
-        if (playerConfig == null || item.getAccountLimit() <= 0) {
+        if (playerConfig == null || item.getProfileLimit() <= 0) {
             return 0;
         }
-        String path = "players." + player.getUniqueId() + ".merchant_limits." + merchantName + "." + item.getSlot();
+        String path = merchantLimitPath(player, item);
+        if (path == null) {
+            return 0;
+        }
         return playerConfig.getConfig().getInt(path, 0);
     }
 
     private boolean hasReachedLimit(Player player, MerchantItem item) {
-        int limit = item.getAccountLimit();
+        int limit = item.getProfileLimit();
         if (limit <= 0) {
             return false;
         }
@@ -534,13 +540,30 @@ public class MerchantGUI implements Listener {
     }
 
     private void recordPurchase(Player player, MerchantItem item) {
-        if (playerConfig == null || item.getAccountLimit() <= 0) {
+        if (playerConfig == null || item.getProfileLimit() <= 0) {
             return;
         }
-        String path = "players." + player.getUniqueId() + ".merchant_limits." + merchantName + "." + item.getSlot();
+        String path = merchantLimitPath(player, item);
+        if (path == null) {
+            return;
+        }
         int current = playerConfig.getConfig().getInt(path, 0);
         playerConfig.getConfig().set(path, current + 1);
         playerConfig.saveConfigFile();
+    }
+
+    private String merchantLimitPath(Player player, MerchantItem item) {
+        if (player == null || item == null) {
+            return null;
+        }
+        Integer activeSlot = ProfileManager.getInstance().getActiveSlot(player.getUniqueId());
+        if (activeSlot == null || activeSlot < 0) {
+            return null;
+        }
+        return "players." + player.getUniqueId()
+                + ".profiles." + activeSlot
+                + ".merchant_limits." + merchantName
+                + "." + item.getSlot();
     }
 
     // ─── Replace your onInventoryOpen with this ──────────────────────────────
@@ -620,7 +643,7 @@ public class MerchantGUI implements Listener {
             return;
         }
         if (hasReachedLimit(player, mItem)) {
-            send(player, MessageType.ERROR, "You have already bought the maximum allowed for this offer.");
+            send(player, MessageType.ERROR, "You have already bought the maximum allowed on this profile.");
             return;
         }
 
