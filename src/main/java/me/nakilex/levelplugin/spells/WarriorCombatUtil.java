@@ -211,6 +211,7 @@ public final class WarriorCombatUtil {
         }
         FallingBlock fb = spawn.getWorld().spawnFallingBlock(spawn, data);
         fb.setDropItem(false);
+        fb.setCancelDrop(true);
         fb.setHurtEntities(false);
         fb.setGravity(true);
         Vector outward = spawn.toVector().subtract(center.toVector()).setY(0.0);
