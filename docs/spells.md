@@ -148,4 +148,46 @@ Use these as candidate implementations for the rogue family while reusing the ex
   - Emit `SMOKE`/`SMOKE_LARGE` + black dust particles while the bomb is active.
   - Include cleanup hooks for owner disconnect and plugin shutdown so active bomb entities/tasks are removed reliably.
 
+## Warrior skill concepts
+
+These are starter concepts matching the same class structure you asked for: **2 offensive, 1 defensive, 1 mobility**.
+They are designed to mirror existing class themes (clear identity, readable telegraphs, and upgrade-ready tiers).
+
+### Offensive (1): **Sunder Chain**
+- **Fantasy:** A heavy opening cleave that marks enemies, then a follow-up slam detonates the mark.
+- **Gameplay:** Two-phase pressure tool that rewards sticking to the same target pack.
+- **Implementation notes:**
+  - Reuse one generic melee cone helper for initial cleave hit detection (angle/range/damage params).
+  - Mark targets with metadata for a short window, then consume marks with the second strike for bonus damage.
+  - Reuse `ChatMessageUtil` deny messaging for out-of-range or invalid cast states.
+
+### Offensive (2): **Warbanner Crash**
+- **Fantasy:** Leap a short distance and drive a spectral banner into the ground, causing radial shockwaves.
+- **Gameplay:** Mid-range engage + AoE burst with one immediate hit and delayed pulse hits.
+- **Implementation notes:**
+  - Reuse one radial pulse scheduler (ticks/radius growth/damage falloff), which can later power other AoE spells.
+  - Telegraph pulse timing with layered particles/sound to match existing readable spell cadence.
+  - Keep pulse damage in a shared helper so progression tiers only tune data, not control flow.
+
+### Defensive: **Iron Bastion**
+- **Fantasy:** Brace behind a forward guard that reduces incoming frontal damage and punishes melee attackers.
+- **Gameplay:** Short-duration mitigation stance with directional skill expression.
+- **Implementation notes:**
+  - Implement as a timed status state (duration, frontal arc, reduction percent, retaliate damage).
+  - Reuse a generic incoming-damage modifier hook so future defensive spells can share it.
+  - Use `ChatMessageUtil` for active/expired feedback in the same UX tone as existing class spells.
+
+### Mobility: **Bulwark Charge**
+- **Fantasy:** Shoulder-charge forward, knocking aside enemies and ending with a brief unstoppable step-through.
+- **Gameplay:** Lane-control reposition tool that can initiate or disengage through enemy lines.
+- **Implementation notes:**
+  - Reuse the existing dash/charge movement pattern approach used by mobility spells (distance/speed/i-frame window).
+  - Apply controlled knockback only to enemies in a narrow lane to preserve warrior frontliner identity.
+  - Keep collision + cleanup logic in one reusable movement utility for future melee mobility variants.
+
+### Warrior progression tiers
+- **Sunder Chain** → *Bonebreaker Chain* → *Kingsplitter* (higher mark detonation damage + wider cleave).
+- **Warbanner Crash** → *Siegebanner Crash* → *Cataclysm Standard* (more pulses and stronger final wave).
+- **Bulwark Charge** → *Rampart Rush* → *Warlord Rush* (longer charge, stronger lane displacement).
+- **Iron Bastion** → *Fortress Stance* → *Unbroken Bastion* (higher frontal mitigation + stronger punish proc).
 
