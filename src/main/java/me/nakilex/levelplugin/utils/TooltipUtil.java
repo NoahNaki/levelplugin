@@ -308,13 +308,23 @@ public final class TooltipUtil {
     }
 
     /**
-     * Standard account limit line for shop tooltips to keep styling consistent.
+     * Standard purchase limit line for shop tooltips to keep styling consistent.
      *
-     * @param limit maximum purchases per account
-     * @return formatted lore line, e.g. "§7Account Limit: §f1"
+     * @param scope limit scope label such as "Profile" or "Account"
+     * @param limit maximum purchases in that scope
+     * @return formatted lore line, e.g. "§7Profile Limit: §f1"
      */
+    public static String purchaseLimitLine(String scope, int limit) {
+        String resolvedScope = (scope == null || scope.isBlank()) ? "Purchase" : scope.trim();
+        return ChatColor.GRAY + resolvedScope + " Limit: " + ChatColor.WHITE + limit;
+    }
+
+    public static String profileLimitLine(int limit) {
+        return purchaseLimitLine("Profile", limit);
+    }
+
     public static String accountLimitLine(int limit) {
-        return ChatColor.GRAY + "Account Limit: " + ChatColor.WHITE + limit;
+        return purchaseLimitLine("Account", limit);
     }
 
     /**

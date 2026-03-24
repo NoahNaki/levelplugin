@@ -8,22 +8,22 @@ merchants:
         item_id: 2101 # Initiate Helm (fixed stats)
         amount: 1
         cost: 25
-        account_limit: 1
+        profile_limit: 1
       - slot: 12
         item_id: 2102 # Initiate Cuirass (fixed stats)
         amount: 1
         cost: 25
-        account_limit: 1
+        profile_limit: 1
       - slot: 14
         item_id: 2103 # Initiate Legguards (fixed stats)
         amount: 1
         cost: 25
-        account_limit: 1
+        profile_limit: 1
       - slot: 16
         item_id: 2104 # Initiate Boots (fixed stats)
         amount: 1
         cost: 25
-        account_limit: 1
+        profile_limit: 1
 
   uncommon_gear_shop:
     title: "Uncommon Gear Shop"
@@ -472,32 +472,32 @@ merchants:
         essence_stars: 0
         amount: 1
         cost: 500
-        account_limit: 1
+        profile_limit: 1
       - slot: 12
         essence_class: ROGUE
         essence_rarity: COMMON
         essence_stars: 0
         amount: 1
         cost: 500
-        account_limit: 1
+        profile_limit: 1
       - slot: 13
         essence_class: MAGE
         essence_rarity: COMMON
         essence_stars: 0
         amount: 1
         cost: 500
-        account_limit: 1
+        profile_limit: 1
       - slot: 14
         essence_class: ARCHER
         essence_rarity: COMMON
         essence_stars: 0
         amount: 1
         cost: 500
-        account_limit: 1
+        profile_limit: 1
       - slot: 15
         essence_class: CLERIC
         essence_rarity: COMMON
         essence_stars: 0
         amount: 1
         cost: 500
-        account_limit: 1
+        profile_limit: 1
