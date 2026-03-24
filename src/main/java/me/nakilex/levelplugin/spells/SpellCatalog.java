@@ -18,6 +18,10 @@ import me.nakilex.levelplugin.spells.impl.RogueRazorDashSpell;
 import me.nakilex.levelplugin.spells.impl.RogueNightfallLungeSpell;
 import me.nakilex.levelplugin.spells.impl.RogueShadowFlurrySpell;
 import me.nakilex.levelplugin.spells.impl.RogueSmokeBombSpell;
+import me.nakilex.levelplugin.spells.impl.WarriorExecutionArcSpell;
+import me.nakilex.levelplugin.spells.impl.WarriorGuardedResolveSpell;
+import me.nakilex.levelplugin.spells.impl.WarriorRuptureCycloneSpell;
+import me.nakilex.levelplugin.spells.impl.WarriorTitanVaultSpell;
 import me.nakilex.levelplugin.spells.input.SpellInputMode;
 import me.nakilex.levelplugin.spells.input.SpellInputType;
 
@@ -161,6 +165,39 @@ public final class SpellCatalog {
         registry.registerBinding(SpellBinding.forInputType(rogueRazorDash.id(), ClassUtil::isRogueFamily, SpellInputType.SPELL_3));
         registry.registerBinding(SpellBinding.forInputType(rogueSmokeBomb.id(), ClassUtil::isRogueFamily, SpellInputType.SPELL_4));
 
+        SpellDefinition warriorExecutionArc = new SpellDefinition("warrior_execution_arc", "Execution Arc", 16, false);
+        SpellDefinition warriorRuptureCyclone = new SpellDefinition("warrior_rupture_cyclone", "Rupture Cyclone", 18, false);
+        SpellDefinition warriorTitanVault = new SpellDefinition("warrior_titan_vault", "Titan Vault", 14, true);
+        SpellDefinition warriorGuardedResolve = new SpellDefinition("warrior_guarded_resolve", "Guarded Resolve", 16, false);
+
+        registry.registerSpell(warriorExecutionArc, new WarriorExecutionArcSpell(plugin, 4.4, 55.0, 8.0));
+        registry.registerSpell(warriorRuptureCyclone, new WarriorRuptureCycloneSpell(plugin, 4, 6L, 2.4, 0.6, 3.6, 0.7));
+        registry.registerSpell(warriorTitanVault, new WarriorTitanVaultSpell(plugin, 1.18, 0.72, 3.0, 7.2));
+        registry.registerSpell(warriorGuardedResolve, new WarriorGuardedResolveSpell(plugin, 90, 0.72, 8.5));
+
+        registry.registerBinding(SpellBinding.forInputType(warriorExecutionArc.id(), ClassUtil::isWarriorFamily, SpellInputType.SPELL_1));
+        registry.registerBinding(SpellBinding.forInputType(warriorRuptureCyclone.id(), ClassUtil::isWarriorFamily, SpellInputType.SPELL_2));
+        registry.registerBinding(SpellBinding.forInputType(warriorTitanVault.id(), ClassUtil::isWarriorFamily, SpellInputType.SPELL_3));
+        registry.registerBinding(SpellBinding.forInputType(warriorGuardedResolve.id(), ClassUtil::isWarriorFamily, SpellInputType.SPELL_4));
+
+        registry.registerBinding(SpellBinding.forSequence(warriorExecutionArc.id(), ClassUtil::isWarriorFamily,
+                SpellInputMode.MOUSE_AND_KEYBOARD, "Sneak+Left"));
+        registry.registerBinding(SpellBinding.forSequence(warriorRuptureCyclone.id(), ClassUtil::isWarriorFamily,
+                SpellInputMode.MOUSE_AND_KEYBOARD, "Sneak+Right"));
+        registry.registerBinding(SpellBinding.forSequence(warriorTitanVault.id(), ClassUtil::isWarriorFamily,
+                SpellInputMode.MOUSE_AND_KEYBOARD, "Right"));
+        registry.registerBinding(SpellBinding.forSequence(warriorGuardedResolve.id(), ClassUtil::isWarriorFamily,
+                SpellInputMode.MOUSE_AND_KEYBOARD, "Sneak+Sneak"));
+
+        registry.registerBinding(SpellBinding.forSequence(warriorExecutionArc.id(), ClassUtil::isWarriorFamily,
+                SpellInputMode.MOUSE_COMBO, "RLL"));
+        registry.registerBinding(SpellBinding.forSequence(warriorRuptureCyclone.id(), ClassUtil::isWarriorFamily,
+                SpellInputMode.MOUSE_COMBO, "RRL"));
+        registry.registerBinding(SpellBinding.forSequence(warriorTitanVault.id(), ClassUtil::isWarriorFamily,
+                SpellInputMode.MOUSE_COMBO, "RRR"));
+        registry.registerBinding(SpellBinding.forSequence(warriorGuardedResolve.id(), ClassUtil::isWarriorFamily,
+                SpellInputMode.MOUSE_COMBO, "RLR"));
+
         configureCooldowns();
     }
 
@@ -202,5 +239,10 @@ public final class SpellCatalog {
         SpellCastManager.setSpellCooldownMs("rogue_phantom_cross", 6900L);
         SpellCastManager.setSpellCooldownMs("rogue_phantom_cross_cyclone", 7700L);
         SpellCastManager.setSpellCooldownMs("rogue_phantom_cross_judgement", 8600L);
+
+        SpellCastManager.setSpellCooldownMs("warrior_execution_arc", 5900L);
+        SpellCastManager.setSpellCooldownMs("warrior_rupture_cyclone", 7600L);
+        SpellCastManager.setSpellCooldownMs("warrior_titan_vault", 0L);
+        SpellCastManager.setSpellCooldownMs("warrior_guarded_resolve", 11000L);
     }
 }

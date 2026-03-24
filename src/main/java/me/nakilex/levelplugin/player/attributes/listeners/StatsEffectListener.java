@@ -10,6 +10,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.pet.PetEffectType;
 import me.nakilex.levelplugin.pet.PetManager;
 import me.nakilex.levelplugin.spells.impl.ArcherWindguardSpell;
+import me.nakilex.levelplugin.spells.impl.WarriorGuardedResolveSpell;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.utils.MobUtil;
 import org.bukkit.entity.Entity;
@@ -239,6 +240,7 @@ public class StatsEffectListener implements Listener {
                 incoming = petManager.applyIncomingCombatPetReductions(attacked, incoming);
             }
             incoming *= ArcherWindguardSpell.getIncomingDamageMultiplier(attacked);
+            incoming = WarriorGuardedResolveSpell.applyIncomingDamage(attacked, incoming);
 
             event.setDamage(incoming);
         }
