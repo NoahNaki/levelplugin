@@ -16,7 +16,7 @@ import java.util.Arrays;
 import java.util.List;
 
 public class ClassCommand implements TabExecutor {
-    private static final ClassSelectionGUI CLASS_SELECTION_GUI = new ClassSelectionGUI();
+    private static final ClassSelectionGUI CLASS_SELECTION_GUI = ClassSelectionGUI.getInstance();
 
     @Override
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
@@ -112,7 +112,7 @@ public class ClassCommand implements TabExecutor {
         }
 
         if (args.length != 1) {
-            player.sendMessage(ChatColor.YELLOW + "Usage: /class <Mage|Archer|Rogue|Warrior|Cleric>");
+            player.sendMessage(ChatColor.YELLOW + "Usage: /class <Mage|Archer|Rogue|Warrior>");
             return true;
         }
 
@@ -133,7 +133,7 @@ public class ClassCommand implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
             List<String> options = new ArrayList<>(List.of("unlock", "unlockall", "lock", "admin",
-                    "mage", "archer", "rogue", "warrior", "cleric"));
+                    "mage", "archer", "rogue", "warrior"));
             return CommandUtil.filterStartingWith(options, args[0]);
         } else if (args.length == 2) {
             String first = args[0].toLowerCase();

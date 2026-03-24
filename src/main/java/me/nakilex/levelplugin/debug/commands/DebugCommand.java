@@ -18,6 +18,7 @@ import me.nakilex.levelplugin.debug.BeaconEntityDebugManager;
 import me.nakilex.levelplugin.debug.DropDebugManager;
 import me.nakilex.levelplugin.debug.ArcSlashDebugManager;
 import me.nakilex.levelplugin.debug.gui.ArcSlashDebugGUI;
+import me.nakilex.levelplugin.debug.gui.WarriorCycloneDebugGUI;
 import me.nakilex.levelplugin.debug.MobStatusDebugItem;
 import me.nakilex.levelplugin.debug.SpellInputDebugItem;
 import me.nakilex.levelplugin.pet.PetManager;
@@ -126,7 +127,7 @@ public class DebugCommand implements TabExecutor {
                 String statUsage = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|inventorydebug|rewardbomb|" + statUsage + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|inventorydebug|rewardbomb|warriorcyclone|" + statUsage + ">");
             }
             return true;
         }
@@ -312,6 +313,13 @@ public class DebugCommand implements TabExecutor {
                 spellPlayer.getInventory().addItem(SpellInputDebugItem.create());
                 ChatMessageUtil.send(spellPlayer, ChatMessageUtil.MessageType.SUCCESS,
                         "Spell input debug stick added to your inventory.");
+                return true;
+            case "warriorcyclone":
+                if (!(sender instanceof Player cyclonePlayer)) {
+                    sender.sendMessage(ChatColor.RED + "Players only.");
+                    return true;
+                }
+                WarriorCycloneDebugGUI.getInstance().open(cyclonePlayer);
                 return true;
             case "stunstick":
                 if (!(sender instanceof Player stunPlayer)) {
@@ -536,7 +544,7 @@ public class DebugCommand implements TabExecutor {
                 String statUsage2 = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|inventorydebug|rewardbomb|" + statUsage2 + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|inventorydebug|rewardbomb|warriorcyclone|" + statUsage2 + ">");
                 return true;
         }
     }
@@ -636,7 +644,7 @@ public class DebugCommand implements TabExecutor {
             List<String> subs = new ArrayList<>(List.of("mobinfo", "tps", "siege", "cityowner", "citymax", "autocast",
                     "hand", "chatgame", "expedition", "dungeonexpedition", "rewardbomb", "drops", "beaconentity",
                     "spellinput", "spellcooldown", "spellmanacost", "stunstick", "poisonstick", "tauntstick", "fearstick", "slowstick", "petpull",
-                    "particle", "particlepath", "particlepreset", "inventorydebug"));
+                    "particle", "particlepath", "particlepreset", "inventorydebug", "warriorcyclone"));
             subs.addAll(Arrays.stream(StatType.values()).map(StatType::getAbbrev).toList());
             return subs.stream()
                     .filter(s -> s.startsWith(args[0].toLowerCase()))

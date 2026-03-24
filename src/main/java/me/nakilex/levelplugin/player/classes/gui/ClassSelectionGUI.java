@@ -30,25 +30,31 @@ import java.util.UUID;
 
 public class ClassSelectionGUI implements Listener {
     private static final String TITLE = "Class Selection";
-    private static final int[] CLASS_SLOTS = {10, 12, 14, 16, 22};
+    private static final int[] CLASS_SLOTS = {10, 12, 14, 16};
+    private static final ClassSelectionGUI INSTANCE = new ClassSelectionGUI();
 
     private static final List<PlayerClass> BASE_CLASSES = List.of(
             PlayerClass.WARRIOR,
             PlayerClass.ROGUE,
             PlayerClass.MAGE,
-            PlayerClass.ARCHER,
-            PlayerClass.CLERIC
+            PlayerClass.ARCHER
     );
 
     private static final Map<PlayerClass, Material> CLASS_ICONS = Map.of(
             PlayerClass.WARRIOR, Material.IRON_SWORD,
             PlayerClass.ROGUE, Material.SHEARS,
             PlayerClass.MAGE, Material.BLAZE_ROD,
-            PlayerClass.ARCHER, Material.BOW,
-            PlayerClass.CLERIC, Material.GOLDEN_APPLE
+            PlayerClass.ARCHER, Material.BOW
     );
 
     private final Map<UUID, List<GuiWidget>> widgetsByPlayer = new HashMap<>();
+
+    private ClassSelectionGUI() {
+    }
+
+    public static ClassSelectionGUI getInstance() {
+        return INSTANCE;
+    }
 
     public void open(Player player) {
         if (player == null) {

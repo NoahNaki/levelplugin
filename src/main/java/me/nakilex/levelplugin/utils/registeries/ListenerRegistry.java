@@ -281,7 +281,7 @@ public class ListenerRegistry {
         pm.registerEvents(new GuildGUIListener(guildGUI), plugin);
         pm.registerEvents(new GuildQuestGUIListener(), plugin);
         pm.registerEvents(new SubclassGUI(), plugin);
-        pm.registerEvents(new ClassSelectionGUI(), plugin);
+        pm.registerEvents(ClassSelectionGUI.getInstance(), plugin);
         pm.registerEvents(new ClassEssenceMenuListener(), plugin);
         pm.registerEvents(new ClassEssenceBoundListener(), plugin);
         pm.registerEvents(new ClassEssenceSwapListener(), plugin);
