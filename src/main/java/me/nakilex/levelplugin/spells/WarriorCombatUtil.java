@@ -188,7 +188,7 @@ public final class WarriorCombatUtil {
         if (world == null || center == null) {
             return;
         }
-        int segments = Math.max(10, (int) Math.round(radius * 16.0));
+        int segments = Math.max(8, (int) Math.round(radius * 13.6));
         for (int i = 0; i < segments; i++) {
             double angle = (Math.PI * 2.0 * i) / segments;
             double x = center.getX() + (Math.cos(angle) * radius);

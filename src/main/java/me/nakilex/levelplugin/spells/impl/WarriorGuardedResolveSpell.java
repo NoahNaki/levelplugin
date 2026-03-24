@@ -60,6 +60,18 @@ public class WarriorGuardedResolveSpell implements SpellHandler {
                     caster.getWorld().spawnParticle(Particle.ENCHANT, caster.getLocation().add(0.0, 1.0, 0.0),
                             12, 0.35, 0.45, 0.35, 0.0);
                 }
+                if (ticks % 10 == 0) {
+                    caster.getWorld().spawnParticle(Particle.SONIC_BOOM, caster.getLocation().add(0.0, 1.0, 0.0), 1);
+                    caster.getWorld().playSound(caster.getLocation(), Sound.ITEM_TOTEM_USE, 0.4f, 1.6f);
+                    for (var target : SpellEffectUtil.getLivingTargets(caster.getLocation(), 2.8,
+                            living -> !living.equals(caster))) {
+                        SpellEffectUtil.applyDirectSpellDamage(Main.getInstance(), caster, target, 2.4, true);
+                        var away = target.getLocation().toVector().subtract(caster.getLocation().toVector()).setY(0.09);
+                        if (away.lengthSquared() > 0.0001) {
+                            target.setVelocity(target.getVelocity().multiply(0.74).add(away.normalize().multiply(0.26)));
+                        }
+                    }
+                }
                 ticks++;
             }
         }.runTaskTimer(plugin, 0L, 1L);

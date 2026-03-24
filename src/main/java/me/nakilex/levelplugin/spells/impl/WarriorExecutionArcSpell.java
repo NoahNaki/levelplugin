@@ -40,6 +40,7 @@ public class WarriorExecutionArcSpell implements SpellHandler {
         }
 
         ArmorStand stand = caster.getWorld().spawn(caster.getLocation().add(0.0, 1.0, 0.0), ArmorStand.class, armorStand -> {
+            CycloneVisualConfig cfg = VISUAL_CONFIG.copy();
             armorStand.setVisible(false);
             armorStand.setMarker(true);
             armorStand.setGravity(false);
@@ -48,7 +49,12 @@ public class WarriorExecutionArcSpell implements SpellHandler {
             armorStand.setInvulnerable(true);
             armorStand.setSilent(true);
             armorStand.getEquipment().setItemInMainHand(hand.clone());
-            armorStand.setRightArmPose(new EulerAngle(Math.toRadians(270), 0.0, 0.0));
+            armorStand.setRightArmPose(new EulerAngle(
+                    Math.toRadians(cfg.armPitchDegrees),
+                    Math.toRadians(cfg.armYawDegrees),
+                    Math.toRadians(cfg.armRollDegrees)
+            ));
+            armorStand.setInvisible(cfg.invisibleStand);
         });
 
         caster.getWorld().playSound(caster.getLocation(), Sound.ENTITY_BREEZE_SHOOT, 0.8f, 1.3f);
@@ -114,13 +120,13 @@ public class WarriorExecutionArcSpell implements SpellHandler {
     }
 
     public static final class CycloneVisualConfig {
-        private double orbitRadius = 1.25;
-        private double baseHeight = 1.10;
-        private double heightWaveAmplitude = 0.22;
-        private double angularSpeed = 0.52;
-        private double armPitchDegrees = 270.0;
+        private double orbitRadius = 2.0;
+        private double baseHeight = 0.20;
+        private double heightWaveAmplitude = 0.0;
+        private double angularSpeed = 0.30;
+        private double armPitchDegrees = 0.0;
         private double armYawDegrees = 0.0;
-        private double armRollDegrees = 0.0;
+        private double armRollDegrees = 90.0;
         private boolean invisibleStand = true;
 
         public CycloneVisualConfig copy() {

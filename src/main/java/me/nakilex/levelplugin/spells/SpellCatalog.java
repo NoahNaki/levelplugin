@@ -168,12 +168,12 @@ public final class SpellCatalog {
         SpellDefinition warriorExecutionArc = new SpellDefinition("warrior_execution_arc", "Cyclone Brand", 16, false);
         SpellDefinition warriorRuptureCyclone = new SpellDefinition("warrior_rupture_cyclone", "Seismic Shockwave", 18, false);
         SpellDefinition warriorTitanVault = new SpellDefinition("warrior_titan_vault", "Titan Vault", 14, true);
-        SpellDefinition warriorGuardedResolve = new SpellDefinition("warrior_guarded_resolve", "Bulwark Maelstrom", 16, false);
+        SpellDefinition warriorGuardedResolve = new SpellDefinition("warrior_guarded_resolve", "Aegis Bastion", 16, false);
 
-        registry.registerSpell(warriorExecutionArc, new WarriorExecutionArcSpell(plugin, 28, 1.25, 3.2));
-        registry.registerSpell(warriorRuptureCyclone, new WarriorRuptureCycloneSpell(plugin, 7, 4L, 0.6, 0.7, 2.8, 0.7, 0.46));
+        registry.registerSpell(warriorExecutionArc, new WarriorExecutionArcSpell(plugin, 56, 2.0, 6.4));
+        registry.registerSpell(warriorRuptureCyclone, new WarriorRuptureCycloneSpell(plugin, 7, 2L, 0.6, 0.7, 2.8, 0.7, 0.46));
         registry.registerSpell(warriorTitanVault, new WarriorTitanVaultSpell(plugin, 1.18, 0.72, 3.0, 7.2));
-        registry.registerSpell(warriorGuardedResolve, new WarriorGuardedResolveSpell(plugin, 90, 0.70, 9.5));
+        registry.registerSpell(warriorGuardedResolve, new WarriorGuardedResolveSpell(plugin, 100, 0.64, 11.0));
 
         registry.registerBinding(SpellBinding.forInputType(warriorExecutionArc.id(), ClassUtil::isWarriorFamily, SpellInputType.SPELL_1));
         registry.registerBinding(SpellBinding.forInputType(warriorRuptureCyclone.id(), ClassUtil::isWarriorFamily, SpellInputType.SPELL_2));
