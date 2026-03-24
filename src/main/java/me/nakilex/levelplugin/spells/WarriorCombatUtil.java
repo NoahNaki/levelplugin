@@ -1,9 +1,12 @@
 package me.nakilex.levelplugin.spells;
 
 import me.nakilex.levelplugin.Main;
+import org.bukkit.Material;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
+import org.bukkit.World;
+import org.bukkit.block.Block;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -94,6 +97,51 @@ public final class WarriorCombatUtil {
         }.runTaskTimer(plugin, 0L, Math.max(1L, intervalTicks));
     }
 
+    public static void runShockwaveRipple(Main plugin,
+                                          Player caster,
+                                          Location center,
+                                          int pulseCount,
+                                          long intervalTicks,
+                                          double baseRadius,
+                                          double radiusStep,
+                                          double baseDamage,
+                                          double damageStep,
+                                          double knockback) {
+        if (plugin == null || caster == null || center == null || center.getWorld() == null) {
+            return;
+        }
+        World world = center.getWorld();
+        new BukkitRunnable() {
+            private int pulse;
+
+            @Override
+            public void run() {
+                if (!caster.isOnline() || pulse >= pulseCount) {
+                    cancel();
+                    return;
+                }
+                double radius = baseRadius + (pulse * radiusStep);
+                double damage = baseDamage + (pulse * damageStep);
+
+                spawnGroundRipple(world, center, radius);
+                world.playSound(center, Sound.ENTITY_GENERIC_EXPLODE, 0.45f, 1.35f - (pulse * 0.08f));
+
+                for (LivingEntity target : SpellEffectUtil.getLivingTargets(center, radius,
+                        living -> !living.equals(caster))) {
+                    SpellEffectUtil.applyDirectSpellDamage(plugin, caster, target, damage, true);
+                    Vector away = target.getLocation().toVector().subtract(center.toVector());
+                    away.setY(0.0);
+                    if (away.lengthSquared() <= 0.0001) {
+                        away = caster.getLocation().getDirection().clone().setY(0.0);
+                    }
+                    away.normalize().multiply(knockback).setY(0.12 + (pulse * 0.01));
+                    target.setVelocity(target.getVelocity().multiply(0.72).add(away));
+                }
+                pulse++;
+            }
+        }.runTaskTimer(plugin, 0L, Math.max(1L, intervalTicks));
+    }
+
     public static void leapAndSlam(Main plugin,
                                    Player caster,
                                    Vector launchVelocity,
@@ -132,5 +180,42 @@ public final class WarriorCombatUtil {
                 ticks++;
             }
         }.runTaskTimer(plugin, 1L, 1L);
+    }
+
+    private static void spawnGroundRipple(World world, Location center, double radius) {
+        if (world == null || center == null) {
+            return;
+        }
+        int segments = Math.max(10, (int) Math.round(radius * 16.0));
+        for (int i = 0; i < segments; i++) {
+            double angle = (Math.PI * 2.0 * i) / segments;
+            double x = center.getX() + (Math.cos(angle) * radius);
+            double z = center.getZ() + (Math.sin(angle) * radius);
+            Location sample = new Location(world, x, center.getY() + 0.35, z);
+            Block ground = findGroundBlock(sample);
+            if (ground == null || !ground.getType().isSolid()) {
+                continue;
+            }
+            Location fx = ground.getLocation().add(0.5, 1.02, 0.5);
+            world.spawnParticle(Particle.BLOCK, fx, 3, 0.16, 0.06, 0.16, 0.01, ground.getBlockData());
+            world.spawnParticle(Particle.CLOUD, fx, 1, 0.06, 0.01, 0.06, 0.001);
+        }
+    }
+
+    private static Block findGroundBlock(Location sample) {
+        if (sample == null || sample.getWorld() == null) {
+            return null;
+        }
+        Block block = sample.getBlock();
+        World world = sample.getWorld();
+        int minY = world.getMinHeight();
+        int checks = 6;
+        while (checks-- > 0 && block.getY() > minY) {
+            if (block.getType().isSolid() && block.getType() != Material.BARRIER) {
+                return block;
+            }
+            block = block.getRelative(0, -1, 0);
+        }
+        return null;
     }
 }

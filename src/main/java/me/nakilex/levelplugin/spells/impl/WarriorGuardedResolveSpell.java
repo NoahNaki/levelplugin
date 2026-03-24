@@ -8,6 +8,7 @@ import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffectType;
+import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.Map;
 import java.util.UUID;
@@ -36,7 +37,31 @@ public class WarriorGuardedResolveSpell implements SpellHandler {
         PotionEffectUtil.applyHiddenEffect(caster, PotionEffectType.RESISTANCE, durationTicks, 0);
         caster.getWorld().spawnParticle(Particle.WAX_ON, caster.getLocation().add(0.0, 1.0, 0.0),
                 18, 0.35, 0.45, 0.35, 0.01);
+        caster.getWorld().spawnParticle(Particle.TOTEM_OF_UNDYING, caster.getLocation().add(0.0, 1.2, 0.0),
+                10, 0.25, 0.35, 0.25, 0.01);
         caster.getWorld().playSound(caster.getLocation(), Sound.ITEM_SHIELD_BLOCK, 0.95f, 0.9f);
+        caster.getWorld().playSound(caster.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.55f, 1.7f);
+
+        new BukkitRunnable() {
+            private int ticks;
+
+            @Override
+            public void run() {
+                if (!caster.isOnline() || ticks >= durationTicks) {
+                    cancel();
+                    return;
+                }
+                if (!ACTIVE_GUARDS.containsKey(caster.getUniqueId())) {
+                    cancel();
+                    return;
+                }
+                if (ticks % 8 == 0) {
+                    caster.getWorld().spawnParticle(Particle.ENCHANT, caster.getLocation().add(0.0, 1.0, 0.0),
+                            12, 0.35, 0.45, 0.35, 0.0);
+                }
+                ticks++;
+            }
+        }.runTaskTimer(plugin, 0L, 1L);
 
         plugin.getServer().getScheduler().runTaskLater(plugin,
                 () -> ACTIVE_GUARDS.remove(caster.getUniqueId()),
@@ -61,8 +86,15 @@ public class WarriorGuardedResolveSpell implements SpellHandler {
             double absorbed = Math.min(state.absorbRemaining, adjusted);
             adjusted -= absorbed;
             state.absorbRemaining -= absorbed;
+            if (absorbed > 0.0) {
+                player.getWorld().spawnParticle(Particle.WAX_OFF, player.getLocation().add(0.0, 1.0, 0.0),
+                        5, 0.22, 0.28, 0.22, 0.005);
+                player.getWorld().playSound(player.getLocation(), Sound.ITEM_SHIELD_BLOCK, 0.25f, 1.45f);
+            }
             if (state.absorbRemaining <= 0.0) {
                 state.absorbRemaining = 0.0;
+                player.getWorld().spawnParticle(Particle.FLASH, player.getLocation().add(0.0, 1.0, 0.0), 1);
+                player.getWorld().playSound(player.getLocation(), Sound.BLOCK_GLASS_BREAK, 0.45f, 1.55f);
             }
         }
         return Math.max(0.0, adjusted);

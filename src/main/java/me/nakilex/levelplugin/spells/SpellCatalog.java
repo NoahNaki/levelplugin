@@ -165,15 +165,15 @@ public final class SpellCatalog {
         registry.registerBinding(SpellBinding.forInputType(rogueRazorDash.id(), ClassUtil::isRogueFamily, SpellInputType.SPELL_3));
         registry.registerBinding(SpellBinding.forInputType(rogueSmokeBomb.id(), ClassUtil::isRogueFamily, SpellInputType.SPELL_4));
 
-        SpellDefinition warriorExecutionArc = new SpellDefinition("warrior_execution_arc", "Execution Arc", 16, false);
-        SpellDefinition warriorRuptureCyclone = new SpellDefinition("warrior_rupture_cyclone", "Rupture Cyclone", 18, false);
+        SpellDefinition warriorExecutionArc = new SpellDefinition("warrior_execution_arc", "Solar Reaver", 16, false);
+        SpellDefinition warriorRuptureCyclone = new SpellDefinition("warrior_rupture_cyclone", "Seismic Shockwave", 18, false);
         SpellDefinition warriorTitanVault = new SpellDefinition("warrior_titan_vault", "Titan Vault", 14, true);
-        SpellDefinition warriorGuardedResolve = new SpellDefinition("warrior_guarded_resolve", "Guarded Resolve", 16, false);
+        SpellDefinition warriorGuardedResolve = new SpellDefinition("warrior_guarded_resolve", "Aegis Reprisal", 16, false);
 
-        registry.registerSpell(warriorExecutionArc, new WarriorExecutionArcSpell(plugin, 4.4, 55.0, 8.0));
-        registry.registerSpell(warriorRuptureCyclone, new WarriorRuptureCycloneSpell(plugin, 4, 6L, 2.4, 0.6, 3.6, 0.7));
+        registry.registerSpell(warriorExecutionArc, new WarriorExecutionArcSpell(plugin, 4.8, 58.0, 8.4));
+        registry.registerSpell(warriorRuptureCyclone, new WarriorRuptureCycloneSpell(plugin, 5, 5L, 2.0, 0.75, 3.2, 0.9, 0.55));
         registry.registerSpell(warriorTitanVault, new WarriorTitanVaultSpell(plugin, 1.18, 0.72, 3.0, 7.2));
-        registry.registerSpell(warriorGuardedResolve, new WarriorGuardedResolveSpell(plugin, 90, 0.72, 8.5));
+        registry.registerSpell(warriorGuardedResolve, new WarriorGuardedResolveSpell(plugin, 90, 0.70, 9.5));
 
         registry.registerBinding(SpellBinding.forInputType(warriorExecutionArc.id(), ClassUtil::isWarriorFamily, SpellInputType.SPELL_1));
         registry.registerBinding(SpellBinding.forInputType(warriorRuptureCyclone.id(), ClassUtil::isWarriorFamily, SpellInputType.SPELL_2));
