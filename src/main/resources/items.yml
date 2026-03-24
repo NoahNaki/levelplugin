@@ -296,6 +296,62 @@ items:
     stats:
       hp: 3-5
       wil: 1-2
+  2101:
+    name: "Initiate Helm"
+    type: ARMOR
+    rarity: COMMON
+    requirements:
+      level: 1
+    visuals:
+      baseMaterial: LEATHER_HELMET
+      modelKey: armor_initiate_helm
+    generation:
+      mode: HANDMADE
+    stats:
+      hp: 2
+      def: 1
+  2102:
+    name: "Initiate Cuirass"
+    type: ARMOR
+    rarity: COMMON
+    requirements:
+      level: 1
+    visuals:
+      baseMaterial: LEATHER_CHESTPLATE
+      modelKey: armor_initiate_cuirass
+    generation:
+      mode: HANDMADE
+    stats:
+      hp: 4
+      def: 1
+  2103:
+    name: "Initiate Legguards"
+    type: ARMOR
+    rarity: COMMON
+    requirements:
+      level: 1
+    visuals:
+      baseMaterial: LEATHER_LEGGINGS
+      modelKey: armor_initiate_legguards
+    generation:
+      mode: HANDMADE
+    stats:
+      hp: 3
+      def: 1
+  2104:
+    name: "Initiate Boots"
+    type: ARMOR
+    rarity: COMMON
+    requirements:
+      level: 1
+    visuals:
+      baseMaterial: LEATHER_BOOTS
+      modelKey: armor_initiate_boots
+    generation:
+      mode: HANDMADE
+    stats:
+      hp: 2
+      agi: 1
   2019:
     name: "Scout's Footpads"
     type: ARMOR

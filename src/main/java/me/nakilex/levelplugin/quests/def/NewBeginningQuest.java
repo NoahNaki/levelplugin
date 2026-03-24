@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.quests.def;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.classes.essence.ClassEssence;
+import me.nakilex.levelplugin.player.classes.gui.ClassSelectionGUI;
 import me.nakilex.levelplugin.quests.data.*;
 import me.nakilex.levelplugin.npc.system.NpcApi;
 import me.nakilex.levelplugin.npc.system.NPC;
@@ -325,7 +326,7 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                                 plugin.getQuestManager().handleTalk(pl, "npc546_again");
                                 Bukkit.getScheduler().runTaskLater(plugin, () -> {
                                         if (pl.isOnline()) {
-                                            pl.performCommand("class");
+                                            ClassSelectionGUI.getInstance().open(pl);
                                         }
                                     }, 20L);
                             });
@@ -337,7 +338,7 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                             java.util.List.of("Piwan|Alright great now that you look like you belong here, now you just have to tell me what class you'll be going so that we can find you an appropriate weapon."),
                             clicked,
                             () -> Bukkit.getScheduler().runTaskLater(plugin,
-                                    () -> { if (pl.isOnline()) pl.performCommand("class"); }, 20L));
+                                    () -> { if (pl.isOnline()) ClassSelectionGUI.getInstance().open(pl); }, 20L));
                     return;
                 }
 
@@ -376,10 +377,10 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
         PlayerClass pc = StatsManager.getInstance().getPlayerStats(player.getUniqueId()).playerClass;
         int id;
         switch (pc) {
-            case WARRIOR -> id = 1;
-            case ROGUE -> id = 2;
-            case MAGE -> id = 3;
-            default -> id = 4; // ARCHER or others
+            case MAGE -> id = 2002;
+            case ARCHER -> id = 2003;
+            case WARRIOR, ROGUE -> id = 2001;
+            default -> id = 2001;
         }
 
         CustomItem template = ItemManager.getInstance().getCustomItem(id);

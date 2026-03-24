@@ -16,8 +16,7 @@ public final class ClassSelectionUtil {
         return playerClass == PlayerClass.MAGE
                 || playerClass == PlayerClass.ARCHER
                 || playerClass == PlayerClass.ROGUE
-                || playerClass == PlayerClass.WARRIOR
-                || playerClass == PlayerClass.CLERIC;
+                || playerClass == PlayerClass.WARRIOR;
     }
 
     public static boolean applyClassSelection(Player player, PlayerClass chosen, boolean announce) {
