@@ -94,6 +94,7 @@ public class WarriorExecutionArcSpell implements SpellHandler {
                     ));
                     caster.getWorld().spawnParticle(Particle.SWEEP_ATTACK, orbitLocation, 1, 0.0, 0.0, 0.0, 0.0);
                     caster.getWorld().spawnParticle(Particle.CRIT, orbitLocation, 3, 0.08, 0.08, 0.08, 0.01);
+                    spawnOrbitSwirlParticles(caster, orbitLocation, phase, ticks);
                     orbitLocations[i] = orbitLocation;
                 }
 
@@ -106,8 +107,6 @@ public class WarriorExecutionArcSpell implements SpellHandler {
                         target.setVelocity(target.getVelocity().multiply(0.68).add(pull.normalize().multiply(CYCLONE_PULL_STRENGTH).setY(0.04)));
                     }
                 }
-
-                spawnCycloneSpiralParticles(caster, cfg.orbitRadius + 0.35, ticks);
 
                 if (ticks % 3 == 0) {
                     for (LivingEntity target : SpellEffectUtil.getLivingTargets(caster.getLocation(), pullRadius,
@@ -136,20 +135,21 @@ public class WarriorExecutionArcSpell implements SpellHandler {
     }
 
 
-    private static void spawnCycloneSpiralParticles(Player caster, double radius, int ticks) {
-        if (caster == null || caster.getWorld() == null) {
+    private static void spawnOrbitSwirlParticles(Player caster, org.bukkit.Location orbitLocation, double phase, int ticks) {
+        if (caster == null || caster.getWorld() == null || orbitLocation == null) {
             return;
         }
-        double spin = ticks * 0.42;
-        for (int i = 0; i < 10; i++) {
-            double phase = spin + (i * 0.62);
-            double x = Math.cos(phase) * radius;
-            double z = Math.sin(phase) * radius;
-            double y = 0.25 + (i * 0.16) % 1.35;
-            var point = caster.getLocation().clone().add(x, y, z);
+        double spin = phase + (ticks * 0.32);
+        for (int i = 0; i < 3; i++) {
+            double subPhase = spin + (i * (Math.PI * 2.0 / 3.0));
+            double swirlRadius = 0.32;
+            double x = Math.cos(subPhase) * swirlRadius;
+            double z = Math.sin(subPhase) * swirlRadius;
+            double y = 0.18 + (i * 0.14);
+            var point = orbitLocation.clone().add(x, y, z);
             caster.getWorld().spawnParticle(Particle.DUST, point, 1, 0.0, 0.0, 0.0, 0.0,
                     new Particle.DustOptions(org.bukkit.Color.fromRGB(184, 236, 255), 1.0f));
-            caster.getWorld().spawnParticle(Particle.CLOUD, point, 1, 0.01, 0.01, 0.01, 0.001);
+            caster.getWorld().spawnParticle(Particle.CRIT, point, 1, 0.01, 0.01, 0.01, 0.0);
         }
     }
 
