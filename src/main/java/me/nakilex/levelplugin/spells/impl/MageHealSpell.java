@@ -1,22 +1,18 @@
 package me.nakilex.levelplugin.spells.impl;
 
 import me.nakilex.levelplugin.Main;
-import me.nakilex.levelplugin.party.Party;
-import me.nakilex.levelplugin.party.PartyManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.spells.SpellContext;
 import me.nakilex.levelplugin.spells.SpellEffectUtil;
 import me.nakilex.levelplugin.spells.SpellHandler;
-import org.bukkit.Bukkit;
+import me.nakilex.levelplugin.spells.SpellPartyUtil;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 public class MageHealSpell implements SpellHandler {
     private final Main plugin;
@@ -39,7 +35,7 @@ public class MageHealSpell implements SpellHandler {
     @Override
     public void cast(SpellContext context) {
         Player caster = context.player();
-        List<Player> targets = resolveTargets(caster);
+        List<Player> targets = SpellPartyUtil.resolvePartyPlayersInRange(plugin, caster, 10.0, true);
         for (Player target : targets) {
             double amount = SpellEffectUtil.computeIntTecScaledDamage(caster, baseHeal, 0.35, 0.0);
             double max = target.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH) != null
@@ -66,7 +62,12 @@ public class MageHealSpell implements SpellHandler {
                 PotionEffectType.WITHER,
                 PotionEffectType.WEAKNESS,
                 PotionEffectType.SLOWNESS,
-                PotionEffectType.BLINDNESS
+                PotionEffectType.BLINDNESS,
+                PotionEffectType.DARKNESS,
+                PotionEffectType.MINING_FATIGUE,
+                PotionEffectType.NAUSEA,
+                PotionEffectType.HUNGER,
+                PotionEffectType.LEVITATION
         };
         for (PotionEffectType effectType : removable) {
             target.removePotionEffect(effectType);
@@ -81,26 +82,5 @@ public class MageHealSpell implements SpellHandler {
         stats.setCurrentMana(Math.min(stats.getMaxMana(), stats.getCurrentMana() + manaRestore));
     }
 
-    private List<Player> resolveTargets(Player caster) {
-        if (!partyHeal) {
-            return List.of(caster);
-        }
-        List<Player> targets = new ArrayList<>();
-        PartyManager partyManager = plugin.getPartyManager();
-        Party party = partyManager == null ? null : partyManager.getParty(caster.getUniqueId());
-        if (party == null) {
-            return List.of(caster);
-        }
-        for (UUID memberId : party.getMembers()) {
-            Player member = Bukkit.getPlayer(memberId);
-            if (member != null && member.isOnline() && member.getWorld().equals(caster.getWorld())
-                    && member.getLocation().distanceSquared(caster.getLocation()) <= 14 * 14) {
-                targets.add(member);
-            }
-        }
-        if (!targets.contains(caster)) {
-            targets.add(caster);
-        }
-        return targets;
-    }
+
 }

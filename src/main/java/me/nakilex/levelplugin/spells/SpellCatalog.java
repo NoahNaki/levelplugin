@@ -102,7 +102,7 @@ public final class SpellCatalog {
         registry.registerSpell(archerBasicPayload, new ArcherBasicAttackSpell(plugin, 0.24, 2.6, 0.52));
         registry.registerSpell(archerBarrage, new ArcherHomingBarrageSpell(plugin, 7, 2L, 3.0, 0.25, 3.8, 0.34));
         registry.registerSpell(archerSkybound, new ArcherSkyboundSpell(plugin, 0.82, 80, 3.2, 5.4, 0.62));
-        registry.registerSpell(archerWindguard, new ArcherWindguardSpell(plugin, 80, 0.62));
+        registry.registerSpell(archerWindguard, new ArcherWindguardSpell(plugin, 100, 1, 30.0));
         registry.registerSpell(archerArrowRain, new ArcherArrowRainSpell(plugin, 6, 9, 8, 6.8, 14.0, 3.4, 0.30));
 
         registry.registerBinding(SpellBinding.forInputType(archerBasic.id(), ClassUtil::isArcherFamily, SpellInputType.BASIC_ATTACK));
@@ -136,9 +136,9 @@ public final class SpellCatalog {
         registry.registerSpell(rogueShadowFlurryTempest, new RogueShadowFlurrySpell(plugin, 5, 6.6, 0.9, 95, 3.0, 9.0));
         registry.registerSpell(rogueShadowFlurryExecution, new RogueShadowFlurrySpell(plugin, 6, 7.2, 1.0, 110, 3.4, 11.2));
 
-        registry.registerSpell(rogueSmokeBomb, new RogueSmokeBombSpell(plugin, 100, 3.4, 12, 1, 0.0, 0.0, 20));
-        registry.registerSpell(rogueSmokeBombObscure, new RogueSmokeBombSpell(plugin, 100, 3.8, 14, 3, 26.0, 0.0, 20));
-        registry.registerSpell(rogueSmokeBombDread, new RogueSmokeBombSpell(plugin, 100, 4.4, 16, 3, 30.0, 2.1, 18));
+        registry.registerSpell(rogueSmokeBomb, new RogueSmokeBombSpell(plugin, 100, 30.0, 12, 1, 0.0, 0.0, 20));
+        registry.registerSpell(rogueSmokeBombObscure, new RogueSmokeBombSpell(plugin, 100, 30.0, 14, 3, 26.0, 0.0, 20));
+        registry.registerSpell(rogueSmokeBombDread, new RogueSmokeBombSpell(plugin, 100, 30.0, 16, 3, 30.0, 2.1, 18));
 
         registry.registerSpell(rogueRazorDash, new RogueRazorDashSpell(plugin, 1.28));
         registry.registerSpell(rogueRazorDashRift, new RogueRazorDashSpell(plugin, 1.40));
@@ -174,7 +174,7 @@ public final class SpellCatalog {
         registry.registerSpell(warriorExecutionArc, new WarriorExecutionArcSpell(plugin, 120, 2.0, 6.4));
         registry.registerSpell(warriorRuptureCyclone, new WarriorRuptureCycloneSpell(plugin, 7, 2L, 0.6, 0.7, 2.8, 0.7, 0.46));
         registry.registerSpell(warriorTitanVault, new WarriorTitanVaultSpell(plugin, 1.18, 0.72, 3.0, 7.2));
-        registry.registerSpell(warriorGuardedResolve, new WarriorGuardedResolveSpell(plugin, 100, 0.64, 11.0));
+        registry.registerSpell(warriorGuardedResolve, new WarriorGuardedResolveSpell(plugin, 100, 3, 30.0));
 
         registry.registerBinding(SpellBinding.forInputType(warriorExecutionArc.id(), ClassUtil::isWarriorFamily, SpellInputType.SPELL_1));
         registry.registerBinding(SpellBinding.forInputType(warriorRuptureCyclone.id(), ClassUtil::isWarriorFamily, SpellInputType.SPELL_2));
