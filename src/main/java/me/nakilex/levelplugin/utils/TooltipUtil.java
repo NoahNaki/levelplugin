@@ -265,6 +265,12 @@ public final class TooltipUtil {
         return sectionDividerByPixels(170);
     }
 
+
+    public static String strikeDivider() {
+        return ChatColor.DARK_GRAY + "" + ChatColor.STRIKETHROUGH + "                 " + ChatColor.RESET;
+    }
+
+
     /**
      * Generate standard lore for quest items so they share the same divider and
      * label styling everywhere.

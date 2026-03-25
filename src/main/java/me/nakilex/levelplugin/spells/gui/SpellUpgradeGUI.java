@@ -13,6 +13,7 @@ import me.nakilex.levelplugin.utils.gui.widgets.ActionWidget;
 import me.nakilex.levelplugin.utils.gui.widgets.GuiContext;
 import me.nakilex.levelplugin.utils.gui.widgets.GuiLayout;
 import me.nakilex.levelplugin.utils.gui.widgets.GuiWidget;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -22,6 +23,7 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.scheduler.BukkitTask;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -41,6 +43,7 @@ public class SpellUpgradeGUI implements Listener {
     };
 
     private final Map<UUID, List<GuiWidget>> widgetsByPlayer = new HashMap<>();
+    private final Map<UUID, BukkitTask> refreshTasks = new HashMap<>();
 
     public void open(Player player) {
         Inventory gui = GuiBuilder.create(9, TITLE).filler(Material.BLACK_STAINED_GLASS_PANE).build();
@@ -52,6 +55,7 @@ public class SpellUpgradeGUI implements Listener {
             widget.contribute(layout, context);
         }
         player.openInventory(gui);
+        startAutoRefresh(player);
     }
 
     private List<GuiWidget> buildWidgets(Player player) {
@@ -76,7 +80,7 @@ public class SpellUpgradeGUI implements Listener {
                                       SpellInputType inputType) {
         List<String> lore = new ArrayList<>();
         lore.add(ChatColor.GRAY + "Type: " + ChatColor.WHITE + labelForInput(inputType));
-        lore.add(TooltipUtil.sectionDivider());
+        lore.add(TooltipUtil.strikeDivider());
 
         if (entry == null) {
             lore.add(TooltipUtil.bulletLine(ChatColor.GRAY + "No spell is currently bound."));
@@ -124,6 +128,54 @@ public class SpellUpgradeGUI implements Listener {
             lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Basic arrow shot (airborne fires 3-cone)."));
             return lines;
         }
+        if (spellId.startsWith("mage_blink")) {
+            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Teleport mobility spell."));
+            return lines;
+        }
+        if (spellId.startsWith("blackhole")) {
+            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Pulling control zone that damages over time."));
+            return lines;
+        }
+        if (spellId.startsWith("meteor")) {
+            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Delayed impact nuke with area damage."));
+            return lines;
+        }
+        if (spellId.startsWith("archer_homing_barrage")) {
+            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Fires multiple homing arrows."));
+            return lines;
+        }
+        if (spellId.startsWith("archer_arrow_rain")) {
+            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Rains arrows over a target area."));
+            return lines;
+        }
+        if (spellId.startsWith("archer_skybound")) {
+            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Aerial mobility and slam finisher."));
+            return lines;
+        }
+        if (spellId.startsWith("warrior_execution_arc")) {
+            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Cyclone slash that pulls and chips enemies."));
+            return lines;
+        }
+        if (spellId.startsWith("warrior_rupture_cyclone")) {
+            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Pulse cyclone burst around you."));
+            return lines;
+        }
+        if (spellId.startsWith("warrior_titan_vault")) {
+            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Leap, carry, and slam impact spell."));
+            return lines;
+        }
+        if (spellId.startsWith("rogue_sky_ripper")) {
+            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Aerial multi-hit execution combo."));
+            return lines;
+        }
+        if (spellId.startsWith("rogue_phantom_cross")) {
+            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Forward combo strike with finisher."));
+            return lines;
+        }
+        if (spellId.startsWith("rogue_razor_dash")) {
+            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Fast mobility slash dash."));
+            return lines;
+        }
         lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Combat spell."));
         return lines;
     }
@@ -150,6 +202,12 @@ public class SpellUpgradeGUI implements Listener {
         if (spellId.startsWith("mage_fireball_inferno")) {
             return String.format("%.1f / bolt", computeInt(intelligence, technique, 5.0, 0.72));
         }
+        if (spellId.startsWith("meteor_big")) {
+            return String.format("%.1f impact", 23.0);
+        }
+        if (spellId.startsWith("meteor_double")) {
+            return String.format("%.1f impact", 18.0);
+        }
         if (spellId.startsWith("meteor")) {
             return String.format("%.1f impact", 14.5);
         }
@@ -172,6 +230,15 @@ public class SpellUpgradeGUI implements Listener {
 
         if (spellId.startsWith("rogue_arc_basic")) {
             return "5.0 slash";
+        }
+        if (spellId.startsWith("rogue_sky_ripper")) {
+            return "7.4 combo hit";
+        }
+        if (spellId.startsWith("rogue_phantom_cross")) {
+            return "7.2 strike";
+        }
+        if (spellId.startsWith("rogue_razor_dash")) {
+            return "Dash utility";
         }
         if (spellId.startsWith("warrior_execution_arc")) {
             return "6.4 strike + 1.3 DoT ticks";
@@ -205,6 +272,42 @@ public class SpellUpgradeGUI implements Listener {
         return value * (1.0 + technique * 0.001);
     }
 
+
+    private void startAutoRefresh(Player player) {
+        stopAutoRefresh(player.getUniqueId());
+        BukkitTask task = Bukkit.getScheduler().runTaskTimer(me.nakilex.levelplugin.Main.getInstance(), () -> {
+            if (player == null || !player.isOnline()) {
+                stopAutoRefresh(player == null ? null : player.getUniqueId());
+                return;
+            }
+            if (!GuiUtil.titleMatches(player.getOpenInventory().getTitle(), TITLE)) {
+                stopAutoRefresh(player.getUniqueId());
+                return;
+            }
+            Inventory top = player.getOpenInventory().getTopInventory();
+            Inventory refreshed = GuiBuilder.create(9, TITLE).filler(Material.BLACK_STAINED_GLASS_PANE).build();
+            List<GuiWidget> widgets = buildWidgets(player);
+            widgetsByPlayer.put(player.getUniqueId(), widgets);
+            GuiLayout layout = new GuiLayout(refreshed);
+            GuiContext context = new GuiContext(player, refreshed);
+            for (GuiWidget widget : widgets) {
+                widget.contribute(layout, context);
+            }
+            top.setContents(refreshed.getContents());
+        }, 20L, 20L);
+        refreshTasks.put(player.getUniqueId(), task);
+    }
+
+    private void stopAutoRefresh(UUID playerId) {
+        if (playerId == null) {
+            return;
+        }
+        BukkitTask task = refreshTasks.remove(playerId);
+        if (task != null) {
+            task.cancel();
+        }
+    }
+
     @EventHandler
     public void onClick(InventoryClickEvent event) {
         if (!(event.getWhoClicked() instanceof Player)) {
@@ -219,7 +322,9 @@ public class SpellUpgradeGUI implements Listener {
     @EventHandler
     public void onClose(InventoryCloseEvent event) {
         if (GuiUtil.titleMatches(event.getView().getTitle(), TITLE)) {
-            widgetsByPlayer.remove(event.getPlayer().getUniqueId());
+            UUID id = event.getPlayer().getUniqueId();
+            widgetsByPlayer.remove(id);
+            stopAutoRefresh(id);
         }
     }
 }
