@@ -79,104 +79,112 @@ public class SpellUpgradeGUI implements Listener {
                                       SpellRegistry.SpellEntry entry,
                                       SpellInputType inputType) {
         List<String> lore = new ArrayList<>();
-        lore.add(ChatColor.GRAY + "Type: " + ChatColor.WHITE + labelForInput(inputType));
-        lore.add(TooltipUtil.strikeDivider());
+        lore.add(" ");
+        lore.add(TooltipUtil.stylizedHeader(ChatColor.AQUA, "Spell Type"));
+        lore.add(TooltipUtil.labelValueLine("Input", ChatColor.WHITE, labelForInput(inputType)));
 
         if (entry == null) {
-            lore.add(TooltipUtil.bulletLine(ChatColor.GRAY + "No spell is currently bound."));
+            lore.add(" ");
+            lore.add(TooltipUtil.stylizedHeader(ChatColor.RED, "Status"));
+            lore.add(ChatColor.GRAY + "No spell is currently bound.");
             return GuiUtil.createGuiItem(Material.BARRIER, ChatColor.RED + "Unbound", lore);
         }
 
         String spellId = entry.definition().id();
+        lore.add(" ");
+        lore.add(TooltipUtil.stylizedHeader(ChatColor.YELLOW, "Description"));
         lore.addAll(describeSpell(playerClass, spellId));
+
         String damageLine = estimateDamageLine(player, playerClass, spellId, inputType);
         if (damageLine != null) {
-            lore.add(TooltipUtil.bulletLine(ChatColor.GRAY + "0 DEF Estimate: " + ChatColor.RED + damageLine));
+            lore.add(" ");
+            lore.add(TooltipUtil.stylizedHeader(ChatColor.GOLD, "Damage"));
+            lore.add(TooltipUtil.labelValueLine("0 DEF Estimate", ChatColor.RED, damageLine));
         }
 
         return GuiUtil.createGuiItem(Material.ENCHANTED_BOOK,
-                ChatColor.LIGHT_PURPLE + entry.definition().displayName(), lore);
+                ChatColor.LIGHT_PURPLE + "" + ChatColor.BOLD + entry.definition().displayName(), lore);
     }
 
     private List<String> describeSpell(PlayerClass playerClass, String spellId) {
         List<String> lines = new ArrayList<>();
         if (spellId.startsWith("mage_heal")) {
-            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Heals and cleanses nearby party members."));
-            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Range: " + ChatColor.AQUA + "10 blocks"));
+            lines.add(ChatColor.GRAY + "Heals and cleanses nearby party members.");
+            lines.add(TooltipUtil.labelValueLine("Range", ChatColor.AQUA, "10 blocks"));
             return lines;
         }
         if (spellId.startsWith("archer_windguard")) {
-            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Party speed buff and cooldown reset."));
-            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Duration: " + ChatColor.AQUA + "5 seconds"));
+            lines.add(ChatColor.GRAY + "Party speed buff and cooldown reset.");
+            lines.add(TooltipUtil.labelValueLine("Duration", ChatColor.AQUA, "5 seconds"));
             return lines;
         }
         if (spellId.startsWith("warrior_guarded_resolve")) {
-            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Party ward that blocks 3 incoming hits."));
-            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Duration: " + ChatColor.AQUA + "5 seconds"));
+            lines.add(ChatColor.GRAY + "Party ward that blocks 3 incoming hits.");
+            lines.add(TooltipUtil.labelValueLine("Duration", ChatColor.AQUA, "5 seconds"));
             return lines;
         }
         if (spellId.startsWith("rogue_veil_counter")) {
-            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Party buff: guaranteed crits + damage amp."));
-            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Duration: " + ChatColor.AQUA + "5 seconds"));
+            lines.add(ChatColor.GRAY + "Party buff: guaranteed crits + damage amp.");
+            lines.add(TooltipUtil.labelValueLine("Duration", ChatColor.AQUA, "5 seconds"));
             return lines;
         }
         if (ClassUtil.isMageFamily(playerClass) && spellId.startsWith("mage_fireball")) {
-            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Launches firebolts in front of you."));
+            lines.add(ChatColor.GRAY + "Launches firebolts in front of you.");
             return lines;
         }
         if (ClassUtil.isArcherFamily(playerClass) && spellId.startsWith("archer_quickshot")) {
-            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Basic arrow shot (airborne fires 3-cone)."));
+            lines.add(ChatColor.GRAY + "Basic arrow shot (airborne fires 3-cone).");
             return lines;
         }
         if (spellId.startsWith("mage_blink")) {
-            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Teleport mobility spell."));
+            lines.add(ChatColor.GRAY + "Teleport mobility spell.");
             return lines;
         }
         if (spellId.startsWith("blackhole")) {
-            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Pulling control zone that damages over time."));
+            lines.add(ChatColor.GRAY + "Pulling control zone that damages over time.");
             return lines;
         }
         if (spellId.startsWith("meteor")) {
-            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Delayed impact nuke with area damage."));
+            lines.add(ChatColor.GRAY + "Delayed impact nuke with area damage.");
             return lines;
         }
         if (spellId.startsWith("archer_homing_barrage")) {
-            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Fires multiple homing arrows."));
+            lines.add(ChatColor.GRAY + "Fires multiple homing arrows.");
             return lines;
         }
         if (spellId.startsWith("archer_arrow_rain")) {
-            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Rains arrows over a target area."));
+            lines.add(ChatColor.GRAY + "Rains arrows over a target area.");
             return lines;
         }
         if (spellId.startsWith("archer_skybound")) {
-            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Aerial mobility and slam finisher."));
+            lines.add(ChatColor.GRAY + "Aerial mobility and slam finisher.");
             return lines;
         }
         if (spellId.startsWith("warrior_execution_arc")) {
-            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Cyclone slash that pulls and chips enemies."));
+            lines.add(ChatColor.GRAY + "Cyclone slash that pulls and chips enemies.");
             return lines;
         }
         if (spellId.startsWith("warrior_rupture_cyclone")) {
-            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Pulse cyclone burst around you."));
+            lines.add(ChatColor.GRAY + "Pulse cyclone burst around you.");
             return lines;
         }
         if (spellId.startsWith("warrior_titan_vault")) {
-            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Leap, carry, and slam impact spell."));
+            lines.add(ChatColor.GRAY + "Leap, carry, and slam impact spell.");
             return lines;
         }
         if (spellId.startsWith("rogue_sky_ripper")) {
-            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Aerial multi-hit execution combo."));
+            lines.add(ChatColor.GRAY + "Aerial multi-hit execution combo.");
             return lines;
         }
         if (spellId.startsWith("rogue_phantom_cross")) {
-            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Forward combo strike with finisher."));
+            lines.add(ChatColor.GRAY + "Forward combo strike with finisher.");
             return lines;
         }
         if (spellId.startsWith("rogue_razor_dash")) {
-            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Fast mobility slash dash."));
+            lines.add(ChatColor.GRAY + "Fast mobility slash dash.");
             return lines;
         }
-        lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Combat spell."));
+        lines.add(ChatColor.GRAY + "Combat spell.");
         return lines;
     }
 

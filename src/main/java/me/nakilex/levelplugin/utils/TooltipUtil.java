@@ -271,6 +271,20 @@ public final class TooltipUtil {
     }
 
 
+    public static String stylizedHeader(ChatColor color, String title) {
+        ChatColor resolved = color == null ? ChatColor.AQUA : color;
+        String safe = title == null ? "" : title.trim();
+        return resolved + "" + ChatColor.BOLD + ChatColor.UNDERLINE + safe + ChatColor.RESET;
+    }
+
+    public static String labelValueLine(String label, ChatColor valueColor, String value) {
+        String left = label == null ? "" : label.trim();
+        String right = value == null ? "" : value.trim();
+        ChatColor resolved = valueColor == null ? ChatColor.WHITE : valueColor;
+        return ChatColor.GRAY + left + ": " + resolved + right;
+    }
+
+
     /**
      * Generate standard lore for quest items so they share the same divider and
      * label styling everywhere.
