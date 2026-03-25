@@ -1,10 +1,10 @@
 package me.nakilex.levelplugin.spells.gui;
 
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
-import me.nakilex.levelplugin.spells.SpellProgression;
+import me.nakilex.levelplugin.player.classes.data.PlayerClass;
+import me.nakilex.levelplugin.player.classes.managers.PlayerClassManager;
 import me.nakilex.levelplugin.spells.SpellRegistry;
-import me.nakilex.levelplugin.spells.progression.SpellProgressionManager;
-import me.nakilex.levelplugin.utils.ChatMessageUtil;
+import me.nakilex.levelplugin.spells.input.SpellInputType;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
@@ -29,14 +29,19 @@ import java.util.Map;
 import java.util.UUID;
 
 public class SpellUpgradeGUI implements Listener {
-    private static final String TITLE = "Spell Upgrades";
-    private static final int[] SPELL_SLOTS = {11, 13, 15, 29, 31, 33};
+    private static final String TITLE = "Spells";
+    private static final int[] SPELL_SLOTS = {0, 2, 4, 6};
+    private static final SpellInputType[] SPELL_INPUTS = {
+            SpellInputType.SPELL_1,
+            SpellInputType.SPELL_2,
+            SpellInputType.SPELL_3,
+            SpellInputType.SPELL_4
+    };
 
-    private final SpellProgressionManager progressionManager = SpellProgressionManager.getInstance();
     private final Map<UUID, List<GuiWidget>> widgetsByPlayer = new HashMap<>();
 
     public void open(Player player) {
-        Inventory gui = GuiBuilder.create(45, TITLE).filler(Material.BLACK_STAINED_GLASS_PANE).build();
+        Inventory gui = GuiBuilder.create(9, TITLE).filler(Material.BLACK_STAINED_GLASS_PANE).build();
         List<GuiWidget> widgets = buildWidgets(player);
         widgetsByPlayer.put(player.getUniqueId(), widgets);
         GuiLayout layout = new GuiLayout(gui);
@@ -49,217 +54,136 @@ public class SpellUpgradeGUI implements Listener {
 
     private List<GuiWidget> buildWidgets(Player player) {
         List<GuiWidget> widgets = new ArrayList<>();
-        List<String> spells = progressionManager.getClassBaseSpells(player);
-        widgets.add(new ActionWidget(40, ctx -> createPointsItem(ctx.player()), null));
-        for (int i = 0; i < spells.size() && i < SPELL_SLOTS.length; i++) {
-            String spellId = spells.get(i);
+        PlayerClass playerClass = PlayerClassManager.getInstance().getPlayerClass(player);
+        SpellRegistry registry = SpellRegistry.getInstance();
+
+        for (int i = 0; i < SPELL_INPUTS.length; i++) {
+            SpellInputType input = SPELL_INPUTS[i];
             int slot = SPELL_SLOTS[i];
+            SpellRegistry.SpellEntry entry = registry.resolveSpell(playerClass, null, null, input);
             widgets.add(new ActionWidget(slot,
-                    ctx -> createSpellItem(ctx.player(), spellId),
-                    (click, ctx) -> {
-                        if (click.isRightClick()) {
-                            if (progressionManager.refundPoint(ctx.player().getUniqueId(), spellId)) {
-                                ChatMessageUtil.send(ctx.player(), ChatMessageUtil.MessageType.SUCCESS,
-                                        "Refunded 1 spell point from " + getSpellName(spellId) + ".");
-                                refresh(ctx.player());
-                            } else {
-                                ChatMessageUtil.send(ctx.player(), ChatMessageUtil.MessageType.WARNING,
-                                        "No invested points to refund for this spell.");
-                            }
-                        } else {
-                            if (progressionManager.investPoint(ctx.player().getUniqueId(), spellId)) {
-                                ChatMessageUtil.send(ctx.player(), ChatMessageUtil.MessageType.SUCCESS,
-                                        "Invested 1 spell point into " + getSpellName(spellId) + ".");
-                                refresh(ctx.player());
-                            } else {
-                                ChatMessageUtil.send(ctx.player(), ChatMessageUtil.MessageType.WARNING,
-                                        "Cannot invest in this spell right now.");
-                            }
-                        }
-                    }));
+                    ctx -> createSpellItem(ctx.player(), entry, input),
+                    null));
         }
         return widgets;
     }
 
-    private ItemStack createPointsItem(Player player) {
-        int points = progressionManager.getSpellPoints(player.getUniqueId());
-        return GuiUtil.createGuiItem(Material.NETHER_STAR, ChatColor.AQUA + "Spell Points",
-                List.of(" ", ChatColor.GRAY + "Available: " + ChatColor.WHITE + points,
-                        ChatColor.DARK_GRAY + "Invest points to empower your class spells."));
-    }
-
-    private ItemStack createSpellItem(Player player, String baseSpellId) {
-        int level = progressionManager.getSpellLevel(player.getUniqueId(), baseSpellId);
-        int max = progressionManager.getMaxLevel(baseSpellId);
-        String name = getSpellName(baseSpellId);
-        String effectiveSpellId = progressionManager.getEffectiveSpellId(player.getUniqueId(), baseSpellId);
-        List<String> lore = new ArrayList<>();
-        lore.add(ChatColor.GRAY + "Current Tier: " + ChatColor.LIGHT_PURPLE + tierName(level));
-        lore.add(ChatColor.GRAY + "Progress: " + TooltipUtil.expProgressBar(level, Math.max(1, max), 14));
-        lore.add(ChatColor.GRAY + "Invested: " + ChatColor.WHITE + level + ChatColor.DARK_GRAY + "/" + ChatColor.WHITE + max);
-        lore.add(" ");
-        lore.addAll(describeSpell(player, baseSpellId, effectiveSpellId));
-        lore.add(" ");
-        SpellProgression progression = SpellRegistry.getInstance().getProgression(baseSpellId);
-        if (progression != null) {
-            lore.add(ChatColor.DARK_GRAY + "• " + ChatColor.GRAY + "Base: " + getSpellName(baseSpellId));
-            for (int i = 0; i < progression.upgradeSpellIds().size(); i++) {
-                lore.add(TooltipUtil.selectionLine(i < level,
-                        ChatColor.GRAY + "Tier " + (i + 1) + ": " + getSpellName(progression.upgradeSpellIds().get(i))));
-                lore.add(ChatColor.DARK_GRAY + "   ↳ " + ChatColor.GRAY + describeUpgradeTier(baseSpellId, i + 1));
-            }
+    private ItemStack createSpellItem(Player player, SpellRegistry.SpellEntry entry, SpellInputType inputType) {
+        if (entry == null) {
+            return GuiUtil.createGuiItem(Material.BARRIER, ChatColor.RED + "Unbound Spell",
+                    List.of(" ", ChatColor.GRAY + "Input: " + ChatColor.WHITE + inputType.name(),
+                            ChatColor.DARK_GRAY + "No spell is currently bound."));
         }
+
+        String spellId = entry.definition().id();
+        List<String> lore = new ArrayList<>();
+        lore.add(ChatColor.GRAY + "Input: " + ChatColor.WHITE + inputType.name());
         lore.add(" ");
-        lore.addAll(TooltipUtil.clickInstructions("to invest 1 spell point", "to refund 1 spell point"));
-        return GuiUtil.createGuiItem(Material.ENCHANTED_BOOK, ChatColor.LIGHT_PURPLE + name, lore);
+        lore.addAll(describeSpell(player, spellId));
+
+        return GuiUtil.createGuiItem(Material.ENCHANTED_BOOK,
+                ChatColor.LIGHT_PURPLE + entry.definition().displayName(), lore);
     }
 
-    private List<String> describeSpell(Player player, String baseSpellId, String effectiveSpellId) {
+    private List<String> describeSpell(Player player, String spellId) {
         List<String> lines = new ArrayList<>();
         var stats = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
         int intelligence = stats.baseIntelligence + stats.bonusIntelligence;
+        int dexterity = stats.baseDexterity + stats.bonusDexterity;
         int technique = stats.baseTechnique + stats.bonusTechnique;
 
-        if (baseSpellId.startsWith("mage_fireball")) {
-            double damage = compute(intelligence, technique, effectiveSpellId.contains("inferno") ? 5.0 : effectiveSpellId.contains("barrage") ? 3.8 : 3.2,
-                    effectiveSpellId.contains("inferno") ? 0.72 : effectiveSpellId.contains("barrage") ? 0.58 : 0.48);
-            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Hurls " + ChatColor.GOLD + (effectiveSpellId.contains("barrage") || effectiveSpellId.contains("inferno") ? "3" : "1")
-                    + ChatColor.GRAY + " fireballs in a cone."));
-            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Direct Damage: " + ChatColor.RED + String.format("%.1f", damage)));
-            if (effectiveSpellId.contains("barrage") || effectiveSpellId.contains("inferno")) {
-                lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Explosion Splash: " + ChatColor.GOLD + (effectiveSpellId.contains("inferno") ? "Heavy" : "Medium")));
-            }
-            return lines;
-        }
-        if (baseSpellId.startsWith("meteor")) {
-            double damage = compute(intelligence, technique, effectiveSpellId.contains("big") ? 23.0 : effectiveSpellId.contains("double") ? 18.0 : 14.5,
-                    0.0);
-            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Calls down a " + ChatColor.GOLD + "devastating meteor" + ChatColor.GRAY + "."));
-            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Impact Damage: " + ChatColor.RED + String.format("%.1f", damage)));
-            return lines;
-        }
-        if (baseSpellId.startsWith("blackhole")) {
-            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Creates a " + ChatColor.DARK_PURPLE + "pulling singularity" + ChatColor.GRAY + "."));
-            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Core DoT and pull strength increase per tier."));
-            return lines;
-        }
-        if (baseSpellId.startsWith("mage_heal")) {
-            double heal = compute(intelligence, technique, effectiveSpellId.contains("rejuvenation") ? 11.0 : effectiveSpellId.contains("party") ? 9.0 : 8.0,
-                    0.35);
-            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Restores health and grants support effects."));
+        if (spellId.startsWith("mage_heal")) {
+            double heal = computeInt(intelligence, technique, 9.0, 0.35);
+            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Heals and cleanses nearby party members."));
+            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Range: " + ChatColor.AQUA + "10 blocks"));
             lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Healing: " + ChatColor.GREEN + String.format("%.1f", heal)));
             return lines;
         }
-        if (baseSpellId.startsWith("mage_blink")) {
-            double distance = effectiveSpellId.contains("rift") ? 14.0 : effectiveSpellId.contains("phase") ? 11.0 : 8.0;
-            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Teleports toward your aim while respecting line-of-sight."));
-            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Blink Range: " + ChatColor.AQUA + String.format("%.1f", distance) + " blocks"));
-            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Will not pass through walls or place you inside terrain."));
+        if (spellId.startsWith("blackhole")) {
+            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Creates a pulling singularity."));
+            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Control-focused damage over time."));
             return lines;
         }
-        if (baseSpellId.startsWith("rogue_sky_ripper")) {
-            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Aerial barrage that dashes and rebounds between strikes."));
-            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Press " + ChatColor.YELLOW + "Crouch" + ChatColor.GRAY + " in-air to trigger slam impact."));
+        if (spellId.startsWith("meteor")) {
+            double damage = computeInt(intelligence, technique, 14.5, 0.0);
+            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Calls down a meteor strike."));
+            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Impact Damage: " + ChatColor.RED + String.format("%.1f", damage)));
             return lines;
         }
-        if (baseSpellId.startsWith("rogue_veil_counter")) {
-            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Deploys smoke cloud that repeatedly stuns enemies."));
-            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Higher tiers increase duration, radius and stun cadence."));
+        if (spellId.startsWith("mage_blink")) {
+            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Short range mobility blink."));
             return lines;
         }
-        if (baseSpellId.startsWith("rogue_razor_dash")) {
-            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Forward dash slash with escalating speed per tier."));
+
+        if (spellId.startsWith("archer_homing_barrage")) {
+            double damage = computeDex(dexterity, technique, 3.8, 0.34);
+            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Fires a homing arrow barrage."));
+            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Per Arrow Damage: " + ChatColor.RED + String.format("%.1f", damage)));
             return lines;
         }
-        if (baseSpellId.startsWith("rogue_phantom_cross")) {
-            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Rotating lunge cyclone with burst finisher."));
+        if (spellId.startsWith("archer_arrow_rain")) {
+            double damage = computeDex(dexterity, technique, 6.8, 0.30);
+            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Calls a rain of arrows on the target area."));
+            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Volley Damage: " + ChatColor.RED + String.format("%.1f", damage)));
             return lines;
         }
+        if (spellId.startsWith("archer_skybound")) {
+            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Launch upward and slam down from air."));
+            return lines;
+        }
+        if (spellId.startsWith("archer_windguard")) {
+            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Party speed buff + cooldown reset."));
+            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Range: " + ChatColor.AQUA + "30 blocks"));
+            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Duration: " + ChatColor.AQUA + "5 seconds"));
+            return lines;
+        }
+
+        if (spellId.startsWith("warrior_execution_arc")) {
+            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Cyclone that pulls enemies and shreds nearby targets."));
+            return lines;
+        }
+        if (spellId.startsWith("warrior_rupture_cyclone")) {
+            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Cyclone pulse burst around the caster."));
+            return lines;
+        }
+        if (spellId.startsWith("warrior_titan_vault")) {
+            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Leap slam that can carry one enemy."));
+            return lines;
+        }
+        if (spellId.startsWith("warrior_guarded_resolve")) {
+            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Party ward: blocks 3 incoming hits."));
+            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Range: " + ChatColor.AQUA + "30 blocks"));
+            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Duration: " + ChatColor.AQUA + "5 seconds"));
+            return lines;
+        }
+
+        if (spellId.startsWith("rogue_sky_ripper") || spellId.startsWith("rogue_phantom_cross")) {
+            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Burst melee combo spell."));
+            return lines;
+        }
+        if (spellId.startsWith("rogue_razor_dash")) {
+            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "High-speed mobility dash."));
+            return lines;
+        }
+        if (spellId.startsWith("rogue_veil_counter")) {
+            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Party crit + damage amplification buff."));
+            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Range: " + ChatColor.AQUA + "30 blocks"));
+            lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Duration: " + ChatColor.AQUA + "5 seconds"));
+            return lines;
+        }
+
+        lines.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Spell details unavailable."));
         return lines;
     }
 
-    private double compute(int intelligence, int technique, double base, double intScale) {
+    private double computeInt(int intelligence, int technique, double base, double intScale) {
         double value = Math.max(0.0, base + intelligence * intScale);
         return value * (1.0 + technique * 0.001);
     }
 
-    private String describeUpgradeTier(String baseSpellId, int tier) {
-        if (baseSpellId.startsWith("mage_fireball")) {
-            return tier == 1
-                    ? "Unlocks 3-shot cone + medium splash explosion."
-                    : "Upgrades to inferno volley: larger splash and stronger burn.";
-        }
-        if (baseSpellId.startsWith("blackhole")) {
-            return tier == 1
-                    ? "Wider pull radius and stronger core damage-over-time."
-                    : "Singularity collapse detonates at the end for burst damage.";
-        }
-        if (baseSpellId.startsWith("mage_heal")) {
-            return tier == 1
-                    ? "Adds stronger heal burst, regeneration and larger mana restore."
-                    : "Converts to party pulse heal with shared support effects.";
-        }
-        if (baseSpellId.startsWith("meteor")) {
-            return tier == 1
-                    ? "Bigger impact radius with stronger impact and DoT damage."
-                    : "Cataclysm tier massively increases radius and impact damage.";
-        }
-        if (baseSpellId.startsWith("mage_blink")) {
-            return tier == 1
-                    ? "Extends blink range while retaining safe wall/ground collision checks."
-                    : "Master blink reaches farther while still snapping to valid standable space.";
-        }
-        if (baseSpellId.startsWith("rogue_sky_ripper")) {
-            return tier == 1
-                    ? "Adds extra barrage strike plus stronger aerial slam impact."
-                    : "Execution tier further boosts strikes, slam radius and air-control window.";
-        }
-        if (baseSpellId.startsWith("rogue_veil_counter")) {
-            return tier == 1
-                    ? "Cloud lasts longer and catches enemies in a wider stun radius."
-                    : "Dread tier greatly amplifies cloud control duration and stun pressure.";
-        }
-        if (baseSpellId.startsWith("rogue_razor_dash")) {
-            return tier == 1
-                    ? "Increases dash speed and slash travel pressure."
-                    : "Final tier maximizes dash burst speed and lane damage uptime.";
-        }
-        if (baseSpellId.startsWith("rogue_phantom_cross")) {
-            return tier == 1
-                    ? "Cyclone performs more orbit hits with stronger direct damage."
-                    : "Judgement tier empowers hit count and final finisher burst.";
-        }
-        return "Enhances this spell's power and utility.";
-    }
-
-    private void refresh(Player player) {
-        Inventory gui = GuiBuilder.create(45, TITLE).filler(Material.BLACK_STAINED_GLASS_PANE).build();
-        List<GuiWidget> widgets = buildWidgets(player);
-        widgetsByPlayer.put(player.getUniqueId(), widgets);
-        GuiLayout layout = new GuiLayout(gui);
-        GuiContext context = new GuiContext(player, gui);
-        for (GuiWidget widget : widgets) {
-            widget.contribute(layout, context);
-        }
-        if (GuiUtil.titleMatches(player.getOpenInventory().getTitle(), TITLE)
-                && player.getOpenInventory().getTopInventory().getSize() == gui.getSize()) {
-            player.getOpenInventory().getTopInventory().setContents(gui.getContents());
-        } else {
-            player.openInventory(gui);
-        }
-    }
-
-    private String getSpellName(String spellId) {
-        SpellRegistry.SpellEntry entry = SpellRegistry.getInstance().getSpell(spellId);
-        return entry == null ? spellId : entry.definition().displayName();
-    }
-
-    private String tierName(int level) {
-        return switch (level) {
-            case 0 -> "Base";
-            case 1 -> "Advanced";
-            default -> "Master";
-        };
+    private double computeDex(int dexterity, int technique, double base, double dexScale) {
+        double value = Math.max(0.0, base + dexterity * dexScale);
+        return value * (1.0 + technique * 0.001);
     }
 
     @EventHandler
@@ -273,18 +197,6 @@ public class SpellUpgradeGUI implements Listener {
         event.setCancelled(true);
         if (event.getClickedInventory() != event.getView().getTopInventory()) {
             return;
-        }
-        List<GuiWidget> widgets = widgetsByPlayer.get(player.getUniqueId());
-        if (widgets == null) {
-            return;
-        }
-        int slot = event.getRawSlot();
-        if (slot < 0 || slot >= event.getView().getTopInventory().getSize()) {
-            return;
-        }
-        GuiWidget widget = widgets.stream().filter(w -> w.handlesSlot(slot)).findFirst().orElse(null);
-        if (widget != null) {
-            widget.onClick(slot, event.getClick(), new GuiContext(player, event.getView().getTopInventory()));
         }
     }
 

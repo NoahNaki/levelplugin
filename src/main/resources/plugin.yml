@@ -16,7 +16,7 @@ commands:
     usage: /addsp <player> <amount>
     permission: none
   spellupgrade:
-    description: Opens the spell upgrade menu
+    description: Opens the spells menu
     usage: /spellupgrade
     permission: none
   addxp:
