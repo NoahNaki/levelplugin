@@ -179,7 +179,9 @@ public class CommandRegistry {
         AddSpellPointsCommand addSpellPointsCommand = new AddSpellPointsCommand();
         plugin.getCommand("addsp").setExecutor(addSpellPointsCommand);
         plugin.getCommand("addsp").setTabCompleter(addSpellPointsCommand);
-        plugin.getCommand("spellupgrade").setExecutor(new SpellUpgradeCommand(spellUpgradeGUI));
+        SpellUpgradeCommand spellsCommand = new SpellUpgradeCommand(spellUpgradeGUI);
+        plugin.getCommand("spells").setExecutor(spellsCommand);
+        plugin.getCommand("spellupgrade").setExecutor(spellsCommand);
 
         AddXPCommand addXpCmd = new AddXPCommand(levelManager);
         plugin.getCommand("addxp").setExecutor(addXpCmd);

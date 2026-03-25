@@ -5,9 +5,10 @@ import java.util.List;
 public final class SpellKeybindLayout {
     private SpellKeybindLayout() {}
 
-    private static final List<String> DEFAULT_COMBOS = List.of("RRL", "RLR", "RRR", "RLL");
-    private static final List<String> ARCHER_COMBOS = List.of("LLR", "LLL", "LRL", "LRR");
-    private static final List<String> KEYBOARD_INPUTS = List.of("Sneak+Left", "Sneak+Right", "Right", "Sneak+Sneak");
+    private static final List<String> DEFAULT_COMBOS = List.of("RRL", "RLL", "RRR", "RLR");
+    private static final List<String> ARCHER_COMBOS = List.of("LLR", "LRR", "LLL", "LRL");
+    private static final List<String> KEYBOARD_INPUTS = List.of("Sneak+Right", "Sneak+Left", "Right", "Sneak+Sneak");
+    private static final List<String> ARCHER_KEYBOARD_INPUTS = List.of("Sneak+Left", "Sneak+Right", "Left", "Sneak+Sneak");
 
     public static String comboSequenceForSlot(boolean archerFamily, SpellKeybindSlot slot) {
         List<String> combos = archerFamily ? ARCHER_COMBOS : DEFAULT_COMBOS;
@@ -34,8 +35,9 @@ public final class SpellKeybindLayout {
         return combos.contains(sequence.toUpperCase());
     }
 
-    public static String keyboardSequenceForSlot(SpellKeybindSlot slot) {
-        return KEYBOARD_INPUTS.get(slot.ordinal());
+    public static String keyboardSequenceForSlot(boolean archerFamily, SpellKeybindSlot slot) {
+        List<String> keys = archerFamily ? ARCHER_KEYBOARD_INPUTS : KEYBOARD_INPUTS;
+        return keys.get(slot.ordinal());
     }
 
     public static String spellDisplayName(SpellInputType type) {

@@ -15,8 +15,12 @@ commands:
     description: Grants spell points to a player
     usage: /addsp <player> <amount>
     permission: none
+  spells:
+    description: Opens the spells menu
+    usage: /spells
+    permission: none
   spellupgrade:
-    description: Opens the spell upgrade menu
+    description: Legacy alias for /spells
     usage: /spellupgrade
     permission: none
   addxp:

@@ -143,7 +143,7 @@ public class SpellKeybindGUI implements Listener {
                                         boolean archerFamily) {
         String sequence = mode == SpellInputMode.MOUSE_COMBO
                 ? SpellKeybindLayout.comboSequenceForSlot(archerFamily, slot)
-                : SpellKeybindLayout.keyboardSequenceForSlot(slot);
+                : SpellKeybindLayout.keyboardSequenceForSlot(archerFamily, slot);
         ItemStack item = new ItemStack(Material.PAPER);
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
@@ -213,7 +213,7 @@ public class SpellKeybindGUI implements Listener {
     private String getKeybindLabel(SpellInputMode mode, SpellKeybindSlot slot, boolean archerFamily) {
         return mode == SpellInputMode.MOUSE_COMBO
                 ? SpellKeybindLayout.comboSequenceForSlot(archerFamily, slot)
-                : SpellKeybindLayout.keyboardSequenceForSlot(slot);
+                : SpellKeybindLayout.keyboardSequenceForSlot(archerFamily, slot);
     }
 
     private List<PlayerClass> getUnlockedClasses(Player player) {

@@ -38,10 +38,12 @@ public class WarriorRuptureCycloneSpell implements SpellHandler {
 
     @Override
     public void cast(SpellContext context) {
-        Location center = context.player().getLocation().clone().add(0.0, 0.1, 0.0);
-        center.getWorld().spawnParticle(Particle.EXPLOSION, center, 1);
-        center.getWorld().playSound(center, Sound.ENTITY_WARDEN_SONIC_BOOM, 0.55f, 1.65f);
-        WarriorCombatUtil.runShockwaveRipple(plugin, context.player(), center,
-                pulseCount, pulseIntervalTicks, baseRadius, radiusStep, baseDamage, damageStep, knockback);
+        Location center = context.player().getLocation().clone().add(0.0, 1.0, 0.0);
+        center.getWorld().spawnParticle(Particle.SWEEP_ATTACK, center, 3, 0.25, 0.25, 0.25, 0.0);
+        center.getWorld().spawnParticle(Particle.CRIT, center, 20, 0.35, 0.45, 0.35, 0.03);
+        center.getWorld().playSound(center, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 0.8f, 0.85f);
+        center.getWorld().playSound(center, Sound.ITEM_TRIDENT_RIPTIDE_1, 0.55f, 1.45f);
+        WarriorCombatUtil.runRadialPulse(plugin, context.player(), center,
+                pulseCount, pulseIntervalTicks, baseRadius, radiusStep, baseDamage, damageStep);
     }
 }

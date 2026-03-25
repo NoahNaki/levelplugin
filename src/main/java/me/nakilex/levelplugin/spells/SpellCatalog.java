@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.spells;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.particles.ParticleService;
 import me.nakilex.levelplugin.player.classes.data.ClassUtil;
+import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.spells.impl.MageFireballBasicAttackSpell;
 import me.nakilex.levelplugin.spells.impl.MageHealSpell;
 import me.nakilex.levelplugin.spells.impl.MageBlinkSpell;
@@ -24,6 +25,8 @@ import me.nakilex.levelplugin.spells.impl.WarriorRuptureCycloneSpell;
 import me.nakilex.levelplugin.spells.impl.WarriorTitanVaultSpell;
 import me.nakilex.levelplugin.spells.input.SpellInputMode;
 import me.nakilex.levelplugin.spells.input.SpellInputType;
+
+import java.util.function.Predicate;
 
 public final class SpellCatalog {
     private SpellCatalog() {
@@ -54,10 +57,6 @@ public final class SpellCatalog {
         registry.registerSpell(meteorDouble, new MeteorSpell(plugin, particleService, 20.0, 18.0, 7.6, 4.6, 3.1, 6.8, 7));
         registry.registerSpell(meteorBig, new MeteorSpell(plugin, particleService, 24.0, 23.0, 9.2, 5.4, 4.1, 8.2, 8));
         registry.registerProgression(new SpellProgression(meteor.id(), java.util.List.of(meteorDouble.id(), meteorBig.id())));
-        registry.registerBinding(SpellBinding.forSequence(meteor.id(), ClassUtil::isMageFamily,
-                SpellInputMode.MOUSE_COMBO, "RLL"));
-        registry.registerBinding(SpellBinding.forSequence(meteor.id(), ClassUtil::isMageFamily,
-                SpellInputMode.MOUSE_AND_KEYBOARD, "Sneak+Left"));
 
         SpellDefinition blackhole = new SpellDefinition("blackhole", "Blackhole", 22, false);
         SpellDefinition blackholeGravity = new SpellDefinition("blackhole_gravitywell", "Blackhole: Gravity Well", 22, false);
@@ -88,6 +87,7 @@ public final class SpellCatalog {
         registry.registerBinding(SpellBinding.forInputType(blink.id(), ClassUtil::isMageFamily, SpellInputType.SPELL_3));
 
         registry.registerBinding(SpellBinding.forInputType(meteor.id(), ClassUtil::isMageFamily, SpellInputType.SPELL_2));
+        registerStandardSequenceBindings(registry, blackhole.id(), meteor.id(), blink.id(), heal.id(), ClassUtil::isMageFamily);
 
         SpellDefinition archerBasic = new SpellDefinition("archer_quickshot_basic", "Quickshot", 0, false);
         SpellDefinition archerBasicSeeker = new SpellDefinition("archer_quickshot_seeker", "Quickshot: Seeker Tip", 0, false);
@@ -102,17 +102,17 @@ public final class SpellCatalog {
         registry.registerSpell(archerBasicPayload, new ArcherBasicAttackSpell(plugin, 0.24, 2.6, 0.52));
         registry.registerSpell(archerBarrage, new ArcherHomingBarrageSpell(plugin, 7, 2L, 3.0, 0.25, 3.8, 0.34));
         registry.registerSpell(archerSkybound, new ArcherSkyboundSpell(plugin, 0.82, 80, 3.2, 5.4, 0.62));
-        registry.registerSpell(archerWindguard, new ArcherWindguardSpell(plugin, 80, 0.62));
+        registry.registerSpell(archerWindguard, new ArcherWindguardSpell(plugin, 100, 1, 30.0));
         registry.registerSpell(archerArrowRain, new ArcherArrowRainSpell(plugin, 6, 9, 8, 6.8, 14.0, 3.4, 0.30));
 
         registry.registerBinding(SpellBinding.forInputType(archerBasic.id(), ClassUtil::isArcherFamily, SpellInputType.BASIC_ATTACK));
         registry.registerProgression(new SpellProgression(archerBasic.id(), java.util.List.of(
                 archerBasicSeeker.id(), archerBasicPayload.id())));
         registry.registerBinding(SpellBinding.forInputType(archerBarrage.id(), ClassUtil::isArcherFamily, SpellInputType.SPELL_1));
-        registry.registerBinding(SpellBinding.forSequence(archerSkybound.id(), ClassUtil::isArcherFamily, SpellInputMode.MOUSE_COMBO, "LLL"));
         registry.registerBinding(SpellBinding.forInputType(archerArrowRain.id(), ClassUtil::isArcherFamily, SpellInputType.SPELL_2));
         registry.registerBinding(SpellBinding.forInputType(archerSkybound.id(), ClassUtil::isArcherFamily, SpellInputType.SPELL_3));
         registry.registerBinding(SpellBinding.forInputType(archerWindguard.id(), ClassUtil::isArcherFamily, SpellInputType.SPELL_4));
+        registerReversedSequenceBindings(registry, archerBarrage.id(), archerArrowRain.id(), archerSkybound.id(), archerWindguard.id(), ClassUtil::isArcherFamily);
 
         SpellDefinition rogueShadowFlurry = new SpellDefinition("rogue_sky_ripper", "Shadow Flurry", 14, false);
         SpellDefinition rogueShadowFlurryTempest = new SpellDefinition("rogue_sky_ripper_tempest", "Shadow Flurry: Tempest Dive", 14, false);
@@ -136,9 +136,9 @@ public final class SpellCatalog {
         registry.registerSpell(rogueShadowFlurryTempest, new RogueShadowFlurrySpell(plugin, 5, 6.6, 0.9, 95, 3.0, 9.0));
         registry.registerSpell(rogueShadowFlurryExecution, new RogueShadowFlurrySpell(plugin, 6, 7.2, 1.0, 110, 3.4, 11.2));
 
-        registry.registerSpell(rogueSmokeBomb, new RogueSmokeBombSpell(plugin, 100, 3.4, 12, 1, 0.0, 0.0, 20));
-        registry.registerSpell(rogueSmokeBombObscure, new RogueSmokeBombSpell(plugin, 100, 3.8, 14, 3, 26.0, 0.0, 20));
-        registry.registerSpell(rogueSmokeBombDread, new RogueSmokeBombSpell(plugin, 100, 4.4, 16, 3, 30.0, 2.1, 18));
+        registry.registerSpell(rogueSmokeBomb, new RogueSmokeBombSpell(plugin, 100, 30.0, 12, 1, 0.0, 0.0, 20));
+        registry.registerSpell(rogueSmokeBombObscure, new RogueSmokeBombSpell(plugin, 100, 30.0, 14, 3, 26.0, 0.0, 20));
+        registry.registerSpell(rogueSmokeBombDread, new RogueSmokeBombSpell(plugin, 100, 30.0, 16, 3, 30.0, 2.1, 18));
 
         registry.registerSpell(rogueRazorDash, new RogueRazorDashSpell(plugin, 1.28));
         registry.registerSpell(rogueRazorDashRift, new RogueRazorDashSpell(plugin, 1.40));
@@ -164,41 +164,76 @@ public final class SpellCatalog {
         registry.registerBinding(SpellBinding.forInputType(rogueNightfallLunge.id(), ClassUtil::isRogueFamily, SpellInputType.SPELL_2));
         registry.registerBinding(SpellBinding.forInputType(rogueRazorDash.id(), ClassUtil::isRogueFamily, SpellInputType.SPELL_3));
         registry.registerBinding(SpellBinding.forInputType(rogueSmokeBomb.id(), ClassUtil::isRogueFamily, SpellInputType.SPELL_4));
+        registerStandardSequenceBindings(registry, rogueShadowFlurry.id(), rogueNightfallLunge.id(), rogueRazorDash.id(), rogueSmokeBomb.id(), ClassUtil::isRogueFamily);
 
         SpellDefinition warriorExecutionArc = new SpellDefinition("warrior_execution_arc", "Cyclone Brand", 16, false);
-        SpellDefinition warriorRuptureCyclone = new SpellDefinition("warrior_rupture_cyclone", "Seismic Shockwave", 18, false);
+        SpellDefinition warriorRuptureCyclone = new SpellDefinition("warrior_rupture_cyclone", "Rupture Cyclone", 18, false);
         SpellDefinition warriorTitanVault = new SpellDefinition("warrior_titan_vault", "Titan Vault", 14, true);
         SpellDefinition warriorGuardedResolve = new SpellDefinition("warrior_guarded_resolve", "Aegis Bastion", 16, false);
 
-        registry.registerSpell(warriorExecutionArc, new WarriorExecutionArcSpell(plugin, 96, 2.0, 6.4));
+        registry.registerSpell(warriorExecutionArc, new WarriorExecutionArcSpell(plugin, 120, 2.0, 6.4));
         registry.registerSpell(warriorRuptureCyclone, new WarriorRuptureCycloneSpell(plugin, 7, 2L, 0.6, 0.7, 2.8, 0.7, 0.46));
         registry.registerSpell(warriorTitanVault, new WarriorTitanVaultSpell(plugin, 1.18, 0.72, 3.0, 7.2));
-        registry.registerSpell(warriorGuardedResolve, new WarriorGuardedResolveSpell(plugin, 100, 0.64, 11.0));
+        registry.registerSpell(warriorGuardedResolve, new WarriorGuardedResolveSpell(plugin, 100, 3, 30.0));
 
         registry.registerBinding(SpellBinding.forInputType(warriorExecutionArc.id(), ClassUtil::isWarriorFamily, SpellInputType.SPELL_1));
         registry.registerBinding(SpellBinding.forInputType(warriorRuptureCyclone.id(), ClassUtil::isWarriorFamily, SpellInputType.SPELL_2));
         registry.registerBinding(SpellBinding.forInputType(warriorTitanVault.id(), ClassUtil::isWarriorFamily, SpellInputType.SPELL_3));
         registry.registerBinding(SpellBinding.forInputType(warriorGuardedResolve.id(), ClassUtil::isWarriorFamily, SpellInputType.SPELL_4));
-
-        registry.registerBinding(SpellBinding.forSequence(warriorExecutionArc.id(), ClassUtil::isWarriorFamily,
-                SpellInputMode.MOUSE_AND_KEYBOARD, "Sneak+Left"));
-        registry.registerBinding(SpellBinding.forSequence(warriorRuptureCyclone.id(), ClassUtil::isWarriorFamily,
-                SpellInputMode.MOUSE_AND_KEYBOARD, "Sneak+Right"));
-        registry.registerBinding(SpellBinding.forSequence(warriorTitanVault.id(), ClassUtil::isWarriorFamily,
-                SpellInputMode.MOUSE_AND_KEYBOARD, "Right"));
-        registry.registerBinding(SpellBinding.forSequence(warriorGuardedResolve.id(), ClassUtil::isWarriorFamily,
-                SpellInputMode.MOUSE_AND_KEYBOARD, "Sneak+Sneak"));
-
-        registry.registerBinding(SpellBinding.forSequence(warriorExecutionArc.id(), ClassUtil::isWarriorFamily,
-                SpellInputMode.MOUSE_COMBO, "RLL"));
-        registry.registerBinding(SpellBinding.forSequence(warriorRuptureCyclone.id(), ClassUtil::isWarriorFamily,
-                SpellInputMode.MOUSE_COMBO, "RRL"));
-        registry.registerBinding(SpellBinding.forSequence(warriorTitanVault.id(), ClassUtil::isWarriorFamily,
-                SpellInputMode.MOUSE_COMBO, "RRR"));
-        registry.registerBinding(SpellBinding.forSequence(warriorGuardedResolve.id(), ClassUtil::isWarriorFamily,
-                SpellInputMode.MOUSE_COMBO, "RLR"));
+        registerStandardSequenceBindings(registry, warriorExecutionArc.id(), warriorRuptureCyclone.id(), warriorTitanVault.id(), warriorGuardedResolve.id(), ClassUtil::isWarriorFamily);
 
         configureCooldowns();
+    }
+
+
+    private static void registerStandardSequenceBindings(SpellRegistry registry,
+                                                         String offensivePrimarySpellId,
+                                                         String offensiveSecondarySpellId,
+                                                         String mobilitySpellId,
+                                                         String defensiveSpellId,
+                                                         Predicate<PlayerClass> classPredicate) {
+        registry.registerBinding(SpellBinding.forSequence(offensivePrimarySpellId, classPredicate,
+                SpellInputMode.MOUSE_COMBO, "RRL"));
+        registry.registerBinding(SpellBinding.forSequence(offensiveSecondarySpellId, classPredicate,
+                SpellInputMode.MOUSE_COMBO, "RLL"));
+        registry.registerBinding(SpellBinding.forSequence(defensiveSpellId, classPredicate,
+                SpellInputMode.MOUSE_COMBO, "RLR"));
+        registry.registerBinding(SpellBinding.forSequence(mobilitySpellId, classPredicate,
+                SpellInputMode.MOUSE_COMBO, "RRR"));
+
+        registry.registerBinding(SpellBinding.forSequence(offensivePrimarySpellId, classPredicate,
+                SpellInputMode.MOUSE_AND_KEYBOARD, "Sneak+Right"));
+        registry.registerBinding(SpellBinding.forSequence(offensiveSecondarySpellId, classPredicate,
+                SpellInputMode.MOUSE_AND_KEYBOARD, "Sneak+Left"));
+        registry.registerBinding(SpellBinding.forSequence(defensiveSpellId, classPredicate,
+                SpellInputMode.MOUSE_AND_KEYBOARD, "Sneak+Sneak"));
+        registry.registerBinding(SpellBinding.forSequence(mobilitySpellId, classPredicate,
+                SpellInputMode.MOUSE_AND_KEYBOARD, "Right"));
+    }
+
+    private static void registerReversedSequenceBindings(SpellRegistry registry,
+                                                         String offensivePrimarySpellId,
+                                                         String offensiveSecondarySpellId,
+                                                         String mobilitySpellId,
+                                                         String defensiveSpellId,
+                                                         Predicate<PlayerClass> classPredicate) {
+        registry.registerBinding(SpellBinding.forSequence(offensivePrimarySpellId, classPredicate,
+                SpellInputMode.MOUSE_COMBO, "LLR"));
+        registry.registerBinding(SpellBinding.forSequence(offensiveSecondarySpellId, classPredicate,
+                SpellInputMode.MOUSE_COMBO, "LRR"));
+        registry.registerBinding(SpellBinding.forSequence(defensiveSpellId, classPredicate,
+                SpellInputMode.MOUSE_COMBO, "LRL"));
+        registry.registerBinding(SpellBinding.forSequence(mobilitySpellId, classPredicate,
+                SpellInputMode.MOUSE_COMBO, "LLL"));
+
+        registry.registerBinding(SpellBinding.forSequence(offensivePrimarySpellId, classPredicate,
+                SpellInputMode.MOUSE_AND_KEYBOARD, "Sneak+Left"));
+        registry.registerBinding(SpellBinding.forSequence(offensiveSecondarySpellId, classPredicate,
+                SpellInputMode.MOUSE_AND_KEYBOARD, "Sneak+Right"));
+        registry.registerBinding(SpellBinding.forSequence(defensiveSpellId, classPredicate,
+                SpellInputMode.MOUSE_AND_KEYBOARD, "Sneak+Sneak"));
+        registry.registerBinding(SpellBinding.forSequence(mobilitySpellId, classPredicate,
+                SpellInputMode.MOUSE_AND_KEYBOARD, "Left"));
     }
 
     private static void configureCooldowns() {

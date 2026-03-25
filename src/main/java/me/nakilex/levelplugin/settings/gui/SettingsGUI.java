@@ -222,8 +222,8 @@ public class SettingsGUI implements Listener {
     }
 
     private ItemStack createSpellUpgradesItem() {
-        return GuiUtil.createGuiItem(Material.ENCHANTED_BOOK, ChatColor.AQUA + "Spell Upgrades",
-                List.of(" ", ChatColor.GRAY + "Spend spell points to evolve spells.", " ",
+        return GuiUtil.createGuiItem(Material.ENCHANTED_BOOK, ChatColor.AQUA + "Spells",
+                List.of(" ", ChatColor.GRAY + "View your class spells and scaling.", " ",
                         ChatColor.WHITE + "Left-click " + ChatColor.GRAY + "to open"));
     }
 
@@ -288,7 +288,7 @@ public class SettingsGUI implements Listener {
                             spellKeybindGUI.open(context.player());
                         }
                     }));
-            entries.add(new SettingEntry("Spell Upgrades",
+            entries.add(new SettingEntry("Spells",
                     context -> createSpellUpgradesItem(),
                     (click, context) -> {
                         if (spellUpgradeGUI != null) {

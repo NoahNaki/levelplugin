@@ -9,7 +9,8 @@ import me.nakilex.levelplugin.player.classes.data.ClassUtil;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.pet.PetEffectType;
 import me.nakilex.levelplugin.pet.PetManager;
-import me.nakilex.levelplugin.spells.impl.ArcherWindguardSpell;
+import me.nakilex.levelplugin.spells.impl.RogueSmokeBombSpell;
+import me.nakilex.levelplugin.spells.impl.WarriorExecutionArcSpell;
 import me.nakilex.levelplugin.spells.impl.WarriorGuardedResolveSpell;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.utils.MobUtil;
@@ -137,10 +138,15 @@ public class StatsEffectListener implements Listener {
                 critChance = Math.min(1.0, critChance + Math.max(0.0, critBonus));
             }
 
+            if (RogueSmokeBombSpell.hasGuaranteedCrit(player)) {
+                critChance = 1.0;
+            }
+
             boolean isCrit = random.nextDouble() < critChance;
             if (isCrit) finalDamage *= 2;
 
             finalDamage *= BASIC_ATTACK_MULTIPLIER;
+            finalDamage *= RogueSmokeBombSpell.getOutgoingDamageMultiplier(player);
 
             if (petManager != null) {
                 double damageBoost = petManager.getActiveEffectValue(player.getUniqueId(), PetEffectType.DAMAGE_BOOST);
@@ -239,7 +245,7 @@ public class StatsEffectListener implements Listener {
             if (petManager != null) {
                 incoming = petManager.applyIncomingCombatPetReductions(attacked, incoming);
             }
-            incoming *= ArcherWindguardSpell.getIncomingDamageMultiplier(attacked);
+            incoming *= WarriorExecutionArcSpell.getIncomingDamageMultiplier(attacked);
             incoming = WarriorGuardedResolveSpell.applyIncomingDamage(attacked, incoming);
 
             event.setDamage(incoming);
