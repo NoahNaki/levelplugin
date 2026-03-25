@@ -16,6 +16,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.event.server.PluginDisableEvent;
+import org.bukkit.util.Vector;
 
 import java.util.Map;
 import java.util.UUID;
@@ -26,6 +27,9 @@ public class ArcherBasicAttackSpell implements SpellHandler, Listener {
     private static final double BASE_DAMAGE = 3.4;
     private static final double DEX_SCALE = 0.30;
     private static final double TECHNIQUE_SCALE = 0.001;
+    private static final int AIRBORNE_ARROW_COUNT = 3;
+    private static final double AIRBORNE_CONE_DEGREES = 22.0;
+    private static final double AIRBORNE_RECOIL = 0.09;
     private static final Map<UUID, ExplosivePayload> EXPLOSIVE_ARROWS = new ConcurrentHashMap<>();
     private static boolean listenerRegistered;
 
@@ -56,15 +60,37 @@ public class ArcherBasicAttackSpell implements SpellHandler, Listener {
     public void cast(SpellContext context) {
         Player caster = context.player();
         double damage = SpellEffectUtil.computeDexTecScaledDamage(caster, BASE_DAMAGE, DEX_SCALE, TECHNIQUE_SCALE);
-        Arrow arrow = ArcherArrowUtil.launchClassArrow(plugin, caster, caster.getEyeLocation().getDirection(), ARROW_SPEED, damage);
-        if (arrow != null && homingStrength > 0.0) {
-            ArcherArrowUtil.attachHomingTask(plugin, caster, arrow, homingStrength, 28, 16.0, 0.65);
+        var directions = caster.isOnGround()
+                ? java.util.List.of(caster.getEyeLocation().getDirection().clone())
+                : ArcherArrowUtil.buildHorizontalConeDirections(caster.getEyeLocation().getDirection(), AIRBORNE_ARROW_COUNT, AIRBORNE_CONE_DEGREES);
+
+        int fired = 0;
+        for (var direction : directions) {
+            Arrow arrow = ArcherArrowUtil.launchClassArrow(plugin, caster, direction, ARROW_SPEED, damage);
+            if (arrow == null) {
+                continue;
+            }
+            fired++;
+            if (homingStrength > 0.0) {
+                ArcherArrowUtil.attachHomingTask(plugin, caster, arrow, homingStrength, 28, 16.0, 0.65);
+            }
+            if (explosionRadius > 0.0 && splashDamageFactor > 0.0) {
+                EXPLOSIVE_ARROWS.put(arrow.getUniqueId(),
+                        new ExplosivePayload(caster.getUniqueId(), damage, explosionRadius, splashDamageFactor));
+            }
+            if (!caster.isOnGround()) {
+                applyAirRecoil(caster);
+            }
         }
-        if (arrow != null && explosionRadius > 0.0 && splashDamageFactor > 0.0) {
-            EXPLOSIVE_ARROWS.put(arrow.getUniqueId(),
-                    new ExplosivePayload(caster.getUniqueId(), damage, explosionRadius, splashDamageFactor));
+        if (fired > 0) {
+            caster.getWorld().playSound(caster.getLocation(), Sound.ENTITY_ARROW_SHOOT, 0.75f, 1.22f);
         }
-        caster.getWorld().playSound(caster.getLocation(), Sound.ENTITY_ARROW_SHOOT, 0.75f, 1.22f);
+    }
+
+    private static void applyAirRecoil(Player caster) {
+        Vector backward = caster.getEyeLocation().getDirection().clone().multiply(-AIRBORNE_RECOIL);
+        backward.setY(0.06);
+        caster.setVelocity(caster.getVelocity().multiply(0.92).add(backward));
     }
 
     @EventHandler

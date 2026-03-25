@@ -15,6 +15,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.function.Predicate;
 
 public final class WarriorCombatUtil {
@@ -151,14 +152,28 @@ public final class WarriorCombatUtil {
                                    double impactRadius,
                                    double impactDamage,
                                    Predicate<LivingEntity> extraFilter) {
+        leapAndSlam(plugin, caster, launchVelocity, maxAirTicks, impactRadius, impactDamage, extraFilter,
+                LeapAndSlamOptions.disabled());
+    }
+
+    public static void leapAndSlam(Main plugin,
+                                   Player caster,
+                                   Vector launchVelocity,
+                                   int maxAirTicks,
+                                   double impactRadius,
+                                   double impactDamage,
+                                   Predicate<LivingEntity> extraFilter,
+                                   LeapAndSlamOptions options) {
         if (plugin == null || caster == null || launchVelocity == null) {
             return;
         }
+        LeapAndSlamOptions leapOptions = options == null ? LeapAndSlamOptions.disabled() : options;
         caster.setVelocity(launchVelocity);
         caster.getWorld().playSound(caster.getLocation(), Sound.ENTITY_PLAYER_ATTACK_KNOCKBACK, 0.8f, 0.9f);
 
         new BukkitRunnable() {
             private int ticks;
+            private UUID carriedTargetId;
 
             @Override
             public void run() {
@@ -166,6 +181,29 @@ public final class WarriorCombatUtil {
                     cancel();
                     return;
                 }
+
+                if (carriedTargetId == null && leapOptions.aerialLiftWindowTicks > 0 && ticks <= leapOptions.aerialLiftWindowTicks) {
+                    for (LivingEntity target : SpellEffectUtil.getLivingTargets(caster.getLocation(), leapOptions.aerialHitRadius,
+                            living -> !living.equals(caster) && (extraFilter == null || extraFilter.test(living)))) {
+                        carriedTargetId = target.getUniqueId();
+                        SpellEffectUtil.applyDirectSpellDamage(plugin, caster, target, leapOptions.aerialHitDamage, true);
+                        target.getWorld().spawnParticle(Particle.SWEEP_ATTACK, target.getLocation().add(0.0, 1.0, 0.0), 1);
+                        target.getWorld().playSound(target.getLocation(), Sound.ENTITY_PLAYER_ATTACK_STRONG, 0.6f, 0.85f);
+                        break;
+                    }
+                }
+
+                LivingEntity carried = carriedTargetId == null ? null : resolveLivingTarget(caster, carriedTargetId);
+                if (carried != null) {
+                    Vector carryVelocity = caster.getVelocity().clone();
+                    carryVelocity.setY(Math.max(carryVelocity.getY(), leapOptions.carriedLiftVelocity));
+                    carried.setVelocity(carried.getVelocity().multiply(0.4).add(carryVelocity.multiply(0.75)));
+                    if (ticks % 2 == 0) {
+                        carried.getWorld().spawnParticle(Particle.CRIT, carried.getLocation().add(0.0, 1.0, 0.0),
+                                4, 0.15, 0.1, 0.15, 0.01);
+                    }
+                }
+
                 if (ticks >= maxAirTicks || (ticks > 2 && caster.isOnGround())) {
                     Location impact = caster.getLocation().clone();
                     impact.getWorld().spawnParticle(Particle.EXPLOSION, impact.clone().add(0.0, 0.1, 0.0), 1);
@@ -176,12 +214,60 @@ public final class WarriorCombatUtil {
                             living -> !living.equals(caster) && (extraFilter == null || extraFilter.test(living)))) {
                         SpellEffectUtil.applyDirectSpellDamage(plugin, caster, target, impactDamage, true);
                     }
+                    if (carried != null) {
+                        SpellEffectUtil.applyDirectSpellDamage(plugin, caster, carried, leapOptions.carriedImpactDamage, true);
+                        Vector away = carried.getLocation().toVector().subtract(impact.toVector()).setY(0.15);
+                        if (away.lengthSquared() <= 0.0001) {
+                            away = caster.getLocation().getDirection().clone().setY(0.15);
+                        }
+                        carried.setVelocity(carried.getVelocity().multiply(0.7).add(away.normalize().multiply(leapOptions.carriedKickback)));
+                    }
+                    if (leapOptions.shockwavePulseCount > 0) {
+                        runShockwaveRipple(plugin, caster, impact.clone().add(0.0, 0.1, 0.0),
+                                leapOptions.shockwavePulseCount,
+                                leapOptions.shockwavePulseIntervalTicks,
+                                leapOptions.shockwaveBaseRadius,
+                                leapOptions.shockwaveRadiusStep,
+                                leapOptions.shockwaveBaseDamage,
+                                leapOptions.shockwaveDamageStep,
+                                leapOptions.shockwaveKnockback);
+                    }
                     cancel();
                     return;
                 }
                 ticks++;
             }
         }.runTaskTimer(plugin, 1L, 1L);
+    }
+
+    private static LivingEntity resolveLivingTarget(Player caster, UUID targetId) {
+        if (caster == null || targetId == null || caster.getWorld() == null) {
+            return null;
+        }
+        var entity = caster.getWorld().getEntity(targetId);
+        if (!(entity instanceof LivingEntity living) || living.isDead() || !living.isValid()) {
+            return null;
+        }
+        return living;
+    }
+
+    public record LeapAndSlamOptions(int aerialLiftWindowTicks,
+                                     double aerialHitRadius,
+                                     double aerialHitDamage,
+                                     double carriedLiftVelocity,
+                                     double carriedImpactDamage,
+                                     double carriedKickback,
+                                     int shockwavePulseCount,
+                                     long shockwavePulseIntervalTicks,
+                                     double shockwaveBaseRadius,
+                                     double shockwaveRadiusStep,
+                                     double shockwaveBaseDamage,
+                                     double shockwaveDamageStep,
+                                     double shockwaveKnockback) {
+        public static LeapAndSlamOptions disabled() {
+            return new LeapAndSlamOptions(0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                    0, 1L, 0.0, 0.0, 0.0, 0.0, 0.0);
+        }
     }
 
     private static void spawnGroundRipple(Main plugin, World world, Location center, double radius) {

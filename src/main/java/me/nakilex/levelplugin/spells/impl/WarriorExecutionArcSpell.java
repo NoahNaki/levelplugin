@@ -17,14 +17,21 @@ import org.bukkit.util.Vector;
 import org.bukkit.util.EulerAngle;
 
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class WarriorExecutionArcSpell implements SpellHandler {
+    private static final Map<UUID, CycloneGuardState> ACTIVE_CYCLONES = new ConcurrentHashMap<>();
+
     private final Main plugin;
     private final int durationTicks;
     private final double strikeDamage;
     private static final CycloneVisualConfig VISUAL_CONFIG = new CycloneVisualConfig();
+    private static final double CYCLONE_INCOMING_DAMAGE_MULTIPLIER = 0.5;
+    private static final double CYCLONE_PULL_STRENGTH = 0.24;
+    private static final double CYCLONE_CONTINUOUS_DAMAGE = 1.3;
 
     public WarriorExecutionArcSpell(Main plugin, int durationTicks, double orbitRadius, double strikeDamage) {
         this.plugin = plugin;
@@ -49,6 +56,8 @@ public class WarriorExecutionArcSpell implements SpellHandler {
         };
 
         caster.getWorld().playSound(caster.getLocation(), Sound.ENTITY_BREEZE_SHOOT, 0.8f, 1.3f);
+        ACTIVE_CYCLONES.put(caster.getUniqueId(), new CycloneGuardState(System.currentTimeMillis() + (durationTicks * 50L),
+                CYCLONE_INCOMING_DAMAGE_MULTIPLIER));
 
         new BukkitRunnable() {
             private int ticks;
@@ -58,6 +67,7 @@ public class WarriorExecutionArcSpell implements SpellHandler {
             public void run() {
                 if (!caster.isOnline() || ticks >= durationTicks || !areStandsValid(stands)) {
                     removeStands(stands);
+                    ACTIVE_CYCLONES.remove(caster.getUniqueId());
                     cancel();
                     return;
                 }
@@ -87,16 +97,31 @@ public class WarriorExecutionArcSpell implements SpellHandler {
                     orbitLocations[i] = orbitLocation;
                 }
 
-                if (ticks % 4 == 0) {
+                double pullRadius = Math.max(1.4, cfg.orbitRadius + 0.9);
+                Set<UUID> affectedTargets = new HashSet<>();
+                for (LivingEntity target : SpellEffectUtil.getLivingTargets(caster.getLocation(), pullRadius,
+                        living -> !living.equals(caster) && affectedTargets.add(living.getUniqueId()))) {
+                    Vector pull = caster.getLocation().toVector().subtract(target.getLocation().toVector()).setY(0.0);
+                    if (pull.lengthSquared() > 0.0001) {
+                        target.setVelocity(target.getVelocity().multiply(0.68).add(pull.normalize().multiply(CYCLONE_PULL_STRENGTH).setY(0.04)));
+                    }
+                }
+
+                spawnCycloneSpiralParticles(caster, cfg.orbitRadius + 0.35, ticks);
+
+                if (ticks % 3 == 0) {
+                    for (LivingEntity target : SpellEffectUtil.getLivingTargets(caster.getLocation(), pullRadius,
+                            living -> !living.equals(caster))) {
+                        SpellEffectUtil.applyDirectSpellDamage(plugin, caster, target, CYCLONE_CONTINUOUS_DAMAGE, true);
+                    }
+                }
+
+                if (ticks % 6 == 0) {
                     Set<UUID> hitTargetsThisTick = new HashSet<>();
                     for (var orbitLocation : orbitLocations) {
                         for (LivingEntity target : SpellEffectUtil.getLivingTargets(orbitLocation, 1.25,
                                 living -> !living.equals(caster) && hitTargetsThisTick.add(living.getUniqueId()))) {
                             SpellEffectUtil.applyDirectSpellDamage(plugin, caster, target, strikeDamage, true);
-                            Vector away = target.getLocation().toVector().subtract(caster.getLocation().toVector()).setY(0.08);
-                            if (away.lengthSquared() > 0.0001) {
-                                target.setVelocity(target.getVelocity().multiply(0.74).add(away.normalize().multiply(0.28)));
-                            }
                         }
                     }
                     caster.getWorld().playSound(caster.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 0.55f, 1.45f);
@@ -104,6 +129,43 @@ public class WarriorExecutionArcSpell implements SpellHandler {
                 ticks++;
             }
         }.runTaskTimer(plugin, 0L, 1L);
+
+        plugin.getServer().getScheduler().runTaskLater(plugin,
+                () -> ACTIVE_CYCLONES.remove(caster.getUniqueId()),
+                durationTicks + 1L);
+    }
+
+
+    private static void spawnCycloneSpiralParticles(Player caster, double radius, int ticks) {
+        if (caster == null || caster.getWorld() == null) {
+            return;
+        }
+        double spin = ticks * 0.42;
+        for (int i = 0; i < 10; i++) {
+            double phase = spin + (i * 0.62);
+            double x = Math.cos(phase) * radius;
+            double z = Math.sin(phase) * radius;
+            double y = 0.25 + (i * 0.16) % 1.35;
+            var point = caster.getLocation().clone().add(x, y, z);
+            caster.getWorld().spawnParticle(Particle.DUST, point, 1, 0.0, 0.0, 0.0, 0.0,
+                    new Particle.DustOptions(org.bukkit.Color.fromRGB(184, 236, 255), 1.0f));
+            caster.getWorld().spawnParticle(Particle.CLOUD, point, 1, 0.01, 0.01, 0.01, 0.001);
+        }
+    }
+
+    public static double getIncomingDamageMultiplier(Player player) {
+        if (player == null) {
+            return 1.0;
+        }
+        CycloneGuardState state = ACTIVE_CYCLONES.get(player.getUniqueId());
+        if (state == null) {
+            return 1.0;
+        }
+        if (System.currentTimeMillis() > state.expiresAtMs()) {
+            ACTIVE_CYCLONES.remove(player.getUniqueId());
+            return 1.0;
+        }
+        return state.incomingDamageMultiplier();
     }
 
     private ArmorStand spawnCycloneStand(Player caster, ItemStack hand) {
@@ -155,6 +217,9 @@ public class WarriorExecutionArcSpell implements SpellHandler {
         CycloneVisualConfig cfg = VISUAL_CONFIG.copy();
         mutator.accept(cfg);
         VISUAL_CONFIG.applyFrom(cfg);
+    }
+
+    private record CycloneGuardState(long expiresAtMs, double incomingDamageMultiplier) {
     }
 
     public static final class CycloneVisualConfig {

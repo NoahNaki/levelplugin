@@ -34,6 +34,10 @@ public class WarriorTitanVaultSpell implements SpellHandler {
             direction = caster.getLocation().getDirection().clone();
         }
         Vector launch = direction.normalize().multiply(forwardSpeed).setY(upwardSpeed);
-        WarriorCombatUtil.leapAndSlam(plugin, caster, launch, 22, impactRadius, impactDamage, null);
+        WarriorCombatUtil.LeapAndSlamOptions options = new WarriorCombatUtil.LeapAndSlamOptions(
+                10, 1.9, impactDamage * 0.35, 0.32, impactDamage * 0.75, 0.62,
+                6, 2L, 0.7, 0.65, 2.5, 0.55, 0.44
+        );
+        WarriorCombatUtil.leapAndSlam(plugin, caster, launch, 22, impactRadius, impactDamage, null, options);
     }
 }

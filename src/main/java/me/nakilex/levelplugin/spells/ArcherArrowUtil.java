@@ -10,6 +10,9 @@ import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /** Shared utility for spawning and configuring class-driven archer arrows. */
 public final class ArcherArrowUtil {
     private static final String BASIC_ATTACK_META = "BasicAttack";
@@ -53,6 +56,28 @@ public final class ArcherArrowUtil {
         arrow.setDamage(Math.max(0.1, damage));
         arrow.setMetadata(BASIC_ATTACK_META, new FixedMetadataValue(plugin, caster.getUniqueId()));
         return arrow;
+    }
+
+
+    public static List<Vector> buildHorizontalConeDirections(Vector forward,
+                                                             int projectileCount,
+                                                             double coneDegrees) {
+        if (forward == null || forward.lengthSquared() <= 0.000001) {
+            return List.of();
+        }
+        int safeCount = Math.max(1, projectileCount);
+        Vector base = forward.clone().normalize();
+        if (safeCount == 1 || coneDegrees <= 0.0) {
+            return List.of(base);
+        }
+
+        List<Vector> directions = new ArrayList<>(safeCount);
+        double step = coneDegrees / Math.max(1, safeCount - 1);
+        for (int i = 0; i < safeCount; i++) {
+            double yawOffset = (-coneDegrees / 2.0) + (step * i);
+            directions.add(base.clone().rotateAroundY(Math.toRadians(yawOffset)));
+        }
+        return directions;
     }
 
     public static void attachHomingTask(Plugin plugin,
