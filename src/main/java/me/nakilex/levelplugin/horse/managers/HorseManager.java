@@ -35,6 +35,7 @@ public class HorseManager implements Listener {
     private static final long COOLDOWN_MS = 5_000L; // 5 seconds
     private static final double MOVE_EPSILON_SQUARED = 0.0001;
     private static final double JUMP_DELTA_Y_THRESHOLD = 0.35;
+    private static final double LANDING_BURST_STRENGTH = 0.22;
     private static final String OWNED_HORSE_TAG = "levelplugin_owned_horse";
 
     private final HorseConfigManager configManager;
@@ -44,6 +45,8 @@ public class HorseManager implements Listener {
     private final Map<UUID, UUID> activeHorseByPlayer = new HashMap<>();
     private final Map<UUID, Location> lastRideLocation = new HashMap<>();
     private final Map<UUID, Boolean> wasOnGround = new HashMap<>();
+    private final Map<UUID, Double> totalRideMeters = new HashMap<>();
+    private final Map<UUID, Integer> totalJumpCount = new HashMap<>();
 
     // Constructor to accept HorseConfigManager
     public HorseManager(HorseConfigManager configManager) {
@@ -80,6 +83,9 @@ public class HorseManager implements Listener {
     }
 
     public void setTrailPreset(UUID uuid, String presetName) {
+        if (!isTrailUnlocked(uuid, presetName)) {
+            return;
+        }
         HorseData data = horses.get(uuid);
         if (data == null) {
             return;
@@ -91,6 +97,36 @@ public class HorseManager implements Listener {
         if (player != null) {
             updateActiveHorseTrail(player);
         }
+    }
+
+    public boolean trySetTrailPreset(UUID uuid, String presetName) {
+        if (!isTrailUnlocked(uuid, presetName)) {
+            return false;
+        }
+        setTrailPreset(uuid, presetName);
+        return true;
+    }
+
+    public boolean isTrailUnlocked(UUID playerId, String presetName) {
+        return trailService.isUnlocked(presetName, getRideMeters(playerId), getJumpCount(playerId));
+    }
+
+    public String getTrailUnlockRequirement(String presetName) {
+        return trailService.formatUnlockRequirement(presetName);
+    }
+
+    public double getRideMeters(UUID playerId) {
+        if (playerId == null) {
+            return 0.0;
+        }
+        return totalRideMeters.getOrDefault(playerId, 0.0);
+    }
+
+    public int getJumpCount(UUID playerId) {
+        if (playerId == null) {
+            return 0;
+        }
+        return totalJumpCount.getOrDefault(playerId, 0);
     }
 
     public void spawnHorse(Player player) {
@@ -185,6 +221,8 @@ public class HorseManager implements Listener {
         activeHorseByPlayer.remove(uuid);
         lastRideLocation.remove(uuid);
         wasOnGround.remove(uuid);
+        totalRideMeters.remove(uuid);
+        totalJumpCount.remove(uuid);
         configManager.deleteHorseData(uuid);
     }
 
@@ -233,9 +271,22 @@ public class HorseManager implements Listener {
         int jumpCount = (!currentGround && previousGround && (to.getY() - from.getY()) > JUMP_DELTA_Y_THRESHOLD) ? 1 : 0;
 
         if (deltaMeters > 0 || jumpCount > 0) {
+            if (deltaMeters > 0) {
+                totalRideMeters.merge(playerId, deltaMeters, Double::sum);
+            }
+            if (jumpCount > 0) {
+                totalJumpCount.merge(playerId, jumpCount, Integer::sum);
+            }
             BattlePassManager battlePassManager = Main.getInstance().getBattlePassManager();
             if (battlePassManager != null) {
                 battlePassManager.recordHorseChallengeProgress(player, deltaMeters, jumpCount);
+            }
+        }
+
+        if (!previousGround && currentGround) {
+            org.bukkit.util.Vector forward = horse.getLocation().getDirection().clone().setY(0.0);
+            if (forward.lengthSquared() > 0.0001) {
+                horse.setVelocity(horse.getVelocity().add(forward.normalize().multiply(LANDING_BURST_STRENGTH)));
             }
         }
     }

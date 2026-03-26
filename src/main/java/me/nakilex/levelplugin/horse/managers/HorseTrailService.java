@@ -28,6 +28,15 @@ public class HorseTrailService {
             "ENCHANT",
             "END_ROD"
     );
+    private static final Map<String, UnlockRequirement> UNLOCK_REQUIREMENTS = Map.of(
+            OFF_PRESET, new UnlockRequirement(0.0, 0),
+            "FLAME", new UnlockRequirement(0.0, 0),
+            "HEART", new UnlockRequirement(250.0, 0),
+            "HAPPY_VILLAGER", new UnlockRequirement(600.0, 0),
+            "CRIT", new UnlockRequirement(0.0, 20),
+            "ENCHANT", new UnlockRequirement(1200.0, 40),
+            "END_ROD", new UnlockRequirement(2200.0, 80)
+    );
 
     private final Map<UUID, BukkitTask> trailTasks = new java.util.HashMap<>();
 
@@ -87,6 +96,30 @@ public class HorseTrailService {
             out.append(Character.toUpperCase(part.charAt(0))).append(part.substring(1));
         }
         return out.toString();
+    }
+
+    public boolean isUnlocked(String preset, double riddenMeters, int jumpCount) {
+        String normalized = normalizePreset(preset);
+        UnlockRequirement requirement = UNLOCK_REQUIREMENTS.getOrDefault(normalized, new UnlockRequirement(0.0, 0));
+        return riddenMeters >= requirement.requiredMeters && jumpCount >= requirement.requiredJumps;
+    }
+
+    public String formatUnlockRequirement(String preset) {
+        String normalized = normalizePreset(preset);
+        UnlockRequirement requirement = UNLOCK_REQUIREMENTS.getOrDefault(normalized, new UnlockRequirement(0.0, 0));
+        if (requirement.requiredMeters <= 0.0 && requirement.requiredJumps <= 0) {
+            return "Unlocked by default";
+        }
+        if (requirement.requiredMeters > 0.0 && requirement.requiredJumps > 0) {
+            return String.format("Ride %.0fm and land %d jumps", requirement.requiredMeters, requirement.requiredJumps);
+        }
+        if (requirement.requiredMeters > 0.0) {
+            return String.format("Ride %.0fm", requirement.requiredMeters);
+        }
+        return String.format("Land %d jumps", requirement.requiredJumps);
+    }
+
+    private record UnlockRequirement(double requiredMeters, int requiredJumps) {
     }
 
     public void startTrail(UUID ownerId, Player player, AbstractHorse horse, String presetName) {

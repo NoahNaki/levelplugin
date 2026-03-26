@@ -140,15 +140,21 @@ public class HorseGUI implements Listener {
         return GuiUtil.createGuiItem(Material.BLAZE_POWDER, "§dTrail Settings", lore);
     }
 
-    private ItemStack createTrailOptionItem(String option, String current) {
+    private ItemStack createTrailOptionItem(UUID playerId, String option, String current) {
+        boolean unlocked = horseManager.isTrailUnlocked(playerId, option);
         boolean selected = option.equalsIgnoreCase(current);
-        Material material = selected ? Material.LIME_DYE : Material.GRAY_DYE;
+        Material material = unlocked ? (selected ? Material.LIME_DYE : Material.GRAY_DYE) : Material.RED_DYE;
         String label = horseManager.formatTrailPresetName(option);
         List<String> lore = new ArrayList<>();
         lore.add(" ");
-        lore.add(TooltipUtil.selectionLine(selected, label));
+        lore.add(TooltipUtil.selectionLine(selected, label + (unlocked ? "" : " §c(Locked)")));
+        if (!unlocked) {
+            lore.add("§7Requirement: §f" + horseManager.getTrailUnlockRequirement(option));
+            lore.add("§7Progress: §f" + String.format("%.0fm", horseManager.getRideMeters(playerId))
+                    + " §8| §f" + horseManager.getJumpCount(playerId) + " jumps");
+        }
         lore.add(" ");
-        lore.addAll(TooltipUtil.clickInstructions("to select", null));
+        lore.addAll(TooltipUtil.clickInstructions(unlocked ? "to select" : "is locked", null));
         return GuiUtil.createGuiItem(material, "§b" + label, lore);
     }
 
@@ -255,7 +261,11 @@ public class HorseGUI implements Listener {
     }
 
     private void selectTrail(Player player, String trailPreset, Inventory inventory) {
-        horseManager.setTrailPreset(player.getUniqueId(), trailPreset);
+        if (!horseManager.trySetTrailPreset(player.getUniqueId(), trailPreset)) {
+            send(player, MessageType.WARNING,
+                    "Trail is locked. Requirement: §f" + horseManager.getTrailUnlockRequirement(trailPreset) + "§e.");
+            return;
+        }
         updateHorseInfo(inventory, player.getUniqueId());
         send(player, MessageType.SUCCESS,
                 "Horse trail set to §b" + horseManager.formatTrailPresetName(trailPreset) + "§a.");
@@ -293,7 +303,6 @@ public class HorseGUI implements Listener {
 
     private List<GuiWidget> buildTrailWidgets() {
         List<GuiWidget> widgets = new ArrayList<>();
-        UUID playerId = null;
         List<String> options = horseManager.getTrailPresetOptions();
 
         for (int i = 0; i < Math.min(TRAIL_OPTION_SLOTS.length, options.size()); i++) {
@@ -303,7 +312,7 @@ public class HorseGUI implements Listener {
                     context -> {
                         HorseData horseData = horseManager.getHorse(context.player().getUniqueId());
                         String current = horseData != null ? horseData.getTrailPreset() : HorseTrailService.OFF_PRESET;
-                        return createTrailOptionItem(option, current);
+                        return createTrailOptionItem(context.player().getUniqueId(), option, current);
                     },
                     (click, context) -> {
                         if (click == org.bukkit.event.inventory.ClickType.LEFT) {
