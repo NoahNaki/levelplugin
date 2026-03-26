@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.items.listeners;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.player.attributes.gui.LifeSkillGUI;
 import me.nakilex.levelplugin.player.attributes.gui.StatsInventory;
 import me.nakilex.levelplugin.player.profile.ProfileEntryUtil;
@@ -33,6 +34,8 @@ import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.NamespacedKey;
 
 import java.util.Set;
 import java.util.UUID;
@@ -47,6 +50,9 @@ public class StaticItemListener implements Listener {
     private static final ItemStack STATIC_COMPASS;        // Compass (Server Selector)
     private static final ItemStack STATIC_CODEX;          // Spyglass (Codex)
     private static final ItemStack STATIC_SETTINGS;       // Comparator (Settings)
+    private static final NamespacedKey HORSE_SADDLE_KEY =
+            new NamespacedKey(org.bukkit.plugin.java.JavaPlugin.getProvidingPlugin(StaticItemListener.class),
+                    "horse_saddle_item");
     private static final int[] CRAFTING_RAW_SLOTS = {0, 1, 2, 3, 4};
     private static final Set<UUID> PLAYERS_NEEDING_CRAFTING_MENU_REFRESH = ConcurrentHashMap.newKeySet();
     private static volatile boolean craftingMenuRefreshTaskStarted;
@@ -78,13 +84,7 @@ public class StaticItemListener implements Listener {
 
         STATIC_LIFE_SKILL = StatsInventory.createLifeSkillButton();
 
-        STATIC_HORSE_SADDLE = new ItemStack(Material.SADDLE);
-        ItemMeta horseMeta = STATIC_HORSE_SADDLE.getItemMeta();
-        if (horseMeta != null) {
-            horseMeta.setDisplayName(ChatColor.AQUA + "Horse");
-            horseMeta.setLore(TooltipUtil.clickInstructions(null, "to spawn a horse."));
-            STATIC_HORSE_SADDLE.setItemMeta(horseMeta);
-        }
+        STATIC_HORSE_SADDLE = createHorseSaddleItem();
 
         STATIC_QUEST_BOOK = new ItemStack(Material.BOOK);
         ItemMeta bookMeta = STATIC_QUEST_BOOK.getItemMeta();
@@ -123,7 +123,6 @@ public class StaticItemListener implements Listener {
         return item != null && (
                 isStatsViewerItem(item)
                         || item.isSimilar(STATIC_LIFE_SKILL)
-                        || item.isSimilar(STATIC_HORSE_SADDLE)
                         || item.isSimilar(STATIC_QUEST_BOOK)
                         || item.isSimilar(STATIC_COMPASS)
                         || item.isSimilar(STATIC_CODEX)
@@ -136,7 +135,52 @@ public class StaticItemListener implements Listener {
     }
 
     public static void giveStaticItems(Player player) {
-        player.getInventory().setItem(6, STATIC_HORSE_SADDLE.clone());
+        ensureHorseSaddle(player);
+    }
+
+    private static ItemStack createHorseSaddleItem() {
+        ItemStack saddle = new ItemStack(Material.SADDLE);
+        ItemMeta horseMeta = saddle.getItemMeta();
+        if (horseMeta != null) {
+            horseMeta.setDisplayName(ChatColor.AQUA + "Horse");
+            horseMeta.setLore(TooltipUtil.clickInstructions(null, "to spawn your horse."));
+            horseMeta.getPersistentDataContainer().set(HORSE_SADDLE_KEY, PersistentDataType.BYTE, (byte) 1);
+            saddle.setItemMeta(horseMeta);
+        }
+        ItemUtil.setSoulbound(saddle, true);
+        return saddle;
+    }
+
+    private static boolean isHorseSaddleItem(ItemStack item) {
+        if (item == null || item.getType() != Material.SADDLE || !item.hasItemMeta()) {
+            return false;
+        }
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) {
+            return false;
+        }
+        if (meta.getPersistentDataContainer().has(HORSE_SADDLE_KEY, PersistentDataType.BYTE)) {
+            return true;
+        }
+        return item.isSimilar(STATIC_HORSE_SADDLE);
+    }
+
+    private static void ensureHorseSaddle(Player player) {
+        if (player == null) {
+            return;
+        }
+        for (ItemStack content : player.getInventory().getContents()) {
+            if (isHorseSaddleItem(content)) {
+                return;
+            }
+        }
+        int targetSlot = 6;
+        if (player.getInventory().getItem(targetSlot) == null
+                || player.getInventory().getItem(targetSlot).getType().isAir()) {
+            player.getInventory().setItem(targetSlot, STATIC_HORSE_SADDLE.clone());
+            return;
+        }
+        player.getInventory().addItem(STATIC_HORSE_SADDLE.clone());
     }
 
     private static ItemStack getCraftingMenuItem(Player player, int rawSlot) {
@@ -595,6 +639,12 @@ public class StaticItemListener implements Listener {
         Player player = event.getPlayer();
         ItemStack inHand = player.getInventory().getItemInMainHand();
 
+        if (isHorseSaddleItem(inHand)) {
+            runStaticAction(player, false, () -> player.performCommand("horse spawn"));
+            event.setCancelled(true);
+            return;
+        }
+
         if (isManagedStaticItem(inHand)) {
             handleStaticAction(player, inHand, false);
             event.setCancelled(true);
@@ -630,7 +680,7 @@ public class StaticItemListener implements Listener {
             runStaticAction(player, delayOneTick, () -> LifeSkillGUI.open(player));
             return;
         }
-        if (item.isSimilar(STATIC_HORSE_SADDLE)) {
+        if (isHorseSaddleItem(item)) {
             runStaticAction(player, delayOneTick, () -> player.performCommand("horse spawn"));
             return;
         }
