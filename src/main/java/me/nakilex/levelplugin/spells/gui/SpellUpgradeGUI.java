@@ -6,6 +6,7 @@ import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.classes.managers.PlayerClassManager;
 import me.nakilex.levelplugin.spells.SpellRegistry;
 import me.nakilex.levelplugin.spells.input.SpellInputType;
+import me.nakilex.levelplugin.spells.progression.SpellProgressionManager;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
@@ -79,31 +80,48 @@ public class SpellUpgradeGUI implements Listener {
                                       SpellRegistry.SpellEntry entry,
                                       SpellInputType inputType) {
         List<String> lore = new ArrayList<>();
-        lore.add(" ");
-        lore.add(TooltipUtil.stylizedHeader(ChatColor.AQUA, "Spell Type"));
-        lore.add(TooltipUtil.labelValueLine("Input", ChatColor.WHITE, labelForInput(inputType)));
+        lore.add(ChatColor.DARK_GRAY + "Input: " + ChatColor.WHITE + labelForInput(inputType));
 
         if (entry == null) {
             lore.add(" ");
-            lore.add(TooltipUtil.stylizedHeader(ChatColor.RED, "Status"));
-            lore.add(ChatColor.GRAY + "No spell is currently bound.");
+            lore.add(TooltipUtil.iconLabelValueLine("✖", ChatColor.RED, ChatColor.RED, "Status",
+                    ChatColor.GRAY, "No spell is currently bound."));
             return GuiUtil.createGuiItem(Material.BARRIER, ChatColor.RED + "Unbound", lore);
         }
 
         String spellId = entry.definition().id();
         lore.add(" ");
-        lore.add(TooltipUtil.stylizedHeader(ChatColor.YELLOW, "Description"));
         lore.addAll(describeSpell(playerClass, spellId));
+        lore.add(" ");
 
         String damageLine = estimateDamageLine(player, playerClass, spellId, inputType);
+        String elementLabel = ClassUtil.isMageFamily(playerClass) ? "Thunder" : "Power";
+        lore.add(ChatColor.GRAY + "Either way, gain " + ChatColor.WHITE + "+50 "
+                + ChatColor.GOLD + "✣ " + ChatColor.GRAY + "Neutral and "
+                + ChatColor.WHITE + "+10 " + ChatColor.YELLOW + "✦ " + ChatColor.GRAY + elementLabel);
+
+        lore.add(ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Base Damage");
         if (damageLine != null) {
-            lore.add(" ");
-            lore.add(TooltipUtil.stylizedHeader(ChatColor.GOLD, "Damage"));
-            lore.add(TooltipUtil.labelValueLine("0 DEF Estimate", ChatColor.RED, damageLine));
+            lore.add(TooltipUtil.iconLabelValueLine("✖", ChatColor.RED, ChatColor.RED, "Total Damage",
+                    ChatColor.WHITE, damageLine + ChatColor.GRAY + " (0 DEF estimate)"));
+            lore.add(TooltipUtil.iconLabelValueLine("✣", ChatColor.GOLD, ChatColor.GOLD, "Damage",
+                    ChatColor.WHITE, neutralPercentFor(playerClass)));
+            lore.add(TooltipUtil.iconLabelValueLine("✦", ChatColor.YELLOW, ChatColor.YELLOW, elementLabel,
+                    ChatColor.WHITE, elementPercentFor(playerClass)));
+        } else {
+            lore.add(TooltipUtil.iconLabelValueLine("✖", ChatColor.RED, ChatColor.RED, "Total Damage",
+                    ChatColor.GRAY, "Utility / non-damage spell"));
         }
 
+        lore.add(" ");
+        lore.add(ChatColor.BLUE + "" + ChatColor.BOLD + "??? Archetype");
+        lore.add(ChatColor.GRAY + "Ability Points: " + ChatColor.WHITE
+                + SpellProgressionManager.getInstance().getSpellPoints(player.getUniqueId()));
+        lore.add(ChatColor.GRAY + "Min ??? Archetype: " + ChatColor.WHITE + "6");
+        lore.add(ChatColor.DARK_GRAY + spellId);
+
         return GuiUtil.createGuiItem(Material.ENCHANTED_BOOK,
-                ChatColor.LIGHT_PURPLE + "" + ChatColor.BOLD + entry.definition().displayName(), lore);
+                ChatColor.GOLD + "" + ChatColor.BOLD + entry.definition().displayName(), lore);
     }
 
     private List<String> describeSpell(PlayerClass playerClass, String spellId) {
@@ -258,6 +276,32 @@ public class SpellUpgradeGUI implements Listener {
             return "7.2 impact";
         }
         return null;
+    }
+
+    private String neutralPercentFor(PlayerClass playerClass) {
+        if (ClassUtil.isMageFamily(playerClass)) {
+            return "85%";
+        }
+        if (ClassUtil.isArcherFamily(playerClass)) {
+            return "90%";
+        }
+        if (ClassUtil.isRogueFamily(playerClass)) {
+            return "92%";
+        }
+        return "95%";
+    }
+
+    private String elementPercentFor(PlayerClass playerClass) {
+        if (ClassUtil.isMageFamily(playerClass)) {
+            return "15%";
+        }
+        if (ClassUtil.isArcherFamily(playerClass)) {
+            return "10%";
+        }
+        if (ClassUtil.isRogueFamily(playerClass)) {
+            return "8%";
+        }
+        return "5%";
     }
 
     private String labelForInput(SpellInputType inputType) {
