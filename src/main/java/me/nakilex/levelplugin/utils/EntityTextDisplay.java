@@ -45,6 +45,7 @@ public class EntityTextDisplay {
             Location loc = target.getLocation().add(0, target.getHeight() + yOffset, 0);
             display = (TextDisplay) target.getWorld().spawnEntity(loc, EntityType.TEXT_DISPLAY);
             display.setBillboard(Display.Billboard.CENTER);
+            display.setViewRange(20.0f);
             display.setShadowRadius(0f);
             display.setShadowStrength(0f);
             display.setBackgroundColor(Color.fromARGB(0, 0, 0, 0));

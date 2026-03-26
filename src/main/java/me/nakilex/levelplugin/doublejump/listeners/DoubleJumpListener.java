@@ -53,6 +53,10 @@ public class DoubleJumpListener implements Listener {
     public void onPlayerToggleFlight(PlayerToggleFlightEvent event) {
         Player player = event.getPlayer();
         if (player.getGameMode() == GameMode.CREATIVE) return;
+        if (Main.getInstance().getDialogManager() != null
+                && Main.getInstance().getDialogManager().hasSession(player)) {
+            return;
+        }
 
         StatsManager.PlayerStats ps = StatsManager
             .getInstance()
@@ -118,7 +122,9 @@ public class DoubleJumpListener implements Listener {
         int bonusJumps = getBonusJumps(player.getUniqueId());
         int total = Math.max(0, baseJumps + bonusJumps);
         remainingJumps.put(player.getUniqueId(), total);
-        player.setAllowFlight(total > 0);
+        if (player.getGameMode() == GameMode.ADVENTURE) {
+            player.setAllowFlight(total > 0);
+        }
     }
 
     private int getBonusJumps(UUID playerId) {

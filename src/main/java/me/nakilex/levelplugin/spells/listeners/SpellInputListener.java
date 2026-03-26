@@ -67,6 +67,9 @@ public class SpellInputListener implements Listener {
             return;
         }
         Player player = event.getPlayer();
+        if (shouldIgnoreSpellInput(player)) {
+            return;
+        }
         if (isLeftClickAction(action)) {
             PlayerClass playerClass = PlayerClassManager.getInstance().getPlayerClass(player);
             if (ClassUtil.isRogueFamily(playerClass)) {
@@ -89,6 +92,9 @@ public class SpellInputListener implements Listener {
     @EventHandler
     public void onInteractEntity(PlayerInteractEntityEvent event) {
         if (event.getHand() != EquipmentSlot.HAND) {
+            return;
+        }
+        if (shouldIgnoreSpellInput(event.getPlayer())) {
             return;
         }
         if (!shouldProcessRightClick(event.getPlayer())) {
@@ -146,6 +152,9 @@ public class SpellInputListener implements Listener {
     @EventHandler
     public void onSneak(PlayerToggleSneakEvent event) {
         Player player = event.getPlayer();
+        if (shouldIgnoreSpellInput(player)) {
+            return;
+        }
         if (event.isSneaking()) {
             if (ArcherSkyboundSpell.tryTriggerAerialBurst(Main.getInstance(), player)) {
                 return;
@@ -223,6 +232,14 @@ public class SpellInputListener implements Listener {
                 dispatch(player, bound, SpellInputMode.MOUSE_COMBO, tracker.getLastSequence());
             }
         }
+    }
+
+    private boolean shouldIgnoreSpellInput(Player player) {
+        if (player == null) {
+            return true;
+        }
+        var dialogManager = Main.getInstance().getDialogManager();
+        return dialogManager != null && dialogManager.hasSession(player);
     }
 
     private SpellInputType getBoundSpell(Player player, SpellInputMode mode, SpellKeybindSlot slot) {

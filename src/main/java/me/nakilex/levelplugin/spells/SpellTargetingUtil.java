@@ -216,7 +216,24 @@ public final class SpellTargetingUtil {
         if (travel.lengthSquared() < MIN_BLINK_TRAVEL_DISTANCE * MIN_BLINK_TRAVEL_DISTANCE) {
             return false;
         }
-        return travel.normalize().dot(lookDirection.clone().normalize()) >= 0.45;
+        if (travel.normalize().dot(lookDirection.clone().normalize()) < 0.45) {
+            return false;
+        }
+        return !hasSolidObstruction(origin.clone().add(0.0, 1.0, 0.0), destination.clone().add(0.0, 1.0, 0.0));
+    }
+
+    private static boolean hasSolidObstruction(Location from, Location to) {
+        if (from == null || to == null || from.getWorld() == null || to.getWorld() == null
+                || !from.getWorld().equals(to.getWorld())) {
+            return true;
+        }
+        Vector direction = to.toVector().subtract(from.toVector());
+        double distance = direction.length();
+        if (distance <= 0.01) {
+            return false;
+        }
+        var hit = from.getWorld().rayTraceBlocks(from, direction.normalize(), Math.max(0.0, distance - 0.15));
+        return hit != null && hit.getHitBlock() != null;
     }
 
     private static Location resolveHighestGroundFallback(Player player, Location around, double maxDistance) {

@@ -1,0 +1,17 @@
+id: wild_rooster
+type: CHICKEN
+display: "&eWild Rooster"
+level: 7
+boss: false
+
+stats:
+  vitality: 10
+  strength: 5
+  agility: 10
+
+options:
+  movement-speed: 0.34
+  follow-range: 24
+  knockback-resistance: 0.2
+  silent: false
+  despawn: false
