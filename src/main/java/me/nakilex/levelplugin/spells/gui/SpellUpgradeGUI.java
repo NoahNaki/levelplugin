@@ -101,6 +101,7 @@ public class SpellUpgradeGUI implements Listener {
         if (damageLine != null) {
             lore.add(TooltipUtil.iconLabelValueLine("✖", ChatColor.RED, ChatColor.RED, "Total Damage",
                     ChatColor.WHITE, damageLine + ChatColor.GRAY + " (0 DEF estimate)"));
+            lore.addAll(buildBaseDamageBreakdown(player, spellId));
         } else {
             lore.add(TooltipUtil.iconLabelValueLine("✖", ChatColor.RED, ChatColor.RED, "Total Damage",
                     ChatColor.GRAY, "Utility / non-damage spell"));
@@ -157,7 +158,7 @@ public class SpellUpgradeGUI implements Listener {
         }
         if (ClassUtil.isMageFamily(playerClass) && spellId.startsWith("mage_fireball")) {
             addHighlightedDescription(lines,
-                    "Launches firebolts dealing about ",
+                    "Launches firebolts dealing ",
                     ChatColor.RED,
                     estimateDamageLine(player, playerClass, spellId, SpellInputType.BASIC_ATTACK),
                     " to a 0 DEF target.");
@@ -165,7 +166,7 @@ public class SpellUpgradeGUI implements Listener {
         }
         if (ClassUtil.isArcherFamily(playerClass) && spellId.startsWith("archer_quickshot")) {
             addHighlightedDescription(lines,
-                    "Fires arrows dealing about ",
+                    "Fires arrows dealing ",
                     ChatColor.RED,
                     estimateDamageLine(player, playerClass, spellId, SpellInputType.BASIC_ATTACK),
                     " (airborne shots fan into a 3-cone).");
@@ -189,7 +190,7 @@ public class SpellUpgradeGUI implements Listener {
         }
         if (spellId.startsWith("meteor")) {
             addHighlightedDescription(lines,
-                    "Calls down an impact for about ",
+                    "Calls down an impact for ",
                     ChatColor.RED,
                     estimateDamageLine(player, playerClass, spellId, SpellInputType.SPELL_2),
                     " in an area.");
@@ -197,7 +198,7 @@ public class SpellUpgradeGUI implements Listener {
         }
         if (spellId.startsWith("archer_homing_barrage")) {
             addHighlightedDescription(lines,
-                    "Unleashes homing arrows for about ",
+                    "Unleashes homing arrows for ",
                     ChatColor.RED,
                     estimateDamageLine(player, playerClass, spellId, SpellInputType.SPELL_1),
                     " each.");
@@ -205,7 +206,7 @@ public class SpellUpgradeGUI implements Listener {
         }
         if (spellId.startsWith("archer_arrow_rain")) {
             addHighlightedDescription(lines,
-                    "Bombards a target zone for about ",
+                    "Bombards a target zone for ",
                     ChatColor.RED,
                     estimateDamageLine(player, playerClass, spellId, SpellInputType.SPELL_2),
                     " per volley arrow.");
@@ -213,7 +214,7 @@ public class SpellUpgradeGUI implements Listener {
         }
         if (spellId.startsWith("archer_skybound")) {
             addHighlightedDescription(lines,
-                    "Launches you upward, then slam for around ",
+                    "Launches you upward, then slam for ",
                     ChatColor.RED,
                     "5.4 + fall scaling",
                     " on landing.");
@@ -221,7 +222,7 @@ public class SpellUpgradeGUI implements Listener {
         }
         if (spellId.startsWith("warrior_execution_arc")) {
             addHighlightedDescription(lines,
-                    "Spins through enemies for about ",
+                    "Spins through enemies for ",
                     ChatColor.RED,
                     estimateDamageLine(player, playerClass, spellId, SpellInputType.SPELL_1),
                     " and light pull pressure.");
@@ -229,7 +230,7 @@ public class SpellUpgradeGUI implements Listener {
         }
         if (spellId.startsWith("warrior_rupture_cyclone")) {
             addHighlightedDescription(lines,
-                    "Pulses around you for about ",
+                    "Pulses around you for ",
                     ChatColor.RED,
                     estimateDamageLine(player, playerClass, spellId, SpellInputType.SPELL_2),
                     " across the full sequence.");
@@ -237,7 +238,7 @@ public class SpellUpgradeGUI implements Listener {
         }
         if (spellId.startsWith("warrior_titan_vault")) {
             addHighlightedDescription(lines,
-                    "Leaps forward and slams for around ",
+                    "Leaps forward and slams for ",
                     ChatColor.RED,
                     estimateDamageLine(player, playerClass, spellId, SpellInputType.SPELL_3),
                     " on impact.");
@@ -245,7 +246,7 @@ public class SpellUpgradeGUI implements Listener {
         }
         if (spellId.startsWith("rogue_sky_ripper")) {
             addHighlightedDescription(lines,
-                    "Performs a multi-hit aerial combo for about ",
+                    "Performs a multi-hit aerial combo for ",
                     ChatColor.RED,
                     estimateDamageLine(player, playerClass, spellId, SpellInputType.SPELL_1),
                     " per major hit.");
@@ -253,7 +254,7 @@ public class SpellUpgradeGUI implements Listener {
         }
         if (spellId.startsWith("rogue_phantom_cross")) {
             addHighlightedDescription(lines,
-                    "Dashes through with combo strikes for around ",
+                    "Dashes through with combo strikes for ",
                     ChatColor.RED,
                     estimateDamageLine(player, playerClass, spellId, SpellInputType.SPELL_2),
                     " on primary hits.");
@@ -261,7 +262,7 @@ public class SpellUpgradeGUI implements Listener {
         }
         if (spellId.startsWith("rogue_razor_dash")) {
             addHighlightedDescription(lines,
-                    "Dashes forward with fast slashes dealing roughly ",
+                    "Dashes forward with fast slashes dealing ",
                     ChatColor.RED,
                     "4.2 arc damage",
                     " on sweep contacts.");
@@ -306,6 +307,70 @@ public class SpellUpgradeGUI implements Listener {
             return "1.8 / tick";
         }
         return "1.2 / tick";
+    }
+
+    private List<String> buildBaseDamageBreakdown(Player player, String spellId) {
+        List<String> lines = new ArrayList<>();
+        var stats = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
+        int intelligence = stats.baseIntelligence + stats.bonusIntelligence;
+        int dexterity = stats.baseDexterity + stats.bonusDexterity;
+        int technique = stats.baseTechnique + stats.bonusTechnique;
+
+        if (spellId.startsWith("mage_fireball_basic")) {
+            lines.addAll(intScalingBreakdown(intelligence, technique, 3.2, 0.48, "/ bolt"));
+            return lines;
+        }
+        if (spellId.startsWith("mage_fireball_barrage")) {
+            lines.addAll(intScalingBreakdown(intelligence, technique, 3.8, 0.58, "/ bolt"));
+            return lines;
+        }
+        if (spellId.startsWith("mage_fireball_inferno")) {
+            lines.addAll(intScalingBreakdown(intelligence, technique, 5.0, 0.72, "/ bolt"));
+            return lines;
+        }
+        if (spellId.startsWith("archer_quickshot_basic")
+                || spellId.startsWith("archer_quickshot_seeker")
+                || spellId.startsWith("archer_quickshot_payload")) {
+            lines.addAll(dexScalingBreakdown(dexterity, technique, 3.4, 0.30, "/ arrow"));
+            return lines;
+        }
+        if (spellId.startsWith("archer_homing_barrage")) {
+            lines.addAll(dexScalingBreakdown(dexterity, technique, 3.8, 0.34, "/ arrow"));
+            return lines;
+        }
+        if (spellId.startsWith("archer_arrow_rain")) {
+            lines.addAll(dexScalingBreakdown(dexterity, technique, 6.8, 0.30, "/ volley arrow"));
+            return lines;
+        }
+        return lines;
+    }
+
+    private List<String> intScalingBreakdown(int intelligence, int technique, double base, double intScale, String suffix) {
+        double preTechnique = Math.max(0.0, base + intelligence * intScale);
+        double techniqueMult = 1.0 + technique * 0.001;
+        double finalValue = preTechnique * techniqueMult;
+        List<String> lines = new ArrayList<>();
+        lines.add(TooltipUtil.iconLabelValueLine("✣", ChatColor.GOLD, ChatColor.GOLD, "Base",
+                ChatColor.WHITE, String.format("%.1f + INT(%d×%.2f) = %.1f", base, intelligence, intScale, preTechnique)));
+        lines.add(TooltipUtil.iconLabelValueLine("✦", ChatColor.AQUA, ChatColor.AQUA, "Technique",
+                ChatColor.WHITE, String.format("×(1 + %d×0.001) = ×%.3f", technique, techniqueMult)));
+        lines.add(TooltipUtil.iconLabelValueLine("✖", ChatColor.RED, ChatColor.RED, "Final",
+                ChatColor.WHITE, String.format("%.1f %s", finalValue, suffix == null ? "" : suffix)));
+        return lines;
+    }
+
+    private List<String> dexScalingBreakdown(int dexterity, int technique, double base, double dexScale, String suffix) {
+        double preTechnique = Math.max(0.0, base + dexterity * dexScale);
+        double techniqueMult = 1.0 + technique * 0.001;
+        double finalValue = preTechnique * techniqueMult;
+        List<String> lines = new ArrayList<>();
+        lines.add(TooltipUtil.iconLabelValueLine("✣", ChatColor.GOLD, ChatColor.GOLD, "Base",
+                ChatColor.WHITE, String.format("%.1f + DEX(%d×%.2f) = %.1f", base, dexterity, dexScale, preTechnique)));
+        lines.add(TooltipUtil.iconLabelValueLine("✦", ChatColor.AQUA, ChatColor.AQUA, "Technique",
+                ChatColor.WHITE, String.format("×(1 + %d×0.001) = ×%.3f", technique, techniqueMult)));
+        lines.add(TooltipUtil.iconLabelValueLine("✖", ChatColor.RED, ChatColor.RED, "Final",
+                ChatColor.WHITE, String.format("%.1f %s", finalValue, suffix == null ? "" : suffix)));
+        return lines;
     }
 
     private String estimateDamageLine(Player player, PlayerClass playerClass, String spellId, SpellInputType inputType) {
