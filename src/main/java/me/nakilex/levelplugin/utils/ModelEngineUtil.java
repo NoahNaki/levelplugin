@@ -188,6 +188,7 @@ public final class ModelEngineUtil {
             if (handler == null) {
                 continue;
             }
+            handler.prepare();
             String match = selectAnimationByKeywords(handler.getAnimations().keySet(), keywords);
             if (match == null || match.isBlank()) {
                 continue;
@@ -249,10 +250,13 @@ public final class ModelEngineUtil {
             return;
         }
         try {
+            model.initializeRenderer();
+            model.generateModel();
             AnimationHandler handler = model.getAnimationHandler();
             if (handler == null) {
                 return;
             }
+            handler.prepare();
             configureDefaultStateAnimations(model, handler);
             String selected = selectLoopAnimation(handler.getAnimations());
             if (selected == null || selected.isBlank()) {
