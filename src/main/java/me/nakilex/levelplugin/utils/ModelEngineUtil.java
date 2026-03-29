@@ -546,6 +546,10 @@ public final class ModelEngineUtil {
             if (blueprint == null) {
                 return null;
             }
+            blueprint.constructFlatBoneMap();
+            blueprint.constructDescendingAnimation();
+            blueprint.cacheBoneBehaviors();
+            blueprint.finalizeModel();
             return ModelEngineAPI.createActiveModel(blueprint);
         } catch (RuntimeException e) {
             if (plugin != null) {
