@@ -178,7 +178,7 @@ public final class ModelEngineUtil {
     }
 
     public static boolean playBestAttackAnimation(Entity entity) {
-        return playBestAnimation(entity, List.of("attack", "slash", "swing", "hit"), false);
+        return playBestAnimation(entity, List.of("attack", "slash", "swing", "hit", "shoot", "cast"), false);
     }
 
     public static boolean playBestAnimation(Entity entity, List<String> keywords, boolean loop) {
@@ -280,13 +280,13 @@ public final class ModelEngineUtil {
                 continue;
             }
             handler.prepare();
-            LinkedHashSet<String> candidates = new LinkedHashSet<>();
-            candidates.add(requested);
+            List<String> aliases = aliasKeywordsFor(requested);
+            LinkedHashSet<String> candidates = new LinkedHashSet<>(aliases);
             String resolved = resolveAnimationName(model, handler, requested);
             if (resolved != null) {
                 candidates.add(resolved);
             }
-            String keywordMatch = selectAnimationByKeywords(available, List.of(requested));
+            String keywordMatch = selectAnimationByKeywords(available, aliases);
             if (keywordMatch != null) {
                 candidates.add(keywordMatch);
             }
@@ -492,7 +492,8 @@ public final class ModelEngineUtil {
         if (handler == null || requested == null || requested.isBlank()) {
             return null;
         }
-        String fromHandler = selectAnimationByKeywords(handler.getAnimations().keySet(), List.of(requested));
+        List<String> aliases = aliasKeywordsFor(requested);
+        String fromHandler = selectAnimationByKeywords(handler.getAnimations().keySet(), aliases);
         if (fromHandler != null) {
             return fromHandler;
         }
@@ -505,7 +506,7 @@ public final class ModelEngineUtil {
             if (mapped != null && handler.getAnimations().containsKey(mapped)) {
                 return mapped;
             }
-            String placeholderKey = selectAnimationByKeywords(blueprint.getAnimationsPlaceholders().keySet(), List.of(requested));
+            String placeholderKey = selectAnimationByKeywords(blueprint.getAnimationsPlaceholders().keySet(), aliases);
             if (placeholderKey != null) {
                 String placeholderValue = blueprint.getAnimationsPlaceholders().get(placeholderKey);
                 if (placeholderValue != null && handler.getAnimations().containsKey(placeholderValue)) {
@@ -514,12 +515,26 @@ public final class ModelEngineUtil {
             }
         }
         if (blueprint.getAnimations() != null) {
-            String fromBlueprint = selectAnimationByKeywords(blueprint.getAnimations().keySet(), List.of(requested));
+            String fromBlueprint = selectAnimationByKeywords(blueprint.getAnimations().keySet(), aliases);
             if (fromBlueprint != null && handler.getAnimations().containsKey(fromBlueprint)) {
                 return fromBlueprint;
             }
         }
         return null;
+    }
+
+    private static List<String> aliasKeywordsFor(String requested) {
+        if (requested == null || requested.isBlank()) {
+            return List.of();
+        }
+        String lower = requested.toLowerCase(Locale.ROOT);
+        if (lower.equals("attack")) {
+            return List.of("attack", "slash", "swing", "hit", "shoot", "cast");
+        }
+        if (lower.equals("shoot")) {
+            return List.of("shoot", "arrow", "bow", "cast", "attack");
+        }
+        return List.of(requested);
     }
 
     private static ActiveModel createActiveModelFromBlueprint(String modelId, Plugin plugin) {
