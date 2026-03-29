@@ -13,6 +13,7 @@ import org.bukkit.util.Vector;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -164,6 +165,39 @@ public final class ModelEngineUtil {
         return new ArrayList<>(candidates);
     }
 
+    public static boolean playBestShootAnimation(Entity entity) {
+        return playBestAnimation(entity, List.of("shoot", "arrow", "bow", "cast", "attack"), false);
+    }
+
+    public static boolean playBestAttackAnimation(Entity entity) {
+        return playBestAnimation(entity, List.of("attack", "slash", "swing", "hit"), false);
+    }
+
+    public static boolean playBestAnimation(Entity entity, List<String> keywords, boolean loop) {
+        if (entity == null || keywords == null || keywords.isEmpty()) {
+            return false;
+        }
+        ModeledEntity modeledEntity = ModelEngineAPI.getModeledEntity(entity);
+        if (modeledEntity == null || modeledEntity.getModels().isEmpty()) {
+            return false;
+        }
+        for (ActiveModel model : modeledEntity.getModels().values()) {
+            AnimationHandler handler = model.getAnimationHandler();
+            if (handler == null) {
+                continue;
+            }
+            String match = selectAnimationByKeywords(handler.getAnimations().keySet(), keywords);
+            if (match == null || match.isBlank()) {
+                continue;
+            }
+            if (!handler.isPlayingAnimation(match)) {
+                handler.playAnimation(match, 0.0, 0.0, 1.0, loop);
+            }
+            return true;
+        }
+        return false;
+    }
+
     /**
      * Updates a location's yaw/pitch so it faces the provided direction vector.
      */
@@ -246,6 +280,40 @@ public final class ModelEngineUtil {
             }
         }
         return animations.keySet().iterator().next();
+    }
+
+    private static String selectAnimationByKeywords(Collection<String> animationNames, List<String> keywords) {
+        if (animationNames == null || animationNames.isEmpty()) {
+            return null;
+        }
+        for (String keyword : keywords) {
+            if (keyword == null || keyword.isBlank()) {
+                continue;
+            }
+            for (String animation : animationNames) {
+                if (animation == null) {
+                    continue;
+                }
+                if (animation.equalsIgnoreCase(keyword)) {
+                    return animation;
+                }
+            }
+        }
+        for (String keyword : keywords) {
+            if (keyword == null || keyword.isBlank()) {
+                continue;
+            }
+            String lowerKeyword = keyword.toLowerCase(Locale.ROOT);
+            for (String animation : animationNames) {
+                if (animation == null) {
+                    continue;
+                }
+                if (animation.toLowerCase(Locale.ROOT).contains(lowerKeyword)) {
+                    return animation;
+                }
+            }
+        }
+        return null;
     }
 
     private static List<String> getModelIds() throws ReflectiveOperationException {

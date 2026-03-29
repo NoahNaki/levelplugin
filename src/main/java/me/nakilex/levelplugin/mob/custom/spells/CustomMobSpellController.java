@@ -97,6 +97,7 @@ public class CustomMobSpellController {
         if (direction.lengthSquared() <= 0.0001) {
             return;
         }
+        ModelEngineUtil.playBestShootAnimation(caster);
         Arrow arrow = caster.launchProjectile(Arrow.class);
         arrow.setVelocity(direction.normalize().multiply(Math.max(0.8, spell.speed())));
         arrow.setDamage(Math.max(0.1, spell.damage()));
@@ -112,6 +113,7 @@ public class CustomMobSpellController {
         if (direction.lengthSquared() <= 0.0001) {
             return;
         }
+        ModelEngineUtil.playBestShootAnimation(caster);
         MageFireballBasicAttackSpell.FireballSpawnResult spawnResult =
                 MageFireballBasicAttackSpell.spawnProjectileAnchor(plugin, eye, direction);
         if (spawnResult == null) {
