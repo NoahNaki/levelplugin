@@ -111,9 +111,9 @@ public final class ModelEngineUtil {
                     if (retryModel == null || modeledEntity.addModel(retryModel, true).isEmpty()) {
                         continue;
                     }
-                    tryStartLoopAnimation(retryModel, plugin);
+                    scheduleLoopAnimationStart(modeledEntity, retryModel, plugin);
                 } else {
-                    tryStartLoopAnimation(activeModel, plugin);
+                    scheduleLoopAnimationStart(modeledEntity, activeModel, plugin);
                 }
                 applied = true;
                 break;
@@ -258,6 +258,22 @@ public final class ModelEngineUtil {
             if (plugin != null) {
                 plugin.getLogger().fine("Model animation auto-play skipped: " + e.getMessage());
             }
+        }
+    }
+
+    private static void scheduleLoopAnimationStart(ModeledEntity modeledEntity, ActiveModel model, Plugin plugin) {
+        if (modeledEntity == null || model == null) {
+            return;
+        }
+        Runnable starter = () -> tryStartLoopAnimation(model, plugin);
+        try {
+            modeledEntity.queuePostInitTask(starter);
+        } catch (Exception ignored) {
+        }
+        starter.run();
+        if (plugin != null) {
+            Bukkit.getScheduler().runTaskLater(plugin, starter, 1L);
+            Bukkit.getScheduler().runTaskLater(plugin, starter, 20L);
         }
     }
 
