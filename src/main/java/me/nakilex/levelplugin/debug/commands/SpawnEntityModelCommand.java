@@ -150,9 +150,9 @@ public class SpawnEntityModelCommand implements CommandExecutor, TabCompleter {
             played = ModelEngineUtil.playAnimationByName(target, animation, loop);
         }
         if (!played) {
-            List<String> available = ModelEngineUtil.getAvailableAnimationNames(target);
+            List<String> available = ModelEngineUtil.getRuntimeAnimationNames(target);
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
-                    "Animation not found/played. Available: " + (available.isEmpty() ? "(none)" : String.join(", ", available)));
+                    "Animation not found/played in runtime handler. Runtime available: " + (available.isEmpty() ? "(none)" : String.join(", ", available)));
             return true;
         }
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
@@ -166,10 +166,16 @@ public class SpawnEntityModelCommand implements CommandExecutor, TabCompleter {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING, "No modeled entity found. Look at one or spawn with /se first.");
             return true;
         }
-        List<String> available = ModelEngineUtil.getAvailableAnimationNames(target);
+        List<String> runtime = ModelEngineUtil.getRuntimeAnimationNames(target);
+        List<String> allKnown = ModelEngineUtil.getAvailableAnimationNames(target);
+        List<String> blueprintOnly = new java.util.ArrayList<>(allKnown);
+        blueprintOnly.removeIf(name -> runtime.stream().anyMatch(runtimeName -> runtimeName.equalsIgnoreCase(name)));
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
-                "Model animations on " + target.getType().name().toLowerCase(Locale.ROOT) + ": "
-                        + (available.isEmpty() ? "(none)" : String.join(", ", available)));
+                "Runtime animations on " + target.getType().name().toLowerCase(Locale.ROOT) + ": "
+                        + (runtime.isEmpty() ? "(none)" : String.join(", ", runtime)));
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                "Blueprint-only names (not directly triggerable): "
+                        + (blueprintOnly.isEmpty() ? "(none)" : String.join(", ", blueprintOnly)));
         return true;
     }
 

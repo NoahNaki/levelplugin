@@ -233,6 +233,33 @@ public final class ModelEngineUtil {
     }
 
     public static List<String> getAvailableAnimationNames(Entity entity) {
+        Set<String> runtime = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+        runtime.addAll(getRuntimeAnimationNames(entity));
+        Set<String> names = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+        names.addAll(runtime);
+        if (entity == null) {
+            return List.of();
+        }
+        ModeledEntity modeledEntity = ModelEngineAPI.getModeledEntity(entity);
+        if (modeledEntity == null || modeledEntity.getModels().isEmpty()) {
+            return List.of();
+        }
+        for (ActiveModel model : modeledEntity.getModels().values()) {
+            if (model.getBlueprint() != null && model.getBlueprint().getAnimations() != null) {
+                names.addAll(model.getBlueprint().getAnimations().keySet());
+            }
+            if (model.getBlueprint() != null && model.getBlueprint().getAnimationsPlaceholders() != null) {
+                names.addAll(model.getBlueprint().getAnimationsPlaceholders().keySet());
+                names.addAll(model.getBlueprint().getAnimationsPlaceholders().values());
+            }
+        }
+        if (names.isEmpty()) {
+            return List.of();
+        }
+        return Collections.unmodifiableList(new ArrayList<>(names));
+    }
+
+    public static List<String> getRuntimeAnimationNames(Entity entity) {
         if (entity == null) {
             return List.of();
         }
@@ -248,13 +275,6 @@ public final class ModelEngineUtil {
             }
             handler.prepare();
             names.addAll(handler.getAnimations().keySet());
-            if (model.getBlueprint() != null && model.getBlueprint().getAnimations() != null) {
-                names.addAll(model.getBlueprint().getAnimations().keySet());
-            }
-            if (model.getBlueprint() != null && model.getBlueprint().getAnimationsPlaceholders() != null) {
-                names.addAll(model.getBlueprint().getAnimationsPlaceholders().keySet());
-                names.addAll(model.getBlueprint().getAnimationsPlaceholders().values());
-            }
         }
         if (names.isEmpty()) {
             return List.of();
