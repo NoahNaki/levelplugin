@@ -195,14 +195,14 @@ public final class ModelEngineUtil {
                 continue;
             }
             handler.prepare();
-            String match = selectAnimationByKeywords(handler.getAnimations().keySet(), keywords);
-            if (match == null || match.isBlank()) {
-                continue;
+            String runtimeMatch = selectAnimationByKeywords(handler.getAnimations().keySet(), keywords);
+            if (runtimeMatch != null && !runtimeMatch.isBlank() && attemptPlayAnimation(handler, model, runtimeMatch, loop)) {
+                return true;
             }
-            if (!handler.isPlayingAnimation(match)) {
-                handler.playAnimation(match, 0.0, 0.0, 1.0, loop);
+            String blueprintMatch = selectAnimationByKeywords(getBlueprintAnimationNames(model), keywords);
+            if (blueprintMatch != null && !blueprintMatch.isBlank() && attemptPlayAnimation(handler, model, blueprintMatch, loop)) {
+                return true;
             }
-            return true;
         }
         return false;
     }
@@ -611,7 +611,49 @@ public final class ModelEngineUtil {
             return true;
         }
         var property = handler.getAnimation(candidate);
-        return property != null && handler.playAnimation(property, true);
+        if (property != null && handler.playAnimation(property, true)) {
+            return true;
+        }
+        if (!isBlueprintAnimationName(model, candidate)) {
+            return false;
+        }
+        try {
+            var built = new AnimationHandler.DefaultProperty(ModelState.IDLE, candidate, 0.0, 0.0, 1.0).build(model);
+            return built != null && handler.playAnimation(built, true);
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
+    private static boolean isBlueprintAnimationName(ActiveModel model, String candidate) {
+        if (model == null || candidate == null || candidate.isBlank() || model.getBlueprint() == null) {
+            return false;
+        }
+        ModelBlueprint blueprint = model.getBlueprint();
+        if (blueprint.getAnimations() != null && blueprint.getAnimations().containsKey(candidate)) {
+            return true;
+        }
+        if (blueprint.getAnimationsPlaceholders() == null || blueprint.getAnimationsPlaceholders().isEmpty()) {
+            return false;
+        }
+        return blueprint.getAnimationsPlaceholders().containsKey(candidate)
+                || blueprint.getAnimationsPlaceholders().containsValue(candidate);
+    }
+
+    private static Collection<String> getBlueprintAnimationNames(ActiveModel model) {
+        if (model == null || model.getBlueprint() == null) {
+            return List.of();
+        }
+        Set<String> names = new LinkedHashSet<>();
+        ModelBlueprint blueprint = model.getBlueprint();
+        if (blueprint.getAnimations() != null) {
+            names.addAll(blueprint.getAnimations().keySet());
+        }
+        if (blueprint.getAnimationsPlaceholders() != null) {
+            names.addAll(blueprint.getAnimationsPlaceholders().keySet());
+            names.addAll(blueprint.getAnimationsPlaceholders().values());
+        }
+        return names;
     }
 
     private static ActiveModel createActiveModelFromBlueprint(String modelId, Plugin plugin) {
