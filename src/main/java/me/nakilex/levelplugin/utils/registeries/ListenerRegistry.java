@@ -173,7 +173,7 @@ public class ListenerRegistry {
         if (customMobManager != null) {
             pm.registerEvents(customMobManager.getNameManager(), plugin);
             pm.registerEvents(new CustomMobRewardListener(customMobManager, rewardService), plugin);
-            pm.registerEvents(new CustomMobAnimationListener(customMobManager), plugin);
+            pm.registerEvents(new CustomMobAnimationListener(plugin, customMobManager), plugin);
             pm.registerEvents(customMobManager.getSpawnerManager(), plugin);
             pm.registerEvents(customMobManager.getAdminGui(), plugin);
             pm.registerEvents(new MobStatusDebugListener(customMobManager), plugin);
