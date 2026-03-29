@@ -8,6 +8,7 @@ import me.nakilex.levelplugin.player.profile.ProfileEntryUtil;
 import me.nakilex.levelplugin.server.ServerSelectionManager;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.WorldExclusionUtil;
+import me.nakilex.levelplugin.utils.FullInventoryListener;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -163,6 +164,37 @@ public class StaticItemListener implements Listener {
             return true;
         }
         return item.isSimilar(STATIC_HORSE_SADDLE);
+    }
+
+    public static boolean hasHorseSaddle(Player player) {
+        if (player == null) {
+            return false;
+        }
+        for (ItemStack content : player.getInventory().getContents()) {
+            if (isHorseSaddleItem(content)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static ItemStack createHorseSaddleReward() {
+        return STATIC_HORSE_SADDLE.clone();
+    }
+
+    public static boolean giveHorseSaddleReward(Player player) {
+        if (player == null) {
+            return false;
+        }
+        if (hasHorseSaddle(player)) {
+            return true;
+        }
+        if (player.getInventory().firstEmpty() == -1) {
+            FullInventoryListener.sendFullInventoryTitle(player, Main.getInstance().getSettingsManager());
+            return false;
+        }
+        player.getInventory().addItem(createHorseSaddleReward());
+        return true;
     }
 
     private static void ensureHorseSaddle(Player player) {

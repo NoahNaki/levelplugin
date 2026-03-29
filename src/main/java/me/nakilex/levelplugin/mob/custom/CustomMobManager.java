@@ -21,6 +21,7 @@ import org.bukkit.entity.Ageable;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Slime;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -267,6 +268,9 @@ public class CustomMobManager {
         entity.setRemoveWhenFarAway(options.despawn());
         if (entity instanceof Ageable ageable) {
             ageable.setAdult();
+        }
+        if (entity instanceof Slime slime && definition.id().equalsIgnoreCase("slime_king")) {
+            slime.setSize(120);
         }
         CustomMobStats stats = definition.stats();
         double baseHealth = definition.baseHealth() != null
