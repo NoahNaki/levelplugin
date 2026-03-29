@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.mob.dps;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
+import me.nakilex.levelplugin.utils.ModelEngineUtil;
 import me.nakilex.levelplugin.utils.MultiLineHologram;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -37,6 +38,7 @@ import java.util.UUID;
  */
 public class DpsDummyManager implements Listener {
     private static final String DUMMY_TAG = "dps_dummy";
+    private static final String DUMMY_MODEL_ID = "combat_dummy";
     private static final double DEFAULT_MAX_HEALTH = 2048.0;
     private static final long DPS_WINDOW_MS = 5_000L;
     private static final DecimalFormat DPS_FORMAT = new DecimalFormat("#,##0.0");
@@ -164,6 +166,9 @@ public class DpsDummyManager implements Listener {
         if (entity.getAttribute(Attribute.MAX_HEALTH) != null) {
             entity.getAttribute(Attribute.MAX_HEALTH).setBaseValue(DEFAULT_MAX_HEALTH);
             entity.setHealth(DEFAULT_MAX_HEALTH);
+        }
+        if (Bukkit.getPluginManager().isPluginEnabled("ModelEngine")) {
+            ModelEngineUtil.applyFirstAvailableModel(entity, ModelEngineUtil.buildModelCandidates(DUMMY_MODEL_ID), plugin);
         }
     }
 

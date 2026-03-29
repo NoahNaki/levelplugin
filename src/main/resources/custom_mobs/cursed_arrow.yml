@@ -1,0 +1,23 @@
+id: cursed_arrow
+type: SKELETON
+display: "&7Cursed Arrow"
+level-range:
+  min: 12
+  max: 15
+boss: false
+
+models:
+  - cursed_arrow.bbmodel
+
+stats:
+  vitality: 28
+  strength: 13
+  agility: 16
+  technique: 18
+
+options:
+  movement-speed: 0.24
+  follow-range: 36
+  knockback-resistance: 0.4
+  silent: true
+  despawn: false

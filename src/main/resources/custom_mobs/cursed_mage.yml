@@ -1,0 +1,23 @@
+id: cursed_mage
+type: WITCH
+display: "&5Cursed Mage"
+level-range:
+  min: 14
+  max: 18
+boss: false
+
+models:
+  - cursed_mage.bbmodel
+
+stats:
+  vitality: 30
+  intelligence: 24
+  will: 20
+  technique: 16
+
+options:
+  movement-speed: 0.24
+  follow-range: 34
+  knockback-resistance: 0.35
+  silent: true
+  despawn: false

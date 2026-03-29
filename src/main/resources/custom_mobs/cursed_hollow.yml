@@ -1,0 +1,22 @@
+id: cursed_hollow
+type: HUSK
+display: "&8Cursed Hollow"
+level-range:
+  min: 13
+  max: 16
+boss: false
+
+models:
+  - cursed_hollow.bbmodel
+
+stats:
+  vitality: 34
+  strength: 16
+  agility: 10
+
+options:
+  movement-speed: 0.24
+  follow-range: 26
+  knockback-resistance: 0.55
+  silent: true
+  despawn: false

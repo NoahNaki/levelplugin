@@ -1,0 +1,22 @@
+id: goblin_warrior
+type: VINDICATOR
+display: "&aGoblin Warrior"
+level-range:
+  min: 9
+  max: 12
+boss: false
+
+models:
+  - mob_goblin_warrior.bbmodel
+
+stats:
+  vitality: 24
+  strength: 17
+  agility: 10
+
+options:
+  movement-speed: 0.26
+  follow-range: 24
+  knockback-resistance: 0.35
+  silent: true
+  despawn: false

@@ -17,11 +17,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class RogueSmokeBombSpell implements SpellHandler {
     private static final Map<UUID, BuffState> ACTIVE_BUFFS = new ConcurrentHashMap<>();
-    private static final List<String> MODEL_CANDIDATES = List.of(
-            "rogue_smokebomb",
-            "rogue_smokebomb.bbmodel",
-            "rogue_smokebomb_bbmodel"
-    );
+    private static final String MODEL_ID = "rogue_smokebomb";
 
     private final Main plugin;
     private final int durationTicks;
@@ -96,7 +92,7 @@ public class RogueSmokeBombSpell implements SpellHandler {
             stand.setSilent(true);
             stand.setInvulnerable(true);
         });
-        ModelEngineUtil.applyFirstAvailableModel(anchor, MODEL_CANDIDATES, plugin);
+        ModelEngineUtil.applyFirstAvailableModel(anchor, ModelEngineUtil.buildModelCandidates(MODEL_ID), plugin);
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
             if (anchor.isValid()) {
                 anchor.remove();

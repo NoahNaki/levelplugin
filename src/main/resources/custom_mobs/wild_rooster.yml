@@ -4,6 +4,9 @@ display: "&eWild Rooster"
 level: 7
 boss: false
 
+models:
+  - nm_colonel_the_chicken.bbmodel
+
 stats:
   vitality: 10
   strength: 5

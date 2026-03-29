@@ -1,0 +1,23 @@
+id: goblin_archer
+type: SKELETON
+display: "&aGoblin Archer"
+level-range:
+  min: 8
+  max: 11
+boss: false
+
+models:
+  - mob_goblin_archer.bbmodel
+
+stats:
+  vitality: 18
+  strength: 9
+  agility: 15
+  technique: 14
+
+options:
+  movement-speed: 0.27
+  follow-range: 32
+  knockback-resistance: 0.2
+  silent: true
+  despawn: false

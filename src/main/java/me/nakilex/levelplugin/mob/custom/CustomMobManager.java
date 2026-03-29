@@ -51,8 +51,17 @@ public class CustomMobManager {
             "custom_mobs/crypt_skeleton.yml",
             "custom_mobs/ember_witch.yml",
             "custom_mobs/reliquary_giant.yml",
+            "custom_mobs/goblin_archer.yml",
+            "custom_mobs/goblin_assassin.yml",
+            "custom_mobs/goblin_shaman.yml",
+            "custom_mobs/goblin_warrior.yml",
+            "custom_mobs/cursed_arrow.yml",
             "custom_mobs/slime_king.yml",
-            "custom_mobs/wild_rooster.yml"
+            "custom_mobs/wild_rooster.yml",
+            "custom_mobs/cursed_hollow.yml",
+            "custom_mobs/cursed_knight.yml",
+            "custom_mobs/cursed_mage.yml",
+            "custom_mobs/cursed_night.yml"
     );
     private static final ArcPattern STUN_PATTERN = new ArcPattern(
             Particle.CRIT,

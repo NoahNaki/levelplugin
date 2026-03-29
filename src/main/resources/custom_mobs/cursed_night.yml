@@ -1,0 +1,23 @@
+id: cursed_night
+type: STRAY
+display: "&8Cursed Night"
+level-range:
+  min: 15
+  max: 19
+boss: false
+
+models:
+  - cursed_night.bbmodel
+
+stats:
+  vitality: 33
+  strength: 18
+  agility: 14
+  technique: 16
+
+options:
+  movement-speed: 0.25
+  follow-range: 34
+  knockback-resistance: 0.45
+  silent: true
+  despawn: false

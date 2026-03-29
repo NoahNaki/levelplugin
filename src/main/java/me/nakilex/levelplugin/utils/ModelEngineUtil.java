@@ -13,6 +13,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -88,26 +89,37 @@ public final class ModelEngineUtil {
         List<String> failedModels = new ArrayList<>();
         List<String> blueprintOnlyModels = new ArrayList<>();
         for (String modelId : modelIds) {
-            String resolvedId = resolveModelId(modelId, modelEngineIds);
-            ActiveModel activeModel = createActiveModelSafely(resolvedId, plugin);
-            if (activeModel == null) {
-                failedModels.add(modelId);
-                if (!modelEngineIds.isEmpty()
-                        && !containsIgnoreCase(modelEngineIds, resolvedId)
-                        && containsIgnoreCase(blueprintIds, resolvedId)) {
-                    blueprintOnlyModels.add(modelId);
-                }
-                continue;
-            }
-            var added = modeledEntity.addModel(activeModel, true);
-            if (added.isEmpty()) {
-                ActiveModel retryModel = createActiveModelSafely(resolvedId, plugin);
-                if (retryModel == null || modeledEntity.addModel(retryModel, true).isEmpty()) {
-                    failedModels.add(modelId);
+            boolean applied = false;
+            boolean blueprintOnly = false;
+            for (String candidate : buildModelCandidates(modelId)) {
+                String resolvedId = resolveModelId(candidate, modelEngineIds);
+                ActiveModel activeModel = createActiveModelSafely(resolvedId, plugin);
+                if (activeModel == null) {
+                    if (!modelEngineIds.isEmpty()
+                            && !containsIgnoreCase(modelEngineIds, resolvedId)
+                            && containsIgnoreCase(blueprintIds, resolvedId)) {
+                        blueprintOnly = true;
+                    }
                     continue;
                 }
+                var added = modeledEntity.addModel(activeModel, true);
+                if (added.isEmpty()) {
+                    ActiveModel retryModel = createActiveModelSafely(resolvedId, plugin);
+                    if (retryModel == null || modeledEntity.addModel(retryModel, true).isEmpty()) {
+                        continue;
+                    }
+                }
+                applied = true;
+                break;
             }
-            appliedModels.add(modelId);
+            if (applied) {
+                appliedModels.add(modelId);
+            } else {
+                failedModels.add(modelId);
+                if (blueprintOnly) {
+                    blueprintOnlyModels.add(modelId);
+                }
+            }
         }
         return new ModelApplyResult(appliedModels, failedModels, blueprintOnlyModels);
     }
@@ -125,6 +137,26 @@ public final class ModelEngineUtil {
             }
         }
         return applyModels(entity, modelCandidates, plugin);
+    }
+
+    public static List<String> buildModelCandidates(String token) {
+        if (token == null) {
+            return List.of();
+        }
+        String trimmed = token.trim();
+        if (trimmed.isBlank()) {
+            return List.of();
+        }
+        String lower = trimmed.toLowerCase(Locale.ROOT);
+        String base = lower.endsWith(".bbmodel")
+                ? trimmed.substring(0, trimmed.length() - ".bbmodel".length())
+                : trimmed;
+        LinkedHashSet<String> candidates = new LinkedHashSet<>();
+        candidates.add(trimmed);
+        candidates.add(base);
+        candidates.add(base + ".bbmodel");
+        candidates.add(base + "_bbmodel");
+        return new ArrayList<>(candidates);
     }
 
     /**
