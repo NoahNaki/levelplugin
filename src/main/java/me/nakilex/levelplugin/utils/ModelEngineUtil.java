@@ -1,9 +1,11 @@
 package me.nakilex.levelplugin.utils;
 
 import com.ticxo.modelengine.api.ModelEngineAPI;
+import com.ticxo.modelengine.api.animation.ModelState;
 import com.ticxo.modelengine.api.animation.handler.AnimationHandler;
 import com.ticxo.modelengine.api.model.ActiveModel;
 import com.ticxo.modelengine.api.model.ModeledEntity;
+import com.ticxo.modelengine.api.generator.blueprint.ModelBlueprint;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
@@ -235,6 +237,10 @@ public final class ModelEngineUtil {
                 plugin.getLogger().warning("Failed to create ModelEngine model '" + modelId + "': " + e.getMessage());
             }
         }
+        ActiveModel fromBlueprint = createActiveModelFromBlueprint(modelId, plugin);
+        if (fromBlueprint != null) {
+            return fromBlueprint;
+        }
         return createActiveModelByReflection(modelId, plugin);
     }
 
@@ -247,6 +253,7 @@ public final class ModelEngineUtil {
             if (handler == null) {
                 return;
             }
+            configureDefaultStateAnimations(model, handler);
             String selected = selectLoopAnimation(handler.getAnimations());
             if (selected == null || selected.isBlank()) {
                 return;
@@ -298,6 +305,36 @@ public final class ModelEngineUtil {
         return animations.keySet().iterator().next();
     }
 
+    private static void configureDefaultStateAnimations(ActiveModel model, AnimationHandler handler) {
+        if (model == null || handler == null || handler.getAnimations() == null || handler.getAnimations().isEmpty()) {
+            return;
+        }
+        setDefaultStateAnimation(model, handler, ModelState.IDLE, List.of("idle", "loop", "stand"));
+        setDefaultStateAnimation(model, handler, ModelState.WALK, List.of("walk", "run", "move"));
+        setDefaultStateAnimation(model, handler, ModelState.STRAFE, List.of("strafe", "walk"));
+        setDefaultStateAnimation(model, handler, ModelState.JUMP, List.of("jump"));
+        setDefaultStateAnimation(model, handler, ModelState.SPAWN, List.of("spawn", "summon", "appear"));
+        setDefaultStateAnimation(model, handler, ModelState.DEATH, List.of("death", "die"));
+    }
+
+    private static void setDefaultStateAnimation(ActiveModel model,
+                                                 AnimationHandler handler,
+                                                 ModelState state,
+                                                 List<String> keywords) {
+        if (state == null || keywords == null || keywords.isEmpty()) {
+            return;
+        }
+        String animation = selectAnimationByKeywords(handler.getAnimations().keySet(), keywords);
+        if (animation == null || animation.isBlank()) {
+            return;
+        }
+        AnimationHandler.DefaultProperty current = handler.getDefaultProperty(state);
+        if (current != null && current.getAnimation() != null && !current.getAnimation().isBlank()) {
+            return;
+        }
+        handler.setDefaultProperty(new AnimationHandler.DefaultProperty(state, animation, 0.0, 0.0, 1.0));
+    }
+
     private static String selectAnimationByKeywords(Collection<String> animationNames, List<String> keywords) {
         if (animationNames == null || animationNames.isEmpty()) {
             return null;
@@ -330,6 +367,24 @@ public final class ModelEngineUtil {
             }
         }
         return null;
+    }
+
+    private static ActiveModel createActiveModelFromBlueprint(String modelId, Plugin plugin) {
+        if (modelId == null || modelId.isBlank()) {
+            return null;
+        }
+        try {
+            ModelBlueprint blueprint = ModelEngineAPI.getBlueprint(modelId);
+            if (blueprint == null) {
+                return null;
+            }
+            return ModelEngineAPI.createActiveModel(blueprint);
+        } catch (RuntimeException e) {
+            if (plugin != null) {
+                plugin.getLogger().warning("Failed to create ModelEngine blueprint model '" + modelId + "': " + e.getMessage());
+            }
+            return null;
+        }
     }
 
     private static List<String> getModelIds() throws ReflectiveOperationException {
