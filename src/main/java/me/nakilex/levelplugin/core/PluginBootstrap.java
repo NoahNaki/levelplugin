@@ -73,6 +73,7 @@ import me.nakilex.levelplugin.utils.NakiPlaceholderExpansion;
 import me.nakilex.levelplugin.utils.EntityTextDisplay;
 import me.nakilex.levelplugin.utils.MetadataTrait;
 import me.nakilex.levelplugin.utils.HologramUtil;
+import me.nakilex.levelplugin.utils.ModelEngineUtil;
 import me.nakilex.levelplugin.utils.MultiLineHologram;
 import me.nakilex.levelplugin.utils.registeries.CommandRegistry;
 import me.nakilex.levelplugin.utils.registeries.ListenerRegistry;
@@ -297,6 +298,9 @@ public class PluginBootstrap {
         if (leaderboardManager != null) {
             leaderboardManager.addAll();
         }
+        plugin.getServer().getScheduler().runTaskLater(plugin,
+                () -> ModelEngineUtil.warmupModelAnimations(plugin),
+                40L);
         plugin.getLogger().info("LevelPlugin has been enabled successfully!");
     }
 

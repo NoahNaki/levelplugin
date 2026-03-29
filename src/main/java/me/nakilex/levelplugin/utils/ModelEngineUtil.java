@@ -25,6 +25,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.stream.Stream;
 import java.util.Collections;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Shared helper for ModelEngine model resolution and application.
@@ -43,6 +44,9 @@ public final class ModelEngineUtil {
                                        List<String> attempted,
                                        List<String> available) {
     }
+
+    private static final Map<String, List<String>> PRELOADED_RUNTIME_ANIMATIONS = new ConcurrentHashMap<>();
+
 
     public static List<String> getModelIdsSafely(Plugin plugin) {
         try {
@@ -78,6 +82,37 @@ public final class ModelEngineUtil {
             }
         }
         return new ArrayList<>(ids);
+    }
+
+    public static void warmupModelAnimations(Plugin plugin) {
+        if (plugin == null || Bukkit.getPluginManager().getPlugin("ModelEngine") == null) {
+            return;
+        }
+        PRELOADED_RUNTIME_ANIMATIONS.clear();
+        for (String modelId : getModelIdsSafely(plugin)) {
+            ActiveModel activeModel = createActiveModelSafely(modelId, plugin);
+            if (activeModel == null || activeModel.getAnimationHandler() == null) {
+                continue;
+            }
+            try {
+                activeModel.getAnimationHandler().prepare();
+                List<String> names = new ArrayList<>(new TreeSet<>(String.CASE_INSENSITIVE_ORDER));
+                names.addAll(activeModel.getAnimationHandler().getAnimations().keySet());
+                PRELOADED_RUNTIME_ANIMATIONS.put(modelId.toLowerCase(Locale.ROOT), List.copyOf(names));
+            } catch (Exception ignored) {
+            }
+        }
+        if (plugin != null && !PRELOADED_RUNTIME_ANIMATIONS.isEmpty()) {
+            plugin.getLogger().info("ModelEngine warmup cached runtime animations for "
+                    + PRELOADED_RUNTIME_ANIMATIONS.size() + " models.");
+        }
+    }
+
+    public static List<String> getPreloadedRuntimeAnimations(String modelId) {
+        if (modelId == null || modelId.isBlank()) {
+            return List.of();
+        }
+        return PRELOADED_RUNTIME_ANIMATIONS.getOrDefault(modelId.toLowerCase(Locale.ROOT), List.of());
     }
 
     public static ModelApplyResult applyModels(Entity entity,
@@ -251,6 +286,14 @@ public final class ModelEngineUtil {
             if (model.getBlueprint() != null && model.getBlueprint().getAnimationsPlaceholders() != null) {
                 names.addAll(model.getBlueprint().getAnimationsPlaceholders().keySet());
                 names.addAll(model.getBlueprint().getAnimationsPlaceholders().values());
+            }
+        }
+        if (names.isEmpty()) {
+            for (ActiveModel model : modeledEntity.getModels().values()) {
+                if (model == null || model.getBlueprint() == null || model.getBlueprint().getName() == null) {
+                    continue;
+                }
+                names.addAll(getPreloadedRuntimeAnimations(model.getBlueprint().getName()));
             }
         }
         if (names.isEmpty()) {
