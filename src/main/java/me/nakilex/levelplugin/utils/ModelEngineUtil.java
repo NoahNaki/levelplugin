@@ -359,6 +359,10 @@ public final class ModelEngineUtil {
         try {
             ActiveModel model = ModelEngineAPI.createActiveModel(modelId);
             if (model != null) {
+                ActiveModel preferred = preferBlueprintBackedModel(modelId, model, plugin);
+                if (preferred != null) {
+                    return preferred;
+                }
                 return model;
             }
         } catch (RuntimeException e) {
@@ -371,6 +375,49 @@ public final class ModelEngineUtil {
             return fromBlueprint;
         }
         return createActiveModelByReflection(modelId, plugin);
+    }
+
+    private static ActiveModel preferBlueprintBackedModel(String modelId, ActiveModel runtimeModel, Plugin plugin) {
+        if (runtimeModel == null || modelId == null || modelId.isBlank()) {
+            return runtimeModel;
+        }
+        try {
+            ModelBlueprint blueprint = ModelEngineAPI.getBlueprint(modelId);
+            if (blueprint == null) {
+                return runtimeModel;
+            }
+            int runtimeCount = countRuntimeAnimationKeys(runtimeModel);
+            int blueprintDeclared = blueprint.getAnimations() != null ? blueprint.getAnimations().size() : 0;
+            if (blueprintDeclared <= runtimeCount) {
+                return runtimeModel;
+            }
+            ActiveModel blueprintModel = createActiveModelFromBlueprint(modelId, plugin);
+            if (blueprintModel == null) {
+                return runtimeModel;
+            }
+            int blueprintRuntimeCount = countRuntimeAnimationKeys(blueprintModel);
+            if (blueprintRuntimeCount > runtimeCount) {
+                return blueprintModel;
+            }
+            return runtimeModel;
+        } catch (Exception ex) {
+            if (plugin != null) {
+                plugin.getLogger().fine("Blueprint preference fallback skipped for '" + modelId + "': " + ex.getMessage());
+            }
+            return runtimeModel;
+        }
+    }
+
+    private static int countRuntimeAnimationKeys(ActiveModel model) {
+        if (model == null || model.getAnimationHandler() == null) {
+            return 0;
+        }
+        try {
+            model.getAnimationHandler().prepare();
+            return model.getAnimationHandler().getAnimations().size();
+        } catch (Exception ignored) {
+            return 0;
+        }
     }
 
     private static void tryStartLoopAnimation(ActiveModel model, Plugin plugin) {
