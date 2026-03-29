@@ -631,16 +631,43 @@ public final class ModelEngineUtil {
             if (blueprint == null) {
                 return null;
             }
-            blueprint.constructFlatBoneMap();
-            blueprint.constructDescendingAnimation();
-            blueprint.cacheBoneBehaviors();
-            blueprint.finalizeModel();
+            prepareBlueprintForActiveModel(blueprint, plugin, modelId);
             return ModelEngineAPI.createActiveModel(blueprint);
         } catch (RuntimeException e) {
             if (plugin != null) {
                 plugin.getLogger().warning("Failed to create ModelEngine blueprint model '" + modelId + "': " + e.getMessage());
             }
             return null;
+        }
+    }
+
+    private static void prepareBlueprintForActiveModel(ModelBlueprint blueprint, Plugin plugin, String modelId) {
+        if (blueprint == null) {
+            return;
+        }
+        invokeBlueprintMethodIfAvailable(blueprint, "constructFlatBoneMap", plugin, modelId);
+        invokeBlueprintMethodIfAvailable(blueprint, "constructDescendingAnimation", plugin, modelId);
+        invokeBlueprintMethodIfAvailable(blueprint, "cacheBoneBehaviors", plugin, modelId);
+        invokeBlueprintMethodIfAvailable(blueprint, "finalizeModel", plugin, modelId);
+    }
+
+    private static void invokeBlueprintMethodIfAvailable(ModelBlueprint blueprint,
+                                                         String methodName,
+                                                         Plugin plugin,
+                                                         String modelId) {
+        if (blueprint == null || methodName == null || methodName.isBlank()) {
+            return;
+        }
+        try {
+            var method = blueprint.getClass().getMethod(methodName);
+            method.invoke(blueprint);
+        } catch (NoSuchMethodException | NoSuchMethodError ignored) {
+            // Method is not available on this ModelEngine runtime; safe to continue.
+        } catch (ReflectiveOperationException | RuntimeException ex) {
+            if (plugin != null) {
+                plugin.getLogger().fine("Blueprint preparation step '" + methodName
+                        + "' failed for '" + modelId + "': " + ex.getMessage());
+            }
         }
     }
 
