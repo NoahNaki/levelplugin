@@ -225,8 +225,9 @@ public final class ModelEngineUtil {
             if (match == null || match.isBlank()) {
                 continue;
             }
-            handler.playAnimation(match, 0.0, 0.0, 1.0, loop);
-            return true;
+            if (attemptPlayAnimation(handler, model, match, loop)) {
+                return true;
+            }
         }
         return false;
     }
@@ -295,14 +296,8 @@ public final class ModelEngineUtil {
                     continue;
                 }
                 try {
-                    if (handler.getAnimations().containsKey(candidate)) {
-                        handler.playAnimation(candidate, 0.0, 0.0, 1.0, loop);
+                    if (attemptPlayAnimation(handler, model, candidate, loop)) {
                         attempted.add(modelKey + ":" + candidate + ":played");
-                        return new AnimationDebugResult(true, attempted, available);
-                    }
-                    var property = handler.getAnimation(candidate);
-                    if (property != null && handler.playAnimation(property, true)) {
-                        attempted.add(modelKey + ":" + candidate + ":played_property");
                         return new AnimationDebugResult(true, attempted, available);
                     }
                     attempted.add(modelKey + ":" + candidate + ":no_match");
@@ -535,6 +530,29 @@ public final class ModelEngineUtil {
             return List.of("shoot", "arrow", "bow", "cast", "attack");
         }
         return List.of(requested);
+    }
+
+    private static boolean attemptPlayAnimation(AnimationHandler handler,
+                                                ActiveModel model,
+                                                String candidate,
+                                                boolean loop) {
+        if (handler == null || model == null || candidate == null || candidate.isBlank()) {
+            return false;
+        }
+        if (handler.getAnimations().containsKey(candidate)) {
+            handler.playAnimation(candidate, 0.0, 0.0, 1.0, loop);
+            return true;
+        }
+        var property = handler.getAnimation(candidate);
+        if (property != null && handler.playAnimation(property, true)) {
+            return true;
+        }
+        try {
+            var built = new AnimationHandler.DefaultProperty(ModelState.IDLE, candidate, 0.0, 0.0, 1.0).build(model);
+            return built != null && handler.playAnimation(built, true);
+        } catch (Exception ignored) {
+            return false;
+        }
     }
 
     private static ActiveModel createActiveModelFromBlueprint(String modelId, Plugin plugin) {
