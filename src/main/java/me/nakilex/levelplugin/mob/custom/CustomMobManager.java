@@ -52,6 +52,7 @@ public class CustomMobManager {
             "custom_mobs/crypt_skeleton.yml",
             "custom_mobs/ember_witch.yml",
             "custom_mobs/reliquary_giant.yml",
+            "custom_mobs/rpg_rat.yml",
             "custom_mobs/goblin_archer.yml",
             "custom_mobs/goblin_assassin.yml",
             "custom_mobs/goblin_shaman.yml",

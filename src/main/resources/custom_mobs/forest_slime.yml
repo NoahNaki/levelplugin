@@ -1,7 +1,7 @@
 id: forest_slime
 type: SLIME
 display: "&aForest Slime"
-level: 6
+level: 7
 boss: false
 
 stats:

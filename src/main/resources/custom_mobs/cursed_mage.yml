@@ -2,8 +2,8 @@ id: cursed_mage
 type: WITCH
 display: "&5Cursed Mage"
 level-range:
-  min: 14
-  max: 18
+  min: 50
+  max: 50
 boss: false
 
 models:

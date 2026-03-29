@@ -1,7 +1,7 @@
 id: wild_rooster
 type: CHICKEN
 display: "&eWild Rooster"
-level: 7
+level: 6
 boss: false
 
 models:

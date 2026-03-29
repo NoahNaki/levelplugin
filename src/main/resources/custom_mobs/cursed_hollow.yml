@@ -2,8 +2,8 @@ id: cursed_hollow
 type: HUSK
 display: "&8Cursed Hollow"
 level-range:
-  min: 13
-  max: 16
+  min: 50
+  max: 50
 boss: false
 
 models:
