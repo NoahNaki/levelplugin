@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.utils;
 
 import com.ticxo.modelengine.api.ModelEngineAPI;
+import com.ticxo.modelengine.api.animation.handler.AnimationHandler;
 import com.ticxo.modelengine.api.model.ActiveModel;
 import com.ticxo.modelengine.api.model.ModeledEntity;
 import org.bukkit.Bukkit;
@@ -16,6 +17,7 @@ import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.stream.Stream;
@@ -108,6 +110,9 @@ public final class ModelEngineUtil {
                     if (retryModel == null || modeledEntity.addModel(retryModel, true).isEmpty()) {
                         continue;
                     }
+                    tryStartLoopAnimation(retryModel, plugin);
+                } else {
+                    tryStartLoopAnimation(activeModel, plugin);
                 }
                 applied = true;
                 break;
@@ -197,6 +202,50 @@ public final class ModelEngineUtil {
             }
         }
         return createActiveModelByReflection(modelId, plugin);
+    }
+
+    private static void tryStartLoopAnimation(ActiveModel model, Plugin plugin) {
+        if (model == null) {
+            return;
+        }
+        try {
+            AnimationHandler handler = model.getAnimationHandler();
+            if (handler == null) {
+                return;
+            }
+            String selected = selectLoopAnimation(handler.getAnimations());
+            if (selected == null || selected.isBlank()) {
+                return;
+            }
+            if (!handler.isPlayingAnimation(selected)) {
+                handler.playAnimation(selected, 0.0, 0.0, 1.0, true);
+            }
+        } catch (Exception e) {
+            if (plugin != null) {
+                plugin.getLogger().fine("Model animation auto-play skipped: " + e.getMessage());
+            }
+        }
+    }
+
+    private static String selectLoopAnimation(Map<String, ?> animations) {
+        if (animations == null || animations.isEmpty()) {
+            return null;
+        }
+        for (String key : animations.keySet()) {
+            if (key != null && key.equalsIgnoreCase("idle")) {
+                return key;
+            }
+        }
+        for (String key : animations.keySet()) {
+            if (key == null) {
+                continue;
+            }
+            String lower = key.toLowerCase(Locale.ROOT);
+            if (lower.contains("idle") || lower.contains("walk") || lower.contains("loop")) {
+                return key;
+            }
+        }
+        return animations.keySet().iterator().next();
     }
 
     private static List<String> getModelIds() throws ReflectiveOperationException {
