@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.stream.Stream;
+import java.util.Collections;
 
 /**
  * Shared helper for ModelEngine model resolution and application.
@@ -199,6 +200,53 @@ public final class ModelEngineUtil {
             return true;
         }
         return false;
+    }
+
+    public static boolean playAnimationByName(Entity entity, String animationName, boolean loop) {
+        if (entity == null || animationName == null || animationName.isBlank()) {
+            return false;
+        }
+        ModeledEntity modeledEntity = ModelEngineAPI.getModeledEntity(entity);
+        if (modeledEntity == null || modeledEntity.getModels().isEmpty()) {
+            return false;
+        }
+        for (ActiveModel model : modeledEntity.getModels().values()) {
+            AnimationHandler handler = model.getAnimationHandler();
+            if (handler == null) {
+                continue;
+            }
+            handler.prepare();
+            String match = selectAnimationByKeywords(handler.getAnimations().keySet(), List.of(animationName));
+            if (match == null || match.isBlank()) {
+                continue;
+            }
+            handler.playAnimation(match, 0.0, 0.0, 1.0, loop);
+            return true;
+        }
+        return false;
+    }
+
+    public static List<String> getAvailableAnimationNames(Entity entity) {
+        if (entity == null) {
+            return List.of();
+        }
+        ModeledEntity modeledEntity = ModelEngineAPI.getModeledEntity(entity);
+        if (modeledEntity == null || modeledEntity.getModels().isEmpty()) {
+            return List.of();
+        }
+        Set<String> names = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+        for (ActiveModel model : modeledEntity.getModels().values()) {
+            AnimationHandler handler = model.getAnimationHandler();
+            if (handler == null) {
+                continue;
+            }
+            handler.prepare();
+            names.addAll(handler.getAnimations().keySet());
+        }
+        if (names.isEmpty()) {
+            return List.of();
+        }
+        return Collections.unmodifiableList(new ArrayList<>(names));
     }
 
     /**
