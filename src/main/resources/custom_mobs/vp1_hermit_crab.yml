@@ -1,0 +1,22 @@
+id: vp1_hermit_crab
+type: SPIDER
+display: "&3Hermit Crab"
+level-range:
+  min: 8
+  max: 10
+boss: false
+
+models:
+  - vp1_hermit_crab.bbmodel
+
+stats:
+  vitality: 18
+  strength: 8
+  agility: 14
+
+options:
+  movement-speed: 0.26
+  follow-range: 24
+  knockback-resistance: 0.25
+  silent: true
+  despawn: false

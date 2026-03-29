@@ -1,0 +1,24 @@
+id: mso_magma_imp
+type: BLAZE
+display: "&6Magma Imp"
+level-range:
+  min: 16
+  max: 19
+boss: false
+
+models:
+  - mso_magma_imp.bbmodel
+
+stats:
+  vitality: 32
+  strength: 14
+  intelligence: 20
+  will: 16
+  technique: 18
+
+options:
+  movement-speed: 0.24
+  follow-range: 34
+  knockback-resistance: 0.45
+  silent: true
+  despawn: false

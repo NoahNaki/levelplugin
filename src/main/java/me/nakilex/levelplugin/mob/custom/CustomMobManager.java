@@ -38,6 +38,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
 import java.util.UUID;
+import java.util.Comparator;
 
 public class CustomMobManager {
     public static final String CUSTOM_MOB_ID_META = "lp_custom_mob_id";
@@ -61,7 +62,10 @@ public class CustomMobManager {
             "custom_mobs/cursed_hollow.yml",
             "custom_mobs/cursed_knight.yml",
             "custom_mobs/cursed_mage.yml",
-            "custom_mobs/cursed_night.yml"
+            "custom_mobs/cursed_night.yml",
+            "custom_mobs/mso_magma_imp.yml",
+            "custom_mobs/vp1_hermit_crab.yml",
+            "custom_mobs/vp1_golem_damaged_1.yml"
     );
     private static final ArcPattern STUN_PATTERN = new ArcPattern(
             Particle.CRIT,
@@ -147,9 +151,18 @@ public class CustomMobManager {
     }
 
     public List<String> getMobIds() {
-        return definitions.values().stream()
+        return getDefinitionsByProgression().stream()
                 .map(CustomMobDefinition::id)
-                .sorted(String.CASE_INSENSITIVE_ORDER)
+                .toList();
+    }
+
+    public List<CustomMobDefinition> getDefinitionsByProgression() {
+        return definitions.values().stream()
+                .sorted(Comparator
+                        .comparingInt((CustomMobDefinition def) -> def.levelRange().min())
+                        .thenComparingInt(def -> def.levelRange().max())
+                        .thenComparingInt(this::resolvePowerScore)
+                        .thenComparing(CustomMobDefinition::id, String.CASE_INSENSITIVE_ORDER))
                 .toList();
     }
 
@@ -314,6 +327,20 @@ public class CustomMobManager {
                         + " failed to apply ModelEngine models: " + String.join(", ", result.failed()));
             }
         }
+    }
+
+    private int resolvePowerScore(CustomMobDefinition definition) {
+        if (definition == null || definition.stats() == null) {
+            return 0;
+        }
+        CustomMobStats stats = definition.stats();
+        int offense = stats.strength() + stats.intelligence() + stats.dexterity() + stats.technique();
+        int defense = stats.vitality() + stats.will();
+        int score = offense * 2 + defense;
+        if (definition.boss()) {
+            score += 500;
+        }
+        return score;
     }
 
     private void applyAttribute(LivingEntity entity, Attribute attr, Double value) {
