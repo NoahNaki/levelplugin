@@ -216,7 +216,7 @@ public final class ModelEngineUtil {
                 continue;
             }
             handler.prepare();
-            String match = selectAnimationByKeywords(handler.getAnimations().keySet(), List.of(animationName));
+            String match = resolveAnimationName(model, handler, animationName);
             if (match == null || match.isBlank()) {
                 continue;
             }
@@ -242,6 +242,13 @@ public final class ModelEngineUtil {
             }
             handler.prepare();
             names.addAll(handler.getAnimations().keySet());
+            if (model.getBlueprint() != null && model.getBlueprint().getAnimations() != null) {
+                names.addAll(model.getBlueprint().getAnimations().keySet());
+            }
+            if (model.getBlueprint() != null && model.getBlueprint().getAnimationsPlaceholders() != null) {
+                names.addAll(model.getBlueprint().getAnimationsPlaceholders().keySet());
+                names.addAll(model.getBlueprint().getAnimationsPlaceholders().values());
+            }
         }
         if (names.isEmpty()) {
             return List.of();
@@ -416,6 +423,42 @@ public final class ModelEngineUtil {
                 if (animation.toLowerCase(Locale.ROOT).contains(lowerKeyword)) {
                     return animation;
                 }
+            }
+        }
+        return null;
+    }
+
+    private static String resolveAnimationName(ActiveModel model,
+                                               AnimationHandler handler,
+                                               String requested) {
+        if (handler == null || requested == null || requested.isBlank()) {
+            return null;
+        }
+        String fromHandler = selectAnimationByKeywords(handler.getAnimations().keySet(), List.of(requested));
+        if (fromHandler != null) {
+            return fromHandler;
+        }
+        if (model == null || model.getBlueprint() == null) {
+            return null;
+        }
+        ModelBlueprint blueprint = model.getBlueprint();
+        if (blueprint.getAnimationsPlaceholders() != null) {
+            String mapped = blueprint.getAnimationsPlaceholders().get(requested);
+            if (mapped != null && handler.getAnimations().containsKey(mapped)) {
+                return mapped;
+            }
+            String placeholderKey = selectAnimationByKeywords(blueprint.getAnimationsPlaceholders().keySet(), List.of(requested));
+            if (placeholderKey != null) {
+                String placeholderValue = blueprint.getAnimationsPlaceholders().get(placeholderKey);
+                if (placeholderValue != null && handler.getAnimations().containsKey(placeholderValue)) {
+                    return placeholderValue;
+                }
+            }
+        }
+        if (blueprint.getAnimations() != null) {
+            String fromBlueprint = selectAnimationByKeywords(blueprint.getAnimations().keySet(), List.of(requested));
+            if (fromBlueprint != null && handler.getAnimations().containsKey(fromBlueprint)) {
+                return fromBlueprint;
             }
         }
         return null;
