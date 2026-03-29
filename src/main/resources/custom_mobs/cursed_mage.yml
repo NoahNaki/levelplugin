@@ -15,6 +15,15 @@ stats:
   will: 20
   technique: 16
 
+spells:
+  mage_fireball_basic:
+    id: mage_fireball_basic
+    interval-ticks: 26
+    damage: 10.0
+    range: 30.0
+    speed: 1.05
+    burn-ticks: 40
+
 options:
   movement-speed: 0.24
   follow-range: 34

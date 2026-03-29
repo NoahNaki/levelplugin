@@ -15,6 +15,15 @@ stats:
   agility: 16
   technique: 18
 
+spells:
+  ranged_arrow_basic:
+    id: ranged_arrow_basic
+    interval-ticks: 24
+    damage: 9.0
+    range: 30.0
+    speed: 2.2
+    burn-ticks: 0
+
 options:
   movement-speed: 0.24
   follow-range: 36
