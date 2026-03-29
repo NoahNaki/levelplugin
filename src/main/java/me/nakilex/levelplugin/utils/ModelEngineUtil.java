@@ -611,15 +611,7 @@ public final class ModelEngineUtil {
             return true;
         }
         var property = handler.getAnimation(candidate);
-        if (property != null && handler.playAnimation(property, true)) {
-            return true;
-        }
-        try {
-            var built = new AnimationHandler.DefaultProperty(ModelState.IDLE, candidate, 0.0, 0.0, 1.0).build(model);
-            return built != null && handler.playAnimation(built, true);
-        } catch (Exception ignored) {
-            return false;
-        }
+        return property != null && handler.playAnimation(property, true);
     }
 
     private static ActiveModel createActiveModelFromBlueprint(String modelId, Plugin plugin) {
