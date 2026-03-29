@@ -39,6 +39,11 @@ public final class ModelEngineUtil {
                                    List<String> blueprintOnly) {
     }
 
+    public record AnimationDebugResult(boolean success,
+                                       List<String> attempted,
+                                       List<String> available) {
+    }
+
     public static List<String> getModelIdsSafely(Plugin plugin) {
         try {
             return getModelIds();
@@ -254,6 +259,59 @@ public final class ModelEngineUtil {
             return List.of();
         }
         return Collections.unmodifiableList(new ArrayList<>(names));
+    }
+
+    public static AnimationDebugResult debugTriggerAnimation(Entity entity, String requested, boolean loop) {
+        if (entity == null || requested == null || requested.isBlank()) {
+            return new AnimationDebugResult(false, List.of("invalid_input"), List.of());
+        }
+        ModeledEntity modeledEntity = ModelEngineAPI.getModeledEntity(entity);
+        if (modeledEntity == null || modeledEntity.getModels().isEmpty()) {
+            return new AnimationDebugResult(false, List.of("no_modeled_entity"), List.of());
+        }
+        List<String> attempted = new ArrayList<>();
+        List<String> available = getAvailableAnimationNames(entity);
+        for (Map.Entry<String, ActiveModel> entry : modeledEntity.getModels().entrySet()) {
+            String modelKey = entry.getKey();
+            ActiveModel model = entry.getValue();
+            AnimationHandler handler = model.getAnimationHandler();
+            if (handler == null) {
+                attempted.add(modelKey + ":no_handler");
+                continue;
+            }
+            handler.prepare();
+            LinkedHashSet<String> candidates = new LinkedHashSet<>();
+            candidates.add(requested);
+            String resolved = resolveAnimationName(model, handler, requested);
+            if (resolved != null) {
+                candidates.add(resolved);
+            }
+            String keywordMatch = selectAnimationByKeywords(available, List.of(requested));
+            if (keywordMatch != null) {
+                candidates.add(keywordMatch);
+            }
+            for (String candidate : candidates) {
+                if (candidate == null || candidate.isBlank()) {
+                    continue;
+                }
+                try {
+                    if (handler.getAnimations().containsKey(candidate)) {
+                        handler.playAnimation(candidate, 0.0, 0.0, 1.0, loop);
+                        attempted.add(modelKey + ":" + candidate + ":played");
+                        return new AnimationDebugResult(true, attempted, available);
+                    }
+                    var property = handler.getAnimation(candidate);
+                    if (property != null && handler.playAnimation(property, true)) {
+                        attempted.add(modelKey + ":" + candidate + ":played_property");
+                        return new AnimationDebugResult(true, attempted, available);
+                    }
+                    attempted.add(modelKey + ":" + candidate + ":no_match");
+                } catch (Exception ex) {
+                    attempted.add(modelKey + ":" + candidate + ":error(" + ex.getClass().getSimpleName() + ")");
+                }
+            }
+        }
+        return new AnimationDebugResult(false, attempted, available);
     }
 
     /**

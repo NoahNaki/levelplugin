@@ -314,7 +314,7 @@ commands:
     usage: /debug [mobinfo|tps|siege|drops|hand|chatgame|expedition|dungeonexpedition|spellinput|beaconentity|particle|particlepath|particlepreset|petpull|inventorydebug|rewardbomb|cityowner|citymax]
   se:
     description: Spawn an entity with ModelEngine models for testing
-    usage: /se <entity> <model...> | /se list | /se inspect | /se anim <name|shoot|attack> [loop]
+    usage: /se <entity> <model...> | /se list | /se inspect [verbose] | /se anim <name|shoot|attack> [loop] | /se animdebug <name> [loop]
   fireballdebug:
     description: Debug placement and rotation for the mage fireball model
     usage: /fireballdebug <spawn|move|rotate|face|info|diagnose|trace|remove>

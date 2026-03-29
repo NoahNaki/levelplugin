@@ -66,11 +66,14 @@ public class SpawnEntityModelCommand implements CommandExecutor, TabCompleter {
         if (args.length >= 1 && args[0].equalsIgnoreCase("anim")) {
             return handlePlayAnimation(player, args);
         }
+        if (args.length >= 1 && args[0].equalsIgnoreCase("animdebug")) {
+            return handleDebugAnimation(player, args);
+        }
         if (args.length >= 1 && args[0].equalsIgnoreCase("inspect")) {
             return handleInspectAnimations(player);
         }
         if (args.length < 2) {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "Usage: /se <entity> <model...> | /se anim <name|shoot|attack> [loop] | /se inspect | /se list");
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "Usage: /se <entity> <model...> | /se anim <name|shoot|attack> [loop] | /se animdebug <name> [loop] | /se inspect [verbose] | /se list");
             return true;
         }
         if (!Bukkit.getPluginManager().isPluginEnabled("ModelEngine")) {
@@ -170,6 +173,29 @@ public class SpawnEntityModelCommand implements CommandExecutor, TabCompleter {
         return true;
     }
 
+    private boolean handleDebugAnimation(Player player, String[] args) {
+        if (args.length < 2) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "Usage: /se animdebug <name> [loop]");
+            return true;
+        }
+        Entity target = resolveAnimationTarget(player);
+        if (target == null) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING, "No modeled entity found. Look at one or spawn with /se first.");
+            return true;
+        }
+        boolean loop = args.length >= 3 && Boolean.parseBoolean(args[2]);
+        ModelEngineUtil.AnimationDebugResult result = ModelEngineUtil.debugTriggerAnimation(target, args[1], loop);
+        ChatMessageUtil.send(player, result.success()
+                ? ChatMessageUtil.MessageType.SUCCESS
+                : ChatMessageUtil.MessageType.WARNING,
+                "Anim debug " + (result.success() ? "success" : "failed") + " for '" + args[1] + "'.");
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                "Attempted: " + (result.attempted().isEmpty() ? "(none)" : String.join(", ", result.attempted())));
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                "Available: " + (result.available().isEmpty() ? "(none)" : String.join(", ", result.available())));
+        return true;
+    }
+
     private Entity resolveAnimationTarget(Player player) {
         Entity lookedAt = player.getTargetEntity(16);
         if (lookedAt != null && !ModelEngineUtil.getAvailableAnimationNames(lookedAt).isEmpty()) {
@@ -198,6 +224,7 @@ public class SpawnEntityModelCommand implements CommandExecutor, TabCompleter {
             List<String> options = new ArrayList<>(entityOptions);
             options.add("list");
             options.add("anim");
+            options.add("animdebug");
             options.add("inspect");
             return CommandUtil.filterStartingWith(options, args[0]);
         }
@@ -205,6 +232,12 @@ public class SpawnEntityModelCommand implements CommandExecutor, TabCompleter {
             return CommandUtil.filterStartingWith(List.of("shoot", "attack", "idle", "walk"), args[1]);
         }
         if (args.length == 3 && args[0].equalsIgnoreCase("anim")) {
+            return CommandUtil.filterStartingWith(List.of("true", "false"), args[2]);
+        }
+        if (args.length == 2 && args[0].equalsIgnoreCase("animdebug")) {
+            return CommandUtil.filterStartingWith(List.of("shoot", "attack", "idle", "walk"), args[1]);
+        }
+        if (args.length == 3 && args[0].equalsIgnoreCase("animdebug")) {
             return CommandUtil.filterStartingWith(List.of("true", "false"), args[2]);
         }
         if (args.length >= 2 && Bukkit.getPluginManager().isPluginEnabled("ModelEngine")) {
