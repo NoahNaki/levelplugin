@@ -42,6 +42,9 @@ public class CustomMobAnimationListener implements Listener {
         if (customMobManager.getInstance(attacker).isEmpty()) {
             return;
         }
+        if (isScriptDriven(attacker)) {
+            return;
+        }
         ModelEngineUtil.triggerActionState(attacker, java.util.List.of("attack", "slash", "swing", "hit", "shoot", "cast"), ATTACK_ACTION_HOLD_MS);
     }
 
@@ -54,6 +57,9 @@ public class CustomMobAnimationListener implements Listener {
             return;
         }
         if (customMobManager.getInstance(shooter).isEmpty()) {
+            return;
+        }
+        if (isScriptDriven(shooter)) {
             return;
         }
         ModelEngineUtil.triggerActionState(shooter, java.util.List.of("shoot", "arrow", "bow", "cast", "attack"), SHOOT_ACTION_HOLD_MS);
@@ -95,5 +101,17 @@ public class CustomMobAnimationListener implements Listener {
             return livingShooter;
         }
         return null;
+    }
+
+    private boolean isScriptDriven(LivingEntity entity) {
+        if (entity == null || customMobManager == null) {
+            return false;
+        }
+        return customMobManager.getInstance(entity)
+                .map(instance -> instance.definition().spells().stream()
+                        .anyMatch(spell -> spell != null
+                                && spell.scriptKey() != null
+                                && !spell.scriptKey().isBlank()))
+                .orElse(false);
     }
 }
