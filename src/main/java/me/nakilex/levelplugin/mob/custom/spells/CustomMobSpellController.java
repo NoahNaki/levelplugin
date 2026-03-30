@@ -11,7 +11,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Arrow;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
@@ -208,6 +207,8 @@ public class CustomMobSpellController {
             case "teleport_target" -> teleportNearTarget(caster, target, action.args());
             case "delayed_explosion_target" -> delayedExplosionAtTarget(caster, target, spell, action.args());
             case "heal_allies" -> healNearbyAllies(instance, caster, action.args());
+            case "damage_radius_target" -> damageRadiusTarget(caster, target, spell, action.args());
+            case "random_strike_target_ring" -> randomStrikeTargetRing(caster, target, spell, action.args());
             default -> {
                 // Unknown action: keep script runtime resilient.
             }
@@ -317,6 +318,61 @@ public class CustomMobSpellController {
                 }
             }
         }, delay);
+    }
+
+    private void damageRadiusTarget(Mob caster, Player target, CustomMobDefinition.CustomMobSpell spell, Map<String, Object> args) {
+        double radius = Math.max(0.25, asDouble(args.get("radius"), 2.0));
+        double damage = Math.max(0.0, asDouble(args.get("damage"), spell.damage()));
+        int igniteTicks = Math.max(0, (int) asLong(args.get("ignite-ticks"), 0));
+        double knockback = Math.max(0.0, asDouble(args.get("knockback"), 0.0));
+        Location center = target.getLocation();
+        for (Entity entity : center.getWorld().getNearbyEntities(center, radius, radius, radius)) {
+            if (!(entity instanceof LivingEntity living) || living.isDead() || living.equals(caster)) {
+                continue;
+            }
+            living.damage(damage, caster);
+            if (igniteTicks > 0) {
+                living.setFireTicks(Math.max(living.getFireTicks(), igniteTicks));
+            }
+            if (knockback > 0.0) {
+                Vector kb = living.getLocation().toVector().subtract(center.toVector()).normalize().multiply(knockback);
+                kb.setY(Math.max(0.2, kb.getY() + 0.2));
+                living.setVelocity(living.getVelocity().add(kb));
+            }
+        }
+    }
+
+    private void randomStrikeTargetRing(Mob caster, Player target, CustomMobDefinition.CustomMobSpell spell, Map<String, Object> args) {
+        int strikes = Math.max(1, (int) asLong(args.get("count"), 3));
+        long intervalTicks = Math.max(1L, asLong(args.get("interval-ticks"), 2));
+        double minRadius = Math.max(0.0, asDouble(args.get("min-radius"), 2.0));
+        double maxRadius = Math.max(minRadius, asDouble(args.get("max-radius"), 8.0));
+        double hitRadius = Math.max(0.3, asDouble(args.get("hit-radius"), 2.0));
+        double damage = Math.max(0.0, asDouble(args.get("damage"), spell.damage()));
+        int igniteTicks = Math.max(0, (int) asLong(args.get("ignite-ticks"), 0));
+
+        for (int i = 0; i < strikes; i++) {
+            long delay = i * intervalTicks;
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                if (caster.isDead() || target.isDead()) {
+                    return;
+                }
+                Location base = target.getLocation().clone();
+                double angle = random.nextDouble() * (Math.PI * 2.0);
+                double radius = minRadius + random.nextDouble() * (maxRadius - minRadius);
+                Location strike = base.add(Math.cos(angle) * radius, 0.0, Math.sin(angle) * radius);
+                strike.getWorld().spawnParticle(Particle.SOUL_FIRE_FLAME, strike.clone().add(0, 0.25, 0), 20, 0.35, 0.2, 0.35, 0.01);
+                strike.getWorld().playSound(strike, Sound.BLOCK_BEACON_AMBIENT, 0.9f, 1.0f);
+                for (Entity entity : strike.getWorld().getNearbyEntities(strike, hitRadius, hitRadius, hitRadius)) {
+                    if (entity instanceof LivingEntity living && !living.isDead() && !living.equals(caster)) {
+                        living.damage(damage, caster);
+                        if (igniteTicks > 0) {
+                            living.setFireTicks(Math.max(living.getFireTicks(), igniteTicks));
+                        }
+                    }
+                }
+            }, delay);
+        }
     }
 
     private void healNearbyAllies(CustomMobInstance sourceInstance, Mob caster, Map<String, Object> args) {

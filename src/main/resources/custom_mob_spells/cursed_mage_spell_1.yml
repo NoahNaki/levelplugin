@@ -2,4 +2,13 @@ id: cursed_mage_spell_1
 actions:
   - type: animation
     name: shoot
+  - type: delay
+    ticks: 20
+  - type: sound
+    id: ENTITY_EVOKER_CAST_SPELL
+    volume: 1.2
+    pitch: 0.5
+  - type: projectile_mage_fireball
+  - type: delay
+    ticks: 15
   - type: projectile_mage_fireball

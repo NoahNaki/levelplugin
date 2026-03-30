@@ -2,7 +2,23 @@ id: cursed_knight_attack_1
 actions:
   - type: animation
     name: attack
+  - type: delay
+    ticks: 18
+  - type: sound
+    id: ENTITY_ZOMBIE_ATTACK_IRON_DOOR
+    volume: 0.8
+    pitch: 1.1
   - type: cone_damage
-    range: 4.0
-    half-angle: 35
-    knockback: 0.45
+    range: 5.0
+    half-angle: 90
+    knockback: 0.35
+  - type: delay
+    ticks: 12
+  - type: sound
+    id: ENTITY_ZOMBIE_ATTACK_IRON_DOOR
+    volume: 0.8
+    pitch: 1.1
+  - type: cone_damage
+    range: 5.0
+    half-angle: 90
+    knockback: 0.8

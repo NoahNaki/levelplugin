@@ -1,10 +1,20 @@
 id: cursed_knight_attack_2
 actions:
-  - type: dash
-    strength: 1.1
+  - type: animation
+    name: attack
   - type: delay
-    ticks: 6
+    ticks: 40
+  - type: sound
+    id: ENTITY_ZOMBIE_ATTACK_IRON_DOOR
+    volume: 0.8
+    pitch: 1.1
   - type: cone_damage
-    range: 3.5
-    half-angle: 30
-    knockback: 0.55
+    range: 5.0
+    half-angle: 90
+    knockback: 1.2
+  - type: delay
+    ticks: 1
+  - type: damage_radius_target
+    radius: 4.0
+    damage: 4.0
+    ignite-ticks: 100

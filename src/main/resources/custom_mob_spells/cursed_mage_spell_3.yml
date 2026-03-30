@@ -2,6 +2,16 @@ id: cursed_mage_spell_3
 actions:
   - type: animation
     name: shoot
-  - type: delayed_explosion_target
-    delay-ticks: 24
-    radius: 2.5
+  - type: delay
+    ticks: 40
+  - type: sound
+    id: ENTITY_EVOKER_CAST_SPELL
+    volume: 1.2
+    pitch: 0.6
+  - type: projectile_mage_fireball
+  - type: delay
+    ticks: 1
+  - type: damage_radius_target
+    radius: 1.8
+    damage: 20.0
+    ignite-ticks: 100

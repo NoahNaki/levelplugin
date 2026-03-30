@@ -3,5 +3,31 @@ actions:
   - type: animation
     name: shoot
   - type: delay
-    ticks: 5
-  - type: projectile_arrow
+    ticks: 26
+  - type: sound
+    id: ITEM_CROSSBOW_SHOOT
+    volume: 0.6
+    pitch: 1.2
+  - type: damage_radius_target
+    radius: 3.0
+    damage: 2.0
+  - type: delay
+    ticks: 2
+  - type: damage_radius_target
+    radius: 3.0
+    damage: 4.0
+  - type: delay
+    ticks: 2
+  - type: damage_radius_target
+    radius: 3.0
+    damage: 2.0
+  - type: delay
+    ticks: 2
+  - type: damage_radius_target
+    radius: 3.0
+    damage: 2.0
+  - type: delay
+    ticks: 2
+  - type: damage_radius_target
+    radius: 3.0
+    damage: 2.0

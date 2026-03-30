@@ -19,8 +19,8 @@ spells:
     script-key: cursed_archer_shoot_1
     selection-group: primary
     selection-weight: 1.2
-    interval-ticks: 28
-    gcd-ticks: 10
+    interval-ticks: 50
+    gcd-ticks: 50
     damage: 8.0
     range: 28.0
     min-range: 8.0
@@ -33,8 +33,8 @@ spells:
     script-key: cursed_archer_shoot_2
     selection-group: primary
     selection-weight: 0.9
-    interval-ticks: 30
-    gcd-ticks: 10
+    interval-ticks: 72
+    gcd-ticks: 72
     damage: 8.5
     range: 28.0
     min-range: 8.0
@@ -47,8 +47,8 @@ spells:
     script-key: cursed_archer_shoot_3
     selection-group: primary
     selection-weight: 0.6
-    interval-ticks: 34
-    gcd-ticks: 10
+    interval-ticks: 120
+    gcd-ticks: 120
     damage: 9.0
     range: 30.0
     min-range: 9.0

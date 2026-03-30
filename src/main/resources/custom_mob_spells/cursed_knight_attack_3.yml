@@ -1,5 +1,18 @@
 id: cursed_knight_attack_3
 actions:
-  - type: delayed_explosion_target
-    delay-ticks: 16
-    radius: 2.0
+  - type: animation
+    name: attack
+  - type: sound
+    id: ENTITY_EVOKER_CAST_SPELL
+    volume: 1.0
+    pitch: 0.5
+  - type: delay
+    ticks: 12
+  - type: random_strike_target_ring
+    count: 5
+    interval-ticks: 2
+    min-radius: 4.0
+    max-radius: 10.0
+    hit-radius: 2.0
+    damage: 10.0
+    ignite-ticks: 100

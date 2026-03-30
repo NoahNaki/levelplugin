@@ -2,6 +2,14 @@ id: cursed_archer_shoot_3
 actions:
   - type: animation
     name: shoot
+  - type: delay
+    ticks: 45
   - type: sound
-    id: ENTITY_ARROW_HIT_PLAYER
-  - type: projectile_arrow
+    id: ENTITY_EVOKER_CAST_SPELL
+    volume: 1.0
+    pitch: 0.5
+  - type: sound
+    id: ITEM_FIRECHARGE_USE
+    volume: 1.0
+    pitch: 0.9
+  - type: projectile_mage_fireball

@@ -1,9 +1,14 @@
 id: cursed_mage_spell_2
 actions:
-  - type: particles_ring
-    particle: FLAME
-    radius: 1.8
-    points: 20
+  - type: animation
+    name: shoot
   - type: delay
-    ticks: 6
+    ticks: 20
+  - type: sound
+    id: ENTITY_ILLUSIONER_MIRROR_MOVE
+    volume: 0.8
+    pitch: 1.0
+  - type: projectile_mage_fireball
+  - type: delay
+    ticks: 15
   - type: projectile_mage_fireball

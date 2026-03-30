@@ -21,8 +21,8 @@ spells:
     script-key: cursed_mage_spell_1
     selection-group: primary
     selection-weight: 1.2
-    interval-ticks: 26
-    gcd-ticks: 10
+    interval-ticks: 72
+    gcd-ticks: 72
     damage: 10.0
     range: 30.0
     min-range: 9.0
@@ -35,8 +35,8 @@ spells:
     script-key: cursed_mage_spell_2
     selection-group: primary
     selection-weight: 0.8
-    interval-ticks: 34
-    gcd-ticks: 12
+    interval-ticks: 72
+    gcd-ticks: 72
     damage: 11.0
     range: 28.0
     min-range: 8.0
@@ -49,8 +49,8 @@ spells:
     script-key: cursed_mage_spell_3
     selection-group: utility
     selection-weight: 0.5
-    interval-ticks: 46
-    gcd-ticks: 16
+    interval-ticks: 72
+    gcd-ticks: 72
     damage: 12.5
     range: 24.0
     min-range: 7.0

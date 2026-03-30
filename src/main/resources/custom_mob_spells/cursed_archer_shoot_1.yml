@@ -2,8 +2,14 @@ id: cursed_archer_shoot_1
 actions:
   - type: animation
     name: shoot
+  - type: delay
+    ticks: 20
   - type: sound
-    id: ENTITY_SKELETON_SHOOT
+    id: ITEM_CROSSBOW_SHOOT
+    volume: 0.6
+    pitch: 1.2
+  - type: sound
+    id: ENTITY_ARROW_SHOOT
     volume: 1.0
     pitch: 1.0
   - type: projectile_arrow
