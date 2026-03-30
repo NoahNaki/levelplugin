@@ -421,7 +421,7 @@ public class CustomMobSpellController {
         if (direction.lengthSquared() <= 0.0001) {
             return;
         }
-        ModelEngineUtil.playBestShootAnimation(caster);
+        ModelEngineUtil.triggerActionState(caster, List.of("shoot", "arrow", "bow", "cast", "attack"), 500L);
         Arrow arrow = caster.launchProjectile(Arrow.class);
         arrow.setVelocity(direction.normalize().multiply(Math.max(0.8, spell.speed())));
         arrow.setDamage(Math.max(0.1, spell.damage()));
@@ -437,7 +437,7 @@ public class CustomMobSpellController {
         if (direction.lengthSquared() <= 0.0001) {
             return;
         }
-        ModelEngineUtil.playBestShootAnimation(caster);
+        ModelEngineUtil.triggerActionState(caster, List.of("shoot", "arrow", "bow", "cast", "attack"), 600L);
         MageFireballBasicAttackSpell.FireballSpawnResult spawnResult =
                 MageFireballBasicAttackSpell.spawnProjectileAnchor(plugin, eye, direction);
         if (spawnResult == null) {
@@ -551,7 +551,11 @@ public class CustomMobSpellController {
     }
 
     private boolean playNamedAnimation(Mob caster, String animationName) {
-        return ModelEngineUtil.playAnimationByName(caster, animationName, false);
+        boolean played = ModelEngineUtil.playAnimationByName(caster, animationName, false);
+        if (played) {
+            ModelEngineUtil.holdActionState(caster, 600L);
+        }
+        return played;
     }
 
     private boolean isCombatContextValid(Mob caster, Player target) {

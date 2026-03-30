@@ -146,6 +146,14 @@ public final class ModelEngineUtil {
         return true;
     }
 
+    public static void holdActionState(Entity entity, long actionHoldMillis) {
+        if (entity == null) {
+            return;
+        }
+        AnimationControllerState state = ANIMATION_CONTROLLER_STATES.computeIfAbsent(entity.getUniqueId(), key -> new AnimationControllerState());
+        state.actionUntilMs = Math.max(System.currentTimeMillis(), state.actionUntilMs) + Math.max(0L, actionHoldMillis);
+    }
+
     public static void clearAnimationState(Entity entity) {
         if (entity == null) {
             return;
