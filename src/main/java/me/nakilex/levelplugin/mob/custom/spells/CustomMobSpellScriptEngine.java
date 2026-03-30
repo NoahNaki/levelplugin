@@ -69,7 +69,7 @@ public final class CustomMobSpellScriptEngine {
         }
         File legacyFile = new File(plugin.getDataFolder(), "custom_mob_spells.yml");
         if (!legacyFile.exists()) {
-            plugin.saveResource("custom_mob_spells.yml", false);
+            saveBundledResourceIfPresent("custom_mob_spells.yml");
         }
         File folder = new File(plugin.getDataFolder(), "custom_mob_spells");
         if (!folder.exists()) {
@@ -129,24 +129,34 @@ public final class CustomMobSpellScriptEngine {
         if (plugin == null) {
             return;
         }
-        plugin.saveResource("custom_mob_spells/cursed_archer_shoot_1.yml", false);
-        plugin.saveResource("custom_mob_spells/cursed_archer_shoot_2.yml", false);
-        plugin.saveResource("custom_mob_spells/cursed_archer_shoot_3.yml", false);
-        plugin.saveResource("custom_mob_spells/cursed_mage_spell_1.yml", false);
-        plugin.saveResource("custom_mob_spells/cursed_mage_spell_2.yml", false);
-        plugin.saveResource("custom_mob_spells/cursed_mage_spell_3.yml", false);
-        plugin.saveResource("custom_mob_spells/cursed_knight_attack_1.yml", false);
-        plugin.saveResource("custom_mob_spells/cursed_knight_attack_2.yml", false);
-        plugin.saveResource("custom_mob_spells/cursed_knight_attack_3.yml", false);
-        plugin.saveResource("custom_mob_spells/goblin_archer_shoot.yml", false);
-        plugin.saveResource("custom_mob_spells/goblin_archer_throw_bomb.yml", false);
-        plugin.saveResource("custom_mob_spells/goblin_assassin_shadowstep.yml", false);
-        plugin.saveResource("custom_mob_spells/goblin_assassin_stab.yml", false);
-        plugin.saveResource("custom_mob_spells/goblin_assassin_slash.yml", false);
-        plugin.saveResource("custom_mob_spells/goblin_warrior_sword_slam.yml", false);
-        plugin.saveResource("custom_mob_spells/goblin_warrior_shield_rush.yml", false);
-        plugin.saveResource("custom_mob_spells/goblin_shaman_fireball.yml", false);
-        plugin.saveResource("custom_mob_spells/goblin_shaman_heal.yml", false);
+        saveBundledResourceIfPresent("custom_mob_spells/cursed_archer_shoot_1.yml");
+        saveBundledResourceIfPresent("custom_mob_spells/cursed_archer_shoot_2.yml");
+        saveBundledResourceIfPresent("custom_mob_spells/cursed_archer_shoot_3.yml");
+        saveBundledResourceIfPresent("custom_mob_spells/cursed_mage_spell_1.yml");
+        saveBundledResourceIfPresent("custom_mob_spells/cursed_mage_spell_2.yml");
+        saveBundledResourceIfPresent("custom_mob_spells/cursed_mage_spell_3.yml");
+        saveBundledResourceIfPresent("custom_mob_spells/cursed_knight_attack_1.yml");
+        saveBundledResourceIfPresent("custom_mob_spells/cursed_knight_attack_2.yml");
+        saveBundledResourceIfPresent("custom_mob_spells/cursed_knight_attack_3.yml");
+        saveBundledResourceIfPresent("custom_mob_spells/goblin_archer_shoot.yml");
+        saveBundledResourceIfPresent("custom_mob_spells/goblin_archer_throw_bomb.yml");
+        saveBundledResourceIfPresent("custom_mob_spells/goblin_assassin_shadowstep.yml");
+        saveBundledResourceIfPresent("custom_mob_spells/goblin_assassin_stab.yml");
+        saveBundledResourceIfPresent("custom_mob_spells/goblin_assassin_slash.yml");
+        saveBundledResourceIfPresent("custom_mob_spells/goblin_warrior_sword_slam.yml");
+        saveBundledResourceIfPresent("custom_mob_spells/goblin_warrior_shield_rush.yml");
+        saveBundledResourceIfPresent("custom_mob_spells/goblin_shaman_fireball.yml");
+        saveBundledResourceIfPresent("custom_mob_spells/goblin_shaman_heal.yml");
+    }
+
+    private void saveBundledResourceIfPresent(String resourcePath) {
+        if (plugin == null || resourcePath == null || resourcePath.isBlank()) {
+            return;
+        }
+        if (plugin.getResource(resourcePath) == null) {
+            return;
+        }
+        plugin.saveResource(resourcePath, false);
     }
 
     private void registerActions(String spellId, List<Map<?, ?>> rawActions) {
