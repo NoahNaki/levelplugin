@@ -32,6 +32,7 @@ spells:
     burn-ticks: 0
   throw_bomb:
     id: goblin_archer_throw_bomb
+    script: goblin_archer_throw_bomb
     selection-group: attack
     selection-weight: 1.0
     interval-ticks: 120

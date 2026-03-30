@@ -1,0 +1,56 @@
+id: cursed_knight_attack_1
+actions:
+  - type: play-animation
+    animation: attack_1
+  - type: set-caster-horizontal-velocity
+    speed: 0.0
+  - type: delay
+    ticks: 18
+  - type: play-sound
+    sound: entity.zombie.attack_iron_door
+    volume: 0.8
+    pitch: 1.1
+  - type: play-sound
+    sound: entity.evoker.cast_spell
+    volume: 1.0
+    pitch: 0.5
+  - type: play-sound
+    sound: entity.zombie.break_wooden_door
+    volume: 0.95
+    pitch: 0.9
+  - type: play-sound
+    sound: item.axe.strip
+    volume: 1.0
+    pitch: 0.8
+  - type: deal-cone-damage
+    range: 5.0
+    half-angle-degrees: 180.0
+    knockback-horizontal: 0.15
+    knockback-vertical: 0.05
+  - type: delay
+    ticks: 12
+  - type: play-sound
+    sound: entity.zombie.attack_iron_door
+    volume: 0.8
+    pitch: 1.1
+  - type: play-sound
+    sound: entity.evoker.cast_spell
+    volume: 1.0
+    pitch: 0.5
+  - type: play-sound
+    sound: entity.zombie.break_wooden_door
+    volume: 0.95
+    pitch: 0.9
+  - type: play-sound
+    sound: item.axe.strip
+    volume: 1.0
+    pitch: 0.8
+  - type: deal-cone-damage
+    range: 5.0
+    half-angle-degrees: 180.0
+    knockback-horizontal: 0.28
+    knockback-vertical: 0.22
+  - type: throw-players-from-caster
+    radius: 5.0
+    horizontal-strength: 1.15
+    vertical-strength: 0.48

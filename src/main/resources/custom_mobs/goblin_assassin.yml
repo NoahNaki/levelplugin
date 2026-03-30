@@ -18,6 +18,7 @@ stats:
 spells:
   shadowstep:
     id: goblin_assassin_shadowstep
+    script: goblin_assassin_shadowstep
     selection-group: attack
     selection-weight: 1.0
     interval-ticks: 100
@@ -31,6 +32,7 @@ spells:
     burn-ticks: 0
   stab:
     id: goblin_assassin_stab
+    script: goblin_assassin_stab
     selection-group: attack
     selection-weight: 1.0
     interval-ticks: 28
@@ -44,6 +46,7 @@ spells:
     burn-ticks: 0
   slash:
     id: goblin_assassin_slash
+    script: goblin_assassin_slash
     selection-group: attack
     selection-weight: 1.0
     interval-ticks: 41

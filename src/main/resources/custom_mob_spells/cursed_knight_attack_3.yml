@@ -1,0 +1,32 @@
+id: cursed_knight_attack_3
+actions:
+  - type: play-animation
+    animation: attack_3
+  - type: set-caster-horizontal-velocity
+    speed: 0.0
+  - type: play-sound
+    sound: entity.evoker.cast_spell
+    volume: 1.0
+    pitch: 0.5
+  - type: play-sound
+    sound: entity.zombie.break_wooden_door
+    volume: 0.85
+    pitch: 0.95
+  - type: play-sound
+    sound: item.axe.strip
+    volume: 1.0
+    pitch: 0.8
+  - type: delay
+    ticks: 12
+  - type: ray-burst-series
+    bursts: 5
+    interval-ticks: 2
+    min-radius: 4.0
+    max-radius: 10.0
+    model: cursed_ray_vfx
+    pulse-delay-ticks: 12
+    pulse-damages: 1.0,0.1,0.1,0.1,0.1
+    pulse-interval-ticks: 10
+    pulse-radius: 2.0
+    ignite: true
+    ignite-ticks: 100

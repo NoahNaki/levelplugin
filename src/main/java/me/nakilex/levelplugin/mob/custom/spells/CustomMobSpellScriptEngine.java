@@ -135,8 +135,18 @@ public final class CustomMobSpellScriptEngine {
         plugin.saveResource("custom_mob_spells/cursed_mage_spell_1.yml", false);
         plugin.saveResource("custom_mob_spells/cursed_mage_spell_2.yml", false);
         plugin.saveResource("custom_mob_spells/cursed_mage_spell_3.yml", false);
+        plugin.saveResource("custom_mob_spells/cursed_knight_attack_1.yml", false);
+        plugin.saveResource("custom_mob_spells/cursed_knight_attack_2.yml", false);
+        plugin.saveResource("custom_mob_spells/cursed_knight_attack_3.yml", false);
         plugin.saveResource("custom_mob_spells/goblin_archer_shoot.yml", false);
+        plugin.saveResource("custom_mob_spells/goblin_archer_throw_bomb.yml", false);
+        plugin.saveResource("custom_mob_spells/goblin_assassin_shadowstep.yml", false);
+        plugin.saveResource("custom_mob_spells/goblin_assassin_stab.yml", false);
+        plugin.saveResource("custom_mob_spells/goblin_assassin_slash.yml", false);
+        plugin.saveResource("custom_mob_spells/goblin_warrior_sword_slam.yml", false);
+        plugin.saveResource("custom_mob_spells/goblin_warrior_shield_rush.yml", false);
         plugin.saveResource("custom_mob_spells/goblin_shaman_fireball.yml", false);
+        plugin.saveResource("custom_mob_spells/goblin_shaman_heal.yml", false);
     }
 
     private void registerActions(String spellId, List<Map<?, ?>> rawActions) {

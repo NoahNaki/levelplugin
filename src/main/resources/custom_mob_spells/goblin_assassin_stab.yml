@@ -1,0 +1,22 @@
+id: goblin_assassin_stab
+actions:
+  - type: play-animation
+    animation: stab
+  - type: delay
+    ticks: 9
+  - type: face-target
+  - type: dash-toward-target
+    speed: 0.55
+  - type: play-sound
+    sound: entity.witch.throw
+    volume: 0.75
+    pitch: 1.1
+  - type: deal-cone-damage
+    range: 2.2
+    half-angle-degrees: 55.0
+    knockback-horizontal: 0.22
+    knockback-vertical: 0.08
+  - type: play-sound
+    sound: item.trident.hit
+    volume: 0.75
+    pitch: 0.8

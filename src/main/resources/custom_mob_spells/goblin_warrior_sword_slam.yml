@@ -1,0 +1,23 @@
+id: goblin_warrior_sword_slam
+actions:
+  - type: play-animation
+    animation: heavy_swing
+  - type: delay
+    ticks: 37
+  - type: face-target
+  - type: dash-toward-target
+    speed: 0.52
+  - type: play-sound
+    sound: entity.witch.throw
+    volume: 0.75
+    pitch: 0.2
+  - type: play-sound
+    sound: item.mace.smash_ground
+    volume: 0.7
+    pitch: 0.8
+  - type: deal-cone-damage
+    range: 3.2
+    half-angle-degrees: 90.0
+    knockback-horizontal: 0.18
+    knockback-vertical: 0.12
+  - type: spawn-ground-impact

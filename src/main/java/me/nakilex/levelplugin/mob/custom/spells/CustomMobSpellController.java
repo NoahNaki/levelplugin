@@ -36,24 +36,14 @@ import java.util.concurrent.ThreadLocalRandom;
 public class CustomMobSpellController {
     private static final String SPELL_MAGE_FIREBALL_BASIC = "mage_fireball_basic";
     private static final String SPELL_RANGED_ARROW_BASIC = "ranged_arrow_basic";
-    private static final String SPELL_CURSED_KNIGHT_ATTACK_1 = "cursed_knight_attack_1";
-    private static final String SPELL_CURSED_KNIGHT_ATTACK_2 = "cursed_knight_attack_2";
-    private static final String SPELL_CURSED_KNIGHT_ATTACK_3 = "cursed_knight_attack_3";
     private static final String SPELL_CURSED_ARCHER_SHOOT_1 = "cursed_archer_shoot_1";
     private static final String SPELL_CURSED_ARCHER_SHOOT_2 = "cursed_archer_shoot_2";
     private static final String SPELL_CURSED_ARCHER_SHOOT_3 = "cursed_archer_shoot_3";
     private static final String SPELL_CURSED_MAGE_SPELL_1 = "cursed_mage_spell_1";
     private static final String SPELL_CURSED_MAGE_SPELL_2 = "cursed_mage_spell_2";
     private static final String SPELL_CURSED_MAGE_SPELL_3 = "cursed_mage_spell_3";
-    private static final String SPELL_GOBLIN_WARRIOR_SWORD_SLAM = "goblin_warrior_sword_slam";
-    private static final String SPELL_GOBLIN_WARRIOR_SHIELD_RUSH = "goblin_warrior_shield_rush";
-    private static final String SPELL_GOBLIN_ASSASSIN_SHADOWSTEP = "goblin_assassin_shadowstep";
-    private static final String SPELL_GOBLIN_ASSASSIN_STAB = "goblin_assassin_stab";
-    private static final String SPELL_GOBLIN_ASSASSIN_SLASH = "goblin_assassin_slash";
     private static final String SPELL_GOBLIN_ARCHER_SHOOT = "goblin_archer_shoot";
-    private static final String SPELL_GOBLIN_ARCHER_THROW_BOMB = "goblin_archer_throw_bomb";
     private static final String SPELL_GOBLIN_SHAMAN_FIREBALL = "goblin_shaman_fireball";
-    private static final String SPELL_GOBLIN_SHAMAN_HEAL = "goblin_shaman_heal";
     private static final Set<String> RANGED_SPELL_IDS = Set.of(
             SPELL_CURSED_ARCHER_SHOOT_1,
             SPELL_CURSED_ARCHER_SHOOT_2,
@@ -62,9 +52,7 @@ public class CustomMobSpellController {
             SPELL_CURSED_MAGE_SPELL_2,
             SPELL_CURSED_MAGE_SPELL_3,
             SPELL_GOBLIN_ARCHER_SHOOT,
-            SPELL_GOBLIN_ARCHER_THROW_BOMB,
             SPELL_GOBLIN_SHAMAN_FIREBALL,
-            SPELL_GOBLIN_SHAMAN_HEAL,
             SPELL_MAGE_FIREBALL_BASIC,
             SPELL_RANGED_ARROW_BASIC
     );
@@ -233,46 +221,6 @@ public class CustomMobSpellController {
         }
         if (SPELL_RANGED_ARROW_BASIC.equals(spell.id())) {
             castArrowShot(caster, target, spell);
-            return;
-        }
-        if (SPELL_CURSED_KNIGHT_ATTACK_1.equals(spell.id())) {
-            castCursedKnightAttackOne(caster, target, spell);
-            return;
-        }
-        if (SPELL_CURSED_KNIGHT_ATTACK_2.equals(spell.id())) {
-            castCursedKnightAttackTwo(caster, target, spell);
-            return;
-        }
-        if (SPELL_CURSED_KNIGHT_ATTACK_3.equals(spell.id())) {
-            castCursedKnightAttackThree(caster, target, spell);
-            return;
-        }
-        if (SPELL_GOBLIN_WARRIOR_SWORD_SLAM.equals(spell.id())) {
-            castGoblinWarriorSwordSlam(caster, target, spell);
-            return;
-        }
-        if (SPELL_GOBLIN_WARRIOR_SHIELD_RUSH.equals(spell.id())) {
-            castGoblinWarriorShieldRush(caster, target, spell);
-            return;
-        }
-        if (SPELL_GOBLIN_ASSASSIN_SHADOWSTEP.equals(spell.id())) {
-            castGoblinAssassinShadowstep(caster, target);
-            return;
-        }
-        if (SPELL_GOBLIN_ASSASSIN_STAB.equals(spell.id())) {
-            castGoblinAssassinStab(caster, target, spell);
-            return;
-        }
-        if (SPELL_GOBLIN_ASSASSIN_SLASH.equals(spell.id())) {
-            castGoblinAssassinSlash(caster, target, spell);
-            return;
-        }
-        if (SPELL_GOBLIN_ARCHER_THROW_BOMB.equals(spell.id())) {
-            castGoblinArcherThrowBomb(caster, target, spell);
-            return;
-        }
-        if (SPELL_GOBLIN_SHAMAN_HEAL.equals(spell.id())) {
-            castGoblinShamanHeal(caster, spell);
         }
     }
 
@@ -331,9 +279,136 @@ public class CustomMobSpellController {
                 launchModelProjectile(caster, target, model, Math.max(minSpeed, spell.speed()),
                         Math.max(0.1, spell.damage()), spell.burnTicks(), useImpactFx);
             }
+            case "set-caster-horizontal-velocity" -> {
+                double horizontal = action.params().getDouble("speed", 0.0);
+                caster.setVelocity(new Vector(horizontal, caster.getVelocity().getY(), horizontal));
+            }
+            case "deal-cone-damage" -> dealConeDamageToPlayers(
+                    caster,
+                    Math.max(0.1, spell.damage() * Math.max(0.0, action.params().getDouble("damage-multiplier", 1.0))),
+                    Math.max(0.5, action.params().getDouble("range", 3.0)),
+                    Math.max(1.0, action.params().getDouble("half-angle-degrees", 90.0)),
+                    Math.max(0.0, action.params().getDouble("knockback-horizontal", 0.0)),
+                    Math.max(0.0, action.params().getDouble("knockback-vertical", 0.0))
+            );
+            case "throw-players-from-caster" -> throwPlayersFrom(
+                    caster.getLocation(),
+                    Math.max(0.5, action.params().getDouble("radius", 3.0)),
+                    Math.max(0.0, action.params().getDouble("horizontal-strength", 1.0)),
+                    Math.max(0.0, action.params().getDouble("vertical-strength", 0.25))
+            );
+            case "spawn-ring-vfx" -> spawnRingVfx(
+                    caster.getLocation(),
+                    action.params().getString("model", VFX_CURSED_FLAMES),
+                    Math.max(1, action.params().getInt("points", 12)),
+                    Math.max(0.1, action.params().getDouble("radius", 4.0))
+            );
+            case "schedule-area-pulses" -> {
+                String token = action.params().getString("damages", "");
+                List<Double> damages = parseDamageList(token, Math.max(0.1, spell.damage()));
+                scheduleAreaPulseSeries(
+                        caster,
+                        caster.getLocation().clone().add(0.0, action.params().getDouble("y-offset", 0.1), 0.0),
+                        damages,
+                        Math.max(1L, action.params().getLong("interval-ticks", 10L)),
+                        Math.max(0.5, action.params().getDouble("radius", 2.0)),
+                        action.params().getBoolean("ignite", false),
+                        Math.max(0, action.params().getInt("ignite-ticks", 0)),
+                        null
+                );
+            }
+            case "ray-burst-series" -> {
+                int bursts = Math.max(1, action.params().getInt("bursts", 5));
+                long interval = Math.max(1L, action.params().getLong("interval-ticks", 2L));
+                double minRadius = Math.max(0.1, action.params().getDouble("min-radius", 4.0));
+                double maxRadius = Math.max(minRadius, action.params().getDouble("max-radius", 10.0));
+                String model = action.params().getString("model", VFX_CURSED_RAY);
+                long pulseDelay = Math.max(0L, action.params().getLong("pulse-delay-ticks", 12L));
+                String pulseToken = action.params().getString("pulse-damages", "1.0,1.0,1.0,1.0,1.0");
+                List<Double> pulses = parseDamageList(pulseToken, Math.max(0.1, spell.damage()));
+                for (int i = 0; i < bursts; i++) {
+                    runLater(i * interval, () -> {
+                        if (caster.isDead() || caster.getWorld() == null) {
+                            return;
+                        }
+                        Location strike = randomRingLocation(caster.getLocation(), minRadius, maxRadius);
+                        spawnTemporaryModelVfx(strike, model, VFX_LIFETIME_TICKS);
+                        runLater(pulseDelay, () -> scheduleAreaPulseSeries(caster, strike, pulses,
+                                Math.max(1L, action.params().getLong("pulse-interval-ticks", 10L)),
+                                Math.max(0.5, action.params().getDouble("pulse-radius", 2.0)),
+                                action.params().getBoolean("ignite", true),
+                                Math.max(0, action.params().getInt("ignite-ticks", 100)),
+                                () -> playRayHum(strike)));
+                    });
+                }
+            }
+            case "dash-toward-target" -> dashTowardTarget(caster, target, Math.max(0.05, action.params().getDouble("speed", 0.5)));
+            case "start-rush" -> startRush(
+                    caster,
+                    target,
+                    Math.max(1, action.params().getInt("duration-ticks", 20)),
+                    Math.max(0.05, action.params().getDouble("dash-per-tick", 0.3)),
+                    Math.max(0.5, action.params().getDouble("hit-radius", 2.0)),
+                    Math.max(0.1, spell.damage() * Math.max(0.0, action.params().getDouble("damage-multiplier", 1.0)))
+            );
+            case "spawn-ground-impact" -> spawnGroundImpact(caster.getLocation());
+            case "teleport-near-target" -> {
+                Location to = target.getLocation().clone()
+                        .add(randomOffset(Math.max(0.1, action.params().getDouble("offset-xz", 1.5))),
+                                action.params().getDouble("offset-y", 0.0),
+                                randomOffset(Math.max(0.1, action.params().getDouble("offset-xz", 1.5))));
+                caster.teleport(to);
+            }
+            case "spawn-smoke-at-caster" -> spawnSmoke(caster.getLocation(), Math.max(1, action.params().getInt("amount", 20)));
+            case "explosion-at-target" -> {
+                Location impact = target.getLocation().clone();
+                if (impact.getWorld() != null) {
+                    impact.getWorld().spawnParticle(org.bukkit.Particle.EXPLOSION, impact.clone().add(0.0, 0.2, 0.0), 1);
+                    impact.getWorld().spawnParticle(org.bukkit.Particle.SMOKE, impact.clone().add(0.0, 0.2, 0.0), 20, 0.45, 0.2, 0.45, 0.02);
+                    impact.getWorld().playSound(impact, Sound.ENTITY_GENERIC_EXPLODE, 0.8f, 1.0f);
+                    for (Player player : getNearbyPlayers(impact, Math.max(0.5, action.params().getDouble("radius", 5.0)))) {
+                        player.damage(Math.max(0.1, spell.damage() * Math.max(0.0, action.params().getDouble("damage-multiplier", 1.5))), caster);
+                    }
+                }
+            }
+            case "heal-nearby-allied-custom-mobs" -> {
+                String prefix = action.params().getString("id-prefix", "goblin_").toLowerCase(Locale.ROOT);
+                double healAmount = Math.max(0.1, action.params().getDouble("heal-amount", spell.damage()));
+                for (LivingEntity ally : getNearbyAlliedCustomMobs(
+                        caster,
+                        Math.max(0.5, action.params().getDouble("radius", 20.0)),
+                        def -> def.id().toLowerCase(Locale.ROOT).startsWith(prefix),
+                        Math.max(1, action.params().getInt("limit", 4)))) {
+                    var maxHealthAttribute = AttributeUtil.resolve("GENERIC_MAX_HEALTH", "MAX_HEALTH");
+                    double maxHealth = maxHealthAttribute != null && ally.getAttribute(maxHealthAttribute) != null
+                            ? ally.getAttribute(maxHealthAttribute).getValue()
+                            : ally.getHealth();
+                    ally.setHealth(Math.min(maxHealth, ally.getHealth() + healAmount));
+                    ally.getWorld().spawnParticle(org.bukkit.Particle.DUST_COLOR_TRANSITION, ally.getLocation().add(0.0, 0.9, 0.0),
+                            16, 0.3, 0.6, 0.3, 0.0,
+                            new org.bukkit.Particle.DustTransition(org.bukkit.Color.fromRGB(0xE9FF26), org.bukkit.Color.fromRGB(0x2BFF99), 0.8f));
+                }
+            }
             default -> {
             }
         }
+    }
+
+    private List<Double> parseDamageList(String token, double spellDamageBase) {
+        if (token == null || token.isBlank()) {
+            return List.of(spellDamageBase);
+        }
+        List<Double> values = new ArrayList<>();
+        for (String part : token.split(",")) {
+            if (part == null || part.isBlank()) {
+                continue;
+            }
+            try {
+                values.add(Math.max(0.0, Double.parseDouble(part.trim()) * spellDamageBase));
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        return values.isEmpty() ? List.of(spellDamageBase) : values;
     }
 
     private Sound parseSound(String token) {
@@ -380,79 +455,6 @@ public class CustomMobSpellController {
         launchProjectile(instance, caster, target, spawnResult.anchor(), direction.normalize(), spell);
     }
 
-    private void castCursedKnightAttackOne(Mob caster, Player target, CustomMobDefinition.CustomMobSpell spell) {
-        if (!playNamedAnimation(caster, "attack_1")) {
-            ModelEngineUtil.playBestAttackAnimation(caster);
-        }
-        caster.setVelocity(new Vector(0, caster.getVelocity().getY(), 0));
-        runLater(18L, () -> {
-            if (!isCombatContextValid(caster, target)) {
-                return;
-            }
-            playKnightImpactSounds(caster.getLocation());
-            dealConeDamageToPlayers(caster, spell.damage(), 5.0, 180.0, 0.15, 0.05);
-        });
-        runLater(30L, () -> {
-            if (!isCombatContextValid(caster, target)) {
-                return;
-            }
-            playKnightImpactSounds(caster.getLocation());
-            dealConeDamageToPlayers(caster, spell.damage(), 5.0, 180.0, 0.28, 0.22);
-            throwPlayersFrom(caster.getLocation(), 5.0, 1.15, 0.48);
-        });
-    }
-
-    private void castCursedKnightAttackTwo(Mob caster, Player target, CustomMobDefinition.CustomMobSpell spell) {
-        if (!playNamedAnimation(caster, "attack_2")) {
-            ModelEngineUtil.playBestAttackAnimation(caster);
-        }
-        caster.setVelocity(new Vector(0, caster.getVelocity().getY(), 0));
-        runLater(40L, () -> {
-            if (!isCombatContextValid(caster, target)) {
-                return;
-            }
-            Location center = caster.getLocation().clone();
-            playKnightImpactSounds(center);
-            dealConeDamageToPlayers(caster, spell.damage(), 5.0, 180.0, 0.34, 0.24);
-            spawnRingVfx(center, VFX_CURSED_FLAMES, 14, 4.0);
-            scheduleAreaPulseSeries(caster, center.clone().add(0.0, 0.1, 0.0),
-                    List.of(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
-                    15L, 1.5, true, 100, null);
-            throwPlayersFrom(center, 5.0, 1.35, 0.48);
-        });
-    }
-
-    private void castCursedKnightAttackThree(Mob caster, Player target, CustomMobDefinition.CustomMobSpell spell) {
-        if (!isCombatContextValid(caster, target)) {
-            return;
-        }
-        if (!playNamedAnimation(caster, "attack_3")) {
-            ModelEngineUtil.playBestShootAnimation(caster);
-        }
-        caster.setVelocity(new Vector(0, caster.getVelocity().getY(), 0));
-        playKnightCastSounds(caster.getLocation());
-        runLater(12L, () -> {
-            if (!isCombatContextValid(caster, target)) {
-                return;
-            }
-            for (int i = 0; i < 5; i++) {
-                long delay = i * 2L;
-                runLater(delay, () -> spawnRayBurst(caster, spell));
-            }
-        });
-    }
-
-    private void spawnRayBurst(Mob caster, CustomMobDefinition.CustomMobSpell spell) {
-        if (caster == null || caster.isDead() || caster.getWorld() == null) {
-            return;
-        }
-        Location strike = randomRingLocation(caster.getLocation(), 4.0, 10.0);
-        spawnTemporaryModelVfx(strike, VFX_CURSED_RAY, VFX_LIFETIME_TICKS);
-        runLater(12L, () -> scheduleAreaPulseSeries(caster, strike,
-                List.of(Math.max(0.1, spell.damage()), 1.0, 1.0, 1.0, 1.0),
-                10L, 2.0, true, 100, () -> playRayHum(strike)));
-    }
-
     private void castCursedMageBurst(Mob caster,
                                      Player target,
                                      CustomMobDefinition.CustomMobSpell spell,
@@ -483,128 +485,6 @@ public class CustomMobSpellController {
                     playMageCastSounds(caster.getLocation());
                     launchModelProjectile(caster, target, vfxModelId, speed, damage, burnTicks, true);
                 });
-            }
-        });
-    }
-
-    private void castGoblinWarriorSwordSlam(Mob caster, Player target, CustomMobDefinition.CustomMobSpell spell) {
-        playNamedAnimation(caster, "heavy_swing");
-        runLater(37L, () -> {
-            if (!isCombatContextValid(caster, target)) {
-                return;
-            }
-            faceTarget(caster, target);
-            dashTowardTarget(caster, target, 0.52);
-            caster.getWorld().playSound(caster.getLocation(), Sound.ENTITY_WITCH_THROW, 0.75f, 0.2f);
-            caster.getWorld().playSound(caster.getLocation(), Sound.ITEM_MACE_SMASH_GROUND, 0.7f, 0.8f);
-            dealConeDamageToPlayers(caster, Math.max(0.1, spell.damage()), 3.2, 90.0, 0.18, 0.12);
-            spawnGroundImpact(caster.getLocation());
-        });
-    }
-
-    private void castGoblinWarriorShieldRush(Mob caster, Player target, CustomMobDefinition.CustomMobSpell spell) {
-        playNamedAnimation(caster, "shield_charge");
-        runLater(21L, () -> {
-            if (!isCombatContextValid(caster, target)) {
-                return;
-            }
-            caster.getWorld().playSound(caster.getLocation(), Sound.ENTITY_ILLUSIONER_AMBIENT, 0.75f, 0.8f);
-            startRush(caster, target, 32, 0.35, 2.0, Math.max(0.1, spell.damage()));
-        });
-    }
-
-    private void castGoblinAssassinShadowstep(Mob caster, Player target) {
-        if (!isCombatContextValid(caster, target)) {
-            return;
-        }
-        Location to = target.getLocation().clone().add(randomOffset(1.5), 0.0, randomOffset(1.5));
-        caster.teleport(to);
-        spawnSmoke(caster.getLocation(), 20);
-        caster.getWorld().playSound(caster.getLocation(), Sound.BLOCK_TRIAL_SPAWNER_SPAWN_MOB, 0.8f, 1.6f);
-    }
-
-    private void castGoblinAssassinStab(Mob caster, Player target, CustomMobDefinition.CustomMobSpell spell) {
-        playNamedAnimation(caster, "stab");
-        runLater(9L, () -> {
-            if (!isCombatContextValid(caster, target)) {
-                return;
-            }
-            faceTarget(caster, target);
-            dashTowardTarget(caster, target, 0.55);
-            caster.getWorld().playSound(caster.getLocation(), Sound.ENTITY_WITCH_THROW, 0.75f, 1.1f);
-            dealConeDamageToPlayers(caster, Math.max(0.1, spell.damage()), 2.2, 55.0, 0.22, 0.08);
-            caster.getWorld().playSound(caster.getLocation(), Sound.ITEM_TRIDENT_HIT, 0.75f, 0.8f);
-        });
-    }
-
-    private void castGoblinAssassinSlash(Mob caster, Player target, CustomMobDefinition.CustomMobSpell spell) {
-        playNamedAnimation(caster, "slash");
-        runLater(9L, () -> {
-            if (!isCombatContextValid(caster, target)) {
-                return;
-            }
-            faceTarget(caster, target);
-            dashTowardTarget(caster, target, 0.52);
-            caster.getWorld().playSound(caster.getLocation(), Sound.ENTITY_WITCH_THROW, 0.75f, 1.1f);
-            dealConeDamageToPlayers(caster, Math.max(0.1, spell.damage() * 0.75), 2.0, 70.0, 0.2, 0.07);
-        });
-        runLater(19L, () -> {
-            if (!isCombatContextValid(caster, target)) {
-                return;
-            }
-            faceTarget(caster, target);
-            dashTowardTarget(caster, target, 0.52);
-            caster.getWorld().playSound(caster.getLocation(), Sound.ENTITY_WITCH_THROW, 0.75f, 1.1f);
-            dealConeDamageToPlayers(caster, Math.max(0.1, spell.damage() * 0.75), 2.0, 70.0, 0.2, 0.07);
-            caster.getWorld().playSound(caster.getLocation(), Sound.ITEM_TRIDENT_HIT, 0.75f, 0.8f);
-        });
-    }
-
-    private void castGoblinArcherThrowBomb(Mob caster, Player target, CustomMobDefinition.CustomMobSpell spell) {
-        playNamedAnimation(caster, "throw_bomb");
-        caster.getWorld().playSound(caster.getLocation(), Sound.ENTITY_WITCH_CELEBRATE, 0.75f, 1.7f);
-        runLater(22L, () -> {
-            if (!isCombatContextValid(caster, target)) {
-                return;
-            }
-            faceTarget(caster, target);
-            caster.getWorld().playSound(caster.getLocation(), Sound.ENTITY_WITCH_THROW, 0.8f, 1.0f);
-            Location impact = target.getLocation().clone();
-            runLater(20L, () -> {
-                if (impact.getWorld() == null) {
-                    return;
-                }
-                impact.getWorld().spawnParticle(org.bukkit.Particle.EXPLOSION, impact.clone().add(0.0, 0.2, 0.0), 1);
-                impact.getWorld().spawnParticle(org.bukkit.Particle.SMOKE, impact.clone().add(0.0, 0.2, 0.0), 20, 0.45, 0.2, 0.45, 0.02);
-                impact.getWorld().playSound(impact, Sound.ENTITY_GENERIC_EXPLODE, 0.8f, 1.0f);
-                for (Player player : getNearbyPlayers(impact, 5.0)) {
-                    player.damage(Math.max(0.1, spell.damage() * 1.5), caster);
-                }
-            });
-        });
-    }
-
-    private void castGoblinShamanHeal(Mob caster, CustomMobDefinition.CustomMobSpell spell) {
-        if (caster == null || caster.isDead() || caster.getWorld() == null) {
-            return;
-        }
-        playNamedAnimation(caster, "heal");
-        caster.getWorld().playSound(caster.getLocation(), Sound.ENTITY_ILLUSIONER_AMBIENT, 0.75f, 0.8f);
-        runLater(21L, () -> {
-            if (caster.isDead() || caster.getWorld() == null) {
-                return;
-            }
-            caster.getWorld().playSound(caster.getLocation(), Sound.ENTITY_ILLUSIONER_PREPARE_MIRROR, 0.85f, 1.3f);
-            for (LivingEntity ally : getNearbyAlliedCustomMobs(caster, 20.0, def -> def.id().toLowerCase().startsWith("goblin_"), 4)) {
-                double healAmount = Math.max(4.0, spell.damage());
-                var maxHealthAttribute = AttributeUtil.resolve("GENERIC_MAX_HEALTH", "MAX_HEALTH");
-                double maxHealth = maxHealthAttribute != null && ally.getAttribute(maxHealthAttribute) != null
-                        ? ally.getAttribute(maxHealthAttribute).getValue()
-                        : ally.getHealth();
-                ally.setHealth(Math.min(maxHealth, ally.getHealth() + healAmount));
-                ally.getWorld().spawnParticle(org.bukkit.Particle.DUST_COLOR_TRANSITION, ally.getLocation().add(0.0, 0.9, 0.0),
-                        16, 0.3, 0.6, 0.3, 0.0,
-                        new org.bukkit.Particle.DustTransition(org.bukkit.Color.fromRGB(0xE9FF26), org.bukkit.Color.fromRGB(0x2BFF99), 0.8f));
             }
         });
     }

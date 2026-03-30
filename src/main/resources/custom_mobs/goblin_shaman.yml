@@ -32,6 +32,7 @@ spells:
     burn-ticks: 80
   heal:
     id: goblin_shaman_heal
+    script: goblin_shaman_heal
     selection-group: support
     selection-weight: 1.0
     interval-ticks: 100
