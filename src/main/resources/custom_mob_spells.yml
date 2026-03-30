@@ -1,0 +1,36 @@
+spells:
+  cursed_archer_shoot_1:
+    actions:
+      - type: play-animation
+        animation: shoot_1
+      - type: face-target
+      - type: delay
+        ticks: 20
+      - type: face-target
+      - type: archer-shoot-sound
+      - type: shoot-arrow
+
+  cursed_archer_shoot_2:
+    actions:
+      - type: play-animation
+        animation: shoot_2
+      - type: delay
+        ticks: 26
+      - type: archer-shoot-sound
+      - type: arrow-rain
+        count: 8
+        interval-ticks: 2
+        hit-damage-multiplier: 0.55
+
+  cursed_archer_shoot_3:
+    actions:
+      - type: play-animation
+        animation: shoot_3
+      - type: face-target
+      - type: delay
+        ticks: 45
+      - type: archer-special-sound
+      - type: launch-model-projectile
+        model: cursed_arrow_vfx
+        speed-min: 1.5
+        use-impact-fx: true

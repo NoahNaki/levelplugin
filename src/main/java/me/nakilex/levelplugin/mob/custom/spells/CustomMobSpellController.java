@@ -79,12 +79,14 @@ public class CustomMobSpellController {
 
     private final Main plugin;
     private final CustomMobManager mobManager;
+    private final CustomMobSpellScriptEngine spellScriptEngine;
     private final Map<UUID, Map<String, Long>> cooldowns = new HashMap<>();
     private final Map<UUID, Long> globalCooldowns = new HashMap<>();
 
     public CustomMobSpellController(Main plugin, CustomMobManager mobManager) {
         this.plugin = plugin;
         this.mobManager = mobManager;
+        this.spellScriptEngine = new CustomMobSpellScriptEngine(plugin);
         startTicker();
     }
 
@@ -216,6 +218,11 @@ public class CustomMobSpellController {
     }
 
     private void castSpell(CustomMobInstance instance, Mob caster, Player target, CustomMobDefinition.CustomMobSpell spell) {
+        CustomMobSpellScriptEngine.SpellExecutionContext scriptContext =
+                new CustomMobSpellScriptEngine.SpellExecutionContext(caster, target, spell);
+        if (spellScriptEngine.execute(spell.id(), scriptContext, this::handleScriptAction)) {
+            return;
+        }
         if (SPELL_MAGE_FIREBALL_BASIC.equals(spell.id())) {
             castMageFireball(instance, caster, target, spell);
             return;
@@ -234,18 +241,6 @@ public class CustomMobSpellController {
         }
         if (SPELL_CURSED_KNIGHT_ATTACK_3.equals(spell.id())) {
             castCursedKnightAttackThree(caster, target, spell);
-            return;
-        }
-        if (SPELL_CURSED_ARCHER_SHOOT_1.equals(spell.id())) {
-            castCursedArcherShootOne(caster, target, spell);
-            return;
-        }
-        if (SPELL_CURSED_ARCHER_SHOOT_2.equals(spell.id())) {
-            castCursedArcherShootTwo(caster, target, spell);
-            return;
-        }
-        if (SPELL_CURSED_ARCHER_SHOOT_3.equals(spell.id())) {
-            castCursedArcherShootThree(caster, target, spell);
             return;
         }
         if (SPELL_CURSED_MAGE_SPELL_1.equals(spell.id())) {
@@ -294,6 +289,38 @@ public class CustomMobSpellController {
         }
         if (SPELL_GOBLIN_SHAMAN_HEAL.equals(spell.id())) {
             castGoblinShamanHeal(caster, spell);
+        }
+    }
+
+    private void handleScriptAction(CustomMobSpellScriptEngine.SpellActionDef action,
+                                    CustomMobSpellScriptEngine.SpellExecutionContext context) {
+        if (action == null || context == null || context.caster() == null || context.target() == null) {
+            return;
+        }
+        Mob caster = context.caster();
+        Player target = context.target();
+        CustomMobDefinition.CustomMobSpell spell = context.spell();
+        switch (action.type()) {
+            case "play-animation" -> playNamedAnimation(caster, action.params().getString("animation", ""));
+            case "face-target" -> faceTarget(caster, target);
+            case "archer-shoot-sound" -> playArcherShootSounds(caster.getLocation());
+            case "archer-special-sound" -> playArcherSpecialSounds(caster.getLocation());
+            case "shoot-arrow" -> castArrowShot(caster, target, spell);
+            case "arrow-rain" -> {
+                int count = Math.max(1, action.params().getInt("count", 8));
+                long interval = Math.max(1L, action.params().getLong("interval-ticks", 2L));
+                double multiplier = Math.max(0.1, action.params().getDouble("hit-damage-multiplier", 0.55));
+                startArrowRainVolley(caster, target, count, interval, Math.max(0.1, spell.damage() * multiplier));
+            }
+            case "launch-model-projectile" -> {
+                String model = action.params().getString("model", VFX_CURSED_ARROW);
+                double minSpeed = Math.max(0.1, action.params().getDouble("speed-min", 1.5));
+                boolean useImpactFx = action.params().getBoolean("use-impact-fx", true);
+                launchModelProjectile(caster, target, model, Math.max(minSpeed, spell.speed()),
+                        Math.max(0.1, spell.damage()), spell.burnTicks(), useImpactFx);
+            }
+            default -> {
+            }
         }
     }
 
@@ -401,44 +428,6 @@ public class CustomMobSpellController {
         runLater(12L, () -> scheduleAreaPulseSeries(caster, strike,
                 List.of(Math.max(0.1, spell.damage()), 1.0, 1.0, 1.0, 1.0),
                 10L, 2.0, true, 100, () -> playRayHum(strike)));
-    }
-
-    private void castCursedArcherShootOne(Mob caster, Player target, CustomMobDefinition.CustomMobSpell spell) {
-        playNamedAnimation(caster, "shoot_1");
-        faceTarget(caster, target);
-        runLater(20L, () -> {
-            if (!isCombatContextValid(caster, target)) {
-                return;
-            }
-            faceTarget(caster, target);
-            playArcherShootSounds(caster.getLocation());
-            castArrowShot(caster, target, spell);
-        });
-    }
-
-    private void castCursedArcherShootTwo(Mob caster, Player target, CustomMobDefinition.CustomMobSpell spell) {
-        playNamedAnimation(caster, "shoot_2");
-        runLater(26L, () -> {
-            if (!isCombatContextValid(caster, target)) {
-                return;
-            }
-            playArcherShootSounds(caster.getLocation());
-            startArrowRainVolley(caster, target, Math.max(6, (int) Math.round(spell.damage())), 2L,
-                    Math.max(0.1, spell.damage() * 0.55));
-        });
-    }
-
-    private void castCursedArcherShootThree(Mob caster, Player target, CustomMobDefinition.CustomMobSpell spell) {
-        playNamedAnimation(caster, "shoot_3");
-        faceTarget(caster, target);
-        runLater(45L, () -> {
-            if (!isCombatContextValid(caster, target)) {
-                return;
-            }
-            playArcherSpecialSounds(caster.getLocation());
-            launchModelProjectile(caster, target, VFX_CURSED_ARROW, Math.max(1.5, spell.speed()),
-                    Math.max(0.1, spell.damage()), spell.burnTicks(), true);
-        });
     }
 
     private void castCursedMageSpellOne(Mob caster, Player target, CustomMobDefinition.CustomMobSpell spell) {
