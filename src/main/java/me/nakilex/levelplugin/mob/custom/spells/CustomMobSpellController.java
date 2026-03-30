@@ -597,8 +597,14 @@ public class CustomMobSpellController {
         boolean played = ModelEngineUtil.playAnimationByName(caster, animationName, false);
         if (played) {
             ModelEngineUtil.holdActionState(caster, 600L);
+            return true;
         }
-        return played;
+        if (animationName != null && !animationName.isBlank()) {
+            return ModelEngineUtil.triggerActionState(caster,
+                    List.of(animationName, "shoot", "attack", "cast", "slash", "swing"),
+                    600L);
+        }
+        return false;
     }
 
     private String inferAnimationForSpell(String spellId, String fallback) {
