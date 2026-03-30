@@ -24,7 +24,13 @@ public record CustomMobDefinition(String id,
                                  double damage,
                                  double range,
                                  double speed,
-                                 int burnTicks) {
+                                 int burnTicks,
+                                 String selectionGroup,
+                                 double selectionWeight,
+                                 double minRange,
+                                 double maxRange,
+                                 boolean requireLineOfSight,
+                                 int gcdTicks) {
     }
 
     public record LevelRange(int min, int max) {
@@ -148,7 +154,26 @@ public record CustomMobDefinition(String id,
             double range = Math.max(1.0, node.getDouble("range", 20.0));
             double speed = Math.max(0.1, node.getDouble("speed", 0.9));
             int burnTicks = Math.max(0, node.getInt("burn-ticks", 0));
-            spells.add(new CustomMobSpell(id, intervalTicks, damage, range, speed, burnTicks));
+            String selectionGroup = node.getString("selection-group", "").trim().toLowerCase(java.util.Locale.ROOT);
+            double selectionWeight = Math.max(0.01, node.getDouble("selection-weight", 1.0));
+            double minRange = Math.max(0.0, node.getDouble("min-range", 0.0));
+            double maxRange = Math.max(minRange, node.getDouble("max-range", range));
+            boolean requireLineOfSight = node.getBoolean("require-line-of-sight", false);
+            int gcdTicks = Math.max(0, node.getInt("gcd-ticks", 0));
+            spells.add(new CustomMobSpell(
+                    id,
+                    intervalTicks,
+                    damage,
+                    range,
+                    speed,
+                    burnTicks,
+                    selectionGroup,
+                    selectionWeight,
+                    minRange,
+                    maxRange,
+                    requireLineOfSight,
+                    gcdTicks
+            ));
         }
         return spells;
     }
