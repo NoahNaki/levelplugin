@@ -14,13 +14,45 @@ stats:
   technique: 18
 
 spells:
-  ranged_arrow_basic:
-    id: ranged_arrow_basic
-    interval-ticks: 30
+  shoot_1:
+    id: cursed_archer_shoot_1
+    selection-group: attack
+    selection-weight: 2.0
+    interval-ticks: 50
+    gcd-ticks: 50
     damage: 8.0
-    range: 28.0
+    min-range: 0.0
+    max-range: 30.0
+    require-line-of-sight: true
+    range: 30.0
     speed: 2.0
     burn-ticks: 0
+  shoot_2:
+    id: cursed_archer_shoot_2
+    selection-group: attack
+    selection-weight: 1.0
+    interval-ticks: 72
+    gcd-ticks: 72
+    damage: 8.0
+    min-range: 0.0
+    max-range: 30.0
+    require-line-of-sight: true
+    range: 30.0
+    speed: 1.0
+    burn-ticks: 0
+  shoot_3:
+    id: cursed_archer_shoot_3
+    selection-group: attack
+    selection-weight: 1.0
+    interval-ticks: 120
+    gcd-ticks: 120
+    damage: 12.0
+    min-range: 0.0
+    max-range: 30.0
+    require-line-of-sight: true
+    range: 30.0
+    speed: 16.0
+    burn-ticks: 60
 
 options:
   movement-speed: 0.25

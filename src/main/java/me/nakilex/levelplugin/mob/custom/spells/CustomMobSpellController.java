@@ -36,9 +36,20 @@ public class CustomMobSpellController {
     private static final String SPELL_CURSED_KNIGHT_ATTACK_1 = "cursed_knight_attack_1";
     private static final String SPELL_CURSED_KNIGHT_ATTACK_2 = "cursed_knight_attack_2";
     private static final String SPELL_CURSED_KNIGHT_ATTACK_3 = "cursed_knight_attack_3";
+    private static final String SPELL_CURSED_ARCHER_SHOOT_1 = "cursed_archer_shoot_1";
+    private static final String SPELL_CURSED_ARCHER_SHOOT_2 = "cursed_archer_shoot_2";
+    private static final String SPELL_CURSED_ARCHER_SHOOT_3 = "cursed_archer_shoot_3";
+    private static final String SPELL_CURSED_MAGE_SPELL_1 = "cursed_mage_spell_1";
+    private static final String SPELL_CURSED_MAGE_SPELL_2 = "cursed_mage_spell_2";
+    private static final String SPELL_CURSED_MAGE_SPELL_3 = "cursed_mage_spell_3";
     private static final double HIT_RADIUS = 0.45;
     private static final String VFX_CURSED_FLAMES = "cursed_flames_vfx";
     private static final String VFX_CURSED_RAY = "cursed_ray_vfx";
+    private static final String VFX_CURSED_ARROW_RAIN = "cursed_arrow_rain_vfx";
+    private static final String VFX_CURSED_ARROW = "cursed_arrow_vfx";
+    private static final String VFX_CURSED_CAST = "cursed_cast_vfx";
+    private static final String VFX_CURSED_SLASH = "cursed_slash_vfx";
+    private static final String VFX_CURSED_HOLLOW = "cursed_hollow_vfx";
     private static final long VFX_LIFETIME_TICKS = 30L;
 
     private final Main plugin;
@@ -173,6 +184,30 @@ public class CustomMobSpellController {
         }
         if (SPELL_CURSED_KNIGHT_ATTACK_3.equals(spell.id())) {
             castCursedKnightAttackThree(caster, target, spell);
+            return;
+        }
+        if (SPELL_CURSED_ARCHER_SHOOT_1.equals(spell.id())) {
+            castCursedArcherShootOne(caster, target, spell);
+            return;
+        }
+        if (SPELL_CURSED_ARCHER_SHOOT_2.equals(spell.id())) {
+            castCursedArcherShootTwo(caster, target, spell);
+            return;
+        }
+        if (SPELL_CURSED_ARCHER_SHOOT_3.equals(spell.id())) {
+            castCursedArcherShootThree(caster, target, spell);
+            return;
+        }
+        if (SPELL_CURSED_MAGE_SPELL_1.equals(spell.id())) {
+            castCursedMageSpellOne(caster, target, spell);
+            return;
+        }
+        if (SPELL_CURSED_MAGE_SPELL_2.equals(spell.id())) {
+            castCursedMageSpellTwo(caster, target, spell);
+            return;
+        }
+        if (SPELL_CURSED_MAGE_SPELL_3.equals(spell.id())) {
+            castCursedMageSpellThree(caster, target, spell);
         }
     }
 
@@ -280,6 +315,92 @@ public class CustomMobSpellController {
         }
     }
 
+    private void castCursedArcherShootOne(Mob caster, Player target, CustomMobDefinition.CustomMobSpell spell) {
+        playNamedAnimation(caster, "shoot_1");
+        faceTarget(caster, target);
+        runLater(20L, () -> {
+            if (!isCombatContextValid(caster, target)) {
+                return;
+            }
+            faceTarget(caster, target);
+            playArcherShootSounds(caster.getLocation());
+            castArrowShot(caster, target, spell);
+        });
+    }
+
+    private void castCursedArcherShootTwo(Mob caster, Player target, CustomMobDefinition.CustomMobSpell spell) {
+        playNamedAnimation(caster, "shoot_2");
+        runLater(26L, () -> {
+            if (!isCombatContextValid(caster, target)) {
+                return;
+            }
+            playArcherShootSounds(caster.getLocation());
+            spawnArrowRainVfx(target.getLocation(), 20.0);
+        });
+    }
+
+    private void castCursedArcherShootThree(Mob caster, Player target, CustomMobDefinition.CustomMobSpell spell) {
+        playNamedAnimation(caster, "shoot_3");
+        faceTarget(caster, target);
+        runLater(45L, () -> {
+            if (!isCombatContextValid(caster, target)) {
+                return;
+            }
+            playArcherSpecialSounds(caster.getLocation());
+            launchModelProjectile(caster, target, VFX_CURSED_ARROW, Math.max(1.35, spell.speed()),
+                    Math.max(0.1, spell.damage()), spell.burnTicks(), true);
+        });
+    }
+
+    private void castCursedMageSpellOne(Mob caster, Player target, CustomMobDefinition.CustomMobSpell spell) {
+        castCursedMageBurst(caster, target, spell, "attack_1", 20L, 2, 15L, VFX_CURSED_CAST,
+                Math.max(0.1, spell.damage()), Math.max(0, spell.burnTicks()), Math.max(1.15, spell.speed()));
+    }
+
+    private void castCursedMageSpellTwo(Mob caster, Player target, CustomMobDefinition.CustomMobSpell spell) {
+        castCursedMageBurst(caster, target, spell, "attack_1", 20L, 2, 15L, VFX_CURSED_SLASH,
+                Math.max(0.1, spell.damage()), Math.max(0, spell.burnTicks()), Math.max(1.2, spell.speed()));
+    }
+
+    private void castCursedMageSpellThree(Mob caster, Player target, CustomMobDefinition.CustomMobSpell spell) {
+        castCursedMageBurst(caster, target, spell, "holow_attack", 40L, 1, 1L, VFX_CURSED_HOLLOW,
+                Math.max(0.1, spell.damage() * 2.0), Math.max(0, spell.burnTicks()), Math.max(0.8, spell.speed() * 0.7));
+    }
+
+    private void castCursedMageBurst(Mob caster,
+                                     Player target,
+                                     CustomMobDefinition.CustomMobSpell spell,
+                                     String animation,
+                                     long windupTicks,
+                                     int projectiles,
+                                     long projectileIntervalTicks,
+                                     String vfxModelId,
+                                     double damage,
+                                     int burnTicks,
+                                     double speed) {
+        if (!isCombatContextValid(caster, target)) {
+            return;
+        }
+        playNamedAnimation(caster, animation);
+        faceTarget(caster, target);
+        runLater(windupTicks, () -> {
+            if (!isCombatContextValid(caster, target)) {
+                return;
+            }
+            for (int i = 0; i < Math.max(1, projectiles); i++) {
+                long delay = i * Math.max(1L, projectileIntervalTicks);
+                runLater(delay, () -> {
+                    if (!isCombatContextValid(caster, target)) {
+                        return;
+                    }
+                    faceTarget(caster, target);
+                    playMageCastSounds(caster.getLocation());
+                    launchModelProjectile(caster, target, vfxModelId, speed, damage, burnTicks, true);
+                });
+            }
+        });
+    }
+
     private void launchProjectile(CustomMobInstance instance,
                                   Mob caster,
                                   Player intendedTarget,
@@ -367,6 +488,18 @@ public class CustomMobSpellController {
         Bukkit.getScheduler().runTaskLater(plugin, runnable, Math.max(0L, ticks));
     }
 
+    private void faceTarget(Mob caster, Player target) {
+        if (!isCombatContextValid(caster, target)) {
+            return;
+        }
+        Location from = caster.getEyeLocation();
+        Vector direction = target.getEyeLocation().toVector().subtract(from.toVector());
+        if (direction.lengthSquared() <= 0.0001) {
+            return;
+        }
+        ModelEngineUtil.orientEntityToVector(caster, direction);
+    }
+
     private void playKnightImpactSounds(Location at) {
         if (at == null || at.getWorld() == null) {
             return;
@@ -384,6 +517,120 @@ public class CustomMobSpellController {
         at.getWorld().playSound(at, Sound.ENTITY_EVOKER_CAST_SPELL, 1.0f, 0.5f);
         at.getWorld().playSound(at, Sound.ENTITY_ZOMBIE_BREAK_WOODEN_DOOR, 0.85f, 0.95f);
         at.getWorld().playSound(at, Sound.ITEM_AXE_STRIP, 1.0f, 0.8f);
+    }
+
+    private void playArcherShootSounds(Location at) {
+        if (at == null || at.getWorld() == null) {
+            return;
+        }
+        at.getWorld().playSound(at, Sound.ITEM_CROSSBOW_SHOOT, 0.6f, 1.2f);
+        at.getWorld().playSound(at, Sound.ENTITY_ARROW_SHOOT, 1.0f, 1.0f);
+        at.getWorld().playSound(at, Sound.ENTITY_GENERIC_SWIM, 0.4f, 0.9f);
+    }
+
+    private void playArcherSpecialSounds(Location at) {
+        if (at == null || at.getWorld() == null) {
+            return;
+        }
+        at.getWorld().playSound(at, Sound.ENTITY_EVOKER_CAST_SPELL, 2.0f, 0.5f);
+        at.getWorld().playSound(at, Sound.ENTITY_EVOKER_CAST_SPELL, 0.8f, 0.9f);
+        at.getWorld().playSound(at, Sound.ENTITY_ILLUSIONER_MIRROR_MOVE, 0.6f, 1.0f);
+        at.getWorld().playSound(at, Sound.BLOCK_END_PORTAL_FRAME_FILL, 0.7f, 1.2f);
+        at.getWorld().playSound(at, Sound.ENTITY_BLAZE_SHOOT, 0.9f, 0.8f);
+        at.getWorld().playSound(at, Sound.BLOCK_FIRE_AMBIENT, 0.8f, 1.1f);
+        at.getWorld().playSound(at, Sound.ENTITY_GHAST_SHOOT, 0.7f, 0.6f);
+        at.getWorld().playSound(at, Sound.ITEM_FIRECHARGE_USE, 1.1f, 0.9f);
+    }
+
+    private void playMageCastSounds(Location at) {
+        if (at == null || at.getWorld() == null) {
+            return;
+        }
+        at.getWorld().playSound(at, Sound.ENTITY_EVOKER_CAST_SPELL, 2.0f, 0.5f);
+        at.getWorld().playSound(at, Sound.ENTITY_EVOKER_CAST_SPELL, 0.8f, 0.9f);
+        at.getWorld().playSound(at, Sound.ENTITY_ILLUSIONER_MIRROR_MOVE, 0.6f, 1.0f);
+        at.getWorld().playSound(at, Sound.BLOCK_END_PORTAL_FRAME_FILL, 0.7f, 1.2f);
+    }
+
+    private void spawnArrowRainVfx(Location center, double radius) {
+        if (center == null || center.getWorld() == null || radius <= 0.0) {
+            return;
+        }
+        int spawned = 0;
+        for (Player player : getNearbyPlayers(center, radius)) {
+            if (spawned >= 6) {
+                break;
+            }
+            Location drop = player.getLocation().clone().add(0.0, 0.1, 0.0);
+            spawnTemporaryModelVfx(drop, VFX_CURSED_ARROW_RAIN, 25L);
+            spawned++;
+        }
+        if (spawned == 0) {
+            spawnTemporaryModelVfx(center, VFX_CURSED_ARROW_RAIN, 25L);
+        }
+    }
+
+    private void launchModelProjectile(Mob caster,
+                                       LivingEntity intendedTarget,
+                                       String modelId,
+                                       double speed,
+                                       double damage,
+                                       int burnTicks,
+                                       boolean useImpactFx) {
+        if (caster == null || caster.getWorld() == null || intendedTarget == null || intendedTarget.isDead()) {
+            return;
+        }
+        Location origin = caster.getEyeLocation().clone().add(0.0, -0.1, 0.0);
+        Vector direction = intendedTarget.getEyeLocation().toVector().subtract(origin.toVector());
+        if (direction.lengthSquared() <= 0.0001) {
+            return;
+        }
+        Vector step = direction.normalize().multiply(Math.max(0.15, speed * 0.1));
+        ArmorStand projectile = origin.getWorld().spawn(origin, ArmorStand.class, stand -> {
+            stand.setInvisible(true);
+            stand.setGravity(false);
+            stand.setMarker(true);
+            stand.setInvulnerable(true);
+            stand.setSilent(true);
+            stand.setPersistent(false);
+            stand.setCollidable(false);
+        });
+        ModelEngineUtil.applyFirstAvailableModel(projectile, ModelEngineUtil.buildModelCandidates(modelId), plugin);
+        double maxDistanceSq = 38.0 * 38.0;
+        Location start = projectile.getLocation().clone();
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                if (!projectile.isValid() || caster.isDead() || intendedTarget.isDead()) {
+                    removeProjectile(projectile);
+                    cancel();
+                    return;
+                }
+                Location current = projectile.getLocation();
+                if (current.distanceSquared(start) >= maxDistanceSq) {
+                    removeProjectile(projectile);
+                    cancel();
+                    return;
+                }
+                Location next = current.clone().add(step);
+                projectile.teleport(next);
+                ModelEngineUtil.orientEntityToVector(projectile, step);
+                LivingEntity hit = findTargetAt(next, caster, projectile);
+                if (hit == null) {
+                    return;
+                }
+                if (useImpactFx) {
+                    SpellEffectUtil.spawnFireImpactEffect(next);
+                    next.getWorld().playSound(next, Sound.BLOCK_FIRE_EXTINGUISH, 0.85f, 0.75f);
+                }
+                hit.damage(Math.max(0.1, damage), caster);
+                if (burnTicks > 0) {
+                    hit.setFireTicks(Math.max(hit.getFireTicks(), burnTicks));
+                }
+                removeProjectile(projectile);
+                cancel();
+            }
+        }.runTaskTimer(plugin, 0L, 1L);
     }
 
     private void dealConeDamageToPlayers(Mob caster,
