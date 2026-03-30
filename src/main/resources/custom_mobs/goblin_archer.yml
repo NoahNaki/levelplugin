@@ -18,6 +18,7 @@ stats:
 spells:
   shoot:
     id: goblin_archer_shoot
+    script: goblin_archer_shoot
     selection-group: attack
     selection-weight: 1.0
     interval-ticks: 50

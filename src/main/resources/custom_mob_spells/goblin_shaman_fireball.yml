@@ -1,0 +1,11 @@
+id: goblin_shaman_fireball
+actions:
+  - type: play-animation
+    animation: shoot
+  - type: delay
+    ticks: 28
+  - type: play-sound
+    sound: entity.blaze.shoot
+    volume: 0.8
+    pitch: 0.9
+  - type: cast-mage-fireball

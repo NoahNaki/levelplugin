@@ -18,6 +18,7 @@ stats:
 spells:
   fireball:
     id: goblin_shaman_fireball
+    script: goblin_shaman_fireball
     selection-group: attack
     selection-weight: 1.0
     interval-ticks: 51

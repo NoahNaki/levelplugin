@@ -18,6 +18,7 @@ stats:
 spells:
   spell_1:
     id: cursed_mage_spell_1
+    script: cursed_mage_spell_1
     selection-group: attack
     selection-weight: 1.0
     interval-ticks: 72
@@ -31,6 +32,7 @@ spells:
     burn-ticks: 100
   spell_2:
     id: cursed_mage_spell_2
+    script: cursed_mage_spell_2
     selection-group: attack
     selection-weight: 1.0
     interval-ticks: 72
@@ -44,6 +46,7 @@ spells:
     burn-ticks: 100
   spell_3:
     id: cursed_mage_spell_3
+    script: cursed_mage_spell_3
     selection-group: attack
     selection-weight: 1.0
     interval-ticks: 72

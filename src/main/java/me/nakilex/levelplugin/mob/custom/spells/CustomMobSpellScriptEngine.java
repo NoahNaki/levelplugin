@@ -132,6 +132,11 @@ public final class CustomMobSpellScriptEngine {
         plugin.saveResource("custom_mob_spells/cursed_archer_shoot_1.yml", false);
         plugin.saveResource("custom_mob_spells/cursed_archer_shoot_2.yml", false);
         plugin.saveResource("custom_mob_spells/cursed_archer_shoot_3.yml", false);
+        plugin.saveResource("custom_mob_spells/cursed_mage_spell_1.yml", false);
+        plugin.saveResource("custom_mob_spells/cursed_mage_spell_2.yml", false);
+        plugin.saveResource("custom_mob_spells/cursed_mage_spell_3.yml", false);
+        plugin.saveResource("custom_mob_spells/goblin_archer_shoot.yml", false);
+        plugin.saveResource("custom_mob_spells/goblin_shaman_fireball.yml", false);
     }
 
     private void registerActions(String spellId, List<Map<?, ?>> rawActions) {
@@ -166,6 +171,7 @@ public final class CustomMobSpellScriptEngine {
 
     public record SpellExecutionContext(Mob caster,
                                         Player target,
+                                        me.nakilex.levelplugin.mob.custom.CustomMobInstance instance,
                                         CustomMobDefinition.CustomMobSpell spell) {
     }
 

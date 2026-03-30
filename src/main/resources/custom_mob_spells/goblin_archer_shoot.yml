@@ -1,0 +1,16 @@
+id: goblin_archer_shoot
+actions:
+  - type: play-animation
+    animation: shoot
+  - type: delay
+    ticks: 35
+  - type: face-target
+  - type: play-sound
+    sound: item.crossbow.shoot
+    volume: 0.8
+    pitch: 1.0
+  - type: play-sound
+    sound: item.trident.riptide_2
+    volume: 0.8
+    pitch: 1.3
+  - type: shoot-arrow

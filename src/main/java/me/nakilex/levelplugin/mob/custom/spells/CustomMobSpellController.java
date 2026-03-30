@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -219,7 +220,7 @@ public class CustomMobSpellController {
 
     private void castSpell(CustomMobInstance instance, Mob caster, Player target, CustomMobDefinition.CustomMobSpell spell) {
         CustomMobSpellScriptEngine.SpellExecutionContext scriptContext =
-                new CustomMobSpellScriptEngine.SpellExecutionContext(caster, target, spell);
+                new CustomMobSpellScriptEngine.SpellExecutionContext(caster, target, instance, spell);
         String scriptId = spell.scriptKey() != null && !spell.scriptKey().isBlank()
                 ? spell.scriptKey()
                 : spell.id();
@@ -246,18 +247,6 @@ public class CustomMobSpellController {
             castCursedKnightAttackThree(caster, target, spell);
             return;
         }
-        if (SPELL_CURSED_MAGE_SPELL_1.equals(spell.id())) {
-            castCursedMageSpellOne(caster, target, spell);
-            return;
-        }
-        if (SPELL_CURSED_MAGE_SPELL_2.equals(spell.id())) {
-            castCursedMageSpellTwo(caster, target, spell);
-            return;
-        }
-        if (SPELL_CURSED_MAGE_SPELL_3.equals(spell.id())) {
-            castCursedMageSpellThree(caster, target, spell);
-            return;
-        }
         if (SPELL_GOBLIN_WARRIOR_SWORD_SLAM.equals(spell.id())) {
             castGoblinWarriorSwordSlam(caster, target, spell);
             return;
@@ -278,16 +267,8 @@ public class CustomMobSpellController {
             castGoblinAssassinSlash(caster, target, spell);
             return;
         }
-        if (SPELL_GOBLIN_ARCHER_SHOOT.equals(spell.id())) {
-            castGoblinArcherShoot(caster, target, spell);
-            return;
-        }
         if (SPELL_GOBLIN_ARCHER_THROW_BOMB.equals(spell.id())) {
             castGoblinArcherThrowBomb(caster, target, spell);
-            return;
-        }
-        if (SPELL_GOBLIN_SHAMAN_FIREBALL.equals(spell.id())) {
-            castGoblinShamanFireball(instance, caster, target, spell);
             return;
         }
         if (SPELL_GOBLIN_SHAMAN_HEAL.equals(spell.id())) {
@@ -309,6 +290,34 @@ public class CustomMobSpellController {
             case "archer-shoot-sound" -> playArcherShootSounds(caster.getLocation());
             case "archer-special-sound" -> playArcherSpecialSounds(caster.getLocation());
             case "shoot-arrow" -> castArrowShot(caster, target, spell);
+            case "play-sound" -> {
+                String soundToken = action.params().getString("sound", "");
+                Sound sound = parseSound(soundToken);
+                if (sound != null && caster.getWorld() != null) {
+                    float volume = (float) action.params().getDouble("volume", 1.0);
+                    float pitch = (float) action.params().getDouble("pitch", 1.0);
+                    caster.getWorld().playSound(caster.getLocation(), sound, volume, pitch);
+                }
+            }
+            case "cast-mage-fireball" -> {
+                if (context.instance() != null) {
+                    castMageFireball(context.instance(), caster, target, spell);
+                }
+            }
+            case "mage-burst" -> {
+                String animation = action.params().getString("animation", "attack_1");
+                long windup = Math.max(0L, action.params().getLong("windup-ticks", 20L));
+                int projectiles = Math.max(1, action.params().getInt("projectiles", 1));
+                long intervalTicks = Math.max(1L, action.params().getLong("interval-ticks", 15L));
+                String model = action.params().getString("model", VFX_CURSED_CAST);
+                double damageMultiplier = Math.max(0.1, action.params().getDouble("damage-multiplier", 1.0));
+                double speedMultiplier = Math.max(0.1, action.params().getDouble("speed-multiplier", 1.0));
+                double speedMin = Math.max(0.1, action.params().getDouble("speed-min", 0.8));
+                castCursedMageBurst(caster, target, spell, animation, windup, projectiles, intervalTicks, model,
+                        Math.max(0.1, spell.damage() * damageMultiplier),
+                        Math.max(0, spell.burnTicks()),
+                        Math.max(speedMin, spell.speed() * speedMultiplier));
+            }
             case "arrow-rain" -> {
                 int count = Math.max(1, action.params().getInt("count", 8));
                 long interval = Math.max(1L, action.params().getLong("interval-ticks", 2L));
@@ -324,6 +333,17 @@ public class CustomMobSpellController {
             }
             default -> {
             }
+        }
+    }
+
+    private Sound parseSound(String token) {
+        if (token == null || token.isBlank()) {
+            return null;
+        }
+        try {
+            return Sound.valueOf(token.trim().toUpperCase(Locale.ROOT).replace('.', '_'));
+        } catch (IllegalArgumentException ignored) {
+            return null;
         }
     }
 
@@ -433,21 +453,6 @@ public class CustomMobSpellController {
                 10L, 2.0, true, 100, () -> playRayHum(strike)));
     }
 
-    private void castCursedMageSpellOne(Mob caster, Player target, CustomMobDefinition.CustomMobSpell spell) {
-        castCursedMageBurst(caster, target, spell, "attack_1", 20L, 2, 15L, VFX_CURSED_CAST,
-                Math.max(0.1, spell.damage()), Math.max(0, spell.burnTicks()), Math.max(1.15, spell.speed()));
-    }
-
-    private void castCursedMageSpellTwo(Mob caster, Player target, CustomMobDefinition.CustomMobSpell spell) {
-        castCursedMageBurst(caster, target, spell, "attack_1", 20L, 2, 15L, VFX_CURSED_SLASH,
-                Math.max(0.1, spell.damage()), Math.max(0, spell.burnTicks()), Math.max(1.2, spell.speed()));
-    }
-
-    private void castCursedMageSpellThree(Mob caster, Player target, CustomMobDefinition.CustomMobSpell spell) {
-        castCursedMageBurst(caster, target, spell, "holow_attack", 40L, 1, 1L, VFX_CURSED_HOLLOW,
-                Math.max(0.1, spell.damage() * 2.0), Math.max(0, spell.burnTicks()), Math.max(0.8, spell.speed() * 0.7));
-    }
-
     private void castCursedMageBurst(Mob caster,
                                      Player target,
                                      CustomMobDefinition.CustomMobSpell spell,
@@ -555,19 +560,6 @@ public class CustomMobSpellController {
         });
     }
 
-    private void castGoblinArcherShoot(Mob caster, Player target, CustomMobDefinition.CustomMobSpell spell) {
-        playNamedAnimation(caster, "shoot");
-        runLater(35L, () -> {
-            if (!isCombatContextValid(caster, target)) {
-                return;
-            }
-            faceTarget(caster, target);
-            caster.getWorld().playSound(caster.getLocation(), Sound.ITEM_CROSSBOW_SHOOT, 0.8f, 1f);
-            caster.getWorld().playSound(caster.getLocation(), Sound.ITEM_TRIDENT_RIPTIDE_2, 0.8f, 1.3f);
-            castArrowShot(caster, target, spell);
-        });
-    }
-
     private void castGoblinArcherThrowBomb(Mob caster, Player target, CustomMobDefinition.CustomMobSpell spell) {
         playNamedAnimation(caster, "throw_bomb");
         caster.getWorld().playSound(caster.getLocation(), Sound.ENTITY_WITCH_CELEBRATE, 0.75f, 1.7f);
@@ -589,20 +581,6 @@ public class CustomMobSpellController {
                     player.damage(Math.max(0.1, spell.damage() * 1.5), caster);
                 }
             });
-        });
-    }
-
-    private void castGoblinShamanFireball(CustomMobInstance instance,
-                                          Mob caster,
-                                          Player target,
-                                          CustomMobDefinition.CustomMobSpell spell) {
-        playNamedAnimation(caster, "shoot");
-        runLater(28L, () -> {
-            if (!isCombatContextValid(caster, target)) {
-                return;
-            }
-            caster.getWorld().playSound(caster.getLocation(), Sound.ENTITY_BLAZE_SHOOT, 0.8f, 0.9f);
-            castMageFireball(instance, caster, target, spell);
         });
     }
 
