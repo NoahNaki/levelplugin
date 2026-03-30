@@ -7,9 +7,11 @@ import me.nakilex.levelplugin.mob.custom.CustomMobManager;
 import me.nakilex.levelplugin.spells.SpellEffectUtil;
 import me.nakilex.levelplugin.spells.impl.MageFireballBasicAttackSpell;
 import me.nakilex.levelplugin.utils.AttributeUtil;
+import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.ModelEngineUtil;
 import me.nakilex.levelplugin.utils.RandomUtil;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Sound;
 import org.bukkit.entity.Arrow;
@@ -226,7 +228,12 @@ public class CustomMobSpellController {
         Player target = context.target();
         CustomMobDefinition.CustomMobSpell spell = context.spell();
         switch (action.type()) {
-            case "play-animation" -> playNamedAnimation(caster, action.params().getString("animation", ""));
+            case "play-animation" -> {
+                String animation = action.params().getString("animation", "");
+                if (playNamedAnimation(caster, animation)) {
+                    emitSpellAnimationDebug(target, caster, spell.id(), animation);
+                }
+            }
             case "face-target" -> faceTarget(caster, target);
             case "archer-shoot-sound" -> playArcherShootSounds(caster.getLocation());
             case "archer-special-sound" -> playArcherSpecialSounds(caster.getLocation());
@@ -422,6 +429,7 @@ public class CustomMobSpellController {
             return;
         }
         ModelEngineUtil.triggerActionState(caster, List.of("shoot", "arrow", "bow", "cast", "attack"), 500L);
+        emitSpellAnimationDebug(target, caster, spell.id(), "shoot");
         Arrow arrow = caster.launchProjectile(Arrow.class);
         arrow.setVelocity(direction.normalize().multiply(Math.max(0.8, spell.speed())));
         arrow.setDamage(Math.max(0.1, spell.damage()));
@@ -438,6 +446,7 @@ public class CustomMobSpellController {
             return;
         }
         ModelEngineUtil.triggerActionState(caster, List.of("shoot", "arrow", "bow", "cast", "attack"), 600L);
+        emitSpellAnimationDebug(target, caster, spell.id(), "shoot");
         MageFireballBasicAttackSpell.FireballSpawnResult spawnResult =
                 MageFireballBasicAttackSpell.spawnProjectileAnchor(plugin, eye, direction);
         if (spawnResult == null) {
@@ -556,6 +565,21 @@ public class CustomMobSpellController {
             ModelEngineUtil.holdActionState(caster, 600L);
         }
         return played;
+    }
+
+    private void emitSpellAnimationDebug(Player target, Mob caster, String spellId, String animationName) {
+        if (target == null || caster == null || !target.isOnline() || target.isDead()) {
+            return;
+        }
+        String safeSpell = (spellId == null || spellId.isBlank()) ? "unknown_spell" : spellId;
+        String safeAnimation = (animationName == null || animationName.isBlank()) ? "unknown_animation" : animationName;
+        String message = ChatColor.GRAY + "[MobCast] "
+                + ChatColor.WHITE + caster.getType().name()
+                + ChatColor.DARK_GRAY + " | "
+                + ChatColor.AQUA + "spell=" + safeSpell
+                + ChatColor.DARK_GRAY + " | "
+                + ChatColor.LIGHT_PURPLE + "animation=" + safeAnimation;
+        ChatMessageUtil.send(target, ChatMessageUtil.MessageType.INFO, message);
     }
 
     private boolean isCombatContextValid(Mob caster, Player target) {
