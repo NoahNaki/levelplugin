@@ -23,6 +23,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.UUID;
 import java.util.stream.Stream;
 import java.util.Collections;
 import java.util.concurrent.ConcurrentHashMap;
@@ -46,7 +47,12 @@ public final class ModelEngineUtil {
     }
 
     private static final Map<String, List<String>> PRELOADED_RUNTIME_ANIMATIONS = new ConcurrentHashMap<>();
+    private static final Map<UUID, AnimationControllerState> ANIMATION_CONTROLLER_STATES = new ConcurrentHashMap<>();
 
+    private static final class AnimationControllerState {
+        private boolean moving;
+        private long actionUntilMs;
+    }
 
     public static List<String> getModelIdsSafely(Plugin plugin) {
         try {
@@ -113,6 +119,48 @@ public final class ModelEngineUtil {
             return List.of();
         }
         return PRELOADED_RUNTIME_ANIMATIONS.getOrDefault(modelId.toLowerCase(Locale.ROOT), List.of());
+    }
+
+    public static void setMovingState(Entity entity, boolean moving) {
+        if (entity == null) {
+            return;
+        }
+        AnimationControllerState state = ANIMATION_CONTROLLER_STATES.computeIfAbsent(entity.getUniqueId(), key -> new AnimationControllerState());
+        state.moving = moving;
+        if (System.currentTimeMillis() >= state.actionUntilMs) {
+            playBaselineState(entity, state);
+        }
+    }
+
+    public static boolean triggerActionState(Entity entity, List<String> keywords, long actionHoldMillis) {
+        if (entity == null || keywords == null || keywords.isEmpty()) {
+            return false;
+        }
+        boolean played = playBestAnimation(entity, keywords, false);
+        if (!played) {
+            return false;
+        }
+        AnimationControllerState state = ANIMATION_CONTROLLER_STATES.computeIfAbsent(entity.getUniqueId(), key -> new AnimationControllerState());
+        state.actionUntilMs = Math.max(System.currentTimeMillis(), state.actionUntilMs) + Math.max(0L, actionHoldMillis);
+        return true;
+    }
+
+    public static void clearAnimationState(Entity entity) {
+        if (entity == null) {
+            return;
+        }
+        ANIMATION_CONTROLLER_STATES.remove(entity.getUniqueId());
+    }
+
+    private static void playBaselineState(Entity entity, AnimationControllerState state) {
+        if (state == null) {
+            return;
+        }
+        if (state.moving) {
+            playBestAnimation(entity, List.of("walk", "run", "move"), true);
+        } else {
+            playBestAnimation(entity, List.of("idle", "stand", "loop"), true);
+        }
     }
 
     public static ModelApplyResult applyModels(Entity entity,

@@ -10,6 +10,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
 
 /**
@@ -17,6 +18,8 @@ import org.bukkit.event.entity.ProjectileLaunchEvent;
  */
 public class CustomMobAnimationListener implements Listener {
     private static final double WALK_THRESHOLD = 0.0035;
+    private static final long ATTACK_ACTION_HOLD_MS = 450L;
+    private static final long SHOOT_ACTION_HOLD_MS = 550L;
 
     private final Main plugin;
     private final CustomMobManager customMobManager;
@@ -39,7 +42,7 @@ public class CustomMobAnimationListener implements Listener {
         if (customMobManager.getInstance(attacker).isEmpty()) {
             return;
         }
-        ModelEngineUtil.playBestAttackAnimation(attacker);
+        ModelEngineUtil.triggerActionState(attacker, java.util.List.of("attack", "slash", "swing", "hit", "shoot", "cast"), ATTACK_ACTION_HOLD_MS);
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -53,7 +56,19 @@ public class CustomMobAnimationListener implements Listener {
         if (customMobManager.getInstance(shooter).isEmpty()) {
             return;
         }
-        ModelEngineUtil.playBestShootAnimation(shooter);
+        ModelEngineUtil.triggerActionState(shooter, java.util.List.of("shoot", "arrow", "bow", "cast", "attack"), SHOOT_ACTION_HOLD_MS);
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onCustomMobDeath(EntityDeathEvent event) {
+        if (customMobManager == null) {
+            return;
+        }
+        LivingEntity entity = event.getEntity();
+        if (customMobManager.getInstance(entity).isEmpty()) {
+            return;
+        }
+        ModelEngineUtil.clearAnimationState(entity);
     }
 
     private void startMovementTicker() {
@@ -67,11 +82,7 @@ public class CustomMobAnimationListener implements Listener {
                     continue;
                 }
                 double horizontalSpeed = entity.getVelocity().clone().setY(0).lengthSquared();
-                if (horizontalSpeed > WALK_THRESHOLD) {
-                    ModelEngineUtil.playBestAnimation(entity, java.util.List.of("walk", "run", "move"), true);
-                } else {
-                    ModelEngineUtil.playBestAnimation(entity, java.util.List.of("idle", "stand", "loop"), true);
-                }
+                ModelEngineUtil.setMovingState(entity, horizontalSpeed > WALK_THRESHOLD);
             }
         }, 10L, 10L);
     }
