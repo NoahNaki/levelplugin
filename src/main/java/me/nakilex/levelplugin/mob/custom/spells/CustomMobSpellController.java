@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -52,6 +53,20 @@ public class CustomMobSpellController {
     private static final String SPELL_GOBLIN_ARCHER_THROW_BOMB = "goblin_archer_throw_bomb";
     private static final String SPELL_GOBLIN_SHAMAN_FIREBALL = "goblin_shaman_fireball";
     private static final String SPELL_GOBLIN_SHAMAN_HEAL = "goblin_shaman_heal";
+    private static final Set<String> RANGED_SPELL_IDS = Set.of(
+            SPELL_CURSED_ARCHER_SHOOT_1,
+            SPELL_CURSED_ARCHER_SHOOT_2,
+            SPELL_CURSED_ARCHER_SHOOT_3,
+            SPELL_CURSED_MAGE_SPELL_1,
+            SPELL_CURSED_MAGE_SPELL_2,
+            SPELL_CURSED_MAGE_SPELL_3,
+            SPELL_GOBLIN_ARCHER_SHOOT,
+            SPELL_GOBLIN_ARCHER_THROW_BOMB,
+            SPELL_GOBLIN_SHAMAN_FIREBALL,
+            SPELL_GOBLIN_SHAMAN_HEAL,
+            SPELL_MAGE_FIREBALL_BASIC,
+            SPELL_RANGED_ARROW_BASIC
+    );
     private static final double HIT_RADIUS = 0.45;
     private static final String VFX_CURSED_FLAMES = "cursed_flames_vfx";
     private static final String VFX_CURSED_RAY = "cursed_ray_vfx";
@@ -87,6 +102,7 @@ public class CustomMobSpellController {
             if (!(mob.getTarget() instanceof Player target) || target.isDead()) {
                 continue;
             }
+            applyRangedSpacing(instance, mob, target);
             if (isOnGlobalCooldown(mob.getUniqueId(), now)) {
                 continue;
             }
@@ -151,6 +167,30 @@ public class CustomMobSpellController {
 
     private boolean isOnGlobalCooldown(UUID mobId, long now) {
         return now < globalCooldowns.getOrDefault(mobId, 0L);
+    }
+
+    private void applyRangedSpacing(CustomMobInstance instance, Mob mob, Player target) {
+        if (instance == null || mob == null || target == null) {
+            return;
+        }
+        boolean isRanged = instance.definition().spells().stream()
+                .map(CustomMobDefinition.CustomMobSpell::id)
+                .anyMatch(RANGED_SPELL_IDS::contains);
+        if (!isRanged) {
+            return;
+        }
+        double distance = mob.getLocation().distance(target.getLocation());
+        double retreatDistance = 6.0;
+        if (distance >= retreatDistance) {
+            return;
+        }
+        Vector retreat = mob.getLocation().toVector().subtract(target.getLocation().toVector()).setY(0.0);
+        if (retreat.lengthSquared() <= 0.0001) {
+            return;
+        }
+        retreat.normalize().multiply(0.26);
+        mob.setVelocity(mob.getVelocity().multiply(0.45).add(retreat).setY(Math.max(-0.08, mob.getVelocity().getY())));
+        faceTarget(mob, target);
     }
 
     private boolean isReady(UUID mobId, CustomMobDefinition.CustomMobSpell spell, long now) {
@@ -325,6 +365,9 @@ public class CustomMobSpellController {
             playKnightImpactSounds(center);
             dealConeDamageToPlayers(caster, spell.damage(), 5.0, 180.0, 0.34, 0.24);
             spawnRingVfx(center, VFX_CURSED_FLAMES, 14, 4.0);
+            scheduleAreaPulseSeries(caster, center.clone().add(0.0, 0.1, 0.0),
+                    List.of(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+                    15L, 1.5, true, 100, null);
             throwPlayersFrom(center, 5.0, 1.35, 0.48);
         });
     }
@@ -355,10 +398,9 @@ public class CustomMobSpellController {
         }
         Location strike = randomRingLocation(caster.getLocation(), 4.0, 10.0);
         spawnTemporaryModelVfx(strike, VFX_CURSED_RAY, VFX_LIFETIME_TICKS);
-        strike.getWorld().playSound(strike, Sound.ENTITY_EVOKER_CAST_SPELL, 0.45f, 0.6f);
-        for (Player player : getNearbyPlayers(strike, 1.35)) {
-            player.damage(Math.max(0.1, spell.damage() * 0.6), caster);
-        }
+        runLater(12L, () -> scheduleAreaPulseSeries(caster, strike,
+                List.of(Math.max(0.1, spell.damage()), 1.0, 1.0, 1.0, 1.0),
+                10L, 2.0, true, 100, () -> playRayHum(strike)));
     }
 
     private void castCursedArcherShootOne(Mob caster, Player target, CustomMobDefinition.CustomMobSpell spell) {
@@ -748,6 +790,49 @@ public class CustomMobSpellController {
         at.getWorld().playSound(at, Sound.BLOCK_END_PORTAL_FRAME_FILL, 0.7f, 1.2f);
     }
 
+    private void playRayHum(Location at) {
+        if (at == null || at.getWorld() == null) {
+            return;
+        }
+        at.getWorld().playSound(at, Sound.BLOCK_BEACON_AMBIENT, 2.0f, 1.0f);
+        at.getWorld().playSound(at, Sound.ENTITY_ILLUSIONER_PREPARE_MIRROR, 2.0f, 0.8f);
+        at.getWorld().playSound(at, Sound.BLOCK_CONDUIT_AMBIENT_SHORT, 2.0f, 0.9f);
+        at.getWorld().playSound(at, Sound.ENTITY_EVOKER_CAST_SPELL, 2.0f, 0.5f);
+    }
+
+    private void scheduleAreaPulseSeries(Mob caster,
+                                         Location center,
+                                         List<Double> damages,
+                                         long intervalTicks,
+                                         double radius,
+                                         boolean ignite,
+                                         int igniteTicks,
+                                         Runnable perPulseSound) {
+        if (caster == null || center == null || center.getWorld() == null || damages == null || damages.isEmpty()) {
+            return;
+        }
+        for (int i = 0; i < damages.size(); i++) {
+            double pulseDamage = Math.max(0.0, damages.get(i));
+            long delay = i * Math.max(1L, intervalTicks);
+            runLater(delay, () -> {
+                if (caster.isDead() || center.getWorld() == null) {
+                    return;
+                }
+                if (perPulseSound != null) {
+                    perPulseSound.run();
+                }
+                for (Player player : getNearbyPlayers(center, radius)) {
+                    if (pulseDamage > 0.0) {
+                        player.damage(Math.max(0.1, pulseDamage), caster);
+                    }
+                    if (ignite && igniteTicks > 0) {
+                        player.setFireTicks(Math.max(player.getFireTicks(), igniteTicks));
+                    }
+                }
+            });
+        }
+    }
+
     private void startArrowRainVolley(Mob caster,
                                       Player anchorTarget,
                                       int arrowCount,
@@ -797,10 +882,10 @@ public class CustomMobSpellController {
                 if (lived >= ticks) {
                     Location impact = strike.getLocation().clone();
                     impact.getWorld().spawnParticle(org.bukkit.Particle.CRIT, impact, 8, 0.25, 0.15, 0.25, 0.02);
-                    impact.getWorld().playSound(impact, Sound.ITEM_CROSSBOW_HIT, 0.75f, 1.05f);
-                    for (Player player : getNearbyPlayers(impact, radius)) {
-                        player.damage(Math.max(0.1, hitDamage), caster);
-                    }
+                    scheduleAreaPulseSeries(caster, impact,
+                            List.of(hitDamage, hitDamage * 2.0, hitDamage, hitDamage, hitDamage),
+                            2L, Math.max(0.5, radius), false, 0,
+                            () -> playArcherShootSounds(impact));
                     removeProjectile(strike);
                     cancel();
                     return;
