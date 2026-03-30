@@ -26,7 +26,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -34,36 +33,12 @@ import java.util.concurrent.ThreadLocalRandom;
  * Reusable runtime for custom mob spells declared in custom mob YAML definitions.
  */
 public class CustomMobSpellController {
-    private static final String SPELL_MAGE_FIREBALL_BASIC = "mage_fireball_basic";
-    private static final String SPELL_RANGED_ARROW_BASIC = "ranged_arrow_basic";
-    private static final String SPELL_CURSED_ARCHER_SHOOT_1 = "cursed_archer_shoot_1";
-    private static final String SPELL_CURSED_ARCHER_SHOOT_2 = "cursed_archer_shoot_2";
-    private static final String SPELL_CURSED_ARCHER_SHOOT_3 = "cursed_archer_shoot_3";
-    private static final String SPELL_CURSED_MAGE_SPELL_1 = "cursed_mage_spell_1";
-    private static final String SPELL_CURSED_MAGE_SPELL_2 = "cursed_mage_spell_2";
-    private static final String SPELL_CURSED_MAGE_SPELL_3 = "cursed_mage_spell_3";
-    private static final String SPELL_GOBLIN_ARCHER_SHOOT = "goblin_archer_shoot";
-    private static final String SPELL_GOBLIN_SHAMAN_FIREBALL = "goblin_shaman_fireball";
-    private static final Set<String> RANGED_SPELL_IDS = Set.of(
-            SPELL_CURSED_ARCHER_SHOOT_1,
-            SPELL_CURSED_ARCHER_SHOOT_2,
-            SPELL_CURSED_ARCHER_SHOOT_3,
-            SPELL_CURSED_MAGE_SPELL_1,
-            SPELL_CURSED_MAGE_SPELL_2,
-            SPELL_CURSED_MAGE_SPELL_3,
-            SPELL_GOBLIN_ARCHER_SHOOT,
-            SPELL_GOBLIN_SHAMAN_FIREBALL,
-            SPELL_MAGE_FIREBALL_BASIC,
-            SPELL_RANGED_ARROW_BASIC
-    );
     private static final double HIT_RADIUS = 0.45;
     private static final String VFX_CURSED_FLAMES = "cursed_flames_vfx";
     private static final String VFX_CURSED_RAY = "cursed_ray_vfx";
     private static final String VFX_CURSED_ARROW_RAIN = "cursed_arrow_rain_vfx";
     private static final String VFX_CURSED_ARROW = "cursed_arrow_vfx";
     private static final String VFX_CURSED_CAST = "cursed_cast_vfx";
-    private static final String VFX_CURSED_SLASH = "cursed_slash_vfx";
-    private static final String VFX_CURSED_HOLLOW = "cursed_hollow_vfx";
     private static final long VFX_LIFETIME_TICKS = 30L;
 
     private final Main plugin;
@@ -93,7 +68,6 @@ public class CustomMobSpellController {
             if (!(mob.getTarget() instanceof Player target) || target.isDead()) {
                 continue;
             }
-            applyRangedSpacing(instance, mob, target);
             if (isOnGlobalCooldown(mob.getUniqueId(), now)) {
                 continue;
             }
@@ -160,30 +134,6 @@ public class CustomMobSpellController {
         return now < globalCooldowns.getOrDefault(mobId, 0L);
     }
 
-    private void applyRangedSpacing(CustomMobInstance instance, Mob mob, Player target) {
-        if (instance == null || mob == null || target == null) {
-            return;
-        }
-        boolean isRanged = instance.definition().spells().stream()
-                .map(CustomMobDefinition.CustomMobSpell::id)
-                .anyMatch(RANGED_SPELL_IDS::contains);
-        if (!isRanged) {
-            return;
-        }
-        double distance = mob.getLocation().distance(target.getLocation());
-        double retreatDistance = 6.0;
-        if (distance >= retreatDistance) {
-            return;
-        }
-        Vector retreat = mob.getLocation().toVector().subtract(target.getLocation().toVector()).setY(0.0);
-        if (retreat.lengthSquared() <= 0.0001) {
-            return;
-        }
-        retreat.normalize().multiply(0.26);
-        mob.setVelocity(mob.getVelocity().multiply(0.45).add(retreat).setY(Math.max(-0.08, mob.getVelocity().getY())));
-        faceTarget(mob, target);
-    }
-
     private boolean isReady(UUID mobId, CustomMobDefinition.CustomMobSpell spell, long now) {
         long nextAllowed = cooldowns.getOrDefault(mobId, Map.of()).getOrDefault(spell.id(), 0L);
         return now >= nextAllowed;
@@ -215,11 +165,11 @@ public class CustomMobSpellController {
         if (spellScriptEngine.execute(scriptId, scriptContext, this::handleScriptAction)) {
             return;
         }
-        if (SPELL_MAGE_FIREBALL_BASIC.equals(spell.id())) {
+        if ("mage_fireball_basic".equals(spell.id())) {
             castMageFireball(instance, caster, target, spell);
             return;
         }
-        if (SPELL_RANGED_ARROW_BASIC.equals(spell.id())) {
+        if ("ranged_arrow_basic".equals(spell.id())) {
             castArrowShot(caster, target, spell);
         }
     }
@@ -586,25 +536,6 @@ public class CustomMobSpellController {
             return;
         }
         ModelEngineUtil.orientEntityToVector(caster, direction);
-    }
-
-    private void playKnightImpactSounds(Location at) {
-        if (at == null || at.getWorld() == null) {
-            return;
-        }
-        at.getWorld().playSound(at, Sound.ENTITY_ZOMBIE_ATTACK_IRON_DOOR, 0.8f, 1.1f);
-        at.getWorld().playSound(at, Sound.ENTITY_EVOKER_CAST_SPELL, 1.0f, 0.5f);
-        at.getWorld().playSound(at, Sound.ENTITY_ZOMBIE_BREAK_WOODEN_DOOR, 0.95f, 0.9f);
-        at.getWorld().playSound(at, Sound.ITEM_AXE_STRIP, 1.0f, 0.8f);
-    }
-
-    private void playKnightCastSounds(Location at) {
-        if (at == null || at.getWorld() == null) {
-            return;
-        }
-        at.getWorld().playSound(at, Sound.ENTITY_EVOKER_CAST_SPELL, 1.0f, 0.5f);
-        at.getWorld().playSound(at, Sound.ENTITY_ZOMBIE_BREAK_WOODEN_DOOR, 0.85f, 0.95f);
-        at.getWorld().playSound(at, Sound.ITEM_AXE_STRIP, 1.0f, 0.8f);
     }
 
     private void playArcherShootSounds(Location at) {
