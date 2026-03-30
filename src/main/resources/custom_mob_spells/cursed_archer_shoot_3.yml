@@ -4,7 +4,7 @@ actions:
     animation: shoot_3
   - type: face-target
   - type: delay
-    ticks: 45
+    ticks: 22
   - type: archer-special-sound
   - type: launch-model-projectile
     model: cursed_arrow_vfx

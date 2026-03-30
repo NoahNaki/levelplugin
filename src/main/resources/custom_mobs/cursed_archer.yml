@@ -14,7 +14,7 @@ stats:
   technique: 18
 
 spells:
-  shoot_1:
+  basic_attack:
     id: cursed_archer_shoot_1
     script: cursed_archer_shoot_1
     selection-group: attack
@@ -28,7 +28,7 @@ spells:
     range: 30.0
     speed: 2.0
     burn-ticks: 0
-  shoot_2:
+  arrow_rain:
     id: cursed_archer_shoot_2
     script: cursed_archer_shoot_2
     selection-group: attack
@@ -42,7 +42,7 @@ spells:
     range: 30.0
     speed: 1.0
     burn-ticks: 0
-  shoot_3:
+  flame_vfx_arrow:
     id: cursed_archer_shoot_3
     script: cursed_archer_shoot_3
     selection-group: attack
