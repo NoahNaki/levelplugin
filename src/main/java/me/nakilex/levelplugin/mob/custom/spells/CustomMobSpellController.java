@@ -381,7 +381,8 @@ public class CustomMobSpellController {
                 return;
             }
             playArcherShootSounds(caster.getLocation());
-            spawnArrowRainVfx(target.getLocation(), 20.0);
+            startArrowRainVolley(caster, target, Math.max(6, (int) Math.round(spell.damage())), 2L,
+                    Math.max(0.1, spell.damage() * 0.55));
         });
     }
 
@@ -393,7 +394,7 @@ public class CustomMobSpellController {
                 return;
             }
             playArcherSpecialSounds(caster.getLocation());
-            launchModelProjectile(caster, target, VFX_CURSED_ARROW, Math.max(1.35, spell.speed()),
+            launchModelProjectile(caster, target, VFX_CURSED_ARROW, Math.max(1.5, spell.speed()),
                     Math.max(0.1, spell.damage()), spell.burnTicks(), true);
         });
     }
@@ -747,22 +748,67 @@ public class CustomMobSpellController {
         at.getWorld().playSound(at, Sound.BLOCK_END_PORTAL_FRAME_FILL, 0.7f, 1.2f);
     }
 
-    private void spawnArrowRainVfx(Location center, double radius) {
-        if (center == null || center.getWorld() == null || radius <= 0.0) {
+    private void startArrowRainVolley(Mob caster,
+                                      Player anchorTarget,
+                                      int arrowCount,
+                                      long intervalTicks,
+                                      double hitDamage) {
+        if (!isCombatContextValid(caster, anchorTarget)) {
             return;
         }
-        int spawned = 0;
-        for (Player player : getNearbyPlayers(center, radius)) {
-            if (spawned >= 6) {
-                break;
+        for (int i = 0; i < Math.max(1, arrowCount); i++) {
+            long delay = i * Math.max(1L, intervalTicks);
+            runLater(delay, () -> {
+                if (!isCombatContextValid(caster, anchorTarget)) {
+                    return;
+                }
+                Location targetPoint = anchorTarget.getLocation().clone()
+                        .add(randomOffset(3.0), 0.2, randomOffset(3.0));
+                launchFallingStrike(caster, targetPoint, VFX_CURSED_ARROW_RAIN, 8, hitDamage, 1.45);
+            });
+        }
+    }
+
+    private void launchFallingStrike(Mob caster,
+                                     Location groundImpact,
+                                     String modelId,
+                                     int travelTicks,
+                                     double hitDamage,
+                                     double radius) {
+        if (caster == null || caster.isDead() || groundImpact == null || groundImpact.getWorld() == null) {
+            return;
+        }
+        Location start = groundImpact.clone().add(randomOffset(0.5), 8.0 + ThreadLocalRandom.current().nextDouble(1.5), randomOffset(0.5));
+        ArmorStand strike = spawnModelVfxAnchor(start, modelId);
+        if (strike == null) {
+            return;
+        }
+        int ticks = Math.max(1, travelTicks);
+        Vector step = groundImpact.toVector().subtract(start.toVector()).multiply(1.0 / ticks);
+        new BukkitRunnable() {
+            int lived;
+            @Override
+            public void run() {
+                if (!strike.isValid() || caster.isDead()) {
+                    removeProjectile(strike);
+                    cancel();
+                    return;
+                }
+                if (lived >= ticks) {
+                    Location impact = strike.getLocation().clone();
+                    impact.getWorld().spawnParticle(org.bukkit.Particle.CRIT, impact, 8, 0.25, 0.15, 0.25, 0.02);
+                    impact.getWorld().playSound(impact, Sound.ITEM_CROSSBOW_HIT, 0.75f, 1.05f);
+                    for (Player player : getNearbyPlayers(impact, radius)) {
+                        player.damage(Math.max(0.1, hitDamage), caster);
+                    }
+                    removeProjectile(strike);
+                    cancel();
+                    return;
+                }
+                strike.teleport(strike.getLocation().add(step));
+                lived++;
             }
-            Location drop = player.getLocation().clone().add(0.0, 0.1, 0.0);
-            spawnTemporaryModelVfx(drop, VFX_CURSED_ARROW_RAIN, 25L);
-            spawned++;
-        }
-        if (spawned == 0) {
-            spawnTemporaryModelVfx(center, VFX_CURSED_ARROW_RAIN, 25L);
-        }
+        }.runTaskTimer(plugin, 0L, 1L);
     }
 
     private void launchModelProjectile(Mob caster,
@@ -981,6 +1027,21 @@ public class CustomMobSpellController {
         if (location == null || location.getWorld() == null || modelId == null || modelId.isBlank()) {
             return;
         }
+        ArmorStand stand = spawnModelVfxAnchor(location, modelId);
+        if (stand == null) {
+            return;
+        }
+        runLater(Math.max(1L, lifeTicks), () -> {
+            if (stand.isValid()) {
+                stand.remove();
+            }
+        });
+    }
+
+    private ArmorStand spawnModelVfxAnchor(Location location, String modelId) {
+        if (location == null || location.getWorld() == null || modelId == null || modelId.isBlank()) {
+            return null;
+        }
         ArmorStand stand = location.getWorld().spawn(location, ArmorStand.class, entity -> {
             entity.setInvisible(true);
             entity.setGravity(false);
@@ -991,11 +1052,7 @@ public class CustomMobSpellController {
             entity.setCollidable(false);
         });
         ModelEngineUtil.applyFirstAvailableModel(stand, ModelEngineUtil.buildModelCandidates(modelId), plugin);
-        runLater(Math.max(1L, lifeTicks), () -> {
-            if (stand.isValid()) {
-                stand.remove();
-            }
-        });
+        return stand;
     }
 
     private Location randomRingLocation(Location center, double minRadius, double maxRadius) {
