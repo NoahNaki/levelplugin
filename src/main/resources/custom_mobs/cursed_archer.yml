@@ -22,7 +22,7 @@ spells:
     interval-ticks: 50
     gcd-ticks: 50
     damage: 8.0
-    min-range: 0.0
+    min-range: 6.0
     max-range: 30.0
     require-line-of-sight: true
     range: 30.0
@@ -36,7 +36,7 @@ spells:
     interval-ticks: 72
     gcd-ticks: 72
     damage: 8.0
-    min-range: 0.0
+    min-range: 6.0
     max-range: 30.0
     require-line-of-sight: true
     range: 30.0
@@ -50,7 +50,7 @@ spells:
     interval-ticks: 120
     gcd-ticks: 120
     damage: 12.0
-    min-range: 0.0
+    min-range: 6.0
     max-range: 30.0
     require-line-of-sight: true
     range: 30.0

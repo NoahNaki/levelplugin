@@ -24,7 +24,7 @@ spells:
     interval-ticks: 51
     gcd-ticks: 51
     damage: 8.0
-    min-range: 0.0
+    min-range: 5.0
     max-range: 20.0
     require-line-of-sight: true
     range: 20.0

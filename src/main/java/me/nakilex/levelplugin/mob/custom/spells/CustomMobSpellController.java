@@ -139,19 +139,31 @@ public class CustomMobSpellController {
         if (instance == null || mob == null || target == null) {
             return;
         }
-        List<CustomMobDefinition.CustomMobSpell> rangedSpells = instance.definition().spells().stream()
+        List<CustomMobDefinition.CustomMobSpell> offensiveSpells = instance.definition().spells().stream()
                 .filter(spell -> spell != null
-                        && spell.requireLineOfSight()
-                        && Math.max(spell.minRange(), spell.maxRange()) >= 12.0)
+                        && spell.damage() > 0.0
+                        && Math.max(spell.minRange(), spell.maxRange()) >= 0.1)
+                .toList();
+        if (offensiveSpells.isEmpty()) {
+            return;
+        }
+        List<CustomMobDefinition.CustomMobSpell> rangedSpells = offensiveSpells.stream()
+                .filter(spell -> Math.max(spell.minRange(), spell.maxRange()) >= 8.0)
                 .toList();
         if (rangedSpells.isEmpty()) {
+            return;
+        }
+        long closeRangeSpellCount = offensiveSpells.stream()
+                .filter(spell -> Math.max(spell.minRange(), spell.maxRange()) <= 6.0)
+                .count();
+        if (closeRangeSpellCount >= rangedSpells.size()) {
             return;
         }
         double desiredDistance = rangedSpells.stream()
                 .mapToDouble(spell -> Math.max(spell.minRange(), spell.maxRange()) * 0.55)
                 .average()
-                .orElse(7.0);
-        desiredDistance = Math.max(6.0, Math.min(12.0, desiredDistance));
+                .orElse(8.0);
+        desiredDistance = Math.max(6.0, Math.min(13.0, desiredDistance));
         double distance = mob.getLocation().distance(target.getLocation());
         if (distance >= desiredDistance - 0.75) {
             return;
