@@ -168,10 +168,37 @@ public class CustomMobCommand implements CommandExecutor, TabCompleter {
                 }
                 if (args.length < 2) {
                     ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.INFO,
-                            "Usage: /" + label + " cast <spellId> [targetPlayer]");
+                            "Usage: /" + label + " cast <list|spellId> [targetPlayer]");
+                    return true;
+                }
+                org.bukkit.entity.Entity looked = player.getTargetEntity(12);
+                if (!(looked instanceof LivingEntity living)) {
+                    ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.ERROR,
+                            "Look at a custom mob to use cast debug.");
+                    return true;
+                }
+                var instanceOpt = mobManager.getInstance(living);
+                if (instanceOpt.isEmpty()) {
+                    ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.ERROR,
+                            "That target is not a custom mob.");
                     return true;
                 }
                 String spellId = args[1];
+                if (spellId.equalsIgnoreCase("list")) {
+                    List<String> options = instanceOpt.get().definition().spells().stream()
+                            .map(defSpell -> defSpell.scriptKey() != null && !defSpell.scriptKey().isBlank()
+                                    ? defSpell.id() + " (script=" + defSpell.scriptKey() + ")"
+                                    : defSpell.id())
+                            .toList();
+                    if (options.isEmpty()) {
+                        ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.WARNING,
+                                "No spells configured on that mob.");
+                        return true;
+                    }
+                    ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.INFO,
+                            "Cast options: " + String.join(", ", options));
+                    return true;
+                }
                 Player target = player;
                 if (args.length >= 3) {
                     Player chosen = Bukkit.getPlayerExact(args[2]);
@@ -181,17 +208,6 @@ public class CustomMobCommand implements CommandExecutor, TabCompleter {
                         return true;
                     }
                     target = chosen;
-                }
-                org.bukkit.entity.Entity looked = player.getTargetEntity(12);
-                if (!(looked instanceof LivingEntity living)) {
-                    ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.ERROR,
-                            "Look at a custom mob to trigger a spell.");
-                    return true;
-                }
-                if (mobManager.getInstance(living).isEmpty()) {
-                    ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.ERROR,
-                            "That target is not a custom mob.");
-                    return true;
                 }
                 boolean cast = mobManager.getSpellController().debugCastSpell(living, target, spellId);
                 if (!cast) {
@@ -226,9 +242,14 @@ public class CustomMobCommand implements CommandExecutor, TabCompleter {
                         .map(instance -> instance.definition().spells().stream()
                                 .map(defSpell -> defSpell.id())
                                 .toList())
-                        .map(ids -> CommandUtil.filterStartingWith(ids, args[1]))
-                        .orElse(List.of());
+                        .map(ids -> {
+                            java.util.ArrayList<String> options = new java.util.ArrayList<>(ids);
+                            options.add("list");
+                            return CommandUtil.filterStartingWith(options, args[1]);
+                        })
+                        .orElse(CommandUtil.filterStartingWith(List.of("list"), args[1]));
             }
+            return CommandUtil.filterStartingWith(List.of("list"), args[1]);
         }
         if (args.length == 3 && args[0].equalsIgnoreCase("cast")) {
             return CommandUtil.filterStartingWith(Bukkit.getOnlinePlayers().stream().map(Player::getName).toList(), args[2]);
