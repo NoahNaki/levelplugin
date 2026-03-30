@@ -134,10 +134,17 @@ public final class ModelEngineUtil {
     }
 
     public static boolean triggerActionState(Entity entity, List<String> keywords, long actionHoldMillis) {
+        return triggerActionState(entity, keywords, actionHoldMillis, true);
+    }
+
+    public static boolean triggerActionState(Entity entity,
+                                             List<String> keywords,
+                                             long actionHoldMillis,
+                                             boolean cycleAnimations) {
         if (entity == null || keywords == null || keywords.isEmpty()) {
             return false;
         }
-        boolean played = playBestAnimation(entity, keywords, false);
+        boolean played = playBestAnimation(entity, keywords, false, cycleAnimations);
         if (!played) {
             return false;
         }
@@ -266,14 +273,18 @@ public final class ModelEngineUtil {
     }
 
     public static boolean playBestShootAnimation(Entity entity) {
-        return playBestAnimation(entity, List.of("shoot", "arrow", "bow", "cast", "attack"), false);
+        return playBestAnimation(entity, List.of("shoot", "arrow", "bow", "cast", "attack"), false, true);
     }
 
     public static boolean playBestAttackAnimation(Entity entity) {
-        return playBestAnimation(entity, List.of("attack", "slash", "swing", "hit", "shoot", "cast"), false);
+        return playBestAnimation(entity, List.of("attack", "slash", "swing", "hit", "shoot", "cast"), false, true);
     }
 
     public static boolean playBestAnimation(Entity entity, List<String> keywords, boolean loop) {
+        return playBestAnimation(entity, keywords, loop, true);
+    }
+
+    public static boolean playBestAnimation(Entity entity, List<String> keywords, boolean loop, boolean cycleAnimations) {
         if (entity == null || keywords == null || keywords.isEmpty()) {
             return false;
         }
@@ -289,12 +300,16 @@ public final class ModelEngineUtil {
             }
             handler.prepare();
             List<String> runtimeMatches = selectAnimationsByKeywords(handler.getAnimations().keySet(), keywords);
-            String runtimeMatch = chooseCycledAnimation(entity, cycleKey, runtimeMatches);
+            String runtimeMatch = cycleAnimations
+                    ? chooseCycledAnimation(entity, cycleKey, runtimeMatches)
+                    : chooseFirstAnimation(runtimeMatches);
             if (runtimeMatch != null && attemptPlayAnimation(handler, model, runtimeMatch, loop)) {
                 return true;
             }
             List<String> blueprintMatches = selectAnimationsByKeywords(getBlueprintAnimationNames(model), keywords);
-            String blueprintMatch = chooseCycledAnimation(entity, cycleKey, blueprintMatches);
+            String blueprintMatch = cycleAnimations
+                    ? chooseCycledAnimation(entity, cycleKey, blueprintMatches)
+                    : chooseFirstAnimation(blueprintMatches);
             if (blueprintMatch != null && attemptPlayAnimation(handler, model, blueprintMatch, loop)) {
                 return true;
             }
@@ -675,6 +690,13 @@ public final class ModelEngineUtil {
         String selected = candidates.get(Math.floorMod(nextCursor, candidates.size()));
         state.animationCycleCursorByKey.put(cycleKey, nextCursor + 1);
         return selected;
+    }
+
+    private static String chooseFirstAnimation(List<String> candidates) {
+        if (candidates == null || candidates.isEmpty()) {
+            return null;
+        }
+        return candidates.getFirst();
     }
 
     private static String buildAnimationCycleKey(List<String> keywords) {
