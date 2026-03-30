@@ -220,7 +220,10 @@ public class CustomMobSpellController {
     private void castSpell(CustomMobInstance instance, Mob caster, Player target, CustomMobDefinition.CustomMobSpell spell) {
         CustomMobSpellScriptEngine.SpellExecutionContext scriptContext =
                 new CustomMobSpellScriptEngine.SpellExecutionContext(caster, target, spell);
-        if (spellScriptEngine.execute(spell.id(), scriptContext, this::handleScriptAction)) {
+        String scriptId = spell.scriptKey() != null && !spell.scriptKey().isBlank()
+                ? spell.scriptKey()
+                : spell.id();
+        if (spellScriptEngine.execute(scriptId, scriptContext, this::handleScriptAction)) {
             return;
         }
         if (SPELL_MAGE_FIREBALL_BASIC.equals(spell.id())) {

@@ -1,0 +1,11 @@
+id: cursed_archer_shoot_2
+actions:
+  - type: play-animation
+    animation: shoot_2
+  - type: delay
+    ticks: 26
+  - type: archer-shoot-sound
+  - type: arrow-rain
+    count: 8
+    interval-ticks: 2
+    hit-damage-multiplier: 0.55

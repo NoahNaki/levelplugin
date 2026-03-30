@@ -14,6 +14,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.nio.file.Path;
+import java.nio.file.Files;
+import java.io.IOException;
+import java.util.stream.Stream;
 
 /**
  * Generic YAML-driven spell script runtime for custom mobs.
@@ -63,9 +67,22 @@ public final class CustomMobSpellScriptEngine {
         if (plugin == null) {
             return;
         }
-        File file = new File(plugin.getDataFolder(), "custom_mob_spells.yml");
-        if (!file.exists()) {
+        File legacyFile = new File(plugin.getDataFolder(), "custom_mob_spells.yml");
+        if (!legacyFile.exists()) {
             plugin.saveResource("custom_mob_spells.yml", false);
+        }
+        File folder = new File(plugin.getDataFolder(), "custom_mob_spells");
+        if (!folder.exists()) {
+            folder.mkdirs();
+            saveBundledFolderDefaults();
+        }
+        loadLegacyFile(legacyFile);
+        loadFolderScripts(folder);
+    }
+
+    private void loadLegacyFile(File file) {
+        if (file == null || !file.exists()) {
+            return;
         }
         YamlConfiguration cfg = YamlConfiguration.loadConfiguration(file);
         ConfigurationSection spells = cfg.getConfigurationSection("spells");
@@ -77,34 +94,73 @@ public final class CustomMobSpellScriptEngine {
             if (spellNode == null) {
                 continue;
             }
-            List<Map<?, ?>> rawActions = spellNode.getMapList("actions");
-            if (rawActions == null || rawActions.isEmpty()) {
+            registerActions(spellId, spellNode.getMapList("actions"));
+        }
+    }
+
+    private void loadFolderScripts(File folder) {
+        if (folder == null || !folder.exists() || !folder.isDirectory()) {
+            return;
+        }
+        try (Stream<Path> paths = Files.walk(folder.toPath())) {
+            paths.filter(path -> Files.isRegularFile(path))
+                    .filter(path -> path.getFileName() != null && path.getFileName().toString().toLowerCase(Locale.ROOT).endsWith(".yml"))
+                    .forEach(path -> {
+                        YamlConfiguration cfg = YamlConfiguration.loadConfiguration(path.toFile());
+                        List<Map<?, ?>> actions = cfg.getMapList("actions");
+                        if (actions == null || actions.isEmpty()) {
+                            return;
+                        }
+                        String relative = folder.toPath().relativize(path).toString().replace('\\', '/');
+                        if (relative.toLowerCase(Locale.ROOT).endsWith(".yml")) {
+                            relative = relative.substring(0, relative.length() - 4);
+                        }
+                        String explicitId = cfg.getString("id", "").trim();
+                        registerActions(relative, actions);
+                        if (!explicitId.isBlank()) {
+                            registerActions(explicitId, actions);
+                        }
+                    });
+        } catch (IOException ignored) {
+        }
+    }
+
+    private void saveBundledFolderDefaults() {
+        if (plugin == null) {
+            return;
+        }
+        plugin.saveResource("custom_mob_spells/cursed_archer_shoot_1.yml", false);
+        plugin.saveResource("custom_mob_spells/cursed_archer_shoot_2.yml", false);
+        plugin.saveResource("custom_mob_spells/cursed_archer_shoot_3.yml", false);
+    }
+
+    private void registerActions(String spellId, List<Map<?, ?>> rawActions) {
+        if (spellId == null || spellId.isBlank() || rawActions == null || rawActions.isEmpty()) {
+            return;
+        }
+        List<SpellActionDef> parsed = new ArrayList<>();
+        for (Map<?, ?> raw : rawActions) {
+            if (raw == null || raw.isEmpty()) {
                 continue;
             }
-            List<SpellActionDef> parsed = new ArrayList<>();
-            for (Map<?, ?> raw : rawActions) {
-                if (raw == null || raw.isEmpty()) {
+            Object typeToken = raw.get("type");
+            if (!(typeToken instanceof String type) || type.isBlank()) {
+                continue;
+            }
+            YamlConfiguration actionParams = new YamlConfiguration();
+            for (Map.Entry<?, ?> entry : raw.entrySet()) {
+                if (entry.getKey() == null || entry.getValue() == null) {
                     continue;
                 }
-                Object typeToken = raw.get("type");
-                if (!(typeToken instanceof String type) || type.isBlank()) {
+                if ("type".equalsIgnoreCase(String.valueOf(entry.getKey()))) {
                     continue;
                 }
-                YamlConfiguration actionParams = new YamlConfiguration();
-                for (Map.Entry<?, ?> entry : raw.entrySet()) {
-                    if (entry.getKey() == null || entry.getValue() == null) {
-                        continue;
-                    }
-                    if ("type".equalsIgnoreCase(String.valueOf(entry.getKey()))) {
-                        continue;
-                    }
-                    actionParams.set(String.valueOf(entry.getKey()), entry.getValue());
-                }
-                parsed.add(new SpellActionDef(type.toLowerCase(Locale.ROOT), actionParams));
+                actionParams.set(String.valueOf(entry.getKey()), entry.getValue());
             }
-            if (!parsed.isEmpty()) {
-                scriptedActions.put(spellId.toLowerCase(Locale.ROOT), List.copyOf(parsed));
-            }
+            parsed.add(new SpellActionDef(type.toLowerCase(Locale.ROOT), actionParams));
+        }
+        if (!parsed.isEmpty()) {
+            scriptedActions.put(spellId.toLowerCase(Locale.ROOT), List.copyOf(parsed));
         }
     }
 

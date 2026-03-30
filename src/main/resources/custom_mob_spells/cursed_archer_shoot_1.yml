@@ -1,0 +1,10 @@
+id: cursed_archer_shoot_1
+actions:
+  - type: play-animation
+    animation: shoot_1
+  - type: face-target
+  - type: delay
+    ticks: 20
+  - type: face-target
+  - type: archer-shoot-sound
+  - type: shoot-arrow

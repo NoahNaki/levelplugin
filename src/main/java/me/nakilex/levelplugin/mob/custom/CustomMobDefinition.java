@@ -30,7 +30,8 @@ public record CustomMobDefinition(String id,
                                  double minRange,
                                  double maxRange,
                                  boolean requireLineOfSight,
-                                 int gcdTicks) {
+                                 int gcdTicks,
+                                 String scriptKey) {
     }
 
     public record LevelRange(int min, int max) {
@@ -160,6 +161,7 @@ public record CustomMobDefinition(String id,
             double maxRange = Math.max(minRange, node.getDouble("max-range", range));
             boolean requireLineOfSight = node.getBoolean("require-line-of-sight", false);
             int gcdTicks = Math.max(0, node.getInt("gcd-ticks", 0));
+            String scriptKey = node.getString("script", "").trim();
             spells.add(new CustomMobSpell(
                     id,
                     intervalTicks,
@@ -172,7 +174,8 @@ public record CustomMobDefinition(String id,
                     minRange,
                     maxRange,
                     requireLineOfSight,
-                    gcdTicks
+                    gcdTicks,
+                    scriptKey
             ));
         }
         return spells;
