@@ -22,7 +22,7 @@ public class SerasQuest extends Quest implements QuestScript, QuestCompletionScr
         return List.of(
                 new QuestObjective(QuestObjectiveType.TALK, "npc" + NPC_ID, 1,
                         BeaconTargets.npc(NPC_ID)),
-                new QuestObjective(QuestObjectiveType.KILL, "SLIME_COMMON", 10,
+                new QuestObjective(QuestObjectiveType.KILL, "forest_slime", 10,
                         BeaconTargets.staticLoc(new Location(world, 140, 69, -215))),
                 new QuestObjective(QuestObjectiveType.TALK, "npc" + NPC_ID + "_first", 1,
                         BeaconTargets.npc(NPC_ID))

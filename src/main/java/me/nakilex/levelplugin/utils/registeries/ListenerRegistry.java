@@ -23,6 +23,7 @@ import me.nakilex.levelplugin.mob.dps.DpsDummyManager;
 import me.nakilex.levelplugin.mob.listeners.*;
 import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
 import me.nakilex.levelplugin.mob.custom.CustomMobManager;
+import me.nakilex.levelplugin.mob.custom.CustomMobAnimationListener;
 import me.nakilex.levelplugin.mob.custom.CustomMobRewardListener;
 import me.nakilex.levelplugin.mob.utils.MobRewardService;
 import me.nakilex.levelplugin.npc.listeners.NPCClickListener;
@@ -172,6 +173,7 @@ public class ListenerRegistry {
         if (customMobManager != null) {
             pm.registerEvents(customMobManager.getNameManager(), plugin);
             pm.registerEvents(new CustomMobRewardListener(customMobManager, rewardService), plugin);
+            pm.registerEvents(new CustomMobAnimationListener(plugin, customMobManager), plugin);
             pm.registerEvents(customMobManager.getSpawnerManager(), plugin);
             pm.registerEvents(customMobManager.getAdminGui(), plugin);
             pm.registerEvents(new MobStatusDebugListener(customMobManager), plugin);

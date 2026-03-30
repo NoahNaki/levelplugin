@@ -1,7 +1,7 @@
 id: cursed_archer
 type: VINDICATOR
 display: "&fCursed Archer"
-level: 12
+level: 50
 health: 100
 boss: false
 
@@ -12,6 +12,15 @@ stats:
   vitality: 30
   strength: 12
   technique: 18
+
+spells:
+  ranged_arrow_basic:
+    id: ranged_arrow_basic
+    interval-ticks: 30
+    damage: 8.0
+    range: 28.0
+    speed: 2.0
+    burn-ticks: 0
 
 options:
   movement-speed: 0.25

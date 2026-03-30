@@ -1,0 +1,20 @@
+id: rpg_rat
+type: SILVERFISH
+display: "&7Sewer Rat"
+level: 3
+boss: false
+
+models:
+  - rpg_rat.bbmodel
+
+stats:
+  vitality: 6
+  strength: 3
+  agility: 9
+
+options:
+  movement-speed: 0.27
+  follow-range: 18
+  knockback-resistance: 0.05
+  silent: true
+  despawn: false

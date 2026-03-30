@@ -284,6 +284,33 @@ public final class TooltipUtil {
         return ChatColor.GRAY + left + ": " + resolved + right;
     }
 
+    /**
+     * Format a label/value line prefixed with a decorative icon.
+     *
+     * @param icon       leading glyph, e.g. "✖" or "✣"
+     * @param iconColor  color for icon
+     * @param labelColor color for label text
+     * @param label      label text before colon
+     * @param valueColor color for value text
+     * @param value      value text after colon
+     * @return formatted lore line
+     */
+    public static String iconLabelValueLine(String icon,
+                                            ChatColor iconColor,
+                                            ChatColor labelColor,
+                                            String label,
+                                            ChatColor valueColor,
+                                            String value) {
+        String safeIcon = icon == null ? "" : icon.trim();
+        String safeLabel = label == null ? "" : label.trim();
+        String safeValue = value == null ? "" : value.trim();
+        ChatColor resolvedIcon = iconColor == null ? ChatColor.GRAY : iconColor;
+        ChatColor resolvedLabel = labelColor == null ? ChatColor.WHITE : labelColor;
+        ChatColor resolvedValue = valueColor == null ? ChatColor.WHITE : valueColor;
+        String iconPart = safeIcon.isEmpty() ? "" : resolvedIcon + safeIcon + " ";
+        return iconPart + resolvedLabel + safeLabel + ChatColor.GRAY + ": " + resolvedValue + safeValue;
+    }
+
 
     /**
      * Generate standard lore for quest items so they share the same divider and

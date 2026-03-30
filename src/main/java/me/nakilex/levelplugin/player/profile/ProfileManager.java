@@ -164,6 +164,8 @@ public class ProfileManager {
         SpellProgressionManager.getInstance().clearProfile(uuid, slot);
         me.nakilex.levelplugin.player.config.PlayerConfig cfg =
                 me.nakilex.levelplugin.Main.getInstance().getPlayerConfig();
+        cfg.setProfileSpellPoints(uuid, slot, 0);
+        cfg.setProfileSpellLevels(uuid, slot, List.of());
         cfg.clearProfileData(uuid, slot);
         cfg.saveConfigFile();
     }

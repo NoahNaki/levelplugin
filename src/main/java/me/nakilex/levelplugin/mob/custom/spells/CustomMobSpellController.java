@@ -10,6 +10,7 @@ import me.nakilex.levelplugin.utils.ModelEngineUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Sound;
+import org.bukkit.entity.Arrow;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Mob;
@@ -26,6 +27,7 @@ import java.util.UUID;
  */
 public class CustomMobSpellController {
     private static final String SPELL_MAGE_FIREBALL_BASIC = "mage_fireball_basic";
+    private static final String SPELL_RANGED_ARROW_BASIC = "ranged_arrow_basic";
     private static final double HIT_RADIUS = 0.45;
 
     private final Main plugin;
@@ -82,6 +84,26 @@ public class CustomMobSpellController {
     private void castSpell(CustomMobInstance instance, Mob caster, Player target, CustomMobDefinition.CustomMobSpell spell) {
         if (SPELL_MAGE_FIREBALL_BASIC.equals(spell.id())) {
             castMageFireball(instance, caster, target, spell);
+            return;
+        }
+        if (SPELL_RANGED_ARROW_BASIC.equals(spell.id())) {
+            castArrowShot(caster, target, spell);
+        }
+    }
+
+    private void castArrowShot(Mob caster, Player target, CustomMobDefinition.CustomMobSpell spell) {
+        Location eye = caster.getEyeLocation().clone();
+        Vector direction = target.getEyeLocation().toVector().subtract(eye.toVector());
+        if (direction.lengthSquared() <= 0.0001) {
+            return;
+        }
+        ModelEngineUtil.playBestShootAnimation(caster);
+        Arrow arrow = caster.launchProjectile(Arrow.class);
+        arrow.setVelocity(direction.normalize().multiply(Math.max(0.8, spell.speed())));
+        arrow.setDamage(Math.max(0.1, spell.damage()));
+        arrow.setShooter(caster);
+        if (spell.burnTicks() > 0) {
+            arrow.setFireTicks(spell.burnTicks());
         }
     }
 
@@ -91,6 +113,7 @@ public class CustomMobSpellController {
         if (direction.lengthSquared() <= 0.0001) {
             return;
         }
+        ModelEngineUtil.playBestShootAnimation(caster);
         MageFireballBasicAttackSpell.FireballSpawnResult spawnResult =
                 MageFireballBasicAttackSpell.spawnProjectileAnchor(plugin, eye, direction);
         if (spawnResult == null) {

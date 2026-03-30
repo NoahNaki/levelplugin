@@ -1,0 +1,23 @@
+id: goblin_assassin
+type: ZOMBIE
+display: "&2Goblin Assassin"
+level-range:
+  min: 9
+  max: 12
+boss: false
+
+models:
+  - mob_goblin_assassin.bbmodel
+
+stats:
+  vitality: 16
+  strength: 13
+  agility: 18
+  technique: 16
+
+options:
+  movement-speed: 0.31
+  follow-range: 26
+  knockback-resistance: 0.15
+  silent: true
+  despawn: false

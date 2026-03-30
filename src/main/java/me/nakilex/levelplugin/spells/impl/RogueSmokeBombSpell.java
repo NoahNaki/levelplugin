@@ -4,16 +4,20 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.spells.SpellContext;
 import me.nakilex.levelplugin.spells.SpellHandler;
 import me.nakilex.levelplugin.spells.SpellPartyUtil;
+import me.nakilex.levelplugin.utils.ModelEngineUtil;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
+import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Player;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class RogueSmokeBombSpell implements SpellHandler {
     private static final Map<UUID, BuffState> ACTIVE_BUFFS = new ConcurrentHashMap<>();
+    private static final String MODEL_ID = "rogue_smokebomb";
 
     private final Main plugin;
     private final int durationTicks;
@@ -49,6 +53,7 @@ public class RogueSmokeBombSpell implements SpellHandler {
             ally.getWorld().playSound(ally.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 0.5f, 1.75f);
         }
         caster.getWorld().playSound(caster.getLocation(), Sound.ENTITY_ENDER_DRAGON_GROWL, 0.45f, 1.8f);
+        spawnSmokeBombModel(caster);
     }
 
     public static double getOutgoingDamageMultiplier(Player player) {
@@ -74,6 +79,25 @@ public class RogueSmokeBombSpell implements SpellHandler {
             return null;
         }
         return state;
+    }
+
+    private void spawnSmokeBombModel(Player caster) {
+        if (caster == null || !caster.isOnline() || !org.bukkit.Bukkit.getPluginManager().isPluginEnabled("ModelEngine")) {
+            return;
+        }
+        ArmorStand anchor = caster.getWorld().spawn(caster.getLocation().clone().add(0.0, 0.25, 0.0), ArmorStand.class, stand -> {
+            stand.setInvisible(true);
+            stand.setMarker(true);
+            stand.setGravity(false);
+            stand.setSilent(true);
+            stand.setInvulnerable(true);
+        });
+        ModelEngineUtil.applyFirstAvailableModel(anchor, ModelEngineUtil.buildModelCandidates(MODEL_ID), plugin);
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            if (anchor.isValid()) {
+                anchor.remove();
+            }
+        }, Math.max(20L, durationTicks));
     }
 
     private record BuffState(long expiresAtMs, double damageMultiplier, boolean forceCrit) {

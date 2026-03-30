@@ -21,6 +21,7 @@ import org.bukkit.entity.Ageable;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Slime;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -37,6 +38,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
 import java.util.UUID;
+import java.util.Comparator;
 
 public class CustomMobManager {
     public static final String CUSTOM_MOB_ID_META = "lp_custom_mob_id";
@@ -49,7 +51,22 @@ public class CustomMobManager {
             "custom_mobs/cave_stalker.yml",
             "custom_mobs/crypt_skeleton.yml",
             "custom_mobs/ember_witch.yml",
-            "custom_mobs/reliquary_giant.yml"
+            "custom_mobs/reliquary_giant.yml",
+            "custom_mobs/rpg_rat.yml",
+            "custom_mobs/goblin_archer.yml",
+            "custom_mobs/goblin_assassin.yml",
+            "custom_mobs/goblin_shaman.yml",
+            "custom_mobs/goblin_warrior.yml",
+            "custom_mobs/cursed_arrow.yml",
+            "custom_mobs/slime_king.yml",
+            "custom_mobs/wild_rooster.yml",
+            "custom_mobs/cursed_hollow.yml",
+            "custom_mobs/cursed_knight.yml",
+            "custom_mobs/cursed_mage.yml",
+            "custom_mobs/cursed_night.yml",
+            "custom_mobs/mso_magma_imp.yml",
+            "custom_mobs/vp1_hermit_crab.yml",
+            "custom_mobs/vp1_golem_damaged_1.yml"
     );
     private static final ArcPattern STUN_PATTERN = new ArcPattern(
             Particle.CRIT,
@@ -135,9 +152,18 @@ public class CustomMobManager {
     }
 
     public List<String> getMobIds() {
-        return definitions.values().stream()
+        return getDefinitionsByProgression().stream()
                 .map(CustomMobDefinition::id)
-                .sorted(String.CASE_INSENSITIVE_ORDER)
+                .toList();
+    }
+
+    public List<CustomMobDefinition> getDefinitionsByProgression() {
+        return definitions.values().stream()
+                .sorted(Comparator
+                        .comparingInt((CustomMobDefinition def) -> def.levelRange().min())
+                        .thenComparingInt(def -> def.levelRange().max())
+                        .thenComparingInt(this::resolvePowerScore)
+                        .thenComparing(CustomMobDefinition::id, String.CASE_INSENSITIVE_ORDER))
                 .toList();
     }
 
@@ -266,6 +292,9 @@ public class CustomMobManager {
         if (entity instanceof Ageable ageable) {
             ageable.setAdult();
         }
+        if (entity instanceof Slime slime && definition.id().equalsIgnoreCase("slime_king")) {
+            slime.setSize(120);
+        }
         CustomMobStats stats = definition.stats();
         double baseHealth = definition.baseHealth() != null
                 ? definition.baseHealth()
@@ -299,6 +328,20 @@ public class CustomMobManager {
                         + " failed to apply ModelEngine models: " + String.join(", ", result.failed()));
             }
         }
+    }
+
+    private int resolvePowerScore(CustomMobDefinition definition) {
+        if (definition == null || definition.stats() == null) {
+            return 0;
+        }
+        CustomMobStats stats = definition.stats();
+        int offense = stats.strength() + stats.intelligence() + stats.dexterity() + stats.technique();
+        int defense = stats.vitality() + stats.will();
+        int score = offense * 2 + defense;
+        if (definition.boss()) {
+            score += 500;
+        }
+        return score;
     }
 
     private void applyAttribute(LivingEntity entity, Attribute attr, Double value) {

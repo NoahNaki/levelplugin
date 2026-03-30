@@ -1,0 +1,23 @@
+id: cursed_knight
+type: VINDICATOR
+display: "&8Cursed Knight"
+level-range:
+  min: 50
+  max: 50
+boss: false
+
+models:
+  - cursed_knight.bbmodel
+
+stats:
+  vitality: 38
+  strength: 20
+  agility: 11
+  technique: 14
+
+options:
+  movement-speed: 0.25
+  follow-range: 28
+  knockback-resistance: 0.6
+  silent: true
+  despawn: false

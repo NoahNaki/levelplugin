@@ -1,0 +1,24 @@
+id: vp1_golem_damaged_1
+type: IRON_GOLEM
+display: "&8Damaged Golem"
+level-range:
+  min: 20
+  max: 24
+boss: false
+
+models:
+  - vp1_golem_damaged_1.bbmodel
+
+stats:
+  vitality: 58
+  strength: 30
+  agility: 6
+  will: 20
+  technique: 10
+
+options:
+  movement-speed: 0.21
+  follow-range: 30
+  knockback-resistance: 0.75
+  silent: true
+  despawn: false

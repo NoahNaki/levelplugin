@@ -1,0 +1,23 @@
+id: goblin_shaman
+type: WITCH
+display: "&aGoblin Shaman"
+level-range:
+  min: 10
+  max: 13
+boss: false
+
+models:
+  - mob_goblin_shaman.bbmodel
+
+stats:
+  vitality: 20
+  intelligence: 18
+  will: 16
+  technique: 10
+
+options:
+  movement-speed: 0.25
+  follow-range: 30
+  knockback-resistance: 0.2
+  silent: true
+  despawn: false

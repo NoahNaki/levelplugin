@@ -11,6 +11,7 @@ import me.nakilex.levelplugin.quests.data.QuestScript;
 import me.nakilex.levelplugin.quests.data.QuestCompletionScript;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.quests.def.SerasSlimeKingQuest;
+import me.nakilex.levelplugin.items.listeners.StaticItemListener;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.entity.Player;
 
@@ -52,6 +53,7 @@ public class StableKeeperQuest extends Quest implements QuestScript, QuestComple
                     "Stable Keeper|I'll waive the fee this once—call it gratitude. After you've chosen a horse, report back for your reward."),
             TALK_FINAL_INDEX, List.of(
                     "Stable Keeper|That horse suits you. It even stopped eyeing me like a snack.",
+                    "Stable Keeper|Take this saddle token. Keep it handy and call your horse whenever you need it.",
                     "<player>|Thanks again for trusting me with it.",
                     "Stable Keeper|Keep her brushed and she'll carry you anywhere. Come back any time you need another reroll, but the next one won't be free."));
 
@@ -130,5 +132,13 @@ public class StableKeeperQuest extends Quest implements QuestScript, QuestComple
 
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                 "Stable Keeper|Seras was asking for you—head back to her. The beacon will guide you.");
+
+        if (StaticItemListener.giveHorseSaddleReward(player)) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
+                    "Stable Keeper|Here's your saddle. It's soulbound, so keep it close.");
+        } else {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                    "Stable Keeper|Your inventory is full. Clear a slot and I'll hand you the saddle when your loadout refreshes.");
+        }
     }
 }

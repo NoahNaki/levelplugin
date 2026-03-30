@@ -434,6 +434,34 @@ public class ItemUtil {
         return false;
     }
 
+    /**
+     * Mark or unmark any ItemStack as soulbound using the shared item key.
+     * Also keeps the visible "Soulbound" lore line in sync.
+     */
+    public static void setSoulbound(ItemStack stack, boolean soulbound) {
+        if (stack == null) {
+            return;
+        }
+        ItemMeta meta = stack.getItemMeta();
+        if (meta == null) {
+            return;
+        }
+        PersistentDataContainer pdc = meta.getPersistentDataContainer();
+        if (soulbound) {
+            pdc.set(SOULBOUND_KEY, PersistentDataType.BYTE, (byte) 1);
+        } else {
+            pdc.remove(SOULBOUND_KEY);
+        }
+
+        List<String> lore = meta.hasLore() ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
+        lore.removeIf(line -> ChatColor.stripColor(line).equalsIgnoreCase("Soulbound"));
+        if (soulbound) {
+            lore.add(ChatColor.RED + "Soulbound");
+        }
+        meta.setLore(lore);
+        stack.setItemMeta(meta);
+    }
+
     public static boolean isDungeonItem(ItemStack stack) {
         if (stack == null || !stack.hasItemMeta()) return false;
         ItemMeta meta = stack.getItemMeta();
