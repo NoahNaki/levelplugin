@@ -68,6 +68,27 @@ public class CustomMobManager {
             "custom_mobs/vp1_hermit_crab.yml",
             "custom_mobs/vp1_golem_damaged_1.yml"
     );
+    private static final List<String> DEFAULT_SPELL_SCRIPTS = List.of(
+            "custom_mob_spells/cursed_archer_shoot_1.yml",
+            "custom_mob_spells/cursed_archer_shoot_2.yml",
+            "custom_mob_spells/cursed_archer_shoot_3.yml",
+            "custom_mob_spells/cursed_mage_spell_1.yml",
+            "custom_mob_spells/cursed_mage_spell_2.yml",
+            "custom_mob_spells/cursed_mage_spell_3.yml",
+            "custom_mob_spells/cursed_knight_attack_1.yml",
+            "custom_mob_spells/cursed_knight_attack_2.yml",
+            "custom_mob_spells/cursed_knight_attack_3.yml",
+            "custom_mob_spells/goblin_archer_shoot.yml",
+            "custom_mob_spells/goblin_archer_throw_bomb.yml",
+            "custom_mob_spells/goblin_assassin_shadowstep.yml",
+            "custom_mob_spells/goblin_assassin_stab.yml",
+            "custom_mob_spells/goblin_assassin_slash.yml",
+            "custom_mob_spells/goblin_warrior_sword_slam.yml",
+            "custom_mob_spells/goblin_warrior_shield_rush.yml",
+            "custom_mob_spells/goblin_shaman_fireball.yml",
+            "custom_mob_spells/goblin_shaman_heal.yml"
+    );
+
     private static final ArcPattern STUN_PATTERN = new ArcPattern(
             Particle.CRIT,
             null,
@@ -211,6 +232,7 @@ public class CustomMobManager {
 
     public void reload() {
         loadDefinitions();
+        spellController.reload();
     }
 
     public List<LivingEntity> spawn(String id, Location location, int amount) {
@@ -263,7 +285,13 @@ public class CustomMobManager {
         }
         for (String resource : DEFAULT_EXAMPLES) {
             File target = new File(plugin.getDataFolder(), resource);
-            if (!target.exists()) {
+            if (!target.exists() && plugin.getResource(resource) != null) {
+                plugin.saveResource(resource, false);
+            }
+        }
+        for (String resource : DEFAULT_SPELL_SCRIPTS) {
+            File target = new File(plugin.getDataFolder(), resource);
+            if (!target.exists() && plugin.getResource(resource) != null) {
                 plugin.saveResource(resource, false);
             }
         }

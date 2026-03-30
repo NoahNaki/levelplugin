@@ -1,0 +1,7 @@
+id: goblin_warrior_sword_slam
+actions:
+  - type: animation
+    name: attack
+  - type: delayed_explosion_target
+    delay-ticks: 8
+    radius: 1.8

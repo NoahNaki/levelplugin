@@ -1,0 +1,5 @@
+id: cursed_knight_attack_3
+actions:
+  - type: delayed_explosion_target
+    delay-ticks: 16
+    radius: 2.0

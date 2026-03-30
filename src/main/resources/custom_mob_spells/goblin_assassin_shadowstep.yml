@@ -1,0 +1,4 @@
+id: goblin_assassin_shadowstep
+actions:
+  - type: teleport_target
+    behind-distance: 1.8

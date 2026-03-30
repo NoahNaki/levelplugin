@@ -1,0 +1,5 @@
+id: goblin_archer_shoot
+actions:
+  - type: animation
+    name: shoot
+  - type: projectile_arrow

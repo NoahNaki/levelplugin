@@ -1,0 +1,3 @@
+id: goblin_shaman_fireball
+actions:
+  - type: projectile_mage_fireball

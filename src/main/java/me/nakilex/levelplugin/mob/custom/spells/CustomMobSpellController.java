@@ -9,21 +9,30 @@ import me.nakilex.levelplugin.spells.impl.MageFireballBasicAttackSpell;
 import me.nakilex.levelplugin.utils.ModelEngineUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Particle;
 import org.bukkit.Sound;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Arrow;
 import org.bukkit.entity.ArmorStand;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
+import java.io.File;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Random;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
- * Reusable runtime for custom mob spells declared in custom mob YAML definitions.
+ * Generic runtime for custom mob spells with weighted group selection + YAML scripts.
  */
 public class CustomMobSpellController {
     private static final String SPELL_MAGE_FIREBALL_BASIC = "mage_fireball_basic";
@@ -32,12 +41,25 @@ public class CustomMobSpellController {
 
     private final Main plugin;
     private final CustomMobManager mobManager;
-    private final Map<UUID, Map<String, Long>> cooldowns = new HashMap<>();
+    private final Random random = new Random();
+    private final CustomMobSpellScriptEngine scriptEngine;
+    private final Map<UUID, Map<String, Long>> spellCooldowns = new HashMap<>();
+    private final Map<UUID, Long> globalCooldowns = new HashMap<>();
 
     public CustomMobSpellController(Main plugin, CustomMobManager mobManager) {
         this.plugin = plugin;
         this.mobManager = mobManager;
+        this.scriptEngine = new CustomMobSpellScriptEngine(plugin);
         startTicker();
+    }
+
+    public void reload() {
+        scriptEngine.reload();
+    }
+
+    public void clearMob(UUID mobId) {
+        spellCooldowns.remove(mobId);
+        globalCooldowns.remove(mobId);
     }
 
     private void startTicker() {
@@ -54,40 +76,271 @@ public class CustomMobSpellController {
             if (!(mob.getTarget() instanceof Player target) || target.isDead()) {
                 continue;
             }
-            for (CustomMobDefinition.CustomMobSpell spell : instance.definition().spells()) {
-                if (!isReady(instance.entity().getUniqueId(), spell, now)) {
+            if (!isGlobalReady(entity.getUniqueId(), now)) {
+                continue;
+            }
+
+            Map<String, List<CustomMobDefinition.CustomMobSpell>> byGroup = collectEligibleByGroup(instance, mob, target, now);
+            for (List<CustomMobDefinition.CustomMobSpell> groupSpells : byGroup.values()) {
+                CustomMobDefinition.CustomMobSpell selected = weightedPick(groupSpells);
+                if (selected == null) {
                     continue;
                 }
-                if (mob.getLocation().distanceSquared(target.getLocation()) > spell.range() * spell.range()) {
-                    continue;
-                }
-                castSpell(instance, mob, target, spell);
-                markCast(instance.entity().getUniqueId(), spell, now);
+                castSpell(instance, mob, target, selected);
+                markCast(entity.getUniqueId(), selected, now);
             }
         }
     }
 
-    private boolean isReady(UUID mobId, CustomMobDefinition.CustomMobSpell spell, long now) {
-        long nextAllowed = cooldowns.getOrDefault(mobId, Map.of()).getOrDefault(spell.id(), 0L);
+    private Map<String, List<CustomMobDefinition.CustomMobSpell>> collectEligibleByGroup(CustomMobInstance instance,
+                                                                                          Mob mob,
+                                                                                          Player target,
+                                                                                          long now) {
+        Map<String, List<CustomMobDefinition.CustomMobSpell>> grouped = new HashMap<>();
+        double distance = mob.getLocation().distance(target.getLocation());
+        for (CustomMobDefinition.CustomMobSpell spell : instance.definition().spells()) {
+            if (!isSpellReady(mob.getUniqueId(), spell, now)) {
+                continue;
+            }
+            if (distance < spell.minRange() || distance > spell.maxRange()) {
+                continue;
+            }
+            if (spell.requireLineOfSight() && !mob.hasLineOfSight(target)) {
+                continue;
+            }
+            grouped.computeIfAbsent(spell.selectionGroup(), k -> new ArrayList<>()).add(spell);
+        }
+        return grouped;
+    }
+
+    private boolean isSpellReady(UUID mobId, CustomMobDefinition.CustomMobSpell spell, long now) {
+        long nextAllowed = spellCooldowns.getOrDefault(mobId, Map.of()).getOrDefault(spell.id(), 0L);
         return now >= nextAllowed;
     }
 
-    private void markCast(UUID mobId, CustomMobDefinition.CustomMobSpell spell, long now) {
-        cooldowns.computeIfAbsent(mobId, ignored -> new HashMap<>())
-                .put(spell.id(), now + (spell.intervalTicks() * 50L));
+    private boolean isGlobalReady(UUID mobId, long now) {
+        return now >= globalCooldowns.getOrDefault(mobId, 0L);
     }
 
-    public void clearMob(UUID mobId) {
-        cooldowns.remove(mobId);
+    private void markCast(UUID mobId, CustomMobDefinition.CustomMobSpell spell, long now) {
+        spellCooldowns.computeIfAbsent(mobId, ignored -> new HashMap<>())
+                .put(spell.id(), now + (spell.intervalTicks() * 50L));
+        if (spell.gcdTicks() > 0) {
+            globalCooldowns.put(mobId, now + spell.gcdTicks() * 50L);
+        }
+    }
+
+    private CustomMobDefinition.CustomMobSpell weightedPick(List<CustomMobDefinition.CustomMobSpell> spells) {
+        if (spells.isEmpty()) {
+            return null;
+        }
+        double totalWeight = spells.stream().mapToDouble(s -> Math.max(0.0, s.selectionWeight())).sum();
+        if (totalWeight <= 0.0001) {
+            return spells.get(random.nextInt(spells.size()));
+        }
+        double roll = random.nextDouble() * totalWeight;
+        double cursor = 0;
+        for (CustomMobDefinition.CustomMobSpell spell : spells) {
+            cursor += Math.max(0.0, spell.selectionWeight());
+            if (roll <= cursor) {
+                return spell;
+            }
+        }
+        return spells.get(spells.size() - 1);
     }
 
     private void castSpell(CustomMobInstance instance, Mob caster, Player target, CustomMobDefinition.CustomMobSpell spell) {
+        CustomMobSpellScriptEngine.SpellScript script = scriptEngine.getScript(spell.scriptKey());
+        if (script != null && !script.actions().isEmpty()) {
+            executeScript(instance, caster, target, spell, script);
+            return;
+        }
+        castLegacyFallback(instance, caster, target, spell);
+    }
+
+    private void executeScript(CustomMobInstance instance,
+                               Mob caster,
+                               Player target,
+                               CustomMobDefinition.CustomMobSpell spell,
+                               CustomMobSpellScriptEngine.SpellScript script) {
+        runAction(instance, caster, target, spell, script.actions(), 0);
+    }
+
+    private void runAction(CustomMobInstance instance,
+                           Mob caster,
+                           Player target,
+                           CustomMobDefinition.CustomMobSpell spell,
+                           List<CustomMobSpellScriptEngine.SpellAction> actions,
+                           int index) {
+        if (index >= actions.size() || caster.isDead() || target.isDead()) {
+            return;
+        }
+        CustomMobSpellScriptEngine.SpellAction action = actions.get(index);
+        if ("delay".equals(action.type())) {
+            long ticks = Math.max(1L, asLong(action.args().get("ticks"), 1L));
+            Bukkit.getScheduler().runTaskLater(plugin, () -> runAction(instance, caster, target, spell, actions, index + 1), ticks);
+            return;
+        }
+        handleAction(instance, caster, target, spell, action);
+        runAction(instance, caster, target, spell, actions, index + 1);
+    }
+
+    private void handleAction(CustomMobInstance instance,
+                              Mob caster,
+                              Player target,
+                              CustomMobDefinition.CustomMobSpell spell,
+                              CustomMobSpellScriptEngine.SpellAction action) {
+        switch (action.type()) {
+            case "animation" -> {
+                String name = asString(action.args().get("name"), "shoot");
+                if ("shoot".equalsIgnoreCase(name)) {
+                    ModelEngineUtil.playBestShootAnimation(caster);
+                } else {
+                    ModelEngineUtil.playBestAttackAnimation(caster);
+                }
+            }
+            case "sound" -> playSound(caster.getLocation(), action.args());
+            case "projectile_arrow" -> castArrowShot(caster, target, spell);
+            case "projectile_mage_fireball" -> castMageFireball(instance, caster, target, spell);
+            case "particles_ring" -> spawnRing(caster.getLocation(), action.args());
+            case "cone_damage" -> coneDamageAndKnockback(caster, spell, action.args());
+            case "dash" -> dashForward(caster, action.args());
+            case "teleport_target" -> teleportNearTarget(caster, target, action.args());
+            case "delayed_explosion_target" -> delayedExplosionAtTarget(caster, target, spell, action.args());
+            case "heal_allies" -> healNearbyAllies(instance, caster, action.args());
+            default -> {
+                // Unknown action: keep script runtime resilient.
+            }
+        }
+    }
+
+    private void castLegacyFallback(CustomMobInstance instance, Mob caster, Player target, CustomMobDefinition.CustomMobSpell spell) {
         if (SPELL_MAGE_FIREBALL_BASIC.equals(spell.id())) {
             castMageFireball(instance, caster, target, spell);
             return;
         }
         if (SPELL_RANGED_ARROW_BASIC.equals(spell.id())) {
             castArrowShot(caster, target, spell);
+        }
+    }
+
+    private void playSound(Location location, Map<String, Object> args) {
+        String soundName = asString(args.get("id"), "ENTITY_BLAZE_SHOOT");
+        float volume = (float) asDouble(args.get("volume"), 1.0);
+        float pitch = (float) asDouble(args.get("pitch"), 1.0);
+        try {
+            Sound sound = Sound.valueOf(soundName.toUpperCase(Locale.ROOT));
+            location.getWorld().playSound(location, sound, volume, pitch);
+        } catch (IllegalArgumentException ignored) {
+        }
+    }
+
+    private void spawnRing(Location center, Map<String, Object> args) {
+        double radius = Math.max(0.5, asDouble(args.get("radius"), 2.0));
+        int points = Math.max(8, (int) asLong(args.get("points"), 20));
+        Particle particle = parseParticle(asString(args.get("particle"), "CRIT"));
+        for (int i = 0; i < points; i++) {
+            double angle = (Math.PI * 2.0 * i) / points;
+            Location point = center.clone().add(Math.cos(angle) * radius, 0.1, Math.sin(angle) * radius);
+            center.getWorld().spawnParticle(particle, point, 1, 0.01, 0.01, 0.01, 0.0);
+        }
+    }
+
+    private Particle parseParticle(String id) {
+        try {
+            return Particle.valueOf(id.toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException ex) {
+            return Particle.CRIT;
+        }
+    }
+
+    private void coneDamageAndKnockback(Mob caster, CustomMobDefinition.CustomMobSpell spell, Map<String, Object> args) {
+        double range = Math.max(1.0, asDouble(args.get("range"), spell.maxRange()));
+        double halfAngleDeg = Math.max(5.0, asDouble(args.get("half-angle"), 30.0));
+        double knockback = Math.max(0.0, asDouble(args.get("knockback"), 0.35));
+
+        Vector forward = caster.getLocation().getDirection().normalize();
+        List<LivingEntity> victims = caster.getNearbyEntities(range, 2.0, range).stream()
+                .filter(entity -> entity instanceof LivingEntity)
+                .map(entity -> (LivingEntity) entity)
+                .filter(entity -> !entity.isDead() && !entity.equals(caster))
+                .filter(entity -> isInCone(caster.getLocation(), forward, entity.getLocation(), halfAngleDeg, range))
+                .collect(Collectors.toList());
+
+        for (LivingEntity victim : victims) {
+            victim.damage(spell.damage(), caster);
+            Vector kb = victim.getLocation().toVector().subtract(caster.getLocation().toVector()).normalize().multiply(knockback);
+            kb.setY(Math.max(0.2, kb.getY() + 0.2));
+            victim.setVelocity(victim.getVelocity().add(kb));
+        }
+    }
+
+    private boolean isInCone(Location origin, Vector forward, Location target, double halfAngleDeg, double range) {
+        Vector offset = target.toVector().subtract(origin.toVector());
+        if (offset.lengthSquared() > range * range || offset.lengthSquared() <= 0.0001) {
+            return false;
+        }
+        Vector direction = offset.normalize();
+        double angle = Math.toDegrees(Math.acos(Math.max(-1.0, Math.min(1.0, forward.dot(direction)))));
+        return angle <= halfAngleDeg;
+    }
+
+    private void dashForward(Mob caster, Map<String, Object> args) {
+        double strength = Math.max(0.1, asDouble(args.get("strength"), 1.0));
+        Vector velocity = caster.getLocation().getDirection().normalize().multiply(strength);
+        velocity.setY(Math.max(0.05, velocity.getY()));
+        caster.setVelocity(velocity);
+    }
+
+    private void teleportNearTarget(Mob caster, Player target, Map<String, Object> args) {
+        double behind = Math.max(0.0, asDouble(args.get("behind-distance"), 1.5));
+        Vector back = target.getLocation().getDirection().normalize().multiply(-behind);
+        Location to = target.getLocation().clone().add(back).add(0, 0.1, 0);
+        caster.getWorld().spawnParticle(Particle.SMOKE, caster.getLocation().add(0, 1.0, 0), 12, 0.4, 0.6, 0.4, 0.02);
+        caster.teleport(to);
+        caster.getWorld().spawnParticle(Particle.SMOKE, caster.getLocation().add(0, 1.0, 0), 16, 0.3, 0.6, 0.3, 0.02);
+    }
+
+    private void delayedExplosionAtTarget(Mob caster, Player target, CustomMobDefinition.CustomMobSpell spell, Map<String, Object> args) {
+        long delay = Math.max(1L, asLong(args.get("delay-ticks"), 20));
+        double radius = Math.max(0.5, asDouble(args.get("radius"), 2.0));
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            if (caster.isDead() || target.isDead()) {
+                return;
+            }
+            Location impact = target.getLocation().clone();
+            impact.getWorld().spawnParticle(Particle.EXPLOSION, impact, 1, 0, 0, 0, 0);
+            impact.getWorld().playSound(impact, Sound.ENTITY_GENERIC_EXPLODE, 0.9f, 1.0f);
+            for (Entity entity : impact.getWorld().getNearbyEntities(impact, radius, radius, radius)) {
+                if (entity instanceof LivingEntity living && !living.equals(caster) && !living.isDead()) {
+                    living.damage(spell.damage(), caster);
+                }
+            }
+        }, delay);
+    }
+
+    private void healNearbyAllies(CustomMobInstance sourceInstance, Mob caster, Map<String, Object> args) {
+        double radius = Math.max(1.0, asDouble(args.get("radius"), 10.0));
+        double amount = Math.max(0.5, asDouble(args.get("amount"), 6.0));
+        for (CustomMobInstance ally : mobManager.getActiveMobs().values()) {
+            if (ally.entity().isDead()) {
+                continue;
+            }
+            if (!ally.id().equalsIgnoreCase(sourceInstance.id())) {
+                continue;
+            }
+            if (ally.entity().getLocation().getWorld() != caster.getWorld()) {
+                continue;
+            }
+            if (ally.entity().getLocation().distanceSquared(caster.getLocation()) > radius * radius) {
+                continue;
+            }
+            LivingEntity entity = ally.entity();
+            double max = entity.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH) != null
+                    ? entity.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH).getValue()
+                    : entity.getMaxHealth();
+            entity.setHealth(Math.min(max, entity.getHealth() + amount));
+            entity.getWorld().spawnParticle(Particle.HEART, entity.getLocation().add(0, 1.1, 0), 2, 0.3, 0.3, 0.3, 0.01);
         }
     }
 
@@ -165,7 +418,7 @@ public class CustomMobSpellController {
     }
 
     private LivingEntity findTargetAt(Location center, Mob caster, ArmorStand projectile) {
-        for (var entity : center.getWorld().getNearbyEntities(center, HIT_RADIUS, HIT_RADIUS, HIT_RADIUS)) {
+        for (Entity entity : center.getWorld().getNearbyEntities(center, HIT_RADIUS, HIT_RADIUS, HIT_RADIUS)) {
             if (!(entity instanceof LivingEntity living)) {
                 continue;
             }
@@ -189,6 +442,42 @@ public class CustomMobSpellController {
     private void removeProjectile(ArmorStand projectile) {
         if (projectile.isValid()) {
             projectile.remove();
+        }
+    }
+
+    private String asString(Object value, String fallback) {
+        if (value == null) {
+            return fallback;
+        }
+        String text = String.valueOf(value).trim();
+        return text.isEmpty() ? fallback : text;
+    }
+
+    private double asDouble(Object value, double fallback) {
+        if (value instanceof Number number) {
+            return number.doubleValue();
+        }
+        if (value == null) {
+            return fallback;
+        }
+        try {
+            return Double.parseDouble(String.valueOf(value));
+        } catch (NumberFormatException ex) {
+            return fallback;
+        }
+    }
+
+    private long asLong(Object value, long fallback) {
+        if (value instanceof Number number) {
+            return number.longValue();
+        }
+        if (value == null) {
+            return fallback;
+        }
+        try {
+            return Long.parseLong(String.valueOf(value));
+        } catch (NumberFormatException ex) {
+            return fallback;
         }
     }
 }

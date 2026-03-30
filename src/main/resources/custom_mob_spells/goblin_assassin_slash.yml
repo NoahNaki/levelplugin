@@ -1,0 +1,8 @@
+id: goblin_assassin_slash
+actions:
+  - type: animation
+    name: attack
+  - type: cone_damage
+    range: 3.0
+    half-angle: 32
+    knockback: 0.25

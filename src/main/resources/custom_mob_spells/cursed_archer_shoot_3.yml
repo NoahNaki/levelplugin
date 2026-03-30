@@ -1,0 +1,7 @@
+id: cursed_archer_shoot_3
+actions:
+  - type: animation
+    name: shoot
+  - type: sound
+    id: ENTITY_ARROW_HIT_PLAYER
+  - type: projectile_arrow

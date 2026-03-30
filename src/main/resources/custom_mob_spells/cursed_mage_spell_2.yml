@@ -1,0 +1,9 @@
+id: cursed_mage_spell_2
+actions:
+  - type: particles_ring
+    particle: FLAME
+    radius: 1.8
+    points: 20
+  - type: delay
+    ticks: 6
+  - type: projectile_mage_fireball

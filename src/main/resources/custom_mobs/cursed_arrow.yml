@@ -18,9 +18,16 @@ stats:
 spells:
   ranged_arrow_basic:
     id: ranged_arrow_basic
+    script-key: cursed_archer_shoot_1
+    selection-group: primary
+    selection-weight: 1.0
     interval-ticks: 24
+    gcd-ticks: 8
     damage: 9.0
     range: 30.0
+    min-range: 10.0
+    max-range: 34.0
+    require-line-of-sight: true
     speed: 2.2
     burn-ticks: 0
 

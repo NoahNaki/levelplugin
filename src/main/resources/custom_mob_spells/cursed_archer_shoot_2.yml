@@ -1,0 +1,7 @@
+id: cursed_archer_shoot_2
+actions:
+  - type: animation
+    name: shoot
+  - type: delay
+    ticks: 5
+  - type: projectile_arrow

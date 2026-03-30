@@ -1,0 +1,5 @@
+id: cursed_mage_spell_1
+actions:
+  - type: animation
+    name: shoot
+  - type: projectile_mage_fireball

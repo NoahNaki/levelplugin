@@ -1,0 +1,9 @@
+id: cursed_archer_shoot_1
+actions:
+  - type: animation
+    name: shoot
+  - type: sound
+    id: ENTITY_SKELETON_SHOOT
+    volume: 1.0
+    pitch: 1.0
+  - type: projectile_arrow

@@ -1,0 +1,8 @@
+id: goblin_warrior_shield_rush
+actions:
+  - type: dash
+    strength: 1.3
+  - type: cone_damage
+    range: 2.8
+    half-angle: 35
+    knockback: 0.8

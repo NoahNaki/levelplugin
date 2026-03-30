@@ -1,0 +1,10 @@
+id: cursed_knight_attack_2
+actions:
+  - type: dash
+    strength: 1.1
+  - type: delay
+    ticks: 6
+  - type: cone_damage
+    range: 3.5
+    half-angle: 30
+    knockback: 0.55

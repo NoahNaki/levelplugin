@@ -1,0 +1,9 @@
+id: goblin_shaman_heal
+actions:
+  - type: particles_ring
+    particle: HEART
+    radius: 1.5
+    points: 12
+  - type: heal_allies
+    radius: 12.0
+    amount: 8.0

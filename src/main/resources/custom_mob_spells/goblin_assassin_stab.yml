@@ -1,0 +1,6 @@
+id: goblin_assassin_stab
+actions:
+  - type: cone_damage
+    range: 2.4
+    half-angle: 22
+    knockback: 0.15

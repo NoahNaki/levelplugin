@@ -1,0 +1,8 @@
+id: cursed_knight_attack_1
+actions:
+  - type: animation
+    name: attack
+  - type: cone_damage
+    range: 4.0
+    half-angle: 35
+    knockback: 0.45

@@ -1,0 +1,7 @@
+id: cursed_mage_spell_3
+actions:
+  - type: animation
+    name: shoot
+  - type: delayed_explosion_target
+    delay-ticks: 24
+    radius: 2.5

@@ -1,0 +1,7 @@
+id: goblin_archer_throw_bomb
+actions:
+  - type: sound
+    id: ENTITY_WITCH_THROW
+  - type: delayed_explosion_target
+    delay-ticks: 18
+    radius: 2.2
