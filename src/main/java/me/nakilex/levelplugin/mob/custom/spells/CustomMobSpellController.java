@@ -49,6 +49,7 @@ public class CustomMobSpellController {
     private final CustomMobSpellScriptEngine spellScriptEngine;
     private final Map<UUID, Map<String, Long>> cooldowns = new HashMap<>();
     private final Map<UUID, Long> globalCooldowns = new HashMap<>();
+    private final Map<UUID, Long> debugTraceUntilMs = new HashMap<>();
 
     public CustomMobSpellController(Main plugin, CustomMobManager mobManager) {
         this.plugin = plugin;
@@ -193,6 +194,7 @@ public class CustomMobSpellController {
     public void clearMob(UUID mobId) {
         cooldowns.remove(mobId);
         globalCooldowns.remove(mobId);
+        debugTraceUntilMs.remove(mobId);
     }
 
     public boolean debugCastSpell(LivingEntity casterEntity, Player target, String spellId) {
@@ -213,6 +215,10 @@ public class CustomMobSpellController {
         if (spell == null) {
             return false;
         }
+        enableDebugTrace(caster.getUniqueId(), 12_000L);
+        plugin.getLogger().info("[MobSpellDebug] debugCastSpell -> mob=" + instance.id()
+                + " spell=" + spell.id() + " scriptKey=" + spell.scriptKey()
+                + " target=" + target.getName());
         castSpell(instance, caster, target, spell);
         return true;
     }
@@ -253,7 +259,7 @@ public class CustomMobSpellController {
             return;
         }
         ModelEngineUtil.triggerActionState(caster, List.of("shoot", "arrow", "bow", "cast", "attack"), 600L);
-        emitSpellAnimationDebug(target, caster, spell.id(), inferAnimationForSpell(spell.id(), "shoot"));
+        emitSpellAnimationDebug(target, caster, spell.id(), inferAnimationForSpell(spell.id(), "shoot"), "legacy-windup");
         faceTarget(caster, target);
         runLater(Math.max(0L, windupTicks), () -> {
             if (!isCombatContextValid(caster, target)) {
@@ -276,7 +282,7 @@ public class CustomMobSpellController {
             case "play-animation" -> {
                 String animation = action.params().getString("animation", "");
                 if (playNamedAnimation(caster, animation)) {
-                    emitSpellAnimationDebug(target, caster, spell.id(), animation);
+                    emitSpellAnimationDebug(target, caster, spell.id(), animation, "script:play-animation");
                 }
             }
             case "face-target" -> faceTarget(caster, target);
@@ -609,12 +615,15 @@ public class CustomMobSpellController {
         boolean played = ModelEngineUtil.playAnimationByName(caster, animationName, false);
         if (played) {
             ModelEngineUtil.holdActionState(caster, 600L);
+            logDebugTrace(caster, "playNamedAnimation exact -> " + animationName);
             return true;
         }
         if (animationName != null && !animationName.isBlank()) {
-            return ModelEngineUtil.triggerActionState(caster,
+            boolean fallbackPlayed = ModelEngineUtil.triggerActionState(caster,
                     List.of(animationName, "shoot", "attack", "cast", "slash", "swing"),
                     600L);
+            logDebugTrace(caster, "playNamedAnimation fallback -> " + animationName + " result=" + fallbackPlayed);
+            return fallbackPlayed;
         }
         return false;
     }
@@ -637,7 +646,7 @@ public class CustomMobSpellController {
         return "shoot";
     }
 
-    private void emitSpellAnimationDebug(Player target, Mob caster, String spellId, String animationName) {
+    private void emitSpellAnimationDebug(Player target, Mob caster, String spellId, String animationName, String source) {
         if (target == null || caster == null || !target.isOnline() || target.isDead()) {
             return;
         }
@@ -650,6 +659,35 @@ public class CustomMobSpellController {
                 + ChatColor.DARK_GRAY + " | "
                 + ChatColor.LIGHT_PURPLE + "animation=" + safeAnimation;
         ChatMessageUtil.send(target, ChatMessageUtil.MessageType.INFO, message);
+        if (isDebugTraceEnabled(caster)) {
+            plugin.getLogger().info("[MobSpellDebug] source=" + source
+                    + " mobType=" + caster.getType().name()
+                    + " spell=" + safeSpell
+                    + " animation=" + safeAnimation
+                    + " target=" + target.getName());
+        }
+    }
+
+    private void enableDebugTrace(UUID mobId, long durationMs) {
+        if (mobId == null) {
+            return;
+        }
+        debugTraceUntilMs.put(mobId, System.currentTimeMillis() + Math.max(1000L, durationMs));
+    }
+
+    private boolean isDebugTraceEnabled(Mob caster) {
+        if (caster == null) {
+            return false;
+        }
+        long until = debugTraceUntilMs.getOrDefault(caster.getUniqueId(), 0L);
+        return System.currentTimeMillis() <= until;
+    }
+
+    private void logDebugTrace(Mob caster, String message) {
+        if (caster == null || !isDebugTraceEnabled(caster) || message == null || message.isBlank()) {
+            return;
+        }
+        plugin.getLogger().info("[MobSpellDebug] " + message);
     }
 
     private boolean isCombatContextValid(Mob caster, Player target) {
