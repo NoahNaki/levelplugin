@@ -68,6 +68,7 @@ public class CustomMobSpellController {
             if (!(mob.getTarget() instanceof Player target) || target.isDead()) {
                 continue;
             }
+            applyPreferredDistance(instance, mob, target);
             if (isOnGlobalCooldown(mob.getUniqueId(), now)) {
                 continue;
             }
@@ -132,6 +133,36 @@ public class CustomMobSpellController {
 
     private boolean isOnGlobalCooldown(UUID mobId, long now) {
         return now < globalCooldowns.getOrDefault(mobId, 0L);
+    }
+
+    private void applyPreferredDistance(CustomMobInstance instance, Mob mob, Player target) {
+        if (instance == null || mob == null || target == null) {
+            return;
+        }
+        List<CustomMobDefinition.CustomMobSpell> rangedSpells = instance.definition().spells().stream()
+                .filter(spell -> spell != null
+                        && spell.requireLineOfSight()
+                        && Math.max(spell.minRange(), spell.maxRange()) >= 12.0)
+                .toList();
+        if (rangedSpells.isEmpty()) {
+            return;
+        }
+        double desiredDistance = rangedSpells.stream()
+                .mapToDouble(spell -> Math.max(spell.minRange(), spell.maxRange()) * 0.55)
+                .average()
+                .orElse(7.0);
+        desiredDistance = Math.max(6.0, Math.min(12.0, desiredDistance));
+        double distance = mob.getLocation().distance(target.getLocation());
+        if (distance >= desiredDistance - 0.75) {
+            return;
+        }
+        Vector retreat = mob.getLocation().toVector().subtract(target.getLocation().toVector()).setY(0.0);
+        if (retreat.lengthSquared() <= 0.0001) {
+            return;
+        }
+        retreat.normalize().multiply(0.26);
+        mob.setVelocity(mob.getVelocity().multiply(0.45).add(retreat).setY(Math.max(-0.08, mob.getVelocity().getY())));
+        faceTarget(mob, target);
     }
 
     private boolean isReady(UUID mobId, CustomMobDefinition.CustomMobSpell spell, long now) {
