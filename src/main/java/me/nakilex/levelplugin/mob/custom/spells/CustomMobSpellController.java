@@ -258,8 +258,13 @@ public class CustomMobSpellController {
         if (!isCombatContextValid(caster, target) || spell == null || fireAction == null) {
             return;
         }
-        ModelEngineUtil.triggerActionState(caster, List.of("shoot", "arrow", "bow", "cast", "attack"), 600L);
-        emitSpellAnimationDebug(target, caster, spell.id(), inferAnimationForSpell(spell.id(), "shoot"), "legacy-windup");
+        String playedAnimation = ModelEngineUtil.triggerActionStateResolved(
+                caster,
+                List.of("shoot", "arrow", "bow", "cast", "attack"),
+                600L,
+                false
+        );
+        emitSpellAnimationDebug(target, caster, spell.id(), playedAnimation, "legacy-windup");
         faceTarget(caster, target);
         runLater(Math.max(0L, windupTicks), () -> {
             if (!isCombatContextValid(caster, target)) {
@@ -619,31 +624,15 @@ public class CustomMobSpellController {
             return true;
         }
         if (animationName != null && !animationName.isBlank()) {
-            boolean fallbackPlayed = ModelEngineUtil.triggerActionState(caster,
+            String fallbackAnimation = ModelEngineUtil.triggerActionStateResolved(caster,
                     List.of(animationName, "shoot", "attack", "cast", "slash", "swing"),
-                    600L);
-            logDebugTrace(caster, "playNamedAnimation fallback -> " + animationName + " result=" + fallbackPlayed);
-            return fallbackPlayed;
+                    600L,
+                    false);
+            logDebugTrace(caster, "playNamedAnimation fallback -> requested=" + animationName
+                    + " played=" + fallbackAnimation);
+            return fallbackAnimation != null;
         }
         return false;
-    }
-
-    private String inferAnimationForSpell(String spellId, String fallback) {
-        if (spellId == null || spellId.isBlank()) {
-            return fallback;
-        }
-        String lower = spellId.toLowerCase(Locale.ROOT);
-        if (!lower.contains("shoot")) {
-            return fallback;
-        }
-        int idx = lower.lastIndexOf('_');
-        if (idx > 0 && idx < lower.length() - 1) {
-            String suffix = lower.substring(idx + 1);
-            if (suffix.chars().allMatch(Character::isDigit)) {
-                return "shoot_" + suffix;
-            }
-        }
-        return "shoot";
     }
 
     private void emitSpellAnimationDebug(Player target, Mob caster, String spellId, String animationName, String source) {
