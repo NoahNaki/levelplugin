@@ -48,7 +48,6 @@ public class CustomMobSpellController {
     private final CustomMobSpellScriptEngine spellScriptEngine;
     private final Map<UUID, Map<String, Long>> cooldowns = new HashMap<>();
     private final Map<UUID, Long> globalCooldowns = new HashMap<>();
-    private final Map<UUID, String> lastNamedAnimationByMobId = new HashMap<>();
 
     public CustomMobSpellController(Main plugin, CustomMobManager mobManager) {
         this.plugin = plugin;
@@ -193,7 +192,6 @@ public class CustomMobSpellController {
     public void clearMob(UUID mobId) {
         cooldowns.remove(mobId);
         globalCooldowns.remove(mobId);
-        lastNamedAnimationByMobId.remove(mobId);
     }
 
     private void applyGlobalCooldown(UUID mobId, CustomMobDefinition.CustomMobSpell spell, long now) {
@@ -431,7 +429,7 @@ public class CustomMobSpellController {
             return;
         }
         ModelEngineUtil.triggerActionState(caster, List.of("shoot", "arrow", "bow", "cast", "attack"), 500L);
-        emitSpellAnimationDebug(target, caster, spell.id(), resolveCastAnimationName(caster, "shoot"));
+        emitSpellAnimationDebug(target, caster, spell.id(), inferAnimationForSpell(spell.id(), "shoot"));
         Arrow arrow = caster.launchProjectile(Arrow.class);
         arrow.setVelocity(direction.normalize().multiply(Math.max(0.8, spell.speed())));
         arrow.setDamage(Math.max(0.1, spell.damage()));
@@ -448,7 +446,7 @@ public class CustomMobSpellController {
             return;
         }
         ModelEngineUtil.triggerActionState(caster, List.of("shoot", "arrow", "bow", "cast", "attack"), 600L);
-        emitSpellAnimationDebug(target, caster, spell.id(), resolveCastAnimationName(caster, "shoot"));
+        emitSpellAnimationDebug(target, caster, spell.id(), inferAnimationForSpell(spell.id(), "shoot"));
         MageFireballBasicAttackSpell.FireballSpawnResult spawnResult =
                 MageFireballBasicAttackSpell.spawnProjectileAnchor(plugin, eye, direction);
         if (spawnResult == null) {
@@ -565,20 +563,26 @@ public class CustomMobSpellController {
         boolean played = ModelEngineUtil.playAnimationByName(caster, animationName, false);
         if (played) {
             ModelEngineUtil.holdActionState(caster, 600L);
-            lastNamedAnimationByMobId.put(caster.getUniqueId(), animationName);
         }
         return played;
     }
 
-    private String resolveCastAnimationName(Mob caster, String fallback) {
-        if (caster == null) {
+    private String inferAnimationForSpell(String spellId, String fallback) {
+        if (spellId == null || spellId.isBlank()) {
             return fallback;
         }
-        String tracked = lastNamedAnimationByMobId.get(caster.getUniqueId());
-        if (tracked == null || tracked.isBlank()) {
+        String lower = spellId.toLowerCase(Locale.ROOT);
+        if (!lower.contains("shoot")) {
             return fallback;
         }
-        return tracked;
+        int idx = lower.lastIndexOf('_');
+        if (idx > 0 && idx < lower.length() - 1) {
+            String suffix = lower.substring(idx + 1);
+            if (suffix.chars().allMatch(Character::isDigit)) {
+                return "shoot_" + suffix;
+            }
+        }
+        return "shoot";
     }
 
     private void emitSpellAnimationDebug(Player target, Mob caster, String spellId, String animationName) {
