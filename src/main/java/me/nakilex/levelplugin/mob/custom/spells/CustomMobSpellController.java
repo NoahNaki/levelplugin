@@ -7,6 +7,7 @@ import me.nakilex.levelplugin.mob.custom.CustomMobManager;
 import me.nakilex.levelplugin.spells.SpellEffectUtil;
 import me.nakilex.levelplugin.spells.impl.MageFireballBasicAttackSpell;
 import me.nakilex.levelplugin.utils.AttributeUtil;
+import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.ModelEngineUtil;
 import me.nakilex.levelplugin.utils.RandomUtil;
 import org.bukkit.Bukkit;
@@ -46,6 +47,8 @@ public class CustomMobSpellController {
     private final CustomMobSpellScriptEngine spellScriptEngine;
     private final Map<UUID, Map<String, Long>> cooldowns = new HashMap<>();
     private final Map<UUID, Long> globalCooldowns = new HashMap<>();
+    private final Map<UUID, Long> lastTargetDebugAtMs = new HashMap<>();
+    private final Map<UUID, String> lastAnimationByMobId = new HashMap<>();
 
     public CustomMobSpellController(Main plugin, CustomMobManager mobManager) {
         this.plugin = plugin;
@@ -68,6 +71,7 @@ public class CustomMobSpellController {
             if (!(mob.getTarget() instanceof Player target) || target.isDead()) {
                 continue;
             }
+            emitTargetingDebug(instance, mob, target, now);
             applyPreferredDistance(instance, mob, target);
             if (isOnGlobalCooldown(mob.getUniqueId(), now)) {
                 continue;
@@ -190,6 +194,8 @@ public class CustomMobSpellController {
     public void clearMob(UUID mobId) {
         cooldowns.remove(mobId);
         globalCooldowns.remove(mobId);
+        lastTargetDebugAtMs.remove(mobId);
+        lastAnimationByMobId.remove(mobId);
     }
 
     private void applyGlobalCooldown(UUID mobId, CustomMobDefinition.CustomMobSpell spell, long now) {
@@ -422,6 +428,7 @@ public class CustomMobSpellController {
             return;
         }
         ModelEngineUtil.triggerActionState(caster, List.of("shoot", "arrow", "bow", "cast", "attack"), 500L);
+        lastAnimationByMobId.put(caster.getUniqueId(), "shoot");
         Arrow arrow = caster.launchProjectile(Arrow.class);
         arrow.setVelocity(direction.normalize().multiply(Math.max(0.8, spell.speed())));
         arrow.setDamage(Math.max(0.1, spell.damage()));
@@ -438,6 +445,7 @@ public class CustomMobSpellController {
             return;
         }
         ModelEngineUtil.triggerActionState(caster, List.of("shoot", "arrow", "bow", "cast", "attack"), 600L);
+        lastAnimationByMobId.put(caster.getUniqueId(), "shoot");
         MageFireballBasicAttackSpell.FireballSpawnResult spawnResult =
                 MageFireballBasicAttackSpell.spawnProjectileAnchor(plugin, eye, direction);
         if (spawnResult == null) {
@@ -554,8 +562,35 @@ public class CustomMobSpellController {
         boolean played = ModelEngineUtil.playAnimationByName(caster, animationName, false);
         if (played) {
             ModelEngineUtil.holdActionState(caster, 600L);
+            lastAnimationByMobId.put(caster.getUniqueId(), animationName);
         }
         return played;
+    }
+
+    private void emitTargetingDebug(CustomMobInstance instance, Mob mob, Player target, long now) {
+        if (instance == null || mob == null || target == null) {
+            return;
+        }
+        long last = lastTargetDebugAtMs.getOrDefault(mob.getUniqueId(), 0L);
+        if (now - last < 500L) {
+            return;
+        }
+        lastTargetDebugAtMs.put(mob.getUniqueId(), now);
+        String modelType = instance.definition().models().isEmpty()
+                ? "none"
+                : instance.definition().models().getFirst();
+        String animation = lastAnimationByMobId.getOrDefault(mob.getUniqueId(), "unknown");
+        double distance = mob.getLocation().distance(target.getLocation());
+        String message = String.format(Locale.US,
+                "[MobTargetDebug] target=%s mobType=%s model=%s mobName=%s distance=%.2f animation=%s",
+                target.getName(),
+                mob.getType().name(),
+                modelType,
+                instance.definition().displayName(),
+                distance,
+                animation);
+        plugin.getLogger().info(message);
+        ChatMessageUtil.send(target, ChatMessageUtil.MessageType.INFO, message);
     }
 
     private boolean isCombatContextValid(Mob caster, Player target) {
