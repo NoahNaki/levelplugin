@@ -28,6 +28,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -192,6 +193,28 @@ public class CustomMobSpellController {
     public void clearMob(UUID mobId) {
         cooldowns.remove(mobId);
         globalCooldowns.remove(mobId);
+    }
+
+    public boolean debugCastSpell(LivingEntity casterEntity, Player target, String spellId) {
+        if (!(casterEntity instanceof Mob caster) || target == null || spellId == null || spellId.isBlank()) {
+            return false;
+        }
+        var instanceOpt = mobManager.getInstance(casterEntity);
+        if (instanceOpt.isEmpty()) {
+            return false;
+        }
+        CustomMobInstance instance = instanceOpt.get();
+        CustomMobDefinition.CustomMobSpell spell = instance.definition().spells().stream()
+                .filter(Objects::nonNull)
+                .filter(defSpell -> spellId.equalsIgnoreCase(defSpell.id())
+                        || (defSpell.scriptKey() != null && spellId.equalsIgnoreCase(defSpell.scriptKey())))
+                .findFirst()
+                .orElse(null);
+        if (spell == null) {
+            return false;
+        }
+        castSpell(instance, caster, target, spell);
+        return true;
     }
 
     private void applyGlobalCooldown(UUID mobId, CustomMobDefinition.CustomMobSpell spell, long now) {

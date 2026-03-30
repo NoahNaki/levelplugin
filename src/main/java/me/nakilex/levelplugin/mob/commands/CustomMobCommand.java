@@ -8,10 +8,12 @@ import me.nakilex.levelplugin.mob.custom.spawner.CustomMobSpawnerManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.CommandUtil;
 import me.nakilex.levelplugin.utils.ChatUtil;
+import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 
 import java.util.Arrays;
@@ -35,7 +37,7 @@ public class CustomMobCommand implements CommandExecutor, TabCompleter {
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (args.length == 0) {
             ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.INFO,
-                    "Usage: /" + label + " <list|spawn|info|reload|gui|kill|killall|spawner>");
+                    "Usage: /" + label + " <list|spawn|info|reload|gui|kill|killall|cast|spawner>");
             return true;
         }
         String sub = args[0].toLowerCase(Locale.ROOT);
@@ -158,9 +160,52 @@ public class CustomMobCommand implements CommandExecutor, TabCompleter {
             case "spawner" -> {
                 return handleSpawnerCommand(sender, label, args);
             }
+            case "cast" -> {
+                if (!(sender instanceof Player player)) {
+                    ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.ERROR,
+                            "Only players can cast debug spells.");
+                    return true;
+                }
+                if (args.length < 2) {
+                    ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.INFO,
+                            "Usage: /" + label + " cast <spellId> [targetPlayer]");
+                    return true;
+                }
+                String spellId = args[1];
+                Player target = player;
+                if (args.length >= 3) {
+                    Player chosen = Bukkit.getPlayerExact(args[2]);
+                    if (chosen == null || !chosen.isOnline()) {
+                        ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.ERROR,
+                                "Target player not found online.");
+                        return true;
+                    }
+                    target = chosen;
+                }
+                org.bukkit.entity.Entity looked = player.getTargetEntity(12);
+                if (!(looked instanceof LivingEntity living)) {
+                    ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.ERROR,
+                            "Look at a custom mob to trigger a spell.");
+                    return true;
+                }
+                if (mobManager.getInstance(living).isEmpty()) {
+                    ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.ERROR,
+                            "That target is not a custom mob.");
+                    return true;
+                }
+                boolean cast = mobManager.getSpellController().debugCastSpell(living, target, spellId);
+                if (!cast) {
+                    ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.ERROR,
+                            "Spell not found on that mob: " + spellId);
+                    return true;
+                }
+                ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.SUCCESS,
+                        "Triggered spell '" + spellId + "' on targeted mob against " + target.getName() + ".");
+                return true;
+            }
             default -> {
                 ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.INFO,
-                        "Usage: /" + label + " <list|spawn|info|reload|gui|kill|killall|spawner>");
+                        "Usage: /" + label + " <list|spawn|info|reload|gui|kill|killall|cast|spawner>");
                 return true;
             }
         }
@@ -169,10 +214,24 @@ public class CustomMobCommand implements CommandExecutor, TabCompleter {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            return CommandUtil.filterStartingWith(List.of("list", "spawn", "info", "reload", "gui", "kill", "killall", "spawner"), args[0]);
+            return CommandUtil.filterStartingWith(List.of("list", "spawn", "info", "reload", "gui", "kill", "killall", "cast", "spawner"), args[0]);
         }
         if (args.length == 2 && (args[0].equalsIgnoreCase("spawn") || args[0].equalsIgnoreCase("info"))) {
             return CommandUtil.filterStartingWith(mobManager.getMobIds(), args[1]);
+        }
+        if (args.length == 2 && args[0].equalsIgnoreCase("cast") && sender instanceof Player player) {
+            org.bukkit.entity.Entity looked = player.getTargetEntity(12);
+            if (looked instanceof LivingEntity living) {
+                return mobManager.getInstance(living)
+                        .map(instance -> instance.definition().spells().stream()
+                                .map(defSpell -> defSpell.id())
+                                .toList())
+                        .map(ids -> CommandUtil.filterStartingWith(ids, args[1]))
+                        .orElse(List.of());
+            }
+        }
+        if (args.length == 3 && args[0].equalsIgnoreCase("cast")) {
+            return CommandUtil.filterStartingWith(Bukkit.getOnlinePlayers().stream().map(Player::getName).toList(), args[2]);
         }
         if (args.length >= 2 && args[0].equalsIgnoreCase("spawner")) {
             return tabCompleteSpawner(args);

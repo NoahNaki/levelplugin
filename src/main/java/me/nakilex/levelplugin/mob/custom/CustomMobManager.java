@@ -151,6 +151,10 @@ public class CustomMobManager {
         return adminGui;
     }
 
+    public CustomMobSpellController getSpellController() {
+        return spellController;
+    }
+
     public List<String> getMobIds() {
         return getDefinitionsByProgression().stream()
                 .map(CustomMobDefinition::id)
