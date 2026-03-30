@@ -234,12 +234,34 @@ public class CustomMobSpellController {
             return;
         }
         if ("mage_fireball_basic".equals(spell.id())) {
-            castMageFireball(instance, caster, target, spell, true);
+            castLegacyRangedWithWindup(caster, target, spell, 12L,
+                    () -> castMageFireball(instance, caster, target, spell));
             return;
         }
         if ("ranged_arrow_basic".equals(spell.id())) {
-            castArrowShot(caster, target, spell, true);
+            castLegacyRangedWithWindup(caster, target, spell, 8L,
+                    () -> castArrowShot(caster, target, spell));
         }
+    }
+
+    private void castLegacyRangedWithWindup(Mob caster,
+                                            Player target,
+                                            CustomMobDefinition.CustomMobSpell spell,
+                                            long windupTicks,
+                                            Runnable fireAction) {
+        if (!isCombatContextValid(caster, target) || spell == null || fireAction == null) {
+            return;
+        }
+        ModelEngineUtil.triggerActionState(caster, List.of("shoot", "arrow", "bow", "cast", "attack"), 600L);
+        emitSpellAnimationDebug(target, caster, spell.id(), inferAnimationForSpell(spell.id(), "shoot"));
+        faceTarget(caster, target);
+        runLater(Math.max(0L, windupTicks), () -> {
+            if (!isCombatContextValid(caster, target)) {
+                return;
+            }
+            faceTarget(caster, target);
+            fireAction.run();
+        });
     }
 
     private void handleScriptAction(CustomMobSpellScriptEngine.SpellActionDef action,
@@ -260,7 +282,7 @@ public class CustomMobSpellController {
             case "face-target" -> faceTarget(caster, target);
             case "archer-shoot-sound" -> playArcherShootSounds(caster.getLocation());
             case "archer-special-sound" -> playArcherSpecialSounds(caster.getLocation());
-            case "shoot-arrow" -> castArrowShot(caster, target, spell, false);
+            case "shoot-arrow" -> castArrowShot(caster, target, spell);
             case "play-sound" -> {
                 String soundToken = action.params().getString("sound", "");
                 Sound sound = parseSound(soundToken);
@@ -272,7 +294,7 @@ public class CustomMobSpellController {
             }
             case "cast-mage-fireball" -> {
                 if (context.instance() != null) {
-                    castMageFireball(context.instance(), caster, target, spell, false);
+                    castMageFireball(context.instance(), caster, target, spell);
                 }
             }
             case "mage-burst" -> {
@@ -447,16 +469,11 @@ public class CustomMobSpellController {
 
     private void castArrowShot(Mob caster,
                                Player target,
-                               CustomMobDefinition.CustomMobSpell spell,
-                               boolean triggerAnimation) {
+                               CustomMobDefinition.CustomMobSpell spell) {
         Location eye = caster.getEyeLocation().clone();
         Vector direction = target.getEyeLocation().toVector().subtract(eye.toVector());
         if (direction.lengthSquared() <= 0.0001) {
             return;
-        }
-        if (triggerAnimation) {
-            ModelEngineUtil.triggerActionState(caster, List.of("shoot", "arrow", "bow", "cast", "attack"), 500L);
-            emitSpellAnimationDebug(target, caster, spell.id(), inferAnimationForSpell(spell.id(), "shoot"));
         }
         Arrow arrow = caster.launchProjectile(Arrow.class);
         arrow.setVelocity(direction.normalize().multiply(Math.max(0.8, spell.speed())));
@@ -470,16 +487,11 @@ public class CustomMobSpellController {
     private void castMageFireball(CustomMobInstance instance,
                                   Mob caster,
                                   Player target,
-                                  CustomMobDefinition.CustomMobSpell spell,
-                                  boolean triggerAnimation) {
+                                  CustomMobDefinition.CustomMobSpell spell) {
         Location eye = caster.getEyeLocation().clone();
         Vector direction = target.getEyeLocation().toVector().subtract(eye.toVector());
         if (direction.lengthSquared() <= 0.0001) {
             return;
-        }
-        if (triggerAnimation) {
-            ModelEngineUtil.triggerActionState(caster, List.of("shoot", "arrow", "bow", "cast", "attack"), 600L);
-            emitSpellAnimationDebug(target, caster, spell.id(), inferAnimationForSpell(spell.id(), "shoot"));
         }
         MageFireballBasicAttackSpell.FireballSpawnResult spawnResult =
                 MageFireballBasicAttackSpell.spawnProjectileAnchor(plugin, eye, direction);
