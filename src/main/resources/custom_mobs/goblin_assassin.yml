@@ -15,6 +15,47 @@ stats:
   agility: 18
   technique: 16
 
+spells:
+  shadowstep:
+    id: goblin_assassin_shadowstep
+    selection-group: attack
+    selection-weight: 1.0
+    interval-ticks: 100
+    gcd-ticks: 10
+    damage: 0.0
+    min-range: 5.0
+    max-range: 24.0
+    require-line-of-sight: false
+    range: 24.0
+    speed: 1.0
+    burn-ticks: 0
+  stab:
+    id: goblin_assassin_stab
+    selection-group: attack
+    selection-weight: 1.0
+    interval-ticks: 28
+    gcd-ticks: 28
+    damage: 7.0
+    min-range: 0.0
+    max-range: 3.0
+    require-line-of-sight: true
+    range: 4.0
+    speed: 1.0
+    burn-ticks: 0
+  slash:
+    id: goblin_assassin_slash
+    selection-group: attack
+    selection-weight: 1.0
+    interval-ticks: 41
+    gcd-ticks: 41
+    damage: 8.0
+    min-range: 0.0
+    max-range: 3.0
+    require-line-of-sight: true
+    range: 4.0
+    speed: 1.0
+    burn-ticks: 0
+
 options:
   movement-speed: 0.31
   follow-range: 26

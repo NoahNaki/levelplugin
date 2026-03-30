@@ -15,6 +15,34 @@ stats:
   agility: 15
   technique: 14
 
+spells:
+  shoot:
+    id: goblin_archer_shoot
+    selection-group: attack
+    selection-weight: 1.0
+    interval-ticks: 50
+    gcd-ticks: 50
+    damage: 7.0
+    min-range: 0.0
+    max-range: 30.0
+    require-line-of-sight: true
+    range: 30.0
+    speed: 2.2
+    burn-ticks: 0
+  throw_bomb:
+    id: goblin_archer_throw_bomb
+    selection-group: attack
+    selection-weight: 1.0
+    interval-ticks: 120
+    gcd-ticks: 47
+    damage: 7.0
+    min-range: 0.0
+    max-range: 20.0
+    require-line-of-sight: true
+    range: 20.0
+    speed: 1.0
+    burn-ticks: 0
+
 options:
   movement-speed: 0.27
   follow-range: 32

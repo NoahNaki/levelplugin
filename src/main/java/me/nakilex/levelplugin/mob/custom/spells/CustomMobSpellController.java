@@ -6,6 +6,7 @@ import me.nakilex.levelplugin.mob.custom.CustomMobInstance;
 import me.nakilex.levelplugin.mob.custom.CustomMobManager;
 import me.nakilex.levelplugin.spells.SpellEffectUtil;
 import me.nakilex.levelplugin.spells.impl.MageFireballBasicAttackSpell;
+import me.nakilex.levelplugin.utils.AttributeUtil;
 import me.nakilex.levelplugin.utils.ModelEngineUtil;
 import me.nakilex.levelplugin.utils.RandomUtil;
 import org.bukkit.Bukkit;
@@ -42,6 +43,15 @@ public class CustomMobSpellController {
     private static final String SPELL_CURSED_MAGE_SPELL_1 = "cursed_mage_spell_1";
     private static final String SPELL_CURSED_MAGE_SPELL_2 = "cursed_mage_spell_2";
     private static final String SPELL_CURSED_MAGE_SPELL_3 = "cursed_mage_spell_3";
+    private static final String SPELL_GOBLIN_WARRIOR_SWORD_SLAM = "goblin_warrior_sword_slam";
+    private static final String SPELL_GOBLIN_WARRIOR_SHIELD_RUSH = "goblin_warrior_shield_rush";
+    private static final String SPELL_GOBLIN_ASSASSIN_SHADOWSTEP = "goblin_assassin_shadowstep";
+    private static final String SPELL_GOBLIN_ASSASSIN_STAB = "goblin_assassin_stab";
+    private static final String SPELL_GOBLIN_ASSASSIN_SLASH = "goblin_assassin_slash";
+    private static final String SPELL_GOBLIN_ARCHER_SHOOT = "goblin_archer_shoot";
+    private static final String SPELL_GOBLIN_ARCHER_THROW_BOMB = "goblin_archer_throw_bomb";
+    private static final String SPELL_GOBLIN_SHAMAN_FIREBALL = "goblin_shaman_fireball";
+    private static final String SPELL_GOBLIN_SHAMAN_HEAL = "goblin_shaman_heal";
     private static final double HIT_RADIUS = 0.45;
     private static final String VFX_CURSED_FLAMES = "cursed_flames_vfx";
     private static final String VFX_CURSED_RAY = "cursed_ray_vfx";
@@ -208,6 +218,42 @@ public class CustomMobSpellController {
         }
         if (SPELL_CURSED_MAGE_SPELL_3.equals(spell.id())) {
             castCursedMageSpellThree(caster, target, spell);
+            return;
+        }
+        if (SPELL_GOBLIN_WARRIOR_SWORD_SLAM.equals(spell.id())) {
+            castGoblinWarriorSwordSlam(caster, target, spell);
+            return;
+        }
+        if (SPELL_GOBLIN_WARRIOR_SHIELD_RUSH.equals(spell.id())) {
+            castGoblinWarriorShieldRush(caster, target, spell);
+            return;
+        }
+        if (SPELL_GOBLIN_ASSASSIN_SHADOWSTEP.equals(spell.id())) {
+            castGoblinAssassinShadowstep(caster, target);
+            return;
+        }
+        if (SPELL_GOBLIN_ASSASSIN_STAB.equals(spell.id())) {
+            castGoblinAssassinStab(caster, target, spell);
+            return;
+        }
+        if (SPELL_GOBLIN_ASSASSIN_SLASH.equals(spell.id())) {
+            castGoblinAssassinSlash(caster, target, spell);
+            return;
+        }
+        if (SPELL_GOBLIN_ARCHER_SHOOT.equals(spell.id())) {
+            castGoblinArcherShoot(caster, target, spell);
+            return;
+        }
+        if (SPELL_GOBLIN_ARCHER_THROW_BOMB.equals(spell.id())) {
+            castGoblinArcherThrowBomb(caster, target, spell);
+            return;
+        }
+        if (SPELL_GOBLIN_SHAMAN_FIREBALL.equals(spell.id())) {
+            castGoblinShamanFireball(instance, caster, target, spell);
+            return;
+        }
+        if (SPELL_GOBLIN_SHAMAN_HEAL.equals(spell.id())) {
+            castGoblinShamanHeal(caster, spell);
         }
     }
 
@@ -397,6 +443,155 @@ public class CustomMobSpellController {
                     playMageCastSounds(caster.getLocation());
                     launchModelProjectile(caster, target, vfxModelId, speed, damage, burnTicks, true);
                 });
+            }
+        });
+    }
+
+    private void castGoblinWarriorSwordSlam(Mob caster, Player target, CustomMobDefinition.CustomMobSpell spell) {
+        playNamedAnimation(caster, "heavy_swing");
+        runLater(37L, () -> {
+            if (!isCombatContextValid(caster, target)) {
+                return;
+            }
+            faceTarget(caster, target);
+            dashTowardTarget(caster, target, 0.52);
+            caster.getWorld().playSound(caster.getLocation(), Sound.ENTITY_WITCH_THROW, 0.75f, 0.2f);
+            caster.getWorld().playSound(caster.getLocation(), Sound.ITEM_MACE_SMASH_GROUND, 0.7f, 0.8f);
+            dealConeDamageToPlayers(caster, Math.max(0.1, spell.damage()), 3.2, 90.0, 0.18, 0.12);
+            spawnGroundImpact(caster.getLocation());
+        });
+    }
+
+    private void castGoblinWarriorShieldRush(Mob caster, Player target, CustomMobDefinition.CustomMobSpell spell) {
+        playNamedAnimation(caster, "shield_charge");
+        runLater(21L, () -> {
+            if (!isCombatContextValid(caster, target)) {
+                return;
+            }
+            caster.getWorld().playSound(caster.getLocation(), Sound.ENTITY_ILLUSIONER_AMBIENT, 0.75f, 0.8f);
+            startRush(caster, target, 32, 0.35, 2.0, Math.max(0.1, spell.damage()));
+        });
+    }
+
+    private void castGoblinAssassinShadowstep(Mob caster, Player target) {
+        if (!isCombatContextValid(caster, target)) {
+            return;
+        }
+        Location to = target.getLocation().clone().add(randomOffset(1.5), 0.0, randomOffset(1.5));
+        caster.teleport(to);
+        spawnSmoke(caster.getLocation(), 20);
+        caster.getWorld().playSound(caster.getLocation(), Sound.BLOCK_TRIAL_SPAWNER_SPAWN_MOB, 0.8f, 1.6f);
+    }
+
+    private void castGoblinAssassinStab(Mob caster, Player target, CustomMobDefinition.CustomMobSpell spell) {
+        playNamedAnimation(caster, "stab");
+        runLater(9L, () -> {
+            if (!isCombatContextValid(caster, target)) {
+                return;
+            }
+            faceTarget(caster, target);
+            dashTowardTarget(caster, target, 0.55);
+            caster.getWorld().playSound(caster.getLocation(), Sound.ENTITY_WITCH_THROW, 0.75f, 1.1f);
+            dealConeDamageToPlayers(caster, Math.max(0.1, spell.damage()), 2.2, 55.0, 0.22, 0.08);
+            caster.getWorld().playSound(caster.getLocation(), Sound.ITEM_TRIDENT_HIT, 0.75f, 0.8f);
+        });
+    }
+
+    private void castGoblinAssassinSlash(Mob caster, Player target, CustomMobDefinition.CustomMobSpell spell) {
+        playNamedAnimation(caster, "slash");
+        runLater(9L, () -> {
+            if (!isCombatContextValid(caster, target)) {
+                return;
+            }
+            faceTarget(caster, target);
+            dashTowardTarget(caster, target, 0.52);
+            caster.getWorld().playSound(caster.getLocation(), Sound.ENTITY_WITCH_THROW, 0.75f, 1.1f);
+            dealConeDamageToPlayers(caster, Math.max(0.1, spell.damage() * 0.75), 2.0, 70.0, 0.2, 0.07);
+        });
+        runLater(19L, () -> {
+            if (!isCombatContextValid(caster, target)) {
+                return;
+            }
+            faceTarget(caster, target);
+            dashTowardTarget(caster, target, 0.52);
+            caster.getWorld().playSound(caster.getLocation(), Sound.ENTITY_WITCH_THROW, 0.75f, 1.1f);
+            dealConeDamageToPlayers(caster, Math.max(0.1, spell.damage() * 0.75), 2.0, 70.0, 0.2, 0.07);
+            caster.getWorld().playSound(caster.getLocation(), Sound.ITEM_TRIDENT_HIT, 0.75f, 0.8f);
+        });
+    }
+
+    private void castGoblinArcherShoot(Mob caster, Player target, CustomMobDefinition.CustomMobSpell spell) {
+        playNamedAnimation(caster, "shoot");
+        runLater(35L, () -> {
+            if (!isCombatContextValid(caster, target)) {
+                return;
+            }
+            faceTarget(caster, target);
+            caster.getWorld().playSound(caster.getLocation(), Sound.ITEM_CROSSBOW_SHOOT, 0.8f, 1f);
+            caster.getWorld().playSound(caster.getLocation(), Sound.ITEM_TRIDENT_RIPTIDE_2, 0.8f, 1.3f);
+            castArrowShot(caster, target, spell);
+        });
+    }
+
+    private void castGoblinArcherThrowBomb(Mob caster, Player target, CustomMobDefinition.CustomMobSpell spell) {
+        playNamedAnimation(caster, "throw_bomb");
+        caster.getWorld().playSound(caster.getLocation(), Sound.ENTITY_WITCH_CELEBRATE, 0.75f, 1.7f);
+        runLater(22L, () -> {
+            if (!isCombatContextValid(caster, target)) {
+                return;
+            }
+            faceTarget(caster, target);
+            caster.getWorld().playSound(caster.getLocation(), Sound.ENTITY_WITCH_THROW, 0.8f, 1.0f);
+            Location impact = target.getLocation().clone();
+            runLater(20L, () -> {
+                if (impact.getWorld() == null) {
+                    return;
+                }
+                impact.getWorld().spawnParticle(org.bukkit.Particle.EXPLOSION, impact.clone().add(0.0, 0.2, 0.0), 1);
+                impact.getWorld().spawnParticle(org.bukkit.Particle.SMOKE, impact.clone().add(0.0, 0.2, 0.0), 20, 0.45, 0.2, 0.45, 0.02);
+                impact.getWorld().playSound(impact, Sound.ENTITY_GENERIC_EXPLODE, 0.8f, 1.0f);
+                for (Player player : getNearbyPlayers(impact, 5.0)) {
+                    player.damage(Math.max(0.1, spell.damage() * 1.5), caster);
+                }
+            });
+        });
+    }
+
+    private void castGoblinShamanFireball(CustomMobInstance instance,
+                                          Mob caster,
+                                          Player target,
+                                          CustomMobDefinition.CustomMobSpell spell) {
+        playNamedAnimation(caster, "shoot");
+        runLater(28L, () -> {
+            if (!isCombatContextValid(caster, target)) {
+                return;
+            }
+            caster.getWorld().playSound(caster.getLocation(), Sound.ENTITY_BLAZE_SHOOT, 0.8f, 0.9f);
+            castMageFireball(instance, caster, target, spell);
+        });
+    }
+
+    private void castGoblinShamanHeal(Mob caster, CustomMobDefinition.CustomMobSpell spell) {
+        if (caster == null || caster.isDead() || caster.getWorld() == null) {
+            return;
+        }
+        playNamedAnimation(caster, "heal");
+        caster.getWorld().playSound(caster.getLocation(), Sound.ENTITY_ILLUSIONER_AMBIENT, 0.75f, 0.8f);
+        runLater(21L, () -> {
+            if (caster.isDead() || caster.getWorld() == null) {
+                return;
+            }
+            caster.getWorld().playSound(caster.getLocation(), Sound.ENTITY_ILLUSIONER_PREPARE_MIRROR, 0.85f, 1.3f);
+            for (LivingEntity ally : getNearbyAlliedCustomMobs(caster, 20.0, def -> def.id().toLowerCase().startsWith("goblin_"), 4)) {
+                double healAmount = Math.max(4.0, spell.damage());
+                var maxHealthAttribute = AttributeUtil.resolve("GENERIC_MAX_HEALTH", "MAX_HEALTH");
+                double maxHealth = maxHealthAttribute != null && ally.getAttribute(maxHealthAttribute) != null
+                        ? ally.getAttribute(maxHealthAttribute).getValue()
+                        : ally.getHealth();
+                ally.setHealth(Math.min(maxHealth, ally.getHealth() + healAmount));
+                ally.getWorld().spawnParticle(org.bukkit.Particle.DUST_COLOR_TRANSITION, ally.getLocation().add(0.0, 0.9, 0.0),
+                        16, 0.3, 0.6, 0.3, 0.0,
+                        new org.bukkit.Particle.DustTransition(org.bukkit.Color.fromRGB(0xE9FF26), org.bukkit.Color.fromRGB(0x2BFF99), 0.8f));
             }
         });
     }
@@ -595,7 +790,9 @@ public class CustomMobSpellController {
             stand.setPersistent(false);
             stand.setCollidable(false);
         });
-        ModelEngineUtil.applyFirstAvailableModel(projectile, ModelEngineUtil.buildModelCandidates(modelId), plugin);
+        if (modelId != null && !modelId.isBlank()) {
+            ModelEngineUtil.applyFirstAvailableModel(projectile, ModelEngineUtil.buildModelCandidates(modelId), plugin);
+        }
         double maxDistanceSq = 38.0 * 38.0;
         Location start = projectile.getLocation().clone();
         new BukkitRunnable() {
@@ -631,6 +828,94 @@ public class CustomMobSpellController {
                 cancel();
             }
         }.runTaskTimer(plugin, 0L, 1L);
+    }
+
+    private void dashTowardTarget(Mob caster, LivingEntity target, double speed) {
+        if (caster == null || target == null) {
+            return;
+        }
+        Vector dash = target.getLocation().toVector().subtract(caster.getLocation().toVector()).setY(0.0);
+        if (dash.lengthSquared() <= 0.0001) {
+            return;
+        }
+        caster.setVelocity(caster.getVelocity().multiply(0.45).add(dash.normalize().multiply(Math.max(0.05, speed)).setY(0.08)));
+    }
+
+    private void startRush(Mob caster,
+                           LivingEntity target,
+                           int durationTicks,
+                           double dashPerTick,
+                           double hitRadius,
+                           double hitDamage) {
+        new BukkitRunnable() {
+            int ticks;
+
+            @Override
+            public void run() {
+                if (caster == null || target == null || caster.isDead() || target.isDead() || ticks >= durationTicks) {
+                    cancel();
+                    return;
+                }
+                faceTarget(caster, (target instanceof Player player) ? player : null);
+                dashTowardTarget(caster, target, dashPerTick);
+                caster.getWorld().playSound(caster.getLocation(), Sound.BLOCK_GRAVEL_STEP, 0.55f, 1.0f);
+                caster.getWorld().spawnParticle(org.bukkit.Particle.CAMPFIRE_COSY_SMOKE, caster.getLocation().add(0.0, 0.1, 0.0),
+                        3, 0.3, 0.1, 0.3, 0.02);
+                for (Player player : getNearbyPlayers(caster.getLocation(), hitRadius)) {
+                    player.damage(hitDamage, caster);
+                    throwPlayersFrom(caster.getLocation(), hitRadius, 0.8, 0.25);
+                }
+                ticks++;
+            }
+        }.runTaskTimer(plugin, 0L, 1L);
+    }
+
+    private void spawnGroundImpact(Location center) {
+        if (center == null || center.getWorld() == null) {
+            return;
+        }
+        center.getWorld().spawnParticle(org.bukkit.Particle.CAMPFIRE_COSY_SMOKE, center.clone().add(0.0, 0.1, 0.0),
+                5, 0.4, 0.1, 0.4, 0.02);
+        center.getWorld().spawnParticle(org.bukkit.Particle.BLOCK, center.clone().add(0.0, 0.1, 0.0),
+                15, 0.6, 0.1, 0.6, org.bukkit.Material.DIRT.createBlockData());
+    }
+
+    private void spawnSmoke(Location center, int amount) {
+        if (center == null || center.getWorld() == null) {
+            return;
+        }
+        center.getWorld().spawnParticle(org.bukkit.Particle.SMOKE, center, Math.max(1, amount), 1.0, 0.6, 1.0, 0.1);
+    }
+
+    private double randomOffset(double range) {
+        return ThreadLocalRandom.current().nextDouble(-Math.max(0.0, range), Math.max(0.0, range));
+    }
+
+    private List<LivingEntity> getNearbyAlliedCustomMobs(Mob source,
+                                                         double radius,
+                                                         java.util.function.Predicate<CustomMobDefinition> filter,
+                                                         int limit) {
+        if (source == null || source.getWorld() == null || radius <= 0.0) {
+            return List.of();
+        }
+        List<LivingEntity> allies = new ArrayList<>();
+        for (var entity : source.getWorld().getNearbyEntities(source.getLocation(), radius, radius, radius)) {
+            if (!(entity instanceof LivingEntity living) || living.isDead() || living.equals(source)) {
+                continue;
+            }
+            var instance = mobManager.getInstance(living);
+            if (instance.isEmpty()) {
+                continue;
+            }
+            if (filter != null && !filter.test(instance.get().definition())) {
+                continue;
+            }
+            allies.add(living);
+            if (allies.size() >= Math.max(1, limit)) {
+                break;
+            }
+        }
+        return allies;
     }
 
     private void dealConeDamageToPlayers(Mob caster,
