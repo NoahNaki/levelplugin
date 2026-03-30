@@ -78,6 +78,7 @@ public class CustomMobSpellController {
             if (!isGlobalReady(entity.getUniqueId(), now)) {
                 continue;
             }
+            maintainPreferredDistance(instance, mob, target);
 
             Map<String, List<CustomMobDefinition.CustomMobSpell>> byGroup = collectEligibleByGroup(instance, mob, target, now);
             for (List<CustomMobDefinition.CustomMobSpell> groupSpells : byGroup.values()) {
@@ -87,6 +88,41 @@ public class CustomMobSpellController {
                 }
                 castSpell(instance, mob, target, selected);
                 markCast(entity.getUniqueId(), selected, now);
+            }
+        }
+    }
+
+    private void maintainPreferredDistance(CustomMobInstance instance, Mob mob, Player target) {
+        List<CustomMobDefinition.CustomMobSpell> rangedSpells = instance.definition().spells().stream()
+                .filter(spell -> spell.maxRange() >= 10.0 && spell.minRange() > 1.5)
+                .toList();
+        if (rangedSpells.isEmpty()) {
+            return;
+        }
+        double preferredMin = rangedSpells.stream()
+                .mapToDouble(CustomMobDefinition.CustomMobSpell::minRange)
+                .average()
+                .orElse(0.0);
+        double preferredMax = rangedSpells.stream()
+                .mapToDouble(CustomMobDefinition.CustomMobSpell::maxRange)
+                .average()
+                .orElse(0.0);
+        double distance = mob.getLocation().distance(target.getLocation());
+        Location mobLoc = mob.getLocation();
+        Location targetLoc = target.getLocation();
+        if (distance < preferredMin) {
+            Vector away = mobLoc.toVector().subtract(targetLoc.toVector());
+            if (away.lengthSquared() > 0.0001) {
+                Vector push = away.normalize().multiply(0.35);
+                push.setY(Math.max(0.05, mob.getVelocity().getY()));
+                mob.setVelocity(push);
+            }
+        } else if (distance > preferredMax + 1.0) {
+            Vector toward = targetLoc.toVector().subtract(mobLoc.toVector());
+            if (toward.lengthSquared() > 0.0001) {
+                Vector nudge = toward.normalize().multiply(0.18);
+                nudge.setY(mob.getVelocity().getY());
+                mob.setVelocity(mob.getVelocity().add(nudge));
             }
         }
     }
@@ -209,6 +245,7 @@ public class CustomMobSpellController {
             case "heal_allies" -> healNearbyAllies(instance, caster, action.args());
             case "damage_radius_target" -> damageRadiusTarget(caster, target, spell, action.args());
             case "random_strike_target_ring" -> randomStrikeTargetRing(caster, target, spell, action.args());
+            case "spawn_model_vfx" -> spawnModelVfx(caster, target, action.args());
             default -> {
                 // Unknown action: keep script runtime resilient.
             }
@@ -375,6 +412,35 @@ public class CustomMobSpellController {
         }
     }
 
+    private void spawnModelVfx(Mob caster, Player target, Map<String, Object> args) {
+        String at = asString(args.get("at"), "target");
+        Location base = "caster".equalsIgnoreCase(at) ? caster.getLocation().clone() : target.getLocation().clone();
+        double yOffset = asDouble(args.get("y-offset"), 0.0);
+        Location spawn = base.add(0.0, yOffset, 0.0);
+        long ttlTicks = Math.max(1L, asLong(args.get("ttl-ticks"), 30));
+        List<String> models = asStringList(args.get("models"));
+        if (models.isEmpty()) {
+            String model = asString(args.get("model"), "");
+            if (!model.isBlank()) {
+                models = List.of(model);
+            }
+        }
+        if (models.isEmpty()) {
+            return;
+        }
+        ArmorStand stand = spawn.getWorld().spawn(spawn, ArmorStand.class, entity -> {
+            entity.setInvisible(true);
+            entity.setMarker(false);
+            entity.setSmall(true);
+            entity.setGravity(false);
+            entity.setSilent(true);
+            entity.setCollidable(false);
+            entity.setInvulnerable(true);
+        });
+        ModelEngineUtil.applyFirstAvailableModel(stand, models, plugin);
+        Bukkit.getScheduler().runTaskLater(plugin, stand::remove, ttlTicks);
+    }
+
     private void healNearbyAllies(CustomMobInstance sourceInstance, Mob caster, Map<String, Object> args) {
         double radius = Math.max(1.0, asDouble(args.get("radius"), 10.0));
         double amount = Math.max(0.5, asDouble(args.get("amount"), 6.0));
@@ -535,5 +601,16 @@ public class CustomMobSpellController {
         } catch (NumberFormatException ex) {
             return fallback;
         }
+    }
+
+    private List<String> asStringList(Object value) {
+        if (value instanceof List<?> list) {
+            return list.stream()
+                    .map(String::valueOf)
+                    .map(String::trim)
+                    .filter(token -> !token.isBlank())
+                    .toList();
+        }
+        return List.of();
     }
 }

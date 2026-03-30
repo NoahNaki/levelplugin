@@ -8,6 +8,11 @@ actions:
     pitch: 0.5
   - type: delay
     ticks: 12
+  - type: spawn_model_vfx
+    at: target
+    model: cursed_ray_vfx
+    ttl-ticks: 30
+    y-offset: 0.1
   - type: random_strike_target_ring
     count: 5
     interval-ticks: 2

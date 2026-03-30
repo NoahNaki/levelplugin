@@ -4,6 +4,11 @@ actions:
     name: shoot
   - type: delay
     ticks: 40
+  - type: spawn_model_vfx
+    at: caster
+    model: cursed_hollow_vfx
+    ttl-ticks: 30
+    y-offset: 1.0
   - type: sound
     id: ENTITY_EVOKER_CAST_SPELL
     volume: 1.2

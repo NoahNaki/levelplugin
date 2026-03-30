@@ -8,6 +8,11 @@ actions:
     id: ENTITY_EVOKER_CAST_SPELL
     volume: 1.0
     pitch: 0.5
+  - type: spawn_model_vfx
+    at: caster
+    model: cursed_arrow_vfx
+    ttl-ticks: 24
+    y-offset: 1.1
   - type: sound
     id: ITEM_FIRECHARGE_USE
     volume: 1.0

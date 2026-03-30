@@ -4,6 +4,11 @@ actions:
     name: shoot
   - type: delay
     ticks: 20
+  - type: spawn_model_vfx
+    at: caster
+    model: cursed_cast_vfx
+    ttl-ticks: 20
+    y-offset: 1.0
   - type: sound
     id: ENTITY_EVOKER_CAST_SPELL
     volume: 1.2
@@ -11,4 +16,9 @@ actions:
   - type: projectile_mage_fireball
   - type: delay
     ticks: 15
+  - type: spawn_model_vfx
+    at: caster
+    model: cursed_cast_vfx
+    ttl-ticks: 20
+    y-offset: 1.0
   - type: projectile_mage_fireball

@@ -12,6 +12,11 @@ actions:
     range: 5.0
     half-angle: 90
     knockback: 1.2
+  - type: spawn_model_vfx
+    at: target
+    model: cursed_flames_vfx
+    ttl-ticks: 35
+    y-offset: 0.1
   - type: delay
     ticks: 1
   - type: damage_radius_target

@@ -8,6 +8,11 @@ actions:
     id: ITEM_CROSSBOW_SHOOT
     volume: 0.6
     pitch: 1.2
+  - type: spawn_model_vfx
+    at: target
+    model: cursed_arrow_rain_vfx
+    ttl-ticks: 28
+    y-offset: 0.1
   - type: damage_radius_target
     radius: 3.0
     damage: 2.0
