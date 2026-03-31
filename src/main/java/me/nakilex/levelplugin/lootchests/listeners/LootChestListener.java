@@ -7,6 +7,9 @@ import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
 import me.nakilex.levelplugin.player.battlepass.BattlePassManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.guild.quests.GuildQuestManager;
+import me.nakilex.levelplugin.utils.ChatMessageUtil;
+import me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -71,6 +74,9 @@ public class LootChestListener implements Listener {
         int gearScore = lootChestManager.peekSession(player.getUniqueId()) != null
                 ? lootChestManager.peekSession(player.getUniqueId()).gearScore()
                 : ItemUtil.calculateTotalGearScore(player);
+        ChatMessageUtil.send(player, MessageType.INFO,
+                ChatColor.GRAY + "Chest calibrated to gear score "
+                        + ChatColor.YELLOW + gearScore + ChatColor.GRAY + ".");
         awardBattlePassProgress(player, gearScore);
     }
 

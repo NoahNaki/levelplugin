@@ -168,6 +168,12 @@ public class WanderingMerchantGUI implements Listener {
         maybeApplyHaggleRefund(player, offer);
         player.getInventory().addItem(offer.getItem());
         offer.decrement();
+        if (offer.getStock() > 0) {
+            send(player, MessageType.INFO, ChatColor.GRAY + "Stock left: "
+                    + ChatColor.YELLOW + offer.getStock());
+        } else {
+            send(player, MessageType.WARNING, ChatColor.RED + "That offer is now sold out.");
+        }
         renderWidgets(inv, player);
     }
 

@@ -49,6 +49,7 @@ public class FastTravelGUI implements Listener {
     private static final int NEXT_PAGE = 53;
     private static final int SORT_SLOT = 50;
     private static final int FILTER_SLOT = 49;
+    private static final int LAST_USED_SLOT = 47;
     private static final int NEAREST_TOWN_SLOT = 48;
 
     private final FastTravelManager manager;
@@ -201,6 +202,9 @@ public class FastTravelGUI implements Listener {
         widgetList.add(new ActionWidget(FILTER_SLOT,
                 context -> createFilterButton(typeMap.getOrDefault(context.player().getUniqueId(),0)),
                 (click, context) -> handleFilterClick(context.player())));
+        widgetList.add(new ActionWidget(LAST_USED_SLOT,
+                context -> createLastUsedButton(context.player()),
+                (click, context) -> handleLastUsedClick(context.player())));
         widgetList.add(new ActionWidget(NEAREST_TOWN_SLOT,
                 context -> createNearestTownButton(context.player()),
                 (click, context) -> handleNearestTownClick(context.player())));
@@ -276,6 +280,15 @@ public class FastTravelGUI implements Listener {
         beginTravelToGate(player, nearestTown);
     }
 
+    private void handleLastUsedClick(Player player) {
+        ModelGate lastUsed = findLastUsedGate(player);
+        if (lastUsed == null) {
+            send(player, MessageType.ERROR, "No recent waystone found.");
+            return;
+        }
+        beginTravelToGate(player, lastUsed);
+    }
+
     private void beginTravelToGate(Player player, ModelGate target) {
         if (player == null || target == null) {
             return;
@@ -309,6 +322,23 @@ public class FastTravelGUI implements Listener {
                 .filter(gate -> gate.getLocation() != null && gate.getLocation().getWorld() != null)
                 .filter(gate -> player.getWorld().equals(gate.getLocation().getWorld()))
                 .min(Comparator.comparingDouble(g -> g.getLocation().distanceSquared(player.getLocation())))
+                .orElse(null);
+    }
+
+    private ModelGate findLastUsedGate(Player player) {
+        if (player == null) {
+            return null;
+        }
+        String last = manager.getLastUsed(player);
+        if (last == null || last.isBlank()) {
+            return null;
+        }
+        String exclude = excludeMap.get(player.getUniqueId());
+        return gateManager.getGates().stream()
+                .filter(gate -> gate.getId().equalsIgnoreCase(last))
+                .filter(gate -> exclude == null || !gate.getId().equalsIgnoreCase(exclude))
+                .filter(gate -> manager.isUnlocked(player, gate.getId()))
+                .findFirst()
                 .orElse(null);
     }
 
@@ -372,6 +402,29 @@ public class FastTravelGUI implements Listener {
             lore.add(ChatColor.GRAY + "Target: " + ChatColor.WHITE + formatName(nearest.getId()));
             lore.add(ChatColor.GRAY + "Cost: " + ChatColor.YELLOW + cost + " <glyph:coins_icon>");
             lore.addAll(TooltipUtil.clickInstructions("to fast travel", null));
+        }
+        meta.setLore(lore);
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    private ItemStack createLastUsedButton(Player player) {
+        ItemStack item = new ItemStack(Material.CLOCK);
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) {
+            return item;
+        }
+        meta.setDisplayName(ChatColor.GOLD + "" + ChatColor.BOLD + "Last Waystone");
+        List<String> lore = new ArrayList<>();
+        ModelGate gate = findLastUsedGate(player);
+        if (gate == null) {
+            lore.add(ChatColor.DARK_GRAY + "No previous waystone available.");
+        } else {
+            int cost = calculateTravelCost(player, gate,
+                    GuildManager.getInstance().getGuild(player.getUniqueId()));
+            lore.add(ChatColor.GRAY + "Target: " + ChatColor.WHITE + formatName(gate.getId()));
+            lore.add(ChatColor.GRAY + "Cost: " + ChatColor.YELLOW + cost + " <glyph:coins_icon>");
+            lore.addAll(TooltipUtil.clickInstructions("to travel again", null));
         }
         meta.setLore(lore);
         item.setItemMeta(meta);

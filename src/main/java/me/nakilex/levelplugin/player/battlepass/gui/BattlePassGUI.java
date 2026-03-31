@@ -53,7 +53,7 @@ public class BattlePassGUI implements Listener {
     private static final int PREVIOUS_PAGE_SLOT = 18;
     private static final int NEXT_PAGE_SLOT = 26;
     private static final int SEASON_SLOT = 4;
-    private static final int CLAIM_ALL_SLOT = 6;
+    private static final int CLAIM_ALL_SLOT = 40;
     private static final int INFO_SLOT = 8;
 
     private final BattlePassProvider provider;
