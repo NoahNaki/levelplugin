@@ -25,6 +25,7 @@ import org.bukkit.plugin.Plugin;
 
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Consumer;
 
 import static me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
 import static me.nakilex.levelplugin.utils.ChatMessageUtil.send;
@@ -42,10 +43,12 @@ public class WanderingMerchantGUI implements Listener {
     private final Map<Integer, WanderingMerchantOffer> offers = new HashMap<>();
     private final Set<UUID> viewers = new HashSet<>();
     private final List<GuiWidget> widgets;
+    private final Consumer<Player> purchaseCallback;
 
-    public WanderingMerchantGUI(Plugin plugin, List<WanderingMerchantOffer> list) {
+    public WanderingMerchantGUI(Plugin plugin, List<WanderingMerchantOffer> list, Consumer<Player> purchaseCallback) {
         this.plugin = plugin;
         this.economy = Main.getInstance().getEconomyManager();
+        this.purchaseCallback = purchaseCallback;
         this.inv = GuiBuilder.create(27, "Wandering Merchant")
                 .filler(Material.GRAY_STAINED_GLASS_PANE)
                 .fillEmptySlots(false)
@@ -168,6 +171,9 @@ public class WanderingMerchantGUI implements Listener {
         maybeApplyHaggleRefund(player, offer);
         player.getInventory().addItem(offer.getItem());
         offer.decrement();
+        if (purchaseCallback != null) {
+            purchaseCallback.accept(player);
+        }
         if (offer.getStock() > 0) {
             send(player, MessageType.INFO, ChatColor.GRAY + "Stock left: "
                     + ChatColor.YELLOW + offer.getStock());

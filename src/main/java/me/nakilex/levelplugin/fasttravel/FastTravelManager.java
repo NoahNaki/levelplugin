@@ -5,6 +5,8 @@ import me.nakilex.levelplugin.fasttravel.data.FastTravelPoint;
 import me.nakilex.levelplugin.player.battlepass.BattlePassManager;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
@@ -18,8 +20,11 @@ public class FastTravelManager {
     private final Map<String, FastTravelPoint> points = new HashMap<>();
     private final Map<UUID, Set<String>> unlocked = new HashMap<>();
     private final Map<UUID, String> lastUsed = new HashMap<>();
+    private final Map<UUID, Long> lastDiscoveryAt = new HashMap<>();
+    private final Map<UUID, Integer> discoveryChain = new HashMap<>();
     private File file;
     private FileConfiguration config;
+    private static final long DISCOVERY_CHAIN_WINDOW_MS = 10 * 60 * 1000L;
 
     public FastTravelManager(Main plugin) {
         this.plugin = plugin;
@@ -195,10 +200,15 @@ public class FastTravelManager {
 
         FastTravelPoint pt = points.get(name.toLowerCase());
         if (pt != null) {
+            int chain = updateDiscoveryChain(player.getUniqueId());
             int exp = pt.getExpReward();
             me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, " ", 45);
             me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§6§lRegion Discovered");
             me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, pt.getColor() + pt.getName());
+            if (chain > 1) {
+                me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player,
+                        ChatColor.AQUA + "Discovery Chain x" + chain);
+            }
             if (exp > 0) {
                 String expColor = me.nakilex.levelplugin.utils.ChatFormatter.experienceColor();
                 String expLabel = me.nakilex.levelplugin.utils.ChatFormatter.experienceLabel();
@@ -210,6 +220,7 @@ public class FastTravelManager {
             if (exp > 0) {
                 plugin.getLevelManager().addXP(player, exp);
             }
+            maybeGrantDiscoveryBlessing(player, chain);
             BattlePassManager battlePassManager = Main.getInstance().getBattlePassManager();
             if (battlePassManager != null) {
                 int battlePassXp = Math.max(150, exp > 0 ? exp / 2 : 150);
@@ -240,6 +251,25 @@ public class FastTravelManager {
 
     public void clearUnlocked(UUID uuid) {
         unlocked.remove(uuid);
+    }
+
+    private int updateDiscoveryChain(UUID playerId) {
+        long now = System.currentTimeMillis();
+        long last = lastDiscoveryAt.getOrDefault(playerId, 0L);
+        int next = (now - last) <= DISCOVERY_CHAIN_WINDOW_MS ? discoveryChain.getOrDefault(playerId, 0) + 1 : 1;
+        discoveryChain.put(playerId, Math.max(1, next));
+        lastDiscoveryAt.put(playerId, now);
+        return discoveryChain.get(playerId);
+    }
+
+    private void maybeGrantDiscoveryBlessing(Player player, int chain) {
+        if (player == null || chain < 3) {
+            return;
+        }
+        int durationTicks = Math.min(20 * 60 * 10, 20 * 30 * chain);
+        player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, durationTicks, 0, true, true, true));
+        player.addPotionEffect(new PotionEffect(PotionEffectType.LUCK, durationTicks, 0, true, true, true));
+        player.sendMessage(ChatColor.GOLD + "Regional Blessing activated for your discovery chain!");
     }
 
     public Main getPlugin() { return plugin; }

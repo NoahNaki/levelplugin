@@ -25,6 +25,17 @@ public class BattlePassCommand implements CommandExecutor {
             ChatMessageUtil.send(sender, MessageType.ERROR, "Only players can use this command.");
             return true;
         }
+        if (args.length >= 2 && args[0].equalsIgnoreCase("track")) {
+            BattlePassManager.ProgressTrack track;
+            try {
+                track = BattlePassManager.ProgressTrack.valueOf(args[1].toUpperCase(java.util.Locale.ROOT));
+            } catch (IllegalArgumentException ex) {
+                ChatMessageUtil.send(player, MessageType.ERROR, "Invalid track. Use: balanced, combat, exploration, economy.");
+                return true;
+            }
+            manager.setTrack(player, track);
+            return true;
+        }
         manager.openMenu(player);
         return true;
     }
