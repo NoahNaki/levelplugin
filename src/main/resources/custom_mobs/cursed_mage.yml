@@ -1,19 +1,20 @@
 id: cursed_mage
-type: WITCH
+type: VINDICATOR
 display: "&5Cursed Mage"
 level-range:
-  min: 50
-  max: 50
+  min: 58
+  max: 58
+health: 8253
 boss: false
 
-models:
-  - cursed_mage.bbmodel
-
 stats:
-  vitality: 30
-  intelligence: 24
-  will: 20
-  technique: 16
+  vitality: 0
+  strength: 0
+  agility: 0
+  intelligence: 0
+  dexterity: 0
+  will: 0
+  technique: 0
 
 spells:
   spell_1:
@@ -60,8 +61,10 @@ spells:
     burn-ticks: 100
 
 options:
-  movement-speed: 0.24
-  follow-range: 34
-  knockback-resistance: 0.35
+  movement-speed: 0.27
+  attack-damage: 38.0
+  attack-speed: 2.5
+  follow-range: 36
+  knockback-resistance: 0.5
   silent: true
   despawn: false

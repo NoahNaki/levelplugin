@@ -1,17 +1,20 @@
 id: cursed_archer
-type: SKELETON
+type: VINDICATOR
 display: "&fCursed Archer"
-level: 50
-health: 100
+level-range:
+  min: 53
+  max: 53
+health: 5865
 boss: false
 
-models:
-  - cursed_archer
-
 stats:
-  vitality: 30
-  strength: 12
-  technique: 18
+  vitality: 0
+  strength: 0
+  agility: 0
+  intelligence: 0
+  dexterity: 0
+  will: 0
+  technique: 0
 
 spells:
   basic_attack:
@@ -58,7 +61,9 @@ spells:
     burn-ticks: 60
 
 options:
-  movement-speed: 0.25
+  movement-speed: 0.26
+  attack-damage: 30.0
+  attack-speed: 2.2
   follow-range: 40
   knockback-resistance: 0.8
   silent: true

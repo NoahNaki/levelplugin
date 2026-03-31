@@ -45,6 +45,10 @@ public class ChatGameManager {
     private int index = -1;
     private volatile ChatGame activeGame;
     private volatile long activeGameStartMillis;
+    private final Map<UUID, Integer> winStreaks = new HashMap<>();
+    private UUID lastWinnerId;
+    private static final double STREAK_BONUS_PER_WIN = 0.15;
+    private static final double STREAK_BONUS_CAP = 0.60;
 
     public ChatGameManager(Main plugin,
                            EconomyManager economyManager,
@@ -221,8 +225,40 @@ public class ChatGameManager {
         activeGame = null;
         long durationMillis = Math.max(0L, System.currentTimeMillis() - activeGameStartMillis);
         activeGameStartMillis = 0L;
-        awardReward(result);
-        announceWinner(game, result, durationMillis);
+        int streak = updateWinStreak(result.winnerId());
+        ChatGameResult adjusted = applyStreakRewardBonus(result, streak);
+        awardReward(adjusted);
+        announceWinner(game, adjusted, durationMillis, streak);
+    }
+
+    private int updateWinStreak(UUID winnerId) {
+        if (winnerId == null) {
+            return 1;
+        }
+        if (lastWinnerId != null && !lastWinnerId.equals(winnerId)) {
+            winStreaks.put(lastWinnerId, 0);
+        }
+        int streak = winStreaks.getOrDefault(winnerId, 0) + 1;
+        winStreaks.put(winnerId, streak);
+        lastWinnerId = winnerId;
+        return streak;
+    }
+
+    private ChatGameResult applyStreakRewardBonus(ChatGameResult result, int streak) {
+        ChatGameReward reward = result.reward();
+        if (reward == null || reward.isEmpty() || streak <= 1) {
+            return result;
+        }
+        double multiplier = 1.0 + Math.min(STREAK_BONUS_CAP, (streak - 1) * STREAK_BONUS_PER_WIN);
+        int boostedCoins = reward.coins() > 0 ? (int) Math.round(reward.coins() * multiplier) : 0;
+        int boostedXp = reward.experience() > 0 ? (int) Math.round(reward.experience() * multiplier) : 0;
+        int intellectBonus = reward.intellect() + ((streak >= 3 && reward.intellect() > 0) ? 1 : 0);
+        return new ChatGameResult(
+                result.winnerId(),
+                result.winnerName(),
+                result.solution(),
+                new ChatGameReward(boostedCoins, boostedXp, intellectBonus)
+        );
     }
 
     private void awardReward(ChatGameResult result) {
@@ -242,7 +278,7 @@ public class ChatGameManager {
         }
     }
 
-    private void announceWinner(ChatGame game, ChatGameResult result, long durationMillis) {
+    private void announceWinner(ChatGame game, ChatGameResult result, long durationMillis, int streak) {
         String winnerName = result.winnerName();
         String header = ChatColor.WHITE + "" + ChatColor.BOLD + "Chat Game: " + ChatColor.AQUA + game.getDisplayName();
         double seconds = durationMillis / 1000.0;
@@ -263,6 +299,11 @@ public class ChatGameManager {
             ChatFormatter.sendCenteredMessage(player, header);
             ChatFormatter.sendCenteredMessage(player, " ");
             ChatFormatter.sendCenteredMessage(player, summary);
+            if (streak > 1) {
+                ChatFormatter.sendCenteredMessage(player, ChatColor.GOLD + "Win Streak x" + streak
+                        + ChatColor.GRAY + " (" + (int) Math.round((Math.min(STREAK_BONUS_CAP, (streak - 1) * STREAK_BONUS_PER_WIN)) * 100)
+                        + "% reward bonus)");
+            }
         }
         if (result.solution() != null) {
             String message = ChatColor.GRAY + "Answer: " + ChatColor.AQUA + result.solution();

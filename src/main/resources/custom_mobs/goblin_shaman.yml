@@ -1,19 +1,20 @@
 id: goblin_shaman
-type: WITCH
+type: VINDICATOR
 display: "&aGoblin Shaman"
 level-range:
   min: 10
-  max: 13
+  max: 10
+health: 174
 boss: false
 
-models:
-  - mob_goblin_shaman.bbmodel
-
 stats:
-  vitality: 20
-  intelligence: 18
-  will: 16
-  technique: 10
+  vitality: 0
+  strength: 0
+  agility: 0
+  intelligence: 0
+  dexterity: 0
+  will: 0
+  technique: 0
 
 spells:
   fireball:
@@ -46,8 +47,10 @@ spells:
     burn-ticks: 0
 
 options:
-  movement-speed: 0.25
+  movement-speed: 0.22
+  attack-damage: 8.0
+  attack-speed: 1.2
   follow-range: 30
-  knockback-resistance: 0.2
+  knockback-resistance: 0.25
   silent: true
   despawn: false

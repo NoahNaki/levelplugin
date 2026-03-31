@@ -31,6 +31,7 @@ public class WanderingMerchantManager {
             ItemRarity.RARE, 1.5,
             ItemRarity.EPIC, 2.0
     );
+    private static final double FEATURED_DEAL_DISCOUNT = 0.30;
     private final Main plugin;
     private WanderingTrader merchant;
     private TraderLlama llama1;
@@ -147,6 +148,7 @@ public class WanderingMerchantManager {
     private void createShop(Player basis) {
         List<WanderingMerchantOffer> offers = new ArrayList<>();
         List<CustomItem> items = new ArrayList<>();
+        int featuredIndex = ThreadLocalRandom.current().nextInt(7);
         for (int i = 0; i < 7; i++) {
             int offerLevel = pickOfferLevel();
             CustomItem item = rollSubLegendaryItem(offerLevel);
@@ -154,8 +156,12 @@ public class WanderingMerchantManager {
             ItemStack stack = ItemUtil.createItemStackFromCustomItem(item, 1, null);
             int gearScore = SalvageManager.getInstance().getTotalStats(item);
             double mult = PRICE_MULTIPLIERS.getOrDefault(item.getRarity(), 1.0);
-            int cost = (int) Math.round((gearScore * 2 + 5) * mult);
-            offers.add(new WanderingMerchantOffer(stack, cost, 1));
+            int baseCost = (int) Math.round((gearScore * 2 + 5) * mult);
+            boolean featured = i == featuredIndex;
+            int cost = featured
+                    ? Math.max(1, (int) Math.round(baseCost * (1.0 - FEATURED_DEAL_DISCOUNT)))
+                    : baseCost;
+            offers.add(new WanderingMerchantOffer(stack, cost, 1, featured));
         }
         gui = new WanderingMerchantGUI(plugin, offers);
         int totalGearScore = ItemUtil.calculateTotalGearScore(items);
