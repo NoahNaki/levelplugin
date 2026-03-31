@@ -53,12 +53,6 @@ import java.util.function.Supplier;
  * {@link BattlePassProvider} interface consumed by the GUI.
  */
 public class BattlePassManager implements BattlePassProvider {
-    public enum ProgressTrack {
-        BALANCED,
-        COMBAT,
-        EXPLORATION,
-        ECONOMY
-    }
 
     private static final DateTimeFormatter DATE_FORMATTER =
             DateTimeFormatter.ofPattern("MMM d, yyyy").withLocale(Locale.US).withZone(ZoneId.systemDefault());
@@ -107,24 +101,7 @@ public class BattlePassManager implements BattlePassProvider {
         if (player == null) {
             return;
         }
-        int adjusted = applyTrackMultiplier(progress(player.getUniqueId()).track, amount, reason);
-        addProgressInternal(player, adjusted);
-    }
-
-    public ProgressTrack getTrack(UUID playerId) {
-        return progress(playerId).track;
-    }
-
-    public void setTrack(Player player, ProgressTrack track) {
-        if (player == null) {
-            return;
-        }
-        ProgressTrack target = track == null ? ProgressTrack.BALANCED : track;
-        PlayerProgress progress = progress(player.getUniqueId());
-        progress.track = target;
-        persist(player.getUniqueId());
-        ChatMessageUtil.send(player, MessageType.SUCCESS,
-                "Battle pass track set to " + ChatColor.YELLOW + prettyTrack(target) + ChatColor.GREEN + ".");
+        addProgressInternal(player, amount);
     }
 
     private boolean addProgressInternal(Player player, int amount) {
@@ -323,7 +300,6 @@ public class BattlePassManager implements BattlePassProvider {
     public List<String> activeChallenges(UUID playerId) {
         PlayerProgress progress = progress(playerId);
         List<String> lines = new ArrayList<>();
-        lines.add(ChatColor.AQUA + "• Active Track: " + ChatColor.WHITE + prettyTrack(progress.track));
         int distanceStage = Math.min(progress.horseDistanceStage, HORSE_DISTANCE_MILESTONES_METERS.length - 1);
         int jumpStage = Math.min(progress.horseJumpStage, HORSE_JUMP_MILESTONES.length - 1);
 
@@ -394,7 +370,6 @@ public class BattlePassManager implements BattlePassProvider {
         config.set(path + ".horse.distance-stage", progress.horseDistanceStage);
         config.set(path + ".horse.jumps", progress.horseJumpCount);
         config.set(path + ".horse.jump-stage", progress.horseJumpStage);
-        config.set(path + ".track", progress.track.name());
     }
 
     public void loadProgress(UUID uuid, FileConfiguration config, String path) {
@@ -418,7 +393,6 @@ public class BattlePassManager implements BattlePassProvider {
         progress.horseDistanceStage = clamp(config.getInt(path + ".horse.distance-stage", 0), 0, HORSE_DISTANCE_MILESTONES_METERS.length);
         progress.horseJumpCount = Math.max(0, config.getInt(path + ".horse.jumps", 0));
         progress.horseJumpStage = clamp(config.getInt(path + ".horse.jump-stage", 0), 0, HORSE_JUMP_MILESTONES.length);
-        progress.track = parseTrack(config.getString(path + ".track", ProgressTrack.BALANCED.name()));
     }
 
     private void grantDirectItems(Player player, List<DirectItemGrant> grants) {
@@ -916,45 +890,6 @@ public class BattlePassManager implements BattlePassProvider {
         return Math.max(min, Math.min(max, value));
     }
 
-    private int applyTrackMultiplier(ProgressTrack track, int amount, String reason) {
-        if (amount <= 0) {
-            return 0;
-        }
-        double mult = 1.0;
-        String key = reason == null ? "" : ChatColor.stripColor(reason).toLowerCase(Locale.ROOT);
-        if (track == ProgressTrack.COMBAT && (key.contains("defeat") || key.contains("kill") || key.contains("combat"))) {
-            mult = 1.15;
-        } else if (track == ProgressTrack.EXPLORATION
-                && (key.contains("discover") || key.contains("travel") || key.contains("mounted"))) {
-            mult = 1.15;
-        } else if (track == ProgressTrack.ECONOMY
-                && (key.contains("coins") || key.contains("auction") || key.contains("trade"))) {
-            mult = 1.15;
-        }
-        return (int) Math.max(1, Math.round(amount * mult));
-    }
-
-    private ProgressTrack parseTrack(String raw) {
-        if (raw == null || raw.isBlank()) {
-            return ProgressTrack.BALANCED;
-        }
-        try {
-            return ProgressTrack.valueOf(raw.trim().toUpperCase(Locale.ROOT));
-        } catch (IllegalArgumentException ignored) {
-            return ProgressTrack.BALANCED;
-        }
-    }
-
-    private String prettyTrack(ProgressTrack track) {
-        ProgressTrack safe = track == null ? ProgressTrack.BALANCED : track;
-        return switch (safe) {
-            case BALANCED -> "Balanced";
-            case COMBAT -> "Combat";
-            case EXPLORATION -> "Exploration";
-            case ECONOMY -> "Economy";
-        };
-    }
-
     private static final class PlayerProgress {
         private int tier;
         private int progress;
@@ -965,7 +900,6 @@ public class BattlePassManager implements BattlePassProvider {
         private int horseDistanceStage;
         private int horseJumpCount;
         private int horseJumpStage;
-        private ProgressTrack track = ProgressTrack.BALANCED;
 
         public boolean premiumActive() {
             return premiumActive;
