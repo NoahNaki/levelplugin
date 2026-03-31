@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.mercenary;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.dungeon.DungeonLayout;
 import me.nakilex.levelplugin.dungeon.DungeonManager;
+import me.nakilex.levelplugin.dungeon.rotation.DungeonRotationManager;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.managers.ItemManager;
@@ -34,6 +35,8 @@ public class MercenaryExpeditionManager {
     private final Map<String, ExpeditionDefinition> expeditions = new LinkedHashMap<>();
     private final Map<UUID, ActiveExpedition> active = new HashMap<>();
     private final Map<UUID, ExpeditionRewards> pendingRewards = new HashMap<>();
+    private final Map<Integer, Integer> mercenaryFatigue = new HashMap<>();
+    private final Map<Integer, Integer> mercenaryMastery = new HashMap<>();
     private boolean instantExpeditions;
 
     public MercenaryExpeditionManager(Plugin plugin,
@@ -72,13 +75,21 @@ public class MercenaryExpeditionManager {
 
     public ActiveExpedition startExpedition(Player player, List<Integer> npcIds, ExpeditionDefinition definition) {
         int combinedGs = npcIds.stream().mapToInt(affinityManager::getGearScore).sum();
+        int fatiguePenalty = npcIds.stream().mapToInt(this::fatiguePenalty).sum();
+        combinedGs = Math.max(1, combinedGs - fatiguePenalty);
         double success = successChance(npcIds, definition.threat(), definition.recommendedGearScore());
         int friendship = averageFriendship(player.getUniqueId(), npcIds);
-        int seconds = adjustedDuration(combinedGs, definition.threat(), definition.baseDurationSeconds(), friendship);
+        int mastery = npcIds.stream().mapToInt(this::masteryLevel).sum();
+        int seconds = adjustedDuration(combinedGs + (mastery * 8), definition.threat(), definition.baseDurationSeconds(), friendship);
         ActiveExpedition expedition = new ActiveExpedition(new ArrayList<>(npcIds), definition,
                 Instant.now().plusSeconds(seconds), success);
         active.put(player.getUniqueId(), expedition);
         player.sendMessage(ChatColor.GREEN + "Sent mercenaries to " + definition.displayName());
+        String mutators = DungeonRotationManager.activeMutators(definition.id()).stream()
+                .map(m -> m.displayLabel())
+                .reduce((a, b) -> a + ChatColor.GRAY + ", " + b)
+                .orElse(ChatColor.GRAY + "None");
+        player.sendMessage(ChatColor.DARK_GRAY + "Weekly Mutators: " + mutators);
         if (instantExpeditions) {
             Bukkit.getScheduler().runTask(plugin, () -> complete(player));
         }
@@ -92,6 +103,10 @@ public class MercenaryExpeditionManager {
         }
         boolean success = Math.random() * 100 <= expedition.getSuccessChance();
         if (success) {
+            for (int id : expedition.getNpcIds()) {
+                gainMastery(id, 1);
+                addFatigue(id, 1);
+            }
             ExpeditionRewards rewards = generateRewards(player, expedition);
             pendingRewards.merge(player.getUniqueId(), rewards, (existing, added) -> {
                 ExpeditionRewards merged = new ExpeditionRewards().coins(existing.coins() + added.coins());
@@ -102,6 +117,9 @@ public class MercenaryExpeditionManager {
             player.sendMessage(ChatColor.GREEN + "Expedition success! Open the rewards menu to claim loot from "
                     + expedition.getDefinition().displayName());
         } else {
+            for (int id : expedition.getNpcIds()) {
+                addFatigue(id, 2);
+            }
             player.sendMessage(ChatColor.RED + "Expedition failed. Your mercenary returns empty handed.");
         }
     }
@@ -119,6 +137,11 @@ public class MercenaryExpeditionManager {
         if (hasTank && hasDps && hasSupport) {
             base += 15.0;
         }
+        int fatigue = npcIds.stream().mapToInt(this::fatiguePenalty).sum();
+        double weeklyRisk = DungeonRotationManager.riskMultiplier(
+                dungeonManager != null && !expeditions.isEmpty() ? expeditions.keySet().iterator().next() : "default");
+        base -= fatigue * 0.45;
+        base /= Math.max(1.0, weeklyRisk);
         return Math.min(100.0, Math.max(15.0, base));
     }
 
@@ -213,7 +236,8 @@ public class MercenaryExpeditionManager {
         ExpeditionRewards rewards = new ExpeditionRewards();
         int friendship = averageFriendship(player.getUniqueId(), expedition.getNpcIds());
         double roleSynergy = roleSynergyMultiplier(expedition.getNpcIds());
-        int coins = (int) Math.round(rewardFor(expedition.getDefinition().threat(), friendship) * roleSynergy);
+        double weeklyReward = DungeonRotationManager.rewardMultiplier(expedition.getDefinition().id());
+        int coins = (int) Math.round(rewardFor(expedition.getDefinition().threat(), friendship) * roleSynergy * weeklyReward);
         rewards.coins(coins);
         if (lootChestManager != null) {
             int rolls = Math.max(2, expedition.getDefinition().threat() / 2);
@@ -253,6 +277,26 @@ public class MercenaryExpeditionManager {
             reward *= 1.15;
         }
         return (int) Math.round(reward);
+    }
+
+
+
+    private int masteryLevel(int npcId) {
+        return mercenaryMastery.getOrDefault(npcId, 0);
+    }
+
+    private int fatiguePenalty(int npcId) {
+        return Math.min(160, mercenaryFatigue.getOrDefault(npcId, 0) * 12);
+    }
+
+    private void addFatigue(int npcId, int amount) {
+        int next = Math.max(0, mercenaryFatigue.getOrDefault(npcId, 0) + amount);
+        mercenaryFatigue.put(npcId, Math.min(20, next));
+    }
+
+    private void gainMastery(int npcId, int amount) {
+        int next = Math.max(0, mercenaryMastery.getOrDefault(npcId, 0) + amount);
+        mercenaryMastery.put(npcId, Math.min(100, next));
     }
 
     private void loadDebugFlags() {

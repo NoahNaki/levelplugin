@@ -2,6 +2,8 @@ package me.nakilex.levelplugin.utils;
 
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.activity.ActivityDirector;
+import me.nakilex.levelplugin.dungeon.rotation.DungeonRotationManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.classes.managers.PlayerClassManager;
@@ -20,9 +22,11 @@ import java.util.function.Function;
  */
 public class NakiPlaceholderExpansion extends PlaceholderExpansion {
     private final Main plugin;
+    private final ActivityDirector activityDirector;
     private final Map<String, Function<Player, String>> placeholders = new HashMap<>();
     public NakiPlaceholderExpansion(Main plugin) {
         this.plugin = plugin;
+        this.activityDirector = new ActivityDirector(plugin);
 
         placeholders.put("level", p -> String.valueOf(plugin.getLevelManager().getLevel(p)));
         placeholders.put("class", p -> {
@@ -42,6 +46,16 @@ public class NakiPlaceholderExpansion extends PlaceholderExpansion {
         placeholders.put("currentxp", p -> String.valueOf(plugin.getLevelManager().getXP(p)));
         placeholders.put("xpnextlevel", p -> String.valueOf(plugin.getLevelManager().getXpNeededForNextLevel(p)));
         placeholders.put("seasondate", p -> plugin.getCalendarManager().getSeasonDate(false));
+        placeholders.put("activity_next", activityDirector::nextActivity);
+        placeholders.put("dungeon_mutators", p -> {
+            if (plugin.getDungeonManager() == null) {
+                return "";
+            }
+            return DungeonRotationManager.activeMutators("crimsonreliquary").stream()
+                    .map(m -> m.displayName())
+                    .reduce((a, b) -> a + ", " + b)
+                    .orElse("None");
+        });
     }
 
     @Override

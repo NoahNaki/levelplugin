@@ -34,6 +34,32 @@ public class GuildQuestManager {
     private boolean mobsLoaded = false;
     /** Players tracking a specific guild quest. */
     private final Map<UUID, String> tracked = new HashMap<>();
+    /** Campaign progression per guild for chained milestone rewards. */
+    private final Map<String, ProgressionTrack> campaignProgress = new HashMap<>();
+
+
+
+    private static final class ProgressionTrack {
+        private final int chapterSize;
+        private int points;
+
+        private ProgressionTrack(int chapterSize) {
+            this.chapterSize = Math.max(1, chapterSize);
+        }
+
+        void addPoints(int amount) {
+            points = Math.max(0, points + Math.max(0, amount));
+        }
+
+        int chapter() {
+            return (points / chapterSize) + 1;
+        }
+
+        int chapterProgressPercent() {
+            int inChapter = points % chapterSize;
+            return (int) Math.round((inChapter / (double) chapterSize) * 100.0);
+        }
+    }
 
     private GuildQuestManager() {}
 
@@ -224,6 +250,28 @@ public class GuildQuestManager {
         }
 
         tracked.entrySet().removeIf(ent -> ent.getValue().equals(quest.getId()));
+        advanceCampaign(guild, quest.getStars());
+    }
+
+    private void advanceCampaign(Guild guild, int stars) {
+        if (guild == null) {
+            return;
+        }
+        ProgressionTrack track = campaignProgress.computeIfAbsent(guild.getName().toLowerCase(Locale.ROOT),
+                k -> new ProgressionTrack(12));
+        track.addPoints(Math.max(1, stars));
+        int chapter = track.chapter();
+        int chapterProgress = track.chapterProgressPercent();
+        for (UUID id : guild.getMembers()) {
+            Player p = Bukkit.getPlayer(id);
+            if (p == null) {
+                continue;
+            }
+            p.sendMessage("§6§lGuild Campaign §8» §7Chapter §e" + chapter + " §7(" + chapterProgress + "%)");
+            if (chapterProgress == 0) {
+                p.sendMessage("§aMilestone reached! Your guild unlocked a campaign cache.");
+            }
+        }
     }
 
     /** Toggle tracking for the specified quest. Returns true if now tracked. */
@@ -242,6 +290,23 @@ public class GuildQuestManager {
     /** Get the id of the guild quest a player is tracking, if any. */
     public String getTrackedQuest(UUID player) {
         return tracked.get(player);
+    }
+
+
+    public int getCampaignChapter(String guildName) {
+        if (guildName == null || guildName.isBlank()) {
+            return 1;
+        }
+        ProgressionTrack track = campaignProgress.get(guildName.toLowerCase(Locale.ROOT));
+        return track == null ? 1 : track.chapter();
+    }
+
+    public int getCampaignChapterProgressPercent(String guildName) {
+        if (guildName == null || guildName.isBlank()) {
+            return 0;
+        }
+        ProgressionTrack track = campaignProgress.get(guildName.toLowerCase(Locale.ROOT));
+        return track == null ? 0 : track.chapterProgressPercent();
     }
 
     /**
