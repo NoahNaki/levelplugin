@@ -26,9 +26,18 @@ public class BoosterCommand implements TabExecutor {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        if (args.length >= 1 && args[0].equalsIgnoreCase("list")) {
+            sender.sendMessage(ChatMessageUtil.format(MessageType.INFO,
+                    "Available boosters: "
+                            + ChatColor.YELLOW + "coin" + ChatColor.GRAY + ", "
+                            + ChatColor.YELLOW + "xp" + ChatColor.GRAY
+                            + ". Item multiplier: " + ChatColor.YELLOW + "x" + String.format("%.2f", multiplier)));
+            return true;
+        }
+
         if (args.length < 4 || !args[0].equalsIgnoreCase("give")) {
             sender.sendMessage(ChatMessageUtil.format(MessageType.ERROR,
-                    "Usage: /booster give <player|@everyone> <coin|xp> <amount>"));
+                    "Usage: /booster <list|give <player|@everyone> <coin|xp> <amount>>"));
             return true;
         }
 
@@ -76,7 +85,10 @@ public class BoosterCommand implements TabExecutor {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            return Collections.singletonList("give");
+            List<String> roots = new ArrayList<>();
+            if ("give".startsWith(args[0].toLowerCase())) roots.add("give");
+            if ("list".startsWith(args[0].toLowerCase())) roots.add("list");
+            return roots;
         }
         if (args.length == 2) {
             List<String> names = new ArrayList<>(CommandUtil.onlinePlayerNames(args[1]));
