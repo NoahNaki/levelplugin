@@ -1,5 +1,7 @@
 package me.nakilex.levelplugin.dungeon.rating;
 
+import me.nakilex.levelplugin.dungeon.rotation.DungeonMutator;
+import me.nakilex.levelplugin.dungeon.rotation.DungeonRotationManager;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.Plugin;
@@ -52,6 +54,14 @@ public class DungeonRatingManager {
         data.total += rating;
         data.count += 1;
         ratings.put(key, data);
+
+        // Keep a parallel rating bucket for the active weekly mutator set.
+        String mutatorKey = keyForMutators(key, DungeonRotationManager.activeMutators(key));
+        RatingData mutatorData = ratings.getOrDefault(mutatorKey, new RatingData(0, 0));
+        mutatorData.total += rating;
+        mutatorData.count += 1;
+        ratings.put(mutatorKey, mutatorData);
+
         save();
     }
 
@@ -62,6 +72,29 @@ public class DungeonRatingManager {
         RatingData data = ratings.get(key);
         if (data == null || data.count == 0) return 0.0;
         return data.total / data.count;
+    }
+
+
+
+    public synchronized double getAverageForActiveMutators(String key) {
+        String mutatorKey = keyForMutators(key, DungeonRotationManager.activeMutators(key));
+        RatingData data = ratings.get(mutatorKey);
+        if (data == null || data.count == 0) {
+            return getAverage(key);
+        }
+        return data.total / data.count;
+    }
+
+    private String keyForMutators(String key, java.util.Set<DungeonMutator> mutators) {
+        if (mutators == null || mutators.isEmpty()) {
+            return key + "#baseline";
+        }
+        String suffix = mutators.stream()
+                .map(Enum::name)
+                .sorted()
+                .reduce((a, b) -> a + "+" + b)
+                .orElse("baseline");
+        return key + "#" + suffix;
     }
 
     private synchronized void save() {

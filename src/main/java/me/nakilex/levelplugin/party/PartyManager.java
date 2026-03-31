@@ -1,5 +1,7 @@
 package me.nakilex.levelplugin.party;
 
+import me.nakilex.levelplugin.party.synergy.PartySynergyProfile;
+import me.nakilex.levelplugin.party.synergy.PartySynergyUtil;
 import org.bukkit.entity.Player;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -26,9 +28,25 @@ public class PartyManager {
 
     private void notifyMembersChanged(Party party) {
         if (party == null) return;
+        broadcastSynergyStatus(party);
         for (PartyMembershipListener listener : membershipListeners) {
             listener.onPartyMembersChanged(party);
         }
+    }
+
+    private void broadcastSynergyStatus(Party party) {
+        java.util.List<Player> online = new java.util.ArrayList<>();
+        for (UUID id : party.getMembers()) {
+            Player p = Bukkit.getPlayer(id);
+            if (p != null) {
+                online.add(p);
+            }
+        }
+        PartySynergyProfile profile = PartySynergyUtil.profile(online);
+        if (profile.multiplier() <= 1.0) {
+            return;
+        }
+        PartyUtils.broadcastMessage(party, ChatColor.DARK_GRAY + "Party Synergy: " + ChatColor.GREEN + profile.summary());
     }
 
     private void notifyDisbanded(java.util.List<UUID> formerMembers) {

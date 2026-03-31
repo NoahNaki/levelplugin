@@ -36,12 +36,26 @@ public final class ExperienceUtil {
      * @return XP with party bonus applied
      */
     public static int applyPartyBonus(int exp, int partySize) {
+        return applyPartyBonus(exp, partySize, 1.0);
+    }
+
+    /**
+     * Apply a party bonus and optional composition multiplier.
+     *
+     * @param exp scaled XP value
+     * @param partySize number of nearby party members including the player
+     * @param synergyMultiplier multiplier from composition systems (1.0 for none)
+     * @return XP with party and synergy bonus applied
+     */
+    public static int applyPartyBonus(int exp, int partySize, double synergyMultiplier) {
         int bonusPercent;
         switch (partySize) {
             case 2 -> bonusPercent = 10;
             case 3 -> bonusPercent = 25;
             default -> bonusPercent = partySize >= 4 ? 40 : 0;
         }
-        return exp + (exp * bonusPercent) / 100;
+        double base = exp + (exp * bonusPercent) / 100.0;
+        double synergy = Math.max(1.0, synergyMultiplier);
+        return (int) Math.round(base * synergy);
     }
 }

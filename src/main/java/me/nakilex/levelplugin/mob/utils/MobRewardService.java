@@ -13,6 +13,8 @@ import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.party.Party;
 import me.nakilex.levelplugin.party.PartyManager;
+import me.nakilex.levelplugin.party.synergy.PartySynergyProfile;
+import me.nakilex.levelplugin.party.synergy.PartySynergyUtil;
 import me.nakilex.levelplugin.progression.objectives.ObjectiveProgressBus;
 import me.nakilex.levelplugin.progression.objectives.ObjectiveProgressEvent;
 import me.nakilex.levelplugin.progression.objectives.ObjectiveType;
@@ -151,6 +153,10 @@ public class MobRewardService {
                 nearbyPartyMembers.computeIfAbsent(party, k -> new java.util.ArrayList<>()).add(p);
             }
         }
+        Map<Party, PartySynergyProfile> partySynergy = new HashMap<>();
+        for (Map.Entry<Party, List<Player>> entry : nearbyPartyMembers.entrySet()) {
+            partySynergy.put(entry.getKey(), PartySynergyUtil.profile(entry.getValue()));
+        }
 
         me.nakilex.levelplugin.dungeon.DungeonManager dungeonManager = plugin.getDungeonManager();
         if (dungeonManager != null) {
@@ -166,7 +172,10 @@ public class MobRewardService {
                 partySize = nearbyPartyMembers.getOrDefault(party, List.of()).size();
             }
             int scaledExp = ExperienceUtil.scaleExperience(exp, levelManager.getLevel(player), mobLevel);
-            int awardedExp = ExperienceUtil.applyPartyBonus(scaledExp, partySize);
+            PartySynergyProfile synergyProfile = party != null
+                    ? partySynergy.getOrDefault(party, PartySynergyProfile.neutral())
+                    : PartySynergyProfile.neutral();
+            int awardedExp = ExperienceUtil.applyPartyBonus(scaledExp, partySize, synergyProfile.multiplier());
             levelManager.addXP(player, awardedExp);
             economyManager.addCoins(player, coins);
             var settings = plugin.getSettingsManager().getSettings(player);
@@ -202,6 +211,10 @@ public class MobRewardService {
                         + me.nakilex.levelplugin.utils.CurrencyMessageUtil.formatAmount(
                         me.nakilex.levelplugin.utils.CurrencyMessageUtil.Currency.COINS, coins)
                         + ChatColor.GOLD + "!");
+                if (party != null && synergyProfile.multiplier() > 1.0) {
+                    player.sendMessage(ChatColor.GRAY + "Party " + ChatColor.GREEN + synergyProfile.summary()
+                            + ChatColor.GRAY + " boosted your XP.");
+                }
             }
             GuildQuestManager.getInstance().handleKill(player, mobType);
             ObjectiveProgressBus.getInstance().publish(new ObjectiveProgressEvent(

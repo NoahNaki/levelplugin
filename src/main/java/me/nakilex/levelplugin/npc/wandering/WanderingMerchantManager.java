@@ -5,6 +5,7 @@ import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.data.ItemRarity;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
+import me.nakilex.levelplugin.player.battlepass.BattlePassManager;
 import me.nakilex.levelplugin.salvage.managers.SalvageManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -45,6 +46,12 @@ public class WanderingMerchantManager {
     private org.bukkit.scheduler.BukkitTask followTask;
     private org.bukkit.scheduler.BukkitTask inactivityTask;
     private long lastPlayerActivity;
+    private MerchantContract activeContract;
+    private UUID contractOwner;
+    private int contractProgress;
+
+    private record MerchantContract(String key, String title, String objectiveText, int requiredPurchases, int coinReward,
+                                    int battlePassXpReward) { }
     private TraderLlama ensureLlama() {
         if (llama1 != null && llama1.isValid()) {
             llama1.setGravity(true);
@@ -163,9 +170,10 @@ public class WanderingMerchantManager {
                     : baseCost;
             offers.add(new WanderingMerchantOffer(stack, cost, 1, featured));
         }
-        gui = new WanderingMerchantGUI(plugin, offers);
+        gui = new WanderingMerchantGUI(plugin, offers, this::handleContractPurchase);
         int totalGearScore = ItemUtil.calculateTotalGearScore(items);
         shopGearScore = totalGearScore;
+        rollContract();
         double maxHealth = totalGearScore * 2.0;
         if (merchant != null && merchant.getAttribute(Attribute.MAX_HEALTH) != null) {
             merchant.getAttribute(Attribute.MAX_HEALTH).setBaseValue(maxHealth);
@@ -197,6 +205,13 @@ public class WanderingMerchantManager {
 
     public void openShop(Player player) {
         lastPlayerActivity = System.currentTimeMillis();
+        assignContractIfNeeded(player);
+        if (activeContract != null) {
+            player.sendMessage(ChatColor.GOLD + "Caravan Contract: " + ChatColor.YELLOW + activeContract.title());
+            player.sendMessage(ChatColor.GRAY + activeContract.objectiveText()
+                    + ChatColor.DARK_GRAY + " (" + ChatColor.YELLOW + contractProgress + "/"
+                    + activeContract.requiredPurchases() + ChatColor.DARK_GRAY + ")");
+        }
         if (gui != null) gui.open(player);
     }
 
@@ -297,6 +312,9 @@ public class WanderingMerchantManager {
         if (followTask != null) { followTask.cancel(); followTask = null; }
         if (fleeTask != null) { fleeTask.cancel(); fleeTask = null; }
         if (inactivityTask != null) { inactivityTask.cancel(); inactivityTask = null; }
+        activeContract = null;
+        contractOwner = null;
+        contractProgress = 0;
 
         // Clean up any stray wandering merchants or llamas that may have persisted
         // in the world (e.g. after a crash) so they do not remain across restarts.
@@ -324,4 +342,54 @@ public class WanderingMerchantManager {
     public LivingEntity getMerchant() { return merchant; }
     public WanderingMerchantGUI getGui() { return gui; }
     public int getShopGearScore() { return shopGearScore; }
+
+    private void rollContract() {
+        int roll = ThreadLocalRandom.current().nextInt(3);
+        activeContract = switch (roll) {
+            case 0 -> new MerchantContract("scout_supplies", "Scout Supplies",
+                    "Purchase curated supplies from this caravan.", 2, 250, 120);
+            case 1 -> new MerchantContract("bulk_patron", "Bulk Patron",
+                    "Buy enough stock to keep the caravan moving.", 3, 450, 180);
+            default -> new MerchantContract("master_collector", "Master Collector",
+                    "Secure premium goods before the caravan leaves.", 4, 700, 260);
+        };
+        contractOwner = null;
+        contractProgress = 0;
+    }
+
+    private void assignContractIfNeeded(Player player) {
+        if (player == null || activeContract == null) {
+            return;
+        }
+        if (contractOwner == null) {
+            contractOwner = player.getUniqueId();
+            contractProgress = 0;
+            player.sendMessage(ChatColor.GREEN + "You accepted the caravan contract.");
+        }
+    }
+
+    private void handleContractPurchase(Player player) {
+        if (player == null || activeContract == null || contractOwner == null) {
+            return;
+        }
+        if (!contractOwner.equals(player.getUniqueId())) {
+            return;
+        }
+        contractProgress++;
+        if (contractProgress < activeContract.requiredPurchases()) {
+            player.sendMessage(ChatColor.GRAY + "Contract progress: " + ChatColor.YELLOW + contractProgress
+                    + ChatColor.GRAY + "/" + ChatColor.YELLOW + activeContract.requiredPurchases());
+            return;
+        }
+        plugin.getEconomyManager().addCoins(player, activeContract.coinReward());
+        BattlePassManager battlePassManager = Main.getInstance().getBattlePassManager();
+        if (battlePassManager != null) {
+            battlePassManager.addProgress(player, activeContract.battlePassXpReward(),
+                    "from caravan contract completion");
+        }
+        player.sendMessage(ChatColor.GOLD + "Contract complete! +" + activeContract.coinReward() + " coins");
+        activeContract = null;
+        contractOwner = null;
+        contractProgress = 0;
+    }
 }
