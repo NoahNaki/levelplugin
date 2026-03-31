@@ -15,6 +15,36 @@ stats:
   will: 16
   technique: 10
 
+spells:
+  fireball:
+    id: goblin_shaman_fireball
+    script: goblin_shaman_fireball
+    selection-group: attack
+    selection-weight: 1.0
+    interval-ticks: 51
+    gcd-ticks: 51
+    damage: 8.0
+    min-range: 5.0
+    max-range: 20.0
+    require-line-of-sight: true
+    range: 20.0
+    speed: 1.0
+    burn-ticks: 80
+  heal:
+    id: goblin_shaman_heal
+    script: goblin_shaman_heal
+    selection-group: support
+    selection-weight: 1.0
+    interval-ticks: 100
+    gcd-ticks: 51
+    damage: 8.0
+    min-range: 0.0
+    max-range: 30.0
+    require-line-of-sight: false
+    range: 30.0
+    speed: 1.0
+    burn-ticks: 0
+
 options:
   movement-speed: 0.25
   follow-range: 30

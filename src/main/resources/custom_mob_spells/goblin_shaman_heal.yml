@@ -1,0 +1,19 @@
+id: goblin_shaman_heal
+actions:
+  - type: play-animation
+    animation: heal
+  - type: play-sound
+    sound: entity.illusioner.ambient
+    volume: 0.75
+    pitch: 0.8
+  - type: delay
+    ticks: 21
+  - type: play-sound
+    sound: entity.illusioner.prepare_mirror
+    volume: 0.85
+    pitch: 1.3
+  - type: heal-nearby-allied-custom-mobs
+    id-prefix: goblin_
+    radius: 20.0
+    limit: 4
+    heal-amount: 8.0

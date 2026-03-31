@@ -1,0 +1,11 @@
+id: cursed_mage_spell_3
+actions:
+  - type: mage-burst
+    animation: holow_attack
+    windup-ticks: 40
+    projectiles: 1
+    interval-ticks: 1
+    model: cursed_hollow_vfx
+    damage-multiplier: 2.0
+    speed-multiplier: 0.7
+    speed-min: 0.8

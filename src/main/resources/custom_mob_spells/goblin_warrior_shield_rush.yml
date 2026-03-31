@@ -1,0 +1,15 @@
+id: goblin_warrior_shield_rush
+actions:
+  - type: play-animation
+    animation: shield_charge
+  - type: delay
+    ticks: 21
+  - type: play-sound
+    sound: entity.illusioner.ambient
+    volume: 0.75
+    pitch: 0.8
+  - type: start-rush
+    duration-ticks: 32
+    dash-per-tick: 0.35
+    hit-radius: 2.0
+    damage-multiplier: 1.0

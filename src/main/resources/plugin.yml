@@ -320,8 +320,8 @@ commands:
     usage: /fireballdebug <spawn|move|rotate|face|info|diagnose|trace|remove>
   custommob:
     description: Manage mobs
-    usage: /custommob <list|spawn|info|reload|gui|kill|killall|spawner>
-    aliases: [cm]
+    usage: /custommob <list|spawn|info|reload|gui|kill|killall|cast|spawner>
+    aliases: [cm, mobs, mob]
   pet:
     description: Open the pet menu
     usage: /pet [reload]

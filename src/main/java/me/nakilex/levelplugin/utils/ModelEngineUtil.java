@@ -52,6 +52,7 @@ public final class ModelEngineUtil {
     private static final class AnimationControllerState {
         private boolean moving;
         private long actionUntilMs;
+        private final Map<String, Integer> animationCycleCursorByKey = new ConcurrentHashMap<>();
     }
 
     public static List<String> getModelIdsSafely(Plugin plugin) {
@@ -133,16 +134,38 @@ public final class ModelEngineUtil {
     }
 
     public static boolean triggerActionState(Entity entity, List<String> keywords, long actionHoldMillis) {
+        return triggerActionState(entity, keywords, actionHoldMillis, true);
+    }
+
+    public static boolean triggerActionState(Entity entity,
+                                             List<String> keywords,
+                                             long actionHoldMillis,
+                                             boolean cycleAnimations) {
+        return triggerActionStateResolved(entity, keywords, actionHoldMillis, cycleAnimations) != null;
+    }
+
+    public static String triggerActionStateResolved(Entity entity,
+                                                    List<String> keywords,
+                                                    long actionHoldMillis,
+                                                    boolean cycleAnimations) {
         if (entity == null || keywords == null || keywords.isEmpty()) {
-            return false;
+            return null;
         }
-        boolean played = playBestAnimation(entity, keywords, false);
-        if (!played) {
-            return false;
+        String playedAnimation = playBestAnimationResolved(entity, keywords, false, cycleAnimations);
+        if (playedAnimation == null) {
+            return null;
         }
         AnimationControllerState state = ANIMATION_CONTROLLER_STATES.computeIfAbsent(entity.getUniqueId(), key -> new AnimationControllerState());
         state.actionUntilMs = Math.max(System.currentTimeMillis(), state.actionUntilMs) + Math.max(0L, actionHoldMillis);
-        return true;
+        return playedAnimation;
+    }
+
+    public static void holdActionState(Entity entity, long actionHoldMillis) {
+        if (entity == null) {
+            return;
+        }
+        AnimationControllerState state = ANIMATION_CONTROLLER_STATES.computeIfAbsent(entity.getUniqueId(), key -> new AnimationControllerState());
+        state.actionUntilMs = Math.max(System.currentTimeMillis(), state.actionUntilMs) + Math.max(0L, actionHoldMillis);
     }
 
     public static void clearAnimationState(Entity entity) {
@@ -257,20 +280,32 @@ public final class ModelEngineUtil {
     }
 
     public static boolean playBestShootAnimation(Entity entity) {
-        return playBestAnimation(entity, List.of("shoot", "arrow", "bow", "cast", "attack"), false);
+        return playBestAnimation(entity, List.of("shoot", "arrow", "bow", "cast", "attack"), false, true);
     }
 
     public static boolean playBestAttackAnimation(Entity entity) {
-        return playBestAnimation(entity, List.of("attack", "slash", "swing", "hit", "shoot", "cast"), false);
+        return playBestAnimation(entity, List.of("attack", "slash", "swing", "hit", "shoot", "cast"), false, true);
     }
 
     public static boolean playBestAnimation(Entity entity, List<String> keywords, boolean loop) {
+        return playBestAnimation(entity, keywords, loop, true);
+    }
+
+    public static boolean playBestAnimation(Entity entity, List<String> keywords, boolean loop, boolean cycleAnimations) {
+        return playBestAnimationResolved(entity, keywords, loop, cycleAnimations) != null;
+    }
+
+    public static String playBestAnimationResolved(Entity entity,
+                                                   List<String> keywords,
+                                                   boolean loop,
+                                                   boolean cycleAnimations) {
         if (entity == null || keywords == null || keywords.isEmpty()) {
-            return false;
+            return null;
         }
+        String cycleKey = buildAnimationCycleKey(keywords);
         ModeledEntity modeledEntity = ModelEngineAPI.getModeledEntity(entity);
         if (modeledEntity == null || modeledEntity.getModels().isEmpty()) {
-            return false;
+            return null;
         }
         for (ActiveModel model : modeledEntity.getModels().values()) {
             AnimationHandler handler = model.getAnimationHandler();
@@ -278,16 +313,22 @@ public final class ModelEngineUtil {
                 continue;
             }
             handler.prepare();
-            String runtimeMatch = selectAnimationByKeywords(handler.getAnimations().keySet(), keywords);
-            if (runtimeMatch != null && !runtimeMatch.isBlank() && attemptPlayAnimation(handler, model, runtimeMatch, loop)) {
-                return true;
+            List<String> runtimeMatches = selectAnimationsByKeywords(handler.getAnimations().keySet(), keywords);
+            String runtimeMatch = cycleAnimations
+                    ? chooseCycledAnimation(entity, cycleKey, runtimeMatches)
+                    : chooseFirstAnimation(runtimeMatches);
+            if (runtimeMatch != null && attemptPlayAnimation(handler, model, runtimeMatch, loop)) {
+                return runtimeMatch;
             }
-            String blueprintMatch = selectAnimationByKeywords(getBlueprintAnimationNames(model), keywords);
-            if (blueprintMatch != null && !blueprintMatch.isBlank() && attemptPlayAnimation(handler, model, blueprintMatch, loop)) {
-                return true;
+            List<String> blueprintMatches = selectAnimationsByKeywords(getBlueprintAnimationNames(model), keywords);
+            String blueprintMatch = cycleAnimations
+                    ? chooseCycledAnimation(entity, cycleKey, blueprintMatches)
+                    : chooseFirstAnimation(blueprintMatches);
+            if (blueprintMatch != null && attemptPlayAnimation(handler, model, blueprintMatch, loop)) {
+                return blueprintMatch;
             }
         }
-        return false;
+        return null;
     }
 
     public static boolean playAnimationByName(Entity entity, String animationName, boolean loop) {
@@ -606,9 +647,18 @@ public final class ModelEngineUtil {
     }
 
     private static String selectAnimationByKeywords(Collection<String> animationNames, List<String> keywords) {
-        if (animationNames == null || animationNames.isEmpty()) {
+        List<String> matches = selectAnimationsByKeywords(animationNames, keywords);
+        if (matches.isEmpty()) {
             return null;
         }
+        return matches.getFirst();
+    }
+
+    private static List<String> selectAnimationsByKeywords(Collection<String> animationNames, List<String> keywords) {
+        if (animationNames == null || animationNames.isEmpty() || keywords == null || keywords.isEmpty()) {
+            return List.of();
+        }
+        LinkedHashSet<String> matches = new LinkedHashSet<>();
         for (String keyword : keywords) {
             if (keyword == null || keyword.isBlank()) {
                 continue;
@@ -618,7 +668,7 @@ public final class ModelEngineUtil {
                     continue;
                 }
                 if (animation.equalsIgnoreCase(keyword)) {
-                    return animation;
+                    matches.add(animation);
                 }
             }
         }
@@ -632,11 +682,46 @@ public final class ModelEngineUtil {
                     continue;
                 }
                 if (animation.toLowerCase(Locale.ROOT).contains(lowerKeyword)) {
-                    return animation;
+                    matches.add(animation);
                 }
             }
         }
-        return null;
+        if (matches.isEmpty()) {
+            return List.of();
+        }
+        return List.copyOf(matches);
+    }
+
+    private static String chooseCycledAnimation(Entity entity, String cycleKey, List<String> candidates) {
+        if (candidates == null || candidates.isEmpty()) {
+            return null;
+        }
+        if (candidates.size() == 1 || entity == null || cycleKey == null || cycleKey.isBlank()) {
+            return candidates.getFirst();
+        }
+        AnimationControllerState state = ANIMATION_CONTROLLER_STATES.computeIfAbsent(entity.getUniqueId(), key -> new AnimationControllerState());
+        int nextCursor = state.animationCycleCursorByKey.getOrDefault(cycleKey, 0);
+        String selected = candidates.get(Math.floorMod(nextCursor, candidates.size()));
+        state.animationCycleCursorByKey.put(cycleKey, nextCursor + 1);
+        return selected;
+    }
+
+    private static String chooseFirstAnimation(List<String> candidates) {
+        if (candidates == null || candidates.isEmpty()) {
+            return null;
+        }
+        return candidates.getFirst();
+    }
+
+    private static String buildAnimationCycleKey(List<String> keywords) {
+        if (keywords == null || keywords.isEmpty()) {
+            return "";
+        }
+        return keywords.stream()
+                .filter(keyword -> keyword != null && !keyword.isBlank())
+                .map(keyword -> keyword.toLowerCase(Locale.ROOT))
+                .reduce((left, right) -> left + "|" + right)
+                .orElse("");
     }
 
     private static String resolveAnimationName(ActiveModel model,

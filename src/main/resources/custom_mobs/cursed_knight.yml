@@ -15,6 +15,50 @@ stats:
   agility: 11
   technique: 14
 
+spells:
+  attack_1:
+    id: cursed_knight_attack_1
+    script: cursed_knight_attack_1
+    selection-group: attack
+    selection-weight: 2.0
+    interval-ticks: 52
+    gcd-ticks: 52
+    damage: 10.0
+    min-range: 0.0
+    max-range: 5.0
+    require-line-of-sight: true
+    range: 6.0
+    speed: 1.0
+    burn-ticks: 0
+  attack_2:
+    id: cursed_knight_attack_2
+    script: cursed_knight_attack_2
+    selection-group: attack
+    selection-weight: 1.0
+    interval-ticks: 72
+    gcd-ticks: 72
+    damage: 10.0
+    min-range: 0.0
+    max-range: 6.0
+    require-line-of-sight: true
+    range: 8.0
+    speed: 1.0
+    burn-ticks: 0
+  attack_3:
+    id: cursed_knight_attack_3
+    script: cursed_knight_attack_3
+    selection-group: attack
+    selection-weight: 1.0
+    interval-ticks: 46
+    gcd-ticks: 46
+    damage: 10.0
+    min-range: 2.0
+    max-range: 10.0
+    require-line-of-sight: true
+    range: 10.0
+    speed: 1.0
+    burn-ticks: 0
+
 options:
   movement-speed: 0.25
   follow-range: 28

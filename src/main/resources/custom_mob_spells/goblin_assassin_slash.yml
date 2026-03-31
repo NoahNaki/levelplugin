@@ -1,0 +1,38 @@
+id: goblin_assassin_slash
+actions:
+  - type: play-animation
+    animation: slash
+  - type: delay
+    ticks: 9
+  - type: face-target
+  - type: dash-toward-target
+    speed: 0.52
+  - type: play-sound
+    sound: entity.witch.throw
+    volume: 0.75
+    pitch: 1.1
+  - type: deal-cone-damage
+    damage-multiplier: 0.75
+    range: 2.0
+    half-angle-degrees: 70.0
+    knockback-horizontal: 0.2
+    knockback-vertical: 0.07
+  - type: delay
+    ticks: 10
+  - type: face-target
+  - type: dash-toward-target
+    speed: 0.52
+  - type: play-sound
+    sound: entity.witch.throw
+    volume: 0.75
+    pitch: 1.1
+  - type: deal-cone-damage
+    damage-multiplier: 0.75
+    range: 2.0
+    half-angle-degrees: 70.0
+    knockback-horizontal: 0.2
+    knockback-vertical: 0.07
+  - type: play-sound
+    sound: item.trident.hit
+    volume: 0.75
+    pitch: 0.8

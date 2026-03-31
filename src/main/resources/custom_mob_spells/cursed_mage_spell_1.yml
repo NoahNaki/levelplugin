@@ -1,0 +1,11 @@
+id: cursed_mage_spell_1
+actions:
+  - type: mage-burst
+    animation: attack_1
+    windup-ticks: 20
+    projectiles: 2
+    interval-ticks: 15
+    model: cursed_cast_vfx
+    damage-multiplier: 1.0
+    speed-multiplier: 1.0
+    speed-min: 1.15

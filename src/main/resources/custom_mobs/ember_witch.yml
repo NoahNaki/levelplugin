@@ -14,7 +14,11 @@ spells:
   fireball_basic:
     id: mage_fireball_basic
     interval-ticks: 40
+    gcd-ticks: 40
     damage: 10.0
+    min-range: 5.0
+    max-range: 26.0
+    require-line-of-sight: true
     range: 26.0
     speed: 1.0
     burn-ticks: 60

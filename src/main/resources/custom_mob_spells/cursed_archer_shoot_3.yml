@@ -1,0 +1,12 @@
+id: cursed_archer_shoot_3
+actions:
+  - type: play-animation
+    animation: shoot_3
+  - type: face-target
+  - type: delay
+    ticks: 22
+  - type: archer-special-sound
+  - type: launch-model-projectile
+    model: cursed_arrow_vfx
+    speed-min: 1.5
+    use-impact-fx: true
