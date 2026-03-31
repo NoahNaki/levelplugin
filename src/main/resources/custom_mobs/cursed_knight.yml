@@ -4,16 +4,17 @@ display: "&8Cursed Knight"
 level-range:
   min: 50
   max: 50
+health: 3935
 boss: false
 
-models:
-  - cursed_knight.bbmodel
-
 stats:
-  vitality: 38
-  strength: 20
-  agility: 11
-  technique: 14
+  vitality: 0
+  strength: 0
+  agility: 0
+  intelligence: 0
+  dexterity: 0
+  will: 0
+  technique: 0
 
 spells:
   attack_1:
@@ -61,7 +62,9 @@ spells:
 
 options:
   movement-speed: 0.25
-  follow-range: 28
+  attack-damage: 25.0
+  attack-speed: 2.0
+  follow-range: 30
   knockback-resistance: 0.6
   silent: true
   despawn: false

@@ -1,0 +1,26 @@
+id: astral_devourer
+type: VINDICATOR
+display: "&dAstral Devourer"
+level-range:
+  min: 88
+  max: 88
+health: 13575
+boss: true
+
+stats:
+  vitality: 0
+  strength: 0
+  agility: 0
+  intelligence: 0
+  dexterity: 0
+  will: 0
+  technique: 0
+
+options:
+  movement-speed: 0.29
+  attack-damage: 90.0
+  attack-speed: 2.8
+  follow-range: 38
+  knockback-resistance: 0.65
+  silent: true
+  despawn: false

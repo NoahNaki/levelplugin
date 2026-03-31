@@ -10,6 +10,7 @@ import me.nakilex.levelplugin.guild.GuildManager;
 import me.nakilex.levelplugin.guild.TownPerk;
 import me.nakilex.levelplugin.guild.TownPerkManager;
 import me.nakilex.levelplugin.utils.GuiUtil;
+import me.nakilex.levelplugin.utils.TooltipUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -48,6 +49,8 @@ public class FastTravelGUI implements Listener {
     private static final int NEXT_PAGE = 53;
     private static final int SORT_SLOT = 50;
     private static final int FILTER_SLOT = 49;
+    private static final int LAST_USED_SLOT = 47;
+    private static final int NEAREST_TOWN_SLOT = 48;
 
     private final FastTravelManager manager;
     private final EconomyManager economy;
@@ -168,21 +171,7 @@ public class FastTravelGUI implements Listener {
         int actual=start+index;
         if(actual>=list.size()) return;
         ModelGate target=list.get(actual);
-        if(!manager.isUnlocked(player,target.getId())) return;
-        if (GuildSiegeManager.getInstance().isSiegeRunning() &&
-                "rowan".equalsIgnoreCase(target.getId())) {
-            send(player, MessageType.ERROR,
-                    "You cannot fast travel to this location because there is an ongoing siege!");
-            return;
-        }
-        int cost = calculateTravelCost(player, target,
-                GuildManager.getInstance().getGuild(player.getUniqueId()));
-        if(economy.getBalance(player)<cost){
-            send(player, MessageType.ERROR, "You need "+cost+" coins to travel.");
-            return;
-        }
-        player.closeInventory();
-        startCast(player,target,cost);
+        beginTravelToGate(player, target);
     }
 
     private List<ModelGate> getVisibleGates(Player player) {
@@ -213,6 +202,12 @@ public class FastTravelGUI implements Listener {
         widgetList.add(new ActionWidget(FILTER_SLOT,
                 context -> createFilterButton(typeMap.getOrDefault(context.player().getUniqueId(),0)),
                 (click, context) -> handleFilterClick(context.player())));
+        widgetList.add(new ActionWidget(LAST_USED_SLOT,
+                context -> createLastUsedButton(context.player()),
+                (click, context) -> handleLastUsedClick(context.player())));
+        widgetList.add(new ActionWidget(NEAREST_TOWN_SLOT,
+                context -> createNearestTownButton(context.player()),
+                (click, context) -> handleNearestTownClick(context.player())));
         return widgetList;
     }
 
@@ -276,6 +271,77 @@ public class FastTravelGUI implements Listener {
         open(player,pageMap.getOrDefault(player.getUniqueId(),0));
     }
 
+    private void handleNearestTownClick(Player player) {
+        ModelGate nearestTown = findNearestUnlockedTownGate(player);
+        if (nearestTown == null) {
+            send(player, MessageType.ERROR, "No unlocked town waystone available.");
+            return;
+        }
+        beginTravelToGate(player, nearestTown);
+    }
+
+    private void handleLastUsedClick(Player player) {
+        ModelGate lastUsed = findLastUsedGate(player);
+        if (lastUsed == null) {
+            send(player, MessageType.ERROR, "No recent waystone found.");
+            return;
+        }
+        beginTravelToGate(player, lastUsed);
+    }
+
+    private void beginTravelToGate(Player player, ModelGate target) {
+        if (player == null || target == null) {
+            return;
+        }
+        if(!manager.isUnlocked(player,target.getId())) return;
+        if (GuildSiegeManager.getInstance().isSiegeRunning() &&
+                "rowan".equalsIgnoreCase(target.getId())) {
+            send(player, MessageType.ERROR,
+                    "You cannot fast travel to this location because there is an ongoing siege!");
+            return;
+        }
+        int cost = calculateTravelCost(player, target,
+                GuildManager.getInstance().getGuild(player.getUniqueId()));
+        if(economy.getBalance(player)<cost){
+            send(player, MessageType.ERROR, "You need "+cost+" coins to travel.");
+            return;
+        }
+        player.closeInventory();
+        startCast(player,target,cost);
+    }
+
+    private ModelGate findNearestUnlockedTownGate(Player player) {
+        if (player == null) {
+            return null;
+        }
+        String exclude = excludeMap.get(player.getUniqueId());
+        return gateManager.getGates().stream()
+                .filter(ModelGate::isTown)
+                .filter(gate -> manager.isUnlocked(player, gate.getId()))
+                .filter(gate -> exclude == null || !gate.getId().equalsIgnoreCase(exclude))
+                .filter(gate -> gate.getLocation() != null && gate.getLocation().getWorld() != null)
+                .filter(gate -> player.getWorld().equals(gate.getLocation().getWorld()))
+                .min(Comparator.comparingDouble(g -> g.getLocation().distanceSquared(player.getLocation())))
+                .orElse(null);
+    }
+
+    private ModelGate findLastUsedGate(Player player) {
+        if (player == null) {
+            return null;
+        }
+        String last = manager.getLastUsed(player);
+        if (last == null || last.isBlank()) {
+            return null;
+        }
+        String exclude = excludeMap.get(player.getUniqueId());
+        return gateManager.getGates().stream()
+                .filter(gate -> gate.getId().equalsIgnoreCase(last))
+                .filter(gate -> exclude == null || !gate.getId().equalsIgnoreCase(exclude))
+                .filter(gate -> manager.isUnlocked(player, gate.getId()))
+                .findFirst()
+                .orElse(null);
+    }
+
     private void startCast(Player player, ModelGate target, int cost){
         economy.deductCoins(player,cost);
         manager.recordUse(player,target.getId());
@@ -317,6 +383,52 @@ public class FastTravelGUI implements Listener {
         ItemMeta meta=it.getItemMeta();
         if(meta!=null){ meta.setDisplayName(name); it.setItemMeta(meta); }
         return it;
+    }
+
+    private ItemStack createNearestTownButton(Player player) {
+        ItemStack item = new ItemStack(Material.RECOVERY_COMPASS);
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) {
+            return item;
+        }
+        meta.setDisplayName(ChatColor.AQUA + "" + ChatColor.BOLD + "Nearest Town");
+        List<String> lore = new ArrayList<>();
+        ModelGate nearest = findNearestUnlockedTownGate(player);
+        if (nearest == null) {
+            lore.add(ChatColor.DARK_GRAY + "No unlocked towns in this world.");
+        } else {
+            int cost = calculateTravelCost(player, nearest,
+                    GuildManager.getInstance().getGuild(player.getUniqueId()));
+            lore.add(ChatColor.GRAY + "Target: " + ChatColor.WHITE + formatName(nearest.getId()));
+            lore.add(ChatColor.GRAY + "Cost: " + ChatColor.YELLOW + cost + " <glyph:coins_icon>");
+            lore.addAll(TooltipUtil.clickInstructions("to fast travel", null));
+        }
+        meta.setLore(lore);
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    private ItemStack createLastUsedButton(Player player) {
+        ItemStack item = new ItemStack(Material.CLOCK);
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) {
+            return item;
+        }
+        meta.setDisplayName(ChatColor.GOLD + "" + ChatColor.BOLD + "Last Waystone");
+        List<String> lore = new ArrayList<>();
+        ModelGate gate = findLastUsedGate(player);
+        if (gate == null) {
+            lore.add(ChatColor.DARK_GRAY + "No previous waystone available.");
+        } else {
+            int cost = calculateTravelCost(player, gate,
+                    GuildManager.getInstance().getGuild(player.getUniqueId()));
+            lore.add(ChatColor.GRAY + "Target: " + ChatColor.WHITE + formatName(gate.getId()));
+            lore.add(ChatColor.GRAY + "Cost: " + ChatColor.YELLOW + cost + " <glyph:coins_icon>");
+            lore.addAll(TooltipUtil.clickInstructions("to travel again", null));
+        }
+        meta.setLore(lore);
+        item.setItemMeta(meta);
+        return item;
     }
 
     private ItemStack createSortButton(int mode){

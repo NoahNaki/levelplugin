@@ -212,15 +212,36 @@ public class MercenaryExpeditionManager {
     private ExpeditionRewards generateRewards(Player player, ActiveExpedition expedition) {
         ExpeditionRewards rewards = new ExpeditionRewards();
         int friendship = averageFriendship(player.getUniqueId(), expedition.getNpcIds());
-        int coins = rewardFor(expedition.getDefinition().threat(), friendship);
+        double roleSynergy = roleSynergyMultiplier(expedition.getNpcIds());
+        int coins = (int) Math.round(rewardFor(expedition.getDefinition().threat(), friendship) * roleSynergy);
         rewards.coins(coins);
         if (lootChestManager != null) {
             int rolls = Math.max(2, expedition.getDefinition().threat() / 2);
+            if (friendship >= 8) {
+                rolls += 1;
+            }
+            if (roleSynergy >= 1.15) {
+                rolls += 1;
+            }
             for (int i = 0; i < rolls; i++) {
                 rewards.addLoot(lootChestManager.getRandomLootForTier(expedition.getDefinition().threat(), null, null));
             }
         }
         return rewards;
+    }
+
+    private double roleSynergyMultiplier(List<Integer> npcIds) {
+        if (npcIds == null || npcIds.isEmpty()) {
+            return 1.0;
+        }
+        boolean hasTank = npcIds.stream().anyMatch(id -> affinityManager.getRole(id) == MercenaryRole.TANK);
+        boolean hasDps = npcIds.stream().anyMatch(id -> affinityManager.getRole(id) == MercenaryRole.DPS);
+        boolean hasSupport = npcIds.stream().anyMatch(id -> affinityManager.getRole(id) == MercenaryRole.SUPPORT);
+        if (hasTank && hasDps && hasSupport) {
+            return 1.15;
+        }
+        int distinctRoles = (hasTank ? 1 : 0) + (hasDps ? 1 : 0) + (hasSupport ? 1 : 0);
+        return distinctRoles >= 2 ? 1.08 : 1.0;
     }
 
     int rewardFor(int threat, int friendshipLevel) {

@@ -40,6 +40,11 @@ public class DuelManager {
         return request;
     }
 
+    public boolean hasPendingRequest(UUID targetId, UUID requesterId) {
+        DuelRequest request = getRequest(targetId);
+        return request != null && request.getRequester().equals(requesterId);
+    }
+
     public boolean acceptRequest(Player target) {
         DuelRequest request = getRequest(target.getUniqueId());
         if (request == null) return false;

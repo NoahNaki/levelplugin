@@ -20,8 +20,11 @@ public class ChatModerationCommand implements TabExecutor {
                 if (args.length > 0 && args[0].equalsIgnoreCase("all")) {
                     ChatManager.muteAll();
                     sender.sendMessage(ChatColor.YELLOW + "Chat has been muted.");
+                } else if (args.length > 0 && args[0].equalsIgnoreCase("status")) {
+                    sender.sendMessage(ChatColor.YELLOW + "Chat mute status: "
+                            + (ChatManager.isMuted() ? ChatColor.RED + "muted" : ChatColor.GREEN + "unmuted"));
                 } else {
-                    sender.sendMessage(ChatColor.RED + "Usage: /mute all");
+                    sender.sendMessage(ChatColor.RED + "Usage: /mute <all|status>");
                 }
                 return true;
             }
@@ -29,8 +32,11 @@ public class ChatModerationCommand implements TabExecutor {
                 if (args.length > 0 && args[0].equalsIgnoreCase("all")) {
                     ChatManager.unmuteAll();
                     sender.sendMessage(ChatColor.YELLOW + "Chat has been unmuted.");
+                } else if (args.length > 0 && args[0].equalsIgnoreCase("status")) {
+                    sender.sendMessage(ChatColor.YELLOW + "Chat mute status: "
+                            + (ChatManager.isMuted() ? ChatColor.RED + "muted" : ChatColor.GREEN + "unmuted"));
                 } else {
-                    sender.sendMessage(ChatColor.RED + "Usage: /unmute all");
+                    sender.sendMessage(ChatColor.RED + "Usage: /unmute <all|status>");
                 }
                 return true;
             }
@@ -46,7 +52,7 @@ public class ChatModerationCommand implements TabExecutor {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if ((command.getName().equalsIgnoreCase("mute") || command.getName().equalsIgnoreCase("unmute")) && args.length == 1) {
-            return List.of("all");
+            return List.of("all", "status");
         }
         return Collections.emptyList();
     }
