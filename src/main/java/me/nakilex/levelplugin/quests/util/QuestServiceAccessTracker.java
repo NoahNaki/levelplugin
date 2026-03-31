@@ -63,4 +63,25 @@ public final class QuestServiceAccessTracker {
         }
         return true;
     }
+
+    /**
+     * Remaining cooldown in milliseconds for a service interaction.
+     * Returns 0 when no cooldown is active.
+     */
+    public static long getRemainingMs(UUID playerId, Service service) {
+        if (playerId == null || service == null) {
+            return 0L;
+        }
+        Map<UUID, Long> map = COOLDOWNS.get(service);
+        Long expires = map.get(playerId);
+        if (expires == null) {
+            return 0L;
+        }
+        long remaining = expires - System.currentTimeMillis();
+        if (remaining <= 0L) {
+            map.remove(playerId);
+            return 0L;
+        }
+        return remaining;
+    }
 }

@@ -71,7 +71,8 @@ public class SalvageManager {
 
     public int getSellPrice(CustomItem cItem) {
         int totalStats = getTotalStats(cItem);
-        return getCoinRewardFromScore(totalStats);
+        int base = getCoinRewardFromScore(totalStats);
+        return base + getRarityCoinBonus(base, cItem.getRarity());
     }
 
     /**
@@ -85,7 +86,8 @@ public class SalvageManager {
 
     public int getToolSellPrice(CustomTool tool) {
         int score = getToolSalvageScore(tool);
-        return getCoinRewardFromScore(score);
+        int base = getCoinRewardFromScore(score);
+        return base + getRarityCoinBonus(base, tool == null ? null : tool.getTier().getRarity());
     }
 
     public int getToolGemReward(CustomTool tool) {
@@ -130,6 +132,20 @@ public class SalvageManager {
 
     private int getCoinRewardFromScore(int score) {
         return Math.max(0, score) * COINS_PER_STAT_POINT;
+    }
+
+    private int getRarityCoinBonus(int baseCoins, ItemRarity rarity) {
+        if (baseCoins <= 0 || rarity == null) {
+            return 0;
+        }
+        double bonusRate = switch (rarity) {
+            case EPIC -> 0.05;
+            case LEGENDARY -> 0.10;
+            case MYTHIC -> 0.15;
+            case FABLED -> 0.20;
+            default -> 0.0;
+        };
+        return (int) Math.round(baseCoins * bonusRate);
     }
 
     private int getGemRewardFromScore(int score, ItemRarity rarity) {

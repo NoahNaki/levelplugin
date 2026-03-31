@@ -25,6 +25,10 @@ public class StorageCommand implements CommandExecutor {
 
         // If no arguments, show basic usage
         if (args.length == 0) {
+            if (storageManager.hasStorage(player.getUniqueId())) {
+                storageManager.openStorage(player);
+                return true;
+            }
             player.sendMessage("Usage: /ps <create|open>");
             return true;
         }

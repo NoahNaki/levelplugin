@@ -13,6 +13,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.quests.def.SharpestSecretQuest;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.GuiUtil;
+import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import me.nakilex.levelplugin.utils.gui.widgets.ActionWidget;
 import me.nakilex.levelplugin.utils.gui.widgets.GuiContext;
@@ -158,12 +159,13 @@ public class EnchantGUI implements Listener {
     }
 
     private List<String> buildInfoLore() {
-        return Arrays.asList(
-                ChatColor.GRAY + "Place a custom item or lifeskill tool in the center.",
-                ChatColor.GRAY + "Click " + ChatColor.LIGHT_PURPLE + "Enchant" + ChatColor.GRAY + " to add",
-                ChatColor.GRAY + "a random prefix or tool enchant.",
-                ChatColor.GRAY + "Cost doubles every enchant."
-        );
+        List<String> lore = new ArrayList<>();
+        lore.addAll(TooltipUtil.bulletList(
+                "Place a custom item or lifeskill tool in the center.",
+                "Click Enchant to add a random prefix or tool enchant.",
+                "Cost doubles every enchant."
+        ));
+        return lore;
     }
 
     private ItemStack createEnchantButton(Player player, Inventory inventory) {
@@ -177,6 +179,10 @@ public class EnchantGUI implements Listener {
             lore.add(ChatColor.GRAY + "Cost: " + ChatColor.AQUA + "Covered (quest reward)");
         } else if (state.cost() > 0) {
             lore.add(ChatColor.GRAY + "Cost: " + ChatColor.GOLD + "<glyph:coins_icon> " + state.cost());
+            if (state.nextCost() > 0) {
+                lore.add(ChatColor.DARK_GRAY + "• " + ChatColor.GRAY + "Next cost: "
+                        + ChatColor.GOLD + "<glyph:coins_icon> " + state.nextCost());
+            }
         } else {
             lore.add(ChatColor.GRAY + "Place item to enchant");
         }
@@ -191,21 +197,26 @@ public class EnchantGUI implements Listener {
     private EnchantButtonState resolveEnchantButtonState(Player player, Inventory inventory, boolean freeEnchant) {
         ItemStack stack = inventory.getItem(13);
         if (stack == null || stack.getType().isAir()) {
-            return new EnchantButtonState(0);
+            return new EnchantButtonState(0, 0);
         }
         CustomItem ci = ItemManager.getInstance().getCustomItemFromItemStack(stack);
         me.nakilex.levelplugin.items.tools.CustomTool tool = ToolManager.getInstance().getTool(stack);
         boolean isEnchantableTool = tool != null
                 && (tool.getDiscipline() == ToolDiscipline.FARMING || tool.getDiscipline() == ToolDiscipline.WOODCUTTING);
         if (ci == null && !isEnchantableTool) {
-            return new EnchantButtonState(0);
+            return new EnchantButtonState(0, 0);
         }
         int baseCost = ci != null ? manager.getEnchantCost(ci) : manager.getEnchantCost(stack);
+        int nextBaseCost = ci != null ? manager.getNextEnchantCost(ci) : manager.getNextEnchantCost(stack);
         int cost = freeEnchant ? 0 : TownPerkManager.getInstance().applyDiscount(
                 GuildManager.getInstance().getGuild(player.getUniqueId()),
                 TownPerk.ENCHANTING_DISCOUNT,
                 baseCost);
-        return new EnchantButtonState(cost);
+        int nextCost = freeEnchant ? 0 : TownPerkManager.getInstance().applyDiscount(
+                GuildManager.getInstance().getGuild(player.getUniqueId()),
+                TownPerk.ENCHANTING_DISCOUNT,
+                nextBaseCost);
+        return new EnchantButtonState(cost, nextCost);
     }
 
     private void handleEnchantClick(Player player, Inventory inventory, boolean shiftClick) {
@@ -273,5 +284,5 @@ public class EnchantGUI implements Listener {
         update(player, inventory);
     }
 
-    private record EnchantButtonState(int cost) {}
+    private record EnchantButtonState(int cost, int nextCost) {}
 }

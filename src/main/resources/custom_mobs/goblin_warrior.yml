@@ -2,17 +2,19 @@ id: goblin_warrior
 type: VINDICATOR
 display: "&aGoblin Warrior"
 level-range:
-  min: 9
-  max: 12
+  min: 8
+  max: 8
+health: 110
 boss: false
 
-models:
-  - mob_goblin_warrior.bbmodel
-
 stats:
-  vitality: 24
-  strength: 17
-  agility: 10
+  vitality: 0
+  strength: 0
+  agility: 0
+  intelligence: 0
+  dexterity: 0
+  will: 0
+  technique: 0
 
 spells:
   sword_slam:
@@ -45,7 +47,9 @@ spells:
     burn-ticks: 0
 
 options:
-  movement-speed: 0.26
+  movement-speed: 0.20
+  attack-damage: 5.0
+  attack-speed: 1.0
   follow-range: 24
   knockback-resistance: 0.35
   silent: true

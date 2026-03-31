@@ -94,6 +94,18 @@ public class TradeCommand implements TabExecutor {
                                 ? messageStrings.getTranslation(Translations.YOU_ENABLED_USE_WITHOUT_PERMISSION)
                                 : messageStrings.getTranslation(Translations.YOU_DISABLED_USE_WITHOUT_PERMISSION)));
                             return true;
+                        case "near":
+                            List<Player> nearby = getNearbyPlayers(p, MAX_DISTANCE);
+                            if (nearby.isEmpty()) {
+                                p.sendMessage(Main.PREFIX + ChatColor.RED + "No players within "
+                                        + (int) MAX_DISTANCE + " blocks.");
+                                return true;
+                            }
+                            String names = nearby.stream().map(Player::getName).sorted()
+                                    .collect(java.util.stream.Collectors.joining(ChatColor.GRAY + ", " + ChatColor.AQUA));
+                            p.sendMessage(Main.PREFIX + ChatColor.YELLOW + "Nearby trade players (" + nearby.size() + "): "
+                                    + ChatColor.AQUA + names);
+                            return true;
 
                         case "block":
                             if (!Main.getPlugin().getConfigValues().ALLOW_BLOCKING) {
@@ -213,9 +225,20 @@ public class TradeCommand implements TabExecutor {
         return locA.distance(locB) <= maxDistance;
     }
 
+    private List<Player> getNearbyPlayers(Player source, double maxDistance) {
+        List<Player> nearby = new ArrayList<>();
+        for (Player target : Bukkit.getOnlinePlayers()) {
+            if (target.getUniqueId().equals(source.getUniqueId())) continue;
+            if (isWithinDistance(source, target, maxDistance)) {
+                nearby.add(target);
+            }
+        }
+        return nearby;
+    }
+
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
-        List<String> subcommands = List.of("accept", "cancel", "deny", "reload", "author", "version", "download", "toggle", "block", "unblock");
+        List<String> subcommands = List.of("accept", "cancel", "deny", "reload", "author", "version", "download", "toggle", "block", "unblock", "near");
         if (args.length == 1) {
             Set<String> suggestions = new LinkedHashSet<>(CommandUtil.filterStartingWith(subcommands, args[0]));
             suggestions.addAll(CommandUtil.onlinePlayerNames(args[0]));

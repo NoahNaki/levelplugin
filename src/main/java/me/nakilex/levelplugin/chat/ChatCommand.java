@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.chat;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.guild.GuildManager;
 import me.nakilex.levelplugin.party.PartyManager;
+import me.nakilex.levelplugin.utils.CommandUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -31,8 +32,14 @@ public class ChatCommand implements TabExecutor {
             return true;
         }
 
+        if (args.length == 0) {
+            ChatChannel current = ChatManager.getChannel(player.getUniqueId());
+            player.sendMessage(ChatColor.YELLOW + "Current chat channel: " + ChatColor.AQUA + current.name().toLowerCase());
+            player.sendMessage(ChatColor.GRAY + "Switch with: /chat <guild|party|region|global|staff>");
+            return true;
+        }
         if (args.length != 1) {
-            player.sendMessage(ChatColor.RED + "Usage: /chat <guild|party|region|global|staff>");
+            player.sendMessage(ChatColor.RED + "Usage: /chat [guild|party|region|global|staff]");
             return true;
         }
 
@@ -70,7 +77,7 @@ public class ChatCommand implements TabExecutor {
                 ChatManager.setChannel(player.getUniqueId(), ChatChannel.STAFF);
                 player.sendMessage(ChatColor.GREEN + "Now chatting in staff channel.");
             }
-            default -> player.sendMessage(ChatColor.RED + "Usage: /chat <guild|party|region|global|staff>");
+            default -> player.sendMessage(ChatColor.RED + "Usage: /chat [guild|party|region|global|staff]");
         }
         return true;
     }
@@ -78,9 +85,7 @@ public class ChatCommand implements TabExecutor {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            return Arrays.stream(new String[]{"guild", "party", "region", "global", "staff"})
-                    .filter(opt -> opt.startsWith(args[0].toLowerCase()))
-                    .toList();
+            return CommandUtil.filterStartingWith(Arrays.asList("guild", "party", "region", "global", "staff"), args[0]);
         }
         return Collections.emptyList();
     }

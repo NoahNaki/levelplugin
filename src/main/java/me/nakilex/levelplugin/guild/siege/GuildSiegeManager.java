@@ -181,6 +181,18 @@ public class GuildSiegeManager {
         return removed;
     }
 
+    public int getQueueSize() {
+        return queue.size();
+    }
+
+    public int getActiveSize() {
+        return active.size();
+    }
+
+    public String getOwnerGuildName() {
+        return ownerGuild;
+    }
+
     private void begin() {
         if (countdownTask != null) {
             countdownTask.cancel();

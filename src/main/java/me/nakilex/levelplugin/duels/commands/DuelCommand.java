@@ -74,6 +74,15 @@ public class DuelCommand implements TabExecutor {
             send(player, MessageType.ERROR, "One of you is already in a duel.");
             return true;
         }
+        if (manager.hasPendingRequest(player.getUniqueId(), target.getUniqueId())) {
+            boolean accepted = manager.acceptRequest(player);
+            if (accepted) {
+                send(player, MessageType.SUCCESS, "Mutual request detected — duel accepted.");
+            } else {
+                send(player, MessageType.ERROR, "Could not accept the pending duel request.");
+            }
+            return true;
+        }
         if (manager.getRequest(target.getUniqueId()) != null) {
             send(player, MessageType.ERROR, "That player already has a pending duel request.");
             return true;

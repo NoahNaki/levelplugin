@@ -5,7 +5,9 @@ import com.nexomc.nexo.mechanics.furniture.FurnitureMechanic;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
 import me.nakilex.levelplugin.dungeon.DungeonManager;
+import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.Location;
+import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -51,6 +53,12 @@ public class LootChestCloseListener implements Listener {
             economyManager.addCoins(player, coinAmount);
             me.nakilex.levelplugin.utils.CurrencyMessageUtil.sendReceive(player,
                     me.nakilex.levelplugin.utils.CurrencyMessageUtil.Currency.COINS, coinAmount);
+            if (session.bonusCoinReward() > 0) {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.REWARD,
+                        ChatColor.GOLD + "Loot streak x" + session.streak()
+                                + ChatColor.GRAY + ": +" + ChatColor.GOLD + session.bonusCoinReward()
+                                + ChatColor.GRAY + " bonus coins.");
+            }
         }
 
         // 4) Remove the crate and start its cooldown

@@ -24,6 +24,19 @@ public class GuildSiegeCommand implements CommandExecutor, TabCompleter {
             manager.broadcastSignupMessage();
             return true;
         }
+        if (args.length > 0 && args[0].equalsIgnoreCase("status")) {
+            String owner = manager.getOwnerGuildName() == null ? "None" : manager.getOwnerGuildName();
+            if (sender instanceof Player player) {
+                ChatFormatter.sendCenteredMessage(player, ChatColor.GOLD + "Siege Status");
+                ChatFormatter.sendCenteredMessage(player, ChatColor.GRAY + "Owner: " + ChatColor.AQUA + owner);
+                ChatFormatter.sendCenteredMessage(player, ChatColor.GRAY + "Queued: " + ChatColor.YELLOW + manager.getQueueSize()
+                        + ChatColor.GRAY + " | Active: " + ChatColor.YELLOW + manager.getActiveSize());
+            } else {
+                sender.sendMessage("Siege Status -> Owner: " + owner + ", Queued: " + manager.getQueueSize()
+                        + ", Active: " + manager.getActiveSize());
+            }
+            return true;
+        }
         if (!(sender instanceof Player)) {
             sender.sendMessage("Only players may use this command.");
             return true;
@@ -38,7 +51,7 @@ public class GuildSiegeCommand implements CommandExecutor, TabCompleter {
             ChatFormatter.sendCenteredMessage(player, ChatColor.GRAY + "You have left the siege queue.");
             return true;
         }
-        ChatFormatter.sendCenteredMessage(player, ChatColor.RED + "Usage: /siege <join|leave|announce>");
+        ChatFormatter.sendCenteredMessage(player, ChatColor.RED + "Usage: /siege <join|leave|status|announce>");
         return true;
     }
 
@@ -48,6 +61,7 @@ public class GuildSiegeCommand implements CommandExecutor, TabCompleter {
             List<String> list = new ArrayList<>();
             list.add("join");
             list.add("leave");
+            list.add("status");
             list.add("announce");
             return list;
         }

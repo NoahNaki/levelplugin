@@ -1,0 +1,54 @@
+# Systems Modified Summary
+
+- **Booster**
+  - Added command-side booster status display and improved root command discoverability.
+- **Chat / Moderation / Roll / Chat Games**
+  - Added channel/status UX updates and gameplay reward loop additions (streak + personal best behavior).
+- **Friend**
+  - Added friendship duration lookup flow.
+- **Guild Siege**
+  - Added queue/active/owner status surfacing and manager accessors.
+- **Storage**
+  - Added auto-open behavior when personal storage already exists.
+- **Tips**
+  - Added reload status reporting path.
+- **MOTD**
+  - Added online/max placeholder expansion.
+- **Trade**
+  - Added nearby-trade quality-of-life workflow.
+- **Town / Environment**
+  - Added owner visibility improvements for town interactions.
+- **Fast Travel**
+  - Added quick actions (nearest/last) and shared travel-start logic.
+- **Loot Chests**
+  - Added streak bonus loop messaging and reward computation reuse helpers.
+- **Wandering Merchant**
+  - Added featured offers and haggle-style reward behavior.
+- **Battle Pass**
+  - Added claim-all reward workflow and GUI support.
+- **Party**
+  - Added party lifecycle broadcast feedback (join/leave/leader/disband).
+- **Duel**
+  - Added mutual-request auto-accept helper flow.
+- **Enchanting**
+  - Added next-cost APIs and tooltip/cost preview improvements.
+- **Mercenary Expeditions**
+  - Added role-synergy reward multipliers and extra-roll incentives.
+- **Dungeon Rewards**
+  - Added flawless bonus progression and run death tracking.
+- **Potions**
+  - Added low-resource emergency-use power spike behavior.
+- **Arena Rating**
+  - Added early-match rating floor protection.
+- **Double Jump**
+  - Added momentum reward on quick landing after air movement.
+- **Auction House**
+  - Added anti-snipe extension behavior for last-minute bids.
+- **Blacksmith Reroll**
+  - Added mercy reroll behavior to reduce severe downgrade outcomes.
+- **Calendar**
+  - Added season-weighted daily weather selection.
+- **Quest Service Access / NPC Quest Handlers**
+  - Added reusable remaining-cooldown accessor and user-facing cooldown seconds feedback.
+- **Salvage**
+  - Added rarity-based coin bonus scaling for salvaging higher-tier items/tools.

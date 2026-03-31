@@ -38,6 +38,8 @@ public class AuctionHouseManager {
 
     /** Maximum percentage that can be charged as tax. */
     private static final double MAX_TAX_PERCENT = 0.10;
+    private static final long ANTI_SNIPE_WINDOW_MS = 90_000L;
+    private static final long ANTI_SNIPE_EXTENSION_MS = 60_000L;
 
     private final Plugin plugin;
     private final EconomyManager economyManager;
@@ -142,6 +144,7 @@ public class AuctionHouseManager {
         economyManager.deductCoins(bidder, amount);
         ai.setCurrentBid(amount);
         ai.setHighestBidder(bidder.getUniqueId());
+        applyAntiSnipeExtension(ai, bidder);
         saveAuctions();
         String id = null;
         CustomItem c = ItemManager.getInstance().getCustomItemFromItemStack(ai.getItem());
@@ -152,6 +155,24 @@ public class AuctionHouseManager {
         }
         me.nakilex.levelplugin.Main.getInstance().getQuestManager().handleAuctionBid(bidder, id);
         return true;
+    }
+
+    private void applyAntiSnipeExtension(AuctionItem item, Player bidder) {
+        if (item == null || bidder == null) {
+            return;
+        }
+        long remaining = item.getEndTime() - System.currentTimeMillis();
+        if (remaining > ANTI_SNIPE_WINDOW_MS) {
+            return;
+        }
+        item.extendEndTime(ANTI_SNIPE_EXTENSION_MS);
+        ChatMessageUtil.send(bidder, MessageType.INFO,
+                "Final-minute bid detected. Auction extended by " + ChatColor.YELLOW + "60s" + ChatColor.GRAY + ".");
+        Player seller = Bukkit.getPlayer(item.getSeller());
+        if (seller != null && !seller.getUniqueId().equals(bidder.getUniqueId())) {
+            ChatMessageUtil.send(seller, MessageType.INFO,
+                    "Your auction received a late bid and was extended by " + ChatColor.YELLOW + "60s" + ChatColor.GRAY + ".");
+        }
     }
 
     public synchronized boolean buyNow(Player buyer, int index) {

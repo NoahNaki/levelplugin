@@ -10,6 +10,8 @@ import me.nakilex.levelplugin.spells.ArcSlashCombatUtil;
 import org.bukkit.GameMode;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -30,7 +32,9 @@ public class DoubleJumpListener implements Listener {
     private static final double AGI_FORWARD_MULTIPLIER   = 0.02;  // extra forward per Agi
     private static final double MAX_LIFT_VELOCITY        = 0.6;
     private static final double MAX_FORWARD_VELOCITY     = 1.2;
+    private static final long MOMENTUM_WINDOW_MS         = 2500L;
     private final Map<UUID, Integer> remainingJumps = new HashMap<>();
+    private final Map<UUID, Long> lastJumpMillis = new HashMap<>();
 
     private int getBaseAirJumps(PlayerClass playerClass) {
         if (ClassUtil.isArcherFamily(playerClass) || ClassUtil.isRogueFamily(playerClass)) {
@@ -89,6 +93,7 @@ public class DoubleJumpListener implements Listener {
             lookDir.setY(lift);                        // vertical lift
 
             player.setVelocity(lookDir);
+            lastJumpMillis.put(player.getUniqueId(), System.currentTimeMillis());
 
             // FX/SFX
             player.getWorld().spawnParticle(Particle.CRIT, player.getLocation(),
@@ -113,6 +118,10 @@ public class DoubleJumpListener implements Listener {
             .getPlayerStats(player.getUniqueId());
 
         if (player.isOnGround()) {
+            Long jumpedAt = lastJumpMillis.get(player.getUniqueId());
+            if (jumpedAt != null && System.currentTimeMillis() - jumpedAt <= MOMENTUM_WINDOW_MS) {
+                player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 40, 0, true, false, true));
+            }
             refreshJumpCharges(player, ps.playerClass);
         }
     }

@@ -2,6 +2,34 @@ mobs:
   cursed_archer:
     model_set: molten
     essence: archer, 0.3
+  goblin_archer:
+    model_set: default
+  goblin_warrior:
+    model_set: default
+  goblin_shaman:
+    model_set: default
+  cursed_knight:
+    model_set: molten
+  cursed_mage:
+    model_set: molten
+  desert_skirmisher:
+    model_set: default
+  sand_hexer:
+    model_set: default
+  burrow_warden:
+    model_set: default
+  frost_rager:
+    model_set: arctic
+  ice_channeler:
+    model_set: arctic
+  glacier_tyrant:
+    model_set: arctic
+  void_reaver:
+    model_set: default
+  rift_warden:
+    model_set: default
+  astral_devourer:
+    model_set: default
 
   Slime_Common:
     drop_override: 20.0
@@ -153,7 +181,6 @@ mobs:
 
   reliquary_giant:
     model_set: default
-
 
 
 

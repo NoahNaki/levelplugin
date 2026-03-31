@@ -1,0 +1,26 @@
+id: burrow_warden
+type: VINDICATOR
+display: "&6Burrow Warden"
+level-range:
+  min: 30
+  max: 30
+health: 1178
+boss: true
+
+stats:
+  vitality: 0
+  strength: 0
+  agility: 0
+  intelligence: 0
+  dexterity: 0
+  will: 0
+  technique: 0
+
+options:
+  movement-speed: 0.24
+  attack-damage: 22.0
+  attack-speed: 1.4
+  follow-range: 30
+  knockback-resistance: 0.45
+  silent: true
+  despawn: false

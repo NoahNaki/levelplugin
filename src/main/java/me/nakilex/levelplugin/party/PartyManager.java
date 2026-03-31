@@ -1,6 +1,8 @@
 package me.nakilex.levelplugin.party;
 
 import org.bukkit.entity.Player;
+import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import java.util.*;
 
 public class PartyManager {
@@ -36,6 +38,19 @@ public class PartyManager {
         }
     }
 
+    private String playerName(UUID playerId) {
+        if (playerId == null) return "Unknown";
+        String name = Bukkit.getOfflinePlayer(playerId).getName();
+        return name == null ? playerId.toString() : name;
+    }
+
+    private void broadcastPartyEvent(Party party, String message) {
+        if (party == null || message == null || message.isBlank()) {
+            return;
+        }
+        PartyUtils.broadcastMessage(party, ChatColor.GRAY + message);
+    }
+
     // Create a new party
     public boolean createParty(UUID leader) {
         if (playerToParty.containsKey(leader)) {
@@ -58,6 +73,7 @@ public class PartyManager {
         for (UUID member : party.getMembers()) {
             playerToParty.remove(member);
         }
+        broadcastPartyEvent(party, ChatColor.RED + "The party has been disbanded.");
         notifyDisbanded(former);
         return true;
     }
@@ -80,6 +96,7 @@ public class PartyManager {
         // Proceed if there's room
         if (party.addMember(member)) {
             playerToParty.put(member, leader);
+            broadcastPartyEvent(party, ChatColor.YELLOW + playerName(member) + ChatColor.GRAY + " joined the party.");
             notifyMembersChanged(party);
             return true;
         }
@@ -106,11 +123,15 @@ public class PartyManager {
                     for (UUID m : party.getMembers()) {
                         playerToParty.put(m, newLeader);
                     }
+                    broadcastPartyEvent(party, ChatColor.YELLOW + playerName(member) + ChatColor.GRAY
+                            + " left. " + ChatColor.GOLD + playerName(newLeader)
+                            + ChatColor.GRAY + " is now leader.");
                     notifyMembersChanged(party);
                 } else {
                     disbandParty(leader);
                 }
             } else {
+                broadcastPartyEvent(party, ChatColor.YELLOW + playerName(member) + ChatColor.GRAY + " left the party.");
                 notifyMembersChanged(party);
             }
             return true;
@@ -130,6 +151,7 @@ public class PartyManager {
             for (UUID member : party.getMembers()) {
                 playerToParty.put(member, newLeader);
             }
+            broadcastPartyEvent(party, ChatColor.GOLD + playerName(newLeader) + ChatColor.GRAY + " is now party leader.");
             notifyMembersChanged(party);
             return true;
         }

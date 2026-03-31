@@ -34,4 +34,13 @@ public interface BattlePassProvider {
         return java.util.List.of();
     }
 
+    /**
+     * Attempt to claim every currently claimable reward for the player.
+     *
+     * @return number of rewards claimed
+     */
+    default int claimAllAvailable(Player player) {
+        return 0;
+    }
+
 }

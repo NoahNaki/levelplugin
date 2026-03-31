@@ -53,8 +53,10 @@ public class SalvagersLessonNpcHandler extends AbstractQuestNpcHandler {
 
         if (completed || returned) {
             if (cooling) {
+                long remain = Math.max(1L, Math.round(QuestServiceAccessTracker.getRemainingMs(
+                        player.getUniqueId(), QuestServiceAccessTracker.Service.SALVAGE) / 1000.0));
                 ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
-                        "Give the salvager a moment before reopening the bench.");
+                        "Give the salvager a moment before reopening the bench (" + remain + "s).");
                 return true;
             }
             SalvageGUI.openMerchantGUI(player);
@@ -65,8 +67,10 @@ public class SalvagersLessonNpcHandler extends AbstractQuestNpcHandler {
             if (!cooling) {
                 SalvageGUI.openMerchantGUI(player);
             } else {
+                long remain = Math.max(1L, Math.round(QuestServiceAccessTracker.getRemainingMs(
+                        player.getUniqueId(), QuestServiceAccessTracker.Service.SALVAGE) / 1000.0));
                 ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
-                        "Let the salvager finish up before trying again.");
+                        "Let the salvager finish up before trying again (" + remain + "s).");
             }
             return true;
         }

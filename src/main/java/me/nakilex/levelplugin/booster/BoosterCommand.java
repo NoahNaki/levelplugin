@@ -26,9 +26,31 @@ public class BoosterCommand implements TabExecutor {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        if (args.length >= 1 && args[0].equalsIgnoreCase("status")) {
+            GlobalBoosterManager manager = me.nakilex.levelplugin.Main.getInstance().getBoosterManager();
+            if (manager == null) {
+                sender.sendMessage(ChatMessageUtil.format(MessageType.ERROR, "Booster manager unavailable."));
+                return true;
+            }
+            for (BoosterType type : BoosterType.values()) {
+                java.time.Duration remaining = manager.getRemaining(type);
+                if (remaining.isZero() || remaining.isNegative()) {
+                    sender.sendMessage(ChatMessageUtil.format(MessageType.INFO,
+                            type.displayName() + ChatColor.GRAY + ": " + ChatColor.DARK_GRAY + "inactive"));
+                } else {
+                    long minutes = Math.max(0, remaining.toMinutes());
+                    sender.sendMessage(ChatMessageUtil.format(MessageType.INFO,
+                            type.displayName() + ChatColor.GRAY + ": "
+                                    + ChatColor.GREEN + "active "
+                                    + ChatColor.YELLOW + "(" + minutes + "m left)"));
+                }
+            }
+            return true;
+        }
+
         if (args.length < 4 || !args[0].equalsIgnoreCase("give")) {
             sender.sendMessage(ChatMessageUtil.format(MessageType.ERROR,
-                    "Usage: /booster give <player|@everyone> <coin|xp> <amount>"));
+                    "Usage: /booster <status|give <player|@everyone> <coin|xp> <amount>>"));
             return true;
         }
 
@@ -76,7 +98,10 @@ public class BoosterCommand implements TabExecutor {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            return Collections.singletonList("give");
+            List<String> roots = new ArrayList<>();
+            if ("give".startsWith(args[0].toLowerCase())) roots.add("give");
+            if ("status".startsWith(args[0].toLowerCase())) roots.add("status");
+            return roots;
         }
         if (args.length == 2) {
             List<String> names = new ArrayList<>(CommandUtil.onlinePlayerNames(args[1]));

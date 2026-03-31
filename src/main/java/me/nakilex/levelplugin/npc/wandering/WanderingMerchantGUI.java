@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.npc.wandering;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
+import me.nakilex.levelplugin.utils.CurrencyMessageUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import me.nakilex.levelplugin.utils.gui.widgets.ActionWidget;
@@ -23,12 +24,17 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 
 import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 
 import static me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
 import static me.nakilex.levelplugin.utils.ChatMessageUtil.send;
 
 /** Simple GUI displaying random offers from the wandering merchant. */
 public class WanderingMerchantGUI implements Listener {
+    private static final double HAGGLE_BASE_CHANCE = 0.10;
+    private static final double FEATURED_HAGGLE_BONUS_CHANCE = 0.12;
+    private static final double HAGGLE_REFUND_MIN = 0.20;
+    private static final double HAGGLE_REFUND_MAX = 0.40;
 
     private final Plugin plugin;
     private final EconomyManager economy;
@@ -63,6 +69,10 @@ public class WanderingMerchantGUI implements Listener {
         if (meta != null) {
             List<String> lore = meta.hasLore() ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
             lore.add(" ");
+            if (offer.isFeatured()) {
+                lore.add(ChatColor.LIGHT_PURPLE + "" + ChatColor.BOLD + "Featured Deal");
+                lore.add(ChatColor.GRAY + "Limited merchant discount");
+            }
             if (offer.getStock() > 0) {
                 lore.add(ChatColor.GOLD + "Price: " + ChatColor.YELLOW + offer.getCost() + " <glyph:coins_icon>");
                 lore.add(ChatColor.GRAY + "Stock: " + offer.getStock());
@@ -155,8 +165,32 @@ public class WanderingMerchantGUI implements Listener {
             return;
         }
         economy.deductCoins(player, offer.getCost());
+        maybeApplyHaggleRefund(player, offer);
         player.getInventory().addItem(offer.getItem());
         offer.decrement();
+        if (offer.getStock() > 0) {
+            send(player, MessageType.INFO, ChatColor.GRAY + "Stock left: "
+                    + ChatColor.YELLOW + offer.getStock());
+        } else {
+            send(player, MessageType.WARNING, ChatColor.RED + "That offer is now sold out.");
+        }
         renderWidgets(inv, player);
+    }
+
+    private void maybeApplyHaggleRefund(Player player, WanderingMerchantOffer offer) {
+        if (player == null || offer == null || offer.getCost() <= 0) {
+            return;
+        }
+        double chance = HAGGLE_BASE_CHANCE + (offer.isFeatured() ? FEATURED_HAGGLE_BONUS_CHANCE : 0.0);
+        if (ThreadLocalRandom.current().nextDouble() > chance) {
+            return;
+        }
+        double refundPct = ThreadLocalRandom.current().nextDouble(HAGGLE_REFUND_MIN, HAGGLE_REFUND_MAX);
+        int refund = Math.max(1, (int) Math.round(offer.getCost() * refundPct));
+        economy.addCoins(player, refund);
+        CurrencyMessageUtil.sendReceive(player, CurrencyMessageUtil.Currency.COINS, refund);
+        send(player, MessageType.REWARD, ChatColor.LIGHT_PURPLE + "Successful haggle!"
+                + ChatColor.GRAY + " The merchant gives back "
+                + ChatColor.GOLD + refund + ChatColor.GRAY + " coins.");
     }
 }

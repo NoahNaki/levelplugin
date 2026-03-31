@@ -64,6 +64,8 @@ public class MotdManager implements Listener {
     private String format(String line) {
         if (line == null) return "";
         String replaced = line.replace("{version}", plugin.getDescription().getVersion());
+        replaced = replaced.replace("{online}", String.valueOf(plugin.getServer().getOnlinePlayers().size()));
+        replaced = replaced.replace("{max_players}", String.valueOf(plugin.getServer().getMaxPlayers()));
 
         // allow using the § symbol directly in config
         replaced = replaced.replace('§', '&');

@@ -47,6 +47,11 @@ public class EnchantManager {
         return BASE_COST * (int) Math.pow(2, count);
     }
 
+    public int getNextEnchantCost(CustomItem item) {
+        if (item == null) return 0;
+        return BASE_COST * (int) Math.pow(2, item.getEnchantCount() + 1);
+    }
+
     public int getEnchantCost(ItemStack stack) {
         if (stack == null) return 0;
         me.nakilex.levelplugin.items.tools.CustomTool tool = ToolManager.getInstance().getTool(stack);
@@ -62,6 +67,23 @@ public class EnchantManager {
         }
         CustomItem item = ItemManager.getInstance().getCustomItemFromItemStack(stack);
         return item != null ? getEnchantCost(item) : 0;
+    }
+
+    public int getNextEnchantCost(ItemStack stack) {
+        if (stack == null) return 0;
+        me.nakilex.levelplugin.items.tools.CustomTool tool = ToolManager.getInstance().getTool(stack);
+        if (tool != null) {
+            if (tool.getDiscipline() == ToolDiscipline.FARMING) {
+                int count = ToolManager.getInstance().getFarmingEnchantCount(stack);
+                return BASE_COST * (int) Math.pow(2, count + 1);
+            }
+            if (tool.getDiscipline() == ToolDiscipline.WOODCUTTING) {
+                int count = ToolManager.getInstance().getWoodcuttingEnchantCount(stack);
+                return BASE_COST * (int) Math.pow(2, count + 1);
+            }
+        }
+        CustomItem item = ItemManager.getInstance().getCustomItemFromItemStack(stack);
+        return item != null ? getNextEnchantCost(item) : 0;
     }
 
     /** Apply a random prefix to the item, replacing any existing one. */

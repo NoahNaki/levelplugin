@@ -40,7 +40,7 @@ public class FriendCommand implements TabExecutor {
         UUID id = player.getUniqueId();
 
         if (args.length < 1) {
-            player.sendMessage(ChatColor.RED + "Usage: /friend <add|remove|list|accept|deny> [player]");
+            player.sendMessage(ChatColor.RED + "Usage: /friend <add|remove|list|accept|deny|since> [player]");
             return true;
         }
 
@@ -195,6 +195,32 @@ public class FriendCommand implements TabExecutor {
                     player.sendMessage(nav);
                 }
             }
+            case "since" -> {
+                if (args.length < 2) {
+                    player.sendMessage(ChatColor.RED + "Usage: /friend since <player>");
+                    return true;
+                }
+                OfflinePlayer off = Bukkit.getOfflinePlayer(args[1]);
+                if (off.getName() == null) {
+                    player.sendMessage(ChatColor.RED + "Player not found.");
+                    return true;
+                }
+                UUID friendId = off.getUniqueId();
+                if (!manager.areFriends(id, friendId)) {
+                    player.sendMessage(ChatColor.RED + "You are not friends with " + off.getName() + ".");
+                    return true;
+                }
+                long addedAt = manager.getFriendAddedTime(id, friendId);
+                if (addedAt <= 0L) {
+                    player.sendMessage(ChatColor.YELLOW + "Friendship date is unavailable.");
+                    return true;
+                }
+                long elapsedMs = Math.max(0L, System.currentTimeMillis() - addedAt);
+                long days = elapsedMs / 86_400_000L;
+                long hours = (elapsedMs % 86_400_000L) / 3_600_000L;
+                player.sendMessage(ChatColor.AQUA + "You and " + off.getName() + " have been friends for "
+                        + ChatColor.YELLOW + days + "d " + hours + "h" + ChatColor.AQUA + ".");
+            }
             default -> player.sendMessage(ChatColor.RED + "Unknown subcommand.");
         }
         return true;
@@ -203,11 +229,11 @@ public class FriendCommand implements TabExecutor {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            return CommandUtil.filterStartingWith(List.of("add", "remove", "list", "accept", "deny"), args[0]);
+            return CommandUtil.filterStartingWith(List.of("add", "remove", "list", "accept", "deny", "since"), args[0]);
         }
         if (args.length == 2) {
             String sub = args[0].toLowerCase();
-            if (sub.equals("add") || sub.equals("remove")) {
+            if (sub.equals("add") || sub.equals("remove") || sub.equals("since")) {
                 return CommandUtil.onlinePlayerNames(args[1]);
             }
         }

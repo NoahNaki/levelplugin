@@ -186,6 +186,7 @@ public class ArenaRatingManager {
             double k = computeKFactor(profile);
             int delta = (int) Math.round(k * (0.0 - expected));
             profile.rating = clampRating(profile.rating + delta);
+            profile.rating = Math.max(profile.rating, minimumRatingFloor(profile));
             profile.matches++;
             adjustDeviation(profile, Math.abs(profile.rating - before.rating()));
             RatingSnapshot after = profile.toSnapshot();
@@ -251,6 +252,19 @@ public class ArenaRatingManager {
             base -= Math.min(10.0, (profile.rating - 1800) / 60.0);
         }
         return Math.max(16.0, Math.min(48.0, base));
+    }
+
+    private static int minimumRatingFloor(RatingProfile profile) {
+        if (profile == null) {
+            return MIN_RATING;
+        }
+        if (profile.matches < 10) {
+            return 900;
+        }
+        if (profile.matches < 20) {
+            return 700;
+        }
+        return MIN_RATING;
     }
 
     private static void adjustDeviation(RatingProfile profile, int ratingChange) {

@@ -1124,10 +1124,11 @@ public class DungeonManager {
         int timeAdjustedXp = (int) Math.round(baseXp * timeMultiplier);
         int timeBonus = timeAdjustedXp - baseXp;
         int puzzleBonus = (int) Math.round(timeAdjustedXp * (puzzleMultiplier - 1));
-        int totalXp = Math.max(0, timeAdjustedXp + puzzleBonus);
+        int flawlessBonus = stats.deathCount <= 0 ? (int) Math.round((timeAdjustedXp + puzzleBonus) * 0.15) : 0;
+        int totalXp = Math.max(0, timeAdjustedXp + puzzleBonus + flawlessBonus);
         int coinsAward = totalXp > 0 ? Math.max(25, Math.round(totalXp * 0.35f)) : 0;
         CompletionXp breakdown = new CompletionXp(baseXp, timeBonus, puzzleBonus, totalXp, coinsAward,
-                timeMultiplier, puzzleMultiplier);
+                timeMultiplier, puzzleMultiplier, flawlessBonus, stats.deathCount);
         if (totalXp > 0) {
             lm.addXP(player, totalXp);
         }
@@ -1146,6 +1147,10 @@ public class DungeonManager {
                 if (totalXp > 0) msg.append(ChatColor.GREEN).append(" and ");
                 msg.append(ChatColor.GOLD).append(coinsAward).append(ChatColor.GRAY).append(" <glyph:coins_icon> coins");
             }
+            if (flawlessBonus > 0) {
+                msg.append(ChatColor.GREEN).append(" ").append(ChatColor.AQUA)
+                        .append("(+").append(flawlessBonus).append(" flawless bonus)");
+            }
             msg.append(ChatColor.GREEN).append(" for clearing the dungeon.");
             player.sendMessage(msg.toString());
         }
@@ -1157,17 +1162,19 @@ public class DungeonManager {
         private final long startMillis;
         private int combatPower;
         private boolean puzzleComplete;
+        private int deathCount;
 
         private RunStats(String layoutKey, long startMillis) {
             this.layoutKey = layoutKey;
             this.startMillis = startMillis;
             this.combatPower = 0;
             this.puzzleComplete = false;
+            this.deathCount = 0;
         }
     }
 
     public record CompletionXp(int mobXp, int timeBonus, int puzzleBonus, int totalXp, int coins,
-                               double timeMultiplier, double puzzleMultiplier) {
+                               double timeMultiplier, double puzzleMultiplier, int flawlessBonus, int deaths) {
         public int timeAdjustedXp() {
             return mobXp + timeBonus;
         }
@@ -1386,6 +1393,10 @@ public class DungeonManager {
             Player player = event.getEntity();
             Instance inst = instances.get(player.getWorld());
             if (inst == null) return;
+            RunStats runStats = activeRuns.get(player.getUniqueId());
+            if (runStats != null) {
+                runStats.deathCount++;
+            }
             pendingRespawns.add(player.getUniqueId());
             Location spawn = resolveInstanceSpawn(inst, player.getWorld());
             if (spawn != null) {

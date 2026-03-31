@@ -78,8 +78,13 @@ public class LootChestManager {
 
     // Track active loot sessions so we can pay out coins once per open
     private final Map<UUID, LootSession> openChestSessions = new HashMap<>();
+    // Track quick open streaks to add a small bonus loop to chest runs.
+    private final Map<UUID, LootStreakState> lootStreaks = new HashMap<>();
 
     private final Set<Material> upgradeMaterials = new HashSet<>();
+    private static final long LOOT_STREAK_WINDOW_MS = 3 * 60 * 1000L;
+    private static final double LOOT_STREAK_BONUS_PER_STEP = 0.08;
+    private static final double LOOT_STREAK_BONUS_CAP = 0.40;
 
     private String normalizeWorldName(String storedWorld) {
         if (storedWorld == null || storedWorld.isBlank() || storedWorld.equalsIgnoreCase("mmorpg")) {
@@ -242,9 +247,66 @@ public class LootChestManager {
             inv.setItem(slot, item);
         }
 
-        LootSession session = new LootSession(chestId, inv, loot.coinReward(), gearScore);
+        CoinStreakBonus coinBonus = applyCoinStreakBonus(player.getUniqueId(), loot.coinReward());
+        LootSession session = new LootSession(
+                chestId,
+                inv,
+                coinBonus.totalCoins(),
+                gearScore,
+                coinBonus.baseCoins(),
+                coinBonus.bonusCoins(),
+                coinBonus.streak()
+        );
         openChestSessions.put(player.getUniqueId(), session);
         return inv;
+    }
+
+    private CoinStreakBonus applyCoinStreakBonus(UUID playerId, int baseCoins) {
+        if (playerId == null || baseCoins <= 0) {
+            return new CoinStreakBonus(Math.max(0, baseCoins), Math.max(0, baseCoins), 0);
+        }
+        long now = System.currentTimeMillis();
+        LootStreakState state = lootStreaks.get(playerId);
+        int streak = 1;
+        if (state != null && now - state.lastOpenAt() <= LOOT_STREAK_WINDOW_MS) {
+            streak = state.streak() + 1;
+        }
+        lootStreaks.put(playerId, new LootStreakState(streak, now));
+        if (streak <= 1) {
+            return new CoinStreakBonus(baseCoins, baseCoins, streak);
+        }
+        double bonusMultiplier = computeStreakBonusMultiplier(streak);
+        int bonusCoins = (int) Math.round(baseCoins * bonusMultiplier);
+        int totalCoins = baseCoins + bonusCoins;
+        return new CoinStreakBonus(baseCoins, totalCoins, streak);
+    }
+
+    private double computeStreakBonusMultiplier(int streak) {
+        if (streak <= 1) {
+            return 0.0;
+        }
+        return Math.min(LOOT_STREAK_BONUS_CAP, (streak - 1) * LOOT_STREAK_BONUS_PER_STEP);
+    }
+
+    public int getCurrentLootStreak(UUID playerId) {
+        if (playerId == null) {
+            return 0;
+        }
+        LootStreakState state = lootStreaks.get(playerId);
+        if (state == null) {
+            return 0;
+        }
+        long elapsed = System.currentTimeMillis() - state.lastOpenAt();
+        if (elapsed > LOOT_STREAK_WINDOW_MS) {
+            lootStreaks.remove(playerId);
+            return 0;
+        }
+        return Math.max(0, state.streak());
+    }
+
+    public int getNextStreakBonusPercent(UUID playerId) {
+        int nextStreak = Math.max(1, getCurrentLootStreak(playerId) + 1);
+        return (int) Math.round(computeStreakBonusMultiplier(nextStreak) * 100.0);
     }
 
     private void startParticleTask(int chestId, Location loc) {
@@ -741,14 +803,23 @@ public class LootChestManager {
 
     private LootResult rollLootForPlayer(Player player, int gearScore) {
         List<ItemStack> items = new ArrayList<>();
-        for (int i = 0; i < LOOT_ROLLS; i++) {
-            LootType type = rollLootCategory();
-            ItemStack rolled = switch (type) {
-                case GEAR -> rollGearLoot(gearScore);
-                case POTION -> generatePotionForGearScore(gearScore);
-                case GIFT -> rollGift();
-                case MATERIAL -> rollUpgradeMaterial(gearScore);
-            };
+        // Guaranteed structure to make each chest feel meaningful:
+        // 1) always one gear piece
+        // 2) always one progression utility drop (material or potion)
+        // 3) one wildcard roll for variety
+        List<LootType> plannedRolls = new ArrayList<>(LOOT_ROLLS);
+        plannedRolls.add(LootType.GEAR);
+        plannedRolls.add(random.nextBoolean() ? LootType.MATERIAL : LootType.POTION);
+        while (plannedRolls.size() < LOOT_ROLLS) {
+            plannedRolls.add(rollLootCategory());
+        }
+
+        for (LootType type : plannedRolls) {
+            ItemStack rolled = rollLootByType(type, gearScore);
+            if (rolled == null || rolled.getType().isAir()) {
+                // Soft fallback keeps loot count healthy if a category cannot produce.
+                rolled = rollLootByType(LootType.GEAR, gearScore);
+            }
             if (rolled != null && !rolled.getType().isAir()) {
                 items.add(rolled);
             }
@@ -763,6 +834,18 @@ public class LootChestManager {
 
         int coinReward = ThreadLocalRandom.current().nextInt(1, gearScore + 1);
         return new LootResult(items, coinReward);
+    }
+
+    private ItemStack rollLootByType(LootType type, int gearScore) {
+        if (type == null) {
+            return null;
+        }
+        return switch (type) {
+            case GEAR -> rollGearLoot(gearScore);
+            case POTION -> generatePotionForGearScore(gearScore);
+            case GIFT -> rollGift();
+            case MATERIAL -> rollUpgradeMaterial(gearScore);
+        };
     }
 
     private LootType rollLootCategory() {
@@ -966,9 +1049,21 @@ public class LootChestManager {
         MATERIAL
     }
 
-    public record LootSession(int chestId, Inventory inventory, int coinReward, int gearScore) {}
+    public record LootSession(int chestId,
+                              Inventory inventory,
+                              int coinReward,
+                              int gearScore,
+                              int baseCoinReward,
+                              int bonusCoinReward,
+                              int streak) {}
 
     private record LootResult(List<ItemStack> items, int coinReward) {}
+    private record LootStreakState(int streak, long lastOpenAt) {}
+    private record CoinStreakBonus(int baseCoins, int totalCoins, int streak) {
+        int bonusCoins() {
+            return Math.max(0, totalCoins - baseCoins);
+        }
+    }
 
     private record ChunkKey(String worldName, int chunkX, int chunkZ) {}
 }

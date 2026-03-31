@@ -1,0 +1,26 @@
+id: frost_rager
+type: VINDICATOR
+display: "&bFrost Rager"
+level-range:
+  min: 34
+  max: 34
+health: 1695
+boss: false
+
+stats:
+  vitality: 0
+  strength: 0
+  agility: 0
+  intelligence: 0
+  dexterity: 0
+  will: 0
+  technique: 0
+
+options:
+  movement-speed: 0.25
+  attack-damage: 28.0
+  attack-speed: 1.5
+  follow-range: 28
+  knockback-resistance: 0.4
+  silent: true
+  despawn: false

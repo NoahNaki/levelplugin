@@ -66,7 +66,16 @@ public class CustomMobManager {
             "custom_mobs/cursed_night.yml",
             "custom_mobs/mso_magma_imp.yml",
             "custom_mobs/vp1_hermit_crab.yml",
-            "custom_mobs/vp1_golem_damaged_1.yml"
+            "custom_mobs/vp1_golem_damaged_1.yml",
+            "custom_mobs/desert_skirmisher.yml",
+            "custom_mobs/sand_hexer.yml",
+            "custom_mobs/burrow_warden.yml",
+            "custom_mobs/frost_rager.yml",
+            "custom_mobs/ice_channeler.yml",
+            "custom_mobs/glacier_tyrant.yml",
+            "custom_mobs/void_reaver.yml",
+            "custom_mobs/rift_warden.yml",
+            "custom_mobs/astral_devourer.yml"
     );
     private static final ArcPattern STUN_PATTERN = new ArcPattern(
             Particle.CRIT,

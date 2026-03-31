@@ -22,29 +22,17 @@ public class ItemRerollManager {
         if (item == null || stack == null) return 0;
 
         int before = getValue(item, stat);
-
-        switch (stat) {
-            case STR -> item.setBaseStr(item.getStrRange().roll());
-            case INT -> item.setBaseIntel(item.getIntelRange().roll());
-            case AGI -> item.setBaseAgi(item.getAgiRange().roll());
-            case DEX -> item.setBaseDex(item.getDexRange().roll());
-            case VIT -> {
-                if (item.getHpRange().getMax() > 0) {
-                    item.setBaseHp(item.getHpRange().roll());
-                }
-                if (item.getDefRange().getMax() > 0) {
-                    item.setBaseDef(item.getDefRange().roll());
-                }
-            }
-            case WIL -> {
-                if (item.getWilRange().getMax() > 0) {
-                    item.setBaseWil(item.getWilRange().roll());
-                }
-            }
-            case TEC -> {
-                if (item.getTecRange().getMax() > 0) {
-                    item.setBaseTec(item.getTecRange().roll());
-                }
+        rollStat(item, stat);
+        int firstRoll = getValue(item, stat);
+        if (firstRoll < before) {
+            // Mercy reroll: if a reroll downgrades the selected stat, roll once more
+            // and keep the better outcome to smooth progression.
+            int savedBest = firstRoll;
+            rollStat(item, stat);
+            int secondRoll = getValue(item, stat);
+            if (secondRoll < savedBest) {
+                // second roll was worse; restore the better first roll
+                forceValue(item, stat, savedBest);
             }
         }
 
@@ -90,5 +78,45 @@ public class ItemRerollManager {
             case WIL -> item.getWil();
             case TEC -> item.getTec();
         };
+    }
+
+    private void rollStat(CustomItem item, StatType stat) {
+        switch (stat) {
+            case STR -> item.setBaseStr(item.getStrRange().roll());
+            case INT -> item.setBaseIntel(item.getIntelRange().roll());
+            case AGI -> item.setBaseAgi(item.getAgiRange().roll());
+            case DEX -> item.setBaseDex(item.getDexRange().roll());
+            case VIT -> {
+                if (item.getHpRange().getMax() > 0) item.setBaseHp(item.getHpRange().roll());
+                if (item.getDefRange().getMax() > 0) item.setBaseDef(item.getDefRange().roll());
+            }
+            case WIL -> {
+                if (item.getWilRange().getMax() > 0) item.setBaseWil(item.getWilRange().roll());
+            }
+            case TEC -> {
+                if (item.getTecRange().getMax() > 0) item.setBaseTec(item.getTecRange().roll());
+            }
+        }
+    }
+
+    private void forceValue(CustomItem item, StatType stat, int value) {
+        switch (stat) {
+            case STR -> item.setBaseStr(value);
+            case INT -> item.setBaseIntel(value);
+            case AGI -> item.setBaseAgi(value);
+            case DEX -> item.setBaseDex(value);
+            case VIT -> {
+                // Split restoration heuristically between HP/DEF using current ratio.
+                int currentHp = item.getHp();
+                int currentDef = item.getDef();
+                int total = Math.max(1, currentHp + currentDef);
+                int hpShare = (int) Math.round((currentHp / (double) total) * value);
+                int defShare = Math.max(0, value - hpShare);
+                item.setBaseHp(hpShare);
+                item.setBaseDef(defShare);
+            }
+            case WIL -> item.setBaseWil(value);
+            case TEC -> item.setBaseTec(value);
+        }
     }
 }

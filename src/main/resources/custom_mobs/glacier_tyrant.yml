@@ -1,0 +1,26 @@
+id: glacier_tyrant
+type: VINDICATOR
+display: "&bGlacier Tyrant"
+level-range:
+  min: 44
+  max: 44
+health: 3740
+boss: true
+
+stats:
+  vitality: 0
+  strength: 0
+  agility: 0
+  intelligence: 0
+  dexterity: 0
+  will: 0
+  technique: 0
+
+options:
+  movement-speed: 0.24
+  attack-damage: 48.0
+  attack-speed: 1.8
+  follow-range: 32
+  knockback-resistance: 0.55
+  silent: true
+  despawn: false

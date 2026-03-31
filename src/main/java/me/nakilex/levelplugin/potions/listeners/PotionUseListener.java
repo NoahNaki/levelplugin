@@ -115,6 +115,9 @@ public class PotionUseListener implements Listener {
             int manaRestore = (instance.getTemplate().getHealAmount() > 0)
                     ? (int) instance.getTemplate().getHealAmount()
                     : (int) (maxMana * instance.getTemplate().getHealPercent());
+            if (isEmergencyUse(currentMana, maxMana)) {
+                manaRestore = (int) Math.round(manaRestore * 1.15);
+            }
 
             int newMana = Math.min(currentMana + manaRestore, maxMana);
             StatsManager.getInstance().getPlayerStats(player.getUniqueId()).setCurrentMana(newMana);
@@ -138,6 +141,9 @@ public class PotionUseListener implements Listener {
             double healAmt = instance.getTemplate().getHealAmount();
             double healPct = instance.getTemplate().getHealPercent();
             double heal = healAmt > 0 ? healAmt : player.getMaxHealth() * healPct;
+            if (isEmergencyUse(player.getHealth(), player.getMaxHealth())) {
+                heal *= 1.15;
+            }
             double newHealth = Math.min(player.getHealth() + heal, player.getMaxHealth());
             restored = newHealth - player.getHealth();
             player.setHealth(newHealth);
@@ -168,6 +174,13 @@ public class PotionUseListener implements Listener {
         if (instance.getCharges() <= 0) {
             player.getInventory().remove(item);
         }
+    }
+
+    private boolean isEmergencyUse(double current, double max) {
+        if (max <= 0) {
+            return false;
+        }
+        return (current / max) <= 0.25;
     }
 
     @EventHandler

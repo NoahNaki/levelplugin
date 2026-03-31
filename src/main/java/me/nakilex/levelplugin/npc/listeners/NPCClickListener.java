@@ -138,8 +138,10 @@ public class NPCClickListener implements Listener {
         if (isNpcName(npcName, SalvagersLessonQuest.NPC_NAME)
                 && questManager.hasCompleted(player.getUniqueId(), SalvagersLessonQuest.ID)) {
             if (QuestServiceAccessTracker.isCoolingDown(player.getUniqueId(), QuestServiceAccessTracker.Service.SALVAGE)) {
+                long remain = Math.max(1L, Math.round(QuestServiceAccessTracker.getRemainingMs(
+                        player.getUniqueId(), QuestServiceAccessTracker.Service.SALVAGE) / 1000.0));
                 ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
-                        "Give the salvager a moment before reopening the bench.");
+                        "Give the salvager a moment before reopening the bench (" + remain + "s).");
                 return;
             }
             SalvageGUI.openMerchantGUI(player);

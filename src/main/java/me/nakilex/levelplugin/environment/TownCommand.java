@@ -27,6 +27,15 @@ public class TownCommand implements CommandExecutor {
         }
 
         String owner = GuildSiegeManager.getInstance().getOwnerGuild();
+        if (args.length > 0 && args[0].equalsIgnoreCase("owner")) {
+            if (owner == null || owner.isBlank()) {
+                ChatFormatter.sendCenteredMessage(p, ChatColor.GRAY + "No guild currently controls this town.");
+            } else {
+                ChatFormatter.sendCenteredMessage(p, ChatColor.GRAY + "Town owner: " + ChatColor.AQUA + owner);
+            }
+            return true;
+        }
+
         if (owner != null) {
             Guild g = GuildManager.getInstance().getGuild(p.getUniqueId());
             if (g == null || !owner.equalsIgnoreCase(g.getName())) {
