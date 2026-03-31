@@ -57,8 +57,10 @@ public class MarketBeginningsNpcHandler extends AbstractQuestNpcHandler {
 
         if (completed || returned) {
             if (cooling) {
+                long remain = Math.max(1L, Math.round(QuestServiceAccessTracker.getRemainingMs(
+                        player.getUniqueId(), QuestServiceAccessTracker.Service.AUCTION) / 1000.0));
                 ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
-                        "Hold on, the auctioneer is sorting paperwork.");
+                        "Hold on, the auctioneer is sorting paperwork (" + remain + "s).");
                 return true;
             }
             if (auctionGUI != null) {
@@ -73,8 +75,10 @@ public class MarketBeginningsNpcHandler extends AbstractQuestNpcHandler {
                     auctionGUI.open(player);
                 }
             } else {
+                long remain = Math.max(1L, Math.round(QuestServiceAccessTracker.getRemainingMs(
+                        player.getUniqueId(), QuestServiceAccessTracker.Service.AUCTION) / 1000.0));
                 ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
-                        "Give the auction house a moment before reopening.");
+                        "Give the auction house a moment before reopening (" + remain + "s).");
             }
             return true;
         }

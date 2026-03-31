@@ -15,7 +15,7 @@ public class AuctionItem {
     private int currentBid;
     private UUID highestBidder;
     private final long startTime;
-    private final long endTime;
+    private long endTime;
     private AuctionStatus status;
     private final int listingTax;
     private final AuctionCategory category;
@@ -72,6 +72,13 @@ public class AuctionItem {
 
     public long getEndTime() {
         return endTime;
+    }
+
+    public void extendEndTime(long millis) {
+        if (millis <= 0) {
+            return;
+        }
+        this.endTime += millis;
     }
 
     public AuctionStatus getStatus() {

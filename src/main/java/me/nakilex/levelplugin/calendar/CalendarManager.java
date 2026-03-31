@@ -144,8 +144,17 @@ public class CalendarManager implements Listener {
     }
 
     private void chooseDailyWeather() {
+        int season = MONTH_TO_SEASON[month - 1];
         double roll = random.nextDouble();
-        currentWeather = roll < 0.8 ? WeatherType.CLEAR : WeatherType.RAIN;
+        if (season == 0) { // Winter
+            currentWeather = roll < 0.55 ? WeatherType.CLEAR : (roll < 0.90 ? WeatherType.SNOW : WeatherType.STORM);
+        } else if (season == 1) { // Spring
+            currentWeather = roll < 0.65 ? WeatherType.CLEAR : (roll < 0.95 ? WeatherType.RAIN : WeatherType.STORM);
+        } else if (season == 2) { // Summer
+            currentWeather = roll < 0.82 ? WeatherType.CLEAR : (roll < 0.97 ? WeatherType.RAIN : WeatherType.STORM);
+        } else { // Autumn
+            currentWeather = roll < 0.60 ? WeatherType.CLEAR : (roll < 0.93 ? WeatherType.RAIN : WeatherType.STORM);
+        }
         applyWeather(currentWeather);
     }
 
