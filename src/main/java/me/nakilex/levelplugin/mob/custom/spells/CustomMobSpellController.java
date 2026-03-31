@@ -7,11 +7,9 @@ import me.nakilex.levelplugin.mob.custom.CustomMobManager;
 import me.nakilex.levelplugin.spells.SpellEffectUtil;
 import me.nakilex.levelplugin.spells.impl.MageFireballBasicAttackSpell;
 import me.nakilex.levelplugin.utils.AttributeUtil;
-import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.ModelEngineUtil;
 import me.nakilex.levelplugin.utils.RandomUtil;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Sound;
 import org.bukkit.entity.Arrow;
@@ -37,6 +35,7 @@ import java.util.concurrent.ThreadLocalRandom;
  */
 public class CustomMobSpellController {
     private static final double HIT_RADIUS = 0.45;
+    private static final long MIN_GLOBAL_COOLDOWN_TICKS = 40L;
     private static final String VFX_CURSED_FLAMES = "cursed_flames_vfx";
     private static final String VFX_CURSED_RAY = "cursed_ray_vfx";
     private static final String VFX_CURSED_ARROW_RAIN = "cursed_arrow_rain_vfx";
@@ -224,10 +223,14 @@ public class CustomMobSpellController {
     }
 
     private void applyGlobalCooldown(UUID mobId, CustomMobDefinition.CustomMobSpell spell, long now) {
-        if (spell.gcdTicks() <= 0) {
+        if (spell == null || mobId == null) {
             return;
         }
-        globalCooldowns.put(mobId, now + (spell.gcdTicks() * 50L));
+        long effectiveCooldownTicks = Math.max(MIN_GLOBAL_COOLDOWN_TICKS, spell.gcdTicks());
+        if (effectiveCooldownTicks <= 0) {
+            return;
+        }
+        globalCooldowns.put(mobId, now + (effectiveCooldownTicks * 50L));
     }
 
     private void castSpell(CustomMobInstance instance, Mob caster, Player target, CustomMobDefinition.CustomMobSpell spell) {
@@ -636,24 +639,17 @@ public class CustomMobSpellController {
     }
 
     private void emitSpellAnimationDebug(Player target, Mob caster, String spellId, String animationName, String source) {
-        if (target == null || caster == null || !target.isOnline() || target.isDead()) {
+        if (caster == null) {
             return;
         }
         String safeSpell = (spellId == null || spellId.isBlank()) ? "unknown_spell" : spellId;
         String safeAnimation = (animationName == null || animationName.isBlank()) ? "unknown_animation" : animationName;
-        String message = ChatColor.GRAY + "[MobCast] "
-                + ChatColor.WHITE + caster.getType().name()
-                + ChatColor.DARK_GRAY + " | "
-                + ChatColor.AQUA + "spell=" + safeSpell
-                + ChatColor.DARK_GRAY + " | "
-                + ChatColor.LIGHT_PURPLE + "animation=" + safeAnimation;
-        ChatMessageUtil.send(target, ChatMessageUtil.MessageType.INFO, message);
         if (isDebugTraceEnabled(caster)) {
             plugin.getLogger().info("[MobSpellDebug] source=" + source
                     + " mobType=" + caster.getType().name()
                     + " spell=" + safeSpell
                     + " animation=" + safeAnimation
-                    + " target=" + target.getName());
+                    + " target=" + (target == null ? "n/a" : target.getName()));
         }
     }
 
