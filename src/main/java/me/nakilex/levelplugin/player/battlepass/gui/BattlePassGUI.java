@@ -53,6 +53,7 @@ public class BattlePassGUI implements Listener {
     private static final int PREVIOUS_PAGE_SLOT = 18;
     private static final int NEXT_PAGE_SLOT = 26;
     private static final int SEASON_SLOT = 4;
+    private static final int CLAIM_ALL_SLOT = 6;
     private static final int INFO_SLOT = 8;
 
     private final BattlePassProvider provider;
@@ -127,10 +128,33 @@ public class BattlePassGUI implements Listener {
         widgets.add(new ActionWidget(SEASON_SLOT,
                 context -> createSeasonItem(view),
                 null));
+        widgets.add(new ActionWidget(CLAIM_ALL_SLOT,
+                context -> createClaimAllItem(view),
+                (click, context) -> handleClaimAllClick(context.player(), page)));
         widgets.add(new ActionWidget(INFO_SLOT,
                 context -> createXpInfoItem(context.player().getUniqueId()),
                 null));
         return widgets;
+    }
+
+    private ItemStack createClaimAllItem(BattlePassView view) {
+        ItemStack icon = GuiUtil.getNexoItem("check", ChatColor.GREEN + "Claim All Available");
+        ItemMeta meta = icon.getItemMeta();
+        if (meta != null) {
+            List<String> lore = new ArrayList<>();
+            lore.add(ChatColor.GRAY + "Claim every unlocked reward");
+            lore.add(ChatColor.GRAY + "for this pass in one click.");
+            if (view.premiumActive()) {
+                lore.add(ChatColor.AQUA + "Includes premium rewards.");
+            } else {
+                lore.add(ChatColor.DARK_GRAY + "Premium rewards require premium pass.");
+            }
+            lore.add(" ");
+            lore.addAll(TooltipUtil.clickInstructions("to claim all available", null));
+            meta.setLore(lore);
+            icon.setItemMeta(meta);
+        }
+        return icon;
     }
 
     private ItemStack createSeasonItem(BattlePassView view) {
@@ -288,6 +312,16 @@ public class BattlePassGUI implements Listener {
             desiredPage = maxPage;
         }
         open(player, desiredPage);
+    }
+
+    private void handleClaimAllClick(Player player, int page) {
+        int claimed = provider.claimAllAvailable(player);
+        if (claimed <= 0) {
+            return;
+        }
+        BattlePassView refreshed = provider.view(player.getUniqueId());
+        int maxPage = Math.max(0, (int) Math.ceil((double) refreshed.entries().size() / FREE_ROW.length) - 1);
+        open(player, Math.min(page, maxPage));
     }
 
     @EventHandler

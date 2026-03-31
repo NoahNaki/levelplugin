@@ -196,24 +196,69 @@ public class BattlePassManager implements BattlePassProvider {
 
     @Override
     public void claimReward(Player player, int tier, boolean premiumReward) {
+        claimRewardInternal(player, tier, premiumReward, true, false);
+    }
+
+    @Override
+    public int claimAllAvailable(Player player) {
+        if (player == null) {
+            return 0;
+        }
+        PlayerProgress progress = progress(player.getUniqueId());
+        int claimed = 0;
+        for (int tier = 1; tier <= progress.tier; tier++) {
+            if (claimRewardInternal(player, tier, false, false, true)) {
+                claimed++;
+            }
+            if (progress.premiumActive && claimRewardInternal(player, tier, true, false, true)) {
+                claimed++;
+            }
+        }
+        if (claimed > 0) {
+            ChatMessageUtil.send(player, MessageType.SUCCESS,
+                    "Claimed " + ChatColor.YELLOW + claimed + ChatColor.GREEN + " battle pass rewards.");
+            gui.refresh();
+            persist(player.getUniqueId());
+        } else {
+            ChatMessageUtil.send(player, MessageType.INFO, "No claimable rewards right now.");
+        }
+        return claimed;
+    }
+
+    private boolean claimRewardInternal(Player player,
+                                        int tier,
+                                        boolean premiumReward,
+                                        boolean notify,
+                                        boolean deferRefreshPersist) {
+        if (player == null) {
+            return false;
+        }
         PlayerProgress progress = progress(player.getUniqueId());
         if (tier > progress.tier) {
-            ChatMessageUtil.send(player, MessageType.ERROR, "You have not unlocked this tier yet.");
-            return;
+            if (notify) {
+                ChatMessageUtil.send(player, MessageType.ERROR, "You have not unlocked this tier yet.");
+            }
+            return false;
         }
         TierDefinition definition = tierDefinition(tier).orElse(null);
         if (definition == null) {
-            ChatMessageUtil.send(player, MessageType.ERROR, "That reward is not available.");
-            return;
+            if (notify) {
+                ChatMessageUtil.send(player, MessageType.ERROR, "That reward is not available.");
+            }
+            return false;
         }
         Set<Integer> claimedSet = premiumReward ? progress.claimedPremium : progress.claimedFree;
         if (claimedSet.contains(tier)) {
-            ChatMessageUtil.send(player, MessageType.INFO, "You have already claimed this reward.");
-            return;
+            if (notify) {
+                ChatMessageUtil.send(player, MessageType.INFO, "You have already claimed this reward.");
+            }
+            return false;
         }
         if (premiumReward && !progress.premiumActive) {
-            ChatMessageUtil.send(player, MessageType.ERROR, "Activate the premium pass to claim this reward.");
-            return;
+            if (notify) {
+                ChatMessageUtil.send(player, MessageType.ERROR, "Activate the premium pass to claim this reward.");
+            }
+            return false;
         }
         BattlePassRewardDefinition rewardDefinition = premiumReward ? definition.premium() : definition.free();
         QuestReward questReward = rewardDefinition.toQuestReward();
@@ -224,21 +269,26 @@ public class BattlePassManager implements BattlePassProvider {
             grantDirectItems(player, rewardDefinition.directItems());
         }
         claimedSet.add(tier);
-        ChatMessageUtil.send(
-                player,
-                MessageType.REWARD,
-                "Claimed Tier " + tier + (premiumReward ? " Premium" : " Free") + " reward!"
-        );
-        List<String> summary = rewardDefinition.plainSummary(rewardContext);
-        if (!summary.isEmpty()) {
+        if (notify) {
             ChatMessageUtil.send(
                     player,
-                    MessageType.INFO,
-                    ChatColor.GRAY + "Rewards: " + ChatColor.YELLOW + String.join(ChatColor.GRAY + ", " + ChatColor.YELLOW, summary)
+                    MessageType.REWARD,
+                    "Claimed Tier " + tier + (premiumReward ? " Premium" : " Free") + " reward!"
             );
+            List<String> summary = rewardDefinition.plainSummary(rewardContext);
+            if (!summary.isEmpty()) {
+                ChatMessageUtil.send(
+                        player,
+                        MessageType.INFO,
+                        ChatColor.GRAY + "Rewards: " + ChatColor.YELLOW + String.join(ChatColor.GRAY + ", " + ChatColor.YELLOW, summary)
+                );
+            }
         }
-        gui.refresh();
-        persist(player.getUniqueId());
+        if (!deferRefreshPersist) {
+            gui.refresh();
+            persist(player.getUniqueId());
+        }
+        return true;
     }
 
     @Override
