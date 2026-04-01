@@ -551,20 +551,77 @@ public final class ModelEngineUtil {
         for (String method : methodCandidates) {
             try {
                 Object result = tryInvoke(handler, method, stateName);
-                if (result == null || Boolean.TRUE.equals(result) || "true".equalsIgnoreCase(String.valueOf(result))) {
+                if (Boolean.TRUE.equals(result) || "true".equalsIgnoreCase(String.valueOf(result))) {
+                    return true;
+                }
+                if (result == null && isStateActiveReflective(handler, stateName)) {
                     return true;
                 }
             } catch (ReflectiveOperationException ignored) {
             }
             try {
                 Object result = tryInvoke(handler, method, stateName, true);
-                if (result == null || Boolean.TRUE.equals(result) || "true".equalsIgnoreCase(String.valueOf(result))) {
+                if (Boolean.TRUE.equals(result) || "true".equalsIgnoreCase(String.valueOf(result))) {
+                    return true;
+                }
+                if (result == null && isStateActiveReflective(handler, stateName)) {
                     return true;
                 }
             } catch (ReflectiveOperationException ignored) {
             }
         }
         return false;
+    }
+
+    private static boolean isStateActiveReflective(AnimationHandler handler, String stateName) {
+        if (handler == null || stateName == null || stateName.isBlank()) {
+            return false;
+        }
+        String[] boolMethods = {"hasState", "isStateActive", "containsState"};
+        for (String method : boolMethods) {
+            try {
+                Object result = tryInvoke(handler, method, stateName);
+                if (Boolean.TRUE.equals(result) || "true".equalsIgnoreCase(String.valueOf(result))) {
+                    return true;
+                }
+            } catch (ReflectiveOperationException ignored) {
+            }
+        }
+        String[] collectionMethods = {"getStates", "getActiveStates", "states", "activeStates"};
+        for (String method : collectionMethods) {
+            try {
+                Object result = tryInvoke(handler, method);
+                if (containsStateToken(result, stateName)) {
+                    return true;
+                }
+            } catch (ReflectiveOperationException ignored) {
+            }
+        }
+        return false;
+    }
+
+    private static boolean containsStateToken(Object result, String stateName) {
+        if (result == null || stateName == null || stateName.isBlank()) {
+            return false;
+        }
+        if (result instanceof Collection<?> collection) {
+            for (Object entry : collection) {
+                if (entry != null && stateName.equalsIgnoreCase(String.valueOf(entry))) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        if (result instanceof Map<?, ?> map) {
+            for (Object key : map.keySet()) {
+                if (key != null && stateName.equalsIgnoreCase(String.valueOf(key))) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        String text = String.valueOf(result);
+        return !text.isBlank() && text.toLowerCase(Locale.ROOT).contains(stateName.toLowerCase(Locale.ROOT));
     }
 
     public static List<String> getRuntimeAnimationNames(Entity entity) {
