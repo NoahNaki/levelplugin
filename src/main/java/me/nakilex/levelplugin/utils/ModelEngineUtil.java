@@ -11,6 +11,7 @@ import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.util.Vector;
+import org.bukkit.scheduler.BukkitRunnable;
 
 import java.io.File;
 import java.io.IOException;
@@ -548,6 +549,25 @@ public final class ModelEngineUtil {
             }
         }
         return baseline;
+    }
+
+    public static void sustainStateByName(Entity entity, String stateName, long holdTicks, Plugin plugin) {
+        if (entity == null || stateName == null || stateName.isBlank() || plugin == null || holdTicks <= 1) {
+            return;
+        }
+        new BukkitRunnable() {
+            long remaining = holdTicks;
+
+            @Override
+            public void run() {
+                if (remaining <= 0 || !entity.isValid()) {
+                    cancel();
+                    return;
+                }
+                applyStateByName(entity, stateName, 50L, null);
+                remaining--;
+            }
+        }.runTaskTimer(plugin, 1L, 1L);
     }
 
     public static boolean removeStateByName(Entity entity, String stateName) {

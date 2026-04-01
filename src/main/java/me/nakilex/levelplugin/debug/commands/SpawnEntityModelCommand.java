@@ -263,6 +263,9 @@ public class SpawnEntityModelCommand implements CommandExecutor, TabCompleter {
             ModelEngineUtil.removeStateByName(target, "walk");
         }
         boolean applied = ModelEngineUtil.applyStateByName(target, stateName, holdTicks * 50L, plugin);
+        if (applied && holdTicks > 1) {
+            ModelEngineUtil.sustainStateByName(target, stateName, holdTicks, plugin);
+        }
         ChatMessageUtil.send(player, applied
                         ? ChatMessageUtil.MessageType.SUCCESS
                         : ChatMessageUtil.MessageType.WARNING,
