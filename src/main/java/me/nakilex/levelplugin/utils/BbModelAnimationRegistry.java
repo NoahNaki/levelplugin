@@ -1,0 +1,224 @@
+package me.nakilex.levelplugin.utils;
+
+import org.bukkit.plugin.Plugin;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Stream;
+
+/**
+ * Lightweight .bbmodel animation/timeline_setup registry used by runtime animation fallback logic.
+ */
+public final class BbModelAnimationRegistry {
+
+    public enum AnimationSourceType {
+        KEYFRAMED_CLIP,
+        POSE_CLIP,
+        UNSUPPORTED_IMPORTED_SETUP
+    }
+
+    public record AnimationClip(String name,
+                                double lengthSeconds,
+                                boolean loop,
+                                AnimationSourceType sourceType,
+                                Map<String, String> metadata) {
+    }
+
+    public record ImportedModel(String modelId,
+                                Map<String, AnimationClip> clips,
+                                int explicitClipCount,
+                                int timelineSetupCount,
+                                int timelineConvertedToClips,
+                                int timelineConvertedToPoses,
+                                int timelineUnsupported) {
+    }
+
+    private static final Pattern NAME_PATTERN = Pattern.compile("\\\"name\\\"\\s*:\\s*\\\"([^\\\"]+)\\\"");
+    private static final Pattern TIMELINE_SETUP_PATTERN = Pattern.compile("\\\"timeline_setups\\\"\\s*:\\s*\\[(.*?)]", Pattern.DOTALL);
+    private static final Pattern ANIMATIONS_PATTERN = Pattern.compile("\\\"animations\\\"\\s*:\\s*\\[(.*?)]", Pattern.DOTALL);
+
+    private static final Map<String, ImportedModel> CACHE = new ConcurrentHashMap<>();
+
+    private BbModelAnimationRegistry() {
+    }
+
+    public static void warmup(Plugin plugin) {
+        CACHE.clear();
+        if (plugin == null) {
+            return;
+        }
+        org.bukkit.plugin.Plugin modelEnginePlugin = org.bukkit.Bukkit.getPluginManager().getPlugin("ModelEngine");
+        if (modelEnginePlugin == null) {
+            return;
+        }
+        File blueprintsDir = new File(modelEnginePlugin.getDataFolder(), "blueprints");
+        if (!blueprintsDir.exists() || !blueprintsDir.isDirectory()) {
+            return;
+        }
+        try (Stream<java.nio.file.Path> files = Files.list(blueprintsDir.toPath())) {
+            files.filter(Files::isRegularFile)
+                    .filter(path -> path.getFileName() != null
+                            && path.getFileName().toString().toLowerCase(Locale.ROOT).endsWith(".bbmodel"))
+                    .forEach(path -> {
+                        ImportedModel imported = importSingle(path.toFile(), plugin);
+                        if (imported != null) {
+                            CACHE.put(imported.modelId().toLowerCase(Locale.ROOT), imported);
+                            logSummary(plugin, imported);
+                        }
+                    });
+        } catch (IOException e) {
+            plugin.getLogger().warning("Failed to warmup bbmodel animation registry: " + e.getMessage());
+        }
+    }
+
+    public static List<String> getClipNames(String modelId) {
+        ImportedModel model = getImportedModel(modelId);
+        if (model == null || model.clips().isEmpty()) {
+            return List.of();
+        }
+        return new ArrayList<>(model.clips().keySet());
+    }
+
+    public static AnimationClip getClip(String modelId, String clipName) {
+        ImportedModel model = getImportedModel(modelId);
+        if (model == null || clipName == null || clipName.isBlank()) {
+            return null;
+        }
+        for (Map.Entry<String, AnimationClip> entry : model.clips().entrySet()) {
+            if (entry.getKey().equalsIgnoreCase(clipName)) {
+                return entry.getValue();
+            }
+        }
+        return null;
+    }
+
+    private static ImportedModel getImportedModel(String modelId) {
+        if (modelId == null || modelId.isBlank()) {
+            return null;
+        }
+        return CACHE.get(modelId.toLowerCase(Locale.ROOT));
+    }
+
+    private static ImportedModel importSingle(File file, Plugin plugin) {
+        String modelId = file.getName();
+        if (modelId.toLowerCase(Locale.ROOT).endsWith(".bbmodel")) {
+            modelId = modelId.substring(0, modelId.length() - ".bbmodel".length());
+        }
+        try {
+            String json = Files.readString(file.toPath(), StandardCharsets.UTF_8);
+            Map<String, AnimationClip> clips = new LinkedHashMap<>();
+
+            List<String> explicit = extractNamesFromSection(json, ANIMATIONS_PATTERN);
+            int explicitImported = 0;
+            for (String name : explicit) {
+                if (isPlaceholderAnimationName(name)) {
+                    continue;
+                }
+                clips.putIfAbsent(name.toLowerCase(Locale.ROOT), new AnimationClip(
+                        name,
+                        0.0,
+                        true,
+                        AnimationSourceType.KEYFRAMED_CLIP,
+                        Map.of("source", "animations")
+                ));
+                explicitImported++;
+            }
+
+            List<String> timelineSetups = extractNamesFromSection(json, TIMELINE_SETUP_PATTERN);
+            int convertedToPoses = 0;
+            for (String name : timelineSetups) {
+                String key = name.toLowerCase(Locale.ROOT);
+                if (clips.containsKey(key)) {
+                    continue;
+                }
+                clips.put(key, new AnimationClip(
+                        name,
+                        0.0,
+                        false,
+                        AnimationSourceType.POSE_CLIP,
+                        Map.of("source", "timeline_setup", "kind", "pose")
+                ));
+                convertedToPoses++;
+            }
+
+            return new ImportedModel(
+                    modelId,
+                    Collections.unmodifiableMap(new LinkedHashMap<>(clips)),
+                    explicitImported,
+                    timelineSetups.size(),
+                    explicitImported,
+                    convertedToPoses,
+                    Math.max(0, timelineSetups.size() - convertedToPoses)
+            );
+        } catch (IOException e) {
+            if (plugin != null) {
+                plugin.getLogger().warning("Failed to import bbmodel animations for " + modelId + ": " + e.getMessage());
+            }
+            return null;
+        }
+    }
+
+    private static List<String> extractNamesFromSection(String json, Pattern sectionPattern) {
+        if (json == null || json.isBlank()) {
+            return List.of();
+        }
+        Matcher sectionMatcher = sectionPattern.matcher(json);
+        if (!sectionMatcher.find()) {
+            return List.of();
+        }
+        String payload = sectionMatcher.group(1);
+        if (payload == null || payload.isBlank()) {
+            return List.of();
+        }
+        Matcher nameMatcher = NAME_PATTERN.matcher(payload);
+        Set<String> names = new LinkedHashSet<>();
+        while (nameMatcher.find()) {
+            String name = nameMatcher.group(1);
+            if (name != null && !name.isBlank()) {
+                names.add(name.trim());
+            }
+        }
+        return new ArrayList<>(names);
+    }
+
+    private static boolean isPlaceholderAnimationName(String name) {
+        if (name == null) {
+            return true;
+        }
+        String token = name.trim();
+        if (token.isBlank()) {
+            return true;
+        }
+        if (token.chars().filter(ch -> ch == '=').count() >= 3) {
+            return true;
+        }
+        return "pose".equalsIgnoreCase(token);
+    }
+
+    private static void logSummary(Plugin plugin, ImportedModel model) {
+        if (plugin == null || model == null) {
+            return;
+        }
+        if (model.explicitClipCount() == 0 && model.timelineSetupCount() == 0) {
+            return;
+        }
+        plugin.getLogger().info("[Importer] Model " + model.modelId() + ": explicit animations imported="
+                + model.explicitClipCount() + ", timeline setups found=" + model.timelineSetupCount()
+                + ", converted clips=" + model.timelineConvertedToClips()
+                + ", converted poses=" + model.timelineConvertedToPoses()
+                + ", unsupported=" + model.timelineUnsupported());
+    }
+}

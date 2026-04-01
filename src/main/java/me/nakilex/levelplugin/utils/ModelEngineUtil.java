@@ -109,6 +109,7 @@ public final class ModelEngineUtil {
             } catch (Exception ignored) {
             }
         }
+        BbModelAnimationRegistry.warmup(plugin);
         if (plugin != null && !PRELOADED_RUNTIME_ANIMATIONS.isEmpty()) {
             plugin.getLogger().info("ModelEngine warmup cached runtime animations for "
                     + PRELOADED_RUNTIME_ANIMATIONS.size() + " models.");
@@ -346,11 +347,23 @@ public final class ModelEngineUtil {
             }
             handler.prepare();
             String match = resolveAnimationName(model, handler, animationName);
-            if (match == null || match.isBlank()) {
-                continue;
-            }
-            if (attemptPlayAnimation(handler, model, match, loop)) {
+            if (match != null && !match.isBlank() && attemptPlayAnimation(handler, model, match, loop)) {
                 return true;
+            }
+            if (match == null || match.isBlank()) {
+                String modelId = model.getBlueprint() != null ? model.getBlueprint().getName() : null;
+                BbModelAnimationRegistry.AnimationClip clip = BbModelAnimationRegistry.getClip(modelId, animationName);
+                if (clip != null && clip.sourceType() == BbModelAnimationRegistry.AnimationSourceType.POSE_CLIP) {
+                    List<String> keywords = tokenizeAnimationKeywords(animationName);
+                    String resolved = triggerActionStateResolved(entity, keywords, 200L, false);
+                    if (resolved == null) {
+                        resolved = triggerActionStateResolved(entity, List.of("idle", "pose", "stand"), 200L, false);
+                    }
+                    if (resolved != null) {
+                        holdActionState(entity, 200L);
+                        return true;
+                    }
+                }
             }
         }
         return false;
@@ -376,6 +389,9 @@ public final class ModelEngineUtil {
                 names.addAll(model.getBlueprint().getAnimationsPlaceholders().keySet());
                 names.addAll(model.getBlueprint().getAnimationsPlaceholders().values());
             }
+            if (model.getBlueprint() != null && model.getBlueprint().getName() != null) {
+                names.addAll(BbModelAnimationRegistry.getClipNames(model.getBlueprint().getName()));
+            }
         }
         if (names.isEmpty()) {
             for (ActiveModel model : modeledEntity.getModels().values()) {
@@ -389,6 +405,24 @@ public final class ModelEngineUtil {
             return List.of();
         }
         return Collections.unmodifiableList(new ArrayList<>(names));
+    }
+
+    private static List<String> tokenizeAnimationKeywords(String animationName) {
+        if (animationName == null || animationName.isBlank()) {
+            return List.of("idle");
+        }
+        String[] parts = animationName.toLowerCase(Locale.ROOT).split("[^a-z0-9]+");
+        List<String> keywords = new ArrayList<>();
+        for (String part : parts) {
+            if (part == null || part.isBlank()) {
+                continue;
+            }
+            keywords.add(part);
+        }
+        if (keywords.isEmpty()) {
+            keywords.add("idle");
+        }
+        return keywords;
     }
 
     public static List<String> getRuntimeAnimationNames(Entity entity) {
