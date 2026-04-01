@@ -732,16 +732,23 @@ public final class ModelEngineUtil {
                     logStateDebug(plugin, handler, method, args, ignored);
                 }
             }
-            if (invokeStateMethodOverloads(handler, method, stateName, plugin) && isStateActiveReflective(handler, stateName)) {
+            StateInvokeResult overloadResult = invokeStateMethodOverloads(handler, method, stateName, plugin);
+            if (overloadResult.success()) {
+                return true;
+            }
+            if (overloadResult.invoked() && isStateActiveReflective(handler, stateName)) {
                 return true;
             }
         }
         return false;
     }
 
-    private static boolean invokeStateMethodOverloads(AnimationHandler handler, String methodName, String stateName, Plugin plugin) {
+    private record StateInvokeResult(boolean invoked, boolean success) {
+    }
+
+    private static StateInvokeResult invokeStateMethodOverloads(AnimationHandler handler, String methodName, String stateName, Plugin plugin) {
         if (handler == null || methodName == null || methodName.isBlank() || stateName == null || stateName.isBlank()) {
-            return false;
+            return new StateInvokeResult(false, false);
         }
         boolean invoked = false;
         for (java.lang.reflect.Method method : collectMethods(handler.getClass(), methodName, -1, true)) {
@@ -757,19 +764,19 @@ public final class ModelEngineUtil {
                 }
                 Object result = method.invoke(handler, converted);
                 if (Boolean.TRUE.equals(result) || "true".equalsIgnoreCase(String.valueOf(result))) {
-                    return true;
+                    return new StateInvokeResult(true, true);
                 }
                 if (result == null
                         && method.getReturnType() == Void.TYPE
                         && "playState".equalsIgnoreCase(method.getName())) {
-                    return true;
+                    return new StateInvokeResult(true, true);
                 }
                 invoked = true;
             } catch (ReflectiveOperationException ignored) {
                 logStateDebug(plugin, handler, method.getName(), defaults, ignored);
             }
         }
-        return invoked;
+        return new StateInvokeResult(invoked, false);
     }
 
     private static void logStateDebug(Plugin plugin,
