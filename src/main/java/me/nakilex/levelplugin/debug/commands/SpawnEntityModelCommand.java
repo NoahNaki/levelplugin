@@ -70,7 +70,7 @@ public class SpawnEntityModelCommand implements CommandExecutor, TabCompleter {
             return handleDebugAnimation(player, args);
         }
         if (args.length >= 1 && args[0].equalsIgnoreCase("inspect")) {
-            return handleInspectAnimations(player);
+            return handleInspectAnimations(player, args);
         }
         if (args.length < 2) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "Usage: /se <entity> <model...> | /se anim <name|shoot|attack> [loop] | /se animdebug <name> [loop] | /se inspect [verbose] | /se list");
@@ -160,12 +160,13 @@ public class SpawnEntityModelCommand implements CommandExecutor, TabCompleter {
         return true;
     }
 
-    private boolean handleInspectAnimations(Player player) {
+    private boolean handleInspectAnimations(Player player, String[] args) {
         Entity target = resolveAnimationTarget(player);
         if (target == null) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING, "No modeled entity found. Look at one or spawn with /se first.");
             return true;
         }
+        boolean verbose = args.length >= 2 && args[1].equalsIgnoreCase("verbose");
         List<String> runtime = ModelEngineUtil.getRuntimeAnimationNames(target);
         List<String> allKnown = ModelEngineUtil.getAvailableAnimationNames(target);
         List<String> blueprintOnly = new java.util.ArrayList<>(allKnown);
@@ -176,6 +177,17 @@ public class SpawnEntityModelCommand implements CommandExecutor, TabCompleter {
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                 "Blueprint-only names (not directly triggerable): "
                         + (blueprintOnly.isEmpty() ? "(none)" : String.join(", ", blueprintOnly)));
+        if (verbose) {
+            ModelEngineUtil.AnimationInspection inspection = ModelEngineUtil.inspectAnimationSources(target);
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                    "Registry keyframed clips: " + (inspection.registryKeyframed().isEmpty() ? "(none)" : String.join(", ", inspection.registryKeyframed())));
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                    "Registry pose clips (timeline_setups): " + (inspection.registryPoses().isEmpty() ? "(none)" : String.join(", ", inspection.registryPoses())));
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                    "Registry unsupported setups: " + (inspection.registryUnsupported().isEmpty() ? "(none)" : String.join(", ", inspection.registryUnsupported())));
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                    "Debug flow: /se animdebug <name> then /se anim <name> to compare resolution.");
+        }
         return true;
     }
 
@@ -245,6 +257,9 @@ public class SpawnEntityModelCommand implements CommandExecutor, TabCompleter {
         }
         if (args.length == 3 && args[0].equalsIgnoreCase("animdebug")) {
             return CommandUtil.filterStartingWith(List.of("true", "false"), args[2]);
+        }
+        if (args.length == 2 && args[0].equalsIgnoreCase("inspect")) {
+            return CommandUtil.filterStartingWith(List.of("verbose"), args[1]);
         }
         if (args.length >= 2 && Bukkit.getPluginManager().isPluginEnabled("ModelEngine")) {
             try {

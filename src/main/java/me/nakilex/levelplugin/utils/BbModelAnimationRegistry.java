@@ -46,6 +46,17 @@ public final class BbModelAnimationRegistry {
                                 int timelineUnsupported) {
     }
 
+    public record ImportedModelSummary(String modelId,
+                                       int explicitClipCount,
+                                       int timelineSetupCount,
+                                       int timelineConvertedToClips,
+                                       int timelineConvertedToPoses,
+                                       int timelineUnsupported,
+                                       List<String> keyframedClipNames,
+                                       List<String> poseClipNames,
+                                       List<String> unsupportedSetupNames) {
+    }
+
     private static final Pattern NAME_PATTERN = Pattern.compile("\\\"name\\\"\\s*:\\s*\\\"([^\\\"]+)\\\"");
     private static final Pattern TIMELINE_SETUP_PATTERN = Pattern.compile("\\\"timeline_setups\\\"\\s*:\\s*\\[(.*?)]", Pattern.DOTALL);
     private static final Pattern ANIMATIONS_PATTERN = Pattern.compile("\\\"animations\\\"\\s*:\\s*\\[(.*?)]", Pattern.DOTALL);
@@ -103,6 +114,37 @@ public final class BbModelAnimationRegistry {
             }
         }
         return null;
+    }
+
+    public static ImportedModelSummary getSummary(String modelId) {
+        ImportedModel model = getImportedModel(modelId);
+        if (model == null) {
+            return null;
+        }
+        List<String> keyframed = new ArrayList<>();
+        List<String> poses = new ArrayList<>();
+        List<String> unsupported = new ArrayList<>();
+        for (AnimationClip clip : model.clips().values()) {
+            if (clip == null) {
+                continue;
+            }
+            switch (clip.sourceType()) {
+                case KEYFRAMED_CLIP -> keyframed.add(clip.name());
+                case POSE_CLIP -> poses.add(clip.name());
+                case UNSUPPORTED_IMPORTED_SETUP -> unsupported.add(clip.name());
+            }
+        }
+        return new ImportedModelSummary(
+                model.modelId(),
+                model.explicitClipCount(),
+                model.timelineSetupCount(),
+                model.timelineConvertedToClips(),
+                model.timelineConvertedToPoses(),
+                model.timelineUnsupported(),
+                List.copyOf(keyframed),
+                List.copyOf(poses),
+                List.copyOf(unsupported)
+        );
     }
 
     private static ImportedModel getImportedModel(String modelId) {

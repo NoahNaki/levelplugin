@@ -46,6 +46,13 @@ public final class ModelEngineUtil {
                                        List<String> available) {
     }
 
+    public record AnimationInspection(List<String> runtimeAnimations,
+                                      List<String> blueprintAnimations,
+                                      List<String> registryKeyframed,
+                                      List<String> registryPoses,
+                                      List<String> registryUnsupported) {
+    }
+
     private static final Map<String, List<String>> PRELOADED_RUNTIME_ANIMATIONS = new ConcurrentHashMap<>();
     private static final Map<UUID, AnimationControllerState> ANIMATION_CONTROLLER_STATES = new ConcurrentHashMap<>();
 
@@ -446,6 +453,49 @@ public final class ModelEngineUtil {
             return List.of();
         }
         return Collections.unmodifiableList(new ArrayList<>(names));
+    }
+
+    public static AnimationInspection inspectAnimationSources(Entity entity) {
+        if (entity == null) {
+            return new AnimationInspection(List.of(), List.of(), List.of(), List.of(), List.of());
+        }
+        Set<String> runtime = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+        runtime.addAll(getRuntimeAnimationNames(entity));
+        Set<String> blueprint = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+        Set<String> registryKeyframed = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+        Set<String> registryPoses = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+        Set<String> registryUnsupported = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+
+        ModeledEntity modeledEntity = ModelEngineAPI.getModeledEntity(entity);
+        if (modeledEntity != null) {
+            for (ActiveModel model : modeledEntity.getModels().values()) {
+                if (model == null || model.getBlueprint() == null) {
+                    continue;
+                }
+                if (model.getBlueprint().getAnimations() != null) {
+                    blueprint.addAll(model.getBlueprint().getAnimations().keySet());
+                }
+                if (model.getBlueprint().getAnimationsPlaceholders() != null) {
+                    blueprint.addAll(model.getBlueprint().getAnimationsPlaceholders().keySet());
+                    blueprint.addAll(model.getBlueprint().getAnimationsPlaceholders().values());
+                }
+                String modelId = model.getBlueprint().getName();
+                BbModelAnimationRegistry.ImportedModelSummary summary = BbModelAnimationRegistry.getSummary(modelId);
+                if (summary == null) {
+                    continue;
+                }
+                registryKeyframed.addAll(summary.keyframedClipNames());
+                registryPoses.addAll(summary.poseClipNames());
+                registryUnsupported.addAll(summary.unsupportedSetupNames());
+            }
+        }
+        return new AnimationInspection(
+                List.copyOf(runtime),
+                List.copyOf(blueprint),
+                List.copyOf(registryKeyframed),
+                List.copyOf(registryPoses),
+                List.copyOf(registryUnsupported)
+        );
     }
 
     public static AnimationDebugResult debugTriggerAnimation(Entity entity, String requested, boolean loop) {
