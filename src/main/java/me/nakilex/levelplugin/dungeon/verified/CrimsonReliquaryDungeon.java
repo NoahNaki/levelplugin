@@ -71,17 +71,17 @@ import org.bukkit.util.BoundingBox;
 
 public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
     private static final String[] RELIQUARY_NORMAL_MOBS = {
-            "moss_zombie",
-            "cave_stalker",
-            "crypt_skeleton",
-            "forest_slime"
+            "rpg_rat",
+            "wild_rooster",
+            "cursed_night",
+            "cursed_arrow"
     };
     private static final String[] RELIQUARY_MINIBOSS_MOBS = {
             "cursed_archer",
-            "ember_witch"
+            "cursed_mage"
     };
     private static final String[] RELIQUARY_BOSS_MOBS = {
-            "reliquary_giant"
+            "cursed_knight"
     };
     private static final String DISPLAY = "Crimson Reliquary";
     private static final String KEY = DungeonManager.normalizeKey(DISPLAY);

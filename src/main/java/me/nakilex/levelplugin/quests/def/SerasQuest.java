@@ -22,7 +22,7 @@ public class SerasQuest extends Quest implements QuestScript, QuestCompletionScr
         return List.of(
                 new QuestObjective(QuestObjectiveType.TALK, "npc" + NPC_ID, 1,
                         BeaconTargets.npc(NPC_ID)),
-                new QuestObjective(QuestObjectiveType.KILL, "forest_slime", 10,
+                new QuestObjective(QuestObjectiveType.KILL, "rpg_rat", 10,
                         BeaconTargets.staticLoc(new Location(world, 140, 69, -215))),
                 new QuestObjective(QuestObjectiveType.TALK, "npc" + NPC_ID + "_first", 1,
                         BeaconTargets.npc(NPC_ID))
@@ -31,7 +31,7 @@ public class SerasQuest extends Quest implements QuestScript, QuestCompletionScr
 
     private static final Map<Integer, List<String>> STAGE_DIALOGS = Map.of(
             2, List.of(
-                    "Seras|Not bad, those slimes won't be regrouping anytime soon.",
+                    "Seras|Not bad, those rats won't be regrouping anytime soon.",
                     "Seras|If you want to really help the town, head to the Stable Keeper and cull the wild roosters.",
                     "Seras|Once you've handled that, come back to me—I've got a much bigger slime problem in mind."));
 
@@ -43,7 +43,7 @@ public class SerasQuest extends Quest implements QuestScript, QuestCompletionScr
         super(
                 ID,
                 "Seras' Request (Part 1)",
-                "Help Seras clear the forest slimes around town.",
+                "Help Seras clear the plague rats around town.",
                 createObjectives(),
                 2,
                 List.of("newbeginning"),
@@ -55,7 +55,7 @@ public class SerasQuest extends Quest implements QuestScript, QuestCompletionScr
                         "Piwan sent you did he, ugh, that rascal is always giving me more trouble.",
                         "<player>|He told me you could give me some tasks to help out around here.",
                         "Yeah that's true, there's never a still moment in this village that's for sure.",
-                        "Follow this path, you'll come across some slimes that have been infesting the forest recently, kill 10 of those and bring back their cores and I'll give you a reward."
+                        "Follow this path, you'll come across some plague rats that have been infesting the forest recently, kill 10 of those and bring back their tails and I'll give you a reward."
                 ),
                 false,
                 true,
