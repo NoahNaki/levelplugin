@@ -69,6 +69,9 @@ public class SpawnEntityModelCommand implements CommandExecutor, TabCompleter {
         if (args.length >= 1 && args[0].equalsIgnoreCase("animdebug")) {
             return handleDebugAnimation(player, args);
         }
+        if (args.length >= 1 && args[0].equalsIgnoreCase("state")) {
+            return handleStateAnimation(player, args);
+        }
         if (args.length >= 1 && args[0].equalsIgnoreCase("inspect")) {
             return handleInspectAnimations(player, args);
         }
@@ -76,7 +79,7 @@ public class SpawnEntityModelCommand implements CommandExecutor, TabCompleter {
             return handleVerifyModel(player, args);
         }
         if (args.length < 2) {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "Usage: /se <entity> <model...> | /se anim <name|shoot|attack> [loop] | /se animdebug <name> [loop] | /se inspect [verbose] | /se verify <modelId> | /se list");
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "Usage: /se <entity> <model...> | /se anim <name|shoot|attack> [loop] | /se animdebug <name> [loop] | /se state <name> [holdTicks] | /se inspect [verbose] | /se verify <modelId> | /se list");
             return true;
         }
         if (!Bukkit.getPluginManager().isPluginEnabled("ModelEngine")) {
@@ -190,6 +193,13 @@ public class SpawnEntityModelCommand implements CommandExecutor, TabCompleter {
                     "Registry unsupported setups: " + (inspection.registryUnsupported().isEmpty() ? "(none)" : String.join(", ", inspection.registryUnsupported())));
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                     "Debug flow: /se animdebug <name> then /se anim <name> to compare resolution.");
+            plugin.getLogger().info("[SE/Inspect] player=" + player.getName()
+                    + " target=" + target.getType().name()
+                    + " runtime=" + String.join(", ", inspection.runtimeAnimations())
+                    + " blueprint=" + String.join(", ", inspection.blueprintAnimations())
+                    + " registry_keyframed=" + String.join(", ", inspection.registryKeyframed())
+                    + " registry_poses=" + String.join(", ", inspection.registryPoses())
+                    + " registry_unsupported=" + String.join(", ", inspection.registryUnsupported()));
         }
         return true;
     }
@@ -214,6 +224,43 @@ public class SpawnEntityModelCommand implements CommandExecutor, TabCompleter {
                 "Attempted: " + (result.attempted().isEmpty() ? "(none)" : String.join(", ", result.attempted())));
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                 "Available: " + (result.available().isEmpty() ? "(none)" : String.join(", ", result.available())));
+        plugin.getLogger().info("[SE/AnimDebug] player=" + player.getName()
+                + " target=" + target.getType().name()
+                + " requested=" + args[1]
+                + " success=" + result.success()
+                + " attempted=" + String.join(", ", result.attempted())
+                + " available=" + String.join(", ", result.available()));
+        return true;
+    }
+
+    private boolean handleStateAnimation(Player player, String[] args) {
+        if (args.length < 2) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "Usage: /se state <name> [holdTicks]");
+            return true;
+        }
+        Entity target = resolveAnimationTarget(player);
+        if (target == null) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING, "No modeled entity found. Look at one or spawn with /se first.");
+            return true;
+        }
+        String stateName = args[1];
+        long holdTicks = 20L;
+        if (args.length >= 3) {
+            try {
+                holdTicks = Math.max(1L, Long.parseLong(args[2]));
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        boolean applied = ModelEngineUtil.applyStateByName(target, stateName, holdTicks * 50L);
+        ChatMessageUtil.send(player, applied
+                        ? ChatMessageUtil.MessageType.SUCCESS
+                        : ChatMessageUtil.MessageType.WARNING,
+                "State '" + stateName + "' " + (applied ? "applied" : "failed") + " for " + holdTicks + " ticks.");
+        plugin.getLogger().info("[SE/State] player=" + player.getName()
+                + " target=" + target.getType().name()
+                + " state=" + stateName
+                + " holdTicks=" + holdTicks
+                + " applied=" + applied);
         return true;
     }
 
@@ -265,6 +312,7 @@ public class SpawnEntityModelCommand implements CommandExecutor, TabCompleter {
             options.add("list");
             options.add("anim");
             options.add("animdebug");
+            options.add("state");
             options.add("inspect");
             options.add("verify");
             return CommandUtil.filterStartingWith(options, args[0]);
@@ -280,6 +328,12 @@ public class SpawnEntityModelCommand implements CommandExecutor, TabCompleter {
         }
         if (args.length == 3 && args[0].equalsIgnoreCase("animdebug")) {
             return CommandUtil.filterStartingWith(List.of("true", "false"), args[2]);
+        }
+        if (args.length == 2 && args[0].equalsIgnoreCase("state")) {
+            return CommandUtil.filterStartingWith(List.of("idle", "walk", "attack", "shoot", "cast", "inferia", "superia", "bowtension"), args[1]);
+        }
+        if (args.length == 3 && args[0].equalsIgnoreCase("state")) {
+            return CommandUtil.filterStartingWith(List.of("20", "40", "60", "100"), args[2]);
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("inspect")) {
             return CommandUtil.filterStartingWith(List.of("verbose"), args[1]);

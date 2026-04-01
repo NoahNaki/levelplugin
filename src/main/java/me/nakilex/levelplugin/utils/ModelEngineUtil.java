@@ -491,6 +491,18 @@ public final class ModelEngineUtil {
         return keywords;
     }
 
+    public static boolean applyStateByName(Entity entity, String stateName, long holdMillis) {
+        if (entity == null || stateName == null || stateName.isBlank()) {
+            return false;
+        }
+        List<String> keywords = tokenizeAnimationKeywords(stateName);
+        String resolved = triggerActionStateResolved(entity, keywords, Math.max(0L, holdMillis), false);
+        if (resolved != null) {
+            return true;
+        }
+        return triggerActionState(entity, List.of("idle", "stand", "loop"), Math.max(0L, holdMillis), false);
+    }
+
     public static List<String> getRuntimeAnimationNames(Entity entity) {
         if (entity == null) {
             return List.of();
