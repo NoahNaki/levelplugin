@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -625,12 +626,24 @@ public final class ModelEngineUtil {
             }
             Class<?> handlerClass = handler.getClass();
             lines.add("handler=" + handlerClass.getName());
+            Set<String> signatureSet = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
             for (java.lang.reflect.Method method : handlerClass.getMethods()) {
                 String lower = method.getName().toLowerCase(Locale.ROOT);
                 if (!lower.contains("state")) {
                     continue;
                 }
-                lines.add(formatMethodSignature(method));
+                signatureSet.add(formatMethodSignature(method));
+            }
+            for (java.lang.reflect.Method method : handlerClass.getDeclaredMethods()) {
+                String lower = method.getName().toLowerCase(Locale.ROOT);
+                if (!lower.contains("state")) {
+                    continue;
+                }
+                signatureSet.add(formatMethodSignature(method) + " [declared]");
+            }
+            lines.addAll(signatureSet);
+            if (signatureSet.isEmpty()) {
+                lines.add("state methods=(none)");
             }
         }
         return lines.isEmpty() ? List.of() : List.copyOf(lines);
@@ -739,7 +752,10 @@ public final class ModelEngineUtil {
                     return null;
                 }
                 Object chosen = selectEnumConstant(constants, stateName);
-                args[i] = chosen != null ? chosen : constants[0];
+                if (chosen == null) {
+                    return null;
+                }
+                args[i] = chosen;
                 continue;
             }
             return null;
@@ -769,12 +785,36 @@ public final class ModelEngineUtil {
                 return constant;
             }
         }
+        String alias = aliasToModelStateName(stateName);
+        if (alias != null) {
+            for (Object constant : constants) {
+                if (constant != null && alias.equalsIgnoreCase(String.valueOf(constant))) {
+                    return constant;
+                }
+            }
+        }
         for (Object constant : constants) {
             if (constant != null && "true".equalsIgnoreCase(String.valueOf(constant))) {
                 return constant;
             }
         }
         return null;
+    }
+
+    private static String aliasToModelStateName(String token) {
+        if (token == null || token.isBlank()) {
+            return null;
+        }
+        String lower = token.toLowerCase(Locale.ROOT);
+        return switch (lower) {
+            case "idle", "stand", "standing" -> "IDLE";
+            case "walk", "run", "move", "moving" -> "WALK";
+            case "strafe" -> "STRAFE";
+            case "jump", "leap" -> "JUMP";
+            case "spawn", "summon" -> "SPAWN";
+            case "death", "die", "dead" -> "DEATH";
+            default -> null;
+        };
     }
 
     private static String formatMethodSignature(java.lang.reflect.Method method) {
@@ -1458,6 +1498,7 @@ public final class ModelEngineUtil {
         if (compatible == null) {
             return null;
         }
+        compatible.setAccessible(true);
         Object[] converted = convertArguments(compatible.getParameterTypes(), args);
         if (converted == null) {
             return null;
@@ -1477,7 +1518,11 @@ public final class ModelEngineUtil {
     }
 
     private static java.lang.reflect.Method findCompatibleMethod(Class<?> targetClass, String method, Object[] args) {
-        for (java.lang.reflect.Method candidate : targetClass.getMethods()) {
+        List<java.lang.reflect.Method> candidates = new ArrayList<>();
+        candidates.addAll(Arrays.asList(targetClass.getMethods()));
+        candidates.addAll(Arrays.asList(targetClass.getDeclaredMethods()));
+        candidates.sort(Comparator.comparingInt(java.lang.reflect.Method::getParameterCount));
+        for (java.lang.reflect.Method candidate : candidates) {
             if (!candidate.getName().equals(method) || candidate.getParameterCount() != args.length) {
                 continue;
             }
