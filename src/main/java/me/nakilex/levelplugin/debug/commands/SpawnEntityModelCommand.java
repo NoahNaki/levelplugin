@@ -238,7 +238,7 @@ public class SpawnEntityModelCommand implements CommandExecutor, TabCompleter {
 
     private boolean handleStateAnimation(Player player, String[] args) {
         if (args.length < 2) {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "Usage: /se state <name> [holdTicks]");
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "Usage: /se state <name> [holdTicks] [force]");
             return true;
         }
         Entity target = resolveAnimationTarget(player);

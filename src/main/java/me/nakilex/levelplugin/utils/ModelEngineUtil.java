@@ -635,26 +635,25 @@ public final class ModelEngineUtil {
                 "forceState",
                 "activateState"
         };
+        List<Object[]> argCandidates = List.of(
+                new Object[]{stateName},
+                new Object[]{stateName, true},
+                new Object[]{stateName, 0.0, 0.0, 1.0},
+                new Object[]{stateName, 0.0, 0.0, 1.0, true},
+                new Object[]{stateName, 0.0, 0.0, 1.0, false}
+        );
         for (String method : methodCandidates) {
-            try {
-                Object result = tryInvoke(handler, method, stateName);
-                if (Boolean.TRUE.equals(result) || "true".equalsIgnoreCase(String.valueOf(result))) {
-                    return true;
+            for (Object[] args : argCandidates) {
+                try {
+                    Object result = tryInvoke(handler, method, args);
+                    if (Boolean.TRUE.equals(result) || "true".equalsIgnoreCase(String.valueOf(result))) {
+                        return true;
+                    }
+                    if (isStateActiveReflective(handler, stateName)) {
+                        return true;
+                    }
+                } catch (ReflectiveOperationException ignored) {
                 }
-                if (result == null && isStateActiveReflective(handler, stateName)) {
-                    return true;
-                }
-            } catch (ReflectiveOperationException ignored) {
-            }
-            try {
-                Object result = tryInvoke(handler, method, stateName, true);
-                if (Boolean.TRUE.equals(result) || "true".equalsIgnoreCase(String.valueOf(result))) {
-                    return true;
-                }
-                if (result == null && isStateActiveReflective(handler, stateName)) {
-                    return true;
-                }
-            } catch (ReflectiveOperationException ignored) {
             }
         }
         return false;
@@ -1321,12 +1320,148 @@ public final class ModelEngineUtil {
         if (target == null) {
             return null;
         }
-        Class<?>[] types = Arrays.stream(args).map(Object::getClass).toArray(Class<?>[]::new);
+        if (args == null) {
+            args = new Object[0];
+        }
+        Class<?> targetClass = target.getClass();
+        java.lang.reflect.Method exact = findExactMethod(targetClass, method, args);
+        if (exact != null) {
+            return exact.invoke(target, args);
+        }
+        java.lang.reflect.Method compatible = findCompatibleMethod(targetClass, method, args);
+        if (compatible == null) {
+            return null;
+        }
+        Object[] converted = convertArguments(compatible.getParameterTypes(), args);
+        if (converted == null) {
+            return null;
+        }
+        return compatible.invoke(target, converted);
+    }
+
+    private static java.lang.reflect.Method findExactMethod(Class<?> targetClass, String method, Object[] args) {
+        Class<?>[] types = Arrays.stream(args)
+                .map(arg -> arg == null ? Object.class : arg.getClass())
+                .toArray(Class<?>[]::new);
         try {
-            return target.getClass().getMethod(method, types).invoke(target, args);
+            return targetClass.getMethod(method, types);
         } catch (NoSuchMethodException ignored) {
             return null;
         }
+    }
+
+    private static java.lang.reflect.Method findCompatibleMethod(Class<?> targetClass, String method, Object[] args) {
+        for (java.lang.reflect.Method candidate : targetClass.getMethods()) {
+            if (!candidate.getName().equals(method) || candidate.getParameterCount() != args.length) {
+                continue;
+            }
+            if (canConvertArguments(candidate.getParameterTypes(), args)) {
+                return candidate;
+            }
+        }
+        return null;
+    }
+
+    private static boolean canConvertArguments(Class<?>[] parameterTypes, Object[] args) {
+        for (int i = 0; i < parameterTypes.length; i++) {
+            if (!canConvertArgument(parameterTypes[i], args[i])) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static Object[] convertArguments(Class<?>[] parameterTypes, Object[] args) {
+        Object[] converted = new Object[args.length];
+        for (int i = 0; i < parameterTypes.length; i++) {
+            converted[i] = convertArgument(parameterTypes[i], args[i]);
+            if (converted[i] == INVALID_CONVERSION) {
+                return null;
+            }
+        }
+        return converted;
+    }
+
+    private static final Object INVALID_CONVERSION = new Object();
+
+    private static boolean canConvertArgument(Class<?> parameterType, Object arg) {
+        return convertArgument(parameterType, arg) != INVALID_CONVERSION;
+    }
+
+    private static Object convertArgument(Class<?> parameterType, Object arg) {
+        if (arg == null) {
+            return parameterType.isPrimitive() ? INVALID_CONVERSION : null;
+        }
+        Class<?> boxedType = wrapPrimitive(parameterType);
+        if (boxedType.isInstance(arg)) {
+            return arg;
+        }
+        if (boxedType.isEnum() && arg instanceof String text) {
+            for (Object constant : boxedType.getEnumConstants()) {
+                if (constant != null && text.equalsIgnoreCase(String.valueOf(constant))) {
+                    return constant;
+                }
+            }
+            return INVALID_CONVERSION;
+        }
+        if (Number.class.isAssignableFrom(boxedType) && arg instanceof Number number) {
+            if (boxedType == Integer.class) {
+                return number.intValue();
+            }
+            if (boxedType == Long.class) {
+                return number.longValue();
+            }
+            if (boxedType == Double.class) {
+                return number.doubleValue();
+            }
+            if (boxedType == Float.class) {
+                return number.floatValue();
+            }
+            if (boxedType == Short.class) {
+                return number.shortValue();
+            }
+            if (boxedType == Byte.class) {
+                return number.byteValue();
+            }
+        }
+        if (boxedType == Boolean.class && arg instanceof Boolean bool) {
+            return bool;
+        }
+        if (boxedType == String.class) {
+            return String.valueOf(arg);
+        }
+        return boxedType.isAssignableFrom(arg.getClass()) ? arg : INVALID_CONVERSION;
+    }
+
+    private static Class<?> wrapPrimitive(Class<?> type) {
+        if (type == null || !type.isPrimitive()) {
+            return type;
+        }
+        if (type == int.class) {
+            return Integer.class;
+        }
+        if (type == long.class) {
+            return Long.class;
+        }
+        if (type == double.class) {
+            return Double.class;
+        }
+        if (type == float.class) {
+            return Float.class;
+        }
+        if (type == short.class) {
+            return Short.class;
+        }
+        if (type == byte.class) {
+            return Byte.class;
+        }
+        if (type == boolean.class) {
+            return Boolean.class;
+        }
+        if (type == char.class) {
+            return Character.class;
+        }
+        return type;
     }
 
     private static ActiveModel coerceActiveModel(Object result) {
