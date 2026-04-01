@@ -147,6 +147,12 @@ public final class CustomMobSpellScriptEngine {
         saveBundledResourceIfPresent("custom_mob_spells/goblin_warrior_shield_rush.yml");
         saveBundledResourceIfPresent("custom_mob_spells/goblin_shaman_fireball.yml");
         saveBundledResourceIfPresent("custom_mob_spells/goblin_shaman_heal.yml");
+        saveBundledResourceIfPresent("custom_mob_spells/cinder_skeleton_melee_slash_1.yml");
+        saveBundledResourceIfPresent("custom_mob_spells/cinder_skeleton_melee_slash_2.yml");
+        saveBundledResourceIfPresent("custom_mob_spells/cinder_skeleton_halberdier_thrust.yml");
+        saveBundledResourceIfPresent("custom_mob_spells/cinder_skeleton_tank_shield_bash.yml");
+        saveBundledResourceIfPresent("custom_mob_spells/cinder_skeleton_archer_shot.yml");
+        saveBundledResourceIfPresent("custom_mob_spells/cinder_skeleton_wizard_fireball.yml");
     }
 
     private void saveBundledResourceIfPresent(String resourcePath) {

@@ -7,6 +7,9 @@ level-range:
 health: 5865
 boss: false
 
+models:
+  - cursed_archer.bbmodel
+
 stats:
   vitality: 0
   strength: 0

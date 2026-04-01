@@ -75,7 +75,14 @@ public class CustomMobManager {
             "custom_mobs/glacier_tyrant.yml",
             "custom_mobs/void_reaver.yml",
             "custom_mobs/rift_warden.yml",
-            "custom_mobs/astral_devourer.yml"
+            "custom_mobs/astral_devourer.yml",
+            "custom_mobs/cinder_skeleton_footman.yml",
+            "custom_mobs/cinder_skeleton_halberdier.yml",
+            "custom_mobs/cinder_skeleton_swordman.yml",
+            "custom_mobs/cinder_skeleton_tank.yml",
+            "custom_mobs/cinder_skeleton_warrior.yml",
+            "custom_mobs/cinder_skeleton_archer.yml",
+            "custom_mobs/cinder_skeleton_wizard.yml"
     );
     private static final ArcPattern STUN_PATTERN = new ArcPattern(
             Particle.CRIT,

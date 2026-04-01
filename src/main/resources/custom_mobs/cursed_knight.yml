@@ -7,6 +7,9 @@ level-range:
 health: 3935
 boss: false
 
+models:
+  - cursed_knight.bbmodel
+
 stats:
   vitality: 0
   strength: 0

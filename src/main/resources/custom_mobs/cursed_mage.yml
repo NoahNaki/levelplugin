@@ -7,6 +7,9 @@ level-range:
 health: 8253
 boss: false
 
+models:
+  - cursed_mage.bbmodel
+
 stats:
   vitality: 0
   strength: 0
