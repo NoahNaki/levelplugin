@@ -516,7 +516,7 @@ public final class ModelEngineUtil {
                     continue;
                 }
                 handler.prepare();
-                if (attemptApplyStateByReflection(handler, stateName)) {
+                if (attemptApplyStateByReflection(handler, stateName, plugin)) {
                     holdActionState(entity, Math.max(0L, holdMillis));
                     return true;
                 }
@@ -699,7 +699,7 @@ public final class ModelEngineUtil {
         return true;
     }
 
-    private static boolean attemptApplyStateByReflection(AnimationHandler handler, String stateName) {
+    private static boolean attemptApplyStateByReflection(AnimationHandler handler, String stateName, Plugin plugin) {
         if (handler == null || stateName == null || stateName.isBlank()) {
             return false;
         }
@@ -729,16 +729,17 @@ public final class ModelEngineUtil {
                         return true;
                     }
                 } catch (ReflectiveOperationException ignored) {
+                    logStateDebug(plugin, handler, method, args, ignored);
                 }
             }
-            if (invokeStateMethodOverloads(handler, method, stateName) && isStateActiveReflective(handler, stateName)) {
+            if (invokeStateMethodOverloads(handler, method, stateName, plugin) && isStateActiveReflective(handler, stateName)) {
                 return true;
             }
         }
         return false;
     }
 
-    private static boolean invokeStateMethodOverloads(AnimationHandler handler, String methodName, String stateName) {
+    private static boolean invokeStateMethodOverloads(AnimationHandler handler, String methodName, String stateName, Plugin plugin) {
         if (handler == null || methodName == null || methodName.isBlank() || stateName == null || stateName.isBlank()) {
             return false;
         }
@@ -765,9 +766,32 @@ public final class ModelEngineUtil {
                 }
                 invoked = true;
             } catch (ReflectiveOperationException ignored) {
+                logStateDebug(plugin, handler, method.getName(), defaults, ignored);
             }
         }
         return invoked;
+    }
+
+    private static void logStateDebug(Plugin plugin,
+                                      AnimationHandler handler,
+                                      String methodName,
+                                      Object[] args,
+                                      ReflectiveOperationException ex) {
+        if (plugin == null || handler == null) {
+            return;
+        }
+        Throwable cause = ex instanceof java.lang.reflect.InvocationTargetException ite && ite.getCause() != null
+                ? ite.getCause()
+                : ex;
+        String argText = args == null ? "" : Arrays.stream(args)
+                .map(arg -> arg == null ? "null" : arg + ":" + arg.getClass().getSimpleName())
+                .reduce((a, b) -> a + ", " + b)
+                .orElse("");
+        plugin.getLogger().info("[ModelStateDebug] invoke failed handler=" + handler.getClass().getName()
+                + " method=" + methodName
+                + " args=[" + argText + "]"
+                + " error=" + cause.getClass().getSimpleName()
+                + ": " + (cause.getMessage() == null ? "(no message)" : cause.getMessage()));
     }
 
     private static Object[] defaultArgumentsForStateMethod(Class<?>[] parameterTypes, String stateName) {
