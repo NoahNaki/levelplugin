@@ -495,12 +495,76 @@ public final class ModelEngineUtil {
         if (entity == null || stateName == null || stateName.isBlank()) {
             return false;
         }
+        ModeledEntity modeledEntity = ModelEngineAPI.getModeledEntity(entity);
+        if (modeledEntity != null && !modeledEntity.getModels().isEmpty()) {
+            for (ActiveModel model : modeledEntity.getModels().values()) {
+                AnimationHandler handler = model.getAnimationHandler();
+                if (handler == null) {
+                    continue;
+                }
+                handler.prepare();
+                if (attemptApplyStateByReflection(handler, stateName)) {
+                    holdActionState(entity, Math.max(0L, holdMillis));
+                    return true;
+                }
+            }
+        }
         List<String> keywords = tokenizeAnimationKeywords(stateName);
         String resolved = triggerActionStateResolved(entity, keywords, Math.max(0L, holdMillis), false);
         if (resolved != null) {
             return true;
         }
-        return triggerActionState(entity, List.of("idle", "stand", "loop"), Math.max(0L, holdMillis), false);
+        boolean baseline = triggerActionState(entity, List.of("idle", "stand", "loop"), Math.max(0L, holdMillis), false);
+        if (!baseline && modeledEntity != null) {
+            for (ActiveModel model : modeledEntity.getModels().values()) {
+                AnimationHandler handler = model.getAnimationHandler();
+                if (handler == null) {
+                    continue;
+                }
+                List<String> stateLikeMethods = Arrays.stream(handler.getClass().getMethods())
+                        .map(java.lang.reflect.Method::getName)
+                        .filter(name -> name.toLowerCase(Locale.ROOT).contains("state"))
+                        .distinct()
+                        .sorted(String.CASE_INSENSITIVE_ORDER)
+                        .toList();
+                if (!stateLikeMethods.isEmpty()) {
+                    Bukkit.getLogger().info("[ModelStateDebug] handler=" + handler.getClass().getName()
+                            + " availableStateMethods=" + String.join(", ", stateLikeMethods));
+                }
+            }
+        }
+        return baseline;
+    }
+
+    private static boolean attemptApplyStateByReflection(AnimationHandler handler, String stateName) {
+        if (handler == null || stateName == null || stateName.isBlank()) {
+            return false;
+        }
+        String[] methodCandidates = {
+                "addState",
+                "setState",
+                "playState",
+                "triggerState",
+                "forceState",
+                "activateState"
+        };
+        for (String method : methodCandidates) {
+            try {
+                Object result = tryInvoke(handler, method, stateName);
+                if (result == null || Boolean.TRUE.equals(result) || "true".equalsIgnoreCase(String.valueOf(result))) {
+                    return true;
+                }
+            } catch (ReflectiveOperationException ignored) {
+            }
+            try {
+                Object result = tryInvoke(handler, method, stateName, true);
+                if (result == null || Boolean.TRUE.equals(result) || "true".equalsIgnoreCase(String.valueOf(result))) {
+                    return true;
+                }
+            } catch (ReflectiveOperationException ignored) {
+            }
+        }
+        return false;
     }
 
     public static List<String> getRuntimeAnimationNames(Entity entity) {
