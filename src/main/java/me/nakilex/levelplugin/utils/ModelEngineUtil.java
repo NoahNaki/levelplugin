@@ -522,6 +522,10 @@ public final class ModelEngineUtil {
                     holdActionState(entity, Math.max(0L, holdMillis));
                     return true;
                 }
+                if (tryPlayBoundStateAnimation(model, handler, stateName)) {
+                    holdActionState(entity, Math.max(0L, holdMillis));
+                    return true;
+                }
             }
         }
         List<String> keywords = tokenizeAnimationKeywords(stateName);
@@ -777,6 +781,46 @@ public final class ModelEngineUtil {
         } catch (ReflectiveOperationException ignored) {
         }
         return true;
+    }
+
+    private static boolean tryPlayBoundStateAnimation(ActiveModel model, AnimationHandler handler, String stateName) {
+        if (model == null || handler == null || stateName == null || stateName.isBlank()) {
+            return false;
+        }
+        ModelState resolved = resolveModelState(stateName);
+        if (resolved == null) {
+            return false;
+        }
+        try {
+            AnimationHandler.DefaultProperty property = handler.getDefaultProperty(resolved);
+            if (property == null || property.getAnimation() == null || property.getAnimation().isBlank()) {
+                return false;
+            }
+            return attemptPlayAnimation(handler, model, property.getAnimation(), true);
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
+    private static ModelState resolveModelState(String token) {
+        if (token == null || token.isBlank()) {
+            return null;
+        }
+        for (ModelState state : ModelState.values()) {
+            if (state.name().equalsIgnoreCase(token)) {
+                return state;
+            }
+        }
+        String alias = aliasToModelStateName(token);
+        if (alias == null) {
+            return null;
+        }
+        for (ModelState state : ModelState.values()) {
+            if (state.name().equalsIgnoreCase(alias)) {
+                return state;
+            }
+        }
+        return null;
     }
 
     private static boolean attemptApplyStateByReflection(AnimationHandler handler, String stateName, Plugin plugin) {
