@@ -22,6 +22,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.LinkedHashMap;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
@@ -683,6 +684,34 @@ public final class ModelEngineUtil {
             }
         }
         return names.isEmpty() ? List.of() : List.copyOf(names);
+    }
+
+    public static Map<String, String> getStateDefaultAnimationBindings(Entity entity) {
+        if (entity == null) {
+            return Map.of();
+        }
+        ModeledEntity modeledEntity = ModelEngineAPI.getModeledEntity(entity);
+        if (modeledEntity == null || modeledEntity.getModels().isEmpty()) {
+            return Map.of();
+        }
+        Map<String, String> bindings = new LinkedHashMap<>();
+        for (ActiveModel model : modeledEntity.getModels().values()) {
+            AnimationHandler handler = model.getAnimationHandler();
+            if (handler == null) {
+                continue;
+            }
+            for (ModelState state : ModelState.values()) {
+                try {
+                    AnimationHandler.DefaultProperty property = handler.getDefaultProperty(state);
+                    if (property == null || property.getAnimation() == null || property.getAnimation().isBlank()) {
+                        continue;
+                    }
+                    bindings.putIfAbsent(state.name(), property.getAnimation());
+                } catch (Exception ignored) {
+                }
+            }
+        }
+        return bindings.isEmpty() ? Map.of() : Map.copyOf(bindings);
     }
 
     private static boolean isModelInitializedReflective(ActiveModel model) {

@@ -308,6 +308,7 @@ public class SpawnEntityModelCommand implements CommandExecutor, TabCompleter {
         }
         List<String> signatures = ModelEngineUtil.describeStateHandlerSignatures(target);
         List<String> modelStates = ModelEngineUtil.getPlayableModelStateNames(target);
+        Map<String, String> stateBindings = ModelEngineUtil.getStateDefaultAnimationBindings(target);
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                 "State API signatures logged to console (" + signatures.size() + " lines).");
         if (signatures.isEmpty()) {
@@ -321,6 +322,10 @@ public class SpawnEntityModelCommand implements CommandExecutor, TabCompleter {
         }
         plugin.getLogger().info("[SE/StateApi] modelStates="
                 + (modelStates.isEmpty() ? "(none)" : String.join(", ", modelStates)));
+        plugin.getLogger().info("[SE/StateApi] defaultStateBindings="
+                + (stateBindings.isEmpty() ? "(none)" : stateBindings.entrySet().stream()
+                .map(entry -> entry.getKey() + "->" + entry.getValue())
+                .reduce((a, b) -> a + ", " + b).orElse("(none)")));
         return true;
     }
 
