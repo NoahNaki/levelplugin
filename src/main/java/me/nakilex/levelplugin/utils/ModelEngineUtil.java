@@ -53,6 +53,14 @@ public final class ModelEngineUtil {
                                       List<String> registryUnsupported) {
     }
 
+    public record ModelPresenceReport(String requestedModelId,
+                                      List<String> candidateIds,
+                                      List<String> runtimeMatches,
+                                      List<String> blueprintMatches,
+                                      boolean inRegistry,
+                                      BbModelAnimationRegistry.ImportedModelSummary registrySummary) {
+    }
+
     private static final Map<String, List<String>> PRELOADED_RUNTIME_ANIMATIONS = new ConcurrentHashMap<>();
     private static final Map<UUID, AnimationControllerState> ANIMATION_CONTROLLER_STATES = new ConcurrentHashMap<>();
 
@@ -129,6 +137,56 @@ public final class ModelEngineUtil {
             return List.of();
         }
         return PRELOADED_RUNTIME_ANIMATIONS.getOrDefault(modelId.toLowerCase(Locale.ROOT), List.of());
+    }
+
+    public static ModelPresenceReport inspectModelPresence(Plugin plugin, String requestedModelId) {
+        if (requestedModelId == null || requestedModelId.isBlank()) {
+            return new ModelPresenceReport("", List.of(), List.of(), List.of(), false, null);
+        }
+        List<String> candidates = buildModelCandidates(requestedModelId);
+        List<String> runtimeIds = getModelIdsSafely(plugin);
+        List<String> blueprintIds = getBlueprintModelIds(plugin);
+        List<String> runtimeMatches = new ArrayList<>();
+        List<String> blueprintMatches = new ArrayList<>();
+        for (String candidate : candidates) {
+            if (containsIgnoreCase(runtimeIds, candidate)) {
+                runtimeMatches.add(candidate);
+            }
+            if (containsIgnoreCase(blueprintIds, candidate)) {
+                blueprintMatches.add(candidate);
+            }
+        }
+        BbModelAnimationRegistry.ImportedModelSummary summary = BbModelAnimationRegistry.getSummary(requestedModelId);
+        boolean inRegistry = summary != null || BbModelAnimationRegistry.hasModel(requestedModelId);
+        return new ModelPresenceReport(
+                requestedModelId,
+                List.copyOf(candidates),
+                List.copyOf(runtimeMatches),
+                List.copyOf(blueprintMatches),
+                inRegistry,
+                summary
+        );
+    }
+
+    public static void logModelPresenceReport(Plugin plugin, String requestedModelId) {
+        if (plugin == null) {
+            return;
+        }
+        ModelPresenceReport report = inspectModelPresence(plugin, requestedModelId);
+        plugin.getLogger().info("[ModelVerify] requested=" + report.requestedModelId()
+                + " candidates=" + String.join(", ", report.candidateIds()));
+        plugin.getLogger().info("[ModelVerify] runtime matches="
+                + (report.runtimeMatches().isEmpty() ? "(none)" : String.join(", ", report.runtimeMatches())));
+        plugin.getLogger().info("[ModelVerify] blueprint matches="
+                + (report.blueprintMatches().isEmpty() ? "(none)" : String.join(", ", report.blueprintMatches())));
+        plugin.getLogger().info("[ModelVerify] registry loaded=" + report.inRegistry());
+        if (report.registrySummary() != null) {
+            plugin.getLogger().info("[ModelVerify] registry summary explicit=" + report.registrySummary().explicitClipCount()
+                    + ", timeline_setups=" + report.registrySummary().timelineSetupCount()
+                    + ", keyframed=" + report.registrySummary().keyframedClipNames().size()
+                    + ", poses=" + report.registrySummary().poseClipNames().size()
+                    + ", unsupported=" + report.registrySummary().unsupportedSetupNames().size());
+        }
     }
 
     public static void setMovingState(Entity entity, boolean moving) {

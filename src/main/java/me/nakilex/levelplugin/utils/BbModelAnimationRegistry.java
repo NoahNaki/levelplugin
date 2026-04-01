@@ -141,6 +141,17 @@ public final class BbModelAnimationRegistry {
         );
     }
 
+    public static boolean hasModel(String modelId) {
+        return getImportedModel(modelId) != null;
+    }
+
+    public static List<String> getKnownModelIds() {
+        if (CACHE.isEmpty()) {
+            return List.of();
+        }
+        return new ArrayList<>(new java.util.TreeSet<>(CACHE.keySet()));
+    }
+
     private static ImportedModel getImportedModel(String modelId) {
         if (modelId == null || modelId.isBlank()) {
             return null;

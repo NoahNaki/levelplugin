@@ -72,8 +72,11 @@ public class SpawnEntityModelCommand implements CommandExecutor, TabCompleter {
         if (args.length >= 1 && args[0].equalsIgnoreCase("inspect")) {
             return handleInspectAnimations(player, args);
         }
+        if (args.length >= 1 && args[0].equalsIgnoreCase("verify")) {
+            return handleVerifyModel(player, args);
+        }
         if (args.length < 2) {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "Usage: /se <entity> <model...> | /se anim <name|shoot|attack> [loop] | /se animdebug <name> [loop] | /se inspect [verbose] | /se list");
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "Usage: /se <entity> <model...> | /se anim <name|shoot|attack> [loop] | /se animdebug <name> [loop] | /se inspect [verbose] | /se verify <modelId> | /se list");
             return true;
         }
         if (!Bukkit.getPluginManager().isPluginEnabled("ModelEngine")) {
@@ -214,6 +217,25 @@ public class SpawnEntityModelCommand implements CommandExecutor, TabCompleter {
         return true;
     }
 
+    private boolean handleVerifyModel(Player player, String[] args) {
+        if (args.length < 2) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "Usage: /se verify <modelId>");
+            return true;
+        }
+        String modelId = args[1];
+        ModelEngineUtil.logModelPresenceReport(plugin, modelId);
+        ModelEngineUtil.ModelPresenceReport report = ModelEngineUtil.inspectModelPresence(plugin, modelId);
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                "Verification logged to console for '" + modelId + "'.");
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                "Runtime matches: " + (report.runtimeMatches().isEmpty() ? "(none)" : String.join(", ", report.runtimeMatches())));
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                "Blueprint matches: " + (report.blueprintMatches().isEmpty() ? "(none)" : String.join(", ", report.blueprintMatches())));
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                "Registry loaded: " + report.inRegistry());
+        return true;
+    }
+
     private Entity resolveAnimationTarget(Player player) {
         Entity lookedAt = player.getTargetEntity(16);
         if (lookedAt != null && !ModelEngineUtil.getAvailableAnimationNames(lookedAt).isEmpty()) {
@@ -244,6 +266,7 @@ public class SpawnEntityModelCommand implements CommandExecutor, TabCompleter {
             options.add("anim");
             options.add("animdebug");
             options.add("inspect");
+            options.add("verify");
             return CommandUtil.filterStartingWith(options, args[0]);
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("anim")) {
@@ -260,6 +283,11 @@ public class SpawnEntityModelCommand implements CommandExecutor, TabCompleter {
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("inspect")) {
             return CommandUtil.filterStartingWith(List.of("verbose"), args[1]);
+        }
+        if (args.length == 2 && args[0].equalsIgnoreCase("verify")) {
+            List<String> models = new ArrayList<>(ModelEngineUtil.getModelIdsSafely(plugin));
+            models.addAll(ModelEngineUtil.getBlueprintModelIds(plugin));
+            return CommandUtil.filterStartingWith(models, args[1]);
         }
         if (args.length >= 2 && Bukkit.getPluginManager().isPluginEnabled("ModelEngine")) {
             try {
