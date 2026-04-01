@@ -548,6 +548,67 @@ public final class ModelEngineUtil {
         return baseline;
     }
 
+    public static boolean removeStateByName(Entity entity, String stateName) {
+        if (entity == null || stateName == null || stateName.isBlank()) {
+            return false;
+        }
+        ModeledEntity modeledEntity = ModelEngineAPI.getModeledEntity(entity);
+        if (modeledEntity == null || modeledEntity.getModels().isEmpty()) {
+            return false;
+        }
+        boolean removed = false;
+        for (ActiveModel model : modeledEntity.getModels().values()) {
+            AnimationHandler handler = model.getAnimationHandler();
+            if (handler == null) {
+                continue;
+            }
+            try {
+                tryInvoke(handler, "removeState", stateName);
+                removed = true;
+            } catch (ReflectiveOperationException ignored) {
+            }
+        }
+        return removed;
+    }
+
+    public static List<String> getActiveStates(Entity entity) {
+        if (entity == null) {
+            return List.of();
+        }
+        ModeledEntity modeledEntity = ModelEngineAPI.getModeledEntity(entity);
+        if (modeledEntity == null || modeledEntity.getModels().isEmpty()) {
+            return List.of();
+        }
+        Set<String> states = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+        for (ActiveModel model : modeledEntity.getModels().values()) {
+            AnimationHandler handler = model.getAnimationHandler();
+            if (handler == null) {
+                continue;
+            }
+            String[] methods = {"getStates", "getActiveStates", "states", "activeStates"};
+            for (String method : methods) {
+                try {
+                    Object result = tryInvoke(handler, method);
+                    if (result instanceof Collection<?> collection) {
+                        for (Object entry : collection) {
+                            if (entry != null) {
+                                states.add(String.valueOf(entry));
+                            }
+                        }
+                    } else if (result instanceof Map<?, ?> map) {
+                        for (Object key : map.keySet()) {
+                            if (key != null) {
+                                states.add(String.valueOf(key));
+                            }
+                        }
+                    }
+                } catch (ReflectiveOperationException ignored) {
+                }
+            }
+        }
+        return states.isEmpty() ? List.of() : List.copyOf(states);
+    }
+
     private static boolean isModelInitializedReflective(ActiveModel model) {
         if (model == null) {
             return false;

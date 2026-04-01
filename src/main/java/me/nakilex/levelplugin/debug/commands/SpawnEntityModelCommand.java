@@ -72,6 +72,9 @@ public class SpawnEntityModelCommand implements CommandExecutor, TabCompleter {
         if (args.length >= 1 && args[0].equalsIgnoreCase("state")) {
             return handleStateAnimation(player, args);
         }
+        if (args.length >= 1 && args[0].equalsIgnoreCase("states")) {
+            return handleListStates(player);
+        }
         if (args.length >= 1 && args[0].equalsIgnoreCase("inspect")) {
             return handleInspectAnimations(player, args);
         }
@@ -79,7 +82,7 @@ public class SpawnEntityModelCommand implements CommandExecutor, TabCompleter {
             return handleVerifyModel(player, args);
         }
         if (args.length < 2) {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "Usage: /se <entity> <model...> | /se anim <name|shoot|attack> [loop] | /se animdebug <name> [loop] | /se state <name> [holdTicks] | /se inspect [verbose] | /se verify <modelId> | /se list");
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "Usage: /se <entity> <model...> | /se anim <name|shoot|attack> [loop] | /se animdebug <name> [loop] | /se state <name> [holdTicks] [force] | /se states | /se inspect [verbose] | /se verify <modelId> | /se list");
             return true;
         }
         if (!Bukkit.getPluginManager().isPluginEnabled("ModelEngine")) {
@@ -251,16 +254,39 @@ public class SpawnEntityModelCommand implements CommandExecutor, TabCompleter {
             } catch (NumberFormatException ignored) {
             }
         }
+        boolean forceOverride = args.length >= 4 && Boolean.parseBoolean(args[3]);
+        if (forceOverride) {
+            ModelEngineUtil.removeStateByName(target, "idle");
+            ModelEngineUtil.removeStateByName(target, "walk");
+        }
         boolean applied = ModelEngineUtil.applyStateByName(target, stateName, holdTicks * 50L, plugin);
         ChatMessageUtil.send(player, applied
                         ? ChatMessageUtil.MessageType.SUCCESS
                         : ChatMessageUtil.MessageType.WARNING,
-                "State '" + stateName + "' " + (applied ? "applied" : "failed") + " for " + holdTicks + " ticks.");
+                "State '" + stateName + "' " + (applied ? "applied" : "failed") + " for " + holdTicks + " ticks"
+                        + (forceOverride ? " (force base remove)" : "") + ".");
         plugin.getLogger().info("[SE/State] player=" + player.getName()
                 + " target=" + target.getType().name()
                 + " state=" + stateName
                 + " holdTicks=" + holdTicks
-                + " applied=" + applied);
+                + " forceOverride=" + forceOverride
+                + " applied=" + applied
+                + " activeStates=" + String.join(", ", ModelEngineUtil.getActiveStates(target)));
+        return true;
+    }
+
+    private boolean handleListStates(Player player) {
+        Entity target = resolveAnimationTarget(player);
+        if (target == null) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING, "No modeled entity found. Look at one or spawn with /se first.");
+            return true;
+        }
+        List<String> states = ModelEngineUtil.getActiveStates(target);
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                "Active states: " + (states.isEmpty() ? "(none)" : String.join(", ", states)));
+        plugin.getLogger().info("[SE/States] player=" + player.getName()
+                + " target=" + target.getType().name()
+                + " states=" + String.join(", ", states));
         return true;
     }
 
@@ -313,6 +339,7 @@ public class SpawnEntityModelCommand implements CommandExecutor, TabCompleter {
             options.add("anim");
             options.add("animdebug");
             options.add("state");
+            options.add("states");
             options.add("inspect");
             options.add("verify");
             return CommandUtil.filterStartingWith(options, args[0]);
@@ -334,6 +361,9 @@ public class SpawnEntityModelCommand implements CommandExecutor, TabCompleter {
         }
         if (args.length == 3 && args[0].equalsIgnoreCase("state")) {
             return CommandUtil.filterStartingWith(List.of("20", "40", "60", "100"), args[2]);
+        }
+        if (args.length == 4 && args[0].equalsIgnoreCase("state")) {
+            return CommandUtil.filterStartingWith(List.of("false", "true"), args[3]);
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("inspect")) {
             return CommandUtil.filterStartingWith(List.of("verbose"), args[1]);
