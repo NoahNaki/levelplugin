@@ -734,6 +734,37 @@ public final class ModelEngineUtil {
         return bindings.isEmpty() ? Map.of() : Map.copyOf(bindings);
     }
 
+    public static Map<String, String> getStateBindingAvailability(Entity entity) {
+        if (entity == null) {
+            return Map.of();
+        }
+        ModeledEntity modeledEntity = ModelEngineAPI.getModeledEntity(entity);
+        if (modeledEntity == null || modeledEntity.getModels().isEmpty()) {
+            return Map.of();
+        }
+        Map<String, String> availability = new LinkedHashMap<>();
+        for (ActiveModel model : modeledEntity.getModels().values()) {
+            AnimationHandler handler = model.getAnimationHandler();
+            if (handler == null) {
+                continue;
+            }
+            Map<String, ?> runtimeAnimations = handler.getAnimations();
+            for (ModelState state : ModelState.values()) {
+                try {
+                    AnimationHandler.DefaultProperty property = handler.getDefaultProperty(state);
+                    if (property == null || property.getAnimation() == null || property.getAnimation().isBlank()) {
+                        continue;
+                    }
+                    String animation = property.getAnimation();
+                    boolean present = runtimeAnimations != null && runtimeAnimations.containsKey(animation);
+                    availability.putIfAbsent(state.name(), animation + (present ? " [runtime]" : " [missing]"));
+                } catch (Exception ignored) {
+                }
+            }
+        }
+        return availability.isEmpty() ? Map.of() : Map.copyOf(availability);
+    }
+
     private static boolean isModelInitializedReflective(ActiveModel model) {
         if (model == null) {
             return false;
