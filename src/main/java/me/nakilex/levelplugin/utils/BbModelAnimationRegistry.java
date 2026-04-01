@@ -168,7 +168,7 @@ public final class BbModelAnimationRegistry {
             String json = Files.readString(file.toPath(), StandardCharsets.UTF_8);
             Map<String, AnimationClip> clips = new LinkedHashMap<>();
 
-            List<String> explicit = extractNamesFromContainer(json, "animations");
+            List<String> explicit = extractAnimationNames(json);
             int explicitImported = 0;
             for (String name : explicit) {
                 if (isPlaceholderAnimationName(name)) {
@@ -184,7 +184,7 @@ public final class BbModelAnimationRegistry {
                 explicitImported++;
             }
 
-            List<String> timelineSetups = extractNamesFromContainer(json, "timeline_setups");
+            List<String> timelineSetups = extractTimelineSetupNames(json);
             int convertedToPoses = 0;
             for (String name : timelineSetups) {
                 String key = name.toLowerCase(Locale.ROOT);
@@ -218,17 +218,29 @@ public final class BbModelAnimationRegistry {
         }
     }
 
-    private static List<String> extractNamesFromContainer(String json, String rootKey) {
-        if (json == null || json.isBlank()) {
-            return List.of();
-        }
-        String payload = extractContainerPayload(json, rootKey);
+    private static List<String> extractAnimationNames(String json) {
+        String payload = extractContainerPayload(json, "animations");
         if (payload == null || payload.isBlank()) {
             return List.of();
         }
         Set<String> names = new LinkedHashSet<>();
-        names.addAll(extractObjectKeys(payload));
-        names.addAll(extractQuotedFieldValues(payload, "name"));
+        if (payload.charAt(0) == '{') {
+            names.addAll(extractObjectKeys(payload));
+        }
+        names.addAll(extractTopLevelFieldValues(payload, "name"));
+        return new ArrayList<>(names);
+    }
+
+    private static List<String> extractTimelineSetupNames(String json) {
+        String payload = extractContainerPayload(json, "timeline_setups");
+        if (payload == null || payload.isBlank()) {
+            return List.of();
+        }
+        Set<String> names = new LinkedHashSet<>();
+        if (payload.charAt(0) == '{') {
+            names.addAll(extractObjectKeys(payload));
+        }
+        names.addAll(extractTopLevelFieldValues(payload, "name"));
         return new ArrayList<>(names);
     }
 
@@ -285,46 +297,66 @@ public final class BbModelAnimationRegistry {
         return null;
     }
 
-    private static List<String> extractQuotedFieldValues(String payload, String field) {
-        if (payload == null || payload.isBlank()) {
+    private static List<String> extractTopLevelFieldValues(String payload, String field) {
+        if (payload == null || payload.isBlank() || field == null || field.isBlank()) {
             return List.of();
         }
         String needle = "\"" + field + "\"";
         Set<String> values = new LinkedHashSet<>();
-        int index = 0;
-        while (index >= 0 && index < payload.length()) {
-            int keyAt = payload.indexOf(needle, index);
-            if (keyAt < 0) {
-                break;
-            }
-            int colon = payload.indexOf(':', keyAt + needle.length());
-            if (colon < 0) {
-                break;
-            }
-            int quoteStart = payload.indexOf('"', colon + 1);
-            if (quoteStart < 0) {
-                break;
-            }
-            int quoteEnd = quoteStart + 1;
-            boolean escaping = false;
-            while (quoteEnd < payload.length()) {
-                char c = payload.charAt(quoteEnd);
+        int depth = 0;
+        boolean inString = false;
+        boolean escaping = false;
+        for (int i = 0; i < payload.length(); i++) {
+            char c = payload.charAt(i);
+            if (inString) {
                 if (escaping) {
                     escaping = false;
                 } else if (c == '\\') {
                     escaping = true;
                 } else if (c == '"') {
-                    break;
+                    inString = false;
                 }
-                quoteEnd++;
+                continue;
             }
-            if (quoteEnd < payload.length()) {
-                String value = payload.substring(quoteStart + 1, quoteEnd).trim();
-                if (!value.isBlank()) {
-                    values.add(value);
+            if (c == '"') {
+                inString = true;
+                continue;
+            }
+            if (c == '{' || c == '[') {
+                depth++;
+            } else if (c == '}' || c == ']') {
+                depth--;
+            }
+            if (depth <= 1 && payload.startsWith(needle, i)) {
+                int colon = payload.indexOf(':', i + needle.length());
+                if (colon < 0) {
+                    continue;
                 }
+                int quoteStart = payload.indexOf('"', colon + 1);
+                if (quoteStart < 0) {
+                    continue;
+                }
+                int quoteEnd = quoteStart + 1;
+                boolean esc = false;
+                while (quoteEnd < payload.length()) {
+                    char qc = payload.charAt(quoteEnd);
+                    if (esc) {
+                        esc = false;
+                    } else if (qc == '\\') {
+                        esc = true;
+                    } else if (qc == '"') {
+                        break;
+                    }
+                    quoteEnd++;
+                }
+                if (quoteEnd < payload.length()) {
+                    String value = payload.substring(quoteStart + 1, quoteEnd).trim();
+                    if (!value.isBlank()) {
+                        values.add(value);
+                    }
+                }
+                i = quoteEnd;
             }
-            index = quoteEnd + 1;
         }
         return new ArrayList<>(values);
     }
