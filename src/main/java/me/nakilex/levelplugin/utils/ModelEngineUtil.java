@@ -83,8 +83,9 @@ public final class ModelEngineUtil {
             return List.of();
         }
         Set<String> ids = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
-        try (Stream<java.nio.file.Path> paths = java.nio.file.Files.list(blueprintsDir.toPath())) {
+        try (Stream<java.nio.file.Path> paths = java.nio.file.Files.walk(blueprintsDir.toPath())) {
             paths.filter(path -> path.getFileName() != null)
+                    .filter(java.nio.file.Files::isRegularFile)
                     .map(path -> path.getFileName().toString())
                     .filter(name -> name.toLowerCase(Locale.ROOT).endsWith(".bbmodel"))
                     .map(name -> name.substring(0, name.length() - ".bbmodel".length()))

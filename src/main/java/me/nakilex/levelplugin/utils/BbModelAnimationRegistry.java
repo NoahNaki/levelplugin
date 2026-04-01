@@ -73,7 +73,7 @@ public final class BbModelAnimationRegistry {
         if (!blueprintsDir.exists() || !blueprintsDir.isDirectory()) {
             return;
         }
-        try (Stream<java.nio.file.Path> files = Files.list(blueprintsDir.toPath())) {
+        try (Stream<java.nio.file.Path> files = Files.walk(blueprintsDir.toPath())) {
             files.filter(Files::isRegularFile)
                     .filter(path -> path.getFileName() != null
                             && path.getFileName().toString().toLowerCase(Locale.ROOT).endsWith(".bbmodel"))
