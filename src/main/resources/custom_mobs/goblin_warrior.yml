@@ -1,0 +1,59 @@
+id: goblin_warrior
+type: VINDICATOR
+display: "&aGoblin Warrior"
+level-range:
+  min: 8
+  max: 8
+health: 110
+boss: false
+
+models:
+  - mob_goblin_warrior.bbmodel
+
+stats:
+  vitality: 0
+  strength: 0
+  agility: 0
+  intelligence: 0
+  dexterity: 0
+  will: 0
+  technique: 0
+
+spells:
+  sword_slam:
+    id: goblin_warrior_sword_slam
+    script: goblin_warrior_sword_slam
+    selection-group: attack
+    selection-weight: 1.0
+    interval-ticks: 80
+    gcd-ticks: 80
+    damage: 9.0
+    min-range: 0.0
+    max-range: 4.5
+    require-line-of-sight: true
+    range: 6.0
+    speed: 1.0
+    burn-ticks: 0
+  shield_rush:
+    id: goblin_warrior_shield_rush
+    script: goblin_warrior_shield_rush
+    selection-group: attack
+    selection-weight: 1.0
+    interval-ticks: 120
+    gcd-ticks: 82
+    damage: 7.0
+    min-range: 0.0
+    max-range: 10.0
+    require-line-of-sight: true
+    range: 10.0
+    speed: 1.0
+    burn-ticks: 0
+
+options:
+  movement-speed: 0.20
+  attack-damage: 5.0
+  attack-speed: 1.0
+  follow-range: 24
+  knockback-resistance: 0.35
+  silent: true
+  despawn: false

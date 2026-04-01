@@ -47,7 +47,10 @@ public class CustomMobManager {
     private static final List<String> DEFAULT_EXAMPLES = List.of(
             "custom_mobs/cursed_archer.yml",
             "custom_mobs/rpg_rat.yml",
+            "custom_mobs/goblin_archer.yml",
             "custom_mobs/goblin_assassin.yml",
+            "custom_mobs/goblin_shaman.yml",
+            "custom_mobs/goblin_warrior.yml",
             "custom_mobs/cursed_arrow.yml",
             "custom_mobs/wild_rooster.yml",
             "custom_mobs/cursed_hollow.yml",

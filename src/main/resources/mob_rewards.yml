@@ -2,6 +2,12 @@ mobs:
   cursed_archer:
     model_set: molten
     essence: archer, 0.3
+  goblin_archer:
+    model_set: default
+  goblin_warrior:
+    model_set: default
+  goblin_shaman:
+    model_set: default
   cursed_knight:
     model_set: molten
   cursed_mage:

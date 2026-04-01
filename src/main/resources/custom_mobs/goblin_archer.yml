@@ -1,0 +1,59 @@
+id: goblin_archer
+type: VINDICATOR
+display: "&aGoblin Archer"
+level-range:
+  min: 6
+  max: 6
+health: 28
+boss: false
+
+models:
+  - mob_goblin_archer.bbmodel
+
+stats:
+  vitality: 0
+  strength: 0
+  agility: 0
+  intelligence: 0
+  dexterity: 0
+  will: 0
+  technique: 0
+
+spells:
+  shoot:
+    id: goblin_archer_shoot
+    script: goblin_archer_shoot
+    selection-group: attack
+    selection-weight: 1.0
+    interval-ticks: 50
+    gcd-ticks: 50
+    damage: 7.0
+    min-range: 5.0
+    max-range: 30.0
+    require-line-of-sight: true
+    range: 30.0
+    speed: 2.2
+    burn-ticks: 0
+  throw_bomb:
+    id: goblin_archer_throw_bomb
+    script: goblin_archer_throw_bomb
+    selection-group: attack
+    selection-weight: 1.0
+    interval-ticks: 120
+    gcd-ticks: 47
+    damage: 7.0
+    min-range: 4.0
+    max-range: 20.0
+    require-line-of-sight: true
+    range: 20.0
+    speed: 1.0
+    burn-ticks: 0
+
+options:
+  movement-speed: 0.22
+  attack-damage: 2.0
+  attack-speed: 1.0
+  follow-range: 30
+  knockback-resistance: 0.15
+  silent: true
+  despawn: false
