@@ -1,0 +1,11 @@
+id: cinder_skeleton_wizard_fireball
+actions:
+  - type: mage-burst
+    animation: attack_2
+    windup-ticks: 22
+    projectiles: 1
+    interval-ticks: 4
+    model: em_dskeleton_wizardshield_cinder
+    damage-multiplier: 1.3
+    speed-multiplier: 1.15
+    speed-min: 1.1

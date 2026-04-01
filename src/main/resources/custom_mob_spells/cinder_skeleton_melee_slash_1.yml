@@ -1,0 +1,16 @@
+id: cinder_skeleton_melee_slash_1
+actions:
+  - type: play-animation
+    animation: attack_1
+  - type: face-target
+  - type: delay
+    ticks: 14
+  - type: play-sound
+    sound: entity.blaze.shoot
+    volume: 0.8
+    pitch: 0.7
+  - type: deal-cone-damage
+    range: 3.4
+    half-angle-degrees: 95
+    knockback-horizontal: 0.18
+    knockback-vertical: 0.08

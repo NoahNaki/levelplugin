@@ -1,0 +1,15 @@
+id: cinder_skeleton_halberdier_thrust
+actions:
+  - type: play-animation
+    animation: attack_1
+  - type: face-target
+  - type: delay
+    ticks: 18
+  - type: dash-toward-target
+    speed: 0.45
+  - type: deal-cone-damage
+    damage-multiplier: 1.1
+    range: 4.5
+    half-angle-degrees: 55
+    knockback-horizontal: 0.24
+    knockback-vertical: 0.12

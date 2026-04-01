@@ -1,0 +1,59 @@
+id: cinder_skeleton_archer
+type: VINDICATOR
+display: "&6Cinder Skeleton Archer"
+level-range:
+  min: 55
+  max: 57
+health: 45
+boss: false
+
+models:
+  - em_dskeleton_archer_cinder.bbmodel
+
+stats:
+  vitality: 0
+  strength: 0
+  agility: 0
+  intelligence: 0
+  dexterity: 0
+  will: 0
+  technique: 0
+
+spells:
+  melee:
+    id: cinder_skeleton_melee_slash_1
+    script: cinder_skeleton_melee_slash_1
+    selection-group: attack
+    selection-weight: 1.0
+    interval-ticks: 42
+    gcd-ticks: 42
+    damage: 7.0
+    min-range: 0.0
+    max-range: 3.0
+    require-line-of-sight: true
+    range: 3.5
+    speed: 1.0
+    burn-ticks: 40
+  shot:
+    id: cinder_skeleton_archer_shot
+    script: cinder_skeleton_archer_shot
+    selection-group: attack
+    selection-weight: 2.0
+    interval-ticks: 48
+    gcd-ticks: 48
+    damage: 9.0
+    min-range: 5.0
+    max-range: 28.0
+    require-line-of-sight: true
+    range: 30.0
+    speed: 14.0
+    burn-ticks: 90
+
+options:
+  movement-speed: 0.27
+  attack-damage: 7.0
+  attack-speed: 2.1
+  follow-range: 36
+  knockback-resistance: 0.4
+  silent: true
+  despawn: false

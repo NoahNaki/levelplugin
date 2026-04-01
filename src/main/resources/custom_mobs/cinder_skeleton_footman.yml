@@ -1,0 +1,45 @@
+id: cinder_skeleton_footman
+type: VINDICATOR
+display: "&6Cinder Skeleton Footman"
+level-range:
+  min: 53
+  max: 55
+health: 35
+boss: false
+
+models:
+  - em_dskeleton_footman_cinder.bbmodel
+
+stats:
+  vitality: 0
+  strength: 0
+  agility: 0
+  intelligence: 0
+  dexterity: 0
+  will: 0
+  technique: 0
+
+spells:
+  slash_1:
+    id: cinder_skeleton_melee_slash_1
+    script: cinder_skeleton_melee_slash_1
+    selection-group: attack
+    selection-weight: 2.0
+    interval-ticks: 34
+    gcd-ticks: 34
+    damage: 8.0
+    min-range: 0.0
+    max-range: 3.8
+    require-line-of-sight: true
+    range: 4.0
+    speed: 1.0
+    burn-ticks: 40
+
+options:
+  movement-speed: 0.27
+  attack-damage: 8.0
+  attack-speed: 2.0
+  follow-range: 30
+  knockback-resistance: 0.45
+  silent: true
+  despawn: false

@@ -1,0 +1,59 @@
+id: cinder_skeleton_wizard
+type: VINDICATOR
+display: "&6Cinder Skeleton Wizard"
+level-range:
+  min: 57
+  max: 59
+health: 50
+boss: false
+
+models:
+  - em_dskeleton_wizard_cinder.bbmodel
+
+stats:
+  vitality: 0
+  strength: 0
+  agility: 0
+  intelligence: 0
+  dexterity: 0
+  will: 0
+  technique: 0
+
+spells:
+  staff_swing:
+    id: cinder_skeleton_melee_slash_1
+    script: cinder_skeleton_melee_slash_1
+    selection-group: attack
+    selection-weight: 0.8
+    interval-ticks: 44
+    gcd-ticks: 44
+    damage: 7.0
+    min-range: 0.0
+    max-range: 3.2
+    require-line-of-sight: true
+    range: 3.5
+    speed: 1.0
+    burn-ticks: 40
+  fireball:
+    id: cinder_skeleton_wizard_fireball
+    script: cinder_skeleton_wizard_fireball
+    selection-group: attack
+    selection-weight: 1.4
+    interval-ticks: 72
+    gcd-ticks: 72
+    damage: 12.0
+    min-range: 4.0
+    max-range: 20.0
+    require-line-of-sight: true
+    range: 24.0
+    speed: 13.0
+    burn-ticks: 120
+
+options:
+  movement-speed: 0.25
+  attack-damage: 12.0
+  attack-speed: 1.9
+  follow-range: 36
+  knockback-resistance: 0.45
+  silent: true
+  despawn: false

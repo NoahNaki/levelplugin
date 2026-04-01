@@ -1,0 +1,20 @@
+id: cinder_skeleton_tank_shield_bash
+actions:
+  - type: play-animation
+    animation: attack_2
+  - type: delay
+    ticks: 16
+  - type: play-sound
+    sound: item.shield.block
+    volume: 1.0
+    pitch: 0.9
+  - type: throw-players-from-caster
+    radius: 3.2
+    horizontal-strength: 1.0
+    vertical-strength: 0.25
+  - type: deal-cone-damage
+    damage-multiplier: 0.85
+    range: 3.2
+    half-angle-degrees: 110
+    knockback-horizontal: 0.35
+    knockback-vertical: 0.2

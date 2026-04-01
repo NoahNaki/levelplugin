@@ -1,0 +1,17 @@
+id: cinder_skeleton_melee_slash_2
+actions:
+  - type: play-animation
+    animation: attack_2
+  - type: face-target
+  - type: delay
+    ticks: 16
+  - type: play-sound
+    sound: item.firecharge.use
+    volume: 0.9
+    pitch: 0.9
+  - type: deal-cone-damage
+    damage-multiplier: 1.15
+    range: 3.8
+    half-angle-degrees: 115
+    knockback-horizontal: 0.26
+    knockback-vertical: 0.14
