@@ -75,6 +75,9 @@ public class SpawnEntityModelCommand implements CommandExecutor, TabCompleter {
         if (args.length >= 1 && args[0].equalsIgnoreCase("states")) {
             return handleListStates(player);
         }
+        if (args.length >= 1 && args[0].equalsIgnoreCase("stateapi")) {
+            return handleStateApi(player);
+        }
         if (args.length >= 1 && args[0].equalsIgnoreCase("inspect")) {
             return handleInspectAnimations(player, args);
         }
@@ -82,7 +85,7 @@ public class SpawnEntityModelCommand implements CommandExecutor, TabCompleter {
             return handleVerifyModel(player, args);
         }
         if (args.length < 2) {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "Usage: /se <entity> <model...> | /se anim <name|shoot|attack> [loop] | /se animdebug <name> [loop] | /se state <name> [holdTicks] [force] | /se states | /se inspect [verbose] | /se verify <modelId> | /se list");
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "Usage: /se <entity> <model...> | /se anim <name|shoot|attack> [loop] | /se animdebug <name> [loop] | /se state <name> [holdTicks] [force] | /se states | /se stateapi | /se inspect [verbose] | /se verify <modelId> | /se list");
             return true;
         }
         if (!Bukkit.getPluginManager().isPluginEnabled("ModelEngine")) {
@@ -290,6 +293,27 @@ public class SpawnEntityModelCommand implements CommandExecutor, TabCompleter {
         return true;
     }
 
+    private boolean handleStateApi(Player player) {
+        Entity target = resolveAnimationTarget(player);
+        if (target == null) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING, "No modeled entity found. Look at one or spawn with /se first.");
+            return true;
+        }
+        List<String> signatures = ModelEngineUtil.describeStateHandlerSignatures(target);
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                "State API signatures logged to console (" + signatures.size() + " lines).");
+        if (signatures.isEmpty()) {
+            plugin.getLogger().info("[SE/StateApi] player=" + player.getName()
+                    + " target=" + target.getType().name()
+                    + " signatures=(none)");
+            return true;
+        }
+        for (String line : signatures) {
+            plugin.getLogger().info("[SE/StateApi] " + line);
+        }
+        return true;
+    }
+
     private boolean handleVerifyModel(Player player, String[] args) {
         if (args.length < 2) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "Usage: /se verify <modelId>");
@@ -340,6 +364,7 @@ public class SpawnEntityModelCommand implements CommandExecutor, TabCompleter {
             options.add("animdebug");
             options.add("state");
             options.add("states");
+            options.add("stateapi");
             options.add("inspect");
             options.add("verify");
             return CommandUtil.filterStartingWith(options, args[0]);

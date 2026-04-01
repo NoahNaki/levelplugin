@@ -609,6 +609,33 @@ public final class ModelEngineUtil {
         return states.isEmpty() ? List.of() : List.copyOf(states);
     }
 
+    public static List<String> describeStateHandlerSignatures(Entity entity) {
+        if (entity == null) {
+            return List.of();
+        }
+        ModeledEntity modeledEntity = ModelEngineAPI.getModeledEntity(entity);
+        if (modeledEntity == null || modeledEntity.getModels().isEmpty()) {
+            return List.of();
+        }
+        Set<String> lines = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+        for (ActiveModel model : modeledEntity.getModels().values()) {
+            AnimationHandler handler = model.getAnimationHandler();
+            if (handler == null) {
+                continue;
+            }
+            Class<?> handlerClass = handler.getClass();
+            lines.add("handler=" + handlerClass.getName());
+            for (java.lang.reflect.Method method : handlerClass.getMethods()) {
+                String lower = method.getName().toLowerCase(Locale.ROOT);
+                if (!lower.contains("state")) {
+                    continue;
+                }
+                lines.add(formatMethodSignature(method));
+            }
+        }
+        return lines.isEmpty() ? List.of() : List.copyOf(lines);
+    }
+
     private static boolean isModelInitializedReflective(ActiveModel model) {
         if (model == null) {
             return false;
@@ -655,8 +682,107 @@ public final class ModelEngineUtil {
                 } catch (ReflectiveOperationException ignored) {
                 }
             }
+            if (invokeStateMethodOverloads(handler, method, stateName) && isStateActiveReflective(handler, stateName)) {
+                return true;
+            }
         }
         return false;
+    }
+
+    private static boolean invokeStateMethodOverloads(AnimationHandler handler, String methodName, String stateName) {
+        if (handler == null || methodName == null || methodName.isBlank() || stateName == null || stateName.isBlank()) {
+            return false;
+        }
+        boolean invoked = false;
+        for (java.lang.reflect.Method method : handler.getClass().getMethods()) {
+            if (!method.getName().equalsIgnoreCase(methodName)) {
+                continue;
+            }
+            Object[] defaults = defaultArgumentsForStateMethod(method.getParameterTypes(), stateName);
+            if (defaults == null) {
+                continue;
+            }
+            try {
+                Object result = tryInvoke(handler, method.getName(), defaults);
+                if (Boolean.TRUE.equals(result) || "true".equalsIgnoreCase(String.valueOf(result))) {
+                    return true;
+                }
+                invoked = true;
+            } catch (ReflectiveOperationException ignored) {
+            }
+        }
+        return invoked;
+    }
+
+    private static Object[] defaultArgumentsForStateMethod(Class<?>[] parameterTypes, String stateName) {
+        if (parameterTypes == null || parameterTypes.length == 0) {
+            return new Object[0];
+        }
+        Object[] args = new Object[parameterTypes.length];
+        for (int i = 0; i < parameterTypes.length; i++) {
+            Class<?> type = wrapPrimitive(parameterTypes[i]);
+            if (type == String.class && args[0] == null) {
+                args[i] = stateName;
+                continue;
+            }
+            if (type == Boolean.class) {
+                args[i] = Boolean.TRUE;
+                continue;
+            }
+            if (Number.class.isAssignableFrom(type)) {
+                args[i] = numericDefault(type);
+                continue;
+            }
+            if (type.isEnum()) {
+                Object[] constants = type.getEnumConstants();
+                if (constants == null || constants.length == 0) {
+                    return null;
+                }
+                Object chosen = selectEnumConstant(constants, stateName);
+                args[i] = chosen != null ? chosen : constants[0];
+                continue;
+            }
+            return null;
+        }
+        if (args[0] == null) {
+            args[0] = stateName;
+        }
+        return args;
+    }
+
+    private static Object numericDefault(Class<?> type) {
+        if (type == Integer.class) return 0;
+        if (type == Long.class) return 0L;
+        if (type == Double.class) return 0.0D;
+        if (type == Float.class) return 0.0F;
+        if (type == Short.class) return (short) 0;
+        if (type == Byte.class) return (byte) 0;
+        return 0;
+    }
+
+    private static Object selectEnumConstant(Object[] constants, String stateName) {
+        if (constants == null || constants.length == 0) {
+            return null;
+        }
+        for (Object constant : constants) {
+            if (constant != null && stateName.equalsIgnoreCase(String.valueOf(constant))) {
+                return constant;
+            }
+        }
+        for (Object constant : constants) {
+            if (constant != null && "true".equalsIgnoreCase(String.valueOf(constant))) {
+                return constant;
+            }
+        }
+        return null;
+    }
+
+    private static String formatMethodSignature(java.lang.reflect.Method method) {
+        String params = Arrays.stream(method.getParameterTypes())
+                .map(Class::getSimpleName)
+                .reduce((a, b) -> a + ", " + b)
+                .orElse("");
+        return method.getName() + "(" + params + "):" + method.getReturnType().getSimpleName();
     }
 
     private static boolean isStateActiveReflective(AnimationHandler handler, String stateName) {
