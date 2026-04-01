@@ -492,12 +492,24 @@ public final class ModelEngineUtil {
     }
 
     public static boolean applyStateByName(Entity entity, String stateName, long holdMillis) {
+        return applyStateByName(entity, stateName, holdMillis, null);
+    }
+
+    public static boolean applyStateByName(Entity entity, String stateName, long holdMillis, Plugin plugin) {
         if (entity == null || stateName == null || stateName.isBlank()) {
             return false;
         }
         ModeledEntity modeledEntity = ModelEngineAPI.getModeledEntity(entity);
         if (modeledEntity != null && !modeledEntity.getModels().isEmpty()) {
             for (ActiveModel model : modeledEntity.getModels().values()) {
+                if (!isModelInitializedReflective(model)) {
+                    if (plugin != null) {
+                        Bukkit.getScheduler().runTaskLater(plugin,
+                                () -> applyStateByName(entity, stateName, holdMillis, null), 1L);
+                        return true;
+                    }
+                    continue;
+                }
                 AnimationHandler handler = model.getAnimationHandler();
                 if (handler == null) {
                     continue;
@@ -534,6 +546,20 @@ public final class ModelEngineUtil {
             }
         }
         return baseline;
+    }
+
+    private static boolean isModelInitializedReflective(ActiveModel model) {
+        if (model == null) {
+            return false;
+        }
+        try {
+            Object initialized = tryInvoke(model, "isInitialized");
+            if (initialized instanceof Boolean b) {
+                return b;
+            }
+        } catch (ReflectiveOperationException ignored) {
+        }
+        return true;
     }
 
     private static boolean attemptApplyStateByReflection(AnimationHandler handler, String stateName) {

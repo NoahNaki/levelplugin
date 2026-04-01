@@ -251,7 +251,7 @@ public class SpawnEntityModelCommand implements CommandExecutor, TabCompleter {
             } catch (NumberFormatException ignored) {
             }
         }
-        boolean applied = ModelEngineUtil.applyStateByName(target, stateName, holdTicks * 50L);
+        boolean applied = ModelEngineUtil.applyStateByName(target, stateName, holdTicks * 50L, plugin);
         ChatMessageUtil.send(player, applied
                         ? ChatMessageUtil.MessageType.SUCCESS
                         : ChatMessageUtil.MessageType.WARNING,
