@@ -720,6 +720,11 @@ public final class ModelEngineUtil {
                 if (Boolean.TRUE.equals(result) || "true".equalsIgnoreCase(String.valueOf(result))) {
                     return true;
                 }
+                if (result == null
+                        && method.getReturnType() == Void.TYPE
+                        && "playState".equalsIgnoreCase(method.getName())) {
+                    return true;
+                }
                 invoked = true;
             } catch (ReflectiveOperationException ignored) {
             }
