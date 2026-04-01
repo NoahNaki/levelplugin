@@ -707,16 +707,18 @@ public final class ModelEngineUtil {
             return false;
         }
         boolean invoked = false;
-        for (java.lang.reflect.Method method : handler.getClass().getMethods()) {
-            if (!method.getName().equalsIgnoreCase(methodName)) {
-                continue;
-            }
+        for (java.lang.reflect.Method method : collectMethods(handler.getClass(), methodName, -1, true)) {
             Object[] defaults = defaultArgumentsForStateMethod(method.getParameterTypes(), stateName);
             if (defaults == null) {
                 continue;
             }
             try {
-                Object result = tryInvoke(handler, method.getName(), defaults);
+                method.setAccessible(true);
+                Object[] converted = convertArguments(method.getParameterTypes(), defaults);
+                if (converted == null) {
+                    continue;
+                }
+                Object result = method.invoke(handler, converted);
                 if (Boolean.TRUE.equals(result) || "true".equalsIgnoreCase(String.valueOf(result))) {
                     return true;
                 }
@@ -785,6 +787,7 @@ public final class ModelEngineUtil {
         if (constants == null || constants.length == 0) {
             return null;
         }
+        String lowerState = stateName == null ? "" : stateName.toLowerCase(Locale.ROOT);
         for (Object constant : constants) {
             if (constant != null && stateName.equalsIgnoreCase(String.valueOf(constant))) {
                 return constant;
@@ -799,11 +802,32 @@ public final class ModelEngineUtil {
             }
         }
         for (Object constant : constants) {
+            if (constant == null) {
+                continue;
+            }
+            String value = String.valueOf(constant).toLowerCase(Locale.ROOT);
+            if (!lowerState.isBlank() && (value.contains(lowerState) || lowerState.contains(value))) {
+                return constant;
+            }
+        }
+        if (alias != null) {
+            String lowerAlias = alias.toLowerCase(Locale.ROOT);
+            for (Object constant : constants) {
+                if (constant == null) {
+                    continue;
+                }
+                String value = String.valueOf(constant).toLowerCase(Locale.ROOT);
+                if (value.contains(lowerAlias) || lowerAlias.contains(value)) {
+                    return constant;
+                }
+            }
+        }
+        for (Object constant : constants) {
             if (constant != null && "true".equalsIgnoreCase(String.valueOf(constant))) {
                 return constant;
             }
         }
-        return null;
+        return constants[0];
     }
 
     private static String aliasToModelStateName(String token) {
@@ -1523,19 +1547,36 @@ public final class ModelEngineUtil {
     }
 
     private static java.lang.reflect.Method findCompatibleMethod(Class<?> targetClass, String method, Object[] args) {
-        List<java.lang.reflect.Method> candidates = new ArrayList<>();
-        candidates.addAll(Arrays.asList(targetClass.getMethods()));
-        candidates.addAll(Arrays.asList(targetClass.getDeclaredMethods()));
-        candidates.sort(Comparator.comparingInt(java.lang.reflect.Method::getParameterCount));
-        for (java.lang.reflect.Method candidate : candidates) {
-            if (!candidate.getName().equals(method) || candidate.getParameterCount() != args.length) {
-                continue;
-            }
+        for (java.lang.reflect.Method candidate : collectMethods(targetClass, method, args.length, false)) {
             if (canConvertArguments(candidate.getParameterTypes(), args)) {
                 return candidate;
             }
         }
         return null;
+    }
+
+    private static List<java.lang.reflect.Method> collectMethods(Class<?> targetClass,
+                                                                 String methodName,
+                                                                 int parameterCount,
+                                                                 boolean ignoreParameterCount) {
+        if (targetClass == null || methodName == null || methodName.isBlank()) {
+            return List.of();
+        }
+        List<java.lang.reflect.Method> candidates = new ArrayList<>();
+        candidates.addAll(Arrays.asList(targetClass.getMethods()));
+        candidates.addAll(Arrays.asList(targetClass.getDeclaredMethods()));
+        List<java.lang.reflect.Method> filtered = new ArrayList<>();
+        for (java.lang.reflect.Method candidate : candidates) {
+            if (!candidate.getName().equalsIgnoreCase(methodName)) {
+                continue;
+            }
+            if (!ignoreParameterCount && candidate.getParameterCount() != parameterCount) {
+                continue;
+            }
+            filtered.add(candidate);
+        }
+        filtered.sort(Comparator.comparingInt(java.lang.reflect.Method::getParameterCount));
+        return filtered;
     }
 
     private static boolean canConvertArguments(Class<?>[] parameterTypes, Object[] args) {
