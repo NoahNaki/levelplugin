@@ -649,6 +649,42 @@ public final class ModelEngineUtil {
         return lines.isEmpty() ? List.of() : List.copyOf(lines);
     }
 
+    public static List<String> getPlayableModelStateNames(Entity entity) {
+        if (entity == null) {
+            return List.of();
+        }
+        ModeledEntity modeledEntity = ModelEngineAPI.getModeledEntity(entity);
+        if (modeledEntity == null || modeledEntity.getModels().isEmpty()) {
+            return List.of();
+        }
+        Set<String> names = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+        for (ActiveModel model : modeledEntity.getModels().values()) {
+            AnimationHandler handler = model.getAnimationHandler();
+            if (handler == null) {
+                continue;
+            }
+            for (java.lang.reflect.Method method : collectMethods(handler.getClass(), "playState", -1, true)) {
+                if (method.getParameterCount() < 1) {
+                    continue;
+                }
+                Class<?> first = wrapPrimitive(method.getParameterTypes()[0]);
+                if (!first.isEnum()) {
+                    continue;
+                }
+                Object[] constants = first.getEnumConstants();
+                if (constants == null) {
+                    continue;
+                }
+                for (Object constant : constants) {
+                    if (constant != null) {
+                        names.add(String.valueOf(constant));
+                    }
+                }
+            }
+        }
+        return names.isEmpty() ? List.of() : List.copyOf(names);
+    }
+
     private static boolean isModelInitializedReflective(ActiveModel model) {
         if (model == null) {
             return false;
