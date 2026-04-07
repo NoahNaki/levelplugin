@@ -347,48 +347,53 @@ public class StrongholdDebugManager {
         if (dirs == null || dirs.isEmpty()) {
             return null;
         }
-        if (dirs.size() >= 3) {
+        int degree = dirs.size();
+        if (degree >= 3) {
             if (!towerTemplates.isEmpty()) {
                 return towerTemplates.get(0);
             }
         }
-        if (dirs.size() == 2) {
-            boolean opposite = (dirs.contains(Direction.NORTH) && dirs.contains(Direction.SOUTH))
-                    || (dirs.contains(Direction.EAST) && dirs.contains(Direction.WEST));
+        if (degree == 2) {
+            boolean opposite = isOppositePair(dirs);
             if (opposite) {
+                // Straight corridors should mostly be gates/straight walls.
                 RoomTemplate tower = chooseTemplateByDirections(towerTemplates, dirs, true);
                 RoomTemplate straight = chooseTemplateByDirections(straightTemplates, dirs, false);
                 RoomTemplate gate = null;
                 if (canPlaceGate(point, graph, placed, policy)) {
                     gate = chooseTemplateByDirections(gateTemplates, dirs, false);
                 }
-                if (tower != null && random.nextDouble() < 0.65) {
-                    return tower;
-                }
-                if (straight != null && (gate == null || random.nextDouble() < 0.85)) {
-                    return straight;
-                }
-                if (gate != null) {
+                if (gate != null && random.nextDouble() < 0.70) {
                     return gate;
                 }
-                if (tower != null) {
+                if (straight != null) {
+                    return straight;
+                }
+                if (tower != null && random.nextDouble() < 0.15) {
                     return tower;
                 }
+                return gate != null ? gate : tower;
             } else {
+                // Corners should be tower-heavy for stronger silhouette variety.
                 RoomTemplate corner = chooseTemplateByDirections(cornerTemplates, dirs, false);
                 RoomTemplate tower = chooseTemplateByDirections(towerTemplates, dirs, true);
-                if (tower != null && random.nextDouble() < 0.45) return tower;
+                if (tower != null && random.nextDouble() < 0.72) return tower;
                 if (corner != null) return corner;
                 return tower;
             }
         }
-        if (dirs.size() == 1) {
+        if (degree == 1) {
             RoomTemplate tower = chooseTemplateByDirections(towerTemplates, dirs, true);
-            if (tower != null && random.nextDouble() < 0.30) return tower;
+            if (tower != null && random.nextDouble() < 0.35) return tower;
             RoomTemplate dead = chooseTemplateByDirections(deadEndTemplates, dirs, false);
             return dead != null ? dead : tower;
         }
         return selectTemplate(dirs);
+    }
+
+    private boolean isOppositePair(Set<Direction> dirs) {
+        return (dirs.contains(Direction.NORTH) && dirs.contains(Direction.SOUTH))
+                || (dirs.contains(Direction.EAST) && dirs.contains(Direction.WEST));
     }
 
     private boolean canPlaceGate(GridPoint point, Map<GridPoint, Set<Direction>> graph,
@@ -396,7 +401,7 @@ public class StrongholdDebugManager {
         if (policy.straightWallsSinceGate < 5) {
             return false;
         }
-        if (policy.towersPlaced <= policy.gatesPlaced + 1) {
+        if (policy.towersPlaced <= policy.gatesPlaced) {
             return false;
         }
         for (Direction direction : Direction.values()) {
