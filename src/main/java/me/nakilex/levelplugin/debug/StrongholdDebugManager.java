@@ -327,6 +327,11 @@ public class StrongholdDebugManager {
             if (marker.data.getMaterial() != Material.REDSTONE_BLOCK) {
                 continue;
             }
+            RoomTemplate.BlockDef above = blockIndex.get(key(marker.x, marker.y + 1, marker.z));
+            if (above == null || above.data.getMaterial() == Material.AIR) {
+                // Keep crenel/open-top marker slots open; only patch enclosed wall-face placeholders.
+                continue;
+            }
             RoomTemplate.BlockDef replacement = findNeighborReplacement(blockIndex, marker.x, marker.y, marker.z);
             if (replacement == null) {
                 continue;
