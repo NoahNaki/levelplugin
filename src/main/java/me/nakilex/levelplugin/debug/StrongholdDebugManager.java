@@ -29,6 +29,7 @@ public class StrongholdDebugManager {
     private final Main plugin;
     private final DungeonManager dungeonManager;
     private final Map<UUID, Dungeon> activeStrongholds = new HashMap<>();
+    private final Map<UUID, Map<Location, org.bukkit.block.data.BlockData>> activeRestoreSnapshots = new HashMap<>();
     private static final Set<Material> STRONGHOLD_IGNORED_MATERIALS =
             Set.of(Material.WHITE_CONCRETE, Material.LIGHT_BLUE_CONCRETE);
 
@@ -63,27 +64,32 @@ public class StrongholdDebugManager {
         }
 
         Dungeon stronghold = new Dungeon(world, "debug_stronghold_" + player.getUniqueId());
+        Map<Location, org.bukkit.block.data.BlockData> restoreSnapshot = new LinkedHashMap<>();
         Map<GridPoint, Set<Direction>> graph = generateSnakeGraph(sideLength, player.getUniqueId());
         if (graph.isEmpty()) {
             return SpawnResult.error("Could not generate a wall layout.");
         }
 
-        PlacementResult placement = placeGraphAligned(stronghold, origin, graph);
+        PlacementResult placement = placeGraphAligned(stronghold, origin, graph, restoreSnapshot);
         if (!placement.success) {
-            stronghold.delete();
+            restoreSnapshot(restoreSnapshot);
             return SpawnResult.error(placement.errorMessage);
         }
 
         activeStrongholds.put(player.getUniqueId(), stronghold);
+        activeRestoreSnapshots.put(player.getUniqueId(), restoreSnapshot);
         return SpawnResult.success(placement.piecesPlaced, resolveStep());
     }
 
     public boolean despawn(UUID playerId) {
         Dungeon existing = activeStrongholds.remove(playerId);
+        Map<Location, org.bukkit.block.data.BlockData> snapshot = activeRestoreSnapshots.remove(playerId);
+        if (snapshot != null && !snapshot.isEmpty()) {
+            restoreSnapshot(snapshot);
+        }
         if (existing == null) {
             return false;
         }
-        existing.delete();
         return true;
     }
 
@@ -162,14 +168,15 @@ public class StrongholdDebugManager {
         return null;
     }
 
-    private PlacementResult placeGraphAligned(Dungeon stronghold, Location origin, Map<GridPoint, Set<Direction>> graph) {
+    private PlacementResult placeGraphAligned(Dungeon stronghold, Location origin, Map<GridPoint, Set<Direction>> graph,
+                                              Map<Location, org.bukkit.block.data.BlockData> restoreSnapshot) {
         GridPoint root = new GridPoint(0, 0);
         if (!graph.containsKey(root)) {
             root = graph.keySet().iterator().next();
         }
 
         Map<GridPoint, PlacedPiece> placed = new HashMap<>();
-        PlacementResult rootPlacement = placeSinglePiece(stronghold, root, origin.clone(), graph, placed);
+        PlacementResult rootPlacement = placeSinglePiece(stronghold, root, origin.clone(), graph, placed, restoreSnapshot);
         if (!rootPlacement.success) {
             return rootPlacement;
         }
@@ -191,7 +198,7 @@ public class StrongholdDebugManager {
                     continue;
                 }
 
-                PlacementResult placement = placeSinglePiece(stronghold, point, center, graph, placed);
+                PlacementResult placement = placeSinglePiece(stronghold, point, center, graph, placed, restoreSnapshot);
                 if (!placement.success) {
                     return placement;
                 }
@@ -207,20 +214,124 @@ public class StrongholdDebugManager {
     }
 
     private PlacementResult placeSinglePiece(Dungeon stronghold, GridPoint point, Location center,
-                                             Map<GridPoint, Set<Direction>> graph, Map<GridPoint, PlacedPiece> placed) {
+                                             Map<GridPoint, Set<Direction>> graph, Map<GridPoint, PlacedPiece> placed,
+                                             Map<Location, org.bukkit.block.data.BlockData> restoreSnapshot) {
         Set<Direction> openSides = graph.get(point);
         RoomTemplate template = selectTemplate(openSides);
         if (template == null) {
             return PlacementResult.error("No template matched connector pattern " + openSides + ".");
         }
         int rotation = dungeonManager.findRotation(template, openSides);
+        capturePieceReplacements(center, template, rotation, restoreSnapshot);
         DungeonManager.PasteResult result = dungeonManager.pasteRoom(
                 stronghold, template, rotation, center, null, false, STRONGHOLD_IGNORED_MATERIALS);
         if (result.instance() == null) {
             return PlacementResult.error("Failed to paste piece at grid " + point.x + "," + point.z + ".");
         }
+        patchConnectorPlaceholders(center, template, rotation, restoreSnapshot);
         placed.put(point, new PlacedPiece(template, rotation, center));
         return PlacementResult.success(1);
+    }
+
+    private void capturePieceReplacements(Location center, RoomTemplate template, int rotation,
+                                          Map<Location, org.bukkit.block.data.BlockData> restoreSnapshot) {
+        if (center.getWorld() == null) {
+            return;
+        }
+        for (RoomTemplate.BlockDef block : template.getBlocks()) {
+            if (shouldSkipForStrongholdPaste(block.data.getMaterial())) {
+                continue;
+            }
+            Location worldLoc = resolveWorldLocation(center, template, rotation, block.x, block.y, block.z);
+            rememberOriginalBlock(worldLoc, restoreSnapshot);
+        }
+    }
+
+    private void patchConnectorPlaceholders(Location center, RoomTemplate template, int rotation,
+                                            Map<Location, org.bukkit.block.data.BlockData> restoreSnapshot) {
+        Map<String, RoomTemplate.BlockDef> blockIndex = indexBlocks(template);
+        for (RoomTemplate.BlockDef marker : template.getBlocks()) {
+            if (marker.data.getMaterial() != Material.REDSTONE_BLOCK) {
+                continue;
+            }
+            RoomTemplate.BlockDef replacement = findNeighborReplacement(blockIndex, marker.x, marker.y, marker.z);
+            if (replacement == null) {
+                continue;
+            }
+            Location worldLoc = resolveWorldLocation(center, template, rotation, marker.x, marker.y, marker.z);
+            rememberOriginalBlock(worldLoc, restoreSnapshot);
+            org.bukkit.block.data.BlockData data = RoomTemplate.rotateBlockData(replacement.data, rotation);
+            worldLoc.getBlock().setBlockData(data, false);
+        }
+    }
+
+    private Map<String, RoomTemplate.BlockDef> indexBlocks(RoomTemplate template) {
+        Map<String, RoomTemplate.BlockDef> index = new HashMap<>();
+        for (RoomTemplate.BlockDef block : template.getBlocks()) {
+            index.put(key(block.x, block.y, block.z), block);
+        }
+        return index;
+    }
+
+    private RoomTemplate.BlockDef findNeighborReplacement(Map<String, RoomTemplate.BlockDef> blockIndex, int x, int y, int z) {
+        int[][] offsets = new int[][]{
+                {1, 0, 0}, {-1, 0, 0}, {0, 0, 1}, {0, 0, -1},
+                {0, 1, 0}, {0, -1, 0},
+                {2, 0, 0}, {-2, 0, 0}, {0, 0, 2}, {0, 0, -2}
+        };
+        for (int[] offset : offsets) {
+            RoomTemplate.BlockDef candidate = blockIndex.get(key(x + offset[0], y + offset[1], z + offset[2]));
+            if (candidate == null) {
+                continue;
+            }
+            Material material = candidate.data.getMaterial();
+            if (material == Material.REDSTONE_BLOCK || material == Material.PINK_WOOL || material == Material.LIME_WOOL) {
+                continue;
+            }
+            if (material == Material.AIR || STRONGHOLD_IGNORED_MATERIALS.contains(material)) {
+                continue;
+            }
+            return candidate;
+        }
+        return null;
+    }
+
+    private String key(int x, int y, int z) {
+        return x + ":" + y + ":" + z;
+    }
+
+    private Location resolveWorldLocation(Location center, RoomTemplate template, int rotation, int relativeX, int relativeY, int relativeZ) {
+        int[] vec = RoomTemplate.rotate(
+                relativeX - (int) Math.round(template.getCenterX()),
+                relativeZ - (int) Math.round(template.getCenterZ()),
+                rotation);
+        int y = center.getBlockY() + (relativeY - template.getConnectorMinY());
+        return new Location(center.getWorld(), center.getBlockX() + vec[0], y, center.getBlockZ() + vec[1]);
+    }
+
+    private void rememberOriginalBlock(Location worldLoc, Map<Location, org.bukkit.block.data.BlockData> restoreSnapshot) {
+        if (worldLoc == null || worldLoc.getWorld() == null) {
+            return;
+        }
+        Location key = worldLoc.getBlock().getLocation();
+        restoreSnapshot.computeIfAbsent(key, ignored -> key.getBlock().getBlockData().clone());
+    }
+
+    private void restoreSnapshot(Map<Location, org.bukkit.block.data.BlockData> snapshot) {
+        for (Map.Entry<Location, org.bukkit.block.data.BlockData> entry : snapshot.entrySet()) {
+            Location location = entry.getKey();
+            if (location.getWorld() == null) {
+                continue;
+            }
+            location.getBlock().setBlockData(entry.getValue(), false);
+        }
+    }
+
+    private boolean shouldSkipForStrongholdPaste(Material material) {
+        if (material == Material.REDSTONE_BLOCK || material == Material.PINK_WOOL || material == Material.LIME_WOOL) {
+            return true;
+        }
+        return STRONGHOLD_IGNORED_MATERIALS.contains(material);
     }
 
     private Location resolveAlignedCenter(GridPoint point, RoomTemplate template, int rotation,
