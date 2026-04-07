@@ -126,10 +126,43 @@ public class StrongholdDebugManager {
         deadEndTemplates.add(RoomTemplate.capture(world, 543, -38, -5418, 473, -61, -5488, false));
         deadEndTemplates.add(RoomTemplate.capture(world, 473, -61, -5489, 543, -38, -5559, false));
 
-        connectorTemplates.add(RoomTemplate.capture(world, 412, -61, -5711, 402, -38, -5701, false));
-        connectorTemplates.add(RoomTemplate.capture(world, 402, -38, -5721, 412, -61, -5711, false));
+        connectorTemplates.add(offsetConnectorGuidelines(RoomTemplate.capture(world, 412, -61, -5711, 402, -38, -5701, false), 1));
+        connectorTemplates.add(offsetConnectorGuidelines(RoomTemplate.capture(world, 402, -38, -5721, 412, -61, -5711, false), 1));
 
         return !cornerTemplates.isEmpty() && !straightTemplates.isEmpty() && !connectorTemplates.isEmpty();
+    }
+
+    private RoomTemplate offsetConnectorGuidelines(RoomTemplate template, int inwardBlocks) {
+        if (template == null || inwardBlocks <= 0) {
+            return template;
+        }
+        List<RoomTemplate.Connector> shifted = new ArrayList<>();
+        for (RoomTemplate.Connector connector : template.getConnectors()) {
+            int x = connector.x;
+            int z = connector.z;
+            Direction inward = connector.facing.opposite();
+            for (int i = 0; i < inwardBlocks; i++) {
+                switch (inward) {
+                    case NORTH -> z -= 1;
+                    case EAST -> x += 1;
+                    case SOUTH -> z += 1;
+                    case WEST -> x -= 1;
+                }
+            }
+            shifted.add(new RoomTemplate.Connector(x, z, connector.bottomY, connector.facing, connector.entrance));
+        }
+        return new RoomTemplate(
+                template.getBlocks(),
+                shifted,
+                template.getPortals(),
+                template.getExitMarkers(),
+                template.getChests(),
+                template.getBossSpawn(),
+                template.getWidth(),
+                template.getHeight(),
+                template.getDepth(),
+                template.getMinY()
+        );
     }
 
     private int resolveStep() {
