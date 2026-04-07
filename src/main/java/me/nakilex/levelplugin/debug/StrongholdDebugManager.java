@@ -348,8 +348,9 @@ public class StrongholdDebugManager {
             return null;
         }
         if (dirs.size() >= 3) {
-            RoomTemplate tower = chooseTemplateByDirections(towerTemplates, dirs, true);
-            if (tower != null) return tower;
+            if (!towerTemplates.isEmpty()) {
+                return towerTemplates.get(0);
+            }
         }
         if (dirs.size() == 2) {
             boolean opposite = (dirs.contains(Direction.NORTH) && dirs.contains(Direction.SOUTH))
@@ -623,6 +624,9 @@ public class StrongholdDebugManager {
 
     private Location resolveCenterWithBridge(RoomTemplate currentTemplate, int currentRotation, Direction directionToNeighbor,
                                              PlacedPiece neighbor) {
+        if (isTowerTemplate(currentTemplate) || isTowerTemplate(neighbor.template)) {
+            return resolveCenterDirect(currentTemplate, currentRotation, directionToNeighbor, neighbor);
+        }
         Direction neighborToCurrent = directionToNeighbor.opposite();
         RoomTemplate connectorTemplate = selectConnectorTemplate(neighborToCurrent);
         if (connectorTemplate == null) {
@@ -647,6 +651,19 @@ public class StrongholdDebugManager {
         Location connectorTowardCurrentLoc = connectorWorldLocation(
                 connectorCenter, connectorTemplate, connectorRotation, connectorTowardCurrent);
         return centerFromConnector(connectorTowardCurrentLoc, currentTemplate, currentRotation, currentConnector);
+    }
+
+    private Location resolveCenterDirect(RoomTemplate currentTemplate, int currentRotation, Direction directionToNeighbor,
+                                         PlacedPiece neighbor) {
+        Direction neighborToCurrent = directionToNeighbor.opposite();
+        RoomTemplate.Connector neighborConnector = findConnector(neighbor.template, neighbor.rotation, neighborToCurrent);
+        RoomTemplate.Connector currentConnector = findConnector(currentTemplate, currentRotation, directionToNeighbor);
+        if (neighborConnector == null || currentConnector == null) {
+            return null;
+        }
+        Location neighborConnectorLoc = connectorWorldLocation(
+                neighbor.center, neighbor.template, neighbor.rotation, neighborConnector);
+        return centerFromConnector(neighborConnectorLoc, currentTemplate, currentRotation, currentConnector);
     }
 
     private RoomTemplate.Connector findConnector(RoomTemplate template, int rotation, Direction worldFacing) {
