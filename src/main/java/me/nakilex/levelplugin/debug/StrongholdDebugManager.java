@@ -132,7 +132,7 @@ public class StrongholdDebugManager {
         connectorTemplates.add(offsetConnectorGuidelines(RoomTemplate.capture(world, 412, -61, -5711, 402, -38, -5701, false), 1));
         connectorTemplates.add(offsetConnectorGuidelines(RoomTemplate.capture(world, 402, -38, -5721, 412, -61, -5711, false), 1));
 
-        towerTemplates.add(offsetConnectorGuidelines(RoomTemplate.capture(world, 615, -61, -5418, 685, -7, -5488, false), 1));
+        towerTemplates.add(offsetConnectorGuidelines(RoomTemplate.capture(world, 615, -61, -5488, 685, -7, -5418, false), 1));
 
         gateTemplates.add(offsetConnectorGuidelines(RoomTemplate.capture(world, 686, -61, -5346, 614, -10, -5418, false), 1));
         gateTemplates.add(offsetConnectorGuidelines(RoomTemplate.capture(world, 686, -61, -5276, 614, -10, -5346, false), 1));
@@ -334,7 +334,7 @@ public class StrongholdDebugManager {
             return PlacementResult.error("Failed to paste piece at grid " + point.x + "," + point.z + ".");
         }
         placed.put(point, new PlacedPiece(template, rotation, center));
-        policy.recordPlacement(isGateTemplate(template));
+        policy.recordPlacement(isGateTemplate(template), isTowerTemplate(template));
         return PlacementResult.success(1);
     }
 
@@ -351,18 +351,23 @@ public class StrongholdDebugManager {
             boolean opposite = (dirs.contains(Direction.NORTH) && dirs.contains(Direction.SOUTH))
                     || (dirs.contains(Direction.EAST) && dirs.contains(Direction.WEST));
             if (opposite) {
-                List<RoomTemplate> options = new ArrayList<>();
                 RoomTemplate tower = chooseTemplateByDirections(towerTemplates, dirs, true);
-                if (tower != null) options.add(tower);
                 RoomTemplate straight = chooseTemplateByDirections(straightTemplates, dirs, false);
-                if (straight != null) options.add(straight);
+                RoomTemplate gate = null;
                 if (canPlaceGate(point, graph, placed, policy)) {
-                    RoomTemplate gate = chooseTemplateByDirections(gateTemplates, dirs, false);
-                    if (gate != null) options.add(gate);
+                    gate = chooseTemplateByDirections(gateTemplates, dirs, false);
                 }
-                if (!options.isEmpty()) {
-                    // Bias away from straight repetition: tower > corner-like > straight > gate
-                    return options.get(random.nextInt(options.size()));
+                if (tower != null && random.nextDouble() < 0.65) {
+                    return tower;
+                }
+                if (straight != null && (gate == null || random.nextDouble() < 0.85)) {
+                    return straight;
+                }
+                if (gate != null) {
+                    return gate;
+                }
+                if (tower != null) {
+                    return tower;
                 }
             } else {
                 RoomTemplate corner = chooseTemplateByDirections(cornerTemplates, dirs, false);
@@ -383,7 +388,10 @@ public class StrongholdDebugManager {
 
     private boolean canPlaceGate(GridPoint point, Map<GridPoint, Set<Direction>> graph,
                                  Map<GridPoint, PlacedPiece> placed, PlacementPolicy policy) {
-        if (policy.straightWallsSinceGate < 4) {
+        if (policy.straightWallsSinceGate < 5) {
+            return false;
+        }
+        if (policy.towersPlaced <= policy.gatesPlaced + 1) {
             return false;
         }
         for (Direction direction : Direction.values()) {
@@ -398,6 +406,10 @@ public class StrongholdDebugManager {
 
     private boolean isGateTemplate(RoomTemplate template) {
         return gateTemplates.contains(template);
+    }
+
+    private boolean isTowerTemplate(RoomTemplate template) {
+        return towerTemplates.contains(template);
     }
 
     private boolean placeTemplate(Dungeon stronghold, RoomTemplate template, int rotation, Location center,
@@ -808,12 +820,18 @@ public class StrongholdDebugManager {
 
     private static final class PlacementPolicy {
         private int straightWallsSinceGate = 99;
+        private int gatesPlaced = 0;
+        private int towersPlaced = 0;
 
-        private void recordPlacement(boolean wasGate) {
+        private void recordPlacement(boolean wasGate, boolean wasTower) {
             if (wasGate) {
                 straightWallsSinceGate = 0;
+                gatesPlaced++;
             } else {
                 straightWallsSinceGate++;
+            }
+            if (wasTower) {
+                towersPlaced++;
             }
         }
     }
