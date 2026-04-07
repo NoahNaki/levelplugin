@@ -391,14 +391,19 @@ public class DungeonManager {
     public record PasteResult(boolean success, double overlap, Map<Location, BlockData> replaced, Dungeon.RoomInstance instance) {}
 
     public PasteResult pasteRoom(Dungeon dungeon, RoomTemplate template, int rotation, Location center) {
-        return pasteRoom(dungeon, template, rotation, center, null, false);
+        return pasteRoom(dungeon, template, rotation, center, null, false, Set.of());
     }
 
     public PasteResult pasteRoom(Dungeon dungeon, RoomTemplate template, int rotation, Location center, String mob) {
-        return pasteRoom(dungeon, template, rotation, center, mob, false);
+        return pasteRoom(dungeon, template, rotation, center, mob, false, Set.of());
     }
 
     public PasteResult pasteRoom(Dungeon dungeon, RoomTemplate template, int rotation, Location center, String mob, boolean preview) {
+        return pasteRoom(dungeon, template, rotation, center, mob, preview, Set.of());
+    }
+
+    public PasteResult pasteRoom(Dungeon dungeon, RoomTemplate template, int rotation, Location center,
+                                 String mob, boolean preview, Set<Material> ignoredMaterials) {
         World world = center.getWorld();
         if (world == null) return new PasteResult(false, 1.0, Map.<Location, BlockData>of(), null);
 
@@ -414,7 +419,7 @@ public class DungeonManager {
         if (preview) {
             for (RoomTemplate.BlockDef b : template.getBlocks()) {
                 Material mat = b.data.getMaterial();
-                if (mat == Material.REDSTONE_BLOCK || mat == Material.PINK_WOOL || mat == Material.LIME_WOOL) continue;
+                if (shouldIgnoreTemplateMaterial(mat, ignoredMaterials)) continue;
                 int[] vec = RoomTemplate.rotate(b.x - (int) Math.round(template.getCenterX()),
                         b.z - (int) Math.round(template.getCenterZ()), rotation);
                 int wx = center.getBlockX() + vec[0];
@@ -439,7 +444,7 @@ public class DungeonManager {
             // bounds only
             for (RoomTemplate.BlockDef b : template.getBlocks()) {
                 Material mat = b.data.getMaterial();
-                if (mat == Material.REDSTONE_BLOCK || mat == Material.PINK_WOOL || mat == Material.LIME_WOOL) continue;
+                if (shouldIgnoreTemplateMaterial(mat, ignoredMaterials)) continue;
                 int[] vec = RoomTemplate.rotate(b.x - (int) Math.round(template.getCenterX()),
                         b.z - (int) Math.round(template.getCenterZ()), rotation);
                 int wx = center.getBlockX() + vec[0];
@@ -474,8 +479,7 @@ public class DungeonManager {
 
         for (RoomTemplate.BlockDef b : template.getBlocks()) {
             Material mat = b.data.getMaterial();
-            if (mat == Material.REDSTONE_BLOCK || mat == Material.PINK_WOOL
-                    || mat == Material.LIME_WOOL) continue;
+            if (shouldIgnoreTemplateMaterial(mat, ignoredMaterials)) continue;
             int[] vec = RoomTemplate.rotate(b.x - (int) Math.round(template.getCenterX()),
                     b.z - (int) Math.round(template.getCenterZ()), rotation);
             int wx = center.getBlockX() + vec[0];
@@ -547,6 +551,13 @@ public class DungeonManager {
                 minX, minY, minZ, maxX, maxY, maxZ, mob, chestLocs, bossLoc);
         dungeon.addRoom(inst);
         return new PasteResult(true, overlap, replaced, inst);
+    }
+
+    private boolean shouldIgnoreTemplateMaterial(Material material, Set<Material> ignoredMaterials) {
+        return material == Material.REDSTONE_BLOCK
+                || material == Material.PINK_WOOL
+                || material == Material.LIME_WOOL
+                || (ignoredMaterials != null && ignoredMaterials.contains(material));
     }
 
     public boolean deleteDungeon(String name) {
