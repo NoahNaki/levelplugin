@@ -24,9 +24,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 
-/**
- * Debug helper that spawns a square stronghold perimeter from flatland templates.
- */
+/** Debug helper that spawns randomized stronghold wall chains from flatland templates. */
 public class StrongholdDebugManager {
     private final Main plugin;
     private final DungeonManager dungeonManager;
@@ -64,36 +62,20 @@ public class StrongholdDebugManager {
             return SpawnResult.error("Could not resolve target world.");
         }
 
-        int step = resolveStep();
         Dungeon stronghold = new Dungeon(world, "debug_stronghold_" + player.getUniqueId());
         Map<GridPoint, Set<Direction>> graph = generateSnakeGraph(sideLength, player.getUniqueId());
         if (graph.isEmpty()) {
             return SpawnResult.error("Could not generate a wall layout.");
         }
 
-        int pieces = 0;
-        for (Map.Entry<GridPoint, Set<Direction>> entry : graph.entrySet()) {
-            GridPoint point = entry.getKey();
-            Set<Direction> openSides = entry.getValue();
-            RoomTemplate template = selectTemplate(openSides);
-            if (template == null) {
-                stronghold.delete();
-                return SpawnResult.error("No template matched connector pattern " + openSides + ".");
-            }
-
-            int rotation = dungeonManager.findRotation(template, openSides);
-            Location center = origin.clone().add(point.x * step, 0, point.z * step);
-            DungeonManager.PasteResult result = dungeonManager.pasteRoom(
-                    stronghold, template, rotation, center, null, false, STRONGHOLD_IGNORED_MATERIALS);
-            if (result.instance() == null) {
-                stronghold.delete();
-                return SpawnResult.error("Failed to paste piece at grid " + point.x + "," + point.z + ".");
-            }
-            pieces++;
+        PlacementResult placement = placeGraphAligned(stronghold, origin, graph);
+        if (!placement.success) {
+            stronghold.delete();
+            return SpawnResult.error(placement.errorMessage);
         }
 
         activeStrongholds.put(player.getUniqueId(), stronghold);
-        return SpawnResult.success(pieces, step);
+        return SpawnResult.success(placement.piecesPlaced, resolveStep());
     }
 
     public boolean despawn(UUID playerId) {
@@ -178,6 +160,118 @@ public class StrongholdDebugManager {
             }
         }
         return null;
+    }
+
+    private PlacementResult placeGraphAligned(Dungeon stronghold, Location origin, Map<GridPoint, Set<Direction>> graph) {
+        GridPoint root = new GridPoint(0, 0);
+        if (!graph.containsKey(root)) {
+            root = graph.keySet().iterator().next();
+        }
+
+        Map<GridPoint, PlacedPiece> placed = new HashMap<>();
+        List<GridPoint> ordered = new ArrayList<>(graph.keySet());
+        ordered.sort((a, b) -> (a.x == b.x ? Integer.compare(a.z, b.z) : Integer.compare(a.x, b.x)));
+
+        for (GridPoint point : ordered) {
+            Set<Direction> openSides = graph.get(point);
+            RoomTemplate template = selectTemplate(openSides);
+            if (template == null) {
+                return PlacementResult.error("No template matched connector pattern " + openSides + ".");
+            }
+            int rotation = dungeonManager.findRotation(template, openSides);
+
+            Location center;
+            if (point.equals(root)) {
+                center = origin.clone();
+            } else {
+                center = resolveAlignedCenter(point, template, rotation, graph, placed);
+                if (center == null) {
+                    return PlacementResult.error("Failed to align piece at " + point.x + "," + point.z + ".");
+                }
+            }
+
+            DungeonManager.PasteResult result = dungeonManager.pasteRoom(
+                    stronghold, template, rotation, center, null, false, STRONGHOLD_IGNORED_MATERIALS);
+            if (result.instance() == null) {
+                return PlacementResult.error("Failed to paste piece at grid " + point.x + "," + point.z + ".");
+            }
+            placed.put(point, new PlacedPiece(template, rotation, center));
+        }
+        return PlacementResult.success(placed.size());
+    }
+
+    private Location resolveAlignedCenter(GridPoint point, RoomTemplate template, int rotation,
+                                          Map<GridPoint, Set<Direction>> graph, Map<GridPoint, PlacedPiece> placed) {
+        Location chosen = null;
+        for (Direction direction : Direction.values()) {
+            GridPoint neighborPoint = point.move(direction);
+            PlacedPiece neighbor = placed.get(neighborPoint);
+            if (neighbor == null) {
+                continue;
+            }
+            if (!graph.get(point).contains(direction.opposite())) {
+                continue;
+            }
+            if (!graph.getOrDefault(neighborPoint, Set.of()).contains(direction)) {
+                continue;
+            }
+
+            RoomTemplate.Connector currentConnector = findConnector(template, rotation, direction.opposite());
+            RoomTemplate.Connector neighborConnector = findConnector(neighbor.template, neighbor.rotation, direction);
+            if (currentConnector == null || neighborConnector == null) {
+                continue;
+            }
+
+            Location neighborConnectorLoc = connectorWorldLocation(neighbor.center, neighbor.template, neighbor.rotation, neighborConnector);
+            Location candidateCenter = centerFromConnector(neighborConnectorLoc, template, rotation, currentConnector);
+            if (chosen == null) {
+                chosen = candidateCenter;
+                continue;
+            }
+            if (!sameBlock(chosen, candidateCenter)) {
+                return null;
+            }
+        }
+        return chosen;
+    }
+
+    private RoomTemplate.Connector findConnector(RoomTemplate template, int rotation, Direction worldFacing) {
+        for (RoomTemplate.Connector connector : template.getConnectors()) {
+            Direction rotated = rotate(connector.facing, rotation);
+            if (rotated == worldFacing) {
+                return connector;
+            }
+        }
+        return null;
+    }
+
+    private Location connectorWorldLocation(Location center, RoomTemplate template, int rotation, RoomTemplate.Connector connector) {
+        int[] vec = RoomTemplate.rotate(
+                connector.x - (int) Math.round(template.getCenterX()),
+                connector.z - (int) Math.round(template.getCenterZ()),
+                rotation);
+        int y = center.getBlockY() + (connector.bottomY - template.getConnectorMinY());
+        return new Location(center.getWorld(), center.getBlockX() + vec[0], y, center.getBlockZ() + vec[1]);
+    }
+
+    private Location centerFromConnector(Location connectorLoc, RoomTemplate template, int rotation, RoomTemplate.Connector connector) {
+        int[] vec = RoomTemplate.rotate(
+                connector.x - (int) Math.round(template.getCenterX()),
+                connector.z - (int) Math.round(template.getCenterZ()),
+                rotation);
+        int y = connectorLoc.getBlockY() - (connector.bottomY - template.getConnectorMinY());
+        return new Location(connectorLoc.getWorld(), connectorLoc.getBlockX() - vec[0], y, connectorLoc.getBlockZ() - vec[1]);
+    }
+
+    private boolean sameBlock(Location a, Location b) {
+        if (a == null || b == null) return false;
+        if (a.getWorld() != b.getWorld()) return false;
+        return a.getBlockX() == b.getBlockX() && a.getBlockY() == b.getBlockY() && a.getBlockZ() == b.getBlockZ();
+    }
+
+    private Direction rotate(Direction direction, int rotation) {
+        int ord = (direction.ordinal() + rotation) & 3;
+        return Direction.values()[ord];
     }
 
     public record SpawnResult(boolean success, String message, int piecesPlaced, int step) {
@@ -309,6 +403,28 @@ public class StrongholdDebugManager {
             if (dx < 0) return Direction.WEST;
             if (dz > 0) return Direction.SOUTH;
             return Direction.NORTH;
+        }
+    }
+
+    private record PlacedPiece(RoomTemplate template, int rotation, Location center) {}
+
+    private static final class PlacementResult {
+        private final boolean success;
+        private final String errorMessage;
+        private final int piecesPlaced;
+
+        private PlacementResult(boolean success, String errorMessage, int piecesPlaced) {
+            this.success = success;
+            this.errorMessage = errorMessage;
+            this.piecesPlaced = piecesPlaced;
+        }
+
+        private static PlacementResult success(int piecesPlaced) {
+            return new PlacementResult(true, null, piecesPlaced);
+        }
+
+        private static PlacementResult error(String errorMessage) {
+            return new PlacementResult(false, errorMessage, 0);
         }
     }
 }
