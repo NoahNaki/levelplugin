@@ -282,7 +282,9 @@ public class StrongholdDebugManager {
 
         Map<GridPoint, PlacedPiece> placed = new HashMap<>();
         PlacementPolicy policy = new PlacementPolicy();
-        PlacementResult rootPlacement = placeSinglePiece(stronghold, root, origin.clone(), graph, placed, restoreSnapshot, random, policy);
+        RoomTemplate rootTemplate = chooseTemplateForNode(graph.get(root), root, graph, placed, random, policy);
+        PlacementResult rootPlacement = placeSinglePiece(stronghold, root, origin.clone(), rootTemplate,
+                graph, placed, restoreSnapshot, policy);
         if (!rootPlacement.success) {
             return rootPlacement;
         }
@@ -304,7 +306,8 @@ public class StrongholdDebugManager {
                     continue;
                 }
 
-                PlacementResult placement = placeSinglePiece(stronghold, point, center, graph, placed, restoreSnapshot, random, policy);
+                PlacementResult placement = placeSinglePiece(stronghold, point, center, template,
+                        graph, placed, restoreSnapshot, policy);
                 if (!placement.success) {
                     return placement;
                 }
@@ -324,11 +327,11 @@ public class StrongholdDebugManager {
     }
 
     private PlacementResult placeSinglePiece(Dungeon stronghold, GridPoint point, Location center,
-                                             Map<GridPoint, Set<Direction>> graph, Map<GridPoint, PlacedPiece> placed,
+                                             RoomTemplate template, Map<GridPoint, Set<Direction>> graph,
+                                             Map<GridPoint, PlacedPiece> placed,
                                              Map<Location, org.bukkit.block.data.BlockData> restoreSnapshot,
-                                             Random random, PlacementPolicy policy) {
+                                             PlacementPolicy policy) {
         Set<Direction> openSides = graph.get(point);
-        RoomTemplate template = chooseTemplateForNode(openSides, point, graph, placed, random, policy);
         if (template == null) {
             return PlacementResult.error("No template matched connector pattern " + openSides + ".");
         }
@@ -629,9 +632,6 @@ public class StrongholdDebugManager {
 
     private Location resolveCenterWithBridge(RoomTemplate currentTemplate, int currentRotation, Direction directionToNeighbor,
                                              PlacedPiece neighbor) {
-        if (isTowerTemplate(currentTemplate) || isTowerTemplate(neighbor.template)) {
-            return resolveCenterDirect(currentTemplate, currentRotation, directionToNeighbor, neighbor);
-        }
         Direction neighborToCurrent = directionToNeighbor.opposite();
         RoomTemplate connectorTemplate = selectConnectorTemplate(neighborToCurrent);
         if (connectorTemplate == null) {
@@ -656,19 +656,6 @@ public class StrongholdDebugManager {
         Location connectorTowardCurrentLoc = connectorWorldLocation(
                 connectorCenter, connectorTemplate, connectorRotation, connectorTowardCurrent);
         return centerFromConnector(connectorTowardCurrentLoc, currentTemplate, currentRotation, currentConnector);
-    }
-
-    private Location resolveCenterDirect(RoomTemplate currentTemplate, int currentRotation, Direction directionToNeighbor,
-                                         PlacedPiece neighbor) {
-        Direction neighborToCurrent = directionToNeighbor.opposite();
-        RoomTemplate.Connector neighborConnector = findConnector(neighbor.template, neighbor.rotation, neighborToCurrent);
-        RoomTemplate.Connector currentConnector = findConnector(currentTemplate, currentRotation, directionToNeighbor);
-        if (neighborConnector == null || currentConnector == null) {
-            return null;
-        }
-        Location neighborConnectorLoc = connectorWorldLocation(
-                neighbor.center, neighbor.template, neighbor.rotation, neighborConnector);
-        return centerFromConnector(neighborConnectorLoc, currentTemplate, currentRotation, currentConnector);
     }
 
     private RoomTemplate.Connector findConnector(RoomTemplate template, int rotation, Direction worldFacing) {
