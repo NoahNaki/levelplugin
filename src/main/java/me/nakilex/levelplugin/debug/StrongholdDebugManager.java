@@ -37,6 +37,8 @@ public class StrongholdDebugManager {
     private final List<RoomTemplate> straightTemplates = new ArrayList<>();
     private final List<RoomTemplate> deadEndTemplates = new ArrayList<>();
     private final List<RoomTemplate> connectorTemplates = new ArrayList<>();
+    private final List<RoomTemplate> towerTemplates = new ArrayList<>();
+    private final List<RoomTemplate> gateTemplates = new ArrayList<>();
 
     private boolean templatesLoaded;
 
@@ -96,7 +98,8 @@ public class StrongholdDebugManager {
 
     private boolean ensureTemplatesLoaded() {
         if (templatesLoaded) {
-            return !cornerTemplates.isEmpty() && !straightTemplates.isEmpty() && !connectorTemplates.isEmpty();
+            return !cornerTemplates.isEmpty() && !straightTemplates.isEmpty()
+                    && !connectorTemplates.isEmpty() && !towerTemplates.isEmpty() && !gateTemplates.isEmpty();
         }
         templatesLoaded = true;
 
@@ -129,7 +132,13 @@ public class StrongholdDebugManager {
         connectorTemplates.add(offsetConnectorGuidelines(RoomTemplate.capture(world, 412, -61, -5711, 402, -38, -5701, false), 1));
         connectorTemplates.add(offsetConnectorGuidelines(RoomTemplate.capture(world, 402, -38, -5721, 412, -61, -5711, false), 1));
 
-        return !cornerTemplates.isEmpty() && !straightTemplates.isEmpty() && !connectorTemplates.isEmpty();
+        towerTemplates.add(offsetConnectorGuidelines(RoomTemplate.capture(world, 615, -61, -5418, 685, -7, -5488, false), 1));
+
+        gateTemplates.add(offsetConnectorGuidelines(RoomTemplate.capture(world, 686, -61, -5346, 614, -10, -5418, false), 1));
+        gateTemplates.add(offsetConnectorGuidelines(RoomTemplate.capture(world, 686, -61, -5276, 614, -10, -5346, false), 1));
+
+        return !cornerTemplates.isEmpty() && !straightTemplates.isEmpty()
+                && !connectorTemplates.isEmpty() && !towerTemplates.isEmpty() && !gateTemplates.isEmpty();
     }
 
     private RoomTemplate offsetConnectorGuidelines(RoomTemplate template, int inwardBlocks) {
@@ -185,24 +194,78 @@ public class StrongholdDebugManager {
     }
 
     private RoomTemplate selectTemplate(Set<Direction> dirs) {
-        List<RoomTemplate> candidates;
-        if (dirs.size() == 2) {
-            boolean opposite = (dirs.contains(Direction.NORTH) && dirs.contains(Direction.SOUTH))
-                    || (dirs.contains(Direction.EAST) && dirs.contains(Direction.WEST));
-            candidates = opposite ? straightTemplates : cornerTemplates;
-        } else if (dirs.size() == 1) {
-            candidates = deadEndTemplates;
-        } else {
+        if (dirs.isEmpty()) {
             return null;
         }
 
+        if (dirs.size() >= 3) {
+            RoomTemplate flexible = chooseTemplateByDirections(towerTemplates, dirs, true);
+            if (flexible != null) {
+                return flexible;
+            }
+            if (dirs.size() == 4) {
+                return null;
+            }
+        }
+
+        if (dirs.size() == 2) {
+            boolean opposite = (dirs.contains(Direction.NORTH) && dirs.contains(Direction.SOUTH))
+                    || (dirs.contains(Direction.EAST) && dirs.contains(Direction.WEST));
+            if (opposite) {
+                RoomTemplate gate = chooseTemplateByDirections(gateTemplates, dirs, false);
+                if (gate != null) {
+                    return gate;
+                }
+                RoomTemplate straight = chooseTemplateByDirections(straightTemplates, dirs, false);
+                if (straight != null) {
+                    return straight;
+                }
+                return chooseTemplateByDirections(towerTemplates, dirs, true);
+            }
+            RoomTemplate corner = chooseTemplateByDirections(cornerTemplates, dirs, false);
+            if (corner != null) {
+                return corner;
+            }
+            return chooseTemplateByDirections(towerTemplates, dirs, true);
+        }
+
+        if (dirs.size() == 1) {
+            RoomTemplate deadEnd = chooseTemplateByDirections(deadEndTemplates, dirs, false);
+            if (deadEnd != null) {
+                return deadEnd;
+            }
+            return chooseTemplateByDirections(towerTemplates, dirs, true);
+        }
+
+        return chooseTemplateByDirections(towerTemplates, dirs, true);
+    }
+
+    private RoomTemplate chooseTemplateByDirections(List<RoomTemplate> candidates, Set<Direction> target,
+                                                    boolean allowSuperset) {
         for (RoomTemplate template : candidates) {
-            int rotation = dungeonManager.findRotation(template, dirs);
-            if (template.getRotatedDirections(rotation).equals(dirs)) {
-                return template;
+            for (int rotation = 0; rotation < 4; rotation++) {
+                Set<Direction> rotated = template.getRotatedDirections(rotation);
+                boolean match = allowSuperset ? rotated.containsAll(target) : rotated.equals(target);
+                if (match) {
+                    return template;
+                }
             }
         }
         return null;
+    }
+
+    private int resolveRotation(RoomTemplate template, Set<Direction> target) {
+        for (int rotation = 0; rotation < 4; rotation++) {
+            if (template.getRotatedDirections(rotation).equals(target)) {
+                return rotation;
+            }
+        }
+        for (int rotation = 0; rotation < 4; rotation++) {
+            if (template.getRotatedDirections(rotation).containsAll(target)) {
+                return rotation;
+            }
+        }
+        return dungeonManager.findRotation(template, target);
     }
 
     private PlacementResult placeGraphAligned(Dungeon stronghold, Location origin, Map<GridPoint, Set<Direction>> graph,
@@ -229,7 +292,7 @@ public class StrongholdDebugManager {
                 if (template == null) {
                     return PlacementResult.error("No template matched connector pattern " + openSides + ".");
                 }
-                int rotation = dungeonManager.findRotation(template, openSides);
+                int rotation = resolveRotation(template, openSides);
                 Location center = resolveAlignedCenter(point, template, rotation, graph, placed);
                 if (center == null) {
                     continue;
@@ -262,7 +325,7 @@ public class StrongholdDebugManager {
         if (template == null) {
             return PlacementResult.error("No template matched connector pattern " + openSides + ".");
         }
-        int rotation = dungeonManager.findRotation(template, openSides);
+        int rotation = resolveRotation(template, openSides);
         capturePieceReplacements(center, template, rotation, restoreSnapshot);
         if (!placeTemplate(stronghold, template, rotation, center, restoreSnapshot)) {
             return PlacementResult.error("Failed to paste piece at grid " + point.x + "," + point.z + ".");
