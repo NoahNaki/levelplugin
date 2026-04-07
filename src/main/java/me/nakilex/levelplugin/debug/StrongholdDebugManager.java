@@ -466,21 +466,30 @@ public class StrongholdDebugManager {
                 if (tower != null) {
                     return tower;
                 }
-                return gate;
+                if (gate != null) {
+                    return gate;
+                }
+                if (straight != null) {
+                    return straight;
+                }
+                return selectTemplate(dirs);
             } else {
                 // Corners should be tower-heavy for stronger silhouette variety.
                 RoomTemplate corner = chooseTemplateByDirections(cornerTemplates, dirs, false);
                 RoomTemplate tower = chooseTemplateByDirections(towerTemplates, dirs, true);
                 if (tower != null && canPlaceTower(point, placed) && random.nextDouble() < 0.72) return tower;
                 if (corner != null) return corner;
-                return tower;
+                if (tower != null) return tower;
+                return selectTemplate(dirs);
             }
         }
         if (degree == 1) {
             RoomTemplate tower = chooseTemplateByDirections(towerTemplates, dirs, true);
             if (tower != null && canPlaceTower(point, placed) && random.nextDouble() < 0.35) return tower;
             RoomTemplate dead = chooseTemplateByDirections(deadEndTemplates, dirs, false);
-            return dead != null ? dead : tower;
+            if (dead != null) return dead;
+            if (tower != null) return tower;
+            return selectTemplate(dirs);
         }
         return selectTemplate(dirs);
     }
