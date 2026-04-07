@@ -36,6 +36,7 @@ public class StrongholdDebugManager {
     private final List<RoomTemplate> cornerTemplates = new ArrayList<>();
     private final List<RoomTemplate> straightTemplates = new ArrayList<>();
     private final List<RoomTemplate> deadEndTemplates = new ArrayList<>();
+    private final List<RoomTemplate> connectorTemplates = new ArrayList<>();
 
     private boolean templatesLoaded;
 
@@ -95,7 +96,7 @@ public class StrongholdDebugManager {
 
     private boolean ensureTemplatesLoaded() {
         if (templatesLoaded) {
-            return !cornerTemplates.isEmpty() && !straightTemplates.isEmpty();
+            return !cornerTemplates.isEmpty() && !straightTemplates.isEmpty() && !connectorTemplates.isEmpty();
         }
         templatesLoaded = true;
 
@@ -125,7 +126,10 @@ public class StrongholdDebugManager {
         deadEndTemplates.add(RoomTemplate.capture(world, 543, -38, -5418, 473, -61, -5488, false));
         deadEndTemplates.add(RoomTemplate.capture(world, 473, -61, -5489, 543, -38, -5559, false));
 
-        return !cornerTemplates.isEmpty() && !straightTemplates.isEmpty();
+        connectorTemplates.add(RoomTemplate.capture(world, 412, -61, -5711, 402, -38, -5701, false));
+        connectorTemplates.add(RoomTemplate.capture(world, 402, -38, -5721, 412, -61, -5711, false));
+
+        return !cornerTemplates.isEmpty() && !straightTemplates.isEmpty() && !connectorTemplates.isEmpty();
     }
 
     private int resolveStep() {
@@ -210,7 +214,11 @@ public class StrongholdDebugManager {
                 return PlacementResult.error("Failed to align piece at " + failed.x + "," + failed.z + ".");
             }
         }
-        return PlacementResult.success(placed.size());
+        int connectorCount = placeInterConnectors(stronghold, graph, placed, restoreSnapshot);
+        if (connectorCount < 0) {
+            return PlacementResult.error("Failed to place connector bridge pieces.");
+        }
+        return PlacementResult.success(placed.size() + connectorCount);
     }
 
     private PlacementResult placeSinglePiece(Dungeon stronghold, GridPoint point, Location center,
@@ -223,14 +231,79 @@ public class StrongholdDebugManager {
         }
         int rotation = dungeonManager.findRotation(template, openSides);
         capturePieceReplacements(center, template, rotation, restoreSnapshot);
+        if (!placeTemplate(stronghold, template, rotation, center, restoreSnapshot)) {
+            return PlacementResult.error("Failed to paste piece at grid " + point.x + "," + point.z + ".");
+        }
+        placed.put(point, new PlacedPiece(template, rotation, center));
+        return PlacementResult.success(1);
+    }
+
+    private boolean placeTemplate(Dungeon stronghold, RoomTemplate template, int rotation, Location center,
+                                  Map<Location, org.bukkit.block.data.BlockData> restoreSnapshot) {
         DungeonManager.PasteResult result = dungeonManager.pasteRoom(
                 stronghold, template, rotation, center, null, false, STRONGHOLD_IGNORED_MATERIALS);
         if (result.instance() == null) {
-            return PlacementResult.error("Failed to paste piece at grid " + point.x + "," + point.z + ".");
+            return false;
         }
         patchConnectorPlaceholders(center, template, rotation, restoreSnapshot);
-        placed.put(point, new PlacedPiece(template, rotation, center));
-        return PlacementResult.success(1);
+        return true;
+    }
+
+    private int placeInterConnectors(Dungeon stronghold, Map<GridPoint, Set<Direction>> graph,
+                                     Map<GridPoint, PlacedPiece> placed,
+                                     Map<Location, org.bukkit.block.data.BlockData> restoreSnapshot) {
+        Set<String> visitedEdges = new HashSet<>();
+        int placedConnectors = 0;
+        for (Map.Entry<GridPoint, Set<Direction>> entry : graph.entrySet()) {
+            GridPoint point = entry.getKey();
+            PlacedPiece source = placed.get(point);
+            if (source == null) continue;
+
+            for (Direction direction : entry.getValue()) {
+                GridPoint neighborPoint = point.move(direction);
+                if (!graph.containsKey(neighborPoint)) continue;
+                String edgeKey = edgeKey(point, neighborPoint);
+                if (!visitedEdges.add(edgeKey)) continue;
+                PlacedPiece neighbor = placed.get(neighborPoint);
+                if (neighbor == null) continue;
+
+                RoomTemplate connectorTemplate = selectConnectorTemplate(direction);
+                if (connectorTemplate == null) return -1;
+                Set<Direction> straightDirs = Set.of(direction, direction.opposite());
+                int connectorRotation = dungeonManager.findRotation(connectorTemplate, straightDirs);
+
+                RoomTemplate.Connector sourceConnector = findConnector(source.template, source.rotation, direction);
+                RoomTemplate.Connector connectorSide = findConnector(connectorTemplate, connectorRotation, direction.opposite());
+                if (sourceConnector == null || connectorSide == null) return -1;
+
+                Location sourceConnectorLoc = connectorWorldLocation(source.center, source.template, source.rotation, sourceConnector);
+                Location connectorCenter = centerFromConnector(sourceConnectorLoc, connectorTemplate, connectorRotation, connectorSide);
+
+                capturePieceReplacements(connectorCenter, connectorTemplate, connectorRotation, restoreSnapshot);
+                if (!placeTemplate(stronghold, connectorTemplate, connectorRotation, connectorCenter, restoreSnapshot)) {
+                    return -1;
+                }
+                placedConnectors++;
+            }
+        }
+        return placedConnectors;
+    }
+
+    private String edgeKey(GridPoint a, GridPoint b) {
+        String left = a.x + "," + a.z;
+        String right = b.x + "," + b.z;
+        return left.compareTo(right) <= 0 ? left + "|" + right : right + "|" + left;
+    }
+
+    private RoomTemplate selectConnectorTemplate(Direction direction) {
+        Set<Direction> dirs = Set.of(direction, direction.opposite());
+        for (RoomTemplate template : connectorTemplates) {
+            int rotation = dungeonManager.findRotation(template, dirs);
+            if (template.getRotatedDirections(rotation).equals(dirs)) {
+                return template;
+            }
+        }
+        return null;
     }
 
     private void capturePieceReplacements(Location center, RoomTemplate template, int rotation,
