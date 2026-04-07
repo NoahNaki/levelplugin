@@ -255,6 +255,10 @@ public class StrongholdDebugManager {
     }
 
     private int resolveRotation(RoomTemplate template, Set<Direction> target) {
+        if (isTowerTemplate(template)) {
+            // Tower is symmetrical by design; use canonical rotation.
+            return 0;
+        }
         for (int rotation = 0; rotation < 4; rotation++) {
             if (template.getRotatedDirections(rotation).equals(target)) {
                 return rotation;
