@@ -725,7 +725,8 @@ public class StrongholdDebugManager {
         occupied.add(current);
         path.add(current);
 
-        while (path.size() < pieces) {
+        int mainPathTarget = Math.max(2, (int) Math.ceil(pieces * 0.62));
+        while (path.size() < mainPathTarget) {
             Direction nextDirection = chooseNextDirection(path, occupied, random);
             if (nextDirection == null) {
                 break;
@@ -756,7 +757,7 @@ public class StrongholdDebugManager {
             graph.put(point, dirs);
         }
 
-        addOptionalDeadEndCuts(graph, occupied, random, pieces);
+        expandBranchGraph(graph, occupied, random, pieces);
         return graph;
     }
 
@@ -783,37 +784,60 @@ public class StrongholdDebugManager {
         return null;
     }
 
-    private void addOptionalDeadEndCuts(Map<GridPoint, Set<Direction>> graph, Set<GridPoint> occupied,
-                                        Random random, int targetPieces) {
+    private void expandBranchGraph(Map<GridPoint, Set<Direction>> graph, Set<GridPoint> occupied,
+                                   Random random, int targetPieces) {
         if (graph.size() >= targetPieces) {
             return;
         }
-        List<GridPoint> keys = new ArrayList<>(graph.keySet());
-        Collections.shuffle(keys, random);
-        int attempts = Math.min(keys.size(), Math.max(1, targetPieces / 3));
-        for (int i = 0; i < attempts && graph.size() < targetPieces; i++) {
-            GridPoint base = keys.get(i);
-            if (graph.get(base).size() >= 3) {
-                continue;
+        int safety = targetPieces * 8;
+        while (graph.size() < targetPieces && safety-- > 0) {
+            List<GridPoint> bases = new ArrayList<>(graph.keySet());
+            bases.removeIf(base -> graph.get(base).size() >= 3);
+            if (bases.isEmpty()) {
+                break;
             }
+            Collections.shuffle(bases, random);
+            GridPoint base = bases.get(0);
+
             List<Direction> freeDirs = new ArrayList<>();
             for (Direction direction : Direction.values()) {
-                if (graph.get(base).contains(direction)) {
-                    continue;
-                }
+                if (graph.get(base).contains(direction)) continue;
                 GridPoint candidate = base.move(direction);
-                if (!occupied.contains(candidate)) {
-                    freeDirs.add(direction);
-                }
+                if (!occupied.contains(candidate)) freeDirs.add(direction);
             }
             if (freeDirs.isEmpty()) {
                 continue;
             }
-            Direction selected = freeDirs.get(random.nextInt(freeDirs.size()));
-            GridPoint child = base.move(selected);
-            occupied.add(child);
-            graph.get(base).add(selected);
-            graph.put(child, new LinkedHashSet<>(Set.of(selected.opposite())));
+
+            Direction firstDir = freeDirs.get(random.nextInt(freeDirs.size()));
+            GridPoint branch = base.move(firstDir);
+            occupied.add(branch);
+            graph.get(base).add(firstDir);
+            graph.put(branch, new LinkedHashSet<>(Set.of(firstDir.opposite())));
+
+            int branchTargetLength = random.nextDouble() < 0.65 ? 1 : 2;
+            GridPoint tip = branch;
+            Direction tipDir = firstDir;
+            for (int len = 1; len < branchTargetLength && graph.size() < targetPieces; len++) {
+                List<Direction> extDirs = new ArrayList<>(List.of(Direction.NORTH, Direction.EAST, Direction.SOUTH, Direction.WEST));
+                extDirs.remove(tipDir.opposite());
+                Collections.shuffle(extDirs, random);
+                boolean extended = false;
+                for (Direction ext : extDirs) {
+                    GridPoint next = tip.move(ext);
+                    if (occupied.contains(next)) continue;
+                    occupied.add(next);
+                    graph.get(tip).add(ext);
+                    graph.put(next, new LinkedHashSet<>(Set.of(ext.opposite())));
+                    tip = next;
+                    tipDir = ext;
+                    extended = true;
+                    break;
+                }
+                if (!extended) {
+                    break;
+                }
+            }
         }
     }
 
