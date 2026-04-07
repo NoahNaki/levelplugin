@@ -66,22 +66,31 @@ public class StrongholdDebugManager {
             return SpawnResult.error("Could not resolve target world.");
         }
 
-        Dungeon stronghold = new Dungeon(world, "debug_stronghold_" + player.getUniqueId());
-        Map<Location, org.bukkit.block.data.BlockData> restoreSnapshot = new LinkedHashMap<>();
-        Map<GridPoint, Set<Direction>> graph = generateSnakeGraph(sideLength, player.getUniqueId());
-        if (graph.isEmpty()) {
-            return SpawnResult.error("Could not generate a wall layout.");
-        }
+        final int maxAttempts = 24;
+        PlacementResult lastError = PlacementResult.error("Unknown alignment failure.");
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            Dungeon stronghold = new Dungeon(world, "debug_stronghold_" + player.getUniqueId());
+            Map<Location, org.bukkit.block.data.BlockData> restoreSnapshot = new LinkedHashMap<>();
+            Map<GridPoint, Set<Direction>> graph = generateSnakeGraph(sideLength, player.getUniqueId());
+            if (graph.isEmpty()) {
+                lastError = PlacementResult.error("Could not generate a wall layout.");
+                continue;
+            }
 
-        PlacementResult placement = placeGraphAligned(stronghold, origin, graph, restoreSnapshot, new Random(System.nanoTime()));
-        if (!placement.success) {
-            restoreSnapshot(restoreSnapshot);
-            return SpawnResult.error(placement.errorMessage);
-        }
+            PlacementResult placement = placeGraphAligned(
+                    stronghold, origin, graph, restoreSnapshot, new Random(System.nanoTime() ^ attempt));
+            if (!placement.success) {
+                restoreSnapshot(restoreSnapshot);
+                lastError = placement;
+                continue;
+            }
 
-        activeStrongholds.put(player.getUniqueId(), stronghold);
-        activeRestoreSnapshots.put(player.getUniqueId(), restoreSnapshot);
-        return SpawnResult.success(placement.piecesPlaced, resolveStep());
+            activeStrongholds.put(player.getUniqueId(), stronghold);
+            activeRestoreSnapshots.put(player.getUniqueId(), restoreSnapshot);
+            return SpawnResult.success(placement.piecesPlaced, resolveStep());
+        }
+        return SpawnResult.error("Failed to align stronghold after " + maxAttempts + " attempts. Last error: "
+                + (lastError.errorMessage == null ? "unknown" : lastError.errorMessage));
     }
 
     public boolean despawn(UUID playerId) {
@@ -366,16 +375,20 @@ public class StrongholdDebugManager {
                 if (canPlaceGate(point, graph, placed, policy)) {
                     gate = chooseTemplateByDirections(gateTemplates, dirs, false);
                 }
-                if (tower != null && random.nextDouble() < 0.58) {
+                // Prefer towers/gates first so plain walls do not dominate special structures.
+                if (tower != null && random.nextDouble() < 0.72) {
                     return tower;
                 }
                 if (gate != null && random.nextDouble() < 0.72) {
                     return gate;
                 }
-                if (tower != null && random.nextDouble() < 0.45) {
+                if (tower != null && random.nextDouble() < 0.65) {
                     return tower;
                 }
-                if (straight != null) {
+                if (gate != null && random.nextDouble() < 0.55) {
+                    return gate;
+                }
+                if (straight != null && random.nextDouble() < 0.35) {
                     return straight;
                 }
                 if (tower != null) {
