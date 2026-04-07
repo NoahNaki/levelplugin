@@ -366,16 +366,22 @@ public class StrongholdDebugManager {
                 if (canPlaceGate(point, graph, placed, policy)) {
                     gate = chooseTemplateByDirections(gateTemplates, dirs, false);
                 }
-                if (gate != null && random.nextDouble() < 0.70) {
+                if (tower != null && random.nextDouble() < 0.58) {
+                    return tower;
+                }
+                if (gate != null && random.nextDouble() < 0.72) {
                     return gate;
+                }
+                if (tower != null && random.nextDouble() < 0.45) {
+                    return tower;
                 }
                 if (straight != null) {
                     return straight;
                 }
-                if (tower != null && random.nextDouble() < 0.15) {
+                if (tower != null) {
                     return tower;
                 }
-                return gate != null ? gate : tower;
+                return gate;
             } else {
                 // Corners should be tower-heavy for stronger silhouette variety.
                 RoomTemplate corner = chooseTemplateByDirections(cornerTemplates, dirs, false);
@@ -624,7 +630,28 @@ public class StrongholdDebugManager {
                 continue;
             }
             if (!sameBlock(chosen, candidateCenter)) {
-                return null;
+                // At larger layouts tiny 1-block discrepancies can appear from marker-guideline offsets.
+                // Prefer the first resolved anchor center when candidates are near each other.
+                int delta = Math.abs(chosen.getBlockX() - candidateCenter.getBlockX())
+                        + Math.abs(chosen.getBlockY() - candidateCenter.getBlockY())
+                        + Math.abs(chosen.getBlockZ() - candidateCenter.getBlockZ());
+                if (delta > 2) {
+                    return null;
+                }
+            }
+        }
+        if (chosen == null) {
+            // Fallback: direct marker overlap solve if bridge solve couldn't resolve this node.
+            for (Direction direction : Direction.values()) {
+                GridPoint neighborPoint = point.move(direction);
+                PlacedPiece neighbor = placed.get(neighborPoint);
+                if (neighbor == null) continue;
+                if (!graph.get(point).contains(direction)) continue;
+                if (!graph.getOrDefault(neighborPoint, Set.of()).contains(direction.opposite())) continue;
+                Location direct = resolveCenterDirect(template, rotation, direction, neighbor);
+                if (direct != null) {
+                    return direct;
+                }
             }
         }
         return chosen;
@@ -656,6 +683,19 @@ public class StrongholdDebugManager {
         Location connectorTowardCurrentLoc = connectorWorldLocation(
                 connectorCenter, connectorTemplate, connectorRotation, connectorTowardCurrent);
         return centerFromConnector(connectorTowardCurrentLoc, currentTemplate, currentRotation, currentConnector);
+    }
+
+    private Location resolveCenterDirect(RoomTemplate currentTemplate, int currentRotation, Direction directionToNeighbor,
+                                         PlacedPiece neighbor) {
+        Direction neighborToCurrent = directionToNeighbor.opposite();
+        RoomTemplate.Connector neighborConnector = findConnector(neighbor.template, neighbor.rotation, neighborToCurrent);
+        RoomTemplate.Connector currentConnector = findConnector(currentTemplate, currentRotation, directionToNeighbor);
+        if (neighborConnector == null || currentConnector == null) {
+            return null;
+        }
+        Location neighborConnectorLoc = connectorWorldLocation(
+                neighbor.center, neighbor.template, neighbor.rotation, neighborConnector);
+        return centerFromConnector(neighborConnectorLoc, currentTemplate, currentRotation, currentConnector);
     }
 
     private RoomTemplate.Connector findConnector(RoomTemplate template, int rotation, Direction worldFacing) {
