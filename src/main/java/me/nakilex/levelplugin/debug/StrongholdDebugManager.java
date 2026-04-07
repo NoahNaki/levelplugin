@@ -93,6 +93,75 @@ public class StrongholdDebugManager {
                 + (lastError.errorMessage == null ? "unknown" : lastError.errorMessage));
     }
 
+    public SpawnResult spawnProgressive(Player player, int sideLength, long delayTicks) {
+        if (player == null) {
+            return SpawnResult.error("Player was null.");
+        }
+        if (sideLength < 1) {
+            return SpawnResult.error("Size must be at least 1.");
+        }
+        if (!ensureTemplatesLoaded()) {
+            return SpawnResult.error("Stronghold templates failed to load. Check flatland world/coords.");
+        }
+
+        despawn(player.getUniqueId());
+        Location origin = player.getLocation().getBlock().getLocation();
+        World world = origin.getWorld();
+        if (world == null) {
+            return SpawnResult.error("Could not resolve target world.");
+        }
+
+        Map<GridPoint, Set<Direction>> graph = generateSnakeGraph(sideLength, player.getUniqueId());
+        if (graph.isEmpty()) {
+            return SpawnResult.error("Could not generate a wall layout.");
+        }
+
+        Dungeon stronghold = new Dungeon(world, "debug_stronghold_" + player.getUniqueId());
+        Map<Location, org.bukkit.block.data.BlockData> restoreSnapshot = new LinkedHashMap<>();
+        Map<GridPoint, PlacedPiece> placed = new HashMap<>();
+        PlacementPolicy policy = new PlacementPolicy();
+
+        List<PlacementTask> tasks = buildPlacementTasks(stronghold, origin, graph, placed, restoreSnapshot, policy, new Random(System.nanoTime()));
+        if (tasks == null || tasks.isEmpty()) {
+            return SpawnResult.error("Failed to resolve placement sequence.");
+        }
+
+        final long stepDelay = Math.max(1L, delayTicks);
+        final UUID playerId = player.getUniqueId();
+        final int total = tasks.size();
+        final int[] index = {0};
+        new org.bukkit.scheduler.BukkitRunnable() {
+            @Override
+            public void run() {
+                if (index[0] >= total) {
+                    activeStrongholds.put(playerId, stronghold);
+                    activeRestoreSnapshots.put(playerId, restoreSnapshot);
+                    Player online = org.bukkit.Bukkit.getPlayer(playerId);
+                    if (online != null) {
+                        me.nakilex.levelplugin.utils.ChatMessageUtil.send(
+                                online, me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType.SUCCESS,
+                                "Progressive stronghold build complete: " + total + " pieces.");
+                    }
+                    cancel();
+                    return;
+                }
+                PlacementTask task = tasks.get(index[0]++);
+                if (!placeTemplate(stronghold, task.template, task.rotation, task.center, restoreSnapshot)) {
+                    restoreSnapshot(restoreSnapshot);
+                    Player online = org.bukkit.Bukkit.getPlayer(playerId);
+                    if (online != null) {
+                        me.nakilex.levelplugin.utils.ChatMessageUtil.send(
+                                online, me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType.ERROR,
+                                "Progressive build stopped at step " + index[0] + " (" + task.label + ").");
+                    }
+                    cancel();
+                }
+            }
+        }.runTaskTimer(plugin, 0L, stepDelay);
+
+        return SpawnResult.success(tasks.size(), resolveStep());
+    }
+
     public boolean despawn(UUID playerId) {
         Dungeon existing = activeStrongholds.remove(playerId);
         Map<Location, org.bukkit.block.data.BlockData> snapshot = activeRestoreSnapshots.remove(playerId);
@@ -361,7 +430,7 @@ public class StrongholdDebugManager {
         }
         int degree = dirs.size();
         if (degree >= 3) {
-            if (!towerTemplates.isEmpty()) {
+            if (!towerTemplates.isEmpty() && canPlaceTower(point, placed)) {
                 return towerTemplates.get(0);
             }
         }
@@ -372,8 +441,11 @@ public class StrongholdDebugManager {
                 RoomTemplate tower = chooseTemplateByDirections(towerTemplates, dirs, true);
                 RoomTemplate straight = chooseTemplateByDirections(straightTemplates, dirs, false);
                 RoomTemplate gate = null;
-                if (canPlaceGate(point, graph, placed, policy)) {
+                if (canPlaceGate(point, placed, policy)) {
                     gate = chooseTemplateByDirections(gateTemplates, dirs, false);
+                }
+                if (straight == null && !straightTemplates.isEmpty()) {
+                    straight = straightTemplates.get(0);
                 }
                 // Prefer towers/gates first so plain walls do not dominate special structures.
                 if (tower != null && random.nextDouble() < 0.72) {
@@ -399,14 +471,14 @@ public class StrongholdDebugManager {
                 // Corners should be tower-heavy for stronger silhouette variety.
                 RoomTemplate corner = chooseTemplateByDirections(cornerTemplates, dirs, false);
                 RoomTemplate tower = chooseTemplateByDirections(towerTemplates, dirs, true);
-                if (tower != null && random.nextDouble() < 0.72) return tower;
+                if (tower != null && canPlaceTower(point, placed) && random.nextDouble() < 0.72) return tower;
                 if (corner != null) return corner;
                 return tower;
             }
         }
         if (degree == 1) {
             RoomTemplate tower = chooseTemplateByDirections(towerTemplates, dirs, true);
-            if (tower != null && random.nextDouble() < 0.35) return tower;
+            if (tower != null && canPlaceTower(point, placed) && random.nextDouble() < 0.35) return tower;
             RoomTemplate dead = chooseTemplateByDirections(deadEndTemplates, dirs, false);
             return dead != null ? dead : tower;
         }
@@ -418,8 +490,7 @@ public class StrongholdDebugManager {
                 || (dirs.contains(Direction.EAST) && dirs.contains(Direction.WEST));
     }
 
-    private boolean canPlaceGate(GridPoint point, Map<GridPoint, Set<Direction>> graph,
-                                 Map<GridPoint, PlacedPiece> placed, PlacementPolicy policy) {
+    private boolean canPlaceGate(GridPoint point, Map<GridPoint, PlacedPiece> placed, PlacementPolicy policy) {
         if (policy.straightWallsSinceGate < 5) {
             return false;
         }
@@ -429,7 +500,7 @@ public class StrongholdDebugManager {
         for (Direction direction : Direction.values()) {
             GridPoint neighborPoint = point.move(direction);
             PlacedPiece neighbor = placed.get(neighborPoint);
-            if (neighbor != null && isGateTemplate(neighbor.template)) {
+            if (neighbor != null && (isGateTemplate(neighbor.template) || isTowerTemplate(neighbor.template))) {
                 return false;
             }
         }
@@ -442,6 +513,17 @@ public class StrongholdDebugManager {
 
     private boolean isTowerTemplate(RoomTemplate template) {
         return towerTemplates.contains(template);
+    }
+
+    private boolean canPlaceTower(GridPoint point, Map<GridPoint, PlacedPiece> placed) {
+        for (Direction direction : Direction.values()) {
+            GridPoint neighborPoint = point.move(direction);
+            PlacedPiece neighbor = placed.get(neighborPoint);
+            if (neighbor != null && isGateTemplate(neighbor.template)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private boolean placeTemplate(Dungeon stronghold, RoomTemplate template, int rotation, Location center,
@@ -493,6 +575,86 @@ public class StrongholdDebugManager {
             }
         }
         return placedConnectors;
+    }
+
+    private List<PlacementTask> buildPlacementTasks(Dungeon stronghold, Location origin, Map<GridPoint, Set<Direction>> graph,
+                                                    Map<GridPoint, PlacedPiece> placed,
+                                                    Map<Location, org.bukkit.block.data.BlockData> restoreSnapshot,
+                                                    PlacementPolicy policy, Random random) {
+        GridPoint root = new GridPoint(0, 0);
+        if (!graph.containsKey(root)) {
+            root = graph.keySet().iterator().next();
+        }
+
+        List<PlacementTask> tasks = new ArrayList<>();
+        RoomTemplate rootTemplate = chooseTemplateForNode(graph.get(root), root, graph, placed, random, policy);
+        if (rootTemplate == null) {
+            return null;
+        }
+        int rootRotation = resolveRotation(rootTemplate, graph.get(root));
+        tasks.add(new PlacementTask(rootTemplate, rootRotation, origin.clone(), "root " + root.x + "," + root.z));
+        capturePieceReplacements(origin, rootTemplate, rootRotation, restoreSnapshot);
+        placed.put(root, new PlacedPiece(rootTemplate, rootRotation, origin.clone()));
+        policy.recordPlacement(isGateTemplate(rootTemplate), isTowerTemplate(rootTemplate));
+
+        Set<GridPoint> pending = new HashSet<>(graph.keySet());
+        pending.remove(root);
+        int safety = graph.size() * 8;
+        while (!pending.isEmpty() && safety-- > 0) {
+            boolean progressed = false;
+            for (GridPoint point : new ArrayList<>(pending)) {
+                Set<Direction> openSides = graph.get(point);
+                RoomTemplate template = chooseTemplateForNode(openSides, point, graph, placed, random, policy);
+                if (template == null) {
+                    continue;
+                }
+                int rotation = resolveRotation(template, openSides);
+                Location center = resolveAlignedCenter(point, template, rotation, graph, placed);
+                if (center == null) {
+                    continue;
+                }
+                tasks.add(new PlacementTask(template, rotation, center, "node " + point.x + "," + point.z));
+                capturePieceReplacements(center, template, rotation, restoreSnapshot);
+                placed.put(point, new PlacedPiece(template, rotation, center));
+                policy.recordPlacement(isGateTemplate(template), isTowerTemplate(template));
+                pending.remove(point);
+                progressed = true;
+            }
+            if (!progressed) {
+                return null;
+            }
+        }
+        if (!pending.isEmpty()) {
+            return null;
+        }
+
+        Set<String> visitedEdges = new HashSet<>();
+        for (Map.Entry<GridPoint, Set<Direction>> entry : graph.entrySet()) {
+            GridPoint point = entry.getKey();
+            PlacedPiece source = placed.get(point);
+            if (source == null) continue;
+            for (Direction direction : entry.getValue()) {
+                GridPoint neighborPoint = point.move(direction);
+                if (!graph.containsKey(neighborPoint)) continue;
+                String edgeKey = edgeKey(point, neighborPoint);
+                if (!visitedEdges.add(edgeKey)) continue;
+                RoomTemplate connectorTemplate = selectConnectorTemplate(direction);
+                if (connectorTemplate == null) {
+                    return null;
+                }
+                int connectorRotation = dungeonManager.findRotation(connectorTemplate, Set.of(direction, direction.opposite()));
+                RoomTemplate.Connector sourceConnector = findConnector(source.template, source.rotation, direction);
+                RoomTemplate.Connector connectorSide = findConnector(connectorTemplate, connectorRotation, direction.opposite());
+                if (sourceConnector == null || connectorSide == null) {
+                    return null;
+                }
+                Location sourceConnectorLoc = connectorWorldLocation(source.center, source.template, source.rotation, sourceConnector);
+                Location connectorCenter = centerFromConnector(sourceConnectorLoc, connectorTemplate, connectorRotation, connectorSide);
+                tasks.add(new PlacementTask(connectorTemplate, connectorRotation, connectorCenter, "bridge " + edgeKey));
+                capturePieceReplacements(connectorCenter, connectorTemplate, connectorRotation, restoreSnapshot);
+            }
+        }
+        return tasks;
     }
 
     private String edgeKey(GridPoint a, GridPoint b) {
@@ -907,6 +1069,7 @@ public class StrongholdDebugManager {
     }
 
     private record PlacedPiece(RoomTemplate template, int rotation, Location center) {}
+    private record PlacementTask(RoomTemplate template, int rotation, Location center, String label) {}
 
     private static final class PlacementPolicy {
         private int straightWallsSinceGate = 99;

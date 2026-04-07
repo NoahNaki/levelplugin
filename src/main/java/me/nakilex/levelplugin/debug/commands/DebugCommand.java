@@ -583,8 +583,39 @@ public class DebugCommand implements TabExecutor {
                                     + size + ", step " + spawnResult.step() + ").");
                     return true;
                 }
+                if (args[1].equalsIgnoreCase("spawnstep")) {
+                    if (args.length < 3) {
+                        ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.WARNING,
+                                "Usage: /debug stronghold spawnstep <size> [delayTicks]");
+                        return true;
+                    }
+                    int size;
+                    try {
+                        size = Integer.parseInt(args[2]);
+                    } catch (NumberFormatException ex) {
+                        ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.ERROR,
+                                "Size must be a number.");
+                        return true;
+                    }
+                    long delayTicks = 8L;
+                    if (args.length >= 4) {
+                        try {
+                            delayTicks = Long.parseLong(args[3]);
+                        } catch (NumberFormatException ignored) {}
+                    }
+                    StrongholdDebugManager.SpawnResult stepResult =
+                            strongholdDebugManager.spawnProgressive(strongholdPlayer, size, delayTicks);
+                    if (!stepResult.success()) {
+                        ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.ERROR, stepResult.message());
+                        return true;
+                    }
+                    ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.SUCCESS,
+                            "Started progressive stronghold build with " + stepResult.piecesPlaced()
+                                    + " steps (delay " + delayTicks + " ticks).");
+                    return true;
+                }
                 ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.WARNING,
-                        "Usage: /debug stronghold <spawn|despawn> [size]");
+                        "Usage: /debug stronghold <spawn|spawnstep|despawn> [size]");
                 return true;
 
             default:
@@ -743,13 +774,18 @@ public class DebugCommand implements TabExecutor {
                     .filter(opt -> opt.startsWith(args[1].toLowerCase()))
                     .toList();
         } else if (args.length == 2 && args[0].equalsIgnoreCase("stronghold")) {
-            return List.of("spawn", "despawn").stream()
+            return List.of("spawn", "spawnstep", "despawn").stream()
                     .filter(opt -> opt.startsWith(args[1].toLowerCase()))
                     .toList();
         } else if (args.length == 3 && args[0].equalsIgnoreCase("stronghold")
-                && args[1].equalsIgnoreCase("spawn")) {
+                && (args[1].equalsIgnoreCase("spawn") || args[1].equalsIgnoreCase("spawnstep"))) {
             return List.of("2", "3", "4", "5", "6", "8", "10").stream()
                     .filter(opt -> opt.startsWith(args[2].toLowerCase()))
+                    .toList();
+        } else if (args.length == 4 && args[0].equalsIgnoreCase("stronghold")
+                && args[1].equalsIgnoreCase("spawnstep")) {
+            return List.of("2", "4", "8", "12").stream()
+                    .filter(opt -> opt.startsWith(args[3].toLowerCase()))
                     .toList();
         }
         return Collections.emptyList();
