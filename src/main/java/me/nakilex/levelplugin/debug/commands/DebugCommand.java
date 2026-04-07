@@ -17,6 +17,7 @@ import me.nakilex.levelplugin.debug.gui.DebugGUI;
 import me.nakilex.levelplugin.debug.BeaconEntityDebugManager;
 import me.nakilex.levelplugin.debug.DropDebugManager;
 import me.nakilex.levelplugin.debug.ArcSlashDebugManager;
+import me.nakilex.levelplugin.debug.StrongholdDebugManager;
 import me.nakilex.levelplugin.debug.gui.ArcSlashDebugGUI;
 import me.nakilex.levelplugin.debug.gui.WarriorCycloneDebugGUI;
 import me.nakilex.levelplugin.debug.MobStatusDebugItem;
@@ -89,6 +90,7 @@ public class DebugCommand implements TabExecutor {
     private final ArcSlashDebugManager arcSlashDebugManager;
     private final ArcSlashDebugGUI arcSlashDebugGUI;
     private final PetManager petManager;
+    private final StrongholdDebugManager strongholdDebugManager;
 
     public DebugCommand(PlayerToggleManager mobDebugManager,
                         PlayerScoreboardManager scoreboardManager,
@@ -102,7 +104,8 @@ public class DebugCommand implements TabExecutor {
                         QuestManager questManager,
                         ArcSlashDebugManager arcSlashDebugManager,
                         ArcSlashDebugGUI arcSlashDebugGUI,
-                        PetManager petManager) {
+                        PetManager petManager,
+                        StrongholdDebugManager strongholdDebugManager) {
         this.mobDebugManager = mobDebugManager;
         this.scoreboardManager = scoreboardManager;
         this.debugGUI = debugGUI;
@@ -116,6 +119,7 @@ public class DebugCommand implements TabExecutor {
         this.arcSlashDebugManager = arcSlashDebugManager;
         this.arcSlashDebugGUI = arcSlashDebugGUI;
         this.petManager = petManager;
+        this.strongholdDebugManager = strongholdDebugManager;
     }
 
     @Override
@@ -127,7 +131,7 @@ public class DebugCommand implements TabExecutor {
                 String statUsage = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|inventorydebug|rewardbomb|warriorcyclone|" + statUsage + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|" + statUsage + ">");
             }
             return true;
         }
@@ -538,13 +542,57 @@ public class DebugCommand implements TabExecutor {
                 }
                 toggleInventoryDebug(inventoryDebugPlayer);
                 return true;
+            case "stronghold":
+                if (!(sender instanceof Player strongholdPlayer)) {
+                    sender.sendMessage(ChatColor.RED + "Players only.");
+                    return true;
+                }
+                if (args.length < 2) {
+                    ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.WARNING,
+                            "Usage: /debug stronghold <spawn|despawn> [size]");
+                    return true;
+                }
+                if (args[1].equalsIgnoreCase("despawn")) {
+                    boolean removed = strongholdDebugManager.despawn(strongholdPlayer.getUniqueId());
+                    ChatMessageUtil.send(strongholdPlayer,
+                            removed ? ChatMessageUtil.MessageType.SUCCESS : ChatMessageUtil.MessageType.WARNING,
+                            removed ? "Despawned your debug stronghold." : "No debug stronghold was active.");
+                    return true;
+                }
+                if (args[1].equalsIgnoreCase("spawn")) {
+                    if (args.length < 3) {
+                        ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.WARNING,
+                                "Usage: /debug stronghold spawn <size>");
+                        return true;
+                    }
+                    int size;
+                    try {
+                        size = Integer.parseInt(args[2]);
+                    } catch (NumberFormatException ex) {
+                        ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.ERROR,
+                                "Size must be a number.");
+                        return true;
+                    }
+                    StrongholdDebugManager.SpawnResult spawnResult = strongholdDebugManager.spawn(strongholdPlayer, size);
+                    if (!spawnResult.success()) {
+                        ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.ERROR, spawnResult.message());
+                        return true;
+                    }
+                    ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.SUCCESS,
+                            "Spawned stronghold with " + spawnResult.piecesPlaced() + " wall pieces (size "
+                                    + size + ", step " + spawnResult.step() + ").");
+                    return true;
+                }
+                ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.WARNING,
+                        "Usage: /debug stronghold <spawn|despawn> [size]");
+                return true;
 
             default:
                 sender.sendMessage("Unknown debug subcommand: " + sub);
                 String statUsage2 = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|inventorydebug|rewardbomb|warriorcyclone|" + statUsage2 + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|" + statUsage2 + ">");
                 return true;
         }
     }
@@ -644,7 +692,7 @@ public class DebugCommand implements TabExecutor {
             List<String> subs = new ArrayList<>(List.of("mobinfo", "tps", "siege", "cityowner", "citymax", "autocast",
                     "hand", "chatgame", "expedition", "dungeonexpedition", "rewardbomb", "drops", "beaconentity",
                     "spellinput", "spellcooldown", "spellmanacost", "stunstick", "poisonstick", "tauntstick", "fearstick", "slowstick", "petpull",
-                    "particle", "particlepath", "particlepreset", "inventorydebug", "warriorcyclone"));
+                    "particle", "particlepath", "particlepreset", "inventorydebug", "warriorcyclone", "stronghold"));
             subs.addAll(Arrays.stream(StatType.values()).map(StatType::getAbbrev).toList());
             return subs.stream()
                     .filter(s -> s.startsWith(args[0].toLowerCase()))
@@ -693,6 +741,15 @@ public class DebugCommand implements TabExecutor {
         } else if (args.length == 2 && args[0].equalsIgnoreCase("petpull")) {
             return List.of("1", "5", "10").stream()
                     .filter(opt -> opt.startsWith(args[1].toLowerCase()))
+                    .toList();
+        } else if (args.length == 2 && args[0].equalsIgnoreCase("stronghold")) {
+            return List.of("spawn", "despawn").stream()
+                    .filter(opt -> opt.startsWith(args[1].toLowerCase()))
+                    .toList();
+        } else if (args.length == 3 && args[0].equalsIgnoreCase("stronghold")
+                && args[1].equalsIgnoreCase("spawn")) {
+            return List.of("2", "3", "4", "5", "6", "8", "10").stream()
+                    .filter(opt -> opt.startsWith(args[2].toLowerCase()))
                     .toList();
         }
         return Collections.emptyList();

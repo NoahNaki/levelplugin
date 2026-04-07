@@ -32,6 +32,7 @@ import me.nakilex.levelplugin.pet.gui.PetGUI;
 import me.nakilex.levelplugin.pet.gui.PetSummonGUI;
 import me.nakilex.levelplugin.debug.BeaconEntityDebugManager;
 import me.nakilex.levelplugin.debug.commands.DebugCommand;
+import me.nakilex.levelplugin.debug.StrongholdDebugManager;
 import me.nakilex.levelplugin.debug.commands.SpawnEntityModelCommand;
 import me.nakilex.levelplugin.debug.commands.MageFireballDebugCommand;
 import me.nakilex.levelplugin.player.attributes.commands.AddPointsCommand;
@@ -339,6 +340,8 @@ public class CommandRegistry {
         plugin.getCommand("profile").setTabCompleter(profileCmd);
         plugin.getCommand("wipeprofile").setExecutor(new WipeProfileCommand());
 
+        StrongholdDebugManager strongholdDebugManager =
+                new StrongholdDebugManager(plugin, plugin.getDungeonManager());
         DebugCommand debugCmd = new DebugCommand(mobDebugToggleManager,
                 plugin.getScoreboardManager(),
                 debugGUI,
@@ -351,7 +354,8 @@ public class CommandRegistry {
                 questManager,
                 arcSlashDebugManager,
                 arcSlashDebugGUI,
-                petManager);
+                petManager,
+                strongholdDebugManager);
         plugin.getCommand("debug").setExecutor(debugCmd);
         plugin.getCommand("debug").setTabCompleter(debugCmd);
         SpawnEntityModelCommand spawnEntityModelCommand = new SpawnEntityModelCommand(plugin);
