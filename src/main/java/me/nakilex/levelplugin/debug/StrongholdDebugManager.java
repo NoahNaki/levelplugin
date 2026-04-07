@@ -232,15 +232,15 @@ public class StrongholdDebugManager {
             if (neighbor == null) {
                 continue;
             }
-            if (!graph.get(point).contains(direction.opposite())) {
+            if (!graph.get(point).contains(direction)) {
                 continue;
             }
-            if (!graph.getOrDefault(neighborPoint, Set.of()).contains(direction)) {
+            if (!graph.getOrDefault(neighborPoint, Set.of()).contains(direction.opposite())) {
                 continue;
             }
 
-            RoomTemplate.Connector currentConnector = findConnector(template, rotation, direction.opposite());
-            RoomTemplate.Connector neighborConnector = findConnector(neighbor.template, neighbor.rotation, direction);
+            RoomTemplate.Connector currentConnector = findConnector(template, rotation, direction);
+            RoomTemplate.Connector neighborConnector = findConnector(neighbor.template, neighbor.rotation, direction.opposite());
             if (currentConnector == null || neighborConnector == null) {
                 continue;
             }
