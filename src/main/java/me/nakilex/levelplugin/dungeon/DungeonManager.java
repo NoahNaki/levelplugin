@@ -549,7 +549,9 @@ public class DungeonManager {
         }
         Dungeon.RoomInstance inst = new Dungeon.RoomInstance(template, rotation, center.clone(),
                 minX, minY, minZ, maxX, maxY, maxZ, mob, chestLocs, bossLoc);
-        dungeon.addRoom(inst);
+        if (dungeon != null) {
+            dungeon.addRoom(inst);
+        }
         return new PasteResult(true, overlap, replaced, inst);
     }
 
