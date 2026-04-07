@@ -9,12 +9,18 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
+import org.bukkit.Material;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 
@@ -25,6 +31,8 @@ public class StrongholdDebugManager {
     private final Main plugin;
     private final DungeonManager dungeonManager;
     private final Map<UUID, Dungeon> activeStrongholds = new HashMap<>();
+    private static final Set<Material> STRONGHOLD_IGNORED_MATERIALS =
+            Set.of(Material.WHITE_CONCRETE, Material.LIGHT_BLUE_CONCRETE);
 
     private final List<RoomTemplate> cornerTemplates = new ArrayList<>();
     private final List<RoomTemplate> straightTemplates = new ArrayList<>();
@@ -41,8 +49,8 @@ public class StrongholdDebugManager {
         if (player == null) {
             return SpawnResult.error("Player was null.");
         }
-        if (sideLength < 2) {
-            return SpawnResult.error("Size must be at least 2.");
+        if (sideLength < 1) {
+            return SpawnResult.error("Size must be at least 1.");
         }
         if (!ensureTemplatesLoaded()) {
             return SpawnResult.error("Stronghold templates failed to load. Check flatland world/coords.");
@@ -58,30 +66,30 @@ public class StrongholdDebugManager {
 
         int step = resolveStep();
         Dungeon stronghold = new Dungeon(world, "debug_stronghold_" + player.getUniqueId());
+        Map<GridPoint, Set<Direction>> graph = generateSnakeGraph(sideLength, player.getUniqueId());
+        if (graph.isEmpty()) {
+            return SpawnResult.error("Could not generate a wall layout.");
+        }
+
         int pieces = 0;
-
-        for (int x = 0; x < sideLength; x++) {
-            for (int z = 0; z < sideLength; z++) {
-                boolean perimeter = x == 0 || z == 0 || x == sideLength - 1 || z == sideLength - 1;
-                if (!perimeter) {
-                    continue;
-                }
-
-                Set<Direction> openSides = openSidesForCell(x, z, sideLength);
-                RoomTemplate template = selectTemplate(openSides);
-                if (template == null) {
-                    return SpawnResult.error("No template matched connector pattern " + openSides + ".");
-                }
-
-                int rotation = dungeonManager.findRotation(template, openSides);
-                Location center = origin.clone().add(x * step, 0, z * step);
-                DungeonManager.PasteResult result = dungeonManager.pasteRoom(stronghold, template, rotation, center);
-                if (result.instance() == null) {
-                    stronghold.delete();
-                    return SpawnResult.error("Failed to paste piece at grid " + x + "," + z + ".");
-                }
-                pieces++;
+        for (Map.Entry<GridPoint, Set<Direction>> entry : graph.entrySet()) {
+            GridPoint point = entry.getKey();
+            Set<Direction> openSides = entry.getValue();
+            RoomTemplate template = selectTemplate(openSides);
+            if (template == null) {
+                stronghold.delete();
+                return SpawnResult.error("No template matched connector pattern " + openSides + ".");
             }
+
+            int rotation = dungeonManager.findRotation(template, openSides);
+            Location center = origin.clone().add(point.x * step, 0, point.z * step);
+            DungeonManager.PasteResult result = dungeonManager.pasteRoom(
+                    stronghold, template, rotation, center, null, false, STRONGHOLD_IGNORED_MATERIALS);
+            if (result.instance() == null) {
+                stronghold.delete();
+                return SpawnResult.error("Failed to paste piece at grid " + point.x + "," + point.z + ".");
+            }
+            pieces++;
         }
 
         activeStrongholds.put(player.getUniqueId(), stronghold);
@@ -151,23 +159,6 @@ public class StrongholdDebugManager {
         return Math.max(1, sample.getWidth() - 1);
     }
 
-    private Set<Direction> openSidesForCell(int x, int z, int sideLength) {
-        EnumSet<Direction> dirs = EnumSet.noneOf(Direction.class);
-        if (x > 0 && (z == 0 || z == sideLength - 1)) {
-            dirs.add(Direction.WEST);
-        }
-        if (x < sideLength - 1 && (z == 0 || z == sideLength - 1)) {
-            dirs.add(Direction.EAST);
-        }
-        if (z > 0 && (x == 0 || x == sideLength - 1)) {
-            dirs.add(Direction.NORTH);
-        }
-        if (z < sideLength - 1 && (x == 0 || x == sideLength - 1)) {
-            dirs.add(Direction.SOUTH);
-        }
-        return dirs;
-    }
-
     private RoomTemplate selectTemplate(Set<Direction> dirs) {
         List<RoomTemplate> candidates;
         if (dirs.size() == 2) {
@@ -196,6 +187,128 @@ public class StrongholdDebugManager {
 
         public static SpawnResult error(String message) {
             return new SpawnResult(false, message, 0, 0);
+        }
+    }
+
+    private Map<GridPoint, Set<Direction>> generateSnakeGraph(int pieces, UUID seedSource) {
+        Map<GridPoint, Set<Direction>> graph = new LinkedHashMap<>();
+        Set<GridPoint> occupied = new HashSet<>();
+        List<GridPoint> path = new ArrayList<>();
+        Random random = new Random(seedSource.getMostSignificantBits() ^ System.nanoTime());
+
+        GridPoint current = new GridPoint(0, 0);
+        occupied.add(current);
+        path.add(current);
+
+        while (path.size() < pieces) {
+            Direction nextDirection = chooseNextDirection(path, occupied, random);
+            if (nextDirection == null) {
+                break;
+            }
+            current = current.move(nextDirection);
+            occupied.add(current);
+            path.add(current);
+        }
+
+        if (path.isEmpty()) {
+            return graph;
+        }
+
+        for (int i = 0; i < path.size(); i++) {
+            GridPoint point = path.get(i);
+            EnumSet<Direction> dirs = EnumSet.noneOf(Direction.class);
+            if (i > 0) {
+                GridPoint previous = path.get(i - 1);
+                dirs.add(point.directionTo(previous));
+            }
+            if (i + 1 < path.size()) {
+                GridPoint next = path.get(i + 1);
+                dirs.add(point.directionTo(next));
+            }
+            if (dirs.isEmpty()) {
+                dirs.add(Direction.NORTH);
+            }
+            graph.put(point, dirs);
+        }
+
+        addOptionalDeadEndCuts(graph, occupied, random, pieces);
+        return graph;
+    }
+
+    private Direction chooseNextDirection(List<GridPoint> path, Set<GridPoint> occupied, Random random) {
+        GridPoint current = path.get(path.size() - 1);
+        Direction previousDir = null;
+        if (path.size() > 1) {
+            previousDir = path.get(path.size() - 1).directionTo(path.get(path.size() - 2)).opposite();
+        }
+
+        List<Direction> options = new ArrayList<>(List.of(Direction.NORTH, Direction.EAST, Direction.SOUTH, Direction.WEST));
+        Collections.shuffle(options, random);
+        if (previousDir != null && random.nextDouble() < 0.62) {
+            options.remove(previousDir);
+            options.add(0, previousDir);
+        }
+
+        for (Direction dir : options) {
+            GridPoint next = current.move(dir);
+            if (!occupied.contains(next)) {
+                return dir;
+            }
+        }
+        return null;
+    }
+
+    private void addOptionalDeadEndCuts(Map<GridPoint, Set<Direction>> graph, Set<GridPoint> occupied,
+                                        Random random, int targetPieces) {
+        if (graph.size() >= targetPieces) {
+            return;
+        }
+        List<GridPoint> keys = new ArrayList<>(graph.keySet());
+        Collections.shuffle(keys, random);
+        int attempts = Math.min(keys.size(), Math.max(1, targetPieces / 3));
+        for (int i = 0; i < attempts && graph.size() < targetPieces; i++) {
+            GridPoint base = keys.get(i);
+            if (graph.get(base).size() >= 2) {
+                continue;
+            }
+            List<Direction> freeDirs = new ArrayList<>();
+            for (Direction direction : Direction.values()) {
+                if (graph.get(base).contains(direction)) {
+                    continue;
+                }
+                GridPoint candidate = base.move(direction);
+                if (!occupied.contains(candidate)) {
+                    freeDirs.add(direction);
+                }
+            }
+            if (freeDirs.isEmpty()) {
+                continue;
+            }
+            Direction selected = freeDirs.get(random.nextInt(freeDirs.size()));
+            GridPoint child = base.move(selected);
+            occupied.add(child);
+            graph.get(base).add(selected);
+            graph.put(child, new LinkedHashSet<>(Set.of(selected.opposite())));
+        }
+    }
+
+    private record GridPoint(int x, int z) {
+        private GridPoint move(Direction direction) {
+            return switch (direction) {
+                case NORTH -> new GridPoint(x, z - 1);
+                case EAST -> new GridPoint(x + 1, z);
+                case SOUTH -> new GridPoint(x, z + 1);
+                case WEST -> new GridPoint(x - 1, z);
+            };
+        }
+
+        private Direction directionTo(GridPoint other) {
+            int dx = other.x - x;
+            int dz = other.z - z;
+            if (dx > 0) return Direction.EAST;
+            if (dx < 0) return Direction.WEST;
+            if (dz > 0) return Direction.SOUTH;
+            return Direction.NORTH;
         }
     }
 }
