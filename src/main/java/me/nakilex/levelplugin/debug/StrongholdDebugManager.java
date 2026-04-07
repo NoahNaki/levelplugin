@@ -169,35 +169,58 @@ public class StrongholdDebugManager {
         }
 
         Map<GridPoint, PlacedPiece> placed = new HashMap<>();
-        List<GridPoint> ordered = new ArrayList<>(graph.keySet());
-        ordered.sort((a, b) -> (a.x == b.x ? Integer.compare(a.z, b.z) : Integer.compare(a.x, b.x)));
+        PlacementResult rootPlacement = placeSinglePiece(stronghold, root, origin.clone(), graph, placed);
+        if (!rootPlacement.success) {
+            return rootPlacement;
+        }
 
-        for (GridPoint point : ordered) {
-            Set<Direction> openSides = graph.get(point);
-            RoomTemplate template = selectTemplate(openSides);
-            if (template == null) {
-                return PlacementResult.error("No template matched connector pattern " + openSides + ".");
-            }
-            int rotation = dungeonManager.findRotation(template, openSides);
+        Set<GridPoint> pending = new HashSet<>(graph.keySet());
+        pending.remove(root);
 
-            Location center;
-            if (point.equals(root)) {
-                center = origin.clone();
-            } else {
-                center = resolveAlignedCenter(point, template, rotation, graph, placed);
-                if (center == null) {
-                    return PlacementResult.error("Failed to align piece at " + point.x + "," + point.z + ".");
+        while (!pending.isEmpty()) {
+            boolean progressed = false;
+            for (GridPoint point : new ArrayList<>(pending)) {
+                Set<Direction> openSides = graph.get(point);
+                RoomTemplate template = selectTemplate(openSides);
+                if (template == null) {
+                    return PlacementResult.error("No template matched connector pattern " + openSides + ".");
                 }
-            }
+                int rotation = dungeonManager.findRotation(template, openSides);
+                Location center = resolveAlignedCenter(point, template, rotation, graph, placed);
+                if (center == null) {
+                    continue;
+                }
 
-            DungeonManager.PasteResult result = dungeonManager.pasteRoom(
-                    stronghold, template, rotation, center, null, false, STRONGHOLD_IGNORED_MATERIALS);
-            if (result.instance() == null) {
-                return PlacementResult.error("Failed to paste piece at grid " + point.x + "," + point.z + ".");
+                PlacementResult placement = placeSinglePiece(stronghold, point, center, graph, placed);
+                if (!placement.success) {
+                    return placement;
+                }
+                pending.remove(point);
+                progressed = true;
             }
-            placed.put(point, new PlacedPiece(template, rotation, center));
+            if (!progressed) {
+                GridPoint failed = pending.iterator().next();
+                return PlacementResult.error("Failed to align piece at " + failed.x + "," + failed.z + ".");
+            }
         }
         return PlacementResult.success(placed.size());
+    }
+
+    private PlacementResult placeSinglePiece(Dungeon stronghold, GridPoint point, Location center,
+                                             Map<GridPoint, Set<Direction>> graph, Map<GridPoint, PlacedPiece> placed) {
+        Set<Direction> openSides = graph.get(point);
+        RoomTemplate template = selectTemplate(openSides);
+        if (template == null) {
+            return PlacementResult.error("No template matched connector pattern " + openSides + ".");
+        }
+        int rotation = dungeonManager.findRotation(template, openSides);
+        DungeonManager.PasteResult result = dungeonManager.pasteRoom(
+                stronghold, template, rotation, center, null, false, STRONGHOLD_IGNORED_MATERIALS);
+        if (result.instance() == null) {
+            return PlacementResult.error("Failed to paste piece at grid " + point.x + "," + point.z + ".");
+        }
+        placed.put(point, new PlacedPiece(template, rotation, center));
+        return PlacementResult.success(1);
     }
 
     private Location resolveAlignedCenter(GridPoint point, RoomTemplate template, int rotation,
