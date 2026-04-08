@@ -26,6 +26,11 @@ public class StrongholdDebugManager {
     private static final Set<Material> STRONGHOLD_SKIP = EnumSet.of(Material.REDSTONE_BLOCK, Material.PINK_WOOL, Material.LIME_WOOL);
     private static final double MAX_TEMPLATE_OVERLAP = 0.10D;
     private static final int MAX_TEMPLATE_SELECTION_ATTEMPTS = 8;
+    private static final double SCORE_TOWER = 120D;
+    private static final double SCORE_GATE = 95D;
+    private static final double SCORE_STRAIGHT = 70D;
+    private static final double SCORE_CORNER = 30D;
+    private static final double SCORE_DEAD_END = 5D;
 
     private final Main plugin;
     private final DungeonManager dungeonManager;
@@ -99,13 +104,14 @@ public class StrongholdDebugManager {
         int straightWallsSinceGate = 0;
         int towerCount = 0;
         int gateCount = 0;
+        GenerationTelemetry telemetry = new GenerationTelemetry();
 
         List<GridNode> placementOrder = buildPlacementOrder(graph);
         for (int i = 0; i < placementOrder.size(); i++) {
             GridNode node = placementOrder.get(i);
             EnumSet<Direction> dirs = node.directions();
             NodePlacementChoice choice = chooseNodePlacement(node, dirs, straightWallsSinceGate, towerCount, gateCount,
-                    planById, graph, rootCenter, occupiedBlocks);
+                    planById, graph, rootCenter, occupiedBlocks, telemetry);
             if (choice == null) {
                 rollbackAndFail(player, snapshot, "Failed to find a non-overlapping template for node " + node.id() + ".");
                 return;
@@ -118,6 +124,7 @@ public class StrongholdDebugManager {
                 return;
             }
             markTemplateOccupied(choice.template, choice.rotation, choice.center, occupiedBlocks);
+            telemetry.recordPlaced(choice.template, towerTemplates, gateTemplates, straightTemplates, cornerTemplates, deadEndTemplates);
 
             NodePlan plan = new NodePlan(node.id(), node, choice.template, choice.rotation, choice.center);
             plans.add(plan);
@@ -149,11 +156,13 @@ public class StrongholdDebugManager {
             BukkitTask task = runStepPlacement(player, plans, connectorPlans, snapshot, debugDungeon, stepDelayTicks);
             activeByPlayer.put(player.getUniqueId(), new ActiveStronghold(player.getWorld(), snapshot, plans, connectorPlans, debugDungeon, task));
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, "Stronghold step spawn started (" + plans.size() + " rooms).");
+            sendGenerationTelemetry(player, telemetry);
             return;
         }
 
         activeByPlayer.put(player.getUniqueId(), active);
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, "Stronghold spawned with " + plans.size() + " rooms.");
+        sendGenerationTelemetry(player, telemetry);
     }
 
     private List<GridNode> buildPlacementOrder(List<GridNode> graph) {
@@ -362,94 +371,93 @@ public class StrongholdDebugManager {
                                                     Map<Integer, NodePlan> placed,
                                                     List<GridNode> graph,
                                                     Location rootCenter,
-                                                    Set<String> occupiedBlocks) {
+                                                    Set<String> occupiedBlocks,
+                                                    GenerationTelemetry telemetry) {
         for (int attempt = 0; attempt < MAX_TEMPLATE_SELECTION_ATTEMPTS; attempt++) {
-            RoomTemplate template = selectTemplateForAttempt(dirs, straightWallsSinceGate, towerCount, gateCount, placed, node, graph, attempt);
-            if (template == null) {
-                return null;
-            }
-            int rotation = findRotationForPlacement(template, dirs);
-            if (rotation < 0) {
-                continue;
-            }
-            Location center = placed.isEmpty() ? rootCenter.clone() : solveCenter(node, template, rotation, placed, rootCenter);
-            if (center == null) {
-                continue;
-            }
+            List<TemplateCandidate> candidates = rankedCandidatesForNode(dirs, straightWallsSinceGate, towerCount, gateCount,
+                    placed, node, graph, attempt, telemetry);
+            if (candidates.isEmpty()) continue;
             double attemptThreshold = Math.min(0.25D, MAX_TEMPLATE_OVERLAP + (attempt * 0.03D));
-            if (towerTemplates.contains(template)) {
-                attemptThreshold = Math.min(0.45D, attemptThreshold + 0.20D);
+            for (TemplateCandidate candidate : candidates) {
+                RoomTemplate template = candidate.template;
+                int rotation = candidate.rotation;
+                Location center = placed.isEmpty() ? rootCenter.clone() : solveCenter(node, template, rotation, placed, rootCenter);
+                if (center == null) {
+                    telemetry.centerRejected++;
+                    continue;
+                }
+                double threshold = towerTemplates.contains(template) ? Math.min(0.45D, attemptThreshold + 0.20D) : attemptThreshold;
+                if (!isTemplateOverlapAcceptable(template, rotation, center, occupiedBlocks, threshold)) {
+                    telemetry.overlapRejected++;
+                    continue;
+                }
+                return new NodePlacementChoice(template, rotation, center);
             }
-            if (!isTemplateOverlapAcceptable(template, rotation, center, occupiedBlocks, attemptThreshold)) {
-                continue;
-            }
-            return new NodePlacementChoice(template, rotation, center);
         }
+        telemetry.noPlacementFound++;
         return null;
     }
 
-    private RoomTemplate selectTemplateForAttempt(EnumSet<Direction> dirs,
-                                                  int straightWallsSinceGate,
-                                                  int towerCount,
-                                                  int gateCount,
-                                                  Map<Integer, NodePlan> placed,
-                                                  GridNode node,
-                                                  List<GridNode> graph,
-                                                  int attempt) {
+    private List<TemplateCandidate> rankedCandidatesForNode(EnumSet<Direction> dirs,
+                                                            int straightWallsSinceGate,
+                                                            int towerCount,
+                                                            int gateCount,
+                                                            Map<Integer, NodePlan> placed,
+                                                            GridNode node,
+                                                            List<GridNode> graph,
+                                                            int attempt,
+                                                            GenerationTelemetry telemetry) {
         int degree = dirs.size();
         boolean opposite = dirs.equals(EnumSet.of(Direction.NORTH, Direction.SOUTH))
                 || dirs.equals(EnumSet.of(Direction.EAST, Direction.WEST));
-
-        // Hard-prioritize opening with a tower when compatible so the layout
-        // starts from a tower hub instead of wall-heavy pieces.
-        if (placed.isEmpty()) {
-            RoomTemplate forcedRootTower = pickCompatibleTower(node, placed, graph, dirs);
-            if (forcedRootTower != null) {
-                return forcedRootTower;
+        List<TemplateCandidate> out = new ArrayList<>();
+        for (RoomTemplate template : allTemplates()) {
+            int rotation = findRotationForPlacement(template, dirs);
+            if (rotation < 0) {
+                telemetry.rotationRejected++;
+                continue;
             }
+            if (gateTemplates.contains(template) && !canPlaceGate(node, placed, graph)) continue;
+            if (towerTemplates.contains(template) && !canPlaceTower(node, placed, graph)) continue;
+            double score = scoreTemplateCandidate(template, degree, opposite, placed.isEmpty(),
+                    straightWallsSinceGate, towerCount, gateCount, attempt, telemetry);
+            out.add(new TemplateCandidate(template, rotation, score));
         }
-
-        // Strongly bias early attempts toward towers for branching nodes.
-        if (degree >= 2 && attempt < 5) {
-            RoomTemplate tower = pickCompatibleTower(node, placed, graph, dirs);
-            if (tower != null) {
-                return tower;
-            }
-        }
-
-        if (degree == 2) {
-            if (attempt < 5 && opposite) {
-                RoomTemplate straight = pickRandom(straightTemplates);
-                if (straight != null && findRotationForPlacement(straight, dirs) >= 0) {
-                    return straight;
-                }
-            }
-            if (attempt < 5 && !opposite) {
-                RoomTemplate straight = pickRandom(straightTemplates);
-                if (straight != null && findRotationForPlacement(straight, dirs) >= 0) {
-                    return straight;
-                }
-            }
-        }
-
-        return selectTemplate(dirs, straightWallsSinceGate, towerCount, gateCount, placed, node, graph);
+        out.sort((a, b) -> Double.compare(b.score, a.score));
+        return out;
     }
 
-    private RoomTemplate pickCompatibleTower(GridNode node,
-                                             Map<Integer, NodePlan> placed,
-                                             List<GridNode> graph,
-                                             Set<Direction> dirs) {
-        if (!canPlaceTower(node, placed, graph) || towerTemplates.isEmpty()) {
-            return null;
-        }
-        List<RoomTemplate> shuffled = new ArrayList<>(towerTemplates);
-        Collections.shuffle(shuffled, random);
-        for (RoomTemplate tower : shuffled) {
-            if (findRotationForPlacement(tower, dirs) >= 0) {
-                return tower;
-            }
-        }
-        return null;
+    private double scoreTemplateCandidate(RoomTemplate template,
+                                          int degree,
+                                          boolean opposite,
+                                          boolean isRoot,
+                                          int straightWallsSinceGate,
+                                          int towerCount,
+                                          int gateCount,
+                                          int attempt,
+                                          GenerationTelemetry telemetry) {
+        double score = switch (classifyTemplate(template)) {
+            case TOWER -> SCORE_TOWER;
+            case GATE -> SCORE_GATE;
+            case STRAIGHT -> SCORE_STRAIGHT;
+            case CORNER -> SCORE_CORNER;
+            case DEAD_END -> SCORE_DEAD_END;
+            case OTHER -> 0D;
+        };
+
+        TemplateClass type = classifyTemplate(template);
+        if (isRoot && type == TemplateClass.TOWER) score += 120D;
+        if (degree >= 3 && type == TemplateClass.TOWER) score += 35D;
+        if (degree == 2 && opposite && type == TemplateClass.STRAIGHT) score += 30D;
+        if (degree == 2 && opposite && type == TemplateClass.TOWER) score += 25D;
+        if (degree == 2 && !opposite && type == TemplateClass.CORNER) score -= 25D;
+        if (degree == 2 && !opposite && type == TemplateClass.TOWER) score += 25D;
+        if (type == TemplateClass.CORNER) score -= telemetry.cornersPlaced * 4D;
+        if (type == TemplateClass.STRAIGHT) score += telemetry.straightsPlaced * 0.5D;
+        if (type == TemplateClass.TOWER) score += Math.max(0, 4 - telemetry.towersPlaced) * 12D;
+        if (type == TemplateClass.GATE && straightWallsSinceGate >= 2 && towerCount > gateCount) score += 35D;
+        if (attempt <= 2 && type == TemplateClass.TOWER) score += 15D;
+        return score;
     }
 
     private Location connectorWorldLocation(NodePlan plan, Direction direction) {
@@ -753,6 +761,28 @@ public class StrongholdDebugManager {
         return list.get(random.nextInt(list.size()));
     }
 
+    private TemplateClass classifyTemplate(RoomTemplate template) {
+        if (towerTemplates.contains(template)) return TemplateClass.TOWER;
+        if (gateTemplates.contains(template)) return TemplateClass.GATE;
+        if (straightTemplates.contains(template)) return TemplateClass.STRAIGHT;
+        if (cornerTemplates.contains(template)) return TemplateClass.CORNER;
+        if (deadEndTemplates.contains(template)) return TemplateClass.DEAD_END;
+        return TemplateClass.OTHER;
+    }
+
+    private void sendGenerationTelemetry(Player player, GenerationTelemetry telemetry) {
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                "Stronghold telemetry | towers=" + telemetry.towersPlaced
+                        + ", gates=" + telemetry.gatesPlaced
+                        + ", straights=" + telemetry.straightsPlaced
+                        + ", corners=" + telemetry.cornersPlaced
+                        + ", deadEnds=" + telemetry.deadEndsPlaced
+                        + ", overlapRejected=" + telemetry.overlapRejected
+                        + ", rotationRejected=" + telemetry.rotationRejected
+                        + ", centerRejected=" + telemetry.centerRejected
+                        + ", noPlacementFound=" + telemetry.noPlacementFound + ".");
+    }
+
     private boolean isTemplateOverlapAcceptable(RoomTemplate template, int rotation, Location center, Set<String> occupiedBlocks) {
         return isTemplateOverlapAcceptable(template, rotation, center, occupiedBlocks, MAX_TEMPLATE_OVERLAP);
     }
@@ -814,6 +844,35 @@ public class StrongholdDebugManager {
     private record PlacementPlan(RoomTemplate template, int rotation, Location center) {}
 
     private record NodePlacementChoice(RoomTemplate template, int rotation, Location center) {}
+
+    private record TemplateCandidate(RoomTemplate template, int rotation, double score) {}
+
+    private enum TemplateClass { TOWER, GATE, STRAIGHT, CORNER, DEAD_END, OTHER }
+
+    private static final class GenerationTelemetry {
+        int towersPlaced;
+        int gatesPlaced;
+        int straightsPlaced;
+        int cornersPlaced;
+        int deadEndsPlaced;
+        int overlapRejected;
+        int rotationRejected;
+        int centerRejected;
+        int noPlacementFound;
+
+        void recordPlaced(RoomTemplate template,
+                          List<RoomTemplate> towers,
+                          List<RoomTemplate> gates,
+                          List<RoomTemplate> straights,
+                          List<RoomTemplate> corners,
+                          List<RoomTemplate> deadEnds) {
+            if (towers.contains(template)) towersPlaced++;
+            else if (gates.contains(template)) gatesPlaced++;
+            else if (straights.contains(template)) straightsPlaced++;
+            else if (corners.contains(template)) cornersPlaced++;
+            else if (deadEnds.contains(template)) deadEndsPlaced++;
+        }
+    }
 
     public enum GraphMode {
         SNAKE(new SnakeGraphGenerator()),
