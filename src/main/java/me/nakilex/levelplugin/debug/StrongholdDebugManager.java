@@ -105,6 +105,8 @@ public class StrongholdDebugManager {
         int straightWallsSinceGate = 0;
         int towerCount = 0;
         int gateCount = 0;
+        int straightsSinceTower = 0;
+        int postTowerStraightBudget = 0;
         GenerationTelemetry telemetry = new GenerationTelemetry();
         telemetry.promotedTowerJunctions = promotedTowerJunctions;
 
@@ -113,7 +115,7 @@ public class StrongholdDebugManager {
             GridNode node = placementOrder.get(i);
             EnumSet<Direction> dirs = node.directions();
             NodePlacementChoice choice = chooseNodePlacement(node, dirs, straightWallsSinceGate, towerCount, gateCount,
-                    planById, graph, rootCenter, occupiedBlocks, telemetry);
+                    planById, graph, rootCenter, occupiedBlocks, telemetry, straightsSinceTower, postTowerStraightBudget);
             if (choice == null) {
                 rollbackAndFail(player, snapshot, "Failed to find a non-overlapping template for node " + node.id() + ".");
                 return;
@@ -138,11 +140,22 @@ public class StrongholdDebugManager {
             if (gateTemplates.contains(choice.template)) {
                 gateCount++;
                 straightWallsSinceGate = 0;
+                postTowerStraightBudget = Math.max(0, postTowerStraightBudget - 1);
+                straightsSinceTower = 0;
             } else if (towerTemplates.contains(choice.template)) {
                 towerCount++;
                 straightWallsSinceGate++;
+                straightsSinceTower = 0;
+                postTowerStraightBudget = 2;
             } else if (isOpposite) {
                 straightWallsSinceGate++;
+                straightsSinceTower++;
+                if (postTowerStraightBudget > 0) {
+                    postTowerStraightBudget--;
+                }
+            } else {
+                straightsSinceTower = 0;
+                postTowerStraightBudget = Math.max(0, postTowerStraightBudget - 1);
             }
         }
 
@@ -374,10 +387,12 @@ public class StrongholdDebugManager {
                                                     List<GridNode> graph,
                                                     Location rootCenter,
                                                     Set<String> occupiedBlocks,
-                                                    GenerationTelemetry telemetry) {
+                                                    GenerationTelemetry telemetry,
+                                                    int straightsSinceTower,
+                                                    int postTowerStraightBudget) {
         for (int attempt = 0; attempt < MAX_TEMPLATE_SELECTION_ATTEMPTS; attempt++) {
             List<TemplateCandidate> candidates = rankedCandidatesForNode(dirs, straightWallsSinceGate, towerCount, gateCount,
-                    placed, node, graph, attempt, telemetry);
+                    placed, node, graph, attempt, telemetry, straightsSinceTower, postTowerStraightBudget);
             if (candidates.isEmpty()) continue;
             double attemptThreshold = Math.min(0.25D, MAX_TEMPLATE_OVERLAP + (attempt * 0.03D));
             for (TemplateCandidate candidate : candidates) {
@@ -408,7 +423,9 @@ public class StrongholdDebugManager {
                                                             GridNode node,
                                                             List<GridNode> graph,
                                                             int attempt,
-                                                            GenerationTelemetry telemetry) {
+                                                            GenerationTelemetry telemetry,
+                                                            int straightsSinceTower,
+                                                            int postTowerStraightBudget) {
         int degree = dirs.size();
         boolean opposite = dirs.equals(EnumSet.of(Direction.NORTH, Direction.SOUTH))
                 || dirs.equals(EnumSet.of(Direction.EAST, Direction.WEST));
@@ -422,7 +439,8 @@ public class StrongholdDebugManager {
             if (gateTemplates.contains(template) && !canPlaceGate(node, placed, graph)) continue;
             if (towerTemplates.contains(template) && !canPlaceTower(node, placed, graph)) continue;
             double score = scoreTemplateCandidate(template, degree, opposite, placed.isEmpty(),
-                    straightWallsSinceGate, towerCount, gateCount, attempt, telemetry);
+                    straightWallsSinceGate, towerCount, gateCount, attempt, telemetry,
+                    straightsSinceTower, postTowerStraightBudget);
             out.add(new TemplateCandidate(template, rotation, score));
         }
         out.sort((a, b) -> Double.compare(b.score, a.score));
@@ -437,7 +455,9 @@ public class StrongholdDebugManager {
                                           int towerCount,
                                           int gateCount,
                                           int attempt,
-                                          GenerationTelemetry telemetry) {
+                                          GenerationTelemetry telemetry,
+                                          int straightsSinceTower,
+                                          int postTowerStraightBudget) {
         double score = switch (classifyTemplate(template)) {
             case TOWER -> SCORE_TOWER;
             case GATE -> SCORE_GATE;
@@ -459,6 +479,21 @@ public class StrongholdDebugManager {
         if (type == TemplateClass.TOWER) score += Math.max(0, 4 - telemetry.towersPlaced) * 12D;
         if (type == TemplateClass.GATE && straightWallsSinceGate >= 2 && towerCount > gateCount) score += 35D;
         if (attempt <= 2 && type == TemplateClass.TOWER) score += 15D;
+        // Soft rule: towers become attractive after straight streaks.
+        if (type == TemplateClass.TOWER && straightsSinceTower >= 2) {
+            telemetry.towerOpportunityCount++;
+            score += 85D + ((straightsSinceTower - 2) * 12D);
+        }
+        // Soft rule: immediately after tower, heavily prefer straight continuations.
+        if (postTowerStraightBudget > 0) {
+            if (type == TemplateClass.STRAIGHT) {
+                score += 120D;
+            } else if (type == TemplateClass.CORNER) {
+                // Relax near attempt tail to prevent deadlocks.
+                score -= attempt >= (MAX_TEMPLATE_SELECTION_ATTEMPTS - 2) ? 30D : 220D;
+                telemetry.cornerBlockedAfterTower++;
+            }
+        }
         return score;
     }
 
@@ -872,6 +907,8 @@ public class StrongholdDebugManager {
                         + ", corners=" + telemetry.cornersPlaced
                         + ", deadEnds=" + telemetry.deadEndsPlaced
                         + ", promotedJunctions=" + telemetry.promotedTowerJunctions
+                        + ", towerOpportunities=" + telemetry.towerOpportunityCount
+                        + ", cornerBlockedAfterTower=" + telemetry.cornerBlockedAfterTower
                         + ", overlapRejected=" + telemetry.overlapRejected
                         + ", rotationRejected=" + telemetry.rotationRejected
                         + ", centerRejected=" + telemetry.centerRejected
@@ -951,6 +988,8 @@ public class StrongholdDebugManager {
         int cornersPlaced;
         int deadEndsPlaced;
         int promotedTowerJunctions;
+        int towerOpportunityCount;
+        int cornerBlockedAfterTower;
         int overlapRejected;
         int rotationRejected;
         int centerRejected;
