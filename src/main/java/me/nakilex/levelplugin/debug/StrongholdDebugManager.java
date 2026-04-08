@@ -233,11 +233,11 @@ public class StrongholdDebugManager {
                                                                Dungeon dungeon,
                                                                boolean firstNode) {
         CandidatePlacement best = null;
-        double bestOverlap = Double.MAX_VALUE;
+        double bestScore = Double.MAX_VALUE;
         PlacementDebug debug = new PlacementDebug();
-        for (int attempt = 0; attempt < NODE_PLACEMENT_ATTEMPTS; attempt++) {
-            RoomTemplate template = selectTemplate(dirs, straightWallsSinceGate, towerCount, gateCount,
-                    straightWallsSinceTowerOrTSection, placed, node, graphMode, graph);
+        List<RoomTemplate> candidates = candidateTemplatesForNode(dirs, straightWallsSinceGate, towerCount, gateCount,
+                straightWallsSinceTowerOrTSection, placed, node, graphMode, graph);
+        for (RoomTemplate template : candidates) {
             debug.attempts++;
             if (template == null) {
                 debug.templateMisses++;
@@ -256,20 +256,101 @@ public class StrongholdDebugManager {
             DungeonManager.PasteResult preview = dungeonManager.pasteRoom(dungeon, template, rotation, center, null, true,
                     TEMPLATE_IGNORE, strongholdMaxOverlap);
             if (preview.success()) {
+                double score = preview.overlap() + templatePriority(template);
+                if (score < bestScore) {
+                    bestScore = score;
+                    best = new CandidatePlacement(template, rotation, center, preview.overlap());
+                }
                 debug.successes++;
-                return new CandidateSearchResult(new CandidatePlacement(template, rotation, center, preview.overlap()), debug);
+                continue;
             }
             debug.overlapRejects++;
-            if (preview.overlap() < bestOverlap) {
-                bestOverlap = preview.overlap();
-                best = new CandidatePlacement(template, rotation, center, preview.overlap());
-            }
         }
-        if (bestOverlap <= strongholdMaxOverlap) {
-            debug.successes++;
+        if (best != null) {
             return new CandidateSearchResult(best, debug);
         }
         return new CandidateSearchResult(null, debug);
+    }
+
+    private List<RoomTemplate> candidateTemplatesForNode(EnumSet<Direction> dirs,
+                                                         int straightWallsSinceGate,
+                                                         int towerCount,
+                                                         int gateCount,
+                                                         int straightWallsSinceTowerOrTSection,
+                                                         Map<Integer, NodePlan> placed,
+                                                         GridNode node,
+                                                         GraphMode graphMode,
+                                                         List<GridNode> graph) {
+        List<RoomTemplate> ordered = new ArrayList<>();
+        int degree = dirs.size();
+
+        if (graphMode == GraphMode.TSECTION_LINK) {
+            if (node.id() == 0) addIfPresent(ordered, tSectionTemplates);
+            else if (node.id() == 9) addIfPresent(ordered, towerTemplates);
+            else if (degree == 2) {
+                boolean opposite = dirs.equals(EnumSet.of(Direction.NORTH, Direction.SOUTH))
+                        || dirs.equals(EnumSet.of(Direction.EAST, Direction.WEST));
+                addIfPresent(ordered, opposite ? straightTemplates : cornerTemplates);
+            }
+        }
+
+        boolean opposite = dirs.equals(EnumSet.of(Direction.NORTH, Direction.SOUTH))
+                || dirs.equals(EnumSet.of(Direction.EAST, Direction.WEST));
+        if (degree >= 4) {
+            if (canPlaceTower(node, placed, graph) && canPlaceTowerOrTSection(straightWallsSinceTowerOrTSection, placed)) {
+                addIfPresent(ordered, towerTemplates);
+            }
+        } else if (degree == 3) {
+            if (canPlaceTowerOrTSection(straightWallsSinceTowerOrTSection, placed)) {
+                addIfPresent(ordered, tSectionTemplates);
+            }
+            if (canPlaceTower(node, placed, graph) && canPlaceTowerOrTSection(straightWallsSinceTowerOrTSection, placed)) {
+                addIfPresent(ordered, towerTemplates);
+            }
+            if (straightWallsSinceGate >= 2 && towerCount > gateCount && canPlaceGate(node, placed, graph)) {
+                addIfPresent(ordered, gateTemplates);
+            }
+        } else if (degree == 2 && opposite) {
+            addIfPresent(ordered, straightTemplates);
+            if (canPlaceTower(node, placed, graph) && canPlaceTowerOrTSection(straightWallsSinceTowerOrTSection, placed)) {
+                addIfPresent(ordered, towerTemplates);
+            }
+            if (straightWallsSinceGate >= 2 && towerCount > gateCount && canPlaceGate(node, placed, graph)) {
+                addIfPresent(ordered, gateTemplates);
+            }
+        } else if (degree == 2) {
+            addIfPresent(ordered, cornerTemplates);
+            if (canPlaceTower(node, placed, graph) && canPlaceTowerOrTSection(straightWallsSinceTowerOrTSection, placed)) {
+                addIfPresent(ordered, towerTemplates);
+            }
+        } else if (degree == 1) {
+            addIfPresent(ordered, deadEndTemplates);
+            if (canPlaceTower(node, placed, graph) && canPlaceTowerOrTSection(straightWallsSinceTowerOrTSection, placed)) {
+                addIfPresent(ordered, towerTemplates);
+            }
+        }
+
+        for (RoomTemplate template : allTemplates()) {
+            if (!ordered.contains(template)) {
+                ordered.add(template);
+            }
+        }
+        return ordered;
+    }
+
+    private void addIfPresent(List<RoomTemplate> ordered, List<RoomTemplate> templates) {
+        for (RoomTemplate template : templates) {
+            if (!ordered.contains(template)) {
+                ordered.add(template);
+            }
+        }
+    }
+
+    private double templatePriority(RoomTemplate template) {
+        if (template == null) return 1.0;
+        if (gateTemplates.contains(template)) return 0.40;
+        if (towerTemplates.contains(template) || tSectionTemplates.contains(template)) return 0.20;
+        return 0.0;
     }
 
     private BukkitTask runStepPlacement(Player player, List<NodePlan> plans, List<ConnectorPlan> connectorPlans, Map<Location, BlockData> snapshot, Dungeon dungeon, long delayTicks) {
