@@ -105,7 +105,7 @@ public class StrongholdDebugManager {
                 rollbackAndFail(player, snapshot, "No template matched connector pattern " + dirs + ".");
                 return;
             }
-            int rotation = findRotation(template, dirs);
+            int rotation = findRotationForPlacement(template, dirs);
             Location center = i == 0 ? rootCenter.clone() : solveCenter(node, template, rotation, planById, rootCenter);
             if (center == null) {
                 rollbackAndFail(player, snapshot, "Failed to align template connectors for node " + node.id() + ".");
@@ -371,29 +371,29 @@ public class StrongholdDebugManager {
         if (degree == 2 && opposite) {
             if (straightWallsSinceGate >= 2 && towerCount > gateCount && canPlaceGate(node, placed, graph)) {
                 RoomTemplate gate = pickRandom(gateTemplates);
-                if (gate != null && findRotation(gate, dirs) >= 0) return gate;
+                if (gate != null && findRotationForPlacement(gate, dirs) >= 0) return gate;
             }
             RoomTemplate tower = pickRandom(towerTemplates);
-            if (tower != null && canPlaceTower(node, placed, graph) && findRotation(tower, dirs) >= 0) return tower;
+            if (tower != null && canPlaceTower(node, placed, graph) && findRotationForPlacement(tower, dirs) >= 0) return tower;
             return selectTemplate(dirs);
         }
         if (degree == 2) {
             RoomTemplate tower = pickRandom(towerTemplates);
-            if (tower != null && canPlaceTower(node, placed, graph) && findRotation(tower, dirs) >= 0) return tower;
+            if (tower != null && canPlaceTower(node, placed, graph) && findRotationForPlacement(tower, dirs) >= 0) return tower;
             return pickRandom(cornerTemplates) != null ? pickRandom(cornerTemplates) : selectTemplate(dirs);
         }
         if (degree == 1) {
             RoomTemplate tower = pickRandom(towerTemplates);
-            if (tower != null && canPlaceTower(node, placed, graph) && findRotation(tower, dirs) >= 0) return tower;
+            if (tower != null && canPlaceTower(node, placed, graph) && findRotationForPlacement(tower, dirs) >= 0) return tower;
             RoomTemplate dead = pickRandom(deadEndTemplates);
-            if (dead != null && findRotation(dead, dirs) >= 0) return dead;
+            if (dead != null && findRotationForPlacement(dead, dirs) >= 0) return dead;
             return selectTemplate(dirs);
         }
         if (degree == 3) {
             RoomTemplate tower = pickRandom(towerTemplates);
-            if (tower != null && canPlaceTower(node, placed, graph) && findRotation(tower, dirs) >= 0) return tower;
+            if (tower != null && canPlaceTower(node, placed, graph) && findRotationForPlacement(tower, dirs) >= 0) return tower;
             RoomTemplate gate = pickRandom(gateTemplates);
-            if (gate != null && canPlaceGate(node, placed, graph) && findRotation(gate, dirs) >= 0) return gate;
+            if (gate != null && canPlaceGate(node, placed, graph) && findRotationForPlacement(gate, dirs) >= 0) return gate;
             return selectTemplate(dirs);
         }
         return selectTemplate(dirs);
@@ -420,18 +420,18 @@ public class StrongholdDebugManager {
         int degree = dirs.size();
         if (degree == 1) {
             RoomTemplate dead = pickRandom(deadEndTemplates);
-            if (dead != null && findRotation(dead, dirs) >= 0) return dead;
+            if (dead != null && findRotationForPlacement(dead, dirs) >= 0) return dead;
         }
         if (degree == 2) {
             boolean opposite = dirs.equals(EnumSet.of(Direction.NORTH, Direction.SOUTH))
                     || dirs.equals(EnumSet.of(Direction.EAST, Direction.WEST));
             RoomTemplate candidate = opposite ? pickRandom(straightTemplates) : pickRandom(cornerTemplates);
-            if (candidate != null && findRotation(candidate, dirs) >= 0) return candidate;
+            if (candidate != null && findRotationForPlacement(candidate, dirs) >= 0) return candidate;
         }
         RoomTemplate fallback = pickRandom(straightTemplates);
-        if (fallback != null && findRotation(fallback, dirs) >= 0) return fallback;
+        if (fallback != null && findRotationForPlacement(fallback, dirs) >= 0) return fallback;
         for (RoomTemplate t : allTemplates()) {
-            if (findRotation(t, dirs) >= 0) return t;
+            if (findRotationForPlacement(t, dirs) >= 0) return t;
         }
         return null;
     }
@@ -445,6 +445,31 @@ public class StrongholdDebugManager {
         all.addAll(towerTemplates);
         all.addAll(gateTemplates);
         return all;
+    }
+
+    private int findRotationForPlacement(RoomTemplate template, Set<Direction> required) {
+        int exact = findRotation(template, required);
+        if (exact >= 0) {
+            return exact;
+        }
+        if (!supportsOptionalConnectors(template)) {
+            return -1;
+        }
+        return findRotationContaining(template, required);
+    }
+
+    private boolean supportsOptionalConnectors(RoomTemplate template) {
+        return towerTemplates.contains(template) || gateTemplates.contains(template);
+    }
+
+    private int findRotationContaining(RoomTemplate template, Set<Direction> required) {
+        for (int r = 0; r < 4; r++) {
+            Set<Direction> rotated = template.getRotatedDirections(r);
+            if (rotated.containsAll(required)) {
+                return r;
+            }
+        }
+        return -1;
     }
 
     private int findRotation(RoomTemplate template, Set<Direction> target) {
