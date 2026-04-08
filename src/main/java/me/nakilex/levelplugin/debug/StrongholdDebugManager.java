@@ -26,6 +26,7 @@ public class StrongholdDebugManager {
     private static final Set<Material> STRONGHOLD_SKIP = EnumSet.of(Material.REDSTONE_BLOCK, Material.PINK_WOOL, Material.LIME_WOOL);
     private static final double MAX_TEMPLATE_OVERLAP = 0.10D;
     private static final int MAX_TEMPLATE_SELECTION_ATTEMPTS = 8;
+    private static final int MAX_STRONGHOLD_SPAWN_ATTEMPTS = 12;
     private static final double SCORE_TOWER = 120D;
     private static final double SCORE_GATE = 95D;
     private static final double SCORE_STRAIGHT = 70D;
@@ -88,97 +89,114 @@ public class StrongholdDebugManager {
             restoreSnapshot(previous.restoreSnapshot);
         }
 
-        List<GridNode> graph = generateGraphForTemplates(graphMode, size);
-        if (graph.isEmpty() || graph.size() < size) {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
-                    "Failed to generate stronghold graph for mode '" + graphMode.id() + "'.");
-            return;
-        }
-        int promotedTowerJunctions = promoteTowerJunctions(graph);
-
-        List<NodePlan> plans = new ArrayList<>();
-        Map<Integer, NodePlan> planById = new HashMap<>();
-        Map<Location, BlockData> snapshot = new HashMap<>();
-        Set<String> occupiedBlocks = new HashSet<>();
-        Dungeon debugDungeon = new Dungeon(player.getWorld(), "stronghold-debug-" + player.getUniqueId());
-
-        Location rootCenter = player.getLocation().getBlock().getLocation();
-        int straightWallsSinceGate = 0;
-        int towerCount = 0;
-        int gateCount = 0;
-        int straightsSinceTower = 0;
-        int postTowerStraightBudget = 0;
-        GenerationTelemetry telemetry = new GenerationTelemetry();
-        telemetry.promotedTowerJunctions = promotedTowerJunctions;
-
-        List<GridNode> placementOrder = buildPlacementOrder(graph);
-        for (int i = 0; i < placementOrder.size(); i++) {
-            GridNode node = placementOrder.get(i);
-            EnumSet<Direction> dirs = node.directions();
-            NodePlacementChoice choice = chooseNodePlacement(node, dirs, straightWallsSinceGate, towerCount, gateCount,
-                    planById, graph, rootCenter, occupiedBlocks, telemetry, straightsSinceTower, postTowerStraightBudget);
-            if (choice == null) {
-                rollbackAndFail(player, snapshot, "Failed to find a non-overlapping template for node " + node.id() + ".");
-                return;
+        String lastFailure = "Unknown generation error.";
+        for (int spawnAttempt = 1; spawnAttempt <= MAX_STRONGHOLD_SPAWN_ATTEMPTS; spawnAttempt++) {
+            List<GridNode> graph = generateGraphForTemplates(graphMode, size);
+            if (graph.isEmpty() || graph.size() < size) {
+                lastFailure = "Failed to generate stronghold graph for mode '" + graphMode.id() + "'.";
+                continue;
             }
-
-            captureForRestore(snapshot, choice.template, choice.rotation, choice.center);
-            DungeonManager.PasteResult result = dungeonManager.pasteRoom(debugDungeon, choice.template, choice.rotation, choice.center, null, false, TEMPLATE_IGNORE);
-            if (!result.success()) {
-                rollbackAndFail(player, snapshot, "Failed to paste stronghold node " + node.id() + ".");
-                return;
+            if (graphMode == GraphMode.BRANCHING && !hasJunction(graph)) {
+                lastFailure = "Generated graph did not contain a branching junction.";
+                continue;
             }
-            markTemplateOccupied(choice.template, choice.rotation, choice.center, occupiedBlocks);
-            telemetry.recordPlaced(choice.template, towerTemplates, gateTemplates, straightTemplates, cornerTemplates, deadEndTemplates);
+            int promotedTowerJunctions = promoteTowerJunctions(graph);
 
-            NodePlan plan = new NodePlan(node.id(), node, choice.template, choice.rotation, choice.center);
-            plans.add(plan);
-            planById.put(node.id(), plan);
+            List<NodePlan> plans = new ArrayList<>();
+            Map<Integer, NodePlan> planById = new HashMap<>();
+            Map<Location, BlockData> snapshot = new HashMap<>();
+            Set<String> occupiedBlocks = new HashSet<>();
+            Dungeon debugDungeon = new Dungeon(player.getWorld(), "stronghold-debug-" + player.getUniqueId());
 
-            Set<Direction> opposite = EnumSet.of(Direction.NORTH, Direction.SOUTH);
-            if (!dirs.equals(opposite)) opposite = EnumSet.of(Direction.EAST, Direction.WEST);
-            boolean isOpposite = dirs.equals(EnumSet.of(Direction.NORTH, Direction.SOUTH)) || dirs.equals(EnumSet.of(Direction.EAST, Direction.WEST));
-            if (gateTemplates.contains(choice.template)) {
-                gateCount++;
-                straightWallsSinceGate = 0;
-                postTowerStraightBudget = Math.max(0, postTowerStraightBudget - 1);
-                straightsSinceTower = 0;
-            } else if (towerTemplates.contains(choice.template)) {
-                towerCount++;
-                straightWallsSinceGate++;
-                straightsSinceTower = 0;
-                postTowerStraightBudget = 2;
-            } else if (isOpposite) {
-                straightWallsSinceGate++;
-                straightsSinceTower++;
-                if (postTowerStraightBudget > 0) {
-                    postTowerStraightBudget--;
+            Location rootCenter = player.getLocation().getBlock().getLocation();
+            int straightWallsSinceGate = 0;
+            int towerCount = 0;
+            int gateCount = 0;
+            int straightsSinceTower = 0;
+            int postTowerStraightBudget = 0;
+            GenerationTelemetry telemetry = new GenerationTelemetry();
+            telemetry.promotedTowerJunctions = promotedTowerJunctions;
+
+            List<GridNode> placementOrder = buildPlacementOrder(graph);
+            boolean failed = false;
+            for (int i = 0; i < placementOrder.size(); i++) {
+                GridNode node = placementOrder.get(i);
+                EnumSet<Direction> dirs = node.directions();
+                NodePlacementChoice choice = chooseNodePlacement(node, dirs, straightWallsSinceGate, towerCount, gateCount,
+                        planById, graph, rootCenter, occupiedBlocks, telemetry, straightsSinceTower, postTowerStraightBudget);
+                if (choice == null) {
+                    failed = true;
+                    lastFailure = "Failed to find a non-overlapping template for node " + node.id() + ".";
+                    break;
                 }
-            } else {
-                straightsSinceTower = 0;
-                postTowerStraightBudget = Math.max(0, postTowerStraightBudget - 1);
+
+                captureForRestore(snapshot, choice.template, choice.rotation, choice.center);
+                DungeonManager.PasteResult result = dungeonManager.pasteRoom(debugDungeon, choice.template, choice.rotation, choice.center, null, false, TEMPLATE_IGNORE);
+                if (!result.success()) {
+                    failed = true;
+                    lastFailure = "Failed to paste stronghold node " + node.id() + ".";
+                    break;
+                }
+                markTemplateOccupied(choice.template, choice.rotation, choice.center, occupiedBlocks);
+                telemetry.recordPlaced(choice.template, towerTemplates, gateTemplates, straightTemplates, cornerTemplates, deadEndTemplates);
+
+                NodePlan plan = new NodePlan(node.id(), node, choice.template, choice.rotation, choice.center);
+                plans.add(plan);
+                planById.put(node.id(), plan);
+
+                Set<Direction> opposite = EnumSet.of(Direction.NORTH, Direction.SOUTH);
+                if (!dirs.equals(opposite)) opposite = EnumSet.of(Direction.EAST, Direction.WEST);
+                boolean isOpposite = dirs.equals(EnumSet.of(Direction.NORTH, Direction.SOUTH)) || dirs.equals(EnumSet.of(Direction.EAST, Direction.WEST));
+                if (gateTemplates.contains(choice.template)) {
+                    gateCount++;
+                    straightWallsSinceGate = 0;
+                    postTowerStraightBudget = Math.max(0, postTowerStraightBudget - 1);
+                    straightsSinceTower = 0;
+                } else if (towerTemplates.contains(choice.template)) {
+                    towerCount++;
+                    straightWallsSinceGate++;
+                    straightsSinceTower = 0;
+                    postTowerStraightBudget = 2;
+                } else if (isOpposite) {
+                    straightWallsSinceGate++;
+                    straightsSinceTower++;
+                    if (postTowerStraightBudget > 0) {
+                        postTowerStraightBudget--;
+                    }
+                } else {
+                    straightsSinceTower = 0;
+                    postTowerStraightBudget = Math.max(0, postTowerStraightBudget - 1);
+                }
             }
-        }
+            if (failed) {
+                restoreSnapshot(snapshot);
+                continue;
+            }
 
-        List<ConnectorPlan> connectorPlans = buildConnectorPlans(plans, snapshot, debugDungeon, occupiedBlocks);
-        if (connectorPlans == null) {
-            rollbackAndFail(player, snapshot, "Failed to align stronghold connectors without overlap.");
-            return;
-        }
+            List<ConnectorPlan> connectorPlans = buildConnectorPlans(plans, snapshot, debugDungeon, occupiedBlocks);
+            if (connectorPlans == null) {
+                restoreSnapshot(snapshot);
+                lastFailure = "Failed to align stronghold connectors without overlap.";
+                continue;
+            }
 
-        ActiveStronghold active = new ActiveStronghold(player.getWorld(), snapshot, plans, connectorPlans, debugDungeon, null);
-        if (stepDelayTicks > 0) {
-            restoreSnapshot(snapshot);
-            BukkitTask task = runStepPlacement(player, plans, connectorPlans, snapshot, debugDungeon, stepDelayTicks);
-            activeByPlayer.put(player.getUniqueId(), new ActiveStronghold(player.getWorld(), snapshot, plans, connectorPlans, debugDungeon, task));
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, "Stronghold step spawn started (" + plans.size() + " rooms).");
+            ActiveStronghold active = new ActiveStronghold(player.getWorld(), snapshot, plans, connectorPlans, debugDungeon, null);
+            if (stepDelayTicks > 0) {
+                restoreSnapshot(snapshot);
+                BukkitTask task = runStepPlacement(player, plans, connectorPlans, snapshot, debugDungeon, stepDelayTicks);
+                activeByPlayer.put(player.getUniqueId(), new ActiveStronghold(player.getWorld(), snapshot, plans, connectorPlans, debugDungeon, task));
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, "Stronghold step spawn started (" + plans.size() + " rooms, attempt " + spawnAttempt + ").");
+                sendGenerationTelemetry(player, telemetry);
+                return;
+            }
+
+            activeByPlayer.put(player.getUniqueId(), active);
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, "Stronghold spawned with " + plans.size() + " rooms (attempt " + spawnAttempt + ").");
             sendGenerationTelemetry(player, telemetry);
             return;
         }
-
-        activeByPlayer.put(player.getUniqueId(), active);
-        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, "Stronghold spawned with " + plans.size() + " rooms.");
-        sendGenerationTelemetry(player, telemetry);
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                "Failed to generate stronghold after " + MAX_STRONGHOLD_SPAWN_ATTEMPTS + " attempts. Last reason: " + lastFailure);
     }
 
     private List<GridNode> buildPlacementOrder(List<GridNode> graph) {
