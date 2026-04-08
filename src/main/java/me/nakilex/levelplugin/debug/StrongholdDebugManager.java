@@ -435,7 +435,7 @@ public class StrongholdDebugManager {
         int degree = dirs.size();
         boolean opposite = dirs.equals(EnumSet.of(Direction.NORTH, Direction.SOUTH))
                 || dirs.equals(EnumSet.of(Direction.EAST, Direction.WEST));
-        boolean towerEligible = canUseTowerForDegree(degree, opposite);
+        boolean towerEligible = canUseTowerForDegree(degree);
         if (degree == 2 && opposite) {
             if (straightWallsSinceGate >= 2 && towerCount > gateCount && canPlaceGate(node, placed, graph)) {
                 RoomTemplate gate = pickRandom(gateTemplates);
@@ -481,11 +481,8 @@ public class StrongholdDebugManager {
         return true;
     }
 
-    private boolean canUseTowerForDegree(int degree, boolean opposite) {
-        if (degree >= 3) {
-            return true;
-        }
-        return degree == 2 && !opposite;
+    private boolean canUseTowerForDegree(int degree) {
+        return degree >= 2;
     }
 
     private RoomTemplate selectTemplate(EnumSet<Direction> dirs) {
