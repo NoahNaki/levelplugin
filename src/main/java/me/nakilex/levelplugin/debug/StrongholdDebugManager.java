@@ -1049,6 +1049,10 @@ public class StrongholdDebugManager {
             // Mirror DungeonManager preview leniency: ignore low connector/base
             // layers and only score overlap for meaningful room geometry.
             if ((b.y - connectorY) <= 2) continue;
+            // Additional connector-aware leniency: ignore overlap checks near
+            // parsed redstone connector marker zones so valid joins are not
+            // treated as collisions.
+            if (isConnectorBufferBlock(template, b)) continue;
             totalSolid++;
             String key = blockKey(blockLocationFor(template, b.x, b.y, b.z, rotation, center));
             if (key != null && occupiedBlocks.contains(key)) {
@@ -1059,6 +1063,17 @@ public class StrongholdDebugManager {
             return 0D;
         }
         return (double) overlapping / totalSolid;
+    }
+
+    private boolean isConnectorBufferBlock(RoomTemplate template, RoomTemplate.BlockDef block) {
+        for (RoomTemplate.Connector c : template.getConnectors()) {
+            if (Math.abs(block.x - c.x) <= 1
+                    && Math.abs(block.z - c.z) <= 1
+                    && Math.abs(block.y - c.bottomY) <= 3) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void markTemplateOccupied(RoomTemplate template, int rotation, Location center, Set<String> occupiedBlocks) {
