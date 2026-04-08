@@ -100,8 +100,9 @@ public class StrongholdDebugManager {
         int towerCount = 0;
         int gateCount = 0;
 
-        for (int i = 0; i < graph.size(); i++) {
-            GridNode node = graph.get(i);
+        List<GridNode> placementOrder = buildPlacementOrder(graph);
+        for (int i = 0; i < placementOrder.size(); i++) {
+            GridNode node = placementOrder.get(i);
             EnumSet<Direction> dirs = node.directions();
             NodePlacementChoice choice = chooseNodePlacement(node, dirs, straightWallsSinceGate, towerCount, gateCount,
                     planById, graph, rootCenter, occupiedBlocks);
@@ -153,6 +154,68 @@ public class StrongholdDebugManager {
 
         activeByPlayer.put(player.getUniqueId(), active);
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, "Stronghold spawned with " + plans.size() + " rooms.");
+    }
+
+    private List<GridNode> buildPlacementOrder(List<GridNode> graph) {
+        if (graph.isEmpty()) {
+            return graph;
+        }
+        Map<Integer, GridNode> byId = new HashMap<>();
+        for (GridNode node : graph) {
+            byId.put(node.id(), node);
+        }
+
+        GridNode root = selectTowerFriendlyRoot(graph);
+        Set<Integer> visited = new HashSet<>();
+        Deque<GridNode> queue = new ArrayDeque<>();
+        List<GridNode> ordered = new ArrayList<>(graph.size());
+
+        queue.add(root);
+        visited.add(root.id());
+        while (!queue.isEmpty()) {
+            GridNode cur = queue.poll();
+            ordered.add(cur);
+            for (Direction d : Direction.values()) {
+                Integer nextId = cur.neighbors().get(d);
+                if (nextId == null || visited.contains(nextId)) continue;
+                GridNode next = byId.get(nextId);
+                if (next == null) continue;
+                visited.add(nextId);
+                queue.add(next);
+            }
+        }
+
+        if (ordered.size() == graph.size()) {
+            return ordered;
+        }
+        // Fallback for any unexpected disconnected graph content.
+        return graph;
+    }
+
+    private GridNode selectTowerFriendlyRoot(List<GridNode> graph) {
+        GridNode fallback = graph.get(0);
+        GridNode best = fallback;
+        for (GridNode node : graph) {
+            if (node.directions().size() > best.directions().size()) {
+                best = node;
+            }
+        }
+        if (best.directions().size() >= 3 && hasTowerRotationFor(best.directions())) {
+            return best;
+        }
+        if (hasTowerRotationFor(best.directions())) {
+            return best;
+        }
+        return fallback;
+    }
+
+    private boolean hasTowerRotationFor(Set<Direction> dirs) {
+        for (RoomTemplate tower : towerTemplates) {
+            if (findRotationForPlacement(tower, dirs) >= 0) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private BukkitTask runStepPlacement(Player player, List<NodePlan> plans, List<ConnectorPlan> connectorPlans, Map<Location, BlockData> snapshot, Dungeon dungeon, long delayTicks) {
@@ -480,6 +543,10 @@ public class StrongholdDebugManager {
                 RoomTemplate gate = pickRandom(gateTemplates);
                 if (gate != null && findRotationForPlacement(gate, dirs) >= 0) return gate;
             }
+            RoomTemplate tower = towerEligible ? pickRandom(towerTemplates) : null;
+            if (tower != null && canPlaceTower(node, placed, graph) && findRotationForPlacement(tower, dirs) >= 0) return tower;
+            RoomTemplate straight = pickRandom(straightTemplates);
+            if (straight != null && findRotationForPlacement(straight, dirs) >= 0) return straight;
             return selectTemplate(dirs);
         }
         if (degree == 2) {
