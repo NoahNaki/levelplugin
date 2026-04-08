@@ -182,54 +182,135 @@ public class RoomTemplate {
             }
         }
 
-        // group connectors by contiguous marker blocks
-        List<Connector> connectors = new ArrayList<>();
-        Set<Location> visited = new HashSet<>();
-        for (Location loc : markerBlocks) {
-            if (visited.contains(loc)) continue;
-            List<Location> group = new ArrayList<>();
-            Deque<Location> stack = new ArrayDeque<>();
-            stack.push(loc);
-            visited.add(loc);
-            while (!stack.isEmpty()) {
-                Location l = stack.pop();
-                group.add(l);
-                for (int dx = -1; dx <= 1; dx++) {
-                    for (int dy = -1; dy <= 1; dy++) {
-                        for (int dz = -1; dz <= 1; dz++) {
-                            if (Math.abs(dx) + Math.abs(dy) + Math.abs(dz) != 1) continue;
-                            Location n = l.clone().add(dx, dy, dz);
-                            if (markerBlocks.contains(n) && visited.add(n)) {
-                                stack.push(n);
-                            }
-                        }
-                    }
-                }
-            }
-            // compute center of group
-            double sx = 0, sy = 0, sz = 0;
-            int minGroupY = Integer.MAX_VALUE;
-            for (Location l : group) {
-                sx += l.getBlockX();
-                sy += l.getBlockY();
-                sz += l.getBlockZ();
-                if (l.getBlockY() < minGroupY) minGroupY = l.getBlockY();
-            }
-            int cx = (int)Math.round(sx / group.size()) - minX;
-            int cz = (int)Math.round(sz / group.size()) - minZ;
-            int dx = cx - (int)Math.round((width - 1) / 2.0);
-            int dz = cz - (int)Math.round((depth - 1) / 2.0);
-            Direction dir = Direction.fromDelta(dx, dz);
-            boolean entrance = false;
-            for (Location l : group) {
-                Location above = l.clone().add(0, 1, 0);
-                if (limeBlocks.contains(above)) { entrance = true; break; }
-            }
-            connectors.add(new Connector(cx, cz, minGroupY - minY, dir, entrance));
-        }
+        List<Connector> connectors = buildConnectorsFromPending(markerBlocks, limeBlocks, minX, minY, minZ, width, depth);
 
         return new RoomTemplate(blocks, connectors, portalMarks, exitMarks, chestMarks, bossMark, width, height, depth, minY);
     }
+
+    private static List<Connector> buildConnectorsFromPending(Set<Location> markerBlocks,
+                                                              Set<Location> limeBlocks,
+                                                              int minX,
+                                                              int minY,
+                                                              int minZ,
+                                                              int width,
+                                                              int depth) {
+        List<List<Location>> groups = groupConnectedMarkers(markerBlocks);
+        if (groups.isEmpty()) {
+            return List.of();
+        }
+
+        List<GroupCenter> centers = new ArrayList<>(groups.size());
+        double sx = 0;
+        double sz = 0;
+        for (int i = 0; i < groups.size(); i++) {
+            GroupCenter center = computeGroupCenter(groups.get(i), i, minX, minY, minZ, width, depth);
+            centers.add(center);
+            sx += center.localX;
+            sz += center.localZ;
+        }
+
+        double centroidX = sx / centers.size();
+        double centroidZ = sz / centers.size();
+        List<Connector> connectors = new ArrayList<>(groups.size());
+        for (int i = 0; i < groups.size(); i++) {
+            List<Location> group = groups.get(i);
+            GroupCenter center = centers.get(i);
+            Direction facing = inferFacing(center, centroidX, centroidZ, width, depth);
+
+            boolean entrance = false;
+            for (Location l : group) {
+                if (limeBlocks.contains(l.clone().add(0, 1, 0))) {
+                    entrance = true;
+                    break;
+                }
+            }
+
+            connectors.add(new Connector(center.localX, center.localZ, center.bottomY - minY, facing, entrance));
+        }
+        return connectors;
+    }
+
+    private static List<List<Location>> groupConnectedMarkers(Set<Location> markerBlocks) {
+        List<List<Location>> groups = new ArrayList<>();
+        Set<Location> visited = new HashSet<>();
+        for (Location loc : markerBlocks) {
+            if (!visited.add(loc)) {
+                continue;
+            }
+            List<Location> group = new ArrayList<>();
+            Deque<Location> stack = new ArrayDeque<>();
+            stack.push(loc);
+            while (!stack.isEmpty()) {
+                Location l = stack.pop();
+                group.add(l);
+                for (int[] vec : NEIGHBOR_VECTORS) {
+                    Location next = l.clone().add(vec[0], vec[1], vec[2]);
+                    if (markerBlocks.contains(next) && visited.add(next)) {
+                        stack.push(next);
+                    }
+                }
+            }
+            groups.add(group);
+        }
+        return groups;
+    }
+
+    private static GroupCenter computeGroupCenter(List<Location> group,
+                                                  int index,
+                                                  int minX,
+                                                  int minY,
+                                                  int minZ,
+                                                  int width,
+                                                  int depth) {
+        double sx = 0;
+        double sz = 0;
+        int bottomY = Integer.MAX_VALUE;
+        int minBlockX = Integer.MAX_VALUE;
+        int minBlockZ = Integer.MAX_VALUE;
+
+        for (Location l : group) {
+            sx += l.getBlockX();
+            sz += l.getBlockZ();
+            bottomY = Math.min(bottomY, l.getBlockY());
+            if (l.getBlockX() < minBlockX || (l.getBlockX() == minBlockX && l.getBlockZ() < minBlockZ)) {
+                minBlockX = l.getBlockX();
+                minBlockZ = l.getBlockZ();
+            }
+        }
+
+        int localX = (int) Math.round(sx / group.size()) - minX;
+        int localZ = (int) Math.round(sz / group.size()) - minZ;
+        int fallbackHash = Objects.hash(index, minBlockX - minX, minBlockZ - minZ, width, depth, minY);
+        return new GroupCenter(localX, localZ, bottomY, fallbackHash);
+    }
+
+    private static Direction inferFacing(GroupCenter center,
+                                         double connectorCentroidX,
+                                         double connectorCentroidZ,
+                                         int width,
+                                         int depth) {
+        int dx = center.localX - (int) Math.round(connectorCentroidX);
+        int dz = center.localZ - (int) Math.round(connectorCentroidZ);
+        if (dx != 0 || dz != 0) {
+            return Direction.fromDelta(dx, dz);
+        }
+
+        int templateDx = center.localX - (int) Math.round((width - 1) / 2.0);
+        int templateDz = center.localZ - (int) Math.round((depth - 1) / 2.0);
+        if (templateDx != 0 || templateDz != 0) {
+            return Direction.fromDelta(templateDx, templateDz);
+        }
+
+        return Direction.values()[Math.floorMod(center.fallbackHash, Direction.values().length)];
+    }
+
+    private static final int[][] NEIGHBOR_VECTORS = {
+            {1, 0, 0}, {-1, 0, 0},
+            {0, 1, 0}, {0, -1, 0},
+            {0, 0, 1}, {0, 0, -1}
+    };
+
+    private record GroupCenter(int localX, int localZ, int bottomY, int fallbackHash) {}
 
     /**
      * Get the set of connector directions for a given rotation.

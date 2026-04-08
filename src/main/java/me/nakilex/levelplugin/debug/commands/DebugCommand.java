@@ -550,18 +550,23 @@ public class DebugCommand implements TabExecutor {
                     return true;
                 }
                 int size = 8;
-                if (args.length >= 3) {
-                    try {
-                        size = Integer.parseInt(args[2]);
-                    } catch (NumberFormatException ex) {
-                        sender.sendMessage(ChatColor.RED + "Size must be a number.");
-                        return true;
-                    }
-                }
                 StrongholdDebugManager.GraphMode graphMode = StrongholdDebugManager.GraphMode.SNAKE;
                 if ("spawn".equals(mode)) {
-                    if (args.length >= 4) {
-                        graphMode = StrongholdDebugManager.GraphMode.fromArg(args[3]);
+                    int modeArgIndex = 3;
+                    if (args.length >= 3) {
+                        try {
+                            size = Integer.parseInt(args[2]);
+                        } catch (NumberFormatException ex) {
+                            graphMode = StrongholdDebugManager.GraphMode.fromArg(args[2]);
+                            modeArgIndex = 2;
+                            if (graphMode == null) {
+                                sender.sendMessage(ChatColor.RED + "Size must be a number.");
+                                return true;
+                            }
+                        }
+                    }
+                    if (args.length > modeArgIndex) {
+                        graphMode = StrongholdDebugManager.GraphMode.fromArg(args[modeArgIndex]);
                         if (graphMode == null) {
                             sender.sendMessage(ChatColor.RED + "Unknown mode. Use: "
                                     + String.join(", ", StrongholdDebugManager.GraphMode.ids()));
@@ -573,16 +578,37 @@ public class DebugCommand implements TabExecutor {
                 }
                 if ("spawnstep".equals(mode)) {
                     long delay = 8L;
-                    if (args.length >= 4) {
+                    int cursor = 2;
+                    if (args.length > cursor) {
                         try {
-                            delay = Long.parseLong(args[3]);
-                        } catch (NumberFormatException ex) {
-                            sender.sendMessage(ChatColor.RED + "Delay must be a number of ticks.");
+                            size = Integer.parseInt(args[cursor]);
+                            cursor++;
+                        } catch (NumberFormatException ignored) {
+                            graphMode = StrongholdDebugManager.GraphMode.fromArg(args[cursor]);
+                            if (graphMode != null) {
+                                strongholdDebugManager.spawnStep(strongholdPlayer, size, delay, graphMode);
+                                return true;
+                            }
+                            sender.sendMessage(ChatColor.RED + "Size must be a number.");
                             return true;
                         }
                     }
-                    if (args.length >= 5) {
-                        graphMode = StrongholdDebugManager.GraphMode.fromArg(args[4]);
+                    if (args.length > cursor) {
+                        try {
+                            delay = Long.parseLong(args[cursor]);
+                            cursor++;
+                        } catch (NumberFormatException ex) {
+                            graphMode = StrongholdDebugManager.GraphMode.fromArg(args[cursor]);
+                            if (graphMode == null) {
+                                sender.sendMessage(ChatColor.RED + "Delay must be a number of ticks.");
+                                return true;
+                            }
+                            strongholdDebugManager.spawnStep(strongholdPlayer, size, delay, graphMode);
+                            return true;
+                        }
+                    }
+                    if (args.length > cursor) {
+                        graphMode = StrongholdDebugManager.GraphMode.fromArg(args[cursor]);
                         if (graphMode == null) {
                             sender.sendMessage(ChatColor.RED + "Unknown mode. Use: "
                                     + String.join(", ", StrongholdDebugManager.GraphMode.ids()));
@@ -764,7 +790,9 @@ public class DebugCommand implements TabExecutor {
                     .toList();
         } else if (args.length == 3 && args[0].equalsIgnoreCase("stronghold")
                 && (args[1].equalsIgnoreCase("spawn") || args[1].equalsIgnoreCase("spawnstep"))) {
-            return List.of("8", "12", "20").stream()
+            List<String> options = new ArrayList<>(List.of("8", "12", "20"));
+            options.addAll(StrongholdDebugManager.GraphMode.ids());
+            return options.stream()
                     .filter(opt -> opt.startsWith(args[2].toLowerCase()))
                     .toList();
         } else if (args.length == 4 && args[0].equalsIgnoreCase("stronghold")
@@ -774,7 +802,9 @@ public class DebugCommand implements TabExecutor {
                     .toList();
         } else if (args.length == 4 && args[0].equalsIgnoreCase("stronghold")
                 && args[1].equalsIgnoreCase("spawnstep")) {
-            return List.of("4", "8", "12", "20").stream()
+            List<String> options = new ArrayList<>(List.of("4", "8", "12", "20"));
+            options.addAll(StrongholdDebugManager.GraphMode.ids());
+            return options.stream()
                     .filter(opt -> opt.startsWith(args[3].toLowerCase()))
                     .toList();
         } else if (args.length == 5 && args[0].equalsIgnoreCase("stronghold")
