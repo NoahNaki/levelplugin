@@ -34,7 +34,7 @@ import java.util.Set;
  * canonical connector transforms.
  */
 public class StrongholdGeneratorService {
-    private static final int DEFAULT_MARGIN = 4;
+    private static final int DEFAULT_MARGIN = 0;
     private static final int BRIDGE_GAP = 10;
 
     private final Main plugin;
@@ -344,6 +344,21 @@ public class StrongholdGeneratorService {
                 connector(0, 0, 35, Direction.WEST)));
         out.add(template("deadend_2", dims(71, 24, 71), EnumSet.of(StrongholdTemplateTag.DEADEND),
                 connector(0, 0, 35, Direction.WEST)));
+
+        out.add(template("tjunction_1", dims(71, 24, 71), EnumSet.of(StrongholdTemplateTag.FLAT),
+                connector(0, 0, 35, Direction.WEST),
+                connector(70, 0, 35, Direction.EAST),
+                connector(35, 0, 0, Direction.NORTH)));
+        out.add(template("tjunction_2", dims(71, 24, 71), EnumSet.of(StrongholdTemplateTag.FLAT),
+                connector(0, 0, 35, Direction.WEST),
+                connector(70, 0, 35, Direction.EAST),
+                connector(35, 0, 70, Direction.SOUTH)));
+
+        out.add(template("crossroad_1", dims(71, 24, 71), EnumSet.of(StrongholdTemplateTag.FLAT),
+                connector(0, 0, 35, Direction.WEST),
+                connector(70, 0, 35, Direction.EAST),
+                connector(35, 0, 0, Direction.NORTH),
+                connector(35, 0, 70, Direction.SOUTH)));
 
         out.add(template("connector_1", dims(11, 24, 11), EnumSet.of(StrongholdTemplateTag.CONNECTOR),
                 connector(0, 0, 5, Direction.WEST), connector(10, 0, 5, Direction.EAST)));
