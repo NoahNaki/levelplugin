@@ -39,6 +39,7 @@ import java.util.LinkedHashMap;
 public class StrongholdGeneratorService {
     private static final int DEFAULT_MARGIN = 0;
     private static final int BRIDGE_GAP = 10;
+    private static final int ROOM_GAP = 12;
 
     private final Main plugin;
     private final List<Template> catalog;
@@ -238,7 +239,7 @@ public class StrongholdGeneratorService {
                         if (!compatible(aConn, bConn)) {
                             continue;
                         }
-                        Transform solved = solveTransform(placementA.transform, aConn, bConn, rotationB);
+                        Transform solved = solveTransform(placementA.transform, aConn, bConn, rotationB, ROOM_GAP);
                         Placement placementB = new Placement(templateB, solved, nodeB.id);
                         ValidationResult validation = validatePlacement(context.placements.values(), placementB, DEFAULT_MARGIN);
                         if (validation.valid) {
@@ -276,11 +277,10 @@ public class StrongholdGeneratorService {
                     continue;
                 }
                 Connector aOut = outwardConnectorToward(a, b);
-                Connector bridgeIn = bridge.connectors(StrongholdRotation.R0).get(0);
-                Transform first = solveTransform(a.transform, aOut, bridgeIn, StrongholdRotation.R0);
-                Placement bp = new Placement(bridge, new Transform(first.position.add(aOut.directionVector().multiply(BRIDGE_GAP)), first.rotation), -1);
-                if (validatePlacement(context.placements.values(), bp, 0).valid) {
-                    context.bridges.add(bp);
+                Connector bOut = outwardConnectorToward(b, a);
+                Placement bridgePlacement = solveBridgePlacement(bridge, a, aOut, b, bOut);
+                if (bridgePlacement != null && validatePlacement(context.placements.values(), bridgePlacement, 0).valid) {
+                    context.bridges.add(bridgePlacement);
                 }
             }
         }
@@ -317,10 +317,49 @@ public class StrongholdGeneratorService {
                                            Connector aConnWorld,
                                            Connector bConnRotated,
                                            StrongholdRotation rotationB) {
-        Vec3 target = transformA.position.add(aConnWorld.localPosition);
+        return solveTransform(transformA, aConnWorld, bConnRotated, rotationB, 0);
+    }
+
+    public static Transform solveTransform(Transform transformA,
+                                           Connector aConnWorld,
+                                           Connector bConnRotated,
+                                           StrongholdRotation rotationB,
+                                           double gap) {
+        Vec3 target = transformA.position.add(aConnWorld.localPosition).add(aConnWorld.directionVector().multiply(gap));
         Vec3 bAtOrigin = bConnRotated.localPosition;
         Vec3 translation = target.subtract(bAtOrigin);
         return new Transform(translation, rotationB);
+    }
+
+    private Placement solveBridgePlacement(Template bridge,
+                                           Placement a,
+                                           Connector aOut,
+                                           Placement b,
+                                           Connector bOut) {
+        Placement best = null;
+        double bestDistance = Double.MAX_VALUE;
+        for (StrongholdRotation rotation : StrongholdRotation.values()) {
+            List<Connector> connectors = bridge.connectors(rotation);
+            for (Connector in : connectors) {
+                if (!compatible(aOut, in)) {
+                    continue;
+                }
+                Transform transform = solveTransform(a.transform, aOut, in, rotation, BRIDGE_GAP);
+                Vec3 bTarget = b.transform.position.add(bOut.localPosition);
+                for (Connector out : connectors) {
+                    if (out == in || !compatible(bOut, out)) {
+                        continue;
+                    }
+                    Vec3 outWorld = transform.position.add(out.localPosition);
+                    double distance = outWorld.distanceSquared(bTarget);
+                    if (distance < bestDistance) {
+                        bestDistance = distance;
+                        best = new Placement(bridge, transform, -1);
+                    }
+                }
+            }
+        }
+        return best;
     }
 
     private void renderDebug(GenerationContext context, World world, Vector anchor) {
@@ -783,6 +822,13 @@ public class StrongholdGeneratorService {
 
         public Vec3 subtract(Vec3 other) {
             return new Vec3(x - other.x, y - other.y, z - other.z);
+        }
+
+        public double distanceSquared(Vec3 other) {
+            double dx = x - other.x;
+            double dy = y - other.y;
+            double dz = z - other.z;
+            return dx * dx + dy * dy + dz * dz;
         }
 
         public Vec3 rotateY(StrongholdRotation rotation) {
