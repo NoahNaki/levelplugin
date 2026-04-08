@@ -301,7 +301,7 @@ public class StrongholdDebugManager {
                                                     Location rootCenter,
                                                     Set<String> occupiedBlocks) {
         for (int attempt = 0; attempt < MAX_TEMPLATE_SELECTION_ATTEMPTS; attempt++) {
-            RoomTemplate template = selectTemplate(dirs, straightWallsSinceGate, towerCount, gateCount, placed, node, graph);
+            RoomTemplate template = selectTemplateForAttempt(dirs, straightWallsSinceGate, towerCount, gateCount, placed, node, graph, attempt);
             if (template == null) {
                 return null;
             }
@@ -314,12 +314,51 @@ public class StrongholdDebugManager {
                 continue;
             }
             double attemptThreshold = Math.min(0.25D, MAX_TEMPLATE_OVERLAP + (attempt * 0.03D));
+            if (towerTemplates.contains(template)) {
+                attemptThreshold = Math.min(0.45D, attemptThreshold + 0.20D);
+            }
             if (!isTemplateOverlapAcceptable(template, rotation, center, occupiedBlocks, attemptThreshold)) {
                 continue;
             }
             return new NodePlacementChoice(template, rotation, center);
         }
         return null;
+    }
+
+    private RoomTemplate selectTemplateForAttempt(EnumSet<Direction> dirs,
+                                                  int straightWallsSinceGate,
+                                                  int towerCount,
+                                                  int gateCount,
+                                                  Map<Integer, NodePlan> placed,
+                                                  GridNode node,
+                                                  List<GridNode> graph,
+                                                  int attempt) {
+        int degree = dirs.size();
+        boolean opposite = dirs.equals(EnumSet.of(Direction.NORTH, Direction.SOUTH))
+                || dirs.equals(EnumSet.of(Direction.EAST, Direction.WEST));
+
+        if (degree == 2) {
+            if (attempt < 3) {
+                RoomTemplate tower = pickRandom(towerTemplates);
+                if (tower != null && canPlaceTower(node, placed, graph) && findRotationForPlacement(tower, dirs) >= 0) {
+                    return tower;
+                }
+            }
+            if (attempt < 5 && opposite) {
+                RoomTemplate straight = pickRandom(straightTemplates);
+                if (straight != null && findRotationForPlacement(straight, dirs) >= 0) {
+                    return straight;
+                }
+            }
+            if (attempt < 5 && !opposite) {
+                RoomTemplate straight = pickRandom(straightTemplates);
+                if (straight != null && findRotationForPlacement(straight, dirs) >= 0) {
+                    return straight;
+                }
+            }
+        }
+
+        return selectTemplate(dirs, straightWallsSinceGate, towerCount, gateCount, placed, node, graph);
     }
 
     private Location connectorWorldLocation(NodePlan plan, Direction direction) {
