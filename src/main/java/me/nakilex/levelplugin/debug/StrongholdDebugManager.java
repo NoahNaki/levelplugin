@@ -132,13 +132,13 @@ public class StrongholdDebugManager {
             }
         }
 
-        placeConnectorBridges(plans, snapshot);
+        List<ConnectorPlan> connectorPlans = buildConnectorPlans(plans, snapshot, debugDungeon);
 
-        ActiveStronghold active = new ActiveStronghold(player.getWorld(), snapshot, plans, debugDungeon, null);
+        ActiveStronghold active = new ActiveStronghold(player.getWorld(), snapshot, plans, connectorPlans, debugDungeon, null);
         if (stepDelayTicks > 0) {
             restoreSnapshot(snapshot);
-            BukkitTask task = runStepPlacement(player, plans, snapshot, debugDungeon, stepDelayTicks);
-            activeByPlayer.put(player.getUniqueId(), new ActiveStronghold(player.getWorld(), snapshot, plans, debugDungeon, task));
+            BukkitTask task = runStepPlacement(player, plans, connectorPlans, snapshot, debugDungeon, stepDelayTicks);
+            activeByPlayer.put(player.getUniqueId(), new ActiveStronghold(player.getWorld(), snapshot, plans, connectorPlans, debugDungeon, task));
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, "Stronghold step spawn started (" + plans.size() + " rooms).");
             return;
         }
@@ -147,7 +147,10 @@ public class StrongholdDebugManager {
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, "Stronghold spawned with " + plans.size() + " rooms.");
     }
 
-    private BukkitTask runStepPlacement(Player player, List<NodePlan> plans, Map<Location, BlockData> snapshot, Dungeon dungeon, long delayTicks) {
+    private BukkitTask runStepPlacement(Player player, List<NodePlan> plans, List<ConnectorPlan> connectorPlans, Map<Location, BlockData> snapshot, Dungeon dungeon, long delayTicks) {
+        List<PlacementPlan> placements = new ArrayList<>(plans.size() + connectorPlans.size());
+        for (NodePlan p : plans) placements.add(new PlacementPlan(p.template, p.rotation, p.center));
+        for (ConnectorPlan p : connectorPlans) placements.add(new PlacementPlan(p.template, p.rotation, p.center));
         final int[] idx = {0};
         return Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             if (!player.isOnline()) {
@@ -156,15 +159,15 @@ public class StrongholdDebugManager {
                 restoreSnapshot(snapshot);
                 return;
             }
-            if (idx[0] >= plans.size()) {
+            if (idx[0] >= placements.size()) {
                 ActiveStronghold active = activeByPlayer.get(player.getUniqueId());
                 if (active != null && active.task != null) {
                     active.task.cancel();
-                    activeByPlayer.put(player.getUniqueId(), new ActiveStronghold(active.world, active.restoreSnapshot, active.placed, active.dungeon, null));
+                    activeByPlayer.put(player.getUniqueId(), new ActiveStronghold(active.world, active.restoreSnapshot, active.placed, active.connectors, active.dungeon, null));
                 }
                 return;
             }
-            NodePlan p = plans.get(idx[0]++);
+            PlacementPlan p = placements.get(idx[0]++);
             dungeonManager.pasteRoom(dungeon, p.template, p.rotation, p.center, null, false, TEMPLATE_IGNORE);
         }, 1L, delayTicks);
     }
@@ -203,7 +206,8 @@ public class StrongholdDebugManager {
         return new Location(center.getWorld(), wx, wy, wz);
     }
 
-    private void placeConnectorBridges(List<NodePlan> plans, Map<Location, BlockData> snapshot) {
+    private List<ConnectorPlan> buildConnectorPlans(List<NodePlan> plans, Map<Location, BlockData> snapshot, Dungeon dungeon) {
+        List<ConnectorPlan> connectorPlans = new ArrayList<>();
         Map<Integer, NodePlan> byId = new HashMap<>();
         for (NodePlan p : plans) byId.put(p.id, p);
 
@@ -213,6 +217,15 @@ public class StrongholdDebugManager {
                 if (nid == null || p.id > nid) continue;
                 NodePlan neighbor = byId.get(nid);
                 if (neighbor == null) continue;
+
+                ConnectorPlan connectorPlan = buildConnectorPlan(p, neighbor, d);
+                if (connectorPlan != null) {
+                    captureForRestore(snapshot, connectorPlan.template, connectorPlan.rotation, connectorPlan.center);
+                    dungeonManager.pasteRoom(dungeon, connectorPlan.template, connectorPlan.rotation, connectorPlan.center, null, false, TEMPLATE_IGNORE);
+                    connectorPlans.add(connectorPlan);
+                    continue;
+                }
+
                 Location a = connectorWorldLocation(p, d);
                 Location b = connectorWorldLocation(neighbor, d.opposite());
                 if (a == null || b == null || a.getWorld() == null) continue;
@@ -231,6 +244,34 @@ public class StrongholdDebugManager {
                 }
             }
         }
+
+        return connectorPlans;
+    }
+
+    private ConnectorPlan buildConnectorPlan(NodePlan a, NodePlan b, Direction directionFromA) {
+        Location aTarget = connectorAnchorLocation(a, directionFromA, true);
+        Location bTarget = connectorAnchorLocation(b, directionFromA.opposite(), true);
+        if (aTarget == null || bTarget == null) return null;
+
+        for (RoomTemplate connectorTemplate : connectorTemplates) {
+            int rotation = findRotation(connectorTemplate, EnumSet.of(directionFromA, directionFromA.opposite()));
+            if (rotation < 0) continue;
+
+            RoomTemplate.Connector enter = findConnector(connectorTemplate, rotation, directionFromA);
+            RoomTemplate.Connector exit = findConnector(connectorTemplate, rotation, directionFromA.opposite());
+            if (enter == null || exit == null) continue;
+
+            Location center = centerFromAnchor(connectorTemplate, enter, rotation, aTarget, true, a.center);
+            if (center == null) continue;
+            Location resolvedExit = connectorAnchorLocation(connectorTemplate, exit, rotation, center, true);
+            if (resolvedExit != null
+                    && resolvedExit.getBlockX() == bTarget.getBlockX()
+                    && resolvedExit.getBlockY() == bTarget.getBlockY()
+                    && resolvedExit.getBlockZ() == bTarget.getBlockZ()) {
+                return new ConnectorPlan(connectorTemplate, rotation, center);
+            }
+        }
+        return null;
     }
 
     private Location connectorWorldLocation(NodePlan plan, Direction direction) {
@@ -242,6 +283,48 @@ public class StrongholdDebugManager {
         return null;
     }
 
+    private Location connectorAnchorLocation(NodePlan plan, Direction direction, boolean ignoreAlignmentMarkers) {
+        for (RoomTemplate.Connector c : plan.template.getConnectors()) {
+            Direction facing = rotateDirection(c.facing, plan.rotation);
+            if (facing != direction) continue;
+            return connectorAnchorLocation(plan.template, c, plan.rotation, plan.center, ignoreAlignmentMarkers);
+        }
+        return null;
+    }
+
+    private Location connectorAnchorLocation(RoomTemplate template, RoomTemplate.Connector connector, int rotation, Location center, boolean ignoreAlignmentMarkers) {
+        Location marker = blockLocationFor(template, connector.x, connector.bottomY, connector.z, rotation, center);
+        if (!ignoreAlignmentMarkers) return marker;
+        int[] inward = directionVector(rotateDirection(connector.facing, rotation).opposite());
+        return marker.add(inward[0], 0, inward[1]);
+    }
+
+    private Location centerFromAnchor(RoomTemplate template, RoomTemplate.Connector connector, int rotation, Location anchor, boolean ignoreAlignmentMarkers, Location fallback) {
+        if (anchor == null || fallback == null || fallback.getWorld() == null) return null;
+        int[] vec = RoomTemplate.rotate(connector.x - (int) Math.round(template.getCenterX()),
+                connector.z - (int) Math.round(template.getCenterZ()), rotation);
+        int shiftX = 0;
+        int shiftZ = 0;
+        if (ignoreAlignmentMarkers) {
+            int[] inward = directionVector(rotateDirection(connector.facing, rotation).opposite());
+            shiftX = inward[0];
+            shiftZ = inward[1];
+        }
+        int cx = anchor.getBlockX() - vec[0] - shiftX;
+        int cy = anchor.getBlockY() - (connector.bottomY - template.getConnectorMinY());
+        int cz = anchor.getBlockZ() - vec[1] - shiftZ;
+        return new Location(fallback.getWorld(), cx, cy, cz);
+    }
+
+    private int[] directionVector(Direction direction) {
+        return switch (direction) {
+            case NORTH -> new int[]{0, -1};
+            case SOUTH -> new int[]{0, 1};
+            case EAST -> new int[]{1, 0};
+            case WEST -> new int[]{-1, 0};
+        };
+    }
+
     private Location solveCenter(Node node, RoomTemplate template, int rotation, Map<Integer, NodePlan> placed, Location fallback) {
         for (Map.Entry<Direction, Integer> edge : node.neighbors.entrySet()) {
             NodePlan neighbor = placed.get(edge.getValue());
@@ -250,13 +333,9 @@ public class StrongholdDebugManager {
             RoomTemplate.Connector thisConn = findConnector(template, rotation, dirToNeighbor);
             RoomTemplate.Connector otherConn = findConnector(neighbor.template, neighbor.rotation, dirToNeighbor.opposite());
             if (thisConn == null || otherConn == null) continue;
-            Location target = blockLocationFor(neighbor.template, otherConn.x, otherConn.bottomY, otherConn.z, neighbor.rotation, neighbor.center);
-            int[] vec = RoomTemplate.rotate(thisConn.x - (int) Math.round(template.getCenterX()),
-                    thisConn.z - (int) Math.round(template.getCenterZ()), rotation);
-            int cx = target.getBlockX() - vec[0];
-            int cy = target.getBlockY() - (thisConn.bottomY - template.getConnectorMinY());
-            int cz = target.getBlockZ() - vec[1];
-            return new Location(fallback.getWorld(), cx, cy, cz);
+            Location target = connectorAnchorLocation(neighbor.template, otherConn, neighbor.rotation, neighbor.center, true);
+            Location center = centerFromAnchor(template, thisConn, rotation, target, true, fallback);
+            if (center != null) return center;
         }
         return fallback.clone();
     }
@@ -459,10 +538,15 @@ public class StrongholdDebugManager {
     private record ActiveStronghold(World world,
                                     Map<Location, BlockData> restoreSnapshot,
                                     List<NodePlan> placed,
+                                    List<ConnectorPlan> connectors,
                                     Dungeon dungeon,
                                     BukkitTask task) {}
 
     private record NodePlan(int id, Node node, RoomTemplate template, int rotation, Location center) {}
+
+    private record ConnectorPlan(RoomTemplate template, int rotation, Location center) {}
+
+    private record PlacementPlan(RoomTemplate template, int rotation, Location center) {}
 
     private static final class Node {
         private final int id;
