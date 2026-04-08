@@ -6,6 +6,8 @@ import me.nakilex.levelplugin.mob.utils.MobNameUtil;
 import me.nakilex.levelplugin.lootchests.utils.LocationUtils;
 import me.nakilex.levelplugin.dungeon.verified.VerifiedDungeonDefinition;
 import me.nakilex.levelplugin.dungeon.verified.CrimsonReliquaryDungeon;
+import me.nakilex.levelplugin.dungeon.generation.BranchingRandomGraphGenerator;
+import me.nakilex.levelplugin.dungeon.generation.GridNode;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -317,40 +319,17 @@ public class DungeonManager {
         long debugStart = System.currentTimeMillis();
 
         Random rand = new Random();
-        Map<Point, Set<Direction>> graph = new HashMap<>();
-        Set<Point> placed = new HashSet<>();
-
-        Point start = new Point(0, 0);
-        graph.put(start, new HashSet<>());
-        placed.add(start);
-
-        while (placed.size() < rooms) {
-            // pick random existing room to branch from
-            Point[] arr = placed.toArray(new Point[0]);
-            Point cur = arr[rand.nextInt(arr.length)];
-
-            Direction dir = Direction.random(rand);
-            Point next = cur.move(dir);
-
-            graph.putIfAbsent(cur, new HashSet<>());
-            graph.putIfAbsent(next, new HashSet<>());
-
-            graph.get(cur).add(dir);
-            graph.get(next).add(dir.opposite());
-
-            placed.add(next);
-        }
+        List<GridNode> graph = new BranchingRandomGraphGenerator().generate(rooms, rand);
 
         player.sendMessage(ChatColor.GRAY + "[Debug] Graph in "
                 + (System.currentTimeMillis() - debugStart) + "ms");
         long buildStart = System.currentTimeMillis();
 
-        for (var entry : graph.entrySet()) {
-            Point p = entry.getKey();
-            Set<Direction> dirs = entry.getValue();
+        for (GridNode node : graph) {
+            Set<Direction> dirs = node.directions();
             RoomTemplate templ = chooseTemplate(RoomType.HALLWAY, dirs);
             int rotation = findRotation(templ, dirs);
-            Location center = origin.clone().add(p.x * step, 0, p.z * step);
+            Location center = origin.clone().add(node.gx() * step, 0, node.gz() * step);
             pasteRoom(dungeon, templ, rotation, center, null, false);
         }
 
@@ -1619,17 +1598,6 @@ public class DungeonManager {
                 int id = lootChestManager.createAndSpawnChest(l.clone(), c.facing());
                 if (inst != null) inst.chestIds.add(id);
             }
-        }
-    }
-
-    private record Point(int x, int z) {
-        Point move(Direction dir) {
-            return switch (dir) {
-                case NORTH -> new Point(x, z - 1);
-                case SOUTH -> new Point(x, z + 1);
-                case EAST -> new Point(x + 1, z);
-                case WEST -> new Point(x - 1, z);
-            };
         }
     }
 
