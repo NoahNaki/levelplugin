@@ -74,7 +74,7 @@ public class StrongholdDebugManager {
             return;
         }
         if (graphMode == GraphMode.TEST) {
-            reportTowerConnectorCount(player);
+            reportTemplateConnectorCounts(player);
         }
 
         ActiveStronghold previous = activeByPlayer.remove(player.getUniqueId());
@@ -616,16 +616,29 @@ public class StrongholdDebugManager {
         target.add(RoomTemplate.capture(world, x1, y1, z1, x2, y2, z2, false));
     }
 
-    private void reportTowerConnectorCount(Player player) {
-        RoomTemplate tower = pickRandom(towerTemplates);
-        if (tower == null) {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
-                    "No tower template loaded for test stronghold mode.");
+    private void reportTemplateConnectorCounts(Player player) {
+        reportConnectorCounts(player, "corner", cornerTemplates);
+        reportConnectorCounts(player, "straight", straightTemplates);
+        reportConnectorCounts(player, "deadend", deadEndTemplates);
+        reportConnectorCounts(player, "connector", connectorTemplates);
+        reportConnectorCounts(player, "tower", towerTemplates);
+        reportConnectorCounts(player, "gate", gateTemplates);
+    }
+
+    private void reportConnectorCounts(Player player, String label, List<RoomTemplate> templates) {
+        if (templates == null || templates.isEmpty()) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                    "Template connector points (" + label + "): none loaded.");
             return;
         }
-        int connectorPoints = tower.getRotatedDirections(0).size();
-        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
-                "Tower connector points: " + connectorPoints + " (expected 4: N/E/S/W).");
+        for (int i = 0; i < templates.size(); i++) {
+            RoomTemplate template = templates.get(i);
+            int connectorPoints = template.getConnectors().size();
+            int uniqueDirections = template.getRotatedDirections(0).size();
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                    "Template connector points (" + label + "#" + (i + 1) + "): "
+                            + connectorPoints + " [unique dirs=" + uniqueDirections + "]");
+        }
     }
 
     private void restoreSnapshot(Map<Location, BlockData> snapshot) {
