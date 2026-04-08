@@ -46,6 +46,9 @@ public class StrongholdGeneratorService {
     }
 
     public GenerationResult generate(Player player, GraphMode mode, long seed, int nodeCount, int maxAttempts) {
+        plugin.getLogger().info("[Stronghold] START mode=" + mode + " seed=" + seed + " nodeCount=" + nodeCount
+                + " maxAttempts=" + maxAttempts + " world=" + player.getWorld().getName()
+                + " player=" + player.getName());
         if (mode == GraphMode.TEST) {
             return generateSimplePair(player, seed);
         }
@@ -53,10 +56,13 @@ public class StrongholdGeneratorService {
         for (int attempt = 1; attempt <= maxAttempts; attempt++) {
             List<NodeSpec> graph = generateGraph(mode, nodeCount, random);
             GenerationContext context = new GenerationContext(graph, seed, attempt);
+            logGraph(context);
             if (placeGraph(context, random)) {
                 insertConnectors(context, random);
                 renderDebug(context, player.getWorld(), player.getLocation().toVector());
                 sendSummary(player, context);
+                plugin.getLogger().info("[Stronghold] SUCCESS attempt=" + attempt + " placements="
+                        + context.placements.size() + " bridges=" + context.bridges.size());
                 return new GenerationResult(true, "ok", context);
             }
             plugin.getLogger().info("[Stronghold] Generation attempt " + attempt + " failed; regenerating graph.");
@@ -71,6 +77,7 @@ public class StrongholdGeneratorService {
     }
 
     private GenerationResult generateSimplePair(Player player, long seed) {
+        plugin.getLogger().info("[Stronghold] TEST MODE simple pair seed=" + seed);
         Template room = catalog.stream()
                 .filter(t -> t.tags.contains(StrongholdTemplateTag.STRAIGHT))
                 .findFirst()
@@ -104,6 +111,7 @@ public class StrongholdGeneratorService {
         context.placements.put(1, roomB);
 
         context.logs.add("TEST mode simple pair: room -> connector -> room");
+        context.logs.forEach(line -> plugin.getLogger().info("[Stronghold] " + line));
         renderDebug(context, player.getWorld(), player.getLocation().toVector());
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
                 "Stronghold test generated simple room-connector-room chain.");
@@ -141,8 +149,10 @@ public class StrongholdGeneratorService {
         }
 
         NodeSpec root = context.nodes.get(0);
+        log(context, "Root node id=" + root.id + " degree=" + root.requiredDegree());
         Template rootTemplate = selectTemplateForDegree(root.requiredDegree(), Set.of(), random, Collections.emptyList());
         if (rootTemplate == null) {
+            log(context, "No root template found for degree " + root.requiredDegree());
             return false;
         }
         Placement rootPlacement = new Placement(rootTemplate, new Transform(new Vec3(0, 0, 0), StrongholdRotation.R0), 0);
@@ -159,25 +169,32 @@ public class StrongholdGeneratorService {
             NodeSpec nodeA = context.byId.get(idA);
             Placement placementA = context.placements.get(idA);
             if (placementA == null) {
+                log(context, "Missing placement for node " + idA);
                 return false;
             }
+            log(context, "Expanding node " + idA + " neighbors=" + nodeA.neighbors);
             for (Map.Entry<Direction, Integer> edge : nodeA.neighbors.entrySet()) {
                 int idB = edge.getValue();
                 String edgeKey = edgeKey(idA, idB);
                 if (!visitedEdges.add(edgeKey)) {
+                    log(context, "Skip already visited edge " + edgeKey);
                     continue;
                 }
                 if (context.placements.containsKey(idB)) {
+                    log(context, "Neighbor " + idB + " already placed.");
                     continue;
                 }
                 NodeSpec nodeB = context.byId.get(idB);
                 if (nodeB == null) {
+                    log(context, "Missing node spec for id " + idB);
                     return false;
                 }
+                log(context, "Trying place node " + idB + " degree=" + nodeB.requiredDegree() + " from " + idA);
 
                 Placement placed = tryPlaceNode(context, placementA, nodeB, random);
                 if (placed == null) {
                     context.logs.add("REJECT node=" + idB + " reason=no_valid_candidate");
+                    log(context, "Placement failed for node " + idB + ".");
                     return false;
                 }
                 context.placements.put(idB, placed);
@@ -192,6 +209,12 @@ public class StrongholdGeneratorService {
 
     private Placement tryPlaceNode(GenerationContext context, Placement placementA, NodeSpec nodeB, Random random) {
         List<Template> candidates = templatesByDegree(nodeB.requiredDegree());
+        if (candidates.isEmpty()) {
+            log(context, "No candidates for node " + nodeB.id + " degree=" + nodeB.requiredDegree());
+        } else {
+            log(context, "Candidates for node " + nodeB.id + ": "
+                    + candidates.stream().map(Template::id).toList());
+        }
         candidates.sort(Comparator.comparing(Template::id));
         for (Template templateB : sortByVariety(candidates, context.useCount, random)) {
             for (StrongholdRotation rotationB : StrongholdRotation.values()) {
@@ -206,9 +229,14 @@ public class StrongholdGeneratorService {
                         ValidationResult validation = validatePlacement(context.placements.values(), placementB, DEFAULT_MARGIN);
                         if (validation.valid) {
                             context.logs.add("PAIR A=" + placementA.template.id + ":" + aConn.facing + " B=" + templateB.id + ":" + bConn.facing);
+                            log(context, "Accepted placement node=" + nodeB.id + " template=" + templateB.id
+                                    + " rotation=" + rotationB + " position=" + solved.position);
                             return placementB;
                         }
                         context.logs.add("REJECT template=" + templateB.id + " rot=" + rotationB + " reason=" + validation.reason);
+                        log(context, "Reject template=" + templateB.id + " rot=" + rotationB
+                                + " aConn=" + aConn.facing + " bConn=" + bConn.facing
+                                + " reason=" + validation.reason);
                     }
                 }
             }
@@ -249,11 +277,16 @@ public class StrongholdGeneratorService {
 
     private ValidationResult validatePlacement(Collection<Placement> existing, Placement candidate, int margin) {
         BoundingBox bounds = candidate.worldBounds();
+        plugin.getLogger().info("[Stronghold] Validate candidate template=" + candidate.template.id
+                + " bounds=[" + bounds.min + " -> " + bounds.max + "] margin=" + margin);
         for (Placement p : existing) {
             BoundingBox other = p.worldBounds();
             if (!bounds.intersectsExpanded(other, margin)) {
                 continue;
             }
+            plugin.getLogger().info("[Stronghold] OVERLAP candidate=" + candidate.template.id
+                    + " with=" + p.template.id + " candidateBounds=[" + bounds.min + " -> " + bounds.max
+                    + "] otherBounds=[" + other.min + " -> " + other.max + "]");
             return new ValidationResult(false, "aabb_overlap:" + p.template.id);
         }
         return new ValidationResult(true, "ok");
@@ -312,6 +345,23 @@ public class StrongholdGeneratorService {
         for (String line : context.logs.stream().limit(8).toList()) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO, ChatColor.DARK_GRAY + "• " + ChatColor.GRAY + line);
         }
+        plugin.getLogger().info("[Stronghold] Summary attempt=" + context.attempt + " seed=" + context.seed
+                + " placements=" + context.placements.size() + " bridges=" + context.bridges.size());
+        context.logs.forEach(line -> plugin.getLogger().info("[Stronghold] " + line));
+    }
+
+    private void logGraph(GenerationContext context) {
+        plugin.getLogger().info("[Stronghold] Attempt " + context.attempt + " graph nodes=" + context.nodes.size());
+        for (NodeSpec node : context.nodes) {
+            plugin.getLogger().info("[Stronghold] Graph node id=" + node.id + " degree=" + node.requiredDegree()
+                    + " neighbors=" + node.neighbors);
+        }
+    }
+
+    private void log(GenerationContext context, String message) {
+        String line = "[Stronghold][Attempt " + context.attempt + "] " + message;
+        plugin.getLogger().info(line);
+        context.logs.add(message);
     }
 
     private Template selectTemplateForDegree(int degree, Set<StrongholdTemplateTag> requiredTags, Random random, List<String> recent) {
