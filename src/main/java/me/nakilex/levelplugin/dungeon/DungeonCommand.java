@@ -175,6 +175,9 @@ public class DungeonCommand implements CommandExecutor, TabCompleter {
                 } else {
                     ChatMessageUtil.send(player, MessageType.SUCCESS,
                             "Stronghold generation succeeded with " + result.rooms().size() + " placed rooms.");
+                    manager.previewStrongholdGeneration(player, result);
+                    ChatMessageUtil.send(player, MessageType.INFO,
+                            ChatColor.GRAY + "Preview particles rendered around your current position for 20s.");
                 }
                 int maxLines = Math.min(8, result.logs().size());
                 for (int i = Math.max(0, result.logs().size() - maxLines); i < result.logs().size(); i++) {

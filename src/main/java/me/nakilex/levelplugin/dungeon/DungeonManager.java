@@ -1208,6 +1208,13 @@ public class DungeonManager {
         return result;
     }
 
+    public void previewStrongholdGeneration(Player player, StrongholdPlacement.PlacementResult result) {
+        if (player == null || result == null || !result.success()) {
+            return;
+        }
+        strongholdDebug.renderPreview(player, result.rooms().values(), 20 * 20);
+    }
+
     public Collection<Dungeon> getActiveDungeons() {
         java.util.List<Dungeon> list = new java.util.ArrayList<>(dungeons.values());
         for (Instance inst : instances.values()) {
