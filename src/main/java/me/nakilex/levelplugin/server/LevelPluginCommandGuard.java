@@ -19,12 +19,14 @@ public class LevelPluginCommandGuard implements Listener {
 
     private final ServerSelectionManager serverSelectionManager;
     private final Set<String> guardedCommands;
+    private final Set<String> globallyAllowedCommands;
     private final Set<String> buildAllowedCommands;
 
     public LevelPluginCommandGuard(Main plugin, ServerSelectionManager serverSelectionManager) {
         this.serverSelectionManager = serverSelectionManager;
         this.guardedCommands = buildCommandSet(plugin);
-        this.buildAllowedCommands = Set.of("world", "debug", "se");
+        this.globallyAllowedCommands = Set.of("hub", "world", "se", "debug");
+        this.buildAllowedCommands = Set.of("world", "se");
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
@@ -46,13 +48,7 @@ public class LevelPluginCommandGuard implements Listener {
         if (colon >= 0 && colon < label.length() - 1) {
             label = label.substring(colon + 1);
         }
-        if ("hub".equals(label)) {
-            return;
-        }
-        if ("world".equals(label)) {
-            return;
-        }
-        if ("se".equals(label)) {
+        if (globallyAllowedCommands.contains(label)) {
             return;
         }
         if (serverSelectionManager.isBuildWorld(world) && buildAllowedCommands.contains(label)) {
