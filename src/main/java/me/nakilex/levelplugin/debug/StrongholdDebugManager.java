@@ -659,51 +659,16 @@ public class StrongholdDebugManager implements Listener {
     }
 
     private List<GridNode> buildTestGraph(int size) {
-        int targetSize = Math.max(9, size);
-        GridNode center = new GridNode(0, 0, 0);
-        GridNode northArm = new GridNode(1, 0, -1);
-        GridNode eastArm = new GridNode(2, 1, 0);
-        GridNode southArm = new GridNode(3, 0, 1);
-        GridNode westArm = new GridNode(4, -1, 0);
-        GridNode northEnd = new GridNode(5, 0, -2);
-        GridNode eastEnd = new GridNode(6, 2, 0);
-        GridNode southEnd = new GridNode(7, 0, 2);
-        GridNode westEnd = new GridNode(8, -2, 0);
-
-        link(center, northArm, Direction.NORTH);
-        link(center, eastArm, Direction.EAST);
-        link(center, southArm, Direction.SOUTH);
-        link(center, westArm, Direction.WEST);
-        link(northArm, northEnd, Direction.NORTH);
-        link(eastArm, eastEnd, Direction.EAST);
-        link(southArm, southEnd, Direction.SOUTH);
-        link(westArm, westEnd, Direction.WEST);
-
-        List<GridNode> ordered = new ArrayList<>(List.of(
-                center, northArm, eastArm, southArm, westArm,
-                northEnd, eastEnd, southEnd, westEnd
-        ));
-        if (targetSize <= ordered.size()) {
-            return new ArrayList<>(ordered.subList(0, targetSize));
-        }
-
-        EnumMap<Direction, GridNode> endpoints = new EnumMap<>(Direction.class);
-        endpoints.put(Direction.NORTH, northEnd);
-        endpoints.put(Direction.EAST, eastEnd);
-        endpoints.put(Direction.SOUTH, southEnd);
-        endpoints.put(Direction.WEST, westEnd);
-
-        Direction[] order = {Direction.NORTH, Direction.EAST, Direction.SOUTH, Direction.WEST};
-        int nextId = ordered.size();
-        int step = 0;
-        while (ordered.size() < targetSize) {
-            Direction direction = order[step++ % order.length];
-            GridNode tail = endpoints.get(direction);
-            int[] vec = directionVector(direction);
-            GridNode extension = new GridNode(nextId++, tail.gx() + vec[0], tail.gz() + vec[1]);
-            link(tail, extension, direction);
-            endpoints.put(direction, extension);
-            ordered.add(extension);
+        int targetSize = Math.max(2, size);
+        List<GridNode> ordered = new ArrayList<>(targetSize);
+        GridNode first = new GridNode(0, 0, 0);
+        ordered.add(first);
+        GridNode prev = first;
+        for (int i = 1; i < targetSize; i++) {
+            GridNode next = new GridNode(i, i, 0);
+            link(prev, next, Direction.EAST);
+            ordered.add(next);
+            prev = next;
         }
         return ordered;
     }

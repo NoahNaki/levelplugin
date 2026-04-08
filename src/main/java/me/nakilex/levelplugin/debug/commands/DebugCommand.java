@@ -594,6 +594,9 @@ public class DebugCommand implements TabExecutor {
                             return true;
                         }
                     }
+                    if (graphMode == StrongholdDebugManager.GraphMode.TEST && modeArgIndex == 2) {
+                        size = 2;
+                    }
                     strongholdDebugManager.spawn(strongholdPlayer, size, graphMode);
                     return true;
                 }
@@ -635,6 +638,9 @@ public class DebugCommand implements TabExecutor {
                                     + String.join(", ", StrongholdDebugManager.GraphMode.ids()));
                             return true;
                         }
+                    }
+                    if (graphMode == StrongholdDebugManager.GraphMode.TEST && cursor == 2) {
+                        size = 2;
                     }
                     strongholdDebugManager.spawnStep(strongholdPlayer, size, delay, graphMode);
                     return true;
