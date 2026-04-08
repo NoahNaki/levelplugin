@@ -73,6 +73,9 @@ public class StrongholdDebugManager {
         if (!ensureTemplatesLoaded(player)) {
             return;
         }
+        if (graphMode == GraphMode.TEST) {
+            reportTowerConnectorCount(player);
+        }
 
         ActiveStronghold previous = activeByPlayer.remove(player.getUniqueId());
         if (previous != null) {
@@ -433,6 +436,11 @@ public class StrongholdDebugManager {
                                         GraphMode graphMode,
                                         List<GridNode> graph) {
         int degree = dirs.size();
+        if (degree >= 4) {
+            RoomTemplate tower = pickRandom(towerTemplates);
+            if (tower != null && canPlaceTower(node, placed, graph) && findRotationForPlacement(tower, dirs) >= 0) return tower;
+            return selectTemplate(dirs);
+        }
         boolean opposite = dirs.equals(EnumSet.of(Direction.NORTH, Direction.SOUTH))
                 || dirs.equals(EnumSet.of(Direction.EAST, Direction.WEST));
         if (degree == 2 && opposite) {
@@ -606,6 +614,18 @@ public class StrongholdDebugManager {
 
     private void load(List<RoomTemplate> target, World world, int x1, int y1, int z1, int x2, int y2, int z2) {
         target.add(RoomTemplate.capture(world, x1, y1, z1, x2, y2, z2, false));
+    }
+
+    private void reportTowerConnectorCount(Player player) {
+        RoomTemplate tower = pickRandom(towerTemplates);
+        if (tower == null) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                    "No tower template loaded for test stronghold mode.");
+            return;
+        }
+        int connectorPoints = tower.getRotatedDirections(0).size();
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                "Tower connector points: " + connectorPoints + " (expected 4: N/E/S/W).");
     }
 
     private void restoreSnapshot(Map<Location, BlockData> snapshot) {
