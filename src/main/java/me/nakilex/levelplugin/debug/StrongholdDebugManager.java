@@ -109,7 +109,7 @@ public class StrongholdDebugManager implements Listener {
             rollbackAndFail(player, snapshot, "First wall missing EAST connector.");
             return;
         }
-        Location wallEastMarker = connectorMarkerLocation(wallTemplate, wallEast, wallRotation, rootCenter);
+        Location wallEastAnchor = connectorAnchorLocation(wallTemplate, wallEast, wallRotation, rootCenter);
 
         int connectorRotation = findRotation(connectorTemplate, line);
         RoomTemplate.Connector connectorEast = findConnector(connectorTemplate, connectorRotation, Direction.EAST);
@@ -119,9 +119,9 @@ public class StrongholdDebugManager implements Listener {
             return;
         }
 
-        Location connectorCenter = centerFromMarker(connectorTemplate, connectorEast, connectorRotation, wallEastMarker, rootCenter);
+        Location connectorCenter = centerFromAnchor(connectorTemplate, connectorEast, connectorRotation, wallEastAnchor, rootCenter);
         if (connectorCenter == null) {
-            rollbackAndFail(player, snapshot, "Failed to align connector to first wall marker.");
+            rollbackAndFail(player, snapshot, "Failed to align connector to first wall anchor.");
             return;
         }
         captureForRestore(snapshot, connectorTemplate, connectorRotation, connectorCenter);
@@ -132,15 +132,15 @@ public class StrongholdDebugManager implements Listener {
         }
         connectors.add(new ConnectorPlan(connectorTemplate, connectorRotation, connectorCenter));
 
-        Location connectorWestMarker = connectorMarkerLocation(connectorTemplate, connectorWest, connectorRotation, connectorCenter);
+        Location connectorWestAnchor = connectorAnchorLocation(connectorTemplate, connectorWest, connectorRotation, connectorCenter);
         RoomTemplate.Connector wallWest = findConnector(wallTemplate, wallRotation, Direction.WEST);
         if (wallWest == null) {
             rollbackAndFail(player, snapshot, "Second wall missing WEST connector.");
             return;
         }
-        Location secondWallCenter = centerFromMarker(wallTemplate, wallWest, wallRotation, connectorWestMarker, rootCenter);
+        Location secondWallCenter = centerFromAnchor(wallTemplate, wallWest, wallRotation, connectorWestAnchor, rootCenter);
         if (secondWallCenter == null) {
-            rollbackAndFail(player, snapshot, "Failed to align second wall to connector marker.");
+            rollbackAndFail(player, snapshot, "Failed to align second wall to connector anchor.");
             return;
         }
         captureForRestore(snapshot, wallTemplate, wallRotation, secondWallCenter);
@@ -530,28 +530,20 @@ public class StrongholdDebugManager implements Listener {
         return new Location(center.getWorld(), wx, wy, wz);
     }
 
-    private Location connectorMarkerLocation(RoomTemplate template, RoomTemplate.Connector connector, int rotation, Location center) {
-        return blockLocationFor(template, connector.x, connector.bottomY, connector.z, rotation, center);
-    }
-
-    private Location centerFromMarker(RoomTemplate template, RoomTemplate.Connector connector, int rotation, Location marker, Location fallback) {
-        if (marker == null || fallback == null || fallback.getWorld() == null) return null;
-        int[] vec = RoomTemplate.rotate(connector.x - (int) Math.round(template.getCenterX()),
-                connector.z - (int) Math.round(template.getCenterZ()), rotation);
-        int cx = marker.getBlockX() - vec[0];
-        int cy = marker.getBlockY() - (connector.bottomY - template.getConnectorMinY());
-        int cz = marker.getBlockZ() - vec[1];
-        return new Location(fallback.getWorld(), cx, cy, cz);
-    }
-
     private RoomTemplate findTemplateForDirections(List<RoomTemplate> templates, EnumSet<Direction> directions) {
+        RoomTemplate best = null;
+        int bestBlocks = -1;
         for (RoomTemplate template : templates) {
             if (!isTemplateEnabled(template)) continue;
             if (findRotation(template, directions) >= 0 || findRotationForPlacement(template, directions) >= 0) {
-                return template;
+                int score = template.getBlocks().size();
+                if (score > bestBlocks) {
+                    bestBlocks = score;
+                    best = template;
+                }
             }
         }
-        return null;
+        return best;
     }
 
     private List<ConnectorPlan> buildConnectorPlans(List<NodePlan> plans, Map<Location, BlockData> snapshot, Dungeon dungeon) {
