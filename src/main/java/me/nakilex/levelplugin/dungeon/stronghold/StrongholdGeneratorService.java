@@ -647,7 +647,8 @@ public class StrongholdGeneratorService {
         }
 
         private boolean overlaps(double aMin, double aMax, double bMin, double bMax) {
-            return aMin <= bMax && bMin <= aMax;
+            // Treat face-to-face contact as valid adjacency, not overlap.
+            return aMin < bMax && bMin < aMax;
         }
 
         public double sizeX() { return Math.max(1, max.x - min.x); }
