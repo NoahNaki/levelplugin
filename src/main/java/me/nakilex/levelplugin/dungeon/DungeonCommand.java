@@ -145,6 +145,8 @@ public class DungeonCommand implements CommandExecutor, TabCompleter {
                 manager.getStrongholdDebug().setEnabled(enabled);
                 ChatMessageUtil.send(player, MessageType.SUCCESS,
                         "Stronghold debug logging is now " + (enabled ? "enabled" : "disabled") + ".");
+                ChatMessageUtil.send(player, MessageType.INFO,
+                        ChatColor.GRAY + "Debug mode controls generation logs + green cuboid preview only (no block placement yet).");
                 return true;
             }
             case "generate" -> {
@@ -177,7 +179,7 @@ public class DungeonCommand implements CommandExecutor, TabCompleter {
                             "Stronghold generation succeeded with " + result.rooms().size() + " placed rooms.");
                     manager.previewStrongholdGeneration(player, result);
                     ChatMessageUtil.send(player, MessageType.INFO,
-                            ChatColor.GRAY + "Preview particles rendered around your current position for 20s.");
+                            ChatColor.GRAY + "Green cuboid template outlines rendered around your current position for 20s.");
                 }
                 int maxLines = Math.min(8, result.logs().size());
                 for (int i = Math.max(0, result.logs().size() - maxLines); i < result.logs().size(); i++) {
