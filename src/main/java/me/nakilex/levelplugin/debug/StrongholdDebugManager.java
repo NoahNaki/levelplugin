@@ -5,6 +5,10 @@ import me.nakilex.levelplugin.dungeon.Direction;
 import me.nakilex.levelplugin.dungeon.Dungeon;
 import me.nakilex.levelplugin.dungeon.DungeonManager;
 import me.nakilex.levelplugin.dungeon.RoomTemplate;
+import me.nakilex.levelplugin.dungeon.generation.BranchingRandomGraphGenerator;
+import me.nakilex.levelplugin.dungeon.generation.DungeonGraphGenerator;
+import me.nakilex.levelplugin.dungeon.generation.GridNode;
+import me.nakilex.levelplugin.dungeon.generation.SnakeGraphGenerator;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -40,12 +44,12 @@ public class StrongholdDebugManager {
         this.dungeonManager = dungeonManager;
     }
 
-    public void spawn(Player player, int size) {
-        spawnInternal(player, size, -1);
+    public void spawn(Player player, int size, GraphMode mode) {
+        spawnInternal(player, size, -1, mode);
     }
 
-    public void spawnStep(Player player, int size, long delayTicks) {
-        spawnInternal(player, size, Math.max(1L, delayTicks));
+    public void spawnStep(Player player, int size, long delayTicks, GraphMode mode) {
+        spawnInternal(player, size, Math.max(1L, delayTicks), mode);
     }
 
     public void despawn(Player player) {
@@ -61,7 +65,7 @@ public class StrongholdDebugManager {
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, "Stronghold debug instance despawned and world restored.");
     }
 
-    private void spawnInternal(Player player, int size, long stepDelayTicks) {
+    private void spawnInternal(Player player, int size, long stepDelayTicks, GraphMode graphMode) {
         if (size < 2) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "Size must be at least 2.");
             return;
@@ -76,7 +80,7 @@ public class StrongholdDebugManager {
             restoreSnapshot(previous.restoreSnapshot);
         }
 
-        List<Node> graph = generateSnakeGraph(size);
+        List<GridNode> graph = graphMode.generator.generate(size, random);
         if (graph.isEmpty()) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "Failed to generate stronghold graph.");
             return;
@@ -93,8 +97,8 @@ public class StrongholdDebugManager {
         int gateCount = 0;
 
         for (int i = 0; i < graph.size(); i++) {
-            Node node = graph.get(i);
-            EnumSet<Direction> dirs = EnumSet.copyOf(node.dirs);
+            GridNode node = graph.get(i);
+            EnumSet<Direction> dirs = node.directions();
             RoomTemplate template = selectTemplate(dirs, straightWallsSinceGate, towerCount, gateCount, planById, node, graph);
             if (template == null) {
                 rollbackAndFail(player, snapshot, "No template matched connector pattern " + dirs + ".");
@@ -103,20 +107,20 @@ public class StrongholdDebugManager {
             int rotation = findRotation(template, dirs);
             Location center = i == 0 ? rootCenter.clone() : solveCenter(node, template, rotation, planById, rootCenter);
             if (center == null) {
-                rollbackAndFail(player, snapshot, "Failed to align template connectors for node " + node.id + ".");
+                rollbackAndFail(player, snapshot, "Failed to align template connectors for node " + node.id() + ".");
                 return;
             }
 
             captureForRestore(snapshot, template, rotation, center);
             DungeonManager.PasteResult result = dungeonManager.pasteRoom(debugDungeon, template, rotation, center, null, false, TEMPLATE_IGNORE);
             if (!result.success()) {
-                rollbackAndFail(player, snapshot, "Failed to paste stronghold node " + node.id + ".");
+                rollbackAndFail(player, snapshot, "Failed to paste stronghold node " + node.id() + ".");
                 return;
             }
 
-            NodePlan plan = new NodePlan(node.id, node, template, rotation, center);
+            NodePlan plan = new NodePlan(node.id(), node, template, rotation, center);
             plans.add(plan);
-            planById.put(node.id, plan);
+            planById.put(node.id(), plan);
 
             Set<Direction> opposite = EnumSet.of(Direction.NORTH, Direction.SOUTH);
             if (!dirs.equals(opposite)) opposite = EnumSet.of(Direction.EAST, Direction.WEST);
@@ -212,8 +216,8 @@ public class StrongholdDebugManager {
         for (NodePlan p : plans) byId.put(p.id, p);
 
         for (NodePlan p : plans) {
-            for (Direction d : p.node.dirs) {
-                Integer nid = p.node.neighbors.get(d);
+            for (Direction d : p.node.directions()) {
+                Integer nid = p.node.neighbors().get(d);
                 if (nid == null || p.id > nid) continue;
                 NodePlan neighbor = byId.get(nid);
                 if (neighbor == null) continue;
@@ -325,8 +329,8 @@ public class StrongholdDebugManager {
         };
     }
 
-    private Location solveCenter(Node node, RoomTemplate template, int rotation, Map<Integer, NodePlan> placed, Location fallback) {
-        for (Map.Entry<Direction, Integer> edge : node.neighbors.entrySet()) {
+    private Location solveCenter(GridNode node, RoomTemplate template, int rotation, Map<Integer, NodePlan> placed, Location fallback) {
+        for (Map.Entry<Direction, Integer> edge : node.neighbors().entrySet()) {
             NodePlan neighbor = placed.get(edge.getValue());
             if (neighbor == null) continue;
             Direction dirToNeighbor = edge.getKey();
@@ -352,8 +356,8 @@ public class StrongholdDebugManager {
                                         int towerCount,
                                         int gateCount,
                                         Map<Integer, NodePlan> placed,
-                                        Node node,
-                                        List<Node> graph) {
+                                        GridNode node,
+                                        List<GridNode> graph) {
         int degree = dirs.size();
         boolean opposite = dirs.equals(EnumSet.of(Direction.NORTH, Direction.SOUTH))
                 || dirs.equals(EnumSet.of(Direction.EAST, Direction.WEST));
@@ -381,8 +385,8 @@ public class StrongholdDebugManager {
         return selectTemplate(dirs);
     }
 
-    private boolean canPlaceGate(Node node, Map<Integer, NodePlan> placed, List<Node> graph) {
-        for (Integer nid : node.neighbors.values()) {
+    private boolean canPlaceGate(GridNode node, Map<Integer, NodePlan> placed, List<GridNode> graph) {
+        for (Integer nid : node.neighbors().values()) {
             NodePlan p = placed.get(nid);
             if (p == null) continue;
             if (gateTemplates.contains(p.template) || towerTemplates.contains(p.template)) return false;
@@ -390,8 +394,8 @@ public class StrongholdDebugManager {
         return true;
     }
 
-    private boolean canPlaceTower(Node node, Map<Integer, NodePlan> placed, List<Node> graph) {
-        for (Integer nid : node.neighbors.values()) {
+    private boolean canPlaceTower(GridNode node, Map<Integer, NodePlan> placed, List<GridNode> graph) {
+        for (Integer nid : node.neighbors().values()) {
             NodePlan p = placed.get(nid);
             if (p != null && gateTemplates.contains(p.template)) return false;
         }
@@ -502,34 +506,6 @@ public class StrongholdDebugManager {
         }
     }
 
-    private List<Node> generateSnakeGraph(int size) {
-        int width = Math.max(2, (int) Math.ceil(Math.sqrt(size)));
-        List<int[]> path = new ArrayList<>();
-        int z = 0;
-        while (path.size() < size) {
-            if ((z & 1) == 0) {
-                for (int x = 0; x < width && path.size() < size; x++) path.add(new int[]{x, z});
-            } else {
-                for (int x = width - 1; x >= 0 && path.size() < size; x--) path.add(new int[]{x, z});
-            }
-            z++;
-        }
-        List<Node> nodes = new ArrayList<>();
-        for (int i = 0; i < path.size(); i++) {
-            nodes.add(new Node(i, path.get(i)[0], path.get(i)[1]));
-        }
-        for (int i = 1; i < nodes.size(); i++) {
-            Node a = nodes.get(i - 1);
-            Node b = nodes.get(i);
-            Direction dirAB = Direction.fromDelta(b.gx - a.gx, b.gz - a.gz);
-            a.neighbors.put(dirAB, b.id);
-            a.dirs.add(dirAB);
-            b.neighbors.put(dirAB.opposite(), a.id);
-            b.dirs.add(dirAB.opposite());
-        }
-        return nodes;
-    }
-
     private <T> T pickRandom(List<T> list) {
         if (list == null || list.isEmpty()) return null;
         return list.get(random.nextInt(list.size()));
@@ -542,23 +518,41 @@ public class StrongholdDebugManager {
                                     Dungeon dungeon,
                                     BukkitTask task) {}
 
-    private record NodePlan(int id, Node node, RoomTemplate template, int rotation, Location center) {}
+    private record NodePlan(int id, GridNode node, RoomTemplate template, int rotation, Location center) {}
 
     private record ConnectorPlan(RoomTemplate template, int rotation, Location center) {}
 
     private record PlacementPlan(RoomTemplate template, int rotation, Location center) {}
 
-    private static final class Node {
-        private final int id;
-        private final int gx;
-        private final int gz;
-        private final EnumSet<Direction> dirs = EnumSet.noneOf(Direction.class);
-        private final EnumMap<Direction, Integer> neighbors = new EnumMap<>(Direction.class);
+    public enum GraphMode {
+        SNAKE(new SnakeGraphGenerator()),
+        BRANCHING(new BranchingRandomGraphGenerator());
 
-        private Node(int id, int gx, int gz) {
-            this.id = id;
-            this.gx = gx;
-            this.gz = gz;
+        private final DungeonGraphGenerator generator;
+
+        GraphMode(DungeonGraphGenerator generator) {
+            this.generator = generator;
+        }
+
+        public static GraphMode fromArg(String raw) {
+            if (raw == null || raw.isBlank()) {
+                return SNAKE;
+            }
+            String normalized = raw.trim().toLowerCase(Locale.ROOT);
+            return switch (normalized) {
+                case "branch", "branches", "branching", "random" -> BRANCHING;
+                case "snake", "serpentine" -> SNAKE;
+                default -> null;
+            };
+        }
+
+        public String id() {
+            return name().toLowerCase(Locale.ROOT);
+        }
+
+        public static List<String> ids() {
+            return Arrays.stream(values()).map(GraphMode::id).toList();
         }
     }
+
 }

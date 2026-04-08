@@ -541,7 +541,7 @@ public class DebugCommand implements TabExecutor {
                     return true;
                 }
                 if (args.length < 2) {
-                    sender.sendMessage(ChatColor.RED + "Usage: /debug stronghold <spawn|spawnstep|despawn> [size] [delayTicks]");
+                    sender.sendMessage(ChatColor.RED + "Usage: /debug stronghold <spawn|spawnstep|despawn> [size] [delayTicks] [mode]");
                     return true;
                 }
                 String mode = args[1].toLowerCase();
@@ -558,8 +558,17 @@ public class DebugCommand implements TabExecutor {
                         return true;
                     }
                 }
+                StrongholdDebugManager.GraphMode graphMode = StrongholdDebugManager.GraphMode.SNAKE;
                 if ("spawn".equals(mode)) {
-                    strongholdDebugManager.spawn(strongholdPlayer, size);
+                    if (args.length >= 4) {
+                        graphMode = StrongholdDebugManager.GraphMode.fromArg(args[3]);
+                        if (graphMode == null) {
+                            sender.sendMessage(ChatColor.RED + "Unknown mode. Use: "
+                                    + String.join(", ", StrongholdDebugManager.GraphMode.ids()));
+                            return true;
+                        }
+                    }
+                    strongholdDebugManager.spawn(strongholdPlayer, size, graphMode);
                     return true;
                 }
                 if ("spawnstep".equals(mode)) {
@@ -572,10 +581,18 @@ public class DebugCommand implements TabExecutor {
                             return true;
                         }
                     }
-                    strongholdDebugManager.spawnStep(strongholdPlayer, size, delay);
+                    if (args.length >= 5) {
+                        graphMode = StrongholdDebugManager.GraphMode.fromArg(args[4]);
+                        if (graphMode == null) {
+                            sender.sendMessage(ChatColor.RED + "Unknown mode. Use: "
+                                    + String.join(", ", StrongholdDebugManager.GraphMode.ids()));
+                            return true;
+                        }
+                    }
+                    strongholdDebugManager.spawnStep(strongholdPlayer, size, delay, graphMode);
                     return true;
                 }
-                sender.sendMessage(ChatColor.RED + "Usage: /debug stronghold <spawn|spawnstep|despawn> [size] [delayTicks]");
+                sender.sendMessage(ChatColor.RED + "Usage: /debug stronghold <spawn|spawnstep|despawn> [size] [delayTicks] [mode]");
                 return true;
 
             case "inventorydebug":
@@ -751,9 +768,19 @@ public class DebugCommand implements TabExecutor {
                     .filter(opt -> opt.startsWith(args[2].toLowerCase()))
                     .toList();
         } else if (args.length == 4 && args[0].equalsIgnoreCase("stronghold")
+                && args[1].equalsIgnoreCase("spawn")) {
+            return StrongholdDebugManager.GraphMode.ids().stream()
+                    .filter(opt -> opt.startsWith(args[3].toLowerCase()))
+                    .toList();
+        } else if (args.length == 4 && args[0].equalsIgnoreCase("stronghold")
                 && args[1].equalsIgnoreCase("spawnstep")) {
             return List.of("4", "8", "12", "20").stream()
                     .filter(opt -> opt.startsWith(args[3].toLowerCase()))
+                    .toList();
+        } else if (args.length == 5 && args[0].equalsIgnoreCase("stronghold")
+                && args[1].equalsIgnoreCase("spawnstep")) {
+            return StrongholdDebugManager.GraphMode.ids().stream()
+                    .filter(opt -> opt.startsWith(args[4].toLowerCase()))
                     .toList();
         }
         return Collections.emptyList();
