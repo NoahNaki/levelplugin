@@ -113,14 +113,14 @@ public class StrongholdGeneratorService {
         Connector roomAOut = connectorFacing(roomA, Direction.EAST);
         Connector bridgeIn = connectorFacing(new Placement(bridgeTemplate,
                 new Transform(new Vec3(0, 0, 0), StrongholdRotation.R0), -1), Direction.WEST);
-        Transform bridgeTransform = solveTransform(roomA.transform, roomAOut, bridgeIn, StrongholdRotation.R0);
+        Transform bridgeTransform = solveTransform(roomA.transform, roomAOut, bridgeIn, StrongholdRotation.R0, BRIDGE_GAP);
         Placement bridge = new Placement(bridgeTemplate, bridgeTransform, -1);
         context.bridges.add(bridge);
 
         Connector bridgeOut = connectorFacing(bridge, Direction.EAST);
         Connector roomBIn = connectorFacing(new Placement(room,
                 new Transform(new Vec3(0, 0, 0), StrongholdRotation.R0), 1), Direction.WEST);
-        Transform roomBTransform = solveTransform(bridge.transform, bridgeOut, roomBIn, StrongholdRotation.R0);
+        Transform roomBTransform = solveTransform(bridge.transform, bridgeOut, roomBIn, StrongholdRotation.R0, ROOM_GAP);
         Placement roomB = new Placement(room, roomBTransform, 1);
         context.placements.put(1, roomB);
 
@@ -241,6 +241,7 @@ public class StrongholdGeneratorService {
                         }
                         Transform solved = solveTransform(placementA.transform, aConn, bConn, rotationB, ROOM_GAP);
                         Placement placementB = new Placement(templateB, solved, nodeB.id);
+                        placementB = pushUntilClear(placementB, context.placements.values(), aConn.directionVector());
                         ValidationResult validation = validatePlacement(context.placements.values(), placementB, DEFAULT_MARGIN);
                         if (validation.valid) {
                             context.logs.add("PAIR A=" + placementA.template.id + ":" + aConn.facing + " B=" + templateB.id + ":" + bConn.facing);
@@ -390,6 +391,19 @@ public class StrongholdGeneratorService {
             }
         }
         return true;
+    }
+
+    private Placement pushUntilClear(Placement candidate, Collection<Placement> existing, Vector direction) {
+        Placement current = candidate;
+        Vec3 step = new Vec3(direction.getX(), direction.getY(), direction.getZ());
+        for (int i = 0; i < 128; i++) {
+            if (validatePlacement(existing, current, DEFAULT_MARGIN).valid) {
+                return current;
+            }
+            Transform pushed = new Transform(current.transform.position.add(step), current.transform.rotation);
+            current = new Placement(current.template, pushed, current.nodeId);
+        }
+        return current;
     }
 
     private void renderDebug(GenerationContext context, World world, Vector anchor) {
