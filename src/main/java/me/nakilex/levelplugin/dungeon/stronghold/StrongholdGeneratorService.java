@@ -42,12 +42,17 @@ public class StrongholdGeneratorService {
 
     private final Main plugin;
     private final List<Template> catalog;
+    private final Map<String, Template> baseCatalogById = new HashMap<>();
+    private final List<Template> capturedCatalog = new ArrayList<>();
     private final Map<String, TemplateSource> templateSources;
     private final Map<String, RoomTemplate> templateCache = new HashMap<>();
 
     public StrongholdGeneratorService(Main plugin) {
         this.plugin = plugin;
         this.catalog = buildCatalog();
+        for (Template template : catalog) {
+            baseCatalogById.put(template.id, template);
+        }
         this.templateSources = buildTemplateSources();
     }
 
@@ -55,6 +60,7 @@ public class StrongholdGeneratorService {
         plugin.getLogger().info("[Stronghold] START mode=" + mode + " seed=" + seed + " nodeCount=" + nodeCount
                 + " maxAttempts=" + maxAttempts + " world=" + player.getWorld().getName()
                 + " player=" + player.getName());
+        ensureTemplateCache(player.getWorld());
         if (mode == GraphMode.TEST) {
             return generateSimplePair(player, seed);
         }
@@ -85,11 +91,11 @@ public class StrongholdGeneratorService {
 
     private GenerationResult generateSimplePair(Player player, long seed) {
         plugin.getLogger().info("[Stronghold] TEST MODE simple pair seed=" + seed);
-        Template room = catalog.stream()
+        Template room = activeCatalog().stream()
                 .filter(t -> t.tags.contains(StrongholdTemplateTag.STRAIGHT))
                 .findFirst()
                 .orElse(null);
-        Template bridgeTemplate = catalog.stream()
+        Template bridgeTemplate = activeCatalog().stream()
                 .filter(t -> t.tags.contains(StrongholdTemplateTag.CONNECTOR))
                 .findFirst()
                 .orElse(null);
@@ -253,7 +259,7 @@ public class StrongholdGeneratorService {
     }
 
     private void insertConnectors(GenerationContext context, Random random) {
-        Template bridge = catalog.stream().filter(t -> t.tags.contains(StrongholdTemplateTag.CONNECTOR)).findFirst().orElse(null);
+        Template bridge = activeCatalog().stream().filter(t -> t.tags.contains(StrongholdTemplateTag.CONNECTOR)).findFirst().orElse(null);
         if (bridge == null) {
             return;
         }
@@ -374,7 +380,7 @@ public class StrongholdGeneratorService {
 
     private Template selectTemplateForDegree(int degree, Set<StrongholdTemplateTag> requiredTags, Random random, List<String> recent) {
         List<Template> candidates = new ArrayList<>();
-        for (Template template : catalog) {
+        for (Template template : activeCatalog()) {
             if (template.connectors.size() != degree) {
                 continue;
             }
@@ -392,7 +398,7 @@ public class StrongholdGeneratorService {
 
     private List<Template> templatesByDegree(int degree) {
         List<Template> out = new ArrayList<>();
-        for (Template template : catalog) {
+        for (Template template : activeCatalog()) {
             if (template.tags.contains(StrongholdTemplateTag.CONNECTOR)) {
                 continue;
             }
@@ -556,6 +562,41 @@ public class StrongholdGeneratorService {
                     false);
             templateCache.put(source.id, captured);
         }
+        rebuildCatalogFromCaptured();
+    }
+
+    private void rebuildCatalogFromCaptured() {
+        capturedCatalog.clear();
+        for (Map.Entry<String, RoomTemplate> entry : templateCache.entrySet()) {
+            String id = entry.getKey();
+            RoomTemplate captured = entry.getValue();
+            Template base = baseCatalogById.get(id);
+            if (captured == null || base == null) {
+                continue;
+            }
+            List<Connector> connectors = new ArrayList<>();
+            for (RoomTemplate.Connector connector : captured.getConnectors()) {
+                connectors.add(new Connector(
+                        new Vec3(connector.x, connector.bottomY, connector.z),
+                        connector.facing,
+                        StrongholdConnectorType.CORRIDOR));
+            }
+            if (connectors.isEmpty()) {
+                continue;
+            }
+            BoundingBox bounds = new BoundingBox(
+                    new Vec3(0, 0, 0),
+                    new Vec3(captured.getWidth() - 1, captured.getHeight() - 1, captured.getDepth() - 1));
+            capturedCatalog.add(new Template(id, bounds, connectors, base.tags));
+        }
+        if (!capturedCatalog.isEmpty()) {
+            plugin.getLogger().info("[Stronghold] Using redstone-derived connectors from captured templates. count="
+                    + capturedCatalog.size());
+        }
+    }
+
+    private List<Template> activeCatalog() {
+        return capturedCatalog.isEmpty() ? catalog : capturedCatalog;
     }
 
     private void pasteTemplate(World world, Placement placement, int baseX, int baseY, int baseZ) {
