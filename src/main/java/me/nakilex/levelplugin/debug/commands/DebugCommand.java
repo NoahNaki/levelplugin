@@ -17,6 +17,7 @@ import me.nakilex.levelplugin.debug.gui.DebugGUI;
 import me.nakilex.levelplugin.debug.BeaconEntityDebugManager;
 import me.nakilex.levelplugin.debug.DropDebugManager;
 import me.nakilex.levelplugin.debug.ArcSlashDebugManager;
+import me.nakilex.levelplugin.debug.stronghold.StrongholdDebugService;
 import me.nakilex.levelplugin.debug.gui.ArcSlashDebugGUI;
 import me.nakilex.levelplugin.debug.gui.WarriorCycloneDebugGUI;
 import me.nakilex.levelplugin.debug.MobStatusDebugItem;
@@ -89,6 +90,7 @@ public class DebugCommand implements TabExecutor {
     private final ArcSlashDebugManager arcSlashDebugManager;
     private final ArcSlashDebugGUI arcSlashDebugGUI;
     private final PetManager petManager;
+    private final StrongholdDebugService strongholdDebugService = new StrongholdDebugService();
 
     public DebugCommand(PlayerToggleManager mobDebugManager,
                         PlayerScoreboardManager scoreboardManager,
@@ -127,7 +129,7 @@ public class DebugCommand implements TabExecutor {
                 String statUsage = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|inventorydebug|rewardbomb|warriorcyclone|" + statUsage + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|" + statUsage + ">");
             }
             return true;
         }
@@ -538,13 +540,20 @@ public class DebugCommand implements TabExecutor {
                 }
                 toggleInventoryDebug(inventoryDebugPlayer);
                 return true;
+            case "stronghold":
+                if (!(sender instanceof Player strongholdPlayer)) {
+                    sender.sendMessage(ChatColor.RED + "Players only.");
+                    return true;
+                }
+                strongholdDebugService.run(strongholdPlayer, Arrays.copyOfRange(args, 1, args.length));
+                return true;
 
             default:
                 sender.sendMessage("Unknown debug subcommand: " + sub);
                 String statUsage2 = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|inventorydebug|rewardbomb|warriorcyclone|" + statUsage2 + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|" + statUsage2 + ">");
                 return true;
         }
     }
@@ -644,7 +653,7 @@ public class DebugCommand implements TabExecutor {
             List<String> subs = new ArrayList<>(List.of("mobinfo", "tps", "siege", "cityowner", "citymax", "autocast",
                     "hand", "chatgame", "expedition", "dungeonexpedition", "rewardbomb", "drops", "beaconentity",
                     "spellinput", "spellcooldown", "spellmanacost", "stunstick", "poisonstick", "tauntstick", "fearstick", "slowstick", "petpull",
-                    "particle", "particlepath", "particlepreset", "inventorydebug", "warriorcyclone"));
+                    "particle", "particlepath", "particlepreset", "inventorydebug", "warriorcyclone", "stronghold"));
             subs.addAll(Arrays.stream(StatType.values()).map(StatType::getAbbrev).toList());
             return subs.stream()
                     .filter(s -> s.startsWith(args[0].toLowerCase()))
@@ -694,6 +703,8 @@ public class DebugCommand implements TabExecutor {
             return List.of("1", "5", "10").stream()
                     .filter(opt -> opt.startsWith(args[1].toLowerCase()))
                     .toList();
+        } else if (args.length >= 2 && args[0].equalsIgnoreCase("stronghold")) {
+            return strongholdDebugService.tabComplete(args);
         }
         return Collections.emptyList();
     }

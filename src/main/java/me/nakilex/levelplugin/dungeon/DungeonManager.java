@@ -1330,7 +1330,7 @@ public class DungeonManager {
     private static RoomTemplate flipEntrances(RoomTemplate src) {
         List<RoomTemplate.Connector> list = new ArrayList<>();
         for (RoomTemplate.Connector c : src.getConnectors()) {
-            list.add(new RoomTemplate.Connector(c.x, c.z, c.bottomY, c.facing, !c.entrance));
+            list.add(new RoomTemplate.Connector(c.x, c.z, c.bottomY, c.facing, c.type, !c.entrance));
         }
         return new RoomTemplate(src.getBlocks(), list, src.getPortals(), src.getExitMarkers(), src.getChests(),
                 src.getBossSpawn(), src.getWidth(), src.getHeight(), src.getDepth(), src.getMinY());

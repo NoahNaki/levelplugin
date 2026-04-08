@@ -34,14 +34,25 @@ public class RoomTemplate {
         /** X/Z center of the connector and lowest Y of the marker stack */
         public final int x, z, bottomY;
         public final Direction facing;
+        public final ConnectorType type;
         public final boolean entrance;
         public Connector(int x, int z, int bottomY, Direction facing, boolean entrance) {
+            this(x, z, bottomY, facing, ConnectorType.GENERIC, entrance);
+        }
+        public Connector(int x, int z, int bottomY, Direction facing, ConnectorType type, boolean entrance) {
             this.x = x;
             this.z = z;
             this.bottomY = bottomY;
             this.facing = facing;
+            this.type = type == null ? ConnectorType.GENERIC : type;
             this.entrance = entrance;
         }
+    }
+
+    public enum ConnectorType {
+        GENERIC,
+        REDSTONE,
+        WOOL
     }
 
     /** Simple coordinate used for portal and hologram markers. */
@@ -142,7 +153,7 @@ public class RoomTemplate {
         int depth = maxZ - minZ + 1;
 
         List<BlockDef> blocks = new ArrayList<>();
-        Set<Location> markerBlocks = new HashSet<>();
+        Map<Location, ConnectorType> markerBlocks = new HashMap<>();
         Set<Location> limeBlocks = new HashSet<>();
         List<Marker> portalMarks = new ArrayList<>();
         List<Marker> exitMarks = new ArrayList<>();
@@ -172,7 +183,7 @@ public class RoomTemplate {
                         } else {
                             blocks.add(new BlockDef(x - minX, y - minY, z - minZ, data, profile));
                             if (mat == Material.REDSTONE_BLOCK || mat == Material.PINK_WOOL) {
-                                markerBlocks.add(loc);
+                                markerBlocks.put(loc, mat == Material.REDSTONE_BLOCK ? ConnectorType.REDSTONE : ConnectorType.WOOL);
                             } else if (mat == Material.LIME_WOOL) {
                                 limeBlocks.add(loc);
                             }
@@ -187,14 +198,14 @@ public class RoomTemplate {
         return new RoomTemplate(blocks, connectors, portalMarks, exitMarks, chestMarks, bossMark, width, height, depth, minY);
     }
 
-    private static List<Connector> buildConnectorsFromPending(Set<Location> markerBlocks,
+    private static List<Connector> buildConnectorsFromPending(Map<Location, ConnectorType> markerBlocks,
                                                               Set<Location> limeBlocks,
                                                               int minX,
                                                               int minY,
                                                               int minZ,
                                                               int width,
                                                               int depth) {
-        List<List<Location>> groups = groupConnectedMarkers(markerBlocks);
+        List<List<Location>> groups = groupConnectedMarkers(markerBlocks.keySet());
         if (groups.isEmpty()) {
             return List.of();
         }
@@ -216,6 +227,7 @@ public class RoomTemplate {
             List<Location> group = groups.get(i);
             GroupCenter center = centers.get(i);
             Direction facing = inferFacing(center, centroidX, centroidZ, width, depth);
+            ConnectorType type = inferConnectorType(group, markerBlocks);
 
             boolean entrance = false;
             for (Location l : group) {
@@ -225,9 +237,26 @@ public class RoomTemplate {
                 }
             }
 
-            connectors.add(new Connector(center.localX, center.localZ, center.bottomY - minY, facing, entrance));
+            connectors.add(new Connector(center.localX, center.localZ, center.bottomY - minY, facing, type, entrance));
         }
         return connectors;
+    }
+
+    private static ConnectorType inferConnectorType(List<Location> group, Map<Location, ConnectorType> markerBlocks) {
+        int redstone = 0;
+        int wool = 0;
+        for (Location location : group) {
+            ConnectorType type = markerBlocks.getOrDefault(location, ConnectorType.GENERIC);
+            if (type == ConnectorType.REDSTONE) {
+                redstone++;
+            } else if (type == ConnectorType.WOOL) {
+                wool++;
+            }
+        }
+        if (redstone == 0 && wool == 0) {
+            return ConnectorType.GENERIC;
+        }
+        return redstone >= wool ? ConnectorType.REDSTONE : ConnectorType.WOOL;
     }
 
     private static List<List<Location>> groupConnectedMarkers(Set<Location> markerBlocks) {
