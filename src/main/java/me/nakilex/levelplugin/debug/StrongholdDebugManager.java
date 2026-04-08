@@ -31,6 +31,7 @@ public class StrongholdDebugManager {
     private static final double SCORE_STRAIGHT = 70D;
     private static final double SCORE_CORNER = 30D;
     private static final double SCORE_DEAD_END = 5D;
+    private static final int BRANCHING_RETRY_ATTEMPTS = 20;
 
     private final Main plugin;
     private final DungeonManager dungeonManager;
@@ -390,6 +391,13 @@ public class StrongholdDebugManager {
                                                     GenerationTelemetry telemetry,
                                                     int straightsSinceTower,
                                                     int postTowerStraightBudget) {
+        if (placed.isEmpty() && dirs.size() >= 3) {
+            NodePlacementChoice forcedRootTower = chooseForcedRootTower(node, dirs, rootCenter, telemetry);
+            if (forcedRootTower != null) {
+                telemetry.rootForcedTowerUsed++;
+                return forcedRootTower;
+            }
+        }
         for (int attempt = 0; attempt < MAX_TEMPLATE_SELECTION_ATTEMPTS; attempt++) {
             List<TemplateCandidate> candidates = rankedCandidatesForNode(dirs, straightWallsSinceGate, towerCount, gateCount,
                     placed, node, graph, attempt, telemetry, straightsSinceTower, postTowerStraightBudget);
@@ -412,6 +420,24 @@ public class StrongholdDebugManager {
             }
         }
         telemetry.noPlacementFound++;
+        return null;
+    }
+
+    private NodePlacementChoice chooseForcedRootTower(GridNode node,
+                                                      EnumSet<Direction> dirs,
+                                                      Location rootCenter,
+                                                      GenerationTelemetry telemetry) {
+        List<RoomTemplate> shuffled = new ArrayList<>(towerTemplates);
+        Collections.shuffle(shuffled, random);
+        for (RoomTemplate tower : shuffled) {
+            int rotation = findRotationForPlacement(tower, dirs);
+            if (rotation < 0) {
+                continue;
+            }
+            Location center = rootCenter.clone();
+            telemetry.rootForcedTowerAttempts++;
+            return new NodePlacementChoice(tower, rotation, center);
+        }
         return null;
     }
 
@@ -572,7 +598,7 @@ public class StrongholdDebugManager {
 
     private List<GridNode> generateGraphForTemplates(GraphMode mode, int size) {
         List<GridNode> graph = mode.generator.generate(size, random);
-        if (isGraphTemplateCompatible(graph)) {
+        if (isGraphTemplateCompatible(graph) && (mode != GraphMode.BRANCHING || hasJunction(graph))) {
             return graph;
         }
         // Branching can exceed available connector patterns; retry with conservative cap.
@@ -582,7 +608,7 @@ public class StrongholdDebugManager {
 
             for (int degreeCap : new int[]{3, 2}) {
                 DungeonGraphGenerator fallback = new BranchingRandomGraphGenerator(degreeCap);
-                for (int attempt = 0; attempt < 10; attempt++) {
+                for (int attempt = 0; attempt < BRANCHING_RETRY_ATTEMPTS; attempt++) {
                     List<GridNode> candidate = fallback.generate(size, random);
                     if (!isGraphTemplateCompatible(candidate)) {
                         continue;
@@ -602,6 +628,13 @@ public class StrongholdDebugManager {
         return graph;
     }
 
+    private boolean hasJunction(List<GridNode> graph) {
+        for (GridNode node : graph) {
+            if (node.directions().size() >= 3) return true;
+        }
+        return false;
+    }
+
     private int branchingScore(List<GridNode> graph) {
         if (graph == null || graph.isEmpty()) {
             return Integer.MIN_VALUE;
@@ -613,7 +646,7 @@ public class StrongholdDebugManager {
             degreeSum += degree;
             if (degree >= 3) junctions++;
         }
-        return (junctions * 100) + degreeSum;
+        return (junctions * 200) + degreeSum;
     }
 
     private int promoteTowerJunctions(List<GridNode> graph) {
@@ -907,6 +940,8 @@ public class StrongholdDebugManager {
                         + ", corners=" + telemetry.cornersPlaced
                         + ", deadEnds=" + telemetry.deadEndsPlaced
                         + ", promotedJunctions=" + telemetry.promotedTowerJunctions
+                        + ", rootForcedTowerUsed=" + telemetry.rootForcedTowerUsed
+                        + ", rootForcedTowerAttempts=" + telemetry.rootForcedTowerAttempts
                         + ", towerOpportunities=" + telemetry.towerOpportunityCount
                         + ", cornerBlockedAfterTower=" + telemetry.cornerBlockedAfterTower
                         + ", overlapRejected=" + telemetry.overlapRejected
@@ -994,6 +1029,8 @@ public class StrongholdDebugManager {
         int rotationRejected;
         int centerRejected;
         int noPlacementFound;
+        int rootForcedTowerAttempts;
+        int rootForcedTowerUsed;
 
         void recordPlaced(RoomTemplate template,
                           List<RoomTemplate> towers,
