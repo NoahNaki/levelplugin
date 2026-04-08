@@ -116,12 +116,18 @@ public class StrongholdDebugManager {
         int towerCount = 0;
         int gateCount = 0;
 
-        for (int i = 0; i < graph.size(); i++) {
-            GridNode node = graph.get(i);
+        Set<Integer> unresolved = new LinkedHashSet<>();
+        for (GridNode node : graph) unresolved.add(node.id());
+        while (!unresolved.isEmpty()) {
+            NodeSelection selection = chooseNextNodeByMrv(unresolved, graph, straightWallsSinceGate, towerCount, gateCount,
+                    straightWallsSinceTowerOrTSection, planById, graphMode, rootCenter, debugDungeon);
+            if (selection == null || selection.search.placement == null) {
+                rollbackAndFail(player, snapshot, "No viable placement remained for unresolved stronghold nodes.");
+                return;
+            }
+            GridNode node = selection.node;
             EnumSet<Direction> dirs = node.directions();
-            CandidateSearchResult search = selectTemplateWithOverlapBudget(node, dirs, straightWallsSinceGate, towerCount, gateCount,
-                    straightWallsSinceTowerOrTSection, planById, graphMode, graph,
-                    i == 0 ? rootCenter.clone() : rootCenter, debugDungeon, i == 0);
+            CandidateSearchResult search = selection.search;
             CandidatePlacement candidate = search.placement;
             if (candidate == null) {
                 rollbackAndFail(player, snapshot,
@@ -147,6 +153,7 @@ public class StrongholdDebugManager {
             NodePlan plan = new NodePlan(node.id(), node, template, rotation, center);
             plans.add(plan);
             planById.put(node.id(), plan);
+            unresolved.remove(node.id());
 
             Set<Direction> opposite = EnumSet.of(Direction.NORTH, Direction.SOUTH);
             if (!dirs.equals(opposite)) opposite = EnumSet.of(Direction.EAST, Direction.WEST);
@@ -187,6 +194,65 @@ public class StrongholdDebugManager {
 
         activeByPlayer.put(player.getUniqueId(), active);
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, "Stronghold spawned with " + plans.size() + " rooms.");
+    }
+
+    private NodeSelection chooseNextNodeByMrv(Set<Integer> unresolved,
+                                              List<GridNode> graph,
+                                              int straightWallsSinceGate,
+                                              int towerCount,
+                                              int gateCount,
+                                              int straightWallsSinceTowerOrTSection,
+                                              Map<Integer, NodePlan> placed,
+                                              GraphMode graphMode,
+                                              Location rootCenter,
+                                              Dungeon dungeon) {
+        Map<Integer, GridNode> byId = new HashMap<>();
+        for (GridNode node : graph) byId.put(node.id(), node);
+
+        NodeSelection best = null;
+        int bestDomain = Integer.MAX_VALUE;
+        for (Integer id : unresolved) {
+            GridNode node = byId.get(id);
+            if (node == null) continue;
+            CandidateSearchResult search = selectTemplateWithOverlapBudget(node, node.directions(),
+                    straightWallsSinceGate, towerCount, gateCount, straightWallsSinceTowerOrTSection,
+                    placed, graphMode, graph, rootCenter, dungeon, placed.isEmpty());
+            if (search.placement == null) {
+                continue;
+            }
+            int domain = estimateDomainSize(node, straightWallsSinceGate, towerCount, gateCount,
+                    straightWallsSinceTowerOrTSection, placed, graphMode, graph, rootCenter, dungeon);
+            if (domain < bestDomain) {
+                bestDomain = domain;
+                best = new NodeSelection(node, search, domain);
+            }
+        }
+        return best;
+    }
+
+    private int estimateDomainSize(GridNode node,
+                                   int straightWallsSinceGate,
+                                   int towerCount,
+                                   int gateCount,
+                                   int straightWallsSinceTowerOrTSection,
+                                   Map<Integer, NodePlan> placed,
+                                   GraphMode graphMode,
+                                   List<GridNode> graph,
+                                   Location rootCenter,
+                                   Dungeon dungeon) {
+        int count = 0;
+        List<RoomTemplate> candidates = candidateTemplatesForNode(node.directions(), straightWallsSinceGate, towerCount, gateCount,
+                straightWallsSinceTowerOrTSection, placed, node, graphMode, graph);
+        for (RoomTemplate template : candidates) {
+            int rotation = findRotationForPlacement(template, node.directions());
+            if (rotation < 0) continue;
+            Location center = placed.isEmpty() ? rootCenter.clone() : solveCenter(node, template, rotation, placed, rootCenter);
+            if (center == null) continue;
+            DungeonManager.PasteResult preview = dungeonManager.pasteRoom(dungeon, template, rotation, center, null, true,
+                    TEMPLATE_IGNORE, strongholdMaxOverlap);
+            if (preview.success()) count++;
+        }
+        return Math.max(1, count);
     }
 
     private void spawnTSectionVariants(Player player) {
@@ -236,7 +302,7 @@ public class StrongholdDebugManager {
         double bestScore = Double.MAX_VALUE;
         PlacementDebug debug = new PlacementDebug();
         List<RoomTemplate> candidates = candidateTemplatesForNode(dirs, straightWallsSinceGate, towerCount, gateCount,
-                straightWallsSinceTowerOrTSection, placed, node, graphMode, graph, false);
+                straightWallsSinceTowerOrTSection, placed, node, graphMode, graph);
         for (RoomTemplate template : candidates) {
             debug.attempts++;
             if (template == null) {
@@ -266,39 +332,6 @@ public class StrongholdDebugManager {
             }
             debug.overlapRejects++;
         }
-        if (best == null && dirs.size() >= 3) {
-            List<RoomTemplate> relaxed = candidateTemplatesForNode(dirs, straightWallsSinceGate, towerCount, gateCount,
-                    straightWallsSinceTowerOrTSection, placed, node, graphMode, graph, true);
-            for (RoomTemplate template : relaxed) {
-                debug.attempts++;
-                if (template == null) {
-                    debug.templateMisses++;
-                    continue;
-                }
-                int rotation = findRotationForPlacement(template, dirs);
-                if (rotation < 0) {
-                    debug.rotationMisses++;
-                    continue;
-                }
-                Location center = firstNode ? rootCenter.clone() : solveCenter(node, template, rotation, placed, rootCenter);
-                if (center == null) {
-                    debug.centerMisses++;
-                    continue;
-                }
-                DungeonManager.PasteResult preview = dungeonManager.pasteRoom(dungeon, template, rotation, center, null, true,
-                        TEMPLATE_IGNORE, strongholdMaxOverlap);
-                if (preview.success()) {
-                    double score = preview.overlap() + templatePriority(template) + 0.35; // soft-penalty for rule relaxation
-                    if (score < bestScore) {
-                        bestScore = score;
-                        best = new CandidatePlacement(template, rotation, center, preview.overlap());
-                    }
-                    debug.successes++;
-                    continue;
-                }
-                debug.overlapRejects++;
-            }
-        }
         if (best != null) {
             return new CandidateSearchResult(best, debug);
         }
@@ -313,8 +346,7 @@ public class StrongholdDebugManager {
                                                          Map<Integer, NodePlan> placed,
                                                          GridNode node,
                                                          GraphMode graphMode,
-                                                         List<GridNode> graph,
-                                                         boolean relaxedTowerSpacing) {
+                                                         List<GridNode> graph) {
         List<RoomTemplate> ordered = new ArrayList<>();
         int degree = dirs.size();
 
@@ -332,15 +364,15 @@ public class StrongholdDebugManager {
                 || dirs.equals(EnumSet.of(Direction.EAST, Direction.WEST));
         if (degree >= 4) {
             if (canPlaceTower(node, placed, graph)
-                    && (relaxedTowerSpacing || canPlaceTowerOrTSection(straightWallsSinceTowerOrTSection, placed))) {
+                    && canPlaceTowerOrTSection(straightWallsSinceTowerOrTSection, placed)) {
                 addIfPresent(ordered, towerTemplates);
             }
         } else if (degree == 3) {
-            if (relaxedTowerSpacing || canPlaceTowerOrTSection(straightWallsSinceTowerOrTSection, placed)) {
+            if (canPlaceTowerOrTSection(straightWallsSinceTowerOrTSection, placed)) {
                 addIfPresent(ordered, tSectionTemplates);
             }
             if (canPlaceTower(node, placed, graph)
-                    && (relaxedTowerSpacing || canPlaceTowerOrTSection(straightWallsSinceTowerOrTSection, placed))) {
+                    && canPlaceTowerOrTSection(straightWallsSinceTowerOrTSection, placed)) {
                 addIfPresent(ordered, towerTemplates);
             }
             if (straightWallsSinceGate >= 2 && towerCount > gateCount && canPlaceGate(node, placed, graph)) {
@@ -349,7 +381,7 @@ public class StrongholdDebugManager {
         } else if (degree == 2 && opposite) {
             addIfPresent(ordered, straightTemplates);
             if (canPlaceTower(node, placed, graph)
-                    && (relaxedTowerSpacing || canPlaceTowerOrTSection(straightWallsSinceTowerOrTSection, placed))) {
+                    && canPlaceTowerOrTSection(straightWallsSinceTowerOrTSection, placed)) {
                 addIfPresent(ordered, towerTemplates);
             }
             if (straightWallsSinceGate >= 2 && towerCount > gateCount && canPlaceGate(node, placed, graph)) {
@@ -358,13 +390,13 @@ public class StrongholdDebugManager {
         } else if (degree == 2) {
             addIfPresent(ordered, cornerTemplates);
             if (canPlaceTower(node, placed, graph)
-                    && (relaxedTowerSpacing || canPlaceTowerOrTSection(straightWallsSinceTowerOrTSection, placed))) {
+                    && canPlaceTowerOrTSection(straightWallsSinceTowerOrTSection, placed)) {
                 addIfPresent(ordered, towerTemplates);
             }
         } else if (degree == 1) {
             addIfPresent(ordered, deadEndTemplates);
             if (canPlaceTower(node, placed, graph)
-                    && (relaxedTowerSpacing || canPlaceTowerOrTSection(straightWallsSinceTowerOrTSection, placed))) {
+                    && canPlaceTowerOrTSection(straightWallsSinceTowerOrTSection, placed)) {
                 addIfPresent(ordered, towerTemplates);
             }
         }
@@ -1035,6 +1067,7 @@ public class StrongholdDebugManager {
     private record PlacementPlan(RoomTemplate template, int rotation, Location center) {}
     private record CandidatePlacement(RoomTemplate template, int rotation, Location center, double overlap) {}
     private record CandidateSearchResult(CandidatePlacement placement, PlacementDebug debug) {}
+    private record NodeSelection(GridNode node, CandidateSearchResult search, int domainSize) {}
     private static final class PlacementDebug {
         int attempts;
         int templateMisses;
