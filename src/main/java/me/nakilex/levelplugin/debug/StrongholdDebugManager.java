@@ -80,7 +80,7 @@ public class StrongholdDebugManager {
             restoreSnapshot(previous.restoreSnapshot);
         }
 
-        List<GridNode> graph = graphMode.generator.generate(size, random);
+        List<GridNode> graph = generateGraphForTemplates(graphMode, size);
         if (graph.isEmpty() || graph.size() < size) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
                     "Failed to generate stronghold graph for mode '" + graphMode.id() + "'.");
@@ -356,6 +356,36 @@ public class StrongholdDebugManager {
             if (rotateDirection(c.facing, rotation) == want) return c;
         }
         return null;
+    }
+
+    private List<GridNode> generateGraphForTemplates(GraphMode mode, int size) {
+        List<GridNode> graph = mode.generator.generate(size, random);
+        if (isGraphTemplateCompatible(graph)) {
+            return graph;
+        }
+        // Branching can exceed available connector patterns; retry with conservative cap.
+        if (mode == GraphMode.BRANCHING) {
+            DungeonGraphGenerator fallback = new BranchingRandomGraphGenerator(2);
+            for (int attempt = 0; attempt < 6; attempt++) {
+                List<GridNode> candidate = fallback.generate(size, random);
+                if (isGraphTemplateCompatible(candidate)) {
+                    return candidate;
+                }
+            }
+        }
+        return graph;
+    }
+
+    private boolean isGraphTemplateCompatible(List<GridNode> graph) {
+        if (graph == null || graph.isEmpty()) {
+            return false;
+        }
+        for (GridNode node : graph) {
+            if (selectTemplate(node.directions()) == null) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private RoomTemplate selectTemplate(EnumSet<Direction> dirs,
