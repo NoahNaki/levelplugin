@@ -554,12 +554,28 @@ public class DebugCommand implements TabExecutor {
                     try {
                         size = Integer.parseInt(args[2]);
                     } catch (NumberFormatException ex) {
-                        sender.sendMessage(ChatColor.RED + "Size must be a number.");
-                        return true;
+                        if (!"spawn".equals(mode)) {
+                            sender.sendMessage(ChatColor.RED + "Size must be a number.");
+                            return true;
+                        }
                     }
                 }
                 StrongholdDebugManager.GraphMode graphMode = StrongholdDebugManager.GraphMode.SNAKE;
                 if ("spawn".equals(mode)) {
+                    if (args.length >= 3) {
+                        StrongholdDebugManager.GraphMode inlineMode = StrongholdDebugManager.GraphMode.fromArg(args[2]);
+                        if (inlineMode != null) {
+                            graphMode = inlineMode;
+                        } else if (args.length == 3) {
+                            try {
+                                Integer.parseInt(args[2]);
+                            } catch (NumberFormatException ex) {
+                                sender.sendMessage(ChatColor.RED + "Unknown mode. Use: "
+                                        + String.join(", ", StrongholdDebugManager.GraphMode.ids()));
+                                return true;
+                            }
+                        }
+                    }
                     if (args.length >= 4) {
                         graphMode = StrongholdDebugManager.GraphMode.fromArg(args[3]);
                         if (graphMode == null) {
@@ -764,7 +780,11 @@ public class DebugCommand implements TabExecutor {
                     .toList();
         } else if (args.length == 3 && args[0].equalsIgnoreCase("stronghold")
                 && (args[1].equalsIgnoreCase("spawn") || args[1].equalsIgnoreCase("spawnstep"))) {
-            return List.of("8", "12", "20").stream()
+            List<String> options = new ArrayList<>(List.of("8", "12", "20"));
+            if (args[1].equalsIgnoreCase("spawn")) {
+                options.addAll(StrongholdDebugManager.GraphMode.ids());
+            }
+            return options.stream()
                     .filter(opt -> opt.startsWith(args[2].toLowerCase()))
                     .toList();
         } else if (args.length == 4 && args[0].equalsIgnoreCase("stronghold")

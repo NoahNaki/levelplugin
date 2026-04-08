@@ -89,6 +89,11 @@ public class StrongholdDebugManager {
             restoreSnapshot(previous.restoreSnapshot);
         }
 
+        if (graphMode == GraphMode.TEST) {
+            spawnTestTowerAndWalls(player, stepDelayTicks);
+            return;
+        }
+
         String lastFailure = "Unknown generation error.";
         for (int spawnAttempt = 1; spawnAttempt <= MAX_STRONGHOLD_SPAWN_ATTEMPTS; spawnAttempt++) {
             List<GridNode> graph = generateGraphForTemplates(graphMode, size);
@@ -229,6 +234,112 @@ public class StrongholdDebugManager {
         }
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
                 "Failed to generate stronghold after " + MAX_STRONGHOLD_SPAWN_ATTEMPTS + " attempts. Last reason: " + lastFailure);
+    }
+
+    private void spawnTestTowerAndWalls(Player player, long stepDelayTicks) {
+        Location rootCenter = player.getLocation().getBlock().getLocation();
+        Map<Location, BlockData> snapshot = new HashMap<>();
+        Set<String> occupiedBlocks = new HashSet<>();
+        Dungeon debugDungeon = new Dungeon(player.getWorld(), "stronghold-debug-" + player.getUniqueId());
+        List<NodePlan> plans = new ArrayList<>();
+        List<ConnectorPlan> connectorPlans = new ArrayList<>();
+
+        TemplateCandidate towerChoice = selectTestTowerCandidate();
+        if (towerChoice == null) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "No tower template available for test stronghold mode.");
+            return;
+        }
+
+        captureForRestore(snapshot, towerChoice.template, towerChoice.rotation, rootCenter);
+        DungeonManager.PasteResult towerResult = dungeonManager.pasteRoom(debugDungeon, towerChoice.template, towerChoice.rotation, rootCenter, null, false, TEMPLATE_IGNORE);
+        if (!towerResult.success()) {
+            restoreSnapshot(snapshot);
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "Failed to paste test tower template.");
+            return;
+        }
+        markTemplateOccupied(towerChoice.template, towerChoice.rotation, rootCenter, occupiedBlocks);
+        plans.add(new NodePlan(0, new GridNode(0, 0, 0), towerChoice.template, towerChoice.rotation, rootCenter));
+
+        int nextId = 1;
+        for (Direction direction : towerChoice.template.getRotatedDirections(towerChoice.rotation)) {
+            TemplateCandidate straightChoice = selectTestStraightCandidate(direction);
+            if (straightChoice == null) {
+                continue;
+            }
+            RoomTemplate.Connector towerConnector = findConnector(towerChoice.template, towerChoice.rotation, direction);
+            RoomTemplate.Connector straightConnector = findConnector(straightChoice.template, straightChoice.rotation, direction.opposite());
+            if (towerConnector == null || straightConnector == null) {
+                continue;
+            }
+
+            Location towerAnchor = connectorAnchorLocation(towerChoice.template, towerConnector, towerChoice.rotation, rootCenter, true);
+            Location straightCenter = centerFromAnchor(straightChoice.template, straightConnector, straightChoice.rotation, towerAnchor, true, rootCenter);
+            if (straightCenter == null) {
+                continue;
+            }
+
+            captureForRestore(snapshot, straightChoice.template, straightChoice.rotation, straightCenter);
+            DungeonManager.PasteResult straightResult = dungeonManager.pasteRoom(debugDungeon, straightChoice.template, straightChoice.rotation, straightCenter, null, false, TEMPLATE_IGNORE);
+            if (!straightResult.success()) {
+                restoreSnapshot(snapshot);
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "Failed to paste a test straight wall.");
+                return;
+            }
+            markTemplateOccupied(straightChoice.template, straightChoice.rotation, straightCenter, occupiedBlocks);
+            plans.add(new NodePlan(nextId, new GridNode(nextId, 0, 0), straightChoice.template, straightChoice.rotation, straightCenter));
+            nextId++;
+        }
+
+        if (plans.size() <= 1) {
+            restoreSnapshot(snapshot);
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "Test mode could place tower, but no straight walls were compatible.");
+            return;
+        }
+
+        ActiveStronghold active = new ActiveStronghold(player.getWorld(), snapshot, plans, connectorPlans, debugDungeon, null);
+        if (stepDelayTicks > 0) {
+            restoreSnapshot(snapshot);
+            BukkitTask task = runStepPlacement(player, plans, connectorPlans, snapshot, debugDungeon, stepDelayTicks);
+            activeByPlayer.put(player.getUniqueId(), new ActiveStronghold(player.getWorld(), snapshot, plans, connectorPlans, debugDungeon, task));
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, "Stronghold test step spawn started (" + plans.size() + " rooms).");
+            return;
+        }
+
+        activeByPlayer.put(player.getUniqueId(), active);
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, "Stronghold test spawn created (tower + " + (plans.size() - 1) + " straight walls).");
+    }
+
+    private TemplateCandidate selectTestTowerCandidate() {
+        EnumSet<Direction> all = EnumSet.allOf(Direction.class);
+        List<RoomTemplate> shuffled = new ArrayList<>(towerTemplates);
+        Collections.shuffle(shuffled, random);
+        for (RoomTemplate tower : shuffled) {
+            int rotation = findRotationForPlacement(tower, all);
+            if (rotation >= 0) {
+                return new TemplateCandidate(tower, rotation, 0D);
+            }
+        }
+        for (RoomTemplate tower : shuffled) {
+            for (int rotation = 0; rotation < 4; rotation++) {
+                if (!tower.getRotatedDirections(rotation).isEmpty()) {
+                    return new TemplateCandidate(tower, rotation, 0D);
+                }
+            }
+        }
+        return null;
+    }
+
+    private TemplateCandidate selectTestStraightCandidate(Direction directionFromTower) {
+        EnumSet<Direction> needed = EnumSet.of(directionFromTower, directionFromTower.opposite());
+        List<RoomTemplate> shuffled = new ArrayList<>(straightTemplates);
+        Collections.shuffle(shuffled, random);
+        for (RoomTemplate straight : shuffled) {
+            int rotation = findRotationForPlacement(straight, needed);
+            if (rotation >= 0) {
+                return new TemplateCandidate(straight, rotation, 0D);
+            }
+        }
+        return null;
     }
 
     private GridNode selectProceduralRoot(List<GridNode> nodes) {
@@ -1155,7 +1266,8 @@ public class StrongholdDebugManager {
 
     public enum GraphMode {
         SNAKE(new SnakeGraphGenerator()),
-        BRANCHING(new BranchingRandomGraphGenerator(3));
+        BRANCHING(new BranchingRandomGraphGenerator(3)),
+        TEST(new SnakeGraphGenerator());
 
         private final DungeonGraphGenerator generator;
 
@@ -1170,6 +1282,7 @@ public class StrongholdDebugManager {
             String normalized = raw.trim().toLowerCase(Locale.ROOT);
             return switch (normalized) {
                 case "branch", "branches", "branching", "random" -> BRANCHING;
+                case "test", "simple" -> TEST;
                 case "snake", "serpentine" -> SNAKE;
                 default -> null;
             };
