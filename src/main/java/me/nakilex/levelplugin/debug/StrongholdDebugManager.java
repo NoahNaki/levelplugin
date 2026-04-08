@@ -24,6 +24,8 @@ import java.util.concurrent.ConcurrentHashMap;
 public class StrongholdDebugManager {
     private static final Set<Material> TEMPLATE_IGNORE = EnumSet.of(Material.WHITE_CONCRETE, Material.LIGHT_BLUE_CONCRETE);
     private static final Set<Material> STRONGHOLD_SKIP = EnumSet.of(Material.REDSTONE_BLOCK, Material.PINK_WOOL, Material.LIME_WOOL);
+    private static final double STRONGHOLD_MAX_OVERLAP = 0.30;
+    private static final int NODE_PLACEMENT_ATTEMPTS = 24;
 
     private final Main plugin;
     private final DungeonManager dungeonManager;
@@ -103,20 +105,19 @@ public class StrongholdDebugManager {
         for (int i = 0; i < graph.size(); i++) {
             GridNode node = graph.get(i);
             EnumSet<Direction> dirs = node.directions();
-            RoomTemplate template = selectTemplate(dirs, straightWallsSinceGate, towerCount, gateCount, planById, node, graphMode, graph);
-            if (template == null) {
+            CandidatePlacement candidate = selectTemplateWithOverlapBudget(node, dirs, straightWallsSinceGate, towerCount, gateCount,
+                    planById, graphMode, graph, i == 0 ? rootCenter.clone() : rootCenter, debugDungeon, i == 0);
+            if (candidate == null) {
                 rollbackAndFail(player, snapshot, "No template matched connector pattern " + dirs + ".");
                 return;
             }
-            int rotation = findRotationForPlacement(template, dirs);
-            Location center = i == 0 ? rootCenter.clone() : solveCenter(node, template, rotation, planById, rootCenter);
-            if (center == null) {
-                rollbackAndFail(player, snapshot, "Failed to align template connectors for node " + node.id() + ".");
-                return;
-            }
+            RoomTemplate template = candidate.template;
+            int rotation = candidate.rotation;
+            Location center = candidate.center;
 
             captureForRestore(snapshot, template, rotation, center);
-            DungeonManager.PasteResult result = dungeonManager.pasteRoom(debugDungeon, template, rotation, center, null, false, TEMPLATE_IGNORE);
+            DungeonManager.PasteResult result = dungeonManager.pasteRoom(debugDungeon, template, rotation, center, null, false,
+                    TEMPLATE_IGNORE, STRONGHOLD_MAX_OVERLAP);
             if (!result.success()) {
                 rollbackAndFail(player, snapshot, "Failed to paste stronghold node " + node.id() + ".");
                 return;
@@ -157,6 +158,45 @@ public class StrongholdDebugManager {
 
         activeByPlayer.put(player.getUniqueId(), active);
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, "Stronghold spawned with " + plans.size() + " rooms.");
+    }
+
+    private CandidatePlacement selectTemplateWithOverlapBudget(GridNode node,
+                                                               EnumSet<Direction> dirs,
+                                                               int straightWallsSinceGate,
+                                                               int towerCount,
+                                                               int gateCount,
+                                                               Map<Integer, NodePlan> placed,
+                                                               GraphMode graphMode,
+                                                               List<GridNode> graph,
+                                                               Location rootCenter,
+                                                               Dungeon dungeon,
+                                                               boolean firstNode) {
+        CandidatePlacement best = null;
+        double bestOverlap = Double.MAX_VALUE;
+        for (int attempt = 0; attempt < NODE_PLACEMENT_ATTEMPTS; attempt++) {
+            RoomTemplate template = selectTemplate(dirs, straightWallsSinceGate, towerCount, gateCount, placed, node, graphMode, graph);
+            if (template == null) {
+                continue;
+            }
+            int rotation = findRotationForPlacement(template, dirs);
+            if (rotation < 0) {
+                continue;
+            }
+            Location center = firstNode ? rootCenter.clone() : solveCenter(node, template, rotation, placed, rootCenter);
+            if (center == null) {
+                continue;
+            }
+            DungeonManager.PasteResult preview = dungeonManager.pasteRoom(dungeon, template, rotation, center, null, true,
+                    TEMPLATE_IGNORE, STRONGHOLD_MAX_OVERLAP);
+            if (preview.success()) {
+                return new CandidatePlacement(template, rotation, center, preview.overlap());
+            }
+            if (preview.overlap() < bestOverlap) {
+                bestOverlap = preview.overlap();
+                best = new CandidatePlacement(template, rotation, center, preview.overlap());
+            }
+        }
+        return bestOverlap <= STRONGHOLD_MAX_OVERLAP ? best : null;
     }
 
     private BukkitTask runStepPlacement(Player player, List<NodePlan> plans, List<ConnectorPlan> connectorPlans, Map<Location, BlockData> snapshot, Dungeon dungeon, long delayTicks) {
@@ -482,7 +522,7 @@ public class StrongholdDebugManager {
         for (Integer nid : node.neighbors().values()) {
             NodePlan p = placed.get(nid);
             if (p == null) continue;
-            if (gateTemplates.contains(p.template) || towerTemplates.contains(p.template)) return false;
+            if (isGateOrTower(p.template)) return false;
         }
         return true;
     }
@@ -490,9 +530,13 @@ public class StrongholdDebugManager {
     private boolean canPlaceTower(GridNode node, Map<Integer, NodePlan> placed, List<GridNode> graph) {
         for (Integer nid : node.neighbors().values()) {
             NodePlan p = placed.get(nid);
-            if (p != null && gateTemplates.contains(p.template)) return false;
+            if (p != null && isGateOrTower(p.template)) return false;
         }
         return true;
+    }
+
+    private boolean isGateOrTower(RoomTemplate template) {
+        return gateTemplates.contains(template) || towerTemplates.contains(template);
     }
 
     private RoomTemplate selectTemplate(EnumSet<Direction> dirs) {
@@ -666,6 +710,7 @@ public class StrongholdDebugManager {
     private record ConnectorPlan(RoomTemplate template, int rotation, Location center) {}
 
     private record PlacementPlan(RoomTemplate template, int rotation, Location center) {}
+    private record CandidatePlacement(RoomTemplate template, int rotation, Location center, double overlap) {}
 
     public enum GraphMode {
         SNAKE(new SnakeGraphGenerator()),
