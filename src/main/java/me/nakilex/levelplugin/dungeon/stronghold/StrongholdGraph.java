@@ -29,10 +29,15 @@ public final class StrongholdGraph {
     public record Graph(List<Node> nodes, List<Edge> edges) {}
 
     public static Graph generate(GraphMode mode, int size, long seed) {
+        return generate(mode, size, seed, 4);
+    }
+
+    public static Graph generate(GraphMode mode, int size, long seed, int maxDegree) {
         Random random = new Random(seed);
+        int degreeCap = Math.max(1, Math.min(4, maxDegree));
         List<GridNode> raw = switch (mode) {
             case SNAKE -> new SnakeGraphGenerator().generate(size, random);
-            case BRANCHING -> new BranchingRandomGraphGenerator(3).generate(size, random);
+            case BRANCHING -> new BranchingRandomGraphGenerator(degreeCap).generate(size, random);
             case TEST -> new SnakeGraphGenerator().generate(Math.max(2, Math.min(4, size)), random);
         };
         return fromGrid(raw);

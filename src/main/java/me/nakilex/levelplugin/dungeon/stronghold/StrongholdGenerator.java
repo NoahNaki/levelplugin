@@ -17,11 +17,15 @@ public final class StrongholdGenerator {
 
     public PlacementResult generate(GraphMode mode, int roomCount, long seed, int maxGraphAttempts) {
         List<StrongholdModel.Template> catalog = StrongholdTemplateCatalog.currentCatalog();
+        int maxTemplateDegree = catalog.stream()
+                .mapToInt(StrongholdModel.Template::degree)
+                .max()
+                .orElse(1);
         PlacementConfig config = new PlacementConfig(1, false);
 
         for (int attempt = 0; attempt < Math.max(1, maxGraphAttempts); attempt++) {
             long graphSeed = seed + (attempt * 9973L);
-            StrongholdGraph.Graph graph = StrongholdGraph.generate(mode, roomCount, graphSeed);
+            StrongholdGraph.Graph graph = StrongholdGraph.generate(mode, roomCount, graphSeed, maxTemplateDegree);
             PlacementResult result = StrongholdPlacement.placeGraph(graph, catalog, graphSeed, config, logger);
             if (result.success()) {
                 return result;

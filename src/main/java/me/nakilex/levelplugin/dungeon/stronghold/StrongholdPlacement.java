@@ -106,16 +106,18 @@ public final class StrongholdPlacement {
 
         OverlapValidator validator = new OverlapValidator(config);
         Map<Integer, PlacedRoom> placed = new LinkedHashMap<>();
+        Map<String, Integer> templateUsage = new HashMap<>();
         Queue<StrongholdGraph.Edge> queue = new ArrayDeque<>(graph.edges());
 
         StrongholdGraph.Node root = graph.nodes().get(0);
-        Template rootTemplate = selectTemplate(root, catalog, random, Set.of(), Map.of());
+        Template rootTemplate = selectTemplate(root, catalog, random, Set.of(), templateUsage);
         if (rootTemplate == null) {
             logs.add("No template matches root node degree=" + root.requiredDegree());
             return new PlacementResult(false, Map.of(), logs);
         }
 
         placed.put(root.id(), new PlacedRoom(root.id(), rootTemplate, new Transform(new Geometry.Vec3(0, 0, 0), Rotation.R0)));
+        templateUsage.merge(rootTemplate.id(), 1, Integer::sum);
         logs.add("Placed root node " + root.id() + " template=" + rootTemplate.id());
 
         int stalled = 0;
@@ -140,12 +142,13 @@ public final class StrongholdPlacement {
                 return new PlacementResult(false, Map.of(), logs);
             }
 
-            PlacedRoom candidate = tryPlaceNode(target, anchor, catalog, validator, placed, random, logs);
+            PlacedRoom candidate = tryPlaceNode(target, anchor, catalog, validator, placed, random, templateUsage, logs);
             if (candidate == null) {
                 logs.add("Failed placement for node " + targetId + ", regenerate graph required");
                 return new PlacementResult(false, Map.of(), logs);
             }
             placed.put(targetId, candidate);
+            templateUsage.merge(candidate.template().id(), 1, Integer::sum);
             stalled = 0;
         }
 
@@ -166,38 +169,42 @@ public final class StrongholdPlacement {
                                            OverlapValidator validator,
                                            Map<Integer, PlacedRoom> placed,
                                            Random random,
+                                           Map<String, Integer> recentUsage,
                                            List<String> logs) {
-        Template chosen = selectTemplate(target, catalog, random, Set.of(), Map.of());
-        if (chosen == null) {
+        List<Template> candidates = selectCandidates(target, catalog, Set.of());
+        if (candidates.isEmpty()) {
             logs.add("No template candidates for degree=" + target.requiredDegree());
             return null;
         }
 
-        for (Connector anchorConn : anchor.template().connectors()) {
-            Direction outgoing = anchor.transform().rotation().rotate(anchorConn.facing());
-            for (Rotation rot : Rotation.values()) {
-                for (Connector targetConn : chosen.connectors()) {
-                    Direction incoming = rot.rotate(targetConn.facing());
-                    if (outgoing != incoming.opposite()) {
-                        continue;
-                    }
-                    try {
-                        Transform transform = TransformSolver.solveTransform(
-                                anchor.template(), anchor.transform(), anchorConn,
-                                chosen, rot, targetConn
-                        );
-                        PlacedRoom candidate = new PlacedRoom(target.id(), chosen, transform);
-                        Optional<String> reason = validator.validate(candidate, placed.values());
-                        if (reason.isPresent()) {
-                            logs.add("Rejected node " + target.id() + " template=" + chosen.id()
-                                    + " rot=" + rot + " reason=" + reason.get());
+        List<Template> weightedOrder = orderCandidatesByWeight(candidates, random, recentUsage);
+        for (Template chosen : weightedOrder) {
+            for (Connector anchorConn : anchor.template().connectors()) {
+                Direction outgoing = anchor.transform().rotation().rotate(anchorConn.facing());
+                for (Rotation rot : Rotation.values()) {
+                    for (Connector targetConn : chosen.connectors()) {
+                        Direction incoming = rot.rotate(targetConn.facing());
+                        if (outgoing != incoming.opposite()) {
                             continue;
                         }
-                        logs.add("Placed node " + target.id() + " template=" + chosen.id()
-                                + " rot=" + rot + " pair=" + anchorConn.facing() + "<->" + targetConn.facing());
-                        return candidate;
-                    } catch (IllegalArgumentException ex) {
-                        logs.add("Rejected node " + target.id() + " template=" + chosen.id() + " reason=" + ex.getMessage());
+                        try {
+                            Transform transform = TransformSolver.solveTransform(
+                                    anchor.template(), anchor.transform(), anchorConn,
+                                    chosen, rot, targetConn
+                            );
+                            PlacedRoom candidate = new PlacedRoom(target.id(), chosen, transform);
+                            Optional<String> reason = validator.validate(candidate, placed.values());
+                            if (reason.isPresent()) {
+                                logs.add("Rejected node " + target.id() + " template=" + chosen.id()
+                                        + " rot=" + rot + " reason=" + reason.get());
+                                continue;
+                            }
+                            logs.add("Placed node " + target.id() + " template=" + chosen.id()
+                                    + " rot=" + rot + " pair=" + anchorConn.facing() + "<->" + targetConn.facing());
+                            return candidate;
+                        } catch (IllegalArgumentException ex) {
+                            logs.add("Rejected node " + target.id() + " template=" + chosen.id() + " reason=" + ex.getMessage());
+                        }
                     }
                 }
             }
@@ -210,6 +217,16 @@ public final class StrongholdPlacement {
                                            Random random,
                                            Set<TemplateTag> requiredTags,
                                            Map<String, Integer> recentUsage) {
+        List<Template> candidates = selectCandidates(node, catalog, requiredTags);
+        if (candidates.isEmpty()) {
+            return null;
+        }
+        return orderCandidatesByWeight(candidates, random, recentUsage).get(0);
+    }
+
+    private static List<Template> selectCandidates(StrongholdGraph.Node node,
+                                                   List<Template> catalog,
+                                                   Set<TemplateTag> requiredTags) {
         List<Template> candidates = new ArrayList<>();
         for (Template template : catalog) {
             if (template.degree() != node.requiredDegree()) {
@@ -220,29 +237,37 @@ public final class StrongholdPlacement {
             }
             candidates.add(template);
         }
-        if (candidates.isEmpty()) {
-            return null;
-        }
+        return candidates;
+    }
 
+    private static List<Template> orderCandidatesByWeight(List<Template> candidates,
+                                                          Random random,
+                                                          Map<String, Integer> recentUsage) {
         candidates.sort(Comparator.comparing(Template::id));
-        int totalWeight = 0;
-        int[] weights = new int[candidates.size()];
-        for (int i = 0; i < candidates.size(); i++) {
-            Template t = candidates.get(i);
-            int penalty = recentUsage.getOrDefault(t.id(), 0);
-            int weight = Math.max(1, 10 - penalty);
-            weights[i] = weight;
-            totalWeight += weight;
-        }
-
-        int roll = random.nextInt(totalWeight);
-        int cursor = 0;
-        for (int i = 0; i < candidates.size(); i++) {
-            cursor += weights[i];
-            if (roll < cursor) {
-                return candidates.get(i);
+        List<Template> ordered = new ArrayList<>(candidates.size());
+        List<Template> pool = new ArrayList<>(candidates);
+        while (!pool.isEmpty()) {
+            int totalWeight = 0;
+            int[] weights = new int[pool.size()];
+            for (int i = 0; i < pool.size(); i++) {
+                Template t = pool.get(i);
+                int penalty = recentUsage.getOrDefault(t.id(), 0);
+                int weight = Math.max(1, 10 - penalty);
+                weights[i] = weight;
+                totalWeight += weight;
             }
+            int roll = random.nextInt(totalWeight);
+            int cursor = 0;
+            int chosenIndex = 0;
+            for (int i = 0; i < pool.size(); i++) {
+                cursor += weights[i];
+                if (roll < cursor) {
+                    chosenIndex = i;
+                    break;
+                }
+            }
+            ordered.add(pool.remove(chosenIndex));
         }
-        return candidates.get(0);
+        return ordered;
     }
 }
