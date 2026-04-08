@@ -46,6 +46,9 @@ public class StrongholdGeneratorService {
     }
 
     public GenerationResult generate(Player player, GraphMode mode, long seed, int nodeCount, int maxAttempts) {
+        if (mode == GraphMode.TEST) {
+            return generateSimplePair(player, seed);
+        }
         Random random = new Random(seed);
         for (int attempt = 1; attempt <= maxAttempts; attempt++) {
             List<NodeSpec> graph = generateGraph(mode, nodeCount, random);
@@ -65,6 +68,46 @@ public class StrongholdGeneratorService {
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
                 "Stronghold generation failed after " + maxAttempts + " graph attempts.");
         return new GenerationResult(false, "placement_failed", null);
+    }
+
+    private GenerationResult generateSimplePair(Player player, long seed) {
+        Template room = catalog.stream()
+                .filter(t -> t.tags.contains(StrongholdTemplateTag.STRAIGHT))
+                .findFirst()
+                .orElse(null);
+        Template bridgeTemplate = catalog.stream()
+                .filter(t -> t.tags.contains(StrongholdTemplateTag.CONNECTOR))
+                .findFirst()
+                .orElse(null);
+        if (room == null || bridgeTemplate == null) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                    "Stronghold test mode is missing room/connector templates.");
+            return new GenerationResult(false, "missing_templates", null);
+        }
+
+        GenerationContext context = new GenerationContext(List.of(), seed, 1);
+        Placement roomA = new Placement(room, new Transform(new Vec3(0, 0, 0), StrongholdRotation.R0), 0);
+        context.placements.put(0, roomA);
+
+        Connector roomAOut = connectorFacing(roomA, Direction.EAST);
+        Connector bridgeIn = connectorFacing(new Placement(bridgeTemplate,
+                new Transform(new Vec3(0, 0, 0), StrongholdRotation.R0), -1), Direction.WEST);
+        Transform bridgeTransform = solveTransform(roomA.transform, roomAOut, bridgeIn, StrongholdRotation.R0);
+        Placement bridge = new Placement(bridgeTemplate, bridgeTransform, -1);
+        context.bridges.add(bridge);
+
+        Connector bridgeOut = connectorFacing(bridge, Direction.EAST);
+        Connector roomBIn = connectorFacing(new Placement(room,
+                new Transform(new Vec3(0, 0, 0), StrongholdRotation.R0), 1), Direction.WEST);
+        Transform roomBTransform = solveTransform(bridge.transform, bridgeOut, roomBIn, StrongholdRotation.R0);
+        Placement roomB = new Placement(room, roomBTransform, 1);
+        context.placements.put(1, roomB);
+
+        context.logs.add("TEST mode simple pair: room -> connector -> room");
+        renderDebug(context, player.getWorld(), player.getLocation().toVector());
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
+                "Stronghold test generated simple room-connector-room chain.");
+        return new GenerationResult(true, "ok", context);
     }
 
     private List<NodeSpec> generateGraph(GraphMode mode, int nodeCount, Random random) {
@@ -322,6 +365,15 @@ public class StrongholdGeneratorService {
             }
         }
         return from.template.connectors(from.transform.rotation).get(0);
+    }
+
+    private Connector connectorFacing(Placement placement, Direction direction) {
+        for (Connector connector : placement.template.connectors(placement.transform.rotation)) {
+            if (connector.facing == direction) {
+                return connector;
+            }
+        }
+        return placement.template.connectors(placement.transform.rotation).get(0);
     }
 
     private String edgeKey(int a, int b) {
