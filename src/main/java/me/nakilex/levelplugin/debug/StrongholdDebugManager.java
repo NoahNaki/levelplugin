@@ -274,6 +274,22 @@ public class StrongholdDebugManager implements Listener {
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, reason);
     }
 
+    private void rollbackAndFail(Player player, Map<Location, BlockData> snapshot, String reason, List<String> debugDetails) {
+        rollbackAndFail(player, snapshot, reason);
+        sendDebugDetails(player, reason, debugDetails);
+    }
+
+    private void sendDebugDetails(Player player, String headline, List<String> details) {
+        if (details == null || details.isEmpty()) {
+            return;
+        }
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO, ChatColor.YELLOW + "[StrongholdDebug] " + headline);
+        for (String detail : details) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO, ChatColor.GRAY + " - " + detail);
+            plugin.getLogger().info("[StrongholdDebug] " + detail);
+        }
+    }
+
     private boolean hasPlacedNeighbor(GridNode node, Map<Integer, NodePlan> placed) {
         for (Integer nid : node.neighbors().values()) {
             if (placed.containsKey(nid)) return true;
@@ -296,20 +312,31 @@ public class StrongholdDebugManager implements Listener {
         EnumSet<Direction> dirs = node.directions();
         RoomTemplate template = selectTemplate(dirs, straightWallsSinceGate, towerCount, gateCount, planById, node, graph, graphMode);
         if (template == null) {
-            rollbackAndFail(player, snapshot, "No template matched connector pattern " + dirs + ".");
+            rollbackAndFail(player, snapshot, "No template matched connector pattern " + dirs + ".",
+                    List.of("Node=" + node.id(),
+                            "Dirs=" + dirs,
+                            "Enabled counts: straight=" + countEnabled(straightTemplates)
+                                    + ", corner=" + countEnabled(cornerTemplates)
+                                    + ", deadend=" + countEnabled(deadEndTemplates)
+                                    + ", tower=" + countEnabled(towerTemplates)
+                                    + ", gate=" + countEnabled(gateTemplates)));
             return null;
         }
         int rotation = findRotationForPlacement(template, dirs);
         Location center = fixedCenter != null ? fixedCenter.clone() : solveCenter(node, template, rotation, planById, fallback);
         if (center == null) {
-            rollbackAndFail(player, snapshot, "Failed to align template connectors for node " + node.id() + ".");
+            rollbackAndFail(player, snapshot, "Failed to align template connectors for node " + node.id() + ".",
+                    describeAlignmentFailure(node, template, rotation, planById));
             return null;
         }
         DungeonManager.PasteResult preview = dungeonManager.pasteRoom(debugDungeon, template, rotation, center, null, true,
                 TEMPLATE_IGNORE, overlapAllowance);
         if (!preview.success()) {
             rollbackAndFail(player, snapshot, "Template overlap too high (" + String.format(Locale.US, "%.1f", preview.overlap() * 100.0D)
-                    + "% > " + String.format(Locale.US, "%.1f", overlapAllowance * 100.0D) + "%) at node " + node.id() + ".");
+                    + "% > " + String.format(Locale.US, "%.1f", overlapAllowance * 100.0D) + "%) at node " + node.id() + ".",
+                    List.of("TemplateId=" + templateIds.getOrDefault(template, "unknown"),
+                            "Rotation=" + rotation,
+                            "Center=" + center.getBlockX() + "," + center.getBlockY() + "," + center.getBlockZ()));
             return null;
         }
         captureForRestore(snapshot, template, rotation, center);
@@ -319,6 +346,36 @@ public class StrongholdDebugManager implements Listener {
             return null;
         }
         return new NodePlan(node.id(), node, template, rotation, center);
+    }
+
+    private int countEnabled(List<RoomTemplate> templates) {
+        int count = 0;
+        for (RoomTemplate template : templates) {
+            if (isTemplateEnabled(template)) count++;
+        }
+        return count;
+    }
+
+    private List<String> describeAlignmentFailure(GridNode node,
+                                                  RoomTemplate template,
+                                                  int rotation,
+                                                  Map<Integer, NodePlan> placed) {
+        List<String> lines = new ArrayList<>();
+        lines.add("Node=" + node.id() + " Dirs=" + node.directions());
+        lines.add("TemplateId=" + templateIds.getOrDefault(template, "unknown") + " Rotation=" + rotation);
+        for (Map.Entry<Direction, Integer> edge : node.neighbors().entrySet()) {
+            NodePlan neighbor = placed.get(edge.getValue());
+            Direction dir = edge.getKey();
+            if (neighbor == null) {
+                lines.add("Neighbor " + edge.getValue() + " (" + dir + ") not placed yet.");
+                continue;
+            }
+            int ours = connectorsFacing(template, rotation, dir).size();
+            int theirs = connectorsFacing(neighbor.template, neighbor.rotation, dir.opposite()).size();
+            lines.add("Neighbor " + neighbor.id + " dir=" + dir + " ours=" + ours + " theirs=" + theirs
+                    + " neighborTemplate=" + templateIds.getOrDefault(neighbor.template, "unknown"));
+        }
+        return lines;
     }
 
     private void captureForRestore(Map<Location, BlockData> snapshot, RoomTemplate template, int rotation, Location center) {
