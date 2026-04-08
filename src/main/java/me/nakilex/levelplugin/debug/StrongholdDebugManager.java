@@ -24,7 +24,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class StrongholdDebugManager {
     private static final Set<Material> TEMPLATE_IGNORE = EnumSet.of(Material.WHITE_CONCRETE, Material.LIGHT_BLUE_CONCRETE);
     private static final Set<Material> STRONGHOLD_SKIP = EnumSet.of(Material.REDSTONE_BLOCK, Material.PINK_WOOL, Material.LIME_WOOL);
-    private static final double MAX_TEMPLATE_OVERLAP = 0.10D;
+    private static final double MAX_TEMPLATE_OVERLAP = 0.28D;
     private static final int MAX_TEMPLATE_SELECTION_ATTEMPTS = 8;
     private static final int MAX_STRONGHOLD_SPAWN_ATTEMPTS = 12;
     private static final double SCORE_TOWER = 120D;
@@ -983,9 +983,13 @@ public class StrongholdDebugManager {
     private double calculateTemplateOverlapRatio(RoomTemplate template, int rotation, Location center, Set<String> occupiedBlocks) {
         int overlapping = 0;
         int totalSolid = 0;
+        int connectorY = template.getConnectorMinY();
         for (RoomTemplate.BlockDef b : template.getBlocks()) {
             Material mat = b.data.getMaterial();
             if (mat.isAir() || TEMPLATE_IGNORE.contains(mat) || STRONGHOLD_SKIP.contains(mat)) continue;
+            // Mirror DungeonManager preview leniency: ignore low connector/base
+            // layers and only score overlap for meaningful room geometry.
+            if ((b.y - connectorY) <= 2) continue;
             totalSolid++;
             String key = blockKey(blockLocationFor(template, b.x, b.y, b.z, rotation, center));
             if (key != null && occupiedBlocks.contains(key)) {
