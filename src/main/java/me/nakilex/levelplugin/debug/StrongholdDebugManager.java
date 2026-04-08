@@ -24,7 +24,6 @@ import java.util.concurrent.ConcurrentHashMap;
 public class StrongholdDebugManager {
     private static final Set<Material> TEMPLATE_IGNORE = EnumSet.of(Material.WHITE_CONCRETE, Material.LIGHT_BLUE_CONCRETE);
     private static final Set<Material> STRONGHOLD_SKIP = EnumSet.of(Material.REDSTONE_BLOCK, Material.PINK_WOOL, Material.LIME_WOOL);
-    private static final double STRONGHOLD_MAX_OVERLAP = 0.30;
     private static final int NODE_PLACEMENT_ATTEMPTS = 24;
 
     private final Main plugin;
@@ -41,6 +40,7 @@ public class StrongholdDebugManager {
 
     private final Map<UUID, ActiveStronghold> activeByPlayer = new ConcurrentHashMap<>();
     private volatile boolean templatesLoaded = false;
+    private volatile double strongholdMaxOverlap = 0.30;
 
     public StrongholdDebugManager(Main plugin, DungeonManager dungeonManager) {
         this.plugin = plugin;
@@ -66,6 +66,14 @@ public class StrongholdDebugManager {
         }
         restoreSnapshot(active.restoreSnapshot);
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, "Stronghold debug instance despawned and world restored.");
+    }
+
+    public double getStrongholdMaxOverlap() {
+        return strongholdMaxOverlap;
+    }
+
+    public void setStrongholdMaxOverlap(double overlap) {
+        this.strongholdMaxOverlap = Math.max(0.0, Math.min(1.0, overlap));
     }
 
     private void spawnInternal(Player player, int size, long stepDelayTicks, GraphMode graphMode) {
@@ -128,7 +136,7 @@ public class StrongholdDebugManager {
 
             captureForRestore(snapshot, template, rotation, center);
             DungeonManager.PasteResult result = dungeonManager.pasteRoom(debugDungeon, template, rotation, center, null, false,
-                    TEMPLATE_IGNORE, STRONGHOLD_MAX_OVERLAP);
+                    TEMPLATE_IGNORE, strongholdMaxOverlap);
             if (!result.success()) {
                 rollbackAndFail(player, snapshot, "Failed to paste stronghold node " + node.id() + ".");
                 return;
@@ -187,7 +195,7 @@ public class StrongholdDebugManager {
             Location center = origin.clone().add(rotation * spacing, 0, 0);
             captureForRestore(snapshot, tSection, rotation, center);
             DungeonManager.PasteResult result = dungeonManager.pasteRoom(debugDungeon, tSection, rotation, center, null, false,
-                    TEMPLATE_IGNORE, STRONGHOLD_MAX_OVERLAP);
+                    TEMPLATE_IGNORE, strongholdMaxOverlap);
             if (!result.success()) {
                 restoreSnapshot(snapshot);
                 ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
@@ -234,7 +242,7 @@ public class StrongholdDebugManager {
                 continue;
             }
             DungeonManager.PasteResult preview = dungeonManager.pasteRoom(dungeon, template, rotation, center, null, true,
-                    TEMPLATE_IGNORE, STRONGHOLD_MAX_OVERLAP);
+                    TEMPLATE_IGNORE, strongholdMaxOverlap);
             if (preview.success()) {
                 debug.successes++;
                 return new CandidateSearchResult(new CandidatePlacement(template, rotation, center, preview.overlap()), debug);
@@ -245,7 +253,7 @@ public class StrongholdDebugManager {
                 best = new CandidatePlacement(template, rotation, center, preview.overlap());
             }
         }
-        if (bestOverlap <= STRONGHOLD_MAX_OVERLAP) {
+        if (bestOverlap <= strongholdMaxOverlap) {
             debug.successes++;
             return new CandidateSearchResult(best, debug);
         }

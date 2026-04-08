@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -541,12 +542,35 @@ public class DebugCommand implements TabExecutor {
                     return true;
                 }
                 if (args.length < 2) {
-                    sender.sendMessage(ChatColor.RED + "Usage: /debug stronghold <spawn|spawnstep|despawn> [size] [delayTicks] [mode]");
+                    sender.sendMessage(ChatColor.RED + "Usage: /debug stronghold <spawn|spawnstep|despawn|overlap> [size] [delayTicks] [mode]");
                     return true;
                 }
                 String mode = args[1].toLowerCase();
                 if ("despawn".equals(mode)) {
                     strongholdDebugManager.despawn(strongholdPlayer);
+                    return true;
+                }
+                if ("overlap".equals(mode)) {
+                    if (args.length < 3) {
+                        sender.sendMessage(ChatColor.YELLOW + "Current overlap allowance: "
+                                + String.format(Locale.US, "%.1f%%", strongholdDebugManager.getStrongholdMaxOverlap() * 100.0));
+                        sender.sendMessage(ChatColor.GRAY + "Usage: /debug stronghold overlap <percentage>");
+                        return true;
+                    }
+                    double percent;
+                    try {
+                        percent = Double.parseDouble(args[2]);
+                    } catch (NumberFormatException ex) {
+                        sender.sendMessage(ChatColor.RED + "Overlap must be a percentage number (e.g. 30).");
+                        return true;
+                    }
+                    if (percent < 0 || percent > 100) {
+                        sender.sendMessage(ChatColor.RED + "Overlap must be between 0 and 100.");
+                        return true;
+                    }
+                    strongholdDebugManager.setStrongholdMaxOverlap(percent / 100.0);
+                    ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.SUCCESS,
+                            "Stronghold overlap allowance set to " + String.format(Locale.US, "%.1f%%", percent) + ".");
                     return true;
                 }
                 int size = 8;
@@ -604,7 +628,7 @@ public class DebugCommand implements TabExecutor {
                     strongholdDebugManager.spawnStep(strongholdPlayer, size, delay, graphMode);
                     return true;
                 }
-                sender.sendMessage(ChatColor.RED + "Usage: /debug stronghold <spawn|spawnstep|despawn> [size] [delayTicks] [mode]");
+                sender.sendMessage(ChatColor.RED + "Usage: /debug stronghold <spawn|spawnstep|despawn|overlap> [size] [delayTicks] [mode]");
                 return true;
 
             case "inventorydebug":
@@ -771,8 +795,13 @@ public class DebugCommand implements TabExecutor {
                     .filter(opt -> opt.startsWith(args[1].toLowerCase()))
                     .toList();
         } else if (args.length == 2 && args[0].equalsIgnoreCase("stronghold")) {
-            return List.of("spawn", "spawnstep", "despawn").stream()
+            return List.of("spawn", "spawnstep", "despawn", "overlap").stream()
                     .filter(opt -> opt.startsWith(args[1].toLowerCase()))
+                    .toList();
+        } else if (args.length == 3 && args[0].equalsIgnoreCase("stronghold")
+                && args[1].equalsIgnoreCase("overlap")) {
+            return List.of("10", "20", "30", "40", "50", "75", "100").stream()
+                    .filter(opt -> opt.startsWith(args[2].toLowerCase()))
                     .toList();
         } else if (args.length == 3 && args[0].equalsIgnoreCase("stronghold")
                 && (args[1].equalsIgnoreCase("spawn") || args[1].equalsIgnoreCase("spawnstep"))) {
