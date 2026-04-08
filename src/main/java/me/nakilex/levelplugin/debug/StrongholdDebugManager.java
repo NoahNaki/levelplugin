@@ -229,6 +229,9 @@ public class StrongholdDebugManager {
 
                 ConnectorPlan connectorPlan = buildConnectorPlan(p, neighbor, d);
                 if (connectorPlan == null) {
+                    if (connectorsAlreadyTouching(p, neighbor, d)) {
+                        continue;
+                    }
                     return null;
                 }
                 captureForRestore(snapshot, connectorPlan.template, connectorPlan.rotation, connectorPlan.center);
@@ -239,6 +242,21 @@ public class StrongholdDebugManager {
         }
 
         return connectorPlans;
+    }
+
+    private boolean connectorsAlreadyTouching(NodePlan a, NodePlan b, Direction directionFromA) {
+        Location aTarget = connectorAnchorLocation(a, directionFromA, true);
+        Location bTarget = connectorAnchorLocation(b, directionFromA.opposite(), true);
+        if (aTarget == null || bTarget == null) {
+            return false;
+        }
+        if (!Objects.equals(aTarget.getWorld(), bTarget.getWorld())) {
+            return false;
+        }
+        int dx = Math.abs(aTarget.getBlockX() - bTarget.getBlockX());
+        int dy = Math.abs(aTarget.getBlockY() - bTarget.getBlockY());
+        int dz = Math.abs(aTarget.getBlockZ() - bTarget.getBlockZ());
+        return dy == 0 && (dx + dz) <= 1;
     }
 
     private ConnectorPlan buildConnectorPlan(NodePlan a, NodePlan b, Direction directionFromA) {
@@ -369,6 +387,13 @@ public class StrongholdDebugManager {
             if (tower != null && canPlaceTower(node, placed, graph) && findRotation(tower, dirs) >= 0) return tower;
             RoomTemplate dead = pickRandom(deadEndTemplates);
             if (dead != null && findRotation(dead, dirs) >= 0) return dead;
+            return selectTemplate(dirs);
+        }
+        if (degree == 3) {
+            RoomTemplate tower = pickRandom(towerTemplates);
+            if (tower != null && canPlaceTower(node, placed, graph) && findRotation(tower, dirs) >= 0) return tower;
+            RoomTemplate gate = pickRandom(gateTemplates);
+            if (gate != null && canPlaceGate(node, placed, graph) && findRotation(gate, dirs) >= 0) return gate;
             return selectTemplate(dirs);
         }
         return selectTemplate(dirs);
@@ -515,7 +540,7 @@ public class StrongholdDebugManager {
 
     public enum GraphMode {
         SNAKE(new SnakeGraphGenerator()),
-        BRANCHING(new BranchingRandomGraphGenerator(2));
+        BRANCHING(new BranchingRandomGraphGenerator(3));
 
         private final DungeonGraphGenerator generator;
 
