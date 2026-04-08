@@ -6,7 +6,7 @@ import java.util.EnumMap;
 import java.util.EnumSet;
 
 /**
- * Generic generated graph node used by dungeon/stronghold layout planners.
+ * Generic generated graph node used by dungeon layout planners.
  */
 public class GridNode {
     private final int id;

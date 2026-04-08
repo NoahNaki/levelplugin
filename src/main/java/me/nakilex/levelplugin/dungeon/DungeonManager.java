@@ -378,11 +378,16 @@ public class DungeonManager {
     }
 
     public PasteResult pasteRoom(Dungeon dungeon, RoomTemplate template, int rotation, Location center, String mob, boolean preview) {
-        return pasteRoom(dungeon, template, rotation, center, mob, preview, java.util.Set.of());
+        return pasteRoom(dungeon, template, rotation, center, mob, preview, java.util.Set.of(), 0.10D);
     }
 
     public PasteResult pasteRoom(Dungeon dungeon, RoomTemplate template, int rotation, Location center, String mob, boolean preview,
                                  java.util.Set<Material> ignoredMaterials) {
+        return pasteRoom(dungeon, template, rotation, center, mob, preview, ignoredMaterials, 0.10D);
+    }
+
+    public PasteResult pasteRoom(Dungeon dungeon, RoomTemplate template, int rotation, Location center, String mob, boolean preview,
+                                 java.util.Set<Material> ignoredMaterials, double maxOverlapAllowed) {
         World world = center.getWorld();
         if (world == null) return new PasteResult(false, 1.0, Map.<Location, BlockData>of(), null);
 
@@ -416,7 +421,7 @@ public class DungeonManager {
                 total++;
             }
             overlap = total == 0 ? 0.0 : (double) collisions / total;
-            if (overlap > 0.10) {
+            if (overlap > Math.max(0.0D, maxOverlapAllowed)) {
                 return new PasteResult(false, overlap, Map.of(), null);
             }
         } else {

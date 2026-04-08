@@ -14,7 +14,6 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.chat.games.ChatGameManager;
 import me.nakilex.levelplugin.chat.games.ChatGameStatus;
 import me.nakilex.levelplugin.debug.gui.DebugGUI;
-import me.nakilex.levelplugin.debug.StrongholdDebugManager;
 import me.nakilex.levelplugin.debug.BeaconEntityDebugManager;
 import me.nakilex.levelplugin.debug.DropDebugManager;
 import me.nakilex.levelplugin.debug.ArcSlashDebugManager;
@@ -90,7 +89,6 @@ public class DebugCommand implements TabExecutor {
     private final ArcSlashDebugManager arcSlashDebugManager;
     private final ArcSlashDebugGUI arcSlashDebugGUI;
     private final PetManager petManager;
-    private final StrongholdDebugManager strongholdDebugManager;
 
     public DebugCommand(PlayerToggleManager mobDebugManager,
                         PlayerScoreboardManager scoreboardManager,
@@ -104,8 +102,7 @@ public class DebugCommand implements TabExecutor {
                         QuestManager questManager,
                         ArcSlashDebugManager arcSlashDebugManager,
                         ArcSlashDebugGUI arcSlashDebugGUI,
-                        PetManager petManager,
-                        StrongholdDebugManager strongholdDebugManager) {
+                        PetManager petManager) {
         this.mobDebugManager = mobDebugManager;
         this.scoreboardManager = scoreboardManager;
         this.debugGUI = debugGUI;
@@ -119,7 +116,6 @@ public class DebugCommand implements TabExecutor {
         this.arcSlashDebugManager = arcSlashDebugManager;
         this.arcSlashDebugGUI = arcSlashDebugGUI;
         this.petManager = petManager;
-        this.strongholdDebugManager = strongholdDebugManager;
     }
 
     @Override
@@ -131,7 +127,7 @@ public class DebugCommand implements TabExecutor {
                 String statUsage = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|" + statUsage + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|inventorydebug|rewardbomb|warriorcyclone|" + statUsage + ">");
             }
             return true;
         }
@@ -535,92 +531,6 @@ public class DebugCommand implements TabExecutor {
                 handleChatGameToggle(sender, args);
                 return true;
 
-            case "stronghold":
-                if (!(sender instanceof Player strongholdPlayer)) {
-                    sender.sendMessage(ChatColor.RED + "Players only.");
-                    return true;
-                }
-                if (args.length < 2) {
-                    sender.sendMessage(ChatColor.RED + "Usage: /debug stronghold <spawn|spawnstep|despawn> [size] [delayTicks] [mode]");
-                    return true;
-                }
-                String mode = args[1].toLowerCase();
-                if ("despawn".equals(mode)) {
-                    strongholdDebugManager.despawn(strongholdPlayer);
-                    return true;
-                }
-                int size = 8;
-                StrongholdDebugManager.GraphMode graphMode = StrongholdDebugManager.GraphMode.SNAKE;
-                if ("spawn".equals(mode)) {
-                    int modeArgIndex = 3;
-                    if (args.length >= 3) {
-                        try {
-                            size = Integer.parseInt(args[2]);
-                        } catch (NumberFormatException ex) {
-                            graphMode = StrongholdDebugManager.GraphMode.fromArg(args[2]);
-                            modeArgIndex = 2;
-                            if (graphMode == null) {
-                                sender.sendMessage(ChatColor.RED + "Size must be a number.");
-                                return true;
-                            }
-                        }
-                    }
-                    if (args.length > modeArgIndex) {
-                        graphMode = StrongholdDebugManager.GraphMode.fromArg(args[modeArgIndex]);
-                        if (graphMode == null) {
-                            sender.sendMessage(ChatColor.RED + "Unknown mode. Use: "
-                                    + String.join(", ", StrongholdDebugManager.GraphMode.ids()));
-                            return true;
-                        }
-                    }
-                    strongholdDebugManager.spawn(strongholdPlayer, size, graphMode);
-                    return true;
-                }
-                if ("spawnstep".equals(mode)) {
-                    long delay = 8L;
-                    int cursor = 2;
-                    if (args.length > cursor) {
-                        try {
-                            size = Integer.parseInt(args[cursor]);
-                            cursor++;
-                        } catch (NumberFormatException ignored) {
-                            graphMode = StrongholdDebugManager.GraphMode.fromArg(args[cursor]);
-                            if (graphMode != null) {
-                                strongholdDebugManager.spawnStep(strongholdPlayer, size, delay, graphMode);
-                                return true;
-                            }
-                            sender.sendMessage(ChatColor.RED + "Size must be a number.");
-                            return true;
-                        }
-                    }
-                    if (args.length > cursor) {
-                        try {
-                            delay = Long.parseLong(args[cursor]);
-                            cursor++;
-                        } catch (NumberFormatException ex) {
-                            graphMode = StrongholdDebugManager.GraphMode.fromArg(args[cursor]);
-                            if (graphMode == null) {
-                                sender.sendMessage(ChatColor.RED + "Delay must be a number of ticks.");
-                                return true;
-                            }
-                            strongholdDebugManager.spawnStep(strongholdPlayer, size, delay, graphMode);
-                            return true;
-                        }
-                    }
-                    if (args.length > cursor) {
-                        graphMode = StrongholdDebugManager.GraphMode.fromArg(args[cursor]);
-                        if (graphMode == null) {
-                            sender.sendMessage(ChatColor.RED + "Unknown mode. Use: "
-                                    + String.join(", ", StrongholdDebugManager.GraphMode.ids()));
-                            return true;
-                        }
-                    }
-                    strongholdDebugManager.spawnStep(strongholdPlayer, size, delay, graphMode);
-                    return true;
-                }
-                sender.sendMessage(ChatColor.RED + "Usage: /debug stronghold <spawn|spawnstep|despawn> [size] [delayTicks] [mode]");
-                return true;
-
             case "inventorydebug":
                 if (!(sender instanceof Player inventoryDebugPlayer)) {
                     sender.sendMessage(ChatColor.RED + "Players only.");
@@ -634,7 +544,7 @@ public class DebugCommand implements TabExecutor {
                 String statUsage2 = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|" + statUsage2 + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|inventorydebug|rewardbomb|warriorcyclone|" + statUsage2 + ">");
                 return true;
         }
     }
@@ -734,7 +644,7 @@ public class DebugCommand implements TabExecutor {
             List<String> subs = new ArrayList<>(List.of("mobinfo", "tps", "siege", "cityowner", "citymax", "autocast",
                     "hand", "chatgame", "expedition", "dungeonexpedition", "rewardbomb", "drops", "beaconentity",
                     "spellinput", "spellcooldown", "spellmanacost", "stunstick", "poisonstick", "tauntstick", "fearstick", "slowstick", "petpull",
-                    "particle", "particlepath", "particlepreset", "inventorydebug", "warriorcyclone", "stronghold"));
+                    "particle", "particlepath", "particlepreset", "inventorydebug", "warriorcyclone"));
             subs.addAll(Arrays.stream(StatType.values()).map(StatType::getAbbrev).toList());
             return subs.stream()
                     .filter(s -> s.startsWith(args[0].toLowerCase()))
@@ -783,34 +693,6 @@ public class DebugCommand implements TabExecutor {
         } else if (args.length == 2 && args[0].equalsIgnoreCase("petpull")) {
             return List.of("1", "5", "10").stream()
                     .filter(opt -> opt.startsWith(args[1].toLowerCase()))
-                    .toList();
-        } else if (args.length == 2 && args[0].equalsIgnoreCase("stronghold")) {
-            return List.of("spawn", "spawnstep", "despawn").stream()
-                    .filter(opt -> opt.startsWith(args[1].toLowerCase()))
-                    .toList();
-        } else if (args.length == 3 && args[0].equalsIgnoreCase("stronghold")
-                && (args[1].equalsIgnoreCase("spawn") || args[1].equalsIgnoreCase("spawnstep"))) {
-            List<String> options = new ArrayList<>(List.of("8", "12", "20"));
-            options.addAll(StrongholdDebugManager.GraphMode.ids());
-            return options.stream()
-                    .filter(opt -> opt.startsWith(args[2].toLowerCase()))
-                    .toList();
-        } else if (args.length == 4 && args[0].equalsIgnoreCase("stronghold")
-                && args[1].equalsIgnoreCase("spawn")) {
-            return StrongholdDebugManager.GraphMode.ids().stream()
-                    .filter(opt -> opt.startsWith(args[3].toLowerCase()))
-                    .toList();
-        } else if (args.length == 4 && args[0].equalsIgnoreCase("stronghold")
-                && args[1].equalsIgnoreCase("spawnstep")) {
-            List<String> options = new ArrayList<>(List.of("4", "8", "12", "20"));
-            options.addAll(StrongholdDebugManager.GraphMode.ids());
-            return options.stream()
-                    .filter(opt -> opt.startsWith(args[3].toLowerCase()))
-                    .toList();
-        } else if (args.length == 5 && args[0].equalsIgnoreCase("stronghold")
-                && args[1].equalsIgnoreCase("spawnstep")) {
-            return StrongholdDebugManager.GraphMode.ids().stream()
-                    .filter(opt -> opt.startsWith(args[4].toLowerCase()))
                     .toList();
         }
         return Collections.emptyList();
