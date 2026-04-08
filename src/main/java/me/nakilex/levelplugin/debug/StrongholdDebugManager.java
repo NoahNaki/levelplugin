@@ -110,15 +110,21 @@ public class StrongholdDebugManager {
         for (int i = 0; i < graph.size(); i++) {
             GridNode node = graph.get(i);
             EnumSet<Direction> dirs = node.directions();
-            CandidatePlacement candidate = selectTemplateWithOverlapBudget(node, dirs, straightWallsSinceGate, towerCount, gateCount,
+            CandidateSearchResult search = selectTemplateWithOverlapBudget(node, dirs, straightWallsSinceGate, towerCount, gateCount,
                     planById, graphMode, graph, i == 0 ? rootCenter.clone() : rootCenter, debugDungeon, i == 0);
+            CandidatePlacement candidate = search.placement;
             if (candidate == null) {
-                rollbackAndFail(player, snapshot, "No template matched connector pattern " + dirs + ".");
+                rollbackAndFail(player, snapshot,
+                        "No viable placement for connector pattern " + dirs + " (" + search.debug.summary() + ").");
                 return;
             }
             RoomTemplate template = candidate.template;
             int rotation = candidate.rotation;
             Location center = candidate.center;
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                    "Node " + node.id() + " " + dirs + " -> " + templateLabel(template)
+                            + " rot=" + rotation + " overlap=" + String.format(Locale.US, "%.3f", candidate.overlap)
+                            + " (" + search.debug.summary() + ")");
 
             captureForRestore(snapshot, template, rotation, center);
             DungeonManager.PasteResult result = dungeonManager.pasteRoom(debugDungeon, template, rotation, center, null, false,
@@ -196,7 +202,7 @@ public class StrongholdDebugManager {
                 "Spawned all 4 T-section rotations in a row for debug.");
     }
 
-    private CandidatePlacement selectTemplateWithOverlapBudget(GridNode node,
+    private CandidateSearchResult selectTemplateWithOverlapBudget(GridNode node,
                                                                EnumSet<Direction> dirs,
                                                                int straightWallsSinceGate,
                                                                int towerCount,
@@ -209,30 +215,41 @@ public class StrongholdDebugManager {
                                                                boolean firstNode) {
         CandidatePlacement best = null;
         double bestOverlap = Double.MAX_VALUE;
+        PlacementDebug debug = new PlacementDebug();
         for (int attempt = 0; attempt < NODE_PLACEMENT_ATTEMPTS; attempt++) {
             RoomTemplate template = selectTemplate(dirs, straightWallsSinceGate, towerCount, gateCount, placed, node, graphMode, graph);
+            debug.attempts++;
             if (template == null) {
+                debug.templateMisses++;
                 continue;
             }
             int rotation = findRotationForPlacement(template, dirs);
             if (rotation < 0) {
+                debug.rotationMisses++;
                 continue;
             }
             Location center = firstNode ? rootCenter.clone() : solveCenter(node, template, rotation, placed, rootCenter);
             if (center == null) {
+                debug.centerMisses++;
                 continue;
             }
             DungeonManager.PasteResult preview = dungeonManager.pasteRoom(dungeon, template, rotation, center, null, true,
                     TEMPLATE_IGNORE, STRONGHOLD_MAX_OVERLAP);
             if (preview.success()) {
-                return new CandidatePlacement(template, rotation, center, preview.overlap());
+                debug.successes++;
+                return new CandidateSearchResult(new CandidatePlacement(template, rotation, center, preview.overlap()), debug);
             }
+            debug.overlapRejects++;
             if (preview.overlap() < bestOverlap) {
                 bestOverlap = preview.overlap();
                 best = new CandidatePlacement(template, rotation, center, preview.overlap());
             }
         }
-        return bestOverlap <= STRONGHOLD_MAX_OVERLAP ? best : null;
+        if (bestOverlap <= STRONGHOLD_MAX_OVERLAP) {
+            debug.successes++;
+            return new CandidateSearchResult(best, debug);
+        }
+        return new CandidateSearchResult(null, debug);
     }
 
     private BukkitTask runStepPlacement(Player player, List<NodePlan> plans, List<ConnectorPlan> connectorPlans, Map<Location, BlockData> snapshot, Dungeon dungeon, long delayTicks) {
@@ -577,6 +594,18 @@ public class StrongholdDebugManager {
         return gateTemplates.contains(template) || towerTemplates.contains(template);
     }
 
+    private String templateLabel(RoomTemplate template) {
+        if (template == null) return "unknown";
+        if (tSectionTemplates.contains(template)) return "tsection";
+        if (towerTemplates.contains(template)) return "tower";
+        if (gateTemplates.contains(template)) return "gate";
+        if (straightTemplates.contains(template)) return "straight";
+        if (cornerTemplates.contains(template)) return "corner";
+        if (deadEndTemplates.contains(template)) return "deadend";
+        if (connectorTemplates.contains(template)) return "connector";
+        return "other";
+    }
+
     private RoomTemplate selectTemplate(EnumSet<Direction> dirs) {
         int degree = dirs.size();
         if (degree == 1) {
@@ -760,6 +789,24 @@ public class StrongholdDebugManager {
 
     private record PlacementPlan(RoomTemplate template, int rotation, Location center) {}
     private record CandidatePlacement(RoomTemplate template, int rotation, Location center, double overlap) {}
+    private record CandidateSearchResult(CandidatePlacement placement, PlacementDebug debug) {}
+    private static final class PlacementDebug {
+        int attempts;
+        int templateMisses;
+        int rotationMisses;
+        int centerMisses;
+        int overlapRejects;
+        int successes;
+
+        String summary() {
+            return "attempts=" + attempts
+                    + ", templateMisses=" + templateMisses
+                    + ", rotationMisses=" + rotationMisses
+                    + ", centerMisses=" + centerMisses
+                    + ", overlapRejects=" + overlapRejects
+                    + ", successes=" + successes;
+        }
+    }
 
     public enum GraphMode {
         SNAKE(new SnakeGraphGenerator()),
