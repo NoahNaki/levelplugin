@@ -10,6 +10,7 @@ import me.nakilex.levelplugin.dungeon.generation.SnakeGraphGenerator;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
@@ -564,12 +565,23 @@ public class StrongholdGeneratorService {
         }
         int rot = placement.transform.rotation.quarterTurns();
         for (RoomTemplate.BlockDef block : source.getBlocks()) {
+            Material material = block.data.getMaterial();
+            if (shouldIgnoreMaterial(material)) {
+                continue;
+            }
             Vec3 rotated = new Vec3(block.x, block.y, block.z).rotateY(placement.transform.rotation);
             int wx = baseX + (int) Math.round(placement.transform.position.x + rotated.x);
             int wy = baseY + (int) Math.round(placement.transform.position.y + rotated.y);
             int wz = baseZ + (int) Math.round(placement.transform.position.z + rotated.z);
             world.getBlockAt(wx, wy, wz).setBlockData(RoomTemplate.rotateBlockData(block.data, rot), false);
         }
+    }
+
+    private boolean shouldIgnoreMaterial(Material material) {
+        return material == Material.AIR
+                || material == Material.WHITE_CONCRETE
+                || material == Material.LIGHT_BLUE_CONCRETE
+                || material == Material.REDSTONE_BLOCK;
     }
 
     private Map<String, TemplateSource> buildTemplateSources() {
