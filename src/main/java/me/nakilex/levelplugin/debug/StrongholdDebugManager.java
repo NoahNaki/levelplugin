@@ -400,13 +400,24 @@ public class StrongholdDebugManager {
         boolean opposite = dirs.equals(EnumSet.of(Direction.NORTH, Direction.SOUTH))
                 || dirs.equals(EnumSet.of(Direction.EAST, Direction.WEST));
 
-        if (degree == 2) {
-            if (attempt < 3) {
-                RoomTemplate tower = pickRandom(towerTemplates);
-                if (tower != null && canPlaceTower(node, placed, graph) && findRotationForPlacement(tower, dirs) >= 0) {
-                    return tower;
-                }
+        // Hard-prioritize opening with a tower when compatible so the layout
+        // starts from a tower hub instead of wall-heavy pieces.
+        if (placed.isEmpty()) {
+            RoomTemplate forcedRootTower = pickCompatibleTower(node, placed, graph, dirs);
+            if (forcedRootTower != null) {
+                return forcedRootTower;
             }
+        }
+
+        // Strongly bias early attempts toward towers for branching nodes.
+        if (degree >= 2 && attempt < 5) {
+            RoomTemplate tower = pickCompatibleTower(node, placed, graph, dirs);
+            if (tower != null) {
+                return tower;
+            }
+        }
+
+        if (degree == 2) {
             if (attempt < 5 && opposite) {
                 RoomTemplate straight = pickRandom(straightTemplates);
                 if (straight != null && findRotationForPlacement(straight, dirs) >= 0) {
@@ -422,6 +433,23 @@ public class StrongholdDebugManager {
         }
 
         return selectTemplate(dirs, straightWallsSinceGate, towerCount, gateCount, placed, node, graph);
+    }
+
+    private RoomTemplate pickCompatibleTower(GridNode node,
+                                             Map<Integer, NodePlan> placed,
+                                             List<GridNode> graph,
+                                             Set<Direction> dirs) {
+        if (!canPlaceTower(node, placed, graph) || towerTemplates.isEmpty()) {
+            return null;
+        }
+        List<RoomTemplate> shuffled = new ArrayList<>(towerTemplates);
+        Collections.shuffle(shuffled, random);
+        for (RoomTemplate tower : shuffled) {
+            if (findRotationForPlacement(tower, dirs) >= 0) {
+                return tower;
+            }
+        }
+        return null;
     }
 
     private Location connectorWorldLocation(NodePlan plan, Direction direction) {
