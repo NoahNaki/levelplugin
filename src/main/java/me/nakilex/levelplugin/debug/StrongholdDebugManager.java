@@ -458,18 +458,75 @@ public class StrongholdDebugManager implements Listener {
     }
 
     private Location solveCenter(GridNode node, RoomTemplate template, int rotation, Map<Integer, NodePlan> placed, Location fallback) {
+        List<Map.Entry<Direction, Integer>> attached = new ArrayList<>();
+        for (Map.Entry<Direction, Integer> edge : node.neighbors().entrySet()) {
+            NodePlan neighbor = placed.get(edge.getValue());
+            if (neighbor != null) {
+                attached.add(edge);
+            }
+        }
+        if (attached.isEmpty()) return null;
+
+        for (Map.Entry<Direction, Integer> edge : attached) {
+            Direction dirToNeighbor = edge.getKey();
+            NodePlan neighbor = placed.get(edge.getValue());
+            if (neighbor == null) continue;
+            List<RoomTemplate.Connector> thisOptions = connectorsFacing(template, rotation, dirToNeighbor);
+            List<RoomTemplate.Connector> otherOptions = connectorsFacing(neighbor.template, neighbor.rotation, dirToNeighbor.opposite());
+            for (RoomTemplate.Connector thisConn : thisOptions) {
+                for (RoomTemplate.Connector otherConn : otherOptions) {
+                    Location target = connectorAnchorLocation(neighbor.template, otherConn, neighbor.rotation, neighbor.center);
+                    Location center = centerFromAnchor(template, thisConn, rotation, target, fallback);
+                    if (center == null) continue;
+                    if (centerAlignsToPlacedNeighbors(node, template, rotation, center, placed)) {
+                        return center;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    private boolean centerAlignsToPlacedNeighbors(GridNode node,
+                                                  RoomTemplate template,
+                                                  int rotation,
+                                                  Location center,
+                                                  Map<Integer, NodePlan> placed) {
         for (Map.Entry<Direction, Integer> edge : node.neighbors().entrySet()) {
             NodePlan neighbor = placed.get(edge.getValue());
             if (neighbor == null) continue;
-            Direction dirToNeighbor = edge.getKey();
-            RoomTemplate.Connector thisConn = findConnector(template, rotation, dirToNeighbor);
-            RoomTemplate.Connector otherConn = findConnector(neighbor.template, neighbor.rotation, dirToNeighbor.opposite());
-            if (thisConn == null || otherConn == null) continue;
-            Location target = connectorAnchorLocation(neighbor.template, otherConn, neighbor.rotation, neighbor.center);
-            Location center = centerFromAnchor(template, thisConn, rotation, target, fallback);
-            if (center != null) return center;
+            Direction dir = edge.getKey();
+            List<RoomTemplate.Connector> ours = connectorsFacing(template, rotation, dir);
+            List<RoomTemplate.Connector> theirs = connectorsFacing(neighbor.template, neighbor.rotation, dir.opposite());
+            if (ours.isEmpty() || theirs.isEmpty()) return false;
+            boolean matched = false;
+            for (RoomTemplate.Connector a : ours) {
+                Location aLoc = connectorAnchorLocation(template, a, rotation, center);
+                for (RoomTemplate.Connector b : theirs) {
+                    Location bLoc = connectorAnchorLocation(neighbor.template, b, neighbor.rotation, neighbor.center);
+                    if (aLoc.getBlockX() == bLoc.getBlockX()
+                            && aLoc.getBlockY() == bLoc.getBlockY()
+                            && aLoc.getBlockZ() == bLoc.getBlockZ()) {
+                        matched = true;
+                        break;
+                    }
+                }
+                if (matched) break;
+            }
+            if (!matched) return false;
         }
-        return null;
+        return true;
+    }
+
+    private List<RoomTemplate.Connector> connectorsFacing(RoomTemplate template, int rotation, Direction direction) {
+        List<RoomTemplate.Connector> out = new ArrayList<>();
+        for (RoomTemplate.Connector c : template.getConnectors()) {
+            if (rotateDirection(c.facing, rotation) == direction) {
+                out.add(c);
+            }
+        }
+        out.sort(Comparator.comparing((RoomTemplate.Connector c) -> !c.entrance).thenComparingInt(c -> c.bottomY));
+        return out;
     }
 
     private int[] directionVector(Direction direction) {
