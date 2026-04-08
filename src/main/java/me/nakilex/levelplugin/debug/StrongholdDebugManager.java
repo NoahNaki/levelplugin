@@ -117,10 +117,27 @@ public class StrongholdDebugManager {
             GenerationTelemetry telemetry = new GenerationTelemetry();
             telemetry.promotedTowerJunctions = promotedTowerJunctions;
 
-            List<GridNode> placementOrder = buildPlacementOrder(graph);
+            Map<Integer, GridNode> nodeById = new HashMap<>();
+            for (GridNode n : graph) nodeById.put(n.id(), n);
+            Deque<Integer> frontier = new ArrayDeque<>();
+            Set<Integer> pending = new HashSet<>();
+            for (GridNode n : graph) pending.add(n.id());
+            GridNode rootNode = selectProceduralRoot(graph);
+            frontier.add(rootNode.id());
             boolean failed = false;
-            for (int i = 0; i < placementOrder.size(); i++) {
-                GridNode node = placementOrder.get(i);
+            while (!pending.isEmpty()) {
+                if (frontier.isEmpty()) {
+                    GridNode backfill = selectProceduralRoot(
+                            graph.stream().filter(n -> pending.contains(n.id())).toList());
+                    frontier.add(backfill.id());
+                    telemetry.frontierBackfills++;
+                }
+                Integer nodeId = frontier.pollFirst();
+                if (nodeId == null || !pending.contains(nodeId)) {
+                    continue;
+                }
+                GridNode node = nodeById.get(nodeId);
+                if (node == null) continue;
                 EnumSet<Direction> dirs = node.directions();
                 NodePlacementChoice choice = chooseNodePlacement(node, dirs, straightWallsSinceGate, towerCount, gateCount,
                         planById, graph, rootCenter, occupiedBlocks, telemetry, straightsSinceTower, postTowerStraightBudget);
@@ -143,10 +160,12 @@ public class StrongholdDebugManager {
                 NodePlan plan = new NodePlan(node.id(), node, choice.template, choice.rotation, choice.center);
                 plans.add(plan);
                 planById.put(node.id(), plan);
+                pending.remove(node.id());
 
                 Set<Direction> opposite = EnumSet.of(Direction.NORTH, Direction.SOUTH);
                 if (!dirs.equals(opposite)) opposite = EnumSet.of(Direction.EAST, Direction.WEST);
                 boolean isOpposite = dirs.equals(EnumSet.of(Direction.NORTH, Direction.SOUTH)) || dirs.equals(EnumSet.of(Direction.EAST, Direction.WEST));
+                boolean expandFromTower = towerTemplates.contains(choice.template);
                 if (gateTemplates.contains(choice.template)) {
                     gateCount++;
                     straightWallsSinceGate = 0;
@@ -166,6 +185,23 @@ public class StrongholdDebugManager {
                 } else {
                     straightsSinceTower = 0;
                     postTowerStraightBudget = Math.max(0, postTowerStraightBudget - 1);
+                }
+
+                List<Integer> nextNeighbors = new ArrayList<>(node.neighbors().values());
+                nextNeighbors.sort((a, b) -> {
+                    GridNode na = nodeById.get(a);
+                    GridNode nb = nodeById.get(b);
+                    int da = na == null ? 0 : na.directions().size();
+                    int db = nb == null ? 0 : nb.directions().size();
+                    return Integer.compare(db, da);
+                });
+                for (Integer nid : nextNeighbors) {
+                    if (!pending.contains(nid)) continue;
+                    if (expandFromTower) {
+                        frontier.addFirst(nid);
+                    } else {
+                        frontier.addLast(nid);
+                    }
                 }
             }
             if (failed) {
@@ -197,6 +233,28 @@ public class StrongholdDebugManager {
         }
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
                 "Failed to generate stronghold after " + MAX_STRONGHOLD_SPAWN_ATTEMPTS + " attempts. Last reason: " + lastFailure);
+    }
+
+    private GridNode selectProceduralRoot(List<GridNode> nodes) {
+        if (nodes == null || nodes.isEmpty()) {
+            throw new IllegalArgumentException("Cannot select root from empty node list.");
+        }
+        GridNode best = nodes.get(0);
+        int bestScore = Integer.MIN_VALUE;
+        for (GridNode node : nodes) {
+            int degree = node.directions().size();
+            int score = degree * 100;
+            if (degree >= 3 && hasTowerRotationFor(node.directions())) {
+                score += 500;
+            } else if (hasTowerRotationFor(node.directions())) {
+                score += 100;
+            }
+            if (score > bestScore) {
+                bestScore = score;
+                best = node;
+            }
+        }
+        return best;
     }
 
     private List<GridNode> buildPlacementOrder(List<GridNode> graph) {
@@ -965,6 +1023,7 @@ public class StrongholdDebugManager {
                         + ", overlapRejected=" + telemetry.overlapRejected
                         + ", rotationRejected=" + telemetry.rotationRejected
                         + ", centerRejected=" + telemetry.centerRejected
+                        + ", frontierBackfills=" + telemetry.frontierBackfills
                         + ", noPlacementFound=" + telemetry.noPlacementFound + ".");
     }
 
@@ -1051,6 +1110,7 @@ public class StrongholdDebugManager {
         int rotationRejected;
         int centerRejected;
         int noPlacementFound;
+        int frontierBackfills;
         int rootForcedTowerAttempts;
         int rootForcedTowerUsed;
 
