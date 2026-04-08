@@ -349,6 +349,10 @@ public class StrongholdDebugManager {
                                                          List<GridNode> graph) {
         List<RoomTemplate> ordered = new ArrayList<>();
         int degree = dirs.size();
+        boolean enforceSpecialBudget = graphMode != GraphMode.TEST
+                && graphMode != GraphMode.TSECTION
+                && graphMode != GraphMode.TSECTION_LINK;
+        boolean specialBudgetAvailable = !enforceSpecialBudget || isSpecialPlacementAvailable(placed);
 
         if (graphMode == GraphMode.TSECTION_LINK) {
             if (node.id() == 0) addIfPresent(ordered, tSectionTemplates);
@@ -364,38 +368,49 @@ public class StrongholdDebugManager {
                 || dirs.equals(EnumSet.of(Direction.EAST, Direction.WEST));
         if (degree >= 4) {
             if (canPlaceTower(node, placed, graph)
+                    && specialBudgetAvailable
                     && canPlaceTowerOrTSection(straightWallsSinceTowerOrTSection, placed)) {
                 addIfPresent(ordered, towerTemplates);
             }
         } else if (degree == 3) {
-            if (canPlaceTowerOrTSection(straightWallsSinceTowerOrTSection, placed)) {
+            if (specialBudgetAvailable && canPlaceTowerOrTSection(straightWallsSinceTowerOrTSection, placed)) {
                 addIfPresent(ordered, tSectionTemplates);
             }
             if (canPlaceTower(node, placed, graph)
+                    && specialBudgetAvailable
                     && canPlaceTowerOrTSection(straightWallsSinceTowerOrTSection, placed)) {
                 addIfPresent(ordered, towerTemplates);
             }
-            if (straightWallsSinceGate >= 2 && towerCount > gateCount && canPlaceGate(node, placed, graph)) {
+            if (specialBudgetAvailable
+                    && straightWallsSinceGate >= 2
+                    && towerCount > gateCount
+                    && canPlaceGate(node, placed, graph)) {
                 addIfPresent(ordered, gateTemplates);
             }
         } else if (degree == 2 && opposite) {
             addIfPresent(ordered, straightTemplates);
             if (canPlaceTower(node, placed, graph)
+                    && specialBudgetAvailable
                     && canPlaceTowerOrTSection(straightWallsSinceTowerOrTSection, placed)) {
                 addIfPresent(ordered, towerTemplates);
             }
-            if (straightWallsSinceGate >= 2 && towerCount > gateCount && canPlaceGate(node, placed, graph)) {
+            if (specialBudgetAvailable
+                    && straightWallsSinceGate >= 2
+                    && towerCount > gateCount
+                    && canPlaceGate(node, placed, graph)) {
                 addIfPresent(ordered, gateTemplates);
             }
         } else if (degree == 2) {
             addIfPresent(ordered, cornerTemplates);
             if (canPlaceTower(node, placed, graph)
+                    && specialBudgetAvailable
                     && canPlaceTowerOrTSection(straightWallsSinceTowerOrTSection, placed)) {
                 addIfPresent(ordered, towerTemplates);
             }
         } else if (degree == 1) {
             addIfPresent(ordered, deadEndTemplates);
             if (canPlaceTower(node, placed, graph)
+                    && specialBudgetAvailable
                     && canPlaceTowerOrTSection(straightWallsSinceTowerOrTSection, placed)) {
                 addIfPresent(ordered, towerTemplates);
             }
@@ -419,9 +434,26 @@ public class StrongholdDebugManager {
 
     private double templatePriority(RoomTemplate template) {
         if (template == null) return 1.0;
-        if (gateTemplates.contains(template)) return 0.40;
-        if (towerTemplates.contains(template) || tSectionTemplates.contains(template)) return 0.20;
+        if (gateTemplates.contains(template)) return 2.0;
+        if (towerTemplates.contains(template) || tSectionTemplates.contains(template)) return 1.0;
         return 0.0;
+    }
+
+    private boolean isSpecialPlacementAvailable(Map<Integer, NodePlan> placed) {
+        int total = placed.size();
+        if (total < 4) return true;
+        int special = 0;
+        for (NodePlan plan : placed.values()) {
+            if (isSpecialTemplate(plan.template)) {
+                special++;
+            }
+        }
+        int maxSpecial = Math.max(1, total / 3);
+        return special < maxSpecial;
+    }
+
+    private boolean isSpecialTemplate(RoomTemplate template) {
+        return towerTemplates.contains(template) || tSectionTemplates.contains(template) || gateTemplates.contains(template);
     }
 
     private BukkitTask runStepPlacement(Player player, List<NodePlan> plans, List<ConnectorPlan> connectorPlans, Map<Location, BlockData> snapshot, Dungeon dungeon, long delayTicks) {
