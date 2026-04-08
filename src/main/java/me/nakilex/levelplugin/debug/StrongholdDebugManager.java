@@ -93,6 +93,7 @@ public class StrongholdDebugManager {
                     "Failed to generate stronghold graph for mode '" + graphMode.id() + "'.");
             return;
         }
+        int promotedTowerJunctions = promoteTowerJunctions(graph);
 
         List<NodePlan> plans = new ArrayList<>();
         Map<Integer, NodePlan> planById = new HashMap<>();
@@ -105,6 +106,7 @@ public class StrongholdDebugManager {
         int towerCount = 0;
         int gateCount = 0;
         GenerationTelemetry telemetry = new GenerationTelemetry();
+        telemetry.promotedTowerJunctions = promotedTowerJunctions;
 
         List<GridNode> placementOrder = buildPlacementOrder(graph);
         for (int i = 0; i < placementOrder.size(); i++) {
@@ -551,6 +553,70 @@ public class StrongholdDebugManager {
         return graph;
     }
 
+    private int promoteTowerJunctions(List<GridNode> graph) {
+        if (graph == null || graph.isEmpty()) {
+            return 0;
+        }
+        Map<Integer, GridNode> byId = new HashMap<>();
+        for (GridNode node : graph) {
+            byId.put(node.id(), node);
+        }
+
+        int promoted = 0;
+        List<GridNode> ordered = new ArrayList<>(graph);
+        ordered.sort(Comparator
+                .comparingInt((GridNode n) -> n.directions().size())
+                .thenComparingInt(GridNode::id));
+        Collections.reverse(ordered);
+
+        for (GridNode node : ordered) {
+            if (node.directions().size() != 2) continue;
+            if (!hasTowerRotationFor(node.directions())) continue;
+
+            for (Direction candidate : Direction.values()) {
+                if (node.directions().contains(candidate)) continue;
+                Integer neighborId = neighborIdByGridOffset(node, candidate, byId);
+                if (neighborId == null) continue;
+                GridNode neighbor = byId.get(neighborId);
+                if (neighbor == null) continue;
+                if (neighbor.directions().size() >= 3) continue;
+                if (areAlreadyLinked(node, candidate, neighbor)) continue;
+
+                node.link(candidate, neighbor.id());
+                neighbor.link(candidate.opposite(), node.id());
+                promoted++;
+                break;
+            }
+        }
+        return promoted;
+    }
+
+    private Integer neighborIdByGridOffset(GridNode node, Direction direction, Map<Integer, GridNode> byId) {
+        int tx = node.gx();
+        int tz = node.gz();
+        switch (direction) {
+            case NORTH -> tz -= 1;
+            case SOUTH -> tz += 1;
+            case EAST -> tx += 1;
+            case WEST -> tx -= 1;
+        }
+        for (GridNode candidate : byId.values()) {
+            if (candidate.gx() == tx && candidate.gz() == tz) {
+                return candidate.id();
+            }
+        }
+        return null;
+    }
+
+    private boolean areAlreadyLinked(GridNode node, Direction fromNode, GridNode neighbor) {
+        Integer linkedId = node.neighbors().get(fromNode);
+        if (linkedId != null && linkedId == neighbor.id()) {
+            return true;
+        }
+        Integer reverse = neighbor.neighbors().get(fromNode.opposite());
+        return reverse != null && reverse == node.id();
+    }
+
     private boolean isGraphTemplateCompatible(List<GridNode> graph) {
         if (graph == null || graph.isEmpty()) {
             return false;
@@ -777,6 +843,7 @@ public class StrongholdDebugManager {
                         + ", straights=" + telemetry.straightsPlaced
                         + ", corners=" + telemetry.cornersPlaced
                         + ", deadEnds=" + telemetry.deadEndsPlaced
+                        + ", promotedJunctions=" + telemetry.promotedTowerJunctions
                         + ", overlapRejected=" + telemetry.overlapRejected
                         + ", rotationRejected=" + telemetry.rotationRejected
                         + ", centerRejected=" + telemetry.centerRejected
@@ -855,6 +922,7 @@ public class StrongholdDebugManager {
         int straightsPlaced;
         int cornersPlaced;
         int deadEndsPlaced;
+        int promotedTowerJunctions;
         int overlapRejected;
         int rotationRejected;
         int centerRejected;
