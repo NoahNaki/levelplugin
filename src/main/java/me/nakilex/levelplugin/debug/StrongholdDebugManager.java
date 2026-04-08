@@ -100,7 +100,7 @@ public class StrongholdDebugManager {
         for (int i = 0; i < graph.size(); i++) {
             GridNode node = graph.get(i);
             EnumSet<Direction> dirs = node.directions();
-            RoomTemplate template = selectTemplate(dirs, straightWallsSinceGate, towerCount, gateCount, planById, node, graph);
+            RoomTemplate template = selectTemplate(dirs, straightWallsSinceGate, towerCount, gateCount, planById, node, graph, graphMode);
             if (template == null) {
                 rollbackAndFail(player, snapshot, "No template matched connector pattern " + dirs + ".");
                 return;
@@ -359,6 +359,9 @@ public class StrongholdDebugManager {
     }
 
     private List<GridNode> generateGraphForTemplates(GraphMode mode, int size) {
+        if (mode == GraphMode.TEST) {
+            return buildTestGraph(size);
+        }
         List<GridNode> graph = mode.generator.generate(size, random);
         if (isGraphTemplateCompatible(graph)) {
             return graph;
@@ -374,6 +377,61 @@ public class StrongholdDebugManager {
             }
         }
         return graph;
+    }
+
+    private List<GridNode> buildTestGraph(int size) {
+        int targetSize = Math.max(9, size);
+        GridNode center = new GridNode(0, 0, 0);
+        GridNode northArm = new GridNode(1, 0, -1);
+        GridNode eastArm = new GridNode(2, 1, 0);
+        GridNode southArm = new GridNode(3, 0, 1);
+        GridNode westArm = new GridNode(4, -1, 0);
+        GridNode northEnd = new GridNode(5, 0, -2);
+        GridNode eastEnd = new GridNode(6, 2, 0);
+        GridNode southEnd = new GridNode(7, 0, 2);
+        GridNode westEnd = new GridNode(8, -2, 0);
+
+        link(center, northArm, Direction.NORTH);
+        link(center, eastArm, Direction.EAST);
+        link(center, southArm, Direction.SOUTH);
+        link(center, westArm, Direction.WEST);
+        link(northArm, northEnd, Direction.NORTH);
+        link(eastArm, eastEnd, Direction.EAST);
+        link(southArm, southEnd, Direction.SOUTH);
+        link(westArm, westEnd, Direction.WEST);
+
+        List<GridNode> ordered = new ArrayList<>(List.of(
+                center, northArm, eastArm, southArm, westArm,
+                northEnd, eastEnd, southEnd, westEnd
+        ));
+        if (targetSize <= ordered.size()) {
+            return new ArrayList<>(ordered.subList(0, targetSize));
+        }
+
+        EnumMap<Direction, GridNode> endpoints = new EnumMap<>(Direction.class);
+        endpoints.put(Direction.NORTH, northEnd);
+        endpoints.put(Direction.EAST, eastEnd);
+        endpoints.put(Direction.SOUTH, southEnd);
+        endpoints.put(Direction.WEST, westEnd);
+
+        Direction[] order = {Direction.NORTH, Direction.EAST, Direction.SOUTH, Direction.WEST};
+        int nextId = ordered.size();
+        int step = 0;
+        while (ordered.size() < targetSize) {
+            Direction direction = order[step++ % order.length];
+            GridNode tail = endpoints.get(direction);
+            int[] vec = directionVector(direction);
+            GridNode extension = new GridNode(nextId++, tail.gx() + vec[0], tail.gz() + vec[1]);
+            link(tail, extension, direction);
+            endpoints.put(direction, extension);
+            ordered.add(extension);
+        }
+        return ordered;
+    }
+
+    private void link(GridNode a, GridNode b, Direction fromAToB) {
+        a.link(fromAToB, b.id());
+        b.link(fromAToB.opposite(), a.id());
     }
 
     private boolean isGraphTemplateCompatible(List<GridNode> graph) {
@@ -394,11 +452,22 @@ public class StrongholdDebugManager {
                                         int gateCount,
                                         Map<Integer, NodePlan> placed,
                                         GridNode node,
-                                        List<GridNode> graph) {
+                                        List<GridNode> graph,
+                                        GraphMode mode) {
         int degree = dirs.size();
+        if (degree >= 4) {
+            RoomTemplate tower = pickRandom(towerTemplates);
+            if (tower != null && canPlaceTower(node, placed, graph) && findRotationForPlacement(tower, dirs) >= 0) return tower;
+            return selectTemplate(dirs);
+        }
         boolean opposite = dirs.equals(EnumSet.of(Direction.NORTH, Direction.SOUTH))
                 || dirs.equals(EnumSet.of(Direction.EAST, Direction.WEST));
         if (degree == 2 && opposite) {
+            if (mode == GraphMode.TEST) {
+                RoomTemplate straight = pickRandom(straightTemplates);
+                if (straight != null && findRotationForPlacement(straight, dirs) >= 0) return straight;
+                return selectTemplate(dirs);
+            }
             if (straightWallsSinceGate >= 2 && towerCount > gateCount && canPlaceGate(node, placed, graph)) {
                 RoomTemplate gate = pickRandom(gateTemplates);
                 if (gate != null && findRotationForPlacement(gate, dirs) >= 0) return gate;
@@ -595,7 +664,8 @@ public class StrongholdDebugManager {
 
     public enum GraphMode {
         SNAKE(new SnakeGraphGenerator()),
-        BRANCHING(new BranchingRandomGraphGenerator(3));
+        BRANCHING(new BranchingRandomGraphGenerator(3)),
+        TEST(null);
 
         private final DungeonGraphGenerator generator;
 
@@ -611,6 +681,7 @@ public class StrongholdDebugManager {
             return switch (normalized) {
                 case "branch", "branches", "branching", "random" -> BRANCHING;
                 case "snake", "serpentine" -> SNAKE;
+                case "test", "towertest", "cross" -> TEST;
                 default -> null;
             };
         }
