@@ -552,7 +552,10 @@ public class StrongholdDebugManager {
         int degree = dirs.size();
         if (degree >= 4) {
             RoomTemplate tower = pickRandom(towerTemplates);
-            if (tower != null && canPlaceTower(node, placed, graph) && findRotationForPlacement(tower, dirs) >= 0) return tower;
+            if (tower != null
+                    && canPlaceTower(node, placed, graph)
+                    && canPlaceTowerOrTSection(straightWallsSinceTowerOrTSection, placed)
+                    && findRotationForPlacement(tower, dirs) >= 0) return tower;
             return selectTemplate(dirs);
         }
         boolean opposite = dirs.equals(EnumSet.of(Direction.NORTH, Direction.SOUTH))
@@ -562,23 +565,39 @@ public class StrongholdDebugManager {
                 RoomTemplate straight = pickRandom(straightTemplates);
                 if (straight != null && findRotationForPlacement(straight, dirs) >= 0) return straight;
             }
+            RoomTemplate straight = pickRandom(straightTemplates);
+            if (straight != null && findRotationForPlacement(straight, dirs) >= 0 && roll(0.75)) return straight;
             if (straightWallsSinceGate >= 2 && towerCount > gateCount && canPlaceGate(node, placed, graph)) {
                 RoomTemplate gate = pickRandom(gateTemplates);
-                if (gate != null && findRotationForPlacement(gate, dirs) >= 0) return gate;
+                if (gate != null && findRotationForPlacement(gate, dirs) >= 0 && roll(0.20)) return gate;
             }
             RoomTemplate tower = pickRandom(towerTemplates);
-            if (tower != null && canPlaceTower(node, placed, graph) && findRotationForPlacement(tower, dirs) >= 0) return tower;
+            if (tower != null
+                    && canPlaceTower(node, placed, graph)
+                    && canPlaceTowerOrTSection(straightWallsSinceTowerOrTSection, placed)
+                    && findRotationForPlacement(tower, dirs) >= 0 && roll(0.60)) return tower;
+            if (straight != null && findRotationForPlacement(straight, dirs) >= 0) return straight;
             return selectTemplate(dirs);
         }
         if (degree == 2) {
+            RoomTemplate corner = pickRandom(cornerTemplates);
+            if (corner != null && findRotationForPlacement(corner, dirs) >= 0 && roll(0.80)) return corner;
             RoomTemplate tower = pickRandom(towerTemplates);
-            if (tower != null && canPlaceTower(node, placed, graph) && findRotationForPlacement(tower, dirs) >= 0) return tower;
-            return pickRandom(cornerTemplates) != null ? pickRandom(cornerTemplates) : selectTemplate(dirs);
+            if (tower != null
+                    && canPlaceTower(node, placed, graph)
+                    && canPlaceTowerOrTSection(straightWallsSinceTowerOrTSection, placed)
+                    && findRotationForPlacement(tower, dirs) >= 0 && roll(0.30)) return tower;
+            if (corner != null && findRotationForPlacement(corner, dirs) >= 0) return corner;
+            return selectTemplate(dirs);
         }
         if (degree == 1) {
-            RoomTemplate tower = pickRandom(towerTemplates);
-            if (tower != null && canPlaceTower(node, placed, graph) && findRotationForPlacement(tower, dirs) >= 0) return tower;
             RoomTemplate dead = pickRandom(deadEndTemplates);
+            if (dead != null && findRotationForPlacement(dead, dirs) >= 0 && roll(0.85)) return dead;
+            RoomTemplate tower = pickRandom(towerTemplates);
+            if (tower != null
+                    && canPlaceTower(node, placed, graph)
+                    && canPlaceTowerOrTSection(straightWallsSinceTowerOrTSection, placed)
+                    && findRotationForPlacement(tower, dirs) >= 0 && roll(0.20)) return tower;
             if (dead != null && findRotationForPlacement(dead, dirs) >= 0) return dead;
             return selectTemplate(dirs);
         }
@@ -586,14 +605,17 @@ public class StrongholdDebugManager {
             RoomTemplate tSection = pickRandom(tSectionTemplates);
             if (tSection != null
                     && canPlaceTowerOrTSection(straightWallsSinceTowerOrTSection, placed)
-                    && findRotationForPlacement(tSection, dirs) >= 0) return tSection;
+                    && findRotationForPlacement(tSection, dirs) >= 0 && roll(0.55)) return tSection;
             RoomTemplate tower = pickRandom(towerTemplates);
             if (tower != null
                     && canPlaceTower(node, placed, graph)
                     && canPlaceTowerOrTSection(straightWallsSinceTowerOrTSection, placed)
-                    && findRotationForPlacement(tower, dirs) >= 0) return tower;
+                    && findRotationForPlacement(tower, dirs) >= 0 && roll(0.55)) return tower;
             RoomTemplate gate = pickRandom(gateTemplates);
-            if (gate != null && canPlaceGate(node, placed, graph) && findRotationForPlacement(gate, dirs) >= 0) return gate;
+            if (gate != null && canPlaceGate(node, placed, graph) && findRotationForPlacement(gate, dirs) >= 0 && roll(0.20)) return gate;
+            if (tSection != null
+                    && canPlaceTowerOrTSection(straightWallsSinceTowerOrTSection, placed)
+                    && findRotationForPlacement(tSection, dirs) >= 0) return tSection;
             return selectTemplate(dirs);
         }
         return selectTemplate(dirs);
@@ -603,7 +625,7 @@ public class StrongholdDebugManager {
         for (Integer nid : node.neighbors().values()) {
             NodePlan p = placed.get(nid);
             if (p == null) continue;
-            if (isGateOrTower(p.template)) return false;
+            if (isGateTowerOrTSection(p.template)) return false;
         }
         return true;
     }
@@ -611,13 +633,17 @@ public class StrongholdDebugManager {
     private boolean canPlaceTower(GridNode node, Map<Integer, NodePlan> placed, List<GridNode> graph) {
         for (Integer nid : node.neighbors().values()) {
             NodePlan p = placed.get(nid);
-            if (p != null && gateTemplates.contains(p.template)) return false;
+            if (p != null && (gateTemplates.contains(p.template) || tSectionTemplates.contains(p.template))) return false;
         }
         return true;
     }
 
     private boolean isGateOrTower(RoomTemplate template) {
         return gateTemplates.contains(template) || towerTemplates.contains(template);
+    }
+
+    private boolean isGateTowerOrTSection(RoomTemplate template) {
+        return gateTemplates.contains(template) || towerTemplates.contains(template) || tSectionTemplates.contains(template);
     }
 
     private boolean isTowerOrTSection(RoomTemplate template) {
@@ -634,6 +660,10 @@ public class StrongholdDebugManager {
             }
         }
         return true;
+    }
+
+    private boolean roll(double chance) {
+        return random.nextDouble() < chance;
     }
 
     private String templateLabel(RoomTemplate template) {
