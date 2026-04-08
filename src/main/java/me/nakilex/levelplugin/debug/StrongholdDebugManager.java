@@ -478,6 +478,9 @@ public class StrongholdDebugManager {
         if (mode == GraphMode.TEST) {
             return buildTestGraph();
         }
+        if (mode == GraphMode.TSECTION_LINK) {
+            return buildTSectionLinkGraph();
+        }
         List<GridNode> graph = mode.generator.generate(size, random);
         if (isGraphTemplateCompatible(graph)) {
             return graph;
@@ -528,6 +531,40 @@ public class StrongholdDebugManager {
         return List.of(center, northArm, eastArm, southArm, westArm, northEnd, eastEnd, southEnd, westEnd);
     }
 
+    private List<GridNode> buildTSectionLinkGraph() {
+        GridNode tSection = new GridNode(0, 0, 0);
+        GridNode north1 = new GridNode(1, 0, -1);
+        GridNode north2 = new GridNode(2, 0, -2);
+        GridNode east1 = new GridNode(3, 1, 0);
+        GridNode east2 = new GridNode(4, 1, -1);
+        GridNode east3 = new GridNode(5, 1, -2);
+        GridNode west1 = new GridNode(6, -1, 0);
+        GridNode west2 = new GridNode(7, -1, -1);
+        GridNode west3 = new GridNode(8, -1, -2);
+        GridNode tower = new GridNode(9, 0, -3);
+
+        linkBidirectional(tSection, Direction.NORTH, north1);
+        linkBidirectional(north1, Direction.NORTH, north2);
+        linkBidirectional(north2, Direction.NORTH, tower);
+
+        linkBidirectional(tSection, Direction.EAST, east1);
+        linkBidirectional(east1, Direction.NORTH, east2);
+        linkBidirectional(east2, Direction.NORTH, east3);
+        linkBidirectional(east3, Direction.WEST, tower);
+
+        linkBidirectional(tSection, Direction.WEST, west1);
+        linkBidirectional(west1, Direction.NORTH, west2);
+        linkBidirectional(west2, Direction.NORTH, west3);
+        linkBidirectional(west3, Direction.EAST, tower);
+
+        return List.of(tSection, north1, north2, east1, east2, east3, west1, west2, west3, tower);
+    }
+
+    private void linkBidirectional(GridNode from, Direction direction, GridNode to) {
+        from.link(direction, to.id());
+        to.link(direction.opposite(), from.id());
+    }
+
     private boolean isGraphTemplateCompatible(List<GridNode> graph) {
         if (graph == null || graph.isEmpty()) {
             return false;
@@ -550,6 +587,22 @@ public class StrongholdDebugManager {
                                         GraphMode graphMode,
                                         List<GridNode> graph) {
         int degree = dirs.size();
+        if (graphMode == GraphMode.TSECTION_LINK) {
+            if (node.id() == 0) {
+                RoomTemplate tSection = pickRandom(tSectionTemplates);
+                if (tSection != null && findRotationForPlacement(tSection, dirs) >= 0) return tSection;
+            }
+            if (node.id() == 9) {
+                RoomTemplate tower = pickRandom(towerTemplates);
+                if (tower != null && findRotationForPlacement(tower, dirs) >= 0) return tower;
+            }
+            if (degree == 2) {
+                boolean opposite = dirs.equals(EnumSet.of(Direction.NORTH, Direction.SOUTH))
+                        || dirs.equals(EnumSet.of(Direction.EAST, Direction.WEST));
+                RoomTemplate preferred = opposite ? pickRandom(straightTemplates) : pickRandom(cornerTemplates);
+                if (preferred != null && findRotationForPlacement(preferred, dirs) >= 0) return preferred;
+            }
+        }
         if (degree >= 4) {
             RoomTemplate tower = pickRandom(towerTemplates);
             if (tower != null
@@ -884,7 +937,8 @@ public class StrongholdDebugManager {
         SNAKE(new SnakeGraphGenerator()),
         BRANCHING(new BranchingRandomGraphGenerator(3)),
         TEST(null),
-        TSECTION(null);
+        TSECTION(null),
+        TSECTION_LINK(null);
 
         private final DungeonGraphGenerator generator;
 
@@ -901,6 +955,7 @@ public class StrongholdDebugManager {
                 case "branch", "branches", "branching", "random" -> BRANCHING;
                 case "test" -> TEST;
                 case "tsection", "tee", "t" -> TSECTION;
+                case "tsectionlink", "link", "tslink" -> TSECTION_LINK;
                 case "snake", "serpentine" -> SNAKE;
                 default -> null;
             };
