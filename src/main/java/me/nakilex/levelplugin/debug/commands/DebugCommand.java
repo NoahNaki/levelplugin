@@ -541,10 +541,14 @@ public class DebugCommand implements TabExecutor {
                     return true;
                 }
                 if (args.length < 2) {
-                    sender.sendMessage(ChatColor.RED + "Usage: /debug stronghold <spawn|spawnstep|despawn|overlap> [size] [delayTicks] [mode]");
+                    sender.sendMessage(ChatColor.RED + "Usage: /debug stronghold <spawn|spawnstep|despawn|overlap|templates> [size] [delayTicks] [mode]");
                     return true;
                 }
                 String mode = args[1].toLowerCase();
+                if ("templates".equals(mode) || "gui".equals(mode)) {
+                    strongholdDebugManager.openTemplateGui(strongholdPlayer);
+                    return true;
+                }
                 if ("overlap".equals(mode)) {
                     if (args.length < 3) {
                         sender.sendMessage(ChatColor.RED + "Usage: /debug stronghold overlap <percentage allowance>");
@@ -635,7 +639,7 @@ public class DebugCommand implements TabExecutor {
                     strongholdDebugManager.spawnStep(strongholdPlayer, size, delay, graphMode);
                     return true;
                 }
-                sender.sendMessage(ChatColor.RED + "Usage: /debug stronghold <spawn|spawnstep|despawn|overlap> [size] [delayTicks] [mode]");
+                sender.sendMessage(ChatColor.RED + "Usage: /debug stronghold <spawn|spawnstep|despawn|overlap|templates> [size] [delayTicks] [mode]");
                 return true;
 
             case "inventorydebug":
@@ -802,7 +806,7 @@ public class DebugCommand implements TabExecutor {
                     .filter(opt -> opt.startsWith(args[1].toLowerCase()))
                     .toList();
         } else if (args.length == 2 && args[0].equalsIgnoreCase("stronghold")) {
-            return List.of("spawn", "spawnstep", "despawn", "overlap").stream()
+            return List.of("spawn", "spawnstep", "despawn", "overlap", "templates", "gui").stream()
                     .filter(opt -> opt.startsWith(args[1].toLowerCase()))
                     .toList();
         } else if (args.length == 3 && args[0].equalsIgnoreCase("stronghold")

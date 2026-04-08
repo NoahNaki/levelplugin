@@ -10,20 +10,28 @@ import me.nakilex.levelplugin.dungeon.generation.DungeonGraphGenerator;
 import me.nakilex.levelplugin.dungeon.generation.GridNode;
 import me.nakilex.levelplugin.dungeon.generation.SnakeGraphGenerator;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
+import me.nakilex.levelplugin.utils.GuiUtil;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class StrongholdDebugManager {
+public class StrongholdDebugManager implements Listener {
     private static final Set<Material> TEMPLATE_IGNORE = EnumSet.of(Material.WHITE_CONCRETE, Material.LIGHT_BLUE_CONCRETE);
     private static final Set<Material> STRONGHOLD_SKIP = EnumSet.of(Material.REDSTONE_BLOCK, Material.PINK_WOOL, Material.LIME_WOOL);
+    private static final String TEMPLATE_GUI_TITLE = "Stronghold Templates";
 
     private final Main plugin;
     private final DungeonManager dungeonManager;
@@ -35,6 +43,8 @@ public class StrongholdDebugManager {
     private final List<RoomTemplate> connectorTemplates = new ArrayList<>();
     private final List<RoomTemplate> towerTemplates = new ArrayList<>();
     private final List<RoomTemplate> gateTemplates = new ArrayList<>();
+    private final Map<String, TemplateEntry> templateEntries = new LinkedHashMap<>();
+    private final Map<RoomTemplate, String> templateIds = new HashMap<>();
 
     private final Map<UUID, ActiveStronghold> activeByPlayer = new ConcurrentHashMap<>();
     private final Map<RoomTemplate, Integer> templateUsage = new HashMap<>();
@@ -45,6 +55,7 @@ public class StrongholdDebugManager {
     public StrongholdDebugManager(Main plugin, DungeonManager dungeonManager) {
         this.plugin = plugin;
         this.dungeonManager = dungeonManager;
+        Bukkit.getPluginManager().registerEvents(this, plugin);
     }
 
     public void spawn(Player player, int size, GraphMode mode) {
@@ -74,6 +85,42 @@ public class StrongholdDebugManager {
 
     public double getOverlapAllowancePercent() {
         return overlapAllowance * 100.0D;
+    }
+
+    public void openTemplateGui(Player player) {
+        if (!ensureTemplatesLoaded(player)) {
+            return;
+        }
+        int size = Math.max(27, ((templateEntries.size() + 8) / 9) * 9);
+        size = Math.min(54, size);
+        Inventory inv = Bukkit.createInventory(null, size, TEMPLATE_GUI_TITLE);
+        int slot = 0;
+        for (TemplateEntry entry : templateEntries.values()) {
+            if (slot >= inv.getSize()) break;
+            inv.setItem(slot++, createTemplateToggleItem(entry));
+        }
+        player.openInventory(inv);
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                "Click a template to toggle it on/off for stronghold generation.");
+    }
+
+    @EventHandler
+    public void onTemplateGuiClick(InventoryClickEvent event) {
+        if (!(event.getWhoClicked() instanceof Player player)) return;
+        if (!TEMPLATE_GUI_TITLE.equals(event.getView().getTitle())) return;
+        event.setCancelled(true);
+        int slot = event.getRawSlot();
+        if (slot < 0 || slot >= event.getView().getTopInventory().getSize()) return;
+        ItemStack clicked = event.getCurrentItem();
+        if (clicked == null || !clicked.hasItemMeta()) return;
+        String key = ChatColor.stripColor(clicked.getItemMeta().getDisplayName());
+        if (key == null || key.isBlank()) return;
+        TemplateEntry entry = templateEntries.get(key.toLowerCase(Locale.ROOT));
+        if (entry == null) return;
+        entry.enabled = !entry.enabled;
+        event.getInventory().setItem(slot, createTemplateToggleItem(entry));
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                entry.id + " is now " + (entry.enabled ? ChatColor.GREEN + "enabled" : ChatColor.RED + "disabled") + ChatColor.GRAY + ".");
     }
 
     private void spawnInternal(Player player, int size, long stepDelayTicks, GraphMode graphMode) {
@@ -481,49 +528,55 @@ public class StrongholdDebugManager {
                                         GridNode node,
                                         List<GridNode> graph,
                                         GraphMode mode) {
+        RoomTemplate standard = selectTemplate(dirs);
         int degree = dirs.size();
+        boolean bigAllowed = canPlaceBigStructure(node, placed, graph, 2);
+        RoomTemplate bigCandidate = null;
         if (degree >= 4) {
             RoomTemplate tower = pickTemplateWithVariety(towerTemplates, dirs);
-            if (tower != null && canPlaceTower(node, placed, graph) && findRotationForPlacement(tower, dirs) >= 0) return tower;
-            return selectTemplate(dirs);
+            if (tower != null && canPlaceTower(node, placed, graph) && findRotationForPlacement(tower, dirs) >= 0) {
+                bigCandidate = tower;
+            }
+            return chooseBigOrStandard(bigCandidate, standard, bigAllowed, 0.25D);
         }
         boolean opposite = dirs.equals(EnumSet.of(Direction.NORTH, Direction.SOUTH))
                 || dirs.equals(EnumSet.of(Direction.EAST, Direction.WEST));
         if (degree == 2 && opposite) {
             if (mode == GraphMode.TEST) {
-                RoomTemplate straight = pickTemplateWithVariety(straightTemplates, dirs);
-                if (straight != null && findRotationForPlacement(straight, dirs) >= 0) return straight;
-                return selectTemplate(dirs);
+                return standard;
             }
             if (straightWallsSinceGate >= 2 && towerCount > gateCount && canPlaceGate(node, placed, graph)) {
                 RoomTemplate gate = pickTemplateWithVariety(gateTemplates, dirs);
-                if (gate != null && findRotationForPlacement(gate, dirs) >= 0) return gate;
+                if (gate != null && findRotationForPlacement(gate, dirs) >= 0) {
+                    bigCandidate = gate;
+                }
             }
-            RoomTemplate tower = pickTemplateWithVariety(towerTemplates, dirs);
-            if (tower != null && canPlaceTower(node, placed, graph) && findRotationForPlacement(tower, dirs) >= 0) return tower;
-            return selectTemplate(dirs);
+            if (bigCandidate == null) {
+                RoomTemplate tower = pickTemplateWithVariety(towerTemplates, dirs);
+                if (tower != null && canPlaceTower(node, placed, graph) && findRotationForPlacement(tower, dirs) >= 0) {
+                    bigCandidate = tower;
+                }
+            }
+            return chooseBigOrStandard(bigCandidate, standard, bigAllowed, 0.35D);
         }
         if (degree == 2) {
-            RoomTemplate tower = pickTemplateWithVariety(towerTemplates, dirs);
-            if (tower != null && canPlaceTower(node, placed, graph) && findRotationForPlacement(tower, dirs) >= 0) return tower;
-            RoomTemplate corner = pickTemplateWithVariety(cornerTemplates, dirs);
-            return corner != null ? corner : selectTemplate(dirs);
+            return standard;
         }
         if (degree == 1) {
-            RoomTemplate tower = pickTemplateWithVariety(towerTemplates, dirs);
-            if (tower != null && canPlaceTower(node, placed, graph) && findRotationForPlacement(tower, dirs) >= 0) return tower;
-            RoomTemplate dead = pickTemplateWithVariety(deadEndTemplates, dirs);
-            if (dead != null && findRotationForPlacement(dead, dirs) >= 0) return dead;
-            return selectTemplate(dirs);
+            return standard;
         }
         if (degree == 3) {
             RoomTemplate tower = pickTemplateWithVariety(towerTemplates, dirs);
-            if (tower != null && canPlaceTower(node, placed, graph) && findRotationForPlacement(tower, dirs) >= 0) return tower;
+            if (tower != null && canPlaceTower(node, placed, graph) && findRotationForPlacement(tower, dirs) >= 0) {
+                bigCandidate = tower;
+            }
             RoomTemplate gate = pickTemplateWithVariety(gateTemplates, dirs);
-            if (gate != null && canPlaceGate(node, placed, graph) && findRotationForPlacement(gate, dirs) >= 0) return gate;
-            return selectTemplate(dirs);
+            if (bigCandidate == null && gate != null && canPlaceGate(node, placed, graph) && findRotationForPlacement(gate, dirs) >= 0) {
+                bigCandidate = gate;
+            }
+            return chooseBigOrStandard(bigCandidate, standard, bigAllowed, 0.30D);
         }
-        return selectTemplate(dirs);
+        return standard;
     }
 
     private boolean canPlaceGate(GridNode node, Map<Integer, NodePlan> placed, List<GridNode> graph) {
@@ -558,6 +611,7 @@ public class StrongholdDebugManager {
         RoomTemplate fallback = pickTemplateWithVariety(straightTemplates, dirs);
         if (fallback != null && findRotationForPlacement(fallback, dirs) >= 0) return fallback;
         for (RoomTemplate t : allTemplates()) {
+            if (!isTemplateEnabled(t)) continue;
             if (findRotationForPlacement(t, dirs) >= 0) return t;
         }
         return null;
@@ -627,32 +681,34 @@ public class StrongholdDebugManager {
             return false;
         }
         cornerTemplates.clear(); straightTemplates.clear(); deadEndTemplates.clear(); connectorTemplates.clear(); towerTemplates.clear(); gateTemplates.clear();
+        templateEntries.clear();
+        templateIds.clear();
 
-        load(cornerTemplates, flatland, 473, -38, -5346, 543, -61, -5276);
-        load(cornerTemplates, flatland, 544, -38, -5631, 614, -61, -5701);
-        load(cornerTemplates, flatland, 614, -61, -5630, 544, -38, -5560);
+        load(cornerTemplates, "corner", flatland, 473, -38, -5346, 543, -61, -5276);
+        load(cornerTemplates, "corner", flatland, 544, -38, -5631, 614, -61, -5701);
+        load(cornerTemplates, "corner", flatland, 614, -61, -5630, 544, -38, -5560);
 
-        load(straightTemplates, flatland, 402, -38, -5276, 472, -61, -5346);
-        load(straightTemplates, flatland, 472, -61, -5347, 402, -38, -5417);
-        load(straightTemplates, flatland, 402, -38, -5418, 472, -61, -5488);
-        load(straightTemplates, flatland, 472, -61, -5489, 402, -38, -5559);
-        load(straightTemplates, flatland, 402, -38, -5560, 472, -61, -5630);
-        load(straightTemplates, flatland, 472, -61, -5631, 402, -38, -5701);
-        load(straightTemplates, flatland, 473, -38, -5701, 543, -61, -5631);
-        load(straightTemplates, flatland, 543, -61, -5630, 473, -38, -5560);
-        load(straightTemplates, flatland, 473, -38, -5417, 543, -61, -5347);
+        load(straightTemplates, "straight", flatland, 402, -38, -5276, 472, -61, -5346);
+        load(straightTemplates, "straight", flatland, 472, -61, -5347, 402, -38, -5417);
+        load(straightTemplates, "straight", flatland, 402, -38, -5418, 472, -61, -5488);
+        load(straightTemplates, "straight", flatland, 472, -61, -5489, 402, -38, -5559);
+        load(straightTemplates, "straight", flatland, 402, -38, -5560, 472, -61, -5630);
+        load(straightTemplates, "straight", flatland, 472, -61, -5631, 402, -38, -5701);
+        load(straightTemplates, "straight", flatland, 473, -38, -5701, 543, -61, -5631);
+        load(straightTemplates, "straight", flatland, 543, -61, -5630, 473, -38, -5560);
+        load(straightTemplates, "straight", flatland, 473, -38, -5417, 543, -61, -5347);
 
-        load(deadEndTemplates, flatland, 543, -38, -5418, 473, -61, -5488);
-        load(deadEndTemplates, flatland, 473, -61, -5489, 543, -38, -5559);
+        load(deadEndTemplates, "deadend", flatland, 543, -38, -5418, 473, -61, -5488);
+        load(deadEndTemplates, "deadend", flatland, 473, -61, -5489, 543, -38, -5559);
 
-        load(connectorTemplates, flatland, 412, -61, -5711, 402, -38, -5701);
-        load(connectorTemplates, flatland, 402, -38, -5721, 412, -61, -5711);
+        load(connectorTemplates, "connector", flatland, 412, -61, -5711, 402, -38, -5701);
+        load(connectorTemplates, "connector", flatland, 402, -38, -5721, 412, -61, -5711);
 
-        load(towerTemplates, flatland, 615, -61, -5488, 685, -7, -5418);
-        load(towerTemplates, flatland, 615, -61, -5276, 685, -7, -5206);
+        load(towerTemplates, "tower", flatland, 615, -61, -5488, 685, -7, -5418);
+        load(towerTemplates, "tower", flatland, 615, -61, -5276, 685, -7, -5206);
 
-        load(gateTemplates, flatland, 686, -61, -5346, 614, -10, -5418);
-        load(gateTemplates, flatland, 686, -61, -5276, 614, -10, -5346);
+        load(gateTemplates, "gate", flatland, 686, -61, -5346, 614, -10, -5418);
+        load(gateTemplates, "gate", flatland, 686, -61, -5276, 614, -10, -5346);
 
         templatesLoaded = !straightTemplates.isEmpty();
         if (!templatesLoaded) {
@@ -661,8 +717,13 @@ public class StrongholdDebugManager {
         return templatesLoaded;
     }
 
-    private void load(List<RoomTemplate> target, World world, int x1, int y1, int z1, int x2, int y2, int z2) {
-        target.add(RoomTemplate.capture(world, x1, y1, z1, x2, y2, z2, false));
+    private void load(List<RoomTemplate> target, String category, World world, int x1, int y1, int z1, int x2, int y2, int z2) {
+        RoomTemplate captured = RoomTemplate.capture(world, x1, y1, z1, x2, y2, z2, false);
+        target.add(captured);
+        String id = category + "_" + target.size();
+        TemplateEntry entry = new TemplateEntry(id, category);
+        templateEntries.put(id, entry);
+        templateIds.put(captured, id);
     }
 
     private void restoreSnapshot(Map<Location, BlockData> snapshot) {
@@ -683,6 +744,7 @@ public class StrongholdDebugManager {
         List<RoomTemplate> eligible = new ArrayList<>();
         int minScore = Integer.MAX_VALUE;
         for (RoomTemplate template : list) {
+            if (!isTemplateEnabled(template)) continue;
             if (findRotationForPlacement(template, dirs) < 0) continue;
             int score = templateUsage.getOrDefault(template, 0);
             if (recentTemplates.contains(template)) score += 2;
@@ -698,12 +760,81 @@ public class StrongholdDebugManager {
         return pickRandom(eligible);
     }
 
+    private RoomTemplate chooseBigOrStandard(RoomTemplate bigCandidate, RoomTemplate standard, boolean bigAllowed, double bigChance) {
+        if (standard == null) return bigCandidate;
+        if (!bigAllowed || bigCandidate == null) return standard;
+        if (random.nextDouble() <= Math.max(0.0D, Math.min(1.0D, bigChance))) {
+            return bigCandidate;
+        }
+        return standard;
+    }
+
+    private boolean canPlaceBigStructure(GridNode node, Map<Integer, NodePlan> placed, List<GridNode> graph, int minStraightRoomsBetween) {
+        int requiredDistance = Math.max(1, minStraightRoomsBetween + 1);
+        return distanceToNearestBig(node, placed, graph, requiredDistance) >= requiredDistance;
+    }
+
+    private int distanceToNearestBig(GridNode start, Map<Integer, NodePlan> placed, List<GridNode> graph, int cutoffDistance) {
+        Map<Integer, GridNode> lookup = new HashMap<>();
+        for (GridNode n : graph) lookup.put(n.id(), n);
+        Deque<int[]> queue = new ArrayDeque<>();
+        Set<Integer> visited = new HashSet<>();
+        queue.add(new int[]{start.id(), 0});
+        visited.add(start.id());
+        while (!queue.isEmpty()) {
+            int[] current = queue.poll();
+            GridNode node = lookup.get(current[0]);
+            if (node == null) continue;
+            int distance = current[1];
+            NodePlan placedNode = placed.get(node.id());
+            if (placedNode != null && isBigStructure(placedNode.template)) {
+                return distance;
+            }
+            if (distance >= cutoffDistance) continue;
+            for (Integer nid : node.neighbors().values()) {
+                if (nid == null || !visited.add(nid)) continue;
+                GridNode neighbor = lookup.get(nid);
+                if (neighbor == null) continue;
+                queue.add(new int[]{nid, distance + 1});
+            }
+        }
+        return Integer.MAX_VALUE;
+    }
+
+    private boolean isBigStructure(RoomTemplate template) {
+        return towerTemplates.contains(template) || gateTemplates.contains(template);
+    }
+
+    private boolean isTemplateEnabled(RoomTemplate template) {
+        String id = templateIds.get(template);
+        if (id == null) return true;
+        TemplateEntry entry = templateEntries.get(id);
+        return entry == null || entry.enabled;
+    }
+
     private void noteTemplateUsage(RoomTemplate template) {
         templateUsage.merge(template, 1, Integer::sum);
         recentTemplates.addLast(template);
         while (recentTemplates.size() > 4) {
             recentTemplates.removeFirst();
         }
+    }
+
+    private ItemStack createTemplateToggleItem(TemplateEntry entry) {
+        Material material = switch (entry.category) {
+            case "straight" -> Material.STONE_BRICKS;
+            case "corner" -> Material.CHISELED_STONE_BRICKS;
+            case "deadend" -> Material.MOSSY_STONE_BRICKS;
+            case "connector" -> Material.COBBLESTONE_WALL;
+            case "tower" -> Material.POLISHED_DEEPSLATE;
+            case "gate" -> Material.IRON_BARS;
+            default -> Material.PAPER;
+        };
+        return GuiUtil.createToggleItem(entry.enabled,
+                ChatColor.AQUA + entry.id,
+                ChatColor.GRAY + "Category: " + ChatColor.WHITE + entry.category,
+                ChatColor.GRAY + "Currently: " + (entry.enabled ? ChatColor.GREEN + "enabled" : ChatColor.RED + "disabled"),
+                ChatColor.DARK_GRAY + "Click to toggle.");
     }
 
     private record ActiveStronghold(World world,
@@ -718,6 +849,17 @@ public class StrongholdDebugManager {
     private record ConnectorPlan(RoomTemplate template, int rotation, Location center) {}
 
     private record PlacementPlan(RoomTemplate template, int rotation, Location center) {}
+
+    private static final class TemplateEntry {
+        private final String id;
+        private final String category;
+        private boolean enabled = true;
+
+        private TemplateEntry(String id, String category) {
+            this.id = id.toLowerCase(Locale.ROOT);
+            this.category = category.toLowerCase(Locale.ROOT);
+        }
+    }
 
     public enum GraphMode {
         SNAKE(new SnakeGraphGenerator()),
