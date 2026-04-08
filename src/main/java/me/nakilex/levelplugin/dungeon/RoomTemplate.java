@@ -183,7 +183,7 @@ public class RoomTemplate {
         }
 
         // group connectors by contiguous marker blocks
-        List<Connector> connectors = new ArrayList<>();
+        List<PendingConnector> pendingConnectors = new ArrayList<>();
         Set<Location> visited = new HashSet<>();
         for (Location loc : markerBlocks) {
             if (visited.contains(loc)) continue;
@@ -219,30 +219,46 @@ public class RoomTemplate {
             int czWorld = (int) Math.round(sz / group.size());
             int cx = cxWorld - minX;
             int cz = czWorld - minZ;
-            Direction dir = inferConnectorFacing(cxWorld, czWorld, minX, maxX, minZ, maxZ);
             boolean entrance = false;
             for (Location l : group) {
                 Location above = l.clone().add(0, 1, 0);
                 if (limeBlocks.contains(above)) { entrance = true; break; }
             }
-            connectors.add(new Connector(cx, cz, minGroupY - minY, dir, entrance));
+            pendingConnectors.add(new PendingConnector(cx, cz, minGroupY - minY, entrance));
         }
+
+        List<Connector> connectors = buildConnectorsFromPending(pendingConnectors);
 
         return new RoomTemplate(blocks, connectors, portalMarks, exitMarks, chestMarks, bossMark, width, height, depth, minY);
     }
 
-    private static Direction inferConnectorFacing(int x, int z, int minX, int maxX, int minZ, int maxZ) {
-        int westDistance = Math.abs(x - minX);
-        int eastDistance = Math.abs(maxX - x);
-        int northDistance = Math.abs(z - minZ);
-        int southDistance = Math.abs(maxZ - z);
+    private static List<Connector> buildConnectorsFromPending(List<PendingConnector> pending) {
+        if (pending.isEmpty()) return List.of();
 
-        int minDistance = Math.min(Math.min(westDistance, eastDistance), Math.min(northDistance, southDistance));
-        if (minDistance == westDistance) return Direction.WEST;
-        if (minDistance == eastDistance) return Direction.EAST;
-        if (minDistance == northDistance) return Direction.NORTH;
-        return Direction.SOUTH;
+        double centerX = 0;
+        double centerZ = 0;
+        for (PendingConnector c : pending) {
+            centerX += c.x();
+            centerZ += c.z();
+        }
+        centerX /= pending.size();
+        centerZ /= pending.size();
+
+        List<Connector> connectors = new ArrayList<>(pending.size());
+        for (PendingConnector c : pending) {
+            int dx = (int) Math.round(c.x() - centerX);
+            int dz = (int) Math.round(c.z() - centerZ);
+            if (dx == 0 && dz == 0) {
+                // Perfectly centered marker groups cannot infer a side; preserve deterministic fallback.
+                dz = -1;
+            }
+            Direction facing = Direction.fromDelta(dx, dz);
+            connectors.add(new Connector(c.x(), c.z(), c.bottomY(), facing, c.entrance()));
+        }
+        return connectors;
     }
+
+    private record PendingConnector(int x, int z, int bottomY, boolean entrance) {}
 
     /**
      * Get the set of connector directions for a given rotation.
