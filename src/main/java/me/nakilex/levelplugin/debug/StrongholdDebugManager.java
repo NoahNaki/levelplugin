@@ -262,7 +262,7 @@ public class StrongholdDebugManager {
 
         int nextId = 1;
         for (RoomTemplate.Connector towerConnector : towerChoice.template.getConnectors()) {
-            Direction direction = rotateDirection(towerConnector.facing, towerChoice.rotation);
+            Direction direction = resolveConnectorDirection(towerChoice.template, towerConnector, towerChoice.rotation);
             TemplateCandidate straightChoice = selectTestStraightCandidate(direction);
             if (straightChoice == null) {
                 continue;
@@ -345,6 +345,16 @@ public class StrongholdDebugManager {
             }
         }
         return null;
+    }
+
+    private Direction resolveConnectorDirection(RoomTemplate template, RoomTemplate.Connector connector, int rotation) {
+        int dx = connector.x - (int) Math.round(template.getCenterX());
+        int dz = connector.z - (int) Math.round(template.getCenterZ());
+        int[] rotated = RoomTemplate.rotate(dx, dz, rotation);
+        if (rotated[0] == 0 && rotated[1] == 0) {
+            return rotateDirection(connector.facing, rotation);
+        }
+        return Direction.fromDelta(rotated[0], rotated[1]);
     }
 
     private TemplateCandidate selectTestStraightCandidate(Direction directionFromTower) {
