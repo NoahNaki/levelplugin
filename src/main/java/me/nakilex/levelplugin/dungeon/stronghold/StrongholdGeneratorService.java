@@ -466,6 +466,39 @@ public class StrongholdGeneratorService {
     public record GenerationResult(boolean success, String reason, GenerationContext context) {
     }
 
+    public List<TemplateTeleportTarget> getTemplateTeleportTargets(World world) {
+        List<TemplateTeleportTarget> out = new ArrayList<>();
+        addTarget(out, world, "corner_1", 473, -38, -5346, 543, -61, -5276);
+        addTarget(out, world, "corner_2", 544, -38, -5631, 614, -61, -5701);
+        addTarget(out, world, "corner_3", 614, -61, -5630, 544, -38, -5560);
+        addTarget(out, world, "straight_1", 402, -38, -5276, 472, -61, -5346);
+        addTarget(out, world, "straight_2", 472, -61, -5347, 402, -38, -5417);
+        addTarget(out, world, "straight_3", 402, -38, -5418, 472, -61, -5488);
+        addTarget(out, world, "straight_4", 472, -61, -5489, 402, -38, -5559);
+        addTarget(out, world, "straight_5", 402, -38, -5560, 472, -61, -5630);
+        addTarget(out, world, "straight_6", 472, -61, -5631, 402, -38, -5701);
+        addTarget(out, world, "straight_7", 473, -38, -5701, 543, -61, -5631);
+        addTarget(out, world, "straight_8", 543, -61, -5630, 473, -38, -5560);
+        addTarget(out, world, "straight_9", 473, -38, -5417, 543, -61, -5347);
+        addTarget(out, world, "deadend_1", 543, -38, -5418, 473, -61, -5488);
+        addTarget(out, world, "deadend_2", 473, -61, -5489, 543, -38, -5559);
+        addTarget(out, world, "connector_1", 412, -61, -5711, 402, -38, -5701);
+        addTarget(out, world, "connector_2", 402, -38, -5721, 412, -61, -5711);
+        addTarget(out, world, "tower_1", 615, -61, -5488, 685, -7, -5418);
+        addTarget(out, world, "tower_2", 615, -61, -5276, 685, -7, -5206);
+        addTarget(out, world, "gate_1", 686, -61, -5346, 614, -10, -5418);
+        addTarget(out, world, "gate_2", 686, -61, -5276, 614, -10, -5346);
+        return out;
+    }
+
+    private void addTarget(List<TemplateTeleportTarget> out, World world, String id,
+                           int x1, int y1, int z1, int x2, int y2, int z2) {
+        double x = (Math.min(x1, x2) + Math.max(x1, x2)) / 2.0;
+        double y = Math.max(y1, y2) + 2.0;
+        double z = (Math.min(z1, z2) + Math.max(z1, z2)) / 2.0;
+        out.add(new TemplateTeleportTarget(id, new Location(world, x, y, z)));
+    }
+
     public static class GenerationContext {
         private final List<NodeSpec> nodes;
         private final Map<Integer, NodeSpec> byId;
@@ -485,6 +518,9 @@ public class StrongholdGeneratorService {
                 byId.put(node.id, node);
             }
         }
+    }
+
+    public record TemplateTeleportTarget(String id, Location teleportLocation) {
     }
 
     public record NodeSpec(int id, Map<Direction, Integer> neighbors) {

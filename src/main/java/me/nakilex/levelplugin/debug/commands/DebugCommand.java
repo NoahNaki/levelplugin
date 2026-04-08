@@ -18,6 +18,7 @@ import me.nakilex.levelplugin.debug.BeaconEntityDebugManager;
 import me.nakilex.levelplugin.debug.DropDebugManager;
 import me.nakilex.levelplugin.debug.ArcSlashDebugManager;
 import me.nakilex.levelplugin.debug.gui.ArcSlashDebugGUI;
+import me.nakilex.levelplugin.debug.gui.StrongholdTemplateListGUI;
 import me.nakilex.levelplugin.debug.gui.WarriorCycloneDebugGUI;
 import me.nakilex.levelplugin.debug.MobStatusDebugItem;
 import me.nakilex.levelplugin.debug.SpellInputDebugItem;
@@ -92,6 +93,7 @@ public class DebugCommand implements TabExecutor {
     private final ArcSlashDebugGUI arcSlashDebugGUI;
     private final PetManager petManager;
     private final StrongholdGeneratorService strongholdGeneratorService;
+    private final StrongholdTemplateListGUI strongholdTemplateListGUI;
 
     public DebugCommand(PlayerToggleManager mobDebugManager,
                         PlayerScoreboardManager scoreboardManager,
@@ -120,6 +122,7 @@ public class DebugCommand implements TabExecutor {
         this.arcSlashDebugGUI = arcSlashDebugGUI;
         this.petManager = petManager;
         this.strongholdGeneratorService = new StrongholdGeneratorService(Main.getInstance());
+        this.strongholdTemplateListGUI = new StrongholdTemplateListGUI(Main.getInstance(), strongholdGeneratorService);
     }
 
     @Override
@@ -560,9 +563,13 @@ public class DebugCommand implements TabExecutor {
     }
 
     private boolean handleStrongholdCommand(Player player, String[] args) {
+        if (args.length >= 2 && args[1].equalsIgnoreCase("templates")) {
+            strongholdTemplateListGUI.open(player);
+            return true;
+        }
         if (args.length < 2 || !args[1].equalsIgnoreCase("generate")) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
-                    "Usage: /debug stronghold generate [mode] [seed] [rooms]");
+                    "Usage: /debug stronghold <generate [mode] [seed] [rooms] | templates>");
             return true;
         }
         GraphMode mode = args.length >= 3 ? GraphMode.parse(args[2]) : GraphMode.SNAKE;
@@ -734,7 +741,7 @@ public class DebugCommand implements TabExecutor {
                     .filter(opt -> opt.startsWith(args[1].toLowerCase()))
                     .toList();
         } else if (args.length == 2 && args[0].equalsIgnoreCase("stronghold")) {
-            return List.of("generate").stream()
+            return List.of("generate", "templates").stream()
                     .filter(opt -> opt.startsWith(args[1].toLowerCase()))
                     .toList();
         } else if (args.length == 3 && args[0].equalsIgnoreCase("stronghold") && args[1].equalsIgnoreCase("generate")) {
