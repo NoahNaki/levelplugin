@@ -451,9 +451,6 @@ public class StrongholdDebugManager implements Listener {
 
                 ConnectorPlan connectorPlan = buildConnectorPlan(p, neighbor, d);
                 if (connectorPlan == null) {
-                    if (connectorsAlreadyTouching(p, neighbor, d)) {
-                        continue;
-                    }
                     return null;
                 }
                 DungeonManager.PasteResult preview = dungeonManager.pasteRoom(dungeon, connectorPlan.template,
