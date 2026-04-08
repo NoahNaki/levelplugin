@@ -40,10 +40,12 @@ public class BranchingRandomGraphGenerator implements DungeonGraphGenerator {
     private List<GridNode> generateUnbounded(int size, Random random) {
         Map<GridPoint, Set<Direction>> graph = new HashMap<>();
         Set<GridPoint> placed = new HashSet<>();
+        List<GridPoint> growthOrder = new ArrayList<>();
 
         GridPoint start = new GridPoint(0, 0);
         graph.put(start, EnumSet.noneOf(Direction.class));
         placed.add(start);
+        growthOrder.add(start);
 
         while (placed.size() < size) {
             GridPoint[] arr = placed.toArray(new GridPoint[0]);
@@ -58,19 +60,23 @@ public class BranchingRandomGraphGenerator implements DungeonGraphGenerator {
             graph.get(cur).add(dir);
             graph.get(next).add(dir.opposite());
 
-            placed.add(next);
+            if (placed.add(next)) {
+                growthOrder.add(next);
+            }
         }
 
-        return toNodes(graph, start);
+        return toNodes(graph, growthOrder);
     }
 
     private List<GridNode> generateWithDegreeCap(int size, Random random) {
         Map<GridPoint, Set<Direction>> graph = new HashMap<>();
         Set<GridPoint> placed = new HashSet<>();
+        List<GridPoint> growthOrder = new ArrayList<>();
 
         GridPoint start = new GridPoint(0, 0);
         graph.put(start, EnumSet.noneOf(Direction.class));
         placed.add(start);
+        growthOrder.add(start);
 
         while (placed.size() < size) {
             List<GridPoint> expandable = new ArrayList<>();
@@ -99,10 +105,12 @@ public class BranchingRandomGraphGenerator implements DungeonGraphGenerator {
             graph.computeIfAbsent(next, ignored -> EnumSet.noneOf(Direction.class));
             graph.get(cur).add(dir);
             graph.get(next).add(dir.opposite());
-            placed.add(next);
+            if (placed.add(next)) {
+                growthOrder.add(next);
+            }
         }
 
-        return toNodes(graph, start);
+        return toNodes(graph, growthOrder);
     }
 
     private List<Direction> unclaimedDirections(GridPoint point,
@@ -123,14 +131,7 @@ public class BranchingRandomGraphGenerator implements DungeonGraphGenerator {
         return out;
     }
 
-    private List<GridNode> toNodes(Map<GridPoint, Set<Direction>> graph, GridPoint start) {
-        List<GridPoint> ordered = new ArrayList<>();
-        ordered.add(start);
-        for (GridPoint point : graph.keySet()) {
-            if (!point.equals(start)) {
-                ordered.add(point);
-            }
-        }
+    private List<GridNode> toNodes(Map<GridPoint, Set<Direction>> graph, List<GridPoint> ordered) {
 
         Map<GridPoint, Integer> idByPoint = new HashMap<>();
         List<GridNode> nodes = new ArrayList<>();

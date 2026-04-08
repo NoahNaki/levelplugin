@@ -138,6 +138,10 @@ public class StrongholdDebugManager {
         }
 
         List<ConnectorPlan> connectorPlans = buildConnectorPlans(plans, snapshot, debugDungeon);
+        if (connectorPlans == null) {
+            rollbackAndFail(player, snapshot, "Failed to align stronghold connectors without overlap.");
+            return;
+        }
 
         ActiveStronghold active = new ActiveStronghold(player.getWorld(), snapshot, plans, connectorPlans, debugDungeon, null);
         if (stepDelayTicks > 0) {
@@ -224,29 +228,13 @@ public class StrongholdDebugManager {
                 if (neighbor == null) continue;
 
                 ConnectorPlan connectorPlan = buildConnectorPlan(p, neighbor, d);
-                if (connectorPlan != null) {
-                    captureForRestore(snapshot, connectorPlan.template, connectorPlan.rotation, connectorPlan.center);
-                    dungeonManager.pasteRoom(dungeon, connectorPlan.template, connectorPlan.rotation, connectorPlan.center, null, false, TEMPLATE_IGNORE);
-                    connectorPlans.add(connectorPlan);
-                    continue;
+                if (connectorPlan == null) {
+                    return null;
                 }
-
-                Location a = connectorWorldLocation(p, d);
-                Location b = connectorWorldLocation(neighbor, d.opposite());
-                if (a == null || b == null || a.getWorld() == null) continue;
-                World world = a.getWorld();
-                int dx = Integer.compare(b.getBlockX(), a.getBlockX());
-                int dz = Integer.compare(b.getBlockZ(), a.getBlockZ());
-                int x = a.getBlockX();
-                int y = a.getBlockY();
-                int z = a.getBlockZ();
-                while (x != b.getBlockX() || z != b.getBlockZ()) {
-                    Location loc = new Location(world, x, y, z);
-                    snapshot.putIfAbsent(loc, world.getBlockAt(loc).getBlockData());
-                    world.getBlockAt(loc).setType(Material.STONE_BRICKS, false);
-                    if (x != b.getBlockX()) x += dx;
-                    if (z != b.getBlockZ()) z += dz;
-                }
+                captureForRestore(snapshot, connectorPlan.template, connectorPlan.rotation, connectorPlan.center);
+                dungeonManager.pasteRoom(dungeon, connectorPlan.template, connectorPlan.rotation,
+                        connectorPlan.center, null, false, TEMPLATE_IGNORE);
+                connectorPlans.add(connectorPlan);
             }
         }
 
