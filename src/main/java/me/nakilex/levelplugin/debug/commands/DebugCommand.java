@@ -541,10 +541,27 @@ public class DebugCommand implements TabExecutor {
                     return true;
                 }
                 if (args.length < 2) {
-                    sender.sendMessage(ChatColor.RED + "Usage: /debug stronghold <spawn|spawnstep|despawn> [size] [delayTicks] [mode]");
+                    sender.sendMessage(ChatColor.RED + "Usage: /debug stronghold <spawn|spawnstep|despawn|overlap> [size] [delayTicks] [mode]");
                     return true;
                 }
                 String mode = args[1].toLowerCase();
+                if ("overlap".equals(mode)) {
+                    if (args.length < 3) {
+                        sender.sendMessage(ChatColor.RED + "Usage: /debug stronghold overlap <percentage allowance>");
+                        sender.sendMessage(ChatColor.GRAY + "Current overlap allowance: "
+                                + String.format(java.util.Locale.US, "%.1f", strongholdDebugManager.getOverlapAllowancePercent()) + "%");
+                        return true;
+                    }
+                    try {
+                        double percent = Double.parseDouble(args[2]);
+                        strongholdDebugManager.setOverlapAllowancePercent(percent);
+                        sender.sendMessage(ChatColor.GREEN + "Stronghold overlap allowance set to "
+                                + String.format(java.util.Locale.US, "%.1f", strongholdDebugManager.getOverlapAllowancePercent()) + "%.");
+                    } catch (NumberFormatException ex) {
+                        sender.sendMessage(ChatColor.RED + "Percentage must be a number.");
+                    }
+                    return true;
+                }
                 if ("despawn".equals(mode)) {
                     strongholdDebugManager.despawn(strongholdPlayer);
                     return true;
@@ -618,7 +635,7 @@ public class DebugCommand implements TabExecutor {
                     strongholdDebugManager.spawnStep(strongholdPlayer, size, delay, graphMode);
                     return true;
                 }
-                sender.sendMessage(ChatColor.RED + "Usage: /debug stronghold <spawn|spawnstep|despawn> [size] [delayTicks] [mode]");
+                sender.sendMessage(ChatColor.RED + "Usage: /debug stronghold <spawn|spawnstep|despawn|overlap> [size] [delayTicks] [mode]");
                 return true;
 
             case "inventorydebug":
@@ -785,8 +802,13 @@ public class DebugCommand implements TabExecutor {
                     .filter(opt -> opt.startsWith(args[1].toLowerCase()))
                     .toList();
         } else if (args.length == 2 && args[0].equalsIgnoreCase("stronghold")) {
-            return List.of("spawn", "spawnstep", "despawn").stream()
+            return List.of("spawn", "spawnstep", "despawn", "overlap").stream()
                     .filter(opt -> opt.startsWith(args[1].toLowerCase()))
+                    .toList();
+        } else if (args.length == 3 && args[0].equalsIgnoreCase("stronghold")
+                && args[1].equalsIgnoreCase("overlap")) {
+            return List.of("5", "10", "15", "20", "25").stream()
+                    .filter(opt -> opt.startsWith(args[2].toLowerCase()))
                     .toList();
         } else if (args.length == 3 && args[0].equalsIgnoreCase("stronghold")
                 && (args[1].equalsIgnoreCase("spawn") || args[1].equalsIgnoreCase("spawnstep"))) {
