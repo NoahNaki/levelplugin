@@ -85,6 +85,10 @@ public class StrongholdDebugManager {
             if (previous.task != null) previous.task.cancel();
             restoreSnapshot(previous.restoreSnapshot);
         }
+        if (graphMode == GraphMode.TSECTION) {
+            spawnTSectionVariants(player);
+            return;
+        }
 
         List<GridNode> graph = generateGraphForTemplates(graphMode, size);
         if (graph.isEmpty() || graph.size() < size) {
@@ -159,6 +163,37 @@ public class StrongholdDebugManager {
 
         activeByPlayer.put(player.getUniqueId(), active);
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, "Stronghold spawned with " + plans.size() + " rooms.");
+    }
+
+    private void spawnTSectionVariants(Player player) {
+        RoomTemplate tSection = pickRandom(tSectionTemplates);
+        if (tSection == null) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "No T-section template is loaded.");
+            return;
+        }
+
+        Map<Location, BlockData> snapshot = new HashMap<>();
+        Dungeon debugDungeon = new Dungeon(player.getWorld(), "stronghold-tsection-debug-" + player.getUniqueId());
+        Location origin = player.getLocation().getBlock().getLocation();
+        int spacing = Math.max(tSection.getWidth(), tSection.getDepth()) + 12;
+
+        for (int rotation = 0; rotation < 4; rotation++) {
+            Location center = origin.clone().add(rotation * spacing, 0, 0);
+            captureForRestore(snapshot, tSection, rotation, center);
+            DungeonManager.PasteResult result = dungeonManager.pasteRoom(debugDungeon, tSection, rotation, center, null, false,
+                    TEMPLATE_IGNORE, STRONGHOLD_MAX_OVERLAP);
+            if (!result.success()) {
+                restoreSnapshot(snapshot);
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                        "Failed to paste T-section variant rotation " + rotation + ".");
+                return;
+            }
+        }
+
+        activeByPlayer.put(player.getUniqueId(), new ActiveStronghold(player.getWorld(), snapshot,
+                Collections.emptyList(), Collections.emptyList(), debugDungeon, null));
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
+                "Spawned all 4 T-section rotations in a row for debug.");
     }
 
     private CandidatePlacement selectTemplateWithOverlapBudget(GridNode node,
@@ -729,7 +764,8 @@ public class StrongholdDebugManager {
     public enum GraphMode {
         SNAKE(new SnakeGraphGenerator()),
         BRANCHING(new BranchingRandomGraphGenerator(3)),
-        TEST(null);
+        TEST(null),
+        TSECTION(null);
 
         private final DungeonGraphGenerator generator;
 
@@ -745,6 +781,7 @@ public class StrongholdDebugManager {
             return switch (normalized) {
                 case "branch", "branches", "branching", "random" -> BRANCHING;
                 case "test" -> TEST;
+                case "tsection", "tee", "t" -> TSECTION;
                 case "snake", "serpentine" -> SNAKE;
                 default -> null;
             };
