@@ -392,7 +392,7 @@ public class StrongholdDebugManager {
             Location center = centerFromAnchor(template, thisConn, rotation, target, true, fallback);
             if (center != null) return center;
         }
-        return fallback.clone();
+        return null;
     }
 
     private RoomTemplate.Connector findConnector(RoomTemplate t, int rotation, Direction want) {
@@ -691,9 +691,11 @@ public class StrongholdDebugManager {
             RoomTemplate template = templates.get(i);
             int connectorPoints = template.getConnectors().size();
             int uniqueDirections = template.getRotatedDirections(0).size();
+            Set<Direction> directions = new TreeSet<>(Comparator.comparingInt(Enum::ordinal));
+            directions.addAll(template.getRotatedDirections(0));
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                     "Template connector points (" + label + "#" + (i + 1) + "): "
-                            + connectorPoints + " [unique dirs=" + uniqueDirections + "]");
+                            + connectorPoints + " [unique dirs=" + uniqueDirections + ", dirs=" + directions + "]");
         }
     }
 
