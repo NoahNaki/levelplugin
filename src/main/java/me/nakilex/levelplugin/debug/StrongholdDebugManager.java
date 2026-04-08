@@ -72,87 +72,120 @@ public class StrongholdDebugManager implements Listener {
             restoreSnapshot(previous.restoreSnapshot);
         }
 
-        EnumSet<Direction> line = EnumSet.of(Direction.EAST, Direction.WEST);
-        RoomTemplate wallTemplate = findTemplateForDirections(straightTemplates, line);
-        RoomTemplate connectorTemplate = findTemplateForDirections(connectorTemplates, line);
-        if (wallTemplate == null || connectorTemplate == null) {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
-                    "Missing enabled straight/connector templates for linear test.");
-            return;
-        }
-
         Dungeon debugDungeon = new Dungeon(player.getWorld(), "stronghold-debug-" + player.getUniqueId());
         Map<Location, BlockData> snapshot = new HashMap<>();
         List<NodePlan> plans = new ArrayList<>();
         List<ConnectorPlan> connectors = new ArrayList<>();
-        Location rootCenter = player.getLocation().getBlock().getLocation();
-
+        EnumSet<Direction> line = EnumSet.of(Direction.EAST, Direction.WEST);
+        RoomTemplate wallTemplate = findTemplateForDirections(straightTemplates, line);
+        if (wallTemplate == null) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "Missing enabled straight template for linear test.");
+            return;
+        }
         int wallRotation = findRotationForPlacement(wallTemplate, line);
         if (wallRotation < 0) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "Straight wall has no EAST/WEST connector rotation.");
             return;
         }
-
-        captureForRestore(snapshot, wallTemplate, wallRotation, rootCenter);
-        DungeonManager.PasteResult first = dungeonManager.pasteRoom(debugDungeon, wallTemplate, wallRotation, rootCenter, null, false, TEMPLATE_IGNORE);
-        if (!first.success()) {
-            rollbackAndFail(player, snapshot, "Failed to paste first wall for test.");
+        List<RoomTemplate> enabledConnectors = new ArrayList<>();
+        for (RoomTemplate connectorTemplate : connectorTemplates) {
+            if (isTemplateEnabled(connectorTemplate)) {
+                enabledConnectors.add(connectorTemplate);
+            }
+        }
+        if (enabledConnectors.isEmpty()) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "Missing enabled connector templates for linear test.");
             return;
         }
-        GridNode a = new GridNode(0, 0, 0);
-        GridNode b = new GridNode(1, 1, 0);
-        link(a, b, Direction.EAST);
-        plans.add(new NodePlan(0, a, wallTemplate, wallRotation, rootCenter));
+        Location rootCenter = player.getLocation().getBlock().getLocation();
+        int laneSpacing = Math.max(16, Math.max(wallTemplate.getWidth(), wallTemplate.getDepth()) + 6);
+        int passed = 0;
+        int failed = 0;
+        for (int i = 0; i < enabledConnectors.size(); i++) {
+            RoomTemplate connectorTemplate = enabledConnectors.get(i);
+            Location laneCenter = rootCenter.clone().add(0, 0, i * laneSpacing);
+            LinearTestPlacement placement = buildLinearTestPlacement(wallTemplate, wallRotation, connectorTemplate, laneCenter);
+            if (placement == null) {
+                failed++;
+                continue;
+            }
+            if (!pasteLinearTestPlacement(debugDungeon, snapshot, placement, plans, connectors)) {
+                failed++;
+                continue;
+            }
+            passed++;
+        }
+        if (passed == 0) {
+            rollbackAndFail(player, snapshot, "Linear connector harness failed for all enabled connectors.");
+            return;
+        }
+        activeByPlayer.put(player.getUniqueId(), new ActiveStronghold(player.getWorld(), snapshot, plans, connectors, debugDungeon, null));
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
+                "Spawned connector harness lanes: " + passed + " passed, " + failed + " failed.");
+    }
+
+    private LinearTestPlacement buildLinearTestPlacement(RoomTemplate wallTemplate, int wallRotation, RoomTemplate connectorTemplate, Location firstWallCenter) {
+        GridNode firstNode = new GridNode(0, 0, 0);
+        GridNode secondNode = new GridNode(1, 1, 0);
+        link(firstNode, secondNode, Direction.EAST);
 
         RoomTemplate.Connector wallEast = findConnector(wallTemplate, wallRotation, Direction.EAST);
-        if (wallEast == null) {
-            rollbackAndFail(player, snapshot, "First wall missing EAST connector.");
-            return;
+        RoomTemplate.Connector wallWest = findConnector(wallTemplate, wallRotation, Direction.WEST);
+        if (wallEast == null || wallWest == null) {
+            return null;
         }
-        Location wallEastAnchor = connectorAnchorLocation(wallTemplate, wallEast, wallRotation, rootCenter);
 
-        int connectorRotation = findRotation(connectorTemplate, line);
+        int connectorRotation = findRotation(connectorTemplate, EnumSet.of(Direction.EAST, Direction.WEST));
+        if (connectorRotation < 0) {
+            return null;
+        }
         RoomTemplate.Connector connectorEast = findConnector(connectorTemplate, connectorRotation, Direction.EAST);
         RoomTemplate.Connector connectorWest = findConnector(connectorTemplate, connectorRotation, Direction.WEST);
-        if (connectorRotation < 0 || connectorEast == null || connectorWest == null) {
-            rollbackAndFail(player, snapshot, "Connector template missing EAST/WEST connector mapping.");
-            return;
+        if (connectorEast == null || connectorWest == null) {
+            return null;
         }
 
-        Location connectorCenter = centerFromAnchor(connectorTemplate, connectorEast, connectorRotation, wallEastAnchor, rootCenter);
+        Location wallEastAnchor = connectorAnchorLocation(wallTemplate, wallEast, wallRotation, firstWallCenter);
+        Location connectorCenter = centerFromAnchor(connectorTemplate, connectorEast, connectorRotation, wallEastAnchor, firstWallCenter);
         if (connectorCenter == null) {
-            rollbackAndFail(player, snapshot, "Failed to align connector to first wall anchor.");
-            return;
+            return null;
         }
-        captureForRestore(snapshot, connectorTemplate, connectorRotation, connectorCenter);
-        DungeonManager.PasteResult connPaste = dungeonManager.pasteRoom(debugDungeon, connectorTemplate, connectorRotation, connectorCenter, null, false, TEMPLATE_IGNORE);
-        if (!connPaste.success()) {
-            rollbackAndFail(player, snapshot, "Failed to paste connector template.");
-            return;
-        }
-        connectors.add(new ConnectorPlan(connectorTemplate, connectorRotation, connectorCenter));
-
         Location connectorWestAnchor = connectorAnchorLocation(connectorTemplate, connectorWest, connectorRotation, connectorCenter);
-        RoomTemplate.Connector wallWest = findConnector(wallTemplate, wallRotation, Direction.WEST);
-        if (wallWest == null) {
-            rollbackAndFail(player, snapshot, "Second wall missing WEST connector.");
-            return;
-        }
-        Location secondWallCenter = centerFromAnchor(wallTemplate, wallWest, wallRotation, connectorWestAnchor, rootCenter);
+        Location secondWallCenter = centerFromAnchor(wallTemplate, wallWest, wallRotation, connectorWestAnchor, firstWallCenter);
         if (secondWallCenter == null) {
-            rollbackAndFail(player, snapshot, "Failed to align second wall to connector anchor.");
-            return;
+            return null;
         }
-        captureForRestore(snapshot, wallTemplate, wallRotation, secondWallCenter);
-        DungeonManager.PasteResult second = dungeonManager.pasteRoom(debugDungeon, wallTemplate, wallRotation, secondWallCenter, null, false, TEMPLATE_IGNORE);
-        if (!second.success()) {
-            rollbackAndFail(player, snapshot, "Failed to paste second wall for test.");
-            return;
-        }
-        plans.add(new NodePlan(1, b, wallTemplate, wallRotation, secondWallCenter));
+        return new LinearTestPlacement(
+                new NodePlan(firstNode.id(), firstNode, wallTemplate, wallRotation, firstWallCenter),
+                new NodePlan(secondNode.id(), secondNode, wallTemplate, wallRotation, secondWallCenter),
+                new ConnectorPlan(connectorTemplate, connectorRotation, connectorCenter)
+        );
+    }
 
-        activeByPlayer.put(player.getUniqueId(), new ActiveStronghold(player.getWorld(), snapshot, plans, connectors, debugDungeon, null));
-        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, "Spawned linear test: wall -> connector -> wall.");
+    private boolean pasteLinearTestPlacement(Dungeon dungeon,
+                                             Map<Location, BlockData> snapshot,
+                                             LinearTestPlacement placement,
+                                             List<NodePlan> plans,
+                                             List<ConnectorPlan> connectors) {
+        captureForRestore(snapshot, placement.first.template, placement.first.rotation, placement.first.center);
+        DungeonManager.PasteResult first = dungeonManager.pasteRoom(dungeon, placement.first.template, placement.first.rotation, placement.first.center, null, false, TEMPLATE_IGNORE);
+        if (!first.success()) {
+            return false;
+        }
+        captureForRestore(snapshot, placement.connector.template, placement.connector.rotation, placement.connector.center);
+        DungeonManager.PasteResult connector = dungeonManager.pasteRoom(dungeon, placement.connector.template, placement.connector.rotation, placement.connector.center, null, false, TEMPLATE_IGNORE);
+        if (!connector.success()) {
+            return false;
+        }
+        captureForRestore(snapshot, placement.second.template, placement.second.rotation, placement.second.center);
+        DungeonManager.PasteResult second = dungeonManager.pasteRoom(dungeon, placement.second.template, placement.second.rotation, placement.second.center, null, false, TEMPLATE_IGNORE);
+        if (!second.success()) {
+            return false;
+        }
+        plans.add(placement.first);
+        plans.add(placement.second);
+        connectors.add(placement.connector);
+        return true;
     }
 
     public void spawnStep(Player player, int size, long delayTicks, GraphMode mode) {
@@ -1125,6 +1158,8 @@ public class StrongholdDebugManager implements Listener {
     private record ConnectorPlan(RoomTemplate template, int rotation, Location center) {}
 
     private record PlacementPlan(RoomTemplate template, int rotation, Location center) {}
+
+    private record LinearTestPlacement(NodePlan first, NodePlan second, ConnectorPlan connector) {}
 
     private static final class TemplateEntry {
         private final String id;
