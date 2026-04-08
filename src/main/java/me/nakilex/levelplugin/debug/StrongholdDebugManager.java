@@ -104,7 +104,7 @@ public class StrongholdDebugManager {
             GridNode node = graph.get(i);
             EnumSet<Direction> dirs = node.directions();
             NodePlacementChoice choice = chooseNodePlacement(node, dirs, straightWallsSinceGate, towerCount, gateCount,
-                    planById, graph, rootCenter, occupiedBlocks, debugDungeon);
+                    planById, graph, rootCenter, occupiedBlocks);
             if (choice == null) {
                 rollbackAndFail(player, snapshot, "Failed to find a non-overlapping template for node " + node.id() + ".");
                 return;
@@ -299,8 +299,7 @@ public class StrongholdDebugManager {
                                                     Map<Integer, NodePlan> placed,
                                                     List<GridNode> graph,
                                                     Location rootCenter,
-                                                    Set<String> occupiedBlocks,
-                                                    Dungeon dungeon) {
+                                                    Set<String> occupiedBlocks) {
         for (int attempt = 0; attempt < MAX_TEMPLATE_SELECTION_ATTEMPTS; attempt++) {
             RoomTemplate template = selectTemplate(dirs, straightWallsSinceGate, towerCount, gateCount, placed, node, graph);
             if (template == null) {
@@ -314,11 +313,8 @@ public class StrongholdDebugManager {
             if (center == null) {
                 continue;
             }
-            if (!isTemplateOverlapAcceptable(template, rotation, center, occupiedBlocks)) {
-                continue;
-            }
-            DungeonManager.PasteResult preview = dungeonManager.pasteRoom(dungeon, template, rotation, center, null, true, TEMPLATE_IGNORE);
-            if (!preview.success() || preview.overlap() > MAX_TEMPLATE_OVERLAP) {
+            double attemptThreshold = Math.min(0.25D, MAX_TEMPLATE_OVERLAP + (attempt * 0.03D));
+            if (!isTemplateOverlapAcceptable(template, rotation, center, occupiedBlocks, attemptThreshold)) {
                 continue;
             }
             return new NodePlacementChoice(template, rotation, center);
@@ -627,7 +623,15 @@ public class StrongholdDebugManager {
     }
 
     private boolean isTemplateOverlapAcceptable(RoomTemplate template, int rotation, Location center, Set<String> occupiedBlocks) {
-        return calculateTemplateOverlapRatio(template, rotation, center, occupiedBlocks) <= MAX_TEMPLATE_OVERLAP;
+        return isTemplateOverlapAcceptable(template, rotation, center, occupiedBlocks, MAX_TEMPLATE_OVERLAP);
+    }
+
+    private boolean isTemplateOverlapAcceptable(RoomTemplate template,
+                                                int rotation,
+                                                Location center,
+                                                Set<String> occupiedBlocks,
+                                                double threshold) {
+        return calculateTemplateOverlapRatio(template, rotation, center, occupiedBlocks) <= threshold;
     }
 
     private double calculateTemplateOverlapRatio(RoomTemplate template, int rotation, Location center, Set<String> occupiedBlocks) {
