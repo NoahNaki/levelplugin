@@ -215,11 +215,11 @@ public class RoomTemplate {
                 sz += l.getBlockZ();
                 if (l.getBlockY() < minGroupY) minGroupY = l.getBlockY();
             }
-            int cx = (int)Math.round(sx / group.size()) - minX;
-            int cz = (int)Math.round(sz / group.size()) - minZ;
-            int dx = cx - (int)Math.round((width - 1) / 2.0);
-            int dz = cz - (int)Math.round((depth - 1) / 2.0);
-            Direction dir = Direction.fromDelta(dx, dz);
+            int cxWorld = (int) Math.round(sx / group.size());
+            int czWorld = (int) Math.round(sz / group.size());
+            int cx = cxWorld - minX;
+            int cz = czWorld - minZ;
+            Direction dir = inferConnectorFacing(cxWorld, czWorld, minX, maxX, minZ, maxZ);
             boolean entrance = false;
             for (Location l : group) {
                 Location above = l.clone().add(0, 1, 0);
@@ -229,6 +229,19 @@ public class RoomTemplate {
         }
 
         return new RoomTemplate(blocks, connectors, portalMarks, exitMarks, chestMarks, bossMark, width, height, depth, minY);
+    }
+
+    private static Direction inferConnectorFacing(int x, int z, int minX, int maxX, int minZ, int maxZ) {
+        int westDistance = Math.abs(x - minX);
+        int eastDistance = Math.abs(maxX - x);
+        int northDistance = Math.abs(z - minZ);
+        int southDistance = Math.abs(maxZ - z);
+
+        int minDistance = Math.min(Math.min(westDistance, eastDistance), Math.min(northDistance, southDistance));
+        if (minDistance == westDistance) return Direction.WEST;
+        if (minDistance == eastDistance) return Direction.EAST;
+        if (minDistance == northDistance) return Direction.NORTH;
+        return Direction.SOUTH;
     }
 
     /**
