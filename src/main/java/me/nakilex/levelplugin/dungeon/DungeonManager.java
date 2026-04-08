@@ -2,6 +2,10 @@ package me.nakilex.levelplugin.dungeon;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.dungeon.TemplateType;
+import me.nakilex.levelplugin.dungeon.stronghold.StrongholdDebug;
+import me.nakilex.levelplugin.dungeon.stronghold.StrongholdEnums;
+import me.nakilex.levelplugin.dungeon.stronghold.StrongholdGenerator;
+import me.nakilex.levelplugin.dungeon.stronghold.StrongholdPlacement;
 import me.nakilex.levelplugin.mob.utils.MobNameUtil;
 import me.nakilex.levelplugin.lootchests.utils.LocationUtils;
 import me.nakilex.levelplugin.dungeon.verified.VerifiedDungeonDefinition;
@@ -51,6 +55,8 @@ public class DungeonManager {
     /** Guard asynchronous layout saves. */
     private final Object saveLock = new Object();
     private final DungeonBuilder builder;
+    private final StrongholdGenerator strongholdGenerator;
+    private final StrongholdDebug strongholdDebug;
     private final me.nakilex.levelplugin.lootchests.managers.LootChestManager lootChestManager;
     private final Map<java.util.UUID, RunStats> activeRuns = new HashMap<>();
     private final java.util.Set<java.util.UUID> pendingRespawns = new java.util.HashSet<>();
@@ -152,6 +158,8 @@ public class DungeonManager {
     public DungeonManager(Main plugin, me.nakilex.levelplugin.lootchests.managers.LootChestManager lootChestManager) {
         this.plugin = plugin;
         this.lootChestManager = lootChestManager;
+        this.strongholdDebug = new StrongholdDebug();
+        this.strongholdGenerator = new StrongholdGenerator(plugin.getLogger());
         loadTemplates();
         loadLayouts();
         registerVerifiedDungeons();
@@ -1187,6 +1195,18 @@ public class DungeonManager {
     }
 
     public DungeonBuilder getBuilder() { return builder; }
+    public StrongholdDebug getStrongholdDebug() { return strongholdDebug; }
+
+    public StrongholdPlacement.PlacementResult runStrongholdDebugGeneration(StrongholdEnums.GraphMode mode,
+                                                                            int roomCount,
+                                                                            long seed,
+                                                                            int maxGraphAttempts) {
+        StrongholdPlacement.PlacementResult result = strongholdGenerator.generate(mode, roomCount, seed, maxGraphAttempts);
+        if (strongholdDebug != null) {
+            strongholdDebug.render(plugin.getLogger(), result.rooms().values());
+        }
+        return result;
+    }
 
     public Collection<Dungeon> getActiveDungeons() {
         java.util.List<Dungeon> list = new java.util.ArrayList<>(dungeons.values());
