@@ -542,15 +542,43 @@ public class StrongholdDebugManager {
         }
         // Branching can exceed available connector patterns; retry with conservative cap.
         if (mode == GraphMode.BRANCHING) {
-            DungeonGraphGenerator fallback = new BranchingRandomGraphGenerator(2);
-            for (int attempt = 0; attempt < 6; attempt++) {
-                List<GridNode> candidate = fallback.generate(size, random);
-                if (isGraphTemplateCompatible(candidate)) {
-                    return candidate;
+            List<GridNode> best = graph;
+            int bestScore = branchingScore(graph);
+
+            for (int degreeCap : new int[]{3, 2}) {
+                DungeonGraphGenerator fallback = new BranchingRandomGraphGenerator(degreeCap);
+                for (int attempt = 0; attempt < 10; attempt++) {
+                    List<GridNode> candidate = fallback.generate(size, random);
+                    if (!isGraphTemplateCompatible(candidate)) {
+                        continue;
+                    }
+                    int score = branchingScore(candidate);
+                    if (score > bestScore) {
+                        best = candidate;
+                        bestScore = score;
+                    }
+                }
+                if (bestScore > 0 && degreeCap == 3) {
+                    break;
                 }
             }
+            return best;
         }
         return graph;
+    }
+
+    private int branchingScore(List<GridNode> graph) {
+        if (graph == null || graph.isEmpty()) {
+            return Integer.MIN_VALUE;
+        }
+        int junctions = 0;
+        int degreeSum = 0;
+        for (GridNode node : graph) {
+            int degree = node.directions().size();
+            degreeSum += degree;
+            if (degree >= 3) junctions++;
+        }
+        return (junctions * 100) + degreeSum;
     }
 
     private int promoteTowerJunctions(List<GridNode> graph) {
