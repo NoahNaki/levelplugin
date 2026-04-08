@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.dungeon.stronghold;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.dungeon.Direction;
+import me.nakilex.levelplugin.dungeon.RoomTemplate;
 import me.nakilex.levelplugin.dungeon.generation.BranchingRandomGraphGenerator;
 import me.nakilex.levelplugin.dungeon.generation.DungeonGraphGenerator;
 import me.nakilex.levelplugin.dungeon.generation.GridNode;
@@ -28,6 +29,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.LinkedHashMap;
 
 /**
  * Stronghold graph-first generator that realizes nodes through templates and
@@ -39,10 +41,13 @@ public class StrongholdGeneratorService {
 
     private final Main plugin;
     private final List<Template> catalog;
+    private final Map<String, TemplateSource> templateSources;
+    private final Map<String, RoomTemplate> templateCache = new HashMap<>();
 
     public StrongholdGeneratorService(Main plugin) {
         this.plugin = plugin;
         this.catalog = buildCatalog();
+        this.templateSources = buildTemplateSources();
     }
 
     public GenerationResult generate(Player player, GraphMode mode, long seed, int nodeCount, int maxAttempts) {
@@ -60,6 +65,7 @@ public class StrongholdGeneratorService {
             if (placeGraph(context, random)) {
                 insertConnectors(context, random);
                 renderDebug(context, player.getWorld(), player.getLocation().toVector());
+                materializePlacements(player.getWorld(), player.getLocation(), context);
                 sendSummary(player, context);
                 plugin.getLogger().info("[Stronghold] SUCCESS attempt=" + attempt + " placements="
                         + context.placements.size() + " bridges=" + context.bridges.size());
@@ -113,6 +119,7 @@ public class StrongholdGeneratorService {
         context.logs.add("TEST mode simple pair: room -> connector -> room");
         context.logs.forEach(line -> plugin.getLogger().info("[Stronghold] " + line));
         renderDebug(context, player.getWorld(), player.getLocation().toVector());
+        materializePlacements(player.getWorld(), player.getLocation(), context);
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
                 "Stronghold test generated simple room-connector-room chain.");
         return new GenerationResult(true, "ok", context);
@@ -518,27 +525,81 @@ public class StrongholdGeneratorService {
 
     public List<TemplateTeleportTarget> getTemplateTeleportTargets(World world) {
         List<TemplateTeleportTarget> out = new ArrayList<>();
-        addTarget(out, world, "corner_1", 473, -38, -5346, 543, -61, -5276);
-        addTarget(out, world, "corner_2", 544, -38, -5631, 614, -61, -5701);
-        addTarget(out, world, "corner_3", 614, -61, -5630, 544, -38, -5560);
-        addTarget(out, world, "straight_1", 402, -38, -5276, 472, -61, -5346);
-        addTarget(out, world, "straight_2", 472, -61, -5347, 402, -38, -5417);
-        addTarget(out, world, "straight_3", 402, -38, -5418, 472, -61, -5488);
-        addTarget(out, world, "straight_4", 472, -61, -5489, 402, -38, -5559);
-        addTarget(out, world, "straight_5", 402, -38, -5560, 472, -61, -5630);
-        addTarget(out, world, "straight_6", 472, -61, -5631, 402, -38, -5701);
-        addTarget(out, world, "straight_7", 473, -38, -5701, 543, -61, -5631);
-        addTarget(out, world, "straight_8", 543, -61, -5630, 473, -38, -5560);
-        addTarget(out, world, "straight_9", 473, -38, -5417, 543, -61, -5347);
-        addTarget(out, world, "deadend_1", 543, -38, -5418, 473, -61, -5488);
-        addTarget(out, world, "deadend_2", 473, -61, -5489, 543, -38, -5559);
-        addTarget(out, world, "connector_1", 412, -61, -5711, 402, -38, -5701);
-        addTarget(out, world, "connector_2", 402, -38, -5721, 412, -61, -5711);
-        addTarget(out, world, "tower_1", 615, -61, -5488, 685, -7, -5418);
-        addTarget(out, world, "tower_2", 615, -61, -5276, 685, -7, -5206);
-        addTarget(out, world, "gate_1", 686, -61, -5346, 614, -10, -5418);
-        addTarget(out, world, "gate_2", 686, -61, -5276, 614, -10, -5346);
+        for (TemplateSource source : templateSources.values()) {
+            addTarget(out, world, source.id, source.x1, source.y1, source.z1, source.x2, source.y2, source.z2);
+        }
         return out;
+    }
+
+    private void materializePlacements(World world, Location anchor, GenerationContext context) {
+        ensureTemplateCache(world);
+        int baseX = anchor.getBlockX();
+        int baseY = anchor.getBlockY();
+        int baseZ = anchor.getBlockZ();
+        for (Placement placement : context.placements.values()) {
+            pasteTemplate(world, placement, baseX, baseY, baseZ);
+        }
+        for (Placement bridge : context.bridges) {
+            pasteTemplate(world, bridge, baseX, baseY, baseZ);
+        }
+    }
+
+    private void ensureTemplateCache(World world) {
+        if (!templateCache.isEmpty()) {
+            return;
+        }
+        for (TemplateSource source : templateSources.values()) {
+            RoomTemplate captured = RoomTemplate.capture(world,
+                    source.x1, source.y1, source.z1,
+                    source.x2, source.y2, source.z2,
+                    false);
+            templateCache.put(source.id, captured);
+        }
+    }
+
+    private void pasteTemplate(World world, Placement placement, int baseX, int baseY, int baseZ) {
+        RoomTemplate source = templateCache.get(placement.template.id);
+        if (source == null) {
+            return;
+        }
+        int rot = placement.transform.rotation.quarterTurns();
+        for (RoomTemplate.BlockDef block : source.getBlocks()) {
+            Vec3 rotated = new Vec3(block.x, block.y, block.z).rotateY(placement.transform.rotation);
+            int wx = baseX + (int) Math.round(placement.transform.position.x + rotated.x);
+            int wy = baseY + (int) Math.round(placement.transform.position.y + rotated.y);
+            int wz = baseZ + (int) Math.round(placement.transform.position.z + rotated.z);
+            world.getBlockAt(wx, wy, wz).setBlockData(RoomTemplate.rotateBlockData(block.data, rot), false);
+        }
+    }
+
+    private Map<String, TemplateSource> buildTemplateSources() {
+        Map<String, TemplateSource> out = new LinkedHashMap<>();
+        putSource(out, "corner_1", 473, -38, -5346, 543, -61, -5276);
+        putSource(out, "corner_2", 544, -38, -5631, 614, -61, -5701);
+        putSource(out, "corner_3", 614, -61, -5630, 544, -38, -5560);
+        putSource(out, "straight_1", 402, -38, -5276, 472, -61, -5346);
+        putSource(out, "straight_2", 472, -61, -5347, 402, -38, -5417);
+        putSource(out, "straight_3", 402, -38, -5418, 472, -61, -5488);
+        putSource(out, "straight_4", 472, -61, -5489, 402, -38, -5559);
+        putSource(out, "straight_5", 402, -38, -5560, 472, -61, -5630);
+        putSource(out, "straight_6", 472, -61, -5631, 402, -38, -5701);
+        putSource(out, "straight_7", 473, -38, -5701, 543, -61, -5631);
+        putSource(out, "straight_8", 543, -61, -5630, 473, -38, -5560);
+        putSource(out, "straight_9", 473, -38, -5417, 543, -61, -5347);
+        putSource(out, "deadend_1", 543, -38, -5418, 473, -61, -5488);
+        putSource(out, "deadend_2", 473, -61, -5489, 543, -38, -5559);
+        putSource(out, "connector_1", 412, -61, -5711, 402, -38, -5701);
+        putSource(out, "connector_2", 402, -38, -5721, 412, -61, -5711);
+        putSource(out, "tower_1", 615, -61, -5488, 685, -7, -5418);
+        putSource(out, "tower_2", 615, -61, -5276, 685, -7, -5206);
+        putSource(out, "gate_1", 686, -61, -5346, 614, -10, -5418);
+        putSource(out, "gate_2", 686, -61, -5276, 614, -10, -5346);
+        return out;
+    }
+
+    private void putSource(Map<String, TemplateSource> out, String id,
+                           int x1, int y1, int z1, int x2, int y2, int z2) {
+        out.put(id, new TemplateSource(id, x1, y1, z1, x2, y2, z2));
     }
 
     private void addTarget(List<TemplateTeleportTarget> out, World world, String id,
@@ -571,6 +632,9 @@ public class StrongholdGeneratorService {
     }
 
     public record TemplateTeleportTarget(String id, Location teleportLocation) {
+    }
+
+    private record TemplateSource(String id, int x1, int y1, int z1, int x2, int y2, int z2) {
     }
 
     public record NodeSpec(int id, Map<Direction, Integer> neighbors) {
