@@ -530,7 +530,7 @@ public class StrongholdDebugManager {
     private boolean canPlaceTower(GridNode node, Map<Integer, NodePlan> placed, List<GridNode> graph) {
         for (Integer nid : node.neighbors().values()) {
             NodePlan p = placed.get(nid);
-            if (p != null && isGateOrTower(p.template)) return false;
+            if (p != null && gateTemplates.contains(p.template)) return false;
         }
         return true;
     }
