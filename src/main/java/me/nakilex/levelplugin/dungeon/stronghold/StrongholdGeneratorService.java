@@ -38,8 +38,8 @@ import java.util.LinkedHashMap;
  */
 public class StrongholdGeneratorService {
     private static final int DEFAULT_MARGIN = 0;
-    private static final int BRIDGE_GAP = 10;
-    private static final int ROOM_GAP = 12;
+    private static final int BRIDGE_GAP = 0;
+    private static final int ROOM_GAP = 1;
 
     private final Main plugin;
     private final List<Template> catalog;
@@ -260,8 +260,10 @@ public class StrongholdGeneratorService {
     }
 
     private void insertConnectors(GenerationContext context, Random random) {
-        Template bridge = activeCatalog().stream().filter(t -> t.tags.contains(StrongholdTemplateTag.CONNECTOR)).findFirst().orElse(null);
-        if (bridge == null) {
+        List<Template> bridgeTemplates = activeCatalog().stream()
+                .filter(t -> t.tags.contains(StrongholdTemplateTag.CONNECTOR))
+                .toList();
+        if (bridgeTemplates.isEmpty()) {
             return;
         }
         Set<String> visited = new HashSet<>();
@@ -278,8 +280,20 @@ public class StrongholdGeneratorService {
                 }
                 Connector aOut = outwardConnectorToward(a, b);
                 Connector bOut = outwardConnectorToward(b, a);
-                Placement bridgePlacement = solveBridgePlacement(bridge, a, aOut, b, bOut);
-                if (bridgePlacement != null && validatePlacement(context.placements.values(), bridgePlacement, 0).valid) {
+                Placement bridgePlacement = null;
+                double bestDistance = Double.MAX_VALUE;
+                for (Template bridgeTemplate : bridgeTemplates) {
+                    BridgePlacement solved = solveBridgePlacement(bridgeTemplate, a, aOut, b, bOut);
+                    if (solved == null || solved.distanceScore >= bestDistance) {
+                        continue;
+                    }
+                    if (!validateBridgePlacement(context.placements.values(), solved.placement, a, b)) {
+                        continue;
+                    }
+                    bestDistance = solved.distanceScore;
+                    bridgePlacement = solved.placement;
+                }
+                if (bridgePlacement != null) {
                     context.bridges.add(bridgePlacement);
                 }
             }
@@ -331,12 +345,12 @@ public class StrongholdGeneratorService {
         return new Transform(translation, rotationB);
     }
 
-    private Placement solveBridgePlacement(Template bridge,
-                                           Placement a,
-                                           Connector aOut,
-                                           Placement b,
-                                           Connector bOut) {
-        Placement best = null;
+    private BridgePlacement solveBridgePlacement(Template bridge,
+                                                 Placement a,
+                                                 Connector aOut,
+                                                 Placement b,
+                                                 Connector bOut) {
+        BridgePlacement best = null;
         double bestDistance = Double.MAX_VALUE;
         for (StrongholdRotation rotation : StrongholdRotation.values()) {
             List<Connector> connectors = bridge.connectors(rotation);
@@ -354,12 +368,28 @@ public class StrongholdGeneratorService {
                     double distance = outWorld.distanceSquared(bTarget);
                     if (distance < bestDistance) {
                         bestDistance = distance;
-                        best = new Placement(bridge, transform, -1);
+                        best = new BridgePlacement(new Placement(bridge, transform, -1), distance);
                     }
                 }
             }
         }
         return best;
+    }
+
+    private boolean validateBridgePlacement(Collection<Placement> existing,
+                                            Placement bridge,
+                                            Placement endpointA,
+                                            Placement endpointB) {
+        BoundingBox bounds = bridge.worldBounds();
+        for (Placement placed : existing) {
+            if (placed == endpointA || placed == endpointB) {
+                continue;
+            }
+            if (bounds.intersectsExpanded(placed.worldBounds(), 0)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private void renderDebug(GenerationContext context, World world, Vector anchor) {
@@ -842,5 +872,8 @@ public class StrongholdGeneratorService {
     }
 
     public record ValidationResult(boolean valid, String reason) {
+    }
+
+    private record BridgePlacement(Placement placement, double distanceScore) {
     }
 }
