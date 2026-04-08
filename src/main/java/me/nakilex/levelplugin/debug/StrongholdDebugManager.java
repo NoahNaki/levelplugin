@@ -109,7 +109,7 @@ public class StrongholdDebugManager implements Listener {
             rollbackAndFail(player, snapshot, "First wall missing EAST connector.");
             return;
         }
-        Location wallEastAnchor = connectorContentAnchorLocation(wallTemplate, wallEast, wallRotation, rootCenter);
+        Location wallEastAnchor = connectorAnchorLocation(wallTemplate, wallEast, wallRotation, rootCenter);
 
         int connectorRotation = findRotation(connectorTemplate, line);
         RoomTemplate.Connector connectorEast = findConnector(connectorTemplate, connectorRotation, Direction.EAST);
@@ -119,7 +119,7 @@ public class StrongholdDebugManager implements Listener {
             return;
         }
 
-        Location connectorCenter = centerFromContentAnchor(connectorTemplate, connectorEast, connectorRotation, wallEastAnchor, rootCenter);
+        Location connectorCenter = centerFromAnchor(connectorTemplate, connectorEast, connectorRotation, wallEastAnchor, rootCenter);
         if (connectorCenter == null) {
             rollbackAndFail(player, snapshot, "Failed to align connector to first wall anchor.");
             return;
@@ -132,13 +132,13 @@ public class StrongholdDebugManager implements Listener {
         }
         connectors.add(new ConnectorPlan(connectorTemplate, connectorRotation, connectorCenter));
 
-        Location connectorWestAnchor = connectorContentAnchorLocation(connectorTemplate, connectorWest, connectorRotation, connectorCenter);
+        Location connectorWestAnchor = connectorAnchorLocation(connectorTemplate, connectorWest, connectorRotation, connectorCenter);
         RoomTemplate.Connector wallWest = findConnector(wallTemplate, wallRotation, Direction.WEST);
         if (wallWest == null) {
             rollbackAndFail(player, snapshot, "Second wall missing WEST connector.");
             return;
         }
-        Location secondWallCenter = centerFromContentAnchor(wallTemplate, wallWest, wallRotation, connectorWestAnchor, rootCenter);
+        Location secondWallCenter = centerFromAnchor(wallTemplate, wallWest, wallRotation, connectorWestAnchor, rootCenter);
         if (secondWallCenter == null) {
             rollbackAndFail(player, snapshot, "Failed to align second wall to connector anchor.");
             return;
@@ -640,29 +640,10 @@ public class StrongholdDebugManager implements Listener {
         Location marker = blockLocationFor(template, connector.x, connector.bottomY, connector.z, rotation, center);
         Direction outward = rotateDirection(connector.facing, rotation);
         int[] vec = directionVector(outward);
-        return marker.add(vec[0], 0, vec[1]);
-    }
-
-    private Location connectorContentAnchorLocation(RoomTemplate template, RoomTemplate.Connector connector, int rotation, Location center) {
-        Location marker = blockLocationFor(template, connector.x, connector.bottomY, connector.z, rotation, center);
-        Direction outward = rotateDirection(connector.facing, rotation);
-        int[] vec = directionVector(outward);
         return marker.add(-vec[0], 0, -vec[1]);
     }
 
     private Location centerFromAnchor(RoomTemplate template, RoomTemplate.Connector connector, int rotation, Location anchor, Location fallback) {
-        if (anchor == null || fallback == null || fallback.getWorld() == null) return null;
-        int[] vec = RoomTemplate.rotate(connector.x - (int) Math.round(template.getCenterX()),
-                connector.z - (int) Math.round(template.getCenterZ()), rotation);
-        Direction outward = rotateDirection(connector.facing, rotation);
-        int[] outwardVec = directionVector(outward);
-        int cx = anchor.getBlockX() - outwardVec[0] - vec[0];
-        int cy = anchor.getBlockY() - (connector.bottomY - template.getConnectorMinY());
-        int cz = anchor.getBlockZ() - outwardVec[1] - vec[1];
-        return new Location(fallback.getWorld(), cx, cy, cz);
-    }
-
-    private Location centerFromContentAnchor(RoomTemplate template, RoomTemplate.Connector connector, int rotation, Location anchor, Location fallback) {
         if (anchor == null || fallback == null || fallback.getWorld() == null) return null;
         int[] vec = RoomTemplate.rotate(connector.x - (int) Math.round(template.getCenterX()),
                 connector.z - (int) Math.round(template.getCenterZ()), rotation);
