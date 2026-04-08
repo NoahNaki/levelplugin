@@ -541,9 +541,11 @@ public class StrongholdDebugManager implements Listener {
         if (anchor == null || fallback == null || fallback.getWorld() == null) return null;
         int[] vec = RoomTemplate.rotate(connector.x - (int) Math.round(template.getCenterX()),
                 connector.z - (int) Math.round(template.getCenterZ()), rotation);
-        int cx = anchor.getBlockX() - vec[0];
+        Direction outward = rotateDirection(connector.facing, rotation);
+        int[] outwardVec = directionVector(outward);
+        int cx = anchor.getBlockX() - outwardVec[0] - vec[0];
         int cy = anchor.getBlockY() - (connector.bottomY - template.getConnectorMinY());
-        int cz = anchor.getBlockZ() - vec[1];
+        int cz = anchor.getBlockZ() - outwardVec[1] - vec[1];
         return new Location(fallback.getWorld(), cx, cy, cz);
     }
 
