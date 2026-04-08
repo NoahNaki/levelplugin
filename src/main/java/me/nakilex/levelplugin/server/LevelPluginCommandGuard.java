@@ -41,10 +41,14 @@ public class LevelPluginCommandGuard implements Listener {
         if (message == null || !message.startsWith("/")) {
             return;
         }
-        String label = message.substring(1).split(" ")[0].toLowerCase(Locale.ROOT);
+        ParsedCommand parsed = parseCommand(message);
+        String label = parsed.label();
         int colon = label.indexOf(':');
         if (colon >= 0 && colon < label.length() - 1) {
             label = label.substring(colon + 1);
+        }
+        if (isExplicitlyAllowedOutsideAlpha(label, parsed.args())) {
+            return;
         }
         if ("hub".equals(label)) {
             return;
@@ -64,6 +68,30 @@ public class LevelPluginCommandGuard implements Listener {
         event.setCancelled(true);
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
                 "You must be in the alpha test server to use that command.");
+    }
+
+    private boolean isExplicitlyAllowedOutsideAlpha(String label, List<String> args) {
+        if ("dungeon".equals(label) && !args.isEmpty()) {
+            return "stronghold".equals(args.get(0));
+        }
+        return false;
+    }
+
+    private ParsedCommand parseCommand(String message) {
+        String payload = message.substring(1).trim();
+        if (payload.isEmpty()) {
+            return new ParsedCommand("", List.of());
+        }
+        String[] parts = payload.split("\\s+");
+        String label = parts[0].toLowerCase(Locale.ROOT);
+        if (parts.length <= 1) {
+            return new ParsedCommand(label, List.of());
+        }
+        java.util.ArrayList<String> args = new java.util.ArrayList<>(parts.length - 1);
+        for (int i = 1; i < parts.length; i++) {
+            args.add(parts[i].toLowerCase(Locale.ROOT));
+        }
+        return new ParsedCommand(label, List.copyOf(args));
     }
 
     private Set<String> buildCommandSet(Main plugin) {
@@ -110,4 +138,6 @@ public class LevelPluginCommandGuard implements Listener {
         var arenaManager = Main.getInstance().getArenaInstanceManager();
         return arenaManager != null && arenaManager.isInstanceWorld(world);
     }
+
+    private record ParsedCommand(String label, List<String> args) {}
 }
