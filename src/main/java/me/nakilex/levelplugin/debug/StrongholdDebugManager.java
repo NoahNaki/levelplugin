@@ -34,6 +34,7 @@ public class StrongholdDebugManager {
     private final List<RoomTemplate> cornerTemplates = new ArrayList<>();
     private final List<RoomTemplate> straightTemplates = new ArrayList<>();
     private final List<RoomTemplate> deadEndTemplates = new ArrayList<>();
+    private final List<RoomTemplate> tSectionTemplates = new ArrayList<>();
     private final List<RoomTemplate> connectorTemplates = new ArrayList<>();
     private final List<RoomTemplate> towerTemplates = new ArrayList<>();
     private final List<RoomTemplate> gateTemplates = new ArrayList<>();
@@ -509,6 +510,8 @@ public class StrongholdDebugManager {
             return selectTemplate(dirs);
         }
         if (degree == 3) {
+            RoomTemplate tSection = pickRandom(tSectionTemplates);
+            if (tSection != null && findRotationForPlacement(tSection, dirs) >= 0) return tSection;
             RoomTemplate tower = pickRandom(towerTemplates);
             if (tower != null && canPlaceTower(node, placed, graph) && findRotationForPlacement(tower, dirs) >= 0) return tower;
             RoomTemplate gate = pickRandom(gateTemplates);
@@ -551,6 +554,10 @@ public class StrongholdDebugManager {
             RoomTemplate candidate = opposite ? pickRandom(straightTemplates) : pickRandom(cornerTemplates);
             if (candidate != null && findRotationForPlacement(candidate, dirs) >= 0) return candidate;
         }
+        if (degree == 3) {
+            RoomTemplate tSection = pickRandom(tSectionTemplates);
+            if (tSection != null && findRotationForPlacement(tSection, dirs) >= 0) return tSection;
+        }
         RoomTemplate fallback = pickRandom(straightTemplates);
         if (fallback != null && findRotationForPlacement(fallback, dirs) >= 0) return fallback;
         for (RoomTemplate t : allTemplates()) {
@@ -564,6 +571,7 @@ public class StrongholdDebugManager {
         all.addAll(cornerTemplates);
         all.addAll(straightTemplates);
         all.addAll(deadEndTemplates);
+        all.addAll(tSectionTemplates);
         all.addAll(connectorTemplates);
         all.addAll(towerTemplates);
         all.addAll(gateTemplates);
@@ -622,7 +630,8 @@ public class StrongholdDebugManager {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "World 'flatland' is required for stronghold debug templates.");
             return false;
         }
-        cornerTemplates.clear(); straightTemplates.clear(); deadEndTemplates.clear(); connectorTemplates.clear(); towerTemplates.clear(); gateTemplates.clear();
+        cornerTemplates.clear(); straightTemplates.clear(); deadEndTemplates.clear(); tSectionTemplates.clear();
+        connectorTemplates.clear(); towerTemplates.clear(); gateTemplates.clear();
 
         load(cornerTemplates, flatland, 473, -38, -5346, 543, -61, -5276);
         load(cornerTemplates, flatland, 544, -38, -5631, 614, -61, -5701);
@@ -640,6 +649,8 @@ public class StrongholdDebugManager {
 
         load(deadEndTemplates, flatland, 543, -38, -5418, 473, -61, -5488);
         load(deadEndTemplates, flatland, 473, -61, -5489, 543, -38, -5559);
+
+        load(tSectionTemplates, flatland, 615, -61, -5276, 685, -3, -5206);
 
         load(connectorTemplates, flatland, 412, -61, -5711, 402, -38, -5701);
         load(connectorTemplates, flatland, 402, -38, -5721, 412, -61, -5711);
@@ -664,6 +675,7 @@ public class StrongholdDebugManager {
         reportConnectorCounts(player, "corner", cornerTemplates);
         reportConnectorCounts(player, "straight", straightTemplates);
         reportConnectorCounts(player, "deadend", deadEndTemplates);
+        reportConnectorCounts(player, "tsection", tSectionTemplates);
         reportConnectorCounts(player, "connector", connectorTemplates);
         reportConnectorCounts(player, "tower", towerTemplates);
         reportConnectorCounts(player, "gate", gateTemplates);
