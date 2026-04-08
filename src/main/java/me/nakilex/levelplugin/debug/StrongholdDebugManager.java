@@ -62,6 +62,99 @@ public class StrongholdDebugManager implements Listener {
         spawnInternal(player, size, -1, mode);
     }
 
+    public void spawnLinearWallConnectorWallTest(Player player) {
+        if (!ensureTemplatesLoaded(player)) {
+            return;
+        }
+        ActiveStronghold previous = activeByPlayer.remove(player.getUniqueId());
+        if (previous != null) {
+            if (previous.task != null) previous.task.cancel();
+            restoreSnapshot(previous.restoreSnapshot);
+        }
+
+        EnumSet<Direction> line = EnumSet.of(Direction.EAST, Direction.WEST);
+        RoomTemplate wallTemplate = findTemplateForDirections(straightTemplates, line);
+        RoomTemplate connectorTemplate = findTemplateForDirections(connectorTemplates, line);
+        if (wallTemplate == null || connectorTemplate == null) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                    "Missing enabled straight/connector templates for linear test.");
+            return;
+        }
+
+        Dungeon debugDungeon = new Dungeon(player.getWorld(), "stronghold-debug-" + player.getUniqueId());
+        Map<Location, BlockData> snapshot = new HashMap<>();
+        List<NodePlan> plans = new ArrayList<>();
+        List<ConnectorPlan> connectors = new ArrayList<>();
+        Location rootCenter = player.getLocation().getBlock().getLocation();
+
+        int wallRotation = findRotationForPlacement(wallTemplate, line);
+        if (wallRotation < 0) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "Straight wall has no EAST/WEST connector rotation.");
+            return;
+        }
+
+        captureForRestore(snapshot, wallTemplate, wallRotation, rootCenter);
+        DungeonManager.PasteResult first = dungeonManager.pasteRoom(debugDungeon, wallTemplate, wallRotation, rootCenter, null, false, TEMPLATE_IGNORE);
+        if (!first.success()) {
+            rollbackAndFail(player, snapshot, "Failed to paste first wall for test.");
+            return;
+        }
+        GridNode a = new GridNode(0, 0, 0);
+        GridNode b = new GridNode(1, 1, 0);
+        link(a, b, Direction.EAST);
+        plans.add(new NodePlan(0, a, wallTemplate, wallRotation, rootCenter));
+
+        RoomTemplate.Connector wallEast = findConnector(wallTemplate, wallRotation, Direction.EAST);
+        if (wallEast == null) {
+            rollbackAndFail(player, snapshot, "First wall missing EAST connector.");
+            return;
+        }
+        Location wallEastMarker = connectorMarkerLocation(wallTemplate, wallEast, wallRotation, rootCenter);
+
+        int connectorRotation = findRotation(connectorTemplate, line);
+        RoomTemplate.Connector connectorEast = findConnector(connectorTemplate, connectorRotation, Direction.EAST);
+        RoomTemplate.Connector connectorWest = findConnector(connectorTemplate, connectorRotation, Direction.WEST);
+        if (connectorRotation < 0 || connectorEast == null || connectorWest == null) {
+            rollbackAndFail(player, snapshot, "Connector template missing EAST/WEST connector mapping.");
+            return;
+        }
+
+        Location connectorCenter = centerFromMarker(connectorTemplate, connectorEast, connectorRotation, wallEastMarker, rootCenter);
+        if (connectorCenter == null) {
+            rollbackAndFail(player, snapshot, "Failed to align connector to first wall marker.");
+            return;
+        }
+        captureForRestore(snapshot, connectorTemplate, connectorRotation, connectorCenter);
+        DungeonManager.PasteResult connPaste = dungeonManager.pasteRoom(debugDungeon, connectorTemplate, connectorRotation, connectorCenter, null, false, TEMPLATE_IGNORE);
+        if (!connPaste.success()) {
+            rollbackAndFail(player, snapshot, "Failed to paste connector template.");
+            return;
+        }
+        connectors.add(new ConnectorPlan(connectorTemplate, connectorRotation, connectorCenter));
+
+        Location connectorWestMarker = connectorMarkerLocation(connectorTemplate, connectorWest, connectorRotation, connectorCenter);
+        RoomTemplate.Connector wallWest = findConnector(wallTemplate, wallRotation, Direction.WEST);
+        if (wallWest == null) {
+            rollbackAndFail(player, snapshot, "Second wall missing WEST connector.");
+            return;
+        }
+        Location secondWallCenter = centerFromMarker(wallTemplate, wallWest, wallRotation, connectorWestMarker, rootCenter);
+        if (secondWallCenter == null) {
+            rollbackAndFail(player, snapshot, "Failed to align second wall to connector marker.");
+            return;
+        }
+        captureForRestore(snapshot, wallTemplate, wallRotation, secondWallCenter);
+        DungeonManager.PasteResult second = dungeonManager.pasteRoom(debugDungeon, wallTemplate, wallRotation, secondWallCenter, null, false, TEMPLATE_IGNORE);
+        if (!second.success()) {
+            rollbackAndFail(player, snapshot, "Failed to paste second wall for test.");
+            return;
+        }
+        plans.add(new NodePlan(1, b, wallTemplate, wallRotation, secondWallCenter));
+
+        activeByPlayer.put(player.getUniqueId(), new ActiveStronghold(player.getWorld(), snapshot, plans, connectors, debugDungeon, null));
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, "Spawned linear test: wall -> connector -> wall.");
+    }
+
     public void spawnStep(Player player, int size, long delayTicks, GraphMode mode) {
         spawnInternal(player, size, Math.max(1L, delayTicks), mode);
     }
@@ -435,6 +528,30 @@ public class StrongholdDebugManager implements Listener {
         int wy = center.getBlockY() + (y - template.getConnectorMinY());
         int wz = center.getBlockZ() + vec[1];
         return new Location(center.getWorld(), wx, wy, wz);
+    }
+
+    private Location connectorMarkerLocation(RoomTemplate template, RoomTemplate.Connector connector, int rotation, Location center) {
+        return blockLocationFor(template, connector.x, connector.bottomY, connector.z, rotation, center);
+    }
+
+    private Location centerFromMarker(RoomTemplate template, RoomTemplate.Connector connector, int rotation, Location marker, Location fallback) {
+        if (marker == null || fallback == null || fallback.getWorld() == null) return null;
+        int[] vec = RoomTemplate.rotate(connector.x - (int) Math.round(template.getCenterX()),
+                connector.z - (int) Math.round(template.getCenterZ()), rotation);
+        int cx = marker.getBlockX() - vec[0];
+        int cy = marker.getBlockY() - (connector.bottomY - template.getConnectorMinY());
+        int cz = marker.getBlockZ() - vec[1];
+        return new Location(fallback.getWorld(), cx, cy, cz);
+    }
+
+    private RoomTemplate findTemplateForDirections(List<RoomTemplate> templates, EnumSet<Direction> directions) {
+        for (RoomTemplate template : templates) {
+            if (!isTemplateEnabled(template)) continue;
+            if (findRotation(template, directions) >= 0 || findRotationForPlacement(template, directions) >= 0) {
+                return template;
+            }
+        }
+        return null;
     }
 
     private List<ConnectorPlan> buildConnectorPlans(List<NodePlan> plans, Map<Location, BlockData> snapshot, Dungeon dungeon) {

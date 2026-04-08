@@ -573,6 +573,10 @@ public class DebugCommand implements TabExecutor {
                 int size = 8;
                 StrongholdDebugManager.GraphMode graphMode = StrongholdDebugManager.GraphMode.SNAKE;
                 if ("spawn".equals(mode)) {
+                    if (args.length >= 3 && StrongholdDebugManager.GraphMode.fromArg(args[2]) == StrongholdDebugManager.GraphMode.TEST) {
+                        strongholdDebugManager.spawnLinearWallConnectorWallTest(strongholdPlayer);
+                        return true;
+                    }
                     int modeArgIndex = 3;
                     if (args.length >= 3) {
                         try {
