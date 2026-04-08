@@ -261,14 +261,14 @@ public class StrongholdDebugManager {
         plans.add(new NodePlan(0, new GridNode(0, 0, 0), towerChoice.template, towerChoice.rotation, rootCenter));
 
         int nextId = 1;
-        for (Direction direction : towerChoice.template.getRotatedDirections(towerChoice.rotation)) {
+        for (RoomTemplate.Connector towerConnector : towerChoice.template.getConnectors()) {
+            Direction direction = rotateDirection(towerConnector.facing, towerChoice.rotation);
             TemplateCandidate straightChoice = selectTestStraightCandidate(direction);
             if (straightChoice == null) {
                 continue;
             }
-            RoomTemplate.Connector towerConnector = findConnector(towerChoice.template, towerChoice.rotation, direction);
             RoomTemplate.Connector straightConnector = findConnector(straightChoice.template, straightChoice.rotation, direction.opposite());
-            if (towerConnector == null || straightConnector == null) {
+            if (straightConnector == null) {
                 continue;
             }
 
@@ -310,20 +310,38 @@ public class StrongholdDebugManager {
     }
 
     private TemplateCandidate selectTestTowerCandidate() {
-        EnumSet<Direction> all = EnumSet.allOf(Direction.class);
         List<RoomTemplate> shuffled = new ArrayList<>(towerTemplates);
         Collections.shuffle(shuffled, random);
         for (RoomTemplate tower : shuffled) {
-            int rotation = findRotationForPlacement(tower, all);
-            if (rotation >= 0) {
-                return new TemplateCandidate(tower, rotation, 0D);
-            }
-        }
-        for (RoomTemplate tower : shuffled) {
             for (int rotation = 0; rotation < 4; rotation++) {
-                if (!tower.getRotatedDirections(rotation).isEmpty()) {
+                if (tower.getRotatedDirections(rotation).size() >= 4) {
                     return new TemplateCandidate(tower, rotation, 0D);
                 }
+            }
+        }
+
+        TemplateCandidate best = null;
+        int bestConnectorCount = -1;
+        for (RoomTemplate tower : shuffled) {
+            for (int rotation = 0; rotation < 4; rotation++) {
+                int connectorCount = tower.getConnectors().size();
+                if (connectorCount > bestConnectorCount) {
+                    bestConnectorCount = connectorCount;
+                    best = new TemplateCandidate(tower, rotation, 0D);
+                }
+                if (!tower.getRotatedDirections(rotation).isEmpty() && best == null) {
+                    best = new TemplateCandidate(tower, rotation, 0D);
+                }
+            }
+        }
+        if (best != null) {
+            return best;
+        }
+
+        for (RoomTemplate tower : shuffled) {
+            int rotation = findRotationForPlacement(tower, EnumSet.of(Direction.NORTH));
+            if (rotation >= 0) {
+                return new TemplateCandidate(tower, rotation, 0D);
             }
         }
         return null;
