@@ -100,7 +100,7 @@ public class StrongholdDebugManager {
         for (int i = 0; i < graph.size(); i++) {
             GridNode node = graph.get(i);
             EnumSet<Direction> dirs = node.directions();
-            RoomTemplate template = selectTemplate(dirs, straightWallsSinceGate, towerCount, gateCount, planById, node, graph);
+            RoomTemplate template = selectTemplate(dirs, straightWallsSinceGate, towerCount, gateCount, planById, node, graphMode, graph);
             if (template == null) {
                 rollbackAndFail(player, snapshot, "No template matched connector pattern " + dirs + ".");
                 return;
@@ -359,6 +359,9 @@ public class StrongholdDebugManager {
     }
 
     private List<GridNode> generateGraphForTemplates(GraphMode mode, int size) {
+        if (mode == GraphMode.TEST) {
+            return buildTestGraph();
+        }
         List<GridNode> graph = mode.generator.generate(size, random);
         if (isGraphTemplateCompatible(graph)) {
             return graph;
@@ -374,6 +377,39 @@ public class StrongholdDebugManager {
             }
         }
         return graph;
+    }
+
+    private List<GridNode> buildTestGraph() {
+        GridNode center = new GridNode(0, 0, 0);
+        GridNode northArm = new GridNode(1, 0, -1);
+        GridNode eastArm = new GridNode(2, 1, 0);
+        GridNode southArm = new GridNode(3, 0, 1);
+        GridNode westArm = new GridNode(4, -1, 0);
+        GridNode northEnd = new GridNode(5, 0, -2);
+        GridNode eastEnd = new GridNode(6, 2, 0);
+        GridNode southEnd = new GridNode(7, 0, 2);
+        GridNode westEnd = new GridNode(8, -2, 0);
+
+        center.link(Direction.NORTH, northArm.id());
+        center.link(Direction.EAST, eastArm.id());
+        center.link(Direction.SOUTH, southArm.id());
+        center.link(Direction.WEST, westArm.id());
+
+        northArm.link(Direction.SOUTH, center.id());
+        northArm.link(Direction.NORTH, northEnd.id());
+        eastArm.link(Direction.WEST, center.id());
+        eastArm.link(Direction.EAST, eastEnd.id());
+        southArm.link(Direction.NORTH, center.id());
+        southArm.link(Direction.SOUTH, southEnd.id());
+        westArm.link(Direction.EAST, center.id());
+        westArm.link(Direction.WEST, westEnd.id());
+
+        northEnd.link(Direction.SOUTH, northArm.id());
+        eastEnd.link(Direction.WEST, eastArm.id());
+        southEnd.link(Direction.NORTH, southArm.id());
+        westEnd.link(Direction.EAST, westArm.id());
+
+        return List.of(center, northArm, eastArm, southArm, westArm, northEnd, eastEnd, southEnd, westEnd);
     }
 
     private boolean isGraphTemplateCompatible(List<GridNode> graph) {
@@ -394,11 +430,16 @@ public class StrongholdDebugManager {
                                         int gateCount,
                                         Map<Integer, NodePlan> placed,
                                         GridNode node,
+                                        GraphMode graphMode,
                                         List<GridNode> graph) {
         int degree = dirs.size();
         boolean opposite = dirs.equals(EnumSet.of(Direction.NORTH, Direction.SOUTH))
                 || dirs.equals(EnumSet.of(Direction.EAST, Direction.WEST));
         if (degree == 2 && opposite) {
+            if (graphMode == GraphMode.TEST) {
+                RoomTemplate straight = pickRandom(straightTemplates);
+                if (straight != null && findRotationForPlacement(straight, dirs) >= 0) return straight;
+            }
             if (straightWallsSinceGate >= 2 && towerCount > gateCount && canPlaceGate(node, placed, graph)) {
                 RoomTemplate gate = pickRandom(gateTemplates);
                 if (gate != null && findRotationForPlacement(gate, dirs) >= 0) return gate;
@@ -595,7 +636,8 @@ public class StrongholdDebugManager {
 
     public enum GraphMode {
         SNAKE(new SnakeGraphGenerator()),
-        BRANCHING(new BranchingRandomGraphGenerator(3));
+        BRANCHING(new BranchingRandomGraphGenerator(3)),
+        TEST(null);
 
         private final DungeonGraphGenerator generator;
 
@@ -610,6 +652,7 @@ public class StrongholdDebugManager {
             String normalized = raw.trim().toLowerCase(Locale.ROOT);
             return switch (normalized) {
                 case "branch", "branches", "branching", "random" -> BRANCHING;
+                case "test" -> TEST;
                 case "snake", "serpentine" -> SNAKE;
                 default -> null;
             };

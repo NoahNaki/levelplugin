@@ -550,6 +550,31 @@ public class DebugCommand implements TabExecutor {
                     return true;
                 }
                 int size = 8;
+                StrongholdDebugManager.GraphMode graphMode = StrongholdDebugManager.GraphMode.SNAKE;
+                if ("spawn".equals(mode)) {
+                    int modeArgIndex = 3;
+                    if (args.length >= 3) {
+                        try {
+                            size = Integer.parseInt(args[2]);
+                        } catch (NumberFormatException ex) {
+                            graphMode = StrongholdDebugManager.GraphMode.fromArg(args[2]);
+                            modeArgIndex = 2;
+                        }
+                    }
+                    if (args.length > modeArgIndex) {
+                        graphMode = StrongholdDebugManager.GraphMode.fromArg(args[modeArgIndex]);
+                        if (graphMode == null) {
+                            sender.sendMessage(ChatColor.RED + "Unknown mode. Use: "
+                                    + String.join(", ", StrongholdDebugManager.GraphMode.ids()));
+                            return true;
+                        }
+                    }
+                    if (graphMode == StrongholdDebugManager.GraphMode.TEST && size < 9) {
+                        size = 9;
+                    }
+                    strongholdDebugManager.spawn(strongholdPlayer, size, graphMode);
+                    return true;
+                }
                 if (args.length >= 3) {
                     try {
                         size = Integer.parseInt(args[2]);
@@ -557,19 +582,6 @@ public class DebugCommand implements TabExecutor {
                         sender.sendMessage(ChatColor.RED + "Size must be a number.");
                         return true;
                     }
-                }
-                StrongholdDebugManager.GraphMode graphMode = StrongholdDebugManager.GraphMode.SNAKE;
-                if ("spawn".equals(mode)) {
-                    if (args.length >= 4) {
-                        graphMode = StrongholdDebugManager.GraphMode.fromArg(args[3]);
-                        if (graphMode == null) {
-                            sender.sendMessage(ChatColor.RED + "Unknown mode. Use: "
-                                    + String.join(", ", StrongholdDebugManager.GraphMode.ids()));
-                            return true;
-                        }
-                    }
-                    strongholdDebugManager.spawn(strongholdPlayer, size, graphMode);
-                    return true;
                 }
                 if ("spawnstep".equals(mode)) {
                     long delay = 8L;
@@ -764,7 +776,11 @@ public class DebugCommand implements TabExecutor {
                     .toList();
         } else if (args.length == 3 && args[0].equalsIgnoreCase("stronghold")
                 && (args[1].equalsIgnoreCase("spawn") || args[1].equalsIgnoreCase("spawnstep"))) {
-            return List.of("8", "12", "20").stream()
+            List<String> options = new ArrayList<>(List.of("8", "12", "20"));
+            if (args[1].equalsIgnoreCase("spawn")) {
+                options.addAll(StrongholdDebugManager.GraphMode.ids());
+            }
+            return options.stream()
                     .filter(opt -> opt.startsWith(args[2].toLowerCase()))
                     .toList();
         } else if (args.length == 4 && args[0].equalsIgnoreCase("stronghold")
