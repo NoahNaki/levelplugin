@@ -90,6 +90,7 @@ public class StrongholdDebugManager {
         List<NodePlan> plans = new ArrayList<>();
         Map<Integer, NodePlan> planById = new HashMap<>();
         Map<Location, BlockData> snapshot = new HashMap<>();
+        Set<String> occupiedBlocks = new HashSet<>();
         Dungeon debugDungeon = new Dungeon(player.getWorld(), "stronghold-debug-" + player.getUniqueId());
 
         Location rootCenter = player.getLocation().getBlock().getLocation();
@@ -111,6 +112,10 @@ public class StrongholdDebugManager {
                 rollbackAndFail(player, snapshot, "Failed to align template connectors for node " + node.id() + ".");
                 return;
             }
+            if (hasTemplateOverlap(template, rotation, center, occupiedBlocks)) {
+                rollbackAndFail(player, snapshot, "Stronghold generation detected overlapping room geometry at node " + node.id() + ".");
+                return;
+            }
 
             captureForRestore(snapshot, template, rotation, center);
             DungeonManager.PasteResult result = dungeonManager.pasteRoom(debugDungeon, template, rotation, center, null, false, TEMPLATE_IGNORE);
@@ -118,6 +123,7 @@ public class StrongholdDebugManager {
                 rollbackAndFail(player, snapshot, "Failed to paste stronghold node " + node.id() + ".");
                 return;
             }
+            markTemplateOccupied(template, rotation, center, occupiedBlocks);
 
             NodePlan plan = new NodePlan(node.id(), node, template, rotation, center);
             plans.add(plan);
@@ -137,7 +143,7 @@ public class StrongholdDebugManager {
             }
         }
 
-        List<ConnectorPlan> connectorPlans = buildConnectorPlans(plans, snapshot, debugDungeon);
+        List<ConnectorPlan> connectorPlans = buildConnectorPlans(plans, snapshot, debugDungeon, occupiedBlocks);
         if (connectorPlans == null) {
             rollbackAndFail(player, snapshot, "Failed to align stronghold connectors without overlap.");
             return;
@@ -215,7 +221,10 @@ public class StrongholdDebugManager {
         return new Location(center.getWorld(), wx, wy, wz);
     }
 
-    private List<ConnectorPlan> buildConnectorPlans(List<NodePlan> plans, Map<Location, BlockData> snapshot, Dungeon dungeon) {
+    private List<ConnectorPlan> buildConnectorPlans(List<NodePlan> plans,
+                                                    Map<Location, BlockData> snapshot,
+                                                    Dungeon dungeon,
+                                                    Set<String> occupiedBlocks) {
         List<ConnectorPlan> connectorPlans = new ArrayList<>();
         Map<Integer, NodePlan> byId = new HashMap<>();
         for (NodePlan p : plans) byId.put(p.id, p);
@@ -234,9 +243,13 @@ public class StrongholdDebugManager {
                     }
                     return null;
                 }
+                if (hasTemplateOverlap(connectorPlan.template, connectorPlan.rotation, connectorPlan.center, occupiedBlocks)) {
+                    return null;
+                }
                 captureForRestore(snapshot, connectorPlan.template, connectorPlan.rotation, connectorPlan.center);
                 dungeonManager.pasteRoom(dungeon, connectorPlan.template, connectorPlan.rotation,
                         connectorPlan.center, null, false, TEMPLATE_IGNORE);
+                markTemplateOccupied(connectorPlan.template, connectorPlan.rotation, connectorPlan.center, occupiedBlocks);
                 connectorPlans.add(connectorPlan);
             }
         }
@@ -398,29 +411,27 @@ public class StrongholdDebugManager {
         int degree = dirs.size();
         boolean opposite = dirs.equals(EnumSet.of(Direction.NORTH, Direction.SOUTH))
                 || dirs.equals(EnumSet.of(Direction.EAST, Direction.WEST));
+        boolean towerEligible = canUseTowerForDegree(degree, opposite);
         if (degree == 2 && opposite) {
             if (straightWallsSinceGate >= 2 && towerCount > gateCount && canPlaceGate(node, placed, graph)) {
                 RoomTemplate gate = pickRandom(gateTemplates);
                 if (gate != null && findRotationForPlacement(gate, dirs) >= 0) return gate;
             }
-            RoomTemplate tower = pickRandom(towerTemplates);
-            if (tower != null && canPlaceTower(node, placed, graph) && findRotationForPlacement(tower, dirs) >= 0) return tower;
             return selectTemplate(dirs);
         }
         if (degree == 2) {
-            RoomTemplate tower = pickRandom(towerTemplates);
+            RoomTemplate tower = towerEligible ? pickRandom(towerTemplates) : null;
             if (tower != null && canPlaceTower(node, placed, graph) && findRotationForPlacement(tower, dirs) >= 0) return tower;
-            return pickRandom(cornerTemplates) != null ? pickRandom(cornerTemplates) : selectTemplate(dirs);
+            RoomTemplate corner = pickRandom(cornerTemplates);
+            return corner != null ? corner : selectTemplate(dirs);
         }
         if (degree == 1) {
-            RoomTemplate tower = pickRandom(towerTemplates);
-            if (tower != null && canPlaceTower(node, placed, graph) && findRotationForPlacement(tower, dirs) >= 0) return tower;
             RoomTemplate dead = pickRandom(deadEndTemplates);
             if (dead != null && findRotationForPlacement(dead, dirs) >= 0) return dead;
             return selectTemplate(dirs);
         }
         if (degree == 3) {
-            RoomTemplate tower = pickRandom(towerTemplates);
+            RoomTemplate tower = towerEligible ? pickRandom(towerTemplates) : null;
             if (tower != null && canPlaceTower(node, placed, graph) && findRotationForPlacement(tower, dirs) >= 0) return tower;
             RoomTemplate gate = pickRandom(gateTemplates);
             if (gate != null && canPlaceGate(node, placed, graph) && findRotationForPlacement(gate, dirs) >= 0) return gate;
@@ -444,6 +455,13 @@ public class StrongholdDebugManager {
             if (p != null && gateTemplates.contains(p.template)) return false;
         }
         return true;
+    }
+
+    private boolean canUseTowerForDegree(int degree, boolean opposite) {
+        if (degree >= 3) {
+            return true;
+        }
+        return degree == 2 && !opposite;
     }
 
     private RoomTemplate selectTemplate(EnumSet<Direction> dirs) {
@@ -578,6 +596,35 @@ public class StrongholdDebugManager {
     private <T> T pickRandom(List<T> list) {
         if (list == null || list.isEmpty()) return null;
         return list.get(random.nextInt(list.size()));
+    }
+
+    private boolean hasTemplateOverlap(RoomTemplate template, int rotation, Location center, Set<String> occupiedBlocks) {
+        for (RoomTemplate.BlockDef b : template.getBlocks()) {
+            Material mat = b.data.getMaterial();
+            if (mat.isAir() || TEMPLATE_IGNORE.contains(mat) || STRONGHOLD_SKIP.contains(mat)) continue;
+            String key = blockKey(blockLocationFor(template, b.x, b.y, b.z, rotation, center));
+            if (key != null && occupiedBlocks.contains(key)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void markTemplateOccupied(RoomTemplate template, int rotation, Location center, Set<String> occupiedBlocks) {
+        for (RoomTemplate.BlockDef b : template.getBlocks()) {
+            Material mat = b.data.getMaterial();
+            if (mat.isAir() || TEMPLATE_IGNORE.contains(mat) || STRONGHOLD_SKIP.contains(mat)) continue;
+            String key = blockKey(blockLocationFor(template, b.x, b.y, b.z, rotation, center));
+            if (key != null) {
+                occupiedBlocks.add(key);
+            }
+        }
+    }
+
+    private String blockKey(Location location) {
+        World world = location.getWorld();
+        if (world == null) return null;
+        return world.getUID() + ":" + location.getBlockX() + ":" + location.getBlockY() + ":" + location.getBlockZ();
     }
 
     private record ActiveStronghold(World world,
