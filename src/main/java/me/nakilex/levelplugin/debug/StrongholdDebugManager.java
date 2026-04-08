@@ -374,8 +374,38 @@ public class StrongholdDebugManager implements Listener {
             int theirs = connectorsFacing(neighbor.template, neighbor.rotation, dir.opposite()).size();
             lines.add("Neighbor " + neighbor.id + " dir=" + dir + " ours=" + ours + " theirs=" + theirs
                     + " neighborTemplate=" + templateIds.getOrDefault(neighbor.template, "unknown"));
+            List<RoomTemplate.Connector> ourConnectors = connectorsFacing(template, rotation, dir);
+            List<RoomTemplate.Connector> theirConnectors = connectorsFacing(neighbor.template, neighbor.rotation, dir.opposite());
+            int emitted = 0;
+            for (RoomTemplate.Connector ourConnector : ourConnectors) {
+                for (RoomTemplate.Connector theirConnector : theirConnectors) {
+                    Location target = connectorAnchorLocation(neighbor.template, theirConnector, neighbor.rotation, neighbor.center);
+                    Location centerCandidate = centerFromAnchor(template, ourConnector, rotation, target, neighbor.center);
+                    lines.add("Candidate[" + dir + "] ours@"
+                            + connectorKey(ourConnector) + " theirs@" + connectorKey(theirConnector)
+                            + " target=" + fmtLoc(target)
+                            + " center=" + fmtLoc(centerCandidate));
+                    if (++emitted >= 3) {
+                        break;
+                    }
+                }
+                if (emitted >= 3) {
+                    break;
+                }
+            }
         }
         return lines;
+    }
+
+    private String connectorKey(RoomTemplate.Connector connector) {
+        return connector.x + "," + connector.bottomY + "," + connector.z + "/" + connector.facing;
+    }
+
+    private String fmtLoc(Location location) {
+        if (location == null) {
+            return "null";
+        }
+        return location.getBlockX() + "," + location.getBlockY() + "," + location.getBlockZ();
     }
 
     private void captureForRestore(Map<Location, BlockData> snapshot, RoomTemplate template, int rotation, Location center) {
