@@ -236,7 +236,7 @@ public class StrongholdDebugManager {
         double bestScore = Double.MAX_VALUE;
         PlacementDebug debug = new PlacementDebug();
         List<RoomTemplate> candidates = candidateTemplatesForNode(dirs, straightWallsSinceGate, towerCount, gateCount,
-                straightWallsSinceTowerOrTSection, placed, node, graphMode, graph);
+                straightWallsSinceTowerOrTSection, placed, node, graphMode, graph, false);
         for (RoomTemplate template : candidates) {
             debug.attempts++;
             if (template == null) {
@@ -266,6 +266,39 @@ public class StrongholdDebugManager {
             }
             debug.overlapRejects++;
         }
+        if (best == null && dirs.size() >= 3) {
+            List<RoomTemplate> relaxed = candidateTemplatesForNode(dirs, straightWallsSinceGate, towerCount, gateCount,
+                    straightWallsSinceTowerOrTSection, placed, node, graphMode, graph, true);
+            for (RoomTemplate template : relaxed) {
+                debug.attempts++;
+                if (template == null) {
+                    debug.templateMisses++;
+                    continue;
+                }
+                int rotation = findRotationForPlacement(template, dirs);
+                if (rotation < 0) {
+                    debug.rotationMisses++;
+                    continue;
+                }
+                Location center = firstNode ? rootCenter.clone() : solveCenter(node, template, rotation, placed, rootCenter);
+                if (center == null) {
+                    debug.centerMisses++;
+                    continue;
+                }
+                DungeonManager.PasteResult preview = dungeonManager.pasteRoom(dungeon, template, rotation, center, null, true,
+                        TEMPLATE_IGNORE, strongholdMaxOverlap);
+                if (preview.success()) {
+                    double score = preview.overlap() + templatePriority(template) + 0.35; // soft-penalty for rule relaxation
+                    if (score < bestScore) {
+                        bestScore = score;
+                        best = new CandidatePlacement(template, rotation, center, preview.overlap());
+                    }
+                    debug.successes++;
+                    continue;
+                }
+                debug.overlapRejects++;
+            }
+        }
         if (best != null) {
             return new CandidateSearchResult(best, debug);
         }
@@ -280,7 +313,8 @@ public class StrongholdDebugManager {
                                                          Map<Integer, NodePlan> placed,
                                                          GridNode node,
                                                          GraphMode graphMode,
-                                                         List<GridNode> graph) {
+                                                         List<GridNode> graph,
+                                                         boolean relaxedTowerSpacing) {
         List<RoomTemplate> ordered = new ArrayList<>();
         int degree = dirs.size();
 
@@ -297,14 +331,16 @@ public class StrongholdDebugManager {
         boolean opposite = dirs.equals(EnumSet.of(Direction.NORTH, Direction.SOUTH))
                 || dirs.equals(EnumSet.of(Direction.EAST, Direction.WEST));
         if (degree >= 4) {
-            if (canPlaceTower(node, placed, graph) && canPlaceTowerOrTSection(straightWallsSinceTowerOrTSection, placed)) {
+            if (canPlaceTower(node, placed, graph)
+                    && (relaxedTowerSpacing || canPlaceTowerOrTSection(straightWallsSinceTowerOrTSection, placed))) {
                 addIfPresent(ordered, towerTemplates);
             }
         } else if (degree == 3) {
-            if (canPlaceTowerOrTSection(straightWallsSinceTowerOrTSection, placed)) {
+            if (relaxedTowerSpacing || canPlaceTowerOrTSection(straightWallsSinceTowerOrTSection, placed)) {
                 addIfPresent(ordered, tSectionTemplates);
             }
-            if (canPlaceTower(node, placed, graph) && canPlaceTowerOrTSection(straightWallsSinceTowerOrTSection, placed)) {
+            if (canPlaceTower(node, placed, graph)
+                    && (relaxedTowerSpacing || canPlaceTowerOrTSection(straightWallsSinceTowerOrTSection, placed))) {
                 addIfPresent(ordered, towerTemplates);
             }
             if (straightWallsSinceGate >= 2 && towerCount > gateCount && canPlaceGate(node, placed, graph)) {
@@ -312,7 +348,8 @@ public class StrongholdDebugManager {
             }
         } else if (degree == 2 && opposite) {
             addIfPresent(ordered, straightTemplates);
-            if (canPlaceTower(node, placed, graph) && canPlaceTowerOrTSection(straightWallsSinceTowerOrTSection, placed)) {
+            if (canPlaceTower(node, placed, graph)
+                    && (relaxedTowerSpacing || canPlaceTowerOrTSection(straightWallsSinceTowerOrTSection, placed))) {
                 addIfPresent(ordered, towerTemplates);
             }
             if (straightWallsSinceGate >= 2 && towerCount > gateCount && canPlaceGate(node, placed, graph)) {
@@ -320,12 +357,14 @@ public class StrongholdDebugManager {
             }
         } else if (degree == 2) {
             addIfPresent(ordered, cornerTemplates);
-            if (canPlaceTower(node, placed, graph) && canPlaceTowerOrTSection(straightWallsSinceTowerOrTSection, placed)) {
+            if (canPlaceTower(node, placed, graph)
+                    && (relaxedTowerSpacing || canPlaceTowerOrTSection(straightWallsSinceTowerOrTSection, placed))) {
                 addIfPresent(ordered, towerTemplates);
             }
         } else if (degree == 1) {
             addIfPresent(ordered, deadEndTemplates);
-            if (canPlaceTower(node, placed, graph) && canPlaceTowerOrTSection(straightWallsSinceTowerOrTSection, placed)) {
+            if (canPlaceTower(node, placed, graph)
+                    && (relaxedTowerSpacing || canPlaceTowerOrTSection(straightWallsSinceTowerOrTSection, placed))) {
                 addIfPresent(ordered, towerTemplates);
             }
         }
