@@ -444,7 +444,10 @@ public class StrongholdDebugManager implements Listener {
     }
 
     private Location connectorAnchorLocation(RoomTemplate template, RoomTemplate.Connector connector, int rotation, Location center) {
-        return blockLocationFor(template, connector.x, connector.bottomY, connector.z, rotation, center);
+        Location marker = blockLocationFor(template, connector.x, connector.bottomY, connector.z, rotation, center);
+        Direction outward = rotateDirection(connector.facing, rotation);
+        int[] vec = directionVector(outward);
+        return marker.add(vec[0], 0, vec[1]);
     }
 
     private Location centerFromAnchor(RoomTemplate template, RoomTemplate.Connector connector, int rotation, Location anchor, Location fallback) {
