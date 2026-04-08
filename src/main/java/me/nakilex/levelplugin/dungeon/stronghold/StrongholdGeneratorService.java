@@ -58,6 +58,10 @@ public class StrongholdGeneratorService {
             }
             plugin.getLogger().info("[Stronghold] Generation attempt " + attempt + " failed; regenerating graph.");
         }
+        if (mode == GraphMode.BRANCHING) {
+            plugin.getLogger().info("[Stronghold] Branching mode failed, falling back to snake topology for stability.");
+            return generate(player, GraphMode.SNAKE, seed, nodeCount, maxAttempts);
+        }
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
                 "Stronghold generation failed after " + maxAttempts + " graph attempts.");
         return new GenerationResult(false, "placement_failed", null);
@@ -66,7 +70,7 @@ public class StrongholdGeneratorService {
     private List<NodeSpec> generateGraph(GraphMode mode, int nodeCount, Random random) {
         DungeonGraphGenerator generator = switch (mode) {
             case SNAKE -> new SnakeGraphGenerator();
-            case BRANCHING -> new BranchingRandomGraphGenerator(3);
+            case BRANCHING -> new BranchingRandomGraphGenerator(2);
             case TEST -> (size, rng) -> {
                 List<GridNode> out = new ArrayList<>();
                 out.add(new GridNode(0, 0, 0));
