@@ -153,56 +153,75 @@ public class StrongholdDebugManager implements Listener {
         recentTemplates.clear();
 
         Location rootCenter = player.getLocation().getBlock().getLocation();
+
+        if (graph.isEmpty()) {
+            rollbackAndFail(player, snapshot, "Stronghold graph is empty.");
+            return;
+        }
+
+        GridNode root = graph.get(0);
+        List<GridNode> pendingNodes = new ArrayList<>(graph);
+        pendingNodes.remove(0);
+
         int straightWallsSinceGate = 0;
         int towerCount = 0;
         int gateCount = 0;
 
-        for (int i = 0; i < graph.size(); i++) {
-            GridNode node = graph.get(i);
-            EnumSet<Direction> dirs = node.directions();
-            RoomTemplate template = selectTemplate(dirs, straightWallsSinceGate, towerCount, gateCount, planById, node, graph, graphMode);
-            if (template == null) {
-                rollbackAndFail(player, snapshot, "No template matched connector pattern " + dirs + ".");
-                return;
-            }
-            int rotation = findRotationForPlacement(template, dirs);
-            Location center = i == 0 ? rootCenter.clone() : solveCenter(node, template, rotation, planById, rootCenter);
-            if (center == null) {
-                rollbackAndFail(player, snapshot, "Failed to align template connectors for node " + node.id() + ".");
-                return;
-            }
-
-            DungeonManager.PasteResult preview = dungeonManager.pasteRoom(debugDungeon, template, rotation, center, null, true,
-                    TEMPLATE_IGNORE, overlapAllowance);
-            if (!preview.success()) {
-                rollbackAndFail(player, snapshot, "Template overlap too high (" + String.format(Locale.US, "%.1f", preview.overlap() * 100.0D)
-                        + "% > " + String.format(Locale.US, "%.1f", overlapAllowance * 100.0D) + "%) at node " + node.id() + ".");
-                return;
-            }
-
-            captureForRestore(snapshot, template, rotation, center);
-            DungeonManager.PasteResult result = dungeonManager.pasteRoom(debugDungeon, template, rotation, center, null, false, TEMPLATE_IGNORE);
-            if (!result.success()) {
-                rollbackAndFail(player, snapshot, "Failed to paste stronghold node " + node.id() + ".");
-                return;
-            }
-
-            NodePlan plan = new NodePlan(node.id(), node, template, rotation, center);
-            plans.add(plan);
-            planById.put(node.id(), plan);
-            noteTemplateUsage(template);
-
-            Set<Direction> opposite = EnumSet.of(Direction.NORTH, Direction.SOUTH);
-            if (!dirs.equals(opposite)) opposite = EnumSet.of(Direction.EAST, Direction.WEST);
-            boolean isOpposite = dirs.equals(EnumSet.of(Direction.NORTH, Direction.SOUTH)) || dirs.equals(EnumSet.of(Direction.EAST, Direction.WEST));
-            if (gateTemplates.contains(template)) {
-                gateCount++;
-                straightWallsSinceGate = 0;
-            } else if (towerTemplates.contains(template)) {
-                towerCount++;
+        NodePlan rootPlan = placeNode(player, root, rootCenter, rootCenter, planById, snapshot, debugDungeon,
+                straightWallsSinceGate, towerCount, gateCount, graph, graphMode);
+        if (rootPlan == null) {
+            return;
+        }
+        plans.add(rootPlan);
+        planById.put(rootPlan.id, rootPlan);
+        noteTemplateUsage(rootPlan.template);
+        if (gateTemplates.contains(rootPlan.template)) {
+            gateCount++;
+            straightWallsSinceGate = 0;
+        } else if (towerTemplates.contains(rootPlan.template)) {
+            towerCount++;
+            straightWallsSinceGate++;
+        } else {
+            EnumSet<Direction> dirs = rootPlan.node.directions();
+            if (dirs.equals(EnumSet.of(Direction.NORTH, Direction.SOUTH)) || dirs.equals(EnumSet.of(Direction.EAST, Direction.WEST))) {
                 straightWallsSinceGate++;
-            } else if (isOpposite) {
-                straightWallsSinceGate++;
+            }
+        }
+
+        while (!pendingNodes.isEmpty()) {
+            boolean placedAny = false;
+            Iterator<GridNode> it = pendingNodes.iterator();
+            while (it.hasNext()) {
+                GridNode node = it.next();
+                if (!hasPlacedNeighbor(node, planById)) {
+                    continue;
+                }
+                NodePlan plan = placeNode(player, node, null, rootCenter, planById, snapshot, debugDungeon,
+                        straightWallsSinceGate, towerCount, gateCount, graph, graphMode);
+                if (plan == null) {
+                    return;
+                }
+                plans.add(plan);
+                planById.put(plan.id, plan);
+                noteTemplateUsage(plan.template);
+                EnumSet<Direction> dirs = plan.node.directions();
+                boolean isOpposite = dirs.equals(EnumSet.of(Direction.NORTH, Direction.SOUTH))
+                        || dirs.equals(EnumSet.of(Direction.EAST, Direction.WEST));
+                if (gateTemplates.contains(plan.template)) {
+                    gateCount++;
+                    straightWallsSinceGate = 0;
+                } else if (towerTemplates.contains(plan.template)) {
+                    towerCount++;
+                    straightWallsSinceGate++;
+                } else if (isOpposite) {
+                    straightWallsSinceGate++;
+                }
+                it.remove();
+                placedAny = true;
+            }
+            if (!placedAny) {
+                rollbackAndFail(player, snapshot, "Failed to resolve template alignment order for all graph nodes.");
+                return;
             }
         }
 
@@ -253,6 +272,53 @@ public class StrongholdDebugManager implements Listener {
     private void rollbackAndFail(Player player, Map<Location, BlockData> snapshot, String reason) {
         restoreSnapshot(snapshot);
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, reason);
+    }
+
+    private boolean hasPlacedNeighbor(GridNode node, Map<Integer, NodePlan> placed) {
+        for (Integer nid : node.neighbors().values()) {
+            if (placed.containsKey(nid)) return true;
+        }
+        return false;
+    }
+
+    private NodePlan placeNode(Player player,
+                               GridNode node,
+                               Location fixedCenter,
+                               Location fallback,
+                               Map<Integer, NodePlan> planById,
+                               Map<Location, BlockData> snapshot,
+                               Dungeon debugDungeon,
+                               int straightWallsSinceGate,
+                               int towerCount,
+                               int gateCount,
+                               List<GridNode> graph,
+                               GraphMode graphMode) {
+        EnumSet<Direction> dirs = node.directions();
+        RoomTemplate template = selectTemplate(dirs, straightWallsSinceGate, towerCount, gateCount, planById, node, graph, graphMode);
+        if (template == null) {
+            rollbackAndFail(player, snapshot, "No template matched connector pattern " + dirs + ".");
+            return null;
+        }
+        int rotation = findRotationForPlacement(template, dirs);
+        Location center = fixedCenter != null ? fixedCenter.clone() : solveCenter(node, template, rotation, planById, fallback);
+        if (center == null) {
+            rollbackAndFail(player, snapshot, "Failed to align template connectors for node " + node.id() + ".");
+            return null;
+        }
+        DungeonManager.PasteResult preview = dungeonManager.pasteRoom(debugDungeon, template, rotation, center, null, true,
+                TEMPLATE_IGNORE, overlapAllowance);
+        if (!preview.success()) {
+            rollbackAndFail(player, snapshot, "Template overlap too high (" + String.format(Locale.US, "%.1f", preview.overlap() * 100.0D)
+                    + "% > " + String.format(Locale.US, "%.1f", overlapAllowance * 100.0D) + "%) at node " + node.id() + ".");
+            return null;
+        }
+        captureForRestore(snapshot, template, rotation, center);
+        DungeonManager.PasteResult result = dungeonManager.pasteRoom(debugDungeon, template, rotation, center, null, false, TEMPLATE_IGNORE);
+        if (!result.success()) {
+            rollbackAndFail(player, snapshot, "Failed to paste stronghold node " + node.id() + ".");
+            return null;
+        }
+        return new NodePlan(node.id(), node, template, rotation, center);
     }
 
     private void captureForRestore(Map<Location, BlockData> snapshot, RoomTemplate template, int rotation, Location center) {
@@ -319,8 +385,8 @@ public class StrongholdDebugManager implements Listener {
     }
 
     private boolean connectorsAlreadyTouching(NodePlan a, NodePlan b, Direction directionFromA) {
-        Location aTarget = connectorAnchorLocation(a, directionFromA, true);
-        Location bTarget = connectorAnchorLocation(b, directionFromA.opposite(), true);
+        Location aTarget = connectorAnchorLocation(a, directionFromA);
+        Location bTarget = connectorAnchorLocation(b, directionFromA.opposite());
         if (aTarget == null || bTarget == null) {
             return false;
         }
@@ -330,12 +396,12 @@ public class StrongholdDebugManager implements Listener {
         int dx = Math.abs(aTarget.getBlockX() - bTarget.getBlockX());
         int dy = Math.abs(aTarget.getBlockY() - bTarget.getBlockY());
         int dz = Math.abs(aTarget.getBlockZ() - bTarget.getBlockZ());
-        return dy == 0 && (dx + dz) <= 1;
+        return dy == 0 && (dx + dz) == 0;
     }
 
     private ConnectorPlan buildConnectorPlan(NodePlan a, NodePlan b, Direction directionFromA) {
-        Location aTarget = connectorAnchorLocation(a, directionFromA, true);
-        Location bTarget = connectorAnchorLocation(b, directionFromA.opposite(), true);
+        Location aTarget = connectorAnchorLocation(a, directionFromA);
+        Location bTarget = connectorAnchorLocation(b, directionFromA.opposite());
         if (aTarget == null || bTarget == null) return null;
 
         for (RoomTemplate connectorTemplate : connectorTemplates) {
@@ -346,9 +412,9 @@ public class StrongholdDebugManager implements Listener {
             RoomTemplate.Connector exit = findConnector(connectorTemplate, rotation, directionFromA.opposite());
             if (enter == null || exit == null) continue;
 
-            Location center = centerFromAnchor(connectorTemplate, enter, rotation, aTarget, true, a.center);
+            Location center = centerFromAnchor(connectorTemplate, enter, rotation, aTarget, a.center);
             if (center == null) continue;
-            Location resolvedExit = connectorAnchorLocation(connectorTemplate, exit, rotation, center, true);
+            Location resolvedExit = connectorAnchorLocation(connectorTemplate, exit, rotation, center);
             if (resolvedExit != null
                     && resolvedExit.getBlockX() == bTarget.getBlockX()
                     && resolvedExit.getBlockY() == bTarget.getBlockY()
@@ -368,46 +434,27 @@ public class StrongholdDebugManager implements Listener {
         return null;
     }
 
-    private Location connectorAnchorLocation(NodePlan plan, Direction direction, boolean ignoreAlignmentMarkers) {
+    private Location connectorAnchorLocation(NodePlan plan, Direction direction) {
         for (RoomTemplate.Connector c : plan.template.getConnectors()) {
             Direction facing = rotateDirection(c.facing, plan.rotation);
             if (facing != direction) continue;
-            return connectorAnchorLocation(plan.template, c, plan.rotation, plan.center, ignoreAlignmentMarkers);
+            return connectorAnchorLocation(plan.template, c, plan.rotation, plan.center);
         }
         return null;
     }
 
-    private Location connectorAnchorLocation(RoomTemplate template, RoomTemplate.Connector connector, int rotation, Location center, boolean ignoreAlignmentMarkers) {
-        Location marker = blockLocationFor(template, connector.x, connector.bottomY, connector.z, rotation, center);
-        if (!ignoreAlignmentMarkers) return marker;
-        int[] inward = directionVector(rotateDirection(connector.facing, rotation).opposite());
-        return marker.add(inward[0], 0, inward[1]);
+    private Location connectorAnchorLocation(RoomTemplate template, RoomTemplate.Connector connector, int rotation, Location center) {
+        return blockLocationFor(template, connector.x, connector.bottomY, connector.z, rotation, center);
     }
 
-    private Location centerFromAnchor(RoomTemplate template, RoomTemplate.Connector connector, int rotation, Location anchor, boolean ignoreAlignmentMarkers, Location fallback) {
+    private Location centerFromAnchor(RoomTemplate template, RoomTemplate.Connector connector, int rotation, Location anchor, Location fallback) {
         if (anchor == null || fallback == null || fallback.getWorld() == null) return null;
         int[] vec = RoomTemplate.rotate(connector.x - (int) Math.round(template.getCenterX()),
                 connector.z - (int) Math.round(template.getCenterZ()), rotation);
-        int shiftX = 0;
-        int shiftZ = 0;
-        if (ignoreAlignmentMarkers) {
-            int[] inward = directionVector(rotateDirection(connector.facing, rotation).opposite());
-            shiftX = inward[0];
-            shiftZ = inward[1];
-        }
-        int cx = anchor.getBlockX() - vec[0] - shiftX;
+        int cx = anchor.getBlockX() - vec[0];
         int cy = anchor.getBlockY() - (connector.bottomY - template.getConnectorMinY());
-        int cz = anchor.getBlockZ() - vec[1] - shiftZ;
+        int cz = anchor.getBlockZ() - vec[1];
         return new Location(fallback.getWorld(), cx, cy, cz);
-    }
-
-    private int[] directionVector(Direction direction) {
-        return switch (direction) {
-            case NORTH -> new int[]{0, -1};
-            case SOUTH -> new int[]{0, 1};
-            case EAST -> new int[]{1, 0};
-            case WEST -> new int[]{-1, 0};
-        };
     }
 
     private Location solveCenter(GridNode node, RoomTemplate template, int rotation, Map<Integer, NodePlan> placed, Location fallback) {
@@ -418,11 +465,20 @@ public class StrongholdDebugManager implements Listener {
             RoomTemplate.Connector thisConn = findConnector(template, rotation, dirToNeighbor);
             RoomTemplate.Connector otherConn = findConnector(neighbor.template, neighbor.rotation, dirToNeighbor.opposite());
             if (thisConn == null || otherConn == null) continue;
-            Location target = connectorAnchorLocation(neighbor.template, otherConn, neighbor.rotation, neighbor.center, true);
-            Location center = centerFromAnchor(template, thisConn, rotation, target, true, fallback);
+            Location target = connectorAnchorLocation(neighbor.template, otherConn, neighbor.rotation, neighbor.center);
+            Location center = centerFromAnchor(template, thisConn, rotation, target, fallback);
             if (center != null) return center;
         }
-        return fallback.clone();
+        return null;
+    }
+
+    private int[] directionVector(Direction direction) {
+        return switch (direction) {
+            case NORTH -> new int[]{0, -1};
+            case SOUTH -> new int[]{0, 1};
+            case EAST -> new int[]{1, 0};
+            case WEST -> new int[]{-1, 0};
+        };
     }
 
     private RoomTemplate.Connector findConnector(RoomTemplate t, int rotation, Direction want) {
