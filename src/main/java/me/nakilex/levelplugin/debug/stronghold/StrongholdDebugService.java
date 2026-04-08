@@ -20,7 +20,6 @@ import java.util.stream.Collectors;
 
 public final class StrongholdDebugService {
     private static final int CONNECTOR_SPACING = 11;
-    private static final int MAX_AXIS_PUSH_TRIES = 6;
     private static final Set<Material> PASTE_IGNORED = EnumSet.of(Material.AIR, Material.WHITE_CONCRETE,
             Material.LIGHT_BLUE_CONCRETE, Material.REDSTONE_BLOCK);
 
@@ -144,33 +143,35 @@ public final class StrongholdDebugService {
         Collections.shuffle(candidates, random);
         for (CapturedTemplate candidate : candidates) {
             for (int rotation = 0; rotation < 4; rotation++) {
-                RoomTemplate.Connector parentConnector = findFacingConnector(parent.template.template, parent.rotation, parentDir);
-                if (parentConnector == null) continue;
-                for (RoomTemplate.Connector childConnector : candidate.template.getConnectors()) {
-                    if (rotate(childConnector.facing, rotation) != parentDir.opposite()) continue;
-                    if (parentConnector.type != childConnector.type) continue;
-                    Location parentPoint = connectorWorld(parent.template.template, parent.center, parent.rotation, parentConnector)
-                            .add(parentDir == Direction.EAST ? CONNECTOR_SPACING : parentDir == Direction.WEST ? -CONNECTOR_SPACING : 0,
+                List<RoomTemplate.Connector> parentConnectors = connectorsFacing(parent.template.template, parent.rotation, parentDir);
+                if (parentConnectors.isEmpty()) continue;
+                for (RoomTemplate.Connector parentConnector : parentConnectors) {
+                    for (RoomTemplate.Connector childConnector : candidate.template.getConnectors()) {
+                        if (rotate(childConnector.facing, rotation) != parentDir.opposite()) continue;
+                        if (parentConnector.type != childConnector.type) continue;
+                        Location parentPoint = connectorWorld(parent.template.template, parent.center, parent.rotation, parentConnector);
+                        Location solved = solveCenter(candidate.template, rotation, childConnector, parentPoint);
+                        BoundingBox solvedBounds = computeBounds(candidate.template, solved, rotation);
+                        int maxPush = Math.max(32, parent.template.template.getWidth() + parent.template.template.getDepth()
+                                + candidate.template.getWidth() + candidate.template.getDepth() + CONNECTOR_SPACING);
+                        int push = 0;
+                        while (push <= maxPush && overlapsRooms(solvedBounds, existing)) {
+                            Main.getInstance().getLogger().info("[StrongholdPlacement] reject overlap template=" + candidate.id + " rotation=" + rotation
+                                    + " connectorPair=" + rotate(parentConnector.facing, parent.rotation) + "->" + rotate(childConnector.facing, rotation)
+                                    + " solved=" + solved.getBlockX() + "," + solved.getBlockY() + "," + solved.getBlockZ()
+                                    + " pushTry=" + push + " overlap=" + solvedBounds);
+                            push++;
+                            solved = solved.clone().add(parentDir == Direction.EAST ? 1 : parentDir == Direction.WEST ? -1 : 0,
                                     0,
-                                    parentDir == Direction.SOUTH ? CONNECTOR_SPACING : parentDir == Direction.NORTH ? -CONNECTOR_SPACING : 0);
-                    Location solved = solveCenter(candidate.template, rotation, childConnector, parentPoint);
-                    BoundingBox solvedBounds = computeBounds(candidate.template, solved, rotation);
-                    int push = 0;
-                    while (push <= MAX_AXIS_PUSH_TRIES && overlapsRooms(solvedBounds, existing)) {
+                                    parentDir == Direction.SOUTH ? 1 : parentDir == Direction.NORTH ? -1 : 0);
+                            solvedBounds = computeBounds(candidate.template, solved, rotation);
+                        }
+                        if (overlapsRooms(solvedBounds, existing)) continue;
                         Main.getInstance().getLogger().info("[StrongholdPlacement] template=" + candidate.id + " rotation=" + rotation
-                                + " connectorPair=" + parentConnector.facing + "->" + childConnector.facing + " solved="
-                                + solved.getBlockX() + "," + solved.getBlockY() + "," + solved.getBlockZ() + " overlap=" + solvedBounds);
-                        push++;
-                        solved = solved.clone().add(parentDir == Direction.EAST ? 1 : parentDir == Direction.WEST ? -1 : 0,
-                                0,
-                                parentDir == Direction.SOUTH ? 1 : parentDir == Direction.NORTH ? -1 : 0);
-                        solvedBounds = computeBounds(candidate.template, solved, rotation);
+                                + " connectorPair=" + rotate(parentConnector.facing, parent.rotation) + "->" + rotate(childConnector.facing, rotation)
+                                + " solved=" + solved.getBlockX() + "," + solved.getBlockY() + "," + solved.getBlockZ());
+                        return new PlacementAttempt(new PlacedRoom(node.id(), candidate, rotation, solved, solvedBounds));
                     }
-                    if (overlapsRooms(solvedBounds, existing)) continue;
-                    Main.getInstance().getLogger().info("[StrongholdPlacement] template=" + candidate.id + " rotation=" + rotation
-                            + " connectorPair=" + parentConnector.facing + "->" + childConnector.facing + " solved="
-                            + solved.getBlockX() + "," + solved.getBlockY() + "," + solved.getBlockZ());
-                    return new PlacementAttempt(new PlacedRoom(node.id(), candidate, rotation, solved, solvedBounds));
                 }
             }
         }
@@ -264,7 +265,7 @@ public final class StrongholdDebugService {
             b.link(Direction.WEST, 0);
             return List.of(a, b);
         }
-        DungeonGraphGenerator generator = mode == Mode.SNAKE ? new SnakeGraphGenerator() : new BranchingRandomGraphGenerator(3);
+        DungeonGraphGenerator generator = mode == Mode.SNAKE ? new SnakeGraphGenerator() : new BranchingRandomGraphGenerator(2);
         return generator.generate(rooms, random);
     }
 
@@ -284,11 +285,14 @@ public final class StrongholdDebugService {
         return candidates.isEmpty() ? null : candidates.get(random.nextInt(candidates.size()));
     }
 
-    private static RoomTemplate.Connector findFacingConnector(RoomTemplate template, int rotation, Direction target) {
+    private static List<RoomTemplate.Connector> connectorsFacing(RoomTemplate template, int rotation, Direction target) {
+        List<RoomTemplate.Connector> out = new ArrayList<>();
         for (RoomTemplate.Connector connector : template.getConnectors()) {
-            if (rotate(connector.facing, rotation) == target) return connector;
+            if (rotate(connector.facing, rotation) == target) {
+                out.add(connector);
+            }
         }
-        return null;
+        return out;
     }
 
     private static Direction directionToNeighbor(GridNode node, int neighborId) {
