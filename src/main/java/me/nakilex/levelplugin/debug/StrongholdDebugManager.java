@@ -81,8 +81,9 @@ public class StrongholdDebugManager {
         }
 
         List<GridNode> graph = graphMode.generator.generate(size, random);
-        if (graph.isEmpty()) {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "Failed to generate stronghold graph.");
+        if (graph.isEmpty() || graph.size() < size) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                    "Failed to generate stronghold graph for mode '" + graphMode.id() + "'.");
             return;
         }
 
@@ -526,7 +527,7 @@ public class StrongholdDebugManager {
 
     public enum GraphMode {
         SNAKE(new SnakeGraphGenerator()),
-        BRANCHING(new BranchingRandomGraphGenerator());
+        BRANCHING(new BranchingRandomGraphGenerator(2));
 
         private final DungeonGraphGenerator generator;
 
