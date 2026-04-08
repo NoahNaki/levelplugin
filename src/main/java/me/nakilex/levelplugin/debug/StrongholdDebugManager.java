@@ -24,6 +24,8 @@ import java.util.concurrent.ConcurrentHashMap;
 public class StrongholdDebugManager {
     private static final Set<Material> TEMPLATE_IGNORE = EnumSet.of(Material.WHITE_CONCRETE, Material.LIGHT_BLUE_CONCRETE);
     private static final Set<Material> STRONGHOLD_SKIP = EnumSet.of(Material.REDSTONE_BLOCK, Material.PINK_WOOL, Material.LIME_WOOL);
+    private static final double MAX_TEMPLATE_OVERLAP = 0.10D;
+    private static final int MAX_TEMPLATE_SELECTION_ATTEMPTS = 8;
 
     private final Main plugin;
     private final DungeonManager dungeonManager;
@@ -101,41 +103,32 @@ public class StrongholdDebugManager {
         for (int i = 0; i < graph.size(); i++) {
             GridNode node = graph.get(i);
             EnumSet<Direction> dirs = node.directions();
-            RoomTemplate template = selectTemplate(dirs, straightWallsSinceGate, towerCount, gateCount, planById, node, graph);
-            if (template == null) {
-                rollbackAndFail(player, snapshot, "No template matched connector pattern " + dirs + ".");
-                return;
-            }
-            int rotation = findRotationForPlacement(template, dirs);
-            Location center = i == 0 ? rootCenter.clone() : solveCenter(node, template, rotation, planById, rootCenter);
-            if (center == null) {
-                rollbackAndFail(player, snapshot, "Failed to align template connectors for node " + node.id() + ".");
-                return;
-            }
-            if (hasTemplateOverlap(template, rotation, center, occupiedBlocks)) {
-                rollbackAndFail(player, snapshot, "Stronghold generation detected overlapping room geometry at node " + node.id() + ".");
+            NodePlacementChoice choice = chooseNodePlacement(node, dirs, straightWallsSinceGate, towerCount, gateCount,
+                    planById, graph, rootCenter, occupiedBlocks, debugDungeon);
+            if (choice == null) {
+                rollbackAndFail(player, snapshot, "Failed to find a non-overlapping template for node " + node.id() + ".");
                 return;
             }
 
-            captureForRestore(snapshot, template, rotation, center);
-            DungeonManager.PasteResult result = dungeonManager.pasteRoom(debugDungeon, template, rotation, center, null, false, TEMPLATE_IGNORE);
+            captureForRestore(snapshot, choice.template, choice.rotation, choice.center);
+            DungeonManager.PasteResult result = dungeonManager.pasteRoom(debugDungeon, choice.template, choice.rotation, choice.center, null, false, TEMPLATE_IGNORE);
             if (!result.success()) {
                 rollbackAndFail(player, snapshot, "Failed to paste stronghold node " + node.id() + ".");
                 return;
             }
-            markTemplateOccupied(template, rotation, center, occupiedBlocks);
+            markTemplateOccupied(choice.template, choice.rotation, choice.center, occupiedBlocks);
 
-            NodePlan plan = new NodePlan(node.id(), node, template, rotation, center);
+            NodePlan plan = new NodePlan(node.id(), node, choice.template, choice.rotation, choice.center);
             plans.add(plan);
             planById.put(node.id(), plan);
 
             Set<Direction> opposite = EnumSet.of(Direction.NORTH, Direction.SOUTH);
             if (!dirs.equals(opposite)) opposite = EnumSet.of(Direction.EAST, Direction.WEST);
             boolean isOpposite = dirs.equals(EnumSet.of(Direction.NORTH, Direction.SOUTH)) || dirs.equals(EnumSet.of(Direction.EAST, Direction.WEST));
-            if (gateTemplates.contains(template)) {
+            if (gateTemplates.contains(choice.template)) {
                 gateCount++;
                 straightWallsSinceGate = 0;
-            } else if (towerTemplates.contains(template)) {
+            } else if (towerTemplates.contains(choice.template)) {
                 towerCount++;
                 straightWallsSinceGate++;
             } else if (isOpposite) {
@@ -243,7 +236,7 @@ public class StrongholdDebugManager {
                     }
                     return null;
                 }
-                if (hasTemplateOverlap(connectorPlan.template, connectorPlan.rotation, connectorPlan.center, occupiedBlocks)) {
+                if (!isTemplateOverlapAcceptable(connectorPlan.template, connectorPlan.rotation, connectorPlan.center, occupiedBlocks)) {
                     return null;
                 }
                 captureForRestore(snapshot, connectorPlan.template, connectorPlan.rotation, connectorPlan.center);
@@ -294,6 +287,41 @@ public class StrongholdDebugManager {
                     && resolvedExit.getBlockZ() == bTarget.getBlockZ()) {
                 return new ConnectorPlan(connectorTemplate, rotation, center);
             }
+        }
+        return null;
+    }
+
+    private NodePlacementChoice chooseNodePlacement(GridNode node,
+                                                    EnumSet<Direction> dirs,
+                                                    int straightWallsSinceGate,
+                                                    int towerCount,
+                                                    int gateCount,
+                                                    Map<Integer, NodePlan> placed,
+                                                    List<GridNode> graph,
+                                                    Location rootCenter,
+                                                    Set<String> occupiedBlocks,
+                                                    Dungeon dungeon) {
+        for (int attempt = 0; attempt < MAX_TEMPLATE_SELECTION_ATTEMPTS; attempt++) {
+            RoomTemplate template = selectTemplate(dirs, straightWallsSinceGate, towerCount, gateCount, placed, node, graph);
+            if (template == null) {
+                return null;
+            }
+            int rotation = findRotationForPlacement(template, dirs);
+            if (rotation < 0) {
+                continue;
+            }
+            Location center = placed.isEmpty() ? rootCenter.clone() : solveCenter(node, template, rotation, placed, rootCenter);
+            if (center == null) {
+                continue;
+            }
+            if (!isTemplateOverlapAcceptable(template, rotation, center, occupiedBlocks)) {
+                continue;
+            }
+            DungeonManager.PasteResult preview = dungeonManager.pasteRoom(dungeon, template, rotation, center, null, true, TEMPLATE_IGNORE);
+            if (!preview.success() || preview.overlap() > MAX_TEMPLATE_OVERLAP) {
+                continue;
+            }
+            return new NodePlacementChoice(template, rotation, center);
         }
         return null;
     }
@@ -598,16 +626,26 @@ public class StrongholdDebugManager {
         return list.get(random.nextInt(list.size()));
     }
 
-    private boolean hasTemplateOverlap(RoomTemplate template, int rotation, Location center, Set<String> occupiedBlocks) {
+    private boolean isTemplateOverlapAcceptable(RoomTemplate template, int rotation, Location center, Set<String> occupiedBlocks) {
+        return calculateTemplateOverlapRatio(template, rotation, center, occupiedBlocks) <= MAX_TEMPLATE_OVERLAP;
+    }
+
+    private double calculateTemplateOverlapRatio(RoomTemplate template, int rotation, Location center, Set<String> occupiedBlocks) {
+        int overlapping = 0;
+        int totalSolid = 0;
         for (RoomTemplate.BlockDef b : template.getBlocks()) {
             Material mat = b.data.getMaterial();
             if (mat.isAir() || TEMPLATE_IGNORE.contains(mat) || STRONGHOLD_SKIP.contains(mat)) continue;
+            totalSolid++;
             String key = blockKey(blockLocationFor(template, b.x, b.y, b.z, rotation, center));
             if (key != null && occupiedBlocks.contains(key)) {
-                return true;
+                overlapping++;
             }
         }
-        return false;
+        if (totalSolid == 0) {
+            return 0D;
+        }
+        return (double) overlapping / totalSolid;
     }
 
     private void markTemplateOccupied(RoomTemplate template, int rotation, Location center, Set<String> occupiedBlocks) {
@@ -639,6 +677,8 @@ public class StrongholdDebugManager {
     private record ConnectorPlan(RoomTemplate template, int rotation, Location center) {}
 
     private record PlacementPlan(RoomTemplate template, int rotation, Location center) {}
+
+    private record NodePlacementChoice(RoomTemplate template, int rotation, Location center) {}
 
     public enum GraphMode {
         SNAKE(new SnakeGraphGenerator()),
