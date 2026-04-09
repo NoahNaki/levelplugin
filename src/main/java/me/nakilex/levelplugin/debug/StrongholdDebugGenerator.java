@@ -244,9 +244,10 @@ public final class StrongholdDebugGenerator {
 
         closeOpenSideWithDeadEnd(spineHead, captured, occupied, random, placed);
 
+        GenerationDebugStats debugStats = new GenerationDebugStats();
         List<PlacedTemplate> branchSeeds = new ArrayList<>(placed);
         for (PlacedTemplate seed : branchSeeds) {
-            growBranches(seed, captured, occupied, random, placed, maxBranchLength);
+            debugStats.absorb(growBranches(seed, captured, occupied, random, placed, maxBranchLength));
         }
 
         int targetPieces = targetPieceCount();
@@ -259,7 +260,7 @@ public final class StrongholdDebugGenerator {
                 if (placed.size() >= targetPieces) {
                     break;
                 }
-                growBranches(seed, captured, occupied, random, placed, maxBranchLength);
+                debugStats.absorb(growBranches(seed, captured, occupied, random, placed, maxBranchLength));
             }
         }
 
@@ -269,11 +270,29 @@ public final class StrongholdDebugGenerator {
 
         if (feedbackTarget != null) {
             long largePlaced = placed.stream().filter(p -> isLarge(p.spec)).count();
+            int enabledWalls = (int) TEMPLATE_SPECS.stream().filter(spec -> spec.category == PieceCategory.WALL && isTemplateEnabled(spec.id)).count();
+            int enabledLarge = (int) TEMPLATE_SPECS.stream().filter(spec -> spec.category == PieceCategory.JUNCTION_LARGE && isTemplateEnabled(spec.id)).count();
             ChatMessageUtil.send(feedbackTarget, ChatMessageUtil.MessageType.SUCCESS,
                     "Generated stronghold spine+branches using " + placed.size()
                             + " pieces (overlap threshold: " + String.format("%.2f", maxOverlapPercent)
                             + "%, effective: " + String.format("%.2f", effectiveOverlapPercent())
                             + "%, large pieces: " + largePlaced + ").");
+            ChatMessageUtil.send(feedbackTarget, ChatMessageUtil.MessageType.INFO,
+                    "Stronghold debug stats → branch side attempts: " + debugStats.sideAttempts
+                            + ", branch placements: " + debugStats.placements
+                            + ", failed branch attempts: " + debugStats.failedPlacements
+                            + ", dead-ends placed: " + debugStats.deadEndsPlaced
+                            + ", enabled walls: " + enabledWalls
+                            + ", enabled large templates: " + enabledLarge
+                            + ", target pieces: " + targetPieces + ".");
+            Bukkit.getLogger().info("[StrongholdDebug] sideAttempts=" + debugStats.sideAttempts
+                    + ", placements=" + debugStats.placements
+                    + ", failed=" + debugStats.failedPlacements
+                    + ", deadEnds=" + debugStats.deadEndsPlaced
+                    + ", enabledWalls=" + enabledWalls
+                    + ", enabledLarge=" + enabledLarge
+                    + ", targetPieces=" + targetPieces
+                    + ", actualPieces=" + placed.size());
         }
         return true;
     }
@@ -339,12 +358,13 @@ public final class StrongholdDebugGenerator {
         return new Location(world, x, y, z);
     }
 
-    private static void growBranches(PlacedTemplate seed,
-                                     CapturedTemplates captured,
-                                     Set<Long> occupied,
-                                     Random random,
-                                     List<PlacedTemplate> placed,
-                                     int maxBranchLength) {
+    private static GenerationDebugStats growBranches(PlacedTemplate seed,
+                                                     CapturedTemplates captured,
+                                                     Set<Long> occupied,
+                                                     Random random,
+                                                     List<PlacedTemplate> placed,
+                                                     int maxBranchLength) {
+        GenerationDebugStats stats = new GenerationDebugStats();
         List<BlockFace> openSides = seed.openSides();
         int branchPasses = branchPassesForSeed(seed.spec);
         double openChance = branchOpenChanceForSeed(seed.spec);
@@ -352,6 +372,7 @@ public final class StrongholdDebugGenerator {
         for (int pass = 0; pass < branchPasses; pass++) {
             Collections.shuffle(openSides, random);
             for (BlockFace side : openSides) {
+                stats.sideAttempts++;
                 if (seed.usedConnectors.contains(side)) {
                     continue;
                 }
@@ -369,6 +390,7 @@ public final class StrongholdDebugGenerator {
 
                     PlacementAttempt attempt = tryPlaceFromSide(branchCurrent, branchSide, pool, captured.connector(), occupied, random);
                     if (attempt == null) {
+                        stats.failedPlacements++;
                         branchCurrent.markUsed(branchSide);
                         break;
                     }
@@ -377,10 +399,12 @@ public final class StrongholdDebugGenerator {
                         branchState = branchState.onPlaced(attempt.connector.spec);
                         placed.add(attempt.connector);
                         occupy(occupied, attempt.connector);
+                        stats.placements++;
                     }
                     branchState = branchState.onPlaced(attempt.placed.spec);
                     placed.add(attempt.placed);
                     occupy(occupied, attempt.placed);
+                    stats.placements++;
                     branchCurrent = attempt.placed;
 
                     BlockFace avoid = attempt.placed.incomingSide;
@@ -390,32 +414,36 @@ public final class StrongholdDebugGenerator {
                     }
                 }
 
-                closeOpenSideWithDeadEnd(branchCurrent, captured, occupied, random, placed);
+                if (closeOpenSideWithDeadEnd(branchCurrent, captured, occupied, random, placed)) {
+                    stats.deadEndsPlaced++;
+                }
             }
         }
+        return stats;
     }
 
-    private static void closeOpenSideWithDeadEnd(PlacedTemplate target,
-                                                  CapturedTemplates captured,
-                                                  Set<Long> occupied,
-                                                  Random random,
-                                                  List<PlacedTemplate> placed) {
+    private static boolean closeOpenSideWithDeadEnd(PlacedTemplate target,
+                                                    CapturedTemplates captured,
+                                                    Set<Long> occupied,
+                                                    Random random,
+                                                    List<PlacedTemplate> placed) {
         if (captured.deadEnds().isEmpty()) {
-            return;
+            return false;
         }
         BlockFace side = pickOpenSide(target, null, random);
         if (side == null) {
-            return;
+            return false;
         }
 
         PlacementAttempt deadEndAttempt = tryPlaceFromSide(target, side, captured.deadEnds(), null, occupied, random);
         if (deadEndAttempt == null) {
             target.markUsed(side);
-            return;
+            return false;
         }
 
         placed.add(deadEndAttempt.placed);
         occupy(occupied, deadEndAttempt.placed);
+        return true;
     }
 
     private static PlacementAttempt tryPlaceFromSide(PlacedTemplate current,
@@ -984,6 +1012,23 @@ public final class StrongholdDebugGenerator {
     }
 
     private record CaptureResult(CapturedTemplates templates, String error) {
+    }
+
+    private static final class GenerationDebugStats {
+        private int sideAttempts;
+        private int placements;
+        private int failedPlacements;
+        private int deadEndsPlaced;
+
+        private void absorb(GenerationDebugStats other) {
+            if (other == null) {
+                return;
+            }
+            sideAttempts += other.sideAttempts;
+            placements += other.placements;
+            failedPlacements += other.failedPlacements;
+            deadEndsPlaced += other.deadEndsPlaced;
+        }
     }
 
     private record WeightedSpec(TemplateSpec spec, double key) {
