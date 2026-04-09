@@ -46,8 +46,8 @@ public final class StrongholdDebugGenerator {
             new TemplateSpec("straight_7", new TemplateBounds(473, -38, -5701, 543, -61, -5631), PieceCategory.WALL, 2),
             new TemplateSpec("straight_8", new TemplateBounds(543, -61, -5630, 473, -38, -5560), PieceCategory.WALL, 2),
             new TemplateSpec("straight_9", new TemplateBounds(473, -38, -5417, 543, -61, -5347), PieceCategory.WALL, 2),
-            new TemplateSpec("t_section", new TemplateBounds(615, -61, -5276, 685, -7, -5206), PieceCategory.JUNCTION_LARGE, 1),
-            new TemplateSpec("tower_1", new TemplateBounds(615, -61, -5488, 685, -7, -5418), PieceCategory.JUNCTION_LARGE, 1),
+            new TemplateSpec("t_section", new TemplateBounds(615, -61, -5276, 685, -7, -5206), PieceCategory.JUNCTION_LARGE, 3),
+            new TemplateSpec("tower_1", new TemplateBounds(615, -61, -5488, 685, -7, -5418), PieceCategory.JUNCTION_LARGE, 3),
             new TemplateSpec("gate_1", new TemplateBounds(686, -61, -5346, 614, -10, -5418), PieceCategory.JUNCTION_LARGE, 1),
             new TemplateSpec("gate_2", new TemplateBounds(686, -61, -5276, 614, -10, -5346), PieceCategory.JUNCTION_LARGE, 1),
             new TemplateSpec("church", new TemplateBounds(757, -61, -5559, 827, 34, -5489), PieceCategory.JUNCTION_LARGE, 1),
@@ -58,9 +58,11 @@ public final class StrongholdDebugGenerator {
     private static final TemplateSpec CONNECTOR_SPEC =
             new TemplateSpec("connector_1", new TemplateBounds(412, -61, -5711, 402, -38, -5701), PieceCategory.CONNECTOR, 1);
 
-    private static final int DEFAULT_SPINE_LENGTH = 10;
-    private static final int MAX_BRANCH_LENGTH = 3;
+    private static final int DEFAULT_SPINE_LENGTH = 8;
+    private static final int MAX_BRANCH_LENGTH = 5;
     private static final int MIN_SMALL_PIECES_BETWEEN_LARGE = 1;
+    private static final int MIN_WALL_PIECES_BETWEEN_GATES = 3;
+    private static final double BRANCH_OPEN_SIDE_CHANCE = 0.70D;
 
     private static double maxOverlapPercent = 2.0D;
 
@@ -109,14 +111,14 @@ public final class StrongholdDebugGenerator {
         occupy(occupied, start);
 
         PlacedTemplate spineHead = start;
-        int smallPiecesSinceLarge = MIN_SMALL_PIECES_BETWEEN_LARGE;
+        PlacementState spineState = PlacementState.initial();
         for (int i = 0; i < DEFAULT_SPINE_LENGTH; i++) {
             BlockFace side = pickOpenSide(spineHead, null, random);
             if (side == null) {
                 break;
             }
 
-            List<TemplateSpec> pool = candidatePoolForStep(captured, canPlaceLargeAfter(spineHead, smallPiecesSinceLarge));
+            List<TemplateSpec> pool = candidatePoolForStep(captured, spineHead, spineState);
 
             if (pool.isEmpty()) {
                 break;
@@ -128,7 +130,7 @@ public final class StrongholdDebugGenerator {
                 continue;
             }
 
-            smallPiecesSinceLarge = updateSmallPiecesSinceLarge(smallPiecesSinceLarge, next.spec);
+            spineState = spineState.onPlaced(next.spec);
             placed.add(next);
             occupy(occupied, next);
             spineHead = next;
@@ -160,18 +162,17 @@ public final class StrongholdDebugGenerator {
         Collections.shuffle(openSides, random);
 
         for (BlockFace side : openSides) {
-            if (random.nextDouble() > 0.45D) {
+            if (random.nextDouble() > BRANCH_OPEN_SIDE_CHANCE) {
                 continue;
             }
 
             PlacedTemplate branchCurrent = seed;
             BlockFace branchSide = side;
-            int smallPiecesSinceLarge = isLarge(seed.spec) ? 0 : MIN_SMALL_PIECES_BETWEEN_LARGE;
+            PlacementState branchState = PlacementState.fromSeed(seed.spec);
 
             int segments = 1 + random.nextInt(MAX_BRANCH_LENGTH);
             for (int i = 0; i < segments; i++) {
-                List<TemplateSpec> pool = candidatePoolForStep(captured,
-                        i > 0 && canPlaceLargeAfter(branchCurrent, smallPiecesSinceLarge));
+                List<TemplateSpec> pool = candidatePoolForStep(captured, branchCurrent, branchState, i > 0);
 
                 PlacedTemplate next = tryPlaceFromSide(branchCurrent, branchSide, pool, captured.connector(), occupied, random);
                 if (next == null) {
@@ -179,7 +180,7 @@ public final class StrongholdDebugGenerator {
                     break;
                 }
 
-                smallPiecesSinceLarge = updateSmallPiecesSinceLarge(smallPiecesSinceLarge, next.spec);
+                branchState = branchState.onPlaced(next.spec);
                 placed.add(next);
                 occupy(occupied, next);
                 branchCurrent = next;
@@ -228,8 +229,7 @@ public final class StrongholdDebugGenerator {
             return null;
         }
 
-        List<TemplateSpec> shuffled = new ArrayList<>(candidateSpecs);
-        Collections.shuffle(shuffled, random);
+        List<TemplateSpec> shuffled = weightedShuffle(candidateSpecs, random);
 
         PlacedTemplate direct = tryPlaceSingle(current, currentSide, shuffled, occupied, random, true);
         if (direct != null && !areBothLarge(current.spec, direct.spec)) {
@@ -283,23 +283,64 @@ public final class StrongholdDebugGenerator {
         return spec.category == PieceCategory.JUNCTION_LARGE;
     }
 
-    private static boolean canPlaceLargeAfter(PlacedTemplate current, int smallPiecesSinceLarge) {
-        return !isLarge(current.spec) && smallPiecesSinceLarge >= MIN_SMALL_PIECES_BETWEEN_LARGE;
+    private static boolean isGate(TemplateSpec spec) {
+        return spec.id.startsWith("gate_");
     }
 
-    private static int updateSmallPiecesSinceLarge(int currentSmallCount, TemplateSpec placedSpec) {
-        if (isLarge(placedSpec)) {
-            return 0;
-        }
-        return Math.min(MIN_SMALL_PIECES_BETWEEN_LARGE + 1, currentSmallCount + 1);
+    private static boolean isWall(TemplateSpec spec) {
+        return spec.category == PieceCategory.WALL;
     }
 
-    private static List<TemplateSpec> candidatePoolForStep(CapturedTemplates captured, boolean allowLarge) {
+    private static boolean canPlaceLargeAfter(PlacedTemplate current, PlacementState state) {
+        return !isLarge(current.spec) && state.smallPiecesSinceLarge >= MIN_SMALL_PIECES_BETWEEN_LARGE;
+    }
+
+    private static boolean canPlaceGate(PlacementState state) {
+        return state.wallPiecesSinceGate >= MIN_WALL_PIECES_BETWEEN_GATES;
+    }
+
+    private static boolean canUseSpec(TemplateSpec spec, PlacementState state) {
+        return !isGate(spec) || canPlaceGate(state);
+    }
+
+    private static List<TemplateSpec> candidatePoolForStep(CapturedTemplates captured,
+                                                           PlacedTemplate current,
+                                                           PlacementState state) {
+        return candidatePoolForStep(captured, current, state, true);
+    }
+
+    private static List<TemplateSpec> candidatePoolForStep(CapturedTemplates captured,
+                                                           PlacedTemplate current,
+                                                           PlacementState state,
+                                                           boolean allowLarge) {
         List<TemplateSpec> pool = new ArrayList<>(captured.walls());
-        if (allowLarge) {
-            pool.addAll(captured.largeJunctions());
+        if (allowLarge && canPlaceLargeAfter(current, state)) {
+            for (TemplateSpec large : captured.largeJunctions()) {
+                if (canUseSpec(large, state)) {
+                    pool.add(large);
+                }
+            }
         }
         return pool;
+    }
+
+    private static List<TemplateSpec> weightedShuffle(List<TemplateSpec> candidateSpecs, Random random) {
+        if (candidateSpecs.isEmpty()) {
+            return List.of();
+        }
+        List<WeightedSpec> weighted = new ArrayList<>(candidateSpecs.size());
+        for (TemplateSpec spec : candidateSpecs) {
+            double u = Math.max(1.0E-12D, random.nextDouble());
+            double key = -Math.log(u) / Math.max(1, spec.weight);
+            weighted.add(new WeightedSpec(spec, key));
+        }
+        weighted.sort((a, b) -> Double.compare(a.key, b.key));
+
+        List<TemplateSpec> out = new ArrayList<>(weighted.size());
+        for (WeightedSpec entry : weighted) {
+            out.add(entry.spec);
+        }
+        return out;
     }
 
     private static BlockFace pickOpenSide(PlacedTemplate placed, BlockFace avoid, Random random) {
@@ -647,6 +688,33 @@ public final class StrongholdDebugGenerator {
                                      List<TemplateSpec> largeJunctions,
                                      List<TemplateSpec> deadEnds,
                                      TemplateSpec connector) {
+    }
+
+    private record WeightedSpec(TemplateSpec spec, double key) {
+    }
+
+    private record PlacementState(int smallPiecesSinceLarge, int wallPiecesSinceGate) {
+        private static PlacementState initial() {
+            return new PlacementState(MIN_SMALL_PIECES_BETWEEN_LARGE, MIN_WALL_PIECES_BETWEEN_GATES);
+        }
+
+        private static PlacementState fromSeed(TemplateSpec seed) {
+            int smallCount = isLarge(seed) ? 0 : MIN_SMALL_PIECES_BETWEEN_LARGE;
+            int gateCount = isGate(seed) ? 0 : MIN_WALL_PIECES_BETWEEN_GATES;
+            return new PlacementState(smallCount, gateCount);
+        }
+
+        private PlacementState onPlaced(TemplateSpec placed) {
+            int nextSmallSinceLarge = isLarge(placed)
+                    ? 0
+                    : Math.min(MIN_SMALL_PIECES_BETWEEN_LARGE + 1, smallPiecesSinceLarge + 1);
+            int nextWallsSinceGate = isGate(placed)
+                    ? 0
+                    : (isWall(placed)
+                    ? Math.min(MIN_WALL_PIECES_BETWEEN_GATES + 1, wallPiecesSinceGate + 1)
+                    : wallPiecesSinceGate);
+            return new PlacementState(nextSmallSinceLarge, nextWallsSinceGate);
+        }
     }
 
     private static final class PlacedTemplate {
