@@ -189,6 +189,13 @@ public final class StrongholdDebugGenerator {
         return snapshots;
     }
 
+    public static boolean canCaptureTemplates(World world) {
+        if (world == null) {
+            return false;
+        }
+        return captureAllTemplates(world) != null;
+    }
+
     public static boolean isTemplateEnabled(String templateId) {
         if (templateId == null || templateId.isBlank()) {
             return false;
@@ -560,6 +567,16 @@ public final class StrongholdDebugGenerator {
         Map<BlockFace, List<BlockVector3>> markersBySide = new EnumMap<>(BlockFace.class);
         for (BlockFace face : List.of(BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST)) {
             markersBySide.put(face, new ArrayList<>());
+        }
+
+        int minChunkX = minX >> 4;
+        int maxChunkX = maxX >> 4;
+        int minChunkZ = minZ >> 4;
+        int maxChunkZ = maxZ >> 4;
+        for (int chunkX = minChunkX; chunkX <= maxChunkX; chunkX++) {
+            for (int chunkZ = minChunkZ; chunkZ <= maxChunkZ; chunkZ++) {
+                world.getChunkAt(chunkX, chunkZ).load();
+            }
         }
 
         for (int x = minX; x <= maxX; x++) {

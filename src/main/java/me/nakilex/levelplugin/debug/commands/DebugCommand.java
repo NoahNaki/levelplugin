@@ -602,23 +602,30 @@ public class DebugCommand implements TabExecutor {
                             "Could not create stronghold debug world.");
                     return true;
                 }
-                World templateSourceWorld = strongholdPlayer.getWorld();
+                World templateSourceWorld = resolveStrongholdTemplateSourceWorld(strongholdPlayer.getWorld());
+                if (templateSourceWorld == null) {
+                    ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.ERROR,
+                            "Could not find a world with valid stronghold templates. Tried current world, 'stronghold', and 'flatland'.");
+                    return true;
+                }
                 Location spawn = new Location(debugWorld, 0.5, 4.0, 0.5, 0.0F, 0.0F);
                 strongholdPlayer.teleport(spawn);
                 ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.INFO,
-                        "Teleported to stronghold debug world. Generating stronghold now...");
+                        "Teleported to stronghold debug world. Waiting for world load, then generating...");
 
                 Player finalPlayer = strongholdPlayer;
+                World finalTemplateSourceWorld = templateSourceWorld;
                 Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
                     StrongholdDebugGenerator.GenerationResult generationResult =
-                            StrongholdDebugGenerator.generateTest(templateSourceWorld, debugWorld, 8, 4, 8);
+                            StrongholdDebugGenerator.generateTest(finalTemplateSourceWorld, debugWorld, 8, 4, 8);
                     if (!generationResult.success()) {
                         ChatMessageUtil.send(finalPlayer, ChatMessageUtil.MessageType.ERROR, generationResult.message());
                         return;
                     }
                     ChatMessageUtil.send(finalPlayer, ChatMessageUtil.MessageType.SUCCESS,
-                            "Generated stronghold in world '" + debugWorld.getName() + "'.");
-                }, 1L);
+                            "Generated stronghold in world '" + debugWorld.getName()
+                                    + "' using templates from '" + finalTemplateSourceWorld.getName() + "'.");
+                }, 20L);
                 return true;
 
             default:
@@ -629,6 +636,27 @@ public class DebugCommand implements TabExecutor {
                 sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|" + statUsage2 + ">");
                 return true;
         }
+    }
+
+    private World resolveStrongholdTemplateSourceWorld(World preferred) {
+        List<World> candidates = new ArrayList<>();
+        if (preferred != null) {
+            candidates.add(preferred);
+        }
+        World stronghold = Bukkit.getWorld("stronghold");
+        if (stronghold != null && !candidates.contains(stronghold)) {
+            candidates.add(stronghold);
+        }
+        World flatland = Bukkit.getWorld("flatland");
+        if (flatland != null && !candidates.contains(flatland)) {
+            candidates.add(flatland);
+        }
+        for (World candidate : candidates) {
+            if (StrongholdDebugGenerator.canCaptureTemplates(candidate)) {
+                return candidate;
+            }
+        }
+        return null;
     }
 
     private void toggleInventoryDebug(Player player) {

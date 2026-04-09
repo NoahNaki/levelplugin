@@ -49,6 +49,7 @@ public final class StrongholdDebugWorldManager {
         }
 
         world.setSpawnLocation(0, 4, 0);
+        world.getChunkAt(0, 0).load();
         world.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, false);
         world.setGameRule(GameRule.DO_WEATHER_CYCLE, false);
         world.setTime(6000);
