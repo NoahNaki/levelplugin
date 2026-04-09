@@ -189,22 +189,30 @@ public final class StrongholdDebugGenerator {
         int spineLength = spineLength();
         int maxBranchLength = maxBranchLength();
         for (int i = 0; i < spineLength; i++) {
-            BlockFace side = pickOpenSide(spineHead, null, random);
-            if (side == null) {
+            List<BlockFace> sides = spineHead.openSides();
+            Collections.shuffle(sides, random);
+            if (sides.isEmpty()) {
                 break;
             }
 
-            List<TemplateSpec> pool = candidatePoolForStep(captured, spineHead, spineState);
-
-            if (pool.isEmpty()) {
-                break;
-            }
-
-            PlacementAttempt attempt = tryPlaceFromSide(spineHead, side, pool, captured.connector(), occupied, random);
-            if (attempt == null) {
+            PlacementAttempt attempt = null;
+            BlockFace usedSide = null;
+            for (BlockFace side : sides) {
+                List<TemplateSpec> pool = candidatePoolForStep(captured, spineHead, spineState);
+                if (pool.isEmpty()) {
+                    break;
+                }
+                attempt = tryPlaceFromSide(spineHead, side, pool, captured.connector(), occupied, random);
+                if (attempt != null) {
+                    usedSide = side;
+                    break;
+                }
                 spineHead.markUsed(side);
-                continue;
             }
+            if (attempt == null) {
+                break;
+            }
+            spineHead.markUsed(usedSide);
 
             if (attempt.connector != null) {
                 spineState = spineState.onPlaced(attempt.connector.spec);
