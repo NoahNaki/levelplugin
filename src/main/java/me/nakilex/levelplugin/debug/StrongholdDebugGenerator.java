@@ -122,6 +122,10 @@ public final class StrongholdDebugGenerator {
         return Math.max(120, Math.min(2500, scaled));
     }
 
+    private static boolean allowAdjacentLargePieces() {
+        return generationSizeMultiplier >= 100;
+    }
+
     public static boolean generateTest(Player player) {
         if (player == null) {
             return false;
@@ -264,10 +268,12 @@ public final class StrongholdDebugGenerator {
         }
 
         if (feedbackTarget != null) {
+            long largePlaced = placed.stream().filter(p -> isLarge(p.spec)).count();
             ChatMessageUtil.send(feedbackTarget, ChatMessageUtil.MessageType.SUCCESS,
                     "Generated stronghold spine+branches using " + placed.size()
                             + " pieces (overlap threshold: " + String.format("%.2f", maxOverlapPercent)
-                            + "%, effective: " + String.format("%.2f", effectiveOverlapPercent()) + "%).");
+                            + "%, effective: " + String.format("%.2f", effectiveOverlapPercent())
+                            + "%, large pieces: " + largePlaced + ").");
         }
         return true;
     }
@@ -431,7 +437,7 @@ public final class StrongholdDebugGenerator {
                 occupy(occupiedWithConnector, connectorPlaced);
 
                 PlacedTemplate viaConnector = tryPlaceSingle(connectorPlaced, currentSide, shuffled, occupiedWithConnector, random, true);
-                if (viaConnector != null && !areBothLarge(current.spec, viaConnector.spec)) {
+                if (viaConnector != null && (!areBothLarge(current.spec, viaConnector.spec) || allowAdjacentLargePieces())) {
                     current.markUsed(currentSide);
                     connectorPlaced.markUsed(currentSide);
                     return new PlacementAttempt(connectorPlaced, viaConnector);
@@ -440,7 +446,7 @@ public final class StrongholdDebugGenerator {
         }
 
         PlacedTemplate direct = tryPlaceSingle(current, currentSide, shuffled, occupied, random, true);
-        if (direct != null && !areBothLarge(current.spec, direct.spec)) {
+        if (direct != null && (!areBothLarge(current.spec, direct.spec) || allowAdjacentLargePieces())) {
             current.markUsed(currentSide);
             return new PlacementAttempt(null, direct);
         }
@@ -532,9 +538,13 @@ public final class StrongholdDebugGenerator {
                                                            boolean allowLarge) {
         List<TemplateSpec> pool = new ArrayList<>(captured.walls());
         if (allowLarge && canPlaceLargeAfter(current, state)) {
+            int largeBias = Math.max(1, generationSizeMultiplier / 25);
             for (TemplateSpec large : captured.largeJunctions()) {
                 if (canUseSpec(large, state)) {
                     pool.add(large);
+                    for (int i = 0; i < largeBias; i++) {
+                        pool.add(large);
+                    }
                 }
             }
         }
