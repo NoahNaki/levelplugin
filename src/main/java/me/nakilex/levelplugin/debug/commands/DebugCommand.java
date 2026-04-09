@@ -608,7 +608,7 @@ public class DebugCommand implements TabExecutor {
                             "Could not find a template source world. Tried current world, 'stronghold', and 'flatland'.");
                     return true;
                 }
-                Location spawn = new Location(debugWorld, 0.5, 4.0, 0.5, 0.0F, 0.0F);
+                Location spawn = new Location(debugWorld, 0.5, -59.0, 0.5, 0.0F, 0.0F);
                 strongholdPlayer.teleport(spawn);
                 ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.INFO,
                         "Teleported to stronghold debug world. Waiting for world load, then generating from source world '"
@@ -618,7 +618,7 @@ public class DebugCommand implements TabExecutor {
                 World finalTemplateSourceWorld = templateSourceWorld;
                 Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
                     StrongholdDebugGenerator.GenerationResult generationResult =
-                            StrongholdDebugGenerator.generateTestDetailed(finalTemplateSourceWorld, debugWorld, 8, 4, 8, finalPlayer);
+                            StrongholdDebugGenerator.generateTestDetailed(finalTemplateSourceWorld, debugWorld, 8, -59, 8, finalPlayer);
                     if (!generationResult.success()) {
                         ChatMessageUtil.send(finalPlayer, ChatMessageUtil.MessageType.ERROR, generationResult.message());
                         return;
