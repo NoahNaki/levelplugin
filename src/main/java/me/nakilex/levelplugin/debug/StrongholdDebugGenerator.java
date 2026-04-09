@@ -218,8 +218,9 @@ public final class StrongholdDebugGenerator {
         PlacementState spineState = PlacementState.initial();
         int spineLength = spineLength();
         int maxBranchLength = maxBranchLength();
+        int targetPieces = targetPieceCount();
         for (int i = 0; i < spineLength; i++) {
-            if (shouldAbortGeneration()) {
+            if (shouldAbortGeneration() || placed.size() >= targetPieces) {
                 break;
             }
             List<BlockFace> sides = spineHead.openSides();
@@ -248,9 +249,15 @@ public final class StrongholdDebugGenerator {
             spineHead.markUsed(usedSide);
 
             if (attempt.connector != null) {
+                if (placed.size() >= targetPieces) {
+                    break;
+                }
                 spineState = spineState.onPlaced(attempt.connector.spec);
                 placed.add(attempt.connector);
                 occupy(occupied, attempt.connector);
+            }
+            if (placed.size() >= targetPieces) {
+                break;
             }
             spineState = spineState.onPlaced(attempt.placed.spec);
             placed.add(attempt.placed);
@@ -258,10 +265,11 @@ public final class StrongholdDebugGenerator {
             spineHead = attempt.placed;
         }
 
-        closeOpenSideWithDeadEnd(spineHead, captured, occupied, random, placed);
+        if (placed.size() < targetPieces) {
+            closeOpenSideWithDeadEnd(spineHead, captured, occupied, random, placed);
+        }
 
         GenerationDebugStats debugStats = new GenerationDebugStats();
-        int targetPieces = targetPieceCount();
         List<PlacedTemplate> branchSeeds = new ArrayList<>(placed);
         for (PlacedTemplate seed : branchSeeds) {
             if (shouldAbortGeneration()) {
@@ -1028,12 +1036,7 @@ public final class StrongholdDebugGenerator {
 
     private static boolean paste(World world, Template template, BlockVector3 origin, int rotation) {
         RotatedTemplate rotated = rotateTemplate(template, rotation);
-        int processed = 0;
         for (Map.Entry<BlockVector3, BlockData> entry : rotated.blocks.entrySet()) {
-            processed++;
-            if ((processed & 0x3FF) == 0 && shouldAbortGeneration()) {
-                return false;
-            }
             BlockVector3 rel = entry.getKey();
             BlockData data = entry.getValue();
             int x = origin.getBlockX() + rel.getBlockX();
