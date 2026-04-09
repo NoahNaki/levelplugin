@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.debug;
 import com.sk89q.worldedit.math.BlockVector3;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.BlockFace;
@@ -19,6 +20,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Locale;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
@@ -58,13 +60,14 @@ public final class StrongholdDebugGenerator {
     private static final TemplateSpec CONNECTOR_SPEC =
             new TemplateSpec("connector_1", new TemplateBounds(412, -61, -5711, 402, -38, -5701), PieceCategory.CONNECTOR, 1);
 
-    private static final int DEFAULT_SPINE_LENGTH = 8;
-    private static final int MAX_BRANCH_LENGTH = 5;
+    private static final int DEFAULT_SPINE_LENGTH = 14;
+    private static final int MAX_BRANCH_LENGTH = 8;
     private static final int MIN_SMALL_PIECES_BETWEEN_LARGE = 1;
     private static final int MIN_WALL_PIECES_BETWEEN_GATES = 3;
     private static final double BRANCH_OPEN_SIDE_CHANCE = 0.70D;
 
     private static double maxOverlapPercent = 2.0D;
+    private static final Set<String> DISABLED_TEMPLATE_IDS = new HashSet<>();
 
     private StrongholdDebugGenerator() {
     }
@@ -81,29 +84,46 @@ public final class StrongholdDebugGenerator {
         if (player == null) {
             return false;
         }
+        return generateTest(player.getWorld(), player.getWorld(), player.getLocation().getBlockX() + 3,
+                player.getLocation().getBlockY(), player.getLocation().getBlockZ() + 3, player);
+    }
 
-        World world = player.getWorld();
+    public static GenerationResult generateTest(World templateSourceWorld, World targetWorld, int originX, int originY, int originZ) {
+        return generateTest(templateSourceWorld, targetWorld, originX, originY, originZ, null)
+                ? GenerationResult.success("Generated stronghold successfully.")
+                : GenerationResult.failure("Generation failed. Check logs and template source world.");
+    }
+
+    private static boolean generateTest(World templateSourceWorld,
+                                        World targetWorld,
+                                        int originX,
+                                        int originY,
+                                        int originZ,
+                                        Player feedbackTarget) {
+        if (templateSourceWorld == null || targetWorld == null) {
+            return false;
+        }
         Random random = ThreadLocalRandom.current();
 
-        CapturedTemplates captured = captureAllTemplates(world);
+        CapturedTemplates captured = captureAllTemplates(templateSourceWorld);
         if (captured == null) {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
-                    "Failed to capture one or more stronghold templates. Check source cuboids and markers.");
-            return true;
+            if (feedbackTarget != null) {
+                ChatMessageUtil.send(feedbackTarget, ChatMessageUtil.MessageType.ERROR,
+                        "Failed to capture one or more stronghold templates. Check source cuboids and markers.");
+            }
+            return false;
         }
-
-        int originX = player.getLocation().getBlockX() + 3;
-        int originY = player.getLocation().getBlockY();
-        int originZ = player.getLocation().getBlockZ() + 3;
 
         List<PlacedTemplate> placed = new ArrayList<>();
         Set<Long> occupied = new HashSet<>();
 
         TemplateSpec startSpec = pickWeighted(captured.walls(), random);
         if (startSpec == null) {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
-                    "No wall templates were captured.");
-            return true;
+            if (feedbackTarget != null) {
+                ChatMessageUtil.send(feedbackTarget, ChatMessageUtil.MessageType.ERROR,
+                        "No wall templates were captured.");
+            }
+            return false;
         }
 
         PlacedTemplate start = new PlacedTemplate(startSpec, 0, BlockVector3.at(originX, originY, originZ));
@@ -149,13 +169,69 @@ public final class StrongholdDebugGenerator {
         }
 
         for (PlacedTemplate entry : placed) {
-            paste(world, entry.spec.template, entry.origin, entry.rotation);
+            paste(targetWorld, entry.spec.template, entry.origin, entry.rotation);
         }
 
-        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                "Generated stronghold spine+branches using " + placed.size()
-                        + " pieces (overlap threshold: " + String.format("%.2f", maxOverlapPercent) + "%).");
+        if (feedbackTarget != null) {
+            ChatMessageUtil.send(feedbackTarget, ChatMessageUtil.MessageType.SUCCESS,
+                    "Generated stronghold spine+branches using " + placed.size()
+                            + " pieces (overlap threshold: " + String.format("%.2f", maxOverlapPercent) + "%).");
+        }
         return true;
+    }
+
+    public static List<TemplateSnapshot> getTemplateSnapshots() {
+        List<TemplateSnapshot> snapshots = new ArrayList<>();
+        for (TemplateSpec spec : TEMPLATE_SPECS) {
+            snapshots.add(toSnapshot(spec));
+        }
+        snapshots.add(toSnapshot(CONNECTOR_SPEC));
+        return snapshots;
+    }
+
+    public static boolean isTemplateEnabled(String templateId) {
+        if (templateId == null || templateId.isBlank()) {
+            return false;
+        }
+        return !DISABLED_TEMPLATE_IDS.contains(templateId.toLowerCase(Locale.ROOT));
+    }
+
+    public static void setTemplateEnabled(String templateId, boolean enabled) {
+        if (templateId == null || templateId.isBlank()) {
+            return;
+        }
+        String key = templateId.toLowerCase(Locale.ROOT);
+        if (enabled) {
+            DISABLED_TEMPLATE_IDS.remove(key);
+        } else {
+            DISABLED_TEMPLATE_IDS.add(key);
+        }
+    }
+
+    public static boolean toggleTemplateEnabled(String templateId) {
+        boolean next = !isTemplateEnabled(templateId);
+        setTemplateEnabled(templateId, next);
+        return next;
+    }
+
+    public static Location getTemplateTeleportLocation(World world, String templateId) {
+        if (world == null || templateId == null || templateId.isBlank()) {
+            return null;
+        }
+        TemplateSpec spec = findTemplate(templateId);
+        if (spec == null) {
+            return null;
+        }
+        int minX = Math.min(spec.bounds.minX, spec.bounds.maxX);
+        int maxX = Math.max(spec.bounds.minX, spec.bounds.maxX);
+        int minY = Math.min(spec.bounds.minY, spec.bounds.maxY);
+        int maxY = Math.max(spec.bounds.minY, spec.bounds.maxY);
+        int minZ = Math.min(spec.bounds.minZ, spec.bounds.maxZ);
+        int maxZ = Math.max(spec.bounds.minZ, spec.bounds.maxZ);
+        double x = (minX + maxX) / 2.0D + 0.5D;
+        double y = maxY + 2.0D;
+        double z = (minZ + maxZ) / 2.0D + 0.5D;
+        return new Location(world, x, y, z);
     }
 
     private static void growBranches(PlacedTemplate seed,
@@ -284,8 +360,9 @@ public final class StrongholdDebugGenerator {
                     if (entry.getKey() != opposite(currentSide)) {
                         continue;
                     }
+                    // Keep connector alignment exact. Sliding this origin breaks seam continuity and
+                    // can create near-parallel detached corridors in generated layouts.
                     BlockVector3 origin = worldConnector.subtract(entry.getValue());
-                    origin = slideUntilThreshold(occupied, rotated.blocks, origin, currentSide);
                     if (enforceOverlap && overlapPercent(occupied, rotated.blocks, origin) > maxOverlapPercent) {
                         continue;
                     }
@@ -408,50 +485,28 @@ public final class StrongholdDebugGenerator {
         return (overlap * 100.0D) / blocks.size();
     }
 
-    private static BlockVector3 slideUntilThreshold(Set<Long> occupied,
-                                                    Map<BlockVector3, BlockData> movingBlocks,
-                                                    BlockVector3 startOrigin,
-                                                    BlockFace joinSide) {
-        int towardX = -joinSide.getModX();
-        int towardZ = -joinSide.getModZ();
-        int awayX = joinSide.getModX();
-        int awayZ = joinSide.getModZ();
-
-        BlockVector3 current = startOrigin;
-        for (int i = 0; i < 64 && overlapPercent(occupied, movingBlocks, current) > maxOverlapPercent; i++) {
-            current = current.add(awayX, 0, awayZ);
-        }
-
-        for (int i = 0; i < 256; i++) {
-            BlockVector3 next = current.add(towardX, 0, towardZ);
-            if (overlapPercent(occupied, movingBlocks, next) > maxOverlapPercent) {
-                break;
-            }
-            current = next;
-        }
-
-        return current;
-    }
-
     private static CapturedTemplates captureAllTemplates(World world) {
         Map<String, Template> captured = new HashMap<>();
         for (TemplateSpec spec : TEMPLATE_SPECS) {
             Template template = captureTemplate(world, spec.bounds);
-            if (template.blocks.isEmpty() || template.connectors.isEmpty()) {
+            boolean enabled = isTemplateEnabled(spec.id);
+            if (enabled && (template.blocks.isEmpty() || template.connectors.isEmpty())) {
                 return null;
             }
             captured.put(spec.id, template);
         }
 
         Template connector = captureTemplate(world, CONNECTOR_SPEC.bounds);
-        if (connector.blocks.isEmpty() || connector.connectors.isEmpty()) {
+        if (isTemplateEnabled(CONNECTOR_SPEC.id) && (connector.blocks.isEmpty() || connector.connectors.isEmpty())) {
             return null;
         }
 
         List<TemplateSpec> walls = bind(captured, PieceCategory.WALL);
         List<TemplateSpec> large = bind(captured, PieceCategory.JUNCTION_LARGE);
         List<TemplateSpec> deadEnds = bind(captured, PieceCategory.DEAD_END);
-        TemplateSpec connectorSpec = CONNECTOR_SPEC.withTemplate(connector);
+        TemplateSpec connectorSpec = isTemplateEnabled(CONNECTOR_SPEC.id)
+                ? CONNECTOR_SPEC.withTemplate(connector)
+                : null;
 
         return new CapturedTemplates(walls, large, deadEnds, connectorSpec);
     }
@@ -460,6 +515,9 @@ public final class StrongholdDebugGenerator {
         List<TemplateSpec> out = new ArrayList<>();
         for (TemplateSpec spec : TEMPLATE_SPECS) {
             if (spec.category != category) {
+                continue;
+            }
+            if (!isTemplateEnabled(spec.id)) {
                 continue;
             }
             Template template = templates.get(spec.id);
@@ -672,6 +730,46 @@ public final class StrongholdDebugGenerator {
         long lz = ((long) z & 0x3FFFFFFL) << 12;
         long ly = (long) y & 0xFFFL;
         return lx | lz | ly;
+    }
+
+    private static TemplateSpec findTemplate(String templateId) {
+        for (TemplateSpec spec : TEMPLATE_SPECS) {
+            if (spec.id.equalsIgnoreCase(templateId)) {
+                return spec;
+            }
+        }
+        return CONNECTOR_SPEC.id.equalsIgnoreCase(templateId) ? CONNECTOR_SPEC : null;
+    }
+
+    private static TemplateSnapshot toSnapshot(TemplateSpec spec) {
+        return new TemplateSnapshot(
+                spec.id,
+                spec.category.name(),
+                isTemplateEnabled(spec.id),
+                spec.bounds.minX,
+                spec.bounds.minY,
+                spec.bounds.minZ,
+                spec.bounds.maxX,
+                spec.bounds.maxY,
+                spec.bounds.maxZ
+        );
+    }
+
+    public record GenerationResult(boolean success, String message) {
+        public static GenerationResult success(String message) {
+            return new GenerationResult(true, message);
+        }
+
+        public static GenerationResult failure(String message) {
+            return new GenerationResult(false, message);
+        }
+    }
+
+    public record TemplateSnapshot(String id,
+                                   String category,
+                                   boolean enabled,
+                                   int minX, int minY, int minZ,
+                                   int maxX, int maxY, int maxZ) {
     }
 
     private enum PieceCategory {

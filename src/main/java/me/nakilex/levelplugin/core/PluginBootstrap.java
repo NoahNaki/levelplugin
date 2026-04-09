@@ -6,6 +6,8 @@ import me.nakilex.levelplugin.blacksmith.managers.ItemRepairManager;
 import me.nakilex.levelplugin.blacksmith.managers.ItemUpgradeManager;
 import me.nakilex.levelplugin.chat.games.ChatGameManager;
 import me.nakilex.levelplugin.booster.GlobalBoosterManager;
+import me.nakilex.levelplugin.debug.StrongholdDebugWorldManager;
+import me.nakilex.levelplugin.debug.gui.StrongholdTemplateDebugGUI;
 import me.nakilex.levelplugin.economy.gui.GemExchangeGUI;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.economy.managers.GemsManager;
@@ -218,6 +220,8 @@ public class PluginBootstrap {
     private SpellKeybindGUI spellKeybindGUI;
     private SpellUpgradeGUI spellUpgradeGUI;
     private me.nakilex.levelplugin.debug.gui.DebugGUI debugGUI;
+    private StrongholdDebugWorldManager strongholdDebugWorldManager;
+    private StrongholdTemplateDebugGUI strongholdTemplateDebugGUI;
     private CodexManager codexManager;
     private me.nakilex.levelplugin.codex.mastery.CodexMasteryManager codexMasteryManager;
     private CodexMainGUI codexGUI;
@@ -320,6 +324,8 @@ public class PluginBootstrap {
         // worlds to be loaded. Ensure the necessary worlds are available
         // before other managers are initialized.
         worldManager = new me.nakilex.levelplugin.world.WorldManager(plugin);
+        strongholdDebugWorldManager = new StrongholdDebugWorldManager(plugin);
+        strongholdDebugWorldManager.cleanupStaleWorldAtStartup();
         String hubWorld = customConfig != null
                 ? customConfig.getString("server.hub-world", "hub")
                 : "hub";
@@ -478,6 +484,8 @@ public class PluginBootstrap {
                 lootChestManager.getCooldownManager());
         arcSlashDebugManager = new me.nakilex.levelplugin.debug.ArcSlashDebugManager(plugin);
         arcSlashDebugGUI = new me.nakilex.levelplugin.debug.gui.ArcSlashDebugGUI(arcSlashDebugManager);
+        strongholdTemplateDebugGUI = new StrongholdTemplateDebugGUI();
+        plugin.getServer().getPluginManager().registerEvents(strongholdTemplateDebugGUI, plugin);
         petSettingsGUI = new me.nakilex.levelplugin.pet.gui.PetSettingsGUI(petManager);
         petGUI = new me.nakilex.levelplugin.pet.gui.PetGUI(petManager, petSettingsGUI);
         petMergeGUI = new me.nakilex.levelplugin.pet.gui.PetMergeGUI(petManager);
@@ -763,6 +771,7 @@ public class PluginBootstrap {
         if (beaconManager != null) beaconManager.removeAll();
         if (beaconEntityDebugManager != null) beaconEntityDebugManager.removeAll();
         if (serverSelectionManager != null) serverSelectionManager.shutdown();
+        if (strongholdDebugWorldManager != null) strongholdDebugWorldManager.cleanupAtShutdown();
         if (dealMaker != null) dealMaker.closeAllTrades();
         plugin.getLogger().info("LevelPlugin has been disabled!");
     }
@@ -868,6 +877,8 @@ public class PluginBootstrap {
     public me.nakilex.levelplugin.catacombs.CatacombsManager getCatacombsManager() { return catacombsManager; }
     public me.nakilex.levelplugin.catacombs.CatacombsGUI getCatacombsGUI() { return catacombsGUI; }
     public me.nakilex.levelplugin.world.WorldManager getWorldManager() { return worldManager; }
+    public StrongholdDebugWorldManager getStrongholdDebugWorldManager() { return strongholdDebugWorldManager; }
+    public StrongholdTemplateDebugGUI getStrongholdTemplateDebugGUI() { return strongholdTemplateDebugGUI; }
     public me.nakilex.levelplugin.server.ServerSelectionManager getServerSelectionManager() { return serverSelectionManager; }
     public me.nakilex.levelplugin.environment.EnvironmentManager getEnvironmentManager() { return environmentManager; }
     public me.nakilex.levelplugin.environment.UpgradeGUI getUpgradeGUI() { return upgradeGUI; }
