@@ -779,7 +779,7 @@ public class DebugCommand implements TabExecutor {
                     .filter(opt -> opt.startsWith(args[2].toLowerCase()))
                     .toList();
         } else if (args.length == 3 && args[0].equalsIgnoreCase("stronghold") && args[1].equalsIgnoreCase("size")) {
-            return List.of("1", "5", "10", "20").stream()
+            return List.of("1", "10", "25", "50", "100", "200", "500").stream()
                     .filter(opt -> opt.startsWith(args[2].toLowerCase()))
                     .toList();
         } else if (args.length == 2 && args[0].equalsIgnoreCase("chatgame")) {

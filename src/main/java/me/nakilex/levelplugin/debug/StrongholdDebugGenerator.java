@@ -86,7 +86,7 @@ public final class StrongholdDebugGenerator {
     }
 
     public static void setGenerationSizeMultiplier(int value) {
-        generationSizeMultiplier = Math.max(1, Math.min(100, value));
+        generationSizeMultiplier = Math.max(1, Math.min(500, value));
     }
 
     private static int spineLength() {
@@ -95,6 +95,20 @@ public final class StrongholdDebugGenerator {
 
     private static int maxBranchLength() {
         return Math.max(1, BASE_BRANCH_LENGTH * generationSizeMultiplier);
+    }
+
+    private static int branchPassesForSeed(TemplateSpec seed) {
+        return isBranchHub(seed) ? 3 : 1;
+    }
+
+    private static double branchOpenChanceForSeed(TemplateSpec seed) {
+        if (isBranchHub(seed)) {
+            return 1.0D;
+        }
+        if (isLarge(seed)) {
+            return Math.min(0.95D, BRANCH_OPEN_SIDE_CHANCE + 0.20D);
+        }
+        return BRANCH_OPEN_SIDE_CHANCE;
     }
 
     public static boolean generateTest(Player player) {
@@ -290,45 +304,52 @@ public final class StrongholdDebugGenerator {
                                      List<PlacedTemplate> placed,
                                      int maxBranchLength) {
         List<BlockFace> openSides = seed.openSides();
-        Collections.shuffle(openSides, random);
+        int branchPasses = branchPassesForSeed(seed.spec);
+        double openChance = branchOpenChanceForSeed(seed.spec);
 
-        for (BlockFace side : openSides) {
-            if (random.nextDouble() > BRANCH_OPEN_SIDE_CHANCE) {
-                continue;
+        for (int pass = 0; pass < branchPasses; pass++) {
+            Collections.shuffle(openSides, random);
+            for (BlockFace side : openSides) {
+                if (seed.usedConnectors.contains(side)) {
+                    continue;
+                }
+                if (random.nextDouble() > openChance) {
+                    continue;
+                }
+
+                PlacedTemplate branchCurrent = seed;
+                BlockFace branchSide = side;
+                PlacementState branchState = PlacementState.fromSeed(seed.spec);
+
+                int segments = 1 + random.nextInt(Math.max(1, maxBranchLength));
+                for (int i = 0; i < segments; i++) {
+                    List<TemplateSpec> pool = candidatePoolForStep(captured, branchCurrent, branchState, i > 0);
+
+                    PlacementAttempt attempt = tryPlaceFromSide(branchCurrent, branchSide, pool, captured.connector(), occupied, random);
+                    if (attempt == null) {
+                        branchCurrent.markUsed(branchSide);
+                        break;
+                    }
+
+                    if (attempt.connector != null) {
+                        branchState = branchState.onPlaced(attempt.connector.spec);
+                        placed.add(attempt.connector);
+                        occupy(occupied, attempt.connector);
+                    }
+                    branchState = branchState.onPlaced(attempt.placed.spec);
+                    placed.add(attempt.placed);
+                    occupy(occupied, attempt.placed);
+                    branchCurrent = attempt.placed;
+
+                    BlockFace avoid = attempt.placed.incomingSide;
+                    branchSide = pickOpenSide(attempt.placed, avoid, random);
+                    if (branchSide == null) {
+                        break;
+                    }
+                }
+
+                closeOpenSideWithDeadEnd(branchCurrent, captured, occupied, random, placed);
             }
-
-            PlacedTemplate branchCurrent = seed;
-            BlockFace branchSide = side;
-            PlacementState branchState = PlacementState.fromSeed(seed.spec);
-
-            int segments = 1 + random.nextInt(Math.max(1, maxBranchLength));
-            for (int i = 0; i < segments; i++) {
-                List<TemplateSpec> pool = candidatePoolForStep(captured, branchCurrent, branchState, i > 0);
-
-                PlacementAttempt attempt = tryPlaceFromSide(branchCurrent, branchSide, pool, captured.connector(), occupied, random);
-                if (attempt == null) {
-                    branchCurrent.markUsed(branchSide);
-                    break;
-                }
-
-                if (attempt.connector != null) {
-                    branchState = branchState.onPlaced(attempt.connector.spec);
-                    placed.add(attempt.connector);
-                    occupy(occupied, attempt.connector);
-                }
-                branchState = branchState.onPlaced(attempt.placed.spec);
-                placed.add(attempt.placed);
-                occupy(occupied, attempt.placed);
-                branchCurrent = attempt.placed;
-
-                BlockFace avoid = attempt.placed.incomingSide;
-                branchSide = pickOpenSide(attempt.placed, avoid, random);
-                if (branchSide == null) {
-                    break;
-                }
-            }
-
-            closeOpenSideWithDeadEnd(branchCurrent, captured, occupied, random, placed);
         }
     }
 
@@ -438,6 +459,13 @@ public final class StrongholdDebugGenerator {
 
     private static boolean isGate(TemplateSpec spec) {
         return spec.id.startsWith("gate_");
+    }
+
+    private static boolean isBranchHub(TemplateSpec spec) {
+        if (spec == null) {
+            return false;
+        }
+        return "t_section".equalsIgnoreCase(spec.id) || spec.id.toLowerCase(Locale.ROOT).startsWith("tower_");
     }
 
     private static boolean isWall(TemplateSpec spec) {
