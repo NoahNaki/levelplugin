@@ -290,7 +290,12 @@ public final class StrongholdDebugGenerator {
 
         try {
             for (PlacedTemplate entry : placed) {
-                paste(targetWorld, entry.spec.template, entry.origin, entry.rotation);
+                if (shouldAbortGeneration()) {
+                    break;
+                }
+                if (!paste(targetWorld, entry.spec.template, entry.origin, entry.rotation)) {
+                    break;
+                }
             }
         } finally {
             ROTATION_CACHE.get().clear();
@@ -718,7 +723,7 @@ public final class StrongholdDebugGenerator {
         int centerChunkZ = originZ >> 4;
         for (int dx = -radiusChunks; dx <= radiusChunks; dx++) {
             for (int dz = -radiusChunks; dz <= radiusChunks; dz++) {
-                world.getChunkAt(centerChunkX + dx, centerChunkZ + dz).load();
+                world.getChunkAt(centerChunkX + dx, centerChunkZ + dz).load(true);
             }
         }
     }
@@ -1013,9 +1018,14 @@ public final class StrongholdDebugGenerator {
         );
     }
 
-    private static void paste(World world, Template template, BlockVector3 origin, int rotation) {
+    private static boolean paste(World world, Template template, BlockVector3 origin, int rotation) {
         RotatedTemplate rotated = rotateTemplate(template, rotation);
+        int processed = 0;
         for (Map.Entry<BlockVector3, BlockData> entry : rotated.blocks.entrySet()) {
+            processed++;
+            if ((processed & 0x3FF) == 0 && shouldAbortGeneration()) {
+                return false;
+            }
             BlockVector3 rel = entry.getKey();
             BlockData data = entry.getValue();
             int x = origin.getBlockX() + rel.getBlockX();
@@ -1023,6 +1033,7 @@ public final class StrongholdDebugGenerator {
             int z = origin.getBlockZ() + rel.getBlockZ();
             world.getBlockAt(x, y, z).setBlockData(data, false);
         }
+        return true;
     }
 
     private static RotatedTemplate rotateTemplate(Template template, int rotation) {
