@@ -57,49 +57,67 @@ public final class StrongholdDebugGenerator {
         int originX = player.getLocation().getBlockX() + 3;
         int originY = player.getLocation().getBlockY();
         int originZ = player.getLocation().getBlockZ() + 3;
-        BlockVector3 straightOrigin = BlockVector3.at(originX, originY, originZ);
+        PlacedTemplate current = new PlacedTemplate(straight, 0, BlockVector3.at(originX, originY, originZ), null);
+        List<PlacedTemplate> placements = new ArrayList<>();
+        placements.add(current);
 
-        Placement best = findBestPlacement(straight, connector, straightOrigin);
-        if (best == null) {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
-                    "Failed to compute a valid connector alignment for stronghold templates.");
-            return true;
+        List<Template> sequence = List.of(connector, straight, connector, straight);
+        for (Template nextTemplate : sequence) {
+            BlockFace preferredSide = current.incomingSide == null ? BlockFace.EAST : opposite(current.incomingSide);
+            PlacementResult next = findBestPlacement(current, nextTemplate, preferredSide);
+            if (next == null) {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                        "Failed to compute a valid connector alignment for stronghold templates.");
+                return true;
+            }
+            current = new PlacedTemplate(nextTemplate, next.rotation, next.origin, next.nextIncomingSide);
+            placements.add(current);
         }
 
-        paste(world, straight, straightOrigin, 0);
-        paste(world, connector, best.origin, best.rotation);
+        for (PlacedTemplate placed : placements) {
+            paste(world, placed.template, placed.origin, placed.rotation);
+        }
 
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
                 "Generated stronghold test with connected walls (filtered redstone/blue/white markers).");
         return true;
     }
 
-    private static Placement findBestPlacement(Template straight, Template connector, BlockVector3 straightOrigin) {
-        for (Map.Entry<BlockFace, BlockVector3> a : straight.connectors.entrySet()) {
+    private static PlacementResult findBestPlacement(PlacedTemplate current,
+                                                     Template next,
+                                                     BlockFace preferredCurrentSide) {
+        RotatedTemplate currentRotated = rotateTemplate(current.template, current.rotation);
+        for (Map.Entry<BlockFace, BlockVector3> a : currentRotated.connectors.entrySet()) {
             BlockFace aSide = a.getKey();
-            BlockVector3 worldConnectorA = straightOrigin.add(a.getValue());
+            if (preferredCurrentSide != null && aSide != preferredCurrentSide) {
+                continue;
+            }
+            BlockVector3 worldConnectorA = current.origin.add(a.getValue());
             for (int rot = 0; rot < 4; rot++) {
-                RotatedTemplate rotated = rotateTemplate(connector, rot);
+                RotatedTemplate rotated = rotateTemplate(next, rot);
                 for (Map.Entry<BlockFace, BlockVector3> b : rotated.connectors.entrySet()) {
                     BlockFace bSide = b.getKey();
                     if (aSide != opposite(bSide)) {
                         continue;
                     }
                     BlockVector3 bOrigin = worldConnectorA.subtract(b.getValue());
-                    bOrigin = slideUntilCollision(straight, straightOrigin, rotated, bOrigin, aSide);
-                    return new Placement(bOrigin, rot);
+                    bOrigin = slideUntilCollision(currentRotated.blocks, current.origin, rotated.blocks, bOrigin, aSide);
+                    return new PlacementResult(bOrigin, rot, bSide);
                 }
             }
+        }
+        if (preferredCurrentSide != null) {
+            return findBestPlacement(current, next, null);
         }
         return null;
     }
 
-    private static BlockVector3 slideUntilCollision(Template straight,
-                                                    BlockVector3 straightOrigin,
-                                                    RotatedTemplate rotated,
+    private static BlockVector3 slideUntilCollision(Map<BlockVector3, BlockData> fixedBlocks,
+                                                    BlockVector3 fixedOrigin,
+                                                    Map<BlockVector3, BlockData> movingBlocks,
                                                     BlockVector3 startOrigin,
                                                     BlockFace joinSide) {
-        Set<Long> straightPositions = absoluteBlockPositions(straight.blocks, straightOrigin);
+        Set<Long> straightPositions = absoluteBlockPositions(fixedBlocks, fixedOrigin);
         int towardX = -joinSide.getModX();
         int towardZ = -joinSide.getModZ();
         int awayX = joinSide.getModX();
@@ -107,14 +125,14 @@ public final class StrongholdDebugGenerator {
 
         BlockVector3 current = startOrigin;
         // If we happen to start in collision, back away until we are not.
-        for (int i = 0; i < 64 && hasOverlap(straightPositions, rotated.blocks, current); i++) {
+        for (int i = 0; i < 64 && hasOverlap(straightPositions, movingBlocks, current); i++) {
             current = current.add(awayX, 0, awayZ);
         }
 
         // Move inward until the next step would overlap.
         for (int i = 0; i < 256; i++) {
             BlockVector3 next = current.add(towardX, 0, towardZ);
-            if (hasOverlap(straightPositions, rotated.blocks, next)) {
+            if (hasOverlap(straightPositions, movingBlocks, next)) {
                 break;
             }
             current = next;
@@ -345,5 +363,7 @@ public final class StrongholdDebugGenerator {
     private record RotatedTemplate(Map<BlockVector3, BlockData> blocks,
                                    Map<BlockFace, BlockVector3> connectors) {}
 
-    private record Placement(BlockVector3 origin, int rotation) {}
+    private record PlacementResult(BlockVector3 origin, int rotation, BlockFace nextIncomingSide) {}
+
+    private record PlacedTemplate(Template template, int rotation, BlockVector3 origin, BlockFace incomingSide) {}
 }
