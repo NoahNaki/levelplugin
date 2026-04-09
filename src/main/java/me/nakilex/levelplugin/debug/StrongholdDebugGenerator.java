@@ -284,8 +284,9 @@ public final class StrongholdDebugGenerator {
                     if (entry.getKey() != opposite(currentSide)) {
                         continue;
                     }
+                    // Keep connector alignment exact. Sliding this origin breaks seam continuity and
+                    // can create near-parallel detached corridors in generated layouts.
                     BlockVector3 origin = worldConnector.subtract(entry.getValue());
-                    origin = slideUntilThreshold(occupied, rotated.blocks, origin, currentSide);
                     if (enforceOverlap && overlapPercent(occupied, rotated.blocks, origin) > maxOverlapPercent) {
                         continue;
                     }
@@ -406,31 +407,6 @@ public final class StrongholdDebugGenerator {
             }
         }
         return (overlap * 100.0D) / blocks.size();
-    }
-
-    private static BlockVector3 slideUntilThreshold(Set<Long> occupied,
-                                                    Map<BlockVector3, BlockData> movingBlocks,
-                                                    BlockVector3 startOrigin,
-                                                    BlockFace joinSide) {
-        int towardX = -joinSide.getModX();
-        int towardZ = -joinSide.getModZ();
-        int awayX = joinSide.getModX();
-        int awayZ = joinSide.getModZ();
-
-        BlockVector3 current = startOrigin;
-        for (int i = 0; i < 64 && overlapPercent(occupied, movingBlocks, current) > maxOverlapPercent; i++) {
-            current = current.add(awayX, 0, awayZ);
-        }
-
-        for (int i = 0; i < 256; i++) {
-            BlockVector3 next = current.add(towardX, 0, towardZ);
-            if (overlapPercent(occupied, movingBlocks, next) > maxOverlapPercent) {
-                break;
-            }
-            current = next;
-        }
-
-        return current;
     }
 
     private static CapturedTemplates captureAllTemplates(World world) {
