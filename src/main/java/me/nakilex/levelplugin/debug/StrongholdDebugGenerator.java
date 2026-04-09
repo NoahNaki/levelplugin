@@ -124,16 +124,21 @@ public final class StrongholdDebugGenerator {
                 break;
             }
 
-            PlacedTemplate next = tryPlaceFromSide(spineHead, side, pool, captured.connector(), occupied, random);
-            if (next == null) {
+            PlacementAttempt attempt = tryPlaceFromSide(spineHead, side, pool, captured.connector(), occupied, random);
+            if (attempt == null) {
                 spineHead.markUsed(side);
                 continue;
             }
 
-            spineState = spineState.onPlaced(next.spec);
-            placed.add(next);
-            occupy(occupied, next);
-            spineHead = next;
+            if (attempt.connector != null) {
+                spineState = spineState.onPlaced(attempt.connector.spec);
+                placed.add(attempt.connector);
+                occupy(occupied, attempt.connector);
+            }
+            spineState = spineState.onPlaced(attempt.placed.spec);
+            placed.add(attempt.placed);
+            occupy(occupied, attempt.placed);
+            spineHead = attempt.placed;
         }
 
         closeOpenSideWithDeadEnd(spineHead, captured, occupied, random, placed);
@@ -174,19 +179,24 @@ public final class StrongholdDebugGenerator {
             for (int i = 0; i < segments; i++) {
                 List<TemplateSpec> pool = candidatePoolForStep(captured, branchCurrent, branchState, i > 0);
 
-                PlacedTemplate next = tryPlaceFromSide(branchCurrent, branchSide, pool, captured.connector(), occupied, random);
-                if (next == null) {
+                PlacementAttempt attempt = tryPlaceFromSide(branchCurrent, branchSide, pool, captured.connector(), occupied, random);
+                if (attempt == null) {
                     branchCurrent.markUsed(branchSide);
                     break;
                 }
 
-                branchState = branchState.onPlaced(next.spec);
-                placed.add(next);
-                occupy(occupied, next);
-                branchCurrent = next;
+                if (attempt.connector != null) {
+                    branchState = branchState.onPlaced(attempt.connector.spec);
+                    placed.add(attempt.connector);
+                    occupy(occupied, attempt.connector);
+                }
+                branchState = branchState.onPlaced(attempt.placed.spec);
+                placed.add(attempt.placed);
+                occupy(occupied, attempt.placed);
+                branchCurrent = attempt.placed;
 
-                BlockFace avoid = next.incomingSide;
-                branchSide = pickOpenSide(next, avoid, random);
+                BlockFace avoid = attempt.placed.incomingSide;
+                branchSide = pickOpenSide(attempt.placed, avoid, random);
                 if (branchSide == null) {
                     break;
                 }
@@ -209,32 +219,47 @@ public final class StrongholdDebugGenerator {
             return;
         }
 
-        PlacedTemplate deadEnd = tryPlaceFromSide(target, side, captured.deadEnds(), null, occupied, random);
-        if (deadEnd == null) {
+        PlacementAttempt deadEndAttempt = tryPlaceFromSide(target, side, captured.deadEnds(), null, occupied, random);
+        if (deadEndAttempt == null) {
             target.markUsed(side);
             return;
         }
 
-        placed.add(deadEnd);
-        occupy(occupied, deadEnd);
+        placed.add(deadEndAttempt.placed);
+        occupy(occupied, deadEndAttempt.placed);
     }
 
-    private static PlacedTemplate tryPlaceFromSide(PlacedTemplate current,
-                                                   BlockFace currentSide,
-                                                   List<TemplateSpec> candidateSpecs,
-                                                   TemplateSpec connector,
-                                                   Set<Long> occupied,
-                                                   Random random) {
+    private static PlacementAttempt tryPlaceFromSide(PlacedTemplate current,
+                                                     BlockFace currentSide,
+                                                     List<TemplateSpec> candidateSpecs,
+                                                     TemplateSpec connector,
+                                                     Set<Long> occupied,
+                                                     Random random) {
         if (candidateSpecs == null || candidateSpecs.isEmpty()) {
             return null;
         }
 
         List<TemplateSpec> shuffled = weightedShuffle(candidateSpecs, random);
 
+        if (connector != null) {
+            PlacedTemplate connectorPlaced = tryPlaceSingle(current, currentSide, List.of(connector), occupied, random, true);
+            if (connectorPlaced != null) {
+                Set<Long> occupiedWithConnector = new HashSet<>(occupied);
+                occupy(occupiedWithConnector, connectorPlaced);
+
+                PlacedTemplate viaConnector = tryPlaceSingle(connectorPlaced, currentSide, shuffled, occupiedWithConnector, random, true);
+                if (viaConnector != null && !areBothLarge(current.spec, viaConnector.spec)) {
+                    current.markUsed(currentSide);
+                    connectorPlaced.markUsed(currentSide);
+                    return new PlacementAttempt(connectorPlaced, viaConnector);
+                }
+            }
+        }
+
         PlacedTemplate direct = tryPlaceSingle(current, currentSide, shuffled, occupied, random, true);
         if (direct != null && !areBothLarge(current.spec, direct.spec)) {
             current.markUsed(currentSide);
-            return direct;
+            return new PlacementAttempt(null, direct);
         }
         return null;
     }
@@ -691,6 +716,9 @@ public final class StrongholdDebugGenerator {
     }
 
     private record WeightedSpec(TemplateSpec spec, double key) {
+    }
+
+    private record PlacementAttempt(PlacedTemplate connector, PlacedTemplate placed) {
     }
 
     private record PlacementState(int smallPiecesSinceLarge, int wallPiecesSinceGate) {
