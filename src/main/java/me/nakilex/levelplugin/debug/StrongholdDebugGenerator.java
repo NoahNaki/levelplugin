@@ -313,6 +313,40 @@ public final class StrongholdDebugGenerator {
         return captureAllTemplatesWithDiagnostics(world).templates() != null;
     }
 
+    public static List<String> auditTemplates(World world) {
+        if (world == null) {
+            return List.of("World is null.");
+        }
+        List<String> lines = new ArrayList<>();
+        for (TemplateSpec spec : TEMPLATE_SPECS) {
+            Template template = captureTemplate(world, spec.bounds);
+            int raw = template.connectors.size();
+            Template normalized = new Template(
+                    template.blocks,
+                    normalizeConnectors(spec, template.connectors, template.width, template.height, template.length),
+                    template.width,
+                    template.height,
+                    template.length
+            );
+            int normalizedCount = normalized.connectors.size();
+            lines.add(spec.id + " [" + spec.category + "] raw connectors=" + raw
+                    + ", normalized=" + normalizedCount
+                    + ", sides=" + normalized.connectors.keySet());
+        }
+        Template connector = captureTemplate(world, CONNECTOR_SPEC.bounds);
+        Template normalizedConnector = new Template(
+                connector.blocks,
+                normalizeConnectors(CONNECTOR_SPEC, connector.connectors, connector.width, connector.height, connector.length),
+                connector.width,
+                connector.height,
+                connector.length
+        );
+        lines.add(CONNECTOR_SPEC.id + " [" + CONNECTOR_SPEC.category + "] raw connectors=" + connector.connectors.size()
+                + ", normalized=" + normalizedConnector.connectors.size()
+                + ", sides=" + normalizedConnector.connectors.keySet());
+        return lines;
+    }
+
     public static boolean isTemplateEnabled(String templateId) {
         if (templateId == null || templateId.isBlank()) {
             return false;
@@ -677,6 +711,13 @@ public final class StrongholdDebugGenerator {
         Map<String, Template> captured = new HashMap<>();
         for (TemplateSpec spec : TEMPLATE_SPECS) {
             Template template = captureTemplate(world, spec.bounds);
+            template = new Template(
+                    template.blocks,
+                    normalizeConnectors(spec, template.connectors, template.width, template.height, template.length),
+                    template.width,
+                    template.height,
+                    template.length
+            );
             boolean enabled = isTemplateEnabled(spec.id);
             if (enabled && (template.blocks.isEmpty() || template.connectors.isEmpty())) {
                 return new CaptureResult(null, "Template '" + spec.id + "' is enabled but capture is empty or missing connectors.");
@@ -685,6 +726,13 @@ public final class StrongholdDebugGenerator {
         }
 
         Template connector = captureTemplate(world, CONNECTOR_SPEC.bounds);
+        connector = new Template(
+                connector.blocks,
+                normalizeConnectors(CONNECTOR_SPEC, connector.connectors, connector.width, connector.height, connector.length),
+                connector.width,
+                connector.height,
+                connector.length
+        );
         if (isTemplateEnabled(CONNECTOR_SPEC.id) && (connector.blocks.isEmpty() || connector.connectors.isEmpty())) {
             return new CaptureResult(null, "Connector template '" + CONNECTOR_SPEC.id + "' is enabled but capture is empty or missing connectors.");
         }
@@ -697,6 +745,57 @@ public final class StrongholdDebugGenerator {
                 : null;
 
         return new CaptureResult(new CapturedTemplates(walls, large, deadEnds, connectorSpec), null);
+    }
+
+    private static Map<BlockFace, BlockVector3> normalizeConnectors(TemplateSpec spec,
+                                                                    Map<BlockFace, BlockVector3> raw,
+                                                                    int width,
+                                                                    int height,
+                                                                    int length) {
+        Map<BlockFace, BlockVector3> normalized = new EnumMap<>(BlockFace.class);
+        if (raw != null) {
+            normalized.putAll(raw);
+        }
+        int yCenter;
+        if (normalized.isEmpty()) {
+            yCenter = Math.max(0, height / 2);
+        } else {
+            int sumY = 0;
+            for (BlockVector3 value : normalized.values()) {
+                sumY += value.getBlockY();
+            }
+            yCenter = Math.max(0, Math.min(height - 1, Math.round((float) sumY / normalized.size())));
+        }
+
+        BlockVector3 west = BlockVector3.at(0, yCenter, Math.max(0, length / 2));
+        BlockVector3 east = BlockVector3.at(Math.max(0, width - 1), yCenter, Math.max(0, length / 2));
+        BlockVector3 north = BlockVector3.at(Math.max(0, width / 2), yCenter, 0);
+        BlockVector3 south = BlockVector3.at(Math.max(0, width / 2), yCenter, Math.max(0, length - 1));
+
+        if (spec.category == PieceCategory.JUNCTION_LARGE) {
+            normalized.putIfAbsent(BlockFace.NORTH, north);
+            normalized.putIfAbsent(BlockFace.EAST, east);
+            normalized.putIfAbsent(BlockFace.SOUTH, south);
+            normalized.putIfAbsent(BlockFace.WEST, west);
+            return normalized;
+        }
+
+        if (spec.category == PieceCategory.WALL || spec.category == PieceCategory.CONNECTOR) {
+            boolean zMajor = length >= width;
+            if (zMajor) {
+                normalized.putIfAbsent(BlockFace.NORTH, north);
+                normalized.putIfAbsent(BlockFace.SOUTH, south);
+            } else {
+                normalized.putIfAbsent(BlockFace.EAST, east);
+                normalized.putIfAbsent(BlockFace.WEST, west);
+            }
+            return normalized;
+        }
+
+        if (spec.category == PieceCategory.DEAD_END && normalized.isEmpty()) {
+            normalized.put(BlockFace.NORTH, north);
+        }
+        return normalized;
     }
 
     private static List<TemplateSpec> bind(Map<String, Template> templates, PieceCategory category) {

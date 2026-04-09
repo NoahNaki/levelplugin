@@ -550,7 +550,21 @@ public class DebugCommand implements TabExecutor {
                 }
                 if (args.length < 2) {
                     ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.WARNING,
-                            "Usage: /debug stronghold <generate test|overlap [percent]|size [multiplier]|templates>");
+                            "Usage: /debug stronghold <generate test|overlap [percent]|size [multiplier]|templates|audit>");
+                    return true;
+                }
+                if (args[1].equalsIgnoreCase("audit")) {
+                    World source = resolveStrongholdTemplateSourceWorld(strongholdPlayer.getWorld());
+                    if (source == null) {
+                        ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.ERROR,
+                                "Could not resolve a template source world to audit.");
+                        return true;
+                    }
+                    ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.INFO,
+                            "Stronghold template audit for world '" + source.getName() + "':");
+                    for (String line : StrongholdDebugGenerator.auditTemplates(source)) {
+                        strongholdPlayer.sendMessage(ChatColor.GRAY + " - " + line);
+                    }
                     return true;
                 }
                 if (args[1].equalsIgnoreCase("templates")) {
@@ -601,7 +615,7 @@ public class DebugCommand implements TabExecutor {
                 }
                 if (args.length < 3 || !args[1].equalsIgnoreCase("generate")) {
                     ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.WARNING,
-                            "Usage: /debug stronghold <generate test|overlap [percent]|size [multiplier]|templates>");
+                            "Usage: /debug stronghold <generate test|overlap [percent]|size [multiplier]|templates|audit>");
                     return true;
                 }
                 if (!args[2].equalsIgnoreCase("test")) {
@@ -767,7 +781,7 @@ public class DebugCommand implements TabExecutor {
                     .filter(s -> s.startsWith(args[0].toLowerCase()))
                     .toList();
         } else if (args.length == 2 && args[0].equalsIgnoreCase("stronghold")) {
-            return List.of("generate", "overlap", "size", "templates").stream()
+            return List.of("generate", "overlap", "size", "templates", "audit").stream()
                     .filter(opt -> opt.startsWith(args[1].toLowerCase()))
                     .toList();
         } else if (args.length == 3 && args[0].equalsIgnoreCase("stronghold") && args[1].equalsIgnoreCase("generate")) {
