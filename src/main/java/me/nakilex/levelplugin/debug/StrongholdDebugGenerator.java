@@ -50,6 +50,7 @@ public final class StrongholdDebugGenerator {
             new TemplateSpec("tower_1", new TemplateBounds(615, -61, -5488, 685, -7, -5418), PieceCategory.JUNCTION_LARGE, 1),
             new TemplateSpec("gate_1", new TemplateBounds(686, -61, -5346, 614, -10, -5418), PieceCategory.JUNCTION_LARGE, 1),
             new TemplateSpec("gate_2", new TemplateBounds(686, -61, -5276, 614, -10, -5346), PieceCategory.JUNCTION_LARGE, 1),
+            new TemplateSpec("church", new TemplateBounds(757, -61, -5559, 827, 34, -5489), PieceCategory.JUNCTION_LARGE, 1),
             new TemplateSpec("deadend_1", new TemplateBounds(543, -38, -5418, 473, -61, -5488), PieceCategory.DEAD_END, 1),
             new TemplateSpec("deadend_2", new TemplateBounds(473, -61, -5489, 543, -38, -5559), PieceCategory.DEAD_END, 1)
     );
@@ -59,6 +60,7 @@ public final class StrongholdDebugGenerator {
 
     private static final int DEFAULT_SPINE_LENGTH = 10;
     private static final int MAX_BRANCH_LENGTH = 3;
+    private static final int MIN_SMALL_PIECES_BETWEEN_LARGE = 1;
 
     private static double maxOverlapPercent = 2.0D;
 
@@ -107,17 +109,14 @@ public final class StrongholdDebugGenerator {
         occupy(occupied, start);
 
         PlacedTemplate spineHead = start;
-        boolean previousWasLarge = false;
+        int smallPiecesSinceLarge = MIN_SMALL_PIECES_BETWEEN_LARGE;
         for (int i = 0; i < DEFAULT_SPINE_LENGTH; i++) {
             BlockFace side = pickOpenSide(spineHead, null, random);
             if (side == null) {
                 break;
             }
 
-            List<TemplateSpec> pool = new ArrayList<>(captured.walls());
-            if (!previousWasLarge) {
-                pool.addAll(captured.largeJunctions());
-            }
+            List<TemplateSpec> pool = candidatePoolForStep(captured, canPlaceLargeAfter(spineHead, smallPiecesSinceLarge));
 
             if (pool.isEmpty()) {
                 break;
@@ -129,7 +128,7 @@ public final class StrongholdDebugGenerator {
                 continue;
             }
 
-            previousWasLarge = next.spec.category == PieceCategory.JUNCTION_LARGE;
+            smallPiecesSinceLarge = updateSmallPiecesSinceLarge(smallPiecesSinceLarge, next.spec);
             placed.add(next);
             occupy(occupied, next);
             spineHead = next;
@@ -167,14 +166,12 @@ public final class StrongholdDebugGenerator {
 
             PlacedTemplate branchCurrent = seed;
             BlockFace branchSide = side;
-            boolean previousWasLarge = seed.spec.category == PieceCategory.JUNCTION_LARGE;
+            int smallPiecesSinceLarge = isLarge(seed.spec) ? 0 : MIN_SMALL_PIECES_BETWEEN_LARGE;
 
             int segments = 1 + random.nextInt(MAX_BRANCH_LENGTH);
             for (int i = 0; i < segments; i++) {
-                List<TemplateSpec> pool = new ArrayList<>(captured.walls());
-                if (!previousWasLarge && i > 0) {
-                    pool.addAll(captured.largeJunctions());
-                }
+                List<TemplateSpec> pool = candidatePoolForStep(captured,
+                        i > 0 && canPlaceLargeAfter(branchCurrent, smallPiecesSinceLarge));
 
                 PlacedTemplate next = tryPlaceFromSide(branchCurrent, branchSide, pool, captured.connector(), occupied, random);
                 if (next == null) {
@@ -182,7 +179,7 @@ public final class StrongholdDebugGenerator {
                     break;
                 }
 
-                previousWasLarge = next.spec.category == PieceCategory.JUNCTION_LARGE;
+                smallPiecesSinceLarge = updateSmallPiecesSinceLarge(smallPiecesSinceLarge, next.spec);
                 placed.add(next);
                 occupy(occupied, next);
                 branchCurrent = next;
@@ -279,7 +276,30 @@ public final class StrongholdDebugGenerator {
     }
 
     private static boolean areBothLarge(TemplateSpec a, TemplateSpec b) {
-        return a.category == PieceCategory.JUNCTION_LARGE && b.category == PieceCategory.JUNCTION_LARGE;
+        return isLarge(a) && isLarge(b);
+    }
+
+    private static boolean isLarge(TemplateSpec spec) {
+        return spec.category == PieceCategory.JUNCTION_LARGE;
+    }
+
+    private static boolean canPlaceLargeAfter(PlacedTemplate current, int smallPiecesSinceLarge) {
+        return !isLarge(current.spec) && smallPiecesSinceLarge >= MIN_SMALL_PIECES_BETWEEN_LARGE;
+    }
+
+    private static int updateSmallPiecesSinceLarge(int currentSmallCount, TemplateSpec placedSpec) {
+        if (isLarge(placedSpec)) {
+            return 0;
+        }
+        return Math.min(MIN_SMALL_PIECES_BETWEEN_LARGE + 1, currentSmallCount + 1);
+    }
+
+    private static List<TemplateSpec> candidatePoolForStep(CapturedTemplates captured, boolean allowLarge) {
+        List<TemplateSpec> pool = new ArrayList<>(captured.walls());
+        if (allowLarge) {
+            pool.addAll(captured.largeJunctions());
+        }
+        return pool;
     }
 
     private static BlockFace pickOpenSide(PlacedTemplate placed, BlockFace avoid, Random random) {
