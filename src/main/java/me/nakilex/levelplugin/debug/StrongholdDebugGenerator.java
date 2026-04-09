@@ -98,7 +98,8 @@ public final class StrongholdDebugGenerator {
     }
 
     private static int branchPassesForSeed(TemplateSpec seed) {
-        return isBranchHub(seed) ? 3 : 1;
+        int sizeBoost = Math.max(0, generationSizeMultiplier / 100);
+        return isBranchHub(seed) ? 3 + sizeBoost : 1 + sizeBoost;
     }
 
     private static double branchOpenChanceForSeed(TemplateSpec seed) {
@@ -106,9 +107,19 @@ public final class StrongholdDebugGenerator {
             return 1.0D;
         }
         if (isLarge(seed)) {
-            return Math.min(0.95D, BRANCH_OPEN_SIDE_CHANCE + 0.20D);
+            return Math.min(1.0D, BRANCH_OPEN_SIDE_CHANCE + 0.25D);
         }
-        return BRANCH_OPEN_SIDE_CHANCE;
+        return Math.min(0.95D, BRANCH_OPEN_SIDE_CHANCE + Math.min(0.20D, generationSizeMultiplier * 0.001D));
+    }
+
+    private static double effectiveOverlapPercent() {
+        double sizeAllowance = Math.min(35.0D, generationSizeMultiplier * 0.08D);
+        return Math.max(maxOverlapPercent, sizeAllowance);
+    }
+
+    private static int targetPieceCount() {
+        int scaled = 120 + (generationSizeMultiplier * 2);
+        return Math.max(120, Math.min(2500, scaled));
     }
 
     public static boolean generateTest(Player player) {
@@ -232,6 +243,20 @@ public final class StrongholdDebugGenerator {
             growBranches(seed, captured, occupied, random, placed, maxBranchLength);
         }
 
+        int targetPieces = targetPieceCount();
+        int expansionPasses = 0;
+        while (placed.size() < targetPieces && expansionPasses < 8) {
+            expansionPasses++;
+            List<PlacedTemplate> expansionSeeds = new ArrayList<>(placed);
+            Collections.shuffle(expansionSeeds, random);
+            for (PlacedTemplate seed : expansionSeeds) {
+                if (placed.size() >= targetPieces) {
+                    break;
+                }
+                growBranches(seed, captured, occupied, random, placed, maxBranchLength);
+            }
+        }
+
         for (PlacedTemplate entry : placed) {
             paste(targetWorld, entry.spec.template, entry.origin, entry.rotation);
         }
@@ -239,7 +264,8 @@ public final class StrongholdDebugGenerator {
         if (feedbackTarget != null) {
             ChatMessageUtil.send(feedbackTarget, ChatMessageUtil.MessageType.SUCCESS,
                     "Generated stronghold spine+branches using " + placed.size()
-                            + " pieces (overlap threshold: " + String.format("%.2f", maxOverlapPercent) + "%).");
+                            + " pieces (overlap threshold: " + String.format("%.2f", maxOverlapPercent)
+                            + "%, effective: " + String.format("%.2f", effectiveOverlapPercent()) + "%).");
         }
         return true;
     }
@@ -443,7 +469,7 @@ public final class StrongholdDebugGenerator {
                     // can create near-parallel detached corridors in generated layouts.
                     BlockVector3 origin = worldConnector.subtract(entry.getValue());
                     origin = closeSingleBlockGap(occupied, rotated.blocks, origin, currentSide);
-                    if (enforceOverlap && overlapPercent(occupied, rotated.blocks, origin) > maxOverlapPercent) {
+                    if (enforceOverlap && overlapPercent(occupied, rotated.blocks, origin) > effectiveOverlapPercent()) {
                         continue;
                     }
                     PlacedTemplate placed = new PlacedTemplate(spec, rot, origin);
@@ -584,7 +610,7 @@ public final class StrongholdDebugGenerator {
         int towardX = -joinSide.getModX();
         int towardZ = -joinSide.getModZ();
         BlockVector3 nudged = origin.add(towardX, 0, towardZ);
-        if (overlapPercent(occupied, movingBlocks, nudged) <= maxOverlapPercent) {
+        if (overlapPercent(occupied, movingBlocks, nudged) <= effectiveOverlapPercent()) {
             return nudged;
         }
         return origin;
