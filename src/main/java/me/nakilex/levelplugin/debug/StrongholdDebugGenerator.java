@@ -92,7 +92,8 @@ public final class StrongholdDebugGenerator {
         placements.add(current);
 
         for (int i = 1; i < walls.size(); i++) {
-            PlacementResult connectorPlacement = findBestPlacement(current, connector, preferredSideFor(current));
+            PlacementResult connectorPlacement = findBestPlacement(
+                    current, connector, preferredSideFor(current), current.incomingSide);
             if (connectorPlacement == null) {
                 ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
                         "Failed to place connector between templates.");
@@ -102,7 +103,8 @@ public final class StrongholdDebugGenerator {
                     connector, connectorPlacement.rotation, connectorPlacement.origin, connectorPlacement.nextIncomingSide);
             placements.add(placedConnector);
 
-            PlacementResult wallPlacement = findBestPlacement(placedConnector, walls.get(i), preferredSideFor(placedConnector));
+            PlacementResult wallPlacement = findBestPlacement(
+                    placedConnector, walls.get(i), preferredSideFor(placedConnector), placedConnector.incomingSide);
             if (wallPlacement == null) {
                 ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
                         "Failed to place wall template index " + i + " after connector.");
@@ -127,14 +129,14 @@ public final class StrongholdDebugGenerator {
 
     private static PlacementResult findBestPlacement(PlacedTemplate current,
                                                      Template next,
-                                                     BlockFace preferredCurrentSide) {
+                                                     BlockFace preferredCurrentSide,
+                                                     BlockFace forbiddenCurrentSide) {
         RotatedTemplate currentRotated = rotateTemplate(current.template, current.rotation);
-        for (Map.Entry<BlockFace, BlockVector3> a : currentRotated.connectors.entrySet()) {
-            BlockFace aSide = a.getKey();
-            if (preferredCurrentSide != null && aSide != preferredCurrentSide) {
-                continue;
-            }
-            BlockVector3 worldConnectorA = current.origin.add(a.getValue());
+        List<BlockFace> sideOrder = orderedSides(currentRotated.connectors.keySet(), preferredCurrentSide, forbiddenCurrentSide);
+        for (BlockFace aSide : sideOrder) {
+            BlockVector3 aVec = currentRotated.connectors.get(aSide);
+            if (aVec == null) continue;
+            BlockVector3 worldConnectorA = current.origin.add(aVec);
             for (int rot = 0; rot < 4; rot++) {
                 RotatedTemplate rotated = rotateTemplate(next, rot);
                 for (Map.Entry<BlockFace, BlockVector3> b : rotated.connectors.entrySet()) {
@@ -148,10 +150,23 @@ public final class StrongholdDebugGenerator {
                 }
             }
         }
-        if (preferredCurrentSide != null) {
-            return findBestPlacement(current, next, null);
-        }
         return null;
+    }
+
+    private static List<BlockFace> orderedSides(Set<BlockFace> available,
+                                                BlockFace preferred,
+                                                BlockFace forbidden) {
+        List<BlockFace> list = new ArrayList<>();
+        if (preferred != null && available.contains(preferred) && preferred != forbidden) {
+            list.add(preferred);
+        }
+        for (BlockFace side : List.of(BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST)) {
+            if (!available.contains(side) || side == forbidden || list.contains(side)) {
+                continue;
+            }
+            list.add(side);
+        }
+        return list;
     }
 
     private static BlockVector3 slideUntilCollision(Map<BlockVector3, BlockData> fixedBlocks,
