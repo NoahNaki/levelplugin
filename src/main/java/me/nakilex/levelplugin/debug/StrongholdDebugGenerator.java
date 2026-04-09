@@ -561,9 +561,9 @@ public final class StrongholdDebugGenerator {
                     // Keep connector alignment exact. Sliding this origin breaks seam continuity and
                     // can create near-parallel detached corridors in generated layouts.
                     BlockVector3 origin = worldConnector.subtract(entry.getValue());
-                    origin = closeSingleBlockGap(occupied, extraOccupied, rotated.blocks, origin, currentSide);
+                    origin = closeSingleBlockGap(occupied, extraOccupied, rotated, origin, currentSide);
                     if (enforceOverlap
-                            && overlapPercent(occupied, extraOccupied, rotated.blocks, origin) > effectiveOverlapPercent()) {
+                            && exceedsOverlapThreshold(occupied, extraOccupied, rotated, origin, effectiveOverlapPercent())) {
                         continue;
                     }
                     PlacedTemplate placed = new PlacedTemplate(spec, rot, origin);
@@ -692,23 +692,28 @@ public final class StrongholdDebugGenerator {
         }
     }
 
-    private static double overlapPercent(Set<Long> occupied,
-                                         PlacedTemplate extraOccupied,
-                                         Map<BlockVector3, BlockData> blocks,
-                                         BlockVector3 origin) {
-        if (blocks.isEmpty()) {
-            return 100.0D;
+    private static boolean exceedsOverlapThreshold(Set<Long> occupied,
+                                                   PlacedTemplate extraOccupied,
+                                                   RotatedTemplate rotated,
+                                                   BlockVector3 origin,
+                                                   double maxPercent) {
+        if (rotated.blocks.isEmpty()) {
+            return true;
         }
+        int maxOverlapBlocks = (int) Math.floor((maxPercent * rotated.blocks.size()) / 100.0D);
         int overlap = 0;
-        for (BlockVector3 rel : blocks.keySet()) {
+        for (BlockVector3 rel : rotated.blocks.keySet()) {
             int x = origin.getBlockX() + rel.getBlockX();
             int y = origin.getBlockY() + rel.getBlockY();
             int z = origin.getBlockZ() + rel.getBlockZ();
             if (occupied.contains(posKey(x, y, z)) || intersects(extraOccupied, x, y, z)) {
                 overlap++;
+                if (overlap > maxOverlapBlocks) {
+                    return true;
+                }
             }
         }
-        return (overlap * 100.0D) / blocks.size();
+        return false;
     }
 
     /**
@@ -718,13 +723,13 @@ public final class StrongholdDebugGenerator {
      */
     private static BlockVector3 closeSingleBlockGap(Set<Long> occupied,
                                                     PlacedTemplate extraOccupied,
-                                                    Map<BlockVector3, BlockData> movingBlocks,
+                                                    RotatedTemplate movingTemplate,
                                                     BlockVector3 origin,
                                                     BlockFace joinSide) {
         int towardX = -joinSide.getModX();
         int towardZ = -joinSide.getModZ();
         BlockVector3 nudged = origin.add(towardX, 0, towardZ);
-        if (overlapPercent(occupied, extraOccupied, movingBlocks, nudged) <= effectiveOverlapPercent()) {
+        if (!exceedsOverlapThreshold(occupied, extraOccupied, movingTemplate, nudged, effectiveOverlapPercent())) {
             return nudged;
         }
         return origin;
