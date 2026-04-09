@@ -15,7 +15,6 @@ import org.bukkit.entity.Player;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -86,11 +85,8 @@ public final class StrongholdDebugGenerator {
                     if (aSide != opposite(bSide)) {
                         continue;
                     }
-                    int shift = 1 - (straight.sideInset(aSide) + rotated.sideInset(bSide));
-                    int shiftX = aSide.getModX() * shift;
-                    int shiftZ = aSide.getModZ() * shift;
-                    BlockVector3 bOrigin = worldConnectorA.subtract(b.getValue()).add(shiftX, 0, shiftZ);
-                    bOrigin = refineAlongTangent(straight, straightOrigin, rotated, bOrigin, aSide);
+                    BlockVector3 bOrigin = worldConnectorA.subtract(b.getValue());
+                    bOrigin = slideUntilCollision(straight, straightOrigin, rotated, bOrigin, aSide);
                     return new Placement(bOrigin, rot);
                 }
             }
@@ -98,66 +94,50 @@ public final class StrongholdDebugGenerator {
         return null;
     }
 
-    private static BlockVector3 refineAlongTangent(Template straight,
-                                                   BlockVector3 straightOrigin,
-                                                   RotatedTemplate rotated,
-                                                   BlockVector3 baseOrigin,
-                                                   BlockFace joinSide) {
-        int tangentX = (joinSide == BlockFace.EAST || joinSide == BlockFace.WEST) ? 0 : 1;
-        int tangentZ = (joinSide == BlockFace.EAST || joinSide == BlockFace.WEST) ? 1 : 0;
-        if (tangentX == 0 && tangentZ == 0) {
-            return baseOrigin;
+    private static BlockVector3 slideUntilCollision(Template straight,
+                                                    BlockVector3 straightOrigin,
+                                                    RotatedTemplate rotated,
+                                                    BlockVector3 startOrigin,
+                                                    BlockFace joinSide) {
+        Set<Long> straightPositions = absoluteBlockPositions(straight.blocks, straightOrigin);
+        int towardX = -joinSide.getModX();
+        int towardZ = -joinSide.getModZ();
+        int awayX = joinSide.getModX();
+        int awayZ = joinSide.getModZ();
+
+        BlockVector3 current = startOrigin;
+        // If we happen to start in collision, back away until we are not.
+        for (int i = 0; i < 64 && hasOverlap(straightPositions, rotated.blocks, current); i++) {
+            current = current.add(awayX, 0, awayZ);
         }
 
-        Set<Long> straightPositions = absoluteBlockPositions(straight.blocks, straightOrigin);
-        int bestScore = Integer.MIN_VALUE;
-        BlockVector3 bestOrigin = baseOrigin;
-        for (int delta = -4; delta <= 4; delta++) {
-            BlockVector3 candidate = baseOrigin.add(tangentX * delta, 0, tangentZ * delta);
-            int score = scoreJoin(straightPositions, rotated.blocks, candidate, joinSide);
-            if (score == Integer.MIN_VALUE) {
-                continue;
+        // Move inward until the next step would overlap.
+        for (int i = 0; i < 256; i++) {
+            BlockVector3 next = current.add(towardX, 0, towardZ);
+            if (hasOverlap(straightPositions, rotated.blocks, next)) {
+                break;
             }
-            if (score > bestScore) {
-                bestScore = score;
-                bestOrigin = candidate;
-            }
+            current = next;
         }
-        return bestOrigin;
+        return current;
     }
 
-    private static int scoreJoin(Set<Long> straightPositions,
-                                 Map<BlockVector3, BlockData> rotatedBlocks,
-                                 BlockVector3 rotatedOrigin,
-                                 BlockFace joinSide) {
-        int touches = 0;
-        int overlaps = 0;
-        int dx = joinSide.getModX();
-        int dz = joinSide.getModZ();
-
+    private static boolean hasOverlap(Set<Long> straightPositions,
+                                      Map<BlockVector3, BlockData> rotatedBlocks,
+                                      BlockVector3 rotatedOrigin) {
         for (BlockVector3 rel : rotatedBlocks.keySet()) {
             int x = rotatedOrigin.getBlockX() + rel.getBlockX();
             int y = rotatedOrigin.getBlockY() + rel.getBlockY();
             int z = rotatedOrigin.getBlockZ() + rel.getBlockZ();
-
-            long self = posKey(x, y, z);
-            if (straightPositions.contains(self)) {
-                overlaps++;
-            }
-
-            long adjacent = posKey(x - dx, y, z - dz);
-            if (straightPositions.contains(adjacent)) {
-                touches++;
+            if (straightPositions.contains(posKey(x, y, z))) {
+                return true;
             }
         }
-        if (overlaps > 0) {
-            return Integer.MIN_VALUE;
-        }
-        return touches * 6;
+        return false;
     }
 
     private static Set<Long> absoluteBlockPositions(Map<BlockVector3, BlockData> blocks, BlockVector3 origin) {
-        Set<Long> set = new HashSet<>();
+        Set<Long> set = new java.util.HashSet<>();
         for (BlockVector3 rel : blocks.keySet()) {
             int x = origin.getBlockX() + rel.getBlockX();
             int y = origin.getBlockY() + rel.getBlockY();
@@ -188,10 +168,6 @@ public final class StrongholdDebugGenerator {
 
         Map<BlockVector3, BlockData> blocks = new HashMap<>();
         Map<BlockFace, List<BlockVector3>> markersBySide = new EnumMap<>(BlockFace.class);
-        int minSolidX = Integer.MAX_VALUE;
-        int maxSolidX = Integer.MIN_VALUE;
-        int minSolidZ = Integer.MAX_VALUE;
-        int maxSolidZ = Integer.MIN_VALUE;
         for (BlockFace face : List.of(BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST)) {
             markersBySide.put(face, new ArrayList<>());
         }
@@ -213,10 +189,6 @@ public final class StrongholdDebugGenerator {
                     if (type.isAir() || EXCLUDED.contains(type)) {
                         continue;
                     }
-                    minSolidX = Math.min(minSolidX, relX);
-                    maxSolidX = Math.max(maxSolidX, relX);
-                    minSolidZ = Math.min(minSolidZ, relZ);
-                    maxSolidZ = Math.max(maxSolidZ, relZ);
                     blocks.put(rel, data);
                 }
             }
@@ -230,27 +202,7 @@ public final class StrongholdDebugGenerator {
             }
         }
 
-        Map<BlockFace, Integer> insets = computeSideInsets(width, length, minSolidX, maxSolidX, minSolidZ, maxSolidZ);
-        return new Template(blocks, connectors, insets, width, height, length);
-    }
-
-    private static Map<BlockFace, Integer> computeSideInsets(int width, int length,
-                                                             int minSolidX, int maxSolidX,
-                                                             int minSolidZ, int maxSolidZ) {
-        Map<BlockFace, Integer> insets = new EnumMap<>(BlockFace.class);
-        if (minSolidX == Integer.MAX_VALUE || maxSolidX == Integer.MIN_VALUE
-                || minSolidZ == Integer.MAX_VALUE || maxSolidZ == Integer.MIN_VALUE) {
-            insets.put(BlockFace.WEST, 0);
-            insets.put(BlockFace.EAST, 0);
-            insets.put(BlockFace.NORTH, 0);
-            insets.put(BlockFace.SOUTH, 0);
-            return insets;
-        }
-        insets.put(BlockFace.WEST, minSolidX);
-        insets.put(BlockFace.EAST, (width - 1) - maxSolidX);
-        insets.put(BlockFace.NORTH, minSolidZ);
-        insets.put(BlockFace.SOUTH, (length - 1) - maxSolidZ);
-        return insets;
+        return new Template(blocks, connectors, width, height, length);
     }
 
     private static void assignSideMarker(Map<BlockFace, List<BlockVector3>> markersBySide,
@@ -315,11 +267,7 @@ public final class StrongholdDebugGenerator {
         for (Map.Entry<BlockFace, BlockVector3> e : template.connectors.entrySet()) {
             conn.put(rotateFace(e.getKey(), rot), rotateVector(e.getValue(), template.width, template.length, rot));
         }
-        Map<BlockFace, Integer> insets = new EnumMap<>(BlockFace.class);
-        for (Map.Entry<BlockFace, Integer> e : template.insets.entrySet()) {
-            insets.put(rotateFace(e.getKey(), rot), e.getValue());
-        }
-        return new RotatedTemplate(out, conn, insets);
+        return new RotatedTemplate(out, conn);
     }
 
     private static BlockVector3 rotateVector(BlockVector3 vec, int width, int length, int rotation) {
@@ -390,22 +338,12 @@ public final class StrongholdDebugGenerator {
 
     private record Template(Map<BlockVector3, BlockData> blocks,
                             Map<BlockFace, BlockVector3> connectors,
-                            Map<BlockFace, Integer> insets,
                             int width,
                             int height,
-                            int length) {
-        int sideInset(BlockFace side) {
-            return insets.getOrDefault(side, 0);
-        }
-    }
+                            int length) {}
 
     private record RotatedTemplate(Map<BlockVector3, BlockData> blocks,
-                                   Map<BlockFace, BlockVector3> connectors,
-                                   Map<BlockFace, Integer> insets) {
-        int sideInset(BlockFace side) {
-            return insets.getOrDefault(side, 0);
-        }
-    }
+                                   Map<BlockFace, BlockVector3> connectors) {}
 
     private record Placement(BlockVector3 origin, int rotation) {}
 }
