@@ -615,13 +615,23 @@ public final class StrongholdDebugGenerator {
         List<TemplateSpec> shuffled = weightedShuffle(candidateSpecs, random);
 
         if (connector != null) {
-            PlacedTemplate connectorPlaced = tryPlaceSingle(current, currentSide, List.of(connector), occupied, random, true);
+            PlacedTemplate connectorPlaced = tryPlaceSingle(
+                    current,
+                    currentSide,
+                    List.of(connector),
+                    occupied,
+                    null,
+                    current,
+                    random,
+                    true
+            );
             if (connectorPlaced != null) {
                 PlacedTemplate viaConnector = tryPlaceSingle(
                         connectorPlaced,
                         currentSide,
                         shuffled,
                         occupied,
+                        connectorPlaced,
                         connectorPlaced,
                         random,
                         true
@@ -634,7 +644,7 @@ public final class StrongholdDebugGenerator {
             }
         }
 
-        PlacedTemplate direct = tryPlaceSingle(current, currentSide, shuffled, occupied, random, true);
+        PlacedTemplate direct = tryPlaceSingle(current, currentSide, shuffled, occupied, null, current, random, true);
         if (direct != null && (!areBothLarge(current.spec, direct.spec) || allowAdjacentLargePieces())) {
             current.markUsed(currentSide);
             return new PlacementAttempt(null, direct);
@@ -648,7 +658,7 @@ public final class StrongholdDebugGenerator {
                                                  Set<Long> occupied,
                                                  Random random,
                                                  boolean enforceOverlap) {
-        return tryPlaceSingle(current, currentSide, candidateSpecs, occupied, null, random, enforceOverlap);
+        return tryPlaceSingle(current, currentSide, candidateSpecs, occupied, null, null, random, enforceOverlap);
     }
 
     private static PlacedTemplate tryPlaceSingle(PlacedTemplate current,
@@ -656,6 +666,7 @@ public final class StrongholdDebugGenerator {
                                                  List<TemplateSpec> candidateSpecs,
                                                  Set<Long> occupied,
                                                  PlacedTemplate extraOccupied,
+                                                 PlacedTemplate ignoredOccupied,
                                                  Random random,
                                                  boolean enforceOverlap) {
         RotatedTemplate currentRotated = rotateTemplate(current.spec.template, current.rotation);
@@ -675,9 +686,9 @@ public final class StrongholdDebugGenerator {
                     // Keep connector alignment exact. Sliding this origin breaks seam continuity and
                     // can create near-parallel detached corridors in generated layouts.
                     BlockVector3 origin = worldConnector.subtract(entry.getValue());
-                    origin = closeSingleBlockGap(occupied, extraOccupied, rotated, origin, currentSide);
+                    origin = closeSingleBlockGap(occupied, extraOccupied, ignoredOccupied, rotated, origin, currentSide);
                     if (enforceOverlap
-                            && exceedsOverlapThreshold(occupied, extraOccupied, rotated, origin, effectiveOverlapPercent())) {
+                            && exceedsOverlapThreshold(occupied, extraOccupied, ignoredOccupied, rotated, origin, effectiveOverlapPercent())) {
                         continue;
                     }
                     PlacedTemplate placed = new PlacedTemplate(spec, rot, origin);
@@ -808,6 +819,7 @@ public final class StrongholdDebugGenerator {
 
     private static boolean exceedsOverlapThreshold(Set<Long> occupied,
                                                    PlacedTemplate extraOccupied,
+                                                   PlacedTemplate ignoredOccupied,
                                                    RotatedTemplate rotated,
                                                    BlockVector3 origin,
                                                    double maxPercent) {
@@ -828,6 +840,9 @@ public final class StrongholdDebugGenerator {
             int x = origin.getBlockX() + rel.getBlockX();
             int y = origin.getBlockY() + rel.getBlockY();
             int z = origin.getBlockZ() + rel.getBlockZ();
+            if (intersects(ignoredOccupied, x, y, z)) {
+                continue;
+            }
             if (occupied.contains(posKey(x, y, z)) || intersects(extraOccupied, x, y, z)) {
                 overlap++;
                 if (overlap > maxOverlapBlocks) {
@@ -856,13 +871,14 @@ public final class StrongholdDebugGenerator {
      */
     private static BlockVector3 closeSingleBlockGap(Set<Long> occupied,
                                                     PlacedTemplate extraOccupied,
+                                                    PlacedTemplate ignoredOccupied,
                                                     RotatedTemplate movingTemplate,
                                                     BlockVector3 origin,
                                                     BlockFace joinSide) {
         int towardX = -joinSide.getModX();
         int towardZ = -joinSide.getModZ();
         BlockVector3 nudged = origin.add(towardX, 0, towardZ);
-        if (!exceedsOverlapThreshold(occupied, extraOccupied, movingTemplate, nudged, effectiveOverlapPercent())) {
+        if (!exceedsOverlapThreshold(occupied, extraOccupied, ignoredOccupied, movingTemplate, nudged, effectiveOverlapPercent())) {
             return nudged;
         }
         return origin;
