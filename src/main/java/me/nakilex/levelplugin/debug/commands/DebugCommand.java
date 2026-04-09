@@ -605,13 +605,14 @@ public class DebugCommand implements TabExecutor {
                 World templateSourceWorld = resolveStrongholdTemplateSourceWorld(strongholdPlayer.getWorld());
                 if (templateSourceWorld == null) {
                     ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.ERROR,
-                            "Could not find a world with valid stronghold templates. Tried current world, 'stronghold', and 'flatland'.");
+                            "Could not find a template source world. Tried current world, 'stronghold', and 'flatland'.");
                     return true;
                 }
                 Location spawn = new Location(debugWorld, 0.5, 4.0, 0.5, 0.0F, 0.0F);
                 strongholdPlayer.teleport(spawn);
                 ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.INFO,
-                        "Teleported to stronghold debug world. Waiting for world load, then generating...");
+                        "Teleported to stronghold debug world. Waiting for world load, then generating from source world '"
+                                + templateSourceWorld.getName() + "'...");
 
                 Player finalPlayer = strongholdPlayer;
                 World finalTemplateSourceWorld = templateSourceWorld;
@@ -639,24 +640,12 @@ public class DebugCommand implements TabExecutor {
     }
 
     private World resolveStrongholdTemplateSourceWorld(World preferred) {
-        List<World> candidates = new ArrayList<>();
         if (preferred != null) {
-            candidates.add(preferred);
+            return preferred;
         }
         World stronghold = Bukkit.getWorld("stronghold");
-        if (stronghold != null && !candidates.contains(stronghold)) {
-            candidates.add(stronghold);
-        }
-        World flatland = Bukkit.getWorld("flatland");
-        if (flatland != null && !candidates.contains(flatland)) {
-            candidates.add(flatland);
-        }
-        for (World candidate : candidates) {
-            if (StrongholdDebugGenerator.canCaptureTemplates(candidate)) {
-                return candidate;
-            }
-        }
-        return null;
+        if (stronghold != null) return stronghold;
+        return Bukkit.getWorld("flatland");
     }
 
     private void toggleInventoryDebug(Player player) {
