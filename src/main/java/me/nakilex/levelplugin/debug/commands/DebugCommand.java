@@ -629,7 +629,7 @@ public class DebugCommand implements TabExecutor {
                 Location spawn = new Location(debugWorld, 0.5, -59.0, 0.5, 0.0F, 0.0F);
                 strongholdPlayer.teleport(spawn);
                 ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.INFO,
-                        "Teleported to stronghold debug world. Waiting for world load, then generating from source world '"
+                        "Teleported to stronghold debug world. Waiting 5 seconds for world/chunks to load, then generating from source world '"
                                 + templateSourceWorld.getName() + "'...");
 
                 Player finalPlayer = strongholdPlayer;
@@ -644,7 +644,7 @@ public class DebugCommand implements TabExecutor {
                     ChatMessageUtil.send(finalPlayer, ChatMessageUtil.MessageType.SUCCESS,
                             "Generated stronghold in world '" + debugWorld.getName()
                                     + "' using templates from '" + finalTemplateSourceWorld.getName() + "'.");
-                }, 20L);
+                }, 100L);
                 return true;
 
             default:

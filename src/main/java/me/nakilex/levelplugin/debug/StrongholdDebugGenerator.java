@@ -191,6 +191,8 @@ public final class StrongholdDebugGenerator {
             return false;
         }
 
+        preloadTargetChunks(targetWorld, originX, originZ);
+
         PlacedTemplate start = new PlacedTemplate(startSpec, 0, BlockVector3.at(originX, originY, originZ));
         placed.add(start);
         occupy(occupied, start);
@@ -577,6 +579,20 @@ public final class StrongholdDebugGenerator {
                     placed.origin.getBlockY() + rel.getBlockY(),
                     placed.origin.getBlockZ() + rel.getBlockZ()
             ));
+        }
+    }
+
+    private static void preloadTargetChunks(World world, int originX, int originZ) {
+        if (world == null) {
+            return;
+        }
+        int radiusChunks = Math.max(4, Math.min(48, 4 + (generationSizeMultiplier / 8)));
+        int centerChunkX = originX >> 4;
+        int centerChunkZ = originZ >> 4;
+        for (int dx = -radiusChunks; dx <= radiusChunks; dx++) {
+            for (int dz = -radiusChunks; dz <= radiusChunks; dz++) {
+                world.getChunkAt(centerChunkX + dx, centerChunkZ + dz).load();
+            }
         }
     }
 
