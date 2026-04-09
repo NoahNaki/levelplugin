@@ -25,6 +25,7 @@ import java.util.Locale;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Debug-only stronghold composer.
@@ -72,6 +73,11 @@ public final class StrongholdDebugGenerator {
     private static final Set<String> DISABLED_TEMPLATE_IDS = new HashSet<>();
     private static final ThreadLocal<Map<Template, RotatedTemplate[]>> ROTATION_CACHE =
             ThreadLocal.withInitial(IdentityHashMap::new);
+    private static final long GENERATION_TIME_BUDGET_SECONDS = 8L;
+    private static final ThreadLocal<Long> GENERATION_DEADLINE_NANOS =
+            ThreadLocal.withInitial(() -> Long.MAX_VALUE);
+    private static final ThreadLocal<Boolean> GENERATION_TIMED_OUT =
+            ThreadLocal.withInitial(() -> Boolean.FALSE);
 
     private StrongholdDebugGenerator() {
     }
@@ -168,6 +174,8 @@ public final class StrongholdDebugGenerator {
             return false;
         }
         ROTATION_CACHE.get().clear();
+        GENERATION_TIMED_OUT.set(Boolean.FALSE);
+        GENERATION_DEADLINE_NANOS.set(System.nanoTime() + TimeUnit.SECONDS.toNanos(GENERATION_TIME_BUDGET_SECONDS));
         Random random = ThreadLocalRandom.current();
 
         CaptureResult captureResult = captureAllTemplatesWithDiagnostics(templateSourceWorld);
@@ -210,6 +218,9 @@ public final class StrongholdDebugGenerator {
         int spineLength = spineLength();
         int maxBranchLength = maxBranchLength();
         for (int i = 0; i < spineLength; i++) {
+            if (shouldAbortGeneration()) {
+                break;
+            }
             List<BlockFace> sides = spineHead.openSides();
             Collections.shuffle(sides, random);
             if (sides.isEmpty()) {
@@ -251,17 +262,26 @@ public final class StrongholdDebugGenerator {
         GenerationDebugStats debugStats = new GenerationDebugStats();
         List<PlacedTemplate> branchSeeds = new ArrayList<>(placed);
         for (PlacedTemplate seed : branchSeeds) {
+            if (shouldAbortGeneration()) {
+                break;
+            }
             debugStats.absorb(growBranches(seed, captured, occupied, random, placed, maxBranchLength));
         }
 
         int targetPieces = targetPieceCount();
         int expansionPasses = 0;
         while (placed.size() < targetPieces && expansionPasses < 8) {
+            if (shouldAbortGeneration()) {
+                break;
+            }
             expansionPasses++;
             List<PlacedTemplate> expansionSeeds = new ArrayList<>(placed);
             Collections.shuffle(expansionSeeds, random);
             for (PlacedTemplate seed : expansionSeeds) {
                 if (placed.size() >= targetPieces) {
+                    break;
+                }
+                if (shouldAbortGeneration()) {
                     break;
                 }
                 debugStats.absorb(growBranches(seed, captured, occupied, random, placed, maxBranchLength));
@@ -274,6 +294,7 @@ public final class StrongholdDebugGenerator {
             }
         } finally {
             ROTATION_CACHE.get().clear();
+            GENERATION_DEADLINE_NANOS.set(Long.MAX_VALUE);
         }
 
         if (feedbackTarget != null) {
@@ -292,7 +313,8 @@ public final class StrongholdDebugGenerator {
                             + ", dead-ends placed: " + debugStats.deadEndsPlaced
                             + ", enabled walls: " + enabledWalls
                             + ", enabled large templates: " + enabledLarge
-                            + ", target pieces: " + targetPieces + ".");
+                            + ", target pieces: " + targetPieces
+                            + ", timed out: " + GENERATION_TIMED_OUT.get() + ".");
             Bukkit.getLogger().info("[StrongholdDebug] sideAttempts=" + debugStats.sideAttempts
                     + ", placements=" + debugStats.placements
                     + ", failed=" + debugStats.failedPlacements
@@ -412,8 +434,14 @@ public final class StrongholdDebugGenerator {
         double openChance = branchOpenChanceForSeed(seed.spec);
 
         for (int pass = 0; pass < branchPasses; pass++) {
+            if (shouldAbortGeneration()) {
+                break;
+            }
             Collections.shuffle(openSides, random);
             for (BlockFace side : openSides) {
+                if (shouldAbortGeneration()) {
+                    break;
+                }
                 stats.sideAttempts++;
                 if (seed.usedConnectors.contains(side)) {
                     continue;
@@ -428,6 +456,9 @@ public final class StrongholdDebugGenerator {
 
                 int segments = 1 + random.nextInt(Math.max(1, maxBranchLength));
                 for (int i = 0; i < segments; i++) {
+                    if (shouldAbortGeneration()) {
+                        break;
+                    }
                     List<TemplateSpec> pool = candidatePoolForStep(captured, branchCurrent, branchState, i > 0);
 
                     PlacementAttempt attempt = tryPlaceFromSide(branchCurrent, branchSide, pool, captured.connector(), occupied, random);
@@ -697,12 +728,20 @@ public final class StrongholdDebugGenerator {
                                                    RotatedTemplate rotated,
                                                    BlockVector3 origin,
                                                    double maxPercent) {
+        if (shouldAbortGeneration()) {
+            return true;
+        }
         if (rotated.blocks.isEmpty()) {
             return true;
         }
         int maxOverlapBlocks = (int) Math.floor((maxPercent * rotated.blocks.size()) / 100.0D);
         int overlap = 0;
+        int checked = 0;
         for (BlockVector3 rel : rotated.blocks.keySet()) {
+            checked++;
+            if ((checked & 0x3FF) == 0 && shouldAbortGeneration()) {
+                return true;
+            }
             int x = origin.getBlockX() + rel.getBlockX();
             int y = origin.getBlockY() + rel.getBlockY();
             int z = origin.getBlockZ() + rel.getBlockZ();
@@ -712,6 +751,17 @@ public final class StrongholdDebugGenerator {
                     return true;
                 }
             }
+        }
+        return false;
+    }
+
+    private static boolean shouldAbortGeneration() {
+        if (Boolean.TRUE.equals(GENERATION_TIMED_OUT.get())) {
+            return true;
+        }
+        if (System.nanoTime() > GENERATION_DEADLINE_NANOS.get()) {
+            GENERATION_TIMED_OUT.set(Boolean.TRUE);
+            return true;
         }
         return false;
     }
