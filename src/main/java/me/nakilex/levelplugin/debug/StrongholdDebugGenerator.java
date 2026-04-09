@@ -297,6 +297,8 @@ public final class StrongholdDebugGenerator {
             }
         }
 
+        placed = retainConnectedTemplates(start, placed);
+
         try {
             for (PlacedTemplate entry : placed) {
                 if (shouldAbortGeneration()) {
@@ -538,6 +540,66 @@ public final class StrongholdDebugGenerator {
         placed.add(deadEndAttempt.placed);
         occupy(occupied, deadEndAttempt.placed);
         return true;
+    }
+
+    private static List<PlacedTemplate> retainConnectedTemplates(PlacedTemplate start, List<PlacedTemplate> placed) {
+        if (start == null || placed == null || placed.isEmpty()) {
+            return List.of();
+        }
+        Set<PlacedTemplate> all = new HashSet<>(placed);
+        if (!all.contains(start)) {
+            return placed;
+        }
+        Set<PlacedTemplate> visited = new HashSet<>();
+        List<PlacedTemplate> queue = new ArrayList<>();
+        visited.add(start);
+        queue.add(start);
+
+        for (int i = 0; i < queue.size(); i++) {
+            PlacedTemplate current = queue.get(i);
+            for (PlacedTemplate candidate : all) {
+                if (visited.contains(candidate) || candidate == current) {
+                    continue;
+                }
+                if (areTemplatesConnected(current, candidate)) {
+                    visited.add(candidate);
+                    queue.add(candidate);
+                }
+            }
+        }
+        if (visited.size() == all.size()) {
+            return placed;
+        }
+        List<PlacedTemplate> filtered = new ArrayList<>(placed.size());
+        for (PlacedTemplate p : placed) {
+            if (visited.contains(p)) {
+                filtered.add(p);
+            }
+        }
+        return filtered;
+    }
+
+    private static boolean areTemplatesConnected(PlacedTemplate a, PlacedTemplate b) {
+        RotatedTemplate ar = rotateTemplate(a.spec.template, a.rotation);
+        RotatedTemplate br = rotateTemplate(b.spec.template, b.rotation);
+        for (Map.Entry<BlockFace, BlockVector3> ac : ar.connectors.entrySet()) {
+            BlockVector3 aWorld = a.origin.add(ac.getValue());
+            BlockFace expected = opposite(ac.getKey());
+            for (Map.Entry<BlockFace, BlockVector3> bc : br.connectors.entrySet()) {
+                if (bc.getKey() != expected) {
+                    continue;
+                }
+                BlockVector3 bWorld = b.origin.add(bc.getValue());
+                if (aWorld.equals(bWorld)) {
+                    return true;
+                }
+                BlockVector3 adjacent = aWorld.add(ac.getKey().getModX(), 0, ac.getKey().getModZ());
+                if (adjacent.equals(bWorld)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private static PlacementAttempt tryPlaceFromSide(PlacedTemplate current,
