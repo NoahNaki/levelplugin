@@ -219,6 +219,7 @@ public final class StrongholdDebugGenerator {
         int spineLength = spineLength();
         int maxBranchLength = maxBranchLength();
         int targetPieces = targetPieceCount();
+        int consecutiveSpineFailures = 0;
         for (int i = 0; i < spineLength; i++) {
             if (shouldAbortGeneration() || placed.size() >= targetPieces) {
                 break;
@@ -241,11 +242,15 @@ public final class StrongholdDebugGenerator {
                     usedSide = side;
                     break;
                 }
-                spineHead.markUsed(side);
             }
             if (attempt == null) {
-                break;
+                consecutiveSpineFailures++;
+                if (consecutiveSpineFailures >= 6) {
+                    break;
+                }
+                continue;
             }
+            consecutiveSpineFailures = 0;
             spineHead.markUsed(usedSide);
 
             if (attempt.connector != null) {
@@ -481,7 +486,6 @@ public final class StrongholdDebugGenerator {
                     PlacementAttempt attempt = tryPlaceFromSide(branchCurrent, branchSide, pool, captured.connector(), occupied, random);
                     if (attempt == null) {
                         stats.failedPlacements++;
-                        branchCurrent.markUsed(branchSide);
                         break;
                     }
 
