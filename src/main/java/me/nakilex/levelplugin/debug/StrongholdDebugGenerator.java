@@ -645,6 +645,22 @@ public final class StrongholdDebugGenerator {
                     connectorPlaced.markUsed(currentSide);
                     return new PlacementAttempt(connectorPlaced, viaConnector);
                 }
+
+                PlacedTemplate viaConnectorRelaxed = tryPlaceSingle(
+                        connectorPlaced,
+                        currentSide,
+                        shuffled,
+                        occupied,
+                        connectorPlaced,
+                        connectorPlaced,
+                        random,
+                        false
+                );
+                if (viaConnectorRelaxed != null && (!areBothLarge(current.spec, viaConnectorRelaxed.spec) || allowAdjacentLargePieces())) {
+                    current.markUsed(currentSide);
+                    connectorPlaced.markUsed(currentSide);
+                    return new PlacementAttempt(connectorPlaced, viaConnectorRelaxed);
+                }
             }
         }
 
@@ -652,6 +668,12 @@ public final class StrongholdDebugGenerator {
         if (direct != null && (!areBothLarge(current.spec, direct.spec) || allowAdjacentLargePieces())) {
             current.markUsed(currentSide);
             return new PlacementAttempt(null, direct);
+        }
+
+        PlacedTemplate directRelaxed = tryPlaceSingle(current, currentSide, shuffled, occupied, null, current, random, false);
+        if (directRelaxed != null && (!areBothLarge(current.spec, directRelaxed.spec) || allowAdjacentLargePieces())) {
+            current.markUsed(currentSide);
+            return new PlacementAttempt(null, directRelaxed);
         }
         return null;
     }
