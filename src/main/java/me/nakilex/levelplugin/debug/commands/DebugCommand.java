@@ -550,7 +550,7 @@ public class DebugCommand implements TabExecutor {
                 }
                 if (args.length < 2) {
                     ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.WARNING,
-                            "Usage: /debug stronghold <generate test|overlap [percent]|templates>");
+                            "Usage: /debug stronghold <generate test|overlap [percent]|size [multiplier]|templates>");
                     return true;
                 }
                 if (args[1].equalsIgnoreCase("templates")) {
@@ -581,9 +581,27 @@ public class DebugCommand implements TabExecutor {
                     }
                     return true;
                 }
+                if (args[1].equalsIgnoreCase("size")) {
+                    if (args.length == 2) {
+                        ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.INFO,
+                                "Stronghold size multiplier: " + StrongholdDebugGenerator.getGenerationSizeMultiplier() + "x");
+                        return true;
+                    }
+                    try {
+                        int value = Integer.parseInt(args[2]);
+                        StrongholdDebugGenerator.setGenerationSizeMultiplier(value);
+                        ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.SUCCESS,
+                                "Set stronghold size multiplier to "
+                                        + StrongholdDebugGenerator.getGenerationSizeMultiplier() + "x.");
+                    } catch (NumberFormatException ex) {
+                        ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.ERROR,
+                                "Invalid multiplier. Example: /debug stronghold size 10");
+                    }
+                    return true;
+                }
                 if (args.length < 3 || !args[1].equalsIgnoreCase("generate")) {
                     ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.WARNING,
-                            "Usage: /debug stronghold <generate test|overlap [percent]|templates>");
+                            "Usage: /debug stronghold <generate test|overlap [percent]|size [multiplier]|templates>");
                     return true;
                 }
                 if (!args[2].equalsIgnoreCase("test")) {
@@ -618,7 +636,7 @@ public class DebugCommand implements TabExecutor {
                 World finalTemplateSourceWorld = templateSourceWorld;
                 Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
                     StrongholdDebugGenerator.GenerationResult generationResult =
-                            StrongholdDebugGenerator.generateTestDetailed(finalTemplateSourceWorld, debugWorld, 8, -59, 8, finalPlayer);
+                            StrongholdDebugGenerator.generateTestDetailed(finalTemplateSourceWorld, debugWorld, 8, -61, 8, finalPlayer);
                     if (!generationResult.success()) {
                         ChatMessageUtil.send(finalPlayer, ChatMessageUtil.MessageType.ERROR, generationResult.message());
                         return;
@@ -749,7 +767,7 @@ public class DebugCommand implements TabExecutor {
                     .filter(s -> s.startsWith(args[0].toLowerCase()))
                     .toList();
         } else if (args.length == 2 && args[0].equalsIgnoreCase("stronghold")) {
-            return List.of("generate", "overlap", "templates").stream()
+            return List.of("generate", "overlap", "size", "templates").stream()
                     .filter(opt -> opt.startsWith(args[1].toLowerCase()))
                     .toList();
         } else if (args.length == 3 && args[0].equalsIgnoreCase("stronghold") && args[1].equalsIgnoreCase("generate")) {
@@ -758,6 +776,10 @@ public class DebugCommand implements TabExecutor {
                     .toList();
         } else if (args.length == 3 && args[0].equalsIgnoreCase("stronghold") && args[1].equalsIgnoreCase("overlap")) {
             return List.of("0.0", "1.0", "2.5", "5.0").stream()
+                    .filter(opt -> opt.startsWith(args[2].toLowerCase()))
+                    .toList();
+        } else if (args.length == 3 && args[0].equalsIgnoreCase("stronghold") && args[1].equalsIgnoreCase("size")) {
+            return List.of("1", "5", "10", "20").stream()
                     .filter(opt -> opt.startsWith(args[2].toLowerCase()))
                     .toList();
         } else if (args.length == 2 && args[0].equalsIgnoreCase("chatgame")) {

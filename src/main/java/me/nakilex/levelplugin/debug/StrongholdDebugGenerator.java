@@ -60,13 +60,14 @@ public final class StrongholdDebugGenerator {
     private static final TemplateSpec CONNECTOR_SPEC =
             new TemplateSpec("connector_1", new TemplateBounds(412, -61, -5711, 402, -38, -5701), PieceCategory.CONNECTOR, 1);
 
-    private static final int DEFAULT_SPINE_LENGTH = 14;
-    private static final int MAX_BRANCH_LENGTH = 8;
+    private static final int BASE_SPINE_LENGTH = 14;
+    private static final int BASE_BRANCH_LENGTH = 8;
     private static final int MIN_SMALL_PIECES_BETWEEN_LARGE = 1;
     private static final int MIN_WALL_PIECES_BETWEEN_GATES = 3;
     private static final double BRANCH_OPEN_SIDE_CHANCE = 0.70D;
 
     private static double maxOverlapPercent = 2.0D;
+    private static int generationSizeMultiplier = 10;
     private static final Set<String> DISABLED_TEMPLATE_IDS = new HashSet<>();
 
     private StrongholdDebugGenerator() {
@@ -78,6 +79,22 @@ public final class StrongholdDebugGenerator {
 
     public static void setMaxOverlapPercent(double value) {
         maxOverlapPercent = Math.max(0.0D, Math.min(100.0D, value));
+    }
+
+    public static int getGenerationSizeMultiplier() {
+        return generationSizeMultiplier;
+    }
+
+    public static void setGenerationSizeMultiplier(int value) {
+        generationSizeMultiplier = Math.max(1, Math.min(100, value));
+    }
+
+    private static int spineLength() {
+        return Math.max(1, BASE_SPINE_LENGTH * generationSizeMultiplier);
+    }
+
+    private static int maxBranchLength() {
+        return Math.max(1, BASE_BRANCH_LENGTH * generationSizeMultiplier);
     }
 
     public static boolean generateTest(Player player) {
@@ -155,7 +172,9 @@ public final class StrongholdDebugGenerator {
 
         PlacedTemplate spineHead = start;
         PlacementState spineState = PlacementState.initial();
-        for (int i = 0; i < DEFAULT_SPINE_LENGTH; i++) {
+        int spineLength = spineLength();
+        int maxBranchLength = maxBranchLength();
+        for (int i = 0; i < spineLength; i++) {
             BlockFace side = pickOpenSide(spineHead, null, random);
             if (side == null) {
                 break;
@@ -188,7 +207,7 @@ public final class StrongholdDebugGenerator {
 
         List<PlacedTemplate> branchSeeds = new ArrayList<>(placed);
         for (PlacedTemplate seed : branchSeeds) {
-            growBranches(seed, captured, occupied, random, placed);
+            growBranches(seed, captured, occupied, random, placed, maxBranchLength);
         }
 
         for (PlacedTemplate entry : placed) {
@@ -268,7 +287,8 @@ public final class StrongholdDebugGenerator {
                                      CapturedTemplates captured,
                                      Set<Long> occupied,
                                      Random random,
-                                     List<PlacedTemplate> placed) {
+                                     List<PlacedTemplate> placed,
+                                     int maxBranchLength) {
         List<BlockFace> openSides = seed.openSides();
         Collections.shuffle(openSides, random);
 
@@ -281,7 +301,7 @@ public final class StrongholdDebugGenerator {
             BlockFace branchSide = side;
             PlacementState branchState = PlacementState.fromSeed(seed.spec);
 
-            int segments = 1 + random.nextInt(MAX_BRANCH_LENGTH);
+            int segments = 1 + random.nextInt(Math.max(1, maxBranchLength));
             for (int i = 0; i < segments; i++) {
                 List<TemplateSpec> pool = candidatePoolForStep(captured, branchCurrent, branchState, i > 0);
 
