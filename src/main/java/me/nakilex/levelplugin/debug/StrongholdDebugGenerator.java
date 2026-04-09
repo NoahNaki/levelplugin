@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.debug;
 import com.sk89q.worldedit.math.BlockVector3;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.BlockFace;
@@ -58,8 +59,8 @@ public final class StrongholdDebugGenerator {
     private static final TemplateSpec CONNECTOR_SPEC =
             new TemplateSpec("connector_1", new TemplateBounds(412, -61, -5711, 402, -38, -5701), PieceCategory.CONNECTOR, 1);
 
-    private static final int DEFAULT_SPINE_LENGTH = 8;
-    private static final int MAX_BRANCH_LENGTH = 5;
+    private static final int DEFAULT_SPINE_LENGTH = 14;
+    private static final int MAX_BRANCH_LENGTH = 8;
     private static final int MIN_SMALL_PIECES_BETWEEN_LARGE = 1;
     private static final int MIN_WALL_PIECES_BETWEEN_GATES = 3;
     private static final double BRANCH_OPEN_SIDE_CHANCE = 0.70D;
@@ -81,29 +82,41 @@ public final class StrongholdDebugGenerator {
         if (player == null) {
             return false;
         }
+        return generateTest(player.getWorld(), player.getLocation().getBlockX() + 3,
+                player.getLocation().getBlockY(), player.getLocation().getBlockZ() + 3, player);
+    }
 
-        World world = player.getWorld();
+    public static GenerationResult generateTest(World world, int originX, int originY, int originZ) {
+        return generateTest(world, originX, originY, originZ, null)
+                ? GenerationResult.success("Generated stronghold successfully.")
+                : GenerationResult.failure("Generation failed. Check logs and template source world.");
+    }
+
+    private static boolean generateTest(World world, int originX, int originY, int originZ, Player feedbackTarget) {
+        if (world == null) {
+            return false;
+        }
         Random random = ThreadLocalRandom.current();
 
         CapturedTemplates captured = captureAllTemplates(world);
         if (captured == null) {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
-                    "Failed to capture one or more stronghold templates. Check source cuboids and markers.");
-            return true;
+            if (feedbackTarget != null) {
+                ChatMessageUtil.send(feedbackTarget, ChatMessageUtil.MessageType.ERROR,
+                        "Failed to capture one or more stronghold templates. Check source cuboids and markers.");
+            }
+            return false;
         }
-
-        int originX = player.getLocation().getBlockX() + 3;
-        int originY = player.getLocation().getBlockY();
-        int originZ = player.getLocation().getBlockZ() + 3;
 
         List<PlacedTemplate> placed = new ArrayList<>();
         Set<Long> occupied = new HashSet<>();
 
         TemplateSpec startSpec = pickWeighted(captured.walls(), random);
         if (startSpec == null) {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
-                    "No wall templates were captured.");
-            return true;
+            if (feedbackTarget != null) {
+                ChatMessageUtil.send(feedbackTarget, ChatMessageUtil.MessageType.ERROR,
+                        "No wall templates were captured.");
+            }
+            return false;
         }
 
         PlacedTemplate start = new PlacedTemplate(startSpec, 0, BlockVector3.at(originX, originY, originZ));
@@ -152,10 +165,53 @@ public final class StrongholdDebugGenerator {
             paste(world, entry.spec.template, entry.origin, entry.rotation);
         }
 
-        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                "Generated stronghold spine+branches using " + placed.size()
-                        + " pieces (overlap threshold: " + String.format("%.2f", maxOverlapPercent) + "%).");
+        if (feedbackTarget != null) {
+            ChatMessageUtil.send(feedbackTarget, ChatMessageUtil.MessageType.SUCCESS,
+                    "Generated stronghold spine+branches using " + placed.size()
+                            + " pieces (overlap threshold: " + String.format("%.2f", maxOverlapPercent) + "%).");
+        }
         return true;
+    }
+
+    public static List<TemplateSnapshot> getTemplateSnapshots() {
+        List<TemplateSnapshot> snapshots = new ArrayList<>();
+        for (TemplateSpec spec : TEMPLATE_SPECS) {
+            snapshots.add(toSnapshot(spec));
+        }
+        snapshots.add(toSnapshot(CONNECTOR_SPEC));
+        return snapshots;
+    }
+
+    public static boolean deleteTemplate(World world, String templateId) {
+        if (world == null || templateId == null || templateId.isBlank()) {
+            return false;
+        }
+        TemplateSpec spec = findTemplate(templateId);
+        if (spec == null) {
+            return false;
+        }
+        clearBounds(world, spec.bounds);
+        return true;
+    }
+
+    public static Location getTemplateTeleportLocation(World world, String templateId) {
+        if (world == null || templateId == null || templateId.isBlank()) {
+            return null;
+        }
+        TemplateSpec spec = findTemplate(templateId);
+        if (spec == null) {
+            return null;
+        }
+        int minX = Math.min(spec.bounds.minX, spec.bounds.maxX);
+        int maxX = Math.max(spec.bounds.minX, spec.bounds.maxX);
+        int minY = Math.min(spec.bounds.minY, spec.bounds.maxY);
+        int maxY = Math.max(spec.bounds.minY, spec.bounds.maxY);
+        int minZ = Math.min(spec.bounds.minZ, spec.bounds.maxZ);
+        int maxZ = Math.max(spec.bounds.minZ, spec.bounds.maxZ);
+        double x = (minX + maxX) / 2.0D + 0.5D;
+        double y = maxY + 2.0D;
+        double z = (minZ + maxZ) / 2.0D + 0.5D;
+        return new Location(world, x, y, z);
     }
 
     private static void growBranches(PlacedTemplate seed,
@@ -648,6 +704,60 @@ public final class StrongholdDebugGenerator {
         long lz = ((long) z & 0x3FFFFFFL) << 12;
         long ly = (long) y & 0xFFFL;
         return lx | lz | ly;
+    }
+
+    private static TemplateSpec findTemplate(String templateId) {
+        for (TemplateSpec spec : TEMPLATE_SPECS) {
+            if (spec.id.equalsIgnoreCase(templateId)) {
+                return spec;
+            }
+        }
+        return CONNECTOR_SPEC.id.equalsIgnoreCase(templateId) ? CONNECTOR_SPEC : null;
+    }
+
+    private static TemplateSnapshot toSnapshot(TemplateSpec spec) {
+        return new TemplateSnapshot(
+                spec.id,
+                spec.category.name(),
+                spec.bounds.minX,
+                spec.bounds.minY,
+                spec.bounds.minZ,
+                spec.bounds.maxX,
+                spec.bounds.maxY,
+                spec.bounds.maxZ
+        );
+    }
+
+    private static void clearBounds(World world, TemplateBounds bounds) {
+        int minX = Math.min(bounds.minX, bounds.maxX);
+        int maxX = Math.max(bounds.minX, bounds.maxX);
+        int minY = Math.min(bounds.minY, bounds.maxY);
+        int maxY = Math.max(bounds.minY, bounds.maxY);
+        int minZ = Math.min(bounds.minZ, bounds.maxZ);
+        int maxZ = Math.max(bounds.minZ, bounds.maxZ);
+        for (int x = minX; x <= maxX; x++) {
+            for (int y = minY; y <= maxY; y++) {
+                for (int z = minZ; z <= maxZ; z++) {
+                    world.getBlockAt(x, y, z).setType(Material.AIR, false);
+                }
+            }
+        }
+    }
+
+    public record GenerationResult(boolean success, String message) {
+        public static GenerationResult success(String message) {
+            return new GenerationResult(true, message);
+        }
+
+        public static GenerationResult failure(String message) {
+            return new GenerationResult(false, message);
+        }
+    }
+
+    public record TemplateSnapshot(String id,
+                                   String category,
+                                   int minX, int minY, int minZ,
+                                   int maxX, int maxY, int maxZ) {
     }
 
     private enum PieceCategory {

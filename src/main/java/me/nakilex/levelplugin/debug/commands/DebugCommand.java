@@ -48,8 +48,10 @@ import me.nakilex.levelplugin.guild.siege.GuildSiegeManager;
 import me.nakilex.levelplugin.guild.GuildManager;
 import me.nakilex.levelplugin.items.listeners.StaticItemListener;
 import org.bukkit.ChatColor;
+import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
@@ -547,7 +549,16 @@ public class DebugCommand implements TabExecutor {
                 }
                 if (args.length < 2) {
                     ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.WARNING,
-                            "Usage: /debug stronghold <generate test|overlap [percent]>");
+                            "Usage: /debug stronghold <generate test|overlap [percent]|templates>");
+                    return true;
+                }
+                if (args[1].equalsIgnoreCase("templates")) {
+                    if (Main.getInstance().getStrongholdTemplateDebugGUI() == null) {
+                        ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.ERROR,
+                                "Stronghold template GUI is not available.");
+                        return true;
+                    }
+                    Main.getInstance().getStrongholdTemplateDebugGUI().open(strongholdPlayer);
                     return true;
                 }
                 if (args[1].equalsIgnoreCase("overlap")) {
@@ -571,7 +582,7 @@ public class DebugCommand implements TabExecutor {
                 }
                 if (args.length < 3 || !args[1].equalsIgnoreCase("generate")) {
                     ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.WARNING,
-                            "Usage: /debug stronghold <generate test|overlap [percent]>");
+                            "Usage: /debug stronghold <generate test|overlap [percent]|templates>");
                     return true;
                 }
                 if (!args[2].equalsIgnoreCase("test")) {
@@ -579,7 +590,28 @@ public class DebugCommand implements TabExecutor {
                             "Unknown stronghold template: " + args[2] + ". Available: test");
                     return true;
                 }
-                return StrongholdDebugGenerator.generateTest(strongholdPlayer);
+                if (Main.getInstance().getStrongholdDebugWorldManager() == null) {
+                    ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.ERROR,
+                            "Stronghold debug world manager is not available.");
+                    return true;
+                }
+                World debugWorld = Main.getInstance().getStrongholdDebugWorldManager().recreateDebugWorld();
+                if (debugWorld == null) {
+                    ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.ERROR,
+                            "Could not create stronghold debug world.");
+                    return true;
+                }
+                Location spawn = new Location(debugWorld, 0.5, 82.0, 0.5, 0.0F, 0.0F);
+                StrongholdDebugGenerator.GenerationResult generationResult =
+                        StrongholdDebugGenerator.generateTest(debugWorld, 8, 80, 8);
+                if (!generationResult.success()) {
+                    ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.ERROR, generationResult.message());
+                    return true;
+                }
+                strongholdPlayer.teleport(spawn);
+                ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.SUCCESS,
+                        "Generated stronghold in world '" + debugWorld.getName() + "' and teleported you there.");
+                return true;
 
             default:
                 sender.sendMessage("Unknown debug subcommand: " + sub);
@@ -692,7 +724,7 @@ public class DebugCommand implements TabExecutor {
                     .filter(s -> s.startsWith(args[0].toLowerCase()))
                     .toList();
         } else if (args.length == 2 && args[0].equalsIgnoreCase("stronghold")) {
-            return List.of("generate", "overlap").stream()
+            return List.of("generate", "overlap", "templates").stream()
                     .filter(opt -> opt.startsWith(args[1].toLowerCase()))
                     .toList();
         } else if (args.length == 3 && args[0].equalsIgnoreCase("stronghold") && args[1].equalsIgnoreCase("generate")) {
