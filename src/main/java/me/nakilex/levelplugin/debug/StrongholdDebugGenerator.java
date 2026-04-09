@@ -33,7 +33,7 @@ public final class StrongholdDebugGenerator {
 
     private static final TemplateBounds STRAIGHT_1 = new TemplateBounds(402, -61, -5346, 472, -38, -5276);
     private static final TemplateBounds CONNECTOR_1 = new TemplateBounds(402, -61, -5711, 412, -38, -5701);
-    private static final int CONNECTOR_TIGHTEN_OFFSET = 1;
+    private static final int CONNECTOR_TIGHTEN_OFFSET = 0;
 
     private StrongholdDebugGenerator() {
     }
