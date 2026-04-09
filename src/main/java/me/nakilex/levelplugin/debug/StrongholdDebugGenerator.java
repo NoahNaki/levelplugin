@@ -15,6 +15,7 @@ import org.bukkit.entity.Player;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -89,11 +90,82 @@ public final class StrongholdDebugGenerator {
                     int shiftX = aSide.getModX() * shift;
                     int shiftZ = aSide.getModZ() * shift;
                     BlockVector3 bOrigin = worldConnectorA.subtract(b.getValue()).add(shiftX, 0, shiftZ);
+                    bOrigin = refineAlongTangent(straight, straightOrigin, rotated, bOrigin, aSide);
                     return new Placement(bOrigin, rot);
                 }
             }
         }
         return null;
+    }
+
+    private static BlockVector3 refineAlongTangent(Template straight,
+                                                   BlockVector3 straightOrigin,
+                                                   RotatedTemplate rotated,
+                                                   BlockVector3 baseOrigin,
+                                                   BlockFace joinSide) {
+        int tangentX = (joinSide == BlockFace.EAST || joinSide == BlockFace.WEST) ? 0 : 1;
+        int tangentZ = (joinSide == BlockFace.EAST || joinSide == BlockFace.WEST) ? 1 : 0;
+        if (tangentX == 0 && tangentZ == 0) {
+            return baseOrigin;
+        }
+
+        Set<Long> straightPositions = absoluteBlockPositions(straight.blocks, straightOrigin);
+        int bestScore = Integer.MIN_VALUE;
+        BlockVector3 bestOrigin = baseOrigin;
+        for (int delta = -4; delta <= 4; delta++) {
+            BlockVector3 candidate = baseOrigin.add(tangentX * delta, 0, tangentZ * delta);
+            int score = scoreJoin(straightPositions, rotated.blocks, candidate, joinSide);
+            if (score > bestScore) {
+                bestScore = score;
+                bestOrigin = candidate;
+            }
+        }
+        return bestOrigin;
+    }
+
+    private static int scoreJoin(Set<Long> straightPositions,
+                                 Map<BlockVector3, BlockData> rotatedBlocks,
+                                 BlockVector3 rotatedOrigin,
+                                 BlockFace joinSide) {
+        int touches = 0;
+        int overlaps = 0;
+        int dx = joinSide.getModX();
+        int dz = joinSide.getModZ();
+
+        for (BlockVector3 rel : rotatedBlocks.keySet()) {
+            int x = rotatedOrigin.getBlockX() + rel.getBlockX();
+            int y = rotatedOrigin.getBlockY() + rel.getBlockY();
+            int z = rotatedOrigin.getBlockZ() + rel.getBlockZ();
+
+            long self = posKey(x, y, z);
+            if (straightPositions.contains(self)) {
+                overlaps++;
+            }
+
+            long adjacent = posKey(x - dx, y, z - dz);
+            if (straightPositions.contains(adjacent)) {
+                touches++;
+            }
+        }
+        return (touches * 6) - (overlaps * 40);
+    }
+
+    private static Set<Long> absoluteBlockPositions(Map<BlockVector3, BlockData> blocks, BlockVector3 origin) {
+        Set<Long> set = new HashSet<>();
+        for (BlockVector3 rel : blocks.keySet()) {
+            int x = origin.getBlockX() + rel.getBlockX();
+            int y = origin.getBlockY() + rel.getBlockY();
+            int z = origin.getBlockZ() + rel.getBlockZ();
+            set.add(posKey(x, y, z));
+        }
+        return set;
+    }
+
+    private static long posKey(int x, int y, int z) {
+        long lx = ((long) x & 0x3FFFFFFL) << 38;
+        long lz = ((long) z & 0x3FFFFFFL) << 12;
+        long ly = (long) y & 0xFFFL;
+        return lx | lz | ly;
     }
 
     private static Template captureTemplate(World world, TemplateBounds bounds) {
