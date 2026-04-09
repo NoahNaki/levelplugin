@@ -115,6 +115,9 @@ public final class StrongholdDebugGenerator {
         for (int delta = -4; delta <= 4; delta++) {
             BlockVector3 candidate = baseOrigin.add(tangentX * delta, 0, tangentZ * delta);
             int score = scoreJoin(straightPositions, rotated.blocks, candidate, joinSide);
+            if (score == Integer.MIN_VALUE) {
+                continue;
+            }
             if (score > bestScore) {
                 bestScore = score;
                 bestOrigin = candidate;
@@ -147,7 +150,10 @@ public final class StrongholdDebugGenerator {
                 touches++;
             }
         }
-        return (touches * 6) - (overlaps * 40);
+        if (overlaps > 0) {
+            return Integer.MIN_VALUE;
+        }
+        return touches * 6;
     }
 
     private static Set<Long> absoluteBlockPositions(Map<BlockVector3, BlockData> blocks, BlockVector3 origin) {
