@@ -37,7 +37,10 @@ public final class StrongholdDebugWorldManager {
 
         WorldCreator creator = new WorldCreator(WORLD_NAME)
                 .environment(World.Environment.NORMAL)
-                .type(WorldType.NORMAL);
+                .type(WorldType.FLAT);
+        creator.generatorSettings("""
+                {"layers":[{"block":"minecraft:bedrock","height":1},{"block":"minecraft:dirt","height":2},{"block":"minecraft:grass_block","height":1}],"biome":"minecraft:plains","structures":{}}
+                """.trim());
         creator.generateStructures(false);
 
         World world = Bukkit.createWorld(creator);
@@ -45,7 +48,7 @@ public final class StrongholdDebugWorldManager {
             return null;
         }
 
-        world.setSpawnLocation(0, 80, 0);
+        world.setSpawnLocation(0, 4, 0);
         world.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, false);
         world.setGameRule(GameRule.DO_WEATHER_CYCLE, false);
         world.setTime(6000);

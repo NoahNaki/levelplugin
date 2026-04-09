@@ -602,20 +602,23 @@ public class DebugCommand implements TabExecutor {
                             "Could not create stronghold debug world.");
                     return true;
                 }
-                Location spawn = new Location(debugWorld, 0.5, 82.0, 0.5, 0.0F, 0.0F);
-                World templateSourceWorld = Bukkit.getWorld("flatland");
-                if (templateSourceWorld == null) {
-                    templateSourceWorld = strongholdPlayer.getWorld();
-                }
-                StrongholdDebugGenerator.GenerationResult generationResult =
-                        StrongholdDebugGenerator.generateTest(templateSourceWorld, debugWorld, 8, 80, 8);
-                if (!generationResult.success()) {
-                    ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.ERROR, generationResult.message());
-                    return true;
-                }
+                World templateSourceWorld = strongholdPlayer.getWorld();
+                Location spawn = new Location(debugWorld, 0.5, 4.0, 0.5, 0.0F, 0.0F);
                 strongholdPlayer.teleport(spawn);
-                ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.SUCCESS,
-                        "Generated stronghold in world '" + debugWorld.getName() + "' and teleported you there.");
+                ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.INFO,
+                        "Teleported to stronghold debug world. Generating stronghold now...");
+
+                Player finalPlayer = strongholdPlayer;
+                Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
+                    StrongholdDebugGenerator.GenerationResult generationResult =
+                            StrongholdDebugGenerator.generateTest(templateSourceWorld, debugWorld, 8, 4, 8);
+                    if (!generationResult.success()) {
+                        ChatMessageUtil.send(finalPlayer, ChatMessageUtil.MessageType.ERROR, generationResult.message());
+                        return;
+                    }
+                    ChatMessageUtil.send(finalPlayer, ChatMessageUtil.MessageType.SUCCESS,
+                            "Generated stronghold in world '" + debugWorld.getName() + "'.");
+                }, 1L);
                 return true;
 
             default:
