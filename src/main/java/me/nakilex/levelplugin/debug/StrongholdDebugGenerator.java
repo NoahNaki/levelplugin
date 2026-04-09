@@ -13,16 +13,18 @@ import org.bukkit.block.data.Rotatable;
 import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
- * Debug-only stronghold wall composer. Captures two source cuboids, strips
- * scaffold marker materials, and pastes them connected by parsed connector
- * sides from redstone marker blocks.
+ * Debug-only stronghold composer.
  */
 public final class StrongholdDebugGenerator {
     private static final Set<Material> EXCLUDED = Set.of(
@@ -31,202 +33,371 @@ public final class StrongholdDebugGenerator {
             Material.WHITE_CONCRETE
     );
 
-    private static final List<TemplateSpec> WALL_SPECS = List.of(
-            new TemplateSpec("corner_1", new TemplateBounds(473, -38, -5346, 543, -61, -5276)),
-            new TemplateSpec("corner_2", new TemplateBounds(544, -38, -5631, 614, -61, -5701)),
-            new TemplateSpec("corner_3", new TemplateBounds(614, -61, -5630, 544, -38, -5560)),
-            new TemplateSpec("straight_1", new TemplateBounds(402, -38, -5276, 472, -61, -5346)),
-            new TemplateSpec("straight_2", new TemplateBounds(472, -61, -5347, 402, -38, -5417)),
-            new TemplateSpec("straight_3", new TemplateBounds(402, -38, -5418, 472, -61, -5488)),
-            new TemplateSpec("straight_4", new TemplateBounds(472, -61, -5489, 402, -38, -5559)),
-            new TemplateSpec("straight_5", new TemplateBounds(402, -38, -5560, 472, -61, -5630)),
-            new TemplateSpec("straight_6", new TemplateBounds(472, -61, -5631, 402, -38, -5701)),
-            new TemplateSpec("straight_7", new TemplateBounds(473, -38, -5701, 543, -61, -5631)),
-            new TemplateSpec("straight_8", new TemplateBounds(543, -61, -5630, 473, -38, -5560)),
-            new TemplateSpec("straight_9", new TemplateBounds(473, -38, -5417, 543, -61, -5347))
+    private static final List<TemplateSpec> TEMPLATE_SPECS = List.of(
+            new TemplateSpec("corner_1", new TemplateBounds(473, -38, -5346, 543, -61, -5276), PieceCategory.WALL, 1),
+            new TemplateSpec("corner_2", new TemplateBounds(544, -38, -5631, 614, -61, -5701), PieceCategory.WALL, 1),
+            new TemplateSpec("corner_3", new TemplateBounds(614, -61, -5630, 544, -38, -5560), PieceCategory.WALL, 1),
+            new TemplateSpec("straight_1", new TemplateBounds(402, -38, -5276, 472, -61, -5346), PieceCategory.WALL, 2),
+            new TemplateSpec("straight_2", new TemplateBounds(472, -61, -5347, 402, -38, -5417), PieceCategory.WALL, 2),
+            new TemplateSpec("straight_3", new TemplateBounds(402, -38, -5418, 472, -61, -5488), PieceCategory.WALL, 2),
+            new TemplateSpec("straight_4", new TemplateBounds(472, -61, -5489, 402, -38, -5559), PieceCategory.WALL, 2),
+            new TemplateSpec("straight_5", new TemplateBounds(402, -38, -5560, 472, -61, -5630), PieceCategory.WALL, 2),
+            new TemplateSpec("straight_6", new TemplateBounds(472, -61, -5631, 402, -38, -5701), PieceCategory.WALL, 2),
+            new TemplateSpec("straight_7", new TemplateBounds(473, -38, -5701, 543, -61, -5631), PieceCategory.WALL, 2),
+            new TemplateSpec("straight_8", new TemplateBounds(543, -61, -5630, 473, -38, -5560), PieceCategory.WALL, 2),
+            new TemplateSpec("straight_9", new TemplateBounds(473, -38, -5417, 543, -61, -5347), PieceCategory.WALL, 2),
+            new TemplateSpec("t_section", new TemplateBounds(615, -61, -5276, 685, -7, -5206), PieceCategory.JUNCTION_LARGE, 1),
+            new TemplateSpec("tower_1", new TemplateBounds(615, -61, -5488, 685, -7, -5418), PieceCategory.JUNCTION_LARGE, 1),
+            new TemplateSpec("gate_1", new TemplateBounds(686, -61, -5346, 614, -10, -5418), PieceCategory.JUNCTION_LARGE, 1),
+            new TemplateSpec("gate_2", new TemplateBounds(686, -61, -5276, 614, -10, -5346), PieceCategory.JUNCTION_LARGE, 1),
+            new TemplateSpec("deadend_1", new TemplateBounds(543, -38, -5418, 473, -61, -5488), PieceCategory.DEAD_END, 1),
+            new TemplateSpec("deadend_2", new TemplateBounds(473, -61, -5489, 543, -38, -5559), PieceCategory.DEAD_END, 1)
     );
+
     private static final TemplateSpec CONNECTOR_SPEC =
-            new TemplateSpec("connector_1", new TemplateBounds(412, -61, -5711, 402, -38, -5701));
+            new TemplateSpec("connector_1", new TemplateBounds(412, -61, -5711, 402, -38, -5701), PieceCategory.CONNECTOR, 1);
+
+    private static final int DEFAULT_SPINE_LENGTH = 10;
+    private static final int MAX_BRANCH_LENGTH = 3;
+
+    private static double maxOverlapPercent = 2.0D;
+
     private StrongholdDebugGenerator() {
+    }
+
+    public static double getMaxOverlapPercent() {
+        return maxOverlapPercent;
+    }
+
+    public static void setMaxOverlapPercent(double value) {
+        maxOverlapPercent = Math.max(0.0D, Math.min(100.0D, value));
     }
 
     public static boolean generateTest(Player player) {
         if (player == null) {
             return false;
         }
-        World world = player.getWorld();
-        Map<String, Template> captured = new java.util.LinkedHashMap<>();
-        for (TemplateSpec spec : WALL_SPECS) {
-            Template t = captureTemplate(world, spec.bounds);
-            if (t.blocks.isEmpty()) {
-                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
-                        "Unable to capture template " + spec.id + " from source cuboid.");
-                return true;
-            }
-            if (t.connectors.isEmpty()) {
-                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
-                        "Template " + spec.id + " has no redstone connector markers.");
-                return true;
-            }
-            captured.put(spec.id, t);
-        }
 
-        Template connector = captureTemplate(world, CONNECTOR_SPEC.bounds);
-        if (connector.blocks.isEmpty()) {
+        World world = player.getWorld();
+        Random random = ThreadLocalRandom.current();
+
+        CapturedTemplates captured = captureAllTemplates(world);
+        if (captured == null) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
-                    "Unable to capture template " + CONNECTOR_SPEC.id + " from source cuboid.");
+                    "Failed to capture one or more stronghold templates. Check source cuboids and markers.");
             return true;
         }
-        if (connector.connectors.isEmpty()) {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
-                    "Template " + CONNECTOR_SPEC.id + " has no redstone connector markers.");
-            return true;
-        }
-        List<Template> walls = WALL_SPECS.stream().map(spec -> captured.get(spec.id)).toList();
 
         int originX = player.getLocation().getBlockX() + 3;
         int originY = player.getLocation().getBlockY();
         int originZ = player.getLocation().getBlockZ() + 3;
-        PlacedTemplate current = new PlacedTemplate(walls.get(0), 0, BlockVector3.at(originX, originY, originZ), null);
-        List<PlacedTemplate> placements = new ArrayList<>();
-        placements.add(current);
 
-        for (int i = 1; i < walls.size(); i++) {
-            PlacementResult connectorPlacement = findBestPlacement(
-                    current, connector, preferredSideFor(current), current.incomingSide);
-            if (connectorPlacement == null) {
-                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
-                        "Failed to place connector between templates.");
-                return true;
-            }
-            PlacedTemplate placedConnector = new PlacedTemplate(
-                    connector, connectorPlacement.rotation, connectorPlacement.origin, connectorPlacement.nextIncomingSide);
-            placements.add(placedConnector);
+        List<PlacedTemplate> placed = new ArrayList<>();
+        Set<Long> occupied = new HashSet<>();
 
-            PlacementResult wallPlacement = findBestPlacement(
-                    placedConnector, walls.get(i), preferredSideFor(placedConnector), placedConnector.incomingSide);
-            if (wallPlacement == null) {
-                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
-                        "Failed to place wall template index " + i + " after connector.");
-                return true;
-            }
-            current = new PlacedTemplate(walls.get(i), wallPlacement.rotation, wallPlacement.origin, wallPlacement.nextIncomingSide);
-            placements.add(current);
+        TemplateSpec startSpec = pickWeighted(captured.walls(), random);
+        if (startSpec == null) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                    "No wall templates were captured.");
+            return true;
         }
 
-        for (PlacedTemplate placed : placements) {
-            paste(world, placed.template, placed.origin, placed.rotation);
+        PlacedTemplate start = new PlacedTemplate(startSpec, 0, BlockVector3.at(originX, originY, originZ));
+        placed.add(start);
+        occupy(occupied, start);
+
+        PlacedTemplate spineHead = start;
+        boolean previousWasLarge = false;
+        for (int i = 0; i < DEFAULT_SPINE_LENGTH; i++) {
+            BlockFace side = pickOpenSide(spineHead, null, random);
+            if (side == null) {
+                break;
+            }
+
+            List<TemplateSpec> pool = new ArrayList<>(captured.walls());
+            if (!previousWasLarge) {
+                pool.addAll(captured.largeJunctions());
+            }
+
+            if (pool.isEmpty()) {
+                break;
+            }
+
+            PlacedTemplate next = tryPlaceFromSide(spineHead, side, pool, captured.connector(), occupied, random);
+            if (next == null) {
+                spineHead.markUsed(side);
+                continue;
+            }
+
+            previousWasLarge = next.spec.category == PieceCategory.JUNCTION_LARGE;
+            placed.add(next);
+            occupy(occupied, next);
+            spineHead = next;
+        }
+
+        closeOpenSideWithDeadEnd(spineHead, captured, occupied, random, placed);
+
+        List<PlacedTemplate> branchSeeds = new ArrayList<>(placed);
+        for (PlacedTemplate seed : branchSeeds) {
+            growBranches(seed, captured, occupied, random, placed);
+        }
+
+        for (PlacedTemplate entry : placed) {
+            paste(world, entry.spec.template, entry.origin, entry.rotation);
         }
 
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                "Generated stronghold chain (" + walls.size() + " walls + connectors between each wall).");
+                "Generated stronghold spine+branches using " + placed.size()
+                        + " pieces (overlap threshold: " + String.format("%.2f", maxOverlapPercent) + "%).");
         return true;
     }
 
-    private static BlockFace preferredSideFor(PlacedTemplate placed) {
-        return placed.incomingSide == null ? BlockFace.EAST : opposite(placed.incomingSide);
-    }
+    private static void growBranches(PlacedTemplate seed,
+                                     CapturedTemplates captured,
+                                     Set<Long> occupied,
+                                     Random random,
+                                     List<PlacedTemplate> placed) {
+        List<BlockFace> openSides = seed.openSides();
+        Collections.shuffle(openSides, random);
 
-    private static PlacementResult findBestPlacement(PlacedTemplate current,
-                                                     Template next,
-                                                     BlockFace preferredCurrentSide,
-                                                     BlockFace forbiddenCurrentSide) {
-        RotatedTemplate currentRotated = rotateTemplate(current.template, current.rotation);
-        List<BlockFace> sideOrder = orderedSides(currentRotated.connectors.keySet(), preferredCurrentSide, forbiddenCurrentSide);
-        for (BlockFace aSide : sideOrder) {
-            BlockVector3 aVec = currentRotated.connectors.get(aSide);
-            if (aVec == null) continue;
-            BlockVector3 worldConnectorA = current.origin.add(aVec);
-            for (int rot = 0; rot < 4; rot++) {
-                RotatedTemplate rotated = rotateTemplate(next, rot);
-                for (Map.Entry<BlockFace, BlockVector3> b : rotated.connectors.entrySet()) {
-                    BlockFace bSide = b.getKey();
-                    if (aSide != opposite(bSide)) {
-                        continue;
-                    }
-                    BlockVector3 bOrigin = worldConnectorA.subtract(b.getValue());
-                    bOrigin = slideUntilCollision(currentRotated.blocks, current.origin, rotated.blocks, bOrigin, aSide);
-                    return new PlacementResult(bOrigin, rot, bSide);
+        for (BlockFace side : openSides) {
+            if (random.nextDouble() > 0.45D) {
+                continue;
+            }
+
+            PlacedTemplate branchCurrent = seed;
+            BlockFace branchSide = side;
+            boolean previousWasLarge = seed.spec.category == PieceCategory.JUNCTION_LARGE;
+
+            int segments = 1 + random.nextInt(MAX_BRANCH_LENGTH);
+            for (int i = 0; i < segments; i++) {
+                List<TemplateSpec> pool = new ArrayList<>(captured.walls());
+                if (!previousWasLarge && i > 0) {
+                    pool.addAll(captured.largeJunctions());
+                }
+
+                PlacedTemplate next = tryPlaceFromSide(branchCurrent, branchSide, pool, captured.connector(), occupied, random);
+                if (next == null) {
+                    branchCurrent.markUsed(branchSide);
+                    break;
+                }
+
+                previousWasLarge = next.spec.category == PieceCategory.JUNCTION_LARGE;
+                placed.add(next);
+                occupy(occupied, next);
+                branchCurrent = next;
+
+                BlockFace avoid = next.incomingSide;
+                branchSide = pickOpenSide(next, avoid, random);
+                if (branchSide == null) {
+                    break;
                 }
             }
+
+            closeOpenSideWithDeadEnd(branchCurrent, captured, occupied, random, placed);
+        }
+    }
+
+    private static void closeOpenSideWithDeadEnd(PlacedTemplate target,
+                                                  CapturedTemplates captured,
+                                                  Set<Long> occupied,
+                                                  Random random,
+                                                  List<PlacedTemplate> placed) {
+        if (captured.deadEnds().isEmpty()) {
+            return;
+        }
+        BlockFace side = pickOpenSide(target, null, random);
+        if (side == null) {
+            return;
+        }
+
+        PlacedTemplate deadEnd = tryPlaceFromSide(target, side, captured.deadEnds(), null, occupied, random);
+        if (deadEnd == null) {
+            target.markUsed(side);
+            return;
+        }
+
+        placed.add(deadEnd);
+        occupy(occupied, deadEnd);
+    }
+
+    private static PlacedTemplate tryPlaceFromSide(PlacedTemplate current,
+                                                   BlockFace currentSide,
+                                                   List<TemplateSpec> candidateSpecs,
+                                                   TemplateSpec connector,
+                                                   Set<Long> occupied,
+                                                   Random random) {
+        if (candidateSpecs == null || candidateSpecs.isEmpty()) {
+            return null;
+        }
+
+        List<TemplateSpec> shuffled = new ArrayList<>(candidateSpecs);
+        Collections.shuffle(shuffled, random);
+
+        PlacedTemplate direct = tryPlaceSingle(current, currentSide, shuffled, occupied, random, true);
+        if (direct != null && !areBothLarge(current.spec, direct.spec)) {
+            current.markUsed(currentSide);
+            return direct;
         }
         return null;
     }
 
-    private static List<BlockFace> orderedSides(Set<BlockFace> available,
-                                                BlockFace preferred,
-                                                BlockFace forbidden) {
-        List<BlockFace> list = new ArrayList<>();
-        if (preferred != null && available.contains(preferred) && preferred != forbidden) {
-            list.add(preferred);
+    private static PlacedTemplate tryPlaceSingle(PlacedTemplate current,
+                                                 BlockFace currentSide,
+                                                 List<TemplateSpec> candidateSpecs,
+                                                 Set<Long> occupied,
+                                                 Random random,
+                                                 boolean enforceOverlap) {
+        RotatedTemplate currentRotated = rotateTemplate(current.spec.template, current.rotation);
+        BlockVector3 currentConnector = currentRotated.connectors.get(currentSide);
+        if (currentConnector == null) {
+            return null;
         }
-        for (BlockFace side : List.of(BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST)) {
-            if (!available.contains(side) || side == forbidden || list.contains(side)) {
-                continue;
+        BlockVector3 worldConnector = current.origin.add(currentConnector);
+
+        for (TemplateSpec spec : candidateSpecs) {
+            for (int rot = 0; rot < 4; rot++) {
+                RotatedTemplate rotated = rotateTemplate(spec.template, rot);
+                for (Map.Entry<BlockFace, BlockVector3> entry : rotated.connectors.entrySet()) {
+                    if (entry.getKey() != opposite(currentSide)) {
+                        continue;
+                    }
+                    BlockVector3 origin = worldConnector.subtract(entry.getValue());
+                    origin = slideUntilThreshold(occupied, rotated.blocks, origin, currentSide);
+                    if (enforceOverlap && overlapPercent(occupied, rotated.blocks, origin) > maxOverlapPercent) {
+                        continue;
+                    }
+                    PlacedTemplate placed = new PlacedTemplate(spec, rot, origin);
+                    placed.incomingSide = entry.getKey();
+                    placed.markUsed(entry.getKey());
+                    return placed;
+                }
             }
-            list.add(side);
         }
-        return list;
+
+        return null;
     }
 
-    private static BlockVector3 slideUntilCollision(Map<BlockVector3, BlockData> fixedBlocks,
-                                                    BlockVector3 fixedOrigin,
+    private static boolean areBothLarge(TemplateSpec a, TemplateSpec b) {
+        return a.category == PieceCategory.JUNCTION_LARGE && b.category == PieceCategory.JUNCTION_LARGE;
+    }
+
+    private static BlockFace pickOpenSide(PlacedTemplate placed, BlockFace avoid, Random random) {
+        List<BlockFace> open = placed.openSides();
+        if (avoid != null) {
+            open.remove(avoid);
+        }
+        if (open.isEmpty()) {
+            return null;
+        }
+        return open.get(random.nextInt(open.size()));
+    }
+
+    private static void occupy(Set<Long> occupied, PlacedTemplate placed) {
+        RotatedTemplate rotated = rotateTemplate(placed.spec.template, placed.rotation);
+        for (BlockVector3 rel : rotated.blocks.keySet()) {
+            occupied.add(posKey(
+                    placed.origin.getBlockX() + rel.getBlockX(),
+                    placed.origin.getBlockY() + rel.getBlockY(),
+                    placed.origin.getBlockZ() + rel.getBlockZ()
+            ));
+        }
+    }
+
+    private static double overlapPercent(Set<Long> occupied,
+                                         Map<BlockVector3, BlockData> blocks,
+                                         BlockVector3 origin) {
+        if (blocks.isEmpty()) {
+            return 100.0D;
+        }
+        int overlap = 0;
+        for (BlockVector3 rel : blocks.keySet()) {
+            int x = origin.getBlockX() + rel.getBlockX();
+            int y = origin.getBlockY() + rel.getBlockY();
+            int z = origin.getBlockZ() + rel.getBlockZ();
+            if (occupied.contains(posKey(x, y, z))) {
+                overlap++;
+            }
+        }
+        return (overlap * 100.0D) / blocks.size();
+    }
+
+    private static BlockVector3 slideUntilThreshold(Set<Long> occupied,
                                                     Map<BlockVector3, BlockData> movingBlocks,
                                                     BlockVector3 startOrigin,
                                                     BlockFace joinSide) {
-        Set<Long> straightPositions = absoluteBlockPositions(fixedBlocks, fixedOrigin);
         int towardX = -joinSide.getModX();
         int towardZ = -joinSide.getModZ();
         int awayX = joinSide.getModX();
         int awayZ = joinSide.getModZ();
 
         BlockVector3 current = startOrigin;
-        // If we happen to start in collision, back away until we are not.
-        for (int i = 0; i < 64 && hasOverlap(straightPositions, movingBlocks, current); i++) {
+        for (int i = 0; i < 64 && overlapPercent(occupied, movingBlocks, current) > maxOverlapPercent; i++) {
             current = current.add(awayX, 0, awayZ);
         }
 
-        // Move inward until the next step would overlap.
         for (int i = 0; i < 256; i++) {
             BlockVector3 next = current.add(towardX, 0, towardZ);
-            if (hasOverlap(straightPositions, movingBlocks, next)) {
+            if (overlapPercent(occupied, movingBlocks, next) > maxOverlapPercent) {
                 break;
             }
             current = next;
         }
+
         return current;
     }
 
-    private static boolean hasOverlap(Set<Long> straightPositions,
-                                      Map<BlockVector3, BlockData> rotatedBlocks,
-                                      BlockVector3 rotatedOrigin) {
-        for (BlockVector3 rel : rotatedBlocks.keySet()) {
-            int x = rotatedOrigin.getBlockX() + rel.getBlockX();
-            int y = rotatedOrigin.getBlockY() + rel.getBlockY();
-            int z = rotatedOrigin.getBlockZ() + rel.getBlockZ();
-            if (straightPositions.contains(posKey(x, y, z))) {
-                return true;
+    private static CapturedTemplates captureAllTemplates(World world) {
+        Map<String, Template> captured = new HashMap<>();
+        for (TemplateSpec spec : TEMPLATE_SPECS) {
+            Template template = captureTemplate(world, spec.bounds);
+            if (template.blocks.isEmpty() || template.connectors.isEmpty()) {
+                return null;
+            }
+            captured.put(spec.id, template);
+        }
+
+        Template connector = captureTemplate(world, CONNECTOR_SPEC.bounds);
+        if (connector.blocks.isEmpty() || connector.connectors.isEmpty()) {
+            return null;
+        }
+
+        List<TemplateSpec> walls = bind(captured, PieceCategory.WALL);
+        List<TemplateSpec> large = bind(captured, PieceCategory.JUNCTION_LARGE);
+        List<TemplateSpec> deadEnds = bind(captured, PieceCategory.DEAD_END);
+        TemplateSpec connectorSpec = CONNECTOR_SPEC.withTemplate(connector);
+
+        return new CapturedTemplates(walls, large, deadEnds, connectorSpec);
+    }
+
+    private static List<TemplateSpec> bind(Map<String, Template> templates, PieceCategory category) {
+        List<TemplateSpec> out = new ArrayList<>();
+        for (TemplateSpec spec : TEMPLATE_SPECS) {
+            if (spec.category != category) {
+                continue;
+            }
+            Template template = templates.get(spec.id);
+            if (template != null) {
+                out.add(spec.withTemplate(template));
             }
         }
-        return false;
+        return out;
     }
 
-    private static Set<Long> absoluteBlockPositions(Map<BlockVector3, BlockData> blocks, BlockVector3 origin) {
-        Set<Long> set = new java.util.HashSet<>();
-        for (BlockVector3 rel : blocks.keySet()) {
-            int x = origin.getBlockX() + rel.getBlockX();
-            int y = origin.getBlockY() + rel.getBlockY();
-            int z = origin.getBlockZ() + rel.getBlockZ();
-            set.add(posKey(x, y, z));
+    private static TemplateSpec pickWeighted(List<TemplateSpec> specs, Random random) {
+        if (specs == null || specs.isEmpty()) {
+            return null;
         }
-        return set;
-    }
-
-    private static long posKey(int x, int y, int z) {
-        long lx = ((long) x & 0x3FFFFFFL) << 38;
-        long lz = ((long) z & 0x3FFFFFFL) << 12;
-        long ly = (long) y & 0xFFFL;
-        return lx | lz | ly;
+        int total = specs.stream().mapToInt(TemplateSpec::weight).sum();
+        int roll = random.nextInt(Math.max(1, total));
+        int cursor = 0;
+        for (TemplateSpec spec : specs) {
+            cursor += Math.max(1, spec.weight);
+            if (roll < cursor) {
+                return spec;
+            }
+        }
+        return specs.get(0);
     }
 
     private static Template captureTemplate(World world, TemplateBounds bounds) {
@@ -270,10 +441,10 @@ public final class StrongholdDebugGenerator {
         }
 
         Map<BlockFace, BlockVector3> connectors = new EnumMap<>(BlockFace.class);
-        for (Map.Entry<BlockFace, List<BlockVector3>> e : markersBySide.entrySet()) {
-            BlockVector3 center = centerOf(e.getValue());
+        for (Map.Entry<BlockFace, List<BlockVector3>> entry : markersBySide.entrySet()) {
+            BlockVector3 center = centerOf(entry.getValue());
             if (center != null) {
-                connectors.put(e.getKey(), center);
+                connectors.put(entry.getKey(), center);
             }
         }
 
@@ -313,10 +484,11 @@ public final class StrongholdDebugGenerator {
             sy += p.getY();
             sz += p.getZ();
         }
-        int cx = (int) Math.round(sx / points.size());
-        int cy = (int) Math.round(sy / points.size());
-        int cz = (int) Math.round(sz / points.size());
-        return BlockVector3.at(cx, cy, cz);
+        return BlockVector3.at(
+                (int) Math.round(sx / points.size()),
+                (int) Math.round(sy / points.size()),
+                (int) Math.round(sz / points.size())
+        );
     }
 
     private static void paste(World world, Template template, BlockVector3 origin, int rotation) {
@@ -409,20 +581,81 @@ public final class StrongholdDebugGenerator {
         };
     }
 
-    private record TemplateBounds(int minX, int minY, int minZ, int maxX, int maxY, int maxZ) {}
+    private static long posKey(int x, int y, int z) {
+        long lx = ((long) x & 0x3FFFFFFL) << 38;
+        long lz = ((long) z & 0x3FFFFFFL) << 12;
+        long ly = (long) y & 0xFFFL;
+        return lx | lz | ly;
+    }
 
-    private record TemplateSpec(String id, TemplateBounds bounds) {}
+    private enum PieceCategory {
+        WALL,
+        JUNCTION_LARGE,
+        DEAD_END,
+        CONNECTOR
+    }
+
+    private record TemplateBounds(int minX, int minY, int minZ, int maxX, int maxY, int maxZ) {
+    }
+
+    private record TemplateSpec(String id,
+                                TemplateBounds bounds,
+                                PieceCategory category,
+                                int weight,
+                                Template template) {
+        private TemplateSpec(String id, TemplateBounds bounds, PieceCategory category, int weight) {
+            this(id, bounds, category, weight, null);
+        }
+
+        private TemplateSpec withTemplate(Template template) {
+            return new TemplateSpec(id, bounds, category, weight, template);
+        }
+    }
 
     private record Template(Map<BlockVector3, BlockData> blocks,
                             Map<BlockFace, BlockVector3> connectors,
                             int width,
                             int height,
-                            int length) {}
+                            int length) {
+    }
 
     private record RotatedTemplate(Map<BlockVector3, BlockData> blocks,
-                                   Map<BlockFace, BlockVector3> connectors) {}
+                                   Map<BlockFace, BlockVector3> connectors) {
+    }
 
-    private record PlacementResult(BlockVector3 origin, int rotation, BlockFace nextIncomingSide) {}
+    private record CapturedTemplates(List<TemplateSpec> walls,
+                                     List<TemplateSpec> largeJunctions,
+                                     List<TemplateSpec> deadEnds,
+                                     TemplateSpec connector) {
+    }
 
-    private record PlacedTemplate(Template template, int rotation, BlockVector3 origin, BlockFace incomingSide) {}
+    private static final class PlacedTemplate {
+        private final TemplateSpec spec;
+        private final int rotation;
+        private final BlockVector3 origin;
+        private final Set<BlockFace> usedConnectors = new HashSet<>();
+        private BlockFace incomingSide;
+
+        private PlacedTemplate(TemplateSpec spec, int rotation, BlockVector3 origin) {
+            this.spec = spec;
+            this.rotation = rotation;
+            this.origin = origin;
+        }
+
+        private List<BlockFace> openSides() {
+            List<BlockFace> out = new ArrayList<>();
+            for (BlockFace side : rotateTemplate(spec.template, rotation).connectors.keySet()) {
+                if (!usedConnectors.contains(side)) {
+                    out.add(side);
+                }
+            }
+            return out;
+        }
+
+        private void markUsed(BlockFace side) {
+            if (side != null) {
+                usedConnectors.add(side);
+            }
+        }
+    }
 }

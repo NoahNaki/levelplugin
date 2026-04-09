@@ -545,9 +545,33 @@ public class DebugCommand implements TabExecutor {
                     sender.sendMessage(ChatColor.RED + "Players only.");
                     return true;
                 }
+                if (args.length < 2) {
+                    ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.WARNING,
+                            "Usage: /debug stronghold <generate test|overlap [percent]>");
+                    return true;
+                }
+                if (args[1].equalsIgnoreCase("overlap")) {
+                    if (args.length == 2) {
+                        ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.INFO,
+                                "Stronghold overlap threshold: "
+                                        + String.format("%.2f", StrongholdDebugGenerator.getMaxOverlapPercent()) + "%");
+                        return true;
+                    }
+                    try {
+                        double value = Double.parseDouble(args[2]);
+                        StrongholdDebugGenerator.setMaxOverlapPercent(value);
+                        ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.SUCCESS,
+                                "Set stronghold overlap threshold to "
+                                        + String.format("%.2f", StrongholdDebugGenerator.getMaxOverlapPercent()) + "%.");
+                    } catch (NumberFormatException ex) {
+                        ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.ERROR,
+                                "Invalid percent. Example: /debug stronghold overlap 2.5");
+                    }
+                    return true;
+                }
                 if (args.length < 3 || !args[1].equalsIgnoreCase("generate")) {
                     ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.WARNING,
-                            "Usage: /debug stronghold generate test");
+                            "Usage: /debug stronghold <generate test|overlap [percent]>");
                     return true;
                 }
                 if (!args[2].equalsIgnoreCase("test")) {
@@ -668,11 +692,15 @@ public class DebugCommand implements TabExecutor {
                     .filter(s -> s.startsWith(args[0].toLowerCase()))
                     .toList();
         } else if (args.length == 2 && args[0].equalsIgnoreCase("stronghold")) {
-            return List.of("generate").stream()
+            return List.of("generate", "overlap").stream()
                     .filter(opt -> opt.startsWith(args[1].toLowerCase()))
                     .toList();
         } else if (args.length == 3 && args[0].equalsIgnoreCase("stronghold") && args[1].equalsIgnoreCase("generate")) {
             return List.of("test").stream()
+                    .filter(opt -> opt.startsWith(args[2].toLowerCase()))
+                    .toList();
+        } else if (args.length == 3 && args[0].equalsIgnoreCase("stronghold") && args[1].equalsIgnoreCase("overlap")) {
+            return List.of("0.0", "1.0", "2.5", "5.0").stream()
                     .filter(opt -> opt.startsWith(args[2].toLowerCase()))
                     .toList();
         } else if (args.length == 2 && args[0].equalsIgnoreCase("chatgame")) {
