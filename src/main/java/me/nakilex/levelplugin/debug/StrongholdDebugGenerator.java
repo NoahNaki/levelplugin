@@ -84,14 +84,27 @@ public final class StrongholdDebugGenerator {
         if (player == null) {
             return false;
         }
-        return generateTest(player.getWorld(), player.getWorld(), player.getLocation().getBlockX() + 3,
-                player.getLocation().getBlockY(), player.getLocation().getBlockZ() + 3, player);
+        return generateTestDetailed(player.getWorld(), player.getWorld(), player.getLocation().getBlockX() + 3,
+                player.getLocation().getBlockY(), player.getLocation().getBlockZ() + 3, player).success();
     }
 
     public static GenerationResult generateTest(World templateSourceWorld, World targetWorld, int originX, int originY, int originZ) {
-        return generateTest(templateSourceWorld, targetWorld, originX, originY, originZ, null)
-                ? GenerationResult.success("Generated stronghold successfully.")
-                : GenerationResult.failure("Generation failed. Check logs and template source world.");
+        return generateTestDetailed(templateSourceWorld, targetWorld, originX, originY, originZ, null);
+    }
+
+    public static GenerationResult generateTestDetailed(World templateSourceWorld,
+                                                        World targetWorld,
+                                                        int originX,
+                                                        int originY,
+                                                        int originZ,
+                                                        Player feedbackTarget) {
+        StringBuilder error = new StringBuilder();
+        boolean ok = generateTest(templateSourceWorld, targetWorld, originX, originY, originZ, feedbackTarget, error);
+        if (ok) {
+            return GenerationResult.success("Generated stronghold successfully.");
+        }
+        String reason = error.length() == 0 ? "Unknown generation failure." : error.toString();
+        return GenerationResult.failure("Generation failed: " + reason);
     }
 
     private static boolean generateTest(World templateSourceWorld,
@@ -99,17 +112,23 @@ public final class StrongholdDebugGenerator {
                                         int originX,
                                         int originY,
                                         int originZ,
-                                        Player feedbackTarget) {
+                                        Player feedbackTarget,
+                                        StringBuilder errorOut) {
         if (templateSourceWorld == null || targetWorld == null) {
+            if (errorOut != null) errorOut.append("Template source world or target world is null.");
             return false;
         }
         Random random = ThreadLocalRandom.current();
 
-        CapturedTemplates captured = captureAllTemplates(templateSourceWorld);
+        CaptureResult captureResult = captureAllTemplatesWithDiagnostics(templateSourceWorld);
+        CapturedTemplates captured = captureResult.templates();
         if (captured == null) {
+            String reason = captureResult.error() == null ? "Unable to capture templates." : captureResult.error();
+            if (errorOut != null) errorOut.append(reason);
+            Bukkit.getLogger().warning("[StrongholdDebug] Capture failed in world '" + templateSourceWorld.getName() + "': " + reason);
             if (feedbackTarget != null) {
                 ChatMessageUtil.send(feedbackTarget, ChatMessageUtil.MessageType.ERROR,
-                        "Failed to capture one or more stronghold templates. Check source cuboids and markers.");
+                        "Template capture failed in '" + templateSourceWorld.getName() + "': " + reason);
             }
             return false;
         }
@@ -119,9 +138,13 @@ public final class StrongholdDebugGenerator {
 
         TemplateSpec startSpec = pickWeighted(captured.walls(), random);
         if (startSpec == null) {
+            String reason = "No enabled wall templates were captured. Enabled walls: "
+                    + TEMPLATE_SPECS.stream().filter(spec -> spec.category == PieceCategory.WALL && isTemplateEnabled(spec.id)).count();
+            if (errorOut != null) errorOut.append(reason);
+            Bukkit.getLogger().warning("[StrongholdDebug] " + reason);
             if (feedbackTarget != null) {
                 ChatMessageUtil.send(feedbackTarget, ChatMessageUtil.MessageType.ERROR,
-                        "No wall templates were captured.");
+                        reason);
             }
             return false;
         }
@@ -193,7 +216,7 @@ public final class StrongholdDebugGenerator {
         if (world == null) {
             return false;
         }
-        return captureAllTemplates(world) != null;
+        return captureAllTemplatesWithDiagnostics(world).templates() != null;
     }
 
     public static boolean isTemplateEnabled(String templateId) {
@@ -492,20 +515,23 @@ public final class StrongholdDebugGenerator {
         return (overlap * 100.0D) / blocks.size();
     }
 
-    private static CapturedTemplates captureAllTemplates(World world) {
+    private static CaptureResult captureAllTemplatesWithDiagnostics(World world) {
+        if (world == null) {
+            return new CaptureResult(null, "World is null.");
+        }
         Map<String, Template> captured = new HashMap<>();
         for (TemplateSpec spec : TEMPLATE_SPECS) {
             Template template = captureTemplate(world, spec.bounds);
             boolean enabled = isTemplateEnabled(spec.id);
             if (enabled && (template.blocks.isEmpty() || template.connectors.isEmpty())) {
-                return null;
+                return new CaptureResult(null, "Template '" + spec.id + "' is enabled but capture is empty or missing connectors.");
             }
             captured.put(spec.id, template);
         }
 
         Template connector = captureTemplate(world, CONNECTOR_SPEC.bounds);
         if (isTemplateEnabled(CONNECTOR_SPEC.id) && (connector.blocks.isEmpty() || connector.connectors.isEmpty())) {
-            return null;
+            return new CaptureResult(null, "Connector template '" + CONNECTOR_SPEC.id + "' is enabled but capture is empty or missing connectors.");
         }
 
         List<TemplateSpec> walls = bind(captured, PieceCategory.WALL);
@@ -515,7 +541,7 @@ public final class StrongholdDebugGenerator {
                 ? CONNECTOR_SPEC.withTemplate(connector)
                 : null;
 
-        return new CapturedTemplates(walls, large, deadEnds, connectorSpec);
+        return new CaptureResult(new CapturedTemplates(walls, large, deadEnds, connectorSpec), null);
     }
 
     private static List<TemplateSpec> bind(Map<String, Template> templates, PieceCategory category) {
@@ -828,6 +854,9 @@ public final class StrongholdDebugGenerator {
                                      List<TemplateSpec> largeJunctions,
                                      List<TemplateSpec> deadEnds,
                                      TemplateSpec connector) {
+    }
+
+    private record CaptureResult(CapturedTemplates templates, String error) {
     }
 
     private record WeightedSpec(TemplateSpec spec, double key) {

@@ -618,7 +618,7 @@ public class DebugCommand implements TabExecutor {
                 World finalTemplateSourceWorld = templateSourceWorld;
                 Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
                     StrongholdDebugGenerator.GenerationResult generationResult =
-                            StrongholdDebugGenerator.generateTest(finalTemplateSourceWorld, debugWorld, 8, 4, 8);
+                            StrongholdDebugGenerator.generateTestDetailed(finalTemplateSourceWorld, debugWorld, 8, 4, 8, finalPlayer);
                     if (!generationResult.success()) {
                         ChatMessageUtil.send(finalPlayer, ChatMessageUtil.MessageType.ERROR, generationResult.message());
                         return;
