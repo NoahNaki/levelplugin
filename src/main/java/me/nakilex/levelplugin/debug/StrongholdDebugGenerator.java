@@ -33,8 +33,6 @@ public final class StrongholdDebugGenerator {
 
     private static final TemplateBounds STRAIGHT_1 = new TemplateBounds(402, -61, -5346, 472, -38, -5276);
     private static final TemplateBounds CONNECTOR_1 = new TemplateBounds(402, -61, -5711, 412, -38, -5701);
-    private static final int CONNECTOR_TIGHTEN_OFFSET = 0;
-
     private StrongholdDebugGenerator() {
     }
 
@@ -87,8 +85,9 @@ public final class StrongholdDebugGenerator {
                     if (aSide != opposite(bSide)) {
                         continue;
                     }
-                    int shiftX = aSide.getModX() * CONNECTOR_TIGHTEN_OFFSET;
-                    int shiftZ = aSide.getModZ() * CONNECTOR_TIGHTEN_OFFSET;
+                    int shift = 1 - (straight.sideInset(aSide) + rotated.sideInset(bSide));
+                    int shiftX = aSide.getModX() * shift;
+                    int shiftZ = aSide.getModZ() * shift;
                     BlockVector3 bOrigin = worldConnectorA.subtract(b.getValue()).add(shiftX, 0, shiftZ);
                     return new Placement(bOrigin, rot);
                 }
@@ -111,6 +110,10 @@ public final class StrongholdDebugGenerator {
 
         Map<BlockVector3, BlockData> blocks = new HashMap<>();
         Map<BlockFace, List<BlockVector3>> markersBySide = new EnumMap<>(BlockFace.class);
+        int minSolidX = Integer.MAX_VALUE;
+        int maxSolidX = Integer.MIN_VALUE;
+        int minSolidZ = Integer.MAX_VALUE;
+        int maxSolidZ = Integer.MIN_VALUE;
         for (BlockFace face : List.of(BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST)) {
             markersBySide.put(face, new ArrayList<>());
         }
@@ -132,6 +135,10 @@ public final class StrongholdDebugGenerator {
                     if (type.isAir() || EXCLUDED.contains(type)) {
                         continue;
                     }
+                    minSolidX = Math.min(minSolidX, relX);
+                    maxSolidX = Math.max(maxSolidX, relX);
+                    minSolidZ = Math.min(minSolidZ, relZ);
+                    maxSolidZ = Math.max(maxSolidZ, relZ);
                     blocks.put(rel, data);
                 }
             }
@@ -145,20 +152,35 @@ public final class StrongholdDebugGenerator {
             }
         }
 
-        return new Template(blocks, connectors, width, height, length);
+        Map<BlockFace, Integer> insets = computeSideInsets(width, length, minSolidX, maxSolidX, minSolidZ, maxSolidZ);
+        return new Template(blocks, connectors, insets, width, height, length);
+    }
+
+    private static Map<BlockFace, Integer> computeSideInsets(int width, int length,
+                                                             int minSolidX, int maxSolidX,
+                                                             int minSolidZ, int maxSolidZ) {
+        Map<BlockFace, Integer> insets = new EnumMap<>(BlockFace.class);
+        if (minSolidX == Integer.MAX_VALUE || maxSolidX == Integer.MIN_VALUE
+                || minSolidZ == Integer.MAX_VALUE || maxSolidZ == Integer.MIN_VALUE) {
+            insets.put(BlockFace.WEST, 0);
+            insets.put(BlockFace.EAST, 0);
+            insets.put(BlockFace.NORTH, 0);
+            insets.put(BlockFace.SOUTH, 0);
+            return insets;
+        }
+        insets.put(BlockFace.WEST, minSolidX);
+        insets.put(BlockFace.EAST, (width - 1) - maxSolidX);
+        insets.put(BlockFace.NORTH, minSolidZ);
+        insets.put(BlockFace.SOUTH, (length - 1) - maxSolidZ);
+        return insets;
     }
 
     private static void assignSideMarker(Map<BlockFace, List<BlockVector3>> markersBySide,
                                          int relX, int relZ, int width, int length, BlockVector3 rel) {
-        int left = relX;
-        int right = (width - 1) - relX;
-        int north = relZ;
-        int south = (length - 1) - relZ;
-        int minDist = Math.min(Math.min(left, right), Math.min(north, south));
-        if (left == minDist) markersBySide.get(BlockFace.WEST).add(rel);
-        if (right == minDist) markersBySide.get(BlockFace.EAST).add(rel);
-        if (north == minDist) markersBySide.get(BlockFace.NORTH).add(rel);
-        if (south == minDist) markersBySide.get(BlockFace.SOUTH).add(rel);
+        if (relX == 0) markersBySide.get(BlockFace.WEST).add(rel);
+        if (relX == width - 1) markersBySide.get(BlockFace.EAST).add(rel);
+        if (relZ == 0) markersBySide.get(BlockFace.NORTH).add(rel);
+        if (relZ == length - 1) markersBySide.get(BlockFace.SOUTH).add(rel);
     }
 
     private static BlockVector3 centerOf(List<BlockVector3> points) {
@@ -202,7 +224,11 @@ public final class StrongholdDebugGenerator {
         for (Map.Entry<BlockFace, BlockVector3> e : template.connectors.entrySet()) {
             conn.put(rotateFace(e.getKey(), rot), rotateVector(e.getValue(), template.width, template.length, rot));
         }
-        return new RotatedTemplate(out, conn);
+        Map<BlockFace, Integer> insets = new EnumMap<>(BlockFace.class);
+        for (Map.Entry<BlockFace, Integer> e : template.insets.entrySet()) {
+            insets.put(rotateFace(e.getKey(), rot), e.getValue());
+        }
+        return new RotatedTemplate(out, conn, insets);
     }
 
     private static BlockVector3 rotateVector(BlockVector3 vec, int width, int length, int rotation) {
@@ -273,12 +299,22 @@ public final class StrongholdDebugGenerator {
 
     private record Template(Map<BlockVector3, BlockData> blocks,
                             Map<BlockFace, BlockVector3> connectors,
+                            Map<BlockFace, Integer> insets,
                             int width,
                             int height,
-                            int length) {}
+                            int length) {
+        int sideInset(BlockFace side) {
+            return insets.getOrDefault(side, 0);
+        }
+    }
 
     private record RotatedTemplate(Map<BlockVector3, BlockData> blocks,
-                                   Map<BlockFace, BlockVector3> connectors) {}
+                                   Map<BlockFace, BlockVector3> connectors,
+                                   Map<BlockFace, Integer> insets) {
+        int sideInset(BlockFace side) {
+            return insets.getOrDefault(side, 0);
+        }
+    }
 
     private record Placement(BlockVector3 origin, int rotation) {}
 }
