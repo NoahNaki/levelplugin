@@ -64,6 +64,7 @@ public final class StrongholdDebugGenerator {
 
     private static final int BASE_SPINE_LENGTH = 14;
     private static final int BASE_BRANCH_LENGTH = 8;
+    private static final int HARD_PIECE_CAP = 300;
     private static final int MIN_SMALL_PIECES_BETWEEN_LARGE = 1;
     private static final int MIN_WALL_PIECES_BETWEEN_GATES = 3;
     private static final double BRANCH_OPEN_SIDE_CHANCE = 0.70D;
@@ -128,7 +129,7 @@ public final class StrongholdDebugGenerator {
 
     private static int targetPieceCount() {
         int scaled = 120 + (generationSizeMultiplier * 2);
-        return Math.max(120, Math.min(2500, scaled));
+        return Math.max(120, Math.min(HARD_PIECE_CAP, scaled));
     }
 
     private static boolean allowAdjacentLargePieces() {
@@ -260,15 +261,15 @@ public final class StrongholdDebugGenerator {
         closeOpenSideWithDeadEnd(spineHead, captured, occupied, random, placed);
 
         GenerationDebugStats debugStats = new GenerationDebugStats();
+        int targetPieces = targetPieceCount();
         List<PlacedTemplate> branchSeeds = new ArrayList<>(placed);
         for (PlacedTemplate seed : branchSeeds) {
             if (shouldAbortGeneration()) {
                 break;
             }
-            debugStats.absorb(growBranches(seed, captured, occupied, random, placed, maxBranchLength));
+            debugStats.absorb(growBranches(seed, captured, occupied, random, placed, maxBranchLength, targetPieces));
         }
 
-        int targetPieces = targetPieceCount();
         int expansionPasses = 0;
         while (placed.size() < targetPieces && expansionPasses < 8) {
             if (shouldAbortGeneration()) {
@@ -284,7 +285,7 @@ public final class StrongholdDebugGenerator {
                 if (shouldAbortGeneration()) {
                     break;
                 }
-                debugStats.absorb(growBranches(seed, captured, occupied, random, placed, maxBranchLength));
+                debugStats.absorb(growBranches(seed, captured, occupied, random, placed, maxBranchLength, targetPieces));
             }
         }
 
@@ -432,19 +433,20 @@ public final class StrongholdDebugGenerator {
                                                      Set<Long> occupied,
                                                      Random random,
                                                      List<PlacedTemplate> placed,
-                                                     int maxBranchLength) {
+                                                     int maxBranchLength,
+                                                     int pieceLimit) {
         GenerationDebugStats stats = new GenerationDebugStats();
         List<BlockFace> openSides = seed.openSides();
         int branchPasses = branchPassesForSeed(seed.spec);
         double openChance = branchOpenChanceForSeed(seed.spec);
 
         for (int pass = 0; pass < branchPasses; pass++) {
-            if (shouldAbortGeneration()) {
+            if (shouldAbortGeneration() || placed.size() >= pieceLimit) {
                 break;
             }
             Collections.shuffle(openSides, random);
             for (BlockFace side : openSides) {
-                if (shouldAbortGeneration()) {
+                if (shouldAbortGeneration() || placed.size() >= pieceLimit) {
                     break;
                 }
                 stats.sideAttempts++;
@@ -461,7 +463,7 @@ public final class StrongholdDebugGenerator {
 
                 int segments = 1 + random.nextInt(Math.max(1, maxBranchLength));
                 for (int i = 0; i < segments; i++) {
-                    if (shouldAbortGeneration()) {
+                    if (shouldAbortGeneration() || placed.size() >= pieceLimit) {
                         break;
                     }
                     List<TemplateSpec> pool = candidatePoolForStep(captured, branchCurrent, branchState, i > 0);
@@ -474,10 +476,16 @@ public final class StrongholdDebugGenerator {
                     }
 
                     if (attempt.connector != null) {
+                        if (placed.size() >= pieceLimit) {
+                            break;
+                        }
                         branchState = branchState.onPlaced(attempt.connector.spec);
                         placed.add(attempt.connector);
                         occupy(occupied, attempt.connector);
                         stats.placements++;
+                    }
+                    if (placed.size() >= pieceLimit) {
+                        break;
                     }
                     branchState = branchState.onPlaced(attempt.placed.spec);
                     placed.add(attempt.placed);
