@@ -18,6 +18,7 @@ import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Locale;
@@ -69,6 +70,8 @@ public final class StrongholdDebugGenerator {
     private static double maxOverlapPercent = 2.0D;
     private static int generationSizeMultiplier = 10;
     private static final Set<String> DISABLED_TEMPLATE_IDS = new HashSet<>();
+    private static final ThreadLocal<Map<Template, RotatedTemplate[]>> ROTATION_CACHE =
+            ThreadLocal.withInitial(IdentityHashMap::new);
 
     private StrongholdDebugGenerator() {
     }
@@ -164,6 +167,7 @@ public final class StrongholdDebugGenerator {
             if (errorOut != null) errorOut.append("Template source world or target world is null.");
             return false;
         }
+        ROTATION_CACHE.get().clear();
         Random random = ThreadLocalRandom.current();
 
         CaptureResult captureResult = captureAllTemplatesWithDiagnostics(templateSourceWorld);
@@ -264,8 +268,12 @@ public final class StrongholdDebugGenerator {
             }
         }
 
-        for (PlacedTemplate entry : placed) {
-            paste(targetWorld, entry.spec.template, entry.origin, entry.rotation);
+        try {
+            for (PlacedTemplate entry : placed) {
+                paste(targetWorld, entry.spec.template, entry.origin, entry.rotation);
+            }
+        } finally {
+            ROTATION_CACHE.get().clear();
         }
 
         if (feedbackTarget != null) {
@@ -495,10 +503,15 @@ public final class StrongholdDebugGenerator {
         if (connector != null) {
             PlacedTemplate connectorPlaced = tryPlaceSingle(current, currentSide, List.of(connector), occupied, random, true);
             if (connectorPlaced != null) {
-                Set<Long> occupiedWithConnector = new HashSet<>(occupied);
-                occupy(occupiedWithConnector, connectorPlaced);
-
-                PlacedTemplate viaConnector = tryPlaceSingle(connectorPlaced, currentSide, shuffled, occupiedWithConnector, random, true);
+                PlacedTemplate viaConnector = tryPlaceSingle(
+                        connectorPlaced,
+                        currentSide,
+                        shuffled,
+                        occupied,
+                        connectorPlaced,
+                        random,
+                        true
+                );
                 if (viaConnector != null && (!areBothLarge(current.spec, viaConnector.spec) || allowAdjacentLargePieces())) {
                     current.markUsed(currentSide);
                     connectorPlaced.markUsed(currentSide);
@@ -521,6 +534,16 @@ public final class StrongholdDebugGenerator {
                                                  Set<Long> occupied,
                                                  Random random,
                                                  boolean enforceOverlap) {
+        return tryPlaceSingle(current, currentSide, candidateSpecs, occupied, null, random, enforceOverlap);
+    }
+
+    private static PlacedTemplate tryPlaceSingle(PlacedTemplate current,
+                                                 BlockFace currentSide,
+                                                 List<TemplateSpec> candidateSpecs,
+                                                 Set<Long> occupied,
+                                                 PlacedTemplate extraOccupied,
+                                                 Random random,
+                                                 boolean enforceOverlap) {
         RotatedTemplate currentRotated = rotateTemplate(current.spec.template, current.rotation);
         BlockVector3 currentConnector = currentRotated.connectors.get(currentSide);
         if (currentConnector == null) {
@@ -538,8 +561,9 @@ public final class StrongholdDebugGenerator {
                     // Keep connector alignment exact. Sliding this origin breaks seam continuity and
                     // can create near-parallel detached corridors in generated layouts.
                     BlockVector3 origin = worldConnector.subtract(entry.getValue());
-                    origin = closeSingleBlockGap(occupied, rotated.blocks, origin, currentSide);
-                    if (enforceOverlap && overlapPercent(occupied, rotated.blocks, origin) > effectiveOverlapPercent()) {
+                    origin = closeSingleBlockGap(occupied, extraOccupied, rotated.blocks, origin, currentSide);
+                    if (enforceOverlap
+                            && overlapPercent(occupied, extraOccupied, rotated.blocks, origin) > effectiveOverlapPercent()) {
                         continue;
                     }
                     PlacedTemplate placed = new PlacedTemplate(spec, rot, origin);
@@ -669,6 +693,7 @@ public final class StrongholdDebugGenerator {
     }
 
     private static double overlapPercent(Set<Long> occupied,
+                                         PlacedTemplate extraOccupied,
                                          Map<BlockVector3, BlockData> blocks,
                                          BlockVector3 origin) {
         if (blocks.isEmpty()) {
@@ -679,7 +704,7 @@ public final class StrongholdDebugGenerator {
             int x = origin.getBlockX() + rel.getBlockX();
             int y = origin.getBlockY() + rel.getBlockY();
             int z = origin.getBlockZ() + rel.getBlockZ();
-            if (occupied.contains(posKey(x, y, z))) {
+            if (occupied.contains(posKey(x, y, z)) || intersects(extraOccupied, x, y, z)) {
                 overlap++;
             }
         }
@@ -692,13 +717,14 @@ public final class StrongholdDebugGenerator {
      * caused detached/parallel artifacts.
      */
     private static BlockVector3 closeSingleBlockGap(Set<Long> occupied,
+                                                    PlacedTemplate extraOccupied,
                                                     Map<BlockVector3, BlockData> movingBlocks,
                                                     BlockVector3 origin,
                                                     BlockFace joinSide) {
         int towardX = -joinSide.getModX();
         int towardZ = -joinSide.getModZ();
         BlockVector3 nudged = origin.add(towardX, 0, towardZ);
-        if (overlapPercent(occupied, movingBlocks, nudged) <= effectiveOverlapPercent()) {
+        if (overlapPercent(occupied, extraOccupied, movingBlocks, nudged) <= effectiveOverlapPercent()) {
             return nudged;
         }
         return origin;
@@ -946,6 +972,11 @@ public final class StrongholdDebugGenerator {
 
     private static RotatedTemplate rotateTemplate(Template template, int rotation) {
         int rot = Math.floorMod(rotation, 4);
+        RotatedTemplate[] cached = ROTATION_CACHE.get().computeIfAbsent(template, key -> new RotatedTemplate[4]);
+        RotatedTemplate hit = cached[rot];
+        if (hit != null) {
+            return hit;
+        }
         Map<BlockVector3, BlockData> out = new HashMap<>();
         for (Map.Entry<BlockVector3, BlockData> e : template.blocks.entrySet()) {
             BlockVector3 rv = rotateVector(e.getKey(), template.width, template.length, rot);
@@ -955,7 +986,20 @@ public final class StrongholdDebugGenerator {
         for (Map.Entry<BlockFace, BlockVector3> e : template.connectors.entrySet()) {
             conn.put(rotateFace(e.getKey(), rot), rotateVector(e.getValue(), template.width, template.length, rot));
         }
-        return new RotatedTemplate(out, conn);
+        RotatedTemplate built = new RotatedTemplate(out, conn);
+        cached[rot] = built;
+        return built;
+    }
+
+    private static boolean intersects(PlacedTemplate placed, int x, int y, int z) {
+        if (placed == null) {
+            return false;
+        }
+        RotatedTemplate rotated = rotateTemplate(placed.spec.template, placed.rotation);
+        int relX = x - placed.origin.getBlockX();
+        int relY = y - placed.origin.getBlockY();
+        int relZ = z - placed.origin.getBlockZ();
+        return rotated.blocks.containsKey(BlockVector3.at(relX, relY, relZ));
     }
 
     private static BlockVector3 rotateVector(BlockVector3 vec, int width, int length, int rotation) {
