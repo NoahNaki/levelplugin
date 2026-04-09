@@ -177,10 +177,23 @@ public final class StrongholdDebugGenerator {
 
     private static void assignSideMarker(Map<BlockFace, List<BlockVector3>> markersBySide,
                                          int relX, int relZ, int width, int length, BlockVector3 rel) {
-        if (relX == 0) markersBySide.get(BlockFace.WEST).add(rel);
-        if (relX == width - 1) markersBySide.get(BlockFace.EAST).add(rel);
-        if (relZ == 0) markersBySide.get(BlockFace.NORTH).add(rel);
-        if (relZ == length - 1) markersBySide.get(BlockFace.SOUTH).add(rel);
+        int westDist = relX;
+        int eastDist = (width - 1) - relX;
+        int northDist = relZ;
+        int southDist = (length - 1) - relZ;
+
+        int min = Math.min(Math.min(westDist, eastDist), Math.min(northDist, southDist));
+        BlockFace side;
+        if (westDist == min) {
+            side = BlockFace.WEST;
+        } else if (eastDist == min) {
+            side = BlockFace.EAST;
+        } else if (northDist == min) {
+            side = BlockFace.NORTH;
+        } else {
+            side = BlockFace.SOUTH;
+        }
+        markersBySide.get(side).add(rel);
     }
 
     private static BlockVector3 centerOf(List<BlockVector3> points) {
