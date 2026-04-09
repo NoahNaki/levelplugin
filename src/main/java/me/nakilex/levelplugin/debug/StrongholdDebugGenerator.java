@@ -31,8 +31,22 @@ public final class StrongholdDebugGenerator {
             Material.WHITE_CONCRETE
     );
 
-    private static final TemplateBounds STRAIGHT_1 = new TemplateBounds(402, -61, -5346, 472, -38, -5276);
-    private static final TemplateBounds CONNECTOR_1 = new TemplateBounds(402, -61, -5711, 412, -38, -5701);
+    private static final List<TemplateSpec> WALL_SPECS = List.of(
+            new TemplateSpec("corner_1", new TemplateBounds(473, -38, -5346, 543, -61, -5276)),
+            new TemplateSpec("corner_2", new TemplateBounds(544, -38, -5631, 614, -61, -5701)),
+            new TemplateSpec("corner_3", new TemplateBounds(614, -61, -5630, 544, -38, -5560)),
+            new TemplateSpec("straight_1", new TemplateBounds(402, -38, -5276, 472, -61, -5346)),
+            new TemplateSpec("straight_2", new TemplateBounds(472, -61, -5347, 402, -38, -5417)),
+            new TemplateSpec("straight_3", new TemplateBounds(402, -38, -5418, 472, -61, -5488)),
+            new TemplateSpec("straight_4", new TemplateBounds(472, -61, -5489, 402, -38, -5559)),
+            new TemplateSpec("straight_5", new TemplateBounds(402, -38, -5560, 472, -61, -5630)),
+            new TemplateSpec("straight_6", new TemplateBounds(472, -61, -5631, 402, -38, -5701)),
+            new TemplateSpec("straight_7", new TemplateBounds(473, -38, -5701, 543, -61, -5631)),
+            new TemplateSpec("straight_8", new TemplateBounds(543, -61, -5630, 473, -38, -5560)),
+            new TemplateSpec("straight_9", new TemplateBounds(473, -38, -5417, 543, -61, -5347))
+    );
+    private static final TemplateSpec CONNECTOR_SPEC =
+            new TemplateSpec("connector_1", new TemplateBounds(412, -61, -5711, 402, -38, -5701));
     private StrongholdDebugGenerator() {
     }
 
@@ -41,36 +55,60 @@ public final class StrongholdDebugGenerator {
             return false;
         }
         World world = player.getWorld();
-        Template straight = captureTemplate(world, STRAIGHT_1);
-        Template connector = captureTemplate(world, CONNECTOR_1);
-        if (straight.blocks.isEmpty() || connector.blocks.isEmpty()) {
+        Map<String, Template> captured = new java.util.LinkedHashMap<>();
+        for (TemplateSpec spec : WALL_SPECS) {
+            Template t = captureTemplate(world, spec.bounds);
+            if (t.blocks.isEmpty()) {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                        "Unable to capture template " + spec.id + " from source cuboid.");
+                return true;
+            }
+            if (t.connectors.isEmpty()) {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                        "Template " + spec.id + " has no redstone connector markers.");
+                return true;
+            }
+            captured.put(spec.id, t);
+        }
+
+        Template connector = captureTemplate(world, CONNECTOR_SPEC.bounds);
+        if (connector.blocks.isEmpty()) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
-                    "Unable to capture stronghold templates from source cuboids.");
+                    "Unable to capture template " + CONNECTOR_SPEC.id + " from source cuboid.");
             return true;
         }
-        if (straight.connectors.isEmpty() || connector.connectors.isEmpty()) {
+        if (connector.connectors.isEmpty()) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
-                    "Connector markers were not found. Make sure redstone marker blocks exist in source cuboids.");
+                    "Template " + CONNECTOR_SPEC.id + " has no redstone connector markers.");
             return true;
         }
+        List<Template> walls = WALL_SPECS.stream().map(spec -> captured.get(spec.id)).toList();
 
         int originX = player.getLocation().getBlockX() + 3;
         int originY = player.getLocation().getBlockY();
         int originZ = player.getLocation().getBlockZ() + 3;
-        PlacedTemplate current = new PlacedTemplate(straight, 0, BlockVector3.at(originX, originY, originZ), null);
+        PlacedTemplate current = new PlacedTemplate(walls.get(0), 0, BlockVector3.at(originX, originY, originZ), null);
         List<PlacedTemplate> placements = new ArrayList<>();
         placements.add(current);
 
-        List<Template> sequence = List.of(connector, straight, connector, straight);
-        for (Template nextTemplate : sequence) {
-            BlockFace preferredSide = current.incomingSide == null ? BlockFace.EAST : opposite(current.incomingSide);
-            PlacementResult next = findBestPlacement(current, nextTemplate, preferredSide);
-            if (next == null) {
+        for (int i = 1; i < walls.size(); i++) {
+            PlacementResult connectorPlacement = findBestPlacement(current, connector, preferredSideFor(current));
+            if (connectorPlacement == null) {
                 ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
-                        "Failed to compute a valid connector alignment for stronghold templates.");
+                        "Failed to place connector between templates.");
                 return true;
             }
-            current = new PlacedTemplate(nextTemplate, next.rotation, next.origin, next.nextIncomingSide);
+            PlacedTemplate placedConnector = new PlacedTemplate(
+                    connector, connectorPlacement.rotation, connectorPlacement.origin, connectorPlacement.nextIncomingSide);
+            placements.add(placedConnector);
+
+            PlacementResult wallPlacement = findBestPlacement(placedConnector, walls.get(i), preferredSideFor(placedConnector));
+            if (wallPlacement == null) {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                        "Failed to place wall template index " + i + " after connector.");
+                return true;
+            }
+            current = new PlacedTemplate(walls.get(i), wallPlacement.rotation, wallPlacement.origin, wallPlacement.nextIncomingSide);
             placements.add(current);
         }
 
@@ -79,8 +117,12 @@ public final class StrongholdDebugGenerator {
         }
 
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                "Generated stronghold test with connected walls (filtered redstone/blue/white markers).");
+                "Generated stronghold chain (" + walls.size() + " walls + connectors between each wall).");
         return true;
+    }
+
+    private static BlockFace preferredSideFor(PlacedTemplate placed) {
+        return placed.incomingSide == null ? BlockFace.EAST : opposite(placed.incomingSide);
     }
 
     private static PlacementResult findBestPlacement(PlacedTemplate current,
@@ -353,6 +395,8 @@ public final class StrongholdDebugGenerator {
     }
 
     private record TemplateBounds(int minX, int minY, int minZ, int maxX, int maxY, int maxZ) {}
+
+    private record TemplateSpec(String id, TemplateBounds bounds) {}
 
     private record Template(Map<BlockVector3, BlockData> blocks,
                             Map<BlockFace, BlockVector3> connectors,
