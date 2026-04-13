@@ -76,8 +76,8 @@ public final class StrongholdDebugGenerator {
     private static final int MIN_WALL_PIECES_BETWEEN_GATES = 3;
     private static final int MAX_CONNECTOR_DRIFT_BLOCKS = 6;
     private static final int MAX_LARGE_CONNECTOR_DRIFT_BLOCKS = 0;
-    private static final int MAX_SINGLE_PLACEMENTS_PER_SIDE = 20;
-    private static final int MAX_CONNECTOR_BRIDGE_OPTIONS = 4;
+    private static final int MAX_SINGLE_PLACEMENTS_PER_SIDE = 48;
+    private static final int MAX_CONNECTOR_BRIDGE_OPTIONS = 8;
     private static final double BRANCH_OPEN_SIDE_CHANCE = 1.00D;
     private static final boolean USE_FRONTIER_SCHEDULER = false;
 
@@ -706,7 +706,64 @@ public final class StrongholdDebugGenerator {
         if (currentConnectors == null || currentConnectors.isEmpty()) {
             return placements;
         }
+        Set<String> seenPlacements = new HashSet<>();
+        int perConnectorBudget = Math.max(1, maxPlacements / Math.max(1, currentConnectors.size()));
 
+        // Pass 1: ensure each connector slot contributes options before one slot monopolizes the cap.
+        for (BlockVector3 currentConnector : currentConnectors) {
+            int addedForConnector = enumerateFromConnector(
+                    current,
+                    currentSide,
+                    currentConnector,
+                    candidateSpecs,
+                    occupied,
+                    enforceOverlap,
+                    perConnectorBudget,
+                    maxPlacements,
+                    placements,
+                    seenPlacements
+            );
+            if (placements.size() >= maxPlacements) {
+                return placements;
+            }
+            if (addedForConnector <= 0) {
+                continue;
+            }
+        }
+
+        // Pass 2: fill remaining budget with any additional valid options.
+        for (BlockVector3 currentConnector : currentConnectors) {
+            enumerateFromConnector(
+                    current,
+                    currentSide,
+                    currentConnector,
+                    candidateSpecs,
+                    occupied,
+                    enforceOverlap,
+                    Integer.MAX_VALUE,
+                    maxPlacements,
+                    placements,
+                    seenPlacements
+            );
+            if (placements.size() >= maxPlacements) {
+                return placements;
+            }
+        }
+        return placements;
+    }
+
+    private static int enumerateFromConnector(PlacedTemplate current,
+                                              BlockFace currentSide,
+                                              BlockVector3 currentConnector,
+                                              List<TemplateSpec> candidateSpecs,
+                                              Set<Long> occupied,
+                                              boolean enforceOverlap,
+                                              int limitForConnector,
+                                              int maxPlacements,
+                                              List<PlacedTemplate> out,
+                                              Set<String> seenPlacements) {
+        int added = 0;
+        BlockVector3 worldConnector = current.origin.add(currentConnector);
         for (TemplateSpec spec : candidateSpecs) {
             for (int rot = 0; rot < 4; rot++) {
                 RotatedTemplate rotated = rotateTemplate(spec.template, rot);
@@ -714,30 +771,31 @@ public final class StrongholdDebugGenerator {
                 if (candidateConnectors == null || candidateConnectors.isEmpty()) {
                     continue;
                 }
-                for (BlockVector3 currentConnector : currentConnectors) {
-                    BlockVector3 worldConnector = current.origin.add(currentConnector);
-                    for (BlockVector3 candidateConnector : candidateConnectors) {
-                        BlockVector3 idealOrigin = worldConnector.subtract(candidateConnector);
-                        BlockVector3 origin = adjustedOriginForOverlap(spec, occupied, rotated.blocks, idealOrigin, currentSide);
-                        if (!connectorDriftWithinLimit(idealOrigin, origin, spec)) {
-                            continue;
-                        }
-                        if (enforceOverlap && overlapPercent(occupied, rotated.blocks, origin) > maxOverlapPercent) {
-                            continue;
-                        }
-                        PlacedTemplate placed = new PlacedTemplate(spec, rot, origin);
-                        placed.incomingSide = opposite(currentSide);
-                        placed.markUsed(opposite(currentSide));
-                        placements.add(placed);
-                        if (placements.size() >= maxPlacements) {
-                            return placements;
-                        }
+                for (BlockVector3 candidateConnector : candidateConnectors) {
+                    BlockVector3 idealOrigin = worldConnector.subtract(candidateConnector);
+                    BlockVector3 origin = adjustedOriginForOverlap(spec, occupied, rotated.blocks, idealOrigin, currentSide);
+                    if (!connectorDriftWithinLimit(idealOrigin, origin, spec)) {
+                        continue;
+                    }
+                    if (enforceOverlap && overlapPercent(occupied, rotated.blocks, origin) > maxOverlapPercent) {
+                        continue;
+                    }
+                    PlacedTemplate placed = new PlacedTemplate(spec, rot, origin);
+                    placed.incomingSide = opposite(currentSide);
+                    placed.markUsed(opposite(currentSide));
+                    String key = placementKey(placed);
+                    if (!seenPlacements.add(key)) {
+                        continue;
+                    }
+                    out.add(placed);
+                    added++;
+                    if (added >= limitForConnector || out.size() >= maxPlacements) {
+                        return added;
                     }
                 }
             }
         }
-
-        return placements;
+        return added;
     }
 
     private static boolean areBothLarge(TemplateSpec a, TemplateSpec b) {
