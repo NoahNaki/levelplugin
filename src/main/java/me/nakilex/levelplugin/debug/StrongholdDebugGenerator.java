@@ -76,8 +76,8 @@ public final class StrongholdDebugGenerator {
     private static final int MIN_WALL_PIECES_BETWEEN_GATES = 3;
     private static final int MAX_CONNECTOR_DRIFT_BLOCKS = 6;
     private static final int MAX_LARGE_CONNECTOR_DRIFT_BLOCKS = 0;
-    private static final int MAX_SINGLE_PLACEMENTS_PER_SIDE = 64;
-    private static final int MAX_CONNECTOR_BRIDGE_OPTIONS = 12;
+    private static final int MAX_SINGLE_PLACEMENTS_PER_SIDE = 20;
+    private static final int MAX_CONNECTOR_BRIDGE_OPTIONS = 4;
     private static final double BRANCH_OPEN_SIDE_CHANCE = 1.00D;
     private static final boolean USE_FRONTIER_SCHEDULER = false;
 
@@ -638,39 +638,23 @@ public final class StrongholdDebugGenerator {
         RotatedTemplate rotated = rotateTemplate(attempt.placed.spec.template, attempt.placed.rotation);
         double overlap = overlapPercent(occupied, rotated.blocks, attempt.placed.origin);
 
-        Set<Long> occupiedAfter = new HashSet<>(occupied);
-        if (attempt.connector != null) {
-            occupy(occupiedAfter, attempt.connector);
-        }
-        occupy(occupiedAfter, attempt.placed);
-
-        PlacementState nextState = state;
-        if (attempt.connector != null) {
-            nextState = nextState.onPlaced(attempt.connector.spec);
-        }
-        nextState = nextState.onPlaced(attempt.placed.spec);
-
         int openOutputs = attempt.placed.openSides().size();
-        int viableNextSteps = 0;
-        if (captured != null) {
-            List<TemplateSpec> nextPool = candidatePoolForStep(captured, attempt.placed, nextState);
-            for (BlockFace side : attempt.placed.openSides()) {
-                if (!enumeratePlacementAttempts(attempt.placed, side, nextPool, captured.connector(), occupiedAfter).isEmpty()) {
-                    viableNextSteps++;
-                }
-            }
-        }
+        int connectorDiversity = countDistinctSides(attempt.placed.openSides());
 
         int branchBonus = openOutputs >= 2 ? 1 : 0;
         int junctionBonus = isLarge(attempt.placed.spec) ? 1 : 0;
         int continuationBonus = !areBothLarge(current.spec, attempt.placed.spec) ? 1 : 0;
 
-        return (viableNextSteps * 100.0D)
-                + (openOutputs * 15.0D)
+        return (openOutputs * 30.0D)
+                + (connectorDiversity * 12.0D)
                 + (branchBonus * 20.0D)
                 + (junctionBonus * 12.0D)
                 + (continuationBonus * 6.0D)
                 - overlap;
+    }
+
+    private static int countDistinctSides(List<BlockFace> sides) {
+        return new HashSet<>(sides).size();
     }
 
     private static int countOpenOutputs(List<PlacedTemplate> placed) {
