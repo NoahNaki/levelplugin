@@ -64,11 +64,11 @@ public final class StrongholdDebugGenerator {
     private static final String SOURCE_WORLD = "flatland";
     private static final String GENERATED_WORLD_PREFIX = "stronghold_debug_";
 
-    private static final int DEFAULT_SPINE_LENGTH = 8;
-    private static final int MAX_BRANCH_LENGTH = 5;
+    private static final int DEFAULT_SPINE_LENGTH = 14;
+    private static final int MAX_BRANCH_LENGTH = 8;
     private static final int MIN_SMALL_PIECES_BETWEEN_LARGE = 1;
     private static final int MIN_WALL_PIECES_BETWEEN_GATES = 3;
-    private static final double BRANCH_OPEN_SIDE_CHANCE = 0.70D;
+    private static final double BRANCH_OPEN_SIDE_CHANCE = 0.90D;
 
     private static double maxOverlapPercent = 2.0D;
 
@@ -148,28 +148,31 @@ public final class StrongholdDebugGenerator {
         PlacedTemplate spineHead = start;
         PlacementState spineState = PlacementState.initial();
         for (int i = 0; i < DEFAULT_SPINE_LENGTH; i++) {
-            BlockFace side = pickOpenSide(spineHead, null, random);
-            if (side == null) {
-                break;
-            }
-
             List<TemplateSpec> pool = candidatePoolForStep(captured, spineHead, spineState);
 
             if (pool.isEmpty()) {
                 break;
             }
 
-            PlacementAttempt attempt = tryPlaceFromSide(spineHead, side, pool, captured.connector(), occupied, random);
+            ExpansionChoice choice = pickBestExpansion(spineHead, pool, captured, occupied, spineState, random);
+            if (choice == null) {
+                break;
+            }
+
+            BlockFace side = choice.side();
+            PlacementAttempt attempt = choice.attempt();
             if (attempt == null) {
                 spineHead.markUsed(side);
                 continue;
             }
 
             if (attempt.connector != null) {
+                attempt.connector.markUsed(side);
                 spineState = spineState.onPlaced(attempt.connector.spec);
                 placed.add(attempt.connector);
                 occupy(occupied, attempt.connector);
             }
+            spineHead.markUsed(side);
             spineState = spineState.onPlaced(attempt.placed.spec);
             placed.add(attempt.placed);
             occupy(occupied, attempt.placed);
@@ -272,17 +275,19 @@ public final class StrongholdDebugGenerator {
             for (int i = 0; i < segments; i++) {
                 List<TemplateSpec> pool = candidatePoolForStep(captured, branchCurrent, branchState, i > 0);
 
-                PlacementAttempt attempt = tryPlaceFromSide(branchCurrent, branchSide, pool, captured.connector(), occupied, random);
+                PlacementAttempt attempt = tryPlaceFromSide(branchCurrent, branchSide, pool, captured.connector(), occupied, branchState, captured, random);
                 if (attempt == null) {
                     branchCurrent.markUsed(branchSide);
                     break;
                 }
 
                 if (attempt.connector != null) {
+                    attempt.connector.markUsed(branchSide);
                     branchState = branchState.onPlaced(attempt.connector.spec);
                     placed.add(attempt.connector);
                     occupy(occupied, attempt.connector);
                 }
+                branchCurrent.markUsed(branchSide);
                 branchState = branchState.onPlaced(attempt.placed.spec);
                 placed.add(attempt.placed);
                 occupy(occupied, attempt.placed);
@@ -312,12 +317,22 @@ public final class StrongholdDebugGenerator {
             return;
         }
 
-        PlacementAttempt deadEndAttempt = tryPlaceFromSide(target, side, captured.deadEnds(), null, occupied, random);
+        PlacementAttempt deadEndAttempt = tryPlaceFromSide(
+                target,
+                side,
+                captured.deadEnds(),
+                null,
+                occupied,
+                PlacementState.fromSeed(target.spec),
+                null,
+                random
+        );
         if (deadEndAttempt == null) {
             target.markUsed(side);
             return;
         }
 
+        target.markUsed(side);
         placed.add(deadEndAttempt.placed);
         occupy(occupied, deadEndAttempt.placed);
     }
@@ -327,41 +342,148 @@ public final class StrongholdDebugGenerator {
                                                      List<TemplateSpec> candidateSpecs,
                                                      TemplateSpec connector,
                                                      Set<Long> occupied,
+                                                     PlacementState state,
+                                                     CapturedTemplates captured,
                                                      Random random) {
         if (candidateSpecs == null || candidateSpecs.isEmpty()) {
             return null;
         }
 
-        List<TemplateSpec> shuffled = weightedShuffle(candidateSpecs, random);
+        List<PlacementAttempt> attempts = enumeratePlacementAttempts(
+                current,
+                currentSide,
+                weightedShuffle(candidateSpecs, random),
+                connector,
+                occupied
+        );
+        if (attempts.isEmpty()) {
+            return null;
+        }
+        return pickBestAttempt(current, attempts, occupied, state, captured);
+    }
+
+    private static ExpansionChoice pickBestExpansion(PlacedTemplate current,
+                                                     List<TemplateSpec> candidateSpecs,
+                                                     CapturedTemplates captured,
+                                                     Set<Long> occupied,
+                                                     PlacementState state,
+                                                     Random random) {
+        List<BlockFace> openSides = current.openSides();
+        Collections.shuffle(openSides, random);
+
+        ExpansionChoice best = null;
+        for (BlockFace side : openSides) {
+            PlacementAttempt attempt = tryPlaceFromSide(
+                    current,
+                    side,
+                    candidateSpecs,
+                    captured.connector(),
+                    occupied,
+                    state,
+                    captured,
+                    random
+            );
+            if (attempt == null) {
+                continue;
+            }
+            double score = scoreAttempt(current, attempt, occupied, state, captured);
+            if (best == null || score > best.score()) {
+                best = new ExpansionChoice(side, attempt, score);
+            }
+        }
+        return best;
+    }
+
+    private static List<PlacementAttempt> enumeratePlacementAttempts(PlacedTemplate current,
+                                                                     BlockFace currentSide,
+                                                                     List<TemplateSpec> candidateSpecs,
+                                                                     TemplateSpec connector,
+                                                                     Set<Long> occupied) {
+        List<PlacementAttempt> attempts = new ArrayList<>();
 
         if (connector != null) {
-            PlacedTemplate connectorPlaced = tryPlaceSingle(current, currentSide, List.of(connector), occupied, random, true);
+            PlacedTemplate connectorPlaced = tryPlaceSingle(current, currentSide, List.of(connector), occupied, true);
             if (connectorPlaced != null) {
                 Set<Long> occupiedWithConnector = new HashSet<>(occupied);
                 occupy(occupiedWithConnector, connectorPlaced);
-
-                PlacedTemplate viaConnector = tryPlaceSingle(connectorPlaced, currentSide, shuffled, occupiedWithConnector, random, true);
+                PlacedTemplate viaConnector = tryPlaceSingle(connectorPlaced, currentSide, candidateSpecs, occupiedWithConnector, true);
                 if (viaConnector != null && !areBothLarge(current.spec, viaConnector.spec)) {
-                    current.markUsed(currentSide);
-                    connectorPlaced.markUsed(currentSide);
-                    return new PlacementAttempt(connectorPlaced, viaConnector);
+                    attempts.add(new PlacementAttempt(connectorPlaced, viaConnector));
                 }
             }
         }
 
-        PlacedTemplate direct = tryPlaceSingle(current, currentSide, shuffled, occupied, random, true);
+        PlacedTemplate direct = tryPlaceSingle(current, currentSide, candidateSpecs, occupied, true);
         if (direct != null && !areBothLarge(current.spec, direct.spec)) {
-            current.markUsed(currentSide);
-            return new PlacementAttempt(null, direct);
+            attempts.add(new PlacementAttempt(null, direct));
         }
-        return null;
+        return attempts;
+    }
+
+    private static PlacementAttempt pickBestAttempt(PlacedTemplate current,
+                                                    List<PlacementAttempt> attempts,
+                                                    Set<Long> occupied,
+                                                    PlacementState state,
+                                                    CapturedTemplates captured) {
+        PlacementAttempt best = null;
+        double bestScore = Double.NEGATIVE_INFINITY;
+        for (PlacementAttempt attempt : attempts) {
+            double score = scoreAttempt(current, attempt, occupied, state, captured);
+            if (score > bestScore) {
+                bestScore = score;
+                best = attempt;
+            }
+        }
+        return best;
+    }
+
+    private static double scoreAttempt(PlacedTemplate current,
+                                       PlacementAttempt attempt,
+                                       Set<Long> occupied,
+                                       PlacementState state,
+                                       CapturedTemplates captured) {
+        RotatedTemplate rotated = rotateTemplate(attempt.placed.spec.template, attempt.placed.rotation);
+        double overlap = overlapPercent(occupied, rotated.blocks, attempt.placed.origin);
+
+        Set<Long> occupiedAfter = new HashSet<>(occupied);
+        if (attempt.connector != null) {
+            occupy(occupiedAfter, attempt.connector);
+        }
+        occupy(occupiedAfter, attempt.placed);
+
+        PlacementState nextState = state;
+        if (attempt.connector != null) {
+            nextState = nextState.onPlaced(attempt.connector.spec);
+        }
+        nextState = nextState.onPlaced(attempt.placed.spec);
+
+        int openOutputs = attempt.placed.openSides().size();
+        int viableNextSteps = 0;
+        if (captured != null) {
+            List<TemplateSpec> nextPool = candidatePoolForStep(captured, attempt.placed, nextState);
+            for (BlockFace side : attempt.placed.openSides()) {
+                if (!enumeratePlacementAttempts(attempt.placed, side, nextPool, captured.connector(), occupiedAfter).isEmpty()) {
+                    viableNextSteps++;
+                }
+            }
+        }
+
+        int branchBonus = openOutputs >= 2 ? 1 : 0;
+        int junctionBonus = isLarge(attempt.placed.spec) ? 1 : 0;
+        int continuationBonus = !areBothLarge(current.spec, attempt.placed.spec) ? 1 : 0;
+
+        return (viableNextSteps * 100.0D)
+                + (openOutputs * 15.0D)
+                + (branchBonus * 20.0D)
+                + (junctionBonus * 12.0D)
+                + (continuationBonus * 6.0D)
+                - overlap;
     }
 
     private static PlacedTemplate tryPlaceSingle(PlacedTemplate current,
                                                  BlockFace currentSide,
                                                  List<TemplateSpec> candidateSpecs,
                                                  Set<Long> occupied,
-                                                 Random random,
                                                  boolean enforceOverlap) {
         RotatedTemplate currentRotated = rotateTemplate(current.spec.template, current.rotation);
         BlockVector3 currentConnector = currentRotated.connectors.get(currentSide);
@@ -812,6 +934,9 @@ public final class StrongholdDebugGenerator {
     }
 
     private record PlacementAttempt(PlacedTemplate connector, PlacedTemplate placed) {
+    }
+
+    private record ExpansionChoice(BlockFace side, PlacementAttempt attempt, double score) {
     }
 
     private record PlacementState(int smallPiecesSinceLarge, int wallPiecesSinceGate) {
