@@ -340,13 +340,18 @@ public final class StrongholdDebugGenerator {
 
         final int maxDepth = 1;
         final int wallsPerBranch = 2;
-        while (!queue.isEmpty() && placed.size() < MAX_TOTAL_PIECES) {
+        final int maxExpansionIterations = 24;
+        int expansionIterations = 0;
+        while (!queue.isEmpty() && placed.size() < MAX_TOTAL_PIECES && expansionIterations < maxExpansionIterations) {
             TowerSeed seed = queue.poll();
             if (seed.depth >= maxDepth) {
                 continue;
             }
 
             for (BlockFace side : distinctOpenSides(seed.towerPlaced)) {
+                if (expansionIterations++ >= maxExpansionIterations) {
+                    break;
+                }
                 PlacedTemplate current = seed.towerPlaced;
                 BlockFace travelSide = side;
                 boolean builtCorridor = true;
@@ -388,7 +393,8 @@ public final class StrongholdDebugGenerator {
                 "Generated towerwall preset using " + placed.size() + " pieces in world '" + world.getName() + "'.");
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                 "Towerwall diagnostics -> remaining open outputs: " + countOpenOutputs(placed)
-                        + ", viable next outputs: " + countViableOpenOutputs(placed, captured, occupied));
+                        + ", viable next outputs: " + countViableOpenOutputs(placed, captured, occupied)
+                        + ", iteration cap hit: " + (expansionIterations >= maxExpansionIterations));
         return true;
     }
 
