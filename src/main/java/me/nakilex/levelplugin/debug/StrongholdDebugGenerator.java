@@ -444,7 +444,7 @@ public final class StrongholdDebugGenerator {
                                                       Random random) {
         List<BlockFace> open = placed.openSides();
         if (avoid != null) {
-            open.remove(avoid);
+            open.removeIf(side -> side == avoid);
         }
         if (open.isEmpty()) {
             return null;
@@ -862,7 +862,7 @@ public final class StrongholdDebugGenerator {
     private static BlockFace pickOpenSide(PlacedTemplate placed, BlockFace avoid, Random random) {
         List<BlockFace> open = placed.openSides();
         if (avoid != null) {
-            open.remove(avoid);
+            open.removeIf(side -> side == avoid);
         }
         if (open.isEmpty()) {
             return null;
@@ -1434,7 +1434,7 @@ public final class StrongholdDebugGenerator {
         private final TemplateSpec spec;
         private final int rotation;
         private final BlockVector3 origin;
-        private final Set<BlockFace> usedConnectors = new HashSet<>();
+        private final Map<BlockFace, Integer> usedConnectorCounts = new EnumMap<>(BlockFace.class);
         private BlockFace incomingSide;
 
         private PlacedTemplate(TemplateSpec spec, int rotation, BlockVector3 origin) {
@@ -1445,8 +1445,13 @@ public final class StrongholdDebugGenerator {
 
         private List<BlockFace> openSides() {
             List<BlockFace> out = new ArrayList<>();
-            for (BlockFace side : rotateTemplate(spec.template, rotation).connectors.keySet()) {
-                if (!usedConnectors.contains(side)) {
+            RotatedTemplate rotated = rotateTemplate(spec.template, rotation);
+            for (Map.Entry<BlockFace, List<BlockVector3>> entry : rotated.connectors.entrySet()) {
+                BlockFace side = entry.getKey();
+                int totalForSide = entry.getValue() == null ? 0 : entry.getValue().size();
+                int usedForSide = usedConnectorCounts.getOrDefault(side, 0);
+                int remaining = Math.max(0, totalForSide - usedForSide);
+                for (int i = 0; i < remaining; i++) {
                     out.add(side);
                 }
             }
@@ -1455,7 +1460,7 @@ public final class StrongholdDebugGenerator {
 
         private void markUsed(BlockFace side) {
             if (side != null) {
-                usedConnectors.add(side);
+                usedConnectorCounts.merge(side, 1, Integer::sum);
             }
         }
     }
