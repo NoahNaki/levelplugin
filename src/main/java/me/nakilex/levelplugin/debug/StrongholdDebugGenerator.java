@@ -281,6 +281,14 @@ public final class StrongholdDebugGenerator {
                 placed,
                 MAX_TOTAL_PIECES
         );
+        diagnostics.churchEmergencyPlaced = forceTemplatePlacementIfMissing(
+                spec -> spec != null && "church".equalsIgnoreCase(spec.id),
+                findTemplateById(captured.largeJunctions(), "church"),
+                REQUIRED_CHURCH_CLEARANCE_RADIUS,
+                occupied,
+                placed,
+                MAX_TOTAL_PIECES
+        );
         int sealedViableOutputs = closeViableOutputsWithDeadEnds(captured, occupied, random, placed);
         int finalChurchCount = countPlacedTemplatesMatching(placed, spec -> spec != null && "church".equalsIgnoreCase(spec.id));
 
@@ -303,6 +311,7 @@ public final class StrongholdDebugGenerator {
                         + ", church placed: " + finalChurchCount
                         + ", church forced: " + diagnostics.churchPlacementsForced
                         + ", church satellite: " + diagnostics.satelliteChurchPlaced
+                        + ", church emergency: " + diagnostics.churchEmergencyPlaced
                         + ", satellite link segments: " + diagnostics.satelliteLinkSegments
                         + ", rejected(wallPacing): " + diagnostics.rejectedWallPacing
                         + ", rejected(largeSpacing): " + diagnostics.rejectedLargeSpacing
@@ -788,7 +797,7 @@ public final class StrongholdDebugGenerator {
         for (BlockVector3 anchor : farAnchors) {
             for (int rotation = 0; rotation < 4; rotation++) {
                 PlacedTemplate candidate = new PlacedTemplate(church, rotation, anchor);
-                if (canPlaceWithChurchClearance(candidate, occupied)) {
+                if (canPlaceWithClearance(candidate, occupied, REQUIRED_CHURCH_CLEARANCE_RADIUS)) {
                     return candidate;
                 }
             }
@@ -812,7 +821,7 @@ public final class StrongholdDebugGenerator {
             for (int z = minZ; z <= maxZ; z += spacing) {
                 for (int rotation = 0; rotation < 4; rotation++) {
                     PlacedTemplate candidate = new PlacedTemplate(church, rotation, BlockVector3.at(x, baseY, z));
-                    if (canPlaceWithChurchClearance(candidate, occupied)) {
+                    if (canPlaceWithClearance(candidate, occupied, REQUIRED_CHURCH_CLEARANCE_RADIUS)) {
                         return candidate;
                     }
                 }
@@ -821,12 +830,75 @@ public final class StrongholdDebugGenerator {
         return null;
     }
 
-    private static boolean canPlaceWithChurchClearance(PlacedTemplate candidate, Set<Long> occupied) {
+    private static boolean canPlaceWithClearance(PlacedTemplate candidate,
+                                                 Set<Long> occupied,
+                                                 int clearanceRadius) {
         RotatedTemplate rotated = rotateTemplate(candidate.spec.template, candidate.rotation);
         if (overlapPercent(occupied, rotated.blocks, candidate.origin) > maxOverlapPercent) {
             return false;
         }
-        return hasExpandedAreaClearance(candidate, occupied, REQUIRED_CHURCH_CLEARANCE_RADIUS);
+        return hasExpandedAreaClearance(candidate, occupied, clearanceRadius);
+    }
+
+    private static boolean forceTemplatePlacementIfMissing(Predicate<TemplateSpec> matcher,
+                                                           TemplateSpec template,
+                                                           int clearanceRadius,
+                                                           Set<Long> occupied,
+                                                           List<PlacedTemplate> placed,
+                                                           int maxPieces) {
+        if (matcher == null || template == null || placed.size() >= maxPieces) {
+            return false;
+        }
+        if (countPlacedTemplatesMatching(placed, matcher) > 0) {
+            return false;
+        }
+        Bounds2D footprint = combinedFootprint(placed);
+        if (footprint == null) {
+            return false;
+        }
+        int baseY = placed.get(0).origin.getBlockY();
+        int centerX = (footprint.minX + footprint.maxX) / 2;
+        int centerZ = (footprint.minZ + footprint.maxZ) / 2;
+        for (int radius = SATELLITE_CHURCH_FAR_OFFSET; radius <= 1200; radius += 40) {
+            for (int dx = -radius; dx <= radius; dx += 40) {
+                int[] zs = new int[]{-radius, radius};
+                for (int dz : zs) {
+                    PlacedTemplate candidate = tryTemplateAtAllRotations(template, occupied, clearanceRadius,
+                            BlockVector3.at(centerX + dx, baseY, centerZ + dz));
+                    if (candidate != null) {
+                        placed.add(candidate);
+                        occupy(occupied, candidate);
+                        return true;
+                    }
+                }
+            }
+            for (int dz = -radius + 40; dz <= radius - 40; dz += 40) {
+                int[] xs = new int[]{-radius, radius};
+                for (int dx : xs) {
+                    PlacedTemplate candidate = tryTemplateAtAllRotations(template, occupied, clearanceRadius,
+                            BlockVector3.at(centerX + dx, baseY, centerZ + dz));
+                    if (candidate != null) {
+                        placed.add(candidate);
+                        occupy(occupied, candidate);
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    private static PlacedTemplate tryTemplateAtAllRotations(TemplateSpec template,
+                                                            Set<Long> occupied,
+                                                            int clearanceRadius,
+                                                            BlockVector3 origin) {
+        for (int rotation = 0; rotation < 4; rotation++) {
+            PlacedTemplate candidate = new PlacedTemplate(template, rotation, origin);
+            if (canPlaceWithClearance(candidate, occupied, clearanceRadius)) {
+                return candidate;
+            }
+        }
+        return null;
     }
 
     private static int attemptSatelliteLink(PlacedTemplate satelliteChurch,
@@ -2376,6 +2448,7 @@ public final class StrongholdDebugGenerator {
         private int branchBlockedSides;
         private int churchPlacementsForced;
         private boolean satelliteChurchPlaced;
+        private boolean churchEmergencyPlaced;
         private int satelliteLinkSegments;
         private int rejectedWallPacing;
         private int rejectedLargeSpacing;
