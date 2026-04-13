@@ -84,6 +84,7 @@ public final class StrongholdDebugGenerator {
     private static final int MAX_SINGLE_PLACEMENTS_PER_SIDE = 48;
     private static final int MAX_CONNECTOR_BRIDGE_OPTIONS = 8;
     private static final double BRANCH_OPEN_SIDE_CHANCE = 1.00D;
+    private static final double FORCED_LARGE_TEMPLATE_OVERLAP_PERCENT = 8.0D;
     private static final boolean USE_FRONTIER_SCHEDULER = false;
     private static final int TARGET_GATE_TEMPLATES = 2;
     private static final int TARGET_CHURCH_TEMPLATES = 1;
@@ -258,6 +259,7 @@ public final class StrongholdDebugGenerator {
                 spec -> spec != null && "church".equalsIgnoreCase(spec.id),
                 captured.largeJunctions(),
                 TARGET_CHURCH_TEMPLATES,
+                FORCED_LARGE_TEMPLATE_OVERLAP_PERCENT,
                 captured,
                 occupied,
                 random,
@@ -707,6 +709,7 @@ public final class StrongholdDebugGenerator {
     private static int ensureTemplatePlacements(Predicate<TemplateSpec> matcher,
                                                 List<TemplateSpec> candidateTemplates,
                                                 int requiredCount,
+                                                double relaxedOverlapPercent,
                                                 CapturedTemplates captured,
                                                 Set<Long> occupied,
                                                 Random random,
@@ -724,7 +727,14 @@ public final class StrongholdDebugGenerator {
         int forced = 0;
         int currentCount = countPlacedTemplatesMatching(placed, matcher);
         while (currentCount < requiredCount && placed.size() < maxPieces) {
-            if (!tryPlaceTemplateFromOpenOutput(matchingTemplates, captured, occupied, random, placed)) {
+            if (!tryPlaceTemplateFromOpenOutput(
+                    matchingTemplates,
+                    relaxedOverlapPercent,
+                    captured,
+                    occupied,
+                    random,
+                    placed
+            )) {
                 break;
             }
             forced++;
@@ -734,6 +744,7 @@ public final class StrongholdDebugGenerator {
     }
 
     private static boolean tryPlaceTemplateFromOpenOutput(List<TemplateSpec> candidateTemplates,
+                                                          double relaxedOverlapPercent,
                                                           CapturedTemplates captured,
                                                           Set<Long> occupied,
                                                           Random random,
@@ -756,6 +767,18 @@ public final class StrongholdDebugGenerator {
                         random,
                         null
                 );
+                if (attempt == null && relaxedOverlapPercent > maxOverlapPercent && containsLargeTemplate(candidateTemplates)) {
+                    attempt = tryPlaceFromSideWithTemporaryOverlap(
+                            source,
+                            side,
+                            candidateTemplates,
+                            captured,
+                            occupied,
+                            random,
+                            placed,
+                            relaxedOverlapPercent
+                    );
+                }
                 if (attempt == null) {
                     continue;
                 }
@@ -764,6 +787,43 @@ public final class StrongholdDebugGenerator {
             }
         }
         return false;
+    }
+
+    private static boolean containsLargeTemplate(List<TemplateSpec> candidateTemplates) {
+        for (TemplateSpec template : candidateTemplates) {
+            if (isLarge(template)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static PlacementAttempt tryPlaceFromSideWithTemporaryOverlap(PlacedTemplate source,
+                                                                         BlockFace side,
+                                                                         List<TemplateSpec> candidateTemplates,
+                                                                         CapturedTemplates captured,
+                                                                         Set<Long> occupied,
+                                                                         Random random,
+                                                                         List<PlacedTemplate> placed,
+                                                                         double temporaryOverlapPercent) {
+        double previousOverlap = maxOverlapPercent;
+        setMaxOverlapPercent(temporaryOverlapPercent);
+        try {
+            return tryPlaceFromSide(
+                    source,
+                    side,
+                    candidateTemplates,
+                    captured.connector(),
+                    occupied,
+                    placed,
+                    PlacementState.fromSeed(source.spec),
+                    captured,
+                    random,
+                    null
+            );
+        } finally {
+            setMaxOverlapPercent(previousOverlap);
+        }
     }
 
     private static boolean hasViableExpansionFrom(PlacedTemplate target,
