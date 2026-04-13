@@ -91,9 +91,13 @@ public class WorldManager {
     }
 
     public World createWorld(String name, WorldType type, Environment env) {
+        return createWorld(name, type, env, true);
+    }
+
+    public World createWorld(String name, WorldType type, Environment env, boolean useVoidGeneratorForFlatNormal) {
         WorldCreator wc = new WorldCreator(name).environment(env).type(type);
         wc.generateStructures(false);
-        if (env == Environment.NORMAL && type == WorldType.FLAT) {
+        if (useVoidGeneratorForFlatNormal && env == Environment.NORMAL && type == WorldType.FLAT) {
             wc.generator(new VoidWorldGenerator());
         }
         World world = Bukkit.createWorld(wc);
@@ -115,6 +119,26 @@ public class WorldManager {
             save();
         }
         return world;
+    }
+
+
+    public int deleteWorldsByPrefix(String prefix) {
+        if (prefix == null || prefix.isBlank()) {
+            return 0;
+        }
+        File container = plugin.getServer().getWorldContainer();
+        File[] dirs = container.listFiles(f -> f.isDirectory() && f.getName().startsWith(prefix));
+        if (dirs == null || dirs.length == 0) {
+            return 0;
+        }
+
+        int deleted = 0;
+        for (File dir : dirs) {
+            if (deleteWorld(dir.getName())) {
+                deleted++;
+            }
+        }
+        return deleted;
     }
 
     public void setSpawn(World world, Location loc) {
