@@ -393,7 +393,7 @@ public final class StrongholdDebugGenerator {
                 "Generated towerwall preset using " + placed.size() + " pieces in world '" + world.getName() + "'.");
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                 "Towerwall diagnostics -> remaining open outputs: " + countOpenOutputs(placed)
-                        + ", viable next outputs: " + countViableOpenOutputs(placed, captured, occupied)
+                        + ", viable next outputs: skipped"
                         + ", iteration cap hit: " + (expansionIterations >= maxExpansionIterations));
         return true;
     }
