@@ -607,8 +607,7 @@ public final class StrongholdDebugGenerator {
                     BlockVector3 worldConnector = current.origin.add(currentConnector);
                     for (BlockVector3 candidateConnector : candidateConnectors) {
                         BlockVector3 idealOrigin = worldConnector.subtract(candidateConnector);
-                        BlockVector3 origin = idealOrigin;
-                        origin = slideUntilThreshold(occupied, rotated.blocks, origin, currentSide);
+                        BlockVector3 origin = adjustedOriginForOverlap(spec, occupied, rotated.blocks, idealOrigin, currentSide);
                         if (!connectorDriftWithinLimit(idealOrigin, origin, spec)) {
                             continue;
                         }
@@ -832,6 +831,17 @@ public final class StrongholdDebugGenerator {
         }
 
         return current;
+    }
+
+    private static BlockVector3 adjustedOriginForOverlap(TemplateSpec spec,
+                                                         Set<Long> occupied,
+                                                         Map<BlockVector3, BlockData> movingBlocks,
+                                                         BlockVector3 idealOrigin,
+                                                         BlockFace joinSide) {
+        if (isLarge(spec)) {
+            return idealOrigin;
+        }
+        return slideUntilThreshold(occupied, movingBlocks, idealOrigin, joinSide);
     }
 
     private static boolean connectorDriftWithinLimit(BlockVector3 idealOrigin,
