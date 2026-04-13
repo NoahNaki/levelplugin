@@ -129,7 +129,7 @@ public final class StrongholdDebugGenerator {
         int originX = 0;
         int originZ = 0;
         world.getChunkAt(Math.floorDiv(originX, 16), Math.floorDiv(originZ, 16)).load(true);
-        int originY = -60;
+        int originY = -61;
 
         List<PlacedTemplate> placed = new ArrayList<>();
         Set<Long> occupied = new HashSet<>();
