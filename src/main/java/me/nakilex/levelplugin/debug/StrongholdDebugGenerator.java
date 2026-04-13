@@ -1,10 +1,13 @@
 package me.nakilex.levelplugin.debug;
 
 import com.sk89q.worldedit.math.BlockVector3;
+import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.WorldType;
+import org.bukkit.World.Environment;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Directional;
@@ -58,6 +61,9 @@ public final class StrongholdDebugGenerator {
     private static final TemplateSpec CONNECTOR_SPEC =
             new TemplateSpec("connector_1", new TemplateBounds(412, -61, -5711, 402, -38, -5701), PieceCategory.CONNECTOR, 1);
 
+    private static final String SOURCE_WORLD = "flatland";
+    private static final String GENERATED_WORLD_PREFIX = "stronghold_debug_";
+
     private static final int DEFAULT_SPINE_LENGTH = 8;
     private static final int MAX_BRANCH_LENGTH = 5;
     private static final int MIN_SMALL_PIECES_BETWEEN_LARGE = 1;
@@ -82,19 +88,41 @@ public final class StrongholdDebugGenerator {
             return false;
         }
 
-        World world = player.getWorld();
+        Main plugin = Main.getInstance();
+        if (plugin == null) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                    "Plugin bootstrap is unavailable. Try again after startup completes.");
+            return true;
+        }
+
+        plugin.getWorldManager().ensureWorldsLoaded(SOURCE_WORLD);
+        World sourceWorld = Bukkit.getWorld(SOURCE_WORLD);
+        if (sourceWorld == null) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                    "Source template world '" + SOURCE_WORLD + "' is not loaded.");
+            return true;
+        }
+
+        World world = createGeneratedWorld(plugin, player);
+        if (world == null) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                    "Failed to create a superflat world for stronghold generation.");
+            return true;
+        }
+
+        loadSourceChunks(sourceWorld);
         Random random = ThreadLocalRandom.current();
 
-        CapturedTemplates captured = captureAllTemplates(world);
+        CapturedTemplates captured = captureAllTemplates(sourceWorld);
         if (captured == null) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
                     "Failed to capture one or more stronghold templates. Check source cuboids and markers.");
             return true;
         }
 
-        int originX = player.getLocation().getBlockX() + 3;
-        int originY = player.getLocation().getBlockY();
-        int originZ = player.getLocation().getBlockZ() + 3;
+        int originX = 0;
+        int originZ = 0;
+        int originY = Math.max(5, world.getHighestBlockYAt(originX, originZ) + 1);
 
         List<PlacedTemplate> placed = new ArrayList<>();
         Set<Long> occupied = new HashSet<>();
@@ -148,16 +176,74 @@ public final class StrongholdDebugGenerator {
             growBranches(seed, captured, occupied, random, placed);
         }
 
+        ensureTargetChunksLoaded(world, placed);
         for (PlacedTemplate entry : placed) {
             paste(world, entry.spec.template, entry.origin, entry.rotation);
         }
 
+        player.teleport(new org.bukkit.Location(world, originX + 0.5, originY + 2, originZ + 0.5));
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
                 "Generated stronghold spine+branches using " + placed.size()
-                        + " pieces (overlap threshold: " + String.format("%.2f", maxOverlapPercent) + "%).");
+                        + " pieces in world '" + world.getName() + "' (overlap threshold: "
+                        + String.format("%.2f", maxOverlapPercent) + "%).");
         return true;
     }
 
+
+    private static World createGeneratedWorld(Main plugin, Player player) {
+        String worldName = GENERATED_WORLD_PREFIX + System.currentTimeMillis();
+        World world = plugin.getWorldManager().createWorld(worldName, WorldType.FLAT, Environment.NORMAL, false);
+        if (world == null) {
+            return null;
+        }
+        world.setKeepSpawnInMemory(false);
+        world.setAutoSave(false);
+        world.setGameRule(org.bukkit.GameRule.DO_MOB_SPAWNING, false);
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                "Generating stronghold in superflat world '" + world.getName() + "'...");
+        return world;
+    }
+
+    private static void loadSourceChunks(World sourceWorld) {
+        for (TemplateSpec spec : TEMPLATE_SPECS) {
+            loadChunksForBounds(sourceWorld, spec.bounds);
+        }
+        loadChunksForBounds(sourceWorld, CONNECTOR_SPEC.bounds);
+    }
+
+    private static void loadChunksForBounds(World world, TemplateBounds bounds) {
+        int minX = Math.min(bounds.minX, bounds.maxX);
+        int maxX = Math.max(bounds.minX, bounds.maxX);
+        int minZ = Math.min(bounds.minZ, bounds.maxZ);
+        int maxZ = Math.max(bounds.minZ, bounds.maxZ);
+        int minChunkX = Math.floorDiv(minX, 16);
+        int maxChunkX = Math.floorDiv(maxX, 16);
+        int minChunkZ = Math.floorDiv(minZ, 16);
+        int maxChunkZ = Math.floorDiv(maxZ, 16);
+
+        for (int chunkX = minChunkX; chunkX <= maxChunkX; chunkX++) {
+            for (int chunkZ = minChunkZ; chunkZ <= maxChunkZ; chunkZ++) {
+                world.getChunkAt(chunkX, chunkZ).load(true);
+            }
+        }
+    }
+
+    private static void ensureTargetChunksLoaded(World world, List<PlacedTemplate> placedTemplates) {
+        Set<Long> loadedChunks = new HashSet<>();
+        for (PlacedTemplate placedTemplate : placedTemplates) {
+            RotatedTemplate rotatedTemplate = rotateTemplate(placedTemplate.spec.template, placedTemplate.rotation);
+            for (BlockVector3 rel : rotatedTemplate.blocks.keySet()) {
+                int x = placedTemplate.origin.getBlockX() + rel.getBlockX();
+                int z = placedTemplate.origin.getBlockZ() + rel.getBlockZ();
+                int chunkX = Math.floorDiv(x, 16);
+                int chunkZ = Math.floorDiv(z, 16);
+                long key = (((long) chunkX) << 32) ^ (chunkZ & 0xffffffffL);
+                if (loadedChunks.add(key)) {
+                    world.getChunkAt(chunkX, chunkZ).load(true);
+                }
+            }
+        }
+    }
     private static void growBranches(PlacedTemplate seed,
                                      CapturedTemplates captured,
                                      Set<Long> occupied,

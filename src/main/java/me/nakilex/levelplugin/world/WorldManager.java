@@ -91,9 +91,13 @@ public class WorldManager {
     }
 
     public World createWorld(String name, WorldType type, Environment env) {
+        return createWorld(name, type, env, true);
+    }
+
+    public World createWorld(String name, WorldType type, Environment env, boolean useVoidGeneratorForFlatNormal) {
         WorldCreator wc = new WorldCreator(name).environment(env).type(type);
         wc.generateStructures(false);
-        if (env == Environment.NORMAL && type == WorldType.FLAT) {
+        if (useVoidGeneratorForFlatNormal && env == Environment.NORMAL && type == WorldType.FLAT) {
             wc.generator(new VoidWorldGenerator());
         }
         World world = Bukkit.createWorld(wc);
