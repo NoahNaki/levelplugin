@@ -73,7 +73,8 @@ public final class StrongholdDebugGenerator {
     private static final int MIN_WALL_PIECES_BETWEEN_LARGE = 1;
     private static final int MIN_BLOCKS_BETWEEN_LARGE = 24;
     private static final int MIN_WALL_PIECES_BETWEEN_GATES = 3;
-    private static final int MAX_CONNECTOR_DRIFT_BLOCKS = 16;
+    private static final int MAX_CONNECTOR_DRIFT_BLOCKS = 6;
+    private static final int MAX_LARGE_CONNECTOR_DRIFT_BLOCKS = 0;
     private static final double BRANCH_OPEN_SIDE_CHANCE = 0.90D;
 
     private static double maxOverlapPercent = 2.0D;
@@ -608,7 +609,7 @@ public final class StrongholdDebugGenerator {
                         BlockVector3 idealOrigin = worldConnector.subtract(candidateConnector);
                         BlockVector3 origin = idealOrigin;
                         origin = slideUntilThreshold(occupied, rotated.blocks, origin, currentSide);
-                        if (!connectorDriftWithinLimit(idealOrigin, origin)) {
+                        if (!connectorDriftWithinLimit(idealOrigin, origin, spec)) {
                             continue;
                         }
                         if (enforceOverlap && overlapPercent(occupied, rotated.blocks, origin) > maxOverlapPercent) {
@@ -833,10 +834,13 @@ public final class StrongholdDebugGenerator {
         return current;
     }
 
-    private static boolean connectorDriftWithinLimit(BlockVector3 idealOrigin, BlockVector3 adjustedOrigin) {
+    private static boolean connectorDriftWithinLimit(BlockVector3 idealOrigin,
+                                                     BlockVector3 adjustedOrigin,
+                                                     TemplateSpec spec) {
         int dx = Math.abs(adjustedOrigin.getBlockX() - idealOrigin.getBlockX());
         int dz = Math.abs(adjustedOrigin.getBlockZ() - idealOrigin.getBlockZ());
-        return (dx + dz) <= MAX_CONNECTOR_DRIFT_BLOCKS;
+        int maxDrift = isLarge(spec) ? MAX_LARGE_CONNECTOR_DRIFT_BLOCKS : MAX_CONNECTOR_DRIFT_BLOCKS;
+        return (dx + dz) <= maxDrift;
     }
 
     private static CapturedTemplates captureAllTemplates(World world) {
