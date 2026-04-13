@@ -585,6 +585,7 @@ public final class StrongholdDebugGenerator {
             return null;
         }
 
+        PlacementCandidate best = null;
         for (TemplateSpec spec : candidateSpecs) {
             for (int rot = 0; rot < 4; rot++) {
                 RotatedTemplate rotated = rotateTemplate(spec.template, rot);
@@ -595,21 +596,30 @@ public final class StrongholdDebugGenerator {
                 for (BlockVector3 currentConnector : currentConnectors) {
                     BlockVector3 worldConnector = current.origin.add(currentConnector);
                     for (BlockVector3 candidateConnector : candidateConnectors) {
-                        BlockVector3 origin = worldConnector.subtract(candidateConnector);
-                        origin = slideUntilThreshold(occupied, rotated.blocks, origin, currentSide);
-                        if (enforceOverlap && overlapPercent(occupied, rotated.blocks, origin) > maxOverlapPercent) {
+                        BlockVector3 baseOrigin = worldConnector.subtract(candidateConnector);
+                        BlockVector3 origin = slideUntilThreshold(occupied, rotated.blocks, baseOrigin, currentSide);
+                        double overlap = overlapPercent(occupied, rotated.blocks, origin);
+                        if (enforceOverlap && overlap > maxOverlapPercent) {
                             continue;
                         }
-                        PlacedTemplate placed = new PlacedTemplate(spec, rot, origin);
-                        placed.incomingSide = opposite(currentSide);
-                        placed.markUsed(opposite(currentSide));
-                        return placed;
+                        int slideDistance = Math.abs(origin.getBlockX() - baseOrigin.getBlockX())
+                                + Math.abs(origin.getBlockZ() - baseOrigin.getBlockZ());
+                        PlacementCandidate candidate = new PlacementCandidate(spec, rot, origin, overlap, slideDistance);
+                        if (best == null || candidate.betterThan(best)) {
+                            best = candidate;
+                        }
                     }
                 }
             }
         }
 
-        return null;
+        if (best == null) {
+            return null;
+        }
+        PlacedTemplate placed = new PlacedTemplate(best.spec, best.rotation, best.origin);
+        placed.incomingSide = opposite(currentSide);
+        placed.markUsed(opposite(currentSide));
+        return placed;
     }
 
     private static boolean areBothLarge(TemplateSpec a, TemplateSpec b) {
@@ -1163,6 +1173,19 @@ public final class StrongholdDebugGenerator {
     }
 
     private record WeightedSpec(TemplateSpec spec, double key) {
+    }
+
+    private record PlacementCandidate(TemplateSpec spec,
+                                      int rotation,
+                                      BlockVector3 origin,
+                                      double overlap,
+                                      int slideDistance) {
+        private boolean betterThan(PlacementCandidate other) {
+            if (Double.compare(overlap, other.overlap) != 0) {
+                return overlap < other.overlap;
+            }
+            return slideDistance < other.slideDistance;
+        }
     }
 
     private record PlacementAttempt(PlacedTemplate connector, PlacedTemplate placed) {
