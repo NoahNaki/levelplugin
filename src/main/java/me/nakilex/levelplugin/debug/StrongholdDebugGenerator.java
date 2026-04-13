@@ -349,7 +349,7 @@ public final class StrongholdDebugGenerator {
             if (builtBranches >= maxBranches || placed.size() >= MAX_TOTAL_PIECES) {
                 break;
             }
-            PlacementAttempt wallAttempt = selectBestAttempt(root, side, wallPool, captured, occupied, 6, 0);
+            PlacementAttempt wallAttempt = selectBestAttempt(root, side, wallPool, captured, occupied, 6, 0, false);
             if (wallAttempt == null) {
                 root.markUsed(side);
                 continue;
@@ -397,7 +397,7 @@ public final class StrongholdDebugGenerator {
                                                       CapturedTemplates captured,
                                                       Set<Long> occupied) {
         return selectBestAttempt(current, side, pool, captured, occupied,
-                MAX_SINGLE_PLACEMENTS_PER_SIDE, MAX_CONNECTOR_BRIDGE_OPTIONS);
+                MAX_SINGLE_PLACEMENTS_PER_SIDE, MAX_CONNECTOR_BRIDGE_OPTIONS, true);
     }
 
     private static PlacementAttempt selectBestAttempt(PlacedTemplate current,
@@ -407,8 +407,21 @@ public final class StrongholdDebugGenerator {
                                                       Set<Long> occupied,
                                                       int maxSinglePlacements,
                                                       int maxConnectorBridgeOptions) {
+        return selectBestAttempt(current, side, pool, captured, occupied,
+                maxSinglePlacements, maxConnectorBridgeOptions, true);
+    }
+
+    private static PlacementAttempt selectBestAttempt(PlacedTemplate current,
+                                                      BlockFace side,
+                                                      List<TemplateSpec> pool,
+                                                      CapturedTemplates captured,
+                                                      Set<Long> occupied,
+                                                      int maxSinglePlacements,
+                                                      int maxConnectorBridgeOptions,
+                                                      boolean allowOverlapSlide) {
         List<PlacementAttempt> attempts = enumeratePlacementAttempts(
-                current, side, pool, captured.connector(), occupied, maxSinglePlacements, maxConnectorBridgeOptions
+                current, side, pool, captured.connector(), occupied,
+                maxSinglePlacements, maxConnectorBridgeOptions, allowOverlapSlide
         );
         if (attempts.isEmpty()) {
             return null;
@@ -748,7 +761,7 @@ public final class StrongholdDebugGenerator {
                                                                      TemplateSpec connector,
                                                                      Set<Long> occupied) {
         return enumeratePlacementAttempts(current, currentSide, candidateSpecs, connector, occupied,
-                MAX_SINGLE_PLACEMENTS_PER_SIDE, MAX_CONNECTOR_BRIDGE_OPTIONS);
+                MAX_SINGLE_PLACEMENTS_PER_SIDE, MAX_CONNECTOR_BRIDGE_OPTIONS, true);
     }
 
     private static List<PlacementAttempt> enumeratePlacementAttempts(PlacedTemplate current,
@@ -758,18 +771,30 @@ public final class StrongholdDebugGenerator {
                                                                      Set<Long> occupied,
                                                                      int maxSinglePlacements,
                                                                      int maxConnectorBridgeOptions) {
+        return enumeratePlacementAttempts(current, currentSide, candidateSpecs, connector, occupied,
+                maxSinglePlacements, maxConnectorBridgeOptions, true);
+    }
+
+    private static List<PlacementAttempt> enumeratePlacementAttempts(PlacedTemplate current,
+                                                                     BlockFace currentSide,
+                                                                     List<TemplateSpec> candidateSpecs,
+                                                                     TemplateSpec connector,
+                                                                     Set<Long> occupied,
+                                                                     int maxSinglePlacements,
+                                                                     int maxConnectorBridgeOptions,
+                                                                     boolean allowOverlapSlide) {
         List<PlacementAttempt> attempts = new ArrayList<>();
         Set<String> seen = new HashSet<>();
 
         if (connector != null && maxConnectorBridgeOptions > 0) {
             List<PlacedTemplate> connectorPlacements = enumerateSinglePlacements(
-                    current, currentSide, List.of(connector), occupied, true, maxConnectorBridgeOptions
+                    current, currentSide, List.of(connector), occupied, true, maxConnectorBridgeOptions, allowOverlapSlide
             );
             for (PlacedTemplate connectorPlaced : connectorPlacements) {
                 Set<Long> occupiedWithConnector = new HashSet<>(occupied);
                 occupy(occupiedWithConnector, connectorPlaced);
                 for (PlacedTemplate viaConnector : enumerateSinglePlacements(
-                        connectorPlaced, currentSide, candidateSpecs, occupiedWithConnector, true, maxSinglePlacements
+                        connectorPlaced, currentSide, candidateSpecs, occupiedWithConnector, true, maxSinglePlacements, allowOverlapSlide
                 )) {
                     if (areBothLarge(current.spec, viaConnector.spec)) {
                         continue;
@@ -783,7 +808,7 @@ public final class StrongholdDebugGenerator {
         }
 
         for (PlacedTemplate direct : enumerateSinglePlacements(
-                current, currentSide, candidateSpecs, occupied, true, maxSinglePlacements
+                current, currentSide, candidateSpecs, occupied, true, maxSinglePlacements, allowOverlapSlide
         )) {
             if (areBothLarge(current.spec, direct.spec)) {
                 continue;
@@ -907,7 +932,8 @@ public final class StrongholdDebugGenerator {
                                                                   List<TemplateSpec> candidateSpecs,
                                                                   Set<Long> occupied,
                                                                   boolean enforceOverlap,
-                                                                  int maxPlacements) {
+                                                                  int maxPlacements,
+                                                                  boolean allowOverlapSlide) {
         List<PlacedTemplate> placements = new ArrayList<>();
         RotatedTemplate currentRotated = rotateTemplate(current.spec.template, current.rotation);
         List<BlockVector3> currentConnectors = currentRotated.connectors.get(currentSide);
@@ -929,7 +955,8 @@ public final class StrongholdDebugGenerator {
                     perConnectorBudget,
                     maxPlacements,
                     placements,
-                    seenPlacements
+                    seenPlacements,
+                    allowOverlapSlide
             );
             if (placements.size() >= maxPlacements) {
                 return placements;
@@ -951,7 +978,8 @@ public final class StrongholdDebugGenerator {
                     Integer.MAX_VALUE,
                     maxPlacements,
                     placements,
-                    seenPlacements
+                    seenPlacements,
+                    allowOverlapSlide
             );
             if (placements.size() >= maxPlacements) {
                 return placements;
@@ -969,7 +997,8 @@ public final class StrongholdDebugGenerator {
                                               int limitForConnector,
                                               int maxPlacements,
                                               List<PlacedTemplate> out,
-                                              Set<String> seenPlacements) {
+                                              Set<String> seenPlacements,
+                                              boolean allowOverlapSlide) {
         int added = 0;
         BlockVector3 worldConnector = current.origin.add(currentConnector);
         for (TemplateSpec spec : candidateSpecs) {
@@ -981,7 +1010,9 @@ public final class StrongholdDebugGenerator {
                 }
                 for (BlockVector3 candidateConnector : candidateConnectors) {
                     BlockVector3 idealOrigin = worldConnector.subtract(candidateConnector);
-                    BlockVector3 origin = adjustedOriginForOverlap(spec, occupied, rotated.blocks, idealOrigin, currentSide);
+                    BlockVector3 origin = allowOverlapSlide
+                            ? adjustedOriginForOverlap(spec, occupied, rotated.blocks, idealOrigin, currentSide)
+                            : idealOrigin;
                     if (!connectorDriftWithinLimit(idealOrigin, origin, spec)) {
                         continue;
                     }
