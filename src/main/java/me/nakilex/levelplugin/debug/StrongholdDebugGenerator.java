@@ -39,6 +39,10 @@ public final class StrongholdDebugGenerator {
             Material.LIGHT_BLUE_CONCRETE,
             Material.WHITE_CONCRETE
     );
+    private static final Set<Material> CONNECTOR_MARKER_MATERIALS = Set.of(
+            Material.REDSTONE_BLOCK,
+            Material.REDSTONE_WIRE
+    );
 
     private static final List<TemplateSpec> TEMPLATE_SPECS = List.of(
             new TemplateSpec("corner_1", new TemplateBounds(473, -38, -5346, 543, -61, -5276), PieceCategory.WALL, 1),
@@ -1291,11 +1295,11 @@ public final class StrongholdDebugGenerator {
                     int relZ = z - minZ;
                     BlockVector3 rel = BlockVector3.at(relX, relY, relZ);
 
-                    if (type == Material.REDSTONE_BLOCK) {
+                    if (CONNECTOR_MARKER_MATERIALS.contains(type)) {
                         redstoneMarkers.add(rel);
                     }
 
-                    if (type.isAir() || EXCLUDED.contains(type)) {
+                    if (type.isAir() || EXCLUDED.contains(type) || CONNECTOR_MARKER_MATERIALS.contains(type)) {
                         continue;
                     }
                     blocks.put(rel, data);
