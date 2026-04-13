@@ -39,10 +39,7 @@ public final class StrongholdDebugGenerator {
             Material.LIGHT_BLUE_CONCRETE,
             Material.WHITE_CONCRETE
     );
-    private static final Set<Material> CONNECTOR_MARKER_MATERIALS = Set.of(
-            Material.REDSTONE_BLOCK,
-            Material.REDSTONE_WIRE
-    );
+    private static final Set<Material> CONNECTOR_MARKER_MATERIALS = Set.of(Material.REDSTONE_BLOCK);
 
     private static final List<TemplateSpec> TEMPLATE_SPECS = List.of(
             new TemplateSpec("corner_1", new TemplateBounds(473, -38, -5346, 543, -61, -5276), PieceCategory.WALL, 1),
@@ -1357,21 +1354,15 @@ public final class StrongholdDebugGenerator {
             }
         }
 
-        ConnectorFrame frame = connectorFrameFor(blocks, redstoneMarkers, width, length);
-        Set<BlockVector3> normalizedMarkers = normalizeMarkers(redstoneMarkers, frame);
-        Map<BlockFace, List<BlockVector3>> connectors = detectConnectorsFromMarkerWalls(
-                normalizedMarkers,
-                frame.width(),
-                frame.length()
-        );
+        StructureFootprint footprint = structureFootprintFor(blocks, width, length);
+        Map<BlockFace, List<BlockVector3>> connectors = detectConnectorsFromMarkers(redstoneMarkers, footprint);
 
         return new Template(blocks, connectors, width, height, length);
     }
 
-    private static ConnectorFrame connectorFrameFor(Map<BlockVector3, BlockData> blocks,
-                                                    Set<BlockVector3> markers,
-                                                    int fallbackWidth,
-                                                    int fallbackLength) {
+    private static StructureFootprint structureFootprintFor(Map<BlockVector3, BlockData> blocks,
+                                                            int fallbackWidth,
+                                                            int fallbackLength) {
         int minX = Integer.MAX_VALUE;
         int maxX = Integer.MIN_VALUE;
         int minZ = Integer.MAX_VALUE;
@@ -1383,35 +1374,15 @@ public final class StrongholdDebugGenerator {
             minZ = Math.min(minZ, rel.getBlockZ());
             maxZ = Math.max(maxZ, rel.getBlockZ());
         }
-        for (BlockVector3 marker : markers) {
-            minX = Math.min(minX, marker.getBlockX());
-            maxX = Math.max(maxX, marker.getBlockX());
-            minZ = Math.min(minZ, marker.getBlockZ());
-            maxZ = Math.max(maxZ, marker.getBlockZ());
-        }
-
         if (minX == Integer.MAX_VALUE) {
-            return new ConnectorFrame(0, fallbackWidth - 1, 0, fallbackLength - 1);
+            return new StructureFootprint(0, fallbackWidth - 1, 0, fallbackLength - 1);
         }
-        return new ConnectorFrame(minX, maxX, minZ, maxZ);
+        return new StructureFootprint(minX, maxX, minZ, maxZ);
     }
 
-    private static Set<BlockVector3> normalizeMarkers(Set<BlockVector3> markers, ConnectorFrame frame) {
-        Set<BlockVector3> out = new HashSet<>();
-        for (BlockVector3 marker : markers) {
-            out.add(BlockVector3.at(
-                    marker.getBlockX() - frame.minX(),
-                    marker.getBlockY(),
-                    marker.getBlockZ() - frame.minZ()
-            ));
-        }
-        return out;
-    }
-
-    private static Map<BlockFace, List<BlockVector3>> detectConnectorsFromMarkerWalls(Set<BlockVector3> markers,
-                                                                                       int width,
-                                                                                       int length) {
-        Map<BlockFace, List<ConnectorCandidate>> bySide = new EnumMap<>(BlockFace.class);
+    private static Map<BlockFace, List<BlockVector3>> detectConnectorsFromMarkers(Set<BlockVector3> markers,
+                                                                                   StructureFootprint footprint) {
+        Map<BlockFace, List<BlockVector3>> bySide = new EnumMap<>(BlockFace.class);
         for (BlockFace side : List.of(BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST)) {
             bySide.put(side, new ArrayList<>());
         }
@@ -1423,39 +1394,23 @@ public final class StrongholdDebugGenerator {
             if (center == null) {
                 continue;
             }
-
-            Map<BlockFace, Integer> touchCounts = sideTouchCounts(component, width, length);
-            boolean attachedToAnySide = false;
-            for (Map.Entry<BlockFace, Integer> entry : touchCounts.entrySet()) {
-                if (entry.getValue() <= 0) {
-                    continue;
-                }
-                attachedToAnySide = true;
-                BlockFace side = entry.getKey();
-                int distanceToSide = distanceToSide(center, side, width, length);
-                ConnectorCandidate candidate = new ConnectorCandidate(center, entry.getValue(), component.size(), distanceToSide);
-                bySide.get(side).add(candidate);
-            }
-
-            if (!attachedToAnySide) {
-                BlockFace nearestSide = nearestSide(center, width, length);
-                int distanceToSide = distanceToSide(center, nearestSide, width, length);
-                ConnectorCandidate candidate = new ConnectorCandidate(center, 0, component.size(), distanceToSide);
-                bySide.get(nearestSide).add(candidate);
-            }
+            BlockFace nearestSide = nearestSide(center, footprint);
+            bySide.get(nearestSide).add(center);
         }
+
         Map<BlockFace, List<BlockVector3>> out = new EnumMap<>(BlockFace.class);
-        for (Map.Entry<BlockFace, List<ConnectorCandidate>> entry : bySide.entrySet()) {
-            entry.getValue().sort(ConnectorCandidate::compareForOrdering);
-            List<BlockVector3> centers = new ArrayList<>();
-            for (ConnectorCandidate candidate : entry.getValue()) {
-                if (centers.stream().noneMatch(existing -> existing.equals(candidate.center))) {
-                    centers.add(candidate.center);
+        for (Map.Entry<BlockFace, List<BlockVector3>> entry : bySide.entrySet()) {
+            List<BlockVector3> points = entry.getValue();
+            if (points.isEmpty()) {
+                continue;
+            }
+            points.sort((a, b) -> {
+                if (entry.getKey() == BlockFace.NORTH || entry.getKey() == BlockFace.SOUTH) {
+                    return Integer.compare(a.getBlockX(), b.getBlockX());
                 }
-            }
-            if (!centers.isEmpty()) {
-                out.put(entry.getKey(), centers);
-            }
+                return Integer.compare(a.getBlockZ(), b.getBlockZ());
+            });
+            out.put(entry.getKey(), points);
         }
         return out;
     }
@@ -1491,44 +1446,11 @@ public final class StrongholdDebugGenerator {
         );
     }
 
-    private static Map<BlockFace, Integer> sideTouchCounts(Set<BlockVector3> component, int width, int length) {
-        int westTouches = 0;
-        int eastTouches = 0;
-        int northTouches = 0;
-        int southTouches = 0;
-        for (BlockVector3 marker : component) {
-            int westDist = marker.getBlockX();
-            int eastDist = (width - 1) - marker.getBlockX();
-            int northDist = marker.getBlockZ();
-            int southDist = (length - 1) - marker.getBlockZ();
-
-            if (westDist <= CONNECTOR_SIDE_CAPTURE_DISTANCE) {
-                westTouches++;
-            }
-            if (eastDist <= CONNECTOR_SIDE_CAPTURE_DISTANCE) {
-                eastTouches++;
-            }
-            if (northDist <= CONNECTOR_SIDE_CAPTURE_DISTANCE) {
-                northTouches++;
-            }
-            if (southDist <= CONNECTOR_SIDE_CAPTURE_DISTANCE) {
-                southTouches++;
-            }
-        }
-
-        Map<BlockFace, Integer> touches = new EnumMap<>(BlockFace.class);
-        touches.put(BlockFace.WEST, westTouches);
-        touches.put(BlockFace.EAST, eastTouches);
-        touches.put(BlockFace.NORTH, northTouches);
-        touches.put(BlockFace.SOUTH, southTouches);
-        return touches;
-    }
-
-    private static BlockFace nearestSide(BlockVector3 center, int width, int length) {
-        int westDist = center.getBlockX();
-        int eastDist = (width - 1) - center.getBlockX();
-        int northDist = center.getBlockZ();
-        int southDist = (length - 1) - center.getBlockZ();
+    private static BlockFace nearestSide(BlockVector3 center, StructureFootprint footprint) {
+        int westDist = Math.abs(center.getBlockX() - footprint.minX());
+        int eastDist = Math.abs(footprint.maxX() - center.getBlockX());
+        int northDist = Math.abs(center.getBlockZ() - footprint.minZ());
+        int southDist = Math.abs(footprint.maxZ() - center.getBlockZ());
         int min = Math.min(Math.min(westDist, eastDist), Math.min(northDist, southDist));
         if (westDist == min) {
             return BlockFace.WEST;
@@ -1540,16 +1462,6 @@ public final class StrongholdDebugGenerator {
             return BlockFace.NORTH;
         }
         return BlockFace.SOUTH;
-    }
-
-    private static int distanceToSide(BlockVector3 center, BlockFace side, int width, int length) {
-        return switch (side) {
-            case WEST -> center.getBlockX();
-            case EAST -> (width - 1) - center.getBlockX();
-            case NORTH -> center.getBlockZ();
-            case SOUTH -> (length - 1) - center.getBlockZ();
-            default -> Integer.MAX_VALUE;
-        };
     }
 
     private static BlockVector3 centerOf(List<BlockVector3> points) {
@@ -1571,27 +1483,7 @@ public final class StrongholdDebugGenerator {
         );
     }
 
-    private record ConnectorCandidate(BlockVector3 center, int edgeTouches, int size, int distanceToSide) {
-        private boolean betterThan(ConnectorCandidate other) {
-            if (edgeTouches != other.edgeTouches) {
-                return edgeTouches > other.edgeTouches;
-            }
-            if (size != other.size) {
-                return size > other.size;
-            }
-            return distanceToSide < other.distanceToSide;
-        }
-
-        private static int compareForOrdering(ConnectorCandidate a, ConnectorCandidate b) {
-            if (a.edgeTouches != b.edgeTouches) {
-                return Integer.compare(b.edgeTouches, a.edgeTouches);
-            }
-            if (a.size != b.size) {
-                return Integer.compare(b.size, a.size);
-            }
-            return Integer.compare(a.distanceToSide, b.distanceToSide);
-        }
-    }
+    private record StructureFootprint(int minX, int maxX, int minZ, int maxZ) {}
 
     private static void paste(World world, Template template, BlockVector3 origin, int rotation) {
         RotatedTemplate rotated = rotateTemplate(template, rotation);
@@ -1813,16 +1705,6 @@ public final class StrongholdDebugGenerator {
     }
 
     private record Point2D(double x, double z) {
-    }
-
-    private record ConnectorFrame(int minX, int maxX, int minZ, int maxZ) {
-        private int width() {
-            return Math.max(1, maxX - minX + 1);
-        }
-
-        private int length() {
-            return Math.max(1, maxZ - minZ + 1);
-        }
     }
 
     private static final class PlacedTemplate {
