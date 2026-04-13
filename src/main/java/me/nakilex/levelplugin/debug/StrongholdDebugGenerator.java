@@ -84,6 +84,7 @@ public final class StrongholdDebugGenerator {
     private static final int MAX_SINGLE_PLACEMENTS_PER_SIDE = 48;
     private static final int MAX_CONNECTOR_BRIDGE_OPTIONS = 8;
     private static final double BRANCH_OPEN_SIDE_CHANCE = 1.00D;
+    private static final int REQUIRED_CHURCH_CLEARANCE_RADIUS = 5;
     private static final double FORCED_LARGE_TEMPLATE_OVERLAP_PERCENT = 8.0D;
     private static final boolean USE_FRONTIER_SCHEDULER = false;
     private static final int TARGET_GATE_TEMPLATES = 2;
@@ -904,6 +905,20 @@ public final class StrongholdDebugGenerator {
         if (candidateSpecs == null || candidateSpecs.isEmpty()) {
             return null;
         }
+        PlacementAttempt prioritizedChurch = tryPrioritizedChurchPlacement(
+                current,
+                currentSide,
+                candidateSpecs,
+                connector,
+                occupied,
+                placedTemplates,
+                state,
+                captured,
+                diagnostics
+        );
+        if (prioritizedChurch != null) {
+            return prioritizedChurch;
+        }
 
         List<PlacementAttempt> attempts = enumeratePlacementAttempts(
                 current,
@@ -916,6 +931,49 @@ public final class StrongholdDebugGenerator {
             return null;
         }
         return pickBestAttempt(current, attempts, occupied, placedTemplates, state, captured, diagnostics);
+    }
+
+    private static PlacementAttempt tryPrioritizedChurchPlacement(PlacedTemplate current,
+                                                                  BlockFace currentSide,
+                                                                  List<TemplateSpec> candidateSpecs,
+                                                                  TemplateSpec connector,
+                                                                  Set<Long> occupied,
+                                                                  List<PlacedTemplate> placedTemplates,
+                                                                  PlacementState state,
+                                                                  CapturedTemplates captured,
+                                                                  GenerationDiagnostics diagnostics) {
+        if (placedTemplates == null || captured == null) {
+            return null;
+        }
+        if (countPlacedTemplatesMatching(placedTemplates, spec -> spec != null && "church".equalsIgnoreCase(spec.id))
+                >= TARGET_CHURCH_TEMPLATES) {
+            return null;
+        }
+        TemplateSpec church = null;
+        for (TemplateSpec candidate : candidateSpecs) {
+            if (candidate != null && "church".equalsIgnoreCase(candidate.id)) {
+                church = candidate;
+                break;
+            }
+        }
+        if (church == null) {
+            return null;
+        }
+        List<PlacementAttempt> churchAttempts = enumeratePlacementAttempts(
+                current,
+                currentSide,
+                List.of(church),
+                connector,
+                occupied
+        );
+        if (churchAttempts.isEmpty()) {
+            return null;
+        }
+        churchAttempts.removeIf(attempt -> !hasExpandedAreaClearance(attempt.placed, occupied, REQUIRED_CHURCH_CLEARANCE_RADIUS));
+        if (churchAttempts.isEmpty()) {
+            return null;
+        }
+        return pickBestAttempt(current, churchAttempts, occupied, placedTemplates, state, captured, diagnostics);
     }
 
     private static ExpansionChoice pickBestExpansion(PlacedTemplate current,
@@ -1430,6 +1488,58 @@ public final class StrongholdDebugGenerator {
             maxZ = Math.max(maxZ, z);
         }
         return new Bounds2D(minX, maxX, minZ, maxZ);
+    }
+
+    private static boolean hasExpandedAreaClearance(PlacedTemplate placed,
+                                                    Set<Long> occupied,
+                                                    int expansionRadius) {
+        if (placed == null || occupied == null) {
+            return false;
+        }
+        RotatedTemplate rotated = rotateTemplate(placed.spec.template, placed.rotation);
+        Bounds3D bounds = boundsForPlaced3D(placed, rotated);
+        if (bounds == null) {
+            return false;
+        }
+        int minX = bounds.minX - Math.max(0, expansionRadius);
+        int maxX = bounds.maxX + Math.max(0, expansionRadius);
+        int minZ = bounds.minZ - Math.max(0, expansionRadius);
+        int maxZ = bounds.maxZ + Math.max(0, expansionRadius);
+
+        for (int x = minX; x <= maxX; x++) {
+            for (int y = bounds.minY; y <= bounds.maxY; y++) {
+                for (int z = minZ; z <= maxZ; z++) {
+                    if (occupied.contains(posKey(x, y, z))) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    private static Bounds3D boundsForPlaced3D(PlacedTemplate placed, RotatedTemplate rotated) {
+        if (placed == null || rotated == null || rotated.blocks.isEmpty()) {
+            return null;
+        }
+        int minX = Integer.MAX_VALUE;
+        int maxX = Integer.MIN_VALUE;
+        int minY = Integer.MAX_VALUE;
+        int maxY = Integer.MIN_VALUE;
+        int minZ = Integer.MAX_VALUE;
+        int maxZ = Integer.MIN_VALUE;
+        for (BlockVector3 rel : rotated.blocks.keySet()) {
+            int x = placed.origin.getBlockX() + rel.getBlockX();
+            int y = placed.origin.getBlockY() + rel.getBlockY();
+            int z = placed.origin.getBlockZ() + rel.getBlockZ();
+            minX = Math.min(minX, x);
+            maxX = Math.max(maxX, x);
+            minY = Math.min(minY, y);
+            maxY = Math.max(maxY, y);
+            minZ = Math.min(minZ, z);
+            maxZ = Math.max(maxZ, z);
+        }
+        return new Bounds3D(minX, maxX, minY, maxY, minZ, maxZ);
     }
 
     private static List<TemplateSpec> candidatePoolForStep(CapturedTemplates captured,
@@ -2042,6 +2152,9 @@ public final class StrongholdDebugGenerator {
     }
 
     private record Bounds2D(int minX, int maxX, int minZ, int maxZ) {
+    }
+
+    private record Bounds3D(int minX, int maxX, int minY, int maxY, int minZ, int maxZ) {
     }
 
     private record Point2D(double x, double z) {
