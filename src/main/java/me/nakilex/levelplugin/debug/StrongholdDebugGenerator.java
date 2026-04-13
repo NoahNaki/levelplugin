@@ -545,24 +545,53 @@ public final class StrongholdDebugGenerator {
                                                                      TemplateSpec connector,
                                                                      Set<Long> occupied) {
         List<PlacementAttempt> attempts = new ArrayList<>();
+        Set<String> seen = new HashSet<>();
 
         if (connector != null) {
-            PlacedTemplate connectorPlaced = tryPlaceSingle(current, currentSide, List.of(connector), occupied, true);
-            if (connectorPlaced != null) {
+            List<PlacedTemplate> connectorPlacements = enumerateSinglePlacements(
+                    current, currentSide, List.of(connector), occupied, true
+            );
+            for (PlacedTemplate connectorPlaced : connectorPlacements) {
                 Set<Long> occupiedWithConnector = new HashSet<>(occupied);
                 occupy(occupiedWithConnector, connectorPlaced);
-                PlacedTemplate viaConnector = tryPlaceSingle(connectorPlaced, currentSide, candidateSpecs, occupiedWithConnector, true);
-                if (viaConnector != null && !areBothLarge(current.spec, viaConnector.spec)) {
-                    attempts.add(new PlacementAttempt(connectorPlaced, viaConnector));
+                for (PlacedTemplate viaConnector : enumerateSinglePlacements(
+                        connectorPlaced, currentSide, candidateSpecs, occupiedWithConnector, true
+                )) {
+                    if (areBothLarge(current.spec, viaConnector.spec)) {
+                        continue;
+                    }
+                    String key = placementAttemptKey(connectorPlaced, viaConnector);
+                    if (seen.add(key)) {
+                        attempts.add(new PlacementAttempt(connectorPlaced, viaConnector));
+                    }
                 }
             }
         }
 
-        PlacedTemplate direct = tryPlaceSingle(current, currentSide, candidateSpecs, occupied, true);
-        if (direct != null && !areBothLarge(current.spec, direct.spec)) {
-            attempts.add(new PlacementAttempt(null, direct));
+        for (PlacedTemplate direct : enumerateSinglePlacements(current, currentSide, candidateSpecs, occupied, true)) {
+            if (areBothLarge(current.spec, direct.spec)) {
+                continue;
+            }
+            String key = placementAttemptKey(null, direct);
+            if (seen.add(key)) {
+                attempts.add(new PlacementAttempt(null, direct));
+            }
         }
         return attempts;
+    }
+
+    private static String placementAttemptKey(PlacedTemplate connector, PlacedTemplate placed) {
+        return placementKey(connector) + "|" + placementKey(placed);
+    }
+
+    private static String placementKey(PlacedTemplate placed) {
+        if (placed == null) {
+            return "none";
+        }
+        return placed.spec.id + ":" + placed.rotation + ":"
+                + placed.origin.getBlockX() + ","
+                + placed.origin.getBlockY() + ","
+                + placed.origin.getBlockZ();
     }
 
     private static PlacementAttempt pickBestAttempt(PlacedTemplate current,
@@ -673,15 +702,16 @@ public final class StrongholdDebugGenerator {
         return String.join(", ", entries);
     }
 
-    private static PlacedTemplate tryPlaceSingle(PlacedTemplate current,
-                                                 BlockFace currentSide,
-                                                 List<TemplateSpec> candidateSpecs,
-                                                 Set<Long> occupied,
-                                                 boolean enforceOverlap) {
+    private static List<PlacedTemplate> enumerateSinglePlacements(PlacedTemplate current,
+                                                                  BlockFace currentSide,
+                                                                  List<TemplateSpec> candidateSpecs,
+                                                                  Set<Long> occupied,
+                                                                  boolean enforceOverlap) {
+        List<PlacedTemplate> placements = new ArrayList<>();
         RotatedTemplate currentRotated = rotateTemplate(current.spec.template, current.rotation);
         List<BlockVector3> currentConnectors = currentRotated.connectors.get(currentSide);
         if (currentConnectors == null || currentConnectors.isEmpty()) {
-            return null;
+            return placements;
         }
 
         for (TemplateSpec spec : candidateSpecs) {
@@ -705,13 +735,13 @@ public final class StrongholdDebugGenerator {
                         PlacedTemplate placed = new PlacedTemplate(spec, rot, origin);
                         placed.incomingSide = opposite(currentSide);
                         placed.markUsed(opposite(currentSide));
-                        return placed;
+                        placements.add(placed);
                     }
                 }
             }
         }
 
-        return null;
+        return placements;
     }
 
     private static boolean areBothLarge(TemplateSpec a, TemplateSpec b) {
