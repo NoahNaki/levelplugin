@@ -18,6 +18,7 @@ import me.nakilex.levelplugin.debug.BeaconEntityDebugManager;
 import me.nakilex.levelplugin.debug.DropDebugManager;
 import me.nakilex.levelplugin.debug.ArcSlashDebugManager;
 import me.nakilex.levelplugin.debug.gui.ArcSlashDebugGUI;
+import me.nakilex.levelplugin.debug.gui.StrongholdTemplateDebugGUI;
 import me.nakilex.levelplugin.debug.gui.WarriorCycloneDebugGUI;
 import me.nakilex.levelplugin.debug.MobStatusDebugItem;
 import me.nakilex.levelplugin.debug.SpellInputDebugItem;
@@ -547,7 +548,11 @@ public class DebugCommand implements TabExecutor {
                 }
                 if (args.length < 2) {
                     ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.WARNING,
-                            "Usage: /debug stronghold <generate test|overlap [percent]>");
+                            "Usage: /debug stronghold <generate test|overlap [percent]|templates>");
+                    return true;
+                }
+                if (args[1].equalsIgnoreCase("templates")) {
+                    StrongholdTemplateDebugGUI.getInstance().open(strongholdPlayer);
                     return true;
                 }
                 if (args[1].equalsIgnoreCase("overlap")) {
@@ -571,7 +576,7 @@ public class DebugCommand implements TabExecutor {
                 }
                 if (args.length < 3 || !args[1].equalsIgnoreCase("generate")) {
                     ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.WARNING,
-                            "Usage: /debug stronghold <generate test|overlap [percent]>");
+                            "Usage: /debug stronghold <generate test|overlap [percent]|templates>");
                     return true;
                 }
                 if (!args[2].equalsIgnoreCase("test")) {
@@ -692,7 +697,7 @@ public class DebugCommand implements TabExecutor {
                     .filter(s -> s.startsWith(args[0].toLowerCase()))
                     .toList();
         } else if (args.length == 2 && args[0].equalsIgnoreCase("stronghold")) {
-            return List.of("generate", "overlap").stream()
+            return List.of("generate", "overlap", "templates").stream()
                     .filter(opt -> opt.startsWith(args[1].toLowerCase()))
                     .toList();
         } else if (args.length == 3 && args[0].equalsIgnoreCase("stronghold") && args[1].equalsIgnoreCase("generate")) {

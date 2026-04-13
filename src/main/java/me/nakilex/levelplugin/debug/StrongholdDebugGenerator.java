@@ -22,6 +22,7 @@ import java.util.Deque;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -85,6 +86,36 @@ public final class StrongholdDebugGenerator {
     public static void setMaxOverlapPercent(double value) {
         maxOverlapPercent = Math.max(0.0D, Math.min(100.0D, value));
     }
+
+    public static Map<String, TemplateConnectionInfo> inspectTemplateConnections() {
+        Main plugin = Main.getInstance();
+        if (plugin != null && plugin.getWorldManager() != null) {
+            plugin.getWorldManager().ensureWorldsLoaded(SOURCE_WORLD);
+        }
+        World sourceWorld = Bukkit.getWorld(SOURCE_WORLD);
+        if (sourceWorld == null) {
+            return Map.of();
+        }
+
+        loadSourceChunks(sourceWorld);
+        CapturedTemplates captured = captureAllTemplates(sourceWorld);
+        if (captured == null) {
+            return Map.of();
+        }
+
+        Map<String, TemplateConnectionInfo> out = new LinkedHashMap<>();
+        List<TemplateSpec> all = new ArrayList<>();
+        all.addAll(captured.walls());
+        all.addAll(captured.largeJunctions());
+        all.addAll(captured.deadEnds());
+        all.add(captured.connector());
+        for (TemplateSpec spec : all) {
+            List<BlockFace> sides = new ArrayList<>(spec.template.connectors.keySet());
+            out.put(spec.id, new TemplateConnectionInfo(spec.template.connectors.size(), sides));
+        }
+        return out;
+    }
+
     public static int cleanupGeneratedWorlds(Main plugin) {
         if (plugin == null || plugin.getWorldManager() == null) {
             return 0;
@@ -1115,6 +1146,9 @@ public final class StrongholdDebugGenerator {
         private int spineBlockedSides;
         private int branchBlockedSides;
         private String templateConnectorSummary = "";
+    }
+
+    public record TemplateConnectionInfo(int connectorCount, List<BlockFace> sides) {
     }
 
     private record PlacementState(int smallPiecesSinceLarge, int wallPiecesSinceGate) {
