@@ -270,6 +270,31 @@ public final class StrongholdDebugGenerator {
             spineHead = attempt.placed;
         }
 
+        if (placed.size() == 1) {
+            for (BlockFace fallbackSide : List.of(BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST)) {
+                List<TemplateSpec> fallbackPool = candidatePoolForStep(captured, spineHead, spineState);
+                if (fallbackPool.isEmpty()) {
+                    break;
+                }
+                PlacementAttempt fallbackAttempt = tryPlaceFromSide(spineHead, fallbackSide, fallbackPool, captured.connector(), occupied, random);
+                if (fallbackAttempt == null) {
+                    continue;
+                }
+                if (fallbackAttempt.connector != null && placed.size() < targetPieces) {
+                    placed.add(fallbackAttempt.connector);
+                    occupy(occupied, fallbackAttempt.connector);
+                    spineState = spineState.onPlaced(fallbackAttempt.connector.spec);
+                }
+                if (placed.size() < targetPieces) {
+                    placed.add(fallbackAttempt.placed);
+                    occupy(occupied, fallbackAttempt.placed);
+                    spineState = spineState.onPlaced(fallbackAttempt.placed.spec);
+                    spineHead = fallbackAttempt.placed;
+                }
+                break;
+            }
+        }
+
         if (placed.size() < targetPieces) {
             closeOpenSideWithDeadEnd(spineHead, captured, occupied, random, placed);
         }
