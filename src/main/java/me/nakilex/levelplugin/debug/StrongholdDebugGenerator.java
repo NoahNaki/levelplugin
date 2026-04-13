@@ -80,6 +80,7 @@ public final class StrongholdDebugGenerator {
     private static final int MIN_WALL_PIECES_BETWEEN_GATES = 3;
     private static final int MAX_CONNECTOR_DRIFT_BLOCKS = 6;
     private static final int MAX_LARGE_CONNECTOR_DRIFT_BLOCKS = 0;
+    private static final int CONNECTOR_SIDE_CAPTURE_DISTANCE = 2;
     private static final int MAX_SINGLE_PLACEMENTS_PER_SIDE = 48;
     private static final int MAX_CONNECTOR_BRIDGE_OPTIONS = 8;
     private static final double BRANCH_OPEN_SIDE_CHANCE = 1.00D;
@@ -1401,16 +1402,21 @@ public final class StrongholdDebugGenerator {
         int northTouches = 0;
         int southTouches = 0;
         for (BlockVector3 marker : component) {
-            if (marker.getBlockX() == 0) {
+            int westDist = marker.getBlockX();
+            int eastDist = (width - 1) - marker.getBlockX();
+            int northDist = marker.getBlockZ();
+            int southDist = (length - 1) - marker.getBlockZ();
+
+            if (westDist <= CONNECTOR_SIDE_CAPTURE_DISTANCE) {
                 westTouches++;
             }
-            if (marker.getBlockX() == width - 1) {
+            if (eastDist <= CONNECTOR_SIDE_CAPTURE_DISTANCE) {
                 eastTouches++;
             }
-            if (marker.getBlockZ() == 0) {
+            if (northDist <= CONNECTOR_SIDE_CAPTURE_DISTANCE) {
                 northTouches++;
             }
-            if (marker.getBlockZ() == length - 1) {
+            if (southDist <= CONNECTOR_SIDE_CAPTURE_DISTANCE) {
                 southTouches++;
             }
         }
