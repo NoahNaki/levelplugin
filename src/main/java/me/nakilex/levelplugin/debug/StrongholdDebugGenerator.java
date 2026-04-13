@@ -258,6 +258,191 @@ public final class StrongholdDebugGenerator {
         return true;
     }
 
+    public static boolean generateTowerWall(Player player) {
+        if (player == null) {
+            return false;
+        }
+        clearRotationCache();
+
+        Main plugin = Main.getInstance();
+        if (plugin == null) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                    "Plugin bootstrap is unavailable. Try again after startup completes.");
+            return true;
+        }
+
+        plugin.getWorldManager().ensureWorldsLoaded(SOURCE_WORLD);
+        World sourceWorld = Bukkit.getWorld(SOURCE_WORLD);
+        if (sourceWorld == null) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                    "Source template world '" + SOURCE_WORLD + "' is not loaded.");
+            return true;
+        }
+
+        World world = createGeneratedWorld(plugin, player);
+        if (world == null) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                    "Failed to create a superflat world for stronghold generation.");
+            return true;
+        }
+
+        loadSourceChunks(sourceWorld);
+        CapturedTemplates captured = captureAllTemplates(sourceWorld);
+        if (captured == null) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                    "Failed to capture one or more stronghold templates. Check source cuboids and markers.");
+            return true;
+        }
+
+        TemplateSpec tower = findTemplateById(captured.largeJunctions(), "tower_1");
+        if (tower == null && !captured.largeJunctions().isEmpty()) {
+            tower = captured.largeJunctions().get(0);
+        }
+        if (tower == null) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "No tower template found for towerwall preset.");
+            return true;
+        }
+
+        List<TemplateSpec> wallPool = new ArrayList<>();
+        for (TemplateSpec wall : captured.walls()) {
+            if (wall.id.startsWith("straight_")) {
+                wallPool.add(wall);
+            }
+        }
+        if (wallPool.isEmpty()) {
+            wallPool.addAll(captured.walls());
+        }
+        if (wallPool.isEmpty()) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "No wall templates found for towerwall preset.");
+            return true;
+        }
+
+        int originX = 0;
+        int originY = -61;
+        int originZ = 0;
+        world.getChunkAt(Math.floorDiv(originX, 16), Math.floorDiv(originZ, 16)).load(true);
+
+        List<PlacedTemplate> placed = new ArrayList<>();
+        Set<Long> occupied = new HashSet<>();
+
+        PlacedTemplate root = new PlacedTemplate(tower, 0, BlockVector3.at(originX, originY, originZ));
+        placed.add(root);
+        occupy(occupied, root);
+
+        record TowerSeed(PlacedTemplate towerPlaced, int depth) {}
+        Deque<TowerSeed> queue = new ArrayDeque<>();
+        queue.add(new TowerSeed(root, 0));
+
+        final int maxDepth = 2;
+        final int wallsPerBranch = 3;
+        while (!queue.isEmpty() && placed.size() < MAX_TOTAL_PIECES) {
+            TowerSeed seed = queue.poll();
+            if (seed.depth >= maxDepth) {
+                continue;
+            }
+
+            for (BlockFace side : distinctOpenSides(seed.towerPlaced)) {
+                PlacedTemplate current = seed.towerPlaced;
+                BlockFace travelSide = side;
+                boolean builtCorridor = true;
+
+                for (int i = 0; i < wallsPerBranch; i++) {
+                    PlacementAttempt wallAttempt = selectBestAttempt(current, travelSide, wallPool, captured, occupied);
+                    if (wallAttempt == null) {
+                        builtCorridor = false;
+                        current.markUsed(travelSide);
+                        break;
+                    }
+                    applyPlacementAttempt(current, travelSide, wallAttempt, placed, occupied);
+                    current = wallAttempt.placed;
+                    travelSide = opposite(current.incomingSide);
+                    if (placed.size() >= MAX_TOTAL_PIECES) {
+                        break;
+                    }
+                }
+                if (!builtCorridor || placed.size() >= MAX_TOTAL_PIECES) {
+                    continue;
+                }
+
+                PlacementAttempt towerAttempt = selectBestAttempt(current, travelSide, List.of(tower), captured, occupied);
+                if (towerAttempt == null) {
+                    current.markUsed(travelSide);
+                    continue;
+                }
+                applyPlacementAttempt(current, travelSide, towerAttempt, placed, occupied);
+                queue.add(new TowerSeed(towerAttempt.placed, seed.depth + 1));
+            }
+        }
+
+        ensureTargetChunksLoaded(world, placed);
+        for (PlacedTemplate entry : placed) {
+            paste(world, entry.spec.template, entry.origin, entry.rotation);
+        }
+        player.teleport(new org.bukkit.Location(world, originX + 0.5, originY + 2, originZ + 0.5));
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
+                "Generated towerwall preset using " + placed.size() + " pieces in world '" + world.getName() + "'.");
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                "Towerwall diagnostics -> remaining open outputs: " + countOpenOutputs(placed)
+                        + ", viable next outputs: " + countViableOpenOutputs(placed, captured, occupied));
+        return true;
+    }
+
+    private static TemplateSpec findTemplateById(List<TemplateSpec> specs, String id) {
+        for (TemplateSpec spec : specs) {
+            if (spec.id.equalsIgnoreCase(id)) {
+                return spec;
+            }
+        }
+        return null;
+    }
+
+    private static List<BlockFace> distinctOpenSides(PlacedTemplate placed) {
+        List<BlockFace> distinct = new ArrayList<>();
+        for (BlockFace side : placed.openSides()) {
+            if (!distinct.contains(side)) {
+                distinct.add(side);
+            }
+        }
+        return distinct;
+    }
+
+    private static PlacementAttempt selectBestAttempt(PlacedTemplate current,
+                                                      BlockFace side,
+                                                      List<TemplateSpec> pool,
+                                                      CapturedTemplates captured,
+                                                      Set<Long> occupied) {
+        List<PlacementAttempt> attempts = enumeratePlacementAttempts(current, side, pool, captured.connector(), occupied);
+        if (attempts.isEmpty()) {
+            return null;
+        }
+        PlacementAttempt best = null;
+        double bestScore = Double.NEGATIVE_INFINITY;
+        PlacementState state = PlacementState.fromSeed(current.spec);
+        for (PlacementAttempt attempt : attempts) {
+            double score = scoreAttempt(current, attempt, occupied, state, captured);
+            if (score > bestScore) {
+                bestScore = score;
+                best = attempt;
+            }
+        }
+        return best;
+    }
+
+    private static void applyPlacementAttempt(PlacedTemplate current,
+                                              BlockFace side,
+                                              PlacementAttempt attempt,
+                                              List<PlacedTemplate> placed,
+                                              Set<Long> occupied) {
+        if (attempt.connector != null) {
+            attempt.connector.markUsed(side);
+            placed.add(attempt.connector);
+            occupy(occupied, attempt.connector);
+        }
+        current.markUsed(side);
+        placed.add(attempt.placed);
+        occupy(occupied, attempt.placed);
+    }
+
 
     private static World createGeneratedWorld(Main plugin, Player player) {
         String worldName = GENERATED_WORLD_PREFIX + System.currentTimeMillis();
