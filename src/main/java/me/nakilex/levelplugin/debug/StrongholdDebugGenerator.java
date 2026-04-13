@@ -254,7 +254,18 @@ public final class StrongholdDebugGenerator {
                 growBranches(placed.get(seedIndex), captured, occupied, random, placed, MAX_TOTAL_PIECES, diagnostics);
             }
         }
+        diagnostics.churchPlacementsForced = ensureTemplatePlacements(
+                spec -> spec != null && "church".equalsIgnoreCase(spec.id),
+                captured.largeJunctions(),
+                TARGET_CHURCH_TEMPLATES,
+                captured,
+                occupied,
+                random,
+                placed,
+                MAX_TOTAL_PIECES
+        );
         int sealedViableOutputs = closeViableOutputsWithDeadEnds(captured, occupied, random, placed);
+        int finalChurchCount = countPlacedTemplatesMatching(placed, spec -> spec != null && "church".equalsIgnoreCase(spec.id));
 
         ensureTargetChunksLoaded(world, placed);
         for (PlacedTemplate entry : placed) {
@@ -272,6 +283,8 @@ public final class StrongholdDebugGenerator {
                         + ", remaining open outputs: " + countOpenOutputs(placed)
                         + ", viable next outputs: " + countViableOpenOutputs(placed, captured, occupied)
                         + ", sealed viable outputs: " + sealedViableOutputs
+                        + ", church placed: " + finalChurchCount
+                        + ", church forced: " + diagnostics.churchPlacementsForced
                         + ", rejected(wallPacing): " + diagnostics.rejectedWallPacing
                         + ", rejected(largeSpacing): " + diagnostics.rejectedLargeSpacing
                         + ", placed templates: " + summarizePlacedTemplates(placed)
@@ -689,6 +702,68 @@ public final class StrongholdDebugGenerator {
         target.markUsed(side);
         placed.add(deadEndAttempt.placed);
         occupy(occupied, deadEndAttempt.placed);
+    }
+
+    private static int ensureTemplatePlacements(Predicate<TemplateSpec> matcher,
+                                                List<TemplateSpec> candidateTemplates,
+                                                int requiredCount,
+                                                CapturedTemplates captured,
+                                                Set<Long> occupied,
+                                                Random random,
+                                                List<PlacedTemplate> placed,
+                                                int maxPieces) {
+        if (matcher == null || candidateTemplates == null || candidateTemplates.isEmpty()) {
+            return 0;
+        }
+        List<TemplateSpec> matchingTemplates = candidateTemplates.stream()
+                .filter(matcher)
+                .toList();
+        if (matchingTemplates.isEmpty()) {
+            return 0;
+        }
+        int forced = 0;
+        int currentCount = countPlacedTemplatesMatching(placed, matcher);
+        while (currentCount < requiredCount && placed.size() < maxPieces) {
+            if (!tryPlaceTemplateFromOpenOutput(matchingTemplates, captured, occupied, random, placed)) {
+                break;
+            }
+            forced++;
+            currentCount++;
+        }
+        return forced;
+    }
+
+    private static boolean tryPlaceTemplateFromOpenOutput(List<TemplateSpec> candidateTemplates,
+                                                          CapturedTemplates captured,
+                                                          Set<Long> occupied,
+                                                          Random random,
+                                                          List<PlacedTemplate> placed) {
+        List<PlacedTemplate> snapshot = new ArrayList<>(placed);
+        Collections.shuffle(snapshot, random);
+        for (PlacedTemplate source : snapshot) {
+            List<BlockFace> openSides = source.openSides();
+            Collections.shuffle(openSides, random);
+            for (BlockFace side : openSides) {
+                PlacementAttempt attempt = tryPlaceFromSide(
+                        source,
+                        side,
+                        candidateTemplates,
+                        captured.connector(),
+                        occupied,
+                        placed,
+                        PlacementState.fromSeed(source.spec),
+                        captured,
+                        random,
+                        null
+                );
+                if (attempt == null) {
+                    continue;
+                }
+                applyPlacementAttempt(source, side, attempt, placed, occupied);
+                return true;
+            }
+        }
+        return false;
     }
 
     private static boolean hasViableExpansionFrom(PlacedTemplate target,
@@ -1843,6 +1918,7 @@ public final class StrongholdDebugGenerator {
     private static final class GenerationDiagnostics {
         private int spineBlockedSides;
         private int branchBlockedSides;
+        private int churchPlacementsForced;
         private int rejectedWallPacing;
         private int rejectedLargeSpacing;
         private String templateConnectorSummary = "";
