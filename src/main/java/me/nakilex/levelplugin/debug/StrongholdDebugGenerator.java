@@ -16,7 +16,9 @@ import org.bukkit.block.data.Rotatable;
 import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
+import java.util.ArrayDeque;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -773,10 +775,7 @@ public final class StrongholdDebugGenerator {
         int length = maxZ - minZ + 1;
 
         Map<BlockVector3, BlockData> blocks = new HashMap<>();
-        Map<BlockFace, List<BlockVector3>> markersBySide = new EnumMap<>(BlockFace.class);
-        for (BlockFace face : List.of(BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST)) {
-            markersBySide.put(face, new ArrayList<>());
-        }
+        Set<BlockVector3> redstoneMarkers = new HashSet<>();
 
         for (int x = minX; x <= maxX; x++) {
             for (int y = minY; y <= maxY; y++) {
@@ -789,7 +788,7 @@ public final class StrongholdDebugGenerator {
                     BlockVector3 rel = BlockVector3.at(relX, relY, relZ);
 
                     if (type == Material.REDSTONE_BLOCK) {
-                        assignSideMarker(markersBySide, relX, relZ, width, length, rel);
+                        redstoneMarkers.add(rel);
                     }
 
                     if (type.isAir() || EXCLUDED.contains(type)) {
@@ -800,36 +799,135 @@ public final class StrongholdDebugGenerator {
             }
         }
 
-        Map<BlockFace, BlockVector3> connectors = new EnumMap<>(BlockFace.class);
-        for (Map.Entry<BlockFace, List<BlockVector3>> entry : markersBySide.entrySet()) {
-            BlockVector3 center = centerOf(entry.getValue());
-            if (center != null) {
-                connectors.put(entry.getKey(), center);
-            }
-        }
+        Map<BlockFace, BlockVector3> connectors = detectConnectorsFromMarkerWalls(redstoneMarkers, width, length);
 
         return new Template(blocks, connectors, width, height, length);
     }
 
-    private static void assignSideMarker(Map<BlockFace, List<BlockVector3>> markersBySide,
-                                         int relX, int relZ, int width, int length, BlockVector3 rel) {
-        int westDist = relX;
-        int eastDist = (width - 1) - relX;
-        int northDist = relZ;
-        int southDist = (length - 1) - relZ;
-
-        int min = Math.min(Math.min(westDist, eastDist), Math.min(northDist, southDist));
-        BlockFace side;
-        if (westDist == min) {
-            side = BlockFace.WEST;
-        } else if (eastDist == min) {
-            side = BlockFace.EAST;
-        } else if (northDist == min) {
-            side = BlockFace.NORTH;
-        } else {
-            side = BlockFace.SOUTH;
+    private static Map<BlockFace, BlockVector3> detectConnectorsFromMarkerWalls(Set<BlockVector3> markers,
+                                                                                 int width,
+                                                                                 int length) {
+        Map<BlockFace, ConnectorCandidate> bestBySide = new EnumMap<>(BlockFace.class);
+        for (Set<BlockVector3> component : splitMarkerComponents(markers)) {
+            if (component.isEmpty()) {
+                continue;
+            }
+            BlockVector3 center = centerOf(new ArrayList<>(component));
+            if (center == null) {
+                continue;
+            }
+            SideScore score = sideScore(component, center, width, length);
+            if (score.side == null) {
+                continue;
+            }
+            ConnectorCandidate candidate = new ConnectorCandidate(center, score.edgeTouches, component.size(), score.distanceToSide);
+            ConnectorCandidate existing = bestBySide.get(score.side);
+            if (existing == null || candidate.betterThan(existing)) {
+                bestBySide.put(score.side, candidate);
+            }
         }
-        markersBySide.get(side).add(rel);
+        Map<BlockFace, BlockVector3> out = new EnumMap<>(BlockFace.class);
+        for (Map.Entry<BlockFace, ConnectorCandidate> entry : bestBySide.entrySet()) {
+            out.put(entry.getKey(), entry.getValue().center);
+        }
+        return out;
+    }
+
+    private static List<Set<BlockVector3>> splitMarkerComponents(Set<BlockVector3> markers) {
+        List<Set<BlockVector3>> components = new ArrayList<>();
+        Set<BlockVector3> remaining = new HashSet<>(markers);
+        while (!remaining.isEmpty()) {
+            BlockVector3 start = remaining.iterator().next();
+            Set<BlockVector3> component = new HashSet<>();
+            Deque<BlockVector3> queue = new ArrayDeque<>();
+            queue.add(start);
+            remaining.remove(start);
+            while (!queue.isEmpty()) {
+                BlockVector3 current = queue.poll();
+                component.add(current);
+                for (BlockVector3 neighbor : markerNeighbors(current)) {
+                    if (remaining.remove(neighbor)) {
+                        queue.add(neighbor);
+                    }
+                }
+            }
+            components.add(component);
+        }
+        return components;
+    }
+
+    private static List<BlockVector3> markerNeighbors(BlockVector3 current) {
+        return List.of(
+                current.add(1, 0, 0), current.add(-1, 0, 0),
+                current.add(0, 1, 0), current.add(0, -1, 0),
+                current.add(0, 0, 1), current.add(0, 0, -1)
+        );
+    }
+
+    private static SideScore sideScore(Set<BlockVector3> component,
+                                       BlockVector3 center,
+                                       int width,
+                                       int length) {
+        int westTouches = 0;
+        int eastTouches = 0;
+        int northTouches = 0;
+        int southTouches = 0;
+        for (BlockVector3 marker : component) {
+            if (marker.getBlockX() == 0) {
+                westTouches++;
+            }
+            if (marker.getBlockX() == width - 1) {
+                eastTouches++;
+            }
+            if (marker.getBlockZ() == 0) {
+                northTouches++;
+            }
+            if (marker.getBlockZ() == length - 1) {
+                southTouches++;
+            }
+        }
+
+        Map<BlockFace, Integer> touches = new EnumMap<>(BlockFace.class);
+        touches.put(BlockFace.WEST, westTouches);
+        touches.put(BlockFace.EAST, eastTouches);
+        touches.put(BlockFace.NORTH, northTouches);
+        touches.put(BlockFace.SOUTH, southTouches);
+
+        BlockFace bestSide = null;
+        int bestTouches = 0;
+        for (Map.Entry<BlockFace, Integer> entry : touches.entrySet()) {
+            if (entry.getValue() > bestTouches) {
+                bestTouches = entry.getValue();
+                bestSide = entry.getKey();
+            }
+        }
+
+        if (bestSide == null) {
+            int westDist = center.getBlockX();
+            int eastDist = (width - 1) - center.getBlockX();
+            int northDist = center.getBlockZ();
+            int southDist = (length - 1) - center.getBlockZ();
+            int min = Math.min(Math.min(westDist, eastDist), Math.min(northDist, southDist));
+            if (westDist == min) {
+                bestSide = BlockFace.WEST;
+            } else if (eastDist == min) {
+                bestSide = BlockFace.EAST;
+            } else if (northDist == min) {
+                bestSide = BlockFace.NORTH;
+            } else {
+                bestSide = BlockFace.SOUTH;
+            }
+            bestTouches = 0;
+        }
+
+        int distanceToSide = switch (bestSide) {
+            case WEST -> center.getBlockX();
+            case EAST -> (width - 1) - center.getBlockX();
+            case NORTH -> center.getBlockZ();
+            case SOUTH -> (length - 1) - center.getBlockZ();
+            default -> Integer.MAX_VALUE;
+        };
+        return new SideScore(bestSide, bestTouches, distanceToSide);
     }
 
     private static BlockVector3 centerOf(List<BlockVector3> points) {
@@ -849,6 +947,21 @@ public final class StrongholdDebugGenerator {
                 (int) Math.round(sy / points.size()),
                 (int) Math.round(sz / points.size())
         );
+    }
+
+    private record SideScore(BlockFace side, int edgeTouches, int distanceToSide) {
+    }
+
+    private record ConnectorCandidate(BlockVector3 center, int edgeTouches, int size, int distanceToSide) {
+        private boolean betterThan(ConnectorCandidate other) {
+            if (edgeTouches != other.edgeTouches) {
+                return edgeTouches > other.edgeTouches;
+            }
+            if (size != other.size) {
+                return size > other.size;
+            }
+            return distanceToSide < other.distanceToSide;
+        }
     }
 
     private static void paste(World world, Template template, BlockVector3 origin, int rotation) {
