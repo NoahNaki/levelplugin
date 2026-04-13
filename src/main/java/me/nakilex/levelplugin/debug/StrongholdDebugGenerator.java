@@ -95,6 +95,12 @@ public final class StrongholdDebugGenerator {
             new UsageRule(spec -> spec != null && isGate(spec), TARGET_GATE_TEMPLATES, UNDERUSED_TEMPLATE_BONUS),
             new UsageRule(spec -> spec != null && "church".equalsIgnoreCase(spec.id), TARGET_CHURCH_TEMPLATES, UNDERUSED_TEMPLATE_BONUS)
     );
+    private static final List<ConnectorRequirementRule> CONNECTOR_REQUIREMENT_RULES = List.of(
+            ConnectorRequirementRule.symmetric(
+                    spec -> spec != null && isWall(spec),
+                    spec -> spec != null && isTSection(spec)
+            )
+    );
 
     private StrongholdDebugGenerator() {
     }
@@ -820,6 +826,9 @@ public final class StrongholdDebugGenerator {
             if (areBothLarge(current.spec, direct.spec)) {
                 continue;
             }
+            if (requiresConnectorBetween(current.spec, direct.spec)) {
+                continue;
+            }
             String key = placementAttemptKey(null, direct);
             if (seen.add(key)) {
                 attempts.add(new PlacementAttempt(null, direct));
@@ -1089,6 +1098,10 @@ public final class StrongholdDebugGenerator {
         return spec.id.startsWith("gate_");
     }
 
+    private static boolean isTSection(TemplateSpec spec) {
+        return "t_section".equalsIgnoreCase(spec.id);
+    }
+
     private static boolean isTower(TemplateSpec spec) {
         return spec.id.startsWith("tower_");
     }
@@ -1113,6 +1126,18 @@ public final class StrongholdDebugGenerator {
             return false;
         }
         return true;
+    }
+
+    private static boolean requiresConnectorBetween(TemplateSpec from, TemplateSpec to) {
+        if (from == null || to == null) {
+            return false;
+        }
+        for (ConnectorRequirementRule rule : CONNECTOR_REQUIREMENT_RULES) {
+            if (rule.matches(from, to)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static ValidationResult validatePlacementRules(PlacementAttempt attempt,
@@ -1702,6 +1727,16 @@ public final class StrongholdDebugGenerator {
     }
 
     private record UsageRule(Predicate<TemplateSpec> matcher, int targetCount, double bonusPerMissing) {
+    }
+
+    private record ConnectorRequirementRule(Predicate<TemplateSpec> left, Predicate<TemplateSpec> right) {
+        private static ConnectorRequirementRule symmetric(Predicate<TemplateSpec> a, Predicate<TemplateSpec> b) {
+            return new ConnectorRequirementRule(a, b);
+        }
+
+        private boolean matches(TemplateSpec from, TemplateSpec to) {
+            return (left.test(from) && right.test(to)) || (left.test(to) && right.test(from));
+        }
     }
 
     private record PlacementAttempt(PlacedTemplate connector, PlacedTemplate placed) {
