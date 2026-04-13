@@ -254,6 +254,7 @@ public final class StrongholdDebugGenerator {
                 growBranches(placed.get(seedIndex), captured, occupied, random, placed, MAX_TOTAL_PIECES, diagnostics);
             }
         }
+        int sealedViableOutputs = closeViableOutputsWithDeadEnds(captured, occupied, random, placed);
 
         ensureTargetChunksLoaded(world, placed);
         for (PlacedTemplate entry : placed) {
@@ -270,9 +271,11 @@ public final class StrongholdDebugGenerator {
                         + ", branch blocked sides: " + diagnostics.branchBlockedSides
                         + ", remaining open outputs: " + countOpenOutputs(placed)
                         + ", viable next outputs: " + countViableOpenOutputs(placed, captured, occupied)
+                        + ", sealed viable outputs: " + sealedViableOutputs
                         + ", rejected(wallPacing): " + diagnostics.rejectedWallPacing
                         + ", rejected(largeSpacing): " + diagnostics.rejectedLargeSpacing
-                        + ", connectors: " + diagnostics.templateConnectorSummary);
+                        + ", placed templates: " + summarizePlacedTemplates(placed)
+                        + ", template connectors(captured): " + diagnostics.templateConnectorSummary);
         return true;
     }
 
@@ -617,27 +620,75 @@ public final class StrongholdDebugGenerator {
             if (canExpandFromSide(target, side, captured, occupied)) {
                 continue;
             }
-            PlacementAttempt deadEndAttempt = tryPlaceFromSide(
-                    target,
-                    side,
-                    captured.deadEnds(),
-                    null,
-                    occupied,
-                    placed,
-                    PlacementState.fromSeed(target.spec),
-                    null,
-                    random,
-                    null
-            );
+            PlacementAttempt deadEndAttempt = tryPlaceDeadEndFromSide(target, side, captured, occupied, random, placed);
             if (deadEndAttempt == null) {
                 target.markUsed(side);
                 continue;
             }
-
-            target.markUsed(side);
-            placed.add(deadEndAttempt.placed);
-            occupy(occupied, deadEndAttempt.placed);
+            applyDeadEndPlacement(target, side, deadEndAttempt, placed, occupied);
         }
+    }
+
+    private static int closeViableOutputsWithDeadEnds(CapturedTemplates captured,
+                                                       Set<Long> occupied,
+                                                       Random random,
+                                                       List<PlacedTemplate> placed) {
+        if (captured == null || captured.deadEnds().isEmpty()) {
+            return 0;
+        }
+        int sealed = 0;
+        boolean progress = true;
+        while (progress) {
+            progress = false;
+            List<PlacedTemplate> snapshot = new ArrayList<>(placed);
+            for (PlacedTemplate entry : snapshot) {
+                List<BlockFace> openSides = entry.openSides();
+                Collections.shuffle(openSides, random);
+                for (BlockFace side : openSides) {
+                    if (!canExpandFromSide(entry, side, captured, occupied)) {
+                        continue;
+                    }
+                    PlacementAttempt deadEndAttempt = tryPlaceDeadEndFromSide(entry, side, captured, occupied, random, placed);
+                    if (deadEndAttempt == null) {
+                        continue;
+                    }
+                    applyDeadEndPlacement(entry, side, deadEndAttempt, placed, occupied);
+                    sealed++;
+                    progress = true;
+                }
+            }
+        }
+        return sealed;
+    }
+
+    private static PlacementAttempt tryPlaceDeadEndFromSide(PlacedTemplate target,
+                                                             BlockFace side,
+                                                             CapturedTemplates captured,
+                                                             Set<Long> occupied,
+                                                             Random random,
+                                                             List<PlacedTemplate> placed) {
+        return tryPlaceFromSide(
+                target,
+                side,
+                captured.deadEnds(),
+                null,
+                occupied,
+                placed,
+                PlacementState.fromSeed(target.spec),
+                null,
+                random,
+                null
+        );
+    }
+
+    private static void applyDeadEndPlacement(PlacedTemplate target,
+                                              BlockFace side,
+                                              PlacementAttempt deadEndAttempt,
+                                              List<PlacedTemplate> placed,
+                                              Set<Long> occupied) {
+        target.markUsed(side);
+        placed.add(deadEndAttempt.placed);
+        occupy(occupied, deadEndAttempt.placed);
     }
 
     private static boolean hasViableExpansionFrom(PlacedTemplate target,
@@ -974,6 +1025,24 @@ public final class StrongholdDebugGenerator {
             entries.add(spec.id + ":" + connectorCount);
         }
         return String.join(", ", entries);
+    }
+
+    private static String summarizePlacedTemplates(List<PlacedTemplate> placed) {
+        if (placed == null || placed.isEmpty()) {
+            return "none";
+        }
+        Map<String, Integer> counts = new LinkedHashMap<>();
+        for (PlacedTemplate entry : placed) {
+            if (entry == null || entry.spec == null) {
+                continue;
+            }
+            counts.merge(entry.spec.id, 1, Integer::sum);
+        }
+        List<String> summary = new ArrayList<>();
+        for (Map.Entry<String, Integer> entry : counts.entrySet()) {
+            summary.add(entry.getKey() + ":" + entry.getValue());
+        }
+        return String.join(", ", summary);
     }
 
     private static List<PlacedTemplate> enumerateSinglePlacements(PlacedTemplate current,
