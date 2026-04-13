@@ -86,6 +86,9 @@ public final class StrongholdDebugGenerator {
     private static final double BRANCH_OPEN_SIDE_CHANCE = 1.00D;
     private static final int REQUIRED_CHURCH_CLEARANCE_RADIUS = 5;
     private static final double FORCED_LARGE_TEMPLATE_OVERLAP_PERCENT = 8.0D;
+    private static final int SATELLITE_CHURCH_SEARCH_PADDING = 80;
+    private static final int SATELLITE_CHURCH_SEARCH_STEP = 6;
+    private static final int MAX_SATELLITE_LINK_SEGMENTS = 6;
     private static final boolean USE_FRONTIER_SCHEDULER = false;
     private static final int TARGET_GATE_TEMPLATES = 2;
     private static final int TARGET_CHURCH_TEMPLATES = 1;
@@ -256,6 +259,15 @@ public final class StrongholdDebugGenerator {
                 growBranches(placed.get(seedIndex), captured, occupied, random, placed, MAX_TOTAL_PIECES, diagnostics);
             }
         }
+        SatellitePlacementResult satellitePlacement = placeSatelliteChurchWithOptionalLink(
+                captured,
+                occupied,
+                random,
+                placed,
+                MAX_TOTAL_PIECES
+        );
+        diagnostics.satelliteChurchPlaced = satellitePlacement.placed();
+        diagnostics.satelliteLinkSegments = satellitePlacement.linkSegments();
         diagnostics.churchPlacementsForced = ensureTemplatePlacements(
                 spec -> spec != null && "church".equalsIgnoreCase(spec.id),
                 captured.largeJunctions(),
@@ -288,6 +300,8 @@ public final class StrongholdDebugGenerator {
                         + ", sealed viable outputs: " + sealedViableOutputs
                         + ", church placed: " + finalChurchCount
                         + ", church forced: " + diagnostics.churchPlacementsForced
+                        + ", church satellite: " + diagnostics.satelliteChurchPlaced
+                        + ", satellite link segments: " + diagnostics.satelliteLinkSegments
                         + ", rejected(wallPacing): " + diagnostics.rejectedWallPacing
                         + ", rejected(largeSpacing): " + diagnostics.rejectedLargeSpacing
                         + ", placed templates: " + summarizePlacedTemplates(placed)
@@ -705,6 +719,227 @@ public final class StrongholdDebugGenerator {
         target.markUsed(side);
         placed.add(deadEndAttempt.placed);
         occupy(occupied, deadEndAttempt.placed);
+    }
+
+    private static SatellitePlacementResult placeSatelliteChurchWithOptionalLink(CapturedTemplates captured,
+                                                                                 Set<Long> occupied,
+                                                                                 Random random,
+                                                                                 List<PlacedTemplate> placed,
+                                                                                 int maxPieces) {
+        if (captured == null || placed == null || placed.isEmpty() || placed.size() >= maxPieces) {
+            return SatellitePlacementResult.none();
+        }
+        if (countPlacedTemplatesMatching(placed, spec -> spec != null && "church".equalsIgnoreCase(spec.id))
+                >= TARGET_CHURCH_TEMPLATES) {
+            return SatellitePlacementResult.none();
+        }
+        TemplateSpec church = findTemplateById(captured.largeJunctions(), "church");
+        if (church == null) {
+            return SatellitePlacementResult.none();
+        }
+        PlacedTemplate satelliteChurch = findSatelliteChurchPlacement(church, occupied, placed);
+        if (satelliteChurch == null) {
+            return SatellitePlacementResult.none();
+        }
+        placed.add(satelliteChurch);
+        occupy(occupied, satelliteChurch);
+        int linkedSegments = attemptSatelliteLink(satelliteChurch, captured, occupied, random, placed, maxPieces);
+        return new SatellitePlacementResult(true, linkedSegments);
+    }
+
+    private static PlacedTemplate findSatelliteChurchPlacement(TemplateSpec church,
+                                                               Set<Long> occupied,
+                                                               List<PlacedTemplate> placed) {
+        Bounds2D footprint = combinedFootprint(placed);
+        if (footprint == null) {
+            return null;
+        }
+        int baseY = placed.get(0).origin.getBlockY();
+        int minX = footprint.minX - SATELLITE_CHURCH_SEARCH_PADDING;
+        int maxX = footprint.maxX + SATELLITE_CHURCH_SEARCH_PADDING;
+        int minZ = footprint.minZ - SATELLITE_CHURCH_SEARCH_PADDING;
+        int maxZ = footprint.maxZ + SATELLITE_CHURCH_SEARCH_PADDING;
+
+        for (int x = minX; x <= maxX; x += SATELLITE_CHURCH_SEARCH_STEP) {
+            for (int z = minZ; z <= maxZ; z += SATELLITE_CHURCH_SEARCH_STEP) {
+                for (int rotation = 0; rotation < 4; rotation++) {
+                    PlacedTemplate candidate = new PlacedTemplate(church, rotation, BlockVector3.at(x, baseY, z));
+                    RotatedTemplate rotated = rotateTemplate(church.template, rotation);
+                    if (overlapPercent(occupied, rotated.blocks, candidate.origin) > maxOverlapPercent) {
+                        continue;
+                    }
+                    if (!hasExpandedAreaClearance(candidate, occupied, REQUIRED_CHURCH_CLEARANCE_RADIUS)) {
+                        continue;
+                    }
+                    return candidate;
+                }
+            }
+        }
+        return null;
+    }
+
+    private static int attemptSatelliteLink(PlacedTemplate satelliteChurch,
+                                            CapturedTemplates captured,
+                                            Set<Long> occupied,
+                                            Random random,
+                                            List<PlacedTemplate> placed,
+                                            int maxPieces) {
+        if (satelliteChurch == null || captured == null || placed.size() >= maxPieces) {
+            return 0;
+        }
+        TemplateSpec nearest = findNearestTemplateWithOpenSide(placed, satelliteChurch);
+        if (nearest == null) {
+            return 0;
+        }
+        PlacedTemplate current = findPlacedTemplateBySpec(placed, nearest);
+        if (current == null) {
+            return 0;
+        }
+        List<TemplateSpec> preferredWalls = preferredLinkWallPool(captured);
+        PlacementState state = PlacementState.fromSeed(current.spec);
+        int segments = 0;
+
+        while (segments < MAX_SATELLITE_LINK_SEGMENTS && placed.size() < maxPieces) {
+            BlockFace side = pickOpenSideToward(current, satelliteChurch, captured, occupied, state, random);
+            if (side == null) {
+                break;
+            }
+            PlacementAttempt attempt = tryPlaceFromSide(
+                    current,
+                    side,
+                    preferredWalls,
+                    captured.connector(),
+                    occupied,
+                    placed,
+                    state,
+                    captured,
+                    random,
+                    null
+            );
+            if (attempt == null) {
+                current.markUsed(side);
+                break;
+            }
+            applyPlacementAttempt(current, side, attempt, placed, occupied);
+            state = state.onPlaced(attempt.placed.spec);
+            current = attempt.placed;
+            segments++;
+        }
+        return segments;
+    }
+
+    private static List<TemplateSpec> preferredLinkWallPool(CapturedTemplates captured) {
+        List<TemplateSpec> straightWalls = new ArrayList<>();
+        for (TemplateSpec wall : captured.walls()) {
+            if (isLinearWallTemplate(wall)) {
+                straightWalls.add(wall);
+            }
+        }
+        if (!straightWalls.isEmpty()) {
+            return straightWalls;
+        }
+        return captured.walls();
+    }
+
+    private static BlockFace pickOpenSideToward(PlacedTemplate current,
+                                                PlacedTemplate target,
+                                                CapturedTemplates captured,
+                                                Set<Long> occupied,
+                                                PlacementState state,
+                                                Random random) {
+        List<BlockFace> openSides = current.openSides();
+        if (openSides.isEmpty()) {
+            return null;
+        }
+        BlockFace bestSide = null;
+        double bestDistance = Double.MAX_VALUE;
+        Point2D targetCenter = centerOf(boundsForPlaced(target, rotateTemplate(target.spec.template, target.rotation)));
+        List<TemplateSpec> pool = candidatePoolForStep(captured, current, state);
+        for (BlockFace side : openSides) {
+            if (enumeratePlacementAttempts(current, side, pool, captured.connector(), occupied).isEmpty()) {
+                continue;
+            }
+            BlockVector3 probe = probeTowardSide(current, side);
+            double distance = planarDistance(new Point2D(probe.getBlockX(), probe.getBlockZ()), targetCenter);
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                bestSide = side;
+            }
+        }
+        if (bestSide != null) {
+            return bestSide;
+        }
+        return openSides.get(random.nextInt(openSides.size()));
+    }
+
+    private static BlockVector3 probeTowardSide(PlacedTemplate current, BlockFace side) {
+        RotatedTemplate rotated = rotateTemplate(current.spec.template, current.rotation);
+        Bounds2D bounds = boundsForPlaced(current, rotated);
+        int x = (bounds.minX + bounds.maxX) / 2;
+        int z = (bounds.minZ + bounds.maxZ) / 2;
+        return switch (side) {
+            case NORTH -> BlockVector3.at(x, current.origin.getBlockY(), bounds.minZ - 1);
+            case SOUTH -> BlockVector3.at(x, current.origin.getBlockY(), bounds.maxZ + 1);
+            case EAST -> BlockVector3.at(bounds.maxX + 1, current.origin.getBlockY(), z);
+            case WEST -> BlockVector3.at(bounds.minX - 1, current.origin.getBlockY(), z);
+            default -> current.origin;
+        };
+    }
+
+    private static TemplateSpec findNearestTemplateWithOpenSide(List<PlacedTemplate> placed,
+                                                                PlacedTemplate target) {
+        if (target == null) {
+            return null;
+        }
+        Point2D targetCenter = centerOf(boundsForPlaced(target, rotateTemplate(target.spec.template, target.rotation)));
+        TemplateSpec best = null;
+        double bestDistance = Double.MAX_VALUE;
+        for (PlacedTemplate entry : placed) {
+            if (entry == target || entry.openSides().isEmpty()) {
+                continue;
+            }
+            Bounds2D bounds = boundsForPlaced(entry, rotateTemplate(entry.spec.template, entry.rotation));
+            Point2D center = centerOf(bounds);
+            double distance = planarDistance(center, targetCenter);
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                best = entry.spec;
+            }
+        }
+        return best;
+    }
+
+    private static PlacedTemplate findPlacedTemplateBySpec(List<PlacedTemplate> placed, TemplateSpec spec) {
+        for (PlacedTemplate entry : placed) {
+            if (entry != null && entry.spec == spec) {
+                return entry;
+            }
+        }
+        return null;
+    }
+
+    private static Bounds2D combinedFootprint(List<PlacedTemplate> placed) {
+        if (placed == null || placed.isEmpty()) {
+            return null;
+        }
+        int minX = Integer.MAX_VALUE;
+        int maxX = Integer.MIN_VALUE;
+        int minZ = Integer.MAX_VALUE;
+        int maxZ = Integer.MIN_VALUE;
+        for (PlacedTemplate entry : placed) {
+            Bounds2D bounds = boundsForPlaced(entry, rotateTemplate(entry.spec.template, entry.rotation));
+            if (bounds == null) {
+                continue;
+            }
+            minX = Math.min(minX, bounds.minX);
+            maxX = Math.max(maxX, bounds.maxX);
+            minZ = Math.min(minZ, bounds.minZ);
+            maxZ = Math.max(maxZ, bounds.maxZ);
+        }
+        if (minX == Integer.MAX_VALUE) {
+            return null;
+        }
+        return new Bounds2D(minX, maxX, minZ, maxZ);
     }
 
     private static int ensureTemplatePlacements(Predicate<TemplateSpec> matcher,
@@ -2089,6 +2324,8 @@ public final class StrongholdDebugGenerator {
         private int spineBlockedSides;
         private int branchBlockedSides;
         private int churchPlacementsForced;
+        private boolean satelliteChurchPlaced;
+        private int satelliteLinkSegments;
         private int rejectedWallPacing;
         private int rejectedLargeSpacing;
         private String templateConnectorSummary = "";
@@ -2158,6 +2395,12 @@ public final class StrongholdDebugGenerator {
     }
 
     private record Point2D(double x, double z) {
+    }
+
+    private record SatellitePlacementResult(boolean placed, int linkSegments) {
+        private static SatellitePlacementResult none() {
+            return new SatellitePlacementResult(false, 0);
+        }
     }
 
     private static final class PlacedTemplate {
