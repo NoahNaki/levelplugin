@@ -70,10 +70,10 @@ public final class StrongholdDebugGenerator {
     private static final int DEFAULT_SPINE_LENGTH = 20;
     private static final int MAX_BRANCH_LENGTH = 10;
     private static final int MAX_TOTAL_PIECES = 96;
-    private static final int MIN_WALL_PIECES_BETWEEN_LARGE = 2;
-    private static final int MIN_BLOCKS_BETWEEN_LARGE = 8;
+    private static final int MIN_WALL_PIECES_BETWEEN_LARGE = 1;
+    private static final int MIN_BLOCKS_BETWEEN_LARGE = 24;
     private static final int MIN_WALL_PIECES_BETWEEN_GATES = 3;
-    private static final int MAX_CONNECTOR_DRIFT_BLOCKS = 1;
+    private static final int MAX_CONNECTOR_DRIFT_BLOCKS = 16;
     private static final double BRANCH_OPEN_SIDE_CHANCE = 0.90D;
 
     private static double maxOverlapPercent = 2.0D;
@@ -678,7 +678,9 @@ public final class StrongholdDebugGenerator {
         if (targetBounds == null) {
             return true;
         }
+        Point2D targetCenter = centerOf(targetBounds);
 
+        double nearestLargeDistance = Double.MAX_VALUE;
         for (PlacedTemplate existing : placedTemplates) {
             if (!isLarge(existing.spec)) {
                 continue;
@@ -691,27 +693,20 @@ public final class StrongholdDebugGenerator {
             if (existingBounds == null) {
                 continue;
             }
-            if (blockGapBetween(targetBounds, existingBounds) < MIN_BLOCKS_BETWEEN_LARGE) {
-                return false;
-            }
+            Point2D existingCenter = centerOf(existingBounds);
+            nearestLargeDistance = Math.min(nearestLargeDistance, planarDistance(targetCenter, existingCenter));
         }
-        return true;
+        return nearestLargeDistance >= MIN_BLOCKS_BETWEEN_LARGE;
     }
 
-    private static int blockGapBetween(Bounds2D a, Bounds2D b) {
-        int dx = axisGap(a.minX, a.maxX, b.minX, b.maxX);
-        int dz = axisGap(a.minZ, a.maxZ, b.minZ, b.maxZ);
-        return Math.max(dx, dz);
+    private static Point2D centerOf(Bounds2D bounds) {
+        return new Point2D((bounds.minX + bounds.maxX) / 2.0D, (bounds.minZ + bounds.maxZ) / 2.0D);
     }
 
-    private static int axisGap(int minA, int maxA, int minB, int maxB) {
-        if (maxA < minB) {
-            return minB - maxA - 1;
-        }
-        if (maxB < minA) {
-            return minA - maxB - 1;
-        }
-        return 0;
+    private static double planarDistance(Point2D a, Point2D b) {
+        double dx = a.x - b.x;
+        double dz = a.z - b.z;
+        return Math.sqrt((dx * dx) + (dz * dz));
     }
 
     private static Bounds2D boundsForPlaced(PlacedTemplate placed, RotatedTemplate rotated) {
@@ -1306,6 +1301,9 @@ public final class StrongholdDebugGenerator {
     }
 
     private record Bounds2D(int minX, int maxX, int minZ, int maxZ) {
+    }
+
+    private record Point2D(double x, double z) {
     }
 
     private static final class PlacedTemplate {
