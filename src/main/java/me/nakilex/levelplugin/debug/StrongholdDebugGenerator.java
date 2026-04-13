@@ -90,7 +90,7 @@ public final class StrongholdDebugGenerator {
     private static final int SATELLITE_CHURCH_SEARCH_STEP = 6;
     private static final int SATELLITE_CHURCH_MAX_PADDING = 360;
     private static final int SATELLITE_CHURCH_FAR_OFFSET = 220;
-    private static final int MAX_EMERGENCY_TEMPLATE_RADIUS = 420;
+    private static final int MAX_EMERGENCY_TEMPLATE_RADIUS = 1200;
     private static final int MAX_SATELLITE_LINK_SEGMENTS = 6;
     private static final boolean USE_FRONTIER_SCHEDULER = false;
     private static final int TARGET_GATE_TEMPLATES = 2;
@@ -285,7 +285,7 @@ public final class StrongholdDebugGenerator {
         diagnostics.churchEmergencyPlaced = forceTemplatePlacementIfMissing(
                 spec -> spec != null && "church".equalsIgnoreCase(spec.id),
                 findTemplateById(captured.largeJunctions(), "church"),
-                REQUIRED_CHURCH_CLEARANCE_RADIUS,
+                -1,
                 occupied,
                 placed,
                 MAX_TOTAL_PIECES
@@ -838,6 +838,9 @@ public final class StrongholdDebugGenerator {
         RotatedTemplate rotated = rotateTemplate(candidate.spec.template, candidate.rotation);
         if (overlapPercent(occupied, rotated.blocks, candidate.origin) > maxOverlapPercent) {
             return false;
+        }
+        if (clearanceRadius < 0) {
+            return true;
         }
         return hasExpandedAreaClearance(candidate, occupied, clearanceRadius);
     }
