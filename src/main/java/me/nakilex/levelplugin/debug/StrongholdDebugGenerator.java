@@ -314,6 +314,15 @@ public final class StrongholdDebugGenerator {
                 wallPool.add(wall);
             }
         }
+        List<TemplateSpec> linearWallPool = new ArrayList<>();
+        for (TemplateSpec wall : wallPool) {
+            if (isLinearWallTemplate(wall)) {
+                linearWallPool.add(wall);
+            }
+        }
+        if (!linearWallPool.isEmpty()) {
+            wallPool = linearWallPool;
+        }
         if (wallPool.isEmpty()) {
             wallPool.addAll(captured.walls());
         }
@@ -340,7 +349,7 @@ public final class StrongholdDebugGenerator {
             if (builtBranches >= maxBranches || placed.size() >= MAX_TOTAL_PIECES) {
                 break;
             }
-            PlacementAttempt wallAttempt = selectBestAttempt(root, side, wallPool, captured, occupied, 6, 1);
+            PlacementAttempt wallAttempt = selectBestAttempt(root, side, wallPool, captured, occupied, 6, 0);
             if (wallAttempt == null) {
                 root.markUsed(side);
                 continue;
@@ -415,6 +424,20 @@ public final class StrongholdDebugGenerator {
             }
         }
         return best;
+    }
+
+    private static boolean isLinearWallTemplate(TemplateSpec spec) {
+        if (spec == null || spec.template == null || spec.template.connectors == null) {
+            return false;
+        }
+        Set<BlockFace> sides = spec.template.connectors.keySet();
+        if (sides.size() != 2) {
+            return false;
+        }
+        if (sides.contains(BlockFace.NORTH) && sides.contains(BlockFace.SOUTH)) {
+            return true;
+        }
+        return sides.contains(BlockFace.EAST) && sides.contains(BlockFace.WEST);
     }
 
     private static void applyPlacementAttempt(PlacedTemplate current,
@@ -738,7 +761,7 @@ public final class StrongholdDebugGenerator {
         List<PlacementAttempt> attempts = new ArrayList<>();
         Set<String> seen = new HashSet<>();
 
-        if (connector != null) {
+        if (connector != null && maxConnectorBridgeOptions > 0) {
             List<PlacedTemplate> connectorPlacements = enumerateSinglePlacements(
                     current, currentSide, List.of(connector), occupied, true, maxConnectorBridgeOptions
             );
