@@ -1484,7 +1484,7 @@ public final class StrongholdDebugGenerator {
                 continue;
             }
             BlockFace nearestSide = nearestSide(center, footprint);
-            bySide.get(nearestSide).add(center);
+            bySide.get(nearestSide).add(projectConnectorToFootprintEdge(center, nearestSide, footprint));
         }
 
         Map<BlockFace, List<BlockVector3>> out = new EnumMap<>(BlockFace.class);
@@ -1502,6 +1502,28 @@ public final class StrongholdDebugGenerator {
             out.put(entry.getKey(), points);
         }
         return out;
+    }
+
+    private static BlockVector3 projectConnectorToFootprintEdge(BlockVector3 point,
+                                                                BlockFace side,
+                                                                StructureFootprint footprint) {
+        if (point == null || side == null || footprint == null) {
+            return point;
+        }
+        int x = point.getBlockX();
+        int y = point.getBlockY();
+        int z = point.getBlockZ();
+        return switch (side) {
+            case NORTH -> BlockVector3.at(clamp(x, footprint.minX, footprint.maxX), y, footprint.minZ);
+            case SOUTH -> BlockVector3.at(clamp(x, footprint.minX, footprint.maxX), y, footprint.maxZ);
+            case EAST -> BlockVector3.at(footprint.maxX, y, clamp(z, footprint.minZ, footprint.maxZ));
+            case WEST -> BlockVector3.at(footprint.minX, y, clamp(z, footprint.minZ, footprint.maxZ));
+            default -> point;
+        };
+    }
+
+    private static int clamp(int value, int min, int max) {
+        return Math.max(min, Math.min(max, value));
     }
 
     private static List<Set<BlockVector3>> splitMarkerComponents(Set<BlockVector3> markers) {
