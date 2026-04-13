@@ -847,14 +847,31 @@ public final class StrongholdDebugGenerator {
             if (center == null) {
                 continue;
             }
-            SideScore score = sideScore(component, center, width, length);
-            if (score.side == null) {
-                continue;
+
+            Map<BlockFace, Integer> touchCounts = sideTouchCounts(component, width, length);
+            boolean attachedToAnySide = false;
+            for (Map.Entry<BlockFace, Integer> entry : touchCounts.entrySet()) {
+                if (entry.getValue() <= 0) {
+                    continue;
+                }
+                attachedToAnySide = true;
+                BlockFace side = entry.getKey();
+                int distanceToSide = distanceToSide(center, side, width, length);
+                ConnectorCandidate candidate = new ConnectorCandidate(center, entry.getValue(), component.size(), distanceToSide);
+                ConnectorCandidate existing = bestBySide.get(side);
+                if (existing == null || candidate.betterThan(existing)) {
+                    bestBySide.put(side, candidate);
+                }
             }
-            ConnectorCandidate candidate = new ConnectorCandidate(center, score.edgeTouches, component.size(), score.distanceToSide);
-            ConnectorCandidate existing = bestBySide.get(score.side);
-            if (existing == null || candidate.betterThan(existing)) {
-                bestBySide.put(score.side, candidate);
+
+            if (!attachedToAnySide) {
+                BlockFace nearestSide = nearestSide(center, width, length);
+                int distanceToSide = distanceToSide(center, nearestSide, width, length);
+                ConnectorCandidate candidate = new ConnectorCandidate(center, 0, component.size(), distanceToSide);
+                ConnectorCandidate existing = bestBySide.get(nearestSide);
+                if (existing == null || candidate.betterThan(existing)) {
+                    bestBySide.put(nearestSide, candidate);
+                }
             }
         }
         Map<BlockFace, BlockVector3> out = new EnumMap<>(BlockFace.class);
@@ -895,10 +912,7 @@ public final class StrongholdDebugGenerator {
         );
     }
 
-    private static SideScore sideScore(Set<BlockVector3> component,
-                                       BlockVector3 center,
-                                       int width,
-                                       int length) {
+    private static Map<BlockFace, Integer> sideTouchCounts(Set<BlockVector3> component, int width, int length) {
         int westTouches = 0;
         int eastTouches = 0;
         int northTouches = 0;
@@ -923,42 +937,35 @@ public final class StrongholdDebugGenerator {
         touches.put(BlockFace.EAST, eastTouches);
         touches.put(BlockFace.NORTH, northTouches);
         touches.put(BlockFace.SOUTH, southTouches);
+        return touches;
+    }
 
-        BlockFace bestSide = null;
-        int bestTouches = 0;
-        for (Map.Entry<BlockFace, Integer> entry : touches.entrySet()) {
-            if (entry.getValue() > bestTouches) {
-                bestTouches = entry.getValue();
-                bestSide = entry.getKey();
-            }
+    private static BlockFace nearestSide(BlockVector3 center, int width, int length) {
+        int westDist = center.getBlockX();
+        int eastDist = (width - 1) - center.getBlockX();
+        int northDist = center.getBlockZ();
+        int southDist = (length - 1) - center.getBlockZ();
+        int min = Math.min(Math.min(westDist, eastDist), Math.min(northDist, southDist));
+        if (westDist == min) {
+            return BlockFace.WEST;
         }
-
-        if (bestSide == null) {
-            int westDist = center.getBlockX();
-            int eastDist = (width - 1) - center.getBlockX();
-            int northDist = center.getBlockZ();
-            int southDist = (length - 1) - center.getBlockZ();
-            int min = Math.min(Math.min(westDist, eastDist), Math.min(northDist, southDist));
-            if (westDist == min) {
-                bestSide = BlockFace.WEST;
-            } else if (eastDist == min) {
-                bestSide = BlockFace.EAST;
-            } else if (northDist == min) {
-                bestSide = BlockFace.NORTH;
-            } else {
-                bestSide = BlockFace.SOUTH;
-            }
-            bestTouches = 0;
+        if (eastDist == min) {
+            return BlockFace.EAST;
         }
+        if (northDist == min) {
+            return BlockFace.NORTH;
+        }
+        return BlockFace.SOUTH;
+    }
 
-        int distanceToSide = switch (bestSide) {
+    private static int distanceToSide(BlockVector3 center, BlockFace side, int width, int length) {
+        return switch (side) {
             case WEST -> center.getBlockX();
             case EAST -> (width - 1) - center.getBlockX();
             case NORTH -> center.getBlockZ();
             case SOUTH -> (length - 1) - center.getBlockZ();
             default -> Integer.MAX_VALUE;
         };
-        return new SideScore(bestSide, bestTouches, distanceToSide);
     }
 
     private static BlockVector3 centerOf(List<BlockVector3> points) {
@@ -978,9 +985,6 @@ public final class StrongholdDebugGenerator {
                 (int) Math.round(sy / points.size()),
                 (int) Math.round(sz / points.size())
         );
-    }
-
-    private record SideScore(BlockFace side, int edgeTouches, int distanceToSide) {
     }
 
     private record ConnectorCandidate(BlockVector3 center, int edgeTouches, int size, int distanceToSide) {
