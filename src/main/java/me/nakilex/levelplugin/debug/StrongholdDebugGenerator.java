@@ -82,6 +82,12 @@ public final class StrongholdDebugGenerator {
     public static void setMaxOverlapPercent(double value) {
         maxOverlapPercent = Math.max(0.0D, Math.min(100.0D, value));
     }
+    public static int cleanupGeneratedWorlds(Main plugin) {
+        if (plugin == null || plugin.getWorldManager() == null) {
+            return 0;
+        }
+        return plugin.getWorldManager().deleteWorldsByPrefix(GENERATED_WORLD_PREFIX);
+    }
 
     public static boolean generateTest(Player player) {
         if (player == null) {
@@ -122,7 +128,8 @@ public final class StrongholdDebugGenerator {
 
         int originX = 0;
         int originZ = 0;
-        int originY = Math.max(5, world.getHighestBlockYAt(originX, originZ) + 1);
+        world.getChunkAt(Math.floorDiv(originX, 16), Math.floorDiv(originZ, 16)).load(true);
+        int originY = Math.max(1, world.getHighestBlockYAt(originX, originZ));
 
         List<PlacedTemplate> placed = new ArrayList<>();
         Set<Long> occupied = new HashSet<>();

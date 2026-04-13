@@ -121,6 +121,26 @@ public class WorldManager {
         return world;
     }
 
+
+    public int deleteWorldsByPrefix(String prefix) {
+        if (prefix == null || prefix.isBlank()) {
+            return 0;
+        }
+        File container = plugin.getServer().getWorldContainer();
+        File[] dirs = container.listFiles(f -> f.isDirectory() && f.getName().startsWith(prefix));
+        if (dirs == null || dirs.length == 0) {
+            return 0;
+        }
+
+        int deleted = 0;
+        for (File dir : dirs) {
+            if (deleteWorld(dir.getName())) {
+                deleted++;
+            }
+        }
+        return deleted;
+    }
+
     public void setSpawn(World world, Location loc) {
         spawns.put(world.getName().toLowerCase(), loc);
         save();

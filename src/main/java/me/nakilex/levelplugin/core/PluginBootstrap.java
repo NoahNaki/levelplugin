@@ -320,6 +320,7 @@ public class PluginBootstrap {
         // worlds to be loaded. Ensure the necessary worlds are available
         // before other managers are initialized.
         worldManager = new me.nakilex.levelplugin.world.WorldManager(plugin);
+        me.nakilex.levelplugin.debug.StrongholdDebugGenerator.cleanupGeneratedWorlds(plugin);
         String hubWorld = customConfig != null
                 ? customConfig.getString("server.hub-world", "hub")
                 : "hub";
@@ -763,6 +764,9 @@ public class PluginBootstrap {
         if (beaconManager != null) beaconManager.removeAll();
         if (beaconEntityDebugManager != null) beaconEntityDebugManager.removeAll();
         if (serverSelectionManager != null) serverSelectionManager.shutdown();
+        if (worldManager != null) {
+            me.nakilex.levelplugin.debug.StrongholdDebugGenerator.cleanupGeneratedWorlds(plugin);
+        }
         if (dealMaker != null) dealMaker.closeAllTrades();
         plugin.getLogger().info("LevelPlugin has been disabled!");
     }
