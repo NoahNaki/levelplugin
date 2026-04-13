@@ -64,8 +64,9 @@ public final class StrongholdDebugGenerator {
     private static final String SOURCE_WORLD = "flatland";
     private static final String GENERATED_WORLD_PREFIX = "stronghold_debug_";
 
-    private static final int DEFAULT_SPINE_LENGTH = 14;
-    private static final int MAX_BRANCH_LENGTH = 8;
+    private static final int DEFAULT_SPINE_LENGTH = 20;
+    private static final int MAX_BRANCH_LENGTH = 10;
+    private static final int MAX_TOTAL_PIECES = 96;
     private static final int MIN_SMALL_PIECES_BETWEEN_LARGE = 1;
     private static final int MIN_WALL_PIECES_BETWEEN_GATES = 3;
     private static final double BRANCH_OPEN_SIDE_CHANCE = 0.90D;
@@ -181,9 +182,8 @@ public final class StrongholdDebugGenerator {
 
         closeOpenSideWithDeadEnd(spineHead, captured, occupied, random, placed);
 
-        List<PlacedTemplate> branchSeeds = new ArrayList<>(placed);
-        for (PlacedTemplate seed : branchSeeds) {
-            growBranches(seed, captured, occupied, random, placed);
+        for (int seedIndex = 0; seedIndex < placed.size() && placed.size() < MAX_TOTAL_PIECES; seedIndex++) {
+            growBranches(placed.get(seedIndex), captured, occupied, random, placed, MAX_TOTAL_PIECES);
         }
 
         ensureTargetChunksLoaded(world, placed);
@@ -258,11 +258,18 @@ public final class StrongholdDebugGenerator {
                                      CapturedTemplates captured,
                                      Set<Long> occupied,
                                      Random random,
-                                     List<PlacedTemplate> placed) {
+                                     List<PlacedTemplate> placed,
+                                     int maxPieces) {
+        if (placed.size() >= maxPieces) {
+            return;
+        }
         List<BlockFace> openSides = seed.openSides();
         Collections.shuffle(openSides, random);
 
         for (BlockFace side : openSides) {
+            if (placed.size() >= maxPieces) {
+                return;
+            }
             if (random.nextDouble() > BRANCH_OPEN_SIDE_CHANCE) {
                 continue;
             }
@@ -271,8 +278,13 @@ public final class StrongholdDebugGenerator {
             BlockFace branchSide = side;
             PlacementState branchState = PlacementState.fromSeed(seed.spec);
 
-            int segments = 1 + random.nextInt(MAX_BRANCH_LENGTH);
+            int remaining = Math.max(1, maxPieces - placed.size());
+            int maxSegments = Math.min(MAX_BRANCH_LENGTH, remaining);
+            int segments = 1 + random.nextInt(maxSegments);
             for (int i = 0; i < segments; i++) {
+                if (placed.size() >= maxPieces) {
+                    return;
+                }
                 List<TemplateSpec> pool = candidatePoolForStep(captured, branchCurrent, branchState, i > 0);
 
                 PlacementAttempt attempt = tryPlaceFromSide(branchCurrent, branchSide, pool, captured.connector(), occupied, branchState, captured, random);
