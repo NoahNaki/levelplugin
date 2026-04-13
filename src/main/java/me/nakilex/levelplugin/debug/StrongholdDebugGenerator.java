@@ -334,54 +334,40 @@ public final class StrongholdDebugGenerator {
         placed.add(root);
         occupy(occupied, root);
 
-        record TowerSeed(PlacedTemplate towerPlaced, int depth) {}
-        Deque<TowerSeed> queue = new ArrayDeque<>();
-        queue.add(new TowerSeed(root, 0));
-
-        final int maxDepth = 1;
         final int wallsPerBranch = 2;
-        final int maxExpansionIterations = 24;
-        int expansionIterations = 0;
-        while (!queue.isEmpty() && placed.size() < MAX_TOTAL_PIECES && expansionIterations < maxExpansionIterations) {
-            TowerSeed seed = queue.poll();
-            if (seed.depth >= maxDepth) {
+        final int maxBranches = 4;
+        int builtBranches = 0;
+        for (BlockFace side : distinctOpenSides(root)) {
+            if (builtBranches >= maxBranches || placed.size() >= MAX_TOTAL_PIECES) {
+                break;
+            }
+
+            PlacedTemplate current = root;
+            BlockFace travelSide = side;
+            boolean builtCorridor = true;
+
+            for (int i = 0; i < wallsPerBranch; i++) {
+                PlacementAttempt wallAttempt = selectBestAttempt(current, travelSide, wallPool, captured, occupied, 6, 1);
+                if (wallAttempt == null) {
+                    builtCorridor = false;
+                    current.markUsed(travelSide);
+                    break;
+                }
+                applyPlacementAttempt(current, travelSide, wallAttempt, placed, occupied);
+                current = wallAttempt.placed;
+                travelSide = opposite(current.incomingSide);
+            }
+            if (!builtCorridor || placed.size() >= MAX_TOTAL_PIECES) {
                 continue;
             }
 
-            for (BlockFace side : distinctOpenSides(seed.towerPlaced)) {
-                if (expansionIterations++ >= maxExpansionIterations) {
-                    break;
-                }
-                PlacedTemplate current = seed.towerPlaced;
-                BlockFace travelSide = side;
-                boolean builtCorridor = true;
-
-                for (int i = 0; i < wallsPerBranch; i++) {
-                    PlacementAttempt wallAttempt = selectBestAttempt(current, travelSide, wallPool, captured, occupied, 8, 2);
-                    if (wallAttempt == null) {
-                        builtCorridor = false;
-                        current.markUsed(travelSide);
-                        break;
-                    }
-                    applyPlacementAttempt(current, travelSide, wallAttempt, placed, occupied);
-                    current = wallAttempt.placed;
-                    travelSide = opposite(current.incomingSide);
-                    if (placed.size() >= MAX_TOTAL_PIECES) {
-                        break;
-                    }
-                }
-                if (!builtCorridor || placed.size() >= MAX_TOTAL_PIECES) {
-                    continue;
-                }
-
-                PlacementAttempt towerAttempt = selectBestAttempt(current, travelSide, List.of(tower), captured, occupied, 8, 2);
-                if (towerAttempt == null) {
-                    current.markUsed(travelSide);
-                    continue;
-                }
-                applyPlacementAttempt(current, travelSide, towerAttempt, placed, occupied);
-                queue.add(new TowerSeed(towerAttempt.placed, seed.depth + 1));
+            PlacementAttempt towerAttempt = selectBestAttempt(current, travelSide, List.of(tower), captured, occupied, 6, 1);
+            if (towerAttempt == null) {
+                current.markUsed(travelSide);
+                continue;
             }
+            applyPlacementAttempt(current, travelSide, towerAttempt, placed, occupied);
+            builtBranches++;
         }
 
         ensureTargetChunksLoaded(world, placed);
@@ -394,7 +380,7 @@ public final class StrongholdDebugGenerator {
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                 "Towerwall diagnostics -> remaining open outputs: " + countOpenOutputs(placed)
                         + ", viable next outputs: skipped"
-                        + ", iteration cap hit: " + (expansionIterations >= maxExpansionIterations));
+                        + ", branches built: " + builtBranches + "/" + maxBranches);
         return true;
     }
 
