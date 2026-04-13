@@ -338,8 +338,8 @@ public final class StrongholdDebugGenerator {
         Deque<TowerSeed> queue = new ArrayDeque<>();
         queue.add(new TowerSeed(root, 0));
 
-        final int maxDepth = 2;
-        final int wallsPerBranch = 3;
+        final int maxDepth = 1;
+        final int wallsPerBranch = 2;
         while (!queue.isEmpty() && placed.size() < MAX_TOTAL_PIECES) {
             TowerSeed seed = queue.poll();
             if (seed.depth >= maxDepth) {
@@ -352,7 +352,7 @@ public final class StrongholdDebugGenerator {
                 boolean builtCorridor = true;
 
                 for (int i = 0; i < wallsPerBranch; i++) {
-                    PlacementAttempt wallAttempt = selectBestAttempt(current, travelSide, wallPool, captured, occupied);
+                    PlacementAttempt wallAttempt = selectBestAttempt(current, travelSide, wallPool, captured, occupied, 8, 2);
                     if (wallAttempt == null) {
                         builtCorridor = false;
                         current.markUsed(travelSide);
@@ -369,7 +369,7 @@ public final class StrongholdDebugGenerator {
                     continue;
                 }
 
-                PlacementAttempt towerAttempt = selectBestAttempt(current, travelSide, List.of(tower), captured, occupied);
+                PlacementAttempt towerAttempt = selectBestAttempt(current, travelSide, List.of(tower), captured, occupied, 8, 2);
                 if (towerAttempt == null) {
                     current.markUsed(travelSide);
                     continue;
@@ -416,7 +416,20 @@ public final class StrongholdDebugGenerator {
                                                       List<TemplateSpec> pool,
                                                       CapturedTemplates captured,
                                                       Set<Long> occupied) {
-        List<PlacementAttempt> attempts = enumeratePlacementAttempts(current, side, pool, captured.connector(), occupied);
+        return selectBestAttempt(current, side, pool, captured, occupied,
+                MAX_SINGLE_PLACEMENTS_PER_SIDE, MAX_CONNECTOR_BRIDGE_OPTIONS);
+    }
+
+    private static PlacementAttempt selectBestAttempt(PlacedTemplate current,
+                                                      BlockFace side,
+                                                      List<TemplateSpec> pool,
+                                                      CapturedTemplates captured,
+                                                      Set<Long> occupied,
+                                                      int maxSinglePlacements,
+                                                      int maxConnectorBridgeOptions) {
+        List<PlacementAttempt> attempts = enumeratePlacementAttempts(
+                current, side, pool, captured.connector(), occupied, maxSinglePlacements, maxConnectorBridgeOptions
+        );
         if (attempts.isEmpty()) {
             return null;
         }
@@ -740,18 +753,29 @@ public final class StrongholdDebugGenerator {
                                                                      List<TemplateSpec> candidateSpecs,
                                                                      TemplateSpec connector,
                                                                      Set<Long> occupied) {
+        return enumeratePlacementAttempts(current, currentSide, candidateSpecs, connector, occupied,
+                MAX_SINGLE_PLACEMENTS_PER_SIDE, MAX_CONNECTOR_BRIDGE_OPTIONS);
+    }
+
+    private static List<PlacementAttempt> enumeratePlacementAttempts(PlacedTemplate current,
+                                                                     BlockFace currentSide,
+                                                                     List<TemplateSpec> candidateSpecs,
+                                                                     TemplateSpec connector,
+                                                                     Set<Long> occupied,
+                                                                     int maxSinglePlacements,
+                                                                     int maxConnectorBridgeOptions) {
         List<PlacementAttempt> attempts = new ArrayList<>();
         Set<String> seen = new HashSet<>();
 
         if (connector != null) {
             List<PlacedTemplate> connectorPlacements = enumerateSinglePlacements(
-                    current, currentSide, List.of(connector), occupied, true, MAX_CONNECTOR_BRIDGE_OPTIONS
+                    current, currentSide, List.of(connector), occupied, true, maxConnectorBridgeOptions
             );
             for (PlacedTemplate connectorPlaced : connectorPlacements) {
                 Set<Long> occupiedWithConnector = new HashSet<>(occupied);
                 occupy(occupiedWithConnector, connectorPlaced);
                 for (PlacedTemplate viaConnector : enumerateSinglePlacements(
-                        connectorPlaced, currentSide, candidateSpecs, occupiedWithConnector, true, MAX_SINGLE_PLACEMENTS_PER_SIDE
+                        connectorPlaced, currentSide, candidateSpecs, occupiedWithConnector, true, maxSinglePlacements
                 )) {
                     if (areBothLarge(current.spec, viaConnector.spec)) {
                         continue;
@@ -765,7 +789,7 @@ public final class StrongholdDebugGenerator {
         }
 
         for (PlacedTemplate direct : enumerateSinglePlacements(
-                current, currentSide, candidateSpecs, occupied, true, MAX_SINGLE_PLACEMENTS_PER_SIDE
+                current, currentSide, candidateSpecs, occupied, true, maxSinglePlacements
         )) {
             if (areBothLarge(current.spec, direct.spec)) {
                 continue;
