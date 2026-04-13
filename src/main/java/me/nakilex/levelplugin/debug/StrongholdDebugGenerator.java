@@ -334,39 +334,18 @@ public final class StrongholdDebugGenerator {
         placed.add(root);
         occupy(occupied, root);
 
-        final int wallsPerBranch = 2;
         final int maxBranches = 4;
         int builtBranches = 0;
         for (BlockFace side : distinctOpenSides(root)) {
             if (builtBranches >= maxBranches || placed.size() >= MAX_TOTAL_PIECES) {
                 break;
             }
-
-            PlacedTemplate current = root;
-            BlockFace travelSide = side;
-            boolean builtCorridor = true;
-
-            for (int i = 0; i < wallsPerBranch; i++) {
-                PlacementAttempt wallAttempt = selectBestAttempt(current, travelSide, wallPool, captured, occupied, 6, 1);
-                if (wallAttempt == null) {
-                    builtCorridor = false;
-                    current.markUsed(travelSide);
-                    break;
-                }
-                applyPlacementAttempt(current, travelSide, wallAttempt, placed, occupied);
-                current = wallAttempt.placed;
-                travelSide = opposite(current.incomingSide);
-            }
-            if (!builtCorridor || placed.size() >= MAX_TOTAL_PIECES) {
+            PlacementAttempt wallAttempt = selectBestAttempt(root, side, wallPool, captured, occupied, 6, 1);
+            if (wallAttempt == null) {
+                root.markUsed(side);
                 continue;
             }
-
-            PlacementAttempt towerAttempt = selectBestAttempt(current, travelSide, List.of(tower), captured, occupied, 6, 1);
-            if (towerAttempt == null) {
-                current.markUsed(travelSide);
-                continue;
-            }
-            applyPlacementAttempt(current, travelSide, towerAttempt, placed, occupied);
+            applyPlacementAttempt(root, side, wallAttempt, placed, occupied);
             builtBranches++;
         }
 
@@ -376,11 +355,11 @@ public final class StrongholdDebugGenerator {
         }
         player.teleport(new org.bukkit.Location(world, originX + 0.5, originY + 2, originZ + 0.5));
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                "Generated towerwall preset using " + placed.size() + " pieces in world '" + world.getName() + "'.");
+                "Generated towerwall cross preset using " + placed.size() + " pieces in world '" + world.getName() + "'.");
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                 "Towerwall diagnostics -> remaining open outputs: " + countOpenOutputs(placed)
                         + ", viable next outputs: skipped"
-                        + ", branches built: " + builtBranches + "/" + maxBranches);
+                        + ", walls built: " + builtBranches + "/" + maxBranches);
         return true;
     }
 
