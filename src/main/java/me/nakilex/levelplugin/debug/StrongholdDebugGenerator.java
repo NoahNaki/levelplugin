@@ -847,7 +847,7 @@ public final class StrongholdDebugGenerator {
                                                  Set<Long> occupied,
                                                  int clearanceRadius) {
         RotatedTemplate rotated = rotateTemplate(candidate.spec.template, candidate.rotation);
-        if (overlapPercent(occupied, rotated.blocks, candidate.origin) > maxOverlapPercent) {
+        if (!isOverlapWithinThreshold(occupied, rotated.blocks, candidate.origin, maxOverlapPercent)) {
             return false;
         }
         if (clearanceRadius < 0) {
@@ -1767,7 +1767,7 @@ public final class StrongholdDebugGenerator {
                     if (!connectorDriftWithinLimit(idealOrigin, origin, spec)) {
                         continue;
                     }
-                    if (enforceOverlap && overlapPercent(occupied, rotated.blocks, origin) > maxOverlapPercent) {
+                    if (enforceOverlap && !isOverlapWithinThreshold(occupied, rotated.blocks, origin, maxOverlapPercent)) {
                         continue;
                     }
                     PlacedTemplate placed = new PlacedTemplate(spec, rot, origin);
@@ -2062,6 +2062,33 @@ public final class StrongholdDebugGenerator {
         return (overlap * 100.0D) / blocks.size();
     }
 
+    private static boolean isOverlapWithinThreshold(Set<Long> occupied,
+                                                    Map<BlockVector3, BlockData> blocks,
+                                                    BlockVector3 origin,
+                                                    double thresholdPercent) {
+        if (blocks.isEmpty()) {
+            return false;
+        }
+        double boundedThreshold = Math.max(0.0D, Math.min(100.0D, thresholdPercent));
+        if (boundedThreshold >= 100.0D) {
+            return true;
+        }
+        int allowedOverlaps = (int) Math.floor((boundedThreshold / 100.0D) * blocks.size());
+        int overlap = 0;
+        for (BlockVector3 rel : blocks.keySet()) {
+            int x = origin.getBlockX() + rel.getBlockX();
+            int y = origin.getBlockY() + rel.getBlockY();
+            int z = origin.getBlockZ() + rel.getBlockZ();
+            if (occupied.contains(posKey(x, y, z))) {
+                overlap++;
+                if (overlap > allowedOverlaps) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
     private static BlockVector3 slideUntilThreshold(Set<Long> occupied,
                                                     Map<BlockVector3, BlockData> movingBlocks,
                                                     BlockVector3 startOrigin,
@@ -2072,13 +2099,13 @@ public final class StrongholdDebugGenerator {
         int awayZ = joinSide.getModZ();
 
         BlockVector3 current = startOrigin;
-        for (int i = 0; i < 64 && overlapPercent(occupied, movingBlocks, current) > maxOverlapPercent; i++) {
+        for (int i = 0; i < 64 && !isOverlapWithinThreshold(occupied, movingBlocks, current, maxOverlapPercent); i++) {
             current = current.add(awayX, 0, awayZ);
         }
 
         for (int i = 0; i < 256; i++) {
             BlockVector3 next = current.add(towardX, 0, towardZ);
-            if (overlapPercent(occupied, movingBlocks, next) > maxOverlapPercent) {
+            if (!isOverlapWithinThreshold(occupied, movingBlocks, next, maxOverlapPercent)) {
                 break;
             }
             current = next;
