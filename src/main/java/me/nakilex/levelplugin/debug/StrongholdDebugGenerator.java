@@ -60,6 +60,9 @@ public final class StrongholdDebugGenerator {
             new TemplateSpec("gate_1", new TemplateBounds(686, -61, -5346, 614, -10, -5418), PieceCategory.JUNCTION_LARGE, 1),
             new TemplateSpec("gate_2", new TemplateBounds(686, -61, -5276, 614, -10, -5346), PieceCategory.JUNCTION_LARGE, 1),
             new TemplateSpec("church", new TemplateBounds(757, -61, -5559, 827, 34, -5489), PieceCategory.JUNCTION_LARGE, 1),
+            new TemplateSpec("smallfort", new TemplateBounds(615, -61, -5701, 685, -22, -5631), PieceCategory.STANDALONE, 1),
+            new TemplateSpec("fortpassage", new TemplateBounds(685, -61, -5630, 615, -22, -5560), PieceCategory.STANDALONE, 1),
+            new TemplateSpec("fort", new TemplateBounds(615, -61, -5559, 685, -18, -5489), PieceCategory.STANDALONE, 1),
             new TemplateSpec("deadend_1", new TemplateBounds(543, -38, -5418, 473, -61, -5488), PieceCategory.DEAD_END, 1),
             new TemplateSpec("deadend_2", new TemplateBounds(473, -61, -5489, 543, -38, -5559), PieceCategory.DEAD_END, 1)
     );
@@ -90,6 +93,9 @@ public final class StrongholdDebugGenerator {
     private static final int SATELLITE_CHURCH_SEARCH_STEP = 6;
     private static final int SATELLITE_CHURCH_MAX_PADDING = 360;
     private static final int SATELLITE_CHURCH_FAR_OFFSET = 220;
+    private static final int STANDALONE_NEARBY_PADDING = 7;
+    private static final int STANDALONE_SEARCH_MAX_RADIUS = 180;
+    private static final int STANDALONE_SEARCH_STEP = 4;
     private static final int MAX_EMERGENCY_TEMPLATE_RADIUS = 1200;
     private static final int MAX_SATELLITE_LINK_SEGMENTS = 6;
     private static final boolean USE_FRONTIER_SCHEDULER = false;
@@ -302,6 +308,7 @@ public final class StrongholdDebugGenerator {
                 MAX_TOTAL_PIECES
         );
         int sealedViableOutputs = closeViableOutputsWithDeadEnds(captured, occupied, random, placed);
+        diagnostics.standalonePlaced = placeStandaloneTemplatesNearStronghold(captured, occupied, random, placed);
         int finalChurchCount = countPlacedTemplatesMatching(placed, spec -> spec != null && "church".equalsIgnoreCase(spec.id));
 
         ensureTargetChunksLoaded(world, placed);
@@ -338,6 +345,7 @@ public final class StrongholdDebugGenerator {
                         + ", church raw copy: " + diagnostics.churchRawCopied
                         + ", church origins: " + summarizeTemplateOrigins(placed, spec -> spec != null && "church".equalsIgnoreCase(spec.id))
                         + ", satellite link segments: " + diagnostics.satelliteLinkSegments
+                        + ", standalone near placements: " + diagnostics.standalonePlaced
                         + ", rejected(wallPacing): " + diagnostics.rejectedWallPacing
                         + ", rejected(largeSpacing): " + diagnostics.rejectedLargeSpacing
                         + ", placed templates: " + summarizePlacedTemplates(placed)
@@ -755,6 +763,88 @@ public final class StrongholdDebugGenerator {
         target.markUsed(side);
         placed.add(deadEndAttempt.placed);
         occupy(occupied, deadEndAttempt.placed);
+    }
+
+    private static int placeStandaloneTemplatesNearStronghold(CapturedTemplates captured,
+                                                              Set<Long> occupied,
+                                                              Random random,
+                                                              List<PlacedTemplate> placed) {
+        if (captured == null || captured.standalone().isEmpty() || placed == null || placed.isEmpty()) {
+            return 0;
+        }
+        int placedCount = 0;
+        List<TemplateSpec> standalonePool = new ArrayList<>(captured.standalone());
+        Collections.shuffle(standalonePool, random);
+        for (TemplateSpec standalone : standalonePool) {
+            PlacedTemplate candidate = findStandalonePlacementNearStronghold(
+                    standalone,
+                    occupied,
+                    placed,
+                    random,
+                    STANDALONE_NEARBY_PADDING,
+                    STANDALONE_SEARCH_MAX_RADIUS,
+                    STANDALONE_SEARCH_STEP
+            );
+            if (candidate == null) {
+                continue;
+            }
+            placed.add(candidate);
+            occupy(occupied, candidate);
+            placedCount++;
+        }
+        return placedCount;
+    }
+
+    private static PlacedTemplate findStandalonePlacementNearStronghold(TemplateSpec standalone,
+                                                                        Set<Long> occupied,
+                                                                        List<PlacedTemplate> placed,
+                                                                        Random random,
+                                                                        int padding,
+                                                                        int maxRadius,
+                                                                        int step) {
+        if (standalone == null || occupied == null || placed == null || placed.isEmpty()) {
+            return null;
+        }
+        Bounds2D footprint = combinedFootprint(placed);
+        if (footprint == null) {
+            return null;
+        }
+        int y = placed.get(0).origin.getBlockY();
+        int radiusStep = Math.max(1, step);
+        int startRadius = Math.max(1, padding);
+        for (int radius = startRadius; radius <= Math.max(startRadius, maxRadius); radius += radiusStep) {
+            List<BlockVector3> ringAnchors = ringAnchorsAroundFootprint(footprint, y, radius, radiusStep);
+            Collections.shuffle(ringAnchors, random);
+            for (BlockVector3 anchor : ringAnchors) {
+                PlacedTemplate candidate = tryTemplateAtAllRotations(standalone, occupied, padding, anchor);
+                if (candidate != null) {
+                    return candidate;
+                }
+            }
+        }
+        return null;
+    }
+
+    private static List<BlockVector3> ringAnchorsAroundFootprint(Bounds2D footprint,
+                                                                  int y,
+                                                                  int radius,
+                                                                  int step) {
+        List<BlockVector3> anchors = new ArrayList<>();
+        int minX = footprint.minX - radius;
+        int maxX = footprint.maxX + radius;
+        int minZ = footprint.minZ - radius;
+        int maxZ = footprint.maxZ + radius;
+        int spacing = Math.max(1, step);
+
+        for (int x = minX; x <= maxX; x += spacing) {
+            anchors.add(BlockVector3.at(x, y, minZ));
+            anchors.add(BlockVector3.at(x, y, maxZ));
+        }
+        for (int z = minZ + spacing; z <= maxZ - spacing; z += spacing) {
+            anchors.add(BlockVector3.at(minX, y, z));
+            anchors.add(BlockVector3.at(maxX, y, z));
+        }
+        return anchors;
     }
 
     private static SatellitePlacementResult placeSatelliteChurchWithOptionalLink(CapturedTemplates captured,
@@ -2254,7 +2344,10 @@ public final class StrongholdDebugGenerator {
         Map<String, Template> captured = new HashMap<>();
         for (TemplateSpec spec : TEMPLATE_SPECS) {
             Template template = captureTemplate(world, spec.bounds);
-            if (template.blocks.isEmpty() || template.connectors.isEmpty()) {
+            if (template.blocks.isEmpty()) {
+                return null;
+            }
+            if (requiresConnectors(spec.category) && template.connectors.isEmpty()) {
                 return null;
             }
             captured.put(spec.id, template);
@@ -2268,9 +2361,14 @@ public final class StrongholdDebugGenerator {
         List<TemplateSpec> walls = bind(captured, PieceCategory.WALL);
         List<TemplateSpec> large = bind(captured, PieceCategory.JUNCTION_LARGE);
         List<TemplateSpec> deadEnds = bind(captured, PieceCategory.DEAD_END);
+        List<TemplateSpec> standalone = bind(captured, PieceCategory.STANDALONE);
         TemplateSpec connectorSpec = CONNECTOR_SPEC.withTemplate(connector);
 
-        return new CapturedTemplates(walls, large, deadEnds, connectorSpec);
+        return new CapturedTemplates(walls, large, deadEnds, standalone, connectorSpec);
+    }
+
+    private static boolean requiresConnectors(PieceCategory category) {
+        return category != PieceCategory.STANDALONE;
     }
 
     private static List<TemplateSpec> bind(Map<String, Template> templates, PieceCategory category) {
@@ -2609,6 +2707,7 @@ public final class StrongholdDebugGenerator {
         WALL,
         JUNCTION_LARGE,
         DEAD_END,
+        STANDALONE,
         CONNECTOR
     }
 
@@ -2643,6 +2742,7 @@ public final class StrongholdDebugGenerator {
     private record CapturedTemplates(List<TemplateSpec> walls,
                                      List<TemplateSpec> largeJunctions,
                                      List<TemplateSpec> deadEnds,
+                                     List<TemplateSpec> standalone,
                                      TemplateSpec connector) {
     }
 
@@ -2680,6 +2780,7 @@ public final class StrongholdDebugGenerator {
         private boolean churchEmergencyPlaced;
         private boolean churchRawCopied;
         private int satelliteLinkSegments;
+        private int standalonePlaced;
         private int rejectedWallPacing;
         private int rejectedLargeSpacing;
         private String templateConnectorSummary = "";
