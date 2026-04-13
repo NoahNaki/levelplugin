@@ -88,6 +88,8 @@ public final class StrongholdDebugGenerator {
     private static final double FORCED_LARGE_TEMPLATE_OVERLAP_PERCENT = 8.0D;
     private static final int SATELLITE_CHURCH_SEARCH_PADDING = 80;
     private static final int SATELLITE_CHURCH_SEARCH_STEP = 6;
+    private static final int SATELLITE_CHURCH_MAX_PADDING = 360;
+    private static final int SATELLITE_CHURCH_FAR_OFFSET = 220;
     private static final int MAX_SATELLITE_LINK_SEGMENTS = 6;
     private static final boolean USE_FRONTIER_SCHEDULER = false;
     private static final int TARGET_GATE_TEMPLATES = 2;
@@ -755,27 +757,76 @@ public final class StrongholdDebugGenerator {
             return null;
         }
         int baseY = placed.get(0).origin.getBlockY();
-        int minX = footprint.minX - SATELLITE_CHURCH_SEARCH_PADDING;
-        int maxX = footprint.maxX + SATELLITE_CHURCH_SEARCH_PADDING;
-        int minZ = footprint.minZ - SATELLITE_CHURCH_SEARCH_PADDING;
-        int maxZ = footprint.maxZ + SATELLITE_CHURCH_SEARCH_PADDING;
-
-        for (int x = minX; x <= maxX; x += SATELLITE_CHURCH_SEARCH_STEP) {
-            for (int z = minZ; z <= maxZ; z += SATELLITE_CHURCH_SEARCH_STEP) {
-                for (int rotation = 0; rotation < 4; rotation++) {
-                    PlacedTemplate candidate = new PlacedTemplate(church, rotation, BlockVector3.at(x, baseY, z));
-                    RotatedTemplate rotated = rotateTemplate(church.template, rotation);
-                    if (overlapPercent(occupied, rotated.blocks, candidate.origin) > maxOverlapPercent) {
-                        continue;
-                    }
-                    if (!hasExpandedAreaClearance(candidate, occupied, REQUIRED_CHURCH_CLEARANCE_RADIUS)) {
-                        continue;
-                    }
+        PlacedTemplate nearby = findSatellitePlacementInRange(
+                church,
+                occupied,
+                baseY,
+                footprint,
+                SATELLITE_CHURCH_SEARCH_PADDING,
+                SATELLITE_CHURCH_SEARCH_STEP
+        );
+        if (nearby != null) {
+            return nearby;
+        }
+        PlacedTemplate wider = findSatellitePlacementInRange(
+                church,
+                occupied,
+                baseY,
+                footprint,
+                SATELLITE_CHURCH_MAX_PADDING,
+                SATELLITE_CHURCH_SEARCH_STEP * 2
+        );
+        if (wider != null) {
+            return wider;
+        }
+        List<BlockVector3> farAnchors = List.of(
+                BlockVector3.at(footprint.maxX + SATELLITE_CHURCH_FAR_OFFSET, baseY, footprint.maxZ + SATELLITE_CHURCH_FAR_OFFSET),
+                BlockVector3.at(footprint.minX - SATELLITE_CHURCH_FAR_OFFSET, baseY, footprint.maxZ + SATELLITE_CHURCH_FAR_OFFSET),
+                BlockVector3.at(footprint.maxX + SATELLITE_CHURCH_FAR_OFFSET, baseY, footprint.minZ - SATELLITE_CHURCH_FAR_OFFSET),
+                BlockVector3.at(footprint.minX - SATELLITE_CHURCH_FAR_OFFSET, baseY, footprint.minZ - SATELLITE_CHURCH_FAR_OFFSET)
+        );
+        for (BlockVector3 anchor : farAnchors) {
+            for (int rotation = 0; rotation < 4; rotation++) {
+                PlacedTemplate candidate = new PlacedTemplate(church, rotation, anchor);
+                if (canPlaceWithChurchClearance(candidate, occupied)) {
                     return candidate;
                 }
             }
         }
         return null;
+    }
+
+    private static PlacedTemplate findSatellitePlacementInRange(TemplateSpec church,
+                                                                Set<Long> occupied,
+                                                                int baseY,
+                                                                Bounds2D footprint,
+                                                                int padding,
+                                                                int step) {
+        int minX = footprint.minX - padding;
+        int maxX = footprint.maxX + padding;
+        int minZ = footprint.minZ - padding;
+        int maxZ = footprint.maxZ + padding;
+        int spacing = Math.max(1, step);
+
+        for (int x = minX; x <= maxX; x += spacing) {
+            for (int z = minZ; z <= maxZ; z += spacing) {
+                for (int rotation = 0; rotation < 4; rotation++) {
+                    PlacedTemplate candidate = new PlacedTemplate(church, rotation, BlockVector3.at(x, baseY, z));
+                    if (canPlaceWithChurchClearance(candidate, occupied)) {
+                        return candidate;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    private static boolean canPlaceWithChurchClearance(PlacedTemplate candidate, Set<Long> occupied) {
+        RotatedTemplate rotated = rotateTemplate(candidate.spec.template, candidate.rotation);
+        if (overlapPercent(occupied, rotated.blocks, candidate.origin) > maxOverlapPercent) {
+            return false;
+        }
+        return hasExpandedAreaClearance(candidate, occupied, REQUIRED_CHURCH_CLEARANCE_RADIUS);
     }
 
     private static int attemptSatelliteLink(PlacedTemplate satelliteChurch,
