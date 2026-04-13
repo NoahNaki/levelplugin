@@ -297,6 +297,16 @@ public final class StrongholdDebugGenerator {
         for (PlacedTemplate entry : placed) {
             paste(world, entry.spec.template, entry.origin, entry.rotation);
         }
+        if (finalChurchCount == 0) {
+            TemplateSpec churchTemplate = findTemplateById(captured.largeJunctions(), "church");
+            if (churchTemplate != null) {
+                BlockVector3 rawChurchOrigin = findRawPasteOriginNearFootprint(placed, churchTemplate, originY);
+                diagnostics.churchRawCopied = pasteTemplateSpecDirect(sourceWorld, world, churchTemplate, rawChurchOrigin);
+                if (diagnostics.churchRawCopied) {
+                    finalChurchCount = 1;
+                }
+            }
+        }
 
         player.teleport(new org.bukkit.Location(world, originX + 0.5, originY + 2, originZ + 0.5));
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
@@ -313,6 +323,7 @@ public final class StrongholdDebugGenerator {
                         + ", church forced: " + diagnostics.churchPlacementsForced
                         + ", church satellite: " + diagnostics.satelliteChurchPlaced
                         + ", church emergency: " + diagnostics.churchEmergencyPlaced
+                        + ", church raw copy: " + diagnostics.churchRawCopied
                         + ", church origins: " + summarizeTemplateOrigins(placed, spec -> spec != null && "church".equalsIgnoreCase(spec.id))
                         + ", satellite link segments: " + diagnostics.satelliteLinkSegments
                         + ", rejected(wallPacing): " + diagnostics.rejectedWallPacing
@@ -904,6 +915,55 @@ public final class StrongholdDebugGenerator {
             }
         }
         return null;
+    }
+
+    private static BlockVector3 findRawPasteOriginNearFootprint(List<PlacedTemplate> placed,
+                                                                 TemplateSpec template,
+                                                                 int y) {
+        Bounds2D footprint = combinedFootprint(placed);
+        int x = 240;
+        int z = 240;
+        if (footprint != null) {
+            x = footprint.maxX + SATELLITE_CHURCH_FAR_OFFSET;
+            z = footprint.maxZ + SATELLITE_CHURCH_FAR_OFFSET;
+        }
+        int minX = Math.min(template.bounds.minX, template.bounds.maxX);
+        int minY = Math.min(template.bounds.minY, template.bounds.maxY);
+        int minZ = Math.min(template.bounds.minZ, template.bounds.maxZ);
+        return BlockVector3.at(x - minX, y - minY, z - minZ);
+    }
+
+    private static boolean pasteTemplateSpecDirect(World sourceWorld,
+                                                   World targetWorld,
+                                                   TemplateSpec template,
+                                                   BlockVector3 targetOrigin) {
+        if (sourceWorld == null || targetWorld == null || template == null || targetOrigin == null) {
+            return false;
+        }
+        int minX = Math.min(template.bounds.minX, template.bounds.maxX);
+        int maxX = Math.max(template.bounds.minX, template.bounds.maxX);
+        int minY = Math.min(template.bounds.minY, template.bounds.maxY);
+        int maxY = Math.max(template.bounds.minY, template.bounds.maxY);
+        int minZ = Math.min(template.bounds.minZ, template.bounds.maxZ);
+        int maxZ = Math.max(template.bounds.minZ, template.bounds.maxZ);
+        boolean pastedAny = false;
+        for (int x = minX; x <= maxX; x++) {
+            for (int y = minY; y <= maxY; y++) {
+                for (int z = minZ; z <= maxZ; z++) {
+                    org.bukkit.block.Block sourceBlock = sourceWorld.getBlockAt(x, y, z);
+                    Material type = sourceBlock.getType();
+                    if (type == Material.AIR || EXCLUDED.contains(type)) {
+                        continue;
+                    }
+                    int tx = targetOrigin.getBlockX() + (x - minX);
+                    int ty = targetOrigin.getBlockY() + (y - minY);
+                    int tz = targetOrigin.getBlockZ() + (z - minZ);
+                    targetWorld.getBlockAt(tx, ty, tz).setBlockData(sourceBlock.getBlockData(), false);
+                    pastedAny = true;
+                }
+            }
+        }
+        return pastedAny;
     }
 
     private static int attemptSatelliteLink(PlacedTemplate satelliteChurch,
@@ -2471,6 +2531,7 @@ public final class StrongholdDebugGenerator {
         private int churchPlacementsForced;
         private boolean satelliteChurchPlaced;
         private boolean churchEmergencyPlaced;
+        private boolean churchRawCopied;
         private int satelliteLinkSegments;
         private int rejectedWallPacing;
         private int rejectedLargeSpacing;
