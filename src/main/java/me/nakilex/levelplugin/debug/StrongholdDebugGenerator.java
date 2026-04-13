@@ -1308,9 +1308,55 @@ public final class StrongholdDebugGenerator {
             }
         }
 
-        Map<BlockFace, List<BlockVector3>> connectors = detectConnectorsFromMarkerWalls(redstoneMarkers, width, length);
+        ConnectorFrame frame = connectorFrameFor(blocks, redstoneMarkers, width, length);
+        Set<BlockVector3> normalizedMarkers = normalizeMarkers(redstoneMarkers, frame);
+        Map<BlockFace, List<BlockVector3>> connectors = detectConnectorsFromMarkerWalls(
+                normalizedMarkers,
+                frame.width(),
+                frame.length()
+        );
 
         return new Template(blocks, connectors, width, height, length);
+    }
+
+    private static ConnectorFrame connectorFrameFor(Map<BlockVector3, BlockData> blocks,
+                                                    Set<BlockVector3> markers,
+                                                    int fallbackWidth,
+                                                    int fallbackLength) {
+        int minX = Integer.MAX_VALUE;
+        int maxX = Integer.MIN_VALUE;
+        int minZ = Integer.MAX_VALUE;
+        int maxZ = Integer.MIN_VALUE;
+
+        for (BlockVector3 rel : blocks.keySet()) {
+            minX = Math.min(minX, rel.getBlockX());
+            maxX = Math.max(maxX, rel.getBlockX());
+            minZ = Math.min(minZ, rel.getBlockZ());
+            maxZ = Math.max(maxZ, rel.getBlockZ());
+        }
+        for (BlockVector3 marker : markers) {
+            minX = Math.min(minX, marker.getBlockX());
+            maxX = Math.max(maxX, marker.getBlockX());
+            minZ = Math.min(minZ, marker.getBlockZ());
+            maxZ = Math.max(maxZ, marker.getBlockZ());
+        }
+
+        if (minX == Integer.MAX_VALUE) {
+            return new ConnectorFrame(0, fallbackWidth - 1, 0, fallbackLength - 1);
+        }
+        return new ConnectorFrame(minX, maxX, minZ, maxZ);
+    }
+
+    private static Set<BlockVector3> normalizeMarkers(Set<BlockVector3> markers, ConnectorFrame frame) {
+        Set<BlockVector3> out = new HashSet<>();
+        for (BlockVector3 marker : markers) {
+            out.add(BlockVector3.at(
+                    marker.getBlockX() - frame.minX(),
+                    marker.getBlockY(),
+                    marker.getBlockZ() - frame.minZ()
+            ));
+        }
+        return out;
     }
 
     private static Map<BlockFace, List<BlockVector3>> detectConnectorsFromMarkerWalls(Set<BlockVector3> markers,
@@ -1718,6 +1764,16 @@ public final class StrongholdDebugGenerator {
     }
 
     private record Point2D(double x, double z) {
+    }
+
+    private record ConnectorFrame(int minX, int maxX, int minZ, int maxZ) {
+        private int width() {
+            return Math.max(1, maxX - minX + 1);
+        }
+
+        private int length() {
+            return Math.max(1, maxZ - minZ + 1);
+        }
     }
 
     private static final class PlacedTemplate {
