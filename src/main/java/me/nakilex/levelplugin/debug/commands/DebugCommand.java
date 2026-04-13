@@ -548,7 +548,7 @@ public class DebugCommand implements TabExecutor {
                 }
                 if (args.length < 2) {
                     ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.WARNING,
-                            "Usage: /debug stronghold <generate test|overlap [percent]|templates>");
+                            "Usage: /debug stronghold <generate test|towerwall|overlap [percent]|templates>");
                     return true;
                 }
                 if (args[1].equalsIgnoreCase("templates")) {
@@ -576,15 +576,18 @@ public class DebugCommand implements TabExecutor {
                 }
                 if (args.length < 3 || !args[1].equalsIgnoreCase("generate")) {
                     ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.WARNING,
-                            "Usage: /debug stronghold <generate test|overlap [percent]|templates>");
+                            "Usage: /debug stronghold <generate test|towerwall|overlap [percent]|templates>");
                     return true;
                 }
-                if (!args[2].equalsIgnoreCase("test")) {
-                    ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.ERROR,
-                            "Unknown stronghold template: " + args[2] + ". Available: test");
-                    return true;
+                if (args[2].equalsIgnoreCase("test")) {
+                    return StrongholdDebugGenerator.generateTest(strongholdPlayer);
                 }
-                return StrongholdDebugGenerator.generateTest(strongholdPlayer);
+                if (args[2].equalsIgnoreCase("towerwall")) {
+                    return StrongholdDebugGenerator.generateTowerWall(strongholdPlayer);
+                }
+                ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.ERROR,
+                        "Unknown stronghold template: " + args[2] + ". Available: test, towerwall");
+                return true;
 
             default:
                 sender.sendMessage("Unknown debug subcommand: " + sub);
@@ -701,7 +704,7 @@ public class DebugCommand implements TabExecutor {
                     .filter(opt -> opt.startsWith(args[1].toLowerCase()))
                     .toList();
         } else if (args.length == 3 && args[0].equalsIgnoreCase("stronghold") && args[1].equalsIgnoreCase("generate")) {
-            return List.of("test").stream()
+            return List.of("test", "towerwall").stream()
                     .filter(opt -> opt.startsWith(args[2].toLowerCase()))
                     .toList();
         } else if (args.length == 3 && args[0].equalsIgnoreCase("stronghold") && args[1].equalsIgnoreCase("overlap")) {
