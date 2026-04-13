@@ -75,7 +75,7 @@ public final class StrongholdDebugGenerator {
     private static final int MIN_WALL_PIECES_BETWEEN_GATES = 3;
     private static final int MAX_CONNECTOR_DRIFT_BLOCKS = 6;
     private static final int MAX_LARGE_CONNECTOR_DRIFT_BLOCKS = 0;
-    private static final double BRANCH_OPEN_SIDE_CHANCE = 0.90D;
+    private static final double BRANCH_OPEN_SIDE_CHANCE = 1.00D;
 
     private static double maxOverlapPercent = 2.0D;
 
@@ -372,6 +372,9 @@ public final class StrongholdDebugGenerator {
         if (captured.deadEnds().isEmpty()) {
             return;
         }
+        if (hasViableExpansionFrom(target, captured, occupied)) {
+            return;
+        }
         BlockFace side = pickOpenSide(target, null, random);
         if (side == null) {
             return;
@@ -396,6 +399,22 @@ public final class StrongholdDebugGenerator {
         target.markUsed(side);
         placed.add(deadEndAttempt.placed);
         occupy(occupied, deadEndAttempt.placed);
+    }
+
+    private static boolean hasViableExpansionFrom(PlacedTemplate target,
+                                                  CapturedTemplates captured,
+                                                  Set<Long> occupied) {
+        if (target == null || captured == null) {
+            return false;
+        }
+        PlacementState state = PlacementState.fromSeed(target.spec);
+        List<TemplateSpec> pool = candidatePoolForStep(captured, target, state);
+        for (BlockFace side : target.openSides()) {
+            if (!enumeratePlacementAttempts(target, side, pool, captured.connector(), occupied).isEmpty()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static PlacementAttempt tryPlaceFromSide(PlacedTemplate current,
