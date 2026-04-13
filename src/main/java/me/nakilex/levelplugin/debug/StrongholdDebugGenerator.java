@@ -800,18 +800,14 @@ public final class StrongholdDebugGenerator {
         Set<String> seen = new HashSet<>();
 
         if (connector != null && maxConnectorBridgeOptions > 0) {
-            // Keep connector bridges snapped to their ideal connector markers so
-            // chained pieces (e.g. wall -> connector -> t_section) do not drift
-            // apart and create visual gaps.
-            boolean connectorBridgeAllowOverlapSlide = false;
             List<PlacedTemplate> connectorPlacements = enumerateSinglePlacements(
-                    current, currentSide, List.of(connector), occupied, true, maxConnectorBridgeOptions, connectorBridgeAllowOverlapSlide
+                    current, currentSide, List.of(connector), occupied, true, maxConnectorBridgeOptions, allowOverlapSlide
             );
             for (PlacedTemplate connectorPlaced : connectorPlacements) {
                 Set<Long> occupiedWithConnector = new HashSet<>(occupied);
                 occupy(occupiedWithConnector, connectorPlaced);
                 for (PlacedTemplate viaConnector : enumerateSinglePlacements(
-                        connectorPlaced, currentSide, candidateSpecs, occupiedWithConnector, true, maxSinglePlacements, connectorBridgeAllowOverlapSlide
+                        connectorPlaced, currentSide, candidateSpecs, occupiedWithConnector, true, maxSinglePlacements, allowOverlapSlide
                 )) {
                     if (areBothLarge(current.spec, viaConnector.spec)) {
                         continue;
