@@ -262,6 +262,17 @@ public final class StrongholdDebugGenerator {
                 growBranches(placed.get(seedIndex), captured, occupied, random, placed, MAX_TOTAL_PIECES, diagnostics);
             }
         }
+        PlacedTemplate leastOverlapChurch = placeTemplateAtLeastOverlapOpenOutput(
+                spec -> spec != null && "church".equalsIgnoreCase(spec.id),
+                captured.largeJunctions(),
+                captured.connector(),
+                occupied,
+                placed
+        );
+        if (leastOverlapChurch != null) {
+            diagnostics.churchLeastOverlapPlaced = true;
+            growBranches(leastOverlapChurch, captured, occupied, random, placed, MAX_TOTAL_PIECES, diagnostics);
+        }
         SatellitePlacementResult satellitePlacement = placeSatelliteChurchWithOptionalLink(
                 captured,
                 occupied,
@@ -321,6 +332,7 @@ public final class StrongholdDebugGenerator {
                         + ", sealed viable outputs: " + sealedViableOutputs
                         + ", church placed: " + finalChurchCount
                         + ", church forced: " + diagnostics.churchPlacementsForced
+                        + ", church least-overlap: " + diagnostics.churchLeastOverlapPlaced
                         + ", church satellite: " + diagnostics.satelliteChurchPlaced
                         + ", church emergency: " + diagnostics.churchEmergencyPlaced
                         + ", church raw copy: " + diagnostics.churchRawCopied
@@ -902,6 +914,110 @@ public final class StrongholdDebugGenerator {
             }
         }
         return false;
+    }
+
+    private static PlacedTemplate placeTemplateAtLeastOverlapOpenOutput(Predicate<TemplateSpec> matcher,
+                                                                        List<TemplateSpec> candidates,
+                                                                        TemplateSpec connectorTemplate,
+                                                                        Set<Long> occupied,
+                                                                        List<PlacedTemplate> placed) {
+        if (matcher == null || candidates == null || candidates.isEmpty()) {
+            return null;
+        }
+        if (countPlacedTemplatesMatching(placed, matcher) > 0) {
+            return null;
+        }
+        TemplateSpec targetTemplate = null;
+        for (TemplateSpec candidate : candidates) {
+            if (matcher.test(candidate)) {
+                targetTemplate = candidate;
+                break;
+            }
+        }
+        if (targetTemplate == null) {
+            return null;
+        }
+        LeastOverlapChoice best = null;
+        Set<String> seen = new HashSet<>();
+        List<PlacedTemplate> snapshot = new ArrayList<>(placed);
+        for (PlacedTemplate source : snapshot) {
+            for (BlockFace side : source.openSides()) {
+                for (PlacementAttempt attempt : enumerateLeastOverlapAttempts(
+                        source, side, targetTemplate, connectorTemplate, occupied
+                )) {
+                    String key = System.identityHashCode(source) + ":" + side + ":" + placementAttemptKey(attempt.connector, attempt.placed);
+                    if (!seen.add(key)) {
+                        continue;
+                    }
+                    RotatedTemplate rotated = rotateTemplate(attempt.placed.spec.template, attempt.placed.rotation);
+                    double overlap = overlapPercent(occupied, rotated.blocks, attempt.placed.origin);
+                    if (best == null || overlap < best.overlap()) {
+                        best = new LeastOverlapChoice(source, side, attempt, overlap);
+                    }
+                }
+            }
+        }
+        if (best == null) {
+            return null;
+        }
+        applyPlacementAttempt(best.source(), best.side(), best.attempt(), placed, occupied);
+        return best.attempt().placed();
+    }
+
+    private static List<PlacementAttempt> enumerateLeastOverlapAttempts(PlacedTemplate source,
+                                                                        BlockFace side,
+                                                                        TemplateSpec targetTemplate,
+                                                                        TemplateSpec connectorTemplate,
+                                                                        Set<Long> occupied) {
+        List<PlacementAttempt> attempts = new ArrayList<>();
+        for (PlacedTemplate direct : enumerateSinglePlacements(
+                source,
+                side,
+                List.of(targetTemplate),
+                occupied,
+                false,
+                MAX_SINGLE_PLACEMENTS_PER_SIDE,
+                false
+        )) {
+            if (areBothLarge(source.spec, direct.spec)) {
+                continue;
+            }
+            if (requiresConnectorBetween(source.spec, direct.spec)) {
+                continue;
+            }
+            attempts.add(new PlacementAttempt(null, direct));
+        }
+
+        if (connectorTemplate == null) {
+            return attempts;
+        }
+        for (PlacedTemplate connectorPlaced : enumerateSinglePlacements(
+                source,
+                side,
+                List.of(connectorTemplate),
+                occupied,
+                false,
+                MAX_CONNECTOR_BRIDGE_OPTIONS,
+                false
+        )) {
+            Set<Long> occupiedWithConnector = new HashSet<>(occupied);
+            occupy(occupiedWithConnector, connectorPlaced);
+            for (PlacedTemplate viaConnector : enumerateSinglePlacements(
+                    connectorPlaced,
+                    side,
+                    List.of(targetTemplate),
+                    occupiedWithConnector,
+                    false,
+                    MAX_SINGLE_PLACEMENTS_PER_SIDE,
+                    false
+            )) {
+                if (areBothLarge(source.spec, viaConnector.spec)) {
+                    continue;
+                }
+                attempts.add(new PlacementAttempt(connectorPlaced, viaConnector));
+            }
+        }
+        return attempts;
     }
 
     private static PlacedTemplate tryTemplateAtAllRotations(TemplateSpec template,
@@ -2552,10 +2668,14 @@ public final class StrongholdDebugGenerator {
     private record ExpansionChoice(BlockFace side, PlacementAttempt attempt, double score) {
     }
 
+    private record LeastOverlapChoice(PlacedTemplate source, BlockFace side, PlacementAttempt attempt, double overlap) {
+    }
+
     private static final class GenerationDiagnostics {
         private int spineBlockedSides;
         private int branchBlockedSides;
         private int churchPlacementsForced;
+        private boolean churchLeastOverlapPlaced;
         private boolean satelliteChurchPlaced;
         private boolean churchEmergencyPlaced;
         private boolean churchRawCopied;
