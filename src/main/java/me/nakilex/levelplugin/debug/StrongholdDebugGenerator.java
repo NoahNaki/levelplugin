@@ -70,9 +70,13 @@ public final class StrongholdDebugGenerator {
     private static final int DEFAULT_SPINE_LENGTH = 20;
     private static final int MAX_BRANCH_LENGTH = 10;
     private static final int MAX_TOTAL_PIECES = 96;
-    private static final int MIN_SMALL_PIECES_BETWEEN_LARGE = 1;
+    private static final int MIN_WALL_PIECES_BETWEEN_LARGE = 1;
+    private static final int MIN_BLOCKS_BETWEEN_LARGE = 24;
     private static final int MIN_WALL_PIECES_BETWEEN_GATES = 3;
-    private static final double BRANCH_OPEN_SIDE_CHANCE = 0.90D;
+    private static final int MAX_CONNECTOR_DRIFT_BLOCKS = 6;
+    private static final int MAX_LARGE_CONNECTOR_DRIFT_BLOCKS = 0;
+    private static final double BRANCH_OPEN_SIDE_CHANCE = 1.00D;
+    private static final boolean USE_FRONTIER_SCHEDULER = false;
 
     private static double maxOverlapPercent = 2.0D;
 
@@ -191,7 +195,7 @@ public final class StrongholdDebugGenerator {
                 break;
             }
 
-            ExpansionChoice choice = pickBestExpansion(spineHead, pool, captured, occupied, spineState, random);
+            ExpansionChoice choice = pickBestExpansion(spineHead, pool, captured, occupied, placed, spineState, random, diagnostics);
             if (choice == null) {
                 break;
             }
@@ -219,8 +223,12 @@ public final class StrongholdDebugGenerator {
 
         closeOpenSideWithDeadEnd(spineHead, captured, occupied, random, placed);
 
-        for (int seedIndex = 0; seedIndex < placed.size() && placed.size() < MAX_TOTAL_PIECES; seedIndex++) {
-            growBranches(placed.get(seedIndex), captured, occupied, random, placed, MAX_TOTAL_PIECES, diagnostics);
+        if (USE_FRONTIER_SCHEDULER) {
+            growBranchesFrontier(captured, occupied, random, placed, MAX_TOTAL_PIECES, diagnostics);
+        } else {
+            for (int seedIndex = 0; seedIndex < placed.size() && placed.size() < MAX_TOTAL_PIECES; seedIndex++) {
+                growBranches(placed.get(seedIndex), captured, occupied, random, placed, MAX_TOTAL_PIECES, diagnostics);
+            }
         }
 
         ensureTargetChunksLoaded(world, placed);
@@ -238,6 +246,8 @@ public final class StrongholdDebugGenerator {
                         + ", branch blocked sides: " + diagnostics.branchBlockedSides
                         + ", remaining open outputs: " + countOpenOutputs(placed)
                         + ", viable next outputs: " + countViableOpenOutputs(placed, captured, occupied)
+                        + ", rejected(wallPacing): " + diagnostics.rejectedWallPacing
+                        + ", rejected(largeSpacing): " + diagnostics.rejectedLargeSpacing
                         + ", connectors: " + diagnostics.templateConnectorSummary);
         return true;
     }
@@ -331,7 +341,7 @@ public final class StrongholdDebugGenerator {
                 }
                 List<TemplateSpec> pool = candidatePoolForStep(captured, branchCurrent, branchState, i > 0);
 
-                PlacementAttempt attempt = tryPlaceFromSide(branchCurrent, branchSide, pool, captured.connector(), occupied, branchState, captured, random);
+                PlacementAttempt attempt = tryPlaceFromSide(branchCurrent, branchSide, pool, captured.connector(), occupied, placed, branchState, captured, random, diagnostics);
                 if (attempt == null) {
                     diagnostics.branchBlockedSides++;
                     branchCurrent.markUsed(branchSide);
@@ -351,7 +361,7 @@ public final class StrongholdDebugGenerator {
                 branchCurrent = attempt.placed;
 
                 BlockFace avoid = attempt.placed.incomingSide;
-                branchSide = pickOpenSide(attempt.placed, avoid, random);
+                branchSide = pickBestContinuationSide(attempt.placed, avoid, captured, occupied, branchState, random);
                 if (branchSide == null) {
                     break;
                 }
@@ -369,29 +379,101 @@ public final class StrongholdDebugGenerator {
         if (captured.deadEnds().isEmpty()) {
             return;
         }
-        BlockFace side = pickOpenSide(target, null, random);
-        if (side == null) {
+        if (hasViableExpansionFrom(target, captured, occupied)) {
             return;
         }
+        List<BlockFace> openSides = target.openSides();
+        Collections.shuffle(openSides, random);
+        for (BlockFace side : openSides) {
+            if (canExpandFromSide(target, side, captured, occupied)) {
+                continue;
+            }
+            PlacementAttempt deadEndAttempt = tryPlaceFromSide(
+                    target,
+                    side,
+                    captured.deadEnds(),
+                    null,
+                    occupied,
+                    placed,
+                    PlacementState.fromSeed(target.spec),
+                    null,
+                    random,
+                    null
+            );
+            if (deadEndAttempt == null) {
+                target.markUsed(side);
+                continue;
+            }
 
-        PlacementAttempt deadEndAttempt = tryPlaceFromSide(
-                target,
-                side,
-                captured.deadEnds(),
-                null,
-                occupied,
-                PlacementState.fromSeed(target.spec),
-                null,
-                random
-        );
-        if (deadEndAttempt == null) {
             target.markUsed(side);
-            return;
+            placed.add(deadEndAttempt.placed);
+            occupy(occupied, deadEndAttempt.placed);
         }
+    }
 
-        target.markUsed(side);
-        placed.add(deadEndAttempt.placed);
-        occupy(occupied, deadEndAttempt.placed);
+    private static boolean hasViableExpansionFrom(PlacedTemplate target,
+                                                  CapturedTemplates captured,
+                                                  Set<Long> occupied) {
+        if (target == null || captured == null) {
+            return false;
+        }
+        PlacementState state = PlacementState.fromSeed(target.spec);
+        List<TemplateSpec> pool = candidatePoolForStep(captured, target, state);
+        for (BlockFace side : target.openSides()) {
+            if (!enumeratePlacementAttempts(target, side, pool, captured.connector(), occupied).isEmpty()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean canExpandFromSide(PlacedTemplate target,
+                                             BlockFace side,
+                                             CapturedTemplates captured,
+                                             Set<Long> occupied) {
+        PlacementState state = PlacementState.fromSeed(target.spec);
+        List<TemplateSpec> pool = candidatePoolForStep(captured, target, state);
+        return !enumeratePlacementAttempts(target, side, pool, captured.connector(), occupied).isEmpty();
+    }
+
+    private static BlockFace pickBestContinuationSide(PlacedTemplate placed,
+                                                      BlockFace avoid,
+                                                      CapturedTemplates captured,
+                                                      Set<Long> occupied,
+                                                      PlacementState state,
+                                                      Random random) {
+        List<BlockFace> open = placed.openSides();
+        if (avoid != null) {
+            open.remove(avoid);
+        }
+        if (open.isEmpty()) {
+            return null;
+        }
+        List<TemplateSpec> pool = candidatePoolForStep(captured, placed, state);
+        BlockFace best = null;
+        int bestCount = -1;
+        for (BlockFace side : open) {
+            int count = enumeratePlacementAttempts(placed, side, pool, captured.connector(), occupied).size();
+            if (count > bestCount) {
+                best = side;
+                bestCount = count;
+            }
+        }
+        if (bestCount > 0) {
+            return best;
+        }
+        return open.get(random.nextInt(open.size()));
+    }
+
+    private static void growBranchesFrontier(CapturedTemplates captured,
+                                             Set<Long> occupied,
+                                             Random random,
+                                             List<PlacedTemplate> placed,
+                                             int maxPieces,
+                                             GenerationDiagnostics diagnostics) {
+        for (int seedIndex = 0; seedIndex < placed.size() && placed.size() < maxPieces; seedIndex++) {
+            growBranches(placed.get(seedIndex), captured, occupied, random, placed, maxPieces, diagnostics);
+        }
     }
 
     private static PlacementAttempt tryPlaceFromSide(PlacedTemplate current,
@@ -399,9 +481,11 @@ public final class StrongholdDebugGenerator {
                                                      List<TemplateSpec> candidateSpecs,
                                                      TemplateSpec connector,
                                                      Set<Long> occupied,
+                                                     List<PlacedTemplate> placedTemplates,
                                                      PlacementState state,
                                                      CapturedTemplates captured,
-                                                     Random random) {
+                                                     Random random,
+                                                     GenerationDiagnostics diagnostics) {
         if (candidateSpecs == null || candidateSpecs.isEmpty()) {
             return null;
         }
@@ -416,15 +500,17 @@ public final class StrongholdDebugGenerator {
         if (attempts.isEmpty()) {
             return null;
         }
-        return pickBestAttempt(current, attempts, occupied, state, captured);
+        return pickBestAttempt(current, attempts, occupied, placedTemplates, state, captured, diagnostics);
     }
 
     private static ExpansionChoice pickBestExpansion(PlacedTemplate current,
                                                      List<TemplateSpec> candidateSpecs,
                                                      CapturedTemplates captured,
                                                      Set<Long> occupied,
+                                                     List<PlacedTemplate> placedTemplates,
                                                      PlacementState state,
-                                                     Random random) {
+                                                     Random random,
+                                                     GenerationDiagnostics diagnostics) {
         List<BlockFace> openSides = current.openSides();
         Collections.shuffle(openSides, random);
 
@@ -436,9 +522,11 @@ public final class StrongholdDebugGenerator {
                     candidateSpecs,
                     captured.connector(),
                     occupied,
+                    placedTemplates,
                     state,
                     captured,
-                    random
+                    random,
+                    diagnostics
             );
             if (attempt == null) {
                 continue;
@@ -480,11 +568,22 @@ public final class StrongholdDebugGenerator {
     private static PlacementAttempt pickBestAttempt(PlacedTemplate current,
                                                     List<PlacementAttempt> attempts,
                                                     Set<Long> occupied,
+                                                    List<PlacedTemplate> placedTemplates,
                                                     PlacementState state,
-                                                    CapturedTemplates captured) {
+                                                    CapturedTemplates captured,
+                                                    GenerationDiagnostics diagnostics) {
         PlacementAttempt best = null;
         double bestScore = Double.NEGATIVE_INFINITY;
         for (PlacementAttempt attempt : attempts) {
+            ValidationResult validation = validatePlacementRules(attempt, state, placedTemplates);
+            if (!validation.valid) {
+                if (diagnostics != null && validation.reason == ValidationReason.WALL_PACING) {
+                    diagnostics.rejectedWallPacing++;
+                } else if (diagnostics != null && validation.reason == ValidationReason.LARGE_SPACING) {
+                    diagnostics.rejectedLargeSpacing++;
+                }
+                continue;
+            }
             double score = scoreAttempt(current, attempt, occupied, state, captured);
             if (score > bestScore) {
                 bestScore = score;
@@ -595,8 +694,11 @@ public final class StrongholdDebugGenerator {
                 for (BlockVector3 currentConnector : currentConnectors) {
                     BlockVector3 worldConnector = current.origin.add(currentConnector);
                     for (BlockVector3 candidateConnector : candidateConnectors) {
-                        BlockVector3 origin = worldConnector.subtract(candidateConnector);
-                        origin = slideUntilThreshold(occupied, rotated.blocks, origin, currentSide);
+                        BlockVector3 idealOrigin = worldConnector.subtract(candidateConnector);
+                        BlockVector3 origin = adjustedOriginForOverlap(spec, occupied, rotated.blocks, idealOrigin, currentSide);
+                        if (!connectorDriftWithinLimit(idealOrigin, origin, spec)) {
+                            continue;
+                        }
                         if (enforceOverlap && overlapPercent(occupied, rotated.blocks, origin) > maxOverlapPercent) {
                             continue;
                         }
@@ -629,7 +731,7 @@ public final class StrongholdDebugGenerator {
     }
 
     private static boolean canPlaceLargeAfter(PlacedTemplate current, PlacementState state) {
-        return !isLarge(current.spec) && state.smallPiecesSinceLarge >= MIN_SMALL_PIECES_BETWEEN_LARGE;
+        return !isLarge(current.spec) && state.wallPiecesSinceLarge >= MIN_WALL_PIECES_BETWEEN_LARGE;
     }
 
     private static boolean canPlaceGate(PlacementState state) {
@@ -638,6 +740,83 @@ public final class StrongholdDebugGenerator {
 
     private static boolean canUseSpec(TemplateSpec spec, PlacementState state) {
         return !isGate(spec) || canPlaceGate(state);
+    }
+
+    private static ValidationResult validatePlacementRules(PlacementAttempt attempt,
+                                                           PlacementState state,
+                                                           List<PlacedTemplate> placedTemplates) {
+        if (attempt == null || attempt.placed == null) {
+            return ValidationResult.denied(ValidationReason.INVALID_ATTEMPT);
+        }
+        if (!isLarge(attempt.placed.spec)) {
+            return ValidationResult.allowed();
+        }
+        if (state.wallPiecesSinceLarge < MIN_WALL_PIECES_BETWEEN_LARGE) {
+            return ValidationResult.denied(ValidationReason.WALL_PACING);
+        }
+        if (!hasLargeTemplateSpacing(attempt.placed, placedTemplates)) {
+            return ValidationResult.denied(ValidationReason.LARGE_SPACING);
+        }
+        return ValidationResult.allowed();
+    }
+
+    private static boolean hasLargeTemplateSpacing(PlacedTemplate target, List<PlacedTemplate> placedTemplates) {
+        if (placedTemplates == null || placedTemplates.isEmpty()) {
+            return true;
+        }
+        RotatedTemplate targetRotated = rotateTemplate(target.spec.template, target.rotation);
+        Bounds2D targetBounds = boundsForPlaced(target, targetRotated);
+        if (targetBounds == null) {
+            return true;
+        }
+        Point2D targetCenter = centerOf(targetBounds);
+
+        double nearestLargeDistance = Double.MAX_VALUE;
+        for (PlacedTemplate existing : placedTemplates) {
+            if (!isLarge(existing.spec)) {
+                continue;
+            }
+            if (existing == target) {
+                continue;
+            }
+            RotatedTemplate existingRotated = rotateTemplate(existing.spec.template, existing.rotation);
+            Bounds2D existingBounds = boundsForPlaced(existing, existingRotated);
+            if (existingBounds == null) {
+                continue;
+            }
+            Point2D existingCenter = centerOf(existingBounds);
+            nearestLargeDistance = Math.min(nearestLargeDistance, planarDistance(targetCenter, existingCenter));
+        }
+        return nearestLargeDistance >= MIN_BLOCKS_BETWEEN_LARGE;
+    }
+
+    private static Point2D centerOf(Bounds2D bounds) {
+        return new Point2D((bounds.minX + bounds.maxX) / 2.0D, (bounds.minZ + bounds.maxZ) / 2.0D);
+    }
+
+    private static double planarDistance(Point2D a, Point2D b) {
+        double dx = a.x - b.x;
+        double dz = a.z - b.z;
+        return Math.sqrt((dx * dx) + (dz * dz));
+    }
+
+    private static Bounds2D boundsForPlaced(PlacedTemplate placed, RotatedTemplate rotated) {
+        if (placed == null || rotated == null || rotated.blocks.isEmpty()) {
+            return null;
+        }
+        int minX = Integer.MAX_VALUE;
+        int maxX = Integer.MIN_VALUE;
+        int minZ = Integer.MAX_VALUE;
+        int maxZ = Integer.MIN_VALUE;
+        for (BlockVector3 rel : rotated.blocks.keySet()) {
+            int x = placed.origin.getBlockX() + rel.getBlockX();
+            int z = placed.origin.getBlockZ() + rel.getBlockZ();
+            minX = Math.min(minX, x);
+            maxX = Math.max(maxX, x);
+            minZ = Math.min(minZ, z);
+            maxZ = Math.max(maxZ, z);
+        }
+        return new Bounds2D(minX, maxX, minZ, maxZ);
     }
 
     private static List<TemplateSpec> candidatePoolForStep(CapturedTemplates captured,
@@ -743,6 +922,26 @@ public final class StrongholdDebugGenerator {
         }
 
         return current;
+    }
+
+    private static BlockVector3 adjustedOriginForOverlap(TemplateSpec spec,
+                                                         Set<Long> occupied,
+                                                         Map<BlockVector3, BlockData> movingBlocks,
+                                                         BlockVector3 idealOrigin,
+                                                         BlockFace joinSide) {
+        if (isLarge(spec)) {
+            return idealOrigin;
+        }
+        return slideUntilThreshold(occupied, movingBlocks, idealOrigin, joinSide);
+    }
+
+    private static boolean connectorDriftWithinLimit(BlockVector3 idealOrigin,
+                                                     BlockVector3 adjustedOrigin,
+                                                     TemplateSpec spec) {
+        int dx = Math.abs(adjustedOrigin.getBlockX() - idealOrigin.getBlockX());
+        int dz = Math.abs(adjustedOrigin.getBlockZ() - idealOrigin.getBlockZ());
+        int maxDrift = isLarge(spec) ? MAX_LARGE_CONNECTOR_DRIFT_BLOCKS : MAX_CONNECTOR_DRIFT_BLOCKS;
+        return (dx + dz) <= maxDrift;
     }
 
     private static CapturedTemplates captureAllTemplates(World world) {
@@ -1174,19 +1373,38 @@ public final class StrongholdDebugGenerator {
     private static final class GenerationDiagnostics {
         private int spineBlockedSides;
         private int branchBlockedSides;
+        private int rejectedWallPacing;
+        private int rejectedLargeSpacing;
         private String templateConnectorSummary = "";
+    }
+
+    private enum ValidationReason {
+        NONE,
+        INVALID_ATTEMPT,
+        WALL_PACING,
+        LARGE_SPACING
+    }
+
+    private record ValidationResult(boolean valid, ValidationReason reason) {
+        private static ValidationResult allowed() {
+            return new ValidationResult(true, ValidationReason.NONE);
+        }
+
+        private static ValidationResult denied(ValidationReason reason) {
+            return new ValidationResult(false, reason);
+        }
     }
 
     public record TemplateConnectionInfo(int connectorCount, List<BlockFace> sides) {
     }
 
-    private record PlacementState(int smallPiecesSinceLarge, int wallPiecesSinceGate) {
+    private record PlacementState(int wallPiecesSinceLarge, int wallPiecesSinceGate) {
         private static PlacementState initial() {
-            return new PlacementState(MIN_SMALL_PIECES_BETWEEN_LARGE, MIN_WALL_PIECES_BETWEEN_GATES);
+            return new PlacementState(MIN_WALL_PIECES_BETWEEN_LARGE, MIN_WALL_PIECES_BETWEEN_GATES);
         }
 
         private static PlacementState fromSeed(TemplateSpec seed) {
-            int smallCount = isLarge(seed) ? 0 : MIN_SMALL_PIECES_BETWEEN_LARGE;
+            int smallCount = isLarge(seed) ? 0 : (isWall(seed) ? MIN_WALL_PIECES_BETWEEN_LARGE : 0);
             int gateCount = isGate(seed) ? 0 : MIN_WALL_PIECES_BETWEEN_GATES;
             return new PlacementState(smallCount, gateCount);
         }
@@ -1194,7 +1412,9 @@ public final class StrongholdDebugGenerator {
         private PlacementState onPlaced(TemplateSpec placed) {
             int nextSmallSinceLarge = isLarge(placed)
                     ? 0
-                    : Math.min(MIN_SMALL_PIECES_BETWEEN_LARGE + 1, smallPiecesSinceLarge + 1);
+                    : (isWall(placed)
+                    ? Math.min(MIN_WALL_PIECES_BETWEEN_LARGE + 1, wallPiecesSinceLarge + 1)
+                    : wallPiecesSinceLarge);
             int nextWallsSinceGate = isGate(placed)
                     ? 0
                     : (isWall(placed)
@@ -1202,6 +1422,12 @@ public final class StrongholdDebugGenerator {
                     : wallPiecesSinceGate);
             return new PlacementState(nextSmallSinceLarge, nextWallsSinceGate);
         }
+    }
+
+    private record Bounds2D(int minX, int maxX, int minZ, int maxZ) {
+    }
+
+    private record Point2D(double x, double z) {
     }
 
     private static final class PlacedTemplate {
