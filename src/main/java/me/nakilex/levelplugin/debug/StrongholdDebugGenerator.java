@@ -29,6 +29,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.IdentityHashMap;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Predicate;
 
 /**
  * Debug-only stronghold composer.
@@ -84,9 +85,16 @@ public final class StrongholdDebugGenerator {
     private static final int MAX_CONNECTOR_BRIDGE_OPTIONS = 8;
     private static final double BRANCH_OPEN_SIDE_CHANCE = 1.00D;
     private static final boolean USE_FRONTIER_SCHEDULER = false;
+    private static final int TARGET_GATE_TEMPLATES = 2;
+    private static final int TARGET_CHURCH_TEMPLATES = 1;
+    private static final double UNDERUSED_TEMPLATE_BONUS = 35.0D;
 
     private static double maxOverlapPercent = 2.0D;
     private static final Map<Template, RotatedTemplate[]> ROTATION_CACHE = new IdentityHashMap<>();
+    private static final List<UsageRule> USAGE_RULES = List.of(
+            new UsageRule(spec -> spec != null && isGate(spec), TARGET_GATE_TEMPLATES, UNDERUSED_TEMPLATE_BONUS),
+            new UsageRule(spec -> spec != null && "church".equalsIgnoreCase(spec.id), TARGET_CHURCH_TEMPLATES, UNDERUSED_TEMPLATE_BONUS)
+    );
 
     private StrongholdDebugGenerator() {
     }
@@ -429,7 +437,7 @@ public final class StrongholdDebugGenerator {
         double bestScore = Double.NEGATIVE_INFINITY;
         PlacementState state = PlacementState.fromSeed(current.spec);
         for (PlacementAttempt attempt : attempts) {
-            double score = scoreAttempt(current, attempt, occupied, state, captured);
+            double score = scoreAttempt(current, attempt, occupied, state, captured, null);
             if (score > bestScore) {
                 bestScore = score;
                 best = attempt;
@@ -746,7 +754,7 @@ public final class StrongholdDebugGenerator {
             if (attempt == null) {
                 continue;
             }
-            double score = scoreAttempt(current, attempt, occupied, state, captured);
+            double score = scoreAttempt(current, attempt, occupied, state, captured, placedTemplates);
             if (best == null || score > best.score()) {
                 best = new ExpansionChoice(side, attempt, score);
             }
@@ -853,7 +861,7 @@ public final class StrongholdDebugGenerator {
                 }
                 continue;
             }
-            double score = scoreAttempt(current, attempt, occupied, state, captured);
+            double score = scoreAttempt(current, attempt, occupied, state, captured, placedTemplates);
             if (score > bestScore) {
                 bestScore = score;
                 best = attempt;
@@ -866,7 +874,8 @@ public final class StrongholdDebugGenerator {
                                        PlacementAttempt attempt,
                                        Set<Long> occupied,
                                        PlacementState state,
-                                       CapturedTemplates captured) {
+                                       CapturedTemplates captured,
+                                       List<PlacedTemplate> placedTemplates) {
         RotatedTemplate rotated = rotateTemplate(attempt.placed.spec.template, attempt.placed.rotation);
         double overlap = overlapPercent(occupied, rotated.blocks, attempt.placed.origin);
 
@@ -876,13 +885,45 @@ public final class StrongholdDebugGenerator {
         int branchBonus = openOutputs >= 2 ? 1 : 0;
         int junctionBonus = isLarge(attempt.placed.spec) ? 1 : 0;
         int continuationBonus = !areBothLarge(current.spec, attempt.placed.spec) ? 1 : 0;
+        double usageBonus = usageDiversityBonus(attempt.placed.spec, placedTemplates);
 
         return (openOutputs * 30.0D)
                 + (connectorDiversity * 12.0D)
                 + (branchBonus * 20.0D)
                 + (junctionBonus * 12.0D)
                 + (continuationBonus * 6.0D)
+                + usageBonus
                 - overlap;
+    }
+
+    private static double usageDiversityBonus(TemplateSpec candidate, List<PlacedTemplate> placedTemplates) {
+        if (candidate == null || placedTemplates == null || placedTemplates.isEmpty()) {
+            return 0.0D;
+        }
+        double bonus = 0.0D;
+        for (UsageRule rule : USAGE_RULES) {
+            if (!rule.matcher().test(candidate)) {
+                continue;
+            }
+            int currentCount = countPlacedTemplatesMatching(placedTemplates, rule.matcher());
+            if (currentCount < rule.targetCount()) {
+                bonus += (rule.targetCount() - currentCount) * rule.bonusPerMissing();
+            }
+        }
+        return bonus;
+    }
+
+    private static int countPlacedTemplatesMatching(List<PlacedTemplate> placedTemplates, Predicate<TemplateSpec> matcher) {
+        if (placedTemplates == null || placedTemplates.isEmpty() || matcher == null) {
+            return 0;
+        }
+        int count = 0;
+        for (PlacedTemplate placedTemplate : placedTemplates) {
+            if (placedTemplate != null && placedTemplate.spec != null && matcher.test(placedTemplate.spec)) {
+                count++;
+            }
+        }
+        return count;
     }
 
     private static int countDistinctSides(List<BlockFace> sides) {
@@ -1658,6 +1699,9 @@ public final class StrongholdDebugGenerator {
     }
 
     private record WeightedSpec(TemplateSpec spec, double key) {
+    }
+
+    private record UsageRule(Predicate<TemplateSpec> matcher, int targetCount, double bonusPerMissing) {
     }
 
     private record PlacementAttempt(PlacedTemplate connector, PlacedTemplate placed) {
