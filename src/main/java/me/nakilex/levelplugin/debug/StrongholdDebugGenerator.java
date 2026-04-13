@@ -84,6 +84,14 @@ public final class StrongholdDebugGenerator {
     private static final int MAX_SINGLE_PLACEMENTS_PER_SIDE = 48;
     private static final int MAX_CONNECTOR_BRIDGE_OPTIONS = 8;
     private static final double BRANCH_OPEN_SIDE_CHANCE = 1.00D;
+    private static final int REQUIRED_CHURCH_CLEARANCE_RADIUS = 5;
+    private static final double FORCED_LARGE_TEMPLATE_OVERLAP_PERCENT = 8.0D;
+    private static final int SATELLITE_CHURCH_SEARCH_PADDING = 80;
+    private static final int SATELLITE_CHURCH_SEARCH_STEP = 6;
+    private static final int SATELLITE_CHURCH_MAX_PADDING = 360;
+    private static final int SATELLITE_CHURCH_FAR_OFFSET = 220;
+    private static final int MAX_EMERGENCY_TEMPLATE_RADIUS = 1200;
+    private static final int MAX_SATELLITE_LINK_SEGMENTS = 6;
     private static final boolean USE_FRONTIER_SCHEDULER = false;
     private static final int TARGET_GATE_TEMPLATES = 2;
     private static final int TARGET_CHURCH_TEMPLATES = 1;
@@ -254,10 +262,61 @@ public final class StrongholdDebugGenerator {
                 growBranches(placed.get(seedIndex), captured, occupied, random, placed, MAX_TOTAL_PIECES, diagnostics);
             }
         }
+        PlacedTemplate leastOverlapChurch = placeTemplateAtLeastOverlapOpenOutput(
+                spec -> spec != null && "church".equalsIgnoreCase(spec.id),
+                captured.largeJunctions(),
+                captured.connector(),
+                occupied,
+                placed
+        );
+        if (leastOverlapChurch != null) {
+            diagnostics.churchLeastOverlapPlaced = true;
+            growBranches(leastOverlapChurch, captured, occupied, random, placed, MAX_TOTAL_PIECES, diagnostics);
+        }
+        SatellitePlacementResult satellitePlacement = placeSatelliteChurchWithOptionalLink(
+                captured,
+                occupied,
+                random,
+                placed,
+                MAX_TOTAL_PIECES
+        );
+        diagnostics.satelliteChurchPlaced = satellitePlacement.placed();
+        diagnostics.satelliteLinkSegments = satellitePlacement.linkSegments();
+        diagnostics.churchPlacementsForced = ensureTemplatePlacements(
+                spec -> spec != null && "church".equalsIgnoreCase(spec.id),
+                captured.largeJunctions(),
+                TARGET_CHURCH_TEMPLATES,
+                FORCED_LARGE_TEMPLATE_OVERLAP_PERCENT,
+                captured,
+                occupied,
+                random,
+                placed,
+                MAX_TOTAL_PIECES
+        );
+        diagnostics.churchEmergencyPlaced = forceTemplatePlacementIfMissing(
+                spec -> spec != null && "church".equalsIgnoreCase(spec.id),
+                findTemplateById(captured.largeJunctions(), "church"),
+                -1,
+                occupied,
+                placed,
+                MAX_TOTAL_PIECES
+        );
+        int sealedViableOutputs = closeViableOutputsWithDeadEnds(captured, occupied, random, placed);
+        int finalChurchCount = countPlacedTemplatesMatching(placed, spec -> spec != null && "church".equalsIgnoreCase(spec.id));
 
         ensureTargetChunksLoaded(world, placed);
         for (PlacedTemplate entry : placed) {
             paste(world, entry.spec.template, entry.origin, entry.rotation);
+        }
+        if (finalChurchCount == 0) {
+            TemplateSpec churchTemplate = findTemplateById(captured.largeJunctions(), "church");
+            if (churchTemplate != null) {
+                BlockVector3 rawChurchOrigin = findRawPasteOriginNearFootprint(placed, churchTemplate, originY);
+                diagnostics.churchRawCopied = pasteTemplateSpecDirect(sourceWorld, world, churchTemplate, rawChurchOrigin);
+                if (diagnostics.churchRawCopied) {
+                    finalChurchCount = 1;
+                }
+            }
         }
 
         player.teleport(new org.bukkit.Location(world, originX + 0.5, originY + 2, originZ + 0.5));
@@ -270,9 +329,19 @@ public final class StrongholdDebugGenerator {
                         + ", branch blocked sides: " + diagnostics.branchBlockedSides
                         + ", remaining open outputs: " + countOpenOutputs(placed)
                         + ", viable next outputs: " + countViableOpenOutputs(placed, captured, occupied)
+                        + ", sealed viable outputs: " + sealedViableOutputs
+                        + ", church placed: " + finalChurchCount
+                        + ", church forced: " + diagnostics.churchPlacementsForced
+                        + ", church least-overlap: " + diagnostics.churchLeastOverlapPlaced
+                        + ", church satellite: " + diagnostics.satelliteChurchPlaced
+                        + ", church emergency: " + diagnostics.churchEmergencyPlaced
+                        + ", church raw copy: " + diagnostics.churchRawCopied
+                        + ", church origins: " + summarizeTemplateOrigins(placed, spec -> spec != null && "church".equalsIgnoreCase(spec.id))
+                        + ", satellite link segments: " + diagnostics.satelliteLinkSegments
                         + ", rejected(wallPacing): " + diagnostics.rejectedWallPacing
                         + ", rejected(largeSpacing): " + diagnostics.rejectedLargeSpacing
-                        + ", connectors: " + diagnostics.templateConnectorSummary);
+                        + ", placed templates: " + summarizePlacedTemplates(placed)
+                        + ", template connectors(captured): " + diagnostics.templateConnectorSummary);
         return true;
     }
 
@@ -617,26 +686,683 @@ public final class StrongholdDebugGenerator {
             if (canExpandFromSide(target, side, captured, occupied)) {
                 continue;
             }
-            PlacementAttempt deadEndAttempt = tryPlaceFromSide(
-                    target,
-                    side,
-                    captured.deadEnds(),
-                    null,
-                    occupied,
-                    placed,
-                    PlacementState.fromSeed(target.spec),
-                    null,
-                    random,
-                    null
-            );
+            PlacementAttempt deadEndAttempt = tryPlaceDeadEndFromSide(target, side, captured, occupied, random, placed);
             if (deadEndAttempt == null) {
                 target.markUsed(side);
                 continue;
             }
+            applyDeadEndPlacement(target, side, deadEndAttempt, placed, occupied);
+        }
+    }
 
-            target.markUsed(side);
-            placed.add(deadEndAttempt.placed);
-            occupy(occupied, deadEndAttempt.placed);
+    private static int closeViableOutputsWithDeadEnds(CapturedTemplates captured,
+                                                       Set<Long> occupied,
+                                                       Random random,
+                                                       List<PlacedTemplate> placed) {
+        if (captured == null || captured.deadEnds().isEmpty()) {
+            return 0;
+        }
+        int sealed = 0;
+        boolean progress = true;
+        while (progress) {
+            progress = false;
+            List<PlacedTemplate> snapshot = new ArrayList<>(placed);
+            for (PlacedTemplate entry : snapshot) {
+                List<BlockFace> openSides = entry.openSides();
+                Collections.shuffle(openSides, random);
+                for (BlockFace side : openSides) {
+                    if (!canExpandFromSide(entry, side, captured, occupied)) {
+                        continue;
+                    }
+                    PlacementAttempt deadEndAttempt = tryPlaceDeadEndFromSide(entry, side, captured, occupied, random, placed);
+                    if (deadEndAttempt == null) {
+                        continue;
+                    }
+                    applyDeadEndPlacement(entry, side, deadEndAttempt, placed, occupied);
+                    sealed++;
+                    progress = true;
+                }
+            }
+        }
+        return sealed;
+    }
+
+    private static PlacementAttempt tryPlaceDeadEndFromSide(PlacedTemplate target,
+                                                             BlockFace side,
+                                                             CapturedTemplates captured,
+                                                             Set<Long> occupied,
+                                                             Random random,
+                                                             List<PlacedTemplate> placed) {
+        return tryPlaceFromSide(
+                target,
+                side,
+                captured.deadEnds(),
+                null,
+                occupied,
+                placed,
+                PlacementState.fromSeed(target.spec),
+                null,
+                random,
+                null
+        );
+    }
+
+    private static void applyDeadEndPlacement(PlacedTemplate target,
+                                              BlockFace side,
+                                              PlacementAttempt deadEndAttempt,
+                                              List<PlacedTemplate> placed,
+                                              Set<Long> occupied) {
+        target.markUsed(side);
+        placed.add(deadEndAttempt.placed);
+        occupy(occupied, deadEndAttempt.placed);
+    }
+
+    private static SatellitePlacementResult placeSatelliteChurchWithOptionalLink(CapturedTemplates captured,
+                                                                                 Set<Long> occupied,
+                                                                                 Random random,
+                                                                                 List<PlacedTemplate> placed,
+                                                                                 int maxPieces) {
+        if (captured == null || placed == null || placed.isEmpty() || placed.size() >= maxPieces) {
+            return SatellitePlacementResult.none();
+        }
+        if (countPlacedTemplatesMatching(placed, spec -> spec != null && "church".equalsIgnoreCase(spec.id))
+                >= TARGET_CHURCH_TEMPLATES) {
+            return SatellitePlacementResult.none();
+        }
+        TemplateSpec church = findTemplateById(captured.largeJunctions(), "church");
+        if (church == null) {
+            return SatellitePlacementResult.none();
+        }
+        PlacedTemplate satelliteChurch = findSatelliteChurchPlacement(church, occupied, placed);
+        if (satelliteChurch == null) {
+            return SatellitePlacementResult.none();
+        }
+        placed.add(satelliteChurch);
+        occupy(occupied, satelliteChurch);
+        int linkedSegments = attemptSatelliteLink(satelliteChurch, captured, occupied, random, placed, maxPieces);
+        return new SatellitePlacementResult(true, linkedSegments);
+    }
+
+    private static PlacedTemplate findSatelliteChurchPlacement(TemplateSpec church,
+                                                               Set<Long> occupied,
+                                                               List<PlacedTemplate> placed) {
+        Bounds2D footprint = combinedFootprint(placed);
+        if (footprint == null) {
+            return null;
+        }
+        int baseY = placed.get(0).origin.getBlockY();
+        PlacedTemplate nearby = findSatellitePlacementInRange(
+                church,
+                occupied,
+                baseY,
+                footprint,
+                SATELLITE_CHURCH_SEARCH_PADDING,
+                SATELLITE_CHURCH_SEARCH_STEP
+        );
+        if (nearby != null) {
+            return nearby;
+        }
+        PlacedTemplate wider = findSatellitePlacementInRange(
+                church,
+                occupied,
+                baseY,
+                footprint,
+                SATELLITE_CHURCH_MAX_PADDING,
+                SATELLITE_CHURCH_SEARCH_STEP * 2
+        );
+        if (wider != null) {
+            return wider;
+        }
+        List<BlockVector3> farAnchors = List.of(
+                BlockVector3.at(footprint.maxX + SATELLITE_CHURCH_FAR_OFFSET, baseY, footprint.maxZ + SATELLITE_CHURCH_FAR_OFFSET),
+                BlockVector3.at(footprint.minX - SATELLITE_CHURCH_FAR_OFFSET, baseY, footprint.maxZ + SATELLITE_CHURCH_FAR_OFFSET),
+                BlockVector3.at(footprint.maxX + SATELLITE_CHURCH_FAR_OFFSET, baseY, footprint.minZ - SATELLITE_CHURCH_FAR_OFFSET),
+                BlockVector3.at(footprint.minX - SATELLITE_CHURCH_FAR_OFFSET, baseY, footprint.minZ - SATELLITE_CHURCH_FAR_OFFSET)
+        );
+        for (BlockVector3 anchor : farAnchors) {
+            for (int rotation = 0; rotation < 4; rotation++) {
+                PlacedTemplate candidate = new PlacedTemplate(church, rotation, anchor);
+                if (canPlaceWithClearance(candidate, occupied, REQUIRED_CHURCH_CLEARANCE_RADIUS)) {
+                    return candidate;
+                }
+            }
+        }
+        return null;
+    }
+
+    private static PlacedTemplate findSatellitePlacementInRange(TemplateSpec church,
+                                                                Set<Long> occupied,
+                                                                int baseY,
+                                                                Bounds2D footprint,
+                                                                int padding,
+                                                                int step) {
+        int minX = footprint.minX - padding;
+        int maxX = footprint.maxX + padding;
+        int minZ = footprint.minZ - padding;
+        int maxZ = footprint.maxZ + padding;
+        int spacing = Math.max(1, step);
+
+        for (int x = minX; x <= maxX; x += spacing) {
+            for (int z = minZ; z <= maxZ; z += spacing) {
+                for (int rotation = 0; rotation < 4; rotation++) {
+                    PlacedTemplate candidate = new PlacedTemplate(church, rotation, BlockVector3.at(x, baseY, z));
+                    if (canPlaceWithClearance(candidate, occupied, REQUIRED_CHURCH_CLEARANCE_RADIUS)) {
+                        return candidate;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    private static boolean canPlaceWithClearance(PlacedTemplate candidate,
+                                                 Set<Long> occupied,
+                                                 int clearanceRadius) {
+        RotatedTemplate rotated = rotateTemplate(candidate.spec.template, candidate.rotation);
+        if (!isOverlapWithinThreshold(occupied, rotated.blocks, candidate.origin, maxOverlapPercent)) {
+            return false;
+        }
+        if (clearanceRadius < 0) {
+            return true;
+        }
+        return hasExpandedAreaClearance(candidate, occupied, clearanceRadius);
+    }
+
+    private static boolean forceTemplatePlacementIfMissing(Predicate<TemplateSpec> matcher,
+                                                           TemplateSpec template,
+                                                           int clearanceRadius,
+                                                           Set<Long> occupied,
+                                                           List<PlacedTemplate> placed,
+                                                           int maxPieces) {
+        if (matcher == null || template == null || placed.size() >= maxPieces) {
+            return false;
+        }
+        if (countPlacedTemplatesMatching(placed, matcher) > 0) {
+            return false;
+        }
+        Bounds2D footprint = combinedFootprint(placed);
+        if (footprint == null) {
+            return false;
+        }
+        int baseY = placed.get(0).origin.getBlockY();
+        int centerX = (footprint.minX + footprint.maxX) / 2;
+        int centerZ = (footprint.minZ + footprint.maxZ) / 2;
+        for (int radius = SATELLITE_CHURCH_FAR_OFFSET; radius <= MAX_EMERGENCY_TEMPLATE_RADIUS; radius += 40) {
+            for (int dx = -radius; dx <= radius; dx += 40) {
+                int[] zs = new int[]{-radius, radius};
+                for (int dz : zs) {
+                    PlacedTemplate candidate = tryTemplateAtAllRotations(template, occupied, clearanceRadius,
+                            BlockVector3.at(centerX + dx, baseY, centerZ + dz));
+                    if (candidate != null) {
+                        placed.add(candidate);
+                        occupy(occupied, candidate);
+                        return true;
+                    }
+                }
+            }
+            for (int dz = -radius + 40; dz <= radius - 40; dz += 40) {
+                int[] xs = new int[]{-radius, radius};
+                for (int dx : xs) {
+                    PlacedTemplate candidate = tryTemplateAtAllRotations(template, occupied, clearanceRadius,
+                            BlockVector3.at(centerX + dx, baseY, centerZ + dz));
+                    if (candidate != null) {
+                        placed.add(candidate);
+                        occupy(occupied, candidate);
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    private static PlacedTemplate placeTemplateAtLeastOverlapOpenOutput(Predicate<TemplateSpec> matcher,
+                                                                        List<TemplateSpec> candidates,
+                                                                        TemplateSpec connectorTemplate,
+                                                                        Set<Long> occupied,
+                                                                        List<PlacedTemplate> placed) {
+        if (matcher == null || candidates == null || candidates.isEmpty()) {
+            return null;
+        }
+        if (countPlacedTemplatesMatching(placed, matcher) > 0) {
+            return null;
+        }
+        TemplateSpec targetTemplate = null;
+        for (TemplateSpec candidate : candidates) {
+            if (matcher.test(candidate)) {
+                targetTemplate = candidate;
+                break;
+            }
+        }
+        if (targetTemplate == null) {
+            return null;
+        }
+        LeastOverlapChoice best = null;
+        Set<String> seen = new HashSet<>();
+        List<PlacedTemplate> snapshot = new ArrayList<>(placed);
+        for (PlacedTemplate source : snapshot) {
+            for (BlockFace side : source.openSides()) {
+                for (PlacementAttempt attempt : enumerateLeastOverlapAttempts(
+                        source, side, targetTemplate, connectorTemplate, occupied
+                )) {
+                    String key = System.identityHashCode(source) + ":" + side + ":" + placementAttemptKey(attempt.connector, attempt.placed);
+                    if (!seen.add(key)) {
+                        continue;
+                    }
+                    RotatedTemplate rotated = rotateTemplate(attempt.placed.spec.template, attempt.placed.rotation);
+                    double overlap = overlapPercent(occupied, rotated.blocks, attempt.placed.origin);
+                    if (best == null || overlap < best.overlap()) {
+                        best = new LeastOverlapChoice(source, side, attempt, overlap);
+                    }
+                }
+            }
+        }
+        if (best == null) {
+            return null;
+        }
+        applyPlacementAttempt(best.source(), best.side(), best.attempt(), placed, occupied);
+        return best.attempt().placed();
+    }
+
+    private static List<PlacementAttempt> enumerateLeastOverlapAttempts(PlacedTemplate source,
+                                                                        BlockFace side,
+                                                                        TemplateSpec targetTemplate,
+                                                                        TemplateSpec connectorTemplate,
+                                                                        Set<Long> occupied) {
+        List<PlacementAttempt> attempts = new ArrayList<>();
+        for (PlacedTemplate direct : enumerateSinglePlacements(
+                source,
+                side,
+                List.of(targetTemplate),
+                occupied,
+                false,
+                MAX_SINGLE_PLACEMENTS_PER_SIDE,
+                false
+        )) {
+            if (areBothLarge(source.spec, direct.spec)) {
+                continue;
+            }
+            if (requiresConnectorBetween(source.spec, direct.spec)) {
+                continue;
+            }
+            attempts.add(new PlacementAttempt(null, direct));
+        }
+
+        if (connectorTemplate == null) {
+            return attempts;
+        }
+        for (PlacedTemplate connectorPlaced : enumerateSinglePlacements(
+                source,
+                side,
+                List.of(connectorTemplate),
+                occupied,
+                false,
+                MAX_CONNECTOR_BRIDGE_OPTIONS,
+                false
+        )) {
+            Set<Long> occupiedWithConnector = new HashSet<>(occupied);
+            occupy(occupiedWithConnector, connectorPlaced);
+            for (PlacedTemplate viaConnector : enumerateSinglePlacements(
+                    connectorPlaced,
+                    side,
+                    List.of(targetTemplate),
+                    occupiedWithConnector,
+                    false,
+                    MAX_SINGLE_PLACEMENTS_PER_SIDE,
+                    false
+            )) {
+                if (areBothLarge(source.spec, viaConnector.spec)) {
+                    continue;
+                }
+                attempts.add(new PlacementAttempt(connectorPlaced, viaConnector));
+            }
+        }
+        return attempts;
+    }
+
+    private static PlacedTemplate tryTemplateAtAllRotations(TemplateSpec template,
+                                                            Set<Long> occupied,
+                                                            int clearanceRadius,
+                                                            BlockVector3 origin) {
+        for (int rotation = 0; rotation < 4; rotation++) {
+            PlacedTemplate candidate = new PlacedTemplate(template, rotation, origin);
+            if (canPlaceWithClearance(candidate, occupied, clearanceRadius)) {
+                return candidate;
+            }
+        }
+        return null;
+    }
+
+    private static BlockVector3 findRawPasteOriginNearFootprint(List<PlacedTemplate> placed,
+                                                                 TemplateSpec template,
+                                                                 int y) {
+        Bounds2D footprint = combinedFootprint(placed);
+        int x = 240;
+        int z = 240;
+        if (footprint != null) {
+            x = footprint.maxX + SATELLITE_CHURCH_FAR_OFFSET;
+            z = footprint.maxZ + SATELLITE_CHURCH_FAR_OFFSET;
+        }
+        int minX = Math.min(template.bounds.minX, template.bounds.maxX);
+        int minY = Math.min(template.bounds.minY, template.bounds.maxY);
+        int minZ = Math.min(template.bounds.minZ, template.bounds.maxZ);
+        return BlockVector3.at(x - minX, y - minY, z - minZ);
+    }
+
+    private static boolean pasteTemplateSpecDirect(World sourceWorld,
+                                                   World targetWorld,
+                                                   TemplateSpec template,
+                                                   BlockVector3 targetOrigin) {
+        if (sourceWorld == null || targetWorld == null || template == null || targetOrigin == null) {
+            return false;
+        }
+        int minX = Math.min(template.bounds.minX, template.bounds.maxX);
+        int maxX = Math.max(template.bounds.minX, template.bounds.maxX);
+        int minY = Math.min(template.bounds.minY, template.bounds.maxY);
+        int maxY = Math.max(template.bounds.minY, template.bounds.maxY);
+        int minZ = Math.min(template.bounds.minZ, template.bounds.maxZ);
+        int maxZ = Math.max(template.bounds.minZ, template.bounds.maxZ);
+        boolean pastedAny = false;
+        for (int x = minX; x <= maxX; x++) {
+            for (int y = minY; y <= maxY; y++) {
+                for (int z = minZ; z <= maxZ; z++) {
+                    org.bukkit.block.Block sourceBlock = sourceWorld.getBlockAt(x, y, z);
+                    Material type = sourceBlock.getType();
+                    if (type == Material.AIR || EXCLUDED.contains(type)) {
+                        continue;
+                    }
+                    int tx = targetOrigin.getBlockX() + (x - minX);
+                    int ty = targetOrigin.getBlockY() + (y - minY);
+                    int tz = targetOrigin.getBlockZ() + (z - minZ);
+                    targetWorld.getBlockAt(tx, ty, tz).setBlockData(sourceBlock.getBlockData(), false);
+                    pastedAny = true;
+                }
+            }
+        }
+        return pastedAny;
+    }
+
+    private static int attemptSatelliteLink(PlacedTemplate satelliteChurch,
+                                            CapturedTemplates captured,
+                                            Set<Long> occupied,
+                                            Random random,
+                                            List<PlacedTemplate> placed,
+                                            int maxPieces) {
+        if (satelliteChurch == null || captured == null || placed.size() >= maxPieces) {
+            return 0;
+        }
+        TemplateSpec nearest = findNearestTemplateWithOpenSide(placed, satelliteChurch);
+        if (nearest == null) {
+            return 0;
+        }
+        PlacedTemplate current = findPlacedTemplateBySpec(placed, nearest);
+        if (current == null) {
+            return 0;
+        }
+        List<TemplateSpec> preferredWalls = preferredLinkWallPool(captured);
+        PlacementState state = PlacementState.fromSeed(current.spec);
+        int segments = 0;
+
+        while (segments < MAX_SATELLITE_LINK_SEGMENTS && placed.size() < maxPieces) {
+            BlockFace side = pickOpenSideToward(current, satelliteChurch, captured, occupied, state, random);
+            if (side == null) {
+                break;
+            }
+            PlacementAttempt attempt = tryPlaceFromSide(
+                    current,
+                    side,
+                    preferredWalls,
+                    captured.connector(),
+                    occupied,
+                    placed,
+                    state,
+                    captured,
+                    random,
+                    null
+            );
+            if (attempt == null) {
+                current.markUsed(side);
+                break;
+            }
+            applyPlacementAttempt(current, side, attempt, placed, occupied);
+            state = state.onPlaced(attempt.placed.spec);
+            current = attempt.placed;
+            segments++;
+        }
+        return segments;
+    }
+
+    private static List<TemplateSpec> preferredLinkWallPool(CapturedTemplates captured) {
+        List<TemplateSpec> straightWalls = new ArrayList<>();
+        for (TemplateSpec wall : captured.walls()) {
+            if (isLinearWallTemplate(wall)) {
+                straightWalls.add(wall);
+            }
+        }
+        if (!straightWalls.isEmpty()) {
+            return straightWalls;
+        }
+        return captured.walls();
+    }
+
+    private static BlockFace pickOpenSideToward(PlacedTemplate current,
+                                                PlacedTemplate target,
+                                                CapturedTemplates captured,
+                                                Set<Long> occupied,
+                                                PlacementState state,
+                                                Random random) {
+        List<BlockFace> openSides = current.openSides();
+        if (openSides.isEmpty()) {
+            return null;
+        }
+        BlockFace bestSide = null;
+        double bestDistance = Double.MAX_VALUE;
+        Point2D targetCenter = centerOf(boundsForPlaced(target, rotateTemplate(target.spec.template, target.rotation)));
+        List<TemplateSpec> pool = candidatePoolForStep(captured, current, state);
+        for (BlockFace side : openSides) {
+            if (enumeratePlacementAttempts(current, side, pool, captured.connector(), occupied).isEmpty()) {
+                continue;
+            }
+            BlockVector3 probe = probeTowardSide(current, side);
+            double distance = planarDistance(new Point2D(probe.getBlockX(), probe.getBlockZ()), targetCenter);
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                bestSide = side;
+            }
+        }
+        if (bestSide != null) {
+            return bestSide;
+        }
+        return openSides.get(random.nextInt(openSides.size()));
+    }
+
+    private static BlockVector3 probeTowardSide(PlacedTemplate current, BlockFace side) {
+        RotatedTemplate rotated = rotateTemplate(current.spec.template, current.rotation);
+        Bounds2D bounds = boundsForPlaced(current, rotated);
+        int x = (bounds.minX + bounds.maxX) / 2;
+        int z = (bounds.minZ + bounds.maxZ) / 2;
+        return switch (side) {
+            case NORTH -> BlockVector3.at(x, current.origin.getBlockY(), bounds.minZ - 1);
+            case SOUTH -> BlockVector3.at(x, current.origin.getBlockY(), bounds.maxZ + 1);
+            case EAST -> BlockVector3.at(bounds.maxX + 1, current.origin.getBlockY(), z);
+            case WEST -> BlockVector3.at(bounds.minX - 1, current.origin.getBlockY(), z);
+            default -> current.origin;
+        };
+    }
+
+    private static TemplateSpec findNearestTemplateWithOpenSide(List<PlacedTemplate> placed,
+                                                                PlacedTemplate target) {
+        if (target == null) {
+            return null;
+        }
+        Point2D targetCenter = centerOf(boundsForPlaced(target, rotateTemplate(target.spec.template, target.rotation)));
+        TemplateSpec best = null;
+        double bestDistance = Double.MAX_VALUE;
+        for (PlacedTemplate entry : placed) {
+            if (entry == target || entry.openSides().isEmpty()) {
+                continue;
+            }
+            Bounds2D bounds = boundsForPlaced(entry, rotateTemplate(entry.spec.template, entry.rotation));
+            Point2D center = centerOf(bounds);
+            double distance = planarDistance(center, targetCenter);
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                best = entry.spec;
+            }
+        }
+        return best;
+    }
+
+    private static PlacedTemplate findPlacedTemplateBySpec(List<PlacedTemplate> placed, TemplateSpec spec) {
+        for (PlacedTemplate entry : placed) {
+            if (entry != null && entry.spec == spec) {
+                return entry;
+            }
+        }
+        return null;
+    }
+
+    private static Bounds2D combinedFootprint(List<PlacedTemplate> placed) {
+        if (placed == null || placed.isEmpty()) {
+            return null;
+        }
+        int minX = Integer.MAX_VALUE;
+        int maxX = Integer.MIN_VALUE;
+        int minZ = Integer.MAX_VALUE;
+        int maxZ = Integer.MIN_VALUE;
+        for (PlacedTemplate entry : placed) {
+            Bounds2D bounds = boundsForPlaced(entry, rotateTemplate(entry.spec.template, entry.rotation));
+            if (bounds == null) {
+                continue;
+            }
+            minX = Math.min(minX, bounds.minX);
+            maxX = Math.max(maxX, bounds.maxX);
+            minZ = Math.min(minZ, bounds.minZ);
+            maxZ = Math.max(maxZ, bounds.maxZ);
+        }
+        if (minX == Integer.MAX_VALUE) {
+            return null;
+        }
+        return new Bounds2D(minX, maxX, minZ, maxZ);
+    }
+
+    private static int ensureTemplatePlacements(Predicate<TemplateSpec> matcher,
+                                                List<TemplateSpec> candidateTemplates,
+                                                int requiredCount,
+                                                double relaxedOverlapPercent,
+                                                CapturedTemplates captured,
+                                                Set<Long> occupied,
+                                                Random random,
+                                                List<PlacedTemplate> placed,
+                                                int maxPieces) {
+        if (matcher == null || candidateTemplates == null || candidateTemplates.isEmpty()) {
+            return 0;
+        }
+        List<TemplateSpec> matchingTemplates = candidateTemplates.stream()
+                .filter(matcher)
+                .toList();
+        if (matchingTemplates.isEmpty()) {
+            return 0;
+        }
+        int forced = 0;
+        int currentCount = countPlacedTemplatesMatching(placed, matcher);
+        while (currentCount < requiredCount && placed.size() < maxPieces) {
+            if (!tryPlaceTemplateFromOpenOutput(
+                    matchingTemplates,
+                    relaxedOverlapPercent,
+                    captured,
+                    occupied,
+                    random,
+                    placed
+            )) {
+                break;
+            }
+            forced++;
+            currentCount++;
+        }
+        return forced;
+    }
+
+    private static boolean tryPlaceTemplateFromOpenOutput(List<TemplateSpec> candidateTemplates,
+                                                          double relaxedOverlapPercent,
+                                                          CapturedTemplates captured,
+                                                          Set<Long> occupied,
+                                                          Random random,
+                                                          List<PlacedTemplate> placed) {
+        List<PlacedTemplate> snapshot = new ArrayList<>(placed);
+        Collections.shuffle(snapshot, random);
+        for (PlacedTemplate source : snapshot) {
+            List<BlockFace> openSides = source.openSides();
+            Collections.shuffle(openSides, random);
+            for (BlockFace side : openSides) {
+                PlacementAttempt attempt = tryPlaceFromSide(
+                        source,
+                        side,
+                        candidateTemplates,
+                        captured.connector(),
+                        occupied,
+                        placed,
+                        PlacementState.fromSeed(source.spec),
+                        captured,
+                        random,
+                        null
+                );
+                if (attempt == null && relaxedOverlapPercent > maxOverlapPercent && containsLargeTemplate(candidateTemplates)) {
+                    attempt = tryPlaceFromSideWithTemporaryOverlap(
+                            source,
+                            side,
+                            candidateTemplates,
+                            captured,
+                            occupied,
+                            random,
+                            placed,
+                            relaxedOverlapPercent
+                    );
+                }
+                if (attempt == null) {
+                    continue;
+                }
+                applyPlacementAttempt(source, side, attempt, placed, occupied);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean containsLargeTemplate(List<TemplateSpec> candidateTemplates) {
+        for (TemplateSpec template : candidateTemplates) {
+            if (isLarge(template)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static PlacementAttempt tryPlaceFromSideWithTemporaryOverlap(PlacedTemplate source,
+                                                                         BlockFace side,
+                                                                         List<TemplateSpec> candidateTemplates,
+                                                                         CapturedTemplates captured,
+                                                                         Set<Long> occupied,
+                                                                         Random random,
+                                                                         List<PlacedTemplate> placed,
+                                                                         double temporaryOverlapPercent) {
+        double previousOverlap = maxOverlapPercent;
+        setMaxOverlapPercent(temporaryOverlapPercent);
+        try {
+            return tryPlaceFromSide(
+                    source,
+                    side,
+                    candidateTemplates,
+                    captured.connector(),
+                    occupied,
+                    placed,
+                    PlacementState.fromSeed(source.spec),
+                    captured,
+                    random,
+                    null
+            );
+        } finally {
+            setMaxOverlapPercent(previousOverlap);
         }
     }
 
@@ -718,6 +1444,20 @@ public final class StrongholdDebugGenerator {
         if (candidateSpecs == null || candidateSpecs.isEmpty()) {
             return null;
         }
+        PlacementAttempt prioritizedChurch = tryPrioritizedChurchPlacement(
+                current,
+                currentSide,
+                candidateSpecs,
+                connector,
+                occupied,
+                placedTemplates,
+                state,
+                captured,
+                diagnostics
+        );
+        if (prioritizedChurch != null) {
+            return prioritizedChurch;
+        }
 
         List<PlacementAttempt> attempts = enumeratePlacementAttempts(
                 current,
@@ -730,6 +1470,49 @@ public final class StrongholdDebugGenerator {
             return null;
         }
         return pickBestAttempt(current, attempts, occupied, placedTemplates, state, captured, diagnostics);
+    }
+
+    private static PlacementAttempt tryPrioritizedChurchPlacement(PlacedTemplate current,
+                                                                  BlockFace currentSide,
+                                                                  List<TemplateSpec> candidateSpecs,
+                                                                  TemplateSpec connector,
+                                                                  Set<Long> occupied,
+                                                                  List<PlacedTemplate> placedTemplates,
+                                                                  PlacementState state,
+                                                                  CapturedTemplates captured,
+                                                                  GenerationDiagnostics diagnostics) {
+        if (placedTemplates == null || captured == null) {
+            return null;
+        }
+        if (countPlacedTemplatesMatching(placedTemplates, spec -> spec != null && "church".equalsIgnoreCase(spec.id))
+                >= TARGET_CHURCH_TEMPLATES) {
+            return null;
+        }
+        TemplateSpec church = null;
+        for (TemplateSpec candidate : candidateSpecs) {
+            if (candidate != null && "church".equalsIgnoreCase(candidate.id)) {
+                church = candidate;
+                break;
+            }
+        }
+        if (church == null) {
+            return null;
+        }
+        List<PlacementAttempt> churchAttempts = enumeratePlacementAttempts(
+                current,
+                currentSide,
+                List.of(church),
+                connector,
+                occupied
+        );
+        if (churchAttempts.isEmpty()) {
+            return null;
+        }
+        churchAttempts.removeIf(attempt -> !hasExpandedAreaClearance(attempt.placed, occupied, REQUIRED_CHURCH_CLEARANCE_RADIUS));
+        if (churchAttempts.isEmpty()) {
+            return null;
+        }
+        return pickBestAttempt(current, churchAttempts, occupied, placedTemplates, state, captured, diagnostics);
     }
 
     private static ExpansionChoice pickBestExpansion(PlacedTemplate current,
@@ -976,6 +1759,41 @@ public final class StrongholdDebugGenerator {
         return String.join(", ", entries);
     }
 
+    private static String summarizePlacedTemplates(List<PlacedTemplate> placed) {
+        if (placed == null || placed.isEmpty()) {
+            return "none";
+        }
+        Map<String, Integer> counts = new LinkedHashMap<>();
+        for (PlacedTemplate entry : placed) {
+            if (entry == null || entry.spec == null) {
+                continue;
+            }
+            counts.merge(entry.spec.id, 1, Integer::sum);
+        }
+        List<String> summary = new ArrayList<>();
+        for (Map.Entry<String, Integer> entry : counts.entrySet()) {
+            summary.add(entry.getKey() + ":" + entry.getValue());
+        }
+        return String.join(", ", summary);
+    }
+
+    private static String summarizeTemplateOrigins(List<PlacedTemplate> placed, Predicate<TemplateSpec> matcher) {
+        if (placed == null || placed.isEmpty() || matcher == null) {
+            return "none";
+        }
+        List<String> out = new ArrayList<>();
+        for (PlacedTemplate entry : placed) {
+            if (entry == null || entry.spec == null || !matcher.test(entry.spec)) {
+                continue;
+            }
+            out.add(entry.origin.getBlockX() + "," + entry.origin.getBlockY() + "," + entry.origin.getBlockZ());
+        }
+        if (out.isEmpty()) {
+            return "none";
+        }
+        return String.join(" | ", out);
+    }
+
     private static List<PlacedTemplate> enumerateSinglePlacements(PlacedTemplate current,
                                                                   BlockFace currentSide,
                                                                   List<TemplateSpec> candidateSpecs,
@@ -1065,7 +1883,7 @@ public final class StrongholdDebugGenerator {
                     if (!connectorDriftWithinLimit(idealOrigin, origin, spec)) {
                         continue;
                     }
-                    if (enforceOverlap && overlapPercent(occupied, rotated.blocks, origin) > maxOverlapPercent) {
+                    if (enforceOverlap && !isOverlapWithinThreshold(occupied, rotated.blocks, origin, maxOverlapPercent)) {
                         continue;
                     }
                     PlacedTemplate placed = new PlacedTemplate(spec, rot, origin);
@@ -1228,6 +2046,58 @@ public final class StrongholdDebugGenerator {
         return new Bounds2D(minX, maxX, minZ, maxZ);
     }
 
+    private static boolean hasExpandedAreaClearance(PlacedTemplate placed,
+                                                    Set<Long> occupied,
+                                                    int expansionRadius) {
+        if (placed == null || occupied == null) {
+            return false;
+        }
+        RotatedTemplate rotated = rotateTemplate(placed.spec.template, placed.rotation);
+        Bounds3D bounds = boundsForPlaced3D(placed, rotated);
+        if (bounds == null) {
+            return false;
+        }
+        int minX = bounds.minX - Math.max(0, expansionRadius);
+        int maxX = bounds.maxX + Math.max(0, expansionRadius);
+        int minZ = bounds.minZ - Math.max(0, expansionRadius);
+        int maxZ = bounds.maxZ + Math.max(0, expansionRadius);
+
+        for (int x = minX; x <= maxX; x++) {
+            for (int y = bounds.minY; y <= bounds.maxY; y++) {
+                for (int z = minZ; z <= maxZ; z++) {
+                    if (occupied.contains(posKey(x, y, z))) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    private static Bounds3D boundsForPlaced3D(PlacedTemplate placed, RotatedTemplate rotated) {
+        if (placed == null || rotated == null || rotated.blocks.isEmpty()) {
+            return null;
+        }
+        int minX = Integer.MAX_VALUE;
+        int maxX = Integer.MIN_VALUE;
+        int minY = Integer.MAX_VALUE;
+        int maxY = Integer.MIN_VALUE;
+        int minZ = Integer.MAX_VALUE;
+        int maxZ = Integer.MIN_VALUE;
+        for (BlockVector3 rel : rotated.blocks.keySet()) {
+            int x = placed.origin.getBlockX() + rel.getBlockX();
+            int y = placed.origin.getBlockY() + rel.getBlockY();
+            int z = placed.origin.getBlockZ() + rel.getBlockZ();
+            minX = Math.min(minX, x);
+            maxX = Math.max(maxX, x);
+            minY = Math.min(minY, y);
+            maxY = Math.max(maxY, y);
+            minZ = Math.min(minZ, z);
+            maxZ = Math.max(maxZ, z);
+        }
+        return new Bounds3D(minX, maxX, minY, maxY, minZ, maxZ);
+    }
+
     private static List<TemplateSpec> candidatePoolForStep(CapturedTemplates captured,
                                                            PlacedTemplate current,
                                                            PlacementState state) {
@@ -1308,6 +2178,33 @@ public final class StrongholdDebugGenerator {
         return (overlap * 100.0D) / blocks.size();
     }
 
+    private static boolean isOverlapWithinThreshold(Set<Long> occupied,
+                                                    Map<BlockVector3, BlockData> blocks,
+                                                    BlockVector3 origin,
+                                                    double thresholdPercent) {
+        if (blocks.isEmpty()) {
+            return false;
+        }
+        double boundedThreshold = Math.max(0.0D, Math.min(100.0D, thresholdPercent));
+        if (boundedThreshold >= 100.0D) {
+            return true;
+        }
+        int allowedOverlaps = (int) Math.floor((boundedThreshold / 100.0D) * blocks.size());
+        int overlap = 0;
+        for (BlockVector3 rel : blocks.keySet()) {
+            int x = origin.getBlockX() + rel.getBlockX();
+            int y = origin.getBlockY() + rel.getBlockY();
+            int z = origin.getBlockZ() + rel.getBlockZ();
+            if (occupied.contains(posKey(x, y, z))) {
+                overlap++;
+                if (overlap > allowedOverlaps) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
     private static BlockVector3 slideUntilThreshold(Set<Long> occupied,
                                                     Map<BlockVector3, BlockData> movingBlocks,
                                                     BlockVector3 startOrigin,
@@ -1318,13 +2215,13 @@ public final class StrongholdDebugGenerator {
         int awayZ = joinSide.getModZ();
 
         BlockVector3 current = startOrigin;
-        for (int i = 0; i < 64 && overlapPercent(occupied, movingBlocks, current) > maxOverlapPercent; i++) {
+        for (int i = 0; i < 64 && !isOverlapWithinThreshold(occupied, movingBlocks, current, maxOverlapPercent); i++) {
             current = current.add(awayX, 0, awayZ);
         }
 
         for (int i = 0; i < 256; i++) {
             BlockVector3 next = current.add(towardX, 0, towardZ);
-            if (overlapPercent(occupied, movingBlocks, next) > maxOverlapPercent) {
+            if (!isOverlapWithinThreshold(occupied, movingBlocks, next, maxOverlapPercent)) {
                 break;
             }
             current = next;
@@ -1771,9 +2668,18 @@ public final class StrongholdDebugGenerator {
     private record ExpansionChoice(BlockFace side, PlacementAttempt attempt, double score) {
     }
 
+    private record LeastOverlapChoice(PlacedTemplate source, BlockFace side, PlacementAttempt attempt, double overlap) {
+    }
+
     private static final class GenerationDiagnostics {
         private int spineBlockedSides;
         private int branchBlockedSides;
+        private int churchPlacementsForced;
+        private boolean churchLeastOverlapPlaced;
+        private boolean satelliteChurchPlaced;
+        private boolean churchEmergencyPlaced;
+        private boolean churchRawCopied;
+        private int satelliteLinkSegments;
         private int rejectedWallPacing;
         private int rejectedLargeSpacing;
         private String templateConnectorSummary = "";
@@ -1839,7 +2745,16 @@ public final class StrongholdDebugGenerator {
     private record Bounds2D(int minX, int maxX, int minZ, int maxZ) {
     }
 
+    private record Bounds3D(int minX, int maxX, int minY, int maxY, int minZ, int maxZ) {
+    }
+
     private record Point2D(double x, double z) {
+    }
+
+    private record SatellitePlacementResult(boolean placed, int linkSegments) {
+        private static SatellitePlacementResult none() {
+            return new SatellitePlacementResult(false, 0);
+        }
     }
 
     private static final class PlacedTemplate {
