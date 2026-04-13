@@ -800,14 +800,18 @@ public final class StrongholdDebugGenerator {
         Set<String> seen = new HashSet<>();
 
         if (connector != null && maxConnectorBridgeOptions > 0) {
+            // Keep connector bridges snapped to their ideal connector markers so
+            // chained pieces (e.g. wall -> connector -> t_section) do not drift
+            // apart and create visual gaps.
+            boolean connectorBridgeAllowOverlapSlide = false;
             List<PlacedTemplate> connectorPlacements = enumerateSinglePlacements(
-                    current, currentSide, List.of(connector), occupied, true, maxConnectorBridgeOptions, allowOverlapSlide
+                    current, currentSide, List.of(connector), occupied, true, maxConnectorBridgeOptions, connectorBridgeAllowOverlapSlide
             );
             for (PlacedTemplate connectorPlaced : connectorPlacements) {
                 Set<Long> occupiedWithConnector = new HashSet<>(occupied);
                 occupy(occupiedWithConnector, connectorPlaced);
                 for (PlacedTemplate viaConnector : enumerateSinglePlacements(
-                        connectorPlaced, currentSide, candidateSpecs, occupiedWithConnector, true, maxSinglePlacements, allowOverlapSlide
+                        connectorPlaced, currentSide, candidateSpecs, occupiedWithConnector, true, maxSinglePlacements, connectorBridgeAllowOverlapSlide
                 )) {
                     if (areBothLarge(current.spec, viaConnector.spec)) {
                         continue;
@@ -861,7 +865,7 @@ public final class StrongholdDebugGenerator {
         PlacementAttempt best = null;
         double bestScore = Double.NEGATIVE_INFINITY;
         for (PlacementAttempt attempt : attempts) {
-            ValidationResult validation = validatePlacementRules(attempt, state, placedTemplates);
+            ValidationResult validation = validatePlacementRules(current.spec, attempt, state, placedTemplates);
             if (!validation.valid) {
                 if (diagnostics != null && validation.reason == ValidationReason.WALL_PACING) {
                     diagnostics.rejectedWallPacing++;
@@ -1140,11 +1144,15 @@ public final class StrongholdDebugGenerator {
         return false;
     }
 
-    private static ValidationResult validatePlacementRules(PlacementAttempt attempt,
+    private static ValidationResult validatePlacementRules(TemplateSpec sourceSpec,
+                                                           PlacementAttempt attempt,
                                                            PlacementState state,
                                                            List<PlacedTemplate> placedTemplates) {
         if (attempt == null || attempt.placed == null) {
             return ValidationResult.denied(ValidationReason.INVALID_ATTEMPT);
+        }
+        if (attempt.connector == null && requiresConnectorBetween(sourceSpec, attempt.placed.spec)) {
+            return ValidationResult.denied(ValidationReason.CONNECTOR_REQUIRED);
         }
         if (!isLarge(attempt.placed.spec)) {
             return ValidationResult.allowed();
@@ -1756,6 +1764,7 @@ public final class StrongholdDebugGenerator {
     private enum ValidationReason {
         NONE,
         INVALID_ATTEMPT,
+        CONNECTOR_REQUIRED,
         WALL_PACING,
         LARGE_SPACING
     }
