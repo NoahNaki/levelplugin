@@ -90,6 +90,7 @@ public final class StrongholdDebugGenerator {
     private static final int SATELLITE_CHURCH_SEARCH_STEP = 6;
     private static final int SATELLITE_CHURCH_MAX_PADDING = 360;
     private static final int SATELLITE_CHURCH_FAR_OFFSET = 220;
+    private static final int MAX_EMERGENCY_TEMPLATE_RADIUS = 420;
     private static final int MAX_SATELLITE_LINK_SEGMENTS = 6;
     private static final boolean USE_FRONTIER_SCHEDULER = false;
     private static final int TARGET_GATE_TEMPLATES = 2;
@@ -312,6 +313,7 @@ public final class StrongholdDebugGenerator {
                         + ", church forced: " + diagnostics.churchPlacementsForced
                         + ", church satellite: " + diagnostics.satelliteChurchPlaced
                         + ", church emergency: " + diagnostics.churchEmergencyPlaced
+                        + ", church origins: " + summarizeTemplateOrigins(placed, spec -> spec != null && "church".equalsIgnoreCase(spec.id))
                         + ", satellite link segments: " + diagnostics.satelliteLinkSegments
                         + ", rejected(wallPacing): " + diagnostics.rejectedWallPacing
                         + ", rejected(largeSpacing): " + diagnostics.rejectedLargeSpacing
@@ -859,7 +861,7 @@ public final class StrongholdDebugGenerator {
         int baseY = placed.get(0).origin.getBlockY();
         int centerX = (footprint.minX + footprint.maxX) / 2;
         int centerZ = (footprint.minZ + footprint.maxZ) / 2;
-        for (int radius = SATELLITE_CHURCH_FAR_OFFSET; radius <= 1200; radius += 40) {
+        for (int radius = SATELLITE_CHURCH_FAR_OFFSET; radius <= MAX_EMERGENCY_TEMPLATE_RADIUS; radius += 40) {
             for (int dx = -radius; dx <= radius; dx += 40) {
                 int[] zs = new int[]{-radius, radius};
                 for (int dz : zs) {
@@ -1594,6 +1596,23 @@ public final class StrongholdDebugGenerator {
             summary.add(entry.getKey() + ":" + entry.getValue());
         }
         return String.join(", ", summary);
+    }
+
+    private static String summarizeTemplateOrigins(List<PlacedTemplate> placed, Predicate<TemplateSpec> matcher) {
+        if (placed == null || placed.isEmpty() || matcher == null) {
+            return "none";
+        }
+        List<String> out = new ArrayList<>();
+        for (PlacedTemplate entry : placed) {
+            if (entry == null || entry.spec == null || !matcher.test(entry.spec)) {
+                continue;
+            }
+            out.add(entry.origin.getBlockX() + "," + entry.origin.getBlockY() + "," + entry.origin.getBlockZ());
+        }
+        if (out.isEmpty()) {
+            return "none";
+        }
+        return String.join(" | ", out);
     }
 
     private static List<PlacedTemplate> enumerateSinglePlacements(PlacedTemplate current,
