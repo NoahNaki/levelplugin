@@ -55,7 +55,7 @@ public final class StrongholdDebugGenerator {
             new TemplateSpec("straight_8", new TemplateBounds(543, -61, -5630, 473, -38, -5560), PieceCategory.WALL, 2),
             new TemplateSpec("straight_9", new TemplateBounds(473, -38, -5417, 543, -61, -5347), PieceCategory.WALL, 2),
             new TemplateSpec("t_section", new TemplateBounds(615, -61, -5276, 685, -7, -5206), PieceCategory.JUNCTION_LARGE, 3),
-            new TemplateSpec("tower_1", new TemplateBounds(615, -61, -5488, 685, -7, -5418), PieceCategory.JUNCTION_LARGE, 3),
+            new TemplateSpec("tower_1", new TemplateBounds(615, -61, -5488, 685, -7, -5418), PieceCategory.JUNCTION_LARGE, 1),
             new TemplateSpec("gate_1", new TemplateBounds(686, -61, -5346, 614, -10, -5418), PieceCategory.JUNCTION_LARGE, 1),
             new TemplateSpec("gate_2", new TemplateBounds(686, -61, -5276, 614, -10, -5346), PieceCategory.JUNCTION_LARGE, 1),
             new TemplateSpec("church", new TemplateBounds(757, -61, -5559, 827, 34, -5489), PieceCategory.JUNCTION_LARGE, 1),
@@ -75,6 +75,8 @@ public final class StrongholdDebugGenerator {
     private static final int MIN_WALL_PIECES_BETWEEN_LARGE = 1;
     private static final int MIN_BLOCKS_BETWEEN_LARGE = 24;
     private static final int MIN_WALL_PIECES_BETWEEN_GATES = 3;
+    private static final int MIN_WALL_PIECES_BETWEEN_TOWERS = 2;
+    private static final int MIN_BLOCKS_BETWEEN_TOWERS = 44;
     private static final int MAX_CONNECTOR_DRIFT_BLOCKS = 6;
     private static final int MAX_LARGE_CONNECTOR_DRIFT_BLOCKS = 0;
     private static final int CONNECTOR_SIDE_CAPTURE_DISTANCE = 2;
@@ -1046,6 +1048,10 @@ public final class StrongholdDebugGenerator {
         return spec.id.startsWith("gate_");
     }
 
+    private static boolean isTower(TemplateSpec spec) {
+        return spec.id.startsWith("tower_");
+    }
+
     private static boolean isWall(TemplateSpec spec) {
         return spec.category == PieceCategory.WALL;
     }
@@ -1059,7 +1065,13 @@ public final class StrongholdDebugGenerator {
     }
 
     private static boolean canUseSpec(TemplateSpec spec, PlacementState state) {
-        return !isGate(spec) || canPlaceGate(state);
+        if (isGate(spec) && !canPlaceGate(state)) {
+            return false;
+        }
+        if (isTower(spec) && state.wallPiecesSinceTower < MIN_WALL_PIECES_BETWEEN_TOWERS) {
+            return false;
+        }
+        return true;
     }
 
     private static ValidationResult validatePlacementRules(PlacementAttempt attempt,
@@ -1074,13 +1086,20 @@ public final class StrongholdDebugGenerator {
         if (state.wallPiecesSinceLarge < MIN_WALL_PIECES_BETWEEN_LARGE) {
             return ValidationResult.denied(ValidationReason.WALL_PACING);
         }
-        if (!hasLargeTemplateSpacing(attempt.placed, placedTemplates)) {
+        if (!hasTemplateSpacing(attempt.placed, placedTemplates, StrongholdDebugGenerator::isLarge, MIN_BLOCKS_BETWEEN_LARGE)) {
+            return ValidationResult.denied(ValidationReason.LARGE_SPACING);
+        }
+        if (isTower(attempt.placed.spec)
+                && !hasTemplateSpacing(attempt.placed, placedTemplates, StrongholdDebugGenerator::isTower, MIN_BLOCKS_BETWEEN_TOWERS)) {
             return ValidationResult.denied(ValidationReason.LARGE_SPACING);
         }
         return ValidationResult.allowed();
     }
 
-    private static boolean hasLargeTemplateSpacing(PlacedTemplate target, List<PlacedTemplate> placedTemplates) {
+    private static boolean hasTemplateSpacing(PlacedTemplate target,
+                                              List<PlacedTemplate> placedTemplates,
+                                              java.util.function.Predicate<TemplateSpec> filter,
+                                              int minDistance) {
         if (placedTemplates == null || placedTemplates.isEmpty()) {
             return true;
         }
@@ -1093,7 +1112,7 @@ public final class StrongholdDebugGenerator {
 
         double nearestLargeDistance = Double.MAX_VALUE;
         for (PlacedTemplate existing : placedTemplates) {
-            if (!isLarge(existing.spec)) {
+            if (!filter.test(existing.spec)) {
                 continue;
             }
             if (existing == target) {
@@ -1107,7 +1126,7 @@ public final class StrongholdDebugGenerator {
             Point2D existingCenter = centerOf(existingBounds);
             nearestLargeDistance = Math.min(nearestLargeDistance, planarDistance(targetCenter, existingCenter));
         }
-        return nearestLargeDistance >= MIN_BLOCKS_BETWEEN_LARGE;
+        return nearestLargeDistance >= minDistance;
     }
 
     private static Point2D centerOf(Bounds2D bounds) {
@@ -1675,15 +1694,20 @@ public final class StrongholdDebugGenerator {
     public record TemplateConnectionInfo(int connectorCount, List<BlockFace> sides) {
     }
 
-    private record PlacementState(int wallPiecesSinceLarge, int wallPiecesSinceGate) {
+    private record PlacementState(int wallPiecesSinceLarge, int wallPiecesSinceGate, int wallPiecesSinceTower) {
         private static PlacementState initial() {
-            return new PlacementState(MIN_WALL_PIECES_BETWEEN_LARGE, MIN_WALL_PIECES_BETWEEN_GATES);
+            return new PlacementState(
+                    MIN_WALL_PIECES_BETWEEN_LARGE,
+                    MIN_WALL_PIECES_BETWEEN_GATES,
+                    MIN_WALL_PIECES_BETWEEN_TOWERS
+            );
         }
 
         private static PlacementState fromSeed(TemplateSpec seed) {
             int smallCount = isLarge(seed) ? 0 : (isWall(seed) ? MIN_WALL_PIECES_BETWEEN_LARGE : 0);
             int gateCount = isGate(seed) ? 0 : MIN_WALL_PIECES_BETWEEN_GATES;
-            return new PlacementState(smallCount, gateCount);
+            int towerCount = isTower(seed) ? 0 : MIN_WALL_PIECES_BETWEEN_TOWERS;
+            return new PlacementState(smallCount, gateCount, towerCount);
         }
 
         private PlacementState onPlaced(TemplateSpec placed) {
@@ -1697,7 +1721,12 @@ public final class StrongholdDebugGenerator {
                     : (isWall(placed)
                     ? Math.min(MIN_WALL_PIECES_BETWEEN_GATES + 1, wallPiecesSinceGate + 1)
                     : wallPiecesSinceGate);
-            return new PlacementState(nextSmallSinceLarge, nextWallsSinceGate);
+            int nextWallsSinceTower = isTower(placed)
+                    ? 0
+                    : (isWall(placed)
+                    ? Math.min(MIN_WALL_PIECES_BETWEEN_TOWERS + 1, wallPiecesSinceTower + 1)
+                    : wallPiecesSinceTower);
+            return new PlacementState(nextSmallSinceLarge, nextWallsSinceGate, nextWallsSinceTower);
         }
     }
 
