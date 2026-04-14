@@ -13,11 +13,13 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +30,7 @@ public final class StrongholdTemplateDebugGUI implements Listener {
     private static final int GUI_SIZE = 54;
     private static StrongholdTemplateDebugGUI instance;
     private final Map<UUID, Map<Integer, String>> slotTemplateByPlayer = new HashMap<>();
+    private final Map<UUID, Map<String, StrongholdDebugGenerator.TemplateConnectionInfo>> templateInfoByPlayer = new HashMap<>();
     private boolean registered;
 
     private StrongholdTemplateDebugGUI() {
@@ -72,6 +75,7 @@ public final class StrongholdTemplateDebugGUI implements Listener {
         }
 
         slotTemplateByPlayer.put(player.getUniqueId(), slotToTemplate);
+        templateInfoByPlayer.put(player.getUniqueId(), templates);
         player.openInventory(inv);
     }
 
@@ -124,6 +128,7 @@ public final class StrongholdTemplateDebugGUI implements Listener {
         if (sides == null || sides.isEmpty()) {
             return "none";
         }
+        EnumSet<BlockFace> present = EnumSet.copyOf(sides);
         List<String> labels = new ArrayList<>();
         Map<BlockFace, String> names = new EnumMap<>(BlockFace.class);
         names.put(BlockFace.NORTH, "N");
@@ -131,7 +136,7 @@ public final class StrongholdTemplateDebugGUI implements Listener {
         names.put(BlockFace.SOUTH, "S");
         names.put(BlockFace.WEST, "W");
         for (BlockFace side : List.of(BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST)) {
-            if (sides.contains(side)) {
+            if (present.contains(side)) {
                 labels.add(names.get(side));
             }
         }
@@ -159,7 +164,8 @@ public final class StrongholdTemplateDebugGUI implements Listener {
             return;
         }
 
-        StrongholdDebugGenerator.TemplateConnectionInfo info = StrongholdDebugGenerator.inspectTemplateConnections().get(id);
+        Map<String, StrongholdDebugGenerator.TemplateConnectionInfo> cachedInfo = templateInfoByPlayer.get(player.getUniqueId());
+        StrongholdDebugGenerator.TemplateConnectionInfo info = cachedInfo == null ? null : cachedInfo.get(id);
         if (info == null) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
                     "Could not inspect template '" + id + "'.");
@@ -168,5 +174,18 @@ public final class StrongholdTemplateDebugGUI implements Listener {
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                 "Template " + id + " -> connectors: " + info.connectorCount()
                         + " (sides: " + formatSides(info.sides()) + ").");
+    }
+
+    @EventHandler
+    public void onClose(InventoryCloseEvent event) {
+        if (!(event.getPlayer() instanceof Player player)) {
+            return;
+        }
+        if (!TITLE.equals(event.getView().getTitle())) {
+            return;
+        }
+        UUID playerId = player.getUniqueId();
+        slotTemplateByPlayer.remove(playerId);
+        templateInfoByPlayer.remove(playerId);
     }
 }

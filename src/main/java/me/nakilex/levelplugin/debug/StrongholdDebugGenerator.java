@@ -1,9 +1,13 @@
 package me.nakilex.levelplugin.debug;
 
 import com.sk89q.worldedit.math.BlockVector3;
+import com.sk89q.worldedit.EditSession;
+import com.sk89q.worldedit.WorldEdit;
+import com.sk89q.worldedit.bukkit.BukkitAdapter;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.Bukkit;
+import org.bukkit.ChunkSnapshot;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.WorldType;
@@ -20,6 +24,7 @@ import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -30,6 +35,7 @@ import java.util.Set;
 import java.util.IdentityHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 /**
  * Debug-only stronghold composer.
@@ -73,9 +79,9 @@ public final class StrongholdDebugGenerator {
     private static final String SOURCE_WORLD = "flatland";
     private static final String GENERATED_WORLD_PREFIX = "stronghold_debug_";
 
-    private static final int DEFAULT_SPINE_LENGTH = 20;
-    private static final int MAX_BRANCH_LENGTH = 10;
-    private static final int MAX_TOTAL_PIECES = 96;
+    private static final int DEFAULT_SPINE_LENGTH = 12;
+    private static final int MAX_BRANCH_LENGTH = 6;
+    private static final int MAX_TOTAL_PIECES = 64;
     private static final int MIN_WALL_PIECES_BETWEEN_LARGE = 1;
     private static final int MIN_BLOCKS_BETWEEN_LARGE = 24;
     private static final int MIN_WALL_PIECES_BETWEEN_GATES = 3;
@@ -86,6 +92,10 @@ public final class StrongholdDebugGenerator {
     private static final int CONNECTOR_SIDE_CAPTURE_DISTANCE = 2;
     private static final int MAX_SINGLE_PLACEMENTS_PER_SIDE = 48;
     private static final int MAX_CONNECTOR_BRIDGE_OPTIONS = 8;
+    private static final int MIN_SINGLE_PLACEMENTS_PER_SIDE = 24;
+    private static final int MIN_CONNECTOR_BRIDGE_OPTIONS = 4;
+    private static final int OCCUPIED_BLOCKS_SOFT_CAP = 120_000;
+    private static final int OCCUPIED_BLOCKS_HARD_CAP = 220_000;
     private static final double BRANCH_OPEN_SIDE_CHANCE = 1.00D;
     private static final int REQUIRED_CHURCH_CLEARANCE_RADIUS = 5;
     private static final double FORCED_LARGE_TEMPLATE_OVERLAP_PERCENT = 8.0D;
@@ -96,6 +106,8 @@ public final class StrongholdDebugGenerator {
     private static final int MAX_EMERGENCY_TEMPLATE_RADIUS = 1200;
     private static final int MAX_SATELLITE_LINK_SEGMENTS = 6;
     private static final boolean USE_FRONTIER_SCHEDULER = false;
+    private static final boolean ENABLE_EXPENSIVE_DIAGNOSTICS = false;
+    private static final boolean ENABLE_DISCONNECTED_FALLBACKS = false;
     private static final int TARGET_GATE_TEMPLATES = 2;
     private static final Map<String, Integer> REQUIRED_TEMPLATE_COUNTS = Map.of(
             "church", 1,
@@ -107,6 +119,10 @@ public final class StrongholdDebugGenerator {
 
     private static double maxOverlapPercent = 2.0D;
     private static final Map<Template, RotatedTemplate[]> ROTATION_CACHE = new IdentityHashMap<>();
+    private static final Map<String, BlockData[]> BLOCK_DATA_ROTATION_CACHE = new HashMap<>();
+    private static final Map<String, com.sk89q.worldedit.world.block.BlockState> WORLD_EDIT_BLOCK_STATE_CACHE = new HashMap<>();
+    private static CapturedTemplates cachedCapturedTemplates;
+    private static Map<String, TemplateConnectionInfo> cachedTemplateConnectionInfo;
     private static final List<UsageRule> USAGE_RULES = List.of(
             new UsageRule(spec -> spec != null && isGate(spec), TARGET_GATE_TEMPLATES, UNDERUSED_TEMPLATE_BONUS),
             new UsageRule(spec -> matcherForTemplateId("church").test(spec), requiredCountForTemplate("church"), UNDERUSED_TEMPLATE_BONUS),
@@ -133,34 +149,11 @@ public final class StrongholdDebugGenerator {
     }
 
     public static Map<String, TemplateConnectionInfo> inspectTemplateConnections() {
-        clearRotationCache();
-        Main plugin = Main.getInstance();
-        if (plugin != null && plugin.getWorldManager() != null) {
-            plugin.getWorldManager().ensureWorldsLoaded(SOURCE_WORLD);
-        }
-        World sourceWorld = Bukkit.getWorld(SOURCE_WORLD);
-        if (sourceWorld == null) {
-            return Map.of();
-        }
-
-        loadSourceChunks(sourceWorld);
-        CapturedTemplates captured = captureAllTemplates(sourceWorld);
+        CapturedTemplates captured = loadCapturedTemplates(false);
         if (captured == null) {
             return Map.of();
         }
-
-        Map<String, TemplateConnectionInfo> out = new LinkedHashMap<>();
-        List<TemplateSpec> all = new ArrayList<>();
-        all.addAll(captured.walls());
-        all.addAll(captured.largeJunctions());
-        all.addAll(captured.deadEnds());
-        all.add(captured.connector());
-        for (TemplateSpec spec : all) {
-            List<BlockFace> sides = new ArrayList<>(spec.template.connectors.keySet());
-            int connectorCount = spec.template.connectors.values().stream().mapToInt(List::size).sum();
-            out.put(spec.id, new TemplateConnectionInfo(connectorCount, sides));
-        }
-        return out;
+        return cachedTemplateConnectionInfo == null ? Map.of() : cachedTemplateConnectionInfo;
     }
 
     public static int cleanupGeneratedWorlds(Main plugin) {
@@ -183,13 +176,12 @@ public final class StrongholdDebugGenerator {
             return true;
         }
 
-        plugin.getWorldManager().ensureWorldsLoaded(SOURCE_WORLD);
-        World sourceWorld = Bukkit.getWorld(SOURCE_WORLD);
-        if (sourceWorld == null) {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
-                    "Source template world '" + SOURCE_WORLD + "' is not loaded.");
+        SourceSetup setup = prepareSourceTemplates(player, true);
+        if (setup == null) {
             return true;
         }
+        World sourceWorld = setup.sourceWorld();
+        CapturedTemplates captured = setup.captured();
 
         World world = createGeneratedWorld(plugin, player);
         if (world == null) {
@@ -198,15 +190,7 @@ public final class StrongholdDebugGenerator {
             return true;
         }
 
-        loadSourceChunks(sourceWorld);
         Random random = ThreadLocalRandom.current();
-
-        CapturedTemplates captured = captureAllTemplates(sourceWorld);
-        if (captured == null) {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
-                    "Failed to capture one or more stronghold templates. Check source cuboids and markers.");
-            return true;
-        }
         GenerationDiagnostics diagnostics = new GenerationDiagnostics();
         diagnostics.templateConnectorSummary = templateConnectorSummary(captured);
 
@@ -322,15 +306,18 @@ public final class StrongholdDebugGenerator {
                     placed,
                     MAX_TOTAL_PIECES
             );
-            TemplateSpec requiredSpec = findTemplateById(allCandidateTemplates, templateId);
-            boolean emergencyPlaced = forceTemplatePlacementIfMissing(
-                    matcher,
-                    requiredSpec,
-                    -1,
-                    occupied,
-                    placed,
-                    MAX_TOTAL_PIECES
-            );
+            boolean emergencyPlaced = false;
+            if (ENABLE_DISCONNECTED_FALLBACKS) {
+                TemplateSpec requiredSpec = findTemplateById(allCandidateTemplates, templateId);
+                emergencyPlaced = forceTemplatePlacementIfMissing(
+                        matcher,
+                        requiredSpec,
+                        -1,
+                        occupied,
+                        placed,
+                        MAX_TOTAL_PIECES
+                );
+            }
             if (emergencyPlaced) {
                 requiredEmergencyPlacements++;
             }
@@ -344,29 +331,28 @@ public final class StrongholdDebugGenerator {
         int sealedViableOutputs = closeViableOutputsWithDeadEnds(captured, occupied, random, placed);
         int finalChurchCount = countPlacedTemplatesMatching(placed, matcherForTemplateId("church"));
 
-        ensureTargetChunksLoaded(world, placed);
-        for (PlacedTemplate entry : placed) {
-            paste(world, entry.spec.template, entry.origin, entry.rotation);
-        }
+        pastePlacedTemplates(world, placed);
         int requiredRawCopies = 0;
-        for (Map.Entry<String, Integer> requiredTemplate : REQUIRED_TEMPLATE_COUNTS.entrySet()) {
-            String templateId = requiredTemplate.getKey();
-            int requiredCount = requiredTemplate.getValue();
-            int currentCount = countPlacedTemplatesMatching(placed, matcherForTemplateId(templateId));
-            if (currentCount >= requiredCount) {
-                continue;
-            }
-            TemplateSpec template = findTemplateById(allCandidateTemplates, templateId);
-            if (template == null) {
-                continue;
-            }
-            BlockVector3 rawOrigin = findRawPasteOriginNearFootprint(placed, template, originY);
-            boolean copied = pasteTemplateSpecDirect(sourceWorld, world, template, rawOrigin);
-            if (copied) {
-                requiredRawCopies++;
-                if ("church".equalsIgnoreCase(templateId)) {
-                    diagnostics.churchRawCopied = true;
-                    finalChurchCount = Math.max(finalChurchCount, requiredCount);
+        if (ENABLE_DISCONNECTED_FALLBACKS) {
+            for (Map.Entry<String, Integer> requiredTemplate : REQUIRED_TEMPLATE_COUNTS.entrySet()) {
+                String templateId = requiredTemplate.getKey();
+                int requiredCount = requiredTemplate.getValue();
+                int currentCount = countPlacedTemplatesMatching(placed, matcherForTemplateId(templateId));
+                if (currentCount >= requiredCount) {
+                    continue;
+                }
+                TemplateSpec template = findTemplateById(allCandidateTemplates, templateId);
+                if (template == null) {
+                    continue;
+                }
+                BlockVector3 rawOrigin = findRawPasteOriginNearFootprint(placed, template, originY);
+                boolean copied = pasteTemplateSpecDirect(sourceWorld, world, template, rawOrigin);
+                if (copied) {
+                    requiredRawCopies++;
+                    if ("church".equalsIgnoreCase(templateId)) {
+                        diagnostics.churchRawCopied = true;
+                        finalChurchCount = Math.max(finalChurchCount, requiredCount);
+                    }
                 }
             }
         }
@@ -377,11 +363,14 @@ public final class StrongholdDebugGenerator {
                 "Generated stronghold spine+branches using " + placed.size()
                         + " pieces in world '" + world.getName() + "' (overlap threshold: "
                         + String.format("%.2f", maxOverlapPercent) + "%).");
+        String viableOutputSummary = ENABLE_EXPENSIVE_DIAGNOSTICS
+                ? String.valueOf(countViableOpenOutputs(placed, captured, occupied))
+                : "skipped";
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                 "Stronghold diagnostics -> spine blocked sides: " + diagnostics.spineBlockedSides
                         + ", branch blocked sides: " + diagnostics.branchBlockedSides
                         + ", remaining open outputs: " + countOpenOutputs(placed)
-                        + ", viable next outputs: " + countViableOpenOutputs(placed, captured, occupied)
+                        + ", viable next outputs: " + viableOutputSummary
                         + ", sealed viable outputs: " + sealedViableOutputs
                         + ", church placed: " + finalChurchCount
                         + ", required forced: " + diagnostics.requiredPlacementsForced
@@ -415,26 +404,16 @@ public final class StrongholdDebugGenerator {
             return true;
         }
 
-        plugin.getWorldManager().ensureWorldsLoaded(SOURCE_WORLD);
-        World sourceWorld = Bukkit.getWorld(SOURCE_WORLD);
-        if (sourceWorld == null) {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
-                    "Source template world '" + SOURCE_WORLD + "' is not loaded.");
+        SourceSetup setup = prepareSourceTemplates(player, true);
+        if (setup == null) {
             return true;
         }
+        CapturedTemplates captured = setup.captured();
 
         World world = createGeneratedWorld(plugin, player);
         if (world == null) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
                     "Failed to create a superflat world for stronghold generation.");
-            return true;
-        }
-
-        loadSourceChunks(sourceWorld);
-        CapturedTemplates captured = captureAllTemplates(sourceWorld);
-        if (captured == null) {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
-                    "Failed to capture one or more stronghold templates. Check source cuboids and markers.");
             return true;
         }
 
@@ -497,10 +476,7 @@ public final class StrongholdDebugGenerator {
             builtBranches++;
         }
 
-        ensureTargetChunksLoaded(world, placed);
-        for (PlacedTemplate entry : placed) {
-            paste(world, entry.spec.template, entry.origin, entry.rotation);
-        }
+        pastePlacedTemplates(world, placed);
         player.teleport(new org.bukkit.Location(world, originX + 0.5, originY + 2, originZ + 0.5));
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
                 "Generated towerwall cross preset using " + placed.size() + " pieces in world '" + world.getName() + "'.");
@@ -657,6 +633,29 @@ public final class StrongholdDebugGenerator {
         return world;
     }
 
+    private static SourceSetup prepareSourceTemplates(Player player, boolean forceRefresh) {
+        Main plugin = Main.getInstance();
+        if (plugin == null || plugin.getWorldManager() == null) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                    "Plugin bootstrap is unavailable. Try again after startup completes.");
+            return null;
+        }
+        plugin.getWorldManager().ensureWorldsLoaded(SOURCE_WORLD);
+        World sourceWorld = Bukkit.getWorld(SOURCE_WORLD);
+        if (sourceWorld == null) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                    "Source template world '" + SOURCE_WORLD + "' is not loaded.");
+            return null;
+        }
+        CapturedTemplates captured = loadCapturedTemplates(forceRefresh);
+        if (captured == null) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                    "Failed to capture one or more stronghold templates. Check source cuboids and markers.");
+            return null;
+        }
+        return new SourceSetup(sourceWorld, captured);
+    }
+
     private static void loadSourceChunks(World sourceWorld) {
         for (TemplateSpec spec : TEMPLATE_SPECS) {
             loadChunksForBounds(sourceWorld, spec.bounds);
@@ -681,22 +680,6 @@ public final class StrongholdDebugGenerator {
         }
     }
 
-    private static void ensureTargetChunksLoaded(World world, List<PlacedTemplate> placedTemplates) {
-        Set<Long> loadedChunks = new HashSet<>();
-        for (PlacedTemplate placedTemplate : placedTemplates) {
-            RotatedTemplate rotatedTemplate = rotateTemplate(placedTemplate.spec.template, placedTemplate.rotation);
-            for (BlockVector3 rel : rotatedTemplate.blocks.keySet()) {
-                int x = placedTemplate.origin.getBlockX() + rel.getBlockX();
-                int z = placedTemplate.origin.getBlockZ() + rel.getBlockZ();
-                int chunkX = Math.floorDiv(x, 16);
-                int chunkZ = Math.floorDiv(z, 16);
-                long key = (((long) chunkX) << 32) ^ (chunkZ & 0xffffffffL);
-                if (loadedChunks.add(key)) {
-                    world.getChunkAt(chunkX, chunkZ).load(true);
-                }
-            }
-        }
-    }
     private static void growBranches(PlacedTemplate seed,
                                      CapturedTemplates captured,
                                      Set<Long> occupied,
@@ -1062,13 +1045,31 @@ public final class StrongholdDebugGenerator {
                                                                         TemplateSpec connectorTemplate,
                                                                         Set<Long> occupied) {
         List<PlacementAttempt> attempts = new ArrayList<>();
+        int occupiedSize = occupied == null ? 0 : occupied.size();
+        boolean preserveQuality = targetTemplate != null && (isLarge(targetTemplate) || isRequiredTemplate(targetTemplate));
+        int effectiveSinglePlacements = adaptivePlacementLimit(
+                MAX_SINGLE_PLACEMENTS_PER_SIDE,
+                MIN_SINGLE_PLACEMENTS_PER_SIDE,
+                occupiedSize
+        );
+        int effectiveConnectorOptions = adaptivePlacementLimit(
+                MAX_CONNECTOR_BRIDGE_OPTIONS,
+                MIN_CONNECTOR_BRIDGE_OPTIONS,
+                occupiedSize
+        );
+        if (preserveQuality) {
+            effectiveSinglePlacements = MAX_SINGLE_PLACEMENTS_PER_SIDE;
+            effectiveConnectorOptions = MAX_CONNECTOR_BRIDGE_OPTIONS;
+        }
+        final int leastOverlapSinglePlacements = effectiveSinglePlacements;
+        final int leastOverlapConnectorOptions = effectiveConnectorOptions;
         for (PlacedTemplate direct : enumerateSinglePlacements(
                 source,
                 side,
                 List.of(targetTemplate),
                 occupied,
                 false,
-                MAX_SINGLE_PLACEMENTS_PER_SIDE,
+                leastOverlapSinglePlacements,
                 false
         )) {
             if (areBothLarge(source.spec, direct.spec)) {
@@ -1089,20 +1090,23 @@ public final class StrongholdDebugGenerator {
                 List.of(connectorTemplate),
                 occupied,
                 false,
-                MAX_CONNECTOR_BRIDGE_OPTIONS,
+                leastOverlapConnectorOptions,
                 false
         )) {
-            Set<Long> occupiedWithConnector = new HashSet<>(occupied);
-            occupy(occupiedWithConnector, connectorPlaced);
-            for (PlacedTemplate viaConnector : enumerateSinglePlacements(
+            List<PlacedTemplate> viaPlacements = withTemporaryOccupancy(
+                    occupied,
                     connectorPlaced,
-                    side,
-                    List.of(targetTemplate),
-                    occupiedWithConnector,
-                    false,
-                    MAX_SINGLE_PLACEMENTS_PER_SIDE,
-                    false
-            )) {
+                    () -> enumerateSinglePlacements(
+                            connectorPlaced,
+                            side,
+                            List.of(targetTemplate),
+                            occupied,
+                            false,
+                            leastOverlapSinglePlacements,
+                            false
+                    )
+            );
+            for (PlacedTemplate viaConnector : viaPlacements) {
                 if (areBothLarge(source.spec, viaConnector.spec)) {
                     continue;
                 }
@@ -1467,7 +1471,7 @@ public final class StrongholdDebugGenerator {
         PlacementState state = PlacementState.fromSeed(target.spec);
         List<TemplateSpec> pool = candidatePoolForStep(captured, target, state);
         for (BlockFace side : target.openSides()) {
-            if (!enumeratePlacementAttempts(target, side, pool, captured.connector(), occupied).isEmpty()) {
+            if (hasAnyPlacementAttempt(target, side, pool, captured.connector(), occupied)) {
                 return true;
             }
         }
@@ -1480,7 +1484,7 @@ public final class StrongholdDebugGenerator {
                                              Set<Long> occupied) {
         PlacementState state = PlacementState.fromSeed(target.spec);
         List<TemplateSpec> pool = candidatePoolForStep(captured, target, state);
-        return !enumeratePlacementAttempts(target, side, pool, captured.connector(), occupied).isEmpty();
+        return hasAnyPlacementAttempt(target, side, pool, captured.connector(), occupied);
     }
 
     private static BlockFace pickBestContinuationSide(PlacedTemplate placed,
@@ -1497,19 +1501,45 @@ public final class StrongholdDebugGenerator {
             return null;
         }
         List<TemplateSpec> pool = candidatePoolForStep(captured, placed, state);
+        Collections.shuffle(open, random);
         BlockFace best = null;
         int bestCount = -1;
         for (BlockFace side : open) {
-            int count = enumeratePlacementAttempts(placed, side, pool, captured.connector(), occupied).size();
+            int count = quickPlacementAttemptCount(placed, side, pool, captured.connector(), occupied);
             if (count > bestCount) {
-                best = side;
                 bestCount = count;
+                best = side;
             }
         }
-        if (bestCount > 0) {
+        if (best != null && bestCount > 0) {
             return best;
         }
         return open.get(random.nextInt(open.size()));
+    }
+
+    private static boolean hasAnyPlacementAttempt(PlacedTemplate current,
+                                                  BlockFace side,
+                                                  List<TemplateSpec> pool,
+                                                  TemplateSpec connector,
+                                                  Set<Long> occupied) {
+        return quickPlacementAttemptCount(current, side, pool, connector, occupied) > 0;
+    }
+
+    private static int quickPlacementAttemptCount(PlacedTemplate current,
+                                                  BlockFace side,
+                                                  List<TemplateSpec> pool,
+                                                  TemplateSpec connector,
+                                                  Set<Long> occupied) {
+        return enumeratePlacementAttempts(
+                current,
+                side,
+                pool,
+                connector,
+                occupied,
+                6,
+                2,
+                true
+        ).size();
     }
 
     private static void growBranchesFrontier(CapturedTemplates captured,
@@ -1673,17 +1703,46 @@ public final class StrongholdDebugGenerator {
                                                                      boolean allowOverlapSlide) {
         List<PlacementAttempt> attempts = new ArrayList<>();
         Set<String> seen = new HashSet<>();
+        int occupiedSize = occupied == null ? 0 : occupied.size();
+        boolean preserveQuality = shouldPreservePlacementQuality(current, candidateSpecs);
+        int effectiveSinglePlacements = adaptivePlacementLimit(
+                maxSinglePlacements,
+                MIN_SINGLE_PLACEMENTS_PER_SIDE,
+                occupiedSize
+        );
+        int effectiveConnectorOptions = adaptivePlacementLimit(
+                maxConnectorBridgeOptions,
+                MIN_CONNECTOR_BRIDGE_OPTIONS,
+                occupiedSize
+        );
+        if (preserveQuality) {
+            effectiveSinglePlacements = maxSinglePlacements;
+            effectiveConnectorOptions = maxConnectorBridgeOptions;
+        }
+        boolean effectiveAllowOverlapSlide = preserveQuality || shouldAllowOverlapSlide(allowOverlapSlide, occupiedSize);
+        final int branchSinglePlacements = effectiveSinglePlacements;
+        final int branchConnectorOptions = effectiveConnectorOptions;
+        final boolean branchAllowOverlapSlide = effectiveAllowOverlapSlide;
 
-        if (connector != null && maxConnectorBridgeOptions > 0) {
+        if (connector != null && branchConnectorOptions > 0) {
             List<PlacedTemplate> connectorPlacements = enumerateSinglePlacements(
-                    current, currentSide, List.of(connector), occupied, true, maxConnectorBridgeOptions, allowOverlapSlide
+                    current, currentSide, List.of(connector), occupied, true, branchConnectorOptions, branchAllowOverlapSlide
             );
             for (PlacedTemplate connectorPlaced : connectorPlacements) {
-                Set<Long> occupiedWithConnector = new HashSet<>(occupied);
-                occupy(occupiedWithConnector, connectorPlaced);
-                for (PlacedTemplate viaConnector : enumerateSinglePlacements(
-                        connectorPlaced, currentSide, candidateSpecs, occupiedWithConnector, true, maxSinglePlacements, allowOverlapSlide
-                )) {
+                List<PlacedTemplate> viaPlacements = withTemporaryOccupancy(
+                        occupied,
+                        connectorPlaced,
+                        () -> enumerateSinglePlacements(
+                                connectorPlaced,
+                                currentSide,
+                                candidateSpecs,
+                                occupied,
+                                true,
+                                branchSinglePlacements,
+                                branchAllowOverlapSlide
+                        )
+                );
+                for (PlacedTemplate viaConnector : viaPlacements) {
                     if (areBothLarge(current.spec, viaConnector.spec)) {
                         continue;
                     }
@@ -1696,7 +1755,7 @@ public final class StrongholdDebugGenerator {
         }
 
         for (PlacedTemplate direct : enumerateSinglePlacements(
-                current, currentSide, candidateSpecs, occupied, true, maxSinglePlacements, allowOverlapSlide
+                current, currentSide, candidateSpecs, occupied, true, branchSinglePlacements, branchAllowOverlapSlide
         )) {
             if (areBothLarge(current.spec, direct.spec)) {
                 continue;
@@ -1830,7 +1889,7 @@ public final class StrongholdDebugGenerator {
             PlacementState state = PlacementState.fromSeed(entry.spec);
             List<TemplateSpec> pool = candidatePoolForStep(captured, entry, state);
             for (BlockFace side : entry.openSides()) {
-                if (!enumeratePlacementAttempts(entry, side, pool, captured.connector(), occupied).isEmpty()) {
+                if (hasAnyPlacementAttempt(entry, side, pool, captured.connector(), occupied)) {
                     viable++;
                 }
             }
@@ -2132,22 +2191,10 @@ public final class StrongholdDebugGenerator {
     }
 
     private static Bounds2D boundsForPlaced(PlacedTemplate placed, RotatedTemplate rotated) {
-        if (placed == null || rotated == null || rotated.blocks.isEmpty()) {
+        if (placed == null) {
             return null;
         }
-        int minX = Integer.MAX_VALUE;
-        int maxX = Integer.MIN_VALUE;
-        int minZ = Integer.MAX_VALUE;
-        int maxZ = Integer.MIN_VALUE;
-        for (BlockVector3 rel : rotated.blocks.keySet()) {
-            int x = placed.origin.getBlockX() + rel.getBlockX();
-            int z = placed.origin.getBlockZ() + rel.getBlockZ();
-            minX = Math.min(minX, x);
-            maxX = Math.max(maxX, x);
-            minZ = Math.min(minZ, z);
-            maxZ = Math.max(maxZ, z);
-        }
-        return new Bounds2D(minX, maxX, minZ, maxZ);
+        return placed.bounds2D();
     }
 
     private static boolean hasExpandedAreaClearance(PlacedTemplate placed,
@@ -2166,40 +2213,29 @@ public final class StrongholdDebugGenerator {
         int minZ = bounds.minZ - Math.max(0, expansionRadius);
         int maxZ = bounds.maxZ + Math.max(0, expansionRadius);
 
-        for (int x = minX; x <= maxX; x++) {
-            for (int y = bounds.minY; y <= bounds.maxY; y++) {
-                for (int z = minZ; z <= maxZ; z++) {
-                    if (occupied.contains(posKey(x, y, z))) {
-                        return false;
-                    }
-                }
+        for (long key : occupied) {
+            int x = unpackPosX(key);
+            if (x < minX || x > maxX) {
+                continue;
             }
+            int y = unpackPosY(key);
+            if (y < bounds.minY || y > bounds.maxY) {
+                continue;
+            }
+            int z = unpackPosZ(key);
+            if (z < minZ || z > maxZ) {
+                continue;
+            }
+            return false;
         }
         return true;
     }
 
     private static Bounds3D boundsForPlaced3D(PlacedTemplate placed, RotatedTemplate rotated) {
-        if (placed == null || rotated == null || rotated.blocks.isEmpty()) {
+        if (placed == null) {
             return null;
         }
-        int minX = Integer.MAX_VALUE;
-        int maxX = Integer.MIN_VALUE;
-        int minY = Integer.MAX_VALUE;
-        int maxY = Integer.MIN_VALUE;
-        int minZ = Integer.MAX_VALUE;
-        int maxZ = Integer.MIN_VALUE;
-        for (BlockVector3 rel : rotated.blocks.keySet()) {
-            int x = placed.origin.getBlockX() + rel.getBlockX();
-            int y = placed.origin.getBlockY() + rel.getBlockY();
-            int z = placed.origin.getBlockZ() + rel.getBlockZ();
-            minX = Math.min(minX, x);
-            maxX = Math.max(maxX, x);
-            minY = Math.min(minY, y);
-            maxY = Math.max(maxY, y);
-            minZ = Math.min(minZ, z);
-            maxZ = Math.max(maxZ, z);
-        }
-        return new Bounds3D(minX, maxX, minY, maxY, minZ, maxZ);
+        return placed.bounds3D();
     }
 
     private static List<TemplateSpec> candidatePoolForStep(CapturedTemplates captured,
@@ -2262,6 +2298,75 @@ public final class StrongholdDebugGenerator {
                     placed.origin.getBlockZ() + rel.getBlockZ()
             ));
         }
+    }
+
+    private static Set<Long> occupiedKeysForPlaced(PlacedTemplate placed) {
+        if (placed == null || placed.spec == null || placed.spec.template == null) {
+            return Set.of();
+        }
+        Set<Long> keys = new HashSet<>();
+        occupy(keys, placed);
+        return keys;
+    }
+
+    private static <T> T withTemporaryOccupancy(Set<Long> occupied, PlacedTemplate temporary, Supplier<T> operation) {
+        if (occupied == null || operation == null) {
+            return null;
+        }
+        Set<Long> tempKeys = occupiedKeysForPlaced(temporary);
+        if (tempKeys.isEmpty()) {
+            return operation.get();
+        }
+        Set<Long> added = new HashSet<>();
+        for (Long key : tempKeys) {
+            if (occupied.add(key)) {
+                added.add(key);
+            }
+        }
+        try {
+            return operation.get();
+        } finally {
+            occupied.removeAll(added);
+        }
+    }
+
+    private static int adaptivePlacementLimit(int configuredMax, int configuredMin, int occupiedSize) {
+        if (configuredMax <= 0) {
+            return 0;
+        }
+        int boundedMin = Math.max(1, Math.min(configuredMax, configuredMin));
+        if (occupiedSize <= OCCUPIED_BLOCKS_SOFT_CAP) {
+            return configuredMax;
+        }
+        if (occupiedSize >= OCCUPIED_BLOCKS_HARD_CAP) {
+            return boundedMin;
+        }
+        double progress = (occupiedSize - OCCUPIED_BLOCKS_SOFT_CAP)
+                / (double) (OCCUPIED_BLOCKS_HARD_CAP - OCCUPIED_BLOCKS_SOFT_CAP);
+        int scaled = (int) Math.round(configuredMax - ((configuredMax - boundedMin) * progress));
+        return Math.max(boundedMin, Math.min(configuredMax, scaled));
+    }
+
+    private static boolean shouldAllowOverlapSlide(boolean requested, int occupiedSize) {
+        return requested && occupiedSize < OCCUPIED_BLOCKS_HARD_CAP;
+    }
+
+    private static boolean shouldPreservePlacementQuality(PlacedTemplate current, List<TemplateSpec> candidateSpecs) {
+        if (current != null && current.spec != null && isLarge(current.spec)) {
+            return true;
+        }
+        if (candidateSpecs == null || candidateSpecs.isEmpty()) {
+            return false;
+        }
+        for (TemplateSpec candidate : candidateSpecs) {
+            if (candidate == null) {
+                continue;
+            }
+            if (isLarge(candidate) || isRequiredTemplate(candidate)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static double overlapPercent(Set<Long> occupied,
@@ -2414,6 +2519,7 @@ public final class StrongholdDebugGenerator {
         int maxY = Math.max(bounds.minY, bounds.maxY);
         int minZ = Math.min(bounds.minZ, bounds.maxZ);
         int maxZ = Math.max(bounds.minZ, bounds.maxZ);
+        Map<Long, ChunkSnapshot> snapshots = loadChunkSnapshots(world, minX, maxX, minZ, maxZ);
 
         int width = maxX - minX + 1;
         int height = maxY - minY + 1;
@@ -2425,7 +2531,7 @@ public final class StrongholdDebugGenerator {
         for (int x = minX; x <= maxX; x++) {
             for (int y = minY; y <= maxY; y++) {
                 for (int z = minZ; z <= maxZ; z++) {
-                    BlockData data = world.getBlockAt(x, y, z).getBlockData();
+                    BlockData data = blockDataAt(snapshots, world, x, y, z);
                     Material type = data.getMaterial();
                     int relX = x - minX;
                     int relY = y - minY;
@@ -2448,6 +2554,33 @@ public final class StrongholdDebugGenerator {
         Map<BlockFace, List<BlockVector3>> connectors = detectConnectorsFromMarkers(redstoneMarkers, footprint);
 
         return new Template(blocks, connectors, width, height, length);
+    }
+
+    private static Map<Long, ChunkSnapshot> loadChunkSnapshots(World world, int minX, int maxX, int minZ, int maxZ) {
+        Map<Long, ChunkSnapshot> snapshots = new HashMap<>();
+        int minChunkX = Math.floorDiv(minX, 16);
+        int maxChunkX = Math.floorDiv(maxX, 16);
+        int minChunkZ = Math.floorDiv(minZ, 16);
+        int maxChunkZ = Math.floorDiv(maxZ, 16);
+        for (int chunkX = minChunkX; chunkX <= maxChunkX; chunkX++) {
+            for (int chunkZ = minChunkZ; chunkZ <= maxChunkZ; chunkZ++) {
+                long key = chunkKey(chunkX, chunkZ);
+                snapshots.put(key, world.getChunkAt(chunkX, chunkZ).getChunkSnapshot(false, false, false));
+            }
+        }
+        return snapshots;
+    }
+
+    private static BlockData blockDataAt(Map<Long, ChunkSnapshot> snapshots, World world, int x, int y, int z) {
+        int chunkX = Math.floorDiv(x, 16);
+        int chunkZ = Math.floorDiv(z, 16);
+        ChunkSnapshot snapshot = snapshots.get(chunkKey(chunkX, chunkZ));
+        int localX = Math.floorMod(x, 16);
+        int localZ = Math.floorMod(z, 16);
+        if (snapshot != null && y >= world.getMinHeight() && y < world.getMaxHeight()) {
+            return snapshot.getBlockData(localX, y, localZ);
+        }
+        return world.getBlockAt(x, y, z).getBlockData();
     }
 
     private static StructureFootprint structureFootprintFor(Map<BlockVector3, BlockData> blocks,
@@ -2514,11 +2647,28 @@ public final class StrongholdDebugGenerator {
         int x = point.getBlockX();
         int y = point.getBlockY();
         int z = point.getBlockZ();
+        int inset = Math.max(0, CONNECTOR_SIDE_CAPTURE_DISTANCE);
         return switch (side) {
-            case NORTH -> BlockVector3.at(clamp(x, footprint.minX, footprint.maxX), y, footprint.minZ);
-            case SOUTH -> BlockVector3.at(clamp(x, footprint.minX, footprint.maxX), y, footprint.maxZ);
-            case EAST -> BlockVector3.at(footprint.maxX, y, clamp(z, footprint.minZ, footprint.maxZ));
-            case WEST -> BlockVector3.at(footprint.minX, y, clamp(z, footprint.minZ, footprint.maxZ));
+            case NORTH -> BlockVector3.at(
+                    clamp(x, footprint.minX, footprint.maxX),
+                    y,
+                    clamp(footprint.minZ + inset, footprint.minZ, footprint.maxZ)
+            );
+            case SOUTH -> BlockVector3.at(
+                    clamp(x, footprint.minX, footprint.maxX),
+                    y,
+                    clamp(footprint.maxZ - inset, footprint.minZ, footprint.maxZ)
+            );
+            case EAST -> BlockVector3.at(
+                    clamp(footprint.maxX - inset, footprint.minX, footprint.maxX),
+                    y,
+                    clamp(z, footprint.minZ, footprint.maxZ)
+            );
+            case WEST -> BlockVector3.at(
+                    clamp(footprint.minX + inset, footprint.minX, footprint.maxX),
+                    y,
+                    clamp(z, footprint.minZ, footprint.maxZ)
+            );
             default -> point;
         };
     }
@@ -2609,6 +2759,46 @@ public final class StrongholdDebugGenerator {
         }
     }
 
+    private static void pastePlacedTemplates(World world, List<PlacedTemplate> placedTemplates) {
+        if (world == null || placedTemplates == null || placedTemplates.isEmpty()) {
+            return;
+        }
+        if (pastePlacedTemplatesWithWorldEdit(world, placedTemplates)) {
+            return;
+        }
+        for (PlacedTemplate placed : placedTemplates) {
+            paste(world, placed.spec.template, placed.origin, placed.rotation);
+        }
+    }
+
+    private static boolean pastePlacedTemplatesWithWorldEdit(World world, List<PlacedTemplate> placedTemplates) {
+        try (EditSession session = WorldEdit.getInstance().newEditSession(BukkitAdapter.adapt(world))) {
+            session.setFastMode(true);
+            for (PlacedTemplate placed : placedTemplates) {
+                RotatedTemplate rotated = rotateTemplate(placed.spec.template, placed.rotation);
+                for (Map.Entry<BlockVector3, BlockData> entry : rotated.blocks.entrySet()) {
+                    BlockVector3 rel = entry.getKey();
+                    int x = placed.origin.getBlockX() + rel.getBlockX();
+                    int y = placed.origin.getBlockY() + rel.getBlockY();
+                    int z = placed.origin.getBlockZ() + rel.getBlockZ();
+                    com.sk89q.worldedit.math.BlockVector3 absolute = com.sk89q.worldedit.math.BlockVector3.at(x, y, z);
+                    session.setBlock(absolute, toWorldEditBlockState(entry.getValue()));
+                }
+            }
+            return true;
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
+    private static com.sk89q.worldedit.world.block.BlockState toWorldEditBlockState(BlockData data) {
+        if (data == null) {
+            return com.sk89q.worldedit.world.block.BlockTypes.AIR.getDefaultState();
+        }
+        String key = data.getAsString();
+        return WORLD_EDIT_BLOCK_STATE_CACHE.computeIfAbsent(key, ignored -> BukkitAdapter.adapt(data));
+    }
+
     private static RotatedTemplate rotateTemplate(Template template, int rotation) {
         RotatedTemplate[] cached = ROTATION_CACHE.computeIfAbsent(template, ignored -> new RotatedTemplate[4]);
         int rot = Math.floorMod(rotation, 4);
@@ -2636,6 +2826,52 @@ public final class StrongholdDebugGenerator {
 
     private static void clearRotationCache() {
         ROTATION_CACHE.clear();
+        BLOCK_DATA_ROTATION_CACHE.clear();
+        WORLD_EDIT_BLOCK_STATE_CACHE.clear();
+    }
+
+    private static CapturedTemplates loadCapturedTemplates(boolean forceRefresh) {
+        if (!forceRefresh && cachedCapturedTemplates != null) {
+            return cachedCapturedTemplates;
+        }
+        clearRotationCache();
+        Main plugin = Main.getInstance();
+        if (plugin != null && plugin.getWorldManager() != null) {
+            plugin.getWorldManager().ensureWorldsLoaded(SOURCE_WORLD);
+        }
+        World sourceWorld = Bukkit.getWorld(SOURCE_WORLD);
+        if (sourceWorld == null) {
+            return null;
+        }
+        loadSourceChunks(sourceWorld);
+        CapturedTemplates captured = captureAllTemplates(sourceWorld);
+        if (captured == null) {
+            cachedCapturedTemplates = null;
+            cachedTemplateConnectionInfo = null;
+            return null;
+        }
+        cachedCapturedTemplates = captured;
+        cachedTemplateConnectionInfo = Collections.unmodifiableMap(buildTemplateConnectionInfo(captured));
+        return captured;
+    }
+
+    private static Map<String, TemplateConnectionInfo> buildTemplateConnectionInfo(CapturedTemplates captured) {
+        Map<String, TemplateConnectionInfo> out = new LinkedHashMap<>();
+        List<TemplateSpec> all = new ArrayList<>();
+        all.addAll(captured.walls());
+        all.addAll(captured.largeJunctions());
+        all.addAll(captured.deadEnds());
+        all.add(captured.connector());
+        for (TemplateSpec spec : all) {
+            if (spec == null || spec.template == null || spec.template.connectors == null
+                    || spec.template.connectors.isEmpty()) {
+                continue;
+            }
+            List<BlockFace> sides = new ArrayList<>(EnumSet.copyOf(spec.template.connectors.keySet()));
+            int connectorCount = spec.template.connectors.values().stream().mapToInt(List::size).sum();
+            out.put(spec.id, new TemplateConnectionInfo(connectorCount, sides));
+        }
+        return out;
     }
 
     private static BlockVector3 rotateVector(BlockVector3 vec, int width, int length, int rotation) {
@@ -2651,30 +2887,40 @@ public final class StrongholdDebugGenerator {
     }
 
     private static BlockData rotateBlockData(BlockData source, int rotation) {
-        BlockData data = Bukkit.createBlockData(source.getAsString());
-        for (int i = 0; i < Math.floorMod(rotation, 4); i++) {
-            if (data instanceof Directional directional) {
-                BlockFace current = directional.getFacing();
-                BlockFace next = rotateFace(current, 1);
-                if (directional.getFaces().contains(next)) {
-                    directional.setFacing(next);
+        int normalizedRotation = Math.floorMod(rotation, 4);
+        if (normalizedRotation == 0) {
+            return source.clone();
+        }
+        String serialized = source.getAsString();
+        BlockData[] cacheByRotation = BLOCK_DATA_ROTATION_CACHE.computeIfAbsent(serialized, ignored -> new BlockData[4]);
+        BlockData cached = cacheByRotation[normalizedRotation];
+        if (cached == null) {
+            cached = source.clone();
+            for (int i = 0; i < normalizedRotation; i++) {
+                if (cached instanceof Directional directional) {
+                    BlockFace current = directional.getFacing();
+                    BlockFace next = rotateFace(current, 1);
+                    if (directional.getFaces().contains(next)) {
+                        directional.setFacing(next);
+                    }
                 }
-            }
-            if (data instanceof Rotatable rotatable) {
-                BlockFace current = rotatable.getRotation();
-                BlockFace next = rotateFace(current, 1);
-                rotatable.setRotation(next);
-            }
-            if (data instanceof Orientable orientable) {
-                switch (orientable.getAxis()) {
-                    case X -> orientable.setAxis(org.bukkit.Axis.Z);
-                    case Z -> orientable.setAxis(org.bukkit.Axis.X);
-                    default -> {
+                if (cached instanceof Rotatable rotatable) {
+                    BlockFace current = rotatable.getRotation();
+                    BlockFace next = rotateFace(current, 1);
+                    rotatable.setRotation(next);
+                }
+                if (cached instanceof Orientable orientable) {
+                    switch (orientable.getAxis()) {
+                        case X -> orientable.setAxis(org.bukkit.Axis.Z);
+                        case Z -> orientable.setAxis(org.bukkit.Axis.X);
+                        default -> {
+                        }
                     }
                 }
             }
+            cacheByRotation[normalizedRotation] = cached;
         }
-        return data;
+        return cached.clone();
     }
 
     private static BlockFace rotateFace(BlockFace face, int rot) {
@@ -2707,6 +2953,27 @@ public final class StrongholdDebugGenerator {
         long lz = ((long) z & 0x3FFFFFFL) << 12;
         long ly = (long) y & 0xFFFL;
         return lx | lz | ly;
+    }
+
+    private static int unpackPosX(long key) {
+        return unpackSigned(key >> 38, 26);
+    }
+
+    private static int unpackPosY(long key) {
+        return unpackSigned(key, 12);
+    }
+
+    private static int unpackPosZ(long key) {
+        return unpackSigned(key >> 12, 26);
+    }
+
+    private static int unpackSigned(long value, int bits) {
+        int shift = Long.SIZE - bits;
+        return (int) (value << shift >> shift);
+    }
+
+    private static long chunkKey(int chunkX, int chunkZ) {
+        return (((long) chunkX) << 32) ^ (chunkZ & 0xffffffffL);
     }
 
     private enum PieceCategory {
@@ -2813,6 +3080,9 @@ public final class StrongholdDebugGenerator {
     public record TemplateConnectionInfo(int connectorCount, List<BlockFace> sides) {
     }
 
+    private record SourceSetup(World sourceWorld, CapturedTemplates captured) {
+    }
+
     private record PlacementState(int wallPiecesSinceLarge, int wallPiecesSinceGate, int wallPiecesSinceTower) {
         private static PlacementState initial() {
             return new PlacementState(
@@ -2870,6 +3140,8 @@ public final class StrongholdDebugGenerator {
         private final BlockVector3 origin;
         private final Map<BlockFace, Integer> usedConnectorCounts = new EnumMap<>(BlockFace.class);
         private BlockFace incomingSide;
+        private Bounds2D cachedBounds2D;
+        private Bounds3D cachedBounds3D;
 
         private PlacedTemplate(TemplateSpec spec, int rotation, BlockVector3 origin) {
             this.spec = spec;
@@ -2897,5 +3169,48 @@ public final class StrongholdDebugGenerator {
                 usedConnectorCounts.merge(side, 1, Integer::sum);
             }
         }
+
+        private Bounds2D bounds2D() {
+            if (cachedBounds2D == null) {
+                computeBounds();
+            }
+            return cachedBounds2D;
+        }
+
+        private Bounds3D bounds3D() {
+            if (cachedBounds3D == null) {
+                computeBounds();
+            }
+            return cachedBounds3D;
+        }
+
+        private void computeBounds() {
+            RotatedTemplate rotated = rotateTemplate(spec.template, rotation);
+            if (rotated == null || rotated.blocks.isEmpty()) {
+                cachedBounds2D = null;
+                cachedBounds3D = null;
+                return;
+            }
+            int minX = Integer.MAX_VALUE;
+            int maxX = Integer.MIN_VALUE;
+            int minY = Integer.MAX_VALUE;
+            int maxY = Integer.MIN_VALUE;
+            int minZ = Integer.MAX_VALUE;
+            int maxZ = Integer.MIN_VALUE;
+            for (BlockVector3 rel : rotated.blocks.keySet()) {
+                int x = origin.getBlockX() + rel.getBlockX();
+                int y = origin.getBlockY() + rel.getBlockY();
+                int z = origin.getBlockZ() + rel.getBlockZ();
+                minX = Math.min(minX, x);
+                maxX = Math.max(maxX, x);
+                minY = Math.min(minY, y);
+                maxY = Math.max(maxY, y);
+                minZ = Math.min(minZ, z);
+                maxZ = Math.max(maxZ, z);
+            }
+            cachedBounds2D = new Bounds2D(minX, maxX, minZ, maxZ);
+            cachedBounds3D = new Bounds3D(minX, maxX, minY, maxY, minZ, maxZ);
+        }
     }
+
 }
