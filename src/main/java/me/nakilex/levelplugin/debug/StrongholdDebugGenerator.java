@@ -32,6 +32,7 @@ import java.util.Set;
 import java.util.IdentityHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 /**
  * Debug-only stronghold composer.
@@ -98,6 +99,7 @@ public final class StrongholdDebugGenerator {
     private static final int MAX_EMERGENCY_TEMPLATE_RADIUS = 1200;
     private static final int MAX_SATELLITE_LINK_SEGMENTS = 6;
     private static final boolean USE_FRONTIER_SCHEDULER = false;
+    private static final boolean ENABLE_EXPENSIVE_DIAGNOSTICS = false;
     private static final int TARGET_GATE_TEMPLATES = 2;
     private static final Map<String, Integer> REQUIRED_TEMPLATE_COUNTS = Map.of(
             "church", 1,
@@ -349,11 +351,14 @@ public final class StrongholdDebugGenerator {
                 "Generated stronghold spine+branches using " + placed.size()
                         + " pieces in world '" + world.getName() + "' (overlap threshold: "
                         + String.format("%.2f", maxOverlapPercent) + "%).");
+        String viableOutputSummary = ENABLE_EXPENSIVE_DIAGNOSTICS
+                ? String.valueOf(countViableOpenOutputs(placed, captured, occupied))
+                : "skipped";
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                 "Stronghold diagnostics -> spine blocked sides: " + diagnostics.spineBlockedSides
                         + ", branch blocked sides: " + diagnostics.branchBlockedSides
                         + ", remaining open outputs: " + countOpenOutputs(placed)
-                        + ", viable next outputs: " + countViableOpenOutputs(placed, captured, occupied)
+                        + ", viable next outputs: " + viableOutputSummary
                         + ", sealed viable outputs: " + sealedViableOutputs
                         + ", church placed: " + finalChurchCount
                         + ", required forced: " + diagnostics.requiredPlacementsForced
@@ -1060,16 +1065,20 @@ public final class StrongholdDebugGenerator {
                 MAX_CONNECTOR_BRIDGE_OPTIONS,
                 false
         )) {
-            Set<Long> occupiedWithConnector = overlayOccupiedSet(occupied, connectorPlaced);
-            for (PlacedTemplate viaConnector : enumerateSinglePlacements(
+            List<PlacedTemplate> viaPlacements = withTemporaryOccupancy(
+                    occupied,
                     connectorPlaced,
-                    side,
-                    List.of(targetTemplate),
-                    occupiedWithConnector,
-                    false,
-                    MAX_SINGLE_PLACEMENTS_PER_SIDE,
-                    false
-            )) {
+                    () -> enumerateSinglePlacements(
+                            connectorPlaced,
+                            side,
+                            List.of(targetTemplate),
+                            occupied,
+                            false,
+                            MAX_SINGLE_PLACEMENTS_PER_SIDE,
+                            false
+                    )
+            );
+            for (PlacedTemplate viaConnector : viaPlacements) {
                 if (areBothLarge(source.spec, viaConnector.spec)) {
                     continue;
                 }
@@ -1646,10 +1655,20 @@ public final class StrongholdDebugGenerator {
                     current, currentSide, List.of(connector), occupied, true, maxConnectorBridgeOptions, allowOverlapSlide
             );
             for (PlacedTemplate connectorPlaced : connectorPlacements) {
-                Set<Long> occupiedWithConnector = overlayOccupiedSet(occupied, connectorPlaced);
-                for (PlacedTemplate viaConnector : enumerateSinglePlacements(
-                        connectorPlaced, currentSide, candidateSpecs, occupiedWithConnector, true, maxSinglePlacements, allowOverlapSlide
-                )) {
+                List<PlacedTemplate> viaPlacements = withTemporaryOccupancy(
+                        occupied,
+                        connectorPlaced,
+                        () -> enumerateSinglePlacements(
+                                connectorPlaced,
+                                currentSide,
+                                candidateSpecs,
+                                occupied,
+                                true,
+                                maxSinglePlacements,
+                                allowOverlapSlide
+                        )
+                );
+                for (PlacedTemplate viaConnector : viaPlacements) {
                     if (areBothLarge(current.spec, viaConnector.spec)) {
                         continue;
                     }
@@ -2216,12 +2235,25 @@ public final class StrongholdDebugGenerator {
         return keys;
     }
 
-    private static Set<Long> overlayOccupiedSet(Set<Long> baseOccupied, PlacedTemplate extraPlaced) {
-        Set<Long> extra = occupiedKeysForPlaced(extraPlaced);
-        if (extra.isEmpty()) {
-            return baseOccupied;
+    private static <T> T withTemporaryOccupancy(Set<Long> occupied, PlacedTemplate temporary, Supplier<T> operation) {
+        if (occupied == null || operation == null) {
+            return null;
         }
-        return new OverlayOccupiedSet(baseOccupied, extra);
+        Set<Long> tempKeys = occupiedKeysForPlaced(temporary);
+        if (tempKeys.isEmpty()) {
+            return operation.get();
+        }
+        Set<Long> added = new HashSet<>();
+        for (Long key : tempKeys) {
+            if (occupied.add(key)) {
+                added.add(key);
+            }
+        }
+        try {
+            return operation.get();
+        } finally {
+            occupied.removeAll(added);
+        }
     }
 
     private static double overlapPercent(Set<Long> occupied,
@@ -3010,37 +3042,4 @@ public final class StrongholdDebugGenerator {
         }
     }
 
-    private static final class OverlayOccupiedSet extends java.util.AbstractSet<Long> {
-        private final Set<Long> base;
-        private final Set<Long> extra;
-
-        private OverlayOccupiedSet(Set<Long> base, Set<Long> extra) {
-            this.base = base == null ? Set.of() : base;
-            this.extra = extra == null ? Set.of() : extra;
-        }
-
-        @Override
-        public boolean contains(Object o) {
-            return base.contains(o) || extra.contains(o);
-        }
-
-        @Override
-        public java.util.Iterator<Long> iterator() {
-            Set<Long> merged = new HashSet<>(base.size() + extra.size());
-            merged.addAll(base);
-            merged.addAll(extra);
-            return merged.iterator();
-        }
-
-        @Override
-        public int size() {
-            int total = base.size();
-            for (Long key : extra) {
-                if (!base.contains(key)) {
-                    total++;
-                }
-            }
-            return total;
-        }
-    }
 }
