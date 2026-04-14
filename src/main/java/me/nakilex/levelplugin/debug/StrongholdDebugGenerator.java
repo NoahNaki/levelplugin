@@ -1458,7 +1458,7 @@ public final class StrongholdDebugGenerator {
         PlacementState state = PlacementState.fromSeed(target.spec);
         List<TemplateSpec> pool = candidatePoolForStep(captured, target, state);
         for (BlockFace side : target.openSides()) {
-            if (!enumeratePlacementAttempts(target, side, pool, captured.connector(), occupied).isEmpty()) {
+            if (hasAnyPlacementAttempt(target, side, pool, captured.connector(), occupied)) {
                 return true;
             }
         }
@@ -1471,7 +1471,7 @@ public final class StrongholdDebugGenerator {
                                              Set<Long> occupied) {
         PlacementState state = PlacementState.fromSeed(target.spec);
         List<TemplateSpec> pool = candidatePoolForStep(captured, target, state);
-        return !enumeratePlacementAttempts(target, side, pool, captured.connector(), occupied).isEmpty();
+        return hasAnyPlacementAttempt(target, side, pool, captured.connector(), occupied);
     }
 
     private static BlockFace pickBestContinuationSide(PlacedTemplate placed,
@@ -1488,19 +1488,30 @@ public final class StrongholdDebugGenerator {
             return null;
         }
         List<TemplateSpec> pool = candidatePoolForStep(captured, placed, state);
-        BlockFace best = null;
-        int bestCount = -1;
+        Collections.shuffle(open, random);
         for (BlockFace side : open) {
-            int count = enumeratePlacementAttempts(placed, side, pool, captured.connector(), occupied).size();
-            if (count > bestCount) {
-                best = side;
-                bestCount = count;
+            if (hasAnyPlacementAttempt(placed, side, pool, captured.connector(), occupied)) {
+                return side;
             }
         }
-        if (bestCount > 0) {
-            return best;
-        }
         return open.get(random.nextInt(open.size()));
+    }
+
+    private static boolean hasAnyPlacementAttempt(PlacedTemplate current,
+                                                  BlockFace side,
+                                                  List<TemplateSpec> pool,
+                                                  TemplateSpec connector,
+                                                  Set<Long> occupied) {
+        return !enumeratePlacementAttempts(
+                current,
+                side,
+                pool,
+                connector,
+                occupied,
+                1,
+                1,
+                false
+        ).isEmpty();
     }
 
     private static void growBranchesFrontier(CapturedTemplates captured,
@@ -1842,7 +1853,7 @@ public final class StrongholdDebugGenerator {
             PlacementState state = PlacementState.fromSeed(entry.spec);
             List<TemplateSpec> pool = candidatePoolForStep(captured, entry, state);
             for (BlockFace side : entry.openSides()) {
-                if (!enumeratePlacementAttempts(entry, side, pool, captured.connector(), occupied).isEmpty()) {
+                if (hasAnyPlacementAttempt(entry, side, pool, captured.connector(), occupied)) {
                     viable++;
                 }
             }
