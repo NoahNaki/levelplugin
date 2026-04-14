@@ -317,7 +317,6 @@ public final class StrongholdDebugGenerator {
         int sealedViableOutputs = closeViableOutputsWithDeadEnds(captured, occupied, random, placed);
         int finalChurchCount = countPlacedTemplatesMatching(placed, matcherForTemplateId("church"));
 
-        ensureTargetChunksLoaded(world, placed);
         for (PlacedTemplate entry : placed) {
             paste(world, entry.spec.template, entry.origin, entry.rotation);
         }
@@ -460,7 +459,6 @@ public final class StrongholdDebugGenerator {
             builtBranches++;
         }
 
-        ensureTargetChunksLoaded(world, placed);
         for (PlacedTemplate entry : placed) {
             paste(world, entry.spec.template, entry.origin, entry.rotation);
         }
@@ -667,22 +665,6 @@ public final class StrongholdDebugGenerator {
         }
     }
 
-    private static void ensureTargetChunksLoaded(World world, List<PlacedTemplate> placedTemplates) {
-        Set<Long> loadedChunks = new HashSet<>();
-        for (PlacedTemplate placedTemplate : placedTemplates) {
-            RotatedTemplate rotatedTemplate = rotateTemplate(placedTemplate.spec.template, placedTemplate.rotation);
-            for (BlockVector3 rel : rotatedTemplate.blocks.keySet()) {
-                int x = placedTemplate.origin.getBlockX() + rel.getBlockX();
-                int z = placedTemplate.origin.getBlockZ() + rel.getBlockZ();
-                int chunkX = Math.floorDiv(x, 16);
-                int chunkZ = Math.floorDiv(z, 16);
-                long key = chunkKey(chunkX, chunkZ);
-                if (loadedChunks.add(key)) {
-                    world.getChunkAt(chunkX, chunkZ).load(true);
-                }
-            }
-        }
-    }
     private static void growBranches(PlacedTemplate seed,
                                      CapturedTemplates captured,
                                      Set<Long> occupied,
@@ -1078,8 +1060,7 @@ public final class StrongholdDebugGenerator {
                 MAX_CONNECTOR_BRIDGE_OPTIONS,
                 false
         )) {
-            Set<Long> occupiedWithConnector = new HashSet<>(occupied);
-            occupy(occupiedWithConnector, connectorPlaced);
+            Set<Long> occupiedWithConnector = overlayOccupiedSet(occupied, connectorPlaced);
             for (PlacedTemplate viaConnector : enumerateSinglePlacements(
                     connectorPlaced,
                     side,
@@ -1665,8 +1646,7 @@ public final class StrongholdDebugGenerator {
                     current, currentSide, List.of(connector), occupied, true, maxConnectorBridgeOptions, allowOverlapSlide
             );
             for (PlacedTemplate connectorPlaced : connectorPlacements) {
-                Set<Long> occupiedWithConnector = new HashSet<>(occupied);
-                occupy(occupiedWithConnector, connectorPlaced);
+                Set<Long> occupiedWithConnector = overlayOccupiedSet(occupied, connectorPlaced);
                 for (PlacedTemplate viaConnector : enumerateSinglePlacements(
                         connectorPlaced, currentSide, candidateSpecs, occupiedWithConnector, true, maxSinglePlacements, allowOverlapSlide
                 )) {
@@ -2118,22 +2098,10 @@ public final class StrongholdDebugGenerator {
     }
 
     private static Bounds2D boundsForPlaced(PlacedTemplate placed, RotatedTemplate rotated) {
-        if (placed == null || rotated == null || rotated.blocks.isEmpty()) {
+        if (placed == null) {
             return null;
         }
-        int minX = Integer.MAX_VALUE;
-        int maxX = Integer.MIN_VALUE;
-        int minZ = Integer.MAX_VALUE;
-        int maxZ = Integer.MIN_VALUE;
-        for (BlockVector3 rel : rotated.blocks.keySet()) {
-            int x = placed.origin.getBlockX() + rel.getBlockX();
-            int z = placed.origin.getBlockZ() + rel.getBlockZ();
-            minX = Math.min(minX, x);
-            maxX = Math.max(maxX, x);
-            minZ = Math.min(minZ, z);
-            maxZ = Math.max(maxZ, z);
-        }
-        return new Bounds2D(minX, maxX, minZ, maxZ);
+        return placed.bounds2D();
     }
 
     private static boolean hasExpandedAreaClearance(PlacedTemplate placed,
@@ -2171,27 +2139,10 @@ public final class StrongholdDebugGenerator {
     }
 
     private static Bounds3D boundsForPlaced3D(PlacedTemplate placed, RotatedTemplate rotated) {
-        if (placed == null || rotated == null || rotated.blocks.isEmpty()) {
+        if (placed == null) {
             return null;
         }
-        int minX = Integer.MAX_VALUE;
-        int maxX = Integer.MIN_VALUE;
-        int minY = Integer.MAX_VALUE;
-        int maxY = Integer.MIN_VALUE;
-        int minZ = Integer.MAX_VALUE;
-        int maxZ = Integer.MIN_VALUE;
-        for (BlockVector3 rel : rotated.blocks.keySet()) {
-            int x = placed.origin.getBlockX() + rel.getBlockX();
-            int y = placed.origin.getBlockY() + rel.getBlockY();
-            int z = placed.origin.getBlockZ() + rel.getBlockZ();
-            minX = Math.min(minX, x);
-            maxX = Math.max(maxX, x);
-            minY = Math.min(minY, y);
-            maxY = Math.max(maxY, y);
-            minZ = Math.min(minZ, z);
-            maxZ = Math.max(maxZ, z);
-        }
-        return new Bounds3D(minX, maxX, minY, maxY, minZ, maxZ);
+        return placed.bounds3D();
     }
 
     private static List<TemplateSpec> candidatePoolForStep(CapturedTemplates captured,
@@ -2254,6 +2205,23 @@ public final class StrongholdDebugGenerator {
                     placed.origin.getBlockZ() + rel.getBlockZ()
             ));
         }
+    }
+
+    private static Set<Long> occupiedKeysForPlaced(PlacedTemplate placed) {
+        if (placed == null || placed.spec == null || placed.spec.template == null) {
+            return Set.of();
+        }
+        Set<Long> keys = new HashSet<>();
+        occupy(keys, placed);
+        return keys;
+    }
+
+    private static Set<Long> overlayOccupiedSet(Set<Long> baseOccupied, PlacedTemplate extraPlaced) {
+        Set<Long> extra = occupiedKeysForPlaced(extraPlaced);
+        if (extra.isEmpty()) {
+            return baseOccupied;
+        }
+        return new OverlayOccupiedSet(baseOccupied, extra);
     }
 
     private static double overlapPercent(Set<Long> occupied,
@@ -2969,6 +2937,8 @@ public final class StrongholdDebugGenerator {
         private final BlockVector3 origin;
         private final Map<BlockFace, Integer> usedConnectorCounts = new EnumMap<>(BlockFace.class);
         private BlockFace incomingSide;
+        private Bounds2D cachedBounds2D;
+        private Bounds3D cachedBounds3D;
 
         private PlacedTemplate(TemplateSpec spec, int rotation, BlockVector3 origin) {
             this.spec = spec;
@@ -2995,6 +2965,82 @@ public final class StrongholdDebugGenerator {
             if (side != null) {
                 usedConnectorCounts.merge(side, 1, Integer::sum);
             }
+        }
+
+        private Bounds2D bounds2D() {
+            if (cachedBounds2D == null) {
+                computeBounds();
+            }
+            return cachedBounds2D;
+        }
+
+        private Bounds3D bounds3D() {
+            if (cachedBounds3D == null) {
+                computeBounds();
+            }
+            return cachedBounds3D;
+        }
+
+        private void computeBounds() {
+            RotatedTemplate rotated = rotateTemplate(spec.template, rotation);
+            if (rotated == null || rotated.blocks.isEmpty()) {
+                cachedBounds2D = null;
+                cachedBounds3D = null;
+                return;
+            }
+            int minX = Integer.MAX_VALUE;
+            int maxX = Integer.MIN_VALUE;
+            int minY = Integer.MAX_VALUE;
+            int maxY = Integer.MIN_VALUE;
+            int minZ = Integer.MAX_VALUE;
+            int maxZ = Integer.MIN_VALUE;
+            for (BlockVector3 rel : rotated.blocks.keySet()) {
+                int x = origin.getBlockX() + rel.getBlockX();
+                int y = origin.getBlockY() + rel.getBlockY();
+                int z = origin.getBlockZ() + rel.getBlockZ();
+                minX = Math.min(minX, x);
+                maxX = Math.max(maxX, x);
+                minY = Math.min(minY, y);
+                maxY = Math.max(maxY, y);
+                minZ = Math.min(minZ, z);
+                maxZ = Math.max(maxZ, z);
+            }
+            cachedBounds2D = new Bounds2D(minX, maxX, minZ, maxZ);
+            cachedBounds3D = new Bounds3D(minX, maxX, minY, maxY, minZ, maxZ);
+        }
+    }
+
+    private static final class OverlayOccupiedSet extends java.util.AbstractSet<Long> {
+        private final Set<Long> base;
+        private final Set<Long> extra;
+
+        private OverlayOccupiedSet(Set<Long> base, Set<Long> extra) {
+            this.base = base == null ? Set.of() : base;
+            this.extra = extra == null ? Set.of() : extra;
+        }
+
+        @Override
+        public boolean contains(Object o) {
+            return base.contains(o) || extra.contains(o);
+        }
+
+        @Override
+        public java.util.Iterator<Long> iterator() {
+            Set<Long> merged = new HashSet<>(base.size() + extra.size());
+            merged.addAll(base);
+            merged.addAll(extra);
+            return merged.iterator();
+        }
+
+        @Override
+        public int size() {
+            int total = base.size();
+            for (Long key : extra) {
+                if (!base.contains(key)) {
+                    total++;
+                }
+            }
+            return total;
         }
     }
 }
