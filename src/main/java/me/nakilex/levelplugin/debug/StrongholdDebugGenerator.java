@@ -76,9 +76,9 @@ public final class StrongholdDebugGenerator {
     private static final String SOURCE_WORLD = "flatland";
     private static final String GENERATED_WORLD_PREFIX = "stronghold_debug_";
 
-    private static final int DEFAULT_SPINE_LENGTH = 20;
-    private static final int MAX_BRANCH_LENGTH = 10;
-    private static final int MAX_TOTAL_PIECES = 96;
+    private static final int DEFAULT_SPINE_LENGTH = 12;
+    private static final int MAX_BRANCH_LENGTH = 6;
+    private static final int MAX_TOTAL_PIECES = 64;
     private static final int MIN_WALL_PIECES_BETWEEN_LARGE = 1;
     private static final int MIN_BLOCKS_BETWEEN_LARGE = 24;
     private static final int MIN_WALL_PIECES_BETWEEN_GATES = 3;
@@ -104,6 +104,7 @@ public final class StrongholdDebugGenerator {
     private static final int MAX_SATELLITE_LINK_SEGMENTS = 6;
     private static final boolean USE_FRONTIER_SCHEDULER = false;
     private static final boolean ENABLE_EXPENSIVE_DIAGNOSTICS = false;
+    private static final boolean ENABLE_DISCONNECTED_FALLBACKS = false;
     private static final int TARGET_GATE_TEMPLATES = 2;
     private static final Map<String, Integer> REQUIRED_TEMPLATE_COUNTS = Map.of(
             "church", 1,
@@ -301,15 +302,18 @@ public final class StrongholdDebugGenerator {
                     placed,
                     MAX_TOTAL_PIECES
             );
-            TemplateSpec requiredSpec = findTemplateById(allCandidateTemplates, templateId);
-            boolean emergencyPlaced = forceTemplatePlacementIfMissing(
-                    matcher,
-                    requiredSpec,
-                    -1,
-                    occupied,
-                    placed,
-                    MAX_TOTAL_PIECES
-            );
+            boolean emergencyPlaced = false;
+            if (ENABLE_DISCONNECTED_FALLBACKS) {
+                TemplateSpec requiredSpec = findTemplateById(allCandidateTemplates, templateId);
+                emergencyPlaced = forceTemplatePlacementIfMissing(
+                        matcher,
+                        requiredSpec,
+                        -1,
+                        occupied,
+                        placed,
+                        MAX_TOTAL_PIECES
+                );
+            }
             if (emergencyPlaced) {
                 requiredEmergencyPlacements++;
             }
@@ -327,24 +331,26 @@ public final class StrongholdDebugGenerator {
             paste(world, entry.spec.template, entry.origin, entry.rotation);
         }
         int requiredRawCopies = 0;
-        for (Map.Entry<String, Integer> requiredTemplate : REQUIRED_TEMPLATE_COUNTS.entrySet()) {
-            String templateId = requiredTemplate.getKey();
-            int requiredCount = requiredTemplate.getValue();
-            int currentCount = countPlacedTemplatesMatching(placed, matcherForTemplateId(templateId));
-            if (currentCount >= requiredCount) {
-                continue;
-            }
-            TemplateSpec template = findTemplateById(allCandidateTemplates, templateId);
-            if (template == null) {
-                continue;
-            }
-            BlockVector3 rawOrigin = findRawPasteOriginNearFootprint(placed, template, originY);
-            boolean copied = pasteTemplateSpecDirect(sourceWorld, world, template, rawOrigin);
-            if (copied) {
-                requiredRawCopies++;
-                if ("church".equalsIgnoreCase(templateId)) {
-                    diagnostics.churchRawCopied = true;
-                    finalChurchCount = Math.max(finalChurchCount, requiredCount);
+        if (ENABLE_DISCONNECTED_FALLBACKS) {
+            for (Map.Entry<String, Integer> requiredTemplate : REQUIRED_TEMPLATE_COUNTS.entrySet()) {
+                String templateId = requiredTemplate.getKey();
+                int requiredCount = requiredTemplate.getValue();
+                int currentCount = countPlacedTemplatesMatching(placed, matcherForTemplateId(templateId));
+                if (currentCount >= requiredCount) {
+                    continue;
+                }
+                TemplateSpec template = findTemplateById(allCandidateTemplates, templateId);
+                if (template == null) {
+                    continue;
+                }
+                BlockVector3 rawOrigin = findRawPasteOriginNearFootprint(placed, template, originY);
+                boolean copied = pasteTemplateSpecDirect(sourceWorld, world, template, rawOrigin);
+                if (copied) {
+                    requiredRawCopies++;
+                    if ("church".equalsIgnoreCase(templateId)) {
+                        diagnostics.churchRawCopied = true;
+                        finalChurchCount = Math.max(finalChurchCount, requiredCount);
+                    }
                 }
             }
         }
