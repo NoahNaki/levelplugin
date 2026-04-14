@@ -60,6 +60,9 @@ public final class StrongholdDebugGenerator {
             new TemplateSpec("gate_1", new TemplateBounds(686, -61, -5346, 614, -10, -5418), PieceCategory.JUNCTION_LARGE, 1),
             new TemplateSpec("gate_2", new TemplateBounds(686, -61, -5276, 614, -10, -5346), PieceCategory.JUNCTION_LARGE, 1),
             new TemplateSpec("church", new TemplateBounds(757, -61, -5559, 827, 34, -5489), PieceCategory.JUNCTION_LARGE, 1),
+            new TemplateSpec("smallfort", new TemplateBounds(615, -61, -5701, 685, -22, -5631), PieceCategory.WALL, 1),
+            new TemplateSpec("fortpassage", new TemplateBounds(685, -61, -5630, 615, -22, -5560), PieceCategory.WALL, 1),
+            new TemplateSpec("fort", new TemplateBounds(615, -61, -5559, 685, -18, -5489), PieceCategory.WALL, 1),
             new TemplateSpec("deadend_1", new TemplateBounds(543, -38, -5418, 473, -61, -5488), PieceCategory.DEAD_END, 1),
             new TemplateSpec("deadend_2", new TemplateBounds(473, -61, -5489, 543, -38, -5559), PieceCategory.DEAD_END, 1)
     );
@@ -94,14 +97,22 @@ public final class StrongholdDebugGenerator {
     private static final int MAX_SATELLITE_LINK_SEGMENTS = 6;
     private static final boolean USE_FRONTIER_SCHEDULER = false;
     private static final int TARGET_GATE_TEMPLATES = 2;
-    private static final int TARGET_CHURCH_TEMPLATES = 1;
+    private static final Map<String, Integer> REQUIRED_TEMPLATE_COUNTS = Map.of(
+            "church", 1,
+            "fort", 1,
+            "smallfort", 1,
+            "fortpassage", 1
+    );
     private static final double UNDERUSED_TEMPLATE_BONUS = 35.0D;
 
     private static double maxOverlapPercent = 2.0D;
     private static final Map<Template, RotatedTemplate[]> ROTATION_CACHE = new IdentityHashMap<>();
     private static final List<UsageRule> USAGE_RULES = List.of(
             new UsageRule(spec -> spec != null && isGate(spec), TARGET_GATE_TEMPLATES, UNDERUSED_TEMPLATE_BONUS),
-            new UsageRule(spec -> spec != null && "church".equalsIgnoreCase(spec.id), TARGET_CHURCH_TEMPLATES, UNDERUSED_TEMPLATE_BONUS)
+            new UsageRule(spec -> matcherForTemplateId("church").test(spec), requiredCountForTemplate("church"), UNDERUSED_TEMPLATE_BONUS),
+            new UsageRule(spec -> matcherForTemplateId("fort").test(spec), requiredCountForTemplate("fort"), UNDERUSED_TEMPLATE_BONUS),
+            new UsageRule(spec -> matcherForTemplateId("smallfort").test(spec), requiredCountForTemplate("smallfort"), UNDERUSED_TEMPLATE_BONUS),
+            new UsageRule(spec -> matcherForTemplateId("fortpassage").test(spec), requiredCountForTemplate("fortpassage"), UNDERUSED_TEMPLATE_BONUS)
     );
     private static final List<ConnectorRequirementRule> CONNECTOR_REQUIREMENT_RULES = List.of(
             ConnectorRequirementRule.symmetric(
@@ -282,27 +293,44 @@ public final class StrongholdDebugGenerator {
         );
         diagnostics.satelliteChurchPlaced = satellitePlacement.placed();
         diagnostics.satelliteLinkSegments = satellitePlacement.linkSegments();
-        diagnostics.churchPlacementsForced = ensureTemplatePlacements(
-                spec -> spec != null && "church".equalsIgnoreCase(spec.id),
-                captured.largeJunctions(),
-                TARGET_CHURCH_TEMPLATES,
-                FORCED_LARGE_TEMPLATE_OVERLAP_PERCENT,
-                captured,
-                occupied,
-                random,
-                placed,
-                MAX_TOTAL_PIECES
-        );
-        diagnostics.churchEmergencyPlaced = forceTemplatePlacementIfMissing(
-                spec -> spec != null && "church".equalsIgnoreCase(spec.id),
-                findTemplateById(captured.largeJunctions(), "church"),
-                -1,
-                occupied,
-                placed,
-                MAX_TOTAL_PIECES
-        );
+        List<TemplateSpec> allCandidateTemplates = new ArrayList<>();
+        allCandidateTemplates.addAll(captured.walls());
+        allCandidateTemplates.addAll(captured.largeJunctions());
+        allCandidateTemplates.addAll(captured.deadEnds());
+
+        int forcedRequiredPlacements = 0;
+        boolean churchEmergencyPlaced = false;
+        for (Map.Entry<String, Integer> requiredTemplate : REQUIRED_TEMPLATE_COUNTS.entrySet()) {
+            String templateId = requiredTemplate.getKey();
+            Predicate<TemplateSpec> matcher = matcherForTemplateId(templateId);
+            forcedRequiredPlacements += ensureTemplatePlacements(
+                    matcher,
+                    allCandidateTemplates,
+                    requiredTemplate.getValue(),
+                    FORCED_LARGE_TEMPLATE_OVERLAP_PERCENT,
+                    captured,
+                    occupied,
+                    random,
+                    placed,
+                    MAX_TOTAL_PIECES
+            );
+            TemplateSpec requiredSpec = findTemplateById(allCandidateTemplates, templateId);
+            boolean emergencyPlaced = forceTemplatePlacementIfMissing(
+                    matcher,
+                    requiredSpec,
+                    "church".equalsIgnoreCase(templateId) ? -1 : 0,
+                    occupied,
+                    placed,
+                    MAX_TOTAL_PIECES
+            );
+            if ("church".equalsIgnoreCase(templateId)) {
+                churchEmergencyPlaced = emergencyPlaced;
+            }
+        }
+        diagnostics.requiredPlacementsForced = forcedRequiredPlacements;
+        diagnostics.churchEmergencyPlaced = churchEmergencyPlaced;
         int sealedViableOutputs = closeViableOutputsWithDeadEnds(captured, occupied, random, placed);
-        int finalChurchCount = countPlacedTemplatesMatching(placed, spec -> spec != null && "church".equalsIgnoreCase(spec.id));
+        int finalChurchCount = countPlacedTemplatesMatching(placed, matcherForTemplateId("church"));
 
         ensureTargetChunksLoaded(world, placed);
         for (PlacedTemplate entry : placed) {
@@ -331,12 +359,13 @@ public final class StrongholdDebugGenerator {
                         + ", viable next outputs: " + countViableOpenOutputs(placed, captured, occupied)
                         + ", sealed viable outputs: " + sealedViableOutputs
                         + ", church placed: " + finalChurchCount
-                        + ", church forced: " + diagnostics.churchPlacementsForced
+                        + ", required forced: " + diagnostics.requiredPlacementsForced
                         + ", church least-overlap: " + diagnostics.churchLeastOverlapPlaced
                         + ", church satellite: " + diagnostics.satelliteChurchPlaced
                         + ", church emergency: " + diagnostics.churchEmergencyPlaced
                         + ", church raw copy: " + diagnostics.churchRawCopied
                         + ", church origins: " + summarizeTemplateOrigins(placed, spec -> spec != null && "church".equalsIgnoreCase(spec.id))
+                        + ", required counts: " + summarizeRequiredTemplateCounts(placed)
                         + ", satellite link segments: " + diagnostics.satelliteLinkSegments
                         + ", rejected(wallPacing): " + diagnostics.rejectedWallPacing
                         + ", rejected(largeSpacing): " + diagnostics.rejectedLargeSpacing
@@ -461,6 +490,17 @@ public final class StrongholdDebugGenerator {
             }
         }
         return null;
+    }
+
+    private static Predicate<TemplateSpec> matcherForTemplateId(String templateId) {
+        return spec -> spec != null && templateId != null && templateId.equalsIgnoreCase(spec.id);
+    }
+
+    private static int requiredCountForTemplate(String templateId) {
+        if (templateId == null) {
+            return 0;
+        }
+        return REQUIRED_TEMPLATE_COUNTS.getOrDefault(templateId.toLowerCase(java.util.Locale.ROOT), 0);
     }
 
     private static List<BlockFace> distinctOpenSides(PlacedTemplate placed) {
@@ -765,8 +805,8 @@ public final class StrongholdDebugGenerator {
         if (captured == null || placed == null || placed.isEmpty() || placed.size() >= maxPieces) {
             return SatellitePlacementResult.none();
         }
-        if (countPlacedTemplatesMatching(placed, spec -> spec != null && "church".equalsIgnoreCase(spec.id))
-                >= TARGET_CHURCH_TEMPLATES) {
+        if (countPlacedTemplatesMatching(placed, matcherForTemplateId("church"))
+                >= requiredCountForTemplate("church")) {
             return SatellitePlacementResult.none();
         }
         TemplateSpec church = findTemplateById(captured.largeJunctions(), "church");
@@ -1484,8 +1524,8 @@ public final class StrongholdDebugGenerator {
         if (placedTemplates == null || captured == null) {
             return null;
         }
-        if (countPlacedTemplatesMatching(placedTemplates, spec -> spec != null && "church".equalsIgnoreCase(spec.id))
-                >= TARGET_CHURCH_TEMPLATES) {
+        if (countPlacedTemplatesMatching(placedTemplates, matcherForTemplateId("church"))
+                >= requiredCountForTemplate("church")) {
             return null;
         }
         TemplateSpec church = null;
@@ -1792,6 +1832,18 @@ public final class StrongholdDebugGenerator {
             return "none";
         }
         return String.join(" | ", out);
+    }
+
+    private static String summarizeRequiredTemplateCounts(List<PlacedTemplate> placed) {
+        if (placed == null || placed.isEmpty()) {
+            return "none";
+        }
+        List<String> summary = new ArrayList<>();
+        for (Map.Entry<String, Integer> required : REQUIRED_TEMPLATE_COUNTS.entrySet()) {
+            int count = countPlacedTemplatesMatching(placed, matcherForTemplateId(required.getKey()));
+            summary.add(required.getKey() + ":" + count + "/" + required.getValue());
+        }
+        return String.join(", ", summary);
     }
 
     private static List<PlacedTemplate> enumerateSinglePlacements(PlacedTemplate current,
@@ -2674,7 +2726,7 @@ public final class StrongholdDebugGenerator {
     private static final class GenerationDiagnostics {
         private int spineBlockedSides;
         private int branchBlockedSides;
-        private int churchPlacementsForced;
+        private int requiredPlacementsForced;
         private boolean churchLeastOverlapPlaced;
         private boolean satelliteChurchPlaced;
         private boolean churchEmergencyPlaced;
