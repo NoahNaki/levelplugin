@@ -218,7 +218,7 @@ public final class StrongholdDebugGenerator {
         List<PlacedTemplate> placed = new ArrayList<>();
         Set<Long> occupied = new HashSet<>();
 
-        TemplateSpec startSpec = pickWeighted(captured.walls(), random);
+        TemplateSpec startSpec = pickWeighted(eligibleWallPool(captured.walls()), random);
         if (startSpec == null) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
                     "No wall templates were captured.");
@@ -501,6 +501,30 @@ public final class StrongholdDebugGenerator {
             return 0;
         }
         return REQUIRED_TEMPLATE_COUNTS.getOrDefault(templateId.toLowerCase(java.util.Locale.ROOT), 0);
+    }
+
+    private static boolean isRequiredTemplate(TemplateSpec spec) {
+        if (spec == null) {
+            return false;
+        }
+        return requiredCountForTemplate(spec.id) > 0;
+    }
+
+    private static boolean isExclusiveRequiredWallTemplate(TemplateSpec spec) {
+        return isWall(spec) && isRequiredTemplate(spec);
+    }
+
+    private static List<TemplateSpec> eligibleWallPool(List<TemplateSpec> walls) {
+        List<TemplateSpec> pool = new ArrayList<>();
+        if (walls == null) {
+            return pool;
+        }
+        for (TemplateSpec wall : walls) {
+            if (!isExclusiveRequiredWallTemplate(wall)) {
+                pool.add(wall);
+            }
+        }
+        return pool;
     }
 
     private static List<BlockFace> distinctOpenSides(PlacedTemplate placed) {
@@ -2160,7 +2184,7 @@ public final class StrongholdDebugGenerator {
                                                            PlacedTemplate current,
                                                            PlacementState state,
                                                            boolean allowLarge) {
-        List<TemplateSpec> pool = new ArrayList<>(captured.walls());
+        List<TemplateSpec> pool = eligibleWallPool(captured.walls());
         if (allowLarge && canPlaceLargeAfter(current, state)) {
             for (TemplateSpec large : captured.largeJunctions()) {
                 if (canUseSpec(large, state)) {
