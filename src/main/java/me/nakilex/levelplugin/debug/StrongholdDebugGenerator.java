@@ -2152,14 +2152,20 @@ public final class StrongholdDebugGenerator {
         int minZ = bounds.minZ - Math.max(0, expansionRadius);
         int maxZ = bounds.maxZ + Math.max(0, expansionRadius);
 
-        for (int x = minX; x <= maxX; x++) {
-            for (int y = bounds.minY; y <= bounds.maxY; y++) {
-                for (int z = minZ; z <= maxZ; z++) {
-                    if (occupied.contains(posKey(x, y, z))) {
-                        return false;
-                    }
-                }
+        for (long key : occupied) {
+            int x = unpackPosX(key);
+            if (x < minX || x > maxX) {
+                continue;
             }
+            int y = unpackPosY(key);
+            if (y < bounds.minY || y > bounds.maxY) {
+                continue;
+            }
+            int z = unpackPosZ(key);
+            if (z < minZ || z > maxZ) {
+                continue;
+            }
+            return false;
         }
         return true;
     }
@@ -2776,6 +2782,23 @@ public final class StrongholdDebugGenerator {
         long lz = ((long) z & 0x3FFFFFFL) << 12;
         long ly = (long) y & 0xFFFL;
         return lx | lz | ly;
+    }
+
+    private static int unpackPosX(long key) {
+        return unpackSigned(key >> 38, 26);
+    }
+
+    private static int unpackPosY(long key) {
+        return unpackSigned(key, 12);
+    }
+
+    private static int unpackPosZ(long key) {
+        return unpackSigned(key >> 12, 26);
+    }
+
+    private static int unpackSigned(long value, int bits) {
+        int shift = Long.SIZE - bits;
+        return (int) (value << shift >> shift);
     }
 
     private static long chunkKey(int chunkX, int chunkZ) {
