@@ -89,6 +89,10 @@ public final class StrongholdDebugGenerator {
     private static final int CONNECTOR_SIDE_CAPTURE_DISTANCE = 2;
     private static final int MAX_SINGLE_PLACEMENTS_PER_SIDE = 48;
     private static final int MAX_CONNECTOR_BRIDGE_OPTIONS = 8;
+    private static final int MIN_SINGLE_PLACEMENTS_PER_SIDE = 12;
+    private static final int MIN_CONNECTOR_BRIDGE_OPTIONS = 2;
+    private static final int OCCUPIED_BLOCKS_SOFT_CAP = 120_000;
+    private static final int OCCUPIED_BLOCKS_HARD_CAP = 220_000;
     private static final double BRANCH_OPEN_SIDE_CHANCE = 1.00D;
     private static final int REQUIRED_CHURCH_CLEARANCE_RADIUS = 5;
     private static final double FORCED_LARGE_TEMPLATE_OVERLAP_PERCENT = 8.0D;
@@ -1035,13 +1039,24 @@ public final class StrongholdDebugGenerator {
                                                                         TemplateSpec connectorTemplate,
                                                                         Set<Long> occupied) {
         List<PlacementAttempt> attempts = new ArrayList<>();
+        int occupiedSize = occupied == null ? 0 : occupied.size();
+        int effectiveSinglePlacements = adaptivePlacementLimit(
+                MAX_SINGLE_PLACEMENTS_PER_SIDE,
+                MIN_SINGLE_PLACEMENTS_PER_SIDE,
+                occupiedSize
+        );
+        int effectiveConnectorOptions = adaptivePlacementLimit(
+                MAX_CONNECTOR_BRIDGE_OPTIONS,
+                MIN_CONNECTOR_BRIDGE_OPTIONS,
+                occupiedSize
+        );
         for (PlacedTemplate direct : enumerateSinglePlacements(
                 source,
                 side,
                 List.of(targetTemplate),
                 occupied,
                 false,
-                MAX_SINGLE_PLACEMENTS_PER_SIDE,
+                effectiveSinglePlacements,
                 false
         )) {
             if (areBothLarge(source.spec, direct.spec)) {
@@ -1062,7 +1077,7 @@ public final class StrongholdDebugGenerator {
                 List.of(connectorTemplate),
                 occupied,
                 false,
-                MAX_CONNECTOR_BRIDGE_OPTIONS,
+                effectiveConnectorOptions,
                 false
         )) {
             List<PlacedTemplate> viaPlacements = withTemporaryOccupancy(
@@ -1074,7 +1089,7 @@ public final class StrongholdDebugGenerator {
                             List.of(targetTemplate),
                             occupied,
                             false,
-                            MAX_SINGLE_PLACEMENTS_PER_SIDE,
+                            effectiveSinglePlacements,
                             false
                     )
             );
@@ -1649,10 +1664,22 @@ public final class StrongholdDebugGenerator {
                                                                      boolean allowOverlapSlide) {
         List<PlacementAttempt> attempts = new ArrayList<>();
         Set<String> seen = new HashSet<>();
+        int occupiedSize = occupied == null ? 0 : occupied.size();
+        int effectiveSinglePlacements = adaptivePlacementLimit(
+                maxSinglePlacements,
+                MIN_SINGLE_PLACEMENTS_PER_SIDE,
+                occupiedSize
+        );
+        int effectiveConnectorOptions = adaptivePlacementLimit(
+                maxConnectorBridgeOptions,
+                MIN_CONNECTOR_BRIDGE_OPTIONS,
+                occupiedSize
+        );
+        boolean effectiveAllowOverlapSlide = shouldAllowOverlapSlide(allowOverlapSlide, occupiedSize);
 
-        if (connector != null && maxConnectorBridgeOptions > 0) {
+        if (connector != null && effectiveConnectorOptions > 0) {
             List<PlacedTemplate> connectorPlacements = enumerateSinglePlacements(
-                    current, currentSide, List.of(connector), occupied, true, maxConnectorBridgeOptions, allowOverlapSlide
+                    current, currentSide, List.of(connector), occupied, true, effectiveConnectorOptions, effectiveAllowOverlapSlide
             );
             for (PlacedTemplate connectorPlaced : connectorPlacements) {
                 List<PlacedTemplate> viaPlacements = withTemporaryOccupancy(
@@ -1664,8 +1691,8 @@ public final class StrongholdDebugGenerator {
                                 candidateSpecs,
                                 occupied,
                                 true,
-                                maxSinglePlacements,
-                                allowOverlapSlide
+                                effectiveSinglePlacements,
+                                effectiveAllowOverlapSlide
                         )
                 );
                 for (PlacedTemplate viaConnector : viaPlacements) {
@@ -1681,7 +1708,7 @@ public final class StrongholdDebugGenerator {
         }
 
         for (PlacedTemplate direct : enumerateSinglePlacements(
-                current, currentSide, candidateSpecs, occupied, true, maxSinglePlacements, allowOverlapSlide
+                current, currentSide, candidateSpecs, occupied, true, effectiveSinglePlacements, effectiveAllowOverlapSlide
         )) {
             if (areBothLarge(current.spec, direct.spec)) {
                 continue;
@@ -2254,6 +2281,27 @@ public final class StrongholdDebugGenerator {
         } finally {
             occupied.removeAll(added);
         }
+    }
+
+    private static int adaptivePlacementLimit(int configuredMax, int configuredMin, int occupiedSize) {
+        if (configuredMax <= 0) {
+            return 0;
+        }
+        int boundedMin = Math.max(1, Math.min(configuredMax, configuredMin));
+        if (occupiedSize <= OCCUPIED_BLOCKS_SOFT_CAP) {
+            return configuredMax;
+        }
+        if (occupiedSize >= OCCUPIED_BLOCKS_HARD_CAP) {
+            return boundedMin;
+        }
+        double progress = (occupiedSize - OCCUPIED_BLOCKS_SOFT_CAP)
+                / (double) (OCCUPIED_BLOCKS_HARD_CAP - OCCUPIED_BLOCKS_SOFT_CAP);
+        int scaled = (int) Math.round(configuredMax - ((configuredMax - boundedMin) * progress));
+        return Math.max(boundedMin, Math.min(configuredMax, scaled));
+    }
+
+    private static boolean shouldAllowOverlapSlide(boolean requested, int occupiedSize) {
+        return requested && occupiedSize < OCCUPIED_BLOCKS_HARD_CAP;
     }
 
     private static double overlapPercent(Set<Long> occupied,
