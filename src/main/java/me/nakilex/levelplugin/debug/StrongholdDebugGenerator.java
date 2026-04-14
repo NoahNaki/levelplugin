@@ -4,6 +4,7 @@ import com.sk89q.worldedit.math.BlockVector3;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.Bukkit;
+import org.bukkit.ChunkSnapshot;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.WorldType;
@@ -20,6 +21,7 @@ import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -107,6 +109,9 @@ public final class StrongholdDebugGenerator {
 
     private static double maxOverlapPercent = 2.0D;
     private static final Map<Template, RotatedTemplate[]> ROTATION_CACHE = new IdentityHashMap<>();
+    private static final Map<String, BlockData[]> BLOCK_DATA_ROTATION_CACHE = new HashMap<>();
+    private static CapturedTemplates cachedCapturedTemplates;
+    private static Map<String, TemplateConnectionInfo> cachedTemplateConnectionInfo;
     private static final List<UsageRule> USAGE_RULES = List.of(
             new UsageRule(spec -> spec != null && isGate(spec), TARGET_GATE_TEMPLATES, UNDERUSED_TEMPLATE_BONUS),
             new UsageRule(spec -> matcherForTemplateId("church").test(spec), requiredCountForTemplate("church"), UNDERUSED_TEMPLATE_BONUS),
@@ -133,34 +138,11 @@ public final class StrongholdDebugGenerator {
     }
 
     public static Map<String, TemplateConnectionInfo> inspectTemplateConnections() {
-        clearRotationCache();
-        Main plugin = Main.getInstance();
-        if (plugin != null && plugin.getWorldManager() != null) {
-            plugin.getWorldManager().ensureWorldsLoaded(SOURCE_WORLD);
-        }
-        World sourceWorld = Bukkit.getWorld(SOURCE_WORLD);
-        if (sourceWorld == null) {
-            return Map.of();
-        }
-
-        loadSourceChunks(sourceWorld);
-        CapturedTemplates captured = captureAllTemplates(sourceWorld);
+        CapturedTemplates captured = loadCapturedTemplates(false);
         if (captured == null) {
             return Map.of();
         }
-
-        Map<String, TemplateConnectionInfo> out = new LinkedHashMap<>();
-        List<TemplateSpec> all = new ArrayList<>();
-        all.addAll(captured.walls());
-        all.addAll(captured.largeJunctions());
-        all.addAll(captured.deadEnds());
-        all.add(captured.connector());
-        for (TemplateSpec spec : all) {
-            List<BlockFace> sides = new ArrayList<>(spec.template.connectors.keySet());
-            int connectorCount = spec.template.connectors.values().stream().mapToInt(List::size).sum();
-            out.put(spec.id, new TemplateConnectionInfo(connectorCount, sides));
-        }
-        return out;
+        return cachedTemplateConnectionInfo == null ? Map.of() : cachedTemplateConnectionInfo;
     }
 
     public static int cleanupGeneratedWorlds(Main plugin) {
@@ -183,13 +165,12 @@ public final class StrongholdDebugGenerator {
             return true;
         }
 
-        plugin.getWorldManager().ensureWorldsLoaded(SOURCE_WORLD);
-        World sourceWorld = Bukkit.getWorld(SOURCE_WORLD);
-        if (sourceWorld == null) {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
-                    "Source template world '" + SOURCE_WORLD + "' is not loaded.");
+        SourceSetup setup = prepareSourceTemplates(player, true);
+        if (setup == null) {
             return true;
         }
+        World sourceWorld = setup.sourceWorld();
+        CapturedTemplates captured = setup.captured();
 
         World world = createGeneratedWorld(plugin, player);
         if (world == null) {
@@ -198,15 +179,7 @@ public final class StrongholdDebugGenerator {
             return true;
         }
 
-        loadSourceChunks(sourceWorld);
         Random random = ThreadLocalRandom.current();
-
-        CapturedTemplates captured = captureAllTemplates(sourceWorld);
-        if (captured == null) {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
-                    "Failed to capture one or more stronghold templates. Check source cuboids and markers.");
-            return true;
-        }
         GenerationDiagnostics diagnostics = new GenerationDiagnostics();
         diagnostics.templateConnectorSummary = templateConnectorSummary(captured);
 
@@ -415,26 +388,16 @@ public final class StrongholdDebugGenerator {
             return true;
         }
 
-        plugin.getWorldManager().ensureWorldsLoaded(SOURCE_WORLD);
-        World sourceWorld = Bukkit.getWorld(SOURCE_WORLD);
-        if (sourceWorld == null) {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
-                    "Source template world '" + SOURCE_WORLD + "' is not loaded.");
+        SourceSetup setup = prepareSourceTemplates(player, true);
+        if (setup == null) {
             return true;
         }
+        CapturedTemplates captured = setup.captured();
 
         World world = createGeneratedWorld(plugin, player);
         if (world == null) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
                     "Failed to create a superflat world for stronghold generation.");
-            return true;
-        }
-
-        loadSourceChunks(sourceWorld);
-        CapturedTemplates captured = captureAllTemplates(sourceWorld);
-        if (captured == null) {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
-                    "Failed to capture one or more stronghold templates. Check source cuboids and markers.");
             return true;
         }
 
@@ -657,6 +620,29 @@ public final class StrongholdDebugGenerator {
         return world;
     }
 
+    private static SourceSetup prepareSourceTemplates(Player player, boolean forceRefresh) {
+        Main plugin = Main.getInstance();
+        if (plugin == null || plugin.getWorldManager() == null) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                    "Plugin bootstrap is unavailable. Try again after startup completes.");
+            return null;
+        }
+        plugin.getWorldManager().ensureWorldsLoaded(SOURCE_WORLD);
+        World sourceWorld = Bukkit.getWorld(SOURCE_WORLD);
+        if (sourceWorld == null) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                    "Source template world '" + SOURCE_WORLD + "' is not loaded.");
+            return null;
+        }
+        CapturedTemplates captured = loadCapturedTemplates(forceRefresh);
+        if (captured == null) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                    "Failed to capture one or more stronghold templates. Check source cuboids and markers.");
+            return null;
+        }
+        return new SourceSetup(sourceWorld, captured);
+    }
+
     private static void loadSourceChunks(World sourceWorld) {
         for (TemplateSpec spec : TEMPLATE_SPECS) {
             loadChunksForBounds(sourceWorld, spec.bounds);
@@ -690,7 +676,7 @@ public final class StrongholdDebugGenerator {
                 int z = placedTemplate.origin.getBlockZ() + rel.getBlockZ();
                 int chunkX = Math.floorDiv(x, 16);
                 int chunkZ = Math.floorDiv(z, 16);
-                long key = (((long) chunkX) << 32) ^ (chunkZ & 0xffffffffL);
+                long key = chunkKey(chunkX, chunkZ);
                 if (loadedChunks.add(key)) {
                     world.getChunkAt(chunkX, chunkZ).load(true);
                 }
@@ -2414,6 +2400,7 @@ public final class StrongholdDebugGenerator {
         int maxY = Math.max(bounds.minY, bounds.maxY);
         int minZ = Math.min(bounds.minZ, bounds.maxZ);
         int maxZ = Math.max(bounds.minZ, bounds.maxZ);
+        Map<Long, ChunkSnapshot> snapshots = loadChunkSnapshots(world, minX, maxX, minZ, maxZ);
 
         int width = maxX - minX + 1;
         int height = maxY - minY + 1;
@@ -2425,7 +2412,7 @@ public final class StrongholdDebugGenerator {
         for (int x = minX; x <= maxX; x++) {
             for (int y = minY; y <= maxY; y++) {
                 for (int z = minZ; z <= maxZ; z++) {
-                    BlockData data = world.getBlockAt(x, y, z).getBlockData();
+                    BlockData data = blockDataAt(snapshots, world, x, y, z);
                     Material type = data.getMaterial();
                     int relX = x - minX;
                     int relY = y - minY;
@@ -2448,6 +2435,33 @@ public final class StrongholdDebugGenerator {
         Map<BlockFace, List<BlockVector3>> connectors = detectConnectorsFromMarkers(redstoneMarkers, footprint);
 
         return new Template(blocks, connectors, width, height, length);
+    }
+
+    private static Map<Long, ChunkSnapshot> loadChunkSnapshots(World world, int minX, int maxX, int minZ, int maxZ) {
+        Map<Long, ChunkSnapshot> snapshots = new HashMap<>();
+        int minChunkX = Math.floorDiv(minX, 16);
+        int maxChunkX = Math.floorDiv(maxX, 16);
+        int minChunkZ = Math.floorDiv(minZ, 16);
+        int maxChunkZ = Math.floorDiv(maxZ, 16);
+        for (int chunkX = minChunkX; chunkX <= maxChunkX; chunkX++) {
+            for (int chunkZ = minChunkZ; chunkZ <= maxChunkZ; chunkZ++) {
+                long key = chunkKey(chunkX, chunkZ);
+                snapshots.put(key, world.getChunkAt(chunkX, chunkZ).getChunkSnapshot(false, false, false));
+            }
+        }
+        return snapshots;
+    }
+
+    private static BlockData blockDataAt(Map<Long, ChunkSnapshot> snapshots, World world, int x, int y, int z) {
+        int chunkX = Math.floorDiv(x, 16);
+        int chunkZ = Math.floorDiv(z, 16);
+        ChunkSnapshot snapshot = snapshots.get(chunkKey(chunkX, chunkZ));
+        int localX = Math.floorMod(x, 16);
+        int localZ = Math.floorMod(z, 16);
+        if (snapshot != null && y >= world.getMinHeight() && y < world.getMaxHeight()) {
+            return snapshot.getBlockData(localX, y, localZ);
+        }
+        return world.getBlockAt(x, y, z).getBlockData();
     }
 
     private static StructureFootprint structureFootprintFor(Map<BlockVector3, BlockData> blocks,
@@ -2636,6 +2650,51 @@ public final class StrongholdDebugGenerator {
 
     private static void clearRotationCache() {
         ROTATION_CACHE.clear();
+        BLOCK_DATA_ROTATION_CACHE.clear();
+    }
+
+    private static CapturedTemplates loadCapturedTemplates(boolean forceRefresh) {
+        if (!forceRefresh && cachedCapturedTemplates != null) {
+            return cachedCapturedTemplates;
+        }
+        clearRotationCache();
+        Main plugin = Main.getInstance();
+        if (plugin != null && plugin.getWorldManager() != null) {
+            plugin.getWorldManager().ensureWorldsLoaded(SOURCE_WORLD);
+        }
+        World sourceWorld = Bukkit.getWorld(SOURCE_WORLD);
+        if (sourceWorld == null) {
+            return null;
+        }
+        loadSourceChunks(sourceWorld);
+        CapturedTemplates captured = captureAllTemplates(sourceWorld);
+        if (captured == null) {
+            cachedCapturedTemplates = null;
+            cachedTemplateConnectionInfo = null;
+            return null;
+        }
+        cachedCapturedTemplates = captured;
+        cachedTemplateConnectionInfo = Collections.unmodifiableMap(buildTemplateConnectionInfo(captured));
+        return captured;
+    }
+
+    private static Map<String, TemplateConnectionInfo> buildTemplateConnectionInfo(CapturedTemplates captured) {
+        Map<String, TemplateConnectionInfo> out = new LinkedHashMap<>();
+        List<TemplateSpec> all = new ArrayList<>();
+        all.addAll(captured.walls());
+        all.addAll(captured.largeJunctions());
+        all.addAll(captured.deadEnds());
+        all.add(captured.connector());
+        for (TemplateSpec spec : all) {
+            if (spec == null || spec.template == null || spec.template.connectors == null
+                    || spec.template.connectors.isEmpty()) {
+                continue;
+            }
+            List<BlockFace> sides = new ArrayList<>(EnumSet.copyOf(spec.template.connectors.keySet()));
+            int connectorCount = spec.template.connectors.values().stream().mapToInt(List::size).sum();
+            out.put(spec.id, new TemplateConnectionInfo(connectorCount, sides));
+        }
+        return out;
     }
 
     private static BlockVector3 rotateVector(BlockVector3 vec, int width, int length, int rotation) {
@@ -2651,30 +2710,40 @@ public final class StrongholdDebugGenerator {
     }
 
     private static BlockData rotateBlockData(BlockData source, int rotation) {
-        BlockData data = Bukkit.createBlockData(source.getAsString());
-        for (int i = 0; i < Math.floorMod(rotation, 4); i++) {
-            if (data instanceof Directional directional) {
-                BlockFace current = directional.getFacing();
-                BlockFace next = rotateFace(current, 1);
-                if (directional.getFaces().contains(next)) {
-                    directional.setFacing(next);
+        int normalizedRotation = Math.floorMod(rotation, 4);
+        if (normalizedRotation == 0) {
+            return source.clone();
+        }
+        String serialized = source.getAsString();
+        BlockData[] cacheByRotation = BLOCK_DATA_ROTATION_CACHE.computeIfAbsent(serialized, ignored -> new BlockData[4]);
+        BlockData cached = cacheByRotation[normalizedRotation];
+        if (cached == null) {
+            cached = source.clone();
+            for (int i = 0; i < normalizedRotation; i++) {
+                if (cached instanceof Directional directional) {
+                    BlockFace current = directional.getFacing();
+                    BlockFace next = rotateFace(current, 1);
+                    if (directional.getFaces().contains(next)) {
+                        directional.setFacing(next);
+                    }
                 }
-            }
-            if (data instanceof Rotatable rotatable) {
-                BlockFace current = rotatable.getRotation();
-                BlockFace next = rotateFace(current, 1);
-                rotatable.setRotation(next);
-            }
-            if (data instanceof Orientable orientable) {
-                switch (orientable.getAxis()) {
-                    case X -> orientable.setAxis(org.bukkit.Axis.Z);
-                    case Z -> orientable.setAxis(org.bukkit.Axis.X);
-                    default -> {
+                if (cached instanceof Rotatable rotatable) {
+                    BlockFace current = rotatable.getRotation();
+                    BlockFace next = rotateFace(current, 1);
+                    rotatable.setRotation(next);
+                }
+                if (cached instanceof Orientable orientable) {
+                    switch (orientable.getAxis()) {
+                        case X -> orientable.setAxis(org.bukkit.Axis.Z);
+                        case Z -> orientable.setAxis(org.bukkit.Axis.X);
+                        default -> {
+                        }
                     }
                 }
             }
+            cacheByRotation[normalizedRotation] = cached;
         }
-        return data;
+        return cached.clone();
     }
 
     private static BlockFace rotateFace(BlockFace face, int rot) {
@@ -2707,6 +2776,10 @@ public final class StrongholdDebugGenerator {
         long lz = ((long) z & 0x3FFFFFFL) << 12;
         long ly = (long) y & 0xFFFL;
         return lx | lz | ly;
+    }
+
+    private static long chunkKey(int chunkX, int chunkZ) {
+        return (((long) chunkX) << 32) ^ (chunkZ & 0xffffffffL);
     }
 
     private enum PieceCategory {
@@ -2811,6 +2884,9 @@ public final class StrongholdDebugGenerator {
     }
 
     public record TemplateConnectionInfo(int connectorCount, List<BlockFace> sides) {
+    }
+
+    private record SourceSetup(World sourceWorld, CapturedTemplates captured) {
     }
 
     private record PlacementState(int wallPiecesSinceLarge, int wallPiecesSinceGate, int wallPiecesSinceTower) {
