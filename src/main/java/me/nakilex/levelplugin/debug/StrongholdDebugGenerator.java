@@ -127,6 +127,7 @@ public final class StrongholdDebugGenerator {
     private static final Map<String, com.sk89q.worldedit.world.block.BlockState> WORLD_EDIT_BLOCK_STATE_CACHE = new HashMap<>();
     private static CapturedTemplates cachedCapturedTemplates;
     private static Map<String, TemplateConnectionInfo> cachedTemplateConnectionInfo;
+    private static String lastTemplateCaptureFailure;
     private static final List<UsageRule> USAGE_RULES = List.of(
             new UsageRule(spec -> spec != null && isGate(spec), TARGET_GATE_TEMPLATES, UNDERUSED_TEMPLATE_BONUS),
             new UsageRule(spec -> matcherForTemplateId("church").test(spec), requiredCountForTemplate("church"), UNDERUSED_TEMPLATE_BONUS),
@@ -655,6 +656,10 @@ public final class StrongholdDebugGenerator {
         if (captured == null) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
                     "Failed to capture one or more stronghold templates. Check source cuboids and markers.");
+            if (lastTemplateCaptureFailure != null && !lastTemplateCaptureFailure.isBlank()) {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                        "Missing/invalid templates: " + lastTemplateCaptureFailure);
+            }
             return null;
         }
         return new SourceSetup(sourceWorld, captured);
@@ -2465,18 +2470,30 @@ public final class StrongholdDebugGenerator {
 
     private static CapturedTemplates captureAllTemplates(World world) {
         Map<String, Template> captured = new HashMap<>();
+        List<String> failures = new ArrayList<>();
         for (TemplateSpec spec : TEMPLATE_SPECS) {
             Template template = captureTemplate(world, spec.bounds);
             if (template.blocks.isEmpty() || template.connectors.isEmpty()) {
-                return null;
+                failures.add(spec.id + " [blocks=" + template.blocks.size()
+                        + ", connectors=" + template.connectors.size()
+                        + ", bounds=" + formatBounds(spec.bounds) + "]");
+                continue;
             }
             captured.put(spec.id, template);
         }
 
         Template connector = captureTemplate(world, CONNECTOR_SPEC.bounds);
         if (connector.blocks.isEmpty() || connector.connectors.isEmpty()) {
+            failures.add(CONNECTOR_SPEC.id + " [blocks=" + connector.blocks.size()
+                    + ", connectors=" + connector.connectors.size()
+                    + ", bounds=" + formatBounds(CONNECTOR_SPEC.bounds) + "]");
+        }
+        if (!failures.isEmpty()) {
+            lastTemplateCaptureFailure = String.join("; ", failures);
+            Bukkit.getLogger().warning("[StrongholdDebug] Template capture failures: " + lastTemplateCaptureFailure);
             return null;
         }
+        lastTemplateCaptureFailure = null;
 
         List<TemplateSpec> walls = bind(captured, PieceCategory.WALL);
         List<TemplateSpec> large = bind(captured, PieceCategory.JUNCTION_LARGE);
@@ -2514,6 +2531,11 @@ public final class StrongholdDebugGenerator {
             }
         }
         return specs.get(0);
+    }
+
+    private static String formatBounds(TemplateBounds bounds) {
+        return bounds.minX + "," + bounds.minY + "," + bounds.minZ
+                + " -> " + bounds.maxX + "," + bounds.maxY + "," + bounds.maxZ;
     }
 
     private static Template captureTemplate(World world, TemplateBounds bounds) {
