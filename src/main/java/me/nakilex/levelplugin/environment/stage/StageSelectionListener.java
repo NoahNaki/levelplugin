@@ -1,5 +1,6 @@
 package me.nakilex.levelplugin.environment.stage;
 
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
@@ -29,14 +30,23 @@ public class StageSelectionListener implements Listener {
         Location loc = event.getClickedBlock().getLocation();
         if (event.getAction().name().contains("LEFT")) {
             StageSelectionStore.setPos1(player.getUniqueId(), loc);
+            Bukkit.getLogger().info("[SelectionWand] left click pos1 -> " + formatDetailed(loc));
             player.sendMessage(ChatColor.AQUA + "Pos1 set " + format(loc));
         } else if (event.getAction().name().contains("RIGHT")) {
             StageSelectionStore.setPos2(player.getUniqueId(), loc);
+            Bukkit.getLogger().info("[SelectionWand] right click pos2 -> " + formatDetailed(loc));
             player.sendMessage(ChatColor.AQUA + "Pos2 set " + format(loc));
         }
     }
 
     private static String format(Location loc) {
         return loc.getBlockX()+","+loc.getBlockY()+","+loc.getBlockZ();
+    }
+
+    private static String formatDetailed(Location loc) {
+        if (loc == null || loc.getWorld() == null) {
+            return "null";
+        }
+        return loc.getWorld().getName() + ":" + format(loc);
     }
 }

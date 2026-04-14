@@ -49,28 +49,32 @@ public final class StrongholdDebugGenerator {
     private static final Set<Material> CONNECTOR_MARKER_MATERIALS = Set.of(Material.REDSTONE_BLOCK);
 
     private static final List<TemplateSpec> TEMPLATE_SPECS = List.of(
-            new TemplateSpec("corner_1", new TemplateBounds(473, -38, -5346, 543, -61, -5276), PieceCategory.WALL, 1),
-            new TemplateSpec("corner_2", new TemplateBounds(544, -38, -5631, 614, -61, -5701), PieceCategory.WALL, 1),
-            new TemplateSpec("corner_3", new TemplateBounds(614, -61, -5630, 544, -38, -5560), PieceCategory.WALL, 1),
-            new TemplateSpec("straight_1", new TemplateBounds(402, -38, -5276, 472, -61, -5346), PieceCategory.WALL, 2),
-            new TemplateSpec("straight_2", new TemplateBounds(472, -61, -5347, 402, -38, -5417), PieceCategory.WALL, 2),
-            new TemplateSpec("straight_3", new TemplateBounds(402, -38, -5418, 472, -61, -5488), PieceCategory.WALL, 2),
-            new TemplateSpec("straight_4", new TemplateBounds(472, -61, -5489, 402, -38, -5559), PieceCategory.WALL, 2),
-            new TemplateSpec("straight_5", new TemplateBounds(402, -38, -5560, 472, -61, -5630), PieceCategory.WALL, 2),
-            new TemplateSpec("straight_6", new TemplateBounds(472, -61, -5631, 402, -38, -5701), PieceCategory.WALL, 2),
-            new TemplateSpec("straight_7", new TemplateBounds(473, -38, -5701, 543, -61, -5631), PieceCategory.WALL, 2),
-            new TemplateSpec("straight_8", new TemplateBounds(543, -61, -5630, 473, -38, -5560), PieceCategory.WALL, 2),
-            new TemplateSpec("straight_9", new TemplateBounds(473, -38, -5417, 543, -61, -5347), PieceCategory.WALL, 2),
-            new TemplateSpec("t_section", new TemplateBounds(615, -61, -5276, 685, -7, -5206), PieceCategory.JUNCTION_LARGE, 3),
-            new TemplateSpec("tower_1", new TemplateBounds(615, -61, -5488, 685, -7, -5418), PieceCategory.JUNCTION_LARGE, 1),
-            new TemplateSpec("gate_1", new TemplateBounds(686, -61, -5346, 614, -10, -5418), PieceCategory.JUNCTION_LARGE, 1),
-            new TemplateSpec("gate_2", new TemplateBounds(686, -61, -5276, 614, -10, -5346), PieceCategory.JUNCTION_LARGE, 1),
-            new TemplateSpec("church", new TemplateBounds(757, -61, -5559, 827, 34, -5489), PieceCategory.JUNCTION_LARGE, 1),
-            new TemplateSpec("smallfort", new TemplateBounds(615, -61, -5701, 685, -22, -5631), PieceCategory.WALL, 1),
-            new TemplateSpec("fortpassage", new TemplateBounds(685, -61, -5630, 615, -22, -5560), PieceCategory.WALL, 1),
-            new TemplateSpec("fort", new TemplateBounds(615, -61, -5559, 685, -18, -5489), PieceCategory.WALL, 1),
-            new TemplateSpec("deadend_1", new TemplateBounds(543, -38, -5418, 473, -61, -5488), PieceCategory.DEAD_END, 1),
-            new TemplateSpec("deadend_2", new TemplateBounds(473, -61, -5489, 543, -38, -5559), PieceCategory.DEAD_END, 1)
+            new TemplateSpec("straight_1", new TemplateBounds(219, -39, -6337, 249, -61, -6347), PieceCategory.WALL, 2),
+            new TemplateSpec("straight_2", new TemplateBounds(219, -39, -6347, 249, -61, -6357), PieceCategory.WALL, 2),
+            new TemplateSpec("straight_3", new TemplateBounds(219, -39, -6357, 249, -61, -6367), PieceCategory.WALL, 2),
+            new TemplateSpec("straight_4", new TemplateBounds(219, -39, -6367, 249, -61, -6377), PieceCategory.WALL, 2),
+            new TemplateSpec("straight_5", new TemplateBounds(219, -39, -6377, 249, -61, -6387), PieceCategory.WALL, 2),
+            new TemplateSpec("straight_6", new TemplateBounds(219, -39, -6387, 249, -61, -6397), PieceCategory.WALL, 2),
+            new TemplateSpec("straight_7", new TemplateBounds(219, -39, -6397, 249, -61, -6407), PieceCategory.WALL, 2),
+            new TemplateSpec("straight_8", new TemplateBounds(219, -39, -6407, 249, -61, -6419), PieceCategory.WALL, 2),
+            new TemplateSpec("straight_9", new TemplateBounds(219, -39, -6419, 249, -61, -6429), PieceCategory.WALL, 2),
+            new TemplateSpec("straight_10", new TemplateBounds(219, -39, -6429, 249, -61, -6439), PieceCategory.WALL, 2),
+            new TemplateSpec("corner_1", new TemplateBounds(249, -61, -6439, 239, -40, -6449), PieceCategory.WALL, 1),
+            new TemplateSpec("corner_2", new TemplateBounds(239, -61, -6439, 229, -40, -6449), PieceCategory.WALL, 1),
+            new TemplateSpec("deadend_1", new TemplateBounds(249, -61, -6337, 287, -39, -6347), PieceCategory.DEAD_END, 1),
+            new TemplateSpec("deadend_2", new TemplateBounds(249, -61, -6347, 287, -39, -6363), PieceCategory.DEAD_END, 1),
+            new TemplateSpec("corner_3", new TemplateBounds(287, -61, -6337, 310, -39, -6361), PieceCategory.WALL, 1),
+            new TemplateSpec("corner_4", new TemplateBounds(287, -61, -6361, 310, -39, -6384), PieceCategory.WALL, 1),
+            new TemplateSpec("corner_5", new TemplateBounds(287, -61, -6384, 310, -39, -6408), PieceCategory.WALL, 1),
+            new TemplateSpec("t_section", new TemplateBounds(310, -61, -6337, 346, -23, -6364), PieceCategory.JUNCTION_LARGE, 3),
+            new TemplateSpec("tower_1", new TemplateBounds(310, -13, -6364, 334, -61, -6388), PieceCategory.JUNCTION_LARGE, 1),
+            new TemplateSpec("smallfort", new TemplateBounds(346, -61, -6337, 378, -30, -6395), PieceCategory.WALL, 1),
+            new TemplateSpec("smallfortpassage", new TemplateBounds(378, -61, -6401, 437, -28, -6434), PieceCategory.WALL, 1),
+            new TemplateSpec("gate_1", new TemplateBounds(378, -61, -6337, 450, -11, -6369), PieceCategory.JUNCTION_LARGE, 1),
+            new TemplateSpec("gate_2", new TemplateBounds(378, -61, -6369, 450, -11, -6401), PieceCategory.JUNCTION_LARGE, 1),
+            new TemplateSpec("fort", new TemplateBounds(450, -61, -6337, 520, -29, -6407), PieceCategory.WALL, 1),
+            new TemplateSpec("fortpassage", new TemplateBounds(450, -61, -6408, 520, -29, -6478), PieceCategory.WALL, 1),
+            new TemplateSpec("church", new TemplateBounds(520, -61, -6478, 450, 37, -6548), PieceCategory.JUNCTION_LARGE, 1)
     );
 
     private static final TemplateSpec CONNECTOR_SPEC =
@@ -123,6 +127,7 @@ public final class StrongholdDebugGenerator {
     private static final Map<String, com.sk89q.worldedit.world.block.BlockState> WORLD_EDIT_BLOCK_STATE_CACHE = new HashMap<>();
     private static CapturedTemplates cachedCapturedTemplates;
     private static Map<String, TemplateConnectionInfo> cachedTemplateConnectionInfo;
+    private static String lastTemplateCaptureFailure;
     private static final List<UsageRule> USAGE_RULES = List.of(
             new UsageRule(spec -> spec != null && isGate(spec), TARGET_GATE_TEMPLATES, UNDERUSED_TEMPLATE_BONUS),
             new UsageRule(spec -> matcherForTemplateId("church").test(spec), requiredCountForTemplate("church"), UNDERUSED_TEMPLATE_BONUS),
@@ -651,6 +656,10 @@ public final class StrongholdDebugGenerator {
         if (captured == null) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
                     "Failed to capture one or more stronghold templates. Check source cuboids and markers.");
+            if (lastTemplateCaptureFailure != null && !lastTemplateCaptureFailure.isBlank()) {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                        "Missing/invalid templates: " + lastTemplateCaptureFailure);
+            }
             return null;
         }
         return new SourceSetup(sourceWorld, captured);
@@ -2461,18 +2470,30 @@ public final class StrongholdDebugGenerator {
 
     private static CapturedTemplates captureAllTemplates(World world) {
         Map<String, Template> captured = new HashMap<>();
+        List<String> failures = new ArrayList<>();
         for (TemplateSpec spec : TEMPLATE_SPECS) {
             Template template = captureTemplate(world, spec.bounds);
             if (template.blocks.isEmpty() || template.connectors.isEmpty()) {
-                return null;
+                failures.add(spec.id + " [blocks=" + template.blocks.size()
+                        + ", connectors=" + template.connectors.size()
+                        + ", bounds=" + formatBounds(spec.bounds) + "]");
+                continue;
             }
             captured.put(spec.id, template);
         }
 
         Template connector = captureTemplate(world, CONNECTOR_SPEC.bounds);
         if (connector.blocks.isEmpty() || connector.connectors.isEmpty()) {
+            failures.add(CONNECTOR_SPEC.id + " [blocks=" + connector.blocks.size()
+                    + ", connectors=" + connector.connectors.size()
+                    + ", bounds=" + formatBounds(CONNECTOR_SPEC.bounds) + "]");
+        }
+        if (!failures.isEmpty()) {
+            lastTemplateCaptureFailure = String.join("; ", failures);
+            Bukkit.getLogger().warning("[StrongholdDebug] Template capture failures: " + lastTemplateCaptureFailure);
             return null;
         }
+        lastTemplateCaptureFailure = null;
 
         List<TemplateSpec> walls = bind(captured, PieceCategory.WALL);
         List<TemplateSpec> large = bind(captured, PieceCategory.JUNCTION_LARGE);
@@ -2510,6 +2531,11 @@ public final class StrongholdDebugGenerator {
             }
         }
         return specs.get(0);
+    }
+
+    private static String formatBounds(TemplateBounds bounds) {
+        return bounds.minX + "," + bounds.minY + "," + bounds.minZ
+                + " -> " + bounds.maxX + "," + bounds.maxY + "," + bounds.maxZ;
     }
 
     private static Template captureTemplate(World world, TemplateBounds bounds) {
