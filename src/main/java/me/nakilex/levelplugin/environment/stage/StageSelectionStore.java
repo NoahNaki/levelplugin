@@ -21,7 +21,7 @@ public final class StageSelectionStore {
     public static final ItemStack WAND;
 
     static {
-        ItemStack it = new ItemStack(Material.WOODEN_AXE);
+        ItemStack it = new ItemStack(Material.MACE);
         ItemMeta meta = it.getItemMeta();
         if (meta != null) {
             meta.setDisplayName(ChatColor.GOLD + "Stage Wand");
