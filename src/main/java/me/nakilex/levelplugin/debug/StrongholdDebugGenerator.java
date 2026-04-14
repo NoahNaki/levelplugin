@@ -2647,11 +2647,28 @@ public final class StrongholdDebugGenerator {
         int x = point.getBlockX();
         int y = point.getBlockY();
         int z = point.getBlockZ();
+        int inset = Math.max(0, CONNECTOR_SIDE_CAPTURE_DISTANCE);
         return switch (side) {
-            case NORTH -> BlockVector3.at(clamp(x, footprint.minX, footprint.maxX), y, footprint.minZ);
-            case SOUTH -> BlockVector3.at(clamp(x, footprint.minX, footprint.maxX), y, footprint.maxZ);
-            case EAST -> BlockVector3.at(footprint.maxX, y, clamp(z, footprint.minZ, footprint.maxZ));
-            case WEST -> BlockVector3.at(footprint.minX, y, clamp(z, footprint.minZ, footprint.maxZ));
+            case NORTH -> BlockVector3.at(
+                    clamp(x, footprint.minX, footprint.maxX),
+                    y,
+                    clamp(footprint.minZ + inset, footprint.minZ, footprint.maxZ)
+            );
+            case SOUTH -> BlockVector3.at(
+                    clamp(x, footprint.minX, footprint.maxX),
+                    y,
+                    clamp(footprint.maxZ - inset, footprint.minZ, footprint.maxZ)
+            );
+            case EAST -> BlockVector3.at(
+                    clamp(footprint.maxX - inset, footprint.minX, footprint.maxX),
+                    y,
+                    clamp(z, footprint.minZ, footprint.maxZ)
+            );
+            case WEST -> BlockVector3.at(
+                    clamp(footprint.minX + inset, footprint.minX, footprint.maxX),
+                    y,
+                    clamp(z, footprint.minZ, footprint.maxZ)
+            );
             default -> point;
         };
     }
