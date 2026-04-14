@@ -1,6 +1,9 @@
 package me.nakilex.levelplugin.debug;
 
 import com.sk89q.worldedit.math.BlockVector3;
+import com.sk89q.worldedit.EditSession;
+import com.sk89q.worldedit.WorldEdit;
+import com.sk89q.worldedit.bukkit.BukkitAdapter;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.Bukkit;
@@ -117,6 +120,7 @@ public final class StrongholdDebugGenerator {
     private static double maxOverlapPercent = 2.0D;
     private static final Map<Template, RotatedTemplate[]> ROTATION_CACHE = new IdentityHashMap<>();
     private static final Map<String, BlockData[]> BLOCK_DATA_ROTATION_CACHE = new HashMap<>();
+    private static final Map<String, com.sk89q.worldedit.world.block.BlockState> WORLD_EDIT_BLOCK_STATE_CACHE = new HashMap<>();
     private static CapturedTemplates cachedCapturedTemplates;
     private static Map<String, TemplateConnectionInfo> cachedTemplateConnectionInfo;
     private static final List<UsageRule> USAGE_RULES = List.of(
@@ -327,9 +331,7 @@ public final class StrongholdDebugGenerator {
         int sealedViableOutputs = closeViableOutputsWithDeadEnds(captured, occupied, random, placed);
         int finalChurchCount = countPlacedTemplatesMatching(placed, matcherForTemplateId("church"));
 
-        for (PlacedTemplate entry : placed) {
-            paste(world, entry.spec.template, entry.origin, entry.rotation);
-        }
+        pastePlacedTemplates(world, placed);
         int requiredRawCopies = 0;
         if (ENABLE_DISCONNECTED_FALLBACKS) {
             for (Map.Entry<String, Integer> requiredTemplate : REQUIRED_TEMPLATE_COUNTS.entrySet()) {
@@ -474,9 +476,7 @@ public final class StrongholdDebugGenerator {
             builtBranches++;
         }
 
-        for (PlacedTemplate entry : placed) {
-            paste(world, entry.spec.template, entry.origin, entry.rotation);
-        }
+        pastePlacedTemplates(world, placed);
         player.teleport(new org.bukkit.Location(world, originX + 0.5, originY + 2, originZ + 0.5));
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
                 "Generated towerwall cross preset using " + placed.size() + " pieces in world '" + world.getName() + "'.");
@@ -2742,6 +2742,46 @@ public final class StrongholdDebugGenerator {
         }
     }
 
+    private static void pastePlacedTemplates(World world, List<PlacedTemplate> placedTemplates) {
+        if (world == null || placedTemplates == null || placedTemplates.isEmpty()) {
+            return;
+        }
+        if (pastePlacedTemplatesWithWorldEdit(world, placedTemplates)) {
+            return;
+        }
+        for (PlacedTemplate placed : placedTemplates) {
+            paste(world, placed.spec.template, placed.origin, placed.rotation);
+        }
+    }
+
+    private static boolean pastePlacedTemplatesWithWorldEdit(World world, List<PlacedTemplate> placedTemplates) {
+        try (EditSession session = WorldEdit.getInstance().newEditSession(BukkitAdapter.adapt(world))) {
+            session.setFastMode(true);
+            for (PlacedTemplate placed : placedTemplates) {
+                RotatedTemplate rotated = rotateTemplate(placed.spec.template, placed.rotation);
+                for (Map.Entry<BlockVector3, BlockData> entry : rotated.blocks.entrySet()) {
+                    BlockVector3 rel = entry.getKey();
+                    int x = placed.origin.getBlockX() + rel.getBlockX();
+                    int y = placed.origin.getBlockY() + rel.getBlockY();
+                    int z = placed.origin.getBlockZ() + rel.getBlockZ();
+                    com.sk89q.worldedit.math.BlockVector3 absolute = com.sk89q.worldedit.math.BlockVector3.at(x, y, z);
+                    session.setBlock(absolute, toWorldEditBlockState(entry.getValue()));
+                }
+            }
+            return true;
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
+    private static com.sk89q.worldedit.world.block.BlockState toWorldEditBlockState(BlockData data) {
+        if (data == null) {
+            return com.sk89q.worldedit.world.block.BlockTypes.AIR.getDefaultState();
+        }
+        String key = data.getAsString();
+        return WORLD_EDIT_BLOCK_STATE_CACHE.computeIfAbsent(key, ignored -> BukkitAdapter.adapt(data));
+    }
+
     private static RotatedTemplate rotateTemplate(Template template, int rotation) {
         RotatedTemplate[] cached = ROTATION_CACHE.computeIfAbsent(template, ignored -> new RotatedTemplate[4]);
         int rot = Math.floorMod(rotation, 4);
@@ -2770,6 +2810,7 @@ public final class StrongholdDebugGenerator {
     private static void clearRotationCache() {
         ROTATION_CACHE.clear();
         BLOCK_DATA_ROTATION_CACHE.clear();
+        WORLD_EDIT_BLOCK_STATE_CACHE.clear();
     }
 
     private static CapturedTemplates loadCapturedTemplates(boolean forceRefresh) {
