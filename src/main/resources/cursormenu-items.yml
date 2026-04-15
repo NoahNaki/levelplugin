@@ -15,3 +15,17 @@ items:
     offset-y: 0.0
     offset-z: 0.0
     rotate-speed: 5.0
+
+display-items:
+  imported_staff:
+    material: BLAZE_ROD
+    custom-model-data: 12001
+    scale: 1.1
+    distance: 2.6
+    offset:
+      x: 0.0
+      y: -0.15
+      z: 0.0
+    glow: true
+    rotate: true
+    rotate-speed: 2.5

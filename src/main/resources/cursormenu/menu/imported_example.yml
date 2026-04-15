@@ -4,7 +4,8 @@ example_imported:
     enabled: true
     commands:
       - "[player] msg &aImported menu opened"
-    delays: [0]
+      - "[console] say %player_name% opened imported menu"
+    delays: [0, 10]
   camera-position:
     world: world
     x: 0.5
@@ -14,18 +15,56 @@ example_imported:
     pitch: 0.0
     distance: 4.0
   layout:
-    option_one:
-      name: "&eImported Option"
+    option_profile:
+      name: "&eProfile"
       x: 0.0
-      y: 0.2
+      y: 0.4
       z: 0.0
-      tilt:
-        x: 0
-        y: 0
-        z: 0
+      tilt: { x: 0, y: 0, z: 0 }
+      permission: ""
+      condition:
+        variable: "%player_level%"
+        operator: ">="
+        value: "1"
       command:
         - "[player] profile"
-      command-delay: 0
+      command-delay: 5
+      stop-menu:
+        enabled: false
+      next-menu:
+        enabled: true
+        menu: "example_imported_confirm"
+
+    option_random:
+      name: "&dRandom Reward"
+      x: 0.0
+      y: 0.0
+      z: 0.0
+      tilt: { x: 10, y: 0, z: 0 }
+      random-commands:
+        - "[player] msg &aYou won reward A"
+        - "[player] msg &bYou won reward B"
+      random-chances: [70, 30]
+      stop-menu:
+        enabled: false
+
+example_imported_confirm:
+  camera-position:
+    world: world
+    x: 0.5
+    y: 100.0
+    z: 3.5
+    yaw: 180.0
+    pitch: 0.0
+    distance: 4.0
+  layout:
+    close_and_back:
+      name: "&cClose"
+      x: 0.0
+      y: -0.4
+      z: 0.0
+      command:
+        - "[player] msg &7Closing imported flow"
       stop-menu:
         enabled: true
         teleport:

@@ -63,6 +63,15 @@ public class CursorMenuManager implements Listener {
     public Set<String> getItemPresetKeys() { return Collections.unmodifiableSet(itemPresets.keySet()); }
 
     public boolean runMenu(Player player, String menuKey) {
+        MenuSession existing = activeSessions.get(player.getUniqueId());
+        Location preservedReturn = existing != null && existing.returnLocation != null
+                ? existing.returnLocation.clone()
+                : player.getLocation().clone();
+        GameMode preservedGameMode = existing != null ? existing.originalGameMode : player.getGameMode();
+        return runMenu(player, menuKey, preservedReturn, preservedGameMode);
+    }
+
+    private boolean runMenu(Player player, String menuKey, Location returnLocation, GameMode originalMode) {
         MenuSection section = sections.get(menuKey.toLowerCase(Locale.ROOT));
         if (section == null) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
@@ -73,11 +82,12 @@ public class CursorMenuManager implements Listener {
 
         Location camera = section.camera().clone();
         MenuSession session = new MenuSession(menuKey.toLowerCase(Locale.ROOT),
-                player.getLocation().clone(), player.getGameMode(), camera);
+                returnLocation, originalMode, camera);
 
         if (player.teleport(camera)) {
             player.setGameMode(GameMode.ADVENTURE);
         }
+        anchorPlayerToCamera(player, session, camera);
 
         if (config.cameraBlockCheckEnabled()) {
             clearCameraObstructions(player, camera);
@@ -106,9 +116,13 @@ public class CursorMenuManager implements Listener {
         stopMenuSound(player);
         restoreCameraObstructions(player);
         cleanupSession(session);
-        if (teleportBack && session.returnLocation != null) {
+        player.leaveVehicle();
+        if (session.cameraSeat != null && !session.cameraSeat.isDead()) {
+            session.cameraSeat.remove();
+        }
+        player.setGameMode(session.originalGameMode);
+        if (teleportBack && session.returnLocation != null && player.isOnline()) {
             player.teleport(session.returnLocation);
-            player.setGameMode(session.originalGameMode);
         }
         return true;
     }
@@ -143,15 +157,20 @@ public class CursorMenuManager implements Listener {
     }
 
     public void stopAllMenus() {
-        for (Map.Entry<UUID, MenuSession> entry : new ArrayList<>(activeSessions.entrySet())) {
-            Player player = Bukkit.getPlayer(entry.getKey());
+        for (UUID id : new ArrayList<>(activeSessions.keySet())) {
+            Player player = Bukkit.getPlayer(id);
             if (player != null) {
-                stopMenuSound(player);
-                restoreCameraObstructions(player);
+                stopMenu(player, true);
+                continue;
             }
-            cleanupSession(entry.getValue());
+            MenuSession session = activeSessions.remove(id);
+            if (session != null) {
+                cleanupSession(session);
+                if (session.cameraSeat != null && !session.cameraSeat.isDead()) {
+                    session.cameraSeat.remove();
+                }
+            }
         }
-        activeSessions.clear();
     }
 
     public void stopAllPreviews() {
@@ -210,7 +229,7 @@ public class CursorMenuManager implements Listener {
                 ChatColor.RED + "You cannot use that command while in menu mode.");
     }
 
-    @EventHandler public void onQuit(PlayerQuitEvent event) { stopMenu(event.getPlayer(), false); hideItemPreview(event.getPlayer()); }
+    @EventHandler public void onQuit(PlayerQuitEvent event) { stopMenu(event.getPlayer(), true); hideItemPreview(event.getPlayer()); }
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
@@ -250,11 +269,31 @@ public class CursorMenuManager implements Listener {
     @EventHandler
     public void onTeleport(PlayerTeleportEvent event) {
         if (event.getCause() != PlayerTeleportEvent.TeleportCause.PLUGIN) {
-            stopMenu(event.getPlayer(), false);
+            stopMenu(event.getPlayer(), true);
         }
     }
 
-    @EventHandler public void onWorldChange(PlayerChangedWorldEvent event) { stopMenu(event.getPlayer(), false); hideItemPreview(event.getPlayer()); }
+    @EventHandler public void onWorldChange(PlayerChangedWorldEvent event) { stopMenu(event.getPlayer(), true); hideItemPreview(event.getPlayer()); }
+
+    @EventHandler
+    public void onMove(PlayerMoveEvent event) {
+        MenuSession session = activeSessions.get(event.getPlayer().getUniqueId());
+        if (session == null) {
+            return;
+        }
+        if (event.getTo() == null) {
+            return;
+        }
+        Location to = event.getTo();
+        Location from = event.getFrom();
+        if (to.getX() == from.getX() && to.getY() == from.getY() && to.getZ() == from.getZ()) {
+            return;
+        }
+        Location locked = session.camera.clone();
+        locked.setYaw(to.getYaw());
+        locked.setPitch(to.getPitch());
+        event.setTo(locked);
+    }
 
     private void cleanupSession(MenuSession session) {
         if (session.cursorAnchor != null && !session.cursorAnchor.isDead()) session.cursorAnchor.remove();
@@ -262,6 +301,23 @@ public class CursorMenuManager implements Listener {
         for (ButtonState button : session.buttons) {
             if (button.display != null && !button.display.isDead()) button.display.remove();
         }
+    }
+
+    private void anchorPlayerToCamera(Player player, MenuSession session, Location camera) {
+        if (player.getVehicle() != null) {
+            player.leaveVehicle();
+        }
+        Pig seat = camera.getWorld().spawn(camera, Pig.class, pig -> {
+            pig.setAI(false);
+            pig.setInvisible(true);
+            pig.setInvulnerable(true);
+            pig.setGravity(false);
+            pig.setSilent(true);
+            pig.setCollidable(false);
+            pig.setPersistent(false);
+        });
+        seat.addPassenger(player);
+        session.cameraSeat = seat;
     }
 
     private void dispatchButtonCommand(Player player, String rawCommand) {
@@ -752,10 +808,17 @@ public class CursorMenuManager implements Listener {
         itemPresets.clear();
         YamlConfiguration yaml = YamlConfiguration.loadConfiguration(new File(plugin.getDataFolder(), "cursormenu-items.yml"));
         ConfigurationSection section = yaml.getConfigurationSection("items");
-        if (section == null) {
-            section = yaml.getConfigurationSection("display-items");
+        ConfigurationSection legacySection = yaml.getConfigurationSection("display-items");
+        if (section == null && legacySection == null) return;
+        if (section != null) {
+            parseItemSection(section);
         }
-        if (section == null) return;
+        if (legacySection != null) {
+            parseItemSection(legacySection);
+        }
+    }
+
+    private void parseItemSection(ConfigurationSection section) {
         for (String key : section.getKeys(false)) {
             ConfigurationSection node = section.getConfigurationSection(key);
             if (node == null) continue;
@@ -1097,6 +1160,7 @@ public class CursorMenuManager implements Listener {
         private final Location camera;
         private ArmorStand cursorAnchor;
         private ItemDisplay cursorDisplay;
+        private Pig cameraSeat;
         private final List<ButtonState> buttons = new ArrayList<>();
 
         private MenuSession(String menuKey, Location returnLocation, GameMode originalGameMode, Location camera) {
