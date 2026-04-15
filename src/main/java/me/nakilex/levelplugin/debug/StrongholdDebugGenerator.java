@@ -129,6 +129,7 @@ public final class StrongholdDebugGenerator {
     private static final boolean USE_FRONTIER_SCHEDULER = false;
     private static final boolean ENABLE_EXPENSIVE_DIAGNOSTICS = false;
     private static final boolean ENABLE_DISCONNECTED_FALLBACKS = false;
+    private static final boolean ENABLE_DETACHED_ASSET_DEBUG_LOGGING = true;
     private static final double DETACHED_ASSET_OVERLAP_PERCENT = 5.0D;
     private static final double DETACHED_ASSET_INTERNAL_OVERLAP_PERCENT = 0.0D;
     private static final int DETACHED_ASSET_MIN_RING_DISTANCE = 4;
@@ -545,6 +546,7 @@ public final class StrongholdDebugGenerator {
         }
         Map<AssetType, List<DetachedAssetTemplate>> templatesByType = loadDetachedAssetTemplates(sourceWorld);
         if (templatesByType.isEmpty()) {
+            logDetachedAssetDebug("No detached templates loaded from source world '" + sourceWorld.getName() + "'.");
             return AssetPlacementSummary.empty();
         }
         AssetScatterConfig config = assetScatterConfig == null ? AssetScatterConfig.defaults() : assetScatterConfig;
@@ -556,8 +558,16 @@ public final class StrongholdDebugGenerator {
 
         Bounds2D footprint = combinedBounds2D(placedTemplates);
         if (footprint == null) {
+            logDetachedAssetDebug("Unable to compute stronghold footprint; detached assets skipped.");
             return AssetPlacementSummary.empty();
         }
+        logDetachedAssetDebug("Detached placement start -> total=" + totalRequested
+                + ", distribution trees/rocks/ruins=" + counts.trees() + "/" + counts.rocks() + "/" + counts.ruins()
+                + ", template pools trees/rocks/ruins="
+                + templatesByType.getOrDefault(AssetType.TREE, List.of()).size() + "/"
+                + templatesByType.getOrDefault(AssetType.ROCK, List.of()).size() + "/"
+                + templatesByType.getOrDefault(AssetType.RUIN, List.of()).size()
+                + ", footprint=[" + footprint.minX + "," + footprint.minZ + " -> " + footprint.maxX + "," + footprint.maxZ + "].");
 
         List<AssetType> requestOrder = new ArrayList<>(totalRequested);
         addAssetRequests(requestOrder, AssetType.TREE, counts.trees());
@@ -565,6 +575,7 @@ public final class StrongholdDebugGenerator {
         addAssetRequests(requestOrder, AssetType.RUIN, counts.ruins());
         Collections.shuffle(requestOrder, random);
         Set<Long> detachedOccupied = new HashSet<>();
+        AssetPlacementDebugCounter debugCounter = new AssetPlacementDebugCounter();
 
         int treesPlaced = 0;
         int rocksPlaced = 0;
@@ -573,7 +584,9 @@ public final class StrongholdDebugGenerator {
 
         for (AssetType type : requestOrder) {
             List<DetachedAssetTemplate> pool = templatesByType.getOrDefault(type, List.of());
-            AssetPlacement placement = findDetachedAssetPlacement(type, pool, world, occupied, detachedOccupied, random, footprint, fallbackY);
+            AssetPlacementSearchResult result = findDetachedAssetPlacement(type, pool, world, occupied, detachedOccupied, random, footprint, fallbackY);
+            debugCounter.add(result);
+            AssetPlacement placement = result.placement();
             if (placement == null) {
                 continue;
             }
@@ -595,6 +608,13 @@ public final class StrongholdDebugGenerator {
                         + "," + placement.origin().getBlockZ() + ")");
             }
         }
+        logDetachedAssetDebug("Detached placement result -> placed trees/rocks/ruins="
+                + treesPlaced + "/" + rocksPlaced + "/" + ruinsPlaced
+                + ", attempts=" + debugCounter.totalAttempts
+                + ", rejected(noPool)=" + debugCounter.noPoolRejects
+                + ", rejected(ring)=" + debugCounter.ringRejects
+                + ", rejected(overlapMain)=" + debugCounter.mainOverlapRejects
+                + ", rejected(overlapDetached)=" + debugCounter.detachedOverlapRejects + ".");
 
         return new AssetPlacementSummary(
                 counts.trees(),
@@ -639,19 +659,24 @@ public final class StrongholdDebugGenerator {
         return new Bounds2D(minX, maxX, minZ, maxZ);
     }
 
-    private static AssetPlacement findDetachedAssetPlacement(AssetType type,
-                                                             List<DetachedAssetTemplate> candidates,
-                                                             World world,
-                                                             Set<Long> occupied,
-                                                             Set<Long> detachedOccupied,
-                                                             Random random,
-                                                             Bounds2D strongholdFootprint,
-                                                             int fallbackY) {
+    private static AssetPlacementSearchResult findDetachedAssetPlacement(AssetType type,
+                                                                         List<DetachedAssetTemplate> candidates,
+                                                                         World world,
+                                                                         Set<Long> occupied,
+                                                                         Set<Long> detachedOccupied,
+                                                                         Random random,
+                                                                         Bounds2D strongholdFootprint,
+                                                                         int fallbackY) {
         if (candidates == null || candidates.isEmpty()) {
-            return null;
+            return AssetPlacementSearchResult.noPool();
         }
         Point2D center = centerOf(strongholdFootprint);
+        int attempts = 0;
+        int ringRejects = 0;
+        int mainOverlapRejects = 0;
+        int detachedOverlapRejects = 0;
         for (int attempt = 0; attempt < DETACHED_ASSET_MAX_ATTEMPTS; attempt++) {
+            attempts++;
             DetachedAssetTemplate template = candidates.get(random.nextInt(candidates.size()));
             BlockVector3 sample = sampleOrganicPoint(center, random,
                     template.radiusBlocks() + DETACHED_ASSET_MIN_RING_DISTANCE,
@@ -661,6 +686,7 @@ public final class StrongholdDebugGenerator {
             if (!isWithinRing(x, z, strongholdFootprint,
                     template.radiusBlocks() + DETACHED_ASSET_MIN_RING_DISTANCE,
                     template.radiusBlocks() + DETACHED_ASSET_MAX_RING_DISTANCE)) {
+                ringRejects++;
                 continue;
             }
 
@@ -670,14 +696,30 @@ public final class StrongholdDebugGenerator {
             int originY = y - Math.min(0, template.lowestRelativeY());
             BlockVector3 origin = BlockVector3.at(originX, originY, originZ);
             if (!isOverlapWithinThreshold(occupied, template.blocks(), origin, DETACHED_ASSET_OVERLAP_PERCENT)) {
+                mainOverlapRejects++;
                 continue;
             }
             if (!isOverlapWithinThreshold(detachedOccupied, template.blocks(), origin, DETACHED_ASSET_INTERNAL_OVERLAP_PERCENT)) {
+                detachedOverlapRejects++;
                 continue;
             }
-            return new AssetPlacement(type, template, origin);
+            return new AssetPlacementSearchResult(
+                    new AssetPlacement(type, template, origin),
+                    attempts,
+                    0,
+                    ringRejects,
+                    mainOverlapRejects,
+                    detachedOverlapRejects
+            );
         }
-        return null;
+        return new AssetPlacementSearchResult(
+                null,
+                attempts,
+                0,
+                ringRejects,
+                mainOverlapRejects,
+                detachedOverlapRejects
+        );
     }
 
     private static int safeSurfaceY(World world, int x, int z, int fallbackY) {
@@ -732,6 +774,13 @@ public final class StrongholdDebugGenerator {
             int z = origin.getBlockZ() + rel.getBlockZ();
             world.getBlockAt(x, y, z).setBlockData(blockData, false);
         }
+    }
+
+    private static void logDetachedAssetDebug(String message) {
+        if (!ENABLE_DETACHED_ASSET_DEBUG_LOGGING || message == null || message.isBlank()) {
+            return;
+        }
+        Bukkit.getLogger().info("[StrongholdDebug][Assets] " + message);
     }
 
     private static TemplateSpec findTemplateById(List<TemplateSpec> specs, String id) {
@@ -3628,6 +3677,36 @@ public final class StrongholdDebugGenerator {
     private record AssetPlacement(AssetType type, DetachedAssetTemplate template, BlockVector3 origin) {
         private Map<BlockVector3, BlockData> blocks() {
             return template == null ? Map.of() : template.blocks();
+        }
+    }
+
+    private record AssetPlacementSearchResult(AssetPlacement placement,
+                                              int attempts,
+                                              int noPoolRejects,
+                                              int ringRejects,
+                                              int mainOverlapRejects,
+                                              int detachedOverlapRejects) {
+        private static AssetPlacementSearchResult noPool() {
+            return new AssetPlacementSearchResult(null, 0, 1, 0, 0, 0);
+        }
+    }
+
+    private static final class AssetPlacementDebugCounter {
+        private int totalAttempts;
+        private int noPoolRejects;
+        private int ringRejects;
+        private int mainOverlapRejects;
+        private int detachedOverlapRejects;
+
+        private void add(AssetPlacementSearchResult result) {
+            if (result == null) {
+                return;
+            }
+            totalAttempts += Math.max(0, result.attempts());
+            noPoolRejects += Math.max(0, result.noPoolRejects());
+            ringRejects += Math.max(0, result.ringRejects());
+            mainOverlapRejects += Math.max(0, result.mainOverlapRejects());
+            detachedOverlapRejects += Math.max(0, result.detachedOverlapRejects());
         }
     }
 
