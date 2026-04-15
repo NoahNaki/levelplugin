@@ -1,0 +1,35 @@
+cursor:
+  material: NETHER_STAR
+  scale: 0.35
+  offset-x: 0.0
+  offset-y: 0.0
+
+movement:
+  max-x: 2.2
+  max-y: 1.2
+  max-yaw: 45.0
+  max-pitch: 30.0
+
+sound:
+  name: ""
+  volume: 1.0
+  pitch: 1.0
+  loop:
+    enabled: false
+    duration: 40
+
+join-run:
+  enabled: false
+  delay: 20
+  menu: "example"
+  commands: []
+
+creature-spawn-limits:
+  enabled: false
+  radius: 8.0
+
+camera-block-check:
+  enabled: false
+  radius: 1
+
+use-pumpkin-overlay: false
