@@ -32,4 +32,4 @@ camera-block-check:
   enabled: false
   radius: 1
 
-use-pumpkin-overlay: true
+use-pumpkin-overlay: false

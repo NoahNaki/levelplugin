@@ -18,10 +18,8 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.player.*;
-import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.inventory.ItemFlag;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Transformation;
 import org.bukkit.util.Vector;
@@ -340,9 +338,7 @@ public class CursorMenuManager implements Listener {
 
         player.getInventory().setItemInMainHand(new ItemStack(Material.AIR));
         player.getInventory().setItemInOffHand(new ItemStack(Material.AIR));
-        if (config.usePumpkinOverlay()) {
-            player.getInventory().setHelmet(createMenuPumpkin());
-        }
+        player.updateInventory();
         if (player.getVehicle() != null) {
             player.leaveVehicle();
         }
@@ -367,7 +363,22 @@ public class CursorMenuManager implements Listener {
         player.setFallDistance(0.0f);
         seat.addPassenger(player);
         session.cameraSeat = seat;
-        sendCameraPacket(player, seat);
+
+        plugin.getServer().getScheduler().runTask(plugin, () -> {
+            if (player.isOnline() && session.cameraSeat != null && !session.cameraSeat.isDead()) {
+                sendCameraPacket(player, session.cameraSeat);
+            }
+        });
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            if (player.isOnline() && session.cameraSeat != null && !session.cameraSeat.isDead()) {
+                sendCameraPacket(player, session.cameraSeat);
+            }
+        }, 3L);
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            if (player.isOnline() && session.cameraSeat != null && !session.cameraSeat.isDead()) {
+                sendCameraPacket(player, session.cameraSeat);
+            }
+        }, 10L);
     }
 
     private void exitCameraMode(Player player, MenuSession session) {
@@ -404,17 +415,6 @@ public class CursorMenuManager implements Listener {
 
     private ItemStack cloneOrNull(ItemStack stack) {
         return stack == null ? null : stack.clone();
-    }
-
-    private ItemStack createMenuPumpkin() {
-        ItemStack pumpkin = new ItemStack(Material.CARVED_PUMPKIN);
-        ItemMeta meta = pumpkin.getItemMeta();
-        if (meta != null) {
-            meta.addEnchant(Enchantment.BINDING_CURSE, 1, true);
-            meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
-            pumpkin.setItemMeta(meta);
-        }
-        return pumpkin;
     }
 
     private void dispatchButtonCommand(Player player, String rawCommand) {
@@ -499,7 +499,7 @@ public class CursorMenuManager implements Listener {
             } else if (next.permission() != null && !next.permission().isBlank() && !player.hasPermission(next.permission())) {
                 ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING, ChatColor.RED + "You do not have permission for the next menu.");
             } else {
-                runMenu(player, button.nextMenuKey());
+                plugin.getServer().getScheduler().runTask(plugin, () -> runMenu(player, button.nextMenuKey()));
                 return;
             }
             }
@@ -735,6 +735,11 @@ public class CursorMenuManager implements Listener {
                 locked.setYaw(session.camera.getYaw());
                 locked.setPitch(session.camera.getPitch());
                 session.cameraSeat.teleport(locked);
+
+                session.cameraRefreshTicks++;
+                if (session.cameraRefreshTicks % 10 == 0) {
+                    sendCameraPacket(player, session.cameraSeat);
+                }
             }
             player.setFallDistance(0.0f);
             if (!player.getAllowFlight()) {
@@ -1285,6 +1290,7 @@ public class CursorMenuManager implements Listener {
         private boolean originalFlying;
         private float originalWalkSpeed;
         private float originalFlySpeed;
+        private int cameraRefreshTicks;
 
         private MenuSession(String menuKey, Location returnLocation, GameMode originalGameMode, Location camera) {
             this.menuKey = menuKey;
