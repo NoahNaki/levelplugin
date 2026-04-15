@@ -837,7 +837,7 @@ public class PetSummonManager implements Listener {
             }
             Vector forward = direction.normalize();
             Vector up = new Vector(0, 1, 0);
-            Vector right = forward.clone().crossProduct(up).normalize();
+            Vector right = up.clone().crossProduct(forward).normalize();
             if (right.lengthSquared() < 0.001) {
                 right = new Vector(1, 0, 0);
             }
