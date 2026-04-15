@@ -136,7 +136,7 @@ public final class StrongholdDebugGenerator {
     private static final int DETACHED_ASSET_SEARCH_RADIUS_PADDING = 16;
     private static final int DETACHED_ASSET_MIN_RING_DISTANCE = 6;
     private static final int DETACHED_ASSET_MAX_RING_DISTANCE = 48;
-    private static final int DETACHED_ASSET_MIN_SPACING = 6;
+    private static final int DETACHED_ASSET_MIN_SPACING = 2;
     private static final int DETACHED_ASSET_MAX_ATTEMPTS = 3000;
     private static final int TARGET_GATE_TEMPLATES = 2;
     private static final Map<String, Integer> REQUIRED_TEMPLATE_COUNTS = Map.of(
@@ -683,7 +683,9 @@ public final class StrongholdDebugGenerator {
 
             int y = safeSurfaceY(world, x, z, fallbackY);
             int templateLowestY = Math.min(0, template.lowestRelativeY());
-            BlockVector3 origin = BlockVector3.at(x, y - templateLowestY, z);
+            int originX = x - template.centerOffsetX();
+            int originZ = z - template.centerOffsetZ();
+            BlockVector3 origin = BlockVector3.at(originX, y - templateLowestY, originZ);
             if (!isOverlapWithinThreshold(occupied, template.blocks(), origin, DETACHED_ASSET_OVERLAP_PERCENT)) {
                 continue;
             }
@@ -747,12 +749,16 @@ public final class StrongholdDebugGenerator {
         }
         double cx = origin.getBlockX();
         double cz = origin.getBlockZ();
+        cx += candidate.centerOffsetX();
+        cz += candidate.centerOffsetZ();
         for (AssetPlacement existing : placedAssets) {
             if (existing == null || existing.origin() == null || existing.template() == null) {
                 continue;
             }
             double ex = existing.origin().getBlockX();
             double ez = existing.origin().getBlockZ();
+            ex += existing.template().centerOffsetX();
+            ez += existing.template().centerOffsetZ();
             double dx = cx - ex;
             double dz = cz - ez;
             double distance = Math.sqrt((dx * dx) + (dz * dz));
@@ -3208,7 +3214,9 @@ public final class StrongholdDebugGenerator {
                     spec.type(),
                     captured.blocks(),
                     radiusForBlocks(captured.blocks()),
-                    lowestRelativeY(captured.blocks())
+                    lowestRelativeY(captured.blocks()),
+                    centerOffsetX(captured.blocks()),
+                    centerOffsetZ(captured.blocks())
             );
             grouped.computeIfAbsent(spec.type(), ignored -> new ArrayList<>()).add(detached);
         }
@@ -3221,14 +3229,13 @@ public final class StrongholdDebugGenerator {
     }
 
     private static int radiusForBlocks(Map<BlockVector3, BlockData> blocks) {
-        int max = 1;
-        if (blocks == null || blocks.isEmpty()) {
-            return max;
+        Bounds2D bounds = relativeBoundsForBlocks(blocks);
+        if (bounds == null) {
+            return 1;
         }
-        for (BlockVector3 rel : blocks.keySet()) {
-            max = Math.max(max, Math.max(Math.abs(rel.getBlockX()), Math.abs(rel.getBlockZ())));
-        }
-        return max;
+        int width = Math.max(1, (bounds.maxX - bounds.minX) + 1);
+        int length = Math.max(1, (bounds.maxZ - bounds.minZ) + 1);
+        return Math.max(1, (int) Math.ceil(Math.max(width, length) / 2.0D));
     }
 
     private static int lowestRelativeY(Map<BlockVector3, BlockData> blocks) {
@@ -3240,6 +3247,39 @@ public final class StrongholdDebugGenerator {
             min = Math.min(min, rel.getBlockY());
         }
         return min == Integer.MAX_VALUE ? 0 : min;
+    }
+
+    private static int centerOffsetX(Map<BlockVector3, BlockData> blocks) {
+        Bounds2D bounds = relativeBoundsForBlocks(blocks);
+        if (bounds == null) {
+            return 0;
+        }
+        return (bounds.minX + bounds.maxX) / 2;
+    }
+
+    private static int centerOffsetZ(Map<BlockVector3, BlockData> blocks) {
+        Bounds2D bounds = relativeBoundsForBlocks(blocks);
+        if (bounds == null) {
+            return 0;
+        }
+        return (bounds.minZ + bounds.maxZ) / 2;
+    }
+
+    private static Bounds2D relativeBoundsForBlocks(Map<BlockVector3, BlockData> blocks) {
+        if (blocks == null || blocks.isEmpty()) {
+            return null;
+        }
+        int minX = Integer.MAX_VALUE;
+        int maxX = Integer.MIN_VALUE;
+        int minZ = Integer.MAX_VALUE;
+        int maxZ = Integer.MIN_VALUE;
+        for (BlockVector3 rel : blocks.keySet()) {
+            minX = Math.min(minX, rel.getBlockX());
+            maxX = Math.max(maxX, rel.getBlockX());
+            minZ = Math.min(minZ, rel.getBlockZ());
+            maxZ = Math.max(maxZ, rel.getBlockZ());
+        }
+        return new Bounds2D(minX, maxX, minZ, maxZ);
     }
 
     private static Map<String, TemplateConnectionInfo> buildTemplateConnectionInfo(CapturedTemplates captured) {
@@ -3528,7 +3568,7 @@ public final class StrongholdDebugGenerator {
     }
 
     public record AssetScatterConfig(int totalCount, int treePercent, int ruinPercent, int rockPercent) {
-        private static final int DEFAULT_TOTAL_COUNT = 15;
+        private static final int DEFAULT_TOTAL_COUNT = 250;
         private static final int DEFAULT_TREE_PERCENT = 70;
         private static final int DEFAULT_RUIN_PERCENT = 10;
         private static final int DEFAULT_ROCK_PERCENT = 20;
@@ -3651,7 +3691,9 @@ public final class StrongholdDebugGenerator {
                                          AssetType type,
                                          Map<BlockVector3, BlockData> blocks,
                                          int radiusBlocks,
-                                         int lowestRelativeY) {
+                                         int lowestRelativeY,
+                                         int centerOffsetX,
+                                         int centerOffsetZ) {
     }
 
     private static final class PlacedTemplate {
