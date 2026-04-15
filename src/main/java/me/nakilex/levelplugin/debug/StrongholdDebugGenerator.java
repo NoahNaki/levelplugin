@@ -79,26 +79,6 @@ public final class StrongholdDebugGenerator {
 
     private static final TemplateSpec CONNECTOR_SPEC =
             new TemplateSpec("connector_1", new TemplateBounds(412, -61, -5711, 402, -38, -5701), PieceCategory.CONNECTOR, 1);
-    private static final List<DetachedAssetTemplateSpec> DETACHED_ASSET_TEMPLATE_SPECS = List.of(
-            // Trees (provided coordinates)
-            new DetachedAssetTemplateSpec("tree_1", AssetType.TREE, new TemplateBounds(210, -61, -6337, 200, -38, -6347)),
-            new DetachedAssetTemplateSpec("tree_2", AssetType.TREE, new TemplateBounds(210, -61, -6347, 195, -23, -6362)),
-            new DetachedAssetTemplateSpec("tree_3", AssetType.TREE, new TemplateBounds(210, -61, -6362, 191, -4, -6383)),
-            // Rocks (provided coordinates)
-            new DetachedAssetTemplateSpec("rock_1", AssetType.ROCK, new TemplateBounds(210, -61, -6390, 219, -30, -6381)),
-            new DetachedAssetTemplateSpec("rock_2", AssetType.ROCK, new TemplateBounds(210, -61, -6381, 219, -30, -6372)),
-            new DetachedAssetTemplateSpec("rock_3", AssetType.ROCK, new TemplateBounds(210, -61, -6372, 219, -30, -6364)),
-            new DetachedAssetTemplateSpec("rock_4", AssetType.ROCK, new TemplateBounds(210, -61, -6364, 219, -30, -6355)),
-            new DetachedAssetTemplateSpec("rock_5", AssetType.ROCK, new TemplateBounds(210, -61, -6355, 219, -30, -6346)),
-            new DetachedAssetTemplateSpec("rock_6", AssetType.ROCK, new TemplateBounds(210, -61, -6346, 219, -30, -6337)),
-            // Ruins (placeholder capture coordinates, can be replaced later)
-            new DetachedAssetTemplateSpec("ruin_1", AssetType.RUIN, new TemplateBounds(188, -61, -6390, 197, -30, -6381)),
-            new DetachedAssetTemplateSpec("ruin_2", AssetType.RUIN, new TemplateBounds(188, -61, -6381, 197, -30, -6372)),
-            new DetachedAssetTemplateSpec("ruin_3", AssetType.RUIN, new TemplateBounds(188, -61, -6372, 197, -30, -6364)),
-            new DetachedAssetTemplateSpec("ruin_4", AssetType.RUIN, new TemplateBounds(188, -61, -6364, 197, -30, -6355)),
-            new DetachedAssetTemplateSpec("ruin_5", AssetType.RUIN, new TemplateBounds(188, -61, -6355, 197, -30, -6346)),
-            new DetachedAssetTemplateSpec("ruin_6", AssetType.RUIN, new TemplateBounds(188, -61, -6346, 197, -30, -6337))
-    );
 
     private static final String SOURCE_WORLD = "flatland";
     private static final String GENERATED_WORLD_PREFIX = "stronghold_debug_";
@@ -135,8 +115,6 @@ public final class StrongholdDebugGenerator {
     private static final double DETACHED_ASSET_OVERLAP_PERCENT = 5.0D;
     private static final int DETACHED_ASSET_SEARCH_RADIUS_PADDING = 16;
     private static final int DETACHED_ASSET_MIN_RING_DISTANCE = 6;
-    private static final int DETACHED_ASSET_MAX_RING_DISTANCE = 48;
-    private static final int DETACHED_ASSET_MIN_SPACING = 2;
     private static final int DETACHED_ASSET_MAX_ATTEMPTS = 3000;
     private static final int TARGET_GATE_TEMPLATES = 2;
     private static final Map<String, Integer> REQUIRED_TEMPLATE_COUNTS = Map.of(
@@ -153,7 +131,6 @@ public final class StrongholdDebugGenerator {
     private static final Map<String, BlockData[]> BLOCK_DATA_ROTATION_CACHE = new HashMap<>();
     private static final Map<String, com.sk89q.worldedit.world.block.BlockState> WORLD_EDIT_BLOCK_STATE_CACHE = new HashMap<>();
     private static CapturedTemplates cachedCapturedTemplates;
-    private static Map<AssetType, List<DetachedAssetTemplate>> cachedDetachedAssetTemplates;
     private static Map<String, TemplateConnectionInfo> cachedTemplateConnectionInfo;
     private static String lastTemplateCaptureFailure;
     private static final List<UsageRule> USAGE_RULES = List.of(
@@ -381,7 +358,7 @@ public final class StrongholdDebugGenerator {
         int finalChurchCount = countPlacedTemplatesMatching(placed, matcherForTemplateId("church"));
 
         pastePlacedTemplates(world, placed);
-        AssetPlacementSummary assetSummary = placeDetachedAssets(sourceWorld, world, placed, occupied, random, originY);
+        AssetPlacementSummary assetSummary = placeDetachedAssets(world, placed, occupied, random, originY);
         int requiredRawCopies = 0;
         if (ENABLE_DISCONNECTED_FALLBACKS) {
             for (Map.Entry<String, Integer> requiredTemplate : REQUIRED_TEMPLATE_COUNTS.entrySet()) {
@@ -538,17 +515,12 @@ public final class StrongholdDebugGenerator {
         return true;
     }
 
-    private static AssetPlacementSummary placeDetachedAssets(World sourceWorld,
-                                                             World world,
+    private static AssetPlacementSummary placeDetachedAssets(World world,
                                                              List<PlacedTemplate> placedTemplates,
                                                              Set<Long> occupied,
                                                              Random random,
                                                              int fallbackY) {
-        if (sourceWorld == null || world == null || placedTemplates == null || placedTemplates.isEmpty() || occupied == null) {
-            return AssetPlacementSummary.empty();
-        }
-        Map<AssetType, List<DetachedAssetTemplate>> templatesByType = loadDetachedAssetTemplates(sourceWorld);
-        if (templatesByType.isEmpty()) {
+        if (world == null || placedTemplates == null || placedTemplates.isEmpty() || occupied == null) {
             return AssetPlacementSummary.empty();
         }
         AssetScatterConfig config = assetScatterConfig == null ? AssetScatterConfig.defaults() : assetScatterConfig;
@@ -563,46 +535,34 @@ public final class StrongholdDebugGenerator {
             return AssetPlacementSummary.empty();
         }
 
-        List<AssetType> requestOrder = new ArrayList<>(totalRequested);
-        addAssetRequests(requestOrder, AssetType.TREE, counts.trees());
-        addAssetRequests(requestOrder, AssetType.ROCK, counts.rocks());
-        addAssetRequests(requestOrder, AssetType.RUIN, counts.ruins());
+        List<AssetTemplateSpec> requestOrder = new ArrayList<>(totalRequested);
+        addAssetRequests(requestOrder, AssetTemplateSpec.tree(), counts.trees());
+        addAssetRequests(requestOrder, AssetTemplateSpec.rock(), counts.rocks());
+        addAssetRequests(requestOrder, AssetTemplateSpec.ruin(), counts.ruins());
         Collections.shuffle(requestOrder, random);
 
         int treesPlaced = 0;
         int rocksPlaced = 0;
         int ruinsPlaced = 0;
         List<String> preview = new ArrayList<>();
-        List<AssetPlacement> placedAssets = new ArrayList<>();
 
-        for (AssetType assetType : requestOrder) {
-            List<DetachedAssetTemplate> pool = templatesByType.getOrDefault(assetType, List.of());
-            AssetPlacement placement = findDetachedAssetPlacement(
-                    assetType,
-                    pool,
-                    world,
-                    occupied,
-                    placedAssets,
-                    random,
-                    footprint,
-                    fallbackY
-            );
+        for (AssetTemplateSpec spec : requestOrder) {
+            AssetPlacement placement = findDetachedAssetPlacement(spec, world, occupied, random, footprint, fallbackY);
             if (placement == null) {
                 continue;
             }
-            pasteDetachedAsset(world, placement);
+            stampPlaceholderAsset(world, placement);
             occupy(occupied, placement.origin(), placement.blocks());
-            placedAssets.add(placement);
 
-            if (assetType == AssetType.TREE) {
+            if (spec.type() == AssetType.TREE) {
                 treesPlaced++;
-            } else if (assetType == AssetType.ROCK) {
+            } else if (spec.type() == AssetType.ROCK) {
                 rocksPlaced++;
-            } else if (assetType == AssetType.RUIN) {
+            } else if (spec.type() == AssetType.RUIN) {
                 ruinsPlaced++;
             }
             if (preview.size() < 10) {
-                preview.add(assetType.name().toLowerCase(java.util.Locale.ROOT)
+                preview.add(spec.type().name().toLowerCase(java.util.Locale.ROOT)
                         + "@(" + placement.origin().getBlockX()
                         + "," + placement.origin().getBlockY()
                         + "," + placement.origin().getBlockZ() + ")");
@@ -620,9 +580,9 @@ public final class StrongholdDebugGenerator {
         );
     }
 
-    private static void addAssetRequests(List<AssetType> requests, AssetType type, int count) {
+    private static void addAssetRequests(List<AssetTemplateSpec> requests, AssetTemplateSpec spec, int count) {
         for (int i = 0; i < Math.max(0, count); i++) {
-            requests.add(type);
+            requests.add(spec);
         }
     }
 
@@ -652,47 +612,30 @@ public final class StrongholdDebugGenerator {
         return new Bounds2D(minX, maxX, minZ, maxZ);
     }
 
-    private static AssetPlacement findDetachedAssetPlacement(AssetType type,
-                                                             List<DetachedAssetTemplate> candidates,
+    private static AssetPlacement findDetachedAssetPlacement(AssetTemplateSpec spec,
                                                              World world,
                                                              Set<Long> occupied,
-                                                             List<AssetPlacement> placedAssets,
                                                              Random random,
                                                              Bounds2D strongholdFootprint,
                                                              int fallbackY) {
-        if (candidates == null || candidates.isEmpty()) {
-            return null;
-        }
-        int maxRadius = candidates.stream().mapToInt(DetachedAssetTemplate::radiusBlocks).max().orElse(1);
-        int minRingDistance = DETACHED_ASSET_MIN_RING_DISTANCE + Math.max(1, maxRadius);
-        int maxRingDistance = Math.max(
-                minRingDistance + 2,
-                DETACHED_ASSET_MAX_RING_DISTANCE + DETACHED_ASSET_SEARCH_RADIUS_PADDING + maxRadius
-        );
-        Point2D center = centerOf(strongholdFootprint);
+        int searchPadding = DETACHED_ASSET_SEARCH_RADIUS_PADDING + Math.max(spec.radiusBlocks(), 0);
+        int minX = strongholdFootprint.minX - searchPadding;
+        int maxX = strongholdFootprint.maxX + searchPadding;
+        int minZ = strongholdFootprint.minZ - searchPadding;
+        int maxZ = strongholdFootprint.maxZ + searchPadding;
         for (int attempt = 0; attempt < DETACHED_ASSET_MAX_ATTEMPTS; attempt++) {
-            DetachedAssetTemplate template = candidates.get(random.nextInt(candidates.size()));
-            BlockVector3 sample = samplePointAroundStronghold(center, random, minRingDistance, maxRingDistance);
-            int x = sample.getBlockX();
-            int z = sample.getBlockZ();
-            if (!isWithinFootprintRingDistance(x, z, strongholdFootprint,
-                    template.radiusBlocks() + DETACHED_ASSET_MIN_RING_DISTANCE,
-                    maxRingDistance)) {
+            int x = minX + random.nextInt(Math.max(1, (maxX - minX) + 1));
+            int z = minZ + random.nextInt(Math.max(1, (maxZ - minZ) + 1));
+            if (!isOutsideFootprintRing(x, z, strongholdFootprint, spec.radiusBlocks() + DETACHED_ASSET_MIN_RING_DISTANCE)) {
                 continue;
             }
 
             int y = safeSurfaceY(world, x, z, fallbackY);
-            int templateLowestY = Math.min(0, template.lowestRelativeY());
-            int originX = x - template.centerOffsetX();
-            int originZ = z - template.centerOffsetZ();
-            BlockVector3 origin = BlockVector3.at(originX, y - templateLowestY, originZ);
-            if (!isOverlapWithinThreshold(occupied, template.blocks(), origin, DETACHED_ASSET_OVERLAP_PERCENT)) {
+            BlockVector3 origin = BlockVector3.at(x, y, z);
+            if (!isOverlapWithinThreshold(occupied, spec.blocks(), origin, DETACHED_ASSET_OVERLAP_PERCENT)) {
                 continue;
             }
-            if (!hasDetachedAssetSpacing(origin, template, placedAssets, DETACHED_ASSET_MIN_SPACING)) {
-                continue;
-            }
-            return new AssetPlacement(type, template, origin);
+            return new AssetPlacement(spec, origin);
         }
         return null;
     }
@@ -702,17 +645,12 @@ public final class StrongholdDebugGenerator {
         if (highest <= world.getMinHeight()) {
             return fallbackY;
         }
-        return highest;
+        return highest + 1;
     }
 
-    private static boolean isWithinFootprintRingDistance(int x, int z, Bounds2D bounds, int minDistance, int maxDistance) {
-        int distance = ringDistanceFromBounds(x, z, bounds);
-        return distance >= Math.max(1, minDistance) && distance <= Math.max(minDistance, maxDistance);
-    }
-
-    private static int ringDistanceFromBounds(int x, int z, Bounds2D bounds) {
+    private static boolean isOutsideFootprintRing(int x, int z, Bounds2D bounds, int minDistance) {
         if (bounds == null) {
-            return Integer.MAX_VALUE;
+            return true;
         }
         int dx = 0;
         if (x < bounds.minX) {
@@ -726,57 +664,16 @@ public final class StrongholdDebugGenerator {
         } else if (z > bounds.maxZ) {
             dz = z - bounds.maxZ;
         }
-        return Math.max(dx, dz);
+        return Math.max(dx, dz) >= Math.max(1, minDistance);
     }
 
-    private static BlockVector3 samplePointAroundStronghold(Point2D center,
-                                                            Random random,
-                                                            int minDistance,
-                                                            int maxDistance) {
-        int radius = minDistance + random.nextInt(Math.max(1, (maxDistance - minDistance) + 1));
-        double angle = random.nextDouble() * (Math.PI * 2.0D);
-        int x = (int) Math.round(center.x + (Math.cos(angle) * radius));
-        int z = (int) Math.round(center.z + (Math.sin(angle) * radius));
-        return BlockVector3.at(x, 0, z);
-    }
-
-    private static boolean hasDetachedAssetSpacing(BlockVector3 origin,
-                                                   DetachedAssetTemplate candidate,
-                                                   List<AssetPlacement> placedAssets,
-                                                   int extraSpacing) {
-        if (origin == null || candidate == null || placedAssets == null || placedAssets.isEmpty()) {
-            return true;
-        }
-        double cx = origin.getBlockX();
-        double cz = origin.getBlockZ();
-        cx += candidate.centerOffsetX();
-        cz += candidate.centerOffsetZ();
-        for (AssetPlacement existing : placedAssets) {
-            if (existing == null || existing.origin() == null || existing.template() == null) {
-                continue;
-            }
-            double ex = existing.origin().getBlockX();
-            double ez = existing.origin().getBlockZ();
-            ex += existing.template().centerOffsetX();
-            ez += existing.template().centerOffsetZ();
-            double dx = cx - ex;
-            double dz = cz - ez;
-            double distance = Math.sqrt((dx * dx) + (dz * dz));
-            int required = Math.max(1, candidate.radiusBlocks() + existing.template().radiusBlocks() + Math.max(0, extraSpacing));
-            if (distance < required) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    private static void pasteDetachedAsset(World world, AssetPlacement placement) {
-        if (placement == null || placement.template() == null) {
+    private static void stampPlaceholderAsset(World world, AssetPlacement placement) {
+        if (placement == null || placement.spec() == null) {
             return;
         }
-        DetachedAssetTemplate template = placement.template();
+        AssetTemplateSpec spec = placement.spec();
         BlockVector3 origin = placement.origin();
-        for (Map.Entry<BlockVector3, BlockData> entry : template.blocks().entrySet()) {
+        for (Map.Entry<BlockVector3, BlockData> entry : spec.blocks().entrySet()) {
             BlockVector3 rel = entry.getKey();
             BlockData blockData = entry.getValue();
             int x = origin.getBlockX() + rel.getBlockX();
@@ -3163,7 +3060,6 @@ public final class StrongholdDebugGenerator {
         ROTATION_CACHE.clear();
         BLOCK_DATA_ROTATION_CACHE.clear();
         WORLD_EDIT_BLOCK_STATE_CACHE.clear();
-        cachedDetachedAssetTemplates = null;
     }
 
     private static CapturedTemplates loadCapturedTemplates(boolean forceRefresh) {
@@ -3189,97 +3085,6 @@ public final class StrongholdDebugGenerator {
         cachedCapturedTemplates = captured;
         cachedTemplateConnectionInfo = Collections.unmodifiableMap(buildTemplateConnectionInfo(captured));
         return captured;
-    }
-
-    private static Map<AssetType, List<DetachedAssetTemplate>> loadDetachedAssetTemplates(World sourceWorld) {
-        if (cachedDetachedAssetTemplates != null) {
-            return cachedDetachedAssetTemplates;
-        }
-        if (sourceWorld == null) {
-            return Map.of();
-        }
-        loadSourceChunks(sourceWorld);
-        Map<AssetType, List<DetachedAssetTemplate>> grouped = new EnumMap<>(AssetType.class);
-        for (DetachedAssetTemplateSpec spec : DETACHED_ASSET_TEMPLATE_SPECS) {
-            if (spec == null) {
-                continue;
-            }
-            loadChunksForBounds(sourceWorld, spec.bounds());
-            Template captured = captureTemplate(sourceWorld, spec.bounds());
-            if (captured == null || captured.blocks() == null || captured.blocks().isEmpty()) {
-                continue;
-            }
-            DetachedAssetTemplate detached = new DetachedAssetTemplate(
-                    spec.id(),
-                    spec.type(),
-                    captured.blocks(),
-                    radiusForBlocks(captured.blocks()),
-                    lowestRelativeY(captured.blocks()),
-                    centerOffsetX(captured.blocks()),
-                    centerOffsetZ(captured.blocks())
-            );
-            grouped.computeIfAbsent(spec.type(), ignored -> new ArrayList<>()).add(detached);
-        }
-        Map<AssetType, List<DetachedAssetTemplate>> immutable = new EnumMap<>(AssetType.class);
-        for (Map.Entry<AssetType, List<DetachedAssetTemplate>> entry : grouped.entrySet()) {
-            immutable.put(entry.getKey(), List.copyOf(entry.getValue()));
-        }
-        cachedDetachedAssetTemplates = Collections.unmodifiableMap(immutable);
-        return cachedDetachedAssetTemplates;
-    }
-
-    private static int radiusForBlocks(Map<BlockVector3, BlockData> blocks) {
-        Bounds2D bounds = relativeBoundsForBlocks(blocks);
-        if (bounds == null) {
-            return 1;
-        }
-        int width = Math.max(1, (bounds.maxX - bounds.minX) + 1);
-        int length = Math.max(1, (bounds.maxZ - bounds.minZ) + 1);
-        return Math.max(1, (int) Math.ceil(Math.max(width, length) / 2.0D));
-    }
-
-    private static int lowestRelativeY(Map<BlockVector3, BlockData> blocks) {
-        if (blocks == null || blocks.isEmpty()) {
-            return 0;
-        }
-        int min = Integer.MAX_VALUE;
-        for (BlockVector3 rel : blocks.keySet()) {
-            min = Math.min(min, rel.getBlockY());
-        }
-        return min == Integer.MAX_VALUE ? 0 : min;
-    }
-
-    private static int centerOffsetX(Map<BlockVector3, BlockData> blocks) {
-        Bounds2D bounds = relativeBoundsForBlocks(blocks);
-        if (bounds == null) {
-            return 0;
-        }
-        return (bounds.minX + bounds.maxX) / 2;
-    }
-
-    private static int centerOffsetZ(Map<BlockVector3, BlockData> blocks) {
-        Bounds2D bounds = relativeBoundsForBlocks(blocks);
-        if (bounds == null) {
-            return 0;
-        }
-        return (bounds.minZ + bounds.maxZ) / 2;
-    }
-
-    private static Bounds2D relativeBoundsForBlocks(Map<BlockVector3, BlockData> blocks) {
-        if (blocks == null || blocks.isEmpty()) {
-            return null;
-        }
-        int minX = Integer.MAX_VALUE;
-        int maxX = Integer.MIN_VALUE;
-        int minZ = Integer.MAX_VALUE;
-        int maxZ = Integer.MIN_VALUE;
-        for (BlockVector3 rel : blocks.keySet()) {
-            minX = Math.min(minX, rel.getBlockX());
-            maxX = Math.max(maxX, rel.getBlockX());
-            minZ = Math.min(minZ, rel.getBlockZ());
-            maxZ = Math.max(maxZ, rel.getBlockZ());
-        }
-        return new Bounds2D(minX, maxX, minZ, maxZ);
     }
 
     private static Map<String, TemplateConnectionInfo> buildTemplateConnectionInfo(CapturedTemplates captured) {
@@ -3678,22 +3483,59 @@ public final class StrongholdDebugGenerator {
         }
     }
 
-    private record AssetPlacement(AssetType type, DetachedAssetTemplate template, BlockVector3 origin) {
+    private record AssetPlacement(AssetTemplateSpec spec, BlockVector3 origin) {
         private Map<BlockVector3, BlockData> blocks() {
-            return template == null ? Map.of() : template.blocks();
+            return spec == null ? Map.of() : spec.blocks();
         }
     }
 
-    private record DetachedAssetTemplateSpec(String id, AssetType type, TemplateBounds bounds) {
-    }
+    private record AssetTemplateSpec(AssetType type,
+                                     Map<BlockVector3, BlockData> blocks,
+                                     int radiusBlocks) {
+        private static AssetTemplateSpec tree() {
+            Map<BlockVector3, BlockData> blocks = new HashMap<>();
+            BlockData trunk = Material.OAK_LOG.createBlockData();
+            BlockData leaf = Material.OAK_LEAVES.createBlockData();
+            for (int y = 0; y <= 3; y++) {
+                blocks.put(BlockVector3.at(0, y, 0), trunk);
+            }
+            blocks.put(BlockVector3.at(0, 4, 0), leaf);
+            blocks.put(BlockVector3.at(1, 3, 0), leaf);
+            blocks.put(BlockVector3.at(-1, 3, 0), leaf);
+            blocks.put(BlockVector3.at(0, 3, 1), leaf);
+            blocks.put(BlockVector3.at(0, 3, -1), leaf);
+            blocks.put(BlockVector3.at(1, 4, 0), leaf);
+            blocks.put(BlockVector3.at(-1, 4, 0), leaf);
+            blocks.put(BlockVector3.at(0, 4, 1), leaf);
+            blocks.put(BlockVector3.at(0, 4, -1), leaf);
+            return new AssetTemplateSpec(AssetType.TREE, Collections.unmodifiableMap(blocks), 2);
+        }
 
-    private record DetachedAssetTemplate(String id,
-                                         AssetType type,
-                                         Map<BlockVector3, BlockData> blocks,
-                                         int radiusBlocks,
-                                         int lowestRelativeY,
-                                         int centerOffsetX,
-                                         int centerOffsetZ) {
+        private static AssetTemplateSpec rock() {
+            Map<BlockVector3, BlockData> blocks = new HashMap<>();
+            BlockData stone = Material.COBBLESTONE.createBlockData();
+            blocks.put(BlockVector3.at(0, 0, 0), stone);
+            blocks.put(BlockVector3.at(1, 0, 0), stone);
+            blocks.put(BlockVector3.at(-1, 0, 0), stone);
+            blocks.put(BlockVector3.at(0, 0, 1), stone);
+            blocks.put(BlockVector3.at(0, 0, -1), stone);
+            blocks.put(BlockVector3.at(0, 1, 0), stone);
+            return new AssetTemplateSpec(AssetType.ROCK, Collections.unmodifiableMap(blocks), 1);
+        }
+
+        private static AssetTemplateSpec ruin() {
+            Map<BlockVector3, BlockData> blocks = new HashMap<>();
+            BlockData brick = Material.MOSSY_STONE_BRICKS.createBlockData();
+            for (int x = -1; x <= 1; x++) {
+                blocks.put(BlockVector3.at(x, 0, 0), brick);
+                blocks.put(BlockVector3.at(x, 1, 0), brick);
+            }
+            blocks.put(BlockVector3.at(-1, 2, 0), brick);
+            blocks.put(BlockVector3.at(1, 2, 0), brick);
+            blocks.put(BlockVector3.at(0, 0, 1), brick);
+            blocks.put(BlockVector3.at(0, 0, -1), brick);
+            return new AssetTemplateSpec(AssetType.RUIN, Collections.unmodifiableMap(blocks), 2);
+        }
     }
 
     private static final class PlacedTemplate {
