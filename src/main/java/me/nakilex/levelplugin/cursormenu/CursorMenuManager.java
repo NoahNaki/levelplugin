@@ -229,6 +229,20 @@ public class CursorMenuManager implements Listener {
     }
 
     @EventHandler
+    public void onInteractEntity(PlayerInteractEntityEvent event) {
+        if (activeSessions.containsKey(event.getPlayer().getUniqueId())) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler
+    public void onInteractAtEntity(PlayerInteractAtEntityEvent event) {
+        if (activeSessions.containsKey(event.getPlayer().getUniqueId())) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler
     public void onItemHeld(PlayerItemHeldEvent event) {
         if (activeSessions.containsKey(event.getPlayer().getUniqueId())) {
             event.setCancelled(true);
@@ -767,6 +781,9 @@ public class CursorMenuManager implements Listener {
                 if (button.display == null || button.display.isDead()) continue;
                 button.display.setGlowing(button == hovered);
             }
+            for (SpawnedActor actor : session.actors) {
+                actor.syncLocation(resolveActorLocation(section, actor.definition));
+            }
         }
     }
 
@@ -914,6 +931,9 @@ public class CursorMenuManager implements Listener {
         }
 
         Entity entity = npc.getEntity();
+        entity.setGravity(false);
+        entity.setInvulnerable(true);
+        entity.setSilent(true);
         if (entity instanceof LivingEntity living) {
             living.setAI(false);
             living.setInvulnerable(true);
@@ -922,7 +942,7 @@ public class CursorMenuManager implements Listener {
             living.setGravity(false);
         }
         entity.setPersistent(false);
-        return new SpawnedActor(npc);
+        return new SpawnedActor(actor, npc);
     }
 
     private Location resolveActorLocation(MenuSection section, MenuActor actor) {
@@ -1423,10 +1443,24 @@ public class CursorMenuManager implements Listener {
     }
 
     private static final class SpawnedActor {
+        private final MenuActor definition;
         private final NPC npc;
 
-        private SpawnedActor(NPC npc) {
+        private SpawnedActor(MenuActor definition, NPC npc) {
+            this.definition = definition;
             this.npc = npc;
+        }
+
+        private void syncLocation(Location location) {
+            if (npc == null || location == null || !npc.isSpawned()) {
+                return;
+            }
+            Entity entity = npc.getEntity();
+            if (entity == null || entity.isDead()) {
+                return;
+            }
+            entity.teleport(location);
+            entity.setGravity(false);
         }
 
         private void destroy() {
