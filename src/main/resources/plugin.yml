@@ -410,6 +410,10 @@ commands:
   roll:
     description: Roll a number between 1 and 100
     usage: /roll
+  cursormenu:
+    description: Manage the 3D cursor menu and item previews
+    usage: /cursormenu <run|stop|items|itemsstop|reload>
+    aliases: [cmenu]
   dpsdummy:
     description: Manage DPS training dummies
     usage: /dpsdummy <spawn|select|despawn|list>

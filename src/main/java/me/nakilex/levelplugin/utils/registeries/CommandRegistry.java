@@ -80,6 +80,7 @@ import me.nakilex.levelplugin.friend.FriendGUI;
 import me.nakilex.levelplugin.friend.FriendsCommand;
 import me.nakilex.levelplugin.codex.CodexMainGUI;
 import me.nakilex.levelplugin.codex.CodexCommand;
+import me.nakilex.levelplugin.cursormenu.CursorMenuCommand;
 import me.nakilex.levelplugin.npc.wandering.WanderingMerchantCommand;
 import me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager;
 import me.nakilex.levelplugin.music.commands.SkipSongCommand;
@@ -443,6 +444,12 @@ public class CommandRegistry {
         plugin.getCommand("emotes").setTabCompleter(emotesCommand);
 
         plugin.getCommand("roll").setExecutor(new RollCommand());
+
+        if (plugin.getCursorMenuManager() != null) {
+            CursorMenuCommand cursorMenuCommand = new CursorMenuCommand(plugin.getCursorMenuManager());
+            plugin.getCommand("cursormenu").setExecutor(cursorMenuCommand);
+            plugin.getCommand("cursormenu").setTabCompleter(cursorMenuCommand);
+        }
 
         if (serverSelectionManager != null) {
             ConnectCommand connectCommand = new ConnectCommand(serverSelectionManager);

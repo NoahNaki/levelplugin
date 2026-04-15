@@ -1,0 +1,16 @@
+cursor:
+  material: NETHER_STAR
+  scale: 0.35
+  offset-x: 0.0
+  offset-y: 0.0
+
+movement:
+  max-x: 2.2
+  max-y: 1.2
+  max-yaw: 45.0
+  max-pitch: 30.0
+
+block-glow:
+  enabled: true
+  color: AQUA
+  duration-ticks: 12
