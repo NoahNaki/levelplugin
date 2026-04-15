@@ -112,6 +112,10 @@ public final class StrongholdDebugGenerator {
     private static final boolean USE_FRONTIER_SCHEDULER = false;
     private static final boolean ENABLE_EXPENSIVE_DIAGNOSTICS = false;
     private static final boolean ENABLE_DISCONNECTED_FALLBACKS = false;
+    private static final double DETACHED_ASSET_OVERLAP_PERCENT = 5.0D;
+    private static final int DETACHED_ASSET_SEARCH_RADIUS_PADDING = 16;
+    private static final int DETACHED_ASSET_MIN_RING_DISTANCE = 6;
+    private static final int DETACHED_ASSET_MAX_ATTEMPTS = 3000;
     private static final int TARGET_GATE_TEMPLATES = 2;
     private static final Map<String, Integer> REQUIRED_TEMPLATE_COUNTS = Map.of(
             "church", 1,
@@ -122,6 +126,7 @@ public final class StrongholdDebugGenerator {
     private static final double UNDERUSED_TEMPLATE_BONUS = 35.0D;
 
     private static double maxOverlapPercent = 2.0D;
+    private static AssetScatterConfig assetScatterConfig = AssetScatterConfig.defaults();
     private static final Map<Template, RotatedTemplate[]> ROTATION_CACHE = new IdentityHashMap<>();
     private static final Map<String, BlockData[]> BLOCK_DATA_ROTATION_CACHE = new HashMap<>();
     private static final Map<String, com.sk89q.worldedit.world.block.BlockState> WORLD_EDIT_BLOCK_STATE_CACHE = new HashMap<>();
@@ -151,6 +156,22 @@ public final class StrongholdDebugGenerator {
 
     public static void setMaxOverlapPercent(double value) {
         maxOverlapPercent = Math.max(0.0D, Math.min(100.0D, value));
+    }
+
+    public static AssetScatterConfig getAssetScatterConfig() {
+        return assetScatterConfig;
+    }
+
+    public static void setAssetScatterTotalCount(int totalCount) {
+        assetScatterConfig = assetScatterConfig.withTotalCount(totalCount);
+    }
+
+    public static void setAssetScatterDistribution(int treePercent, int ruinPercent, int rockPercent) {
+        assetScatterConfig = assetScatterConfig.withDistribution(treePercent, ruinPercent, rockPercent);
+    }
+
+    public static AssetDistributionCounts previewAssetDistribution() {
+        return (assetScatterConfig == null ? AssetScatterConfig.defaults() : assetScatterConfig).computeCounts();
     }
 
     public static Map<String, TemplateConnectionInfo> inspectTemplateConnections() {
@@ -337,6 +358,7 @@ public final class StrongholdDebugGenerator {
         int finalChurchCount = countPlacedTemplatesMatching(placed, matcherForTemplateId("church"));
 
         pastePlacedTemplates(world, placed);
+        AssetPlacementSummary assetSummary = placeDetachedAssets(world, placed, occupied, random, originY);
         int requiredRawCopies = 0;
         if (ENABLE_DISCONNECTED_FALLBACKS) {
             for (Map.Entry<String, Integer> requiredTemplate : REQUIRED_TEMPLATE_COUNTS.entrySet()) {
@@ -391,6 +413,7 @@ public final class StrongholdDebugGenerator {
                         + ", satellite link segments: " + diagnostics.satelliteLinkSegments
                         + ", rejected(wallPacing): " + diagnostics.rejectedWallPacing
                         + ", rejected(largeSpacing): " + diagnostics.rejectedLargeSpacing
+                        + ", detached assets: " + assetSummary.summary()
                         + ", placed templates: " + summarizePlacedTemplates(placed)
                         + ", template connectors(captured): " + diagnostics.templateConnectorSummary);
         return true;
@@ -490,6 +513,174 @@ public final class StrongholdDebugGenerator {
                         + ", viable next outputs: skipped"
                         + ", walls built: " + builtBranches + "/" + maxBranches);
         return true;
+    }
+
+    private static AssetPlacementSummary placeDetachedAssets(World world,
+                                                             List<PlacedTemplate> placedTemplates,
+                                                             Set<Long> occupied,
+                                                             Random random,
+                                                             int fallbackY) {
+        if (world == null || placedTemplates == null || placedTemplates.isEmpty() || occupied == null) {
+            return AssetPlacementSummary.empty();
+        }
+        AssetScatterConfig config = assetScatterConfig == null ? AssetScatterConfig.defaults() : assetScatterConfig;
+        AssetDistributionCounts counts = config.computeCounts();
+        int totalRequested = counts.totalRequested();
+        if (totalRequested <= 0) {
+            return AssetPlacementSummary.empty();
+        }
+
+        Bounds2D footprint = combinedBounds2D(placedTemplates);
+        if (footprint == null) {
+            return AssetPlacementSummary.empty();
+        }
+
+        List<AssetTemplateSpec> requestOrder = new ArrayList<>(totalRequested);
+        addAssetRequests(requestOrder, AssetTemplateSpec.tree(), counts.trees());
+        addAssetRequests(requestOrder, AssetTemplateSpec.rock(), counts.rocks());
+        addAssetRequests(requestOrder, AssetTemplateSpec.ruin(), counts.ruins());
+        Collections.shuffle(requestOrder, random);
+
+        int treesPlaced = 0;
+        int rocksPlaced = 0;
+        int ruinsPlaced = 0;
+        List<String> preview = new ArrayList<>();
+
+        for (AssetTemplateSpec spec : requestOrder) {
+            AssetPlacement placement = findDetachedAssetPlacement(spec, world, occupied, random, footprint, fallbackY);
+            if (placement == null) {
+                continue;
+            }
+            stampPlaceholderAsset(world, placement);
+            occupy(occupied, placement.origin(), placement.blocks());
+
+            if (spec.type() == AssetType.TREE) {
+                treesPlaced++;
+            } else if (spec.type() == AssetType.ROCK) {
+                rocksPlaced++;
+            } else if (spec.type() == AssetType.RUIN) {
+                ruinsPlaced++;
+            }
+            if (preview.size() < 10) {
+                preview.add(spec.type().name().toLowerCase(java.util.Locale.ROOT)
+                        + "@(" + placement.origin().getBlockX()
+                        + "," + placement.origin().getBlockY()
+                        + "," + placement.origin().getBlockZ() + ")");
+            }
+        }
+
+        return new AssetPlacementSummary(
+                counts.trees(),
+                counts.rocks(),
+                counts.ruins(),
+                treesPlaced,
+                rocksPlaced,
+                ruinsPlaced,
+                preview
+        );
+    }
+
+    private static void addAssetRequests(List<AssetTemplateSpec> requests, AssetTemplateSpec spec, int count) {
+        for (int i = 0; i < Math.max(0, count); i++) {
+            requests.add(spec);
+        }
+    }
+
+    private static Bounds2D combinedBounds2D(List<PlacedTemplate> placedTemplates) {
+        int minX = Integer.MAX_VALUE;
+        int maxX = Integer.MIN_VALUE;
+        int minZ = Integer.MAX_VALUE;
+        int maxZ = Integer.MIN_VALUE;
+        boolean found = false;
+        for (PlacedTemplate placed : placedTemplates) {
+            if (placed == null) {
+                continue;
+            }
+            Bounds2D bounds = placed.bounds2D();
+            if (bounds == null) {
+                continue;
+            }
+            minX = Math.min(minX, bounds.minX);
+            maxX = Math.max(maxX, bounds.maxX);
+            minZ = Math.min(minZ, bounds.minZ);
+            maxZ = Math.max(maxZ, bounds.maxZ);
+            found = true;
+        }
+        if (!found) {
+            return null;
+        }
+        return new Bounds2D(minX, maxX, minZ, maxZ);
+    }
+
+    private static AssetPlacement findDetachedAssetPlacement(AssetTemplateSpec spec,
+                                                             World world,
+                                                             Set<Long> occupied,
+                                                             Random random,
+                                                             Bounds2D strongholdFootprint,
+                                                             int fallbackY) {
+        int searchPadding = DETACHED_ASSET_SEARCH_RADIUS_PADDING + Math.max(spec.radiusBlocks(), 0);
+        int minX = strongholdFootprint.minX - searchPadding;
+        int maxX = strongholdFootprint.maxX + searchPadding;
+        int minZ = strongholdFootprint.minZ - searchPadding;
+        int maxZ = strongholdFootprint.maxZ + searchPadding;
+        for (int attempt = 0; attempt < DETACHED_ASSET_MAX_ATTEMPTS; attempt++) {
+            int x = minX + random.nextInt(Math.max(1, (maxX - minX) + 1));
+            int z = minZ + random.nextInt(Math.max(1, (maxZ - minZ) + 1));
+            if (!isOutsideFootprintRing(x, z, strongholdFootprint, spec.radiusBlocks() + DETACHED_ASSET_MIN_RING_DISTANCE)) {
+                continue;
+            }
+
+            int y = safeSurfaceY(world, x, z, fallbackY);
+            BlockVector3 origin = BlockVector3.at(x, y, z);
+            if (!isOverlapWithinThreshold(occupied, spec.blocks(), origin, DETACHED_ASSET_OVERLAP_PERCENT)) {
+                continue;
+            }
+            return new AssetPlacement(spec, origin);
+        }
+        return null;
+    }
+
+    private static int safeSurfaceY(World world, int x, int z, int fallbackY) {
+        int highest = world.getHighestBlockYAt(x, z);
+        if (highest <= world.getMinHeight()) {
+            return fallbackY;
+        }
+        return highest + 1;
+    }
+
+    private static boolean isOutsideFootprintRing(int x, int z, Bounds2D bounds, int minDistance) {
+        if (bounds == null) {
+            return true;
+        }
+        int dx = 0;
+        if (x < bounds.minX) {
+            dx = bounds.minX - x;
+        } else if (x > bounds.maxX) {
+            dx = x - bounds.maxX;
+        }
+        int dz = 0;
+        if (z < bounds.minZ) {
+            dz = bounds.minZ - z;
+        } else if (z > bounds.maxZ) {
+            dz = z - bounds.maxZ;
+        }
+        return Math.max(dx, dz) >= Math.max(1, minDistance);
+    }
+
+    private static void stampPlaceholderAsset(World world, AssetPlacement placement) {
+        if (placement == null || placement.spec() == null) {
+            return;
+        }
+        AssetTemplateSpec spec = placement.spec();
+        BlockVector3 origin = placement.origin();
+        for (Map.Entry<BlockVector3, BlockData> entry : spec.blocks().entrySet()) {
+            BlockVector3 rel = entry.getKey();
+            BlockData blockData = entry.getValue();
+            int x = origin.getBlockX() + rel.getBlockX();
+            int y = origin.getBlockY() + rel.getBlockY();
+            int z = origin.getBlockZ() + rel.getBlockZ();
+            world.getBlockAt(x, y, z).setBlockData(blockData, false);
+        }
     }
 
     private static TemplateSpec findTemplateById(List<TemplateSpec> specs, String id) {
@@ -2309,6 +2500,21 @@ public final class StrongholdDebugGenerator {
         }
     }
 
+    private static void occupy(Set<Long> occupied,
+                               BlockVector3 origin,
+                               Map<BlockVector3, BlockData> blocks) {
+        if (occupied == null || origin == null || blocks == null || blocks.isEmpty()) {
+            return;
+        }
+        for (BlockVector3 rel : blocks.keySet()) {
+            occupied.add(posKey(
+                    origin.getBlockX() + rel.getBlockX(),
+                    origin.getBlockY() + rel.getBlockY(),
+                    origin.getBlockZ() + rel.getBlockZ()
+            ));
+        }
+    }
+
     private static Set<Long> occupiedKeysForPlaced(PlacedTemplate placed) {
         if (placed == null || placed.spec == null || placed.spec.template == null) {
             return Set.of();
@@ -3157,6 +3363,178 @@ public final class StrongholdDebugGenerator {
     private record SatellitePlacementResult(boolean placed, int linkSegments) {
         private static SatellitePlacementResult none() {
             return new SatellitePlacementResult(false, 0);
+        }
+    }
+
+    private enum AssetType {
+        TREE,
+        ROCK,
+        RUIN
+    }
+
+    public record AssetScatterConfig(int totalCount, int treePercent, int ruinPercent, int rockPercent) {
+        private static final int DEFAULT_TOTAL_COUNT = 15;
+        private static final int DEFAULT_TREE_PERCENT = 70;
+        private static final int DEFAULT_RUIN_PERCENT = 10;
+        private static final int DEFAULT_ROCK_PERCENT = 20;
+
+        private static AssetScatterConfig defaults() {
+            return new AssetScatterConfig(
+                    DEFAULT_TOTAL_COUNT,
+                    DEFAULT_TREE_PERCENT,
+                    DEFAULT_RUIN_PERCENT,
+                    DEFAULT_ROCK_PERCENT
+            );
+        }
+
+        private AssetScatterConfig withTotalCount(int newTotal) {
+            return new AssetScatterConfig(Math.max(0, newTotal), treePercent, ruinPercent, rockPercent);
+        }
+
+        private AssetScatterConfig withDistribution(int newTreePercent, int newRuinPercent, int newRockPercent) {
+            return new AssetScatterConfig(
+                    Math.max(0, totalCount),
+                    Math.max(0, Math.min(100, newTreePercent)),
+                    Math.max(0, Math.min(100, newRuinPercent)),
+                    Math.max(0, Math.min(100, newRockPercent))
+            );
+        }
+
+        private AssetDistributionCounts computeCounts() {
+            int total = Math.max(0, totalCount);
+            if (total <= 0) {
+                return new AssetDistributionCounts(0, 0, 0);
+            }
+            int tree = Math.max(0, treePercent);
+            int ruin = Math.max(0, ruinPercent);
+            int rock = Math.max(0, rockPercent);
+            int sum = tree + ruin + rock;
+            if (sum <= 0) {
+                AssetScatterConfig defaults = defaults();
+                tree = defaults.treePercent();
+                ruin = defaults.ruinPercent();
+                rock = defaults.rockPercent();
+                sum = tree + ruin + rock;
+            }
+
+            int treeCount = (int) Math.round(total * (tree / (double) sum));
+            int ruinCount = (int) Math.round(total * (ruin / (double) sum));
+            int rockCount = (int) Math.round(total * (rock / (double) sum));
+            int used = treeCount + ruinCount + rockCount;
+            int drift = total - used;
+            if (drift != 0) {
+                int treeWeight = tree;
+                int ruinWeight = ruin;
+                int rockWeight = rock;
+                while (drift != 0) {
+                    if (drift > 0) {
+                        if (treeWeight >= ruinWeight && treeWeight >= rockWeight) {
+                            treeCount++;
+                        } else if (rockWeight >= ruinWeight) {
+                            rockCount++;
+                        } else {
+                            ruinCount++;
+                        }
+                        drift--;
+                    } else if (drift < 0) {
+                        if (treeCount > 0 && treeWeight >= ruinWeight && treeWeight >= rockWeight) {
+                            treeCount--;
+                        } else if (rockCount > 0 && rockWeight >= ruinWeight) {
+                            rockCount--;
+                        } else if (ruinCount > 0) {
+                            ruinCount--;
+                        } else if (treeCount > 0) {
+                            treeCount--;
+                        } else if (rockCount > 0) {
+                            rockCount--;
+                        }
+                        drift++;
+                    }
+                }
+            }
+            return new AssetDistributionCounts(treeCount, rockCount, ruinCount);
+        }
+    }
+
+    public record AssetDistributionCounts(int trees, int rocks, int ruins) {
+        private int totalRequested() {
+            return Math.max(0, trees) + Math.max(0, rocks) + Math.max(0, ruins);
+        }
+    }
+
+    private record AssetPlacementSummary(int requestedTrees,
+                                         int requestedRocks,
+                                         int requestedRuins,
+                                         int placedTrees,
+                                         int placedRocks,
+                                         int placedRuins,
+                                         List<String> sampleOrigins) {
+        private static AssetPlacementSummary empty() {
+            return new AssetPlacementSummary(0, 0, 0, 0, 0, 0, List.of());
+        }
+
+        private String summary() {
+            String sample = sampleOrigins == null || sampleOrigins.isEmpty()
+                    ? "none"
+                    : String.join(", ", sampleOrigins);
+            return "requested[T/Ru/Ro]=" + requestedTrees + "/" + requestedRuins + "/" + requestedRocks
+                    + ", placed[T/Ru/Ro]=" + placedTrees + "/" + placedRuins + "/" + placedRocks
+                    + ", sample=" + sample;
+        }
+    }
+
+    private record AssetPlacement(AssetTemplateSpec spec, BlockVector3 origin) {
+        private Map<BlockVector3, BlockData> blocks() {
+            return spec == null ? Map.of() : spec.blocks();
+        }
+    }
+
+    private record AssetTemplateSpec(AssetType type,
+                                     Map<BlockVector3, BlockData> blocks,
+                                     int radiusBlocks) {
+        private static AssetTemplateSpec tree() {
+            Map<BlockVector3, BlockData> blocks = new HashMap<>();
+            BlockData trunk = Material.OAK_LOG.createBlockData();
+            BlockData leaf = Material.OAK_LEAVES.createBlockData();
+            for (int y = 0; y <= 3; y++) {
+                blocks.put(BlockVector3.at(0, y, 0), trunk);
+            }
+            blocks.put(BlockVector3.at(0, 4, 0), leaf);
+            blocks.put(BlockVector3.at(1, 3, 0), leaf);
+            blocks.put(BlockVector3.at(-1, 3, 0), leaf);
+            blocks.put(BlockVector3.at(0, 3, 1), leaf);
+            blocks.put(BlockVector3.at(0, 3, -1), leaf);
+            blocks.put(BlockVector3.at(1, 4, 0), leaf);
+            blocks.put(BlockVector3.at(-1, 4, 0), leaf);
+            blocks.put(BlockVector3.at(0, 4, 1), leaf);
+            blocks.put(BlockVector3.at(0, 4, -1), leaf);
+            return new AssetTemplateSpec(AssetType.TREE, Collections.unmodifiableMap(blocks), 2);
+        }
+
+        private static AssetTemplateSpec rock() {
+            Map<BlockVector3, BlockData> blocks = new HashMap<>();
+            BlockData stone = Material.COBBLESTONE.createBlockData();
+            blocks.put(BlockVector3.at(0, 0, 0), stone);
+            blocks.put(BlockVector3.at(1, 0, 0), stone);
+            blocks.put(BlockVector3.at(-1, 0, 0), stone);
+            blocks.put(BlockVector3.at(0, 0, 1), stone);
+            blocks.put(BlockVector3.at(0, 0, -1), stone);
+            blocks.put(BlockVector3.at(0, 1, 0), stone);
+            return new AssetTemplateSpec(AssetType.ROCK, Collections.unmodifiableMap(blocks), 1);
+        }
+
+        private static AssetTemplateSpec ruin() {
+            Map<BlockVector3, BlockData> blocks = new HashMap<>();
+            BlockData brick = Material.MOSSY_STONE_BRICKS.createBlockData();
+            for (int x = -1; x <= 1; x++) {
+                blocks.put(BlockVector3.at(x, 0, 0), brick);
+                blocks.put(BlockVector3.at(x, 1, 0), brick);
+            }
+            blocks.put(BlockVector3.at(-1, 2, 0), brick);
+            blocks.put(BlockVector3.at(1, 2, 0), brick);
+            blocks.put(BlockVector3.at(0, 0, 1), brick);
+            blocks.put(BlockVector3.at(0, 0, -1), brick);
+            return new AssetTemplateSpec(AssetType.RUIN, Collections.unmodifiableMap(blocks), 2);
         }
     }
 
