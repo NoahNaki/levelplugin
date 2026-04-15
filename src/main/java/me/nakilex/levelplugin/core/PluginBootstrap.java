@@ -1,5 +1,7 @@
 package me.nakilex.levelplugin.core;
 
+import com.github.retrooper.packetevents.PacketEvents;
+import io.github.retrooper.packetevents.factory.spigot.SpigotPacketEventsBuilder;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.blacksmith.gui.BlacksmithGUI;
 import me.nakilex.levelplugin.blacksmith.managers.ItemRepairManager;
@@ -255,6 +257,7 @@ public class PluginBootstrap {
             return;
         }
 
+        initializePacketEvents();
         loadConfigFiles();
         setupCustomConfig();
         playerConfig = new PlayerConfig(plugin);
@@ -662,6 +665,26 @@ public class PluginBootstrap {
         TaskRegistry.startTasks(plugin, horseConfigManager, horseManager, wanderingMerchantManager);
     }
 
+    private void initializePacketEvents() {
+        try {
+            PacketEvents.setAPI(SpigotPacketEventsBuilder.build(plugin));
+            PacketEvents.getAPI().load();
+            PacketEvents.getAPI().init();
+        } catch (Exception ex) {
+            plugin.getLogger().warning("Failed to initialize PacketEvents: " + ex.getMessage());
+        }
+    }
+
+    private void shutdownPacketEvents() {
+        try {
+            if (PacketEvents.getAPI() != null) {
+                PacketEvents.getAPI().terminate();
+            }
+        } catch (Exception ex) {
+            plugin.getLogger().warning("Failed to terminate PacketEvents cleanly: " + ex.getMessage());
+        }
+    }
+
     /**
      * Registers PlaceholderAPI expansions if the plugin is present.
      * Provided placeholders:
@@ -778,6 +801,7 @@ public class PluginBootstrap {
             me.nakilex.levelplugin.debug.StrongholdDebugGenerator.cleanupGeneratedWorlds(plugin);
         }
         if (dealMaker != null) dealMaker.closeAllTrades();
+        shutdownPacketEvents();
         plugin.getLogger().info("LevelPlugin has been disabled!");
     }
 

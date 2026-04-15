@@ -1,5 +1,7 @@
 package me.nakilex.levelplugin.cursormenu;
 
+import com.github.retrooper.packetevents.PacketEvents;
+import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerCamera;
 import me.clip.placeholderapi.PlaceholderAPI;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.cursormenu.model.ItemPreset;
@@ -89,7 +91,7 @@ public class CursorMenuManager implements Listener {
         if (player.teleport(camera)) {
             player.setGameMode(GameMode.ADVENTURE);
         }
-        anchorPlayerToCamera(player, session, camera);
+        enterCameraMode(player, session, camera);
 
         if (config.cameraBlockCheckEnabled()) {
             clearCameraObstructions(player, camera);
@@ -115,10 +117,14 @@ public class CursorMenuManager implements Listener {
     public boolean stopMenu(Player player, boolean teleportBack) {
         MenuSession session = activeSessions.remove(player.getUniqueId());
         if (session == null) return false;
+
         stopMenuSound(player);
         restoreCameraObstructions(player);
         cleanupSession(session);
         exitCameraMode(player, session);
+
+        player.setGameMode(session.originalGameMode);
+
         if (teleportBack && session.returnLocation != null && player.isOnline()) {
             player.teleport(session.returnLocation);
         }
@@ -319,10 +325,6 @@ public class CursorMenuManager implements Listener {
         }
     }
 
-    private void anchorPlayerToCamera(Player player, MenuSession session, Location camera) {
-        enterCameraMode(player, session, camera);
-    }
-
     private void enterCameraMode(Player player, MenuSession session, Location camera) {
         session.originalHelmet = cloneOrNull(player.getInventory().getHelmet());
         session.originalMainHand = cloneOrNull(player.getInventory().getItemInMainHand());
@@ -384,7 +386,6 @@ public class CursorMenuManager implements Listener {
         player.setWalkSpeed(session.originalWalkSpeed);
         player.setFlySpeed(session.originalFlySpeed);
         player.setFallDistance(0.0f);
-        player.setGameMode(session.originalGameMode);
         player.getInventory().setHelmet(cloneOrNull(session.originalHelmet));
         player.getInventory().setItemInMainHand(cloneOrNull(session.originalMainHand));
         player.getInventory().setItemInOffHand(cloneOrNull(session.originalOffHand));
@@ -394,13 +395,10 @@ public class CursorMenuManager implements Listener {
 
     private void sendCameraPacket(Player player, Entity entity) {
         try {
-            Class<?> wrapperCls = Class.forName("com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerCamera");
-            Object packet = wrapperCls.getConstructor(int.class).newInstance(entity.getEntityId());
-            Class<?> packetEventsCls = Class.forName("com.github.retrooper.packetevents.PacketEvents");
-            Object api = packetEventsCls.getMethod("getAPI").invoke(null);
-            Object playerManager = api.getClass().getMethod("getPlayerManager").invoke(api);
-            playerManager.getClass().getMethod("sendPacket", Player.class, Object.class).invoke(playerManager, player, packet);
-        } catch (Exception ignored) {
+            WrapperPlayServerCamera packet = new WrapperPlayServerCamera(entity.getEntityId());
+            PacketEvents.getAPI().getPlayerManager().sendPacket(player, packet);
+        } catch (Exception e) {
+            plugin.getLogger().warning("[CursorMenu] Failed to send camera packet: " + e.getMessage());
         }
     }
 
@@ -913,7 +911,7 @@ public class CursorMenuManager implements Listener {
                 yaml.getDouble("creature-spawn-limits.radius", 8.0),
                 yaml.getBoolean("camera-block-check.enabled", false),
                 Math.max(0, yaml.getInt("camera-block-check.radius", 1)),
-                yaml.getBoolean("use-pumpkin-overlay", true)
+                yaml.getBoolean("use-pumpkin-overlay", false)
         );
     }
 
@@ -1263,7 +1261,7 @@ public class CursorMenuManager implements Listener {
             return new CursorConfig("NETHER_STAR", 0.35, 0.0, 0.0, 2.2, 1.2, 45.0, 30.0,
                     null, 1.0f, 1.0f, false, 40,
                     false, 20L, null, Collections.emptyList(),
-                    false, 8.0, false, 1, true);
+                    false, 8.0, false, 1, false);
         }
     }
 
