@@ -788,7 +788,7 @@ public class CursorMenuManager implements Listener {
     private Location computeCursorLocation(Player player, Location camera, double distance) {
         float dyaw = normalizeYaw(player.getLocation().getYaw() - camera.getYaw());
         float dpitch = player.getLocation().getPitch() - camera.getPitch();
-        double x = clamp((-dyaw / config.maxYaw) * config.maxX, -config.maxX, config.maxX);
+        double x = clamp((dyaw / config.maxYaw) * config.maxX, -config.maxX, config.maxX);
         double y = clamp((-dpitch / config.maxPitch) * config.maxY, -config.maxY, config.maxY);
 
         Vector forward = camera.getDirection().normalize();
