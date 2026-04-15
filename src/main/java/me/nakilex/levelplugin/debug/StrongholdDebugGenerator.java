@@ -132,8 +132,9 @@ public final class StrongholdDebugGenerator {
     private static final boolean ENABLE_DETACHED_ASSET_DEBUG_LOGGING = true;
     private static final double DETACHED_ASSET_OVERLAP_PERCENT = 5.0D;
     private static final double DETACHED_ASSET_INTERNAL_OVERLAP_PERCENT = 0.0D;
-    private static final int DETACHED_ASSET_MIN_RING_DISTANCE = 4;
-    private static final int DETACHED_ASSET_MAX_RING_DISTANCE = 28;
+    private static final int DETACHED_ASSET_PATCH_COUNT = 12;
+    private static final int DETACHED_ASSET_PATCH_RADIUS = 26;
+    private static final int DETACHED_ASSET_AREA_PADDING = 24;
     private static final int DETACHED_ASSET_MAX_ATTEMPTS = 3000;
     private static final int TARGET_GATE_TEMPLATES = 2;
     private static final Map<String, Integer> REQUIRED_TEMPLATE_COUNTS = Map.of(
@@ -568,6 +569,9 @@ public final class StrongholdDebugGenerator {
                 + templatesByType.getOrDefault(AssetType.ROCK, List.of()).size() + "/"
                 + templatesByType.getOrDefault(AssetType.RUIN, List.of()).size()
                 + ", footprint=[" + footprint.minX + "," + footprint.minZ + " -> " + footprint.maxX + "," + footprint.maxZ + "].");
+        PlacementField field = buildPlacementField(footprint, random);
+        logDetachedAssetDebug("Placement field -> bounds=[" + field.minX + "," + field.minZ + " -> "
+                + field.maxX + "," + field.maxZ + "], patches=" + field.patchCenters.size() + ".");
 
         List<AssetType> requestOrder = new ArrayList<>(totalRequested);
         addAssetRequests(requestOrder, AssetType.TREE, counts.trees());
@@ -584,7 +588,7 @@ public final class StrongholdDebugGenerator {
 
         for (AssetType type : requestOrder) {
             List<DetachedAssetTemplate> pool = templatesByType.getOrDefault(type, List.of());
-            AssetPlacementSearchResult result = findDetachedAssetPlacement(type, pool, world, occupied, detachedOccupied, random, footprint, fallbackY);
+            AssetPlacementSearchResult result = findDetachedAssetPlacement(type, pool, world, occupied, detachedOccupied, random, field, fallbackY);
             debugCounter.add(result);
             AssetPlacement placement = result.placement();
             if (placement == null) {
@@ -612,7 +616,8 @@ public final class StrongholdDebugGenerator {
                 + treesPlaced + "/" + rocksPlaced + "/" + ruinsPlaced
                 + ", attempts=" + debugCounter.totalAttempts
                 + ", rejected(noPool)=" + debugCounter.noPoolRejects
-                + ", rejected(ring)=" + debugCounter.ringRejects
+                + ", rejected(outsideField)=" + debugCounter.outsideFieldRejects
+                + ", rejected(nonTerrainGround)=" + debugCounter.nonTerrainGroundRejects
                 + ", rejected(overlapMain)=" + debugCounter.mainOverlapRejects
                 + ", rejected(overlapDetached)=" + debugCounter.detachedOverlapRejects + ".");
 
@@ -665,37 +670,32 @@ public final class StrongholdDebugGenerator {
                                                                          Set<Long> occupied,
                                                                          Set<Long> detachedOccupied,
                                                                          Random random,
-                                                                         Bounds2D strongholdFootprint,
+                                                                         PlacementField field,
                                                                          int fallbackY) {
         if (candidates == null || candidates.isEmpty()) {
             return AssetPlacementSearchResult.noPool();
         }
-        Point2D center = centerOf(strongholdFootprint);
         int attempts = 0;
-        int ringRejects = 0;
+        int outsideFieldRejects = 0;
+        int nonTerrainGroundRejects = 0;
         int mainOverlapRejects = 0;
         int detachedOverlapRejects = 0;
         for (int attempt = 0; attempt < DETACHED_ASSET_MAX_ATTEMPTS; attempt++) {
             attempts++;
             DetachedAssetTemplate template = candidates.get(random.nextInt(candidates.size()));
-            RadiusBounds radiusBounds = radiusBoundsForFootprint(
-                    strongholdFootprint,
-                    template.radiusBlocks() + DETACHED_ASSET_MIN_RING_DISTANCE,
-                    template.radiusBlocks() + DETACHED_ASSET_MAX_RING_DISTANCE
-            );
-            BlockVector3 sample = sampleOrganicPoint(center, random,
-                    radiusBounds.minRadius(),
-                    radiusBounds.maxRadius());
+            BlockVector3 sample = samplePatchPoint(field, random);
             int x = sample.getBlockX();
             int z = sample.getBlockZ();
-            if (!isWithinRing(x, z, strongholdFootprint,
-                    template.radiusBlocks() + DETACHED_ASSET_MIN_RING_DISTANCE,
-                    template.radiusBlocks() + DETACHED_ASSET_MAX_RING_DISTANCE)) {
-                ringRejects++;
+            if (!isWithinPlacementField(x, z, field)) {
+                outsideFieldRejects++;
                 continue;
             }
 
             int y = safeSurfaceY(world, x, z, fallbackY);
+            if (!isNaturalTerrain(world, x, y, z)) {
+                nonTerrainGroundRejects++;
+                continue;
+            }
             int originX = x - template.centerOffsetX();
             int originZ = z - template.centerOffsetZ();
             int originY = y - Math.min(0, template.lowestRelativeY());
@@ -712,7 +712,8 @@ public final class StrongholdDebugGenerator {
                     new AssetPlacement(type, template, origin),
                     attempts,
                     0,
-                    ringRejects,
+                    outsideFieldRejects,
+                    nonTerrainGroundRejects,
                     mainOverlapRejects,
                     detachedOverlapRejects
             );
@@ -721,7 +722,8 @@ public final class StrongholdDebugGenerator {
                 null,
                 attempts,
                 0,
-                ringRejects,
+                outsideFieldRejects,
+                nonTerrainGroundRejects,
                 mainOverlapRejects,
                 detachedOverlapRejects
         );
@@ -735,47 +737,52 @@ public final class StrongholdDebugGenerator {
         return highest;
     }
 
-    private static boolean isWithinRing(int x, int z, Bounds2D bounds, int minDistance, int maxDistance) {
-        int distance = ringDistanceFromBounds(x, z, bounds);
-        return distance >= Math.max(1, minDistance) && distance <= Math.max(minDistance, maxDistance);
+    private static PlacementField buildPlacementField(Bounds2D footprint, Random random) {
+        if (footprint == null) {
+            return new PlacementField(-64, 64, -64, 64, List.of(new Point2D(0, 0)));
+        }
+        int minX = footprint.minX - DETACHED_ASSET_AREA_PADDING;
+        int maxX = footprint.maxX + DETACHED_ASSET_AREA_PADDING;
+        int minZ = footprint.minZ - DETACHED_ASSET_AREA_PADDING;
+        int maxZ = footprint.maxZ + DETACHED_ASSET_AREA_PADDING;
+        List<Point2D> patches = new ArrayList<>();
+        for (int i = 0; i < DETACHED_ASSET_PATCH_COUNT; i++) {
+            int x = minX + random.nextInt(Math.max(1, (maxX - minX) + 1));
+            int z = minZ + random.nextInt(Math.max(1, (maxZ - minZ) + 1));
+            patches.add(new Point2D(x, z));
+        }
+        return new PlacementField(minX, maxX, minZ, maxZ, patches);
     }
 
-    private static int ringDistanceFromBounds(int x, int z, Bounds2D bounds) {
-        if (bounds == null) return Integer.MAX_VALUE;
-        int dx = 0;
-        if (x < bounds.minX) {
-            dx = bounds.minX - x;
-        } else if (x > bounds.maxX) {
-            dx = x - bounds.maxX;
+    private static boolean isWithinPlacementField(int x, int z, PlacementField field) {
+        if (field == null) {
+            return false;
         }
-        int dz = 0;
-        if (z < bounds.minZ) {
-            dz = bounds.minZ - z;
-        } else if (z > bounds.maxZ) {
-            dz = z - bounds.maxZ;
-        }
-        return Math.max(dx, dz);
+        return x >= field.minX && x <= field.maxX && z >= field.minZ && z <= field.maxZ;
     }
 
-    private static BlockVector3 sampleOrganicPoint(Point2D center, Random random, int minRadius, int maxRadius) {
-        int radius = minRadius + random.nextInt(Math.max(1, (maxRadius - minRadius) + 1));
+    private static BlockVector3 samplePatchPoint(PlacementField field, Random random) {
+        if (field == null || field.patchCenters == null || field.patchCenters.isEmpty()) {
+            return BlockVector3.at(0, 0, 0);
+        }
+        Point2D patch = field.patchCenters.get(random.nextInt(field.patchCenters.size()));
         double angle = random.nextDouble() * (Math.PI * 2.0D);
-        int x = (int) Math.round(center.x + Math.cos(angle) * radius);
-        int z = (int) Math.round(center.z + Math.sin(angle) * radius);
+        double radius = random.nextDouble() * DETACHED_ASSET_PATCH_RADIUS;
+        int x = (int) Math.round(patch.x + (Math.cos(angle) * radius));
+        int z = (int) Math.round(patch.z + (Math.sin(angle) * radius));
         return BlockVector3.at(x, 0, z);
     }
 
-    private static RadiusBounds radiusBoundsForFootprint(Bounds2D footprint, int minGapFromFootprint, int maxGapFromFootprint) {
-        if (footprint == null) {
-            int min = Math.max(1, minGapFromFootprint);
-            return new RadiusBounds(min, Math.max(min, min + Math.max(4, maxGapFromFootprint)));
+    private static boolean isNaturalTerrain(World world, int x, int y, int z) {
+        if (world == null) {
+            return false;
         }
-        int spanX = Math.max(1, (footprint.maxX - footprint.minX) + 1);
-        int spanZ = Math.max(1, (footprint.maxZ - footprint.minZ) + 1);
-        int halfMaxSpan = (int) Math.ceil(Math.max(spanX, spanZ) / 2.0D);
-        int minRadius = Math.max(1, halfMaxSpan + Math.max(1, minGapFromFootprint));
-        int maxRadius = Math.max(minRadius + 4, halfMaxSpan + Math.max(minGapFromFootprint, maxGapFromFootprint));
-        return new RadiusBounds(minRadius, maxRadius);
+        Material top = world.getBlockAt(x, y, z).getType();
+        return top == Material.GRASS_BLOCK
+                || top == Material.DIRT
+                || top == Material.COARSE_DIRT
+                || top == Material.PODZOL
+                || top == Material.MOSS_BLOCK;
     }
 
     private static void pasteDetachedAsset(World world, AssetPlacement placement) {
@@ -3569,7 +3576,7 @@ public final class StrongholdDebugGenerator {
     private record Point2D(double x, double z) {
     }
 
-    private record RadiusBounds(int minRadius, int maxRadius) {
+    private record PlacementField(int minX, int maxX, int minZ, int maxZ, List<Point2D> patchCenters) {
     }
 
     private record SatellitePlacementResult(boolean placed, int linkSegments) {
@@ -3704,18 +3711,20 @@ public final class StrongholdDebugGenerator {
     private record AssetPlacementSearchResult(AssetPlacement placement,
                                               int attempts,
                                               int noPoolRejects,
-                                              int ringRejects,
+                                              int outsideFieldRejects,
+                                              int nonTerrainGroundRejects,
                                               int mainOverlapRejects,
                                               int detachedOverlapRejects) {
         private static AssetPlacementSearchResult noPool() {
-            return new AssetPlacementSearchResult(null, 0, 1, 0, 0, 0);
+            return new AssetPlacementSearchResult(null, 0, 1, 0, 0, 0, 0);
         }
     }
 
     private static final class AssetPlacementDebugCounter {
         private int totalAttempts;
         private int noPoolRejects;
-        private int ringRejects;
+        private int outsideFieldRejects;
+        private int nonTerrainGroundRejects;
         private int mainOverlapRejects;
         private int detachedOverlapRejects;
 
@@ -3725,7 +3734,8 @@ public final class StrongholdDebugGenerator {
             }
             totalAttempts += Math.max(0, result.attempts());
             noPoolRejects += Math.max(0, result.noPoolRejects());
-            ringRejects += Math.max(0, result.ringRejects());
+            outsideFieldRejects += Math.max(0, result.outsideFieldRejects());
+            nonTerrainGroundRejects += Math.max(0, result.nonTerrainGroundRejects());
             mainOverlapRejects += Math.max(0, result.mainOverlapRejects());
             detachedOverlapRejects += Math.max(0, result.detachedOverlapRejects());
         }
