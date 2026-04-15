@@ -11,6 +11,7 @@ import me.nakilex.levelplugin.cursormenu.model.MenuSection;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
+import net.citizensnpcs.trait.SkinTrait;
 import org.bukkit.*;
 import org.bukkit.block.BlockState;
 import org.bukkit.configuration.ConfigurationSection;
@@ -718,17 +719,25 @@ public class CursorMenuManager implements Listener {
     private ButtonState getHoveredButton(MenuSession session) {
         if (session.cursorAnchor == null || session.cursorAnchor.isDead()) return null;
         Location cursor = session.cursorAnchor.getLocation();
-        double bestDistance = 0.8;
+        double bestDistance = 1.1;
         ButtonState best = null;
         for (ButtonState button : session.buttons) {
             if (button.display == null || button.display.isDead()) continue;
             double distance = button.display.getLocation().distance(cursor);
-            if (distance <= bestDistance) {
+            double hoverRadius = computeHoverRadius(button.button);
+            if (distance <= hoverRadius && distance <= bestDistance) {
                 bestDistance = distance;
                 best = button;
             }
         }
         return best;
+    }
+
+    private double computeHoverRadius(MenuButton button) {
+        String plainText = ChatColor.stripColor(colorize(button.text()));
+        int textLength = plainText == null ? 0 : plainText.length();
+        double base = 0.55 + (textLength * 0.03 * Math.max(0.8, button.scale()));
+        return clamp(base, 0.75, 2.75);
     }
 
     private void tick() {
@@ -923,6 +932,13 @@ public class CursorMenuManager implements Listener {
         Location spawn = resolveActorLocation(section, actor);
         String actorName = resolveActorName(viewer, actor);
         NPC npc = CitizensAPI.getNPCRegistry().createNPC(EntityType.PLAYER, actorName);
+        npc.setProtected(true);
+        npc.data().setPersistent(NPC.Metadata.COLLIDABLE, false);
+        npc.data().setPersistent(NPC.Metadata.TARGETABLE, false);
+        npc.data().setPersistent(NPC.Metadata.NAMEPLATE_VISIBLE, false);
+        npc.data().setPersistent(NPC.Metadata.REMOVE_FROM_PLAYERLIST, true);
+        npc.data().setPersistent(NPC.Metadata.REMOVE_FROM_TABLIST, true);
+        applyActorSkin(viewer, actor, npc);
         if (!npc.spawn(spawn)) {
             npc.destroy();
             plugin.getLogger().warning("[CursorMenu] Failed to spawn actor '" + actor.id()
@@ -960,12 +976,25 @@ public class CursorMenuManager implements Listener {
     }
 
     private String resolveActorName(Player viewer, MenuActor actor) {
-        String rawName = actor.useViewerSkin() ? viewer.getName() : actor.name();
+        String rawName = actor.name();
         if (rawName == null || rawName.isBlank()) {
-            rawName = viewer.getName();
+            rawName = "Profile";
         }
         String withPlaceholders = PlaceholderAPI.setPlaceholders(viewer, rawName);
         return colorize(withPlaceholders);
+    }
+
+    private void applyActorSkin(Player viewer, MenuActor actor, NPC npc) {
+        if (!actor.useViewerSkin()) {
+            return;
+        }
+        try {
+            SkinTrait skinTrait = npc.getOrAddTrait(SkinTrait.class);
+            skinTrait.setSkinPersistent(viewer);
+        } catch (Exception ex) {
+            plugin.getLogger().warning("[CursorMenu] Failed to apply viewer skin to actor '" + actor.id()
+                    + "': " + ex.getMessage());
+        }
     }
 
     private void ensureDefaultFiles() {
