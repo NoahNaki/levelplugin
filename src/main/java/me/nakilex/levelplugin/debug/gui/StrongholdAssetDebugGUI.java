@@ -75,7 +75,7 @@ public final class StrongholdAssetDebugGUI implements Listener {
         );
         inv.setItem(31, GuiUtil.createGuiItem(Material.BOOK, ChatColor.AQUA + "Distribution Info", infoLore));
 
-        List<String> resetLore = TooltipUtil.bulletList("Reset to 70% trees, 10% ruins, 20% rocks, total 15.");
+        List<String> resetLore = TooltipUtil.bulletList("Reset to 70% trees, 10% ruins, 20% rocks, total 250.");
         resetLore.add(" ");
         resetLore.addAll(TooltipUtil.clickInstructions("to reset", null));
         inv.setItem(40, GuiUtil.createGuiItem(Material.BARRIER, ChatColor.RED + "Reset", resetLore));
@@ -128,10 +128,10 @@ public final class StrongholdAssetDebugGUI implements Listener {
             case 15 -> adjustDistribution(cfg.treePercent(), cfg.ruinPercent() + sign * (shift ? 5 : 1), cfg.rockPercent());
             case 17 -> adjustDistribution(cfg.treePercent(), cfg.ruinPercent(), cfg.rockPercent() + sign * (shift ? 5 : 1));
             case 40 -> {
-                StrongholdDebugGenerator.setAssetScatterTotalCount(15);
+                StrongholdDebugGenerator.setAssetScatterTotalCount(250);
                 StrongholdDebugGenerator.setAssetScatterDistribution(70, 10, 20);
                 ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                        "Stronghold detached asset distribution reset to 70/10/20 with total 15.");
+                        "Stronghold detached asset distribution reset to 70/10/20 with total 250.");
             }
             default -> {
                 return;
