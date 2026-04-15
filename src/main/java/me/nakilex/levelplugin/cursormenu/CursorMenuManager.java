@@ -16,8 +16,10 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.player.*;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.ItemFlag;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Transformation;
 import org.bukkit.util.Vector;
@@ -116,11 +118,7 @@ public class CursorMenuManager implements Listener {
         stopMenuSound(player);
         restoreCameraObstructions(player);
         cleanupSession(session);
-        player.leaveVehicle();
-        if (session.cameraSeat != null && !session.cameraSeat.isDead()) {
-            session.cameraSeat.remove();
-        }
-        player.setGameMode(session.originalGameMode);
+        exitCameraMode(player, session);
         if (teleportBack && session.returnLocation != null && player.isOnline()) {
             player.teleport(session.returnLocation);
         }
@@ -211,6 +209,27 @@ public class CursorMenuManager implements Listener {
     }
 
     @EventHandler
+    public void onSwapHandItems(PlayerSwapHandItemsEvent event) {
+        if (activeSessions.containsKey(event.getPlayer().getUniqueId())) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler
+    public void onItemHeld(PlayerItemHeldEvent event) {
+        if (activeSessions.containsKey(event.getPlayer().getUniqueId())) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler
+    public void onDrop(PlayerDropItemEvent event) {
+        if (activeSessions.containsKey(event.getPlayer().getUniqueId())) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler
     public void onCommandPreprocess(PlayerCommandPreprocessEvent event) {
         Player player = event.getPlayer();
         if (!activeSessions.containsKey(player.getUniqueId())) {
@@ -278,21 +297,18 @@ public class CursorMenuManager implements Listener {
     @EventHandler
     public void onMove(PlayerMoveEvent event) {
         MenuSession session = activeSessions.get(event.getPlayer().getUniqueId());
-        if (session == null) {
+        if (session == null || event.getTo() == null) {
             return;
         }
-        if (event.getTo() == null) {
-            return;
-        }
-        Location to = event.getTo();
         Location from = event.getFrom();
-        if (to.getX() == from.getX() && to.getY() == from.getY() && to.getZ() == from.getZ()) {
-            return;
-        }
+        Location to = event.getTo();
         Location locked = session.camera.clone();
         locked.setYaw(to.getYaw());
         locked.setPitch(to.getPitch());
-        event.setTo(locked);
+        boolean movedPosition = from.getX() != to.getX() || from.getY() != to.getY() || from.getZ() != to.getZ();
+        if (movedPosition) {
+            event.setTo(locked);
+        }
     }
 
     private void cleanupSession(MenuSession session) {
@@ -304,6 +320,27 @@ public class CursorMenuManager implements Listener {
     }
 
     private void anchorPlayerToCamera(Player player, MenuSession session, Location camera) {
+        enterCameraMode(player, session, camera);
+    }
+
+    private void enterCameraMode(Player player, MenuSession session, Location camera) {
+        session.originalHelmet = cloneOrNull(player.getInventory().getHelmet());
+        session.originalMainHand = cloneOrNull(player.getInventory().getItemInMainHand());
+        session.originalOffHand = cloneOrNull(player.getInventory().getItemInOffHand());
+        session.originalHeldSlot = player.getInventory().getHeldItemSlot();
+        session.originalInvisible = player.isInvisible();
+        session.originalCollidable = player.isCollidable();
+        session.originalInvulnerable = player.isInvulnerable();
+        session.originalAllowFlight = player.getAllowFlight();
+        session.originalFlying = player.isFlying();
+        session.originalWalkSpeed = player.getWalkSpeed();
+        session.originalFlySpeed = player.getFlySpeed();
+
+        player.getInventory().setItemInMainHand(new ItemStack(Material.AIR));
+        player.getInventory().setItemInOffHand(new ItemStack(Material.AIR));
+        if (config.usePumpkinOverlay()) {
+            player.getInventory().setHelmet(createMenuPumpkin());
+        }
         if (player.getVehicle() != null) {
             player.leaveVehicle();
         }
@@ -315,9 +352,71 @@ public class CursorMenuManager implements Listener {
             pig.setSilent(true);
             pig.setCollidable(false);
             pig.setPersistent(false);
+            pig.setAdult();
+            pig.setRotation(camera.getYaw(), camera.getPitch());
         });
+        player.setInvisible(true);
+        player.setCollidable(false);
+        player.setInvulnerable(true);
+        player.setAllowFlight(true);
+        player.setFlying(true);
+        player.setWalkSpeed(0.0f);
+        player.setFlySpeed(0.0f);
+        player.setFallDistance(0.0f);
         seat.addPassenger(player);
         session.cameraSeat = seat;
+        sendCameraPacket(player, seat);
+    }
+
+    private void exitCameraMode(Player player, MenuSession session) {
+        sendCameraPacket(player, player);
+        if (player.getVehicle() != null) {
+            player.leaveVehicle();
+        }
+        if (session.cameraSeat != null && !session.cameraSeat.isDead()) {
+            session.cameraSeat.remove();
+        }
+        player.setInvisible(session.originalInvisible);
+        player.setCollidable(session.originalCollidable);
+        player.setInvulnerable(session.originalInvulnerable);
+        player.setAllowFlight(session.originalAllowFlight);
+        player.setFlying(session.originalFlying);
+        player.setWalkSpeed(session.originalWalkSpeed);
+        player.setFlySpeed(session.originalFlySpeed);
+        player.setFallDistance(0.0f);
+        player.setGameMode(session.originalGameMode);
+        player.getInventory().setHelmet(cloneOrNull(session.originalHelmet));
+        player.getInventory().setItemInMainHand(cloneOrNull(session.originalMainHand));
+        player.getInventory().setItemInOffHand(cloneOrNull(session.originalOffHand));
+        player.getInventory().setHeldItemSlot(session.originalHeldSlot);
+        player.updateInventory();
+    }
+
+    private void sendCameraPacket(Player player, Entity entity) {
+        try {
+            Class<?> wrapperCls = Class.forName("com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerCamera");
+            Object packet = wrapperCls.getConstructor(int.class).newInstance(entity.getEntityId());
+            Class<?> packetEventsCls = Class.forName("com.github.retrooper.packetevents.PacketEvents");
+            Object api = packetEventsCls.getMethod("getAPI").invoke(null);
+            Object playerManager = api.getClass().getMethod("getPlayerManager").invoke(api);
+            playerManager.getClass().getMethod("sendPacket", Player.class, Object.class).invoke(playerManager, player, packet);
+        } catch (Exception ignored) {
+        }
+    }
+
+    private ItemStack cloneOrNull(ItemStack stack) {
+        return stack == null ? null : stack.clone();
+    }
+
+    private ItemStack createMenuPumpkin() {
+        ItemStack pumpkin = new ItemStack(Material.CARVED_PUMPKIN);
+        ItemMeta meta = pumpkin.getItemMeta();
+        if (meta != null) {
+            meta.addEnchant(Enchantment.BINDING_CURSE, 1, true);
+            meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+            pumpkin.setItemMeta(meta);
+        }
+        return pumpkin;
     }
 
     private void dispatchButtonCommand(Player player, String rawCommand) {
@@ -633,6 +732,19 @@ public class CursorMenuManager implements Listener {
             Location cursorLocation = computeCursorLocation(player, session.camera, section.distance());
             if (session.cursorAnchor != null && !session.cursorAnchor.isDead()) session.cursorAnchor.teleport(cursorLocation);
             if (session.cursorDisplay != null && !session.cursorDisplay.isDead()) session.cursorDisplay.teleport(cursorLocation);
+            if (session.cameraSeat != null && !session.cameraSeat.isDead()) {
+                Location locked = session.camera.clone();
+                locked.setYaw(session.camera.getYaw());
+                locked.setPitch(session.camera.getPitch());
+                session.cameraSeat.teleport(locked);
+            }
+            player.setFallDistance(0.0f);
+            if (!player.getAllowFlight()) {
+                player.setAllowFlight(true);
+            }
+            if (!player.isFlying()) {
+                player.setFlying(true);
+            }
 
             ButtonState hovered = getHoveredButton(session);
             for (ButtonState button : session.buttons) {
@@ -800,7 +912,8 @@ public class CursorMenuManager implements Listener {
                 yaml.getBoolean("creature-spawn-limits.enabled", false),
                 yaml.getDouble("creature-spawn-limits.radius", 8.0),
                 yaml.getBoolean("camera-block-check.enabled", false),
-                Math.max(0, yaml.getInt("camera-block-check.radius", 1))
+                Math.max(0, yaml.getInt("camera-block-check.radius", 1)),
+                yaml.getBoolean("use-pumpkin-overlay", true)
         );
     }
 
@@ -1144,12 +1257,13 @@ public class CursorMenuManager implements Listener {
                                 boolean soundLoopEnabled, int soundLoopDuration,
                                 boolean joinRunEnabled, long joinRunDelay, String joinRunMenu, List<String> joinRunCommands,
                                 boolean creatureSpawnProtectionEnabled, double creatureSpawnProtectionRadius,
-                                boolean cameraBlockCheckEnabled, int cameraBlockCheckRadius) {
+                                boolean cameraBlockCheckEnabled, int cameraBlockCheckRadius,
+                                boolean usePumpkinOverlay) {
         static CursorConfig defaults() {
             return new CursorConfig("NETHER_STAR", 0.35, 0.0, 0.0, 2.2, 1.2, 45.0, 30.0,
                     null, 1.0f, 1.0f, false, 40,
                     false, 20L, null, Collections.emptyList(),
-                    false, 8.0, false, 1);
+                    false, 8.0, false, 1, true);
         }
     }
 
@@ -1162,6 +1276,17 @@ public class CursorMenuManager implements Listener {
         private ItemDisplay cursorDisplay;
         private Pig cameraSeat;
         private final List<ButtonState> buttons = new ArrayList<>();
+        private ItemStack originalHelmet;
+        private ItemStack originalMainHand;
+        private ItemStack originalOffHand;
+        private int originalHeldSlot;
+        private boolean originalInvisible;
+        private boolean originalCollidable;
+        private boolean originalInvulnerable;
+        private boolean originalAllowFlight;
+        private boolean originalFlying;
+        private float originalWalkSpeed;
+        private float originalFlySpeed;
 
         private MenuSession(String menuKey, Location returnLocation, GameMode originalGameMode, Location camera) {
             this.menuKey = menuKey;

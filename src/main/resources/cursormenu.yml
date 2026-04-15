@@ -31,3 +31,5 @@ creature-spawn-limits:
 camera-block-check:
   enabled: false
   radius: 1
+
+use-pumpkin-overlay: true
