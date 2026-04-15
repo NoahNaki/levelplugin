@@ -4,7 +4,7 @@ version: 1.0
 author: Nakilex
 api-version: 1.21
 description: A simple MMORPG leveling system plugin for Minecraft
-depend: [ProtocolLib, Citizens, Vault, PlaceholderAPI, Nexo, ModelEngine]
+depend: [ProtocolLib, Citizens, Vault, PlaceholderAPI, Nexo, ModelEngine, packetevents]
 
 commands:
   addpoints:
@@ -410,6 +410,13 @@ commands:
   roll:
     description: Roll a number between 1 and 100
     usage: /roll
+  blockglow:
+    description: Standalone per-player glowing block controls
+    usage: /blockglow <look|clear> [color] [durationTicks]
+  cursormenu:
+    description: Manage the 3D cursor menu and item previews
+    usage: /cursormenu <run|stop|items|itemsstop|reload>
+    aliases: [cmenu]
   dpsdummy:
     description: Manage DPS training dummies
     usage: /dpsdummy <spawn|select|despawn|list>

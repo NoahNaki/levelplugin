@@ -1,0 +1,6 @@
+allowed-commands:
+  - cursormenu
+  - cmenu
+  - help
+  - msg
+  - r

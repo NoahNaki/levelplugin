@@ -1,5 +1,7 @@
 package me.nakilex.levelplugin.core;
 
+import com.github.retrooper.packetevents.PacketEvents;
+import io.github.retrooper.packetevents.factory.spigot.SpigotPacketEventsBuilder;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.blacksmith.gui.BlacksmithGUI;
 import me.nakilex.levelplugin.blacksmith.managers.ItemRepairManager;
@@ -42,6 +44,8 @@ import me.nakilex.levelplugin.friend.FriendManager;
 import me.nakilex.levelplugin.friend.FriendGlowManager;
 import me.nakilex.levelplugin.friend.PlayerVisibilityManager;
 import me.nakilex.levelplugin.codex.*;
+import me.nakilex.levelplugin.cursormenu.CursorMenuManager;
+import me.nakilex.levelplugin.utils.BlockGlowUtil;
 import me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager;
 import me.nakilex.levelplugin.friend.IgnoreManager;
 import me.nakilex.levelplugin.friend.FriendRequestListener;
@@ -239,6 +243,8 @@ public class PluginBootstrap {
     private me.nakilex.levelplugin.catacombs.CatacombsManager catacombsManager;
     private me.nakilex.levelplugin.catacombs.CatacombsGUI catacombsGUI;
     private me.nakilex.levelplugin.nexo.FurnitureGuiMapper furnitureGuiMapper;
+    private CursorMenuManager cursorMenuManager;
+    private BlockGlowUtil blockGlowUtil;
 
     public PluginBootstrap(Main plugin) {
         this.plugin = plugin;
@@ -251,6 +257,7 @@ public class PluginBootstrap {
             return;
         }
 
+        initializePacketEvents();
         loadConfigFiles();
         setupCustomConfig();
         playerConfig = new PlayerConfig(plugin);
@@ -452,6 +459,8 @@ public class PluginBootstrap {
         mercenaryExpeditionRewardsGUI = new me.nakilex.levelplugin.mercenary.gui.MercenaryExpeditionRewardsGUI(plugin, mercenaryExpeditionManager);
         mercenaryExpeditionGUI = new me.nakilex.levelplugin.mercenary.gui.MercenaryExpeditionGUI(plugin, mercenaryAffinityManager, mercenaryExpeditionManager, mercenaryFriendshipGUI, mercenaryExpeditionRewardsGUI);
         mercenaryFriendshipGUI.setExpeditionGUI(mercenaryExpeditionGUI);
+        blockGlowUtil = new BlockGlowUtil(plugin);
+        cursorMenuManager = new CursorMenuManager(plugin);
     }
 
     private void setupCustomConfig() {
@@ -580,6 +589,8 @@ public class PluginBootstrap {
             }
         }));
         plugin.getServer().getPluginManager().registerEvents(furnitureGuiMapper, plugin);
+        plugin.getServer().getPluginManager().registerEvents(cursorMenuManager, plugin);
+        plugin.getServer().getPluginManager().registerEvents(blockGlowUtil, plugin);
 
         ListenerRegistry.registerListeners(
             plugin,
@@ -652,6 +663,26 @@ public class PluginBootstrap {
             chatGameManager.start();
         }
         TaskRegistry.startTasks(plugin, horseConfigManager, horseManager, wanderingMerchantManager);
+    }
+
+    private void initializePacketEvents() {
+        try {
+            PacketEvents.setAPI(SpigotPacketEventsBuilder.build(plugin));
+            PacketEvents.getAPI().load();
+            PacketEvents.getAPI().init();
+        } catch (Exception ex) {
+            plugin.getLogger().warning("Failed to initialize PacketEvents: " + ex.getMessage());
+        }
+    }
+
+    private void shutdownPacketEvents() {
+        try {
+            if (PacketEvents.getAPI() != null) {
+                PacketEvents.getAPI().terminate();
+            }
+        } catch (Exception ex) {
+            plugin.getLogger().warning("Failed to terminate PacketEvents cleanly: " + ex.getMessage());
+        }
     }
 
     /**
@@ -764,10 +795,13 @@ public class PluginBootstrap {
         if (beaconManager != null) beaconManager.removeAll();
         if (beaconEntityDebugManager != null) beaconEntityDebugManager.removeAll();
         if (serverSelectionManager != null) serverSelectionManager.shutdown();
+        if (cursorMenuManager != null) cursorMenuManager.shutdown();
+        if (blockGlowUtil != null) blockGlowUtil.shutdown();
         if (worldManager != null) {
             me.nakilex.levelplugin.debug.StrongholdDebugGenerator.cleanupGeneratedWorlds(plugin);
         }
         if (dealMaker != null) dealMaker.closeAllTrades();
+        shutdownPacketEvents();
         plugin.getLogger().info("LevelPlugin has been disabled!");
     }
 
@@ -898,6 +932,8 @@ public class PluginBootstrap {
     public me.nakilex.levelplugin.mercenary.MercenaryAffinityManager getMercenaryAffinityManager() { return mercenaryAffinityManager; }
     public me.nakilex.levelplugin.mercenary.MercenaryExpeditionManager getMercenaryExpeditionManager() { return mercenaryExpeditionManager; }
     public me.nakilex.levelplugin.mercenary.board.ExpeditionBoardManager getExpeditionBoardManager() { return expeditionBoardManager; }
+    public CursorMenuManager getCursorMenuManager() { return cursorMenuManager; }
+    public BlockGlowUtil getBlockGlowUtil() { return blockGlowUtil; }
     public me.nakilex.levelplugin.mercenary.gui.MercenaryGiftBrowserGUI getMercenaryGiftBrowserGUI() { return mercenaryGiftBrowserGUI; }
     public me.nakilex.levelplugin.mercenary.gui.MercenaryFriendshipGUI getMercenaryFriendshipGUI() { return mercenaryFriendshipGUI; }
     public me.nakilex.levelplugin.mercenary.gui.MercenaryExpeditionGUI getMercenaryExpeditionGUI() { return mercenaryExpeditionGUI; }
