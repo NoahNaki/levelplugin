@@ -9,3 +9,25 @@ movement:
   max-y: 1.2
   max-yaw: 45.0
   max-pitch: 30.0
+
+sound:
+  name: ""
+  volume: 1.0
+  pitch: 1.0
+  loop:
+    enabled: false
+    duration: 40
+
+join-run:
+  enabled: false
+  delay: 20
+  menu: "example"
+  commands: []
+
+creature-spawn-limits:
+  enabled: false
+  radius: 8.0
+
+camera-block-check:
+  enabled: false
+  radius: 1

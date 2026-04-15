@@ -1,0 +1,33 @@
+example_imported:
+  permission: ""
+  auto-commands:
+    enabled: true
+    commands:
+      - "[player] msg &aImported menu opened"
+    delays: [0]
+  camera-position:
+    world: world
+    x: 0.5
+    y: 100.0
+    z: 3.5
+    yaw: 180.0
+    pitch: 0.0
+    distance: 4.0
+  layout:
+    option_one:
+      name: "&eImported Option"
+      x: 0.0
+      y: 0.2
+      z: 0.0
+      tilt:
+        x: 0
+        y: 0
+        z: 0
+      command:
+        - "[player] profile"
+      command-delay: 0
+      stop-menu:
+        enabled: true
+        teleport:
+          enabled: true
+          back-original: true
