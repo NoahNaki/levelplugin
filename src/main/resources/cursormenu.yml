@@ -9,8 +9,3 @@ movement:
   max-y: 1.2
   max-yaw: 45.0
   max-pitch: 30.0
-
-block-glow:
-  enabled: true
-  color: AQUA
-  duration-ticks: 12

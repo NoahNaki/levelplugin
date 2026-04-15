@@ -2,10 +2,8 @@ package me.nakilex.levelplugin.cursormenu;
 
 import me.clip.placeholderapi.PlaceholderAPI;
 import me.nakilex.levelplugin.Main;
-import me.nakilex.levelplugin.utils.BlockGlowUtil;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.*;
-import org.bukkit.block.Block;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.*;
@@ -25,7 +23,6 @@ import java.util.*;
 
 public class CursorMenuManager implements Listener {
     private final Main plugin;
-    private final BlockGlowUtil blockGlowUtil;
 
     private final Map<String, MenuSection> sections = new LinkedHashMap<>();
     private final Map<String, ItemPreset> itemPresets = new LinkedHashMap<>();
@@ -35,9 +32,8 @@ public class CursorMenuManager implements Listener {
     private CursorConfig config = CursorConfig.defaults();
     private BukkitTask tickTask;
 
-    public CursorMenuManager(Main plugin, BlockGlowUtil blockGlowUtil) {
+    public CursorMenuManager(Main plugin) {
         this.plugin = plugin;
-        this.blockGlowUtil = blockGlowUtil;
         ensureDefaultFiles();
         reload();
     }
@@ -89,8 +85,6 @@ public class CursorMenuManager implements Listener {
     public boolean stopMenu(Player player, boolean teleportBack) {
         MenuSession session = activeSessions.remove(player.getUniqueId());
         if (session == null) return false;
-
-        clearMenuGlow(player);
         cleanupSession(session);
         if (teleportBack && session.returnLocation != null) {
             player.teleport(session.returnLocation);
@@ -129,13 +123,7 @@ public class CursorMenuManager implements Listener {
     }
 
     public void stopAllMenus() {
-        for (Map.Entry<UUID, MenuSession> entry : new ArrayList<>(activeSessions.entrySet())) {
-            Player player = Bukkit.getPlayer(entry.getKey());
-            if (player != null) {
-                clearMenuGlow(player);
-            }
-            cleanupSession(entry.getValue());
-        }
+        for (MenuSession session : new ArrayList<>(activeSessions.values())) cleanupSession(session);
         activeSessions.clear();
     }
 
@@ -173,11 +161,7 @@ public class CursorMenuManager implements Listener {
         if (hovered.button.closeOnClick) stopMenu(player, true);
     }
 
-    @EventHandler
-    public void onQuit(PlayerQuitEvent event) {
-        stopMenu(event.getPlayer(), false);
-        hideItemPreview(event.getPlayer());
-    }
+    @EventHandler public void onQuit(PlayerQuitEvent event) { stopMenu(event.getPlayer(), false); hideItemPreview(event.getPlayer()); }
 
     @EventHandler
     public void onTeleport(PlayerTeleportEvent event) {
@@ -186,11 +170,7 @@ public class CursorMenuManager implements Listener {
         }
     }
 
-    @EventHandler
-    public void onWorldChange(PlayerChangedWorldEvent event) {
-        stopMenu(event.getPlayer(), false);
-        hideItemPreview(event.getPlayer());
-    }
+    @EventHandler public void onWorldChange(PlayerChangedWorldEvent event) { stopMenu(event.getPlayer(), false); hideItemPreview(event.getPlayer()); }
 
     private void cleanupSession(MenuSession session) {
         if (session.cursorAnchor != null && !session.cursorAnchor.isDead()) session.cursorAnchor.remove();
@@ -267,7 +247,6 @@ public class CursorMenuManager implements Listener {
             if (session.cursorDisplay != null && !session.cursorDisplay.isDead()) session.cursorDisplay.teleport(cursorLocation);
 
             ButtonState hovered = getHoveredButton(session);
-            updateHoverBlockGlow(player, session, hovered);
             for (ButtonState button : session.buttons) {
                 if (button.display == null || button.display.isDead()) continue;
                 button.display.setGlowing(button == hovered);
@@ -300,31 +279,6 @@ public class CursorMenuManager implements Listener {
                         new Vector3f(session.preset.scale, session.preset.scale, session.preset.scale),
                         new AxisAngle4f()));
             }
-        }
-    }
-
-    private void updateHoverBlockGlow(Player player, MenuSession session, ButtonState hovered) {
-        if (!config.blockGlowEnabled || blockGlowUtil == null || !blockGlowUtil.isSupported()) {
-            return;
-        }
-        if (hovered == null || hovered.display == null || hovered.display.isDead()) {
-            clearMenuGlow(player);
-            session.lastGlowBlock = null;
-            return;
-        }
-
-        Block target = hovered.display.getLocation().getBlock();
-        if (target.equals(session.lastGlowBlock)) {
-            return;
-        }
-
-        session.lastGlowBlock = target;
-        blockGlowUtil.setGlowing(target, player, config.blockGlowColor, config.blockGlowDurationTicks);
-    }
-
-    private void clearMenuGlow(Player player) {
-        if (blockGlowUtil != null && blockGlowUtil.isSupported()) {
-            blockGlowUtil.clearGlowing(player);
         }
     }
 
@@ -426,10 +380,7 @@ public class CursorMenuManager implements Listener {
                 yaml.getDouble("movement.max-x", 2.2),
                 yaml.getDouble("movement.max-y", 1.2),
                 Math.max(5.0, yaml.getDouble("movement.max-yaw", 45.0)),
-                Math.max(5.0, yaml.getDouble("movement.max-pitch", 30.0)),
-                yaml.getBoolean("block-glow.enabled", true),
-                parseColor(yaml.getString("block-glow.color", "AQUA"), ChatColor.AQUA),
-                Math.max(1, yaml.getInt("block-glow.duration-ticks", 12))
+                Math.max(5.0, yaml.getDouble("movement.max-pitch", 30.0))
         );
     }
 
@@ -519,26 +470,15 @@ public class CursorMenuManager implements Listener {
 
     private static double clamp(double value, double min, double max) { return Math.max(min, Math.min(max, value)); }
 
-    private static ChatColor parseColor(String value, ChatColor fallback) {
-        if (value == null || value.isBlank()) return fallback;
-        try {
-            return ChatColor.valueOf(value.trim().toUpperCase(Locale.ROOT));
-        } catch (IllegalArgumentException ignored) {
-            return fallback;
-        }
-    }
-
     private record CursorConfig(String cursorMaterial, double cursorScale, double cursorOffsetX, double cursorOffsetY,
-                                double maxX, double maxY, double maxYaw, double maxPitch,
-                                boolean blockGlowEnabled, ChatColor blockGlowColor, int blockGlowDurationTicks) {
-        static CursorConfig defaults() {
-            return new CursorConfig("NETHER_STAR", 0.35, 0.0, 0.0, 2.2, 1.2, 45.0, 30.0,
-                    true, ChatColor.AQUA, 12);
-        }
+                                double maxX, double maxY, double maxYaw, double maxPitch) {
+        static CursorConfig defaults() { return new CursorConfig("NETHER_STAR", 0.35, 0.0, 0.0, 2.2, 1.2, 45.0, 30.0); }
     }
 
     private record MenuSection(Location camera, double distance, List<MenuButton> buttons) {}
+
     private record MenuButton(String text, double x, double y, double z, double scale, boolean closeOnClick, List<String> commands) {}
+
     private record ItemPreset(String material, float scale, double distance, double offsetX, double offsetY, double offsetZ, float rotateSpeed) {}
 
     private static final class MenuSession {
@@ -549,7 +489,6 @@ public class CursorMenuManager implements Listener {
         private ArmorStand cursorAnchor;
         private ItemDisplay cursorDisplay;
         private final List<ButtonState> buttons = new ArrayList<>();
-        private Block lastGlowBlock;
 
         private MenuSession(String menuKey, Location returnLocation, GameMode originalGameMode, Location camera) {
             this.menuKey = menuKey;

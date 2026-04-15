@@ -457,7 +457,7 @@ public class PluginBootstrap {
         mercenaryExpeditionGUI = new me.nakilex.levelplugin.mercenary.gui.MercenaryExpeditionGUI(plugin, mercenaryAffinityManager, mercenaryExpeditionManager, mercenaryFriendshipGUI, mercenaryExpeditionRewardsGUI);
         mercenaryFriendshipGUI.setExpeditionGUI(mercenaryExpeditionGUI);
         blockGlowUtil = new BlockGlowUtil(plugin);
-        cursorMenuManager = new CursorMenuManager(plugin, blockGlowUtil);
+        cursorMenuManager = new CursorMenuManager(plugin);
     }
 
     private void setupCustomConfig() {
