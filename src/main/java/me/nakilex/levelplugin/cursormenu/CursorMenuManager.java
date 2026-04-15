@@ -102,9 +102,14 @@ public class CursorMenuManager implements Listener {
         session.cursorAnchor = spawnCursorAnchor(camera);
         session.cursorDisplay = spawnCursorDisplay(camera);
         for (MenuActor actor : section.actors()) {
-            SpawnedActor spawned = spawnMenuActor(player, section, actor);
-            if (spawned != null) {
-                session.actors.add(spawned);
+            try {
+                SpawnedActor spawned = spawnMenuActor(player, section, actor);
+                if (spawned != null) {
+                    session.actors.add(spawned);
+                }
+            } catch (Throwable throwable) {
+                plugin.getLogger().warning("[CursorMenu] Failed to spawn actor '" + actor.id()
+                        + "' in menu '" + section.key() + "': " + throwable.getMessage());
             }
         }
         for (MenuButton button : section.buttons()) {
@@ -933,11 +938,11 @@ public class CursorMenuManager implements Listener {
         String actorName = resolveActorName(viewer, actor);
         NPC npc = CitizensAPI.getNPCRegistry().createNPC(EntityType.PLAYER, actorName);
         npc.setProtected(true);
-        npc.data().setPersistent(NPC.Metadata.COLLIDABLE, false);
-        npc.data().setPersistent(NPC.Metadata.TARGETABLE, false);
-        npc.data().setPersistent(NPC.Metadata.NAMEPLATE_VISIBLE, false);
-        npc.data().setPersistent(NPC.Metadata.REMOVE_FROM_PLAYERLIST, true);
-        npc.data().setPersistent(NPC.Metadata.REMOVE_FROM_TABLIST, true);
+        setNpcMetadataSafely(npc, false, "collidable");
+        setNpcMetadataSafely(npc, false, "targetable");
+        setNpcMetadataSafely(npc, false, "nameplate-visible", "nameplatevisible");
+        setNpcMetadataSafely(npc, true, "removefromplayerlist", "remove-from-playerlist");
+        setNpcMetadataSafely(npc, true, "removefromtablist", "remove-from-tablist");
         applyActorSkin(viewer, actor, npc);
         if (!npc.spawn(spawn)) {
             npc.destroy();
@@ -994,6 +999,21 @@ public class CursorMenuManager implements Listener {
         } catch (Exception ex) {
             plugin.getLogger().warning("[CursorMenu] Failed to apply viewer skin to actor '" + actor.id()
                     + "': " + ex.getMessage());
+        }
+    }
+
+    private void setNpcMetadataSafely(NPC npc, Object value, String... keys) {
+        if (npc == null || keys == null) {
+            return;
+        }
+        for (String key : keys) {
+            if (key == null || key.isBlank()) {
+                continue;
+            }
+            try {
+                npc.data().setPersistent(key, value);
+            } catch (Throwable ignored) {
+            }
         }
     }
 
