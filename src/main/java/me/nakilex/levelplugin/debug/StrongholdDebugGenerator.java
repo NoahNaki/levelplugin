@@ -678,9 +678,14 @@ public final class StrongholdDebugGenerator {
         for (int attempt = 0; attempt < DETACHED_ASSET_MAX_ATTEMPTS; attempt++) {
             attempts++;
             DetachedAssetTemplate template = candidates.get(random.nextInt(candidates.size()));
-            BlockVector3 sample = sampleOrganicPoint(center, random,
+            RadiusBounds radiusBounds = radiusBoundsForFootprint(
+                    strongholdFootprint,
                     template.radiusBlocks() + DETACHED_ASSET_MIN_RING_DISTANCE,
-                    template.radiusBlocks() + DETACHED_ASSET_MAX_RING_DISTANCE);
+                    template.radiusBlocks() + DETACHED_ASSET_MAX_RING_DISTANCE
+            );
+            BlockVector3 sample = sampleOrganicPoint(center, random,
+                    radiusBounds.minRadius(),
+                    radiusBounds.maxRadius());
             int x = sample.getBlockX();
             int z = sample.getBlockZ();
             if (!isWithinRing(x, z, strongholdFootprint,
@@ -758,6 +763,19 @@ public final class StrongholdDebugGenerator {
         int x = (int) Math.round(center.x + Math.cos(angle) * radius);
         int z = (int) Math.round(center.z + Math.sin(angle) * radius);
         return BlockVector3.at(x, 0, z);
+    }
+
+    private static RadiusBounds radiusBoundsForFootprint(Bounds2D footprint, int minGapFromFootprint, int maxGapFromFootprint) {
+        if (footprint == null) {
+            int min = Math.max(1, minGapFromFootprint);
+            return new RadiusBounds(min, Math.max(min, min + Math.max(4, maxGapFromFootprint)));
+        }
+        int spanX = Math.max(1, (footprint.maxX - footprint.minX) + 1);
+        int spanZ = Math.max(1, (footprint.maxZ - footprint.minZ) + 1);
+        int halfMaxSpan = (int) Math.ceil(Math.max(spanX, spanZ) / 2.0D);
+        int minRadius = Math.max(1, halfMaxSpan + Math.max(1, minGapFromFootprint));
+        int maxRadius = Math.max(minRadius + 4, halfMaxSpan + Math.max(minGapFromFootprint, maxGapFromFootprint));
+        return new RadiusBounds(minRadius, maxRadius);
     }
 
     private static void pasteDetachedAsset(World world, AssetPlacement placement) {
@@ -3549,6 +3567,9 @@ public final class StrongholdDebugGenerator {
     }
 
     private record Point2D(double x, double z) {
+    }
+
+    private record RadiusBounds(int minRadius, int maxRadius) {
     }
 
     private record SatellitePlacementResult(boolean placed, int linkSegments) {
