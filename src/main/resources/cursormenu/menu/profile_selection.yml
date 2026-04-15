@@ -1,0 +1,48 @@
+menus:
+  profile_selection:
+    camera:
+      world: world
+      x: 0.5
+      y: 100.0
+      z: 0.5
+      yaw: 180.0
+      pitch: 4.0
+    distance: 4.0
+    actors:
+      active_profile:
+        type: citizens-player
+        use-viewer-skin: true
+        name: "%player_name%"
+        x: 0.0
+        y: -1.0
+        z: -0.9
+        yaw: 180.0
+        pitch: 0.0
+        look-at-camera: false
+    buttons:
+      play:
+        text: "&a&lLeft Click to play"
+        x: -0.8
+        y: -1.4
+        z: 0.0
+        scale: 1.0
+        close-on-click: true
+        commands:
+          - "[player] spawn"
+      switch_profile:
+        text: "&b&lRight Click to switch"
+        x: 0.9
+        y: -1.4
+        z: 0.0
+        scale: 1.0
+        close-on-click: false
+        commands:
+          - "[player] profile"
+      close:
+        text: "&c&lClose"
+        x: 0.0
+        y: -1.8
+        z: 0.0
+        scale: 0.9
+        close-on-click: true
+        commands: []

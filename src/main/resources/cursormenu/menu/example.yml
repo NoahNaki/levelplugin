@@ -19,14 +19,14 @@ menus:
         commands:
           - "[player] spawn"
       profile:
-        text: "&b&lOpen Profile"
+        text: "&b&lOpen Profile Selection"
         x: 0.0
         y: 0.0
         z: 0.0
         scale: 1.1
-        close-on-click: false
+        close-on-click: true
         commands:
-          - "[player] profile"
+          - "[player] cursormenu run profile_selection"
       close:
         text: "&c&lClose"
         x: 0.0

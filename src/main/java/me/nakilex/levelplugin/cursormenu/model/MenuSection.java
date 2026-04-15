@@ -15,6 +15,7 @@ public class MenuSection {
     private final List<String> autoCommands;
     private final List<Integer> autoCommandDelays;
 
+    private final List<MenuActor> actors;
     private final List<MenuButton> buttons;
 
     public MenuSection(String key,
@@ -24,6 +25,7 @@ public class MenuSection {
                        boolean autoCommandsEnabled,
                        List<String> autoCommands,
                        List<Integer> autoCommandDelays,
+                       List<MenuActor> actors,
                        List<MenuButton> buttons) {
         this.key = key;
         this.camera = camera;
@@ -32,6 +34,7 @@ public class MenuSection {
         this.autoCommandsEnabled = autoCommandsEnabled;
         this.autoCommands = autoCommands == null ? new ArrayList<>() : new ArrayList<>(autoCommands);
         this.autoCommandDelays = autoCommandDelays == null ? new ArrayList<>() : new ArrayList<>(autoCommandDelays);
+        this.actors = actors == null ? new ArrayList<>() : new ArrayList<>(actors);
         this.buttons = buttons == null ? new ArrayList<>() : new ArrayList<>(buttons);
     }
 
@@ -42,5 +45,6 @@ public class MenuSection {
     public boolean autoCommandsEnabled() { return autoCommandsEnabled; }
     public List<String> autoCommands() { return autoCommands; }
     public List<Integer> autoCommandDelays() { return autoCommandDelays; }
+    public List<MenuActor> actors() { return actors; }
     public List<MenuButton> buttons() { return buttons; }
 }

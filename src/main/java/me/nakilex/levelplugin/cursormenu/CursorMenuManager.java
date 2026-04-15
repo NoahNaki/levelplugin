@@ -4,10 +4,13 @@ import com.github.retrooper.packetevents.PacketEvents;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerCamera;
 import me.clip.placeholderapi.PlaceholderAPI;
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.cursormenu.model.MenuActor;
 import me.nakilex.levelplugin.cursormenu.model.ItemPreset;
 import me.nakilex.levelplugin.cursormenu.model.MenuButton;
 import me.nakilex.levelplugin.cursormenu.model.MenuSection;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
+import net.citizensnpcs.api.CitizensAPI;
+import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.*;
 import org.bukkit.block.BlockState;
 import org.bukkit.configuration.ConfigurationSection;
@@ -97,6 +100,12 @@ public class CursorMenuManager implements Listener {
 
         session.cursorAnchor = spawnCursorAnchor(camera);
         session.cursorDisplay = spawnCursorDisplay(camera);
+        for (MenuActor actor : section.actors()) {
+            SpawnedActor spawned = spawnMenuActor(player, section, actor);
+            if (spawned != null) {
+                session.actors.add(spawned);
+            }
+        }
         for (MenuButton button : section.buttons()) {
             TextDisplay display = spawnButtonDisplay(section, button);
             if (display != null) {
@@ -316,6 +325,10 @@ public class CursorMenuManager implements Listener {
     }
 
     private void cleanupSession(MenuSession session) {
+        for (SpawnedActor actor : session.actors) {
+            actor.destroy();
+        }
+        session.actors.clear();
         if (session.cursorAnchor != null && !session.cursorAnchor.isDead()) session.cursorAnchor.remove();
         if (session.cursorDisplay != null && !session.cursorDisplay.isDead()) session.cursorDisplay.remove();
         for (ButtonState button : session.buttons) {
@@ -878,13 +891,70 @@ public class CursorMenuManager implements Listener {
         return camera.clone().add(forward.multiply(distance + z)).add(right.multiply(x)).add(up.multiply(y));
     }
 
+    private SpawnedActor spawnMenuActor(Player viewer, MenuSection section, MenuActor actor) {
+        if (!"citizens-player".equalsIgnoreCase(actor.type())) {
+            plugin.getLogger().warning("[CursorMenu] Unsupported actor type '" + actor.type()
+                    + "' for actor '" + actor.id() + "' in menu '" + section.key() + "'.");
+            return null;
+        }
+        if (!plugin.getServer().getPluginManager().isPluginEnabled("Citizens")) {
+            plugin.getLogger().warning("[CursorMenu] Citizens is required for actor '" + actor.id()
+                    + "' in menu '" + section.key() + "'.");
+            return null;
+        }
+
+        Location spawn = resolveActorLocation(section, actor);
+        String actorName = resolveActorName(viewer, actor);
+        NPC npc = CitizensAPI.getNPCRegistry().createNPC(EntityType.PLAYER, actorName);
+        if (!npc.spawn(spawn)) {
+            npc.destroy();
+            plugin.getLogger().warning("[CursorMenu] Failed to spawn actor '" + actor.id()
+                    + "' in menu '" + section.key() + "'.");
+            return null;
+        }
+
+        Entity entity = npc.getEntity();
+        if (entity instanceof LivingEntity living) {
+            living.setAI(false);
+            living.setInvulnerable(true);
+            living.setSilent(true);
+            living.setCollidable(false);
+            living.setGravity(false);
+        }
+        entity.setPersistent(false);
+        return new SpawnedActor(npc);
+    }
+
+    private Location resolveActorLocation(MenuSection section, MenuActor actor) {
+        Location spawn = resolveScreenPosition(section.camera(), section.distance(), actor.x(), actor.y(), actor.z());
+        if (actor.lookAtCamera()) {
+            Vector towardCamera = section.camera().toVector().subtract(spawn.toVector());
+            if (towardCamera.lengthSquared() > 0.0001) {
+                spawn.setDirection(towardCamera);
+            }
+        } else {
+            spawn.setYaw(section.camera().getYaw() + actor.yaw());
+            spawn.setPitch(section.camera().getPitch() + actor.pitch());
+        }
+        return spawn;
+    }
+
+    private String resolveActorName(Player viewer, MenuActor actor) {
+        String rawName = actor.useViewerSkin() ? viewer.getName() : actor.name();
+        if (rawName == null || rawName.isBlank()) {
+            rawName = viewer.getName();
+        }
+        String withPlaceholders = PlaceholderAPI.setPlaceholders(viewer, rawName);
+        return colorize(withPlaceholders);
+    }
+
     private void ensureDefaultFiles() {
         saveIfMissing("cursormenu.yml");
         saveIfMissing("cursormenu-items.yml");
         File menuFolder = new File(plugin.getDataFolder(), "cursormenu/menu");
         if (!menuFolder.exists()) menuFolder.mkdirs();
         saveIfMissing("cursormenu/menu/example.yml");
-        saveIfMissing("cursormenu/menu/imported_example.yml");
+        saveIfMissing("cursormenu/menu/profile_selection.yml");
     }
 
     private void saveIfMissing(String path) {
@@ -1012,6 +1082,7 @@ public class CursorMenuManager implements Listener {
             }
             double distance = node.getDouble("distance", 4.0);
             List<MenuButton> buttons = parseNativeButtons(node.getConfigurationSection("buttons"));
+            List<MenuActor> actors = parseActors(node.getConfigurationSection("actors"));
             MenuSection section = new MenuSection(
                     key.toLowerCase(Locale.ROOT),
                     camera,
@@ -1020,6 +1091,7 @@ public class CursorMenuManager implements Listener {
                     false,
                     Collections.emptyList(),
                     Collections.emptyList(),
+                    actors,
                     buttons
             );
             sections.put(section.key(), section);
@@ -1078,6 +1150,7 @@ public class CursorMenuManager implements Listener {
             List<Integer> autoDelays = autoNode != null ? parseIntegerList(autoNode.getList("delays")) : Collections.emptyList();
 
             List<MenuButton> buttons = parseCustomButtons(menuNode.getConfigurationSection("layout"), key, sourceName);
+            List<MenuActor> actors = parseActors(menuNode.getConfigurationSection("actors"));
             MenuSection section = new MenuSection(
                     key.toLowerCase(Locale.ROOT),
                     camera,
@@ -1086,10 +1159,37 @@ public class CursorMenuManager implements Listener {
                     autoEnabled,
                     autoCommands,
                     autoDelays,
+                    actors,
                     buttons
             );
             sections.put(section.key(), section);
         }
+    }
+
+    private List<MenuActor> parseActors(ConfigurationSection actorSection) {
+        List<MenuActor> actors = new ArrayList<>();
+        if (actorSection == null) {
+            return actors;
+        }
+        for (String id : actorSection.getKeys(false)) {
+            ConfigurationSection node = actorSection.getConfigurationSection(id);
+            if (node == null) {
+                continue;
+            }
+            actors.add(new MenuActor(
+                    id,
+                    node.getString("type", "citizens-player"),
+                    node.getString("name", id),
+                    node.getBoolean("use-viewer-skin", true),
+                    node.getBoolean("look-at-camera", false),
+                    node.getDouble("x", 0.0),
+                    node.getDouble("y", 0.0),
+                    node.getDouble("z", 0.0),
+                    (float) node.getDouble("yaw", 0.0),
+                    (float) node.getDouble("pitch", 0.0)
+            ));
+        }
+        return actors;
     }
 
     private List<MenuButton> parseCustomButtons(ConfigurationSection layoutSection, String menuKey, String sourceName) {
@@ -1278,6 +1378,7 @@ public class CursorMenuManager implements Listener {
         private ArmorStand cursorAnchor;
         private ItemDisplay cursorDisplay;
         private Pig cameraSeat;
+        private final List<SpawnedActor> actors = new ArrayList<>();
         private final List<ButtonState> buttons = new ArrayList<>();
         private ItemStack originalHelmet;
         private ItemStack originalMainHand;
@@ -1318,6 +1419,24 @@ public class CursorMenuManager implements Listener {
         private PreviewSession(ItemPreset preset, ItemDisplay display) {
             this.preset = preset;
             this.display = display;
+        }
+    }
+
+    private static final class SpawnedActor {
+        private final NPC npc;
+
+        private SpawnedActor(NPC npc) {
+            this.npc = npc;
+        }
+
+        private void destroy() {
+            if (npc == null) {
+                return;
+            }
+            try {
+                npc.destroy();
+            } catch (Exception ignored) {
+            }
         }
     }
 }
