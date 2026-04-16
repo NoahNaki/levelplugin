@@ -106,7 +106,7 @@ public final class StrongholdDebugGenerator {
     private static final TemplateSpec CONNECTOR_SPEC =
             new TemplateSpec("connector_1", new TemplateBounds(412, -61, -5711, 402, -38, -5701), PieceCategory.CONNECTOR, 1);
     private static final List<DetachedAssetTemplateSpec> DETACHED_ASSET_TEMPLATE_SPECS = List.of(
-            new DetachedAssetTemplateSpec(FLAG_TEMPLATE_ID, AssetType.FLAG, new TemplateBounds(10, 10, 10, 5, 5, 5)),
+            new DetachedAssetTemplateSpec(FLAG_TEMPLATE_ID, AssetType.FLAG, new TemplateBounds(184, -61, -6341, 188, -41, -6359)),
             new DetachedAssetTemplateSpec("tree_1", AssetType.TREE, new TemplateBounds(210, -61, -6337, 200, -38, -6347)),
             new DetachedAssetTemplateSpec("tree_2", AssetType.TREE, new TemplateBounds(210, -61, -6347, 195, -23, -6362)),
             new DetachedAssetTemplateSpec("tree_3", AssetType.TREE, new TemplateBounds(210, -61, -6362, 191, -4, -6383)),
