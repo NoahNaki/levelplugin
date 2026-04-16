@@ -85,9 +85,9 @@ public final class StrongholdAssetDebugGUI implements Listener {
         inv.setItem(24, booleanItem(Material.COMPARATOR, "Invert Floor Mapping",
                 floorCfg.invertMapping(),
                 "Flips floor material order against noise output."));
-        inv.setItem(26, booleanItem(Material.SHORT_GRASS, "Short Grass Overlay",
+        inv.setItem(26, booleanItem(Material.SHORT_GRASS, "Vegetation Overlay",
                 floorCfg.shortGrassOverlayEnabled(),
-                "Simulates //gmask air + //replace >grass_block short_grass."));
+                "Mixes short grass, tall grass, and flowers on grass blocks."));
         inv.setItem(28, paletteItem("Floor Band 1", floorCfg.palette().get(0)));
         inv.setItem(29, paletteItem("Floor Band 2", floorCfg.palette().get(1)));
         inv.setItem(30, paletteItem("Floor Band 3", floorCfg.palette().get(2)));
@@ -100,6 +100,13 @@ public final class StrongholdAssetDebugGUI implements Listener {
         resetLore.add(" ");
         resetLore.addAll(TooltipUtil.clickInstructions("to reset", null));
         inv.setItem(40, GuiUtil.createGuiItem(Material.BARRIER, ChatColor.RED + "Reset", resetLore));
+        List<String> logLore = TooltipUtil.bulletList(
+                "Print current asset and floor tuning values to console.",
+                "Use this to copy values back as defaults later."
+        );
+        logLore.add(" ");
+        logLore.addAll(TooltipUtil.clickInstructions("to log settings", null));
+        inv.setItem(42, GuiUtil.createGuiItem(Material.WRITABLE_BOOK, ChatColor.YELLOW + "Log Settings", logLore));
     }
 
     private ItemStack numberItem(Material material, String name, int current, String description) {
@@ -211,6 +218,7 @@ public final class StrongholdAssetDebugGUI implements Listener {
                 ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
                         "Stronghold debug settings reset (assets + floor tuning).");
             }
+            case 42 -> StrongholdDebugGenerator.logCurrentDebugSettings(player);
             default -> {
                 return;
             }

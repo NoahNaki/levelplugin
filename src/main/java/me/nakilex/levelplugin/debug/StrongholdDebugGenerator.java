@@ -18,6 +18,7 @@ import org.bukkit.block.data.Directional;
 import org.bukkit.block.data.Orientable;
 import org.bukkit.block.data.Rotatable;
 import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitTask;
 
 import java.util.ArrayList;
 import java.util.ArrayDeque;
@@ -81,7 +82,19 @@ public final class StrongholdDebugGenerator {
     private static final double DEFAULT_FLOOR_NOISE_SCALE = 10.0D;
     private static final int DEFAULT_FLOOR_NOISE_PADDING = 18;
     private static final boolean DEFAULT_INVERT_FLOOR_NOISE_MAPPING = true;
-    private static final boolean DEFAULT_SHORT_GRASS_OVERLAY_ENABLED = true;
+    private static final boolean DEFAULT_VEGETATION_OVERLAY_ENABLED = true;
+    private static final double VEGETATION_SCALE = 6.0D;
+    private static final double FLOWER_THRESHOLD = 0.94D;
+    private static final double TALL_GRASS_THRESHOLD = 0.80D;
+    private static final int DETACHED_ASSET_BATCH_SIZE = 16;
+    private static final List<Material> FLOOR_FLOWER_OPTIONS = List.of(
+            Material.DANDELION,
+            Material.POPPY,
+            Material.AZURE_BLUET,
+            Material.OXEYE_DAISY,
+            Material.ALLIUM,
+            Material.CORNFLOWER
+    );
     private static final double LAPIS_FLAG_SPAWN_CHANCE = 0.50D;
     private static final double GOLD_CHEST_SPAWN_CHANCE = 0.20D;
     private static final int FLAG_VERTICAL_OFFSET_BLOCKS = -1;
@@ -254,6 +267,23 @@ public final class StrongholdDebugGenerator {
 
     public static void setShortGrassOverlayEnabled(boolean enabled) {
         floorTuningConfig = getFloorTuningConfig().withShortGrassOverlay(enabled);
+    }
+
+    public static void logCurrentDebugSettings(Player requester) {
+        AssetScatterConfig assets = getAssetScatterConfig();
+        AssetDistributionCounts distribution = previewAssetDistribution();
+        FloorTuningConfig floor = getFloorTuningConfig();
+        String settingsSummary = "Settings snapshot -> assets(total/tree/ruin/rock)="
+                + assets.totalCount() + "/" + assets.treePercent() + "/" + assets.ruinPercent() + "/" + assets.rockPercent()
+                + ", preview(tree/rock/ruin)=" + distribution.trees() + "/" + distribution.rocks() + "/" + distribution.ruins()
+                + ", floor(scale/padding/invert/vegetation)="
+                + String.format("%.2f", floor.noiseScale()) + "/" + floor.noisePadding() + "/" + floor.invertMapping() + "/" + floor.shortGrassOverlayEnabled()
+                + ", floorPalette=" + floor.palette();
+        Bukkit.getLogger().info("[StrongholdDebug] " + settingsSummary);
+        if (requester != null) {
+            ChatMessageUtil.send(requester, ChatMessageUtil.MessageType.INFO,
+                    "Logged current stronghold asset/floor settings to server console.");
+        }
     }
 
     public static void resetFloorTuningConfig() {
@@ -482,6 +512,7 @@ public final class StrongholdDebugGenerator {
         diagnostics.requiredRawCopied = requiredRawCopies;
 
         player.teleport(new org.bukkit.Location(world, originX + 0.5, originY + 2, originZ + 0.5));
+        scheduleDetachedAssetPasting(world, assetSummary.placements(), player);
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
                 "Generated stronghold spine+branches using " + placed.size()
                         + " pieces in world '" + world.getName() + "' (overlap threshold: "
@@ -663,6 +694,7 @@ public final class StrongholdDebugGenerator {
         int rocksPlaced = 0;
         int ruinsPlaced = 0;
         List<String> preview = new ArrayList<>();
+        List<AssetPlacement> queuedPlacements = new ArrayList<>();
 
         for (AssetType type : requestOrder) {
             List<DetachedAssetTemplate> pool = templatesByType.getOrDefault(type, List.of());
@@ -672,9 +704,9 @@ public final class StrongholdDebugGenerator {
             if (placement == null) {
                 continue;
             }
-            pasteDetachedAsset(world, placement);
             occupy(occupied, placement.origin(), placement.blocks());
             occupy(detachedOccupied, placement.origin(), placement.blocks());
+            queuedPlacements.add(placement);
 
             if (type == AssetType.TREE) {
                 treesPlaced++;
@@ -697,7 +729,8 @@ public final class StrongholdDebugGenerator {
                 + ", rejected(outsideField)=" + debugCounter.outsideFieldRejects
                 + ", rejected(nonTerrainGround)=" + debugCounter.nonTerrainGroundRejects
                 + ", rejected(overlapMain)=" + debugCounter.mainOverlapRejects
-                + ", rejected(overlapDetached)=" + debugCounter.detachedOverlapRejects + ".");
+                + ", rejected(overlapDetached)=" + debugCounter.detachedOverlapRejects
+                + ", queued=" + queuedPlacements.size() + ".");
 
         return new AssetPlacementSummary(
                 counts.trees(),
@@ -706,7 +739,8 @@ public final class StrongholdDebugGenerator {
                 treesPlaced,
                 rocksPlaced,
                 ruinsPlaced,
-                preview
+                preview,
+                List.copyOf(queuedPlacements)
         );
     }
 
@@ -896,11 +930,11 @@ public final class StrongholdDebugGenerator {
             }
         }
         if (floorCfg.shortGrassOverlayEnabled()) {
-            applyShortGrassOverlay(world, minX, maxX, minZ, maxZ);
+            applyVegetationOverlay(world, minX, maxX, minZ, maxZ);
         }
     }
 
-    private static void applyShortGrassOverlay(World world, int minX, int maxX, int minZ, int maxZ) {
+    private static void applyVegetationOverlay(World world, int minX, int maxX, int minZ, int maxZ) {
         if (world == null) {
             return;
         }
@@ -918,9 +952,30 @@ public final class StrongholdDebugGenerator {
                 if (!above.getType().isAir()) {
                     continue;
                 }
+                double vegetationNoise = fractalSimplexLikeNoise(x / VEGETATION_SCALE, z / VEGETATION_SCALE);
+                if (vegetationNoise >= FLOWER_THRESHOLD) {
+                    above.setType(pickFlowerFromNoise(x, z, FLOOR_FLOWER_OPTIONS), false);
+                    continue;
+                }
+                if (vegetationNoise >= TALL_GRASS_THRESHOLD) {
+                    org.bukkit.block.Block above2 = above.getRelative(BlockFace.UP);
+                    if (above2.getType().isAir()) {
+                        above.setType(Material.TALL_GRASS, false);
+                        continue;
+                    }
+                }
                 above.setType(Material.SHORT_GRASS, false);
             }
         }
+    }
+
+    private static Material pickFlowerFromNoise(int x, int z, List<Material> options) {
+        if (options == null || options.isEmpty()) {
+            return Material.DANDELION;
+        }
+        double sample = (hashToSignedUnit(x * 17, z * 31) + 1.0D) * 0.5D;
+        int index = Math.max(0, Math.min(options.size() - 1, (int) Math.floor(sample * options.size())));
+        return options.get(index);
     }
 
     private static Material pickMaterialFromNoise(double normalizedNoise) {
@@ -1069,6 +1124,37 @@ public final class StrongholdDebugGenerator {
             return null;
         }
         return anchors.get(0);
+    }
+
+    private static void scheduleDetachedAssetPasting(World world, List<AssetPlacement> placements, Player player) {
+        if (world == null || placements == null || placements.isEmpty()) {
+            return;
+        }
+        Main plugin = Main.getInstance();
+        if (plugin == null) {
+            for (AssetPlacement placement : placements) {
+                pasteDetachedAsset(world, placement);
+            }
+            return;
+        }
+        final BukkitTask[] taskRef = new BukkitTask[1];
+        final int[] index = {0};
+        final int total = placements.size();
+        taskRef[0] = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            int processed = 0;
+            while (index[0] < total && processed < DETACHED_ASSET_BATCH_SIZE) {
+                pasteDetachedAsset(world, placements.get(index[0]));
+                index[0]++;
+                processed++;
+            }
+            if (index[0] >= total && taskRef[0] != null) {
+                taskRef[0].cancel();
+                if (player != null && player.isOnline()) {
+                    ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                            "Detached asset batching complete (" + total + " placements).");
+                }
+            }
+        }, 1L, 1L);
     }
 
     private static void pasteDetachedAsset(World world, AssetPlacement placement) {
@@ -3916,7 +4002,7 @@ public final class StrongholdDebugGenerator {
                     DEFAULT_FLOOR_NOISE_SCALE,
                     DEFAULT_FLOOR_NOISE_PADDING,
                     DEFAULT_INVERT_FLOOR_NOISE_MAPPING,
-                    DEFAULT_SHORT_GRASS_OVERLAY_ENABLED,
+                    DEFAULT_VEGETATION_OVERLAY_ENABLED,
                     List.copyOf(DEFAULT_STRONGHOLD_FLOOR_PATTERN)
             );
         }
@@ -4055,9 +4141,10 @@ public final class StrongholdDebugGenerator {
                                          int placedTrees,
                                          int placedRocks,
                                          int placedRuins,
-                                         List<String> sampleOrigins) {
+                                         List<String> sampleOrigins,
+                                         List<AssetPlacement> placements) {
         private static AssetPlacementSummary empty() {
-            return new AssetPlacementSummary(0, 0, 0, 0, 0, 0, List.of());
+            return new AssetPlacementSummary(0, 0, 0, 0, 0, 0, List.of(), List.of());
         }
 
         private String summary() {
