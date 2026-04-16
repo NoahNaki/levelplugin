@@ -192,6 +192,14 @@ commands:
   settings:
     description: Opens the settings menu
     usage: /settings
+  pweather:
+    description: Set personal client-side weather
+    usage: /pweather <clear|rain|thunder|reset>
+    aliases: [w]
+  ptime:
+    description: Set personal client-side time
+    usage: /ptime <day|night|sunset|reset>
+    aliases: [t]
   connect:
     description: Open the server selector or connect to a server
     usage: /connect [alpha|build|hub]

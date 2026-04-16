@@ -214,9 +214,6 @@ public class FishingListener implements Listener {
         ItemStack rod = resolveRod(player);
         ToolTier tier = resolveTier(rod);
         double speedMultiplier = tier != null ? tier.getFishingSpeed() : 1.0;
-        if (player.getWorld().hasStorm()) {
-            speedMultiplier *= 2.0;
-        }
         long window = Math.round(BITE_WINDOW_MS * speedMultiplier);
         return Math.max(500L, window);
     }

@@ -57,10 +57,14 @@ import me.nakilex.levelplugin.pathfinding.MercenaryManager;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.potions.managers.PotionManager;
 import me.nakilex.levelplugin.settings.gui.SettingsGUI;
+import me.nakilex.levelplugin.settings.gui.PersonalEnvironmentSettingsGUI;
 import me.nakilex.levelplugin.spells.gui.SpellKeybindGUI;
 import me.nakilex.levelplugin.spells.gui.SpellUpgradeGUI;
 import me.nakilex.levelplugin.spells.SpellCatalog;
 import me.nakilex.levelplugin.settings.managers.SettingsManager;
+import me.nakilex.levelplugin.settings.environment.PersonalEnvironmentKeys;
+import me.nakilex.levelplugin.settings.environment.PlayerEnvironmentService;
+import me.nakilex.levelplugin.settings.environment.PlayerPreferenceService;
 import me.nakilex.levelplugin.storage.StorageManager;
 import me.nakilex.levelplugin.storage.events.StorageEvents;
 import me.nakilex.levelplugin.tips.BroadcastManager;
@@ -219,6 +223,9 @@ public class PluginBootstrap {
     private me.nakilex.levelplugin.auctionhouse.AuctionHouseGUI auctionHouseGUI;
     private SettingsManager settingsManager;
     private SettingsGUI settingsGUI;
+    private PersonalEnvironmentSettingsGUI personalEnvironmentSettingsGUI;
+    private PlayerPreferenceService playerPreferenceService;
+    private PlayerEnvironmentService playerEnvironmentService;
     private SpellKeybindGUI spellKeybindGUI;
     private SpellUpgradeGUI spellUpgradeGUI;
     private me.nakilex.levelplugin.debug.gui.DebugGUI debugGUI;
@@ -387,6 +394,9 @@ public class PluginBootstrap {
         broadcastMgr = new BroadcastManager(plugin, this.tipsCfg);
         broadcastMgr.start();
         settingsManager = new SettingsManager();
+        PersonalEnvironmentKeys.init(plugin);
+        playerPreferenceService = new PlayerPreferenceService();
+        playerEnvironmentService = new PlayerEnvironmentService(playerPreferenceService);
         SpellCatalog.registerDefaults(plugin);
         questManager = new QuestManager(plugin, partyManager);
         battlePassManager = new BattlePassManager(plugin, questManager, itemManager);
@@ -475,6 +485,9 @@ public class PluginBootstrap {
         horseManager = new HorseManager(horseConfigManager);
         HorseGUI horseGUI = new HorseGUI(horseManager, economyManager);
         settingsGUI = new SettingsGUI(settingsManager);
+        personalEnvironmentSettingsGUI = new PersonalEnvironmentSettingsGUI(playerEnvironmentService);
+        personalEnvironmentSettingsGUI.setSettingsGUI(settingsGUI);
+        settingsGUI.setPersonalEnvironmentSettingsGUI(personalEnvironmentSettingsGUI);
         spellKeybindGUI = new SpellKeybindGUI(settingsManager, settingsGUI);
         spellUpgradeGUI = new SpellUpgradeGUI();
         settingsGUI.setSpellKeybindGUI(spellKeybindGUI);
@@ -550,6 +563,8 @@ public class PluginBootstrap {
             arcSlashDebugManager,
             arcSlashDebugGUI
         );
+        plugin.getCommand("pweather").setExecutor(new me.nakilex.levelplugin.settings.commands.PersonalWeatherCommand(playerEnvironmentService));
+        plugin.getCommand("ptime").setExecutor(new me.nakilex.levelplugin.settings.commands.PersonalTimeCommand(playerEnvironmentService));
         me.nakilex.levelplugin.catacombs.CatacombsCommand catacombsCommand =
                 new me.nakilex.levelplugin.catacombs.CatacombsCommand(catacombsManager, catacombsGUI);
         plugin.getCommand("catacombs").setExecutor(catacombsCommand);
@@ -657,6 +672,10 @@ public class PluginBootstrap {
                 plugin);
         plugin.getServer().getPluginManager().registerEvents(
                 new me.nakilex.levelplugin.guild.GuildMembershipListener(),
+                plugin);
+        plugin.getServer().getPluginManager().registerEvents(personalEnvironmentSettingsGUI, plugin);
+        plugin.getServer().getPluginManager().registerEvents(
+                new me.nakilex.levelplugin.settings.listeners.PersonalEnvironmentJoinListener(plugin, playerEnvironmentService),
                 plugin);
         plugin.getServer().getPluginManager().registerEvents(beaconManager, plugin);
         if (chatGameManager != null) {

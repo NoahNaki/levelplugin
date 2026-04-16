@@ -54,6 +54,7 @@ public class SettingsGUI implements Listener {
     private final Map<UUID, List<GuiWidget>> widgetsByPlayer = new HashMap<>();
     private SpellKeybindGUI spellKeybindGUI;
     private SpellUpgradeGUI spellUpgradeGUI;
+    private PersonalEnvironmentSettingsGUI personalEnvironmentSettingsGUI;
 
     public SettingsGUI(SettingsManager settingsManager) {
         this.settingsManager = settingsManager;
@@ -69,6 +70,10 @@ public class SettingsGUI implements Listener {
 
     public void setSpellUpgradeGUI(SpellUpgradeGUI spellUpgradeGUI) {
         this.spellUpgradeGUI = spellUpgradeGUI;
+    }
+
+    public void setPersonalEnvironmentSettingsGUI(PersonalEnvironmentSettingsGUI personalEnvironmentSettingsGUI) {
+        this.personalEnvironmentSettingsGUI = personalEnvironmentSettingsGUI;
     }
 
     public void openSettingsMenu(Player player) {
@@ -334,6 +339,9 @@ public class SettingsGUI implements Listener {
                     context -> GuiUtil.createToggleItem(settings.isQuestTrackingParticlesEnabled(), "§bQuest Path Particles",
                             "§eClick to toggle"),
                     (click, context) -> toggleQuestTrackingParticles(context.player(), settings)));
+            entries.add(new SettingEntry("Personal Environment",
+                    context -> createPersonalEnvironmentItem(),
+                    (click, context) -> openPersonalEnvironmentSettings(context.player())));
         }
 
         if (filter == Filter.ALL || filter == Filter.SOCIAL) {
@@ -539,5 +547,27 @@ public class SettingsGUI implements Listener {
         settings.cycleSpellInputMode();
         settingsManager.saveActiveProfileSettings(player);
         openSettingsMenu(player);
+    }
+
+    private ItemStack createPersonalEnvironmentItem() {
+        ItemStack item = GuiUtil.getNexoItem("placeholder_environment", ChatColor.AQUA + "Personal Environment");
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            List<String> lore = new ArrayList<>();
+            lore.add(" ");
+            lore.add(ChatColor.GRAY + "Configure client-side");
+            lore.add(ChatColor.GRAY + "weather and time.");
+            lore.add(" ");
+            lore.addAll(TooltipUtil.clickInstructions("to open", null));
+            meta.setLore(lore);
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
+    private void openPersonalEnvironmentSettings(Player player) {
+        if (personalEnvironmentSettingsGUI != null) {
+            personalEnvironmentSettingsGUI.open(player);
+        }
     }
 }
