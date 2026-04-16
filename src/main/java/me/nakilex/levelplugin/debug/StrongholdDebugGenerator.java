@@ -55,10 +55,10 @@ public final class StrongholdDebugGenerator {
             Material.GOLD_BLOCK
     );
     private static final List<Material> STRONGHOLD_FLOOR_PATTERN = List.of(
-            Material.GRASS_BLOCK,
-            Material.COARSE_DIRT,
+            Material.MUD,
             Material.DIRT,
-            Material.MUD
+            Material.COARSE_DIRT,
+            Material.GRASS_BLOCK
     );
     private static final Set<Material> TERRAIN_REPLACEABLE_MATERIALS = Set.of(
             Material.GRASS_BLOCK,
@@ -967,9 +967,13 @@ public final class StrongholdDebugGenerator {
             return;
         }
         DetachedAssetTemplate template = flagTemplates.get(random.nextInt(flagTemplates.size()));
-        int originX = markerX - template.centerOffsetX();
-        int originY = markerY - Math.min(0, template.lowestRelativeY());
-        int originZ = markerZ - template.centerOffsetZ();
+        BlockVector3 anchor = markerAnchorFor(template, Material.LAPIS_BLOCK);
+        int anchorX = anchor != null ? anchor.getBlockX() : template.centerOffsetX();
+        int anchorY = anchor != null ? anchor.getBlockY() : Math.min(0, template.lowestRelativeY());
+        int anchorZ = anchor != null ? anchor.getBlockZ() : template.centerOffsetZ();
+        int originX = markerX - anchorX;
+        int originY = markerY - anchorY;
+        int originZ = markerZ - anchorZ;
         for (Map.Entry<BlockVector3, BlockData> entry : template.blocks().entrySet()) {
             BlockVector3 rel = entry.getKey();
             int x = originX + rel.getBlockX();
@@ -977,6 +981,17 @@ public final class StrongholdDebugGenerator {
             int z = originZ + rel.getBlockZ();
             targetWorld.getBlockAt(x, y, z).setBlockData(entry.getValue(), false);
         }
+    }
+
+    private static BlockVector3 markerAnchorFor(DetachedAssetTemplate template, Material markerType) {
+        if (template == null || markerType == null || template.markers() == null) {
+            return null;
+        }
+        List<BlockVector3> anchors = template.markers().get(markerType);
+        if (anchors == null || anchors.isEmpty()) {
+            return null;
+        }
+        return anchors.get(0);
     }
 
     private static void pasteDetachedAsset(World world, AssetPlacement placement) {
@@ -3439,6 +3454,7 @@ public final class StrongholdDebugGenerator {
                     spec.id(),
                     spec.type(),
                     captured.blocks(),
+                    copyMarkerPositions(captured.markers()),
                     radiusForBlocks(captured.blocks()),
                     lowestRelativeY(captured.blocks()),
                     centerOffsetX(captured.blocks()),
@@ -3462,6 +3478,20 @@ public final class StrongholdDebugGenerator {
         int width = Math.max(1, (bounds.maxX - bounds.minX) + 1);
         int length = Math.max(1, (bounds.maxZ - bounds.minZ) + 1);
         return Math.max(1, (int) Math.ceil(Math.max(width, length) / 2.0D));
+    }
+
+    private static Map<Material, List<BlockVector3>> copyMarkerPositions(Map<Material, List<BlockVector3>> markers) {
+        if (markers == null || markers.isEmpty()) {
+            return Map.of();
+        }
+        Map<Material, List<BlockVector3>> copy = new EnumMap<>(Material.class);
+        for (Map.Entry<Material, List<BlockVector3>> entry : markers.entrySet()) {
+            if (entry.getKey() == null || entry.getValue() == null || entry.getValue().isEmpty()) {
+                continue;
+            }
+            copy.put(entry.getKey(), List.copyOf(entry.getValue()));
+        }
+        return copy.isEmpty() ? Map.of() : Collections.unmodifiableMap(copy);
     }
 
     private static int lowestRelativeY(Map<BlockVector3, BlockData> blocks) {
@@ -3955,6 +3985,7 @@ public final class StrongholdDebugGenerator {
     private record DetachedAssetTemplate(String id,
                                          AssetType type,
                                          Map<BlockVector3, BlockData> blocks,
+                                         Map<Material, List<BlockVector3>> markers,
                                          int radiusBlocks,
                                          int lowestRelativeY,
                                          int centerOffsetX,
