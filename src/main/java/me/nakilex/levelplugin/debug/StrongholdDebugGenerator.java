@@ -55,10 +55,10 @@ public final class StrongholdDebugGenerator {
             Material.GOLD_BLOCK
     );
     private static final List<Material> STRONGHOLD_FLOOR_PATTERN = List.of(
-            Material.GRASS_BLOCK,
-            Material.COARSE_DIRT,
+            Material.PACKED_MUD,
             Material.DIRT,
-            Material.PACKED_MUD
+            Material.COARSE_DIRT,
+            Material.GRASS_BLOCK
     );
     private static final Set<Material> TERRAIN_REPLACEABLE_MATERIALS = Set.of(
             Material.GRASS_BLOCK,
@@ -73,8 +73,6 @@ public final class StrongholdDebugGenerator {
     private static final double LAPIS_FLAG_SPAWN_CHANCE = 0.50D;
     private static final double GOLD_CHEST_SPAWN_CHANCE = 0.20D;
     private static final int FLAG_VERTICAL_OFFSET_BLOCKS = -1;
-    private static final double SHORT_GRASS_PATCH_SCALE = 7.5D;
-    private static final double SHORT_GRASS_PATCH_THRESHOLD = 0.78D;
     private static final String FLAG_TEMPLATE_ID = "flag_1";
 
     private static final List<TemplateSpec> TEMPLATE_SPECS = List.of(
@@ -851,10 +849,10 @@ public final class StrongholdDebugGenerator {
                 }
             }
         }
-        applyShortGrassPatches(world, minX, maxX, minZ, maxZ);
+        applyShortGrassOverlay(world, minX, maxX, minZ, maxZ);
     }
 
-    private static void applyShortGrassPatches(World world, int minX, int maxX, int minZ, int maxZ) {
+    private static void applyShortGrassOverlay(World world, int minX, int maxX, int minZ, int maxZ) {
         if (world == null) {
             return;
         }
@@ -872,11 +870,7 @@ public final class StrongholdDebugGenerator {
                 if (!above.getType().isAir()) {
                     continue;
                 }
-                double sample = fractalSimplexLikeNoise((x + 91.371D) / SHORT_GRASS_PATCH_SCALE,
-                        (z - 47.219D) / SHORT_GRASS_PATCH_SCALE);
-                if (sample >= SHORT_GRASS_PATCH_THRESHOLD) {
-                    above.setType(Material.SHORT_GRASS, false);
-                }
+                above.setType(Material.SHORT_GRASS, false);
             }
         }
     }
