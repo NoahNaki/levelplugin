@@ -73,7 +73,7 @@ public final class StrongholdAssetDebugGUI implements Listener {
                 "Distribution auto-normalizes when spawning.",
                 "Detached assets use a 5% overlap cap."
         );
-        inv.setItem(31, GuiUtil.createGuiItem(Material.BOOK, ChatColor.AQUA + "Distribution Info", infoLore));
+        inv.setItem(33, GuiUtil.createGuiItem(Material.BOOK, ChatColor.AQUA + "Distribution Info", infoLore));
 
         StrongholdDebugGenerator.FloorTuningConfig floorCfg = StrongholdDebugGenerator.getFloorTuningConfig();
         inv.setItem(20, numberItem(Material.GRASS_BLOCK, "Floor Noise Scale",
@@ -88,8 +88,15 @@ public final class StrongholdAssetDebugGUI implements Listener {
         inv.setItem(26, booleanItem(Material.SHORT_GRASS, "Short Grass Overlay",
                 floorCfg.shortGrassOverlayEnabled(),
                 "Simulates //gmask air + //replace >grass_block short_grass."));
+        inv.setItem(28, paletteItem("Floor Band 1", floorCfg.palette().get(0)));
+        inv.setItem(29, paletteItem("Floor Band 2", floorCfg.palette().get(1)));
+        inv.setItem(30, paletteItem("Floor Band 3", floorCfg.palette().get(2)));
+        inv.setItem(31, paletteItem("Floor Band 4", floorCfg.palette().get(3)));
 
-        List<String> resetLore = TooltipUtil.bulletList("Reset to 70% trees, 10% ruins, 20% rocks, total 250.");
+        List<String> resetLore = TooltipUtil.bulletList(
+                "Reset to 70% trees, 10% ruins, 20% rocks, total 250.",
+                "Floor defaults: packed_mud, dirt, coarse_dirt, grass_block."
+        );
         resetLore.add(" ");
         resetLore.addAll(TooltipUtil.clickInstructions("to reset", null));
         inv.setItem(40, GuiUtil.createGuiItem(Material.BARRIER, ChatColor.RED + "Reset", resetLore));
@@ -122,6 +129,23 @@ public final class StrongholdAssetDebugGUI implements Listener {
         lore.add(" ");
         lore.addAll(TooltipUtil.clickInstructions("to toggle", null));
         return GuiUtil.createGuiItem(material, ChatColor.AQUA + name, lore);
+    }
+
+    private ItemStack paletteItem(String name, Material material) {
+        Material icon = (material == null || material.isAir()) ? Material.BARRIER : material;
+        List<String> lore = new ArrayList<>();
+        lore.add(ChatColor.GRAY + "Current: " + ChatColor.WHITE + formatMaterial(material));
+        lore.add(" ");
+        lore.add(ChatColor.DARK_GRAY + "- " + ChatColor.GRAY + "Left/Right: cycle material");
+        return GuiUtil.createGuiItem(icon, ChatColor.GOLD + name, lore);
+    }
+
+    private String formatMaterial(Material material) {
+        if (material == null) {
+            return "none";
+        }
+        String raw = material.name().toLowerCase(java.util.Locale.ROOT).replace('_', ' ');
+        return raw.substring(0, 1).toUpperCase(java.util.Locale.ROOT) + raw.substring(1);
     }
 
     @EventHandler
@@ -167,6 +191,18 @@ public final class StrongholdAssetDebugGUI implements Listener {
             case 26 -> {
                 StrongholdDebugGenerator.FloorTuningConfig floorCfg = StrongholdDebugGenerator.getFloorTuningConfig();
                 StrongholdDebugGenerator.setShortGrassOverlayEnabled(!floorCfg.shortGrassOverlayEnabled());
+            }
+            case 28, 29, 30, 31 -> {
+                int paletteIndex = slot - 28;
+                StrongholdDebugGenerator.FloorTuningConfig floorCfg = StrongholdDebugGenerator.getFloorTuningConfig();
+                List<Material> options = StrongholdDebugGenerator.getFloorPaletteOptions();
+                Material current = floorCfg.palette().get(paletteIndex);
+                int currentIndex = options.indexOf(current);
+                if (currentIndex < 0) {
+                    currentIndex = 0;
+                }
+                int nextIndex = (currentIndex + sign + options.size()) % options.size();
+                StrongholdDebugGenerator.setFloorPaletteBlock(paletteIndex, options.get(nextIndex));
             }
             case 40 -> {
                 StrongholdDebugGenerator.setAssetScatterTotalCount(250);

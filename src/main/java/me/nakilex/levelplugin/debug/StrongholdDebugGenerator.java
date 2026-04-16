@@ -54,11 +54,21 @@ public final class StrongholdDebugGenerator {
             Material.LAPIS_BLOCK,
             Material.GOLD_BLOCK
     );
-    private static final List<Material> STRONGHOLD_FLOOR_PATTERN = List.of(
+    private static final List<Material> DEFAULT_STRONGHOLD_FLOOR_PATTERN = List.of(
             Material.PACKED_MUD,
             Material.DIRT,
             Material.COARSE_DIRT,
             Material.GRASS_BLOCK
+    );
+    private static final List<Material> FLOOR_PALETTE_OPTIONS = List.of(
+            Material.PACKED_MUD,
+            Material.MUD,
+            Material.DIRT,
+            Material.COARSE_DIRT,
+            Material.GRASS_BLOCK,
+            Material.PODZOL,
+            Material.ROOTED_DIRT,
+            Material.MOSS_BLOCK
     );
     private static final Set<Material> TERRAIN_REPLACEABLE_MATERIALS = Set.of(
             Material.GRASS_BLOCK,
@@ -248,6 +258,14 @@ public final class StrongholdDebugGenerator {
 
     public static void resetFloorTuningConfig() {
         floorTuningConfig = FloorTuningConfig.defaults();
+    }
+
+    public static List<Material> getFloorPaletteOptions() {
+        return FLOOR_PALETTE_OPTIONS;
+    }
+
+    public static void setFloorPaletteBlock(int index, Material material) {
+        floorTuningConfig = getFloorTuningConfig().withPaletteBlock(index, material);
     }
 
     public static Map<String, TemplateConnectionInfo> inspectTemplateConnections() {
@@ -851,7 +869,7 @@ public final class StrongholdDebugGenerator {
             return;
         }
         Bounds2D footprint = combinedBounds2D(placedTemplates);
-        if (footprint == null || STRONGHOLD_FLOOR_PATTERN.isEmpty()) {
+        if (footprint == null || getFloorTuningConfig().palette().isEmpty()) {
             return;
         }
         FloorTuningConfig floorCfg = getFloorTuningConfig();
@@ -906,18 +924,19 @@ public final class StrongholdDebugGenerator {
     }
 
     private static Material pickMaterialFromNoise(double normalizedNoise) {
-        if (STRONGHOLD_FLOOR_PATTERN.isEmpty()) {
+        List<Material> palette = getFloorTuningConfig().palette();
+        if (palette.isEmpty()) {
             return null;
         }
         double t = Math.max(0.0D, Math.min(1.0D, normalizedNoise));
         if (getFloorTuningConfig().invertMapping()) {
             t = 1.0D - t;
         }
-        int index = (int) Math.floor(t * STRONGHOLD_FLOOR_PATTERN.size());
-        if (index >= STRONGHOLD_FLOOR_PATTERN.size()) {
-            index = STRONGHOLD_FLOOR_PATTERN.size() - 1;
+        int index = (int) Math.floor(t * palette.size());
+        if (index >= palette.size()) {
+            index = palette.size() - 1;
         }
-        return STRONGHOLD_FLOOR_PATTERN.get(Math.max(0, index));
+        return palette.get(Math.max(0, index));
     }
 
     private static double fractalSimplexLikeNoise(double x, double z) {
@@ -3890,13 +3909,15 @@ public final class StrongholdDebugGenerator {
     public record FloorTuningConfig(double noiseScale,
                                     int noisePadding,
                                     boolean invertMapping,
-                                    boolean shortGrassOverlayEnabled) {
+                                    boolean shortGrassOverlayEnabled,
+                                    List<Material> palette) {
         private static FloorTuningConfig defaults() {
             return new FloorTuningConfig(
                     DEFAULT_FLOOR_NOISE_SCALE,
                     DEFAULT_FLOOR_NOISE_PADDING,
                     DEFAULT_INVERT_FLOOR_NOISE_MAPPING,
-                    DEFAULT_SHORT_GRASS_OVERLAY_ENABLED
+                    DEFAULT_SHORT_GRASS_OVERLAY_ENABLED,
+                    List.copyOf(DEFAULT_STRONGHOLD_FLOOR_PATTERN)
             );
         }
 
@@ -3905,7 +3926,8 @@ public final class StrongholdDebugGenerator {
                     Math.max(1.0D, Math.min(96.0D, scale)),
                     noisePadding,
                     invertMapping,
-                    shortGrassOverlayEnabled
+                    shortGrassOverlayEnabled,
+                    palette
             );
         }
 
@@ -3914,16 +3936,26 @@ public final class StrongholdDebugGenerator {
                     noiseScale,
                     Math.max(0, Math.min(128, padding)),
                     invertMapping,
-                    shortGrassOverlayEnabled
+                    shortGrassOverlayEnabled,
+                    palette
             );
         }
 
         private FloorTuningConfig withInvertMapping(boolean invert) {
-            return new FloorTuningConfig(noiseScale, noisePadding, invert, shortGrassOverlayEnabled);
+            return new FloorTuningConfig(noiseScale, noisePadding, invert, shortGrassOverlayEnabled, palette);
         }
 
         private FloorTuningConfig withShortGrassOverlay(boolean enabled) {
-            return new FloorTuningConfig(noiseScale, noisePadding, invertMapping, enabled);
+            return new FloorTuningConfig(noiseScale, noisePadding, invertMapping, enabled, palette);
+        }
+
+        private FloorTuningConfig withPaletteBlock(int index, Material material) {
+            if (index < 0 || index >= palette.size() || material == null) {
+                return this;
+            }
+            List<Material> next = new ArrayList<>(palette);
+            next.set(index, material);
+            return new FloorTuningConfig(noiseScale, noisePadding, invertMapping, shortGrassOverlayEnabled, List.copyOf(next));
         }
     }
 
