@@ -68,9 +68,10 @@ public final class StrongholdDebugGenerator {
             Material.PODZOL,
             Material.MOSS_BLOCK
     );
-    private static final double FLOOR_NOISE_SCALE = 10.0D;
-    private static final int FLOOR_NOISE_PADDING = 18;
-    private static final boolean INVERT_FLOOR_NOISE_MAPPING = true;
+    private static final double DEFAULT_FLOOR_NOISE_SCALE = 10.0D;
+    private static final int DEFAULT_FLOOR_NOISE_PADDING = 18;
+    private static final boolean DEFAULT_INVERT_FLOOR_NOISE_MAPPING = true;
+    private static final boolean DEFAULT_SHORT_GRASS_OVERLAY_ENABLED = true;
     private static final double LAPIS_FLAG_SPAWN_CHANCE = 0.50D;
     private static final double GOLD_CHEST_SPAWN_CHANCE = 0.20D;
     private static final int FLAG_VERTICAL_OFFSET_BLOCKS = -1;
@@ -176,6 +177,7 @@ public final class StrongholdDebugGenerator {
 
     private static double maxOverlapPercent = 2.0D;
     private static AssetScatterConfig assetScatterConfig = AssetScatterConfig.defaults();
+    private static FloorTuningConfig floorTuningConfig = FloorTuningConfig.defaults();
     private static final Map<Template, RotatedTemplate[]> ROTATION_CACHE = new IdentityHashMap<>();
     private static final Map<String, BlockData[]> BLOCK_DATA_ROTATION_CACHE = new HashMap<>();
     private static final Map<String, com.sk89q.worldedit.world.block.BlockState> WORLD_EDIT_BLOCK_STATE_CACHE = new HashMap<>();
@@ -222,6 +224,30 @@ public final class StrongholdDebugGenerator {
 
     public static AssetDistributionCounts previewAssetDistribution() {
         return (assetScatterConfig == null ? AssetScatterConfig.defaults() : assetScatterConfig).computeCounts();
+    }
+
+    public static FloorTuningConfig getFloorTuningConfig() {
+        return floorTuningConfig == null ? FloorTuningConfig.defaults() : floorTuningConfig;
+    }
+
+    public static void setFloorNoiseScale(double scale) {
+        floorTuningConfig = getFloorTuningConfig().withNoiseScale(scale);
+    }
+
+    public static void setFloorNoisePadding(int padding) {
+        floorTuningConfig = getFloorTuningConfig().withNoisePadding(padding);
+    }
+
+    public static void setInvertFloorNoiseMapping(boolean invert) {
+        floorTuningConfig = getFloorTuningConfig().withInvertMapping(invert);
+    }
+
+    public static void setShortGrassOverlayEnabled(boolean enabled) {
+        floorTuningConfig = getFloorTuningConfig().withShortGrassOverlay(enabled);
+    }
+
+    public static void resetFloorTuningConfig() {
+        floorTuningConfig = FloorTuningConfig.defaults();
     }
 
     public static Map<String, TemplateConnectionInfo> inspectTemplateConnections() {
@@ -828,10 +854,11 @@ public final class StrongholdDebugGenerator {
         if (footprint == null || STRONGHOLD_FLOOR_PATTERN.isEmpty()) {
             return;
         }
-        int minX = footprint.minX - FLOOR_NOISE_PADDING;
-        int maxX = footprint.maxX + FLOOR_NOISE_PADDING;
-        int minZ = footprint.minZ - FLOOR_NOISE_PADDING;
-        int maxZ = footprint.maxZ + FLOOR_NOISE_PADDING;
+        FloorTuningConfig floorCfg = getFloorTuningConfig();
+        int minX = footprint.minX - floorCfg.noisePadding();
+        int maxX = footprint.maxX + floorCfg.noisePadding();
+        int minZ = footprint.minZ - floorCfg.noisePadding();
+        int maxZ = footprint.maxZ + floorCfg.noisePadding();
 
         for (int x = minX; x <= maxX; x++) {
             for (int z = minZ; z <= maxZ; z++) {
@@ -843,14 +870,16 @@ public final class StrongholdDebugGenerator {
                 if (!TERRAIN_REPLACEABLE_MATERIALS.contains(block.getType())) {
                     continue;
                 }
-                double sample = fractalSimplexLikeNoise(x / FLOOR_NOISE_SCALE, z / FLOOR_NOISE_SCALE);
+                double sample = fractalSimplexLikeNoise(x / floorCfg.noiseScale(), z / floorCfg.noiseScale());
                 Material patterned = pickMaterialFromNoise(sample);
                 if (patterned != null && block.getType() != patterned) {
                     block.setType(patterned, false);
                 }
             }
         }
-        applyShortGrassOverlay(world, minX, maxX, minZ, maxZ);
+        if (floorCfg.shortGrassOverlayEnabled()) {
+            applyShortGrassOverlay(world, minX, maxX, minZ, maxZ);
+        }
     }
 
     private static void applyShortGrassOverlay(World world, int minX, int maxX, int minZ, int maxZ) {
@@ -881,7 +910,7 @@ public final class StrongholdDebugGenerator {
             return null;
         }
         double t = Math.max(0.0D, Math.min(1.0D, normalizedNoise));
-        if (INVERT_FLOOR_NOISE_MAPPING) {
+        if (getFloorTuningConfig().invertMapping()) {
             t = 1.0D - t;
         }
         int index = (int) Math.floor(t * STRONGHOLD_FLOOR_PATTERN.size());
@@ -3856,6 +3885,46 @@ public final class StrongholdDebugGenerator {
         TREE,
         ROCK,
         RUIN
+    }
+
+    public record FloorTuningConfig(double noiseScale,
+                                    int noisePadding,
+                                    boolean invertMapping,
+                                    boolean shortGrassOverlayEnabled) {
+        private static FloorTuningConfig defaults() {
+            return new FloorTuningConfig(
+                    DEFAULT_FLOOR_NOISE_SCALE,
+                    DEFAULT_FLOOR_NOISE_PADDING,
+                    DEFAULT_INVERT_FLOOR_NOISE_MAPPING,
+                    DEFAULT_SHORT_GRASS_OVERLAY_ENABLED
+            );
+        }
+
+        private FloorTuningConfig withNoiseScale(double scale) {
+            return new FloorTuningConfig(
+                    Math.max(1.0D, Math.min(96.0D, scale)),
+                    noisePadding,
+                    invertMapping,
+                    shortGrassOverlayEnabled
+            );
+        }
+
+        private FloorTuningConfig withNoisePadding(int padding) {
+            return new FloorTuningConfig(
+                    noiseScale,
+                    Math.max(0, Math.min(128, padding)),
+                    invertMapping,
+                    shortGrassOverlayEnabled
+            );
+        }
+
+        private FloorTuningConfig withInvertMapping(boolean invert) {
+            return new FloorTuningConfig(noiseScale, noisePadding, invert, shortGrassOverlayEnabled);
+        }
+
+        private FloorTuningConfig withShortGrassOverlay(boolean enabled) {
+            return new FloorTuningConfig(noiseScale, noisePadding, invertMapping, enabled);
+        }
     }
 
     public record AssetScatterConfig(int totalCount, int treePercent, int ruinPercent, int rockPercent) {
