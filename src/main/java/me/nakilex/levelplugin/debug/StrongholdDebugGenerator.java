@@ -70,6 +70,7 @@ public final class StrongholdDebugGenerator {
     );
     private static final double FLOOR_NOISE_SCALE = 10.0D;
     private static final int FLOOR_NOISE_PADDING = 18;
+    private static final boolean INVERT_FLOOR_NOISE_MAPPING = true;
     private static final double LAPIS_FLAG_SPAWN_CHANCE = 0.50D;
     private static final double GOLD_CHEST_SPAWN_CHANCE = 0.20D;
     private static final int FLAG_VERTICAL_OFFSET_BLOCKS = -1;
@@ -880,6 +881,9 @@ public final class StrongholdDebugGenerator {
             return null;
         }
         double t = Math.max(0.0D, Math.min(1.0D, normalizedNoise));
+        if (INVERT_FLOOR_NOISE_MAPPING) {
+            t = 1.0D - t;
+        }
         int index = (int) Math.floor(t * STRONGHOLD_FLOOR_PATTERN.size());
         if (index >= STRONGHOLD_FLOOR_PATTERN.size()) {
             index = STRONGHOLD_FLOOR_PATTERN.size() - 1;
