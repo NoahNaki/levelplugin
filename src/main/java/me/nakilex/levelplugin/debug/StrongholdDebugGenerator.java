@@ -88,10 +88,10 @@ public final class StrongholdDebugGenerator {
     private static final double VEGETATION_SCALE = 6.0D;
     private static final double FLOWER_THRESHOLD = 0.94D;
     private static final double TALL_GRASS_THRESHOLD = 0.80D;
-    private static final double FLOOR_RELIEF_CELL_SCALE = 32.0D;
-    private static final double FLOOR_RELIEF_THRESHOLD = 0.92D;
-    private static final double FLOOR_ELEVATION_CELL_SCALE = 40.0D;
-    private static final double FLOOR_ELEVATION_THRESHOLD = 0.93D;
+    private static final double FLOOR_RELIEF_CELL_SCALE = 64.0D;
+    private static final double FLOOR_RELIEF_THRESHOLD = 0.96D;
+    private static final double FLOOR_ELEVATION_CELL_SCALE = 80.0D;
+    private static final double FLOOR_ELEVATION_THRESHOLD = 0.965D;
     private static final int DETACHED_ASSET_BATCH_SIZE = 16;
     private static final List<Material> FLOOR_FLOWER_OPTIONS = List.of(
             Material.DANDELION,
@@ -971,6 +971,15 @@ public final class StrongholdDebugGenerator {
             }
             above.setType(top.getType(), false);
         }
+        for (Map.Entry<Point2D, Integer> entry : columns.entrySet()) {
+            Point2D column = entry.getKey();
+            int x = (int) column.x;
+            int z = (int) column.z;
+            setTerrainEdgeSlabIfNeeded(world, columns, x + 1, z, Slab.Type.TOP);
+            setTerrainEdgeSlabIfNeeded(world, columns, x - 1, z, Slab.Type.TOP);
+            setTerrainEdgeSlabIfNeeded(world, columns, x, z + 1, Slab.Type.TOP);
+            setTerrainEdgeSlabIfNeeded(world, columns, x, z - 1, Slab.Type.TOP);
+        }
     }
 
     private static void applyStrongholdFloorRelief(World world, int minX, int maxX, int minZ, int maxZ) {
@@ -1004,16 +1013,20 @@ public final class StrongholdDebugGenerator {
             Point2D column = entry.getKey();
             int x = (int) column.x;
             int z = (int) column.z;
-            setReliefEdgeSlabIfNeeded(world, carveColumns, x + 1, z);
-            setReliefEdgeSlabIfNeeded(world, carveColumns, x - 1, z);
-            setReliefEdgeSlabIfNeeded(world, carveColumns, x, z + 1);
-            setReliefEdgeSlabIfNeeded(world, carveColumns, x, z - 1);
+            setTerrainEdgeSlabIfNeeded(world, carveColumns, x + 1, z, Slab.Type.BOTTOM);
+            setTerrainEdgeSlabIfNeeded(world, carveColumns, x - 1, z, Slab.Type.BOTTOM);
+            setTerrainEdgeSlabIfNeeded(world, carveColumns, x, z + 1, Slab.Type.BOTTOM);
+            setTerrainEdgeSlabIfNeeded(world, carveColumns, x, z - 1, Slab.Type.BOTTOM);
         }
     }
 
-    private static void setReliefEdgeSlabIfNeeded(World world, Map<Point2D, Integer> carveColumns, int x, int z) {
+    private static void setTerrainEdgeSlabIfNeeded(World world,
+                                                   Map<Point2D, Integer> shapedColumns,
+                                                   int x,
+                                                   int z,
+                                                   Slab.Type slabType) {
         Point2D key = new Point2D(x, z);
-        if (carveColumns.containsKey(key)) {
+        if (shapedColumns.containsKey(key)) {
             return;
         }
         int y = world.getHighestBlockYAt(x, z);
@@ -1029,7 +1042,7 @@ public final class StrongholdDebugGenerator {
             return;
         }
         Slab slabData = (Slab) Bukkit.createBlockData(Material.MUD_BRICK_SLAB);
-        slabData.setType(Slab.Type.BOTTOM);
+        slabData.setType(slabType == null ? Slab.Type.BOTTOM : slabType);
         top.setBlockData(slabData, false);
     }
 
