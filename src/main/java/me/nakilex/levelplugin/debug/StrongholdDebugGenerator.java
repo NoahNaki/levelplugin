@@ -88,10 +88,8 @@ public final class StrongholdDebugGenerator {
     private static final double VEGETATION_SCALE = 6.0D;
     private static final double FLOWER_THRESHOLD = 0.94D;
     private static final double TALL_GRASS_THRESHOLD = 0.80D;
-    private static final double FLOOR_RELIEF_CELL_SCALE = 64.0D;
+    private static final double FLOOR_RELIEF_CELL_SCALE = 128.0D;
     private static final double FLOOR_RELIEF_THRESHOLD = 0.96D;
-    private static final double FLOOR_ELEVATION_CELL_SCALE = 80.0D;
-    private static final double FLOOR_ELEVATION_THRESHOLD = 0.965D;
     private static final int DETACHED_ASSET_BATCH_SIZE = 16;
     private static final List<Material> FLOOR_FLOWER_OPTIONS = List.of(
             Material.DANDELION,
@@ -935,50 +933,14 @@ public final class StrongholdDebugGenerator {
                 if (patterned != null && block.getType() != patterned) {
                     block.setType(patterned, false);
                 }
+                if (patterned != null) {
+                    applyLowerTerrainLayerPattern(block, patterned);
+                }
             }
         }
-        applyStrongholdFloorElevation(world, minX, maxX, minZ, maxZ);
         applyStrongholdFloorRelief(world, minX, maxX, minZ, maxZ);
         if (floorCfg.shortGrassOverlayEnabled()) {
             applyVegetationOverlay(world, minX, maxX, minZ, maxZ);
-        }
-    }
-
-    private static void applyStrongholdFloorElevation(World world, int minX, int maxX, int minZ, int maxZ) {
-        if (world == null) {
-            return;
-        }
-        Map<Point2D, Integer> columns = collectTerrainColumnsByNoise(
-                world,
-                minX,
-                maxX,
-                minZ,
-                maxZ,
-                (x, z) -> smoothOvalBlobNoise((x - 421.0D) / FLOOR_ELEVATION_CELL_SCALE,
-                        (z + 619.0D) / FLOOR_ELEVATION_CELL_SCALE),
-                FLOOR_ELEVATION_THRESHOLD
-        );
-        for (Map.Entry<Point2D, Integer> entry : columns.entrySet()) {
-            Point2D column = entry.getKey();
-            int y = entry.getValue();
-            org.bukkit.block.Block top = world.getBlockAt((int) column.x, y, (int) column.z);
-            if (!TERRAIN_REPLACEABLE_MATERIALS.contains(top.getType())) {
-                continue;
-            }
-            org.bukkit.block.Block above = top.getRelative(BlockFace.UP);
-            if (!above.getType().isAir()) {
-                continue;
-            }
-            above.setType(top.getType(), false);
-        }
-        for (Map.Entry<Point2D, Integer> entry : columns.entrySet()) {
-            Point2D column = entry.getKey();
-            int x = (int) column.x;
-            int z = (int) column.z;
-            setTerrainEdgeSlabIfNeeded(world, columns, x + 1, z, Slab.Type.TOP);
-            setTerrainEdgeSlabIfNeeded(world, columns, x - 1, z, Slab.Type.TOP);
-            setTerrainEdgeSlabIfNeeded(world, columns, x, z + 1, Slab.Type.TOP);
-            setTerrainEdgeSlabIfNeeded(world, columns, x, z - 1, Slab.Type.TOP);
         }
     }
 
@@ -1077,6 +1039,20 @@ public final class StrongholdDebugGenerator {
             }
         }
         return columns;
+    }
+
+    private static void applyLowerTerrainLayerPattern(org.bukkit.block.Block surfaceBlock, Material patterned) {
+        if (surfaceBlock == null || patterned == null) {
+            return;
+        }
+        org.bukkit.block.Block lower = surfaceBlock.getRelative(BlockFace.DOWN);
+        Material lowerType = lower.getType();
+        if (!TERRAIN_REPLACEABLE_MATERIALS.contains(lowerType) && lowerType != Material.DIRT) {
+            return;
+        }
+        if (lowerType != patterned) {
+            lower.setType(patterned, false);
+        }
     }
 
     private static void applyVegetationOverlay(World world, int minX, int maxX, int minZ, int maxZ) {
