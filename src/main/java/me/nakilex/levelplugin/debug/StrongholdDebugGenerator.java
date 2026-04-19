@@ -36,6 +36,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.IdentityHashMap;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.DoubleBinaryOperator;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
@@ -87,8 +88,10 @@ public final class StrongholdDebugGenerator {
     private static final double VEGETATION_SCALE = 6.0D;
     private static final double FLOWER_THRESHOLD = 0.94D;
     private static final double TALL_GRASS_THRESHOLD = 0.80D;
-    private static final double FLOOR_RELIEF_CELL_SCALE = 24.0D;
-    private static final double FLOOR_RELIEF_THRESHOLD = 0.88D;
+    private static final double FLOOR_RELIEF_CELL_SCALE = 32.0D;
+    private static final double FLOOR_RELIEF_THRESHOLD = 0.92D;
+    private static final double FLOOR_ELEVATION_CELL_SCALE = 40.0D;
+    private static final double FLOOR_ELEVATION_THRESHOLD = 0.93D;
     private static final int DETACHED_ASSET_BATCH_SIZE = 16;
     private static final List<Material> FLOOR_FLOWER_OPTIONS = List.of(
             Material.DANDELION,
@@ -934,9 +937,39 @@ public final class StrongholdDebugGenerator {
                 }
             }
         }
+        applyStrongholdFloorElevation(world, minX, maxX, minZ, maxZ);
         applyStrongholdFloorRelief(world, minX, maxX, minZ, maxZ);
         if (floorCfg.shortGrassOverlayEnabled()) {
             applyVegetationOverlay(world, minX, maxX, minZ, maxZ);
+        }
+    }
+
+    private static void applyStrongholdFloorElevation(World world, int minX, int maxX, int minZ, int maxZ) {
+        if (world == null) {
+            return;
+        }
+        Map<Point2D, Integer> columns = collectTerrainColumnsByNoise(
+                world,
+                minX,
+                maxX,
+                minZ,
+                maxZ,
+                (x, z) -> smoothOvalBlobNoise((x - 421.0D) / FLOOR_ELEVATION_CELL_SCALE,
+                        (z + 619.0D) / FLOOR_ELEVATION_CELL_SCALE),
+                FLOOR_ELEVATION_THRESHOLD
+        );
+        for (Map.Entry<Point2D, Integer> entry : columns.entrySet()) {
+            Point2D column = entry.getKey();
+            int y = entry.getValue();
+            org.bukkit.block.Block top = world.getBlockAt((int) column.x, y, (int) column.z);
+            if (!TERRAIN_REPLACEABLE_MATERIALS.contains(top.getType())) {
+                continue;
+            }
+            org.bukkit.block.Block above = top.getRelative(BlockFace.UP);
+            if (!above.getType().isAir()) {
+                continue;
+            }
+            above.setType(top.getType(), false);
         }
     }
 
@@ -944,27 +977,16 @@ public final class StrongholdDebugGenerator {
         if (world == null) {
             return;
         }
-        Map<Point2D, Integer> carveColumns = new HashMap<>();
-        for (int x = minX; x <= maxX; x++) {
-            for (int z = minZ; z <= maxZ; z++) {
-                int y = world.getHighestBlockYAt(x, z);
-                if (y <= world.getMinHeight() || y >= world.getMaxHeight()) {
-                    continue;
-                }
-                org.bukkit.block.Block top = world.getBlockAt(x, y, z);
-                if (!TERRAIN_REPLACEABLE_MATERIALS.contains(top.getType())) {
-                    continue;
-                }
-                if (!top.getRelative(BlockFace.UP).getType().isAir()) {
-                    continue;
-                }
-                double reliefNoise = smoothOvalBlobNoise((x + 173.0D) / FLOOR_RELIEF_CELL_SCALE,
-                        (z - 317.0D) / FLOOR_RELIEF_CELL_SCALE);
-                if (reliefNoise >= FLOOR_RELIEF_THRESHOLD) {
-                    carveColumns.put(new Point2D(x, z), y);
-                }
-            }
-        }
+        Map<Point2D, Integer> carveColumns = collectTerrainColumnsByNoise(
+                world,
+                minX,
+                maxX,
+                minZ,
+                maxZ,
+                (x, z) -> smoothOvalBlobNoise((x + 173.0D) / FLOOR_RELIEF_CELL_SCALE,
+                        (z - 317.0D) / FLOOR_RELIEF_CELL_SCALE),
+                FLOOR_RELIEF_THRESHOLD
+        );
         if (carveColumns.isEmpty()) {
             return;
         }
@@ -1009,6 +1031,39 @@ public final class StrongholdDebugGenerator {
         Slab slabData = (Slab) Bukkit.createBlockData(Material.MUD_BRICK_SLAB);
         slabData.setType(Slab.Type.BOTTOM);
         top.setBlockData(slabData, false);
+    }
+
+    private static Map<Point2D, Integer> collectTerrainColumnsByNoise(World world,
+                                                                       int minX,
+                                                                       int maxX,
+                                                                       int minZ,
+                                                                       int maxZ,
+                                                                       DoubleBinaryOperator noiseSampler,
+                                                                       double threshold) {
+        Map<Point2D, Integer> columns = new HashMap<>();
+        if (world == null || noiseSampler == null) {
+            return columns;
+        }
+        for (int x = minX; x <= maxX; x++) {
+            for (int z = minZ; z <= maxZ; z++) {
+                int y = world.getHighestBlockYAt(x, z);
+                if (y <= world.getMinHeight() || y >= world.getMaxHeight()) {
+                    continue;
+                }
+                org.bukkit.block.Block top = world.getBlockAt(x, y, z);
+                if (!TERRAIN_REPLACEABLE_MATERIALS.contains(top.getType())) {
+                    continue;
+                }
+                if (!top.getRelative(BlockFace.UP).getType().isAir()) {
+                    continue;
+                }
+                double sampled = noiseSampler.applyAsDouble(x, z);
+                if (sampled >= threshold) {
+                    columns.put(new Point2D(x, z), y);
+                }
+            }
+        }
+        return columns;
     }
 
     private static void applyVegetationOverlay(World world, int minX, int maxX, int minZ, int maxZ) {
