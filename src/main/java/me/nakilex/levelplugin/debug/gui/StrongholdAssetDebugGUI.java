@@ -73,12 +73,40 @@ public final class StrongholdAssetDebugGUI implements Listener {
                 "Distribution auto-normalizes when spawning.",
                 "Detached assets use a 5% overlap cap."
         );
-        inv.setItem(31, GuiUtil.createGuiItem(Material.BOOK, ChatColor.AQUA + "Distribution Info", infoLore));
+        inv.setItem(33, GuiUtil.createGuiItem(Material.BOOK, ChatColor.AQUA + "Distribution Info", infoLore));
 
-        List<String> resetLore = TooltipUtil.bulletList("Reset to 70% trees, 10% ruins, 20% rocks, total 250.");
+        StrongholdDebugGenerator.FloorTuningConfig floorCfg = StrongholdDebugGenerator.getFloorTuningConfig();
+        inv.setItem(20, numberItem(Material.GRASS_BLOCK, "Floor Noise Scale",
+                (int) Math.round(floorCfg.noiseScale()),
+                "Bigger values create broader floor transitions."));
+        inv.setItem(22, numberItem(Material.MAP, "Floor Noise Padding",
+                floorCfg.noisePadding(),
+                "Extra blocks around stronghold footprint affected by floor pass."));
+        inv.setItem(24, booleanItem(Material.COMPARATOR, "Invert Floor Mapping",
+                floorCfg.invertMapping(),
+                "Flips floor material order against noise output."));
+        inv.setItem(26, booleanItem(Material.SHORT_GRASS, "Vegetation Overlay",
+                floorCfg.shortGrassOverlayEnabled(),
+                "Mixes short grass, tall grass, and flowers on grass blocks."));
+        inv.setItem(28, paletteItem("Floor Band 1", floorCfg.palette().get(0)));
+        inv.setItem(29, paletteItem("Floor Band 2", floorCfg.palette().get(1)));
+        inv.setItem(30, paletteItem("Floor Band 3", floorCfg.palette().get(2)));
+        inv.setItem(31, paletteItem("Floor Band 4", floorCfg.palette().get(3)));
+
+        List<String> resetLore = TooltipUtil.bulletList(
+                "Reset to 90% trees, 0% ruins, 10% rocks, total 500.",
+                "Floor defaults: packed_mud, coarse_dirt, grass_block, grass_block."
+        );
         resetLore.add(" ");
         resetLore.addAll(TooltipUtil.clickInstructions("to reset", null));
         inv.setItem(40, GuiUtil.createGuiItem(Material.BARRIER, ChatColor.RED + "Reset", resetLore));
+        List<String> logLore = TooltipUtil.bulletList(
+                "Print current asset and floor tuning values to console.",
+                "Use this to copy values back as defaults later."
+        );
+        logLore.add(" ");
+        logLore.addAll(TooltipUtil.clickInstructions("to log settings", null));
+        inv.setItem(42, GuiUtil.createGuiItem(Material.WRITABLE_BOOK, ChatColor.YELLOW + "Log Settings", logLore));
     }
 
     private ItemStack numberItem(Material material, String name, int current, String description) {
@@ -99,6 +127,32 @@ public final class StrongholdAssetDebugGUI implements Listener {
         lore.add(ChatColor.DARK_GRAY + "- " + ChatColor.GRAY + "Left/Right: ±1%");
         lore.add(ChatColor.DARK_GRAY + "- " + ChatColor.GRAY + "Shift+Left/Right: ±5%");
         return GuiUtil.createGuiItem(material, ChatColor.AQUA + name, lore);
+    }
+
+    private ItemStack booleanItem(Material material, String name, boolean value, String description) {
+        List<String> lore = new ArrayList<>();
+        lore.add(ChatColor.GRAY + description);
+        lore.add(ChatColor.GRAY + "Current: " + (value ? ChatColor.GREEN + "ON" : ChatColor.RED + "OFF"));
+        lore.add(" ");
+        lore.addAll(TooltipUtil.clickInstructions("to toggle", null));
+        return GuiUtil.createGuiItem(material, ChatColor.AQUA + name, lore);
+    }
+
+    private ItemStack paletteItem(String name, Material material) {
+        Material icon = (material == null || material.isAir()) ? Material.BARRIER : material;
+        List<String> lore = new ArrayList<>();
+        lore.add(ChatColor.GRAY + "Current: " + ChatColor.WHITE + formatMaterial(material));
+        lore.add(" ");
+        lore.add(ChatColor.DARK_GRAY + "- " + ChatColor.GRAY + "Left/Right: cycle material");
+        return GuiUtil.createGuiItem(icon, ChatColor.GOLD + name, lore);
+    }
+
+    private String formatMaterial(Material material) {
+        if (material == null) {
+            return "none";
+        }
+        String raw = material.name().toLowerCase(java.util.Locale.ROOT).replace('_', ' ');
+        return raw.substring(0, 1).toUpperCase(java.util.Locale.ROOT) + raw.substring(1);
     }
 
     @EventHandler
@@ -127,12 +181,43 @@ public final class StrongholdAssetDebugGUI implements Listener {
             case 13 -> adjustDistribution(cfg.treePercent() + sign * (shift ? 5 : 1), cfg.ruinPercent(), cfg.rockPercent());
             case 15 -> adjustDistribution(cfg.treePercent(), cfg.ruinPercent() + sign * (shift ? 5 : 1), cfg.rockPercent());
             case 17 -> adjustDistribution(cfg.treePercent(), cfg.ruinPercent(), cfg.rockPercent() + sign * (shift ? 5 : 1));
-            case 40 -> {
-                StrongholdDebugGenerator.setAssetScatterTotalCount(250);
-                StrongholdDebugGenerator.setAssetScatterDistribution(70, 10, 20);
-                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                        "Stronghold detached asset distribution reset to 70/10/20 with total 250.");
+            case 20 -> {
+                StrongholdDebugGenerator.FloorTuningConfig floorCfg = StrongholdDebugGenerator.getFloorTuningConfig();
+                int floorStep = shift ? 5 : 1;
+                StrongholdDebugGenerator.setFloorNoiseScale(floorCfg.noiseScale() + sign * floorStep);
             }
+            case 22 -> {
+                StrongholdDebugGenerator.FloorTuningConfig floorCfg = StrongholdDebugGenerator.getFloorTuningConfig();
+                int floorStep = shift ? 10 : 1;
+                StrongholdDebugGenerator.setFloorNoisePadding(floorCfg.noisePadding() + sign * floorStep);
+            }
+            case 24 -> {
+                StrongholdDebugGenerator.FloorTuningConfig floorCfg = StrongholdDebugGenerator.getFloorTuningConfig();
+                StrongholdDebugGenerator.setInvertFloorNoiseMapping(!floorCfg.invertMapping());
+            }
+            case 26 -> {
+                StrongholdDebugGenerator.FloorTuningConfig floorCfg = StrongholdDebugGenerator.getFloorTuningConfig();
+                StrongholdDebugGenerator.setShortGrassOverlayEnabled(!floorCfg.shortGrassOverlayEnabled());
+            }
+            case 28, 29, 30, 31 -> {
+                int paletteIndex = slot - 28;
+                StrongholdDebugGenerator.FloorTuningConfig floorCfg = StrongholdDebugGenerator.getFloorTuningConfig();
+                List<Material> options = StrongholdDebugGenerator.getFloorPaletteOptions();
+                Material current = floorCfg.palette().get(paletteIndex);
+                int currentIndex = options.indexOf(current);
+                if (currentIndex < 0) {
+                    currentIndex = 0;
+                }
+                int nextIndex = (currentIndex + sign + options.size()) % options.size();
+                StrongholdDebugGenerator.setFloorPaletteBlock(paletteIndex, options.get(nextIndex));
+            }
+            case 40 -> {
+                StrongholdDebugGenerator.resetAssetScatterConfig();
+                StrongholdDebugGenerator.resetFloorTuningConfig();
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
+                        "Stronghold debug settings reset (assets + floor tuning).");
+            }
+            case 42 -> StrongholdDebugGenerator.logCurrentDebugSettings(player);
             default -> {
                 return;
             }

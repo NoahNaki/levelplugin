@@ -18,6 +18,7 @@ import org.bukkit.block.data.Directional;
 import org.bukkit.block.data.Orientable;
 import org.bukkit.block.data.Rotatable;
 import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitTask;
 
 import java.util.ArrayList;
 import java.util.ArrayDeque;
@@ -43,10 +44,61 @@ import java.util.function.Supplier;
 public final class StrongholdDebugGenerator {
     private static final Set<Material> EXCLUDED = Set.of(
             Material.REDSTONE_BLOCK,
+            Material.LAPIS_BLOCK,
+            Material.GOLD_BLOCK,
             Material.LIGHT_BLUE_CONCRETE,
             Material.WHITE_CONCRETE
     );
     private static final Set<Material> CONNECTOR_MARKER_MATERIALS = Set.of(Material.REDSTONE_BLOCK);
+    private static final Set<Material> TEMPLATE_MARKER_MATERIALS = Set.of(
+            Material.REDSTONE_BLOCK,
+            Material.LAPIS_BLOCK,
+            Material.GOLD_BLOCK
+    );
+    private static final List<Material> DEFAULT_STRONGHOLD_FLOOR_PATTERN = List.of(
+            Material.PACKED_MUD,
+            Material.COARSE_DIRT,
+            Material.GRASS_BLOCK,
+            Material.GRASS_BLOCK
+    );
+    private static final List<Material> FLOOR_PALETTE_OPTIONS = List.of(
+            Material.PACKED_MUD,
+            Material.MUD,
+            Material.DIRT,
+            Material.COARSE_DIRT,
+            Material.GRASS_BLOCK,
+            Material.PODZOL,
+            Material.ROOTED_DIRT,
+            Material.MOSS_BLOCK
+    );
+    private static final Set<Material> TERRAIN_REPLACEABLE_MATERIALS = Set.of(
+            Material.GRASS_BLOCK,
+            Material.DIRT,
+            Material.COARSE_DIRT,
+            Material.MUD,
+            Material.PODZOL,
+            Material.MOSS_BLOCK
+    );
+    private static final double DEFAULT_FLOOR_NOISE_SCALE = 10.0D;
+    private static final int DEFAULT_FLOOR_NOISE_PADDING = 128;
+    private static final boolean DEFAULT_INVERT_FLOOR_NOISE_MAPPING = true;
+    private static final boolean DEFAULT_VEGETATION_OVERLAY_ENABLED = true;
+    private static final double VEGETATION_SCALE = 6.0D;
+    private static final double FLOWER_THRESHOLD = 0.94D;
+    private static final double TALL_GRASS_THRESHOLD = 0.80D;
+    private static final int DETACHED_ASSET_BATCH_SIZE = 16;
+    private static final List<Material> FLOOR_FLOWER_OPTIONS = List.of(
+            Material.DANDELION,
+            Material.POPPY,
+            Material.AZURE_BLUET,
+            Material.OXEYE_DAISY,
+            Material.ALLIUM,
+            Material.CORNFLOWER
+    );
+    private static final double LAPIS_FLAG_SPAWN_CHANCE = 0.50D;
+    private static final double GOLD_CHEST_SPAWN_CHANCE = 0.20D;
+    private static final int FLAG_VERTICAL_OFFSET_BLOCKS = -1;
+    private static final String FLAG_TEMPLATE_ID = "flag_1";
 
     private static final List<TemplateSpec> TEMPLATE_SPECS = List.of(
             new TemplateSpec("straight_1", new TemplateBounds(219, -39, -6337, 249, -61, -6347), PieceCategory.WALL, 2),
@@ -80,6 +132,7 @@ public final class StrongholdDebugGenerator {
     private static final TemplateSpec CONNECTOR_SPEC =
             new TemplateSpec("connector_1", new TemplateBounds(412, -61, -5711, 402, -38, -5701), PieceCategory.CONNECTOR, 1);
     private static final List<DetachedAssetTemplateSpec> DETACHED_ASSET_TEMPLATE_SPECS = List.of(
+            new DetachedAssetTemplateSpec(FLAG_TEMPLATE_ID, AssetType.FLAG, new TemplateBounds(184, -61, -6341, 188, -41, -6359)),
             new DetachedAssetTemplateSpec("tree_1", AssetType.TREE, new TemplateBounds(210, -61, -6337, 200, -38, -6347)),
             new DetachedAssetTemplateSpec("tree_2", AssetType.TREE, new TemplateBounds(210, -61, -6347, 195, -23, -6362)),
             new DetachedAssetTemplateSpec("tree_3", AssetType.TREE, new TemplateBounds(210, -61, -6362, 191, -4, -6383)),
@@ -89,6 +142,10 @@ public final class StrongholdDebugGenerator {
             new DetachedAssetTemplateSpec("rock_4", AssetType.ROCK, new TemplateBounds(210, -61, -6364, 219, -30, -6355)),
             new DetachedAssetTemplateSpec("rock_5", AssetType.ROCK, new TemplateBounds(210, -61, -6355, 219, -30, -6346)),
             new DetachedAssetTemplateSpec("rock_6", AssetType.ROCK, new TemplateBounds(210, -61, -6346, 219, -30, -6337)),
+            new DetachedAssetTemplateSpec("rock_large_1", AssetType.ROCK, new TemplateBounds(210, -61, -6383, 142, -34, -6445)),
+            new DetachedAssetTemplateSpec("rock_large_2", AssetType.ROCK, new TemplateBounds(89, -61, -6383, 142, -34, -6440)),
+            new DetachedAssetTemplateSpec("rock_large_3", AssetType.ROCK, new TemplateBounds(142, -34, -6440, 89, -61, -6503)),
+            new DetachedAssetTemplateSpec("rock_large_4", AssetType.ROCK, new TemplateBounds(142, -34, -6503, 210, -61, -6445)),
             new DetachedAssetTemplateSpec("ruin_1", AssetType.RUIN, new TemplateBounds(188, -61, -6390, 197, -30, -6381)),
             new DetachedAssetTemplateSpec("ruin_2", AssetType.RUIN, new TemplateBounds(188, -61, -6381, 197, -30, -6372)),
             new DetachedAssetTemplateSpec("ruin_3", AssetType.RUIN, new TemplateBounds(188, -61, -6372, 197, -30, -6364)),
@@ -147,6 +204,7 @@ public final class StrongholdDebugGenerator {
 
     private static double maxOverlapPercent = 2.0D;
     private static AssetScatterConfig assetScatterConfig = AssetScatterConfig.defaults();
+    private static FloorTuningConfig floorTuningConfig = FloorTuningConfig.defaults();
     private static final Map<Template, RotatedTemplate[]> ROTATION_CACHE = new IdentityHashMap<>();
     private static final Map<String, BlockData[]> BLOCK_DATA_ROTATION_CACHE = new HashMap<>();
     private static final Map<String, com.sk89q.worldedit.world.block.BlockState> WORLD_EDIT_BLOCK_STATE_CACHE = new HashMap<>();
@@ -193,6 +251,59 @@ public final class StrongholdDebugGenerator {
 
     public static AssetDistributionCounts previewAssetDistribution() {
         return (assetScatterConfig == null ? AssetScatterConfig.defaults() : assetScatterConfig).computeCounts();
+    }
+
+    public static FloorTuningConfig getFloorTuningConfig() {
+        return floorTuningConfig == null ? FloorTuningConfig.defaults() : floorTuningConfig;
+    }
+
+    public static void setFloorNoiseScale(double scale) {
+        floorTuningConfig = getFloorTuningConfig().withNoiseScale(scale);
+    }
+
+    public static void setFloorNoisePadding(int padding) {
+        floorTuningConfig = getFloorTuningConfig().withNoisePadding(padding);
+    }
+
+    public static void setInvertFloorNoiseMapping(boolean invert) {
+        floorTuningConfig = getFloorTuningConfig().withInvertMapping(invert);
+    }
+
+    public static void setShortGrassOverlayEnabled(boolean enabled) {
+        floorTuningConfig = getFloorTuningConfig().withShortGrassOverlay(enabled);
+    }
+
+    public static void logCurrentDebugSettings(Player requester) {
+        AssetScatterConfig assets = getAssetScatterConfig();
+        AssetDistributionCounts distribution = previewAssetDistribution();
+        FloorTuningConfig floor = getFloorTuningConfig();
+        String settingsSummary = "Settings snapshot -> assets(total/tree/ruin/rock)="
+                + assets.totalCount() + "/" + assets.treePercent() + "/" + assets.ruinPercent() + "/" + assets.rockPercent()
+                + ", preview(tree/rock/ruin)=" + distribution.trees() + "/" + distribution.rocks() + "/" + distribution.ruins()
+                + ", floor(scale/padding/invert/vegetation)="
+                + String.format("%.2f", floor.noiseScale()) + "/" + floor.noisePadding() + "/" + floor.invertMapping() + "/" + floor.shortGrassOverlayEnabled()
+                + ", floorPalette=" + floor.palette();
+        Bukkit.getLogger().info("[StrongholdDebug] " + settingsSummary);
+        if (requester != null) {
+            ChatMessageUtil.send(requester, ChatMessageUtil.MessageType.INFO,
+                    "Logged current stronghold asset/floor settings to server console.");
+        }
+    }
+
+    public static void resetFloorTuningConfig() {
+        floorTuningConfig = FloorTuningConfig.defaults();
+    }
+
+    public static void resetAssetScatterConfig() {
+        assetScatterConfig = AssetScatterConfig.defaults();
+    }
+
+    public static List<Material> getFloorPaletteOptions() {
+        return FLOOR_PALETTE_OPTIONS;
+    }
+
+    public static void setFloorPaletteBlock(int index, Material material) {
+        floorTuningConfig = getFloorTuningConfig().withPaletteBlock(index, material);
     }
 
     public static Map<String, TemplateConnectionInfo> inspectTemplateConnections() {
@@ -379,6 +490,8 @@ public final class StrongholdDebugGenerator {
         int finalChurchCount = countPlacedTemplatesMatching(placed, matcherForTemplateId("church"));
 
         pastePlacedTemplates(world, placed);
+        applyStrongholdFloorNoise(world, placed);
+        applyTemplateMarkerActions(sourceWorld, world, placed, random);
         AssetPlacementSummary assetSummary = placeDetachedAssets(sourceWorld, world, placed, occupied, random, originY);
         int requiredRawCopies = 0;
         if (ENABLE_DISCONNECTED_FALLBACKS) {
@@ -407,6 +520,7 @@ public final class StrongholdDebugGenerator {
         diagnostics.requiredRawCopied = requiredRawCopies;
 
         player.teleport(new org.bukkit.Location(world, originX + 0.5, originY + 2, originZ + 0.5));
+        scheduleDetachedAssetPasting(world, assetSummary.placements(), player);
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
                 "Generated stronghold spine+branches using " + placed.size()
                         + " pieces in world '" + world.getName() + "' (overlap threshold: "
@@ -457,6 +571,7 @@ public final class StrongholdDebugGenerator {
         if (setup == null) {
             return true;
         }
+        World sourceWorld = setup.sourceWorld();
         CapturedTemplates captured = setup.captured();
 
         World world = createGeneratedWorld(plugin, player);
@@ -526,6 +641,8 @@ public final class StrongholdDebugGenerator {
         }
 
         pastePlacedTemplates(world, placed);
+        applyStrongholdFloorNoise(world, placed);
+        applyTemplateMarkerActions(sourceWorld, world, placed, ThreadLocalRandom.current());
         player.teleport(new org.bukkit.Location(world, originX + 0.5, originY + 2, originZ + 0.5));
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
                 "Generated towerwall cross preset using " + placed.size() + " pieces in world '" + world.getName() + "'.");
@@ -585,6 +702,7 @@ public final class StrongholdDebugGenerator {
         int rocksPlaced = 0;
         int ruinsPlaced = 0;
         List<String> preview = new ArrayList<>();
+        List<AssetPlacement> queuedPlacements = new ArrayList<>();
 
         for (AssetType type : requestOrder) {
             List<DetachedAssetTemplate> pool = templatesByType.getOrDefault(type, List.of());
@@ -594,9 +712,9 @@ public final class StrongholdDebugGenerator {
             if (placement == null) {
                 continue;
             }
-            pasteDetachedAsset(world, placement);
             occupy(occupied, placement.origin(), placement.blocks());
             occupy(detachedOccupied, placement.origin(), placement.blocks());
+            queuedPlacements.add(placement);
 
             if (type == AssetType.TREE) {
                 treesPlaced++;
@@ -619,7 +737,8 @@ public final class StrongholdDebugGenerator {
                 + ", rejected(outsideField)=" + debugCounter.outsideFieldRejects
                 + ", rejected(nonTerrainGround)=" + debugCounter.nonTerrainGroundRejects
                 + ", rejected(overlapMain)=" + debugCounter.mainOverlapRejects
-                + ", rejected(overlapDetached)=" + debugCounter.detachedOverlapRejects + ".");
+                + ", rejected(overlapDetached)=" + debugCounter.detachedOverlapRejects
+                + ", queued=" + queuedPlacements.size() + ".");
 
         return new AssetPlacementSummary(
                 counts.trees(),
@@ -628,7 +747,8 @@ public final class StrongholdDebugGenerator {
                 treesPlaced,
                 rocksPlaced,
                 ruinsPlaced,
-                preview
+                preview,
+                List.copyOf(queuedPlacements)
         );
     }
 
@@ -781,8 +901,268 @@ public final class StrongholdDebugGenerator {
         return top == Material.GRASS_BLOCK
                 || top == Material.DIRT
                 || top == Material.COARSE_DIRT
+                || top == Material.MUD
                 || top == Material.PODZOL
                 || top == Material.MOSS_BLOCK;
+    }
+
+    private static void applyStrongholdFloorNoise(World world, List<PlacedTemplate> placedTemplates) {
+        if (world == null || placedTemplates == null || placedTemplates.isEmpty()) {
+            return;
+        }
+        Bounds2D footprint = combinedBounds2D(placedTemplates);
+        if (footprint == null || getFloorTuningConfig().palette().isEmpty()) {
+            return;
+        }
+        FloorTuningConfig floorCfg = getFloorTuningConfig();
+        int minX = footprint.minX - floorCfg.noisePadding();
+        int maxX = footprint.maxX + floorCfg.noisePadding();
+        int minZ = footprint.minZ - floorCfg.noisePadding();
+        int maxZ = footprint.maxZ + floorCfg.noisePadding();
+
+        for (int x = minX; x <= maxX; x++) {
+            for (int z = minZ; z <= maxZ; z++) {
+                int y = world.getHighestBlockYAt(x, z);
+                if (y <= world.getMinHeight() || y >= world.getMaxHeight()) {
+                    continue;
+                }
+                org.bukkit.block.Block block = world.getBlockAt(x, y, z);
+                if (!TERRAIN_REPLACEABLE_MATERIALS.contains(block.getType())) {
+                    continue;
+                }
+                double sample = fractalSimplexLikeNoise(x / floorCfg.noiseScale(), z / floorCfg.noiseScale());
+                Material patterned = pickMaterialFromNoise(sample);
+                if (patterned != null && block.getType() != patterned) {
+                    block.setType(patterned, false);
+                }
+            }
+        }
+        if (floorCfg.shortGrassOverlayEnabled()) {
+            applyVegetationOverlay(world, minX, maxX, minZ, maxZ);
+        }
+    }
+
+    private static void applyVegetationOverlay(World world, int minX, int maxX, int minZ, int maxZ) {
+        if (world == null) {
+            return;
+        }
+        for (int x = minX; x <= maxX; x++) {
+            for (int z = minZ; z <= maxZ; z++) {
+                int y = world.getHighestBlockYAt(x, z);
+                if (y <= world.getMinHeight() || y >= world.getMaxHeight()) {
+                    continue;
+                }
+                org.bukkit.block.Block top = world.getBlockAt(x, y, z);
+                if (top.getType() != Material.GRASS_BLOCK) {
+                    continue;
+                }
+                org.bukkit.block.Block above = top.getRelative(BlockFace.UP);
+                if (!above.getType().isAir()) {
+                    continue;
+                }
+                double vegetationNoise = fractalSimplexLikeNoise(x / VEGETATION_SCALE, z / VEGETATION_SCALE);
+                if (vegetationNoise >= FLOWER_THRESHOLD) {
+                    above.setType(pickFlowerFromNoise(x, z, FLOOR_FLOWER_OPTIONS), false);
+                    continue;
+                }
+                if (vegetationNoise >= TALL_GRASS_THRESHOLD) {
+                    org.bukkit.block.Block above2 = above.getRelative(BlockFace.UP);
+                    if (above2.getType().isAir()) {
+                        above.setType(Material.TALL_GRASS, false);
+                        continue;
+                    }
+                }
+                above.setType(Material.SHORT_GRASS, false);
+            }
+        }
+    }
+
+    private static Material pickFlowerFromNoise(int x, int z, List<Material> options) {
+        if (options == null || options.isEmpty()) {
+            return Material.DANDELION;
+        }
+        double sample = (hashToSignedUnit(x * 17, z * 31) + 1.0D) * 0.5D;
+        int index = Math.max(0, Math.min(options.size() - 1, (int) Math.floor(sample * options.size())));
+        return options.get(index);
+    }
+
+    private static Material pickMaterialFromNoise(double normalizedNoise) {
+        List<Material> palette = getFloorTuningConfig().palette();
+        if (palette.isEmpty()) {
+            return null;
+        }
+        double t = Math.max(0.0D, Math.min(1.0D, normalizedNoise));
+        if (getFloorTuningConfig().invertMapping()) {
+            t = 1.0D - t;
+        }
+        int index = (int) Math.floor(t * palette.size());
+        if (index >= palette.size()) {
+            index = palette.size() - 1;
+        }
+        return palette.get(Math.max(0, index));
+    }
+
+    private static double fractalSimplexLikeNoise(double x, double z) {
+        double amplitude = 1.0D;
+        double frequency = 1.0D;
+        double value = 0.0D;
+        double maxAmplitude = 0.0D;
+        for (int octave = 0; octave < 3; octave++) {
+            value += valueNoise2D(x * frequency, z * frequency) * amplitude;
+            maxAmplitude += amplitude;
+            amplitude *= 0.5D;
+            frequency *= 2.0D;
+        }
+        if (maxAmplitude <= 0.0D) {
+            return 0.5D;
+        }
+        double normalized = value / maxAmplitude;
+        return (normalized + 1.0D) * 0.5D;
+    }
+
+    private static double valueNoise2D(double x, double z) {
+        int x0 = (int) Math.floor(x);
+        int z0 = (int) Math.floor(z);
+        int x1 = x0 + 1;
+        int z1 = z0 + 1;
+        double tx = x - x0;
+        double tz = z - z0;
+        double u = fade(tx);
+        double v = fade(tz);
+        double a = hashToSignedUnit(x0, z0);
+        double b = hashToSignedUnit(x1, z0);
+        double c = hashToSignedUnit(x0, z1);
+        double d = hashToSignedUnit(x1, z1);
+        return lerp(lerp(a, b, u), lerp(c, d, u), v);
+    }
+
+    private static double fade(double t) {
+        return t * t * t * (t * (t * 6.0D - 15.0D) + 10.0D);
+    }
+
+    private static double lerp(double a, double b, double t) {
+        return a + (b - a) * t;
+    }
+
+    private static double hashToSignedUnit(int x, int z) {
+        long h = 0x9E3779B97F4A7C15L;
+        h ^= x * 0x632BE59BD9B4E019L;
+        h ^= z * 0x85157AF5L;
+        h ^= (h >>> 33);
+        h *= 0xff51afd7ed558ccdL;
+        h ^= (h >>> 33);
+        h *= 0xc4ceb9fe1a85ec53L;
+        h ^= (h >>> 33);
+        long masked = h & 0xFFFFFFL;
+        return ((masked / (double) 0xFFFFFFL) * 2.0D) - 1.0D;
+    }
+
+    private static void applyTemplateMarkerActions(World sourceWorld,
+                                                   World targetWorld,
+                                                   List<PlacedTemplate> placedTemplates,
+                                                   Random random) {
+        if (sourceWorld == null || targetWorld == null || placedTemplates == null || placedTemplates.isEmpty()) {
+            return;
+        }
+        Random rng = random == null ? ThreadLocalRandom.current() : random;
+        Map<AssetType, List<DetachedAssetTemplate>> templatesByType = loadDetachedAssetTemplates(sourceWorld);
+        List<DetachedAssetTemplate> flagTemplates = templatesByType.getOrDefault(AssetType.FLAG, List.of());
+
+        for (PlacedTemplate placed : placedTemplates) {
+            if (placed == null || placed.spec == null || placed.spec.template == null) {
+                continue;
+            }
+            RotatedTemplate rotated = rotateTemplate(placed.spec.template, placed.rotation);
+            for (Map.Entry<Material, List<BlockVector3>> markerEntry : rotated.markers.entrySet()) {
+                Material markerType = markerEntry.getKey();
+                List<BlockVector3> markerPositions = markerEntry.getValue();
+                if (markerPositions == null || markerPositions.isEmpty()) {
+                    continue;
+                }
+                for (BlockVector3 relMarker : markerPositions) {
+                    int markerX = placed.origin.getBlockX() + relMarker.getBlockX();
+                    int markerY = placed.origin.getBlockY() + relMarker.getBlockY();
+                    int markerZ = placed.origin.getBlockZ() + relMarker.getBlockZ();
+                    if (markerType == Material.LAPIS_BLOCK) {
+                        if (rng.nextDouble() <= LAPIS_FLAG_SPAWN_CHANCE) {
+                            pasteFlagTemplateAtMarker(targetWorld, flagTemplates, markerX, markerY, markerZ, rng);
+                        }
+                    } else if (markerType == Material.GOLD_BLOCK) {
+                        if (rng.nextDouble() <= GOLD_CHEST_SPAWN_CHANCE) {
+                            targetWorld.getBlockAt(markerX, markerY, markerZ).setType(Material.CHEST, false);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private static void pasteFlagTemplateAtMarker(World targetWorld,
+                                                  List<DetachedAssetTemplate> flagTemplates,
+                                                  int markerX,
+                                                  int markerY,
+                                                  int markerZ,
+                                                  Random random) {
+        if (targetWorld == null || flagTemplates == null || flagTemplates.isEmpty()) {
+            return;
+        }
+        DetachedAssetTemplate template = flagTemplates.get(random.nextInt(flagTemplates.size()));
+        BlockVector3 anchor = markerAnchorFor(template, Material.LAPIS_BLOCK);
+        int anchorX = anchor != null ? anchor.getBlockX() : template.centerOffsetX();
+        int anchorY = anchor != null ? anchor.getBlockY() : Math.min(0, template.lowestRelativeY());
+        int anchorZ = anchor != null ? anchor.getBlockZ() : template.centerOffsetZ();
+        int originX = markerX - anchorX;
+        int originY = markerY - anchorY + FLAG_VERTICAL_OFFSET_BLOCKS;
+        int originZ = markerZ - anchorZ;
+        for (Map.Entry<BlockVector3, BlockData> entry : template.blocks().entrySet()) {
+            BlockVector3 rel = entry.getKey();
+            int x = originX + rel.getBlockX();
+            int y = originY + rel.getBlockY();
+            int z = originZ + rel.getBlockZ();
+            targetWorld.getBlockAt(x, y, z).setBlockData(entry.getValue(), false);
+        }
+    }
+
+    private static BlockVector3 markerAnchorFor(DetachedAssetTemplate template, Material markerType) {
+        if (template == null || markerType == null || template.markers() == null) {
+            return null;
+        }
+        List<BlockVector3> anchors = template.markers().get(markerType);
+        if (anchors == null || anchors.isEmpty()) {
+            return null;
+        }
+        return anchors.get(0);
+    }
+
+    private static void scheduleDetachedAssetPasting(World world, List<AssetPlacement> placements, Player player) {
+        if (world == null || placements == null || placements.isEmpty()) {
+            return;
+        }
+        Main plugin = Main.getInstance();
+        if (plugin == null) {
+            for (AssetPlacement placement : placements) {
+                pasteDetachedAsset(world, placement);
+            }
+            return;
+        }
+        final BukkitTask[] taskRef = new BukkitTask[1];
+        final int[] index = {0};
+        final int total = placements.size();
+        taskRef[0] = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            int processed = 0;
+            while (index[0] < total && processed < DETACHED_ASSET_BATCH_SIZE) {
+                pasteDetachedAsset(world, placements.get(index[0]));
+                index[0]++;
+                processed++;
+            }
+            if (index[0] >= total && taskRef[0] != null) {
+                taskRef[0].cancel();
+                if (player != null && player.isOnline()) {
+                    ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                            "Detached asset batching complete (" + total + " placements).");
+                }
+            }
+        }, 1L, 1L);
     }
 
     private static void pasteDetachedAsset(World world, AssetPlacement placement) {
@@ -2884,6 +3264,7 @@ public final class StrongholdDebugGenerator {
 
         Map<BlockVector3, BlockData> blocks = new HashMap<>();
         Set<BlockVector3> redstoneMarkers = new HashSet<>();
+        Map<Material, List<BlockVector3>> markers = new EnumMap<>(Material.class);
 
         for (int x = minX; x <= maxX; x++) {
             for (int y = minY; y <= maxY; y++) {
@@ -2898,8 +3279,11 @@ public final class StrongholdDebugGenerator {
                     if (CONNECTOR_MARKER_MATERIALS.contains(type)) {
                         redstoneMarkers.add(rel);
                     }
+                    if (TEMPLATE_MARKER_MATERIALS.contains(type)) {
+                        markers.computeIfAbsent(type, ignored -> new ArrayList<>()).add(rel);
+                    }
 
-                    if (type.isAir() || EXCLUDED.contains(type) || CONNECTOR_MARKER_MATERIALS.contains(type)) {
+                    if (type.isAir() || EXCLUDED.contains(type) || TEMPLATE_MARKER_MATERIALS.contains(type)) {
                         continue;
                     }
                     blocks.put(rel, data);
@@ -2910,7 +3294,7 @@ public final class StrongholdDebugGenerator {
         StructureFootprint footprint = structureFootprintFor(blocks, width, length);
         Map<BlockFace, List<BlockVector3>> connectors = detectConnectorsFromMarkers(redstoneMarkers, footprint);
 
-        return new Template(blocks, connectors, width, height, length);
+        return new Template(blocks, connectors, markers, width, height, length);
     }
 
     private static Map<Long, ChunkSnapshot> loadChunkSnapshots(World world, int minX, int maxX, int minZ, int maxZ) {
@@ -3176,7 +3560,14 @@ public final class StrongholdDebugGenerator {
                 rotatedPoints.add(rotateVector(point, template.width, template.length, rot));
             }
         }
-        RotatedTemplate built = new RotatedTemplate(out, conn);
+        Map<Material, List<BlockVector3>> rotatedMarkers = new EnumMap<>(Material.class);
+        for (Map.Entry<Material, List<BlockVector3>> markerEntry : template.markers.entrySet()) {
+            List<BlockVector3> rotatedPoints = rotatedMarkers.computeIfAbsent(markerEntry.getKey(), ignored -> new ArrayList<>());
+            for (BlockVector3 point : markerEntry.getValue()) {
+                rotatedPoints.add(rotateVector(point, template.width, template.length, rot));
+            }
+        }
+        RotatedTemplate built = new RotatedTemplate(out, conn, rotatedMarkers);
         cached[rot] = built;
         return built;
     }
@@ -3234,6 +3625,7 @@ public final class StrongholdDebugGenerator {
                     spec.id(),
                     spec.type(),
                     captured.blocks(),
+                    copyMarkerPositions(captured.markers()),
                     radiusForBlocks(captured.blocks()),
                     lowestRelativeY(captured.blocks()),
                     centerOffsetX(captured.blocks()),
@@ -3257,6 +3649,20 @@ public final class StrongholdDebugGenerator {
         int width = Math.max(1, (bounds.maxX - bounds.minX) + 1);
         int length = Math.max(1, (bounds.maxZ - bounds.minZ) + 1);
         return Math.max(1, (int) Math.ceil(Math.max(width, length) / 2.0D));
+    }
+
+    private static Map<Material, List<BlockVector3>> copyMarkerPositions(Map<Material, List<BlockVector3>> markers) {
+        if (markers == null || markers.isEmpty()) {
+            return Map.of();
+        }
+        Map<Material, List<BlockVector3>> copy = new EnumMap<>(Material.class);
+        for (Map.Entry<Material, List<BlockVector3>> entry : markers.entrySet()) {
+            if (entry.getKey() == null || entry.getValue() == null || entry.getValue().isEmpty()) {
+                continue;
+            }
+            copy.put(entry.getKey(), List.copyOf(entry.getValue()));
+        }
+        return copy.isEmpty() ? Map.of() : Collections.unmodifiableMap(copy);
     }
 
     private static int lowestRelativeY(Map<BlockVector3, BlockData> blocks) {
@@ -3450,13 +3856,15 @@ public final class StrongholdDebugGenerator {
 
     private record Template(Map<BlockVector3, BlockData> blocks,
                             Map<BlockFace, List<BlockVector3>> connectors,
+                            Map<Material, List<BlockVector3>> markers,
                             int width,
                             int height,
                             int length) {
     }
 
     private record RotatedTemplate(Map<BlockVector3, BlockData> blocks,
-                                   Map<BlockFace, List<BlockVector3>> connectors) {
+                                   Map<BlockFace, List<BlockVector3>> connectors,
+                                   Map<Material, List<BlockVector3>> markers) {
     }
 
     private record CapturedTemplates(List<TemplateSpec> walls,
@@ -3586,16 +3994,70 @@ public final class StrongholdDebugGenerator {
     }
 
     private enum AssetType {
+        FLAG,
         TREE,
         ROCK,
         RUIN
     }
 
+    public record FloorTuningConfig(double noiseScale,
+                                    int noisePadding,
+                                    boolean invertMapping,
+                                    boolean shortGrassOverlayEnabled,
+                                    List<Material> palette) {
+        private static FloorTuningConfig defaults() {
+            return new FloorTuningConfig(
+                    DEFAULT_FLOOR_NOISE_SCALE,
+                    DEFAULT_FLOOR_NOISE_PADDING,
+                    DEFAULT_INVERT_FLOOR_NOISE_MAPPING,
+                    DEFAULT_VEGETATION_OVERLAY_ENABLED,
+                    List.copyOf(DEFAULT_STRONGHOLD_FLOOR_PATTERN)
+            );
+        }
+
+        private FloorTuningConfig withNoiseScale(double scale) {
+            return new FloorTuningConfig(
+                    Math.max(1.0D, Math.min(96.0D, scale)),
+                    noisePadding,
+                    invertMapping,
+                    shortGrassOverlayEnabled,
+                    palette
+            );
+        }
+
+        private FloorTuningConfig withNoisePadding(int padding) {
+            return new FloorTuningConfig(
+                    noiseScale,
+                    Math.max(0, Math.min(128, padding)),
+                    invertMapping,
+                    shortGrassOverlayEnabled,
+                    palette
+            );
+        }
+
+        private FloorTuningConfig withInvertMapping(boolean invert) {
+            return new FloorTuningConfig(noiseScale, noisePadding, invert, shortGrassOverlayEnabled, palette);
+        }
+
+        private FloorTuningConfig withShortGrassOverlay(boolean enabled) {
+            return new FloorTuningConfig(noiseScale, noisePadding, invertMapping, enabled, palette);
+        }
+
+        private FloorTuningConfig withPaletteBlock(int index, Material material) {
+            if (index < 0 || index >= palette.size() || material == null) {
+                return this;
+            }
+            List<Material> next = new ArrayList<>(palette);
+            next.set(index, material);
+            return new FloorTuningConfig(noiseScale, noisePadding, invertMapping, shortGrassOverlayEnabled, List.copyOf(next));
+        }
+    }
+
     public record AssetScatterConfig(int totalCount, int treePercent, int ruinPercent, int rockPercent) {
-        private static final int DEFAULT_TOTAL_COUNT = 250;
-        private static final int DEFAULT_TREE_PERCENT = 70;
-        private static final int DEFAULT_RUIN_PERCENT = 10;
-        private static final int DEFAULT_ROCK_PERCENT = 20;
+        private static final int DEFAULT_TOTAL_COUNT = 500;
+        private static final int DEFAULT_TREE_PERCENT = 90;
+        private static final int DEFAULT_RUIN_PERCENT = 0;
+        private static final int DEFAULT_ROCK_PERCENT = 10;
 
         private static AssetScatterConfig defaults() {
             return new AssetScatterConfig(
@@ -3687,9 +4149,10 @@ public final class StrongholdDebugGenerator {
                                          int placedTrees,
                                          int placedRocks,
                                          int placedRuins,
-                                         List<String> sampleOrigins) {
+                                         List<String> sampleOrigins,
+                                         List<AssetPlacement> placements) {
         private static AssetPlacementSummary empty() {
-            return new AssetPlacementSummary(0, 0, 0, 0, 0, 0, List.of());
+            return new AssetPlacementSummary(0, 0, 0, 0, 0, 0, List.of(), List.of());
         }
 
         private String summary() {
@@ -3747,6 +4210,7 @@ public final class StrongholdDebugGenerator {
     private record DetachedAssetTemplate(String id,
                                          AssetType type,
                                          Map<BlockVector3, BlockData> blocks,
+                                         Map<Material, List<BlockVector3>> markers,
                                          int radiusBlocks,
                                          int lowestRelativeY,
                                          int centerOffsetX,
