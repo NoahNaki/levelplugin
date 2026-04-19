@@ -17,6 +17,7 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Directional;
 import org.bukkit.block.data.Orientable;
 import org.bukkit.block.data.Rotatable;
+import org.bukkit.block.data.type.Slab;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 
@@ -86,6 +87,8 @@ public final class StrongholdDebugGenerator {
     private static final double VEGETATION_SCALE = 6.0D;
     private static final double FLOWER_THRESHOLD = 0.94D;
     private static final double TALL_GRASS_THRESHOLD = 0.80D;
+    private static final double FLOOR_RELIEF_NOISE_SCALE = 12.0D;
+    private static final double FLOOR_RELIEF_THRESHOLD = 0.76D;
     private static final int DETACHED_ASSET_BATCH_SIZE = 16;
     private static final List<Material> FLOOR_FLOWER_OPTIONS = List.of(
             Material.DANDELION,
@@ -136,12 +139,6 @@ public final class StrongholdDebugGenerator {
             new DetachedAssetTemplateSpec("tree_1", AssetType.TREE, new TemplateBounds(210, -61, -6337, 200, -38, -6347)),
             new DetachedAssetTemplateSpec("tree_2", AssetType.TREE, new TemplateBounds(210, -61, -6347, 195, -23, -6362)),
             new DetachedAssetTemplateSpec("tree_3", AssetType.TREE, new TemplateBounds(210, -61, -6362, 191, -4, -6383)),
-            new DetachedAssetTemplateSpec("rock_1", AssetType.ROCK, new TemplateBounds(210, -61, -6390, 219, -30, -6381)),
-            new DetachedAssetTemplateSpec("rock_2", AssetType.ROCK, new TemplateBounds(210, -61, -6381, 219, -30, -6372)),
-            new DetachedAssetTemplateSpec("rock_3", AssetType.ROCK, new TemplateBounds(210, -61, -6372, 219, -30, -6364)),
-            new DetachedAssetTemplateSpec("rock_4", AssetType.ROCK, new TemplateBounds(210, -61, -6364, 219, -30, -6355)),
-            new DetachedAssetTemplateSpec("rock_5", AssetType.ROCK, new TemplateBounds(210, -61, -6355, 219, -30, -6346)),
-            new DetachedAssetTemplateSpec("rock_6", AssetType.ROCK, new TemplateBounds(210, -61, -6346, 219, -30, -6337)),
             new DetachedAssetTemplateSpec("rock_large_1", AssetType.ROCK, new TemplateBounds(210, -61, -6383, 142, -34, -6445)),
             new DetachedAssetTemplateSpec("rock_large_2", AssetType.ROCK, new TemplateBounds(89, -61, -6383, 142, -34, -6440)),
             new DetachedAssetTemplateSpec("rock_large_3", AssetType.ROCK, new TemplateBounds(142, -34, -6440, 89, -61, -6503)),
@@ -937,9 +934,81 @@ public final class StrongholdDebugGenerator {
                 }
             }
         }
+        applyStrongholdFloorRelief(world, minX, maxX, minZ, maxZ);
         if (floorCfg.shortGrassOverlayEnabled()) {
             applyVegetationOverlay(world, minX, maxX, minZ, maxZ);
         }
+    }
+
+    private static void applyStrongholdFloorRelief(World world, int minX, int maxX, int minZ, int maxZ) {
+        if (world == null) {
+            return;
+        }
+        Map<Point2D, Integer> carveColumns = new HashMap<>();
+        for (int x = minX; x <= maxX; x++) {
+            for (int z = minZ; z <= maxZ; z++) {
+                int y = world.getHighestBlockYAt(x, z);
+                if (y <= world.getMinHeight() || y >= world.getMaxHeight()) {
+                    continue;
+                }
+                org.bukkit.block.Block top = world.getBlockAt(x, y, z);
+                if (!TERRAIN_REPLACEABLE_MATERIALS.contains(top.getType())) {
+                    continue;
+                }
+                if (!top.getRelative(BlockFace.UP).getType().isAir()) {
+                    continue;
+                }
+                double reliefNoise = fractalSimplexLikeNoise((x + 173.0D) / FLOOR_RELIEF_NOISE_SCALE,
+                        (z - 317.0D) / FLOOR_RELIEF_NOISE_SCALE);
+                if (reliefNoise >= FLOOR_RELIEF_THRESHOLD) {
+                    carveColumns.put(new Point2D(x, z), y);
+                }
+            }
+        }
+        if (carveColumns.isEmpty()) {
+            return;
+        }
+
+        for (Map.Entry<Point2D, Integer> entry : carveColumns.entrySet()) {
+            Point2D column = entry.getKey();
+            int y = entry.getValue();
+            org.bukkit.block.Block top = world.getBlockAt((int) column.x, y, (int) column.z);
+            if (TERRAIN_REPLACEABLE_MATERIALS.contains(top.getType())) {
+                top.setType(Material.AIR, false);
+            }
+        }
+
+        for (Map.Entry<Point2D, Integer> entry : carveColumns.entrySet()) {
+            Point2D column = entry.getKey();
+            int x = (int) column.x;
+            int z = (int) column.z;
+            setReliefEdgeSlabIfNeeded(world, carveColumns, x + 1, z);
+            setReliefEdgeSlabIfNeeded(world, carveColumns, x - 1, z);
+            setReliefEdgeSlabIfNeeded(world, carveColumns, x, z + 1);
+            setReliefEdgeSlabIfNeeded(world, carveColumns, x, z - 1);
+        }
+    }
+
+    private static void setReliefEdgeSlabIfNeeded(World world, Map<Point2D, Integer> carveColumns, int x, int z) {
+        Point2D key = new Point2D(x, z);
+        if (carveColumns.containsKey(key)) {
+            return;
+        }
+        int y = world.getHighestBlockYAt(x, z);
+        if (y <= world.getMinHeight() || y >= world.getMaxHeight()) {
+            return;
+        }
+        org.bukkit.block.Block top = world.getBlockAt(x, y, z);
+        if (!TERRAIN_REPLACEABLE_MATERIALS.contains(top.getType())) {
+            return;
+        }
+        org.bukkit.block.Block below = top.getRelative(BlockFace.DOWN);
+        if (!below.getType().isSolid()) {
+            return;
+        }
+        Slab slabData = (Slab) Bukkit.createBlockData(Material.MUD_BRICK_SLAB);
+        slabData.setType(Slab.Type.BOTTOM);
+        top.setBlockData(slabData, false);
     }
 
     private static void applyVegetationOverlay(World world, int minX, int maxX, int minZ, int maxZ) {
