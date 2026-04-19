@@ -57,8 +57,8 @@ public final class StrongholdDebugGenerator {
     );
     private static final List<Material> DEFAULT_STRONGHOLD_FLOOR_PATTERN = List.of(
             Material.PACKED_MUD,
-            Material.DIRT,
             Material.COARSE_DIRT,
+            Material.GRASS_BLOCK,
             Material.GRASS_BLOCK
     );
     private static final List<Material> FLOOR_PALETTE_OPTIONS = List.of(
@@ -80,7 +80,7 @@ public final class StrongholdDebugGenerator {
             Material.MOSS_BLOCK
     );
     private static final double DEFAULT_FLOOR_NOISE_SCALE = 10.0D;
-    private static final int DEFAULT_FLOOR_NOISE_PADDING = 18;
+    private static final int DEFAULT_FLOOR_NOISE_PADDING = 128;
     private static final boolean DEFAULT_INVERT_FLOOR_NOISE_MAPPING = true;
     private static final boolean DEFAULT_VEGETATION_OVERLAY_ENABLED = true;
     private static final double VEGETATION_SCALE = 6.0D;
@@ -142,6 +142,10 @@ public final class StrongholdDebugGenerator {
             new DetachedAssetTemplateSpec("rock_4", AssetType.ROCK, new TemplateBounds(210, -61, -6364, 219, -30, -6355)),
             new DetachedAssetTemplateSpec("rock_5", AssetType.ROCK, new TemplateBounds(210, -61, -6355, 219, -30, -6346)),
             new DetachedAssetTemplateSpec("rock_6", AssetType.ROCK, new TemplateBounds(210, -61, -6346, 219, -30, -6337)),
+            new DetachedAssetTemplateSpec("rock_large_1", AssetType.ROCK, new TemplateBounds(210, -61, -6383, 142, -34, -6445)),
+            new DetachedAssetTemplateSpec("rock_large_2", AssetType.ROCK, new TemplateBounds(89, -61, -6383, 142, -34, -6440)),
+            new DetachedAssetTemplateSpec("rock_large_3", AssetType.ROCK, new TemplateBounds(142, -34, -6440, 89, -61, -6503)),
+            new DetachedAssetTemplateSpec("rock_large_4", AssetType.ROCK, new TemplateBounds(142, -34, -6503, 210, -61, -6445)),
             new DetachedAssetTemplateSpec("ruin_1", AssetType.RUIN, new TemplateBounds(188, -61, -6390, 197, -30, -6381)),
             new DetachedAssetTemplateSpec("ruin_2", AssetType.RUIN, new TemplateBounds(188, -61, -6381, 197, -30, -6372)),
             new DetachedAssetTemplateSpec("ruin_3", AssetType.RUIN, new TemplateBounds(188, -61, -6372, 197, -30, -6364)),
@@ -288,6 +292,10 @@ public final class StrongholdDebugGenerator {
 
     public static void resetFloorTuningConfig() {
         floorTuningConfig = FloorTuningConfig.defaults();
+    }
+
+    public static void resetAssetScatterConfig() {
+        assetScatterConfig = AssetScatterConfig.defaults();
     }
 
     public static List<Material> getFloorPaletteOptions() {
@@ -4046,10 +4054,10 @@ public final class StrongholdDebugGenerator {
     }
 
     public record AssetScatterConfig(int totalCount, int treePercent, int ruinPercent, int rockPercent) {
-        private static final int DEFAULT_TOTAL_COUNT = 250;
-        private static final int DEFAULT_TREE_PERCENT = 70;
-        private static final int DEFAULT_RUIN_PERCENT = 10;
-        private static final int DEFAULT_ROCK_PERCENT = 20;
+        private static final int DEFAULT_TOTAL_COUNT = 500;
+        private static final int DEFAULT_TREE_PERCENT = 90;
+        private static final int DEFAULT_RUIN_PERCENT = 0;
+        private static final int DEFAULT_ROCK_PERCENT = 10;
 
         private static AssetScatterConfig defaults() {
             return new AssetScatterConfig(

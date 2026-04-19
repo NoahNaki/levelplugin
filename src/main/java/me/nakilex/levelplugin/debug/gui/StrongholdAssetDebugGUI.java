@@ -94,8 +94,8 @@ public final class StrongholdAssetDebugGUI implements Listener {
         inv.setItem(31, paletteItem("Floor Band 4", floorCfg.palette().get(3)));
 
         List<String> resetLore = TooltipUtil.bulletList(
-                "Reset to 70% trees, 10% ruins, 20% rocks, total 250.",
-                "Floor defaults: packed_mud, dirt, coarse_dirt, grass_block."
+                "Reset to 90% trees, 0% ruins, 10% rocks, total 500.",
+                "Floor defaults: packed_mud, coarse_dirt, grass_block, grass_block."
         );
         resetLore.add(" ");
         resetLore.addAll(TooltipUtil.clickInstructions("to reset", null));
@@ -212,8 +212,7 @@ public final class StrongholdAssetDebugGUI implements Listener {
                 StrongholdDebugGenerator.setFloorPaletteBlock(paletteIndex, options.get(nextIndex));
             }
             case 40 -> {
-                StrongholdDebugGenerator.setAssetScatterTotalCount(250);
-                StrongholdDebugGenerator.setAssetScatterDistribution(70, 10, 20);
+                StrongholdDebugGenerator.resetAssetScatterConfig();
                 StrongholdDebugGenerator.resetFloorTuningConfig();
                 ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
                         "Stronghold debug settings reset (assets + floor tuning).");
