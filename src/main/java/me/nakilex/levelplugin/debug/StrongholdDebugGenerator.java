@@ -87,8 +87,8 @@ public final class StrongholdDebugGenerator {
     private static final double VEGETATION_SCALE = 6.0D;
     private static final double FLOWER_THRESHOLD = 0.94D;
     private static final double TALL_GRASS_THRESHOLD = 0.80D;
-    private static final double FLOOR_RELIEF_NOISE_SCALE = 12.0D;
-    private static final double FLOOR_RELIEF_THRESHOLD = 0.76D;
+    private static final double FLOOR_RELIEF_CELL_SCALE = 24.0D;
+    private static final double FLOOR_RELIEF_THRESHOLD = 0.88D;
     private static final int DETACHED_ASSET_BATCH_SIZE = 16;
     private static final List<Material> FLOOR_FLOWER_OPTIONS = List.of(
             Material.DANDELION,
@@ -958,8 +958,8 @@ public final class StrongholdDebugGenerator {
                 if (!top.getRelative(BlockFace.UP).getType().isAir()) {
                     continue;
                 }
-                double reliefNoise = fractalSimplexLikeNoise((x + 173.0D) / FLOOR_RELIEF_NOISE_SCALE,
-                        (z - 317.0D) / FLOOR_RELIEF_NOISE_SCALE);
+                double reliefNoise = smoothOvalBlobNoise((x + 173.0D) / FLOOR_RELIEF_CELL_SCALE,
+                        (z - 317.0D) / FLOOR_RELIEF_CELL_SCALE);
                 if (reliefNoise >= FLOOR_RELIEF_THRESHOLD) {
                     carveColumns.put(new Point2D(x, z), y);
                 }
@@ -1072,21 +1072,67 @@ public final class StrongholdDebugGenerator {
     }
 
     private static double fractalSimplexLikeNoise(double x, double z) {
+        return fractalValueNoise2D(x, z, 3, 0.5D, 2.0D);
+    }
+
+    private static double fractalValueNoise2D(double x,
+                                              double z,
+                                              int octaves,
+                                              double persistence,
+                                              double lacunarity) {
         double amplitude = 1.0D;
         double frequency = 1.0D;
         double value = 0.0D;
         double maxAmplitude = 0.0D;
-        for (int octave = 0; octave < 3; octave++) {
+        int totalOctaves = Math.max(1, octaves);
+        double nextPersistence = Math.max(0.01D, persistence);
+        double nextLacunarity = Math.max(1.01D, lacunarity);
+        for (int octave = 0; octave < totalOctaves; octave++) {
             value += valueNoise2D(x * frequency, z * frequency) * amplitude;
             maxAmplitude += amplitude;
-            amplitude *= 0.5D;
-            frequency *= 2.0D;
+            amplitude *= nextPersistence;
+            frequency *= nextLacunarity;
         }
         if (maxAmplitude <= 0.0D) {
             return 0.5D;
         }
         double normalized = value / maxAmplitude;
         return (normalized + 1.0D) * 0.5D;
+    }
+
+    private static double smoothOvalBlobNoise(double x, double z) {
+        int cellX = (int) Math.floor(x);
+        int cellZ = (int) Math.floor(z);
+        double strongest = 0.0D;
+
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dz = -1; dz <= 1; dz++) {
+                int gx = cellX + dx;
+                int gz = cellZ + dz;
+
+                double centerX = gx + 0.5D + (hashToSignedUnit(gx * 31, gz * 17) * 0.32D);
+                double centerZ = gz + 0.5D + (hashToSignedUnit(gx * 19, gz * 29) * 0.32D);
+                double angle = hashToUnit(gx * 11 + 7, gz * 13 - 5) * Math.PI * 2.0D;
+
+                double majorRadius = 0.95D + (hashToUnit(gx * 23, gz * 37) * 0.65D);
+                double minorRadius = 0.65D + (hashToUnit(gx * 41, gz * 43) * 0.35D);
+
+                double relX = x - centerX;
+                double relZ = z - centerZ;
+                double cos = Math.cos(angle);
+                double sin = Math.sin(angle);
+                double localX = (relX * cos) + (relZ * sin);
+                double localZ = (-relX * sin) + (relZ * cos);
+
+                double normalizedDistance = Math.sqrt(
+                        ((localX * localX) / (majorRadius * majorRadius))
+                                + ((localZ * localZ) / (minorRadius * minorRadius))
+                );
+                double contribution = smoothStep01(1.0D - normalizedDistance);
+                strongest = Math.max(strongest, contribution);
+            }
+        }
+        return strongest;
     }
 
     private static double valueNoise2D(double x, double z) {
@@ -1124,6 +1170,15 @@ public final class StrongholdDebugGenerator {
         h ^= (h >>> 33);
         long masked = h & 0xFFFFFFL;
         return ((masked / (double) 0xFFFFFFL) * 2.0D) - 1.0D;
+    }
+
+    private static double hashToUnit(int x, int z) {
+        return (hashToSignedUnit(x, z) + 1.0D) * 0.5D;
+    }
+
+    private static double smoothStep01(double t) {
+        double clamped = Math.max(0.0D, Math.min(1.0D, t));
+        return clamped * clamped * (3.0D - (2.0D * clamped));
     }
 
     private static void applyTemplateMarkerActions(World sourceWorld,
