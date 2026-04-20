@@ -78,7 +78,9 @@ public final class StrongholdDebugGenerator {
             Material.DIRT,
             Material.COARSE_DIRT,
             Material.MUD,
+            Material.PACKED_MUD,
             Material.PODZOL,
+            Material.ROOTED_DIRT,
             Material.MOSS_BLOCK
     );
     private static final double DEFAULT_FLOOR_NOISE_SCALE = 10.0D;
@@ -89,7 +91,7 @@ public final class StrongholdDebugGenerator {
     private static final double FLOWER_THRESHOLD = 0.94D;
     private static final double TALL_GRASS_THRESHOLD = 0.80D;
     private static final double FLOOR_RELIEF_CELL_SCALE = 128.0D;
-    private static final double FLOOR_RELIEF_THRESHOLD = 0.96D;
+    private static final double FLOOR_RELIEF_THRESHOLD = 0.93D;
     private static final int DETACHED_ASSET_BATCH_SIZE = 16;
     private static final List<Material> FLOOR_FLOWER_OPTIONS = List.of(
             Material.DANDELION,
