@@ -1073,6 +1073,10 @@ public final class StrongholdDebugGenerator {
         int maxX = footprint.maxX + floorCfg.noisePadding();
         int minZ = footprint.minZ - floorCfg.noisePadding();
         int maxZ = footprint.maxZ + floorCfg.noisePadding();
+        Map<Long, ChunkSnapshot> floorSnapshots = loadChunkSnapshots(world, minX, maxX, minZ, maxZ, false);
+        if (floorSnapshots.isEmpty()) {
+            return;
+        }
         long startedAt = System.nanoTime();
         int updatedColumns = 0;
         boolean budgetExceeded = false;
@@ -1083,14 +1087,14 @@ public final class StrongholdDebugGenerator {
                     budgetExceeded = true;
                     break;
                 }
-                int y = world.getHighestBlockYAt(x, z);
-                if (y <= world.getMinHeight() || y >= world.getMaxHeight()) {
+                SurfaceColumn surface = surfaceColumnAt(floorSnapshots, world, x, z);
+                if (surface == null) {
                     continue;
                 }
-                org.bukkit.block.Block block = world.getBlockAt(x, y, z);
-                if (!TERRAIN_REPLACEABLE_MATERIALS.contains(block.getType())) {
+                if (!TERRAIN_REPLACEABLE_MATERIALS.contains(surface.material())) {
                     continue;
                 }
+                org.bukkit.block.Block block = world.getBlockAt(x, surface.y(), z);
                 double sample = fractalSimplexLikeNoise(x / floorCfg.noiseScale(), z / floorCfg.noiseScale());
                 Material patterned = pickMaterialFromNoise(sample);
                 if (patterned != null && block.getType() != patterned) {
@@ -3646,6 +3650,15 @@ public final class StrongholdDebugGenerator {
     }
 
     private static Map<Long, ChunkSnapshot> loadChunkSnapshots(World world, int minX, int maxX, int minZ, int maxZ) {
+        return loadChunkSnapshots(world, minX, maxX, minZ, maxZ, true);
+    }
+
+    private static Map<Long, ChunkSnapshot> loadChunkSnapshots(World world,
+                                                               int minX,
+                                                               int maxX,
+                                                               int minZ,
+                                                               int maxZ,
+                                                               boolean forceLoadChunks) {
         Map<Long, ChunkSnapshot> snapshots = new HashMap<>();
         int minChunkX = Math.floorDiv(minX, 16);
         int maxChunkX = Math.floorDiv(maxX, 16);
@@ -3653,6 +3666,9 @@ public final class StrongholdDebugGenerator {
         int maxChunkZ = Math.floorDiv(maxZ, 16);
         for (int chunkX = minChunkX; chunkX <= maxChunkX; chunkX++) {
             for (int chunkZ = minChunkZ; chunkZ <= maxChunkZ; chunkZ++) {
+                if (!forceLoadChunks && !world.isChunkLoaded(chunkX, chunkZ)) {
+                    continue;
+                }
                 long key = chunkKey(chunkX, chunkZ);
                 snapshots.put(key, world.getChunkAt(chunkX, chunkZ).getChunkSnapshot(false, false, false));
             }
@@ -3670,6 +3686,33 @@ public final class StrongholdDebugGenerator {
             return snapshot.getBlockData(localX, y, localZ);
         }
         return world.getBlockAt(x, y, z).getBlockData();
+    }
+
+    private static SurfaceColumn surfaceColumnAt(Map<Long, ChunkSnapshot> snapshots,
+                                                 World world,
+                                                 int x,
+                                                 int z) {
+        if (snapshots == null || snapshots.isEmpty() || world == null) {
+            return null;
+        }
+        int chunkX = Math.floorDiv(x, 16);
+        int chunkZ = Math.floorDiv(z, 16);
+        ChunkSnapshot snapshot = snapshots.get(chunkKey(chunkX, chunkZ));
+        if (snapshot == null) {
+            return null;
+        }
+        int localX = Math.floorMod(x, 16);
+        int localZ = Math.floorMod(z, 16);
+        int minY = world.getMinHeight();
+        int maxY = world.getMaxHeight() - 1;
+        for (int y = maxY; y >= minY; y--) {
+            Material type = snapshot.getBlockType(localX, y, localZ);
+            if (type.isAir()) {
+                continue;
+            }
+            return new SurfaceColumn(y, type);
+        }
+        return null;
     }
 
     private static StructureFootprint structureFootprintFor(Map<BlockVector3, BlockData> blocks,
@@ -4330,6 +4373,9 @@ public final class StrongholdDebugGenerator {
     }
 
     private record Point2D(double x, double z) {
+    }
+
+    private record SurfaceColumn(int y, Material material) {
     }
 
     private record PlacementField(int minX, int maxX, int minZ, int maxZ, List<Point2D> patchCenters) {
