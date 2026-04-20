@@ -200,6 +200,16 @@ public final class StrongholdDebugGenerator {
     private static final int DETACHED_ASSET_CONSECUTIVE_MISS_ABORT = 140;
     private static final int DETACHED_ASSET_MIN_TOTAL_REQUEST = 32;
     private static final int DETACHED_ASSET_BLOCKS_PER_ASSET_TARGET = 700;
+    private static final int BORDER_FOREST_BATCH_SIZE = 6;
+    private static final int BORDER_FOREST_ATTEMPTS_PER_TICK = 90;
+    private static final int BORDER_FOREST_MIN_OFFSET_BLOCKS = 26;
+    private static final int BORDER_FOREST_MAX_OFFSET_BLOCKS = 110;
+    private static final int BORDER_FOREST_TARGET_MIN = 160;
+    private static final int BORDER_FOREST_TARGET_MAX = 520;
+    private static final double BORDER_FOREST_ORGANIC_NOISE_SCALE = 22.0D;
+    private static final double BORDER_FOREST_DENSITY_THRESHOLD = 0.12D;
+    private static final double BORDER_FOREST_TREE_WEIGHT = 0.90D;
+    private static final double BORDER_FOREST_ROCK_WEIGHT = 0.10D;
     private static final int TARGET_GATE_TEMPLATES = 2;
     private static final Map<String, Integer> REQUIRED_TEMPLATE_COUNTS = Map.of(
             "church", 1,
@@ -581,6 +591,8 @@ public final class StrongholdDebugGenerator {
         processStart = timing.processStarted("Teleport + queue detached pasting");
         player.teleport(new org.bukkit.Location(world, originX + 0.5, originY + 2, originZ + 0.5));
         scheduleDetachedAssetPasting(world, assetSummary.placements(), player);
+        Bounds2D strongholdFootprint = combinedBounds2D(placed);
+        scheduleOrganicBorderForest(sourceWorld, world, strongholdFootprint, occupied, player, originY);
         timing.processFinished("Teleport + queue detached pasting", processStart);
 
         processStart = timing.processStarted("Send generation diagnostics");
@@ -1420,6 +1432,159 @@ public final class StrongholdDebugGenerator {
                 }
             }
         }, 1L, 1L);
+    }
+
+    private static void scheduleOrganicBorderForest(World sourceWorld,
+                                                    World world,
+                                                    Bounds2D footprint,
+                                                    Set<Long> occupied,
+                                                    Player player,
+                                                    int fallbackY) {
+        if (sourceWorld == null || world == null || footprint == null || occupied == null) {
+            return;
+        }
+        Map<AssetType, List<DetachedAssetTemplate>> templatesByType = loadDetachedAssetTemplates(sourceWorld);
+        if (templatesByType.isEmpty()) {
+            return;
+        }
+        List<DetachedAssetTemplate> treeTemplates = templatesByType.getOrDefault(AssetType.TREE, List.of());
+        List<DetachedAssetTemplate> rockTemplates = templatesByType.getOrDefault(AssetType.ROCK, List.of());
+        if (treeTemplates.isEmpty() && rockTemplates.isEmpty()) {
+            return;
+        }
+        Main plugin = Main.getInstance();
+        if (plugin == null) {
+            return;
+        }
+        Random random = ThreadLocalRandom.current();
+        int borderWidth = Math.max(1, (footprint.maxX - footprint.minX) + 1);
+        int borderDepth = Math.max(1, (footprint.maxZ - footprint.minZ) + 1);
+        int perimeter = Math.max(1, (borderWidth * 2) + (borderDepth * 2));
+        int targetPlacements = Math.max(BORDER_FOREST_TARGET_MIN, Math.min(BORDER_FOREST_TARGET_MAX, perimeter / 3));
+        int minX = footprint.minX - BORDER_FOREST_MAX_OFFSET_BLOCKS;
+        int maxX = footprint.maxX + BORDER_FOREST_MAX_OFFSET_BLOCKS;
+        int minZ = footprint.minZ - BORDER_FOREST_MAX_OFFSET_BLOCKS;
+        int maxZ = footprint.maxZ + BORDER_FOREST_MAX_OFFSET_BLOCKS;
+        Set<Long> borderOccupied = new HashSet<>();
+        DetachedAssetPlacementRuntime runtime = new DetachedAssetPlacementRuntime(world, fallbackY);
+
+        final BukkitTask[] taskRef = new BukkitTask[1];
+        final int[] placedCount = {0};
+        final int[] attempts = {0};
+        taskRef[0] = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            int placedThisTick = 0;
+            int attemptsThisTick = 0;
+            while (placedThisTick < BORDER_FOREST_BATCH_SIZE
+                    && attemptsThisTick < BORDER_FOREST_ATTEMPTS_PER_TICK
+                    && placedCount[0] < targetPlacements) {
+                attempts[0]++;
+                attemptsThisTick++;
+                int x = minX + random.nextInt(Math.max(1, (maxX - minX) + 1));
+                int z = minZ + random.nextInt(Math.max(1, (maxZ - minZ) + 1));
+                if (!isChunkLoadedAt(world, x, z)) {
+                    continue;
+                }
+                double distance = distanceToBounds2D(footprint, x, z);
+                if (distance < BORDER_FOREST_MIN_OFFSET_BLOCKS || distance > BORDER_FOREST_MAX_OFFSET_BLOCKS) {
+                    continue;
+                }
+                double noise = fractalSimplexLikeNoise(x / BORDER_FOREST_ORGANIC_NOISE_SCALE, z / BORDER_FOREST_ORGANIC_NOISE_SCALE);
+                if (noise < BORDER_FOREST_DENSITY_THRESHOLD) {
+                    continue;
+                }
+
+                DetachedAssetTemplate template = pickBorderForestTemplate(treeTemplates, rockTemplates, random);
+                if (template == null) {
+                    continue;
+                }
+                int y = runtime.safeSurfaceY(x, z);
+                if (!runtime.isNaturalTerrainAt(x, y, z)) {
+                    continue;
+                }
+
+                int originX = x - template.centerOffsetX();
+                int originZ = z - template.centerOffsetZ();
+                int originY = y - Math.min(0, template.lowestRelativeY());
+                BlockVector3 origin = BlockVector3.at(originX, originY, originZ);
+                if (!isOverlapWithinThreshold(occupied, template.relativeBlocks(), origin, DETACHED_ASSET_OVERLAP_PERCENT)) {
+                    continue;
+                }
+                if (!isOverlapWithinThreshold(borderOccupied, template.relativeBlocks(), origin, DETACHED_ASSET_INTERNAL_OVERLAP_PERCENT)) {
+                    continue;
+                }
+
+                AssetPlacement placement = new AssetPlacement(template.type(), template, origin);
+                pasteDetachedAsset(world, placement);
+                occupy(occupied, origin, template.blocks());
+                occupy(borderOccupied, origin, template.blocks());
+                placedCount[0]++;
+                placedThisTick++;
+            }
+
+            if (placedCount[0] >= targetPlacements || attempts[0] >= targetPlacements * 80) {
+                if (taskRef[0] != null) {
+                    taskRef[0].cancel();
+                }
+                if (player != null && player.isOnline()) {
+                    ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                            "Organic border forest pass complete (" + placedCount[0] + "/" + targetPlacements + ").");
+                }
+            }
+        }, 20L, 2L);
+    }
+
+    private static DetachedAssetTemplate pickBorderForestTemplate(List<DetachedAssetTemplate> treeTemplates,
+                                                                  List<DetachedAssetTemplate> rockTemplates,
+                                                                  Random random) {
+        if ((treeTemplates == null || treeTemplates.isEmpty()) && (rockTemplates == null || rockTemplates.isEmpty())) {
+            return null;
+        }
+        boolean pickRock = random.nextDouble() < BORDER_FOREST_ROCK_WEIGHT;
+        if (pickRock && rockTemplates != null && !rockTemplates.isEmpty()) {
+            return rockTemplates.get(random.nextInt(rockTemplates.size()));
+        }
+        if (treeTemplates != null && !treeTemplates.isEmpty() && random.nextDouble() < BORDER_FOREST_TREE_WEIGHT) {
+            return treeTemplates.get(random.nextInt(treeTemplates.size()));
+        }
+        if (rockTemplates != null && !rockTemplates.isEmpty()) {
+            return rockTemplates.get(random.nextInt(rockTemplates.size()));
+        }
+        return treeTemplates.get(random.nextInt(treeTemplates.size()));
+    }
+
+    private static boolean isChunkLoadedAt(World world, int x, int z) {
+        if (world == null) {
+            return false;
+        }
+        return world.isChunkLoaded(Math.floorDiv(x, 16), Math.floorDiv(z, 16));
+    }
+
+    private static double distanceToBounds2D(Bounds2D bounds, int x, int z) {
+        if (bounds == null) {
+            return 0.0D;
+        }
+        int dx = 0;
+        int dz = 0;
+        if (x < bounds.minX) {
+            dx = bounds.minX - x;
+        } else if (x > bounds.maxX) {
+            dx = x - bounds.maxX;
+        }
+        if (z < bounds.minZ) {
+            dz = bounds.minZ - z;
+        } else if (z > bounds.maxZ) {
+            dz = z - bounds.maxZ;
+        }
+        if (dx == 0 && dz == 0) {
+            return 0.0D;
+        }
+        if (dx == 0) {
+            return dz;
+        }
+        if (dz == 0) {
+            return dx;
+        }
+        return Math.sqrt((dx * dx) + (dz * dz));
     }
 
     private static void applyFloorNoiseForDetachedPlacements(World world, List<AssetPlacement> placements) {
