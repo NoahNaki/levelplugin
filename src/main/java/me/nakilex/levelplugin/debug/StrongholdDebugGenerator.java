@@ -95,7 +95,7 @@ public final class StrongholdDebugGenerator {
     private static final double TALL_GRASS_THRESHOLD = 0.80D;
     private static final int FLOOR_NOISE_SOFT_TIME_BUDGET_MS = 1500;
     private static final boolean FLOOR_NOISE_FORCE_LOAD_CHUNKS = true;
-    private static final int STRONGHOLD_FLOOR_NOISE_PADDING_MULTIPLIER = 2;
+    private static final int STRONGHOLD_FLOOR_NOISE_PADDING_MULTIPLIER = 5;
     private static final int STRONGHOLD_CORE_PASTE_RADIUS_BLOCKS = 190;
     private static final int DETACHED_ASSET_BATCH_SIZE = 16;
     private static final List<Material> FLOOR_FLOWER_OPTIONS = List.of(
@@ -1474,7 +1474,7 @@ public final class StrongholdDebugGenerator {
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             pastePlacedTemplates(world, deferredTemplates);
             applyTemplateMarkerActions(sourceWorld, world, deferredTemplates, random);
-            applyStrongholdFloorNoise(world, placed, false);
+            applyStrongholdFloorNoise(world, placed, true);
             AssetPlacementSummary assetSummary = placeDetachedAssets(sourceWorld, world, placed, occupied, random, fallbackY);
             scheduleDetachedAssetPasting(world, assetSummary.placements(), player);
             Bounds2D footprint = combinedBounds2D(placed);
