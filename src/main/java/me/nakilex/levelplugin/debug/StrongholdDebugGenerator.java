@@ -91,7 +91,7 @@ public final class StrongholdDebugGenerator {
     private static final int DEFAULT_FLOOR_NOISE_PADDING = 128;
     private static final boolean DEFAULT_INVERT_FLOOR_NOISE_MAPPING = true;
     private static final boolean DEFAULT_VEGETATION_OVERLAY_ENABLED = true;
-    private static final boolean DEFAULT_FLOOR_RELIEF_ENABLED = false;
+    private static final boolean DEFAULT_FLOOR_RELIEF_ENABLED = true;
     private static final double VEGETATION_SCALE = 6.0D;
     private static final double FLOWER_THRESHOLD = 0.94D;
     private static final double TALL_GRASS_THRESHOLD = 0.80D;
@@ -213,6 +213,7 @@ public final class StrongholdDebugGenerator {
     private static final double UNDERUSED_TEMPLATE_BONUS = 35.0D;
 
     private static double maxOverlapPercent = 2.0D;
+    private static boolean strongholdConsoleOutputEnabled = true;
     private static AssetScatterConfig assetScatterConfig = AssetScatterConfig.defaults();
     private static FloorTuningConfig floorTuningConfig = FloorTuningConfig.defaults();
     private static final Map<Template, RotatedTemplate[]> ROTATION_CACHE = new IdentityHashMap<>();
@@ -306,6 +307,15 @@ public final class StrongholdDebugGenerator {
 
     public static void resetAssetScatterConfig() {
         assetScatterConfig = AssetScatterConfig.defaults();
+    }
+
+    public static boolean isStrongholdConsoleOutputEnabled() {
+        return strongholdConsoleOutputEnabled;
+    }
+
+    public static boolean toggleStrongholdConsoleOutput() {
+        strongholdConsoleOutputEnabled = !strongholdConsoleOutputEnabled;
+        return strongholdConsoleOutputEnabled;
     }
 
     public static List<Material> getFloorPaletteOptions() {
@@ -1116,7 +1126,7 @@ public final class StrongholdDebugGenerator {
         }
         if (budgetExceeded) {
             Main plugin = Main.getInstance();
-            if (plugin != null) {
+            if (plugin != null && isStrongholdConsoleOutputEnabled()) {
                 plugin.getLogger().info("[StrongholdDebug][Floor] Noise pass hit soft budget after "
                         + updatedColumns + " columns; skipping relief + vegetation for this debug run.");
             }
@@ -1551,7 +1561,10 @@ public final class StrongholdDebugGenerator {
     }
 
     private static void logDetachedAssetDebug(String message) {
-        if (!ENABLE_DETACHED_ASSET_DEBUG_LOGGING || message == null || message.isBlank()) {
+        if (!ENABLE_DETACHED_ASSET_DEBUG_LOGGING
+                || !isStrongholdConsoleOutputEnabled()
+                || message == null
+                || message.isBlank()) {
             return;
         }
         Bukkit.getLogger().info("[StrongholdDebug][Assets] " + message);
@@ -4739,7 +4752,7 @@ public final class StrongholdDebugGenerator {
 
         private void logConsole(String message) {
             Main plugin = Main.getInstance();
-            if (plugin != null) {
+            if (plugin != null && isStrongholdConsoleOutputEnabled()) {
                 plugin.getLogger().info(PREFIX + message);
             }
         }

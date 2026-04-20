@@ -549,7 +549,7 @@ public class DebugCommand implements TabExecutor {
                 }
                 if (args.length < 2) {
                     ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.WARNING,
-                            "Usage: /debug stronghold <generate test|towerwall|overlap [percent]|templates|assets>");
+                            "Usage: /debug stronghold <generate test|towerwall|overlap [percent]|templates|assets|output>");
                     return true;
                 }
                 if (args[1].equalsIgnoreCase("assets")) {
@@ -558,6 +558,12 @@ public class DebugCommand implements TabExecutor {
                 }
                 if (args[1].equalsIgnoreCase("templates")) {
                     StrongholdTemplateDebugGUI.getInstance().open(strongholdPlayer);
+                    return true;
+                }
+                if (args[1].equalsIgnoreCase("output")) {
+                    boolean outputEnabled = StrongholdDebugGenerator.toggleStrongholdConsoleOutput();
+                    ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.SUCCESS,
+                            "Stronghold console debug output is now " + (outputEnabled ? "ON" : "OFF") + ".");
                     return true;
                 }
                 if (args[1].equalsIgnoreCase("overlap")) {
@@ -581,7 +587,7 @@ public class DebugCommand implements TabExecutor {
                 }
                 if (args.length < 3 || !args[1].equalsIgnoreCase("generate")) {
                     ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.WARNING,
-                            "Usage: /debug stronghold <generate test|towerwall|overlap [percent]|templates|assets>");
+                            "Usage: /debug stronghold <generate test|towerwall|overlap [percent]|templates|assets|output>");
                     return true;
                 }
                 if (args[2].equalsIgnoreCase("test")) {
@@ -705,7 +711,7 @@ public class DebugCommand implements TabExecutor {
                     .filter(s -> s.startsWith(args[0].toLowerCase()))
                     .toList();
         } else if (args.length == 2 && args[0].equalsIgnoreCase("stronghold")) {
-            return List.of("generate", "overlap", "templates", "assets").stream()
+            return List.of("generate", "overlap", "templates", "assets", "output").stream()
                     .filter(opt -> opt.startsWith(args[1].toLowerCase()))
                     .toList();
         } else if (args.length == 3 && args[0].equalsIgnoreCase("stronghold") && args[1].equalsIgnoreCase("generate")) {
