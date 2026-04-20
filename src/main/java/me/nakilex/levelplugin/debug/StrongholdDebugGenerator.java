@@ -548,17 +548,9 @@ public final class StrongholdDebugGenerator {
         pastePlacedTemplates(world, placed);
         timing.processFinished("Paste templates", processStart);
 
-        processStart = timing.processStarted("Apply floor noise");
-        applyStrongholdFloorNoise(world, placed);
-        timing.processFinished("Apply floor noise", processStart);
-
         processStart = timing.processStarted("Apply template marker actions");
         applyTemplateMarkerActions(sourceWorld, world, placed, random);
         timing.processFinished("Apply template marker actions", processStart);
-
-        processStart = timing.processStarted("Place detached assets");
-        AssetPlacementSummary assetSummary = placeDetachedAssets(sourceWorld, world, placed, occupied, random, originY);
-        timing.processFinished("Place detached assets", processStart);
 
         processStart = timing.processStarted("Disconnected fallback raw copies");
         int requiredRawCopies = 0;
@@ -590,9 +582,7 @@ public final class StrongholdDebugGenerator {
 
         processStart = timing.processStarted("Teleport + queue detached pasting");
         player.teleport(new org.bukkit.Location(world, originX + 0.5, originY + 2, originZ + 0.5));
-        scheduleDetachedAssetPasting(world, assetSummary.placements(), player);
-        Bounds2D strongholdFootprint = combinedBounds2D(placed);
-        scheduleOrganicBorderForest(sourceWorld, world, strongholdFootprint, occupied, player, originY);
+        schedulePostTeleportEnhancements(sourceWorld, world, placed, occupied, player, random, originY);
         timing.processFinished("Teleport + queue detached pasting", processStart);
 
         processStart = timing.processStarted("Send generation diagnostics");
@@ -623,7 +613,7 @@ public final class StrongholdDebugGenerator {
                         + ", satellite link segments: " + diagnostics.satelliteLinkSegments
                         + ", rejected(wallPacing): " + diagnostics.rejectedWallPacing
                         + ", rejected(largeSpacing): " + diagnostics.rejectedLargeSpacing
-                        + ", detached assets: " + assetSummary.summary()
+                        + ", detached assets: deferred (scheduled post-teleport)"
                         + ", placed templates: " + summarizePlacedTemplates(placed)
                         + ", template connectors(captured): " + diagnostics.templateConnectorSummary);
         timing.processFinished("Send generation diagnostics", processStart);
@@ -1090,6 +1080,12 @@ public final class StrongholdDebugGenerator {
     }
 
     private static void applyStrongholdFloorNoise(World world, List<PlacedTemplate> placedTemplates) {
+        applyStrongholdFloorNoise(world, placedTemplates, FLOOR_NOISE_FORCE_LOAD_CHUNKS);
+    }
+
+    private static void applyStrongholdFloorNoise(World world,
+                                                  List<PlacedTemplate> placedTemplates,
+                                                  boolean forceLoadChunks) {
         if (world == null || placedTemplates == null || placedTemplates.isEmpty()) {
             return;
         }
@@ -1102,7 +1098,7 @@ public final class StrongholdDebugGenerator {
         int maxX = footprint.maxX + floorCfg.noisePadding();
         int minZ = footprint.minZ - floorCfg.noisePadding();
         int maxZ = footprint.maxZ + floorCfg.noisePadding();
-        applyFloorNoiseWithinBounds(world, minX, maxX, minZ, maxZ, floorCfg, true);
+        applyFloorNoiseWithinBounds(world, minX, maxX, minZ, maxZ, floorCfg, true, forceLoadChunks);
     }
 
     private static void applyFloorNoiseWithinBounds(World world,
@@ -1112,11 +1108,22 @@ public final class StrongholdDebugGenerator {
                                                     int maxZ,
                                                     FloorTuningConfig floorCfg,
                                                     boolean includeReliefAndVegetation) {
+        applyFloorNoiseWithinBounds(world, minX, maxX, minZ, maxZ, floorCfg, includeReliefAndVegetation, FLOOR_NOISE_FORCE_LOAD_CHUNKS);
+    }
+
+    private static void applyFloorNoiseWithinBounds(World world,
+                                                    int minX,
+                                                    int maxX,
+                                                    int minZ,
+                                                    int maxZ,
+                                                    FloorTuningConfig floorCfg,
+                                                    boolean includeReliefAndVegetation,
+                                                    boolean forceLoadChunks) {
         if (world == null || floorCfg == null) {
             return;
         }
         Map<Long, ChunkSnapshot> floorSnapshots = loadChunkSnapshots(
-                world, minX, maxX, minZ, maxZ, FLOOR_NOISE_FORCE_LOAD_CHUNKS, true);
+                world, minX, maxX, minZ, maxZ, forceLoadChunks, true);
         if (floorSnapshots.isEmpty()) {
             return;
         }
@@ -1432,6 +1439,38 @@ public final class StrongholdDebugGenerator {
                 }
             }
         }, 1L, 1L);
+    }
+
+    private static void schedulePostTeleportEnhancements(World sourceWorld,
+                                                         World world,
+                                                         List<PlacedTemplate> placed,
+                                                         Set<Long> occupied,
+                                                         Player player,
+                                                         Random random,
+                                                         int fallbackY) {
+        if (sourceWorld == null || world == null || placed == null || placed.isEmpty() || occupied == null) {
+            return;
+        }
+        Main plugin = Main.getInstance();
+        if (plugin == null) {
+            applyStrongholdFloorNoise(world, placed);
+            AssetPlacementSummary assetSummary = placeDetachedAssets(sourceWorld, world, placed, occupied, random, fallbackY);
+            scheduleDetachedAssetPasting(world, assetSummary.placements(), player);
+            Bounds2D footprint = combinedBounds2D(placed);
+            scheduleOrganicBorderForest(sourceWorld, world, footprint, occupied, player, fallbackY);
+            return;
+        }
+        if (player != null && player.isOnline()) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                    "Running stronghold enhancement passes in the background (floor + assets).");
+        }
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            applyStrongholdFloorNoise(world, placed, false);
+            AssetPlacementSummary assetSummary = placeDetachedAssets(sourceWorld, world, placed, occupied, random, fallbackY);
+            scheduleDetachedAssetPasting(world, assetSummary.placements(), player);
+            Bounds2D footprint = combinedBounds2D(placed);
+            scheduleOrganicBorderForest(sourceWorld, world, footprint, occupied, player, fallbackY);
+        }, 2L);
     }
 
     private static void scheduleOrganicBorderForest(World sourceWorld,
