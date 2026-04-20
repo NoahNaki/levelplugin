@@ -24,6 +24,7 @@ import org.bukkit.scheduler.BukkitTask;
 import java.util.ArrayList;
 import java.util.ArrayDeque;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Deque;
 import java.util.EnumMap;
 import java.util.EnumSet;
@@ -326,6 +327,7 @@ public final class StrongholdDebugGenerator {
             return false;
         }
         clearRotationCache();
+        StrongholdGenerationTimingTracker timing = new StrongholdGenerationTimingTracker(player);
 
         Main plugin = Main.getInstance();
         if (plugin == null) {
@@ -334,20 +336,25 @@ public final class StrongholdDebugGenerator {
             return true;
         }
 
+        long processStart = timing.processStarted("Prepare source templates");
         SourceSetup setup = prepareSourceTemplates(player, true);
+        timing.processFinished("Prepare source templates", processStart);
         if (setup == null) {
             return true;
         }
         World sourceWorld = setup.sourceWorld();
         CapturedTemplates captured = setup.captured();
 
+        processStart = timing.processStarted("Create debug world");
         World world = createGeneratedWorld(plugin, player);
+        timing.processFinished("Create debug world", processStart);
         if (world == null) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
                     "Failed to create a superflat world for stronghold generation.");
             return true;
         }
 
+        processStart = timing.processStarted("Initialize generation state");
         Random random = ThreadLocalRandom.current();
         GenerationDiagnostics diagnostics = new GenerationDiagnostics();
         diagnostics.templateConnectorSummary = templateConnectorSummary(captured);
@@ -359,8 +366,11 @@ public final class StrongholdDebugGenerator {
 
         List<PlacedTemplate> placed = new ArrayList<>();
         Set<Long> occupied = new HashSet<>();
+        timing.processFinished("Initialize generation state", processStart);
 
+        processStart = timing.processStarted("Pick start template");
         TemplateSpec startSpec = pickWeighted(eligibleWallPool(captured.walls()), random);
+        timing.processFinished("Pick start template", processStart);
         if (startSpec == null) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
                     "No wall templates were captured.");
@@ -371,6 +381,7 @@ public final class StrongholdDebugGenerator {
         placed.add(start);
         occupy(occupied, start);
 
+        processStart = timing.processStarted("Build spine");
         PlacedTemplate spineHead = start;
         PlacementState spineState = PlacementState.initial();
         for (int i = 0; i < DEFAULT_SPINE_LENGTH; i++) {
@@ -405,9 +416,13 @@ public final class StrongholdDebugGenerator {
             occupy(occupied, attempt.placed);
             spineHead = attempt.placed;
         }
+        timing.processFinished("Build spine", processStart);
 
+        processStart = timing.processStarted("Close spine dead-end");
         closeOpenSideWithDeadEnd(spineHead, captured, occupied, random, placed);
+        timing.processFinished("Close spine dead-end", processStart);
 
+        processStart = timing.processStarted("Grow branches");
         if (USE_FRONTIER_SCHEDULER) {
             growBranchesFrontier(captured, occupied, random, placed, MAX_TOTAL_PIECES, diagnostics);
         } else {
@@ -415,11 +430,16 @@ public final class StrongholdDebugGenerator {
                 growBranches(placed.get(seedIndex), captured, occupied, random, placed, MAX_TOTAL_PIECES, diagnostics);
             }
         }
+        timing.processFinished("Grow branches", processStart);
+
+        processStart = timing.processStarted("Build template candidate pools");
         List<TemplateSpec> allCandidateTemplates = new ArrayList<>();
         allCandidateTemplates.addAll(captured.walls());
         allCandidateTemplates.addAll(captured.largeJunctions());
         allCandidateTemplates.addAll(captured.deadEnds());
+        timing.processFinished("Build template candidate pools", processStart);
 
+        processStart = timing.processStarted("Least-overlap required template placement");
         for (String requiredTemplateId : REQUIRED_TEMPLATE_COUNTS.keySet()) {
             Predicate<TemplateSpec> matcher = matcherForTemplateId(requiredTemplateId);
             PlacedTemplate leastOverlapRequired = placeTemplateAtLeastOverlapOpenOutput(
@@ -437,6 +457,9 @@ public final class StrongholdDebugGenerator {
                 growBranches(leastOverlapRequired, captured, occupied, random, placed, MAX_TOTAL_PIECES, diagnostics);
             }
         }
+        timing.processFinished("Least-overlap required template placement", processStart);
+
+        processStart = timing.processStarted("Satellite church placement");
         SatellitePlacementResult satellitePlacement = placeSatelliteChurchWithOptionalLink(
                 captured,
                 occupied,
@@ -446,7 +469,9 @@ public final class StrongholdDebugGenerator {
         );
         diagnostics.satelliteChurchPlaced = satellitePlacement.placed();
         diagnostics.satelliteLinkSegments = satellitePlacement.linkSegments();
+        timing.processFinished("Satellite church placement", processStart);
 
+        processStart = timing.processStarted("Ensure required templates");
         int forcedRequiredPlacements = 0;
         boolean churchEmergencyPlaced = false;
         int requiredEmergencyPlacements = 0;
@@ -486,13 +511,30 @@ public final class StrongholdDebugGenerator {
         diagnostics.requiredPlacementsForced = forcedRequiredPlacements;
         diagnostics.requiredEmergencyPlaced = requiredEmergencyPlacements;
         diagnostics.churchEmergencyPlaced = churchEmergencyPlaced;
+        timing.processFinished("Ensure required templates", processStart);
+
+        processStart = timing.processStarted("Close viable dead-ends + church count");
         int sealedViableOutputs = closeViableOutputsWithDeadEnds(captured, occupied, random, placed);
         int finalChurchCount = countPlacedTemplatesMatching(placed, matcherForTemplateId("church"));
+        timing.processFinished("Close viable dead-ends + church count", processStart);
 
+        processStart = timing.processStarted("Paste templates");
         pastePlacedTemplates(world, placed);
+        timing.processFinished("Paste templates", processStart);
+
+        processStart = timing.processStarted("Apply floor noise");
         applyStrongholdFloorNoise(world, placed);
+        timing.processFinished("Apply floor noise", processStart);
+
+        processStart = timing.processStarted("Apply template marker actions");
         applyTemplateMarkerActions(sourceWorld, world, placed, random);
+        timing.processFinished("Apply template marker actions", processStart);
+
+        processStart = timing.processStarted("Place detached assets");
         AssetPlacementSummary assetSummary = placeDetachedAssets(sourceWorld, world, placed, occupied, random, originY);
+        timing.processFinished("Place detached assets", processStart);
+
+        processStart = timing.processStarted("Disconnected fallback raw copies");
         int requiredRawCopies = 0;
         if (ENABLE_DISCONNECTED_FALLBACKS) {
             for (Map.Entry<String, Integer> requiredTemplate : REQUIRED_TEMPLATE_COUNTS.entrySet()) {
@@ -518,9 +560,14 @@ public final class StrongholdDebugGenerator {
             }
         }
         diagnostics.requiredRawCopied = requiredRawCopies;
+        timing.processFinished("Disconnected fallback raw copies", processStart);
 
+        processStart = timing.processStarted("Teleport + queue detached pasting");
         player.teleport(new org.bukkit.Location(world, originX + 0.5, originY + 2, originZ + 0.5));
         scheduleDetachedAssetPasting(world, assetSummary.placements(), player);
+        timing.processFinished("Teleport + queue detached pasting", processStart);
+
+        processStart = timing.processStarted("Send generation diagnostics");
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
                 "Generated stronghold spine+branches using " + placed.size()
                         + " pieces in world '" + world.getName() + "' (overlap threshold: "
@@ -551,6 +598,8 @@ public final class StrongholdDebugGenerator {
                         + ", detached assets: " + assetSummary.summary()
                         + ", placed templates: " + summarizePlacedTemplates(placed)
                         + ", template connectors(captured): " + diagnostics.templateConnectorSummary);
+        timing.processFinished("Send generation diagnostics", processStart);
+        timing.sendSummary();
         return true;
     }
 
@@ -4371,6 +4420,55 @@ public final class StrongholdDebugGenerator {
             nonTerrainGroundRejects += Math.max(0, result.nonTerrainGroundRejects());
             mainOverlapRejects += Math.max(0, result.mainOverlapRejects());
             detachedOverlapRejects += Math.max(0, result.detachedOverlapRejects());
+        }
+    }
+
+    private static final class StrongholdGenerationTimingTracker {
+        private static final String PREFIX = "[StrongholdDebugTiming] ";
+        private final Player player;
+        private final long totalStartNanos;
+        private final Map<String, Long> durationsByProcessMs = new LinkedHashMap<>();
+
+        private StrongholdGenerationTimingTracker(Player player) {
+            this.player = player;
+            this.totalStartNanos = System.nanoTime();
+            log(ChatMessageUtil.MessageType.INFO, "Started /debug stronghold generate test timing capture.");
+        }
+
+        private long processStarted(String processName) {
+            log(ChatMessageUtil.MessageType.INFO, "Process started: " + processName);
+            return System.nanoTime();
+        }
+
+        private void processFinished(String processName, long processStartNanos) {
+            long elapsedMs = Math.max(0L, (System.nanoTime() - processStartNanos) / 1_000_000L);
+            durationsByProcessMs.put(processName, elapsedMs);
+            log(ChatMessageUtil.MessageType.INFO, "Process finished: " + processName + " (" + elapsedMs + "ms)");
+        }
+
+        private void sendSummary() {
+            long totalMs = Math.max(0L, (System.nanoTime() - totalStartNanos) / 1_000_000L);
+            Map.Entry<String, Long> slowest = durationsByProcessMs.entrySet()
+                    .stream()
+                    .max(Comparator.comparingLong(Map.Entry::getValue))
+                    .orElse(null);
+            if (slowest == null) {
+                log(ChatMessageUtil.MessageType.INFO, "No timing phases captured.");
+                return;
+            }
+            log(ChatMessageUtil.MessageType.SUCCESS,
+                    "Stronghold generate test timing summary -> slowest process: "
+                            + slowest.getKey() + " (" + slowest.getValue() + "ms), total tracked: " + totalMs + "ms.");
+        }
+
+        private void log(ChatMessageUtil.MessageType type, String message) {
+            Main plugin = Main.getInstance();
+            if (plugin != null) {
+                plugin.getLogger().info(PREFIX + message);
+            }
+            if (player != null) {
+                ChatMessageUtil.send(player, type, message);
+            }
         }
     }
 
