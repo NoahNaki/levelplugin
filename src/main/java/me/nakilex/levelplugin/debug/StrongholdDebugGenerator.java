@@ -1118,9 +1118,9 @@ public final class StrongholdDebugGenerator {
             return;
         }
 
-        applyStrongholdFloorRelief(world, minX, maxX, minZ, maxZ);
+        applyStrongholdFloorRelief(world, floorSnapshots, minX, maxX, minZ, maxZ);
         if (floorCfg.shortGrassOverlayEnabled()) {
-            applyVegetationOverlay(world, minX, maxX, minZ, maxZ);
+            applyVegetationOverlay(world, floorSnapshots, minX, maxX, minZ, maxZ);
         }
     }
 
@@ -1128,12 +1128,18 @@ public final class StrongholdDebugGenerator {
         return Math.max(0L, (System.nanoTime() - startedAtNanos) / 1_000_000L);
     }
 
-    private static void applyStrongholdFloorRelief(World world, int minX, int maxX, int minZ, int maxZ) {
+    private static void applyStrongholdFloorRelief(World world,
+                                                   Map<Long, ChunkSnapshot> snapshots,
+                                                   int minX,
+                                                   int maxX,
+                                                   int minZ,
+                                                   int maxZ) {
         if (world == null) {
             return;
         }
         Map<Point2D, Integer> carveColumns = collectTerrainColumnsByNoise(
                 world,
+                snapshots,
                 minX,
                 maxX,
                 minZ,
@@ -1159,14 +1165,15 @@ public final class StrongholdDebugGenerator {
             Point2D column = entry.getKey();
             int x = (int) column.x;
             int z = (int) column.z;
-            setTerrainEdgeSlabIfNeeded(world, carveColumns, x + 1, z, Slab.Type.BOTTOM);
-            setTerrainEdgeSlabIfNeeded(world, carveColumns, x - 1, z, Slab.Type.BOTTOM);
-            setTerrainEdgeSlabIfNeeded(world, carveColumns, x, z + 1, Slab.Type.BOTTOM);
-            setTerrainEdgeSlabIfNeeded(world, carveColumns, x, z - 1, Slab.Type.BOTTOM);
+            setTerrainEdgeSlabIfNeeded(world, snapshots, carveColumns, x + 1, z, Slab.Type.BOTTOM);
+            setTerrainEdgeSlabIfNeeded(world, snapshots, carveColumns, x - 1, z, Slab.Type.BOTTOM);
+            setTerrainEdgeSlabIfNeeded(world, snapshots, carveColumns, x, z + 1, Slab.Type.BOTTOM);
+            setTerrainEdgeSlabIfNeeded(world, snapshots, carveColumns, x, z - 1, Slab.Type.BOTTOM);
         }
     }
 
     private static void setTerrainEdgeSlabIfNeeded(World world,
+                                                   Map<Long, ChunkSnapshot> snapshots,
                                                    Map<Point2D, Integer> shapedColumns,
                                                    int x,
                                                    int z,
@@ -1175,14 +1182,11 @@ public final class StrongholdDebugGenerator {
         if (shapedColumns.containsKey(key)) {
             return;
         }
-        int y = world.getHighestBlockYAt(x, z);
-        if (y <= world.getMinHeight() || y >= world.getMaxHeight()) {
+        SurfaceColumn surface = surfaceColumnAt(snapshots, world, x, z);
+        if (surface == null || !TERRAIN_REPLACEABLE_MATERIALS.contains(surface.material())) {
             return;
         }
-        org.bukkit.block.Block top = world.getBlockAt(x, y, z);
-        if (!TERRAIN_REPLACEABLE_MATERIALS.contains(top.getType())) {
-            return;
-        }
+        org.bukkit.block.Block top = world.getBlockAt(x, surface.y(), z);
         org.bukkit.block.Block below = top.getRelative(BlockFace.DOWN);
         if (!below.getType().isSolid()) {
             return;
@@ -1193,6 +1197,7 @@ public final class StrongholdDebugGenerator {
     }
 
     private static Map<Point2D, Integer> collectTerrainColumnsByNoise(World world,
+                                                                       Map<Long, ChunkSnapshot> snapshots,
                                                                        int minX,
                                                                        int maxX,
                                                                        int minZ,
@@ -1205,20 +1210,20 @@ public final class StrongholdDebugGenerator {
         }
         for (int x = minX; x <= maxX; x++) {
             for (int z = minZ; z <= maxZ; z++) {
-                int y = world.getHighestBlockYAt(x, z);
-                if (y <= world.getMinHeight() || y >= world.getMaxHeight()) {
+                SurfaceColumn surface = surfaceColumnAt(snapshots, world, x, z);
+                if (surface == null) {
                     continue;
                 }
-                org.bukkit.block.Block top = world.getBlockAt(x, y, z);
-                if (!TERRAIN_REPLACEABLE_MATERIALS.contains(top.getType())) {
+                if (!TERRAIN_REPLACEABLE_MATERIALS.contains(surface.material())) {
                     continue;
                 }
+                org.bukkit.block.Block top = world.getBlockAt(x, surface.y(), z);
                 if (!top.getRelative(BlockFace.UP).getType().isAir()) {
                     continue;
                 }
                 double sampled = noiseSampler.applyAsDouble(x, z);
                 if (sampled >= threshold) {
-                    columns.put(new Point2D(x, z), y);
+                    columns.put(new Point2D(x, z), surface.y());
                 }
             }
         }
@@ -1239,17 +1244,22 @@ public final class StrongholdDebugGenerator {
         }
     }
 
-    private static void applyVegetationOverlay(World world, int minX, int maxX, int minZ, int maxZ) {
+    private static void applyVegetationOverlay(World world,
+                                               Map<Long, ChunkSnapshot> snapshots,
+                                               int minX,
+                                               int maxX,
+                                               int minZ,
+                                               int maxZ) {
         if (world == null) {
             return;
         }
         for (int x = minX; x <= maxX; x++) {
             for (int z = minZ; z <= maxZ; z++) {
-                int y = world.getHighestBlockYAt(x, z);
-                if (y <= world.getMinHeight() || y >= world.getMaxHeight()) {
+                SurfaceColumn surface = surfaceColumnAt(snapshots, world, x, z);
+                if (surface == null || surface.material() != Material.GRASS_BLOCK) {
                     continue;
                 }
-                org.bukkit.block.Block top = world.getBlockAt(x, y, z);
+                org.bukkit.block.Block top = world.getBlockAt(x, surface.y(), z);
                 if (top.getType() != Material.GRASS_BLOCK) {
                     continue;
                 }
