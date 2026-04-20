@@ -4026,15 +4026,19 @@ public final class StrongholdDebugGenerator {
             if (captured == null || captured.blocks() == null || captured.blocks().isEmpty()) {
                 continue;
             }
+            Map<BlockVector3, BlockData> detachedBlocks = filterDetachedTemplateBlocks(captured.blocks());
+            if (detachedBlocks.isEmpty()) {
+                detachedBlocks = captured.blocks();
+            }
             DetachedAssetTemplate template = new DetachedAssetTemplate(
                     spec.id(),
                     spec.type(),
-                    captured.blocks(),
+                    detachedBlocks,
                     copyMarkerPositions(captured.markers()),
-                    radiusForBlocks(captured.blocks()),
-                    lowestRelativeY(captured.blocks()),
-                    centerOffsetX(captured.blocks()),
-                    centerOffsetZ(captured.blocks())
+                    radiusForBlocks(detachedBlocks),
+                    lowestRelativeY(detachedBlocks),
+                    centerOffsetX(detachedBlocks),
+                    centerOffsetZ(detachedBlocks)
             );
             grouped.computeIfAbsent(spec.type(), ignored -> new ArrayList<>()).add(template);
         }
@@ -4044,6 +4048,24 @@ public final class StrongholdDebugGenerator {
         }
         cachedDetachedAssetTemplates = Collections.unmodifiableMap(immutable);
         return cachedDetachedAssetTemplates;
+    }
+
+    private static Map<BlockVector3, BlockData> filterDetachedTemplateBlocks(Map<BlockVector3, BlockData> blocks) {
+        if (blocks == null || blocks.isEmpty()) {
+            return Map.of();
+        }
+        Map<BlockVector3, BlockData> filtered = new HashMap<>(blocks.size());
+        for (Map.Entry<BlockVector3, BlockData> entry : blocks.entrySet()) {
+            if (entry == null || entry.getKey() == null || entry.getValue() == null) {
+                continue;
+            }
+            Material type = entry.getValue().getMaterial();
+            if (type == null || TERRAIN_REPLACEABLE_MATERIALS.contains(type)) {
+                continue;
+            }
+            filtered.put(entry.getKey(), entry.getValue());
+        }
+        return filtered;
     }
 
     private static int radiusForBlocks(Map<BlockVector3, BlockData> blocks) {
