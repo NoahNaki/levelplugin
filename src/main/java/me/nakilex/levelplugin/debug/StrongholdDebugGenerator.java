@@ -192,6 +192,7 @@ public final class StrongholdDebugGenerator {
     private static final int DETACHED_ASSET_PATCH_COUNT = 12;
     private static final int DETACHED_ASSET_PATCH_RADIUS = 26;
     private static final int DETACHED_ASSET_AREA_PADDING = 24;
+    private static final int DETACHED_ASSET_FOOTPRINT_EXCLUSION_PADDING = 12;
     private static final int DETACHED_ASSET_MAX_ATTEMPTS = 3000;
     private static final int TARGET_GATE_TEMPLATES = 2;
     private static final Map<String, Integer> REQUIRED_TEMPLATE_COUNTS = Map.of(
@@ -697,6 +698,12 @@ public final class StrongholdDebugGenerator {
         Collections.shuffle(requestOrder, random);
         Set<Long> detachedOccupied = new HashSet<>();
         AssetPlacementDebugCounter debugCounter = new AssetPlacementDebugCounter();
+        AssetPlacementSearchContext searchContext = new AssetPlacementSearchContext(
+                footprint,
+                DETACHED_ASSET_FOOTPRINT_EXCLUSION_PADDING,
+                new HashMap<>(),
+                new HashMap<>()
+        );
 
         int treesPlaced = 0;
         int rocksPlaced = 0;
@@ -706,7 +713,17 @@ public final class StrongholdDebugGenerator {
 
         for (AssetType type : requestOrder) {
             List<DetachedAssetTemplate> pool = templatesByType.getOrDefault(type, List.of());
-            AssetPlacementSearchResult result = findDetachedAssetPlacement(type, pool, world, occupied, detachedOccupied, random, field, fallbackY);
+            AssetPlacementSearchResult result = findDetachedAssetPlacement(
+                    type,
+                    pool,
+                    world,
+                    occupied,
+                    detachedOccupied,
+                    random,
+                    field,
+                    fallbackY,
+                    searchContext
+            );
             debugCounter.add(result);
             AssetPlacement placement = result.placement();
             if (placement == null) {
@@ -791,7 +808,8 @@ public final class StrongholdDebugGenerator {
                                                                          Set<Long> detachedOccupied,
                                                                          Random random,
                                                                          PlacementField field,
-                                                                         int fallbackY) {
+                                                                         int fallbackY,
+                                                                         AssetPlacementSearchContext context) {
         if (candidates == null || candidates.isEmpty()) {
             return AssetPlacementSearchResult.noPool();
         }
@@ -810,9 +828,13 @@ public final class StrongholdDebugGenerator {
                 outsideFieldRejects++;
                 continue;
             }
+            if (isInsideFootprintExclusionZone(x, z, context)) {
+                outsideFieldRejects++;
+                continue;
+            }
 
-            int y = safeSurfaceY(world, x, z, fallbackY);
-            if (!isNaturalTerrain(world, x, y, z)) {
+            int y = safeSurfaceY(world, x, z, fallbackY, context.surfaceYCache());
+            if (!isNaturalTerrain(world, x, y, z, context.naturalTerrainCache())) {
                 nonTerrainGroundRejects++;
                 continue;
             }
@@ -855,6 +877,24 @@ public final class StrongholdDebugGenerator {
             return fallbackY;
         }
         return highest;
+    }
+
+    private static int safeSurfaceY(World world,
+                                    int x,
+                                    int z,
+                                    int fallbackY,
+                                    Map<Long, Integer> cache) {
+        if (cache == null) {
+            return safeSurfaceY(world, x, z, fallbackY);
+        }
+        long key = xzKey(x, z);
+        Integer cached = cache.get(key);
+        if (cached != null) {
+            return cached;
+        }
+        int y = safeSurfaceY(world, x, z, fallbackY);
+        cache.put(key, y);
+        return y;
     }
 
     private static PlacementField buildPlacementField(Bounds2D footprint, Random random) {
@@ -904,6 +944,36 @@ public final class StrongholdDebugGenerator {
                 || top == Material.MUD
                 || top == Material.PODZOL
                 || top == Material.MOSS_BLOCK;
+    }
+
+    private static boolean isNaturalTerrain(World world,
+                                            int x,
+                                            int y,
+                                            int z,
+                                            Map<Long, Boolean> cache) {
+        if (cache == null) {
+            return isNaturalTerrain(world, x, y, z);
+        }
+        long key = posKey(x, y, z);
+        Boolean cached = cache.get(key);
+        if (cached != null) {
+            return cached;
+        }
+        boolean natural = isNaturalTerrain(world, x, y, z);
+        cache.put(key, natural);
+        return natural;
+    }
+
+    private static boolean isInsideFootprintExclusionZone(int x, int z, AssetPlacementSearchContext context) {
+        if (context == null || context.footprint() == null) {
+            return false;
+        }
+        Bounds2D footprint = context.footprint();
+        int padding = Math.max(0, context.exclusionPadding());
+        return x >= (footprint.minX - padding)
+                && x <= (footprint.maxX + padding)
+                && z >= (footprint.minZ - padding)
+                && z <= (footprint.maxZ + padding);
     }
 
     private static void applyStrongholdFloorNoise(World world, List<PlacedTemplate> placedTemplates) {
@@ -3979,6 +4049,10 @@ public final class StrongholdDebugGenerator {
         return lx | lz | ly;
     }
 
+    private static long xzKey(int x, int z) {
+        return (((long) x) << 32) ^ (z & 0xFFFFFFFFL);
+    }
+
     private static int unpackPosX(long key) {
         return unpackSigned(key >> 38, 26);
     }
@@ -4155,6 +4229,12 @@ public final class StrongholdDebugGenerator {
     }
 
     private record PlacementField(int minX, int maxX, int minZ, int maxZ, List<Point2D> patchCenters) {
+    }
+
+    private record AssetPlacementSearchContext(Bounds2D footprint,
+                                               int exclusionPadding,
+                                               Map<Long, Integer> surfaceYCache,
+                                               Map<Long, Boolean> naturalTerrainCache) {
     }
 
     private record SatellitePlacementResult(boolean placed, int linkSegments) {
