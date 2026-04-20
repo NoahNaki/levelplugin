@@ -682,12 +682,16 @@ public final class StrongholdDebugGenerator {
         pastePlacedTemplatesProgressively(world, placedTemplates, player, () -> {
             Main plugin = Main.getInstance();
             if (plugin == null) {
+                ensureStrongholdBaseFloor(world, placedTemplates);
                 applyStrongholdFloorNoise(world, placedTemplates);
                 applyTemplateMarkerActions(sourceWorld, world, placedTemplates, random);
                 scheduleDetachedAssetPasting(world, detachedPlacements, player);
                 return;
             }
             Bukkit.getScheduler().runTask(plugin, () -> {
+                ensureStrongholdBaseFloor(world, placedTemplates);
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                        "Stronghold base floor complete.");
                 applyStrongholdFloorNoise(world, placedTemplates);
                 ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                         "Stronghold floor pass complete.");
@@ -830,6 +834,36 @@ public final class StrongholdDebugGenerator {
             return null;
         }
         return new Bounds2D(minX, maxX, minZ, maxZ);
+    }
+
+    private static Bounds3D combinedBounds3D(List<PlacedTemplate> placedTemplates) {
+        int minX = Integer.MAX_VALUE;
+        int maxX = Integer.MIN_VALUE;
+        int minY = Integer.MAX_VALUE;
+        int maxY = Integer.MIN_VALUE;
+        int minZ = Integer.MAX_VALUE;
+        int maxZ = Integer.MIN_VALUE;
+        boolean found = false;
+        for (PlacedTemplate placed : placedTemplates) {
+            if (placed == null) {
+                continue;
+            }
+            Bounds3D bounds = placed.bounds3D();
+            if (bounds == null) {
+                continue;
+            }
+            minX = Math.min(minX, bounds.minX);
+            maxX = Math.max(maxX, bounds.maxX);
+            minY = Math.min(minY, bounds.minY);
+            maxY = Math.max(maxY, bounds.maxY);
+            minZ = Math.min(minZ, bounds.minZ);
+            maxZ = Math.max(maxZ, bounds.maxZ);
+            found = true;
+        }
+        if (!found) {
+            return null;
+        }
+        return new Bounds3D(minX, maxX, minY, maxY, minZ, maxZ);
     }
 
     private static AssetPlacementSearchResult findDetachedAssetPlacement(AssetType type,
@@ -991,6 +1025,36 @@ public final class StrongholdDebugGenerator {
         applyStrongholdFloorRelief(world, minX, maxX, minZ, maxZ);
         if (floorCfg.shortGrassOverlayEnabled()) {
             applyVegetationOverlay(world, minX, maxX, minZ, maxZ);
+        }
+    }
+
+    private static void ensureStrongholdBaseFloor(World world, List<PlacedTemplate> placedTemplates) {
+        if (world == null || placedTemplates == null || placedTemplates.isEmpty()) {
+            return;
+        }
+        Bounds3D bounds = combinedBounds3D(placedTemplates);
+        if (bounds == null) {
+            return;
+        }
+
+        int floorY = Math.max(world.getMinHeight() + 1, bounds.minY - 1);
+        int lowerY = floorY - 1;
+        Material topMaterial = getFloorTuningConfig().palette().isEmpty()
+                ? Material.PACKED_MUD
+                : getFloorTuningConfig().palette().get(0);
+        Material lowerMaterial = Material.DIRT;
+
+        for (int x = bounds.minX; x <= bounds.maxX; x++) {
+            for (int z = bounds.minZ; z <= bounds.maxZ; z++) {
+                org.bukkit.block.Block lower = world.getBlockAt(x, lowerY, z);
+                if (lower.getType().isAir()) {
+                    lower.setType(lowerMaterial, false);
+                }
+                org.bukkit.block.Block top = world.getBlockAt(x, floorY, z);
+                if (top.getType().isAir()) {
+                    top.setType(topMaterial, false);
+                }
+            }
         }
     }
 
