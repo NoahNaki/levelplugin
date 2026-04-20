@@ -14,6 +14,7 @@ import org.bukkit.ChunkSnapshot;
 import org.bukkit.Material;
 import org.bukkit.Tag;
 import org.bukkit.World;
+import org.bukkit.WorldBorder;
 import org.bukkit.WorldType;
 import org.bukkit.World.Environment;
 import org.bukkit.block.BlockFace;
@@ -209,7 +210,10 @@ public final class StrongholdDebugGenerator {
     private static final double BORDER_FOREST_ORGANIC_NOISE_SCALE = 22.0D;
     private static final double BORDER_FOREST_DENSITY_THRESHOLD = 0.12D;
     private static final double BORDER_FOREST_TREE_WEIGHT = 0.90D;
-    private static final double BORDER_FOREST_ROCK_WEIGHT = 0.10D;
+    private static final double BORDER_FOREST_ROCK_WEIGHT = 0.25D;
+    private static final double BORDER_FOREST_MIN_ROCK_SHARE = 0.18D;
+    private static final int STRONGHOLD_WORLD_BORDER_PADDING_BLOCKS = 140;
+    private static final int STRONGHOLD_WORLD_BORDER_MIN_DIAMETER_BLOCKS = 380;
     private static final int TARGET_GATE_TEMPLATES = 2;
     private static final Map<String, Integer> REQUIRED_TEMPLATE_COUNTS = Map.of(
             "church", 1,
@@ -589,9 +593,10 @@ public final class StrongholdDebugGenerator {
         timing.processFinished("Disconnected fallback raw copies", processStart);
 
         processStart = timing.processStarted("Teleport + queue detached pasting");
+        Bounds2D strongholdFootprint = combinedBounds2D(placed);
+        applyStrongholdWorldBorder(world, strongholdFootprint);
         player.teleport(new org.bukkit.Location(world, originX + 0.5, originY + 2, originZ + 0.5));
         scheduleDetachedAssetPasting(world, assetSummary.placements(), player);
-        Bounds2D strongholdFootprint = combinedBounds2D(placed);
         scheduleOrganicBorderForest(sourceWorld, world, strongholdFootprint, occupied, player, originY);
         timing.processFinished("Teleport + queue detached pasting", processStart);
 
@@ -1465,11 +1470,15 @@ public final class StrongholdDebugGenerator {
         int maxX = footprint.maxX + BORDER_FOREST_MAX_OFFSET_BLOCKS;
         int minZ = footprint.minZ - BORDER_FOREST_MAX_OFFSET_BLOCKS;
         int maxZ = footprint.maxZ + BORDER_FOREST_MAX_OFFSET_BLOCKS;
+        int minRockPlacements = rockTemplates.isEmpty()
+                ? 0
+                : Math.max(6, (int) Math.round(targetPlacements * BORDER_FOREST_MIN_ROCK_SHARE));
         Set<Long> borderOccupied = new HashSet<>();
         DetachedAssetPlacementRuntime runtime = new DetachedAssetPlacementRuntime(world, fallbackY);
 
         final BukkitTask[] taskRef = new BukkitTask[1];
         final int[] placedCount = {0};
+        final int[] rockPlacedCount = {0};
         final int[] attempts = {0};
         taskRef[0] = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             int placedThisTick = 0;
@@ -1493,7 +1502,8 @@ public final class StrongholdDebugGenerator {
                     continue;
                 }
 
-                DetachedAssetTemplate template = pickBorderForestTemplate(treeTemplates, rockTemplates, random);
+                DetachedAssetTemplate template = pickBorderForestTemplate(
+                        treeTemplates, rockTemplates, random, rockPlacedCount[0], minRockPlacements, targetPlacements, placedCount[0]);
                 if (template == null) {
                     continue;
                 }
@@ -1518,6 +1528,9 @@ public final class StrongholdDebugGenerator {
                 occupy(occupied, origin, template.blocks());
                 occupy(borderOccupied, origin, template.blocks());
                 placedCount[0]++;
+                if (template.type() == AssetType.ROCK) {
+                    rockPlacedCount[0]++;
+                }
                 placedThisTick++;
             }
 
@@ -1527,7 +1540,8 @@ public final class StrongholdDebugGenerator {
                 }
                 if (player != null && player.isOnline()) {
                     ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
-                            "Organic border forest pass complete (" + placedCount[0] + "/" + targetPlacements + ").");
+                            "Organic border forest pass complete (" + placedCount[0] + "/" + targetPlacements
+                                    + ", rocks=" + rockPlacedCount[0] + ").");
                 }
             }
         }, 20L, 2L);
@@ -1535,9 +1549,20 @@ public final class StrongholdDebugGenerator {
 
     private static DetachedAssetTemplate pickBorderForestTemplate(List<DetachedAssetTemplate> treeTemplates,
                                                                   List<DetachedAssetTemplate> rockTemplates,
-                                                                  Random random) {
+                                                                  Random random,
+                                                                  int rockPlacedCount,
+                                                                  int minRockPlacements,
+                                                                  int targetPlacements,
+                                                                  int totalPlacedCount) {
         if ((treeTemplates == null || treeTemplates.isEmpty()) && (rockTemplates == null || rockTemplates.isEmpty())) {
             return null;
+        }
+        if (rockTemplates != null && !rockTemplates.isEmpty() && rockPlacedCount < minRockPlacements) {
+            int placementsLeft = Math.max(1, targetPlacements - totalPlacedCount);
+            int rocksNeeded = Math.max(0, minRockPlacements - rockPlacedCount);
+            if (rocksNeeded >= placementsLeft || random.nextDouble() < (rocksNeeded / (double) placementsLeft)) {
+                return rockTemplates.get(random.nextInt(rockTemplates.size()));
+            }
         }
         boolean pickRock = random.nextDouble() < BORDER_FOREST_ROCK_WEIGHT;
         if (pickRock && rockTemplates != null && !rockTemplates.isEmpty()) {
@@ -1550,6 +1575,25 @@ public final class StrongholdDebugGenerator {
             return rockTemplates.get(random.nextInt(rockTemplates.size()));
         }
         return treeTemplates.get(random.nextInt(treeTemplates.size()));
+    }
+
+    private static void applyStrongholdWorldBorder(World world, Bounds2D footprint) {
+        if (world == null || footprint == null) {
+            return;
+        }
+        int width = Math.max(1, (footprint.maxX - footprint.minX) + 1);
+        int depth = Math.max(1, (footprint.maxZ - footprint.minZ) + 1);
+        int diameter = Math.max(
+                STRONGHOLD_WORLD_BORDER_MIN_DIAMETER_BLOCKS,
+                Math.max(width, depth) + (STRONGHOLD_WORLD_BORDER_PADDING_BLOCKS * 2)
+        );
+        double centerX = (footprint.minX + footprint.maxX) / 2.0D;
+        double centerZ = (footprint.minZ + footprint.maxZ) / 2.0D;
+        WorldBorder worldBorder = world.getWorldBorder();
+        worldBorder.setCenter(centerX, centerZ);
+        worldBorder.setSize(diameter);
+        worldBorder.setWarningDistance(16);
+        worldBorder.setWarningTime(8);
     }
 
     private static boolean isChunkLoadedAt(World world, int x, int z) {
