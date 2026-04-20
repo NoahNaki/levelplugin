@@ -1105,16 +1105,18 @@ public final class StrongholdDebugGenerator {
                 break;
             }
         }
-        applyStrongholdFloorRelief(world, minX, maxX, minZ, maxZ);
-        if (floorCfg.shortGrassOverlayEnabled()) {
-            applyVegetationOverlay(world, minX, maxX, minZ, maxZ);
-        }
         if (budgetExceeded) {
             Main plugin = Main.getInstance();
             if (plugin != null) {
                 plugin.getLogger().info("[StrongholdDebug][Floor] Noise pass hit soft budget after "
-                        + updatedColumns + " columns; skipping remaining columns for this debug run.");
+                        + updatedColumns + " columns; skipping relief + vegetation for this debug run.");
             }
+            return;
+        }
+
+        applyStrongholdFloorRelief(world, minX, maxX, minZ, maxZ);
+        if (floorCfg.shortGrassOverlayEnabled()) {
+            applyVegetationOverlay(world, minX, maxX, minZ, maxZ);
         }
     }
 
