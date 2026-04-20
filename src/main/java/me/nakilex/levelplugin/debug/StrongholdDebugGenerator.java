@@ -6,7 +6,10 @@ import com.sk89q.worldedit.WorldEdit;
 import com.sk89q.worldedit.bukkit.BukkitAdapter;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
+import me.nakilex.levelplugin.utils.TooltipUtil;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.ChunkSnapshot;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -4665,25 +4668,31 @@ public final class StrongholdDebugGenerator {
 
     private static final class StrongholdGenerationTimingTracker {
         private static final String PREFIX = "[StrongholdDebugTiming] ";
+        private static final int TOTAL_GENERATE_TEST_STEPS = 19;
+        private static final int PROGRESS_BAR_LENGTH = 26;
         private final Player player;
         private final long totalStartNanos;
         private final Map<String, Long> durationsByProcessMs = new LinkedHashMap<>();
+        private int completedSteps;
 
         private StrongholdGenerationTimingTracker(Player player) {
             this.player = player;
             this.totalStartNanos = System.nanoTime();
-            log(ChatMessageUtil.MessageType.INFO, "Started /debug stronghold generate test timing capture.");
+            logConsole("Started /debug stronghold generate test timing capture.");
+            updateProgressBar("Generating stronghold");
         }
 
         private long processStarted(String processName) {
-            log(ChatMessageUtil.MessageType.INFO, "Process started: " + processName);
+            logConsole("Process started: " + processName);
             return System.nanoTime();
         }
 
         private void processFinished(String processName, long processStartNanos) {
             long elapsedMs = Math.max(0L, (System.nanoTime() - processStartNanos) / 1_000_000L);
             durationsByProcessMs.put(processName, elapsedMs);
-            log(ChatMessageUtil.MessageType.INFO, "Process finished: " + processName + " (" + elapsedMs + "ms)");
+            completedSteps = Math.min(TOTAL_GENERATE_TEST_STEPS, completedSteps + 1);
+            logConsole("Process finished: " + processName + " (" + elapsedMs + "ms)");
+            updateProgressBar("Generating stronghold");
         }
 
         private void sendSummary() {
@@ -4693,22 +4702,37 @@ public final class StrongholdDebugGenerator {
                     .max(Comparator.comparingLong(Map.Entry::getValue))
                     .orElse(null);
             if (slowest == null) {
-                log(ChatMessageUtil.MessageType.INFO, "No timing phases captured.");
+                logConsole("No timing phases captured.");
                 return;
             }
-            log(ChatMessageUtil.MessageType.SUCCESS,
+            completedSteps = TOTAL_GENERATE_TEST_STEPS;
+            updateProgressBar("Stronghold ready");
+            logConsole(
                     "Stronghold generate test timing summary -> slowest process: "
                             + slowest.getKey() + " (" + slowest.getValue() + "ms), total tracked: " + totalMs + "ms.");
         }
 
-        private void log(ChatMessageUtil.MessageType type, String message) {
+        private void logConsole(String message) {
             Main plugin = Main.getInstance();
             if (plugin != null) {
                 plugin.getLogger().info(PREFIX + message);
             }
-            if (player != null) {
-                ChatMessageUtil.send(player, type, message);
+        }
+
+        private void updateProgressBar(String title) {
+            if (player == null) {
+                return;
             }
+            double progress = TOTAL_GENERATE_TEST_STEPS <= 0
+                    ? 0.0D
+                    : Math.max(0.0D, Math.min(1.0D, completedSteps / (double) TOTAL_GENERATE_TEST_STEPS));
+            String bar = TooltipUtil.expProgressBar(completedSteps, TOTAL_GENERATE_TEST_STEPS, PROGRESS_BAR_LENGTH);
+            int percent = (int) Math.round(progress * 100.0D);
+            String actionBar = ChatColor.GOLD + (title == null ? "Generating stronghold" : title)
+                    + ChatColor.DARK_GRAY + " "
+                    + bar
+                    + ChatColor.GRAY + " " + percent + "%";
+            player.sendActionBar(Component.text(actionBar));
         }
     }
 
