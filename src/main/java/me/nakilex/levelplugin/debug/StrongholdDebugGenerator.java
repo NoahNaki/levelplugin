@@ -37,6 +37,7 @@ import java.util.Set;
 import java.util.IdentityHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.DoubleBinaryOperator;
+import java.util.function.IntConsumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
@@ -93,6 +94,7 @@ public final class StrongholdDebugGenerator {
     private static final double FLOOR_RELIEF_CELL_SCALE = 128.0D;
     private static final double FLOOR_RELIEF_THRESHOLD = 0.93D;
     private static final int DETACHED_ASSET_BATCH_SIZE = 16;
+    private static final int STRONGHOLD_TEMPLATE_BATCH_SIZE = 2;
     private static final List<Material> FLOOR_FLOWER_OPTIONS = List.of(
             Material.DANDELION,
             Material.POPPY,
@@ -489,9 +491,9 @@ public final class StrongholdDebugGenerator {
         int sealedViableOutputs = closeViableOutputsWithDeadEnds(captured, occupied, random, placed);
         int finalChurchCount = countPlacedTemplatesMatching(placed, matcherForTemplateId("church"));
 
-        pastePlacedTemplates(world, placed);
-        applyStrongholdFloorNoise(world, placed);
-        applyTemplateMarkerActions(sourceWorld, world, placed, random);
+        player.teleport(new org.bukkit.Location(world, originX + 0.5, originY + 2, originZ + 0.5));
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                "Stronghold world ready. Streaming generation phases...");
         AssetPlacementSummary assetSummary = placeDetachedAssets(sourceWorld, world, placed, occupied, random, originY);
         int requiredRawCopies = 0;
         if (ENABLE_DISCONNECTED_FALLBACKS) {
@@ -519,8 +521,14 @@ public final class StrongholdDebugGenerator {
         }
         diagnostics.requiredRawCopied = requiredRawCopies;
 
-        player.teleport(new org.bukkit.Location(world, originX + 0.5, originY + 2, originZ + 0.5));
-        scheduleDetachedAssetPasting(world, assetSummary.placements(), player);
+        scheduleStrongholdBuildPipeline(
+                sourceWorld,
+                world,
+                placed,
+                assetSummary.placements(),
+                player,
+                random
+        );
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
                 "Generated stronghold spine+branches using " + placed.size()
                         + " pieces in world '" + world.getName() + "' (overlap threshold: "
@@ -640,10 +648,17 @@ public final class StrongholdDebugGenerator {
             builtBranches++;
         }
 
-        pastePlacedTemplates(world, placed);
-        applyStrongholdFloorNoise(world, placed);
-        applyTemplateMarkerActions(sourceWorld, world, placed, ThreadLocalRandom.current());
         player.teleport(new org.bukkit.Location(world, originX + 0.5, originY + 2, originZ + 0.5));
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                "Towerwall world ready. Streaming generation phases...");
+        scheduleStrongholdBuildPipeline(
+                sourceWorld,
+                world,
+                placed,
+                List.of(),
+                player,
+                ThreadLocalRandom.current()
+        );
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
                 "Generated towerwall cross preset using " + placed.size() + " pieces in world '" + world.getName() + "'.");
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
@@ -651,6 +666,34 @@ public final class StrongholdDebugGenerator {
                         + ", viable next outputs: skipped"
                         + ", walls built: " + builtBranches + "/" + maxBranches);
         return true;
+    }
+
+    private static void scheduleStrongholdBuildPipeline(World sourceWorld,
+                                                        World world,
+                                                        List<PlacedTemplate> placedTemplates,
+                                                        List<AssetPlacement> detachedPlacements,
+                                                        Player player,
+                                                        Random random) {
+        pastePlacedTemplatesProgressively(world, placedTemplates, player, () -> {
+            Main plugin = Main.getInstance();
+            if (plugin == null) {
+                applyStrongholdFloorNoise(world, placedTemplates);
+                applyTemplateMarkerActions(sourceWorld, world, placedTemplates, random);
+                scheduleDetachedAssetPasting(world, detachedPlacements, player);
+                return;
+            }
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                applyStrongholdFloorNoise(world, placedTemplates);
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                        "Stronghold floor pass complete.");
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    applyTemplateMarkerActions(sourceWorld, world, placedTemplates, random);
+                    ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                            "Stronghold marker actions complete.");
+                    scheduleDetachedAssetPasting(world, detachedPlacements, player);
+                });
+            });
+        });
     }
 
     private static AssetPlacementSummary placeDetachedAssets(World sourceWorld,
@@ -1308,28 +1351,85 @@ public final class StrongholdDebugGenerator {
         if (world == null || placements == null || placements.isEmpty()) {
             return;
         }
-        Main plugin = Main.getInstance();
-        if (plugin == null) {
-            for (AssetPlacement placement : placements) {
-                pasteDetachedAsset(world, placement);
+        final int total = placements.size();
+        runBatchedTask(
+                DETACHED_ASSET_BATCH_SIZE,
+                total,
+                index -> pasteDetachedAsset(world, placements.get(index)),
+                () -> {
+                    if (player != null && player.isOnline()) {
+                        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                                "Detached asset batching complete (" + total + " placements).");
+                    }
+                }
+        );
+    }
+
+    private static void pastePlacedTemplatesProgressively(World world,
+                                                          List<PlacedTemplate> placedTemplates,
+                                                          Player player,
+                                                          Runnable onComplete) {
+        if (world == null || placedTemplates == null || placedTemplates.isEmpty()) {
+            if (onComplete != null) {
+                onComplete.run();
             }
             return;
         }
+        int total = placedTemplates.size();
+        runBatchedTask(
+                STRONGHOLD_TEMPLATE_BATCH_SIZE,
+                total,
+                index -> {
+                    PlacedTemplate placed = placedTemplates.get(index);
+                    paste(world, placed.spec.template, placed.origin, placed.rotation);
+                },
+                () -> {
+                    if (player != null && player.isOnline()) {
+                        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                                "Stronghold template pass complete (" + total + " pieces).");
+                    }
+                    if (onComplete != null) {
+                        onComplete.run();
+                    }
+                }
+        );
+    }
+
+    private static void runBatchedTask(int batchSize,
+                                       int total,
+                                       IntConsumer taskByIndex,
+                                       Runnable onComplete) {
+        if (total <= 0 || taskByIndex == null) {
+            if (onComplete != null) {
+                onComplete.run();
+            }
+            return;
+        }
+        Main plugin = Main.getInstance();
+        if (plugin == null) {
+            for (int i = 0; i < total; i++) {
+                taskByIndex.accept(i);
+            }
+            if (onComplete != null) {
+                onComplete.run();
+            }
+            return;
+        }
+
+        final int perTick = Math.max(1, batchSize);
         final BukkitTask[] taskRef = new BukkitTask[1];
-        final int[] index = {0};
-        final int total = placements.size();
+        final int[] indexRef = {0};
         taskRef[0] = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             int processed = 0;
-            while (index[0] < total && processed < DETACHED_ASSET_BATCH_SIZE) {
-                pasteDetachedAsset(world, placements.get(index[0]));
-                index[0]++;
+            while (indexRef[0] < total && processed < perTick) {
+                taskByIndex.accept(indexRef[0]);
+                indexRef[0]++;
                 processed++;
             }
-            if (index[0] >= total && taskRef[0] != null) {
+            if (indexRef[0] >= total && taskRef[0] != null) {
                 taskRef[0].cancel();
-                if (player != null && player.isOnline()) {
-                    ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
-                            "Detached asset batching complete (" + total + " placements).");
+                if (onComplete != null) {
+                    onComplete.run();
                 }
             }
         }, 1L, 1L);
