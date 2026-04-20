@@ -33,7 +33,7 @@ public class LootChestListener implements Listener {
         FurnitureMechanic mech = event.getMechanic();
 
         // Only handle our crate furniture
-        if (!lootChestManager.getCrateModelId().equals(mech.getItemID())) {
+        if (!lootChestManager.isLootChestMechanic(mech)) {
             return;
         }
 

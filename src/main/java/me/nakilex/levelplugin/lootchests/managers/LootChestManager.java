@@ -53,7 +53,8 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public class LootChestManager {
 
-    private static final String DEFAULT_CRATE_ID = "crate_lvl1";
+    private static final String DEFAULT_CRATE_ID = "coffre_1";
+    private static final Set<String> LEGACY_CRATE_IDS = Set.of("crate_lvl1");
     private static final int LOOT_ROLLS = 3;
     private static final int INVENTORY_SIZE = 27;
 
@@ -82,6 +83,7 @@ public class LootChestManager {
     private final Map<UUID, LootStreakState> lootStreaks = new HashMap<>();
 
     private final Set<Material> upgradeMaterials = new HashSet<>();
+    private boolean missingCrateModelLogged;
     private static final long LOOT_STREAK_WINDOW_MS = 3 * 60 * 1000L;
     private static final double LOOT_STREAK_BONUS_PER_STEP = 0.08;
     private static final double LOOT_STREAK_BONUS_CAP = 0.40;
@@ -91,6 +93,47 @@ public class LootChestManager {
             return "world";
         }
         return storedWorld;
+    }
+
+    private String resolveCrateModelId() {
+        List<String> candidates = new ArrayList<>();
+        candidates.add(DEFAULT_CRATE_ID);
+        if (!DEFAULT_CRATE_ID.endsWith(".bbmodel")) {
+            candidates.add(DEFAULT_CRATE_ID + ".bbmodel");
+        }
+        candidates.addAll(LEGACY_CRATE_IDS);
+
+        for (String candidate : candidates) {
+            FurnitureMechanic mechanic = NexoFurniture.furnitureMechanic(candidate);
+            if (mechanic != null) {
+                return candidate;
+            }
+        }
+        return DEFAULT_CRATE_ID;
+    }
+
+    private boolean isLootChestModelId(String modelId) {
+        if (modelId == null || modelId.isBlank()) {
+            return false;
+        }
+        String normalized = normalizeModelId(modelId);
+        if (normalizeModelId(DEFAULT_CRATE_ID).equals(normalized)) {
+            return true;
+        }
+        for (String legacyId : LEGACY_CRATE_IDS) {
+            if (normalizeModelId(legacyId).equals(normalized)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private String normalizeModelId(String modelId) {
+        String normalized = modelId.trim().toLowerCase(Locale.ROOT);
+        if (normalized.endsWith(".bbmodel")) {
+            return normalized.substring(0, normalized.length() - ".bbmodel".length());
+        }
+        return normalized;
     }
 
 
@@ -167,13 +210,16 @@ public class LootChestManager {
 
         // 1) Place our standard crate furniture instead of a vanilla CHEST block.
         //    Use the recorded facing to orient the crate correctly.
-        String crateId = DEFAULT_CRATE_ID;
+        String crateId = resolveCrateModelId();
         FurnitureMechanic mech = NexoFurniture.furnitureMechanic(crateId);
         if (mech == null) {
-            plugin.getLogger().severe(
-                "[LootChestManager] Could not find FurnitureMechanic for ID '" + crateId + "'. Did your YAML register it?"
-            );
-            NexoUtil.logAvailableFurnitureIds(plugin.getLogger());
+            if (!missingCrateModelLogged) {
+                plugin.getLogger().severe(
+                    "[LootChestManager] Could not find FurnitureMechanic for ID '" + crateId + "'. Did your YAML register it?"
+                );
+                NexoUtil.logAvailableFurnitureIds(plugin.getLogger());
+                missingCrateModelLogged = true;
+            }
             loc.getBlock().setType(Material.CHEST, false);
             org.bukkit.block.data.BlockData dataBlock = loc.getBlock().getBlockData();
             if (dataBlock instanceof org.bukkit.block.data.Directional directional) {
@@ -181,6 +227,7 @@ public class LootChestManager {
                 loc.getBlock().setBlockData(directional, false);
             }
         } else {
+            missingCrateModelLogged = false;
             // Center the furniture within the block to avoid spawning offset issues.
             Location centered = LocationUtils.centerOnBlock(loc);
             // The place(...) call returns the spawned Entity; we ignore it here.
@@ -316,7 +363,7 @@ public class LootChestManager {
             plugin,
             () -> {
                 FurnitureMechanic mechAtLoc = NexoFurniture.furnitureMechanic(loc.getBlock());
-                boolean hasCrate = mechAtLoc != null && mechAtLoc.getItemID().equals(DEFAULT_CRATE_ID);
+                boolean hasCrate = isLootChestMechanic(mechAtLoc);
                 if (!hasCrate) {
                     return;
                 }
@@ -435,7 +482,7 @@ public class LootChestManager {
             }
 
             FurnitureMechanic mechAtLoc = NexoFurniture.furnitureMechanic(location.getBlock());
-            boolean strayChestPresent = mechAtLoc != null && DEFAULT_CRATE_ID.equals(mechAtLoc.getItemID());
+            boolean strayChestPresent = isLootChestMechanic(mechAtLoc);
 
             boolean removedModel = false;
             if (strayChestPresent) {
@@ -584,7 +631,11 @@ public class LootChestManager {
     }
 
     public String getCrateModelId() {
-        return DEFAULT_CRATE_ID;
+        return resolveCrateModelId();
+    }
+
+    public boolean isLootChestMechanic(FurnitureMechanic mechanic) {
+        return mechanic != null && isLootChestModelId(mechanic.getItemID());
     }
 
     public void removeAllChests() {
@@ -733,7 +784,7 @@ public class LootChestManager {
                 for (int y = minY; y < maxY; y++) {
                     Block block = chunk.getBlock(x, y, z);
                     FurnitureMechanic mechAtLoc = NexoFurniture.furnitureMechanic(block);
-                    if (mechAtLoc == null || !DEFAULT_CRATE_ID.equals(mechAtLoc.getItemID())) {
+                    if (!isLootChestMechanic(mechAtLoc)) {
                         continue;
                     }
 
