@@ -1021,7 +1021,7 @@ public final class StrongholdDebugGenerator {
         int maxX = footprint.maxX + floorCfg.noisePadding();
         int minZ = footprint.minZ - floorCfg.noisePadding();
         int maxZ = footprint.maxZ + floorCfg.noisePadding();
-        Map<Long, ChunkSnapshot> snapshots = loadChunkSnapshots(world, minX, maxX, minZ, maxZ);
+        Map<Long, ChunkSnapshot> snapshots = loadChunkSnapshots(world, minX, maxX, minZ, maxZ, true);
         Map<Long, SurfaceColumn> surfaceCache = new HashMap<>();
         FloorPassRuntime runtime = FloorPassRuntime.start(FLOOR_NOISE_SOFT_TIME_BUDGET_MS);
 
@@ -3675,6 +3675,15 @@ public final class StrongholdDebugGenerator {
     }
 
     private static Map<Long, ChunkSnapshot> loadChunkSnapshots(World world, int minX, int maxX, int minZ, int maxZ) {
+        return loadChunkSnapshots(world, minX, maxX, minZ, maxZ, false);
+    }
+
+    private static Map<Long, ChunkSnapshot> loadChunkSnapshots(World world,
+                                                                int minX,
+                                                                int maxX,
+                                                                int minZ,
+                                                                int maxZ,
+                                                                boolean includeHeightMap) {
         Map<Long, ChunkSnapshot> snapshots = new HashMap<>();
         int minChunkX = Math.floorDiv(minX, 16);
         int maxChunkX = Math.floorDiv(maxX, 16);
@@ -3682,8 +3691,11 @@ public final class StrongholdDebugGenerator {
         int maxChunkZ = Math.floorDiv(maxZ, 16);
         for (int chunkX = minChunkX; chunkX <= maxChunkX; chunkX++) {
             for (int chunkZ = minChunkZ; chunkZ <= maxChunkZ; chunkZ++) {
+                if (!world.isChunkLoaded(chunkX, chunkZ)) {
+                    continue;
+                }
                 long key = chunkKey(chunkX, chunkZ);
-                snapshots.put(key, world.getChunkAt(chunkX, chunkZ).getChunkSnapshot(false, false, false));
+                snapshots.put(key, world.getChunkAt(chunkX, chunkZ).getChunkSnapshot(includeHeightMap, false, false));
             }
         }
         return snapshots;
@@ -3697,6 +3709,9 @@ public final class StrongholdDebugGenerator {
         int localZ = Math.floorMod(z, 16);
         if (snapshot != null && y >= world.getMinHeight() && y < world.getMaxHeight()) {
             return snapshot.getBlockData(localX, y, localZ);
+        }
+        if (!world.isChunkLoaded(chunkX, chunkZ)) {
+            return Bukkit.createBlockData(Material.AIR);
         }
         return world.getBlockAt(x, y, z).getBlockData();
     }
@@ -3719,9 +3734,22 @@ public final class StrongholdDebugGenerator {
         int chunkZ = Math.floorDiv(z, 16);
         int localX = Math.floorMod(x, 16);
         int localZ = Math.floorMod(z, 16);
+        if (!world.isChunkLoaded(chunkX, chunkZ)) {
+            SurfaceColumn unloaded = new SurfaceColumn(minY, Material.AIR);
+            if (cache != null) {
+                cache.put(key, unloaded);
+            }
+            return unloaded;
+        }
         ChunkSnapshot snapshot = snapshots == null ? null : snapshots.get(chunkKey(chunkX, chunkZ));
         if (snapshot != null) {
-            maxY = Math.max(minY, Math.min(maxY, snapshot.getHighestBlockYAt(localX, localZ)));
+            try {
+                maxY = Math.max(minY, Math.min(maxY, snapshot.getHighestBlockYAt(localX, localZ)));
+            } catch (IllegalStateException ignored) {
+                maxY = Math.max(minY, Math.min(maxY, world.getHighestBlockYAt(x, z)));
+            }
+        } else {
+            maxY = Math.max(minY, Math.min(maxY, world.getHighestBlockYAt(x, z)));
         }
         SurfaceColumn resolved = null;
         for (int y = maxY; y >= minY; y--) {
