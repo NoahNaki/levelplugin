@@ -17,6 +17,7 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Directional;
 import org.bukkit.block.data.Orientable;
 import org.bukkit.block.data.Rotatable;
+import org.bukkit.block.data.type.Slab;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 
@@ -35,6 +36,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.IdentityHashMap;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.DoubleBinaryOperator;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
@@ -76,7 +78,9 @@ public final class StrongholdDebugGenerator {
             Material.DIRT,
             Material.COARSE_DIRT,
             Material.MUD,
+            Material.PACKED_MUD,
             Material.PODZOL,
+            Material.ROOTED_DIRT,
             Material.MOSS_BLOCK
     );
     private static final double DEFAULT_FLOOR_NOISE_SCALE = 10.0D;
@@ -86,6 +90,8 @@ public final class StrongholdDebugGenerator {
     private static final double VEGETATION_SCALE = 6.0D;
     private static final double FLOWER_THRESHOLD = 0.94D;
     private static final double TALL_GRASS_THRESHOLD = 0.80D;
+    private static final double FLOOR_RELIEF_CELL_SCALE = 128.0D;
+    private static final double FLOOR_RELIEF_THRESHOLD = 0.93D;
     private static final int DETACHED_ASSET_BATCH_SIZE = 16;
     private static final List<Material> FLOOR_FLOWER_OPTIONS = List.of(
             Material.DANDELION,
@@ -136,12 +142,6 @@ public final class StrongholdDebugGenerator {
             new DetachedAssetTemplateSpec("tree_1", AssetType.TREE, new TemplateBounds(210, -61, -6337, 200, -38, -6347)),
             new DetachedAssetTemplateSpec("tree_2", AssetType.TREE, new TemplateBounds(210, -61, -6347, 195, -23, -6362)),
             new DetachedAssetTemplateSpec("tree_3", AssetType.TREE, new TemplateBounds(210, -61, -6362, 191, -4, -6383)),
-            new DetachedAssetTemplateSpec("rock_1", AssetType.ROCK, new TemplateBounds(210, -61, -6390, 219, -30, -6381)),
-            new DetachedAssetTemplateSpec("rock_2", AssetType.ROCK, new TemplateBounds(210, -61, -6381, 219, -30, -6372)),
-            new DetachedAssetTemplateSpec("rock_3", AssetType.ROCK, new TemplateBounds(210, -61, -6372, 219, -30, -6364)),
-            new DetachedAssetTemplateSpec("rock_4", AssetType.ROCK, new TemplateBounds(210, -61, -6364, 219, -30, -6355)),
-            new DetachedAssetTemplateSpec("rock_5", AssetType.ROCK, new TemplateBounds(210, -61, -6355, 219, -30, -6346)),
-            new DetachedAssetTemplateSpec("rock_6", AssetType.ROCK, new TemplateBounds(210, -61, -6346, 219, -30, -6337)),
             new DetachedAssetTemplateSpec("rock_large_1", AssetType.ROCK, new TemplateBounds(210, -61, -6383, 142, -34, -6445)),
             new DetachedAssetTemplateSpec("rock_large_2", AssetType.ROCK, new TemplateBounds(89, -61, -6383, 142, -34, -6440)),
             new DetachedAssetTemplateSpec("rock_large_3", AssetType.ROCK, new TemplateBounds(142, -34, -6440, 89, -61, -6503)),
@@ -935,10 +935,125 @@ public final class StrongholdDebugGenerator {
                 if (patterned != null && block.getType() != patterned) {
                     block.setType(patterned, false);
                 }
+                if (patterned != null) {
+                    applyLowerTerrainLayerPattern(block, patterned);
+                }
             }
         }
+        applyStrongholdFloorRelief(world, minX, maxX, minZ, maxZ);
         if (floorCfg.shortGrassOverlayEnabled()) {
             applyVegetationOverlay(world, minX, maxX, minZ, maxZ);
+        }
+    }
+
+    private static void applyStrongholdFloorRelief(World world, int minX, int maxX, int minZ, int maxZ) {
+        if (world == null) {
+            return;
+        }
+        Map<Point2D, Integer> carveColumns = collectTerrainColumnsByNoise(
+                world,
+                minX,
+                maxX,
+                minZ,
+                maxZ,
+                (x, z) -> smoothOvalBlobNoise((x + 173.0D) / FLOOR_RELIEF_CELL_SCALE,
+                        (z - 317.0D) / FLOOR_RELIEF_CELL_SCALE),
+                FLOOR_RELIEF_THRESHOLD
+        );
+        if (carveColumns.isEmpty()) {
+            return;
+        }
+
+        for (Map.Entry<Point2D, Integer> entry : carveColumns.entrySet()) {
+            Point2D column = entry.getKey();
+            int y = entry.getValue();
+            org.bukkit.block.Block top = world.getBlockAt((int) column.x, y, (int) column.z);
+            if (TERRAIN_REPLACEABLE_MATERIALS.contains(top.getType())) {
+                top.setType(Material.AIR, false);
+            }
+        }
+
+        for (Map.Entry<Point2D, Integer> entry : carveColumns.entrySet()) {
+            Point2D column = entry.getKey();
+            int x = (int) column.x;
+            int z = (int) column.z;
+            setTerrainEdgeSlabIfNeeded(world, carveColumns, x + 1, z, Slab.Type.BOTTOM);
+            setTerrainEdgeSlabIfNeeded(world, carveColumns, x - 1, z, Slab.Type.BOTTOM);
+            setTerrainEdgeSlabIfNeeded(world, carveColumns, x, z + 1, Slab.Type.BOTTOM);
+            setTerrainEdgeSlabIfNeeded(world, carveColumns, x, z - 1, Slab.Type.BOTTOM);
+        }
+    }
+
+    private static void setTerrainEdgeSlabIfNeeded(World world,
+                                                   Map<Point2D, Integer> shapedColumns,
+                                                   int x,
+                                                   int z,
+                                                   Slab.Type slabType) {
+        Point2D key = new Point2D(x, z);
+        if (shapedColumns.containsKey(key)) {
+            return;
+        }
+        int y = world.getHighestBlockYAt(x, z);
+        if (y <= world.getMinHeight() || y >= world.getMaxHeight()) {
+            return;
+        }
+        org.bukkit.block.Block top = world.getBlockAt(x, y, z);
+        if (!TERRAIN_REPLACEABLE_MATERIALS.contains(top.getType())) {
+            return;
+        }
+        org.bukkit.block.Block below = top.getRelative(BlockFace.DOWN);
+        if (!below.getType().isSolid()) {
+            return;
+        }
+        Slab slabData = (Slab) Bukkit.createBlockData(Material.MUD_BRICK_SLAB);
+        slabData.setType(slabType == null ? Slab.Type.BOTTOM : slabType);
+        top.setBlockData(slabData, false);
+    }
+
+    private static Map<Point2D, Integer> collectTerrainColumnsByNoise(World world,
+                                                                       int minX,
+                                                                       int maxX,
+                                                                       int minZ,
+                                                                       int maxZ,
+                                                                       DoubleBinaryOperator noiseSampler,
+                                                                       double threshold) {
+        Map<Point2D, Integer> columns = new HashMap<>();
+        if (world == null || noiseSampler == null) {
+            return columns;
+        }
+        for (int x = minX; x <= maxX; x++) {
+            for (int z = minZ; z <= maxZ; z++) {
+                int y = world.getHighestBlockYAt(x, z);
+                if (y <= world.getMinHeight() || y >= world.getMaxHeight()) {
+                    continue;
+                }
+                org.bukkit.block.Block top = world.getBlockAt(x, y, z);
+                if (!TERRAIN_REPLACEABLE_MATERIALS.contains(top.getType())) {
+                    continue;
+                }
+                if (!top.getRelative(BlockFace.UP).getType().isAir()) {
+                    continue;
+                }
+                double sampled = noiseSampler.applyAsDouble(x, z);
+                if (sampled >= threshold) {
+                    columns.put(new Point2D(x, z), y);
+                }
+            }
+        }
+        return columns;
+    }
+
+    private static void applyLowerTerrainLayerPattern(org.bukkit.block.Block surfaceBlock, Material patterned) {
+        if (surfaceBlock == null || patterned == null) {
+            return;
+        }
+        org.bukkit.block.Block lower = surfaceBlock.getRelative(BlockFace.DOWN);
+        Material lowerType = lower.getType();
+        if (!TERRAIN_REPLACEABLE_MATERIALS.contains(lowerType) && lowerType != Material.DIRT) {
+            return;
+        }
+        if (lowerType != patterned) {
+            lower.setType(patterned, false);
         }
     }
 
@@ -1003,21 +1118,67 @@ public final class StrongholdDebugGenerator {
     }
 
     private static double fractalSimplexLikeNoise(double x, double z) {
+        return fractalValueNoise2D(x, z, 3, 0.5D, 2.0D);
+    }
+
+    private static double fractalValueNoise2D(double x,
+                                              double z,
+                                              int octaves,
+                                              double persistence,
+                                              double lacunarity) {
         double amplitude = 1.0D;
         double frequency = 1.0D;
         double value = 0.0D;
         double maxAmplitude = 0.0D;
-        for (int octave = 0; octave < 3; octave++) {
+        int totalOctaves = Math.max(1, octaves);
+        double nextPersistence = Math.max(0.01D, persistence);
+        double nextLacunarity = Math.max(1.01D, lacunarity);
+        for (int octave = 0; octave < totalOctaves; octave++) {
             value += valueNoise2D(x * frequency, z * frequency) * amplitude;
             maxAmplitude += amplitude;
-            amplitude *= 0.5D;
-            frequency *= 2.0D;
+            amplitude *= nextPersistence;
+            frequency *= nextLacunarity;
         }
         if (maxAmplitude <= 0.0D) {
             return 0.5D;
         }
         double normalized = value / maxAmplitude;
         return (normalized + 1.0D) * 0.5D;
+    }
+
+    private static double smoothOvalBlobNoise(double x, double z) {
+        int cellX = (int) Math.floor(x);
+        int cellZ = (int) Math.floor(z);
+        double strongest = 0.0D;
+
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dz = -1; dz <= 1; dz++) {
+                int gx = cellX + dx;
+                int gz = cellZ + dz;
+
+                double centerX = gx + 0.5D + (hashToSignedUnit(gx * 31, gz * 17) * 0.32D);
+                double centerZ = gz + 0.5D + (hashToSignedUnit(gx * 19, gz * 29) * 0.32D);
+                double angle = hashToUnit(gx * 11 + 7, gz * 13 - 5) * Math.PI * 2.0D;
+
+                double majorRadius = 0.95D + (hashToUnit(gx * 23, gz * 37) * 0.65D);
+                double minorRadius = 0.65D + (hashToUnit(gx * 41, gz * 43) * 0.35D);
+
+                double relX = x - centerX;
+                double relZ = z - centerZ;
+                double cos = Math.cos(angle);
+                double sin = Math.sin(angle);
+                double localX = (relX * cos) + (relZ * sin);
+                double localZ = (-relX * sin) + (relZ * cos);
+
+                double normalizedDistance = Math.sqrt(
+                        ((localX * localX) / (majorRadius * majorRadius))
+                                + ((localZ * localZ) / (minorRadius * minorRadius))
+                );
+                double contribution = smoothStep01(1.0D - normalizedDistance);
+                strongest = Math.max(strongest, contribution);
+            }
+        }
+        return strongest;
     }
 
     private static double valueNoise2D(double x, double z) {
@@ -1055,6 +1216,15 @@ public final class StrongholdDebugGenerator {
         h ^= (h >>> 33);
         long masked = h & 0xFFFFFFL;
         return ((masked / (double) 0xFFFFFFL) * 2.0D) - 1.0D;
+    }
+
+    private static double hashToUnit(int x, int z) {
+        return (hashToSignedUnit(x, z) + 1.0D) * 0.5D;
+    }
+
+    private static double smoothStep01(double t) {
+        double clamped = Math.max(0.0D, Math.min(1.0D, t));
+        return clamped * clamped * (3.0D - (2.0D * clamped));
     }
 
     private static void applyTemplateMarkerActions(World sourceWorld,
