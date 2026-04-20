@@ -12,6 +12,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.ChunkSnapshot;
 import org.bukkit.Material;
+import org.bukkit.Tag;
 import org.bukkit.World;
 import org.bukkit.WorldType;
 import org.bukkit.World.Environment;
@@ -20,7 +21,6 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Directional;
 import org.bukkit.block.data.Orientable;
 import org.bukkit.block.data.Rotatable;
-import org.bukkit.block.data.type.Slab;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 
@@ -1115,7 +1115,7 @@ public final class StrongholdDebugGenerator {
                     budgetExceeded = true;
                     break;
                 }
-                SurfaceColumn surface = surfaceColumnAt(floorSnapshots, world, x, z);
+                SurfaceColumn surface = terrainSurfaceColumnAt(floorSnapshots, world, x, z);
                 if (surface == null) {
                     continue;
                 }
@@ -1191,39 +1191,6 @@ public final class StrongholdDebugGenerator {
             }
         }
 
-        for (Map.Entry<Point2D, Integer> entry : carveColumns.entrySet()) {
-            Point2D column = entry.getKey();
-            int x = (int) column.x;
-            int z = (int) column.z;
-            setTerrainEdgeSlabIfNeeded(world, snapshots, carveColumns, x + 1, z, Slab.Type.BOTTOM);
-            setTerrainEdgeSlabIfNeeded(world, snapshots, carveColumns, x - 1, z, Slab.Type.BOTTOM);
-            setTerrainEdgeSlabIfNeeded(world, snapshots, carveColumns, x, z + 1, Slab.Type.BOTTOM);
-            setTerrainEdgeSlabIfNeeded(world, snapshots, carveColumns, x, z - 1, Slab.Type.BOTTOM);
-        }
-    }
-
-    private static void setTerrainEdgeSlabIfNeeded(World world,
-                                                   Map<Long, ChunkSnapshot> snapshots,
-                                                   Map<Point2D, Integer> shapedColumns,
-                                                   int x,
-                                                   int z,
-                                                   Slab.Type slabType) {
-        Point2D key = new Point2D(x, z);
-        if (shapedColumns.containsKey(key)) {
-            return;
-        }
-        SurfaceColumn surface = surfaceColumnAt(snapshots, world, x, z);
-        if (surface == null || !TERRAIN_REPLACEABLE_MATERIALS.contains(surface.material())) {
-            return;
-        }
-        org.bukkit.block.Block top = world.getBlockAt(x, surface.y(), z);
-        org.bukkit.block.Block below = top.getRelative(BlockFace.DOWN);
-        if (!below.getType().isSolid()) {
-            return;
-        }
-        Slab slabData = (Slab) Bukkit.createBlockData(Material.MUD_BRICK_SLAB);
-        slabData.setType(slabType == null ? Slab.Type.BOTTOM : slabType);
-        top.setBlockData(slabData, false);
     }
 
     private static Map<Point2D, Integer> collectTerrainColumnsByNoise(World world,
@@ -1240,7 +1207,7 @@ public final class StrongholdDebugGenerator {
         }
         for (int x = minX; x <= maxX; x++) {
             for (int z = minZ; z <= maxZ; z++) {
-                SurfaceColumn surface = surfaceColumnAt(snapshots, world, x, z);
+                SurfaceColumn surface = terrainSurfaceColumnAt(snapshots, world, x, z);
                 if (surface == null) {
                     continue;
                 }
@@ -1285,7 +1252,7 @@ public final class StrongholdDebugGenerator {
         }
         for (int x = minX; x <= maxX; x++) {
             for (int z = minZ; z <= maxZ; z++) {
-                SurfaceColumn surface = surfaceColumnAt(snapshots, world, x, z);
+                SurfaceColumn surface = terrainSurfaceColumnAt(snapshots, world, x, z);
                 if (surface == null || surface.material() != Material.GRASS_BLOCK) {
                     continue;
                 }
@@ -3803,6 +3770,55 @@ public final class StrongholdDebugGenerator {
             return new SurfaceColumn(y, type);
         }
         return null;
+    }
+
+    private static SurfaceColumn terrainSurfaceColumnAt(Map<Long, ChunkSnapshot> snapshots,
+                                                        World world,
+                                                        int x,
+                                                        int z) {
+        if (snapshots == null || snapshots.isEmpty() || world == null) {
+            return null;
+        }
+        int chunkX = Math.floorDiv(x, 16);
+        int chunkZ = Math.floorDiv(z, 16);
+        ChunkSnapshot snapshot = snapshots.get(chunkKey(chunkX, chunkZ));
+        if (snapshot == null) {
+            return null;
+        }
+        int localX = Math.floorMod(x, 16);
+        int localZ = Math.floorMod(z, 16);
+        int minY = world.getMinHeight();
+        int maxY = world.getMaxHeight() - 1;
+        for (int y = maxY; y >= minY; y--) {
+            Material type = snapshot.getBlockType(localX, y, localZ);
+            if (type.isAir()) {
+                continue;
+            }
+            if (TERRAIN_REPLACEABLE_MATERIALS.contains(type)) {
+                return new SurfaceColumn(y, type);
+            }
+            if (isFloorNoisePassthroughMaterial(type)) {
+                continue;
+            }
+            return null;
+        }
+        return null;
+    }
+
+    private static boolean isFloorNoisePassthroughMaterial(Material type) {
+        if (type == null) {
+            return false;
+        }
+        if (type.isAir() || type == Material.SHORT_GRASS || type == Material.TALL_GRASS
+                || type == Material.VINE || type == Material.HANGING_ROOTS
+                || type == Material.DEAD_BUSH || type == Material.FERN
+                || type == Material.LARGE_FERN) {
+            return true;
+        }
+        return Tag.LEAVES.isTagged(type)
+                || Tag.LOGS.isTagged(type)
+                || Tag.SAPLINGS.isTagged(type)
+                || Tag.FLOWERS.isTagged(type);
     }
 
     private static StructureFootprint structureFootprintFor(Map<BlockVector3, BlockData> blocks,
