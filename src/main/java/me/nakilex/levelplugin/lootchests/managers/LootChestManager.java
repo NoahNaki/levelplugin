@@ -85,6 +85,10 @@ public class LootChestManager {
     private final Map<UUID, LootSession> openChestSessions = new HashMap<>();
     // Track quick open streaks to add a small bonus loop to chest runs.
     private final Map<UUID, LootStreakState> lootStreaks = new HashMap<>();
+    // One-off chests (e.g. stronghold generated) should not respawn after opening.
+    private final Set<Integer> nonRespawningChestIds = new HashSet<>();
+    // Track per-player opened chest progress by world.
+    private final Map<UUID, Map<String, Set<Integer>>> openedChestProgressByPlayer = new HashMap<>();
 
     private final Set<Material> upgradeMaterials = new HashSet<>();
     private boolean missingCrateModelLogged;
@@ -334,11 +338,57 @@ public class LootChestManager {
     }
 
     public int createAndSpawnChest(Location loc, BlockFace facing) {
+        return createAndSpawnChest(loc, facing, false);
+    }
+
+    public int createAndSpawnChest(Location loc, BlockFace facing, boolean nonRespawning) {
         int id = chestDataList.stream().mapToInt(ChestData::getChestId).max().orElse(0) + 1;
         ChestData data = new ChestData(id, normalizeWorldName(loc.getWorld().getName()), loc.getX(), loc.getY(), loc.getZ(), facing);
         chestDataList.add(data);
+        if (nonRespawning) {
+            nonRespawningChestIds.add(id);
+        }
         spawnChest(data);
         return id;
+    }
+
+    public boolean isNonRespawningChest(int chestId) {
+        return nonRespawningChestIds.contains(chestId);
+    }
+
+    public boolean isStrongholdWorld(World world) {
+        if (world == null || world.getName() == null) {
+            return false;
+        }
+        String worldName = world.getName().toLowerCase(Locale.ROOT);
+        return worldName.startsWith("stronghold_debug_") || worldName.contains("stronghold");
+    }
+
+    public ChestProgress recordStrongholdChestOpen(UUID playerId, int chestId, World world) {
+        if (playerId == null || world == null || !isStrongholdWorld(world)) {
+            return null;
+        }
+        String worldKey = world.getName().toLowerCase(Locale.ROOT);
+        Map<String, Set<Integer>> byWorld = openedChestProgressByPlayer.computeIfAbsent(playerId, ignored -> new HashMap<>());
+        Set<Integer> openedIds = byWorld.computeIfAbsent(worldKey, ignored -> new HashSet<>());
+        openedIds.add(chestId);
+        int opened = openedIds.size();
+        int total = Math.max(opened, countChestsInWorld(world));
+        return new ChestProgress(opened, total);
+    }
+
+    private int countChestsInWorld(World world) {
+        if (world == null) {
+            return 0;
+        }
+        String worldName = world.getName();
+        int count = 0;
+        for (ChestData data : chestDataList) {
+            if (data != null && worldName.equalsIgnoreCase(data.getWorldName())) {
+                count++;
+            }
+        }
+        return count;
     }
 
 
@@ -613,6 +663,7 @@ public class LootChestManager {
         chestDataList.removeIf(cd -> cd.getChestId() == chestId);
         removeChestFromIndex(chestId);
         spawnedChests.remove(chestId);
+        nonRespawningChestIds.remove(chestId);
         openChestSessions.entrySet().removeIf(entry -> entry.getValue().chestId() == chestId);
 
         if (cooldownManager != null) {
@@ -738,6 +789,7 @@ public class LootChestManager {
         for (int chestId : ids) {
             removeChest(chestId);
         }
+        nonRespawningChestIds.clear();
         openChestSessions.clear();
     }
 
@@ -1192,6 +1244,8 @@ public class LootChestManager {
                               int baseCoinReward,
                               int bonusCoinReward,
                               int streak) {}
+
+    public record ChestProgress(int opened, int total) {}
 
     private record LootResult(List<ItemStack> items, int coinReward) {}
     private record LootStreakState(int streak, long lastOpenAt) {}

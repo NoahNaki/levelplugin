@@ -62,7 +62,7 @@ public class LootChestCloseListener implements Listener {
         );
         lootChestManager.removeChest(chestId);
 
-        if (!dungeonManager.isInstanceWorld(loc.getWorld())) {
+        if (!lootChestManager.isNonRespawningChest(chestId) && !dungeonManager.isInstanceWorld(loc.getWorld())) {
             lootChestManager.getCooldownManager().startChestCooldown(chestId);
         }
     }

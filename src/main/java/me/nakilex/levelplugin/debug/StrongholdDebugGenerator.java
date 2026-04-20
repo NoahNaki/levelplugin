@@ -1394,7 +1394,7 @@ public final class StrongholdDebugGenerator {
             lootChestManager.respawnChest(existing);
             return;
         }
-        lootChestManager.createAndSpawnChest(location, BlockFace.NORTH);
+        lootChestManager.createAndSpawnChest(location, BlockFace.NORTH, true);
     }
 
     private static void pasteFlagTemplateAtMarker(World targetWorld,

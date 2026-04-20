@@ -94,9 +94,15 @@ public class LootChestListener implements Listener {
         int gearScore = lootChestManager.peekSession(player.getUniqueId()) != null
                 ? lootChestManager.peekSession(player.getUniqueId()).gearScore()
                 : ItemUtil.calculateTotalGearScore(player);
-        ChatMessageUtil.send(player, MessageType.INFO,
-                ChatColor.GRAY + "Chest calibrated to gear score "
-                        + ChatColor.YELLOW + gearScore + ChatColor.GRAY + ".");
+        LootChestManager.ChestProgress strongholdProgress =
+                lootChestManager.recordStrongholdChestOpen(player.getUniqueId(), chestId, loc.getWorld());
+        if (strongholdProgress != null) {
+            ChatMessageUtil.send(player, MessageType.INFO,
+                    ChatColor.GRAY + "Stronghold chests opened: "
+                            + ChatColor.GOLD + strongholdProgress.opened()
+                            + ChatColor.GRAY + "/" + ChatColor.GOLD + strongholdProgress.total()
+                            + ChatColor.GRAY + ".");
+        }
         int currentStreak = lootChestManager.getCurrentLootStreak(player.getUniqueId());
         int nextBonusPercent = lootChestManager.getNextStreakBonusPercent(player.getUniqueId());
         if (currentStreak > 0) {
