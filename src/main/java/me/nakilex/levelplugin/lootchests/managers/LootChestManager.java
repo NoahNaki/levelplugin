@@ -22,7 +22,7 @@ import me.nakilex.levelplugin.potions.data.PotionTemplate;
 import me.nakilex.levelplugin.potions.managers.PotionManager;
 import me.nakilex.levelplugin.salvage.managers.SalvageManager;
 import me.nakilex.levelplugin.utils.FurnitureCleanupUtil;
-import me.nakilex.levelplugin.utils.NexoUtil;
+import me.nakilex.levelplugin.utils.ModelEngineUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.TextUtil;
 import org.bukkit.*;
@@ -30,6 +30,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.ArmorStand;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -53,7 +54,9 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public class LootChestManager {
 
-    private static final String DEFAULT_CRATE_ID = "crate_lvl1";
+    private static final String DEFAULT_CRATE_ID = "coffre_1";
+    private static final Set<String> LEGACY_CRATE_IDS = Set.of("crate_lvl1");
+    private static final String MODEL_TAG = "loot_chest_model";
     private static final int LOOT_ROLLS = 3;
     private static final int INVENTORY_SIZE = 27;
 
@@ -69,9 +72,11 @@ public class LootChestManager {
 
     // Track where we actually spawned each chest. chestId -> location
     private final Map<Integer, Location> spawnedChests = new HashMap<>();
+    private final Map<Integer, UUID> spawnedChestModels = new HashMap<>();
 
     // For continuous particles: chestId -> repeating task
     private final Map<Integer, BukkitTask> chestParticleTasks = new HashMap<>();
+    private BukkitTask crateModelRetryTask;
 
     // Quick lookup for which chests belong to a given chunk
     private final Map<ChunkKey, List<ChestData>> chunkChestIndex = new HashMap<>();
@@ -80,8 +85,13 @@ public class LootChestManager {
     private final Map<UUID, LootSession> openChestSessions = new HashMap<>();
     // Track quick open streaks to add a small bonus loop to chest runs.
     private final Map<UUID, LootStreakState> lootStreaks = new HashMap<>();
+    // One-off chests (e.g. stronghold generated) should not respawn after opening.
+    private final Set<Integer> nonRespawningChestIds = new HashSet<>();
+    // Track per-player opened chest progress by world.
+    private final Map<UUID, Map<String, Set<Integer>>> openedChestProgressByPlayer = new HashMap<>();
 
     private final Set<Material> upgradeMaterials = new HashSet<>();
+    private boolean missingCrateModelLogged;
     private static final long LOOT_STREAK_WINDOW_MS = 3 * 60 * 1000L;
     private static final double LOOT_STREAK_BONUS_PER_STEP = 0.08;
     private static final double LOOT_STREAK_BONUS_CAP = 0.40;
@@ -91,6 +101,84 @@ public class LootChestManager {
             return "world";
         }
         return storedWorld;
+    }
+
+    private String resolveCrateModelId() {
+        String available = findAvailableCrateModelId();
+        return available != null ? available : DEFAULT_CRATE_ID;
+    }
+
+    private String findAvailableCrateModelId() {
+        List<String> loaded = ModelEngineUtil.getModelIdsSafely(plugin);
+        List<String> blueprint = ModelEngineUtil.getBlueprintModelIds(plugin);
+        for (String token : crateModelCandidates()) {
+            for (String candidate : ModelEngineUtil.buildModelCandidates(token)) {
+                if (containsIgnoreCase(loaded, candidate) || containsIgnoreCase(blueprint, candidate)) {
+                    return candidate;
+                }
+            }
+        }
+        return null;
+    }
+
+    private List<String> crateModelCandidates() {
+        List<String> candidates = new ArrayList<>();
+        candidates.add(DEFAULT_CRATE_ID);
+        candidates.addAll(LEGACY_CRATE_IDS);
+        return candidates;
+    }
+
+    private boolean isLootChestModelId(String modelId) {
+        if (modelId == null || modelId.isBlank()) {
+            return false;
+        }
+        String normalized = normalizeModelId(modelId);
+        if (normalizeModelId(DEFAULT_CRATE_ID).equals(normalized)) {
+            return true;
+        }
+        for (String legacyId : LEGACY_CRATE_IDS) {
+            if (normalizeModelId(legacyId).equals(normalized)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private String normalizeModelId(String modelId) {
+        String normalized = modelId.trim().toLowerCase(Locale.ROOT);
+        if (normalized.endsWith(".bbmodel")) {
+            return normalized.substring(0, normalized.length() - ".bbmodel".length());
+        }
+        return normalized;
+    }
+
+    private boolean containsIgnoreCase(Collection<String> values, String target) {
+        if (values == null || target == null) {
+            return false;
+        }
+        for (String value : values) {
+            if (value != null && value.equalsIgnoreCase(target)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void scheduleCrateModelRetry() {
+        if (crateModelRetryTask != null && !crateModelRetryTask.isCancelled()) {
+            return;
+        }
+        crateModelRetryTask = plugin.getServer().getScheduler().runTaskTimer(plugin, () -> {
+            if (findAvailableCrateModelId() == null) {
+                return;
+            }
+            plugin.getLogger().info("[LootChestManager] ModelEngine crate model is ready; respawning loot chest models.");
+            for (ChestData data : chestDataList) {
+                spawnChest(data);
+            }
+            crateModelRetryTask.cancel();
+            crateModelRetryTask = null;
+        }, 100L, 100L);
     }
 
 
@@ -161,37 +249,84 @@ public class LootChestManager {
             );
             return;
         }
+        ensureChunkIsLoaded(loc);
 
-        // Remove any existing block at this location
-        loc.getBlock().setType(Material.AIR, false);
-
-        // 1) Place our standard crate furniture instead of a vanilla CHEST block.
-        //    Use the recorded facing to orient the crate correctly.
-        String crateId = DEFAULT_CRATE_ID;
-        FurnitureMechanic mech = NexoFurniture.furnitureMechanic(crateId);
-        if (mech == null) {
-            plugin.getLogger().severe(
-                "[LootChestManager] Could not find FurnitureMechanic for ID '" + crateId + "'. Did your YAML register it?"
-            );
-            NexoUtil.logAvailableFurnitureIds(plugin.getLogger());
-            loc.getBlock().setType(Material.CHEST, false);
-            org.bukkit.block.data.BlockData dataBlock = loc.getBlock().getBlockData();
-            if (dataBlock instanceof org.bukkit.block.data.Directional directional) {
-                directional.setFacing(data.getFacing());
-                loc.getBlock().setBlockData(directional, false);
-            }
-        } else {
-            // Center the furniture within the block to avoid spawning offset issues.
-            Location centered = LocationUtils.centerOnBlock(loc);
-            // The place(...) call returns the spawned Entity; we ignore it here.
-            NexoFurniture.place(crateId, centered, 0f, data.getFacing());
+        // Place the backing chest block and orient it for interaction.
+        loc.getBlock().setType(Material.CHEST, false);
+        org.bukkit.block.data.BlockData dataBlock = loc.getBlock().getBlockData();
+        if (dataBlock instanceof org.bukkit.block.data.Directional directional) {
+            directional.setFacing(data.getFacing());
+            loc.getBlock().setBlockData(directional, false);
         }
+
+        spawnChestModel(data.getChestId(), loc);
 
         // 2) Remember this location so getChestIdAtLocation(loc) will still work:
         spawnedChests.put(data.getChestId(), loc.getBlock().getLocation());
 
         // 3) Start the particle task (handles particle effects based on player proximity)
         startParticleTask(data.getChestId(), loc);
+    }
+
+    private void spawnChestModel(int chestId, Location chestLoc) {
+        removeChestModel(chestId, chestLoc);
+        if (!Bukkit.getPluginManager().isPluginEnabled("ModelEngine")) {
+            return;
+        }
+
+        Location anchorLoc = LocationUtils.centerOnBlock(chestLoc).add(0.0, 0.01, 0.0);
+        ArmorStand anchor = chestLoc.getWorld().spawn(anchorLoc, ArmorStand.class, stand -> {
+            stand.setInvisible(true);
+            stand.setMarker(true);
+            stand.setGravity(false);
+            stand.setSilent(true);
+            stand.setInvulnerable(true);
+            stand.addScoreboardTag(MODEL_TAG);
+            stand.addScoreboardTag(MODEL_TAG + ":" + chestId);
+        });
+
+        ModelEngineUtil.ModelApplyResult result = ModelEngineUtil.applyFirstAvailableModel(
+                anchor,
+                ModelEngineUtil.buildModelCandidates(DEFAULT_CRATE_ID),
+                plugin
+        );
+        if (result.applied().isEmpty()) {
+            if (!missingCrateModelLogged) {
+                plugin.getLogger().warning("[LootChestManager] Could not apply ModelEngine model for loot chest id "
+                        + chestId + " using token '" + DEFAULT_CRATE_ID + "'.");
+                missingCrateModelLogged = true;
+            }
+            scheduleCrateModelRetry();
+            anchor.remove();
+            return;
+        }
+        missingCrateModelLogged = false;
+        spawnedChestModels.put(chestId, anchor.getUniqueId());
+    }
+
+    private void removeChestModel(int chestId, Location chestLoc) {
+        UUID entityId = spawnedChestModels.remove(chestId);
+        if (entityId != null) {
+            Entity entity = Bukkit.getEntity(entityId);
+            if (entity != null && entity.isValid()) {
+                entity.remove();
+            }
+        }
+        if (chestLoc == null || chestLoc.getWorld() == null || !chestLoc.getChunk().isLoaded()) {
+            return;
+        }
+        for (Entity entity : chestLoc.getChunk().getEntities()) {
+            if (!(entity instanceof ArmorStand stand)) {
+                continue;
+            }
+            if (!stand.getScoreboardTags().contains(MODEL_TAG)
+                    || !stand.getScoreboardTags().contains(MODEL_TAG + ":" + chestId)) {
+                continue;
+            }
+            if (stand.getLocation().distanceSquared(LocationUtils.centerOnBlock(chestLoc)) <= 4.0) {
+                stand.remove();
+            }
+        }
     }
 
     /**
@@ -203,11 +338,57 @@ public class LootChestManager {
     }
 
     public int createAndSpawnChest(Location loc, BlockFace facing) {
+        return createAndSpawnChest(loc, facing, false);
+    }
+
+    public int createAndSpawnChest(Location loc, BlockFace facing, boolean nonRespawning) {
         int id = chestDataList.stream().mapToInt(ChestData::getChestId).max().orElse(0) + 1;
         ChestData data = new ChestData(id, normalizeWorldName(loc.getWorld().getName()), loc.getX(), loc.getY(), loc.getZ(), facing);
         chestDataList.add(data);
+        if (nonRespawning) {
+            nonRespawningChestIds.add(id);
+        }
         spawnChest(data);
         return id;
+    }
+
+    public boolean isNonRespawningChest(int chestId) {
+        return nonRespawningChestIds.contains(chestId);
+    }
+
+    public boolean isStrongholdWorld(World world) {
+        if (world == null || world.getName() == null) {
+            return false;
+        }
+        String worldName = world.getName().toLowerCase(Locale.ROOT);
+        return worldName.startsWith("stronghold_debug_") || worldName.contains("stronghold");
+    }
+
+    public ChestProgress recordStrongholdChestOpen(UUID playerId, int chestId, World world) {
+        if (playerId == null || world == null || !isStrongholdWorld(world)) {
+            return null;
+        }
+        String worldKey = world.getName().toLowerCase(Locale.ROOT);
+        Map<String, Set<Integer>> byWorld = openedChestProgressByPlayer.computeIfAbsent(playerId, ignored -> new HashMap<>());
+        Set<Integer> openedIds = byWorld.computeIfAbsent(worldKey, ignored -> new HashSet<>());
+        openedIds.add(chestId);
+        int opened = openedIds.size();
+        int total = Math.max(opened, countChestsInWorld(world));
+        return new ChestProgress(opened, total);
+    }
+
+    private int countChestsInWorld(World world) {
+        if (world == null) {
+            return 0;
+        }
+        String worldName = world.getName();
+        int count = 0;
+        for (ChestData data : chestDataList) {
+            if (data != null && worldName.equalsIgnoreCase(data.getWorldName())) {
+                count++;
+            }
+        }
+        return count;
     }
 
 
@@ -315,9 +496,8 @@ public class LootChestManager {
         BukkitTask task = plugin.getServer().getScheduler().runTaskTimer(
             plugin,
             () -> {
-                FurnitureMechanic mechAtLoc = NexoFurniture.furnitureMechanic(loc.getBlock());
-                boolean hasCrate = mechAtLoc != null && mechAtLoc.getItemID().equals(DEFAULT_CRATE_ID);
-                if (!hasCrate) {
+                Material type = loc.getBlock().getType();
+                if (type != Material.CHEST && type != Material.TRAPPED_CHEST) {
                     return;
                 }
 
@@ -385,6 +565,11 @@ public class LootChestManager {
         // 2) Attempt to remove the Nexo furniture at that location
         //    The remove(...) call will find the barrier entity/display entity combo and delete them.
         boolean removed = NexoFurniture.remove(loc);
+        removeChestModel(chestId, loc);
+        if (loc.getBlock().getType() == Material.CHEST || loc.getBlock().getType() == Material.TRAPPED_CHEST) {
+            loc.getBlock().setType(Material.AIR, false);
+            removed = true;
+        }
         if (!removed) {
             plugin.getLogger().fine("[LootChestManager] Could not remove Nexo furniture at " + loc +
                 " (ID " + chestId + "). Maybe it's already gone?");
@@ -434,16 +619,11 @@ public class LootChestManager {
                 continue;
             }
 
-            FurnitureMechanic mechAtLoc = NexoFurniture.furnitureMechanic(location.getBlock());
-            boolean strayChestPresent = mechAtLoc != null && DEFAULT_CRATE_ID.equals(mechAtLoc.getItemID());
-
+            removeChestModel(data.getChestId(), location);
             boolean removedModel = false;
-            if (strayChestPresent) {
-                removedModel = NexoFurniture.remove(location);
-            } else {
-                // Even if the mechanic lookup failed (old display entity, different hitbox),
-                // force a remove at the stored location to catch lingering models.
-                removedModel = NexoFurniture.remove(location);
+            if (location.getBlock().getType() == Material.CHEST || location.getBlock().getType() == Material.TRAPPED_CHEST) {
+                location.getBlock().setType(Material.AIR, false);
+                removedModel = true;
             }
 
             removedEntities += removeNearbyFurnitureEntities(chunk, location);
@@ -483,6 +663,7 @@ public class LootChestManager {
         chestDataList.removeIf(cd -> cd.getChestId() == chestId);
         removeChestFromIndex(chestId);
         spawnedChests.remove(chestId);
+        nonRespawningChestIds.remove(chestId);
         openChestSessions.entrySet().removeIf(entry -> entry.getValue().chestId() == chestId);
 
         if (cooldownManager != null) {
@@ -538,6 +719,10 @@ public class LootChestManager {
         return null;
     }
 
+    public ChestData getChestDataById(int chestId) {
+        return getChestData(chestId);
+    }
+
     public JavaPlugin getPlugin() {
         return plugin;
     }
@@ -584,10 +769,18 @@ public class LootChestManager {
     }
 
     public String getCrateModelId() {
-        return DEFAULT_CRATE_ID;
+        return resolveCrateModelId();
+    }
+
+    public boolean isLootChestMechanic(FurnitureMechanic mechanic) {
+        return mechanic != null && isLootChestModelId(mechanic.getItemID());
     }
 
     public void removeAllChests() {
+        if (crateModelRetryTask != null) {
+            crateModelRetryTask.cancel();
+            crateModelRetryTask = null;
+        }
         Set<Integer> ids = new HashSet<>();
         for (ChestData data : chestDataList) {
             ids.add(data.getChestId());
@@ -596,6 +789,7 @@ public class LootChestManager {
         for (int chestId : ids) {
             removeChest(chestId);
         }
+        nonRespawningChestIds.clear();
         openChestSessions.clear();
     }
 
@@ -647,6 +841,10 @@ public class LootChestManager {
             if (loc == null) continue;
             ensureChunkIsLoaded(loc);
             NexoFurniture.remove(loc);
+            removeChestModel(data.getChestId(), loc);
+            if (loc.getBlock().getType() == Material.CHEST || loc.getBlock().getType() == Material.TRAPPED_CHEST) {
+                loc.getBlock().setType(Material.AIR, false);
+            }
         }
     }
 
@@ -724,29 +922,19 @@ public class LootChestManager {
                 activeChestBlocks.add(loc.getBlock().getLocation());
             }
         }
-
-        int minY = chunk.getWorld().getMinHeight();
-        int maxY = chunk.getWorld().getMaxHeight();
-
-        for (int x = 0; x < 16; x++) {
-            for (int z = 0; z < 16; z++) {
-                for (int y = minY; y < maxY; y++) {
-                    Block block = chunk.getBlock(x, y, z);
-                    FurnitureMechanic mechAtLoc = NexoFurniture.furnitureMechanic(block);
-                    if (mechAtLoc == null || !DEFAULT_CRATE_ID.equals(mechAtLoc.getItemID())) {
-                        continue;
-                    }
-
-                    Location blockLoc = block.getLocation();
-                    if (activeChestBlocks.contains(blockLoc)) {
-                        continue;
-                    }
-
-                    NexoFurniture.remove(blockLoc);
-                    removeTaggedHologramsAt(blockLoc);
-                    removed++;
-                }
+        for (Entity entity : chunk.getEntities()) {
+            if (!(entity instanceof ArmorStand stand)) {
+                continue;
             }
+            if (!stand.getScoreboardTags().contains(MODEL_TAG)) {
+                continue;
+            }
+            Location blockLoc = stand.getLocation().getBlock().getLocation();
+            if (activeChestBlocks.contains(blockLoc)) {
+                continue;
+            }
+            stand.remove();
+            removed++;
         }
 
         if (removed > 0) {
@@ -1056,6 +1244,8 @@ public class LootChestManager {
                               int baseCoinReward,
                               int bonusCoinReward,
                               int streak) {}
+
+    public record ChestProgress(int opened, int total) {}
 
     private record LootResult(List<ItemStack> items, int coinReward) {}
     private record LootStreakState(int streak, long lastOpenAt) {}

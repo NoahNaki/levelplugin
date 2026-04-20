@@ -5,6 +5,7 @@ import com.sk89q.worldedit.EditSession;
 import com.sk89q.worldedit.WorldEdit;
 import com.sk89q.worldedit.bukkit.BukkitAdapter;
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import net.kyori.adventure.text.Component;
@@ -1368,12 +1369,32 @@ public final class StrongholdDebugGenerator {
                         }
                     } else if (markerType == Material.GOLD_BLOCK) {
                         if (rng.nextDouble() <= GOLD_CHEST_SPAWN_CHANCE) {
-                            targetWorld.getBlockAt(markerX, markerY, markerZ).setType(Material.CHEST, false);
+                            placeStrongholdLootChest(targetWorld, markerX, markerY, markerZ);
                         }
                     }
                 }
             }
         }
+    }
+
+    private static void placeStrongholdLootChest(World world, int x, int y, int z) {
+        if (world == null) {
+            return;
+        }
+        Main plugin = Main.getInstance();
+        LootChestManager lootChestManager = plugin != null ? plugin.getLootChestManager() : null;
+        org.bukkit.Location location = new org.bukkit.Location(world, x, y, z);
+        if (lootChestManager == null) {
+            world.getBlockAt(x, y, z).setType(Material.CHEST, false);
+            return;
+        }
+        Integer existing = lootChestManager.getChestIdAtLocation(location.getBlock().getLocation());
+        if (existing != null) {
+            lootChestManager.removeChest(existing);
+            lootChestManager.respawnChest(existing);
+            return;
+        }
+        lootChestManager.createAndSpawnChest(location, BlockFace.NORTH, true);
     }
 
     private static void pasteFlagTemplateAtMarker(World targetWorld,
