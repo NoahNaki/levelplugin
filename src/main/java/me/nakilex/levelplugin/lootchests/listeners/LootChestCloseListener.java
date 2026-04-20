@@ -1,7 +1,5 @@
 package me.nakilex.levelplugin.lootchests.listeners;
 
-import com.nexomc.nexo.api.NexoFurniture;
-import com.nexomc.nexo.mechanics.furniture.FurnitureMechanic;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
 import me.nakilex.levelplugin.dungeon.DungeonManager;
@@ -41,10 +39,6 @@ public class LootChestCloseListener implements Listener {
         Location loc = lootChestManager.getLocationForChestId(chestId);
         if (loc == null) {
             return;
-        }
-        FurnitureMechanic mechAtLoc = NexoFurniture.furnitureMechanic(loc.getBlock());
-        if (!lootChestManager.isLootChestMechanic(mechAtLoc)) {
-            return; // No crate there anymore
         }
 
         // 3) Pay out coins scaled to the player's gear score for this session

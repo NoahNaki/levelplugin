@@ -152,7 +152,7 @@ commands:
     usage: /unignore <player>
   lootchest:
     description: Manage loot chests
-    usage: /<command> <reload|list|clear|wand>
+    usage: /<command> <reload|list|tp|delete|clear|wand|reset>
     permission: none
   addpotion:
     description: Gives a player a potion.

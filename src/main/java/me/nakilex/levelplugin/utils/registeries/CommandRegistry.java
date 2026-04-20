@@ -278,7 +278,9 @@ public class CommandRegistry {
         AddPotionCommand addPotionCmd = new AddPotionCommand(potionManager, plugin);
         plugin.getCommand("addpotion").setExecutor(addPotionCmd);
         plugin.getCommand("addpotion").setTabCompleter(addPotionCmd);
-        plugin.getCommand("lootchest").setExecutor(new LootChestCommand(configManager, lootChestManager));
+        LootChestCommand lootChestCommand = new LootChestCommand(configManager, lootChestManager);
+        plugin.getCommand("lootchest").setExecutor(lootChestCommand);
+        plugin.getCommand("lootchest").setTabCompleter(lootChestCommand);
         TradeCommand tradeCmd = new TradeCommand();
         plugin.getCommand("trade").setExecutor(tradeCmd);
         plugin.getCommand("trade").setTabCompleter(tradeCmd);

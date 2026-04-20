@@ -227,6 +227,7 @@ public class LootChestManager {
             );
             return;
         }
+        ensureChunkIsLoaded(loc);
 
         // Remove any existing block at this location
         loc.getBlock().setType(Material.AIR, false);
@@ -456,6 +457,10 @@ public class LootChestManager {
         // 2) Attempt to remove the Nexo furniture at that location
         //    The remove(...) call will find the barrier entity/display entity combo and delete them.
         boolean removed = NexoFurniture.remove(loc);
+        if (loc.getBlock().getType() == Material.CHEST || loc.getBlock().getType() == Material.TRAPPED_CHEST) {
+            loc.getBlock().setType(Material.AIR, false);
+            removed = true;
+        }
         if (!removed) {
             plugin.getLogger().fine("[LootChestManager] Could not remove Nexo furniture at " + loc +
                 " (ID " + chestId + "). Maybe it's already gone?");
@@ -607,6 +612,10 @@ public class LootChestManager {
             }
         }
         return null;
+    }
+
+    public ChestData getChestDataById(int chestId) {
+        return getChestData(chestId);
     }
 
     public JavaPlugin getPlugin() {
