@@ -4412,7 +4412,7 @@ public final class StrongholdDebugGenerator {
             if (captured == null || captured.blocks() == null || captured.blocks().isEmpty()) {
                 continue;
             }
-            Map<BlockVector3, BlockData> detachedBlocks = filterDetachedTemplateBlocks(captured.blocks());
+            Map<BlockVector3, BlockData> detachedBlocks = detachedBlocksForType(spec.type(), captured.blocks());
             if (detachedBlocks.isEmpty()) {
                 detachedBlocks = captured.blocks();
             }
@@ -4435,6 +4435,14 @@ public final class StrongholdDebugGenerator {
         }
         cachedDetachedAssetTemplates = Collections.unmodifiableMap(immutable);
         return cachedDetachedAssetTemplates;
+    }
+
+    private static Map<BlockVector3, BlockData> detachedBlocksForType(AssetType assetType,
+                                                                      Map<BlockVector3, BlockData> blocks) {
+        if (assetType == AssetType.ROCK) {
+            return blocks == null ? Map.of() : blocks;
+        }
+        return filterDetachedTemplateBlocks(blocks);
     }
 
     private static Map<BlockVector3, BlockData> filterDetachedTemplateBlocks(Map<BlockVector3, BlockData> blocks) {
