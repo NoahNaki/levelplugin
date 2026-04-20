@@ -94,6 +94,7 @@ public final class StrongholdDebugGenerator {
     private static final double FLOOR_RELIEF_CELL_SCALE = 128.0D;
     private static final double FLOOR_RELIEF_THRESHOLD = 0.93D;
     private static final int FLOOR_NOISE_SOFT_TIME_BUDGET_MS = 1500;
+    private static final boolean FLOOR_NOISE_FORCE_LOAD_CHUNKS = true;
     private static final int DETACHED_ASSET_BATCH_SIZE = 16;
     private static final List<Material> FLOOR_FLOWER_OPTIONS = List.of(
             Material.DANDELION,
@@ -1073,7 +1074,7 @@ public final class StrongholdDebugGenerator {
         int maxX = footprint.maxX + floorCfg.noisePadding();
         int minZ = footprint.minZ - floorCfg.noisePadding();
         int maxZ = footprint.maxZ + floorCfg.noisePadding();
-        Map<Long, ChunkSnapshot> floorSnapshots = loadChunkSnapshots(world, minX, maxX, minZ, maxZ, false);
+        Map<Long, ChunkSnapshot> floorSnapshots = loadChunkSnapshots(world, minX, maxX, minZ, maxZ, FLOOR_NOISE_FORCE_LOAD_CHUNKS);
         if (floorSnapshots.isEmpty()) {
             return;
         }
