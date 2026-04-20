@@ -95,6 +95,7 @@ public final class StrongholdDebugGenerator {
     private static final double TALL_GRASS_THRESHOLD = 0.80D;
     private static final int FLOOR_NOISE_SOFT_TIME_BUDGET_MS = 1500;
     private static final boolean FLOOR_NOISE_FORCE_LOAD_CHUNKS = true;
+    private static final int STRONGHOLD_FLOOR_NOISE_PADDING_MULTIPLIER = 2;
     private static final int STRONGHOLD_CORE_PASTE_RADIUS_BLOCKS = 190;
     private static final int DETACHED_ASSET_BATCH_SIZE = 16;
     private static final List<Material> FLOOR_FLOWER_OPTIONS = List.of(
@@ -1096,10 +1097,11 @@ public final class StrongholdDebugGenerator {
             return;
         }
         FloorTuningConfig floorCfg = getFloorTuningConfig();
-        int minX = footprint.minX - floorCfg.noisePadding();
-        int maxX = footprint.maxX + floorCfg.noisePadding();
-        int minZ = footprint.minZ - floorCfg.noisePadding();
-        int maxZ = footprint.maxZ + floorCfg.noisePadding();
+        int effectivePadding = Math.max(0, floorCfg.noisePadding() * STRONGHOLD_FLOOR_NOISE_PADDING_MULTIPLIER);
+        int minX = footprint.minX - effectivePadding;
+        int maxX = footprint.maxX + effectivePadding;
+        int minZ = footprint.minZ - effectivePadding;
+        int maxZ = footprint.maxZ + effectivePadding;
         applyFloorNoiseWithinBounds(world, minX, maxX, minZ, maxZ, floorCfg, true, forceLoadChunks);
     }
 
@@ -1543,6 +1545,14 @@ public final class StrongholdDebugGenerator {
         int maxX = footprint.maxX + BORDER_FOREST_MAX_OFFSET_BLOCKS;
         int minZ = footprint.minZ - BORDER_FOREST_MAX_OFFSET_BLOCKS;
         int maxZ = footprint.maxZ + BORDER_FOREST_MAX_OFFSET_BLOCKS;
+        double centerX = (footprint.minX + footprint.maxX) / 2.0D;
+        double centerZ = (footprint.minZ + footprint.maxZ) / 2.0D;
+        double footprintRadius = Math.max(
+                (footprint.maxX - footprint.minX + 1) / 2.0D,
+                (footprint.maxZ - footprint.minZ + 1) / 2.0D
+        );
+        double borderMinRadius = footprintRadius + BORDER_FOREST_MIN_OFFSET_BLOCKS;
+        double borderMaxRadius = footprintRadius + BORDER_FOREST_MAX_OFFSET_BLOCKS;
         Set<Long> borderOccupied = new HashSet<>();
         DetachedAssetPlacementRuntime runtime = new DetachedAssetPlacementRuntime(world, fallbackY);
 
@@ -1562,8 +1572,12 @@ public final class StrongholdDebugGenerator {
                 if (!isChunkLoadedAt(world, x, z)) {
                     continue;
                 }
-                double distance = distanceToBounds2D(footprint, x, z);
-                if (distance < BORDER_FOREST_MIN_OFFSET_BLOCKS || distance > BORDER_FOREST_MAX_OFFSET_BLOCKS) {
+                double edgeDistance = distanceToBounds2D(footprint, x, z);
+                if (edgeDistance < BORDER_FOREST_MIN_OFFSET_BLOCKS || edgeDistance > BORDER_FOREST_MAX_OFFSET_BLOCKS) {
+                    continue;
+                }
+                if (!isWithinOrganicBorderBand(
+                        x, z, centerX, centerZ, borderMinRadius, borderMaxRadius, BORDER_FOREST_ORGANIC_NOISE_SCALE)) {
                     continue;
                 }
                 double noise = fractalSimplexLikeNoise(x / BORDER_FOREST_ORGANIC_NOISE_SCALE, z / BORDER_FOREST_ORGANIC_NOISE_SCALE);
@@ -1635,6 +1649,27 @@ public final class StrongholdDebugGenerator {
             return false;
         }
         return world.isChunkLoaded(Math.floorDiv(x, 16), Math.floorDiv(z, 16));
+    }
+
+    private static boolean isWithinOrganicBorderBand(int x,
+                                                     int z,
+                                                     double centerX,
+                                                     double centerZ,
+                                                     double minRadius,
+                                                     double maxRadius,
+                                                     double noiseScale) {
+        double dx = x - centerX;
+        double dz = z - centerZ;
+        double radialDistance = Math.sqrt((dx * dx) + (dz * dz));
+        if (radialDistance <= 0.0D) {
+            return false;
+        }
+        double directionalNoise = fractalSimplexLikeNoise((x + 971.0D) / Math.max(1.0D, noiseScale),
+                (z - 613.0D) / Math.max(1.0D, noiseScale));
+        double wobble = ((directionalNoise * 2.0D) - 1.0D) * 18.0D;
+        double warpedMinRadius = Math.max(0.0D, minRadius + wobble);
+        double warpedMaxRadius = Math.max(warpedMinRadius + 1.0D, maxRadius + wobble);
+        return radialDistance >= warpedMinRadius && radialDistance <= warpedMaxRadius;
     }
 
     private static double distanceToBounds2D(Bounds2D bounds, int x, int z) {
