@@ -40,7 +40,6 @@ import java.util.Random;
 import java.util.Set;
 import java.util.IdentityHashMap;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.function.DoubleBinaryOperator;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
@@ -91,12 +90,9 @@ public final class StrongholdDebugGenerator {
     private static final int DEFAULT_FLOOR_NOISE_PADDING = 128;
     private static final boolean DEFAULT_INVERT_FLOOR_NOISE_MAPPING = true;
     private static final boolean DEFAULT_VEGETATION_OVERLAY_ENABLED = true;
-    private static final boolean DEFAULT_FLOOR_RELIEF_ENABLED = false;
     private static final double VEGETATION_SCALE = 6.0D;
     private static final double FLOWER_THRESHOLD = 0.94D;
     private static final double TALL_GRASS_THRESHOLD = 0.80D;
-    private static final double FLOOR_RELIEF_CELL_SCALE = 128.0D;
-    private static final double FLOOR_RELIEF_THRESHOLD = 0.93D;
     private static final int FLOOR_NOISE_SOFT_TIME_BUDGET_MS = 1500;
     private static final boolean FLOOR_NOISE_FORCE_LOAD_CHUNKS = true;
     private static final int DETACHED_ASSET_BATCH_SIZE = 16;
@@ -1141,14 +1137,11 @@ public final class StrongholdDebugGenerator {
             Main plugin = Main.getInstance();
             if (plugin != null && isStrongholdConsoleOutputEnabled()) {
                 plugin.getLogger().info("[StrongholdDebug][Floor] Noise pass hit soft budget after "
-                        + updatedColumns + " columns; skipping relief + vegetation for this debug run.");
+                        + updatedColumns + " columns; skipping vegetation for this debug run.");
             }
             return;
         }
 
-        if (includeReliefAndVegetation && DEFAULT_FLOOR_RELIEF_ENABLED) {
-            applyStrongholdFloorRelief(world, floorSnapshots, minX, maxX, minZ, maxZ);
-        }
         if (includeReliefAndVegetation && floorCfg.shortGrassOverlayEnabled()) {
             applyVegetationOverlay(world, floorSnapshots, minX, maxX, minZ, maxZ);
         }
@@ -1156,75 +1149,6 @@ public final class StrongholdDebugGenerator {
 
     private static long elapsedMillisSince(long startedAtNanos) {
         return Math.max(0L, (System.nanoTime() - startedAtNanos) / 1_000_000L);
-    }
-
-    private static void applyStrongholdFloorRelief(World world,
-                                                   Map<Long, ChunkSnapshot> snapshots,
-                                                   int minX,
-                                                   int maxX,
-                                                   int minZ,
-                                                   int maxZ) {
-        if (world == null) {
-            return;
-        }
-        Map<Point2D, Integer> carveColumns = collectTerrainColumnsByNoise(
-                world,
-                snapshots,
-                minX,
-                maxX,
-                minZ,
-                maxZ,
-                (x, z) -> smoothOvalBlobNoise((x + 173.0D) / FLOOR_RELIEF_CELL_SCALE,
-                        (z - 317.0D) / FLOOR_RELIEF_CELL_SCALE),
-                FLOOR_RELIEF_THRESHOLD
-        );
-        if (carveColumns.isEmpty()) {
-            return;
-        }
-
-        for (Map.Entry<Point2D, Integer> entry : carveColumns.entrySet()) {
-            Point2D column = entry.getKey();
-            int y = entry.getValue();
-            org.bukkit.block.Block top = world.getBlockAt((int) column.x, y, (int) column.z);
-            if (TERRAIN_REPLACEABLE_MATERIALS.contains(top.getType())) {
-                top.setType(Material.AIR, false);
-            }
-        }
-
-    }
-
-    private static Map<Point2D, Integer> collectTerrainColumnsByNoise(World world,
-                                                                       Map<Long, ChunkSnapshot> snapshots,
-                                                                       int minX,
-                                                                       int maxX,
-                                                                       int minZ,
-                                                                       int maxZ,
-                                                                       DoubleBinaryOperator noiseSampler,
-                                                                       double threshold) {
-        Map<Point2D, Integer> columns = new HashMap<>();
-        if (world == null || noiseSampler == null) {
-            return columns;
-        }
-        for (int x = minX; x <= maxX; x++) {
-            for (int z = minZ; z <= maxZ; z++) {
-                SurfaceColumn surface = terrainSurfaceColumnAt(snapshots, world, x, z);
-                if (surface == null) {
-                    continue;
-                }
-                if (!TERRAIN_REPLACEABLE_MATERIALS.contains(surface.material())) {
-                    continue;
-                }
-                org.bukkit.block.Block top = world.getBlockAt(x, surface.y(), z);
-                if (!top.getRelative(BlockFace.UP).getType().isAir()) {
-                    continue;
-                }
-                double sampled = noiseSampler.applyAsDouble(x, z);
-                if (sampled >= threshold) {
-                    columns.put(new Point2D(x, z), surface.y());
-                }
-            }
-        }
-        return columns;
     }
 
     private static void applyLowerTerrainLayerPattern(org.bukkit.block.Block surfaceBlock, Material patterned) {
@@ -1333,41 +1257,6 @@ public final class StrongholdDebugGenerator {
         }
         double normalized = value / maxAmplitude;
         return (normalized + 1.0D) * 0.5D;
-    }
-
-    private static double smoothOvalBlobNoise(double x, double z) {
-        int cellX = (int) Math.floor(x);
-        int cellZ = (int) Math.floor(z);
-        double strongest = 0.0D;
-
-        for (int dx = -1; dx <= 1; dx++) {
-            for (int dz = -1; dz <= 1; dz++) {
-                int gx = cellX + dx;
-                int gz = cellZ + dz;
-
-                double centerX = gx + 0.5D + (hashToSignedUnit(gx * 31, gz * 17) * 0.32D);
-                double centerZ = gz + 0.5D + (hashToSignedUnit(gx * 19, gz * 29) * 0.32D);
-                double angle = hashToUnit(gx * 11 + 7, gz * 13 - 5) * Math.PI * 2.0D;
-
-                double majorRadius = 0.95D + (hashToUnit(gx * 23, gz * 37) * 0.65D);
-                double minorRadius = 0.65D + (hashToUnit(gx * 41, gz * 43) * 0.35D);
-
-                double relX = x - centerX;
-                double relZ = z - centerZ;
-                double cos = Math.cos(angle);
-                double sin = Math.sin(angle);
-                double localX = (relX * cos) + (relZ * sin);
-                double localZ = (-relX * sin) + (relZ * cos);
-
-                double normalizedDistance = Math.sqrt(
-                        ((localX * localX) / (majorRadius * majorRadius))
-                                + ((localZ * localZ) / (minorRadius * minorRadius))
-                );
-                double contribution = smoothStep01(1.0D - normalizedDistance);
-                strongest = Math.max(strongest, contribution);
-            }
-        }
-        return strongest;
     }
 
     private static double valueNoise2D(double x, double z) {
