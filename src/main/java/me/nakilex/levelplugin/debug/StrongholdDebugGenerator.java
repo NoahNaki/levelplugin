@@ -95,6 +95,7 @@ public final class StrongholdDebugGenerator {
     private static final double TALL_GRASS_THRESHOLD = 0.80D;
     private static final int FLOOR_NOISE_SOFT_TIME_BUDGET_MS = 1500;
     private static final boolean FLOOR_NOISE_FORCE_LOAD_CHUNKS = true;
+    private static final int STRONGHOLD_CORE_PASTE_RADIUS_BLOCKS = 190;
     private static final int DETACHED_ASSET_BATCH_SIZE = 16;
     private static final List<Material> FLOOR_FLOWER_OPTIONS = List.of(
             Material.DANDELION,
@@ -545,11 +546,12 @@ public final class StrongholdDebugGenerator {
         timing.processFinished("Close viable dead-ends + church count", processStart);
 
         processStart = timing.processStarted("Paste templates");
-        pastePlacedTemplates(world, placed);
+        TemplatePastePlan pastePlan = buildTemplatePastePlan(placed, originX, originZ, STRONGHOLD_CORE_PASTE_RADIUS_BLOCKS);
+        pastePlacedTemplates(world, pastePlan.coreTemplates());
         timing.processFinished("Paste templates", processStart);
 
         processStart = timing.processStarted("Apply template marker actions");
-        applyTemplateMarkerActions(sourceWorld, world, placed, random);
+        applyTemplateMarkerActions(sourceWorld, world, pastePlan.coreTemplates(), random);
         timing.processFinished("Apply template marker actions", processStart);
 
         processStart = timing.processStarted("Disconnected fallback raw copies");
@@ -582,7 +584,7 @@ public final class StrongholdDebugGenerator {
 
         processStart = timing.processStarted("Teleport + queue detached pasting");
         player.teleport(new org.bukkit.Location(world, originX + 0.5, originY + 2, originZ + 0.5));
-        schedulePostTeleportEnhancements(sourceWorld, world, placed, occupied, player, random, originY);
+        schedulePostTeleportEnhancements(sourceWorld, world, pastePlan.deferredTemplates(), placed, occupied, player, random, originY);
         timing.processFinished("Teleport + queue detached pasting", processStart);
 
         processStart = timing.processStarted("Send generation diagnostics");
@@ -1443,6 +1445,7 @@ public final class StrongholdDebugGenerator {
 
     private static void schedulePostTeleportEnhancements(World sourceWorld,
                                                          World world,
+                                                         List<PlacedTemplate> deferredTemplates,
                                                          List<PlacedTemplate> placed,
                                                          Set<Long> occupied,
                                                          Player player,
@@ -1453,6 +1456,8 @@ public final class StrongholdDebugGenerator {
         }
         Main plugin = Main.getInstance();
         if (plugin == null) {
+            pastePlacedTemplates(world, deferredTemplates);
+            applyTemplateMarkerActions(sourceWorld, world, deferredTemplates, random);
             applyStrongholdFloorNoise(world, placed);
             AssetPlacementSummary assetSummary = placeDetachedAssets(sourceWorld, world, placed, occupied, random, fallbackY);
             scheduleDetachedAssetPasting(world, assetSummary.placements(), player);
@@ -1462,15 +1467,49 @@ public final class StrongholdDebugGenerator {
         }
         if (player != null && player.isOnline()) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
-                    "Running stronghold enhancement passes in the background (floor + assets).");
+                    "Running stronghold enhancement passes in the background (deferred templates + floor + assets).");
         }
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            pastePlacedTemplates(world, deferredTemplates);
+            applyTemplateMarkerActions(sourceWorld, world, deferredTemplates, random);
             applyStrongholdFloorNoise(world, placed, false);
             AssetPlacementSummary assetSummary = placeDetachedAssets(sourceWorld, world, placed, occupied, random, fallbackY);
             scheduleDetachedAssetPasting(world, assetSummary.placements(), player);
             Bounds2D footprint = combinedBounds2D(placed);
             scheduleOrganicBorderForest(sourceWorld, world, footprint, occupied, player, fallbackY);
         }, 2L);
+    }
+
+    private static TemplatePastePlan buildTemplatePastePlan(List<PlacedTemplate> placedTemplates,
+                                                            int centerX,
+                                                            int centerZ,
+                                                            int coreRadiusBlocks) {
+        if (placedTemplates == null || placedTemplates.isEmpty()) {
+            return TemplatePastePlan.empty();
+        }
+        int radius = Math.max(1, coreRadiusBlocks);
+        List<PlacedTemplate> core = new ArrayList<>();
+        List<PlacedTemplate> deferred = new ArrayList<>();
+        for (PlacedTemplate placedTemplate : placedTemplates) {
+            if (placedTemplate == null) {
+                continue;
+            }
+            Bounds2D bounds = placedTemplate.bounds2D();
+            if (bounds == null) {
+                core.add(placedTemplate);
+                continue;
+            }
+            double distance = distanceToBounds2D(bounds, centerX, centerZ);
+            if (distance <= radius) {
+                core.add(placedTemplate);
+            } else {
+                deferred.add(placedTemplate);
+            }
+        }
+        if (core.isEmpty() && !deferred.isEmpty()) {
+            core.add(deferred.remove(0));
+        }
+        return new TemplatePastePlan(List.copyOf(core), List.copyOf(deferred));
     }
 
     private static void scheduleOrganicBorderForest(World sourceWorld,
@@ -4580,6 +4619,12 @@ public final class StrongholdDebugGenerator {
     }
 
     private record PlacementAttempt(PlacedTemplate connector, PlacedTemplate placed) {
+    }
+
+    private record TemplatePastePlan(List<PlacedTemplate> coreTemplates, List<PlacedTemplate> deferredTemplates) {
+        private static TemplatePastePlan empty() {
+            return new TemplatePastePlan(List.of(), List.of());
+        }
     }
 
     private record ExpansionChoice(BlockFace side, PlacementAttempt attempt, double score) {
