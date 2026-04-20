@@ -95,7 +95,7 @@ public final class StrongholdDebugGenerator {
     private static final double TALL_GRASS_THRESHOLD = 0.80D;
     private static final int FLOOR_NOISE_SOFT_TIME_BUDGET_MS = 1500;
     private static final boolean FLOOR_NOISE_FORCE_LOAD_CHUNKS = true;
-    private static final int STRONGHOLD_FLOOR_NOISE_PADDING_MULTIPLIER = 5;
+    private static final int STRONGHOLD_FLOOR_NOISE_PADDING_MULTIPLIER = 3;
     private static final int STRONGHOLD_CORE_PASTE_RADIUS_BLOCKS = 190;
     private static final int DETACHED_ASSET_BATCH_SIZE = 16;
     private static final List<Material> FLOOR_FLOWER_OPTIONS = List.of(
@@ -211,7 +211,8 @@ public final class StrongholdDebugGenerator {
     private static final double BORDER_FOREST_ORGANIC_NOISE_SCALE = 22.0D;
     private static final double BORDER_FOREST_DENSITY_THRESHOLD = 0.12D;
     private static final double BORDER_FOREST_TREE_WEIGHT = 0.90D;
-    private static final double BORDER_FOREST_ROCK_WEIGHT = 0.10D;
+    private static final double BORDER_FOREST_ROCK_WEIGHT = 0.22D;
+    private static final double BORDER_FOREST_MIN_ROCK_SHARE = 0.15D;
     private static final int TARGET_GATE_TEMPLATES = 2;
     private static final Map<String, Integer> REQUIRED_TEMPLATE_COUNTS = Map.of(
             "church", 1,
@@ -1412,8 +1413,14 @@ public final class StrongholdDebugGenerator {
         return anchors.get(0);
     }
 
-    private static void scheduleDetachedAssetPasting(World world, List<AssetPlacement> placements, Player player) {
+    private static void scheduleDetachedAssetPasting(World world,
+                                                     List<AssetPlacement> placements,
+                                                     Player player,
+                                                     Runnable onComplete) {
         if (world == null || placements == null || placements.isEmpty()) {
+            if (onComplete != null) {
+                onComplete.run();
+            }
             return;
         }
         Main plugin = Main.getInstance();
@@ -1422,6 +1429,9 @@ public final class StrongholdDebugGenerator {
                 pasteDetachedAsset(world, placement);
             }
             applyFloorNoiseForDetachedPlacements(world, placements);
+            if (onComplete != null) {
+                onComplete.run();
+            }
             return;
         }
         final BukkitTask[] taskRef = new BukkitTask[1];
@@ -1440,6 +1450,9 @@ public final class StrongholdDebugGenerator {
                 if (player != null && player.isOnline()) {
                     ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                             "Detached asset batching complete (" + total + " placements).");
+                }
+                if (onComplete != null) {
+                    onComplete.run();
                 }
             }
         }, 1L, 1L);
@@ -1460,11 +1473,12 @@ public final class StrongholdDebugGenerator {
         if (plugin == null) {
             pastePlacedTemplates(world, deferredTemplates);
             applyTemplateMarkerActions(sourceWorld, world, deferredTemplates, random);
-            applyStrongholdFloorNoise(world, placed);
             AssetPlacementSummary assetSummary = placeDetachedAssets(sourceWorld, world, placed, occupied, random, fallbackY);
-            scheduleDetachedAssetPasting(world, assetSummary.placements(), player);
             Bounds2D footprint = combinedBounds2D(placed);
-            scheduleOrganicBorderForest(sourceWorld, world, footprint, occupied, player, fallbackY);
+            scheduleDetachedAssetPasting(world, assetSummary.placements(), player, () ->
+                    scheduleOrganicBorderForest(sourceWorld, world, footprint, occupied, player, fallbackY, () ->
+                            applyStrongholdFloorNoise(world, placed)
+                    ));
             return;
         }
         if (player != null && player.isOnline()) {
@@ -1474,11 +1488,12 @@ public final class StrongholdDebugGenerator {
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             pastePlacedTemplates(world, deferredTemplates);
             applyTemplateMarkerActions(sourceWorld, world, deferredTemplates, random);
-            applyStrongholdFloorNoise(world, placed, true);
             AssetPlacementSummary assetSummary = placeDetachedAssets(sourceWorld, world, placed, occupied, random, fallbackY);
-            scheduleDetachedAssetPasting(world, assetSummary.placements(), player);
             Bounds2D footprint = combinedBounds2D(placed);
-            scheduleOrganicBorderForest(sourceWorld, world, footprint, occupied, player, fallbackY);
+            scheduleDetachedAssetPasting(world, assetSummary.placements(), player, () ->
+                    scheduleOrganicBorderForest(sourceWorld, world, footprint, occupied, player, fallbackY, () ->
+                            applyStrongholdFloorNoise(world, placed, true)
+                    ));
         }, 2L);
     }
 
@@ -1519,21 +1534,34 @@ public final class StrongholdDebugGenerator {
                                                     Bounds2D footprint,
                                                     Set<Long> occupied,
                                                     Player player,
-                                                    int fallbackY) {
+                                                    int fallbackY,
+                                                    Runnable onComplete) {
         if (sourceWorld == null || world == null || footprint == null || occupied == null) {
+            if (onComplete != null) {
+                onComplete.run();
+            }
             return;
         }
         Map<AssetType, List<DetachedAssetTemplate>> templatesByType = loadDetachedAssetTemplates(sourceWorld);
         if (templatesByType.isEmpty()) {
+            if (onComplete != null) {
+                onComplete.run();
+            }
             return;
         }
         List<DetachedAssetTemplate> treeTemplates = templatesByType.getOrDefault(AssetType.TREE, List.of());
         List<DetachedAssetTemplate> rockTemplates = templatesByType.getOrDefault(AssetType.ROCK, List.of());
         if (treeTemplates.isEmpty() && rockTemplates.isEmpty()) {
+            if (onComplete != null) {
+                onComplete.run();
+            }
             return;
         }
         Main plugin = Main.getInstance();
         if (plugin == null) {
+            if (onComplete != null) {
+                onComplete.run();
+            }
             return;
         }
         Random random = ThreadLocalRandom.current();
@@ -1545,6 +1573,9 @@ public final class StrongholdDebugGenerator {
         int maxX = footprint.maxX + BORDER_FOREST_MAX_OFFSET_BLOCKS;
         int minZ = footprint.minZ - BORDER_FOREST_MAX_OFFSET_BLOCKS;
         int maxZ = footprint.maxZ + BORDER_FOREST_MAX_OFFSET_BLOCKS;
+        int minRockPlacements = rockTemplates.isEmpty()
+                ? 0
+                : Math.max(8, (int) Math.round(targetPlacements * BORDER_FOREST_MIN_ROCK_SHARE));
         double centerX = (footprint.minX + footprint.maxX) / 2.0D;
         double centerZ = (footprint.minZ + footprint.maxZ) / 2.0D;
         double footprintRadius = Math.max(
@@ -1558,6 +1589,7 @@ public final class StrongholdDebugGenerator {
 
         final BukkitTask[] taskRef = new BukkitTask[1];
         final int[] placedCount = {0};
+        final int[] rockPlacedCount = {0};
         final int[] attempts = {0};
         taskRef[0] = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             int placedThisTick = 0;
@@ -1585,7 +1617,8 @@ public final class StrongholdDebugGenerator {
                     continue;
                 }
 
-                DetachedAssetTemplate template = pickBorderForestTemplate(treeTemplates, rockTemplates, random);
+                DetachedAssetTemplate template = pickBorderForestTemplate(
+                        treeTemplates, rockTemplates, random, rockPlacedCount[0], minRockPlacements, targetPlacements, placedCount[0]);
                 if (template == null) {
                     continue;
                 }
@@ -1610,6 +1643,9 @@ public final class StrongholdDebugGenerator {
                 occupy(occupied, origin, template.blocks());
                 occupy(borderOccupied, origin, template.blocks());
                 placedCount[0]++;
+                if (template.type() == AssetType.ROCK) {
+                    rockPlacedCount[0]++;
+                }
                 placedThisTick++;
             }
 
@@ -1621,15 +1657,29 @@ public final class StrongholdDebugGenerator {
                     ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                             "Organic border forest pass complete (" + placedCount[0] + "/" + targetPlacements + ").");
                 }
+                if (onComplete != null) {
+                    onComplete.run();
+                }
             }
         }, 20L, 2L);
     }
 
     private static DetachedAssetTemplate pickBorderForestTemplate(List<DetachedAssetTemplate> treeTemplates,
                                                                   List<DetachedAssetTemplate> rockTemplates,
-                                                                  Random random) {
+                                                                  Random random,
+                                                                  int rockPlacedCount,
+                                                                  int minRockPlacements,
+                                                                  int targetPlacements,
+                                                                  int totalPlacedCount) {
         if ((treeTemplates == null || treeTemplates.isEmpty()) && (rockTemplates == null || rockTemplates.isEmpty())) {
             return null;
+        }
+        if (rockTemplates != null && !rockTemplates.isEmpty() && rockPlacedCount < minRockPlacements) {
+            int placementsLeft = Math.max(1, targetPlacements - totalPlacedCount);
+            int rocksNeeded = Math.max(0, minRockPlacements - rockPlacedCount);
+            if (rocksNeeded >= placementsLeft || random.nextDouble() < (rocksNeeded / (double) placementsLeft)) {
+                return rockTemplates.get(random.nextInt(rockTemplates.size()));
+            }
         }
         boolean pickRock = random.nextDouble() < BORDER_FOREST_ROCK_WEIGHT;
         if (pickRock && rockTemplates != null && !rockTemplates.isEmpty()) {
