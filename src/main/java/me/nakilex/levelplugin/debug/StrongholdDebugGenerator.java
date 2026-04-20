@@ -95,6 +95,11 @@ public final class StrongholdDebugGenerator {
     private static final double FLOOR_RELIEF_THRESHOLD = 0.93D;
     private static final int DETACHED_ASSET_BATCH_SIZE = 16;
     private static final int STRONGHOLD_TEMPLATE_BATCH_SIZE = 2;
+    /**
+     * When true we reuse the same void generator strategy already used by dungeon/arena instances.
+     * This avoids full superflat terrain population cost for temporary debug worlds.
+     */
+    private static final boolean USE_VOID_GENERATOR_FOR_STRONGHOLD_WORLD = true;
     private static final List<Material> FLOOR_FLOWER_OPTIONS = List.of(
             Material.DANDELION,
             Material.POPPY,
@@ -1592,15 +1597,25 @@ public final class StrongholdDebugGenerator {
 
     private static World createGeneratedWorld(Main plugin, Player player) {
         String worldName = GENERATED_WORLD_PREFIX + System.currentTimeMillis();
-        World world = plugin.getWorldManager().createWorld(worldName, WorldType.FLAT, Environment.NORMAL, false);
+        World world = plugin.getWorldManager().createWorld(
+                worldName,
+                WorldType.FLAT,
+                Environment.NORMAL,
+                USE_VOID_GENERATOR_FOR_STRONGHOLD_WORLD
+        );
         if (world == null) {
             return null;
         }
         world.setKeepSpawnInMemory(false);
         world.setAutoSave(false);
         world.setGameRule(org.bukkit.GameRule.DO_MOB_SPAWNING, false);
+        world.setGameRule(org.bukkit.GameRule.DO_DAYLIGHT_CYCLE, false);
+        world.setGameRule(org.bukkit.GameRule.DO_WEATHER_CYCLE, false);
+        world.setGameRule(org.bukkit.GameRule.RANDOM_TICK_SPEED, 0);
+        world.setTime(6000L);
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
-                "Generating stronghold in superflat world '" + world.getName() + "'...");
+                "Generating stronghold in " + (USE_VOID_GENERATOR_FOR_STRONGHOLD_WORLD ? "void-flat" : "superflat")
+                        + " world '" + world.getName() + "'...");
         return world;
     }
 
