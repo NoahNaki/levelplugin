@@ -91,7 +91,7 @@ public final class StrongholdDebugGenerator {
     private static final int DEFAULT_FLOOR_NOISE_PADDING = 128;
     private static final boolean DEFAULT_INVERT_FLOOR_NOISE_MAPPING = true;
     private static final boolean DEFAULT_VEGETATION_OVERLAY_ENABLED = true;
-    private static final boolean DEFAULT_FLOOR_RELIEF_ENABLED = true;
+    private static final boolean DEFAULT_FLOOR_RELIEF_ENABLED = false;
     private static final double VEGETATION_SCALE = 6.0D;
     private static final double FLOWER_THRESHOLD = 0.94D;
     private static final double TALL_GRASS_THRESHOLD = 0.80D;
