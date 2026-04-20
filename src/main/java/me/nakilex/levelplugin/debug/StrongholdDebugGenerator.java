@@ -1088,6 +1088,19 @@ public final class StrongholdDebugGenerator {
         int maxX = footprint.maxX + floorCfg.noisePadding();
         int minZ = footprint.minZ - floorCfg.noisePadding();
         int maxZ = footprint.maxZ + floorCfg.noisePadding();
+        applyFloorNoiseWithinBounds(world, minX, maxX, minZ, maxZ, floorCfg, true);
+    }
+
+    private static void applyFloorNoiseWithinBounds(World world,
+                                                    int minX,
+                                                    int maxX,
+                                                    int minZ,
+                                                    int maxZ,
+                                                    FloorTuningConfig floorCfg,
+                                                    boolean includeReliefAndVegetation) {
+        if (world == null || floorCfg == null) {
+            return;
+        }
         Map<Long, ChunkSnapshot> floorSnapshots = loadChunkSnapshots(world, minX, maxX, minZ, maxZ, FLOOR_NOISE_FORCE_LOAD_CHUNKS);
         if (floorSnapshots.isEmpty()) {
             return;
@@ -1133,10 +1146,10 @@ public final class StrongholdDebugGenerator {
             return;
         }
 
-        if (DEFAULT_FLOOR_RELIEF_ENABLED) {
+        if (includeReliefAndVegetation && DEFAULT_FLOOR_RELIEF_ENABLED) {
             applyStrongholdFloorRelief(world, floorSnapshots, minX, maxX, minZ, maxZ);
         }
-        if (floorCfg.shortGrassOverlayEnabled()) {
+        if (includeReliefAndVegetation && floorCfg.shortGrassOverlayEnabled()) {
             applyVegetationOverlay(world, floorSnapshots, minX, maxX, minZ, maxZ);
         }
     }
@@ -1522,6 +1535,7 @@ public final class StrongholdDebugGenerator {
             for (AssetPlacement placement : placements) {
                 pasteDetachedAsset(world, placement);
             }
+            applyFloorNoiseForDetachedPlacements(world, placements);
             return;
         }
         final BukkitTask[] taskRef = new BukkitTask[1];
@@ -1536,12 +1550,58 @@ public final class StrongholdDebugGenerator {
             }
             if (index[0] >= total && taskRef[0] != null) {
                 taskRef[0].cancel();
+                applyFloorNoiseForDetachedPlacements(world, placements);
                 if (player != null && player.isOnline()) {
                     ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                             "Detached asset batching complete (" + total + " placements).");
                 }
             }
         }, 1L, 1L);
+    }
+
+    private static void applyFloorNoiseForDetachedPlacements(World world, List<AssetPlacement> placements) {
+        if (world == null || placements == null || placements.isEmpty()) {
+            return;
+        }
+        Bounds2D bounds = combinedAssetBounds2D(placements);
+        if (bounds == null) {
+            return;
+        }
+        FloorTuningConfig floorCfg = getFloorTuningConfig();
+        int minX = bounds.minX - 2;
+        int maxX = bounds.maxX + 2;
+        int minZ = bounds.minZ - 2;
+        int maxZ = bounds.maxZ + 2;
+        applyFloorNoiseWithinBounds(world, minX, maxX, minZ, maxZ, floorCfg, false);
+    }
+
+    private static Bounds2D combinedAssetBounds2D(List<AssetPlacement> placements) {
+        if (placements == null || placements.isEmpty()) {
+            return null;
+        }
+        int minX = Integer.MAX_VALUE;
+        int maxX = Integer.MIN_VALUE;
+        int minZ = Integer.MAX_VALUE;
+        int maxZ = Integer.MIN_VALUE;
+        boolean found = false;
+        for (AssetPlacement placement : placements) {
+            if (placement == null || placement.template() == null || placement.origin() == null) {
+                continue;
+            }
+            for (BlockVector3 rel : placement.template().blocks().keySet()) {
+                int x = placement.origin().getBlockX() + rel.getBlockX();
+                int z = placement.origin().getBlockZ() + rel.getBlockZ();
+                minX = Math.min(minX, x);
+                maxX = Math.max(maxX, x);
+                minZ = Math.min(minZ, z);
+                maxZ = Math.max(maxZ, z);
+                found = true;
+            }
+        }
+        if (!found) {
+            return null;
+        }
+        return new Bounds2D(minX, maxX, minZ, maxZ);
     }
 
     private static void pasteDetachedAsset(World world, AssetPlacement placement) {
