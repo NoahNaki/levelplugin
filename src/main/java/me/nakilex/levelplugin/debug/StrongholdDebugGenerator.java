@@ -1586,7 +1586,7 @@ public final class StrongholdDebugGenerator {
         double bestScore = Double.NEGATIVE_INFINITY;
         PlacementState state = PlacementState.fromSeed(current.spec);
         for (PlacementAttempt attempt : attempts) {
-            double score = scoreAttempt(current, attempt, occupied, state, captured, null);
+            double score = scoreAttempt(current, attempt, occupied, state, captured, null, bestScore);
             if (score > bestScore) {
                 bestScore = score;
                 best = attempt;
@@ -2675,7 +2675,8 @@ public final class StrongholdDebugGenerator {
             if (attempt == null) {
                 continue;
             }
-            double score = scoreAttempt(current, attempt, occupied, state, captured, placedTemplates);
+            double score = scoreAttempt(current, attempt, occupied, state, captured, placedTemplates,
+                    best == null ? Double.NEGATIVE_INFINITY : best.score());
             if (best == null || score > best.score()) {
                 best = new ExpansionChoice(side, attempt, score);
             }
@@ -2814,7 +2815,7 @@ public final class StrongholdDebugGenerator {
                 }
                 continue;
             }
-            double score = scoreAttempt(current, attempt, occupied, state, captured, placedTemplates);
+            double score = scoreAttempt(current, attempt, occupied, state, captured, placedTemplates, bestScore);
             if (score > bestScore) {
                 bestScore = score;
                 best = attempt;
@@ -2828,10 +2829,8 @@ public final class StrongholdDebugGenerator {
                                        Set<Long> occupied,
                                        PlacementState state,
                                        CapturedTemplates captured,
-                                       List<PlacedTemplate> placedTemplates) {
-        RotatedTemplate rotated = rotateTemplate(attempt.placed.spec.template, attempt.placed.rotation);
-        double overlap = overlapPercent(occupied, rotated.blocks, attempt.placed.origin);
-
+                                       List<PlacedTemplate> placedTemplates,
+                                       double bestScoreToBeat) {
         int openOutputs = attempt.placed.openSides().size();
         int connectorDiversity = countDistinctSides(attempt.placed.openSides());
 
@@ -2839,14 +2838,23 @@ public final class StrongholdDebugGenerator {
         int junctionBonus = isLarge(attempt.placed.spec) ? 1 : 0;
         int continuationBonus = !areBothLarge(current.spec, attempt.placed.spec) ? 1 : 0;
         double usageBonus = usageDiversityBonus(attempt.placed.spec, placedTemplates);
-
-        return (openOutputs * 30.0D)
+        double positiveScore = (openOutputs * 30.0D)
                 + (connectorDiversity * 12.0D)
                 + (branchBonus * 20.0D)
                 + (junctionBonus * 12.0D)
                 + (continuationBonus * 6.0D)
-                + usageBonus
-                - overlap;
+                + usageBonus;
+        if (bestScoreToBeat != Double.NEGATIVE_INFINITY && positiveScore <= bestScoreToBeat) {
+            return Double.NEGATIVE_INFINITY;
+        }
+
+        RotatedTemplate rotated = rotateTemplate(attempt.placed.spec.template, attempt.placed.rotation);
+        Double overlapCapPercent = bestScoreToBeat == Double.NEGATIVE_INFINITY
+                ? null
+                : Math.max(0.0D, positiveScore - bestScoreToBeat);
+        double overlap = overlapPercent(occupied, rotated.blocks, attempt.placed.origin, overlapCapPercent);
+
+        return positiveScore - overlap;
     }
 
     private static double usageDiversityBonus(TemplateSpec candidate, List<PlacedTemplate> placedTemplates) {
@@ -3397,8 +3405,22 @@ public final class StrongholdDebugGenerator {
     private static double overlapPercent(Set<Long> occupied,
                                          Map<BlockVector3, BlockData> blocks,
                                          BlockVector3 origin) {
+        return overlapPercent(occupied, blocks, origin, null);
+    }
+
+    private static double overlapPercent(Set<Long> occupied,
+                                         Map<BlockVector3, BlockData> blocks,
+                                         BlockVector3 origin,
+                                         Double capPercent) {
         if (blocks.isEmpty()) {
             return 100.0D;
+        }
+        int blockCount = blocks.size();
+        int capOverlaps = Integer.MAX_VALUE;
+        double boundedCapPercent = -1.0D;
+        if (capPercent != null) {
+            boundedCapPercent = Math.max(0.0D, Math.min(100.0D, capPercent));
+            capOverlaps = (int) Math.floor((boundedCapPercent / 100.0D) * blockCount);
         }
         int overlap = 0;
         for (BlockVector3 rel : blocks.keySet()) {
@@ -3407,9 +3429,12 @@ public final class StrongholdDebugGenerator {
             int z = origin.getBlockZ() + rel.getBlockZ();
             if (occupied.contains(posKey(x, y, z))) {
                 overlap++;
+                if (overlap > capOverlaps) {
+                    return boundedCapPercent + 0.0001D;
+                }
             }
         }
-        return (overlap * 100.0D) / blocks.size();
+        return (overlap * 100.0D) / blockCount;
     }
 
     private static boolean isOverlapWithinThreshold(Set<Long> occupied,
@@ -3658,7 +3683,7 @@ public final class StrongholdDebugGenerator {
                     continue;
                 }
                 long key = chunkKey(chunkX, chunkZ);
-                snapshots.put(key, world.getChunkAt(chunkX, chunkZ).getChunkSnapshot(false, includeHighestBlockY, false));
+                snapshots.put(key, world.getChunkAt(chunkX, chunkZ).getChunkSnapshot(includeHighestBlockY, false, false));
             }
         }
         return snapshots;
