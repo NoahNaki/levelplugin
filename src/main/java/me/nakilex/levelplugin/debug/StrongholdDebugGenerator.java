@@ -197,6 +197,7 @@ public final class StrongholdDebugGenerator {
     private static final int DETACHED_ASSET_AREA_PADDING = 24;
     private static final int DETACHED_ASSET_MAX_ATTEMPTS = 3000;
     private static final int DETACHED_ASSET_SOFT_TIME_BUDGET_MS = 4000;
+    private static final int DETACHED_ASSET_CONSECUTIVE_MISS_ABORT = 140;
     private static final int DETACHED_ASSET_MIN_TOTAL_REQUEST = 32;
     private static final int DETACHED_ASSET_BLOCKS_PER_ASSET_TARGET = 700;
     private static final int TARGET_GATE_TEMPLATES = 2;
@@ -779,10 +780,15 @@ public final class StrongholdDebugGenerator {
         List<String> preview = new ArrayList<>();
         List<AssetPlacement> queuedPlacements = new ArrayList<>();
 
-        for (AssetType type : requestOrder) {
+        for (int requestIndex = 0; requestIndex < requestOrder.size(); requestIndex++) {
+            AssetType type = requestOrder.get(requestIndex);
             if (runtime.isSoftBudgetExceeded()) {
                 skippedRequests++;
                 continue;
+            }
+            if (runtime.shouldAbortFurtherRequests()) {
+                skippedRequests += Math.max(0, requestOrder.size() - requestIndex);
+                break;
             }
             List<DetachedAssetTemplate> pool = templatesByType.getOrDefault(type, List.of());
             AssetPlacementSearchResult result = findDetachedAssetPlacement(type, pool, occupied, detachedOccupied, random, field, runtime);
@@ -957,7 +963,7 @@ public final class StrongholdDebugGenerator {
             }
 
             int y = runtime.safeSurfaceY(x, z);
-            if (!isNaturalTerrain(runtime.world(), x, y, z)) {
+            if (!runtime.isNaturalTerrainAt(x, y, z)) {
                 nonTerrainGroundRejects++;
                 continue;
             }
@@ -965,11 +971,11 @@ public final class StrongholdDebugGenerator {
             int originZ = z - template.centerOffsetZ();
             int originY = y - Math.min(0, template.lowestRelativeY());
             BlockVector3 origin = BlockVector3.at(originX, originY, originZ);
-            if (!isOverlapWithinThreshold(occupied, template.blocks(), origin, DETACHED_ASSET_OVERLAP_PERCENT)) {
+            if (!isOverlapWithinThreshold(occupied, template.relativeBlocks(), origin, DETACHED_ASSET_OVERLAP_PERCENT)) {
                 mainOverlapRejects++;
                 continue;
             }
-            if (!isOverlapWithinThreshold(detachedOccupied, template.blocks(), origin, DETACHED_ASSET_INTERNAL_OVERLAP_PERCENT)) {
+            if (!isOverlapWithinThreshold(detachedOccupied, template.relativeBlocks(), origin, DETACHED_ASSET_INTERNAL_OVERLAP_PERCENT)) {
                 detachedOverlapRejects++;
                 continue;
             }
@@ -1097,7 +1103,8 @@ public final class StrongholdDebugGenerator {
         if (world == null || floorCfg == null) {
             return;
         }
-        Map<Long, ChunkSnapshot> floorSnapshots = loadChunkSnapshots(world, minX, maxX, minZ, maxZ, FLOOR_NOISE_FORCE_LOAD_CHUNKS);
+        Map<Long, ChunkSnapshot> floorSnapshots = loadChunkSnapshots(
+                world, minX, maxX, minZ, maxZ, FLOOR_NOISE_FORCE_LOAD_CHUNKS, true);
         if (floorSnapshots.isEmpty()) {
             return;
         }
@@ -3409,16 +3416,41 @@ public final class StrongholdDebugGenerator {
                                                     Map<BlockVector3, BlockData> blocks,
                                                     BlockVector3 origin,
                                                     double thresholdPercent) {
-        if (blocks.isEmpty()) {
+        return isOverlapWithinThreshold(occupied, blocks == null ? List.of() : blocks.keySet(), origin, thresholdPercent);
+    }
+
+    private static boolean isOverlapWithinThreshold(Set<Long> occupied,
+                                                    Iterable<BlockVector3> relativeBlocks,
+                                                    BlockVector3 origin,
+                                                    double thresholdPercent) {
+        if (relativeBlocks == null) {
+            return false;
+        }
+        int blockCount = 0;
+        for (BlockVector3 ignored : relativeBlocks) {
+            blockCount++;
+        }
+        if (blockCount <= 0) {
+            return false;
+        }
+        return isOverlapWithinThreshold(occupied, relativeBlocks, origin, thresholdPercent, blockCount);
+    }
+
+    private static boolean isOverlapWithinThreshold(Set<Long> occupied,
+                                                    Iterable<BlockVector3> relativeBlocks,
+                                                    BlockVector3 origin,
+                                                    double thresholdPercent,
+                                                    int blockCount) {
+        if (relativeBlocks == null || blockCount <= 0) {
             return false;
         }
         double boundedThreshold = Math.max(0.0D, Math.min(100.0D, thresholdPercent));
         if (boundedThreshold >= 100.0D) {
             return true;
         }
-        int allowedOverlaps = (int) Math.floor((boundedThreshold / 100.0D) * blocks.size());
+        int allowedOverlaps = (int) Math.floor((boundedThreshold / 100.0D) * blockCount);
         int overlap = 0;
-        for (BlockVector3 rel : blocks.keySet()) {
+        for (BlockVector3 rel : relativeBlocks) {
             int x = origin.getBlockX() + rel.getBlockX();
             int y = origin.getBlockY() + rel.getBlockY();
             int z = origin.getBlockZ() + rel.getBlockZ();
@@ -3596,7 +3628,7 @@ public final class StrongholdDebugGenerator {
     }
 
     private static Map<Long, ChunkSnapshot> loadChunkSnapshots(World world, int minX, int maxX, int minZ, int maxZ) {
-        return loadChunkSnapshots(world, minX, maxX, minZ, maxZ, true);
+        return loadChunkSnapshots(world, minX, maxX, minZ, maxZ, true, false);
     }
 
     private static Map<Long, ChunkSnapshot> loadChunkSnapshots(World world,
@@ -3605,6 +3637,16 @@ public final class StrongholdDebugGenerator {
                                                                int minZ,
                                                                int maxZ,
                                                                boolean forceLoadChunks) {
+        return loadChunkSnapshots(world, minX, maxX, minZ, maxZ, forceLoadChunks, false);
+    }
+
+    private static Map<Long, ChunkSnapshot> loadChunkSnapshots(World world,
+                                                               int minX,
+                                                               int maxX,
+                                                               int minZ,
+                                                               int maxZ,
+                                                               boolean forceLoadChunks,
+                                                               boolean includeHighestBlockY) {
         Map<Long, ChunkSnapshot> snapshots = new HashMap<>();
         int minChunkX = Math.floorDiv(minX, 16);
         int maxChunkX = Math.floorDiv(maxX, 16);
@@ -3616,7 +3658,7 @@ public final class StrongholdDebugGenerator {
                     continue;
                 }
                 long key = chunkKey(chunkX, chunkZ);
-                snapshots.put(key, world.getChunkAt(chunkX, chunkZ).getChunkSnapshot(false, false, false));
+                snapshots.put(key, world.getChunkAt(chunkX, chunkZ).getChunkSnapshot(false, includeHighestBlockY, false));
             }
         }
         return snapshots;
@@ -3651,7 +3693,12 @@ public final class StrongholdDebugGenerator {
         int localZ = Math.floorMod(z, 16);
         int minY = world.getMinHeight();
         int maxY = world.getMaxHeight() - 1;
-        for (int y = maxY; y >= minY; y--) {
+        int highestY = snapshot.getHighestBlockYAt(localX, localZ);
+        int startY = Math.min(maxY, highestY);
+        if (startY < minY) {
+            return null;
+        }
+        for (int y = startY; y >= minY; y--) {
             Material type = snapshot.getBlockType(localX, y, localZ);
             if (type.isAir()) {
                 continue;
@@ -3678,7 +3725,12 @@ public final class StrongholdDebugGenerator {
         int localZ = Math.floorMod(z, 16);
         int minY = world.getMinHeight();
         int maxY = world.getMaxHeight() - 1;
-        for (int y = maxY; y >= minY; y--) {
+        int highestY = snapshot.getHighestBlockYAt(localX, localZ);
+        int startY = Math.min(maxY, highestY);
+        if (startY < minY) {
+            return null;
+        }
+        for (int y = startY; y >= minY; y--) {
             Material type = snapshot.getBlockType(localX, y, localZ);
             if (type.isAir()) {
                 continue;
@@ -4015,6 +4067,7 @@ public final class StrongholdDebugGenerator {
                     spec.id(),
                     spec.type(),
                     detachedBlocks,
+                    List.copyOf(detachedBlocks.keySet()),
                     copyMarkerPositions(captured.markers()),
                     radiusForBlocks(detachedBlocks),
                     lowestRelativeY(detachedBlocks),
@@ -4620,6 +4673,7 @@ public final class StrongholdDebugGenerator {
         private final int fallbackY;
         private final long startedAtNanos;
         private final Map<Long, Integer> surfaceYCache = new HashMap<>();
+        private final Map<Long, Boolean> terrainColumnCache = new HashMap<>();
         private int consecutiveMisses;
 
         private DetachedAssetPlacementRuntime(World world, int fallbackY) {
@@ -4638,6 +4692,17 @@ public final class StrongholdDebugGenerator {
 
         private int safeSurfaceY(int x, int z) {
             return StrongholdDebugGenerator.safeSurfaceY(world, x, z, fallbackY, surfaceYCache);
+        }
+
+        private boolean isNaturalTerrainAt(int x, int y, int z) {
+            long key = posKey(x, y, z);
+            Boolean cached = terrainColumnCache.get(key);
+            if (cached != null) {
+                return cached;
+            }
+            boolean natural = StrongholdDebugGenerator.isNaturalTerrain(world, x, y, z);
+            terrainColumnCache.put(key, natural);
+            return natural;
         }
 
         private int maxAttemptsForRequest(int poolSize) {
@@ -4662,6 +4727,11 @@ public final class StrongholdDebugGenerator {
 
         private void recordMiss() {
             consecutiveMisses++;
+        }
+
+        private boolean shouldAbortFurtherRequests() {
+            return consecutiveMisses >= DETACHED_ASSET_CONSECUTIVE_MISS_ABORT
+                    && elapsedMillis() >= (DETACHED_ASSET_SOFT_TIME_BUDGET_MS / 2L);
         }
 
         private long elapsedMillis() {
@@ -4745,6 +4815,7 @@ public final class StrongholdDebugGenerator {
     private record DetachedAssetTemplate(String id,
                                          AssetType type,
                                          Map<BlockVector3, BlockData> blocks,
+                                         List<BlockVector3> relativeBlocks,
                                          Map<Material, List<BlockVector3>> markers,
                                          int radiusBlocks,
                                          int lowestRelativeY,
