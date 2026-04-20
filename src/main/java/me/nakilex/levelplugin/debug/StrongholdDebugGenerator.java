@@ -198,7 +198,8 @@ public final class StrongholdDebugGenerator {
     private static final long DETACHED_ASSET_SOFT_TIME_BUDGET_MS = 1800L;
     private static final int DETACHED_ASSET_BLOCKS_PER_ASSET_TARGET = 440;
     private static final int MIN_DETACHED_ASSET_REQUEST_FLOOR = 16;
-    private static final long FLOOR_NOISE_SOFT_TIME_BUDGET_MS = 2000L;
+    private static final long FLOOR_NOISE_SOFT_TIME_BUDGET_MS = 6000L;
+    private static final int FLOOR_NOISE_EDGE_BLEND_BLOCKS = 40;
     private static final int TARGET_GATE_TEMPLATES = 2;
     private static final Map<String, Integer> REQUIRED_TEMPLATE_COUNTS = Map.of(
             "church", 1,
@@ -1034,6 +1035,14 @@ public final class StrongholdDebugGenerator {
                 if (surface == null || surface.y() <= world.getMinHeight() || surface.y() >= world.getMaxHeight()) {
                     continue;
                 }
+                double blendWeight = floorBlendWeight(footprint, floorCfg.noisePadding(), x, z);
+                if (blendWeight <= 0.0D) {
+                    continue;
+                }
+                double selector = (hashToSignedUnit(x * 13, z * 37) + 1.0D) * 0.5D;
+                if (selector > blendWeight) {
+                    continue;
+                }
                 org.bukkit.block.Block block = world.getBlockAt(x, surface.y(), z);
                 if (!TERRAIN_REPLACEABLE_MATERIALS.contains(surface.material())) {
                     continue;
@@ -1048,20 +1057,22 @@ public final class StrongholdDebugGenerator {
                 }
             }
         }
-        applyStrongholdFloorRelief(world, minX, maxX, minZ, maxZ, snapshots, surfaceCache, runtime);
+        applyStrongholdFloorRelief(world, minX, maxX, minZ, maxZ, snapshots, surfaceCache, runtime, footprint, floorCfg.noisePadding());
         if (!runtime.canContinue()) {
             logFloorDebug("Soft budget reached after floor relief pass; vegetation overlay skipped.");
             return;
         }
         if (floorCfg.shortGrassOverlayEnabled()) {
-            applyVegetationOverlay(world, minX, maxX, minZ, maxZ, snapshots, surfaceCache, runtime);
+            applyVegetationOverlay(world, minX, maxX, minZ, maxZ, snapshots, surfaceCache, runtime, footprint, floorCfg.noisePadding());
         }
     }
 
     private static void applyStrongholdFloorRelief(World world, int minX, int maxX, int minZ, int maxZ,
                                                    Map<Long, ChunkSnapshot> snapshots,
                                                    Map<Long, SurfaceColumn> surfaceCache,
-                                                   FloorPassRuntime runtime) {
+                                                   FloorPassRuntime runtime,
+                                                   Bounds2D footprint,
+                                                   int padding) {
         if (world == null) {
             return;
         }
@@ -1074,6 +1085,8 @@ public final class StrongholdDebugGenerator {
                 snapshots,
                 surfaceCache,
                 runtime,
+                footprint,
+                padding,
                 (x, z) -> smoothOvalBlobNoise((x + 173.0D) / FLOOR_RELIEF_CELL_SCALE,
                         (z - 317.0D) / FLOOR_RELIEF_CELL_SCALE),
                 FLOOR_RELIEF_THRESHOLD
@@ -1138,6 +1151,8 @@ public final class StrongholdDebugGenerator {
                                                                        Map<Long, ChunkSnapshot> snapshots,
                                                                        Map<Long, SurfaceColumn> surfaceCache,
                                                                        FloorPassRuntime runtime,
+                                                                       Bounds2D footprint,
+                                                                       int padding,
                                                                        DoubleBinaryOperator noiseSampler,
                                                                        double threshold) {
         Map<Point2D, Integer> columns = new HashMap<>();
@@ -1153,6 +1168,10 @@ public final class StrongholdDebugGenerator {
                 if (surface == null || surface.y() <= world.getMinHeight() || surface.y() >= world.getMaxHeight()) {
                     continue;
                 }
+                double blendWeight = floorBlendWeight(footprint, padding, x, z);
+                if (blendWeight <= 0.0D) {
+                    continue;
+                }
                 org.bukkit.block.Block top = world.getBlockAt(x, surface.y(), z);
                 if (!TERRAIN_REPLACEABLE_MATERIALS.contains(surface.material())) {
                     continue;
@@ -1161,7 +1180,7 @@ public final class StrongholdDebugGenerator {
                     continue;
                 }
                 double sampled = noiseSampler.applyAsDouble(x, z);
-                if (sampled >= threshold) {
+                if (sampled >= threshold && ((hashToSignedUnit(x * 29, z * 11) + 1.0D) * 0.5D) <= blendWeight) {
                     columns.put(new Point2D(x, z), surface.y());
                 }
             }
@@ -1183,10 +1202,40 @@ public final class StrongholdDebugGenerator {
         }
     }
 
+    private static double floorBlendWeight(Bounds2D footprint, int padding, int x, int z) {
+        if (footprint == null) {
+            return 0.0D;
+        }
+        int pad = Math.max(1, Math.min(FLOOR_NOISE_EDGE_BLEND_BLOCKS, padding));
+        int dx = 0;
+        if (x < footprint.minX) {
+            dx = footprint.minX - x;
+        } else if (x > footprint.maxX) {
+            dx = x - footprint.maxX;
+        }
+        int dz = 0;
+        if (z < footprint.minZ) {
+            dz = footprint.minZ - z;
+        } else if (z > footprint.maxZ) {
+            dz = z - footprint.maxZ;
+        }
+        int distanceOutside = Math.max(dx, dz);
+        if (distanceOutside <= 0) {
+            return 1.0D;
+        }
+        if (distanceOutside >= pad) {
+            return 0.0D;
+        }
+        double t = 1.0D - (distanceOutside / (double) pad);
+        return t * t * (3.0D - (2.0D * t)); // smoothstep
+    }
+
     private static void applyVegetationOverlay(World world, int minX, int maxX, int minZ, int maxZ,
                                                Map<Long, ChunkSnapshot> snapshots,
                                                Map<Long, SurfaceColumn> surfaceCache,
-                                               FloorPassRuntime runtime) {
+                                               FloorPassRuntime runtime,
+                                               Bounds2D footprint,
+                                               int padding) {
         if (world == null) {
             return;
         }
@@ -1198,6 +1247,10 @@ public final class StrongholdDebugGenerator {
                 }
                 SurfaceColumn surface = surfaceColumnAt(snapshots, world, x, z, surfaceCache);
                 if (surface == null || surface.y() <= world.getMinHeight() || surface.y() >= world.getMaxHeight()) {
+                    continue;
+                }
+                double blendWeight = floorBlendWeight(footprint, padding, x, z);
+                if (blendWeight <= 0.0D || ((hashToSignedUnit(x * 7, z * 41) + 1.0D) * 0.5D) > blendWeight) {
                     continue;
                 }
                 org.bukkit.block.Block top = world.getBlockAt(x, surface.y(), z);
@@ -3662,6 +3715,14 @@ public final class StrongholdDebugGenerator {
         }
         int minY = world.getMinHeight();
         int maxY = world.getMaxHeight() - 1;
+        int chunkX = Math.floorDiv(x, 16);
+        int chunkZ = Math.floorDiv(z, 16);
+        int localX = Math.floorMod(x, 16);
+        int localZ = Math.floorMod(z, 16);
+        ChunkSnapshot snapshot = snapshots == null ? null : snapshots.get(chunkKey(chunkX, chunkZ));
+        if (snapshot != null) {
+            maxY = Math.max(minY, Math.min(maxY, snapshot.getHighestBlockYAt(localX, localZ)));
+        }
         SurfaceColumn resolved = null;
         for (int y = maxY; y >= minY; y--) {
             BlockData data = blockDataAt(snapshots, world, x, y, z);
