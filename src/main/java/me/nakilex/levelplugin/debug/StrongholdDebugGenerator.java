@@ -6,7 +6,9 @@ import com.sk89q.worldedit.WorldEdit;
 import com.sk89q.worldedit.bukkit.BukkitAdapter;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
+import me.nakilex.levelplugin.utils.TooltipUtil;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.ChunkSnapshot;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -193,6 +195,10 @@ public final class StrongholdDebugGenerator {
     private static final int DETACHED_ASSET_PATCH_RADIUS = 26;
     private static final int DETACHED_ASSET_AREA_PADDING = 24;
     private static final int DETACHED_ASSET_MAX_ATTEMPTS = 3000;
+    private static final long DETACHED_ASSET_SOFT_TIME_BUDGET_MS = 1800L;
+    private static final int DETACHED_ASSET_BLOCKS_PER_ASSET_TARGET = 440;
+    private static final int MIN_DETACHED_ASSET_REQUEST_FLOOR = 16;
+    private static final long FLOOR_NOISE_SOFT_TIME_BUDGET_MS = 2000L;
     private static final int TARGET_GATE_TEMPLATES = 2;
     private static final Map<String, Integer> REQUIRED_TEMPLATE_COUNTS = Map.of(
             "church", 1,
@@ -203,6 +209,7 @@ public final class StrongholdDebugGenerator {
     private static final double UNDERUSED_TEMPLATE_BONUS = 35.0D;
 
     private static double maxOverlapPercent = 2.0D;
+    private static boolean strongholdConsoleOutputEnabled = true;
     private static AssetScatterConfig assetScatterConfig = AssetScatterConfig.defaults();
     private static FloorTuningConfig floorTuningConfig = FloorTuningConfig.defaults();
     private static final Map<Template, RotatedTemplate[]> ROTATION_CACHE = new IdentityHashMap<>();
@@ -235,6 +242,15 @@ public final class StrongholdDebugGenerator {
 
     public static void setMaxOverlapPercent(double value) {
         maxOverlapPercent = Math.max(0.0D, Math.min(100.0D, value));
+    }
+
+    public static boolean isConsoleOutputEnabled() {
+        return strongholdConsoleOutputEnabled;
+    }
+
+    public static boolean toggleConsoleOutput() {
+        strongholdConsoleOutputEnabled = !strongholdConsoleOutputEnabled;
+        return strongholdConsoleOutputEnabled;
     }
 
     public static AssetScatterConfig getAssetScatterConfig() {
@@ -283,7 +299,7 @@ public final class StrongholdDebugGenerator {
                 + ", floor(scale/padding/invert/vegetation)="
                 + String.format("%.2f", floor.noiseScale()) + "/" + floor.noisePadding() + "/" + floor.invertMapping() + "/" + floor.shortGrassOverlayEnabled()
                 + ", floorPalette=" + floor.palette();
-        Bukkit.getLogger().info("[StrongholdDebug] " + settingsSummary);
+        logStrongholdDebug(settingsSummary);
         if (requester != null) {
             ChatMessageUtil.send(requester, ChatMessageUtil.MessageType.INFO,
                     "Logged current stronghold asset/floor settings to server console.");
@@ -326,6 +342,8 @@ public final class StrongholdDebugGenerator {
             return false;
         }
         clearRotationCache();
+        GenerationPhaseTracker phaseTracker = GenerationPhaseTracker.start();
+        ActionBarProgressTracker progressTracker = ActionBarProgressTracker.strongholdGenerate(player);
 
         Main plugin = Main.getInstance();
         if (plugin == null) {
@@ -338,6 +356,8 @@ public final class StrongholdDebugGenerator {
         if (setup == null) {
             return true;
         }
+        phaseTracker.mark("prepare");
+        progressTracker.advance("Prepared templates");
         World sourceWorld = setup.sourceWorld();
         CapturedTemplates captured = setup.captured();
 
@@ -407,6 +427,8 @@ public final class StrongholdDebugGenerator {
         }
 
         closeOpenSideWithDeadEnd(spineHead, captured, occupied, random, placed);
+        phaseTracker.mark("spine");
+        progressTracker.advance("Built spine");
 
         if (USE_FRONTIER_SCHEDULER) {
             growBranchesFrontier(captured, occupied, random, placed, MAX_TOTAL_PIECES, diagnostics);
@@ -437,6 +459,8 @@ public final class StrongholdDebugGenerator {
                 growBranches(leastOverlapRequired, captured, occupied, random, placed, MAX_TOTAL_PIECES, diagnostics);
             }
         }
+        phaseTracker.mark("branches");
+        progressTracker.advance("Expanded branches");
         SatellitePlacementResult satellitePlacement = placeSatelliteChurchWithOptionalLink(
                 captured,
                 occupied,
@@ -490,9 +514,17 @@ public final class StrongholdDebugGenerator {
         int finalChurchCount = countPlacedTemplatesMatching(placed, matcherForTemplateId("church"));
 
         pastePlacedTemplates(world, placed);
+        phaseTracker.mark("paste");
+        progressTracker.advance("Pasted templates");
         applyStrongholdFloorNoise(world, placed);
+        phaseTracker.mark("floor");
+        progressTracker.advance("Applied floor");
         applyTemplateMarkerActions(sourceWorld, world, placed, random);
+        phaseTracker.mark("markers");
+        progressTracker.advance("Applied markers");
         AssetPlacementSummary assetSummary = placeDetachedAssets(sourceWorld, world, placed, occupied, random, originY);
+        phaseTracker.mark("assets");
+        progressTracker.advance("Placed detached assets");
         int requiredRawCopies = 0;
         if (ENABLE_DISCONNECTED_FALLBACKS) {
             for (Map.Entry<String, Integer> requiredTemplate : REQUIRED_TEMPLATE_COUNTS.entrySet()) {
@@ -520,7 +552,10 @@ public final class StrongholdDebugGenerator {
         diagnostics.requiredRawCopied = requiredRawCopies;
 
         player.teleport(new org.bukkit.Location(world, originX + 0.5, originY + 2, originZ + 0.5));
+        phaseTracker.mark("teleport");
         scheduleDetachedAssetPasting(world, assetSummary.placements(), player);
+        phaseTracker.finishAndLog("generateTest");
+        progressTracker.complete("Stronghold ready");
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
                 "Generated stronghold spine+branches using " + placed.size()
                         + " pieces in world '" + world.getName() + "' (overlap threshold: "
@@ -679,6 +714,9 @@ public final class StrongholdDebugGenerator {
             logDetachedAssetDebug("Unable to compute stronghold footprint; detached assets skipped.");
             return AssetPlacementSummary.empty();
         }
+        counts = clampAssetDistributionForFootprint(counts, footprint);
+        totalRequested = counts.totalRequested();
+        DetachedAssetPlacementRuntime runtime = DetachedAssetPlacementRuntime.start(DETACHED_ASSET_SOFT_TIME_BUDGET_MS);
         logDetachedAssetDebug("Detached placement start -> total=" + totalRequested
                 + ", distribution trees/rocks/ruins=" + counts.trees() + "/" + counts.rocks() + "/" + counts.ruins()
                 + ", template pools trees/rocks/ruins="
@@ -705,8 +743,13 @@ public final class StrongholdDebugGenerator {
         List<AssetPlacement> queuedPlacements = new ArrayList<>();
 
         for (AssetType type : requestOrder) {
+            if (!runtime.canContinue()) {
+                logDetachedAssetDebug("Soft time budget reached (" + DETACHED_ASSET_SOFT_TIME_BUDGET_MS
+                        + "ms), stopping detached placement early at " + queuedPlacements.size() + " placements.");
+                break;
+            }
             List<DetachedAssetTemplate> pool = templatesByType.getOrDefault(type, List.of());
-            AssetPlacementSearchResult result = findDetachedAssetPlacement(type, pool, world, occupied, detachedOccupied, random, field, fallbackY);
+            AssetPlacementSearchResult result = findDetachedAssetPlacement(type, pool, world, occupied, detachedOccupied, random, field, fallbackY, runtime);
             debugCounter.add(result);
             AssetPlacement placement = result.placement();
             if (placement == null) {
@@ -738,6 +781,7 @@ public final class StrongholdDebugGenerator {
                 + ", rejected(nonTerrainGround)=" + debugCounter.nonTerrainGroundRejects
                 + ", rejected(overlapMain)=" + debugCounter.mainOverlapRejects
                 + ", rejected(overlapDetached)=" + debugCounter.detachedOverlapRejects
+                + ", runtimeMs=" + runtime.elapsedMillis()
                 + ", queued=" + queuedPlacements.size() + ".");
 
         return new AssetPlacementSummary(
@@ -756,6 +800,49 @@ public final class StrongholdDebugGenerator {
         for (int i = 0; i < Math.max(0, count); i++) {
             requests.add(type);
         }
+    }
+
+    private static AssetDistributionCounts clampAssetDistributionForFootprint(AssetDistributionCounts requested, Bounds2D footprint) {
+        if (requested == null || footprint == null) {
+            return requested == null ? new AssetDistributionCounts(0, 0, 0) : requested;
+        }
+        int width = Math.max(1, (footprint.maxX - footprint.minX) + 1);
+        int length = Math.max(1, (footprint.maxZ - footprint.minZ) + 1);
+        int areaBlocks = width * length;
+        int softCapByArea = Math.max(MIN_DETACHED_ASSET_REQUEST_FLOOR, areaBlocks / Math.max(1, DETACHED_ASSET_BLOCKS_PER_ASSET_TARGET));
+        int requestedTotal = requested.totalRequested();
+        if (requestedTotal <= softCapByArea) {
+            return requested;
+        }
+        AssetDistributionCounts clamped = scaleDistributionCounts(requested, softCapByArea);
+        logDetachedAssetDebug("Footprint clamp -> area=" + areaBlocks
+                + ", requested=" + requestedTotal
+                + ", softCap=" + softCapByArea
+                + ", clamped trees/rocks/ruins=" + clamped.trees() + "/" + clamped.rocks() + "/" + clamped.ruins() + ".");
+        return clamped;
+    }
+
+    private static AssetDistributionCounts scaleDistributionCounts(AssetDistributionCounts requested, int targetTotal) {
+        if (requested == null || targetTotal <= 0) {
+            return new AssetDistributionCounts(0, 0, 0);
+        }
+        int sourceTotal = Math.max(1, requested.totalRequested());
+        double ratio = targetTotal / (double) sourceTotal;
+        int trees = (int) Math.floor(requested.trees() * ratio);
+        int rocks = (int) Math.floor(requested.rocks() * ratio);
+        int ruins = (int) Math.floor(requested.ruins() * ratio);
+        int drift = targetTotal - (trees + rocks + ruins);
+        while (drift > 0) {
+            if (requested.trees() >= requested.rocks() && requested.trees() >= requested.ruins()) {
+                trees++;
+            } else if (requested.rocks() >= requested.ruins()) {
+                rocks++;
+            } else {
+                ruins++;
+            }
+            drift--;
+        }
+        return new AssetDistributionCounts(Math.max(0, trees), Math.max(0, rocks), Math.max(0, ruins));
     }
 
     private static Bounds2D combinedBounds2D(List<PlacedTemplate> placedTemplates) {
@@ -791,7 +878,8 @@ public final class StrongholdDebugGenerator {
                                                                          Set<Long> detachedOccupied,
                                                                          Random random,
                                                                          PlacementField field,
-                                                                         int fallbackY) {
+                                                                         int fallbackY,
+                                                                         DetachedAssetPlacementRuntime runtime) {
         if (candidates == null || candidates.isEmpty()) {
             return AssetPlacementSearchResult.noPool();
         }
@@ -800,7 +888,11 @@ public final class StrongholdDebugGenerator {
         int nonTerrainGroundRejects = 0;
         int mainOverlapRejects = 0;
         int detachedOverlapRejects = 0;
-        for (int attempt = 0; attempt < DETACHED_ASSET_MAX_ATTEMPTS; attempt++) {
+        int maxAttempts = runtime == null ? DETACHED_ASSET_MAX_ATTEMPTS : runtime.maxAttempts(DETACHED_ASSET_MAX_ATTEMPTS);
+        for (int attempt = 0; attempt < maxAttempts; attempt++) {
+            if (runtime != null && !runtime.canContinue()) {
+                break;
+            }
             attempts++;
             DetachedAssetTemplate template = candidates.get(random.nextInt(candidates.size()));
             BlockVector3 sample = samplePatchPoint(field, random);
@@ -811,9 +903,12 @@ public final class StrongholdDebugGenerator {
                 continue;
             }
 
-            int y = safeSurfaceY(world, x, z, fallbackY);
+            int y = runtime == null ? safeSurfaceY(world, x, z, fallbackY) : runtime.resolveSurfaceY(world, x, z, fallbackY);
             if (!isNaturalTerrain(world, x, y, z)) {
                 nonTerrainGroundRejects++;
+                if (runtime != null) {
+                    runtime.recordMiss();
+                }
                 continue;
             }
             int originX = x - template.centerOffsetX();
@@ -822,10 +917,16 @@ public final class StrongholdDebugGenerator {
             BlockVector3 origin = BlockVector3.at(originX, originY, originZ);
             if (!isOverlapWithinThreshold(occupied, template.blocks(), origin, DETACHED_ASSET_OVERLAP_PERCENT)) {
                 mainOverlapRejects++;
+                if (runtime != null) {
+                    runtime.recordMiss();
+                }
                 continue;
             }
             if (!isOverlapWithinThreshold(detachedOccupied, template.blocks(), origin, DETACHED_ASSET_INTERNAL_OVERLAP_PERCENT)) {
                 detachedOverlapRejects++;
+                if (runtime != null) {
+                    runtime.recordMiss();
+                }
                 continue;
             }
             return new AssetPlacementSearchResult(
@@ -919,15 +1020,22 @@ public final class StrongholdDebugGenerator {
         int maxX = footprint.maxX + floorCfg.noisePadding();
         int minZ = footprint.minZ - floorCfg.noisePadding();
         int maxZ = footprint.maxZ + floorCfg.noisePadding();
+        Map<Long, ChunkSnapshot> snapshots = loadChunkSnapshots(world, minX, maxX, minZ, maxZ);
+        Map<Long, SurfaceColumn> surfaceCache = new HashMap<>();
+        FloorPassRuntime runtime = FloorPassRuntime.start(FLOOR_NOISE_SOFT_TIME_BUDGET_MS);
 
         for (int x = minX; x <= maxX; x++) {
             for (int z = minZ; z <= maxZ; z++) {
-                int y = world.getHighestBlockYAt(x, z);
-                if (y <= world.getMinHeight() || y >= world.getMaxHeight()) {
+                if (!runtime.canContinue()) {
+                    logFloorDebug("Soft budget reached during floor pattern pass; stopping early at " + runtime.elapsedMillis() + "ms.");
+                    return;
+                }
+                SurfaceColumn surface = surfaceColumnAt(snapshots, world, x, z, surfaceCache);
+                if (surface == null || surface.y() <= world.getMinHeight() || surface.y() >= world.getMaxHeight()) {
                     continue;
                 }
-                org.bukkit.block.Block block = world.getBlockAt(x, y, z);
-                if (!TERRAIN_REPLACEABLE_MATERIALS.contains(block.getType())) {
+                org.bukkit.block.Block block = world.getBlockAt(x, surface.y(), z);
+                if (!TERRAIN_REPLACEABLE_MATERIALS.contains(surface.material())) {
                     continue;
                 }
                 double sample = fractalSimplexLikeNoise(x / floorCfg.noiseScale(), z / floorCfg.noiseScale());
@@ -940,13 +1048,20 @@ public final class StrongholdDebugGenerator {
                 }
             }
         }
-        applyStrongholdFloorRelief(world, minX, maxX, minZ, maxZ);
+        applyStrongholdFloorRelief(world, minX, maxX, minZ, maxZ, snapshots, surfaceCache, runtime);
+        if (!runtime.canContinue()) {
+            logFloorDebug("Soft budget reached after floor relief pass; vegetation overlay skipped.");
+            return;
+        }
         if (floorCfg.shortGrassOverlayEnabled()) {
-            applyVegetationOverlay(world, minX, maxX, minZ, maxZ);
+            applyVegetationOverlay(world, minX, maxX, minZ, maxZ, snapshots, surfaceCache, runtime);
         }
     }
 
-    private static void applyStrongholdFloorRelief(World world, int minX, int maxX, int minZ, int maxZ) {
+    private static void applyStrongholdFloorRelief(World world, int minX, int maxX, int minZ, int maxZ,
+                                                   Map<Long, ChunkSnapshot> snapshots,
+                                                   Map<Long, SurfaceColumn> surfaceCache,
+                                                   FloorPassRuntime runtime) {
         if (world == null) {
             return;
         }
@@ -956,6 +1071,9 @@ public final class StrongholdDebugGenerator {
                 maxX,
                 minZ,
                 maxZ,
+                snapshots,
+                surfaceCache,
+                runtime,
                 (x, z) -> smoothOvalBlobNoise((x + 173.0D) / FLOOR_RELIEF_CELL_SCALE,
                         (z - 317.0D) / FLOOR_RELIEF_CELL_SCALE),
                 FLOOR_RELIEF_THRESHOLD
@@ -977,10 +1095,10 @@ public final class StrongholdDebugGenerator {
             Point2D column = entry.getKey();
             int x = (int) column.x;
             int z = (int) column.z;
-            setTerrainEdgeSlabIfNeeded(world, carveColumns, x + 1, z, Slab.Type.BOTTOM);
-            setTerrainEdgeSlabIfNeeded(world, carveColumns, x - 1, z, Slab.Type.BOTTOM);
-            setTerrainEdgeSlabIfNeeded(world, carveColumns, x, z + 1, Slab.Type.BOTTOM);
-            setTerrainEdgeSlabIfNeeded(world, carveColumns, x, z - 1, Slab.Type.BOTTOM);
+            setTerrainEdgeSlabIfNeeded(world, carveColumns, x + 1, z, Slab.Type.BOTTOM, snapshots, surfaceCache);
+            setTerrainEdgeSlabIfNeeded(world, carveColumns, x - 1, z, Slab.Type.BOTTOM, snapshots, surfaceCache);
+            setTerrainEdgeSlabIfNeeded(world, carveColumns, x, z + 1, Slab.Type.BOTTOM, snapshots, surfaceCache);
+            setTerrainEdgeSlabIfNeeded(world, carveColumns, x, z - 1, Slab.Type.BOTTOM, snapshots, surfaceCache);
         }
     }
 
@@ -988,16 +1106,18 @@ public final class StrongholdDebugGenerator {
                                                    Map<Point2D, Integer> shapedColumns,
                                                    int x,
                                                    int z,
-                                                   Slab.Type slabType) {
+                                                   Slab.Type slabType,
+                                                   Map<Long, ChunkSnapshot> snapshots,
+                                                   Map<Long, SurfaceColumn> surfaceCache) {
         Point2D key = new Point2D(x, z);
         if (shapedColumns.containsKey(key)) {
             return;
         }
-        int y = world.getHighestBlockYAt(x, z);
-        if (y <= world.getMinHeight() || y >= world.getMaxHeight()) {
+        SurfaceColumn surface = surfaceColumnAt(snapshots, world, x, z, surfaceCache);
+        if (surface == null || surface.y() <= world.getMinHeight() || surface.y() >= world.getMaxHeight()) {
             return;
         }
-        org.bukkit.block.Block top = world.getBlockAt(x, y, z);
+        org.bukkit.block.Block top = world.getBlockAt(x, surface.y(), z);
         if (!TERRAIN_REPLACEABLE_MATERIALS.contains(top.getType())) {
             return;
         }
@@ -1015,6 +1135,9 @@ public final class StrongholdDebugGenerator {
                                                                        int maxX,
                                                                        int minZ,
                                                                        int maxZ,
+                                                                       Map<Long, ChunkSnapshot> snapshots,
+                                                                       Map<Long, SurfaceColumn> surfaceCache,
+                                                                       FloorPassRuntime runtime,
                                                                        DoubleBinaryOperator noiseSampler,
                                                                        double threshold) {
         Map<Point2D, Integer> columns = new HashMap<>();
@@ -1023,12 +1146,15 @@ public final class StrongholdDebugGenerator {
         }
         for (int x = minX; x <= maxX; x++) {
             for (int z = minZ; z <= maxZ; z++) {
-                int y = world.getHighestBlockYAt(x, z);
-                if (y <= world.getMinHeight() || y >= world.getMaxHeight()) {
+                if (runtime != null && !runtime.canContinue()) {
+                    return columns;
+                }
+                SurfaceColumn surface = surfaceColumnAt(snapshots, world, x, z, surfaceCache);
+                if (surface == null || surface.y() <= world.getMinHeight() || surface.y() >= world.getMaxHeight()) {
                     continue;
                 }
-                org.bukkit.block.Block top = world.getBlockAt(x, y, z);
-                if (!TERRAIN_REPLACEABLE_MATERIALS.contains(top.getType())) {
+                org.bukkit.block.Block top = world.getBlockAt(x, surface.y(), z);
+                if (!TERRAIN_REPLACEABLE_MATERIALS.contains(surface.material())) {
                     continue;
                 }
                 if (!top.getRelative(BlockFace.UP).getType().isAir()) {
@@ -1036,7 +1162,7 @@ public final class StrongholdDebugGenerator {
                 }
                 double sampled = noiseSampler.applyAsDouble(x, z);
                 if (sampled >= threshold) {
-                    columns.put(new Point2D(x, z), y);
+                    columns.put(new Point2D(x, z), surface.y());
                 }
             }
         }
@@ -1057,18 +1183,25 @@ public final class StrongholdDebugGenerator {
         }
     }
 
-    private static void applyVegetationOverlay(World world, int minX, int maxX, int minZ, int maxZ) {
+    private static void applyVegetationOverlay(World world, int minX, int maxX, int minZ, int maxZ,
+                                               Map<Long, ChunkSnapshot> snapshots,
+                                               Map<Long, SurfaceColumn> surfaceCache,
+                                               FloorPassRuntime runtime) {
         if (world == null) {
             return;
         }
         for (int x = minX; x <= maxX; x++) {
             for (int z = minZ; z <= maxZ; z++) {
-                int y = world.getHighestBlockYAt(x, z);
-                if (y <= world.getMinHeight() || y >= world.getMaxHeight()) {
+                if (runtime != null && !runtime.canContinue()) {
+                    logFloorDebug("Soft budget reached during vegetation overlay; stopping early at " + runtime.elapsedMillis() + "ms.");
+                    return;
+                }
+                SurfaceColumn surface = surfaceColumnAt(snapshots, world, x, z, surfaceCache);
+                if (surface == null || surface.y() <= world.getMinHeight() || surface.y() >= world.getMaxHeight()) {
                     continue;
                 }
-                org.bukkit.block.Block top = world.getBlockAt(x, y, z);
-                if (top.getType() != Material.GRASS_BLOCK) {
+                org.bukkit.block.Block top = world.getBlockAt(x, surface.y(), z);
+                if (surface.material() != Material.GRASS_BLOCK) {
                     continue;
                 }
                 org.bukkit.block.Block above = top.getRelative(BlockFace.UP);
@@ -1355,7 +1488,28 @@ public final class StrongholdDebugGenerator {
         if (!ENABLE_DETACHED_ASSET_DEBUG_LOGGING || message == null || message.isBlank()) {
             return;
         }
-        Bukkit.getLogger().info("[StrongholdDebug][Assets] " + message);
+        logStrongholdDebug("[Assets] " + message);
+    }
+
+    private static void logFloorDebug(String message) {
+        if (message == null || message.isBlank()) {
+            return;
+        }
+        logStrongholdDebug("[Floor] " + message);
+    }
+
+    private static void logStrongholdDebug(String message) {
+        if (!strongholdConsoleOutputEnabled || message == null || message.isBlank()) {
+            return;
+        }
+        Bukkit.getLogger().info("[StrongholdDebug] " + message);
+    }
+
+    private static void logStrongholdWarning(String message) {
+        if (!strongholdConsoleOutputEnabled || message == null || message.isBlank()) {
+            return;
+        }
+        Bukkit.getLogger().warning("[StrongholdDebug] " + message);
     }
 
     private static TemplateSpec findTemplateById(List<TemplateSpec> specs, String id) {
@@ -3371,7 +3525,7 @@ public final class StrongholdDebugGenerator {
         }
         if (!failures.isEmpty()) {
             lastTemplateCaptureFailure = String.join("; ", failures);
-            Bukkit.getLogger().warning("[StrongholdDebug] Template capture failures: " + lastTemplateCaptureFailure);
+            logStrongholdWarning("Template capture failures: " + lastTemplateCaptureFailure);
             return null;
         }
         lastTemplateCaptureFailure = null;
@@ -3492,6 +3646,38 @@ public final class StrongholdDebugGenerator {
             return snapshot.getBlockData(localX, y, localZ);
         }
         return world.getBlockAt(x, y, z).getBlockData();
+    }
+
+    private static SurfaceColumn surfaceColumnAt(Map<Long, ChunkSnapshot> snapshots,
+                                                 World world,
+                                                 int x,
+                                                 int z,
+                                                 Map<Long, SurfaceColumn> cache) {
+        if (world == null) {
+            return null;
+        }
+        long key = compactBlockKey(x, z);
+        if (cache != null && cache.containsKey(key)) {
+            return cache.get(key);
+        }
+        int minY = world.getMinHeight();
+        int maxY = world.getMaxHeight() - 1;
+        SurfaceColumn resolved = null;
+        for (int y = maxY; y >= minY; y--) {
+            BlockData data = blockDataAt(snapshots, world, x, y, z);
+            if (data == null || data.getMaterial().isAir()) {
+                continue;
+            }
+            resolved = new SurfaceColumn(y, data.getMaterial());
+            break;
+        }
+        if (resolved == null) {
+            resolved = new SurfaceColumn(minY, Material.AIR);
+        }
+        if (cache != null) {
+            cache.put(key, resolved);
+        }
+        return resolved;
     }
 
     private static StructureFootprint structureFootprintFor(Map<BlockVector3, BlockData> blocks,
@@ -3791,15 +3977,21 @@ public final class StrongholdDebugGenerator {
             if (captured == null || captured.blocks() == null || captured.blocks().isEmpty()) {
                 continue;
             }
+            Map<BlockVector3, BlockData> filteredBlocks = new HashMap<>(captured.blocks());
+            filteredBlocks.entrySet().removeIf(entry -> TERRAIN_REPLACEABLE_MATERIALS.contains(entry.getValue().getMaterial()));
+            if (filteredBlocks.isEmpty()) {
+                logDetachedAssetDebug("Skipped detached template '" + spec.id() + "' after terrain filtering (no blocks left).");
+                continue;
+            }
             DetachedAssetTemplate template = new DetachedAssetTemplate(
                     spec.id(),
                     spec.type(),
-                    captured.blocks(),
+                    Map.copyOf(filteredBlocks),
                     copyMarkerPositions(captured.markers()),
-                    radiusForBlocks(captured.blocks()),
-                    lowestRelativeY(captured.blocks()),
-                    centerOffsetX(captured.blocks()),
-                    centerOffsetZ(captured.blocks())
+                    radiusForBlocks(filteredBlocks),
+                    lowestRelativeY(filteredBlocks),
+                    centerOffsetX(filteredBlocks),
+                    centerOffsetZ(filteredBlocks)
             );
             grouped.computeIfAbsent(spec.type(), ignored -> new ArrayList<>()).add(template);
         }
@@ -4000,6 +4192,152 @@ public final class StrongholdDebugGenerator {
         return (((long) chunkX) << 32) ^ (chunkZ & 0xffffffffL);
     }
 
+    private static long compactBlockKey(int x, int z) {
+        return (((long) x) << 32) ^ (z & 0xffffffffL);
+    }
+
+    private static final class GenerationPhaseTracker {
+        private final long startedAtNanos = System.nanoTime();
+        private final Map<String, Long> elapsedByPhaseMillis = new LinkedHashMap<>();
+        private long phaseStartedAtNanos = startedAtNanos;
+
+        private static GenerationPhaseTracker start() {
+            return new GenerationPhaseTracker();
+        }
+
+        private void mark(String phaseName) {
+            if (phaseName == null || phaseName.isBlank()) {
+                return;
+            }
+            long now = System.nanoTime();
+            elapsedByPhaseMillis.put(phaseName, (now - phaseStartedAtNanos) / 1_000_000L);
+            phaseStartedAtNanos = now;
+        }
+
+        private void finishAndLog(String flowName) {
+            if (elapsedByPhaseMillis.isEmpty()) {
+                return;
+            }
+            long totalMillis = (System.nanoTime() - startedAtNanos) / 1_000_000L;
+            StringBuilder parts = new StringBuilder();
+            for (Map.Entry<String, Long> entry : elapsedByPhaseMillis.entrySet()) {
+                if (parts.length() > 0) {
+                    parts.append(", ");
+                }
+                parts.append(entry.getKey()).append('=').append(entry.getValue()).append("ms");
+            }
+            logStrongholdDebug("[Timing] " + (flowName == null ? "flow" : flowName)
+                    + " total=" + totalMillis + "ms -> " + parts);
+        }
+    }
+
+    private static final class ActionBarProgressTracker {
+        private final Player player;
+        private final int totalSteps;
+        private int completedSteps;
+
+        private ActionBarProgressTracker(Player player, int totalSteps) {
+            this.player = player;
+            this.totalSteps = Math.max(1, totalSteps);
+        }
+
+        private static ActionBarProgressTracker strongholdGenerate(Player player) {
+            return new ActionBarProgressTracker(player, 7);
+        }
+
+        private void advance(String label) {
+            completedSteps = Math.min(totalSteps, completedSteps + 1);
+            push(label, false);
+        }
+
+        private void complete(String label) {
+            completedSteps = totalSteps;
+            push(label, true);
+        }
+
+        private void push(String label, boolean complete) {
+            if (player == null || !player.isOnline()) {
+                return;
+            }
+            String bar = TooltipUtil.expProgressBar(completedSteps, totalSteps, 24);
+            String phase = label == null || label.isBlank() ? "Working..." : label;
+            ChatColor prefix = complete ? ChatColor.GREEN : ChatColor.AQUA;
+            player.sendActionBar(prefix + "Stronghold " + ChatColor.DARK_GRAY + "• "
+                    + ChatColor.GRAY + phase + " " + bar);
+        }
+    }
+
+    private static final class DetachedAssetPlacementRuntime {
+        private final long startedAtNanos = System.nanoTime();
+        private final long softBudgetMillis;
+        private final Map<Long, Integer> surfaceYByColumn = new HashMap<>();
+        private int consecutiveMisses;
+
+        private DetachedAssetPlacementRuntime(long softBudgetMillis) {
+            this.softBudgetMillis = Math.max(1L, softBudgetMillis);
+        }
+
+        private static DetachedAssetPlacementRuntime start(long softBudgetMillis) {
+            return new DetachedAssetPlacementRuntime(softBudgetMillis);
+        }
+
+        private long elapsedMillis() {
+            return (System.nanoTime() - startedAtNanos) / 1_000_000L;
+        }
+
+        private boolean canContinue() {
+            return elapsedMillis() <= softBudgetMillis;
+        }
+
+        private void recordMiss() {
+            consecutiveMisses++;
+        }
+
+        private int maxAttempts(int baseAttempts) {
+            int attempts = Math.max(1, baseAttempts);
+            long elapsed = elapsedMillis();
+            if (elapsed >= (softBudgetMillis * 0.85D) || consecutiveMisses > 24) {
+                return Math.max(24, attempts / 6);
+            }
+            if (elapsed >= (softBudgetMillis * 0.50D) || consecutiveMisses > 8) {
+                return Math.max(48, attempts / 3);
+            }
+            return attempts;
+        }
+
+        private int resolveSurfaceY(World world, int x, int z, int fallbackY) {
+            long key = compactBlockKey(x, z);
+            Integer cached = surfaceYByColumn.get(key);
+            if (cached != null) {
+                return cached;
+            }
+            int resolved = safeSurfaceY(world, x, z, fallbackY);
+            surfaceYByColumn.put(key, resolved);
+            return resolved;
+        }
+    }
+
+    private static final class FloorPassRuntime {
+        private final long startedAtNanos = System.nanoTime();
+        private final long softBudgetMillis;
+
+        private FloorPassRuntime(long softBudgetMillis) {
+            this.softBudgetMillis = Math.max(1L, softBudgetMillis);
+        }
+
+        private static FloorPassRuntime start(long softBudgetMillis) {
+            return new FloorPassRuntime(softBudgetMillis);
+        }
+
+        private long elapsedMillis() {
+            return (System.nanoTime() - startedAtNanos) / 1_000_000L;
+        }
+
+        private boolean canContinue() {
+            return elapsedMillis() <= softBudgetMillis;
+        }
+    }
+
     private enum PieceCategory {
         WALL,
         JUNCTION_LARGE,
@@ -4152,6 +4490,9 @@ public final class StrongholdDebugGenerator {
     }
 
     private record Point2D(double x, double z) {
+    }
+
+    private record SurfaceColumn(int y, Material material) {
     }
 
     private record PlacementField(int minX, int maxX, int minZ, int maxZ, List<Point2D> patchCenters) {
