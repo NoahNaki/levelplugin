@@ -333,6 +333,7 @@ public final class StrongholdDebugGenerator {
             return false;
         }
         clearRotationCache();
+        long totalStart = logProcessStart(player, "stronghold_generate_test_total");
 
         Main plugin = Main.getInstance();
         if (plugin == null) {
@@ -341,20 +342,25 @@ public final class StrongholdDebugGenerator {
             return true;
         }
 
+        long phaseStart = logProcessStart(player, "prepare_source_templates");
         SourceSetup setup = prepareSourceTemplates(player, true);
+        logProcessEnd(player, "prepare_source_templates", phaseStart);
         if (setup == null) {
             return true;
         }
         World sourceWorld = setup.sourceWorld();
         CapturedTemplates captured = setup.captured();
 
+        phaseStart = logProcessStart(player, "create_generated_world");
         World world = createGeneratedWorld(plugin, player);
+        logProcessEnd(player, "create_generated_world", phaseStart);
         if (world == null) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
                     "Failed to create a superflat world for stronghold generation.");
             return true;
         }
 
+        long composeStart = logProcessStart(player, "compose_layout");
         Random random = ThreadLocalRandom.current();
         GenerationDiagnostics diagnostics = new GenerationDiagnostics();
         diagnostics.templateConnectorSummary = templateConnectorSummary(captured);
@@ -496,10 +502,15 @@ public final class StrongholdDebugGenerator {
         int sealedViableOutputs = closeViableOutputsWithDeadEnds(captured, occupied, random, placed);
         int finalChurchCount = countPlacedTemplatesMatching(placed, matcherForTemplateId("church"));
 
+        phaseStart = logProcessStart(player, "ensure_base_floor");
+        ensureStrongholdBaseFloor(world, placed);
+        logProcessEnd(player, "ensure_base_floor", phaseStart);
         player.teleport(new org.bukkit.Location(world, originX + 0.5, originY + 2, originZ + 0.5));
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                 "Stronghold world ready. Streaming generation phases...");
+        phaseStart = logProcessStart(player, "plan_detached_assets");
         AssetPlacementSummary assetSummary = placeDetachedAssets(sourceWorld, world, placed, occupied, random, originY);
+        logProcessEnd(player, "plan_detached_assets", phaseStart);
         int requiredRawCopies = 0;
         if (ENABLE_DISCONNECTED_FALLBACKS) {
             for (Map.Entry<String, Integer> requiredTemplate : REQUIRED_TEMPLATE_COUNTS.entrySet()) {
@@ -525,7 +536,9 @@ public final class StrongholdDebugGenerator {
             }
         }
         diagnostics.requiredRawCopied = requiredRawCopies;
+        logProcessEnd(player, "compose_layout", composeStart);
 
+        phaseStart = logProcessStart(player, "pipeline_schedule");
         scheduleStrongholdBuildPipeline(
                 sourceWorld,
                 world,
@@ -534,6 +547,7 @@ public final class StrongholdDebugGenerator {
                 player,
                 random
         );
+        logProcessEnd(player, "pipeline_schedule", phaseStart);
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
                 "Generated stronghold spine+branches using " + placed.size()
                         + " pieces in world '" + world.getName() + "' (overlap threshold: "
@@ -564,6 +578,7 @@ public final class StrongholdDebugGenerator {
                         + ", detached assets: " + assetSummary.summary()
                         + ", placed templates: " + summarizePlacedTemplates(placed)
                         + ", template connectors(captured): " + diagnostics.templateConnectorSummary);
+        logProcessEnd(player, "stronghold_generate_test_total", totalStart);
         return true;
     }
 
@@ -653,6 +668,7 @@ public final class StrongholdDebugGenerator {
             builtBranches++;
         }
 
+        ensureStrongholdBaseFloor(world, placed);
         player.teleport(new org.bukkit.Location(world, originX + 0.5, originY + 2, originZ + 0.5));
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                 "Towerwall world ready. Streaming generation phases...");
@@ -679,26 +695,34 @@ public final class StrongholdDebugGenerator {
                                                         List<AssetPlacement> detachedPlacements,
                                                         Player player,
                                                         Random random) {
+        long templatePhaseStart = logProcessStart(player, "pipeline_template_pass");
         pastePlacedTemplatesProgressively(world, placedTemplates, player, () -> {
+            logProcessEnd(player, "pipeline_template_pass", templatePhaseStart);
             Main plugin = Main.getInstance();
             if (plugin == null) {
+                long syncPhaseStart = logProcessStart(player, "pipeline_sync_post_processing");
                 ensureStrongholdBaseFloor(world, placedTemplates);
                 applyStrongholdFloorNoise(world, placedTemplates);
                 applyTemplateMarkerActions(sourceWorld, world, placedTemplates, random);
                 scheduleDetachedAssetPasting(world, detachedPlacements, player);
+                logProcessEnd(player, "pipeline_sync_post_processing", syncPhaseStart);
                 return;
             }
             Bukkit.getScheduler().runTask(plugin, () -> {
+                long floorPhaseStart = logProcessStart(player, "pipeline_floor_pass");
                 ensureStrongholdBaseFloor(world, placedTemplates);
                 ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                         "Stronghold base floor complete.");
                 applyStrongholdFloorNoise(world, placedTemplates);
                 ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                         "Stronghold floor pass complete.");
+                logProcessEnd(player, "pipeline_floor_pass", floorPhaseStart);
                 Bukkit.getScheduler().runTask(plugin, () -> {
+                    long markerPhaseStart = logProcessStart(player, "pipeline_marker_actions");
                     applyTemplateMarkerActions(sourceWorld, world, placedTemplates, random);
                     ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                             "Stronghold marker actions complete.");
+                    logProcessEnd(player, "pipeline_marker_actions", markerPhaseStart);
                     scheduleDetachedAssetPasting(world, detachedPlacements, player);
                 });
             });
@@ -1421,11 +1445,13 @@ public final class StrongholdDebugGenerator {
             return;
         }
         final int total = placements.size();
+        long assetPasteStart = logProcessStart(player, "pipeline_detached_asset_paste");
         runBatchedTask(
                 DETACHED_ASSET_BATCH_SIZE,
                 total,
                 index -> pasteDetachedAsset(world, placements.get(index)),
                 () -> {
+                    logProcessEnd(player, "pipeline_detached_asset_paste", assetPasteStart);
                     if (player != null && player.isOnline()) {
                         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                                 "Detached asset batching complete (" + total + " placements).");
@@ -1525,6 +1551,27 @@ public final class StrongholdDebugGenerator {
             return;
         }
         Bukkit.getLogger().info("[StrongholdDebug][Assets] " + message);
+    }
+
+    private static long logProcessStart(Player player, String processName) {
+        String safeName = processName == null || processName.isBlank() ? "unknown" : processName;
+        String message = "Process started: " + safeName;
+        Bukkit.getLogger().info("[StrongholdDebug][Perf] " + message);
+        if (player != null && player.isOnline()) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO, message);
+        }
+        return System.nanoTime();
+    }
+
+    private static void logProcessEnd(Player player, String processName, long startedNanos) {
+        String safeName = processName == null || processName.isBlank() ? "unknown" : processName;
+        long elapsedNanos = Math.max(0L, System.nanoTime() - startedNanos);
+        double elapsedMs = elapsedNanos / 1_000_000.0D;
+        String message = "Process finished: " + safeName + " (" + String.format(java.util.Locale.ROOT, "%.2fms", elapsedMs) + ")";
+        Bukkit.getLogger().info("[StrongholdDebug][Perf] " + message);
+        if (player != null && player.isOnline()) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO, message);
+        }
     }
 
     private static TemplateSpec findTemplateById(List<TemplateSpec> specs, String id) {
