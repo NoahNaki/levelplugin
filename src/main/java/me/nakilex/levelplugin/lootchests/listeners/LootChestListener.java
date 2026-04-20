@@ -11,9 +11,13 @@ import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
@@ -37,21 +41,37 @@ public class LootChestListener implements Listener {
             return;
         }
 
-        // 2) Cancel default behavior (so the barrier block doesn’t break/open itself)
-        event.setCancelled(true);
-
-        // 3) Locate our chestId from the clicked furniture's base block
+        // Locate our chestId from the clicked furniture's base block.
         Location loc = event.getBaseEntity().getLocation().getBlock().getLocation();
+        event.setCancelled(openLootChest(event.getPlayer(), loc));
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onBlockInteract(PlayerInteractEvent event) {
+        if (event.getAction() != Action.RIGHT_CLICK_BLOCK) {
+            return;
+        }
+        if (event.getClickedBlock() == null) {
+            return;
+        }
+        Material type = event.getClickedBlock().getType();
+        if (type != Material.CHEST && type != Material.TRAPPED_CHEST) {
+            return;
+        }
+        Location loc = event.getClickedBlock().getLocation();
+        if (openLootChest(event.getPlayer(), loc)) {
+            event.setCancelled(true);
+        }
+    }
+
+    private boolean openLootChest(Player player, Location loc) {
         Integer chestId = lootChestManager.getChestIdAtLocation(loc);
         if (chestId == null) {
-            return; // not one of our managed chests
+            return false;
         }
-
-        // 4) Identify player
-        Player player = event.getPlayer();
         Main.getInstance().getDialogManager().recordDialogCooldown(player);
 
-        // 5) Build the custom loot GUI
+        // Build the custom loot GUI.
         Inventory lootGui = lootChestManager.buildLootInventory(chestId, player);
 
         // ─────────────────────────────────────────────────────────────────────
@@ -92,6 +112,7 @@ public class LootChestListener implements Listener {
                             + ChatColor.GOLD + "+40% coin streak bonus" + ChatColor.GRAY + ".");
         }
         awardBattlePassProgress(player, gearScore);
+        return true;
     }
 
     private void awardBattlePassProgress(Player player, int gearScore) {

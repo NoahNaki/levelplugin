@@ -73,6 +73,7 @@ public class LootChestManager {
 
     // For continuous particles: chestId -> repeating task
     private final Map<Integer, BukkitTask> chestParticleTasks = new HashMap<>();
+    private BukkitTask crateModelRetryTask;
 
     // Quick lookup for which chests belong to a given chunk
     private final Map<ChunkKey, List<ChestData>> chunkChestIndex = new HashMap<>();
@@ -96,6 +97,11 @@ public class LootChestManager {
     }
 
     private String resolveCrateModelId() {
+        String available = findAvailableCrateModelId();
+        return available != null ? available : DEFAULT_CRATE_ID;
+    }
+
+    private String findAvailableCrateModelId() {
         List<String> candidates = new ArrayList<>();
         candidates.add(DEFAULT_CRATE_ID);
         if (!DEFAULT_CRATE_ID.endsWith(".bbmodel")) {
@@ -109,7 +115,7 @@ public class LootChestManager {
                 return candidate;
             }
         }
-        return DEFAULT_CRATE_ID;
+        return null;
     }
 
     private boolean isLootChestModelId(String modelId) {
@@ -134,6 +140,23 @@ public class LootChestManager {
             return normalized.substring(0, normalized.length() - ".bbmodel".length());
         }
         return normalized;
+    }
+
+    private void scheduleCrateModelRetry() {
+        if (crateModelRetryTask != null && !crateModelRetryTask.isCancelled()) {
+            return;
+        }
+        crateModelRetryTask = plugin.getServer().getScheduler().runTaskTimer(plugin, () -> {
+            if (findAvailableCrateModelId() == null) {
+                return;
+            }
+            plugin.getLogger().info("[LootChestManager] Furniture registry is ready; respawning loot chest models.");
+            for (ChestData data : chestDataList) {
+                spawnChest(data);
+            }
+            crateModelRetryTask.cancel();
+            crateModelRetryTask = null;
+        }, 100L, 100L);
     }
 
 
@@ -226,6 +249,7 @@ public class LootChestManager {
                 directional.setFacing(data.getFacing());
                 loc.getBlock().setBlockData(directional, false);
             }
+            scheduleCrateModelRetry();
         } else {
             missingCrateModelLogged = false;
             // Center the furniture within the block to avoid spawning offset issues.
@@ -639,6 +663,10 @@ public class LootChestManager {
     }
 
     public void removeAllChests() {
+        if (crateModelRetryTask != null) {
+            crateModelRetryTask.cancel();
+            crateModelRetryTask = null;
+        }
         Set<Integer> ids = new HashSet<>();
         for (ChestData data : chestDataList) {
             ids.add(data.getChestId());
