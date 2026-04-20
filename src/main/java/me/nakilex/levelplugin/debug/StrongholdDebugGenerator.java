@@ -192,7 +192,8 @@ public final class StrongholdDebugGenerator {
     private static final int DETACHED_ASSET_PATCH_COUNT = 12;
     private static final int DETACHED_ASSET_PATCH_RADIUS = 26;
     private static final int DETACHED_ASSET_AREA_PADDING = 24;
-    private static final int DETACHED_ASSET_MAX_ATTEMPTS = 3000;
+    private static final int DETACHED_ASSET_CORE_CLEARANCE = 10;
+    private static final int DETACHED_ASSET_MAX_ATTEMPTS = 1200;
     private static final int TARGET_GATE_TEMPLATES = 2;
     private static final Map<String, Integer> REQUIRED_TEMPLATE_COUNTS = Map.of(
             "church", 1,
@@ -687,8 +688,10 @@ public final class StrongholdDebugGenerator {
                 + templatesByType.getOrDefault(AssetType.RUIN, List.of()).size()
                 + ", footprint=[" + footprint.minX + "," + footprint.minZ + " -> " + footprint.maxX + "," + footprint.maxZ + "].");
         PlacementField field = buildPlacementField(footprint, random);
-        logDetachedAssetDebug("Placement field -> bounds=[" + field.minX + "," + field.minZ + " -> "
-                + field.maxX + "," + field.maxZ + "], patches=" + field.patchCenters.size() + ".");
+        logDetachedAssetDebug("Placement field -> bounds=[" + field.bounds.minX + "," + field.bounds.minZ + " -> "
+                + field.bounds.maxX + "," + field.bounds.maxZ + "], avoidCore=["
+                + field.avoidCore.minX + "," + field.avoidCore.minZ + " -> "
+                + field.avoidCore.maxX + "," + field.avoidCore.maxZ + "], patches=" + field.patchCenters.size() + ".");
 
         List<AssetType> requestOrder = new ArrayList<>(totalRequested);
         addAssetRequests(requestOrder, AssetType.TREE, counts.trees());
@@ -735,6 +738,7 @@ public final class StrongholdDebugGenerator {
                 + ", attempts=" + debugCounter.totalAttempts
                 + ", rejected(noPool)=" + debugCounter.noPoolRejects
                 + ", rejected(outsideField)=" + debugCounter.outsideFieldRejects
+                + ", rejected(insideCore)=" + debugCounter.insideCoreRejects
                 + ", rejected(nonTerrainGround)=" + debugCounter.nonTerrainGroundRejects
                 + ", rejected(overlapMain)=" + debugCounter.mainOverlapRejects
                 + ", rejected(overlapDetached)=" + debugCounter.detachedOverlapRejects
@@ -797,6 +801,7 @@ public final class StrongholdDebugGenerator {
         }
         int attempts = 0;
         int outsideFieldRejects = 0;
+        int insideCoreRejects = 0;
         int nonTerrainGroundRejects = 0;
         int mainOverlapRejects = 0;
         int detachedOverlapRejects = 0;
@@ -808,6 +813,10 @@ public final class StrongholdDebugGenerator {
             int z = sample.getBlockZ();
             if (!isWithinPlacementField(x, z, field)) {
                 outsideFieldRejects++;
+                continue;
+            }
+            if (field.avoidCore != null && field.avoidCore.contains(x, z)) {
+                insideCoreRejects++;
                 continue;
             }
 
@@ -833,6 +842,7 @@ public final class StrongholdDebugGenerator {
                     attempts,
                     0,
                     outsideFieldRejects,
+                    insideCoreRejects,
                     nonTerrainGroundRejects,
                     mainOverlapRejects,
                     detachedOverlapRejects
@@ -843,6 +853,7 @@ public final class StrongholdDebugGenerator {
                 attempts,
                 0,
                 outsideFieldRejects,
+                insideCoreRejects,
                 nonTerrainGroundRejects,
                 mainOverlapRejects,
                 detachedOverlapRejects
@@ -859,26 +870,41 @@ public final class StrongholdDebugGenerator {
 
     private static PlacementField buildPlacementField(Bounds2D footprint, Random random) {
         if (footprint == null) {
-            return new PlacementField(-64, 64, -64, 64, List.of(new Point2D(0, 0)));
+            Bounds2D fallback = new Bounds2D(-64, 64, -64, 64);
+            return new PlacementField(fallback, fallback, List.of(new Point2D(0, 0)));
         }
-        int minX = footprint.minX - DETACHED_ASSET_AREA_PADDING;
-        int maxX = footprint.maxX + DETACHED_ASSET_AREA_PADDING;
-        int minZ = footprint.minZ - DETACHED_ASSET_AREA_PADDING;
-        int maxZ = footprint.maxZ + DETACHED_ASSET_AREA_PADDING;
+        Bounds2D fieldBounds = footprint.expand(DETACHED_ASSET_AREA_PADDING);
+        Bounds2D avoidCoreBounds = footprint.expand(DETACHED_ASSET_CORE_CLEARANCE);
         List<Point2D> patches = new ArrayList<>();
         for (int i = 0; i < DETACHED_ASSET_PATCH_COUNT; i++) {
-            int x = minX + random.nextInt(Math.max(1, (maxX - minX) + 1));
-            int z = minZ + random.nextInt(Math.max(1, (maxZ - minZ) + 1));
+            int side = random.nextInt(4);
+            int radialOffset = DETACHED_ASSET_CORE_CLEARANCE
+                    + random.nextInt(Math.max(1, (DETACHED_ASSET_AREA_PADDING - DETACHED_ASSET_CORE_CLEARANCE) + 1));
+            int x;
+            int z;
+            if (side == 0) {
+                x = fieldBounds.minX + random.nextInt(Math.max(1, (fieldBounds.maxX - fieldBounds.minX) + 1));
+                z = footprint.minZ - radialOffset;
+            } else if (side == 1) {
+                x = fieldBounds.minX + random.nextInt(Math.max(1, (fieldBounds.maxX - fieldBounds.minX) + 1));
+                z = footprint.maxZ + radialOffset;
+            } else if (side == 2) {
+                x = footprint.minX - radialOffset;
+                z = fieldBounds.minZ + random.nextInt(Math.max(1, (fieldBounds.maxZ - fieldBounds.minZ) + 1));
+            } else {
+                x = footprint.maxX + radialOffset;
+                z = fieldBounds.minZ + random.nextInt(Math.max(1, (fieldBounds.maxZ - fieldBounds.minZ) + 1));
+            }
             patches.add(new Point2D(x, z));
         }
-        return new PlacementField(minX, maxX, minZ, maxZ, patches);
+        return new PlacementField(fieldBounds, avoidCoreBounds, patches);
     }
 
     private static boolean isWithinPlacementField(int x, int z, PlacementField field) {
         if (field == null) {
             return false;
         }
-        return x >= field.minX && x <= field.maxX && z >= field.minZ && z <= field.maxZ;
+        return field.bounds != null && field.bounds.contains(x, z);
     }
 
     private static BlockVector3 samplePatchPoint(PlacementField field, Random random) {
@@ -4146,6 +4172,14 @@ public final class StrongholdDebugGenerator {
     }
 
     private record Bounds2D(int minX, int maxX, int minZ, int maxZ) {
+        private Bounds2D expand(int amount) {
+            int safeAmount = Math.max(0, amount);
+            return new Bounds2D(minX - safeAmount, maxX + safeAmount, minZ - safeAmount, maxZ + safeAmount);
+        }
+
+        private boolean contains(int x, int z) {
+            return x >= minX && x <= maxX && z >= minZ && z <= maxZ;
+        }
     }
 
     private record Bounds3D(int minX, int maxX, int minY, int maxY, int minZ, int maxZ) {
@@ -4154,7 +4188,7 @@ public final class StrongholdDebugGenerator {
     private record Point2D(double x, double z) {
     }
 
-    private record PlacementField(int minX, int maxX, int minZ, int maxZ, List<Point2D> patchCenters) {
+    private record PlacementField(Bounds2D bounds, Bounds2D avoidCore, List<Point2D> patchCenters) {
     }
 
     private record SatellitePlacementResult(boolean placed, int linkSegments) {
@@ -4345,11 +4379,12 @@ public final class StrongholdDebugGenerator {
                                               int attempts,
                                               int noPoolRejects,
                                               int outsideFieldRejects,
+                                              int insideCoreRejects,
                                               int nonTerrainGroundRejects,
                                               int mainOverlapRejects,
                                               int detachedOverlapRejects) {
         private static AssetPlacementSearchResult noPool() {
-            return new AssetPlacementSearchResult(null, 0, 1, 0, 0, 0, 0);
+            return new AssetPlacementSearchResult(null, 0, 1, 0, 0, 0, 0, 0);
         }
     }
 
@@ -4357,6 +4392,7 @@ public final class StrongholdDebugGenerator {
         private int totalAttempts;
         private int noPoolRejects;
         private int outsideFieldRejects;
+        private int insideCoreRejects;
         private int nonTerrainGroundRejects;
         private int mainOverlapRejects;
         private int detachedOverlapRejects;
@@ -4368,6 +4404,7 @@ public final class StrongholdDebugGenerator {
             totalAttempts += Math.max(0, result.attempts());
             noPoolRejects += Math.max(0, result.noPoolRejects());
             outsideFieldRejects += Math.max(0, result.outsideFieldRejects());
+            insideCoreRejects += Math.max(0, result.insideCoreRejects());
             nonTerrainGroundRejects += Math.max(0, result.nonTerrainGroundRejects());
             mainOverlapRejects += Math.max(0, result.mainOverlapRejects());
             detachedOverlapRejects += Math.max(0, result.detachedOverlapRejects());
