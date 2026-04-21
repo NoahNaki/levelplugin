@@ -51,6 +51,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.IdentityHashMap;
+import java.util.Iterator;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Predicate;
@@ -172,6 +173,7 @@ public final class StrongholdDebugGenerator {
     private static final String SOURCE_WORLD = "flatland";
     private static final String GENERATED_WORLD_PREFIX = "stronghold_debug_";
     private static final String STRONGHOLD_DOOR_TAG = "stronghold_door_hologram";
+    private static final double DOOR_HOLOGRAM_ACTIVATION_RANGE_SQUARED = 14 * 14;
     private static final Map<String, String> CLOSED_TO_OPEN_TEMPLATE = Map.of(
             "straight_3", "straight_2",
             "straight_5", "straight_4"
@@ -251,6 +253,7 @@ public final class StrongholdDebugGenerator {
     private static final Map<Integer, DoorInteractionState> doorInteractionsByEntityId = new HashMap<>();
     private static final Map<UUID, List<DoorInteractionState>> doorInteractionsByWorld = new HashMap<>();
     private static boolean doorInteractionListenerRegistered;
+    private static BukkitTask doorInteractionUpdateTask;
     private static CapturedTemplates cachedCapturedTemplates;
     private static Map<AssetType, List<DetachedAssetTemplate>> cachedDetachedAssetTemplates;
     private static Map<String, TemplateConnectionInfo> cachedTemplateConnectionInfo;
@@ -4502,8 +4505,8 @@ public final class StrongholdDebugGenerator {
         Interaction interaction = world.spawn(base, Interaction.class, entity -> {
             entity.setInvulnerable(true);
             entity.setGravity(false);
-            entity.setInteractionWidth(1.8f);
-            entity.setInteractionHeight(2.0f);
+            entity.setInteractionWidth(0.1f);
+            entity.setInteractionHeight(0.1f);
             entity.addScoreboardTag(STRONGHOLD_DOOR_TAG);
         });
 
@@ -4512,7 +4515,7 @@ public final class StrongholdDebugGenerator {
         display.setShadowRadius(0f);
         display.setShadowStrength(0f);
         display.setBackgroundColor(org.bukkit.Color.fromARGB(0, 0, 0, 0));
-        display.setText(ChatColor.GOLD + "Right click to open");
+        display.setText("");
         display.addScoreboardTag(STRONGHOLD_DOOR_TAG);
 
         return new DoorInteractionState(closedPlaced, openSpec, markers.markerOne(), markers.markerTwo(), interaction, display);
@@ -4528,6 +4531,15 @@ public final class StrongholdDebugGenerator {
         }
         Bukkit.getPluginManager().registerEvents(new StrongholdDoorInteractionListener(), plugin);
         doorInteractionListenerRegistered = true;
+        ensureDoorInteractionUpdater(plugin);
+    }
+
+    private static void ensureDoorInteractionUpdater(Main plugin) {
+        if (plugin == null || doorInteractionUpdateTask != null) {
+            return;
+        }
+        doorInteractionUpdateTask = Bukkit.getScheduler().runTaskTimer(plugin,
+                StrongholdDebugGenerator::refreshDoorHologramAnchors, 1L, 10L);
     }
 
     private static void clearDoorInteractions(World world) {
@@ -4554,6 +4566,115 @@ public final class StrongholdDebugGenerator {
         }
     }
 
+    private static void refreshDoorHologramAnchors() {
+        if (doorInteractionsByWorld.isEmpty()) {
+            return;
+        }
+        for (Iterator<Map.Entry<UUID, List<DoorInteractionState>>> iterator = doorInteractionsByWorld.entrySet().iterator(); iterator.hasNext(); ) {
+            Map.Entry<UUID, List<DoorInteractionState>> entry = iterator.next();
+            List<DoorInteractionState> states = entry.getValue();
+            if (states == null || states.isEmpty()) {
+                iterator.remove();
+                continue;
+            }
+            states.removeIf(state -> state == null
+                    || state.interaction() == null
+                    || state.display() == null
+                    || !state.interaction().isValid()
+                    || !state.display().isValid());
+            if (states.isEmpty()) {
+                iterator.remove();
+                continue;
+            }
+            for (DoorInteractionState state : states) {
+                refreshSingleDoorHologramAnchor(state);
+            }
+        }
+    }
+
+    private static void refreshSingleDoorHologramAnchor(DoorInteractionState state) {
+        Player nearest = nearestPlayer(state);
+        if (nearest == null) {
+            hideDoorHologram(state);
+            return;
+        }
+        Location midpoint = midpoint(state.markerOne(), state.markerTwo());
+        if (midpoint == null || midpoint.getWorld() == null
+                || nearest.getLocation().distanceSquared(midpoint) > DOOR_HOLOGRAM_ACTIVATION_RANGE_SQUARED) {
+            hideDoorHologram(state);
+            return;
+        }
+
+        Location target = closerMarker(state.markerOne(), state.markerTwo(), nearest.getLocation());
+        if (target == null) {
+            hideDoorHologram(state);
+            return;
+        }
+        Location base = target.clone().add(0, 0.65, 0);
+        state.interaction().teleport(base);
+        state.interaction().setInteractionWidth(1.8f);
+        state.interaction().setInteractionHeight(2.0f);
+        state.display().teleport(base.clone().add(0, 0.75, 0));
+        state.display().setText(ChatColor.GOLD + "Right click to open");
+    }
+
+    private static void hideDoorHologram(DoorInteractionState state) {
+        Location hidden = midpoint(state.markerOne(), state.markerTwo());
+        if (hidden == null) {
+            return;
+        }
+        hidden.add(0, -32, 0);
+        state.interaction().teleport(hidden);
+        state.interaction().setInteractionWidth(0.1f);
+        state.interaction().setInteractionHeight(0.1f);
+        state.display().teleport(hidden);
+        state.display().setText("");
+    }
+
+    private static Player nearestPlayer(DoorInteractionState state) {
+        if (state == null || state.markerOne() == null || state.markerOne().getWorld() == null) {
+            return null;
+        }
+        World world = state.markerOne().getWorld();
+        Location center = midpoint(state.markerOne(), state.markerTwo());
+        if (center == null) {
+            return null;
+        }
+        Player best = null;
+        double bestDistance = Double.MAX_VALUE;
+        for (Player player : world.getPlayers()) {
+            if (player == null || !player.isOnline()) {
+                continue;
+            }
+            double distance = player.getLocation().distanceSquared(center);
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                best = player;
+            }
+        }
+        return best;
+    }
+
+    private static Location closerMarker(Location markerOne, Location markerTwo, Location reference) {
+        if (markerOne == null || markerTwo == null || reference == null) {
+            return null;
+        }
+        return markerOne.distanceSquared(reference) <= markerTwo.distanceSquared(reference) ? markerOne : markerTwo;
+    }
+
+    private static Location midpoint(Location one, Location two) {
+        if (one == null || two == null || one.getWorld() == null || two.getWorld() == null
+                || !one.getWorld().equals(two.getWorld())) {
+            return null;
+        }
+        return new Location(
+                one.getWorld(),
+                (one.getX() + two.getX()) / 2.0,
+                (one.getY() + two.getY()) / 2.0,
+                (one.getZ() + two.getZ()) / 2.0
+        );
+    }
+
     private static void handleDoorInteraction(Player player, Interaction interaction) {
         if (player == null || interaction == null) {
             return;
@@ -4567,19 +4688,17 @@ public final class StrongholdDebugGenerator {
             return;
         }
 
-        paste(world, state.openTemplate().template(), state.closedTemplate().origin, state.closedTemplate().rotation);
+        replacePlacedTemplate(world, state.closedTemplate(), state.openTemplate());
         clearDoorPlaceholderBlocks(world, new PlacedTemplate(
                 state.openTemplate(),
                 state.closedTemplate().rotation,
                 state.closedTemplate().origin
         ));
 
-        Location fx = new Location(
-                world,
-                (state.markerOne().getX() + state.markerTwo().getX()) / 2.0,
-                (state.markerOne().getY() + state.markerTwo().getY()) / 2.0,
-                (state.markerOne().getZ() + state.markerTwo().getZ()) / 2.0
-        );
+        Location fx = midpoint(state.markerOne(), state.markerTwo());
+        if (fx == null) {
+            fx = interaction.getLocation();
+        }
         world.spawnParticle(Particle.CLOUD, fx, 30, 0.6, 0.8, 0.6, 0.01);
         world.spawnParticle(Particle.BLOCK, fx, 28, 0.8, 0.8, 0.8, Material.STONE_BRICKS.createBlockData());
         world.playSound(fx, Sound.BLOCK_IRON_DOOR_OPEN, 1.0f, 1.0f);
@@ -4597,6 +4716,21 @@ public final class StrongholdDebugGenerator {
             worldStates.remove(state);
         }
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, "Opened " + state.closedTemplate().spec.id + ".");
+    }
+
+    private static void replacePlacedTemplate(World world, PlacedTemplate current, TemplateSpec replacement) {
+        if (world == null || current == null || current.spec == null || current.spec.template == null
+                || replacement == null || replacement.template == null) {
+            return;
+        }
+        RotatedTemplate oldRotated = rotateTemplate(current.spec.template, current.rotation);
+        for (BlockVector3 rel : oldRotated.blocks.keySet()) {
+            int x = current.origin.getBlockX() + rel.getBlockX();
+            int y = current.origin.getBlockY() + rel.getBlockY();
+            int z = current.origin.getBlockZ() + rel.getBlockZ();
+            world.getBlockAt(x, y, z).setType(Material.AIR, false);
+        }
+        paste(world, replacement.template, current.origin, current.rotation);
     }
 
     private static RotatedTemplate rotateTemplate(Template template, int rotation) {
