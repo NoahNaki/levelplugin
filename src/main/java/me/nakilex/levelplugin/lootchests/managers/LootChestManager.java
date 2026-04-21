@@ -23,9 +23,12 @@ import me.nakilex.levelplugin.potions.managers.PotionManager;
 import me.nakilex.levelplugin.salvage.managers.SalvageManager;
 import me.nakilex.levelplugin.utils.FurnitureCleanupUtil;
 import me.nakilex.levelplugin.utils.ModelEngineUtil;
+import me.nakilex.levelplugin.utils.EntityViewRotationPacketUtil;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.TextUtil;
+import com.comphenix.protocol.ProtocolLibrary;
+import com.comphenix.protocol.ProtocolManager;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -62,6 +65,7 @@ public class LootChestManager {
     private static final int INVENTORY_SIZE = 27;
 
     private final JavaPlugin plugin;
+    private final ProtocolManager protocolManager;
     private final ConfigManager configManager;
     private CooldownManager cooldownManager;
     private final PotionManager potionManager;
@@ -187,6 +191,7 @@ public class LootChestManager {
 
     public LootChestManager(JavaPlugin plugin, ConfigManager configManager, CooldownManager cooldownManager, PotionManager potionManager) {
         this.plugin = plugin;
+        this.protocolManager = ProtocolLibrary.getProtocolManager();
         this.configManager = configManager;
         this.cooldownManager = cooldownManager;
         this.potionManager = potionManager;
@@ -510,11 +515,34 @@ public class LootChestManager {
                     ParticleUtils.displayChestParticles(loc);
                 }
                 updateIdleMoveAnimation(chestId, playerVeryNear);
+                updatePerViewerChestFacing(chestId, loc);
             },
             0L,
             20L
         );
         chestParticleTasks.put(chestId, task);
+    }
+
+    private void updatePerViewerChestFacing(int chestId, Location chestLoc) {
+        UUID entityId = spawnedChestModels.get(chestId);
+        if (entityId == null || chestLoc == null || chestLoc.getWorld() == null) {
+            return;
+        }
+        Entity modelEntity = Bukkit.getEntity(entityId);
+        if (modelEntity == null || !modelEntity.isValid()) {
+            return;
+        }
+        for (Player viewer : chestLoc.getWorld().getPlayers()) {
+            if (viewer.getLocation().distanceSquared(chestLoc) > 20 * 20) {
+                continue;
+            }
+            EntityViewRotationPacketUtil.sendFaceLocation(
+                    protocolManager,
+                    viewer,
+                    modelEntity,
+                    viewer.getEyeLocation()
+            );
+        }
     }
 
     public void playOpeningAnimation(int chestId, Inventory lootInventory) {
