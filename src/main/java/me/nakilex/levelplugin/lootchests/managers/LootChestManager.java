@@ -528,12 +528,43 @@ public class LootChestManager {
 
     public void playClosingAnimation(int chestId) {
         lockIdleAnimation(chestId, 40L);
-        playChestAnimation(chestId, "idle_reset", List.of("idle", "stand", "loop"), false);
-        plugin.getServer().getScheduler().runTaskLater(
-                plugin,
-                () -> playChestAnimation(chestId, "closing", List.of("closing", "close"), false),
-                1L
+        Location chestLoc = spawnedChests.get(chestId);
+        if (chestLoc == null || chestLoc.getWorld() == null) {
+            playChestAnimation(chestId, "closing", List.of("closing", "close"), false);
+            return;
+        }
+
+        removeChestModel(chestId, chestLoc);
+        if (!Bukkit.getPluginManager().isPluginEnabled("ModelEngine")) {
+            return;
+        }
+        Location anchorLoc = LocationUtils.centerOnBlock(chestLoc).add(0.0, 0.01, 0.0);
+        ArmorStand closingStand = chestLoc.getWorld().spawn(anchorLoc, ArmorStand.class, stand -> {
+            stand.setInvisible(true);
+            stand.setMarker(false);
+            stand.setSmall(true);
+            stand.setGravity(false);
+            stand.setSilent(true);
+            stand.setInvulnerable(true);
+            stand.addScoreboardTag(MODEL_TAG);
+            stand.addScoreboardTag(MODEL_TAG + ":" + chestId);
+            stand.addScoreboardTag(MODEL_TAG + ":closing");
+        });
+        ModelEngineUtil.ModelApplyResult result = ModelEngineUtil.applyFirstAvailableModel(
+                closingStand,
+                ModelEngineUtil.buildModelCandidates(getCrateModelId()),
+                plugin
         );
+        if (result.applied().isEmpty()) {
+            closingStand.remove();
+            return;
+        }
+        ModelEngineUtil.playBestAnimationResolved(closingStand, List.of("closing", "close"), false, false);
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            if (closingStand.isValid()) {
+                closingStand.remove();
+            }
+        }, 40L);
     }
 
     private void updateIdleMoveAnimation(int chestId, boolean playerVeryNear) {
