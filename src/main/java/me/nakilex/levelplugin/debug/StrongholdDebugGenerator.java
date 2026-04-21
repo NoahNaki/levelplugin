@@ -64,6 +64,7 @@ public final class StrongholdDebugGenerator {
             Material.REDSTONE_BLOCK,
             Material.LAPIS_BLOCK,
             Material.GOLD_BLOCK,
+            Material.DIAMOND_BLOCK,
             Material.LIGHT_BLUE_CONCRETE,
             Material.WHITE_CONCRETE
     );
@@ -71,7 +72,8 @@ public final class StrongholdDebugGenerator {
     private static final Set<Material> TEMPLATE_MARKER_MATERIALS = Set.of(
             Material.REDSTONE_BLOCK,
             Material.LAPIS_BLOCK,
-            Material.GOLD_BLOCK
+            Material.GOLD_BLOCK,
+            Material.DIAMOND_BLOCK
     );
     private static final List<Material> DEFAULT_STRONGHOLD_FLOOR_PATTERN = List.of(
             Material.PACKED_MUD,
