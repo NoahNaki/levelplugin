@@ -33,6 +33,7 @@ import me.nakilex.levelplugin.environment.EnvironmentManager;
 import me.nakilex.levelplugin.guild.Guild;
 import me.nakilex.levelplugin.mercenary.MercenaryExpeditionManager;
 import me.nakilex.levelplugin.pathfinding.DungeonExpeditionManager;
+import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
 import me.nakilex.levelplugin.particles.ParticlePreset;
 import me.nakilex.levelplugin.particles.ParticleService;
 import me.nakilex.levelplugin.particles.presets.ElementalPresets;
@@ -46,6 +47,7 @@ import me.nakilex.levelplugin.utils.RewardBombUtil;
 import me.nakilex.levelplugin.utils.ToggleFeedbackUtil;
 import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
+import me.nakilex.levelplugin.utils.ModelEngineUtil;
 import me.nakilex.levelplugin.guild.siege.GuildSiegeManager;
 import me.nakilex.levelplugin.guild.GuildManager;
 import me.nakilex.levelplugin.items.listeners.StaticItemListener;
@@ -55,6 +57,8 @@ import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
+import org.bukkit.entity.ArmorStand;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -75,6 +79,8 @@ import net.citizensnpcs.api.CitizensAPI;
  */
 public class DebugCommand implements TabExecutor {
     private static final Set<UUID> INVENTORY_DEBUG_ENABLED = ConcurrentHashMap.newKeySet();
+    private static final List<String> LOOT_CHEST_ANIMATION_OPTIONS = List.of("idle", "idle_move", "opening", "opening_rare", "closing");
+    private final Map<UUID, UUID> lootChestAnimationPreviewEntities = new ConcurrentHashMap<>();
 
     public static boolean isInventoryDebugEnabled(UUID playerId) {
         return playerId != null && INVENTORY_DEBUG_ENABLED.contains(playerId);
@@ -130,7 +136,7 @@ public class DebugCommand implements TabExecutor {
                 String statUsage = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|" + statUsage + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|lootchestanimation|" + statUsage + ">");
             }
             return true;
         }
@@ -599,15 +605,93 @@ public class DebugCommand implements TabExecutor {
                 ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.ERROR,
                         "Unknown stronghold template: " + args[2] + ". Available: test, towerwall");
                 return true;
+            case "lootchestanimation":
+                if (!(sender instanceof Player lootChestAnimationPlayer)) {
+                    sender.sendMessage(ChatColor.RED + "Players only.");
+                    return true;
+                }
+                if (args.length < 2) {
+                    ChatMessageUtil.send(lootChestAnimationPlayer, ChatMessageUtil.MessageType.WARNING,
+                            "Usage: /debug lootchestanimation <" + String.join("|", LOOT_CHEST_ANIMATION_OPTIONS) + ">");
+                    return true;
+                }
+                return spawnLootChestAnimationPreview(lootChestAnimationPlayer, args[1]);
 
             default:
                 sender.sendMessage("Unknown debug subcommand: " + sub);
                 String statUsage2 = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|" + statUsage2 + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|lootchestanimation|" + statUsage2 + ">");
                 return true;
         }
+    }
+
+    private boolean spawnLootChestAnimationPreview(Player player, String animationName) {
+        if (animationName == null || animationName.isBlank()) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                    "Animation name is required.");
+            return true;
+        }
+        if (!org.bukkit.Bukkit.getPluginManager().isPluginEnabled("ModelEngine")) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                    "ModelEngine is not enabled on this server.");
+            return true;
+        }
+        LootChestManager lootChestManager = Main.getInstance().getLootChestManager();
+        if (lootChestManager == null) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                    "Loot chest manager is not available.");
+            return true;
+        }
+
+        UUID existingId = lootChestAnimationPreviewEntities.remove(player.getUniqueId());
+        if (existingId != null) {
+            Entity existing = org.bukkit.Bukkit.getEntity(existingId);
+            if (existing != null && existing.isValid()) {
+                existing.remove();
+            }
+        }
+
+        org.bukkit.Location spawnLoc = player.getEyeLocation().add(player.getLocation().getDirection().normalize().multiply(2.0));
+        spawnLoc.setY(player.getLocation().getY() + 0.1);
+        ArmorStand preview = player.getWorld().spawn(spawnLoc, ArmorStand.class, stand -> {
+            stand.setInvisible(true);
+            stand.setMarker(false);
+            stand.setSmall(true);
+            stand.setGravity(false);
+            stand.setSilent(true);
+            stand.setInvulnerable(true);
+            stand.addScoreboardTag("debug_lootchest_animation_preview");
+        });
+
+        ModelEngineUtil.ModelApplyResult modelResult = ModelEngineUtil.applyFirstAvailableModel(
+                preview,
+                ModelEngineUtil.buildModelCandidates(lootChestManager.getCrateModelId()),
+                Main.getInstance()
+        );
+        if (modelResult.applied().isEmpty()) {
+            preview.remove();
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                    "Could not apply loot chest model. Make sure the crate model is loaded.");
+            return true;
+        }
+
+        boolean loop = animationName.toLowerCase().contains("idle");
+        boolean played = ModelEngineUtil.playAnimationByName(preview, animationName, loop);
+        if (!played) {
+            List<String> runtime = ModelEngineUtil.getRuntimeAnimationNames(preview);
+            preview.remove();
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                    "Could not play animation '" + animationName + "'. Runtime animations: "
+                            + (runtime.isEmpty() ? "(none)" : String.join(", ", runtime)));
+            return true;
+        }
+
+        lootChestAnimationPreviewEntities.put(player.getUniqueId(), preview.getUniqueId());
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
+                "Spawned loot chest animation preview with '" + animationName + "'.");
+        return true;
     }
 
     private void toggleInventoryDebug(Player player) {
@@ -705,7 +789,7 @@ public class DebugCommand implements TabExecutor {
             List<String> subs = new ArrayList<>(List.of("mobinfo", "tps", "siege", "cityowner", "citymax", "autocast",
                     "hand", "chatgame", "expedition", "dungeonexpedition", "rewardbomb", "drops", "beaconentity",
                     "spellinput", "spellcooldown", "spellmanacost", "stunstick", "poisonstick", "tauntstick", "fearstick", "slowstick", "petpull",
-                    "particle", "particlepath", "particlepreset", "inventorydebug", "warriorcyclone", "stronghold"));
+                    "particle", "particlepath", "particlepreset", "inventorydebug", "warriorcyclone", "stronghold", "lootchestanimation"));
             subs.addAll(Arrays.stream(StatType.values()).map(StatType::getAbbrev).toList());
             return subs.stream()
                     .filter(s -> s.startsWith(args[0].toLowerCase()))
@@ -765,6 +849,10 @@ public class DebugCommand implements TabExecutor {
                     .toList();
         } else if (args.length == 2 && args[0].equalsIgnoreCase("petpull")) {
             return List.of("1", "5", "10").stream()
+                    .filter(opt -> opt.startsWith(args[1].toLowerCase()))
+                    .toList();
+        } else if (args.length == 2 && args[0].equalsIgnoreCase("lootchestanimation")) {
+            return LOOT_CHEST_ANIMATION_OPTIONS.stream()
                     .filter(opt -> opt.startsWith(args[1].toLowerCase()))
                     .toList();
         }
