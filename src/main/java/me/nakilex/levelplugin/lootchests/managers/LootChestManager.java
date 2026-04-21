@@ -252,12 +252,9 @@ public class LootChestManager {
         }
         ensureChunkIsLoaded(loc);
 
-        // Place the backing chest block and orient it for interaction.
-        loc.getBlock().setType(Material.CHEST, false);
-        org.bukkit.block.data.BlockData dataBlock = loc.getBlock().getBlockData();
-        if (dataBlock instanceof org.bukkit.block.data.Directional directional) {
-            directional.setFacing(data.getFacing());
-            loc.getBlock().setBlockData(directional, false);
+        // Keep the block clear so only the model is visible/interactable.
+        if (loc.getBlock().getType() != Material.AIR) {
+            loc.getBlock().setType(Material.AIR, false);
         }
 
         spawnChestModel(data.getChestId(), loc);
@@ -278,7 +275,8 @@ public class LootChestManager {
         Location anchorLoc = LocationUtils.centerOnBlock(chestLoc).add(0.0, 0.01, 0.0);
         ArmorStand anchor = chestLoc.getWorld().spawn(anchorLoc, ArmorStand.class, stand -> {
             stand.setInvisible(true);
-            stand.setMarker(true);
+            stand.setMarker(false);
+            stand.setSmall(true);
             stand.setGravity(false);
             stand.setSilent(true);
             stand.setInvulnerable(true);
@@ -500,11 +498,6 @@ public class LootChestManager {
         BukkitTask task = plugin.getServer().getScheduler().runTaskTimer(
             plugin,
             () -> {
-                Material type = loc.getBlock().getType();
-                if (type != Material.CHEST && type != Material.TRAPPED_CHEST) {
-                    return;
-                }
-
                 boolean playerNearby = loc.getWorld().getPlayers().stream()
                         .anyMatch(p -> p.getLocation().distanceSquared(loc) <= 20 * 20);
                 boolean playerVeryNear = loc.getWorld().getPlayers().stream()
@@ -793,6 +786,25 @@ public class LootChestManager {
                     && stored.getBlockY() == location.getBlockY()
                     && stored.getBlockZ() == location.getBlockZ()) {
                 return entry.getKey();
+            }
+        }
+        return null;
+    }
+
+    public Integer getChestIdFromModelEntity(Entity entity) {
+        if (entity == null) {
+            return null;
+        }
+        String prefix = MODEL_TAG + ":";
+        for (String tag : entity.getScoreboardTags()) {
+            if (tag == null || !tag.startsWith(prefix)) {
+                continue;
+            }
+            String suffix = tag.substring(prefix.length());
+            try {
+                return Integer.parseInt(suffix);
+            } catch (NumberFormatException ignored) {
+                return null;
             }
         }
         return null;

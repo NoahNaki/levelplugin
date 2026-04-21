@@ -13,10 +13,12 @@ import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.ArmorStand;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -59,6 +61,24 @@ public class LootChestListener implements Listener {
             return;
         }
         Location loc = event.getClickedBlock().getLocation();
+        if (openLootChest(event.getPlayer(), loc)) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onModelInteract(PlayerInteractAtEntityEvent event) {
+        if (!(event.getRightClicked() instanceof ArmorStand stand)) {
+            return;
+        }
+        Integer chestId = lootChestManager.getChestIdFromModelEntity(stand);
+        if (chestId == null) {
+            return;
+        }
+        Location loc = lootChestManager.getLocationForChestId(chestId);
+        if (loc == null) {
+            return;
+        }
         if (openLootChest(event.getPlayer(), loc)) {
             event.setCancelled(true);
         }
