@@ -69,7 +69,7 @@ public class LootChestCloseListener implements Listener {
                         lootChestManager.getCooldownManager().startChestCooldown(chestId);
                     }
                 },
-                30L
+                40L
         );
     }
 }

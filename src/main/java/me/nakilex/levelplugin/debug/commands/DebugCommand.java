@@ -79,7 +79,7 @@ import net.citizensnpcs.api.CitizensAPI;
  */
 public class DebugCommand implements TabExecutor {
     private static final Set<UUID> INVENTORY_DEBUG_ENABLED = ConcurrentHashMap.newKeySet();
-    private static final List<String> LOOT_CHEST_ANIMATION_OPTIONS = List.of("idle", "idle_move", "opening", "opening_rare", "closing");
+    private static final List<String> LOOT_CHEST_ANIMATION_OPTIONS = List.of("idle", "idle_mouve", "idle_move", "opening", "opening_rare", "closing");
     private final Map<UUID, UUID> lootChestAnimationPreviewEntities = new ConcurrentHashMap<>();
 
     public static boolean isInventoryDebugEnabled(UUID playerId) {
@@ -708,7 +708,7 @@ public class DebugCommand implements TabExecutor {
             case "opening_rare" -> List.of("opening_rare", "opening", "open", "rare");
             case "opening" -> List.of("opening", "open");
             case "closing" -> List.of("closing", "close");
-            case "idle_move" -> List.of("idle_move", "idle", "move");
+            case "idle_mouve", "idle_move" -> List.of("idle_mouve", "idle_move", "idle", "move");
             case "idle" -> List.of("idle");
             default -> List.of(normalized);
         };
