@@ -617,9 +617,12 @@ public final class StrongholdDebugGenerator {
 
         processStart = timing.processStarted("Send generation diagnostics");
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                "Generated stronghold spine+branches using " + placed.size()
-                        + " pieces in world '" + world.getName() + "' (overlap threshold: "
-                        + String.format("%.2f", maxOverlapPercent) + "%).");
+                ChatColor.GOLD + "" + ChatColor.BOLD + "STRONGHOLD GENERATED "
+                        + ChatColor.GRAY + "• "
+                        + ChatColor.WHITE + placed.size() + ChatColor.GRAY + " pieces "
+                        + ChatColor.DARK_GRAY + "(" + ChatColor.GRAY + world.getName()
+                        + ChatColor.DARK_GRAY + ", " + ChatColor.GRAY + "overlap "
+                        + ChatColor.WHITE + String.format("%.2f", maxOverlapPercent) + "%" + ChatColor.DARK_GRAY + ")");
         String viableOutputSummary = ENABLE_EXPENSIVE_DIAGNOSTICS
                 ? String.valueOf(countViableOpenOutputs(placed, captured, occupied))
                 : "skipped";
@@ -743,7 +746,10 @@ public final class StrongholdDebugGenerator {
         player.teleport(new org.bukkit.Location(world, originX + 0.5, originY + 2, originZ + 0.5));
         spawnDoorOpenInteractions(world, placed, player);
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                "Generated towerwall cross preset using " + placed.size() + " pieces in world '" + world.getName() + "'.");
+                ChatColor.GOLD + "" + ChatColor.BOLD + "TOWERWALL GENERATED "
+                        + ChatColor.GRAY + "• "
+                        + ChatColor.WHITE + placed.size() + ChatColor.GRAY + " pieces "
+                        + ChatColor.DARK_GRAY + "(" + ChatColor.GRAY + world.getName() + ChatColor.DARK_GRAY + ")");
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                 "Towerwall diagnostics -> remaining open outputs: " + countOpenOutputs(placed)
                         + ", viable next outputs: skipped"
@@ -4779,8 +4785,10 @@ public final class StrongholdDebugGenerator {
             worldStates.remove(state);
         }
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                "Stronghold gate shifts open: " + ChatColor.GOLD + formatTemplateIdForMessage(state.closedTemplate().spec.id)
-                        + ChatColor.GREEN + ".");
+                ChatColor.GOLD + "" + ChatColor.BOLD + "ANCIENT GATE OPENED "
+                        + ChatColor.DARK_GRAY + "» "
+                        + ChatColor.WHITE + formatTemplateIdForMessage(state.closedTemplate().spec.id)
+                        + ChatColor.GRAY + " now stands open.");
     }
 
     private static void replacePlacedTemplate(World world, PlacedTemplate current, TemplateSpec replacement) {
