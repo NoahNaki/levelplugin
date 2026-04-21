@@ -73,6 +73,7 @@ public class LootChestManager {
     // Track where we actually spawned each chest. chestId -> location
     private final Map<Integer, Location> spawnedChests = new HashMap<>();
     private final Map<Integer, UUID> spawnedChestModels = new HashMap<>();
+    private final Map<Integer, Boolean> chestIdleMoveState = new HashMap<>();
 
     // For continuous particles: chestId -> repeating task
     private final Map<Integer, BukkitTask> chestParticleTasks = new HashMap<>();
@@ -302,10 +303,13 @@ public class LootChestManager {
         }
         missingCrateModelLogged = false;
         spawnedChestModels.put(chestId, anchor.getUniqueId());
+        chestIdleMoveState.put(chestId, false);
+        ModelEngineUtil.playBestAnimation(anchor, List.of("idle"), true, false);
     }
 
     private void removeChestModel(int chestId, Location chestLoc) {
         UUID entityId = spawnedChestModels.remove(chestId);
+        chestIdleMoveState.remove(chestId);
         if (entityId != null) {
             Entity entity = Bukkit.getEntity(entityId);
             if (entity != null && entity.isValid()) {
@@ -503,15 +507,68 @@ public class LootChestManager {
 
                 boolean playerNearby = loc.getWorld().getPlayers().stream()
                         .anyMatch(p -> p.getLocation().distanceSquared(loc) <= 20 * 20);
+                boolean playerVeryNear = loc.getWorld().getPlayers().stream()
+                        .anyMatch(p -> p.getLocation().distanceSquared(loc) <= 7 * 7);
 
                 if (playerNearby) {
                     ParticleUtils.displayChestParticles(loc);
                 }
+                updateIdleMoveAnimation(chestId, playerVeryNear);
             },
             0L,
             20L
         );
         chestParticleTasks.put(chestId, task);
+    }
+
+    public void playOpeningAnimation(int chestId, Inventory lootInventory) {
+        if (containsRareLoot(lootInventory)) {
+            playChestAnimation(chestId, List.of("opening_rare", "opening", "open"), false);
+            return;
+        }
+        playChestAnimation(chestId, List.of("opening", "open"), false);
+    }
+
+    public void playClosingAnimation(int chestId) {
+        playChestAnimation(chestId, List.of("closing", "close"), false);
+    }
+
+    private void updateIdleMoveAnimation(int chestId, boolean playerVeryNear) {
+        Boolean previous = chestIdleMoveState.get(chestId);
+        if (previous != null && previous == playerVeryNear) {
+            return;
+        }
+        chestIdleMoveState.put(chestId, playerVeryNear);
+        if (playerVeryNear) {
+            playChestAnimation(chestId, List.of("idle_move", "idle", "move"), true);
+            return;
+        }
+        playChestAnimation(chestId, List.of("idle"), true);
+    }
+
+    private boolean playChestAnimation(int chestId, List<String> keywords, boolean loop) {
+        UUID entityId = spawnedChestModels.get(chestId);
+        if (entityId == null) {
+            return false;
+        }
+        Entity modelEntity = Bukkit.getEntity(entityId);
+        if (modelEntity == null || !modelEntity.isValid()) {
+            return false;
+        }
+        return ModelEngineUtil.playBestAnimation(modelEntity, keywords, loop, false);
+    }
+
+    private boolean containsRareLoot(Inventory inventory) {
+        if (inventory == null) {
+            return false;
+        }
+        for (ItemStack item : inventory.getContents()) {
+            ItemRarity rarity = ItemUtil.getItemRarity(item);
+            if (rarity != null && rarity.ordinal() >= ItemRarity.RARE.ordinal()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void removeExistingLootHolograms() {

@@ -86,6 +86,7 @@ public class LootChestListener implements Listener {
         // ─────────────────────────────────────────────────────────────────────
 
         // 7) Open the inventory
+        lootChestManager.playOpeningAnimation(chestId, lootGui);
         player.openInventory(lootGui);
 
         // 8) Track guild quest progress

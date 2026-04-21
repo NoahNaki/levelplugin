@@ -57,13 +57,19 @@ public class LootChestCloseListener implements Listener {
 
         // 4) Remove the crate and start its cooldown
         lootChestManager.getPlugin().getLogger().info(
-            "[LootChestCloseListener] Chest " + chestId +
-                " was closed. Removing crate & starting cooldown."
+                "[LootChestCloseListener] Chest " + chestId +
+                        " was closed. Running close animation, then removing crate & starting cooldown."
         );
-        lootChestManager.removeChest(chestId);
-
-        if (!lootChestManager.isNonRespawningChest(chestId) && !dungeonManager.isInstanceWorld(loc.getWorld())) {
-            lootChestManager.getCooldownManager().startChestCooldown(chestId);
-        }
+        lootChestManager.playClosingAnimation(chestId);
+        lootChestManager.getPlugin().getServer().getScheduler().runTaskLater(
+                lootChestManager.getPlugin(),
+                () -> {
+                    lootChestManager.removeChest(chestId);
+                    if (!lootChestManager.isNonRespawningChest(chestId) && !dungeonManager.isInstanceWorld(loc.getWorld())) {
+                        lootChestManager.getCooldownManager().startChestCooldown(chestId);
+                    }
+                },
+                16L
+        );
     }
 }
