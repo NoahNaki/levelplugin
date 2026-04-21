@@ -541,7 +541,7 @@ public class LootChestManager {
         }
         chestIdleMoveState.put(chestId, playerVeryNear);
         if (playerVeryNear) {
-            playChestAnimation(chestId, "idle_mouve", List.of("idle_mouve", "idle_move", "idle", "move"), true);
+            playChestAnimation(chestId, "closing", List.of("closing", "close"), false);
             return;
         }
         playChestAnimation(chestId, "idle", List.of("idle"), true);
