@@ -987,6 +987,8 @@ public final class StrongholdDebugGenerator {
             }
             attempts++;
             DetachedAssetTemplate template = candidates.get(random.nextInt(candidates.size()));
+            int rotation = randomDetachedAssetRotation(type, random);
+            List<BlockVector3> relativeBlocks = rotatedDetachedRelativeBlocks(template, rotation);
             BlockVector3 sample = samplePatchPoint(field, random);
             int x = sample.getBlockX();
             int z = sample.getBlockZ();
@@ -1004,17 +1006,17 @@ public final class StrongholdDebugGenerator {
             int originZ = z - template.centerOffsetZ();
             int originY = y - Math.min(0, template.lowestRelativeY());
             BlockVector3 origin = BlockVector3.at(originX, originY, originZ);
-            if (!isOverlapWithinThreshold(occupied, template.relativeBlocks(), origin, DETACHED_ASSET_OVERLAP_PERCENT)) {
+            if (!isOverlapWithinThreshold(occupied, relativeBlocks, origin, DETACHED_ASSET_OVERLAP_PERCENT)) {
                 mainOverlapRejects++;
                 continue;
             }
-            if (!isOverlapWithinThreshold(detachedOccupied, template.relativeBlocks(), origin, DETACHED_ASSET_INTERNAL_OVERLAP_PERCENT)) {
+            if (!isOverlapWithinThreshold(detachedOccupied, relativeBlocks, origin, DETACHED_ASSET_INTERNAL_OVERLAP_PERCENT)) {
                 detachedOverlapRejects++;
                 continue;
             }
             runtime.recordSuccess();
             return new AssetPlacementSearchResult(
-                    new AssetPlacement(type, template, origin),
+                    new AssetPlacement(type, template, origin, rotation),
                     attempts,
                     0,
                     outsideFieldRejects,
@@ -1673,22 +1675,24 @@ public final class StrongholdDebugGenerator {
                 if (!runtime.isNaturalTerrainAt(x, y, z)) {
                     continue;
                 }
+                int rotation = randomDetachedAssetRotation(template.type(), random);
+                List<BlockVector3> relativeBlocks = rotatedDetachedRelativeBlocks(template, rotation);
 
                 int originX = x - template.centerOffsetX();
                 int originZ = z - template.centerOffsetZ();
                 int originY = y - Math.min(0, template.lowestRelativeY());
                 BlockVector3 origin = BlockVector3.at(originX, originY, originZ);
-                if (!isOverlapWithinThreshold(occupied, template.relativeBlocks(), origin, DETACHED_ASSET_OVERLAP_PERCENT)) {
+                if (!isOverlapWithinThreshold(occupied, relativeBlocks, origin, DETACHED_ASSET_OVERLAP_PERCENT)) {
                     continue;
                 }
-                if (!isOverlapWithinThreshold(borderOccupied, template.relativeBlocks(), origin, DETACHED_ASSET_INTERNAL_OVERLAP_PERCENT)) {
+                if (!isOverlapWithinThreshold(borderOccupied, relativeBlocks, origin, DETACHED_ASSET_INTERNAL_OVERLAP_PERCENT)) {
                     continue;
                 }
 
-                AssetPlacement placement = new AssetPlacement(template.type(), template, origin);
+                AssetPlacement placement = new AssetPlacement(template.type(), template, origin, rotation);
                 pasteDetachedAsset(world, placement);
-                occupy(occupied, origin, template.blocks());
-                occupy(borderOccupied, origin, template.blocks());
+                occupy(occupied, origin, placement.blocks());
+                occupy(borderOccupied, origin, placement.blocks());
                 placedCount[0]++;
                 if (template.type() == AssetType.ROCK) {
                     rockPlacedCount[0]++;
@@ -1826,7 +1830,7 @@ public final class StrongholdDebugGenerator {
             if (placement == null || placement.template() == null || placement.origin() == null) {
                 continue;
             }
-            for (BlockVector3 rel : placement.template().blocks().keySet()) {
+            for (BlockVector3 rel : placement.blocks().keySet()) {
                 int x = placement.origin().getBlockX() + rel.getBlockX();
                 int z = placement.origin().getBlockZ() + rel.getBlockZ();
                 minX = Math.min(minX, x);
@@ -1846,9 +1850,8 @@ public final class StrongholdDebugGenerator {
         if (placement == null || placement.template() == null) {
             return;
         }
-        DetachedAssetTemplate template = placement.template();
         BlockVector3 origin = placement.origin();
-        for (Map.Entry<BlockVector3, BlockData> entry : template.blocks().entrySet()) {
+        for (Map.Entry<BlockVector3, BlockData> entry : placement.blocks().entrySet()) {
             BlockVector3 rel = entry.getKey();
             BlockData blockData = entry.getValue();
             int x = origin.getBlockX() + rel.getBlockX();
@@ -1856,6 +1859,66 @@ public final class StrongholdDebugGenerator {
             int z = origin.getBlockZ() + rel.getBlockZ();
             world.getBlockAt(x, y, z).setBlockData(blockData, false);
         }
+    }
+
+    private static int randomDetachedAssetRotation(AssetType type, Random random) {
+        if (type != AssetType.ROCK || random == null) {
+            return 0;
+        }
+        return random.nextInt(4);
+    }
+
+    private static List<BlockVector3> rotatedDetachedRelativeBlocks(DetachedAssetTemplate template, int rotation) {
+        if (template == null || template.relativeBlocks() == null || template.relativeBlocks().isEmpty()) {
+            return List.of();
+        }
+        int normalizedRotation = Math.floorMod(rotation, 4);
+        if (normalizedRotation == 0) {
+            return template.relativeBlocks();
+        }
+        List<BlockVector3> out = new ArrayList<>(template.relativeBlocks().size());
+        for (BlockVector3 rel : template.relativeBlocks()) {
+            out.add(rotateDetachedVector(rel, template.centerOffsetX(), template.centerOffsetZ(), normalizedRotation));
+        }
+        return out;
+    }
+
+    private static Map<BlockVector3, BlockData> rotatedDetachedBlocks(DetachedAssetTemplate template, int rotation) {
+        if (template == null || template.blocks() == null || template.blocks().isEmpty()) {
+            return Map.of();
+        }
+        int normalizedRotation = Math.floorMod(rotation, 4);
+        if (normalizedRotation == 0) {
+            return template.blocks();
+        }
+        Map<BlockVector3, BlockData> rotated = new HashMap<>();
+        for (Map.Entry<BlockVector3, BlockData> entry : template.blocks().entrySet()) {
+            BlockVector3 rotatedVector = rotateDetachedVector(
+                    entry.getKey(),
+                    template.centerOffsetX(),
+                    template.centerOffsetZ(),
+                    normalizedRotation
+            );
+            rotated.put(rotatedVector, rotateBlockData(entry.getValue(), normalizedRotation));
+        }
+        return rotated;
+    }
+
+    private static BlockVector3 rotateDetachedVector(BlockVector3 vector, int centerX, int centerZ, int rotation) {
+        if (vector == null || rotation == 0) {
+            return vector;
+        }
+        int dx = vector.getBlockX() - centerX;
+        int dz = vector.getBlockZ() - centerZ;
+        int rotatedX = dx;
+        int rotatedZ = dz;
+        for (int i = 0; i < rotation; i++) {
+            int nextX = -rotatedZ;
+            int nextZ = rotatedX;
+            rotatedX = nextX;
+            rotatedZ = nextZ;
+        }
+        return BlockVector3.at(centerX + rotatedX, vector.getBlockY(), centerZ + rotatedZ);
     }
 
     private static void logDetachedAssetDebug(String message) {
@@ -5474,9 +5537,13 @@ public final class StrongholdDebugGenerator {
         }
     }
 
-    private record AssetPlacement(AssetType type, DetachedAssetTemplate template, BlockVector3 origin) {
+    private record AssetPlacement(AssetType type, DetachedAssetTemplate template, BlockVector3 origin, int rotation) {
         private Map<BlockVector3, BlockData> blocks() {
-            return template == null ? Map.of() : template.blocks();
+            return template == null ? Map.of() : rotatedDetachedBlocks(template, rotation);
+        }
+
+        private List<BlockVector3> relativeBlocks() {
+            return template == null ? List.of() : rotatedDetachedRelativeBlocks(template, rotation);
         }
     }
 
