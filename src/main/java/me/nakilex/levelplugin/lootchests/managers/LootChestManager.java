@@ -23,6 +23,7 @@ import me.nakilex.levelplugin.potions.managers.PotionManager;
 import me.nakilex.levelplugin.salvage.managers.SalvageManager;
 import me.nakilex.levelplugin.utils.FurnitureCleanupUtil;
 import me.nakilex.levelplugin.utils.ModelEngineUtil;
+import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.TextUtil;
 import org.bukkit.*;
@@ -516,14 +517,14 @@ public class LootChestManager {
 
     public void playOpeningAnimation(int chestId, Inventory lootInventory) {
         if (containsRareLoot(lootInventory)) {
-            playChestAnimation(chestId, List.of("opening_rare", "opening", "open"), false);
+            playChestAnimation(chestId, "opening_rare", List.of("opening_rare", "opening", "open"), false);
             return;
         }
-        playChestAnimation(chestId, List.of("opening", "open"), false);
+        playChestAnimation(chestId, "opening", List.of("opening", "open"), false);
     }
 
     public void playClosingAnimation(int chestId) {
-        playChestAnimation(chestId, List.of("closing", "close"), false);
+        playChestAnimation(chestId, "closing", List.of("closing", "close"), false);
     }
 
     private void updateIdleMoveAnimation(int chestId, boolean playerVeryNear) {
@@ -533,22 +534,58 @@ public class LootChestManager {
         }
         chestIdleMoveState.put(chestId, playerVeryNear);
         if (playerVeryNear) {
-            playChestAnimation(chestId, List.of("idle_mouve", "idle_move", "idle", "move"), true);
+            playChestAnimation(chestId, "idle_mouve", List.of("idle_mouve", "idle_move", "idle", "move"), true);
             return;
         }
-        playChestAnimation(chestId, List.of("idle"), true);
+        playChestAnimation(chestId, "idle", List.of("idle"), true);
     }
 
-    private boolean playChestAnimation(int chestId, List<String> keywords, boolean loop) {
+    private boolean playChestAnimation(int chestId, String requestedAnimation, List<String> keywords, boolean loop) {
         UUID entityId = spawnedChestModels.get(chestId);
         if (entityId == null) {
+            sendChestAnimationDebug(chestId, requestedAnimation, keywords, loop, null, false, "no_model_entity");
             return false;
         }
         Entity modelEntity = Bukkit.getEntity(entityId);
         if (modelEntity == null || !modelEntity.isValid()) {
+            sendChestAnimationDebug(chestId, requestedAnimation, keywords, loop, null, false, "invalid_model_entity");
             return false;
         }
-        return ModelEngineUtil.playBestAnimation(modelEntity, keywords, loop, false);
+        String resolved = ModelEngineUtil.playBestAnimationResolved(modelEntity, keywords, loop, false);
+        boolean played = resolved != null && !resolved.isBlank();
+        sendChestAnimationDebug(chestId, requestedAnimation, keywords, loop, resolved, played, played ? "ok" : "no_match");
+        return played;
+    }
+
+    private void sendChestAnimationDebug(int chestId,
+                                         String requestedAnimation,
+                                         List<String> keywords,
+                                         boolean loop,
+                                         String resolved,
+                                         boolean played,
+                                         String reason) {
+        Location chestLoc = spawnedChests.get(chestId);
+        if (chestLoc == null || chestLoc.getWorld() == null) {
+            return;
+        }
+        String message = ChatColor.DARK_GRAY + "[LootChestAnim] "
+                + ChatColor.GRAY + "#" + chestId
+                + ChatColor.GRAY + " req=" + ChatColor.AQUA + requestedAnimation
+                + ChatColor.GRAY + " keywords=" + ChatColor.WHITE + keywords
+                + ChatColor.GRAY + " loop=" + ChatColor.WHITE + loop
+                + ChatColor.GRAY + " result="
+                + (played
+                ? ChatColor.GREEN + "played(" + resolved + ")"
+                : ChatColor.RED + "failed(" + reason + ")");
+        for (Player nearby : chestLoc.getWorld().getPlayers()) {
+            if (nearby.getLocation().distanceSquared(chestLoc) > 18 * 18) {
+                continue;
+            }
+            if (!nearby.isOp() && !nearby.hasPermission("levelplugin.debug")) {
+                continue;
+            }
+            ChatMessageUtil.send(nearby, ChatMessageUtil.MessageType.INFO, message);
+        }
     }
 
     private boolean containsRareLoot(Inventory inventory) {
