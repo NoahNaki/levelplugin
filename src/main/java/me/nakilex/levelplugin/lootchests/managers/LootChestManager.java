@@ -23,7 +23,6 @@ import me.nakilex.levelplugin.potions.managers.PotionManager;
 import me.nakilex.levelplugin.salvage.managers.SalvageManager;
 import me.nakilex.levelplugin.utils.FurnitureCleanupUtil;
 import me.nakilex.levelplugin.utils.ModelEngineUtil;
-import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.TextUtil;
 import org.bukkit.*;
@@ -519,18 +518,20 @@ public class LootChestManager {
 
     public void playOpeningAnimation(int chestId, Inventory lootInventory) {
         lockIdleAnimation(chestId, 40L);
+        playChestSound(chestId, Sound.BLOCK_CHEST_OPEN, 0.95f, 1.05f);
         if (containsRareLoot(lootInventory)) {
-            playChestAnimation(chestId, "opening_rare", List.of("opening_rare", "opening", "open"), false);
+            playChestAnimation(chestId, List.of("opening_rare", "opening", "open"), false);
             return;
         }
-        playChestAnimation(chestId, "opening", List.of("opening", "open"), false);
+        playChestAnimation(chestId, List.of("opening", "open"), false);
     }
 
     public void playClosingAnimation(int chestId) {
         lockIdleAnimation(chestId, 40L);
+        playChestSound(chestId, Sound.BLOCK_CHEST_CLOSE, 0.95f, 1.0f);
         Location chestLoc = spawnedChests.get(chestId);
         if (chestLoc == null || chestLoc.getWorld() == null) {
-            playChestAnimation(chestId, "closing", List.of("closing", "close"), false);
+            playChestAnimation(chestId, List.of("closing", "close"), false);
             return;
         }
 
@@ -577,58 +578,34 @@ public class LootChestManager {
         }
         chestIdleMoveState.put(chestId, playerVeryNear);
         if (playerVeryNear) {
-            playChestAnimation(chestId, "idle_mouve", List.of("idle_mouve", "idle_move", "idle", "move"), true);
+            playChestAnimation(chestId, List.of("idle_mouve", "idle_move", "idle", "move"), true);
             return;
         }
-        playChestAnimation(chestId, "idle", List.of("idle"), true);
+        playChestAnimation(chestId, List.of("idle"), true);
     }
 
-    private boolean playChestAnimation(int chestId, String requestedAnimation, List<String> keywords, boolean loop) {
+    private boolean playChestAnimation(int chestId, List<String> keywords, boolean loop) {
         UUID entityId = spawnedChestModels.get(chestId);
         if (entityId == null) {
-            sendChestAnimationDebug(chestId, requestedAnimation, keywords, loop, null, false, "no_model_entity");
             return false;
         }
         Entity modelEntity = Bukkit.getEntity(entityId);
         if (modelEntity == null || !modelEntity.isValid()) {
-            sendChestAnimationDebug(chestId, requestedAnimation, keywords, loop, null, false, "invalid_model_entity");
             return false;
         }
         String resolved = ModelEngineUtil.playBestAnimationResolved(modelEntity, keywords, loop, false);
-        boolean played = resolved != null && !resolved.isBlank();
-        sendChestAnimationDebug(chestId, requestedAnimation, keywords, loop, resolved, played, played ? "ok" : "no_match");
-        return played;
+        return resolved != null && !resolved.isBlank();
     }
 
-    private void sendChestAnimationDebug(int chestId,
-                                         String requestedAnimation,
-                                         List<String> keywords,
-                                         boolean loop,
-                                         String resolved,
-                                         boolean played,
-                                         String reason) {
+    private void playChestSound(int chestId, Sound sound, float volume, float pitch) {
+        if (sound == null) {
+            return;
+        }
         Location chestLoc = spawnedChests.get(chestId);
         if (chestLoc == null || chestLoc.getWorld() == null) {
             return;
         }
-        String message = ChatColor.DARK_GRAY + "[LootChestAnim] "
-                + ChatColor.GRAY + "#" + chestId
-                + ChatColor.GRAY + " req=" + ChatColor.AQUA + requestedAnimation
-                + ChatColor.GRAY + " keywords=" + ChatColor.WHITE + keywords
-                + ChatColor.GRAY + " loop=" + ChatColor.WHITE + loop
-                + ChatColor.GRAY + " result="
-                + (played
-                ? ChatColor.GREEN + "played(" + resolved + ")"
-                : ChatColor.RED + "failed(" + reason + ")");
-        for (Player nearby : chestLoc.getWorld().getPlayers()) {
-            if (nearby.getLocation().distanceSquared(chestLoc) > 18 * 18) {
-                continue;
-            }
-            if (!nearby.isOp() && !nearby.hasPermission("levelplugin.debug")) {
-                continue;
-            }
-            ChatMessageUtil.send(nearby, ChatMessageUtil.MessageType.INFO, message);
-        }
+        chestLoc.getWorld().playSound(chestLoc, sound, volume, pitch);
     }
 
     private void lockIdleAnimation(int chestId, long ticks) {

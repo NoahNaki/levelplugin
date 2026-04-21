@@ -12,7 +12,10 @@ import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.ChunkSnapshot;
+import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.Particle;
+import org.bukkit.Sound;
 import org.bukkit.Tag;
 import org.bukkit.World;
 import org.bukkit.WorldType;
@@ -22,7 +25,15 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Directional;
 import org.bukkit.block.data.Orientable;
 import org.bukkit.block.data.Rotatable;
+import org.bukkit.entity.Display;
+import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Interaction;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.TextDisplay;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerInteractAtEntityEvent;
+import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.util.ArrayList;
@@ -40,6 +51,8 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.IdentityHashMap;
+import java.util.Iterator;
+import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -52,6 +65,7 @@ public final class StrongholdDebugGenerator {
             Material.REDSTONE_BLOCK,
             Material.LAPIS_BLOCK,
             Material.GOLD_BLOCK,
+            Material.DIAMOND_BLOCK,
             Material.LIGHT_BLUE_CONCRETE,
             Material.WHITE_CONCRETE
     );
@@ -59,7 +73,8 @@ public final class StrongholdDebugGenerator {
     private static final Set<Material> TEMPLATE_MARKER_MATERIALS = Set.of(
             Material.REDSTONE_BLOCK,
             Material.LAPIS_BLOCK,
-            Material.GOLD_BLOCK
+            Material.GOLD_BLOCK,
+            Material.DIAMOND_BLOCK
     );
     private static final List<Material> DEFAULT_STRONGHOLD_FLOOR_PATTERN = List.of(
             Material.PACKED_MUD,
@@ -157,6 +172,16 @@ public final class StrongholdDebugGenerator {
 
     private static final String SOURCE_WORLD = "flatland";
     private static final String GENERATED_WORLD_PREFIX = "stronghold_debug_";
+    private static final String STRONGHOLD_DOOR_TAG = "stronghold_door_hologram";
+    private static final double DOOR_HOLOGRAM_ACTIVATION_RANGE_SQUARED = 14 * 14;
+    private static final Map<String, String> CLOSED_TO_OPEN_TEMPLATE = Map.of(
+            "straight_3", "straight_2",
+            "straight_5", "straight_4"
+    );
+    private static final Map<String, String> OPEN_TO_CLOSED_TEMPLATE = Map.of(
+            "straight_2", "straight_3",
+            "straight_4", "straight_5"
+    );
 
     private static final int DEFAULT_SPINE_LENGTH = 12;
     private static final int MAX_BRANCH_LENGTH = 6;
@@ -225,6 +250,10 @@ public final class StrongholdDebugGenerator {
     private static final Map<Template, RotatedTemplate[]> ROTATION_CACHE = new IdentityHashMap<>();
     private static final Map<String, BlockData[]> BLOCK_DATA_ROTATION_CACHE = new HashMap<>();
     private static final Map<String, com.sk89q.worldedit.world.block.BlockState> WORLD_EDIT_BLOCK_STATE_CACHE = new HashMap<>();
+    private static final Map<Integer, DoorInteractionState> doorInteractionsByEntityId = new HashMap<>();
+    private static final Map<UUID, List<DoorInteractionState>> doorInteractionsByWorld = new HashMap<>();
+    private static boolean doorInteractionListenerRegistered;
+    private static BukkitTask doorInteractionUpdateTask;
     private static CapturedTemplates cachedCapturedTemplates;
     private static Map<AssetType, List<DetachedAssetTemplate>> cachedDetachedAssetTemplates;
     private static Map<String, TemplateConnectionInfo> cachedTemplateConnectionInfo;
@@ -394,7 +423,7 @@ public final class StrongholdDebugGenerator {
         timing.processFinished("Initialize generation state", processStart);
 
         processStart = timing.processStarted("Pick start template");
-        TemplateSpec startSpec = pickWeighted(eligibleWallPool(captured.walls()), random);
+        TemplateSpec startSpec = pickWeighted(eligibleWallPool(normalizedWallsForGeneration(captured.walls())), random);
         timing.processFinished("Pick start template", processStart);
         if (startSpec == null) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
@@ -459,7 +488,7 @@ public final class StrongholdDebugGenerator {
 
         processStart = timing.processStarted("Build template candidate pools");
         List<TemplateSpec> allCandidateTemplates = new ArrayList<>();
-        allCandidateTemplates.addAll(captured.walls());
+        allCandidateTemplates.addAll(normalizedWallsForGeneration(captured.walls()));
         allCandidateTemplates.addAll(captured.largeJunctions());
         allCandidateTemplates.addAll(captured.deadEnds());
         timing.processFinished("Build template candidate pools", processStart);
@@ -582,14 +611,18 @@ public final class StrongholdDebugGenerator {
 
         processStart = timing.processStarted("Teleport + queue detached pasting");
         player.teleport(new org.bukkit.Location(world, originX + 0.5, originY + 2, originZ + 0.5));
+        spawnDoorOpenInteractions(world, placed, player);
         schedulePostTeleportEnhancements(sourceWorld, world, pastePlan.deferredTemplates(), placed, occupied, player, random, originY);
         timing.processFinished("Teleport + queue detached pasting", processStart);
 
         processStart = timing.processStarted("Send generation diagnostics");
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                "Generated stronghold spine+branches using " + placed.size()
-                        + " pieces in world '" + world.getName() + "' (overlap threshold: "
-                        + String.format("%.2f", maxOverlapPercent) + "%).");
+                ChatColor.GOLD + "" + ChatColor.BOLD + "STRONGHOLD GENERATED "
+                        + ChatColor.GRAY + "• "
+                        + ChatColor.WHITE + placed.size() + ChatColor.GRAY + " pieces "
+                        + ChatColor.DARK_GRAY + "(" + ChatColor.GRAY + world.getName()
+                        + ChatColor.DARK_GRAY + ", " + ChatColor.GRAY + "overlap "
+                        + ChatColor.WHITE + String.format("%.2f", maxOverlapPercent) + "%" + ChatColor.DARK_GRAY + ")");
         String viableOutputSummary = ENABLE_EXPENSIVE_DIAGNOSTICS
                 ? String.valueOf(countViableOpenOutputs(placed, captured, occupied))
                 : "skipped";
@@ -658,7 +691,7 @@ public final class StrongholdDebugGenerator {
         }
 
         List<TemplateSpec> wallPool = new ArrayList<>();
-        for (TemplateSpec wall : captured.walls()) {
+        for (TemplateSpec wall : normalizedWallsForGeneration(captured.walls())) {
             if (wall.id.startsWith("straight_")) {
                 wallPool.add(wall);
             }
@@ -673,7 +706,7 @@ public final class StrongholdDebugGenerator {
             wallPool = linearWallPool;
         }
         if (wallPool.isEmpty()) {
-            wallPool.addAll(captured.walls());
+            wallPool.addAll(normalizedWallsForGeneration(captured.walls()));
         }
         if (wallPool.isEmpty()) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "No wall templates found for towerwall preset.");
@@ -711,8 +744,12 @@ public final class StrongholdDebugGenerator {
         applyStrongholdFloorNoise(world, placed);
         applyTemplateMarkerActions(sourceWorld, world, placed, ThreadLocalRandom.current());
         player.teleport(new org.bukkit.Location(world, originX + 0.5, originY + 2, originZ + 0.5));
+        spawnDoorOpenInteractions(world, placed, player);
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                "Generated towerwall cross preset using " + placed.size() + " pieces in world '" + world.getName() + "'.");
+                ChatColor.GOLD + "" + ChatColor.BOLD + "TOWERWALL GENERATED "
+                        + ChatColor.GRAY + "• "
+                        + ChatColor.WHITE + placed.size() + ChatColor.GRAY + " pieces "
+                        + ChatColor.DARK_GRAY + "(" + ChatColor.GRAY + world.getName() + ChatColor.DARK_GRAY + ")");
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                 "Towerwall diagnostics -> remaining open outputs: " + countOpenOutputs(placed)
                         + ", viable next outputs: skipped"
@@ -956,6 +993,8 @@ public final class StrongholdDebugGenerator {
             }
             attempts++;
             DetachedAssetTemplate template = candidates.get(random.nextInt(candidates.size()));
+            int rotation = randomDetachedAssetRotation(type, random);
+            List<BlockVector3> relativeBlocks = rotatedDetachedRelativeBlocks(template, rotation);
             BlockVector3 sample = samplePatchPoint(field, random);
             int x = sample.getBlockX();
             int z = sample.getBlockZ();
@@ -973,17 +1012,17 @@ public final class StrongholdDebugGenerator {
             int originZ = z - template.centerOffsetZ();
             int originY = y - Math.min(0, template.lowestRelativeY());
             BlockVector3 origin = BlockVector3.at(originX, originY, originZ);
-            if (!isOverlapWithinThreshold(occupied, template.relativeBlocks(), origin, DETACHED_ASSET_OVERLAP_PERCENT)) {
+            if (!isOverlapWithinThreshold(occupied, relativeBlocks, origin, DETACHED_ASSET_OVERLAP_PERCENT)) {
                 mainOverlapRejects++;
                 continue;
             }
-            if (!isOverlapWithinThreshold(detachedOccupied, template.relativeBlocks(), origin, DETACHED_ASSET_INTERNAL_OVERLAP_PERCENT)) {
+            if (!isOverlapWithinThreshold(detachedOccupied, relativeBlocks, origin, DETACHED_ASSET_INTERNAL_OVERLAP_PERCENT)) {
                 detachedOverlapRejects++;
                 continue;
             }
             runtime.recordSuccess();
             return new AssetPlacementSearchResult(
-                    new AssetPlacement(type, template, origin),
+                    new AssetPlacement(type, template, origin, rotation),
                     attempts,
                     0,
                     outsideFieldRejects,
@@ -1642,22 +1681,24 @@ public final class StrongholdDebugGenerator {
                 if (!runtime.isNaturalTerrainAt(x, y, z)) {
                     continue;
                 }
+                int rotation = randomDetachedAssetRotation(template.type(), random);
+                List<BlockVector3> relativeBlocks = rotatedDetachedRelativeBlocks(template, rotation);
 
                 int originX = x - template.centerOffsetX();
                 int originZ = z - template.centerOffsetZ();
                 int originY = y - Math.min(0, template.lowestRelativeY());
                 BlockVector3 origin = BlockVector3.at(originX, originY, originZ);
-                if (!isOverlapWithinThreshold(occupied, template.relativeBlocks(), origin, DETACHED_ASSET_OVERLAP_PERCENT)) {
+                if (!isOverlapWithinThreshold(occupied, relativeBlocks, origin, DETACHED_ASSET_OVERLAP_PERCENT)) {
                     continue;
                 }
-                if (!isOverlapWithinThreshold(borderOccupied, template.relativeBlocks(), origin, DETACHED_ASSET_INTERNAL_OVERLAP_PERCENT)) {
+                if (!isOverlapWithinThreshold(borderOccupied, relativeBlocks, origin, DETACHED_ASSET_INTERNAL_OVERLAP_PERCENT)) {
                     continue;
                 }
 
-                AssetPlacement placement = new AssetPlacement(template.type(), template, origin);
+                AssetPlacement placement = new AssetPlacement(template.type(), template, origin, rotation);
                 pasteDetachedAsset(world, placement);
-                occupy(occupied, origin, template.blocks());
-                occupy(borderOccupied, origin, template.blocks());
+                occupy(occupied, origin, placement.blocks());
+                occupy(borderOccupied, origin, placement.blocks());
                 placedCount[0]++;
                 if (template.type() == AssetType.ROCK) {
                     rockPlacedCount[0]++;
@@ -1795,7 +1836,7 @@ public final class StrongholdDebugGenerator {
             if (placement == null || placement.template() == null || placement.origin() == null) {
                 continue;
             }
-            for (BlockVector3 rel : placement.template().blocks().keySet()) {
+            for (BlockVector3 rel : placement.blocks().keySet()) {
                 int x = placement.origin().getBlockX() + rel.getBlockX();
                 int z = placement.origin().getBlockZ() + rel.getBlockZ();
                 minX = Math.min(minX, x);
@@ -1815,9 +1856,8 @@ public final class StrongholdDebugGenerator {
         if (placement == null || placement.template() == null) {
             return;
         }
-        DetachedAssetTemplate template = placement.template();
         BlockVector3 origin = placement.origin();
-        for (Map.Entry<BlockVector3, BlockData> entry : template.blocks().entrySet()) {
+        for (Map.Entry<BlockVector3, BlockData> entry : placement.blocks().entrySet()) {
             BlockVector3 rel = entry.getKey();
             BlockData blockData = entry.getValue();
             int x = origin.getBlockX() + rel.getBlockX();
@@ -1825,6 +1865,66 @@ public final class StrongholdDebugGenerator {
             int z = origin.getBlockZ() + rel.getBlockZ();
             world.getBlockAt(x, y, z).setBlockData(blockData, false);
         }
+    }
+
+    private static int randomDetachedAssetRotation(AssetType type, Random random) {
+        if (type != AssetType.ROCK || random == null) {
+            return 0;
+        }
+        return random.nextInt(4);
+    }
+
+    private static List<BlockVector3> rotatedDetachedRelativeBlocks(DetachedAssetTemplate template, int rotation) {
+        if (template == null || template.relativeBlocks() == null || template.relativeBlocks().isEmpty()) {
+            return List.of();
+        }
+        int normalizedRotation = Math.floorMod(rotation, 4);
+        if (normalizedRotation == 0) {
+            return template.relativeBlocks();
+        }
+        List<BlockVector3> out = new ArrayList<>(template.relativeBlocks().size());
+        for (BlockVector3 rel : template.relativeBlocks()) {
+            out.add(rotateDetachedVector(rel, template.centerOffsetX(), template.centerOffsetZ(), normalizedRotation));
+        }
+        return out;
+    }
+
+    private static Map<BlockVector3, BlockData> rotatedDetachedBlocks(DetachedAssetTemplate template, int rotation) {
+        if (template == null || template.blocks() == null || template.blocks().isEmpty()) {
+            return Map.of();
+        }
+        int normalizedRotation = Math.floorMod(rotation, 4);
+        if (normalizedRotation == 0) {
+            return template.blocks();
+        }
+        Map<BlockVector3, BlockData> rotated = new HashMap<>();
+        for (Map.Entry<BlockVector3, BlockData> entry : template.blocks().entrySet()) {
+            BlockVector3 rotatedVector = rotateDetachedVector(
+                    entry.getKey(),
+                    template.centerOffsetX(),
+                    template.centerOffsetZ(),
+                    normalizedRotation
+            );
+            rotated.put(rotatedVector, rotateBlockData(entry.getValue(), normalizedRotation));
+        }
+        return rotated;
+    }
+
+    private static BlockVector3 rotateDetachedVector(BlockVector3 vector, int centerX, int centerZ, int rotation) {
+        if (vector == null || rotation == 0) {
+            return vector;
+        }
+        int dx = vector.getBlockX() - centerX;
+        int dz = vector.getBlockZ() - centerZ;
+        int rotatedX = dx;
+        int rotatedZ = dz;
+        for (int i = 0; i < rotation; i++) {
+            int nextX = -rotatedZ;
+            int nextZ = rotatedX;
+            rotatedX = nextX;
+            rotatedZ = nextZ;
+        }
+        return BlockVector3.at(centerX + rotatedX, vector.getBlockY(), centerZ + rotatedZ);
     }
 
     private static void logDetachedAssetDebug(String message) {
@@ -1879,6 +1979,27 @@ public final class StrongholdDebugGenerator {
             }
         }
         return pool;
+    }
+
+    private static List<TemplateSpec> normalizedWallsForGeneration(List<TemplateSpec> walls) {
+        List<TemplateSpec> normalized = new ArrayList<>();
+        if (walls == null || walls.isEmpty()) {
+            return normalized;
+        }
+        Map<String, TemplateSpec> byId = new HashMap<>();
+        for (TemplateSpec wall : walls) {
+            if (wall != null && wall.id != null) {
+                byId.put(wall.id, wall);
+            }
+        }
+        for (TemplateSpec wall : walls) {
+            if (wall == null || wall.id == null) {
+                continue;
+            }
+            String closedId = OPEN_TO_CLOSED_TEMPLATE.getOrDefault(wall.id, wall.id);
+            normalized.add(byId.getOrDefault(closedId, wall));
+        }
+        return normalized;
     }
 
     private static List<BlockFace> distinctOpenSides(PlacedTemplate placed) {
@@ -2583,8 +2704,9 @@ public final class StrongholdDebugGenerator {
     }
 
     private static List<TemplateSpec> preferredLinkWallPool(CapturedTemplates captured) {
+        List<TemplateSpec> normalizedWalls = normalizedWallsForGeneration(captured.walls());
         List<TemplateSpec> straightWalls = new ArrayList<>();
-        for (TemplateSpec wall : captured.walls()) {
+        for (TemplateSpec wall : normalizedWalls) {
             if (isLinearWallTemplate(wall)) {
                 straightWalls.add(wall);
             }
@@ -2592,7 +2714,7 @@ public final class StrongholdDebugGenerator {
         if (!straightWalls.isEmpty()) {
             return straightWalls;
         }
-        return captured.walls();
+        return normalizedWalls;
     }
 
     private static BlockFace pickOpenSideToward(PlacedTemplate current,
@@ -3610,7 +3732,7 @@ public final class StrongholdDebugGenerator {
                                                            PlacedTemplate current,
                                                            PlacementState state,
                                                            boolean allowLarge) {
-        List<TemplateSpec> pool = eligibleWallPool(captured.walls());
+        List<TemplateSpec> pool = eligibleWallPool(normalizedWallsForGeneration(captured.walls()));
         if (allowLarge && canPlaceLargeAfter(current, state)) {
             for (TemplateSpec large : captured.largeJunctions()) {
                 if (canUseSpec(large, state)) {
@@ -4347,6 +4469,340 @@ public final class StrongholdDebugGenerator {
         return WORLD_EDIT_BLOCK_STATE_CACHE.computeIfAbsent(key, ignored -> BukkitAdapter.adapt(data));
     }
 
+    private static void spawnDoorOpenInteractions(World world, List<PlacedTemplate> placedTemplates, Player focusPlayer) {
+        if (world == null || placedTemplates == null || placedTemplates.isEmpty() || focusPlayer == null) {
+            return;
+        }
+        ensureDoorInteractionListenerRegistered();
+        clearDoorInteractions(world);
+
+        CapturedTemplates captured = loadCapturedTemplates(false);
+        if (captured == null) {
+            return;
+        }
+
+        List<TemplateSpec> allSpecs = new ArrayList<>();
+        allSpecs.addAll(captured.walls());
+        allSpecs.addAll(captured.largeJunctions());
+        allSpecs.addAll(captured.deadEnds());
+        allSpecs.add(captured.connector());
+
+        for (PlacedTemplate placed : placedTemplates) {
+            if (placed == null || placed.spec == null || placed.origin == null) {
+                continue;
+            }
+            String openTemplateId = CLOSED_TO_OPEN_TEMPLATE.get(placed.spec.id);
+            if (openTemplateId == null) {
+                continue;
+            }
+            TemplateSpec openSpec = findTemplateById(allSpecs, openTemplateId);
+            if (openSpec == null || openSpec.template == null) {
+                continue;
+            }
+
+            DoorMarkerSelection markerSelection = pickClosestDoorMarkerSide(world, placed, focusPlayer.getLocation());
+            if (markerSelection == null) {
+                continue;
+            }
+            clearDoorPlaceholderBlocks(world, placed);
+
+            DoorInteractionState state = spawnDoorHologramForTemplate(world, placed, openSpec, markerSelection);
+            if (state == null) {
+                continue;
+            }
+            doorInteractionsByEntityId.put(state.interaction().getEntityId(), state);
+            doorInteractionsByWorld.computeIfAbsent(world.getUID(), ignored -> new ArrayList<>()).add(state);
+        }
+    }
+
+    private static DoorMarkerSelection pickClosestDoorMarkerSide(World world, PlacedTemplate placed, Location reference) {
+        RotatedTemplate rotated = rotateTemplate(placed.spec.template, placed.rotation);
+        List<BlockVector3> doorMarkers = rotated.markers().get(Material.DIAMOND_BLOCK);
+        if (doorMarkers == null || doorMarkers.size() < 2 || world == null || reference == null) {
+            return null;
+        }
+
+        Location markerOne = absoluteMarkerLocation(world, placed.origin, doorMarkers.get(0));
+        Location markerTwo = absoluteMarkerLocation(world, placed.origin, doorMarkers.get(1));
+        if (markerOne == null || markerTwo == null) {
+            return null;
+        }
+
+        double distOne = markerOne.distanceSquared(reference);
+        double distTwo = markerTwo.distanceSquared(reference);
+        Location closest = distOne <= distTwo ? markerOne : markerTwo;
+        return new DoorMarkerSelection(closest, markerOne, markerTwo);
+    }
+
+    private static Location absoluteMarkerLocation(World world, BlockVector3 origin, BlockVector3 relative) {
+        if (world == null || origin == null || relative == null) {
+            return null;
+        }
+        return new Location(
+                world,
+                origin.getBlockX() + relative.getBlockX() + 0.5,
+                origin.getBlockY() + relative.getBlockY() + 0.5,
+                origin.getBlockZ() + relative.getBlockZ() + 0.5
+        );
+    }
+
+    private static void clearDoorPlaceholderBlocks(World world, PlacedTemplate placed) {
+        if (world == null || placed == null || placed.spec == null || placed.spec.template == null) {
+            return;
+        }
+        RotatedTemplate rotated = rotateTemplate(placed.spec.template, placed.rotation);
+        List<BlockVector3> doorMarkers = rotated.markers().get(Material.DIAMOND_BLOCK);
+        if (doorMarkers == null || doorMarkers.isEmpty()) {
+            return;
+        }
+        for (BlockVector3 marker : doorMarkers) {
+            int x = placed.origin.getBlockX() + marker.getBlockX();
+            int y = placed.origin.getBlockY() + marker.getBlockY();
+            int z = placed.origin.getBlockZ() + marker.getBlockZ();
+            world.getBlockAt(x, y, z).setType(Material.AIR, false);
+        }
+    }
+
+    private static DoorInteractionState spawnDoorHologramForTemplate(World world,
+                                                                     PlacedTemplate closedPlaced,
+                                                                     TemplateSpec openSpec,
+                                                                     DoorMarkerSelection markers) {
+        if (world == null || closedPlaced == null || openSpec == null || markers == null || markers.closestSide() == null) {
+            return null;
+        }
+        Location base = markers.closestSide().clone().add(0, 0.65, 0);
+        Interaction interaction = world.spawn(base, Interaction.class, entity -> {
+            entity.setInvulnerable(true);
+            entity.setGravity(false);
+            entity.setInteractionWidth(0.1f);
+            entity.setInteractionHeight(0.1f);
+            entity.addScoreboardTag(STRONGHOLD_DOOR_TAG);
+        });
+
+        TextDisplay display = (TextDisplay) world.spawnEntity(base.clone().add(0, 0.75, 0), EntityType.TEXT_DISPLAY);
+        display.setBillboard(Display.Billboard.CENTER);
+        display.setShadowRadius(0f);
+        display.setShadowStrength(0f);
+        display.setBackgroundColor(org.bukkit.Color.fromARGB(0, 0, 0, 0));
+        display.setText("");
+        display.addScoreboardTag(STRONGHOLD_DOOR_TAG);
+
+        return new DoorInteractionState(closedPlaced, openSpec, markers.markerOne(), markers.markerTwo(), interaction, display);
+    }
+
+    private static void ensureDoorInteractionListenerRegistered() {
+        if (doorInteractionListenerRegistered) {
+            return;
+        }
+        Main plugin = Main.getInstance();
+        if (plugin == null) {
+            return;
+        }
+        Bukkit.getPluginManager().registerEvents(new StrongholdDoorInteractionListener(), plugin);
+        doorInteractionListenerRegistered = true;
+        ensureDoorInteractionUpdater(plugin);
+    }
+
+    private static void ensureDoorInteractionUpdater(Main plugin) {
+        if (plugin == null || doorInteractionUpdateTask != null) {
+            return;
+        }
+        doorInteractionUpdateTask = Bukkit.getScheduler().runTaskTimer(plugin,
+                StrongholdDebugGenerator::refreshDoorHologramAnchors, 1L, 10L);
+    }
+
+    private static void clearDoorInteractions(World world) {
+        if (world == null) {
+            return;
+        }
+        List<DoorInteractionState> states = doorInteractionsByWorld.remove(world.getUID());
+        if (states == null || states.isEmpty()) {
+            return;
+        }
+        for (DoorInteractionState state : states) {
+            if (state == null) {
+                continue;
+            }
+            if (state.interaction() != null) {
+                doorInteractionsByEntityId.remove(state.interaction().getEntityId());
+            }
+            if (state.interaction() != null && state.interaction().isValid()) {
+                state.interaction().remove();
+            }
+            if (state.display() != null && state.display().isValid()) {
+                state.display().remove();
+            }
+        }
+    }
+
+    private static void refreshDoorHologramAnchors() {
+        if (doorInteractionsByWorld.isEmpty()) {
+            return;
+        }
+        for (Iterator<Map.Entry<UUID, List<DoorInteractionState>>> iterator = doorInteractionsByWorld.entrySet().iterator(); iterator.hasNext(); ) {
+            Map.Entry<UUID, List<DoorInteractionState>> entry = iterator.next();
+            List<DoorInteractionState> states = entry.getValue();
+            if (states == null || states.isEmpty()) {
+                iterator.remove();
+                continue;
+            }
+            states.removeIf(state -> state == null
+                    || state.interaction() == null
+                    || state.display() == null
+                    || !state.interaction().isValid()
+                    || !state.display().isValid());
+            if (states.isEmpty()) {
+                iterator.remove();
+                continue;
+            }
+            for (DoorInteractionState state : states) {
+                refreshSingleDoorHologramAnchor(state);
+            }
+        }
+    }
+
+    private static void refreshSingleDoorHologramAnchor(DoorInteractionState state) {
+        Player nearest = nearestPlayer(state);
+        if (nearest == null) {
+            hideDoorHologram(state);
+            return;
+        }
+        Location midpoint = midpoint(state.markerOne(), state.markerTwo());
+        if (midpoint == null || midpoint.getWorld() == null
+                || nearest.getLocation().distanceSquared(midpoint) > DOOR_HOLOGRAM_ACTIVATION_RANGE_SQUARED) {
+            hideDoorHologram(state);
+            return;
+        }
+
+        Location target = closerMarker(state.markerOne(), state.markerTwo(), nearest.getLocation());
+        if (target == null) {
+            hideDoorHologram(state);
+            return;
+        }
+        Location base = target.clone().add(0, 0.65, 0);
+        state.interaction().teleport(base);
+        state.interaction().setInteractionWidth(1.8f);
+        state.interaction().setInteractionHeight(2.0f);
+        state.display().teleport(base.clone().add(0, 0.75, 0));
+        state.display().setText(ChatColor.GOLD + "Right click to open");
+    }
+
+    private static void hideDoorHologram(DoorInteractionState state) {
+        Location hidden = midpoint(state.markerOne(), state.markerTwo());
+        if (hidden == null) {
+            return;
+        }
+        hidden.add(0, -32, 0);
+        state.interaction().teleport(hidden);
+        state.interaction().setInteractionWidth(0.1f);
+        state.interaction().setInteractionHeight(0.1f);
+        state.display().teleport(hidden);
+        state.display().setText("");
+    }
+
+    private static Player nearestPlayer(DoorInteractionState state) {
+        if (state == null || state.markerOne() == null || state.markerOne().getWorld() == null) {
+            return null;
+        }
+        World world = state.markerOne().getWorld();
+        Location center = midpoint(state.markerOne(), state.markerTwo());
+        if (center == null) {
+            return null;
+        }
+        Player best = null;
+        double bestDistance = Double.MAX_VALUE;
+        for (Player player : world.getPlayers()) {
+            if (player == null || !player.isOnline()) {
+                continue;
+            }
+            double distance = player.getLocation().distanceSquared(center);
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                best = player;
+            }
+        }
+        return best;
+    }
+
+    private static Location closerMarker(Location markerOne, Location markerTwo, Location reference) {
+        if (markerOne == null || markerTwo == null || reference == null) {
+            return null;
+        }
+        return markerOne.distanceSquared(reference) <= markerTwo.distanceSquared(reference) ? markerOne : markerTwo;
+    }
+
+    private static Location midpoint(Location one, Location two) {
+        if (one == null || two == null || one.getWorld() == null || two.getWorld() == null
+                || !one.getWorld().equals(two.getWorld())) {
+            return null;
+        }
+        return new Location(
+                one.getWorld(),
+                (one.getX() + two.getX()) / 2.0,
+                (one.getY() + two.getY()) / 2.0,
+                (one.getZ() + two.getZ()) / 2.0
+        );
+    }
+
+    private static void handleDoorInteraction(Player player, Interaction interaction) {
+        if (player == null || interaction == null) {
+            return;
+        }
+        DoorInteractionState state = doorInteractionsByEntityId.get(interaction.getEntityId());
+        if (state == null) {
+            return;
+        }
+        World world = interaction.getWorld();
+        if (world == null || state.openTemplate() == null || state.openTemplate().template() == null) {
+            return;
+        }
+
+        replacePlacedTemplate(world, state.closedTemplate(), state.openTemplate());
+        clearDoorPlaceholderBlocks(world, new PlacedTemplate(
+                state.openTemplate(),
+                state.closedTemplate().rotation,
+                state.closedTemplate().origin
+        ));
+
+        Location fx = midpoint(state.markerOne(), state.markerTwo());
+        if (fx == null) {
+            fx = interaction.getLocation();
+        }
+        world.spawnParticle(Particle.CLOUD, fx, 30, 0.6, 0.8, 0.6, 0.01);
+        world.spawnParticle(Particle.BLOCK, fx, 28, 0.8, 0.8, 0.8, Material.STONE_BRICKS.createBlockData());
+        world.playSound(fx, Sound.BLOCK_IRON_DOOR_OPEN, 1.0f, 1.0f);
+        world.playSound(fx, Sound.BLOCK_CHAIN_PLACE, 0.8f, 1.2f);
+
+        if (state.display() != null && state.display().isValid()) {
+            state.display().remove();
+        }
+        if (state.interaction() != null && state.interaction().isValid()) {
+            doorInteractionsByEntityId.remove(state.interaction().getEntityId());
+            state.interaction().remove();
+        }
+        List<DoorInteractionState> worldStates = doorInteractionsByWorld.get(world.getUID());
+        if (worldStates != null) {
+            worldStates.remove(state);
+        }
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
+                ChatColor.GREEN + "" + ChatColor.BOLD + "GATE OPENED");
+    }
+
+    private static void replacePlacedTemplate(World world, PlacedTemplate current, TemplateSpec replacement) {
+        if (world == null || current == null || current.spec == null || current.spec.template == null
+                || replacement == null || replacement.template == null) {
+            return;
+        }
+        RotatedTemplate oldRotated = rotateTemplate(current.spec.template, current.rotation);
+        for (BlockVector3 rel : oldRotated.blocks.keySet()) {
+            int x = current.origin.getBlockX() + rel.getBlockX();
+            int y = current.origin.getBlockY() + rel.getBlockY();
+            int z = current.origin.getBlockZ() + rel.getBlockZ();
+            world.getBlockAt(x, y, z).setType(Material.AIR, false);
+        }
+        paste(world, replacement.template, current.origin, current.rotation);
+    }
+
     private static RotatedTemplate rotateTemplate(Template template, int rotation) {
         RotatedTemplate[] cached = ROTATION_CACHE.computeIfAbsent(template, ignored -> new RotatedTemplate[4]);
         int rot = Math.floorMod(rotation, 4);
@@ -4561,9 +5017,16 @@ public final class StrongholdDebugGenerator {
             }
             List<BlockFace> sides = new ArrayList<>(EnumSet.copyOf(spec.template.connectors.keySet()));
             int connectorCount = spec.template.connectors.values().stream().mapToInt(List::size).sum();
-            out.put(spec.id, new TemplateConnectionInfo(connectorCount, sides));
+            int previewX = midpoint(spec.bounds.minX, spec.bounds.maxX);
+            int previewY = Math.max(spec.bounds.minY, spec.bounds.maxY) + 1;
+            int previewZ = midpoint(spec.bounds.minZ, spec.bounds.maxZ);
+            out.put(spec.id, new TemplateConnectionInfo(connectorCount, sides, SOURCE_WORLD, previewX, previewY, previewZ));
         }
         return out;
+    }
+
+    private static int midpoint(int a, int b) {
+        return (int) Math.floor((a + b) / 2.0);
     }
 
     private static BlockVector3 rotateVector(BlockVector3 vec, int width, int length, int rotation) {
@@ -4742,6 +5205,43 @@ public final class StrongholdDebugGenerator {
     private record LeastOverlapChoice(PlacedTemplate source, BlockFace side, PlacementAttempt attempt, double overlap) {
     }
 
+    private record DoorMarkerSelection(Location closestSide, Location markerOne, Location markerTwo) {
+    }
+
+    private record DoorInteractionState(PlacedTemplate closedTemplate,
+                                        TemplateSpec openTemplate,
+                                        Location markerOne,
+                                        Location markerTwo,
+                                        Interaction interaction,
+                                        TextDisplay display) {
+    }
+
+    private static final class StrongholdDoorInteractionListener implements Listener {
+        @EventHandler(priority = org.bukkit.event.EventPriority.HIGHEST, ignoreCancelled = true)
+        public void onInteract(PlayerInteractEntityEvent event) {
+            if (!(event.getRightClicked() instanceof Interaction interaction)) {
+                return;
+            }
+            if (!interaction.getScoreboardTags().contains(STRONGHOLD_DOOR_TAG)) {
+                return;
+            }
+            event.setCancelled(true);
+            handleDoorInteraction(event.getPlayer(), interaction);
+        }
+
+        @EventHandler(priority = org.bukkit.event.EventPriority.HIGHEST, ignoreCancelled = true)
+        public void onInteractAt(PlayerInteractAtEntityEvent event) {
+            if (!(event.getRightClicked() instanceof Interaction interaction)) {
+                return;
+            }
+            if (!interaction.getScoreboardTags().contains(STRONGHOLD_DOOR_TAG)) {
+                return;
+            }
+            event.setCancelled(true);
+            handleDoorInteraction(event.getPlayer(), interaction);
+        }
+    }
+
     private static final class GenerationDiagnostics {
         private int spineBlockedSides;
         private int branchBlockedSides;
@@ -4777,7 +5277,12 @@ public final class StrongholdDebugGenerator {
         }
     }
 
-    public record TemplateConnectionInfo(int connectorCount, List<BlockFace> sides) {
+    public record TemplateConnectionInfo(int connectorCount,
+                                         List<BlockFace> sides,
+                                         String sourceWorld,
+                                         int previewX,
+                                         int previewY,
+                                         int previewZ) {
     }
 
     private record SourceSetup(World sourceWorld, CapturedTemplates captured) {
@@ -5012,9 +5517,13 @@ public final class StrongholdDebugGenerator {
         }
     }
 
-    private record AssetPlacement(AssetType type, DetachedAssetTemplate template, BlockVector3 origin) {
+    private record AssetPlacement(AssetType type, DetachedAssetTemplate template, BlockVector3 origin, int rotation) {
         private Map<BlockVector3, BlockData> blocks() {
-            return template == null ? Map.of() : template.blocks();
+            return template == null ? Map.of() : rotatedDetachedBlocks(template, rotation);
+        }
+
+        private List<BlockVector3> relativeBlocks() {
+            return template == null ? List.of() : rotatedDetachedRelativeBlocks(template, rotation);
         }
     }
 
