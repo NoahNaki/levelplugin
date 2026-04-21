@@ -528,7 +528,12 @@ public class LootChestManager {
 
     public void playClosingAnimation(int chestId) {
         lockIdleAnimation(chestId, 40L);
-        playChestAnimation(chestId, "closing", List.of("closing", "close"), false);
+        playChestAnimation(chestId, "idle_reset", List.of("idle", "stand", "loop"), false);
+        plugin.getServer().getScheduler().runTaskLater(
+                plugin,
+                () -> playChestAnimation(chestId, "closing", List.of("closing", "close"), false),
+                1L
+        );
     }
 
     private void updateIdleMoveAnimation(int chestId, boolean playerVeryNear) {
@@ -541,7 +546,7 @@ public class LootChestManager {
         }
         chestIdleMoveState.put(chestId, playerVeryNear);
         if (playerVeryNear) {
-            playChestAnimation(chestId, "closing", List.of("closing", "close"), false);
+            playChestAnimation(chestId, "idle_mouve", List.of("idle_mouve", "idle_move", "idle", "move"), true);
             return;
         }
         playChestAnimation(chestId, "idle", List.of("idle"), true);
