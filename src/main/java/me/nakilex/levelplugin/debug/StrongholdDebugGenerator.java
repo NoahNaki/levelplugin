@@ -152,12 +152,9 @@ public final class StrongholdDebugGenerator {
             new DetachedAssetTemplateSpec("rock_large_2", AssetType.ROCK, new TemplateBounds(112, -61, -6396, 60, -34, -6461)),
             new DetachedAssetTemplateSpec("rock_large_3", AssetType.ROCK, new TemplateBounds(112, -34, -6461, 181, -61, -6408)),
             new DetachedAssetTemplateSpec("rock_large_4", AssetType.ROCK, new TemplateBounds(181, -61, -6408, 112, -34, -6342)),
-            new DetachedAssetTemplateSpec("ruin_1", AssetType.RUIN, new TemplateBounds(188, -61, -6390, 197, -30, -6381)),
-            new DetachedAssetTemplateSpec("ruin_2", AssetType.RUIN, new TemplateBounds(188, -61, -6381, 197, -30, -6372)),
-            new DetachedAssetTemplateSpec("ruin_3", AssetType.RUIN, new TemplateBounds(188, -61, -6372, 197, -30, -6364)),
-            new DetachedAssetTemplateSpec("ruin_4", AssetType.RUIN, new TemplateBounds(188, -61, -6364, 197, -30, -6355)),
-            new DetachedAssetTemplateSpec("ruin_5", AssetType.RUIN, new TemplateBounds(188, -61, -6355, 197, -30, -6346)),
-            new DetachedAssetTemplateSpec("ruin_6", AssetType.RUIN, new TemplateBounds(188, -61, -6346, 197, -30, -6337))
+            new DetachedAssetTemplateSpec("ruin_1", AssetType.RUIN, new TemplateBounds(590, -61, -6426, 624, -30, -6388)),
+            new DetachedAssetTemplateSpec("ruin_2", AssetType.RUIN, new TemplateBounds(590, -61, -6388, 624, -30, -6374)),
+            new DetachedAssetTemplateSpec("ruin_3", AssetType.RUIN, new TemplateBounds(520, -61, -6407, 590, 6, -6337))
     );
 
     private static final String SOURCE_WORLD = "flatland";
