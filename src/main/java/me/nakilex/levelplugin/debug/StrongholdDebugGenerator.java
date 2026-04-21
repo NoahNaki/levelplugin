@@ -12,7 +12,10 @@ import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.ChunkSnapshot;
+import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.Particle;
+import org.bukkit.Sound;
 import org.bukkit.Tag;
 import org.bukkit.World;
 import org.bukkit.WorldType;
@@ -22,7 +25,15 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Directional;
 import org.bukkit.block.data.Orientable;
 import org.bukkit.block.data.Rotatable;
+import org.bukkit.entity.Display;
+import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Interaction;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.TextDisplay;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerInteractAtEntityEvent;
+import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.util.ArrayList;
@@ -40,6 +51,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.IdentityHashMap;
+import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -157,6 +169,11 @@ public final class StrongholdDebugGenerator {
 
     private static final String SOURCE_WORLD = "flatland";
     private static final String GENERATED_WORLD_PREFIX = "stronghold_debug_";
+    private static final String STRONGHOLD_DOOR_TAG = "stronghold_door_hologram";
+    private static final Map<String, String> CLOSED_TO_OPEN_TEMPLATE = Map.of(
+            "straight_3", "straight_2",
+            "straight_5", "straight_4"
+    );
 
     private static final int DEFAULT_SPINE_LENGTH = 12;
     private static final int MAX_BRANCH_LENGTH = 6;
@@ -225,6 +242,9 @@ public final class StrongholdDebugGenerator {
     private static final Map<Template, RotatedTemplate[]> ROTATION_CACHE = new IdentityHashMap<>();
     private static final Map<String, BlockData[]> BLOCK_DATA_ROTATION_CACHE = new HashMap<>();
     private static final Map<String, com.sk89q.worldedit.world.block.BlockState> WORLD_EDIT_BLOCK_STATE_CACHE = new HashMap<>();
+    private static final Map<Integer, DoorInteractionState> doorInteractionsByEntityId = new HashMap<>();
+    private static final Map<UUID, List<DoorInteractionState>> doorInteractionsByWorld = new HashMap<>();
+    private static boolean doorInteractionListenerRegistered;
     private static CapturedTemplates cachedCapturedTemplates;
     private static Map<AssetType, List<DetachedAssetTemplate>> cachedDetachedAssetTemplates;
     private static Map<String, TemplateConnectionInfo> cachedTemplateConnectionInfo;
@@ -582,6 +602,7 @@ public final class StrongholdDebugGenerator {
 
         processStart = timing.processStarted("Teleport + queue detached pasting");
         player.teleport(new org.bukkit.Location(world, originX + 0.5, originY + 2, originZ + 0.5));
+        spawnDoorOpenInteractions(world, placed, player);
         schedulePostTeleportEnhancements(sourceWorld, world, pastePlan.deferredTemplates(), placed, occupied, player, random, originY);
         timing.processFinished("Teleport + queue detached pasting", processStart);
 
@@ -711,6 +732,7 @@ public final class StrongholdDebugGenerator {
         applyStrongholdFloorNoise(world, placed);
         applyTemplateMarkerActions(sourceWorld, world, placed, ThreadLocalRandom.current());
         player.teleport(new org.bukkit.Location(world, originX + 0.5, originY + 2, originZ + 0.5));
+        spawnDoorOpenInteractions(world, placed, player);
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
                 "Generated towerwall cross preset using " + placed.size() + " pieces in world '" + world.getName() + "'.");
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
@@ -4347,6 +4369,185 @@ public final class StrongholdDebugGenerator {
         return WORLD_EDIT_BLOCK_STATE_CACHE.computeIfAbsent(key, ignored -> BukkitAdapter.adapt(data));
     }
 
+    private static void spawnDoorOpenInteractions(World world, List<PlacedTemplate> placedTemplates, Player focusPlayer) {
+        if (world == null || placedTemplates == null || placedTemplates.isEmpty() || focusPlayer == null) {
+            return;
+        }
+        ensureDoorInteractionListenerRegistered();
+        clearDoorInteractions(world);
+
+        CapturedTemplates captured = loadCapturedTemplates(false);
+        if (captured == null) {
+            return;
+        }
+
+        List<TemplateSpec> allSpecs = new ArrayList<>();
+        allSpecs.addAll(captured.walls());
+        allSpecs.addAll(captured.largeJunctions());
+        allSpecs.addAll(captured.deadEnds());
+        allSpecs.add(captured.connector());
+
+        for (PlacedTemplate placed : placedTemplates) {
+            if (placed == null || placed.spec == null || placed.origin == null) {
+                continue;
+            }
+            String openTemplateId = CLOSED_TO_OPEN_TEMPLATE.get(placed.spec.id);
+            if (openTemplateId == null) {
+                continue;
+            }
+            TemplateSpec openSpec = findTemplateById(allSpecs, openTemplateId);
+            if (openSpec == null || openSpec.template == null) {
+                continue;
+            }
+
+            DoorMarkerSelection markerSelection = pickClosestDoorMarkerSide(world, placed, focusPlayer.getLocation());
+            if (markerSelection == null) {
+                continue;
+            }
+
+            DoorInteractionState state = spawnDoorHologramForTemplate(world, placed, openSpec, markerSelection);
+            if (state == null) {
+                continue;
+            }
+            doorInteractionsByEntityId.put(state.interaction().getEntityId(), state);
+            doorInteractionsByWorld.computeIfAbsent(world.getUID(), ignored -> new ArrayList<>()).add(state);
+        }
+    }
+
+    private static DoorMarkerSelection pickClosestDoorMarkerSide(World world, PlacedTemplate placed, Location reference) {
+        RotatedTemplate rotated = rotateTemplate(placed.spec.template, placed.rotation);
+        List<BlockVector3> doorMarkers = rotated.markers().get(Material.DIAMOND_BLOCK);
+        if (doorMarkers == null || doorMarkers.size() < 2 || world == null || reference == null) {
+            return null;
+        }
+
+        Location markerOne = absoluteMarkerLocation(world, placed.origin, doorMarkers.get(0));
+        Location markerTwo = absoluteMarkerLocation(world, placed.origin, doorMarkers.get(1));
+        if (markerOne == null || markerTwo == null) {
+            return null;
+        }
+
+        double distOne = markerOne.distanceSquared(reference);
+        double distTwo = markerTwo.distanceSquared(reference);
+        Location closest = distOne <= distTwo ? markerOne : markerTwo;
+        return new DoorMarkerSelection(closest, markerOne, markerTwo);
+    }
+
+    private static Location absoluteMarkerLocation(World world, BlockVector3 origin, BlockVector3 relative) {
+        if (world == null || origin == null || relative == null) {
+            return null;
+        }
+        return new Location(
+                world,
+                origin.getBlockX() + relative.getBlockX() + 0.5,
+                origin.getBlockY() + relative.getBlockY() + 1.15,
+                origin.getBlockZ() + relative.getBlockZ() + 0.5
+        );
+    }
+
+    private static DoorInteractionState spawnDoorHologramForTemplate(World world,
+                                                                     PlacedTemplate closedPlaced,
+                                                                     TemplateSpec openSpec,
+                                                                     DoorMarkerSelection markers) {
+        if (world == null || closedPlaced == null || openSpec == null || markers == null || markers.closestSide() == null) {
+            return null;
+        }
+        Location base = markers.closestSide().clone();
+        Interaction interaction = world.spawn(base, Interaction.class, entity -> {
+            entity.setInvulnerable(true);
+            entity.setGravity(false);
+            entity.setInteractionWidth(1.8f);
+            entity.setInteractionHeight(2.0f);
+            entity.addScoreboardTag(STRONGHOLD_DOOR_TAG);
+        });
+
+        TextDisplay display = (TextDisplay) world.spawnEntity(base.clone().add(0, 1.15, 0), EntityType.TEXT_DISPLAY);
+        display.setBillboard(Display.Billboard.CENTER);
+        display.setShadowRadius(0f);
+        display.setShadowStrength(0f);
+        display.setBackgroundColor(org.bukkit.Color.fromARGB(0, 0, 0, 0));
+        display.setText(ChatColor.GOLD + "Right click to open");
+        display.addScoreboardTag(STRONGHOLD_DOOR_TAG);
+
+        return new DoorInteractionState(closedPlaced, openSpec, markers.markerOne(), markers.markerTwo(), interaction, display);
+    }
+
+    private static void ensureDoorInteractionListenerRegistered() {
+        if (doorInteractionListenerRegistered) {
+            return;
+        }
+        Main plugin = Main.getInstance();
+        if (plugin == null) {
+            return;
+        }
+        Bukkit.getPluginManager().registerEvents(new StrongholdDoorInteractionListener(), plugin);
+        doorInteractionListenerRegistered = true;
+    }
+
+    private static void clearDoorInteractions(World world) {
+        if (world == null) {
+            return;
+        }
+        List<DoorInteractionState> states = doorInteractionsByWorld.remove(world.getUID());
+        if (states == null || states.isEmpty()) {
+            return;
+        }
+        for (DoorInteractionState state : states) {
+            if (state == null) {
+                continue;
+            }
+            if (state.interaction() != null) {
+                doorInteractionsByEntityId.remove(state.interaction().getEntityId());
+            }
+            if (state.interaction() != null && state.interaction().isValid()) {
+                state.interaction().remove();
+            }
+            if (state.display() != null && state.display().isValid()) {
+                state.display().remove();
+            }
+        }
+    }
+
+    private static void handleDoorInteraction(Player player, Interaction interaction) {
+        if (player == null || interaction == null) {
+            return;
+        }
+        DoorInteractionState state = doorInteractionsByEntityId.get(interaction.getEntityId());
+        if (state == null) {
+            return;
+        }
+        World world = interaction.getWorld();
+        if (world == null || state.openTemplate() == null || state.openTemplate().template() == null) {
+            return;
+        }
+
+        paste(world, state.openTemplate().template(), state.closedTemplate().origin, state.closedTemplate().rotation);
+
+        Location fx = new Location(
+                world,
+                (state.markerOne().getX() + state.markerTwo().getX()) / 2.0,
+                (state.markerOne().getY() + state.markerTwo().getY()) / 2.0,
+                (state.markerOne().getZ() + state.markerTwo().getZ()) / 2.0
+        );
+        world.spawnParticle(Particle.CLOUD, fx, 30, 0.6, 0.8, 0.6, 0.01);
+        world.spawnParticle(Particle.BLOCK, fx, 28, 0.8, 0.8, 0.8, Material.STONE_BRICKS.createBlockData());
+        world.playSound(fx, Sound.BLOCK_IRON_DOOR_OPEN, 1.0f, 1.0f);
+        world.playSound(fx, Sound.BLOCK_CHAIN_PLACE, 0.8f, 1.2f);
+
+        if (state.display() != null && state.display().isValid()) {
+            state.display().remove();
+        }
+        if (state.interaction() != null && state.interaction().isValid()) {
+            doorInteractionsByEntityId.remove(state.interaction().getEntityId());
+            state.interaction().remove();
+        }
+        List<DoorInteractionState> worldStates = doorInteractionsByWorld.get(world.getUID());
+        if (worldStates != null) {
+            worldStates.remove(state);
+        }
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, "Opened " + state.closedTemplate().spec.id + ".");
+    }
+
     private static RotatedTemplate rotateTemplate(Template template, int rotation) {
         RotatedTemplate[] cached = ROTATION_CACHE.computeIfAbsent(template, ignored -> new RotatedTemplate[4]);
         int rot = Math.floorMod(rotation, 4);
@@ -4747,6 +4948,43 @@ public final class StrongholdDebugGenerator {
     }
 
     private record LeastOverlapChoice(PlacedTemplate source, BlockFace side, PlacementAttempt attempt, double overlap) {
+    }
+
+    private record DoorMarkerSelection(Location closestSide, Location markerOne, Location markerTwo) {
+    }
+
+    private record DoorInteractionState(PlacedTemplate closedTemplate,
+                                        TemplateSpec openTemplate,
+                                        Location markerOne,
+                                        Location markerTwo,
+                                        Interaction interaction,
+                                        TextDisplay display) {
+    }
+
+    private static final class StrongholdDoorInteractionListener implements Listener {
+        @EventHandler(priority = org.bukkit.event.EventPriority.HIGHEST, ignoreCancelled = true)
+        public void onInteract(PlayerInteractEntityEvent event) {
+            if (!(event.getRightClicked() instanceof Interaction interaction)) {
+                return;
+            }
+            if (!interaction.getScoreboardTags().contains(STRONGHOLD_DOOR_TAG)) {
+                return;
+            }
+            event.setCancelled(true);
+            handleDoorInteraction(event.getPlayer(), interaction);
+        }
+
+        @EventHandler(priority = org.bukkit.event.EventPriority.HIGHEST, ignoreCancelled = true)
+        public void onInteractAt(PlayerInteractAtEntityEvent event) {
+            if (!(event.getRightClicked() instanceof Interaction interaction)) {
+                return;
+            }
+            if (!interaction.getScoreboardTags().contains(STRONGHOLD_DOOR_TAG)) {
+                return;
+            }
+            event.setCancelled(true);
+            handleDoorInteraction(event.getPlayer(), interaction);
+        }
     }
 
     private static final class GenerationDiagnostics {
