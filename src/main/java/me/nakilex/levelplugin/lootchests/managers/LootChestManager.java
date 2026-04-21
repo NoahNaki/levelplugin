@@ -75,6 +75,7 @@ public class LootChestManager {
     private final Map<Integer, Location> spawnedChests = new HashMap<>();
     private final Map<Integer, UUID> spawnedChestModels = new HashMap<>();
     private final Map<Integer, Boolean> chestIdleMoveState = new HashMap<>();
+    private final Map<Integer, Long> chestIdleAnimationLockUntilMs = new HashMap<>();
 
     // For continuous particles: chestId -> repeating task
     private final Map<Integer, BukkitTask> chestParticleTasks = new HashMap<>();
@@ -309,6 +310,7 @@ public class LootChestManager {
     private void removeChestModel(int chestId, Location chestLoc) {
         UUID entityId = spawnedChestModels.remove(chestId);
         chestIdleMoveState.remove(chestId);
+        chestIdleAnimationLockUntilMs.remove(chestId);
         if (entityId != null) {
             Entity entity = Bukkit.getEntity(entityId);
             if (entity != null && entity.isValid()) {
@@ -516,6 +518,7 @@ public class LootChestManager {
     }
 
     public void playOpeningAnimation(int chestId, Inventory lootInventory) {
+        lockIdleAnimation(chestId, 40L);
         if (containsRareLoot(lootInventory)) {
             playChestAnimation(chestId, "opening_rare", List.of("opening_rare", "opening", "open"), false);
             return;
@@ -524,10 +527,14 @@ public class LootChestManager {
     }
 
     public void playClosingAnimation(int chestId) {
+        lockIdleAnimation(chestId, 40L);
         playChestAnimation(chestId, "closing", List.of("closing", "close"), false);
     }
 
     private void updateIdleMoveAnimation(int chestId, boolean playerVeryNear) {
+        if (isIdleAnimationLocked(chestId)) {
+            return;
+        }
         Boolean previous = chestIdleMoveState.get(chestId);
         if (previous != null && previous == playerVeryNear) {
             return;
@@ -586,6 +593,23 @@ public class LootChestManager {
             }
             ChatMessageUtil.send(nearby, ChatMessageUtil.MessageType.INFO, message);
         }
+    }
+
+    private void lockIdleAnimation(int chestId, long ticks) {
+        long durationMs = Math.max(0L, ticks) * 50L;
+        chestIdleAnimationLockUntilMs.put(chestId, System.currentTimeMillis() + durationMs);
+    }
+
+    private boolean isIdleAnimationLocked(int chestId) {
+        Long unlockAt = chestIdleAnimationLockUntilMs.get(chestId);
+        if (unlockAt == null) {
+            return false;
+        }
+        if (System.currentTimeMillis() >= unlockAt) {
+            chestIdleAnimationLockUntilMs.remove(chestId);
+            return false;
+        }
+        return true;
     }
 
     private boolean containsRareLoot(Inventory inventory) {
