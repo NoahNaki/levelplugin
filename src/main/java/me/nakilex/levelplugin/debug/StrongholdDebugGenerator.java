@@ -61,13 +61,6 @@ public final class StrongholdDebugGenerator {
             Material.LAPIS_BLOCK,
             Material.GOLD_BLOCK
     );
-    private static final Material RUIN_PLACEHOLDER_MARKER_MATERIAL = Material.MOSS_BLOCK;
-    private static final Set<Material> TEMPLATE_ACTION_MARKER_MATERIALS = Set.of(
-            Material.REDSTONE_BLOCK,
-            Material.LAPIS_BLOCK,
-            Material.GOLD_BLOCK,
-            RUIN_PLACEHOLDER_MARKER_MATERIAL
-    );
     private static final List<Material> DEFAULT_STRONGHOLD_FLOOR_PATTERN = List.of(
             Material.PACKED_MUD,
             Material.COARSE_DIRT,
@@ -117,7 +110,6 @@ public final class StrongholdDebugGenerator {
     private static final double LAPIS_FLAG_SPAWN_CHANCE = 0.50D;
     private static final double GOLD_CHEST_SPAWN_CHANCE = 0.20D;
     private static final int FLAG_VERTICAL_OFFSET_BLOCKS = -1;
-    private static final int RUIN_VERTICAL_OFFSET_BLOCKS = 0;
     private static final String FLAG_TEMPLATE_ID = "flag_1";
 
     private static final List<TemplateSpec> TEMPLATE_SPECS = List.of(
@@ -1350,7 +1342,6 @@ public final class StrongholdDebugGenerator {
         Random rng = random == null ? ThreadLocalRandom.current() : random;
         Map<AssetType, List<DetachedAssetTemplate>> templatesByType = loadDetachedAssetTemplates(sourceWorld);
         List<DetachedAssetTemplate> flagTemplates = templatesByType.getOrDefault(AssetType.FLAG, List.of());
-        List<DetachedAssetTemplate> ruinTemplates = templatesByType.getOrDefault(AssetType.RUIN, List.of());
 
         for (PlacedTemplate placed : placedTemplates) {
             if (placed == null || placed.spec == null || placed.spec.template == null) {
@@ -1369,32 +1360,12 @@ public final class StrongholdDebugGenerator {
                     int markerZ = placed.origin.getBlockZ() + relMarker.getBlockZ();
                     if (markerType == Material.LAPIS_BLOCK) {
                         if (rng.nextDouble() <= LAPIS_FLAG_SPAWN_CHANCE) {
-                            pasteDetachedTemplateAtMarker(
-                                    targetWorld,
-                                    flagTemplates,
-                                    markerX,
-                                    markerY,
-                                    markerZ,
-                                    Material.LAPIS_BLOCK,
-                                    FLAG_VERTICAL_OFFSET_BLOCKS,
-                                    rng
-                            );
+                            pasteFlagTemplateAtMarker(targetWorld, flagTemplates, markerX, markerY, markerZ, rng);
                         }
                     } else if (markerType == Material.GOLD_BLOCK) {
                         if (rng.nextDouble() <= GOLD_CHEST_SPAWN_CHANCE) {
                             placeStrongholdLootChest(targetWorld, markerX, markerY, markerZ);
                         }
-                    } else if (markerType == RUIN_PLACEHOLDER_MARKER_MATERIAL) {
-                        pasteDetachedTemplateAtMarker(
-                                targetWorld,
-                                ruinTemplates,
-                                markerX,
-                                markerY,
-                                markerZ,
-                                RUIN_PLACEHOLDER_MARKER_MATERIAL,
-                                RUIN_VERTICAL_OFFSET_BLOCKS,
-                                rng
-                        );
                     }
                 }
             }
@@ -1421,27 +1392,22 @@ public final class StrongholdDebugGenerator {
         lootChestManager.createAndSpawnChest(location, BlockFace.NORTH, true);
     }
 
-    private static void pasteDetachedTemplateAtMarker(World targetWorld,
-                                                      List<DetachedAssetTemplate> candidateTemplates,
-                                                      int markerX,
-                                                      int markerY,
-                                                      int markerZ,
-                                                      Material markerAnchorMaterial,
-                                                      int verticalOffsetBlocks,
-                                                      Random random) {
-        if (targetWorld == null
-                || candidateTemplates == null
-                || candidateTemplates.isEmpty()
-                || markerAnchorMaterial == null) {
+    private static void pasteFlagTemplateAtMarker(World targetWorld,
+                                                  List<DetachedAssetTemplate> flagTemplates,
+                                                  int markerX,
+                                                  int markerY,
+                                                  int markerZ,
+                                                  Random random) {
+        if (targetWorld == null || flagTemplates == null || flagTemplates.isEmpty()) {
             return;
         }
-        DetachedAssetTemplate template = candidateTemplates.get(random.nextInt(candidateTemplates.size()));
-        BlockVector3 anchor = markerAnchorFor(template, markerAnchorMaterial);
+        DetachedAssetTemplate template = flagTemplates.get(random.nextInt(flagTemplates.size()));
+        BlockVector3 anchor = markerAnchorFor(template, Material.LAPIS_BLOCK);
         int anchorX = anchor != null ? anchor.getBlockX() : template.centerOffsetX();
         int anchorY = anchor != null ? anchor.getBlockY() : Math.min(0, template.lowestRelativeY());
         int anchorZ = anchor != null ? anchor.getBlockZ() : template.centerOffsetZ();
         int originX = markerX - anchorX;
-        int originY = markerY - anchorY + verticalOffsetBlocks;
+        int originY = markerY - anchorY + FLAG_VERTICAL_OFFSET_BLOCKS;
         int originZ = markerZ - anchorZ;
         for (Map.Entry<BlockVector3, BlockData> entry : template.blocks().entrySet()) {
             BlockVector3 rel = entry.getKey();
@@ -3916,12 +3882,7 @@ public final class StrongholdDebugGenerator {
         Map<String, Template> captured = new HashMap<>();
         List<String> failures = new ArrayList<>();
         for (TemplateSpec spec : TEMPLATE_SPECS) {
-            Template template = captureTemplate(
-                    world,
-                    spec.bounds,
-                    TEMPLATE_ACTION_MARKER_MATERIALS,
-                    TEMPLATE_ACTION_MARKER_MATERIALS
-            );
+            Template template = captureTemplate(world, spec.bounds);
             if (template.blocks.isEmpty() || template.connectors.isEmpty()) {
                 failures.add(spec.id + " [blocks=" + template.blocks.size()
                         + ", connectors=" + template.connectors.size()
@@ -3931,12 +3892,7 @@ public final class StrongholdDebugGenerator {
             captured.put(spec.id, template);
         }
 
-        Template connector = captureTemplate(
-                world,
-                CONNECTOR_SPEC.bounds,
-                TEMPLATE_ACTION_MARKER_MATERIALS,
-                TEMPLATE_ACTION_MARKER_MATERIALS
-        );
+        Template connector = captureTemplate(world, CONNECTOR_SPEC.bounds);
         if (connector.blocks.isEmpty() || connector.connectors.isEmpty()) {
             failures.add(CONNECTOR_SPEC.id + " [blocks=" + connector.blocks.size()
                     + ", connectors=" + connector.connectors.size()
@@ -3993,13 +3949,6 @@ public final class StrongholdDebugGenerator {
     }
 
     private static Template captureTemplate(World world, TemplateBounds bounds) {
-        return captureTemplate(world, bounds, TEMPLATE_MARKER_MATERIALS, TEMPLATE_MARKER_MATERIALS);
-    }
-
-    private static Template captureTemplate(World world,
-                                            TemplateBounds bounds,
-                                            Set<Material> markerMaterials,
-                                            Set<Material> excludedMarkerMaterials) {
         int minX = Math.min(bounds.minX, bounds.maxX);
         int maxX = Math.max(bounds.minX, bounds.maxX);
         int minY = Math.min(bounds.minY, bounds.maxY);
@@ -4029,11 +3978,11 @@ public final class StrongholdDebugGenerator {
                     if (CONNECTOR_MARKER_MATERIALS.contains(type)) {
                         redstoneMarkers.add(rel);
                     }
-                    if (markerMaterials.contains(type)) {
+                    if (TEMPLATE_MARKER_MATERIALS.contains(type)) {
                         markers.computeIfAbsent(type, ignored -> new ArrayList<>()).add(rel);
                     }
 
-                    if (type.isAir() || EXCLUDED.contains(type) || excludedMarkerMaterials.contains(type)) {
+                    if (type.isAir() || EXCLUDED.contains(type) || TEMPLATE_MARKER_MATERIALS.contains(type)) {
                         continue;
                     }
                     blocks.put(rel, data);
