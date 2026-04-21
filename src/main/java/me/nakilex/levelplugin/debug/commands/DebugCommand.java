@@ -677,13 +677,18 @@ public class DebugCommand implements TabExecutor {
             return true;
         }
 
+        List<String> keywords = resolveLootChestAnimationKeywords(animationName);
         boolean loop = animationName.toLowerCase().contains("idle");
-        boolean played = ModelEngineUtil.playAnimationByName(preview, animationName, loop);
+        boolean played = ModelEngineUtil.playBestAnimation(preview, keywords, loop, false);
+        if (!played) {
+            played = ModelEngineUtil.playAnimationByName(preview, animationName, loop);
+        }
         if (!played) {
             List<String> runtime = ModelEngineUtil.getRuntimeAnimationNames(preview);
             preview.remove();
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
-                    "Could not play animation '" + animationName + "'. Runtime animations: "
+                    "Could not play animation '" + animationName + "' via keywords " + keywords
+                            + ". Runtime animations: "
                             + (runtime.isEmpty() ? "(none)" : String.join(", ", runtime)));
             return true;
         }
@@ -692,6 +697,21 @@ public class DebugCommand implements TabExecutor {
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
                 "Spawned loot chest animation preview with '" + animationName + "'.");
         return true;
+    }
+
+    private List<String> resolveLootChestAnimationKeywords(String animationName) {
+        if (animationName == null || animationName.isBlank()) {
+            return List.of("idle");
+        }
+        String normalized = animationName.trim().toLowerCase();
+        return switch (normalized) {
+            case "opening_rare" -> List.of("opening_rare", "opening", "open", "rare");
+            case "opening" -> List.of("opening", "open");
+            case "closing" -> List.of("closing", "close");
+            case "idle_move" -> List.of("idle_move", "idle", "move");
+            case "idle" -> List.of("idle");
+            default -> List.of(normalized);
+        };
     }
 
     private void toggleInventoryDebug(Player player) {
