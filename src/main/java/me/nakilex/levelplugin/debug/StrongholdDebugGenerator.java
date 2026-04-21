@@ -4715,7 +4715,9 @@ public final class StrongholdDebugGenerator {
         if (worldStates != null) {
             worldStates.remove(state);
         }
-        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, "Opened " + state.closedTemplate().spec.id + ".");
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
+                "Stronghold gate shifts open: " + ChatColor.GOLD + formatTemplateIdForMessage(state.closedTemplate().spec.id)
+                        + ChatColor.GREEN + ".");
     }
 
     private static void replacePlacedTemplate(World world, PlacedTemplate current, TemplateSpec replacement) {
@@ -4731,6 +4733,31 @@ public final class StrongholdDebugGenerator {
             world.getBlockAt(x, y, z).setType(Material.AIR, false);
         }
         paste(world, replacement.template, current.origin, current.rotation);
+    }
+
+    private static String formatTemplateIdForMessage(String templateId) {
+        if (templateId == null || templateId.isBlank()) {
+            return "Unknown";
+        }
+        String[] parts = templateId.split("_");
+        StringBuilder out = new StringBuilder();
+        for (String part : parts) {
+            if (part == null || part.isBlank()) {
+                continue;
+            }
+            if (!out.isEmpty()) {
+                out.append(' ');
+            }
+            if (part.chars().allMatch(Character::isDigit)) {
+                out.append('#').append(part);
+                continue;
+            }
+            out.append(Character.toUpperCase(part.charAt(0)));
+            if (part.length() > 1) {
+                out.append(part.substring(1).toLowerCase(java.util.Locale.ROOT));
+            }
+        }
+        return out.isEmpty() ? templateId : out.toString();
     }
 
     private static RotatedTemplate rotateTemplate(Template template, int rotation) {
