@@ -7,7 +7,9 @@ import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -101,7 +103,7 @@ public final class StrongholdTemplateDebugGUI implements Listener {
         lore.add(ChatColor.GRAY + "Connectors: " + ChatColor.YELLOW + info.connectorCount());
         lore.add(ChatColor.GRAY + "Sides: " + ChatColor.AQUA + formatSides(info.sides()));
         lore.add(" ");
-        lore.addAll(TooltipUtil.clickInstructions("to print connector info in chat", null));
+        lore.addAll(TooltipUtil.clickInstructions("to print connector info in chat", "to teleport to template"));
         return GuiUtil.createGuiItem(icon, ChatColor.GOLD + id, lore);
     }
 
@@ -171,9 +173,43 @@ public final class StrongholdTemplateDebugGUI implements Listener {
                     "Could not inspect template '" + id + "'.");
             return;
         }
+        if (event.getClick().isRightClick()) {
+            teleportToTemplate(player, id, info);
+            return;
+        }
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                 "Template " + id + " -> connectors: " + info.connectorCount()
                         + " (sides: " + formatSides(info.sides()) + ").");
+    }
+
+    private void teleportToTemplate(Player player,
+                                    String templateId,
+                                    StrongholdDebugGenerator.TemplateConnectionInfo info) {
+        Main plugin = Main.getInstance();
+        if (plugin == null || plugin.getWorldManager() == null) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                    "Plugin world manager is unavailable.");
+            return;
+        }
+        plugin.getWorldManager().ensureWorldsLoaded(info.sourceWorld());
+        World world = Bukkit.getWorld(info.sourceWorld());
+        if (world == null) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                    "Source world '" + info.sourceWorld() + "' is not loaded.");
+            return;
+        }
+
+        Location destination = new Location(
+                world,
+                info.previewX() + 0.5,
+                info.previewY(),
+                info.previewZ() + 0.5,
+                player.getLocation().getYaw(),
+                player.getLocation().getPitch()
+        );
+        player.teleport(destination);
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
+                "Teleported to template '" + templateId + "' in world '" + info.sourceWorld() + "'.");
     }
 
     @EventHandler

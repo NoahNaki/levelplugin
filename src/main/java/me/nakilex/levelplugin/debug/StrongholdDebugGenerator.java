@@ -4561,9 +4561,16 @@ public final class StrongholdDebugGenerator {
             }
             List<BlockFace> sides = new ArrayList<>(EnumSet.copyOf(spec.template.connectors.keySet()));
             int connectorCount = spec.template.connectors.values().stream().mapToInt(List::size).sum();
-            out.put(spec.id, new TemplateConnectionInfo(connectorCount, sides));
+            int previewX = midpoint(spec.bounds.minX, spec.bounds.maxX);
+            int previewY = Math.max(spec.bounds.minY, spec.bounds.maxY) + 1;
+            int previewZ = midpoint(spec.bounds.minZ, spec.bounds.maxZ);
+            out.put(spec.id, new TemplateConnectionInfo(connectorCount, sides, SOURCE_WORLD, previewX, previewY, previewZ));
         }
         return out;
+    }
+
+    private static int midpoint(int a, int b) {
+        return (int) Math.floor((a + b) / 2.0);
     }
 
     private static BlockVector3 rotateVector(BlockVector3 vec, int width, int length, int rotation) {
@@ -4777,7 +4784,12 @@ public final class StrongholdDebugGenerator {
         }
     }
 
-    public record TemplateConnectionInfo(int connectorCount, List<BlockFace> sides) {
+    public record TemplateConnectionInfo(int connectorCount,
+                                         List<BlockFace> sides,
+                                         String sourceWorld,
+                                         int previewX,
+                                         int previewY,
+                                         int previewZ) {
     }
 
     private record SourceSetup(World sourceWorld, CapturedTemplates captured) {
