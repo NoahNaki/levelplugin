@@ -23,6 +23,7 @@ import me.nakilex.levelplugin.potions.managers.PotionManager;
 import me.nakilex.levelplugin.salvage.managers.SalvageManager;
 import me.nakilex.levelplugin.utils.FurnitureCleanupUtil;
 import me.nakilex.levelplugin.utils.ModelEngineUtil;
+import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.TextUtil;
 import org.bukkit.*;
@@ -73,6 +74,8 @@ public class LootChestManager {
     // Track where we actually spawned each chest. chestId -> location
     private final Map<Integer, Location> spawnedChests = new HashMap<>();
     private final Map<Integer, UUID> spawnedChestModels = new HashMap<>();
+    private final Map<Integer, Boolean> chestIdleMoveState = new HashMap<>();
+    private final Map<Integer, Long> chestIdleAnimationLockUntilMs = new HashMap<>();
 
     // For continuous particles: chestId -> repeating task
     private final Map<Integer, BukkitTask> chestParticleTasks = new HashMap<>();
@@ -251,12 +254,9 @@ public class LootChestManager {
         }
         ensureChunkIsLoaded(loc);
 
-        // Place the backing chest block and orient it for interaction.
-        loc.getBlock().setType(Material.CHEST, false);
-        org.bukkit.block.data.BlockData dataBlock = loc.getBlock().getBlockData();
-        if (dataBlock instanceof org.bukkit.block.data.Directional directional) {
-            directional.setFacing(data.getFacing());
-            loc.getBlock().setBlockData(directional, false);
+        // Keep the block clear so only the model is visible/interactable.
+        if (loc.getBlock().getType() != Material.AIR) {
+            loc.getBlock().setType(Material.AIR, false);
         }
 
         spawnChestModel(data.getChestId(), loc);
@@ -277,7 +277,8 @@ public class LootChestManager {
         Location anchorLoc = LocationUtils.centerOnBlock(chestLoc).add(0.0, 0.01, 0.0);
         ArmorStand anchor = chestLoc.getWorld().spawn(anchorLoc, ArmorStand.class, stand -> {
             stand.setInvisible(true);
-            stand.setMarker(true);
+            stand.setMarker(false);
+            stand.setSmall(true);
             stand.setGravity(false);
             stand.setSilent(true);
             stand.setInvulnerable(true);
@@ -302,10 +303,14 @@ public class LootChestManager {
         }
         missingCrateModelLogged = false;
         spawnedChestModels.put(chestId, anchor.getUniqueId());
+        chestIdleMoveState.put(chestId, false);
+        ModelEngineUtil.playBestAnimation(anchor, List.of("idle"), true, false);
     }
 
     private void removeChestModel(int chestId, Location chestLoc) {
         UUID entityId = spawnedChestModels.remove(chestId);
+        chestIdleMoveState.remove(chestId);
+        chestIdleAnimationLockUntilMs.remove(chestId);
         if (entityId != null) {
             Entity entity = Bukkit.getEntity(entityId);
             if (entity != null && entity.isValid()) {
@@ -496,22 +501,164 @@ public class LootChestManager {
         BukkitTask task = plugin.getServer().getScheduler().runTaskTimer(
             plugin,
             () -> {
-                Material type = loc.getBlock().getType();
-                if (type != Material.CHEST && type != Material.TRAPPED_CHEST) {
-                    return;
-                }
-
                 boolean playerNearby = loc.getWorld().getPlayers().stream()
                         .anyMatch(p -> p.getLocation().distanceSquared(loc) <= 20 * 20);
+                boolean playerVeryNear = loc.getWorld().getPlayers().stream()
+                        .anyMatch(p -> p.getLocation().distanceSquared(loc) <= 7 * 7);
 
                 if (playerNearby) {
                     ParticleUtils.displayChestParticles(loc);
                 }
+                updateIdleMoveAnimation(chestId, playerVeryNear);
             },
             0L,
             20L
         );
         chestParticleTasks.put(chestId, task);
+    }
+
+    public void playOpeningAnimation(int chestId, Inventory lootInventory) {
+        lockIdleAnimation(chestId, 40L);
+        if (containsRareLoot(lootInventory)) {
+            playChestAnimation(chestId, "opening_rare", List.of("opening_rare", "opening", "open"), false);
+            return;
+        }
+        playChestAnimation(chestId, "opening", List.of("opening", "open"), false);
+    }
+
+    public void playClosingAnimation(int chestId) {
+        lockIdleAnimation(chestId, 40L);
+        Location chestLoc = spawnedChests.get(chestId);
+        if (chestLoc == null || chestLoc.getWorld() == null) {
+            playChestAnimation(chestId, "closing", List.of("closing", "close"), false);
+            return;
+        }
+
+        removeChestModel(chestId, chestLoc);
+        if (!Bukkit.getPluginManager().isPluginEnabled("ModelEngine")) {
+            return;
+        }
+        Location anchorLoc = LocationUtils.centerOnBlock(chestLoc).add(0.0, 0.01, 0.0);
+        ArmorStand closingStand = chestLoc.getWorld().spawn(anchorLoc, ArmorStand.class, stand -> {
+            stand.setInvisible(true);
+            stand.setMarker(false);
+            stand.setSmall(true);
+            stand.setGravity(false);
+            stand.setSilent(true);
+            stand.setInvulnerable(true);
+            stand.addScoreboardTag(MODEL_TAG);
+            stand.addScoreboardTag(MODEL_TAG + ":" + chestId);
+            stand.addScoreboardTag(MODEL_TAG + ":closing");
+        });
+        ModelEngineUtil.ModelApplyResult result = ModelEngineUtil.applyFirstAvailableModel(
+                closingStand,
+                ModelEngineUtil.buildModelCandidates(getCrateModelId()),
+                plugin
+        );
+        if (result.applied().isEmpty()) {
+            closingStand.remove();
+            return;
+        }
+        ModelEngineUtil.playBestAnimationResolved(closingStand, List.of("closing", "close"), false, false);
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            if (closingStand.isValid()) {
+                closingStand.remove();
+            }
+        }, 40L);
+    }
+
+    private void updateIdleMoveAnimation(int chestId, boolean playerVeryNear) {
+        if (isIdleAnimationLocked(chestId)) {
+            return;
+        }
+        Boolean previous = chestIdleMoveState.get(chestId);
+        if (previous != null && previous == playerVeryNear) {
+            return;
+        }
+        chestIdleMoveState.put(chestId, playerVeryNear);
+        if (playerVeryNear) {
+            playChestAnimation(chestId, "idle_mouve", List.of("idle_mouve", "idle_move", "idle", "move"), true);
+            return;
+        }
+        playChestAnimation(chestId, "idle", List.of("idle"), true);
+    }
+
+    private boolean playChestAnimation(int chestId, String requestedAnimation, List<String> keywords, boolean loop) {
+        UUID entityId = spawnedChestModels.get(chestId);
+        if (entityId == null) {
+            sendChestAnimationDebug(chestId, requestedAnimation, keywords, loop, null, false, "no_model_entity");
+            return false;
+        }
+        Entity modelEntity = Bukkit.getEntity(entityId);
+        if (modelEntity == null || !modelEntity.isValid()) {
+            sendChestAnimationDebug(chestId, requestedAnimation, keywords, loop, null, false, "invalid_model_entity");
+            return false;
+        }
+        String resolved = ModelEngineUtil.playBestAnimationResolved(modelEntity, keywords, loop, false);
+        boolean played = resolved != null && !resolved.isBlank();
+        sendChestAnimationDebug(chestId, requestedAnimation, keywords, loop, resolved, played, played ? "ok" : "no_match");
+        return played;
+    }
+
+    private void sendChestAnimationDebug(int chestId,
+                                         String requestedAnimation,
+                                         List<String> keywords,
+                                         boolean loop,
+                                         String resolved,
+                                         boolean played,
+                                         String reason) {
+        Location chestLoc = spawnedChests.get(chestId);
+        if (chestLoc == null || chestLoc.getWorld() == null) {
+            return;
+        }
+        String message = ChatColor.DARK_GRAY + "[LootChestAnim] "
+                + ChatColor.GRAY + "#" + chestId
+                + ChatColor.GRAY + " req=" + ChatColor.AQUA + requestedAnimation
+                + ChatColor.GRAY + " keywords=" + ChatColor.WHITE + keywords
+                + ChatColor.GRAY + " loop=" + ChatColor.WHITE + loop
+                + ChatColor.GRAY + " result="
+                + (played
+                ? ChatColor.GREEN + "played(" + resolved + ")"
+                : ChatColor.RED + "failed(" + reason + ")");
+        for (Player nearby : chestLoc.getWorld().getPlayers()) {
+            if (nearby.getLocation().distanceSquared(chestLoc) > 18 * 18) {
+                continue;
+            }
+            if (!nearby.isOp() && !nearby.hasPermission("levelplugin.debug")) {
+                continue;
+            }
+            ChatMessageUtil.send(nearby, ChatMessageUtil.MessageType.INFO, message);
+        }
+    }
+
+    private void lockIdleAnimation(int chestId, long ticks) {
+        long durationMs = Math.max(0L, ticks) * 50L;
+        chestIdleAnimationLockUntilMs.put(chestId, System.currentTimeMillis() + durationMs);
+    }
+
+    private boolean isIdleAnimationLocked(int chestId) {
+        Long unlockAt = chestIdleAnimationLockUntilMs.get(chestId);
+        if (unlockAt == null) {
+            return false;
+        }
+        if (System.currentTimeMillis() >= unlockAt) {
+            chestIdleAnimationLockUntilMs.remove(chestId);
+            return false;
+        }
+        return true;
+    }
+
+    private boolean containsRareLoot(Inventory inventory) {
+        if (inventory == null) {
+            return false;
+        }
+        for (ItemStack item : inventory.getContents()) {
+            ItemRarity rarity = ItemUtil.getItemRarity(item);
+            if (rarity != null && rarity.ordinal() >= ItemRarity.RARE.ordinal()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void removeExistingLootHolograms() {
@@ -736,6 +883,25 @@ public class LootChestManager {
                     && stored.getBlockY() == location.getBlockY()
                     && stored.getBlockZ() == location.getBlockZ()) {
                 return entry.getKey();
+            }
+        }
+        return null;
+    }
+
+    public Integer getChestIdFromModelEntity(Entity entity) {
+        if (entity == null) {
+            return null;
+        }
+        String prefix = MODEL_TAG + ":";
+        for (String tag : entity.getScoreboardTags()) {
+            if (tag == null || !tag.startsWith(prefix)) {
+                continue;
+            }
+            String suffix = tag.substring(prefix.length());
+            try {
+                return Integer.parseInt(suffix);
+            } catch (NumberFormatException ignored) {
+                return null;
             }
         }
         return null;

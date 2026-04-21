@@ -94,7 +94,7 @@ public final class StrongholdAssetDebugGUI implements Listener {
         inv.setItem(31, paletteItem("Floor Band 4", floorCfg.palette().get(3)));
 
         List<String> resetLore = TooltipUtil.bulletList(
-                "Reset to 90% trees, 0% ruins, 10% rocks, total 500.",
+                "Reset to 85% trees, 5% ruins, 10% rocks, total 500.",
                 "Floor defaults: packed_mud, coarse_dirt, grass_block, grass_block."
         );
         resetLore.add(" ");
