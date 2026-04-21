@@ -174,6 +174,10 @@ public final class StrongholdDebugGenerator {
             "straight_3", "straight_2",
             "straight_5", "straight_4"
     );
+    private static final Map<String, String> OPEN_TO_CLOSED_TEMPLATE = Map.of(
+            "straight_2", "straight_3",
+            "straight_4", "straight_5"
+    );
 
     private static final int DEFAULT_SPINE_LENGTH = 12;
     private static final int MAX_BRANCH_LENGTH = 6;
@@ -414,7 +418,7 @@ public final class StrongholdDebugGenerator {
         timing.processFinished("Initialize generation state", processStart);
 
         processStart = timing.processStarted("Pick start template");
-        TemplateSpec startSpec = pickWeighted(eligibleWallPool(captured.walls()), random);
+        TemplateSpec startSpec = pickWeighted(eligibleWallPool(normalizedWallsForGeneration(captured.walls())), random);
         timing.processFinished("Pick start template", processStart);
         if (startSpec == null) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
@@ -479,7 +483,7 @@ public final class StrongholdDebugGenerator {
 
         processStart = timing.processStarted("Build template candidate pools");
         List<TemplateSpec> allCandidateTemplates = new ArrayList<>();
-        allCandidateTemplates.addAll(captured.walls());
+        allCandidateTemplates.addAll(normalizedWallsForGeneration(captured.walls()));
         allCandidateTemplates.addAll(captured.largeJunctions());
         allCandidateTemplates.addAll(captured.deadEnds());
         timing.processFinished("Build template candidate pools", processStart);
@@ -679,7 +683,7 @@ public final class StrongholdDebugGenerator {
         }
 
         List<TemplateSpec> wallPool = new ArrayList<>();
-        for (TemplateSpec wall : captured.walls()) {
+        for (TemplateSpec wall : normalizedWallsForGeneration(captured.walls())) {
             if (wall.id.startsWith("straight_")) {
                 wallPool.add(wall);
             }
@@ -694,7 +698,7 @@ public final class StrongholdDebugGenerator {
             wallPool = linearWallPool;
         }
         if (wallPool.isEmpty()) {
-            wallPool.addAll(captured.walls());
+            wallPool.addAll(normalizedWallsForGeneration(captured.walls()));
         }
         if (wallPool.isEmpty()) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "No wall templates found for towerwall preset.");
@@ -1903,6 +1907,27 @@ public final class StrongholdDebugGenerator {
         return pool;
     }
 
+    private static List<TemplateSpec> normalizedWallsForGeneration(List<TemplateSpec> walls) {
+        List<TemplateSpec> normalized = new ArrayList<>();
+        if (walls == null || walls.isEmpty()) {
+            return normalized;
+        }
+        Map<String, TemplateSpec> byId = new HashMap<>();
+        for (TemplateSpec wall : walls) {
+            if (wall != null && wall.id != null) {
+                byId.put(wall.id, wall);
+            }
+        }
+        for (TemplateSpec wall : walls) {
+            if (wall == null || wall.id == null) {
+                continue;
+            }
+            String closedId = OPEN_TO_CLOSED_TEMPLATE.getOrDefault(wall.id, wall.id);
+            normalized.add(byId.getOrDefault(closedId, wall));
+        }
+        return normalized;
+    }
+
     private static List<BlockFace> distinctOpenSides(PlacedTemplate placed) {
         List<BlockFace> distinct = new ArrayList<>();
         for (BlockFace side : placed.openSides()) {
@@ -2605,8 +2630,9 @@ public final class StrongholdDebugGenerator {
     }
 
     private static List<TemplateSpec> preferredLinkWallPool(CapturedTemplates captured) {
+        List<TemplateSpec> normalizedWalls = normalizedWallsForGeneration(captured.walls());
         List<TemplateSpec> straightWalls = new ArrayList<>();
-        for (TemplateSpec wall : captured.walls()) {
+        for (TemplateSpec wall : normalizedWalls) {
             if (isLinearWallTemplate(wall)) {
                 straightWalls.add(wall);
             }
@@ -2614,7 +2640,7 @@ public final class StrongholdDebugGenerator {
         if (!straightWalls.isEmpty()) {
             return straightWalls;
         }
-        return captured.walls();
+        return normalizedWalls;
     }
 
     private static BlockFace pickOpenSideToward(PlacedTemplate current,
@@ -3632,7 +3658,7 @@ public final class StrongholdDebugGenerator {
                                                            PlacedTemplate current,
                                                            PlacementState state,
                                                            boolean allowLarge) {
-        List<TemplateSpec> pool = eligibleWallPool(captured.walls());
+        List<TemplateSpec> pool = eligibleWallPool(normalizedWallsForGeneration(captured.walls()));
         if (allowLarge && canPlaceLargeAfter(current, state)) {
             for (TemplateSpec large : captured.largeJunctions()) {
                 if (canUseSpec(large, state)) {
@@ -4404,6 +4430,7 @@ public final class StrongholdDebugGenerator {
             if (markerSelection == null) {
                 continue;
             }
+            clearDoorPlaceholderBlocks(world, placed);
 
             DoorInteractionState state = spawnDoorHologramForTemplate(world, placed, openSpec, markerSelection);
             if (state == null) {
@@ -4440,9 +4467,26 @@ public final class StrongholdDebugGenerator {
         return new Location(
                 world,
                 origin.getBlockX() + relative.getBlockX() + 0.5,
-                origin.getBlockY() + relative.getBlockY() + 1.15,
+                origin.getBlockY() + relative.getBlockY() + 0.5,
                 origin.getBlockZ() + relative.getBlockZ() + 0.5
         );
+    }
+
+    private static void clearDoorPlaceholderBlocks(World world, PlacedTemplate placed) {
+        if (world == null || placed == null || placed.spec == null || placed.spec.template == null) {
+            return;
+        }
+        RotatedTemplate rotated = rotateTemplate(placed.spec.template, placed.rotation);
+        List<BlockVector3> doorMarkers = rotated.markers().get(Material.DIAMOND_BLOCK);
+        if (doorMarkers == null || doorMarkers.isEmpty()) {
+            return;
+        }
+        for (BlockVector3 marker : doorMarkers) {
+            int x = placed.origin.getBlockX() + marker.getBlockX();
+            int y = placed.origin.getBlockY() + marker.getBlockY();
+            int z = placed.origin.getBlockZ() + marker.getBlockZ();
+            world.getBlockAt(x, y, z).setType(Material.AIR, false);
+        }
     }
 
     private static DoorInteractionState spawnDoorHologramForTemplate(World world,
@@ -4452,7 +4496,7 @@ public final class StrongholdDebugGenerator {
         if (world == null || closedPlaced == null || openSpec == null || markers == null || markers.closestSide() == null) {
             return null;
         }
-        Location base = markers.closestSide().clone();
+        Location base = markers.closestSide().clone().add(0, 0.65, 0);
         Interaction interaction = world.spawn(base, Interaction.class, entity -> {
             entity.setInvulnerable(true);
             entity.setGravity(false);
@@ -4461,7 +4505,7 @@ public final class StrongholdDebugGenerator {
             entity.addScoreboardTag(STRONGHOLD_DOOR_TAG);
         });
 
-        TextDisplay display = (TextDisplay) world.spawnEntity(base.clone().add(0, 1.15, 0), EntityType.TEXT_DISPLAY);
+        TextDisplay display = (TextDisplay) world.spawnEntity(base.clone().add(0, 0.75, 0), EntityType.TEXT_DISPLAY);
         display.setBillboard(Display.Billboard.CENTER);
         display.setShadowRadius(0f);
         display.setShadowStrength(0f);
@@ -4522,6 +4566,11 @@ public final class StrongholdDebugGenerator {
         }
 
         paste(world, state.openTemplate().template(), state.closedTemplate().origin, state.closedTemplate().rotation);
+        clearDoorPlaceholderBlocks(world, new PlacedTemplate(
+                state.openTemplate(),
+                state.closedTemplate().rotation,
+                state.closedTemplate().origin
+        ));
 
         Location fx = new Location(
                 world,
