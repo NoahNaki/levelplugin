@@ -45,6 +45,10 @@ public final class StrongholdSurvivalManager implements Listener {
     private static final String WAVE_TAG = "stronghold_wave_mob";
     private static final int FINAL_WAVE = 30;
     private static final int BASE_WAVE_SECONDS = 50;
+    private static final double BORDER_INITIAL_SIZE = 220.0;
+    private static final double BORDER_MIN_SIZE = 42.0;
+    private static final double BORDER_SHRINK_PER_WAVE = 5.5;
+    private static final int BORDER_WARNING_DISTANCE = 12;
 
     private static final List<String> EARLY_POOL = List.of(
             "rpg_rat", "wild_rooster", "forest_slime", "moss_zombie", "goblin_warrior", "goblin_archer"
@@ -102,9 +106,13 @@ public final class StrongholdSurvivalManager implements Listener {
         Run run = new Run(player.getUniqueId(), world.getUID());
         runsByPlayer.put(player.getUniqueId(), run);
         runsByWorld.put(world.getUID(), run);
+        initializeRunBorder(run, player);
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                 ChatColor.GRAY + "Objective: survive all " + ChatColor.GOLD + FINAL_WAVE
                         + ChatColor.GRAY + " waves and defeat the final boss.");
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                ChatColor.GRAY + "The stronghold perimeter will " + ChatColor.RED + "collapse"
+                        + ChatColor.GRAY + " as waves progress.");
         beginWave(run, false);
     }
 
@@ -121,6 +129,7 @@ public final class StrongholdSurvivalManager implements Listener {
         if (run.bossBar != null) {
             run.bossBar.removeAll();
         }
+        restoreRunBorder(run);
         for (UUID mobId : new HashSet<>(run.mobIds)) {
             mobToOwner.remove(mobId);
             var entity = Bukkit.getEntity(mobId);
@@ -178,6 +187,7 @@ public final class StrongholdSurvivalManager implements Listener {
         run.mobIds.clear();
         run.mobsRemaining = spawnWaveMobs(run, player);
         run.waveDeadlineMs = System.currentTimeMillis() + (BASE_WAVE_SECONDS * 1000L);
+        applyWaveBorder(run);
         if (run.bossBar == null) {
             run.bossBar = Bukkit.createBossBar("", BarColor.BLUE, BarStyle.SOLID);
         }
@@ -398,6 +408,51 @@ public final class StrongholdSurvivalManager implements Listener {
         return name.startsWith("stronghold_debug_") || name.contains("stronghold");
     }
 
+    private void initializeRunBorder(Run run, Player player) {
+        if (run == null || player == null || player.getWorld() == null) {
+            return;
+        }
+        World world = player.getWorld();
+        var border = world.getWorldBorder();
+        run.borderState = new BorderState(
+                border.getCenter().clone(),
+                border.getSize(),
+                border.getWarningDistance(),
+                border.getWarningTime()
+        );
+        border.setCenter(player.getLocation().getX(), player.getLocation().getZ());
+        border.setWarningDistance(BORDER_WARNING_DISTANCE);
+        border.setWarningTime(8);
+        border.setSize(BORDER_INITIAL_SIZE);
+    }
+
+    private void applyWaveBorder(Run run) {
+        if (run == null) {
+            return;
+        }
+        World world = Bukkit.getWorld(run.worldId);
+        if (world == null) {
+            return;
+        }
+        double nextSize = Math.max(BORDER_MIN_SIZE, BORDER_INITIAL_SIZE - ((run.wave - 1) * BORDER_SHRINK_PER_WAVE));
+        world.getWorldBorder().setSize(nextSize, BASE_WAVE_SECONDS);
+    }
+
+    private void restoreRunBorder(Run run) {
+        if (run == null || run.borderState == null) {
+            return;
+        }
+        World world = Bukkit.getWorld(run.worldId);
+        if (world == null) {
+            return;
+        }
+        var border = world.getWorldBorder();
+        border.setCenter(run.borderState.center());
+        border.setSize(run.borderState.size());
+        border.setWarningDistance(run.borderState.warningDistance());
+        border.setWarningTime(run.borderState.warningTime());
+    }
+
     private static final class Run {
         private final UUID playerId;
         private final UUID worldId;
@@ -409,6 +464,7 @@ public final class StrongholdSurvivalManager implements Listener {
         private BossBar bossBar;
         private BukkitTask waveTask;
         private BuffResult lastBuff;
+        private BorderState borderState;
 
         private Run(UUID playerId, UUID worldId) {
             this.playerId = playerId;
@@ -417,5 +473,8 @@ public final class StrongholdSurvivalManager implements Listener {
     }
 
     private record BuffResult(String id, String message) {
+    }
+
+    private record BorderState(Location center, double size, int warningDistance, int warningTime) {
     }
 }
