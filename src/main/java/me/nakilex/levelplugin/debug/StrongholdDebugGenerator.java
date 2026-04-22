@@ -1596,6 +1596,7 @@ public final class StrongholdDebugGenerator {
                                                     int fallbackY,
                                                     Runnable onComplete) {
         if (sourceWorld == null || world == null || footprint == null || occupied == null) {
+            notifyBorderForestDebug(player, "Border forest skipped: missing source/world/footprint context.");
             if (onComplete != null) {
                 onComplete.run();
             }
@@ -1603,6 +1604,7 @@ public final class StrongholdDebugGenerator {
         }
         Map<AssetType, List<DetachedAssetTemplate>> templatesByType = loadDetachedAssetTemplates(sourceWorld);
         if (templatesByType.isEmpty()) {
+            notifyBorderForestDebug(player, "Border forest skipped: no detached asset templates loaded.");
             if (onComplete != null) {
                 onComplete.run();
             }
@@ -1618,6 +1620,7 @@ public final class StrongholdDebugGenerator {
             rockTemplates = ruinTemplates;
         }
         if (treeTemplates.isEmpty() && rockTemplates.isEmpty()) {
+            notifyBorderForestDebug(player, "Border forest skipped: no tree/rock/ruin templates available.");
             if (onComplete != null) {
                 onComplete.run();
             }
@@ -1627,11 +1630,14 @@ public final class StrongholdDebugGenerator {
         final List<DetachedAssetTemplate> finalRockTemplates = rockTemplates;
         Main plugin = Main.getInstance();
         if (plugin == null) {
+            notifyBorderForestDebug(player, "Border forest skipped: plugin instance unavailable.");
             if (onComplete != null) {
                 onComplete.run();
             }
             return;
         }
+        notifyBorderForestDebug(player, "Border forest pass started (trees=" + finalTreeTemplates.size()
+                + ", rocks=" + finalRockTemplates.size() + ").");
         Random random = ThreadLocalRandom.current();
         int borderWidth = Math.max(1, (footprint.maxX - footprint.minX) + 1);
         int borderDepth = Math.max(1, (footprint.maxZ - footprint.minZ) + 1);
@@ -1726,12 +1732,22 @@ public final class StrongholdDebugGenerator {
                 if (player != null && player.isOnline()) {
                     ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                             "Organic border forest pass complete (" + placedCount[0] + "/" + targetPlacements + ").");
+                    notifyBorderForestDebug(player, "Border forest detail: rocks placed=" + rockPlacedCount[0]
+                            + ", attempts=" + attempts[0] + ".");
                 }
                 if (onComplete != null) {
                     onComplete.run();
                 }
             }
         }, 1L, 1L);
+    }
+
+    private static void notifyBorderForestDebug(Player player, String message) {
+        if (player == null || !player.isOnline() || message == null || message.isBlank()) {
+            return;
+        }
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                ChatColor.DARK_GRAY + "[BorderForest] " + ChatColor.GRAY + message);
     }
 
     private static DetachedAssetTemplate pickBorderForestTemplate(List<DetachedAssetTemplate> treeTemplates,

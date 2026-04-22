@@ -515,6 +515,7 @@ public final class StrongholdSurvivalManager implements Listener {
             stopRun(run.playerId, true);
             return;
         }
+        run.awaitingNextWave = false;
         run.wave++;
         if (run.wave > FINAL_WAVE) {
             finishRun(run);
@@ -605,6 +606,9 @@ public final class StrongholdSurvivalManager implements Listener {
             stopRun(run.playerId, true);
             return;
         }
+        if (run.awaitingNextWave) {
+            return;
+        }
         if (run.mobsRemaining <= 0) {
             completeWave(run);
             return;
@@ -663,6 +667,10 @@ public final class StrongholdSurvivalManager implements Listener {
     }
 
     private void completeWave(Run run) {
+        if (run.awaitingNextWave) {
+            return;
+        }
+        run.awaitingNextWave = true;
         Player player = resolveAnchor(run);
         if (player == null || !player.isOnline()) {
             stopRun(run.playerId, true);
@@ -675,8 +683,9 @@ public final class StrongholdSurvivalManager implements Listener {
             if (online == null || !online.isOnline()) continue;
             plugin.getLevelManager().addXP(online, equalShare);
             ChatMessageUtil.send(online, ChatMessageUtil.MessageType.REWARD,
-                    ChatColor.GOLD + "Wave " + run.wave + " cleared "
-                            + ChatColor.GRAY + "• +" + equalShare + " <glyph:experience_orb_icon> XP");
+                    ChatColor.GREEN + "" + ChatColor.BOLD + "WAVE " + run.wave + " CLEARED! "
+                            + ChatColor.GRAY + "• "
+                            + ChatColor.GOLD + "+" + equalShare + " <glyph:experience_orb_icon> XP");
         }
         applyObjectiveResult(run);
         if (run.wave >= FINAL_WAVE) {
@@ -847,8 +856,11 @@ public final class StrongholdSurvivalManager implements Listener {
             Player player = Bukkit.getPlayer(member);
             if (player != null && player.isOnline()) {
                 ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                        ChatColor.GRAY + "Objective complete: " + ChatColor.GOLD + run.waveObjective.displayName
-                                + ChatColor.GRAY + " (+" + run.waveObjective.scoreBonus + " score)");
+                        ChatColor.GOLD + "" + ChatColor.BOLD + "OBJECTIVE COMPLETE "
+                                + ChatColor.GRAY + "• "
+                                + ChatColor.WHITE + run.waveObjective.displayName
+                                + ChatColor.GRAY + " • "
+                                + ChatColor.GREEN + "+" + run.waveObjective.scoreBonus + " score");
             }
         }
     }
@@ -1202,6 +1214,7 @@ public final class StrongholdSurvivalManager implements Listener {
         private BukkitTask countdownTask;
         private int countdownSecondsRemaining = 0;
         private boolean pendingWaveBuffAnnouncement = false;
+        private boolean awaitingNextWave = false;
         private BuffResult lastBuff;
         private BorderState borderState;
 
