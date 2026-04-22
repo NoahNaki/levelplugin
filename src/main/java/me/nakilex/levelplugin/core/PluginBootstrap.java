@@ -1121,6 +1121,9 @@ public class PluginBootstrap {
         if (!customConfig.contains("server.build-min-weight")) {
             customConfig.set("server.build-min-weight", 51);
         }
+        if (!customConfig.contains("stronghold.generated-world-template")) {
+            customConfig.set("stronghold.generated-world-template", "");
+        }
         java.util.List<String> excluded = customConfig.getStringList("levelplugin.excluded-worlds");
         if (excluded == null || excluded.isEmpty()) {
             excluded = new java.util.ArrayList<>(java.util.List.of("flatland"));

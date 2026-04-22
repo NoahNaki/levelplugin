@@ -2170,16 +2170,45 @@ public final class StrongholdDebugGenerator {
 
     private static World createGeneratedWorld(Main plugin, Player player) {
         String worldName = GENERATED_WORLD_PREFIX + System.currentTimeMillis();
-        World world = plugin.getWorldManager().createWorld(worldName, WorldType.FLAT, Environment.NORMAL, false);
+        String templateWorldName = resolveGeneratedWorldTemplate(plugin);
+        World world = null;
+        if (templateWorldName != null && !templateWorldName.isBlank()) {
+            plugin.getWorldManager().ensureWorldsLoaded(templateWorldName);
+            if (Bukkit.getWorld(templateWorldName) != null
+                    && plugin.getWorldManager().cloneWorld(templateWorldName, worldName)) {
+                world = Bukkit.getWorld(worldName);
+                if (player != null && player.isOnline()) {
+                    ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                            "Generating stronghold in cloned template world '" + worldName
+                                    + "' from '" + templateWorldName + "'.");
+                }
+            } else if (plugin != null) {
+                plugin.getLogger().warning("Stronghold template world clone failed for '" + templateWorldName
+                        + "'. Falling back to generated superflat world.");
+            }
+        }
+        if (world == null) {
+            world = plugin.getWorldManager().createWorld(worldName, WorldType.FLAT, Environment.NORMAL, false);
+        }
         if (world == null) {
             return null;
         }
         world.setKeepSpawnInMemory(false);
         world.setAutoSave(false);
         world.setGameRule(org.bukkit.GameRule.DO_MOB_SPAWNING, false);
-        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
-                "Generating stronghold in superflat world '" + world.getName() + "'...");
+        if (player != null && player.isOnline()) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                    "Stronghold origin fixed at " + ChatColor.WHITE + "(0, -61, 0)"
+                            + ChatColor.GRAY + " in world '" + world.getName() + "'.");
+        }
         return world;
+    }
+
+    private static String resolveGeneratedWorldTemplate(Main plugin) {
+        if (plugin == null || plugin.getCustomConfig() == null) {
+            return "";
+        }
+        return plugin.getCustomConfig().getString("stronghold.generated-world-template", "").trim();
     }
 
     private static SourceSetup prepareSourceTemplates(Player player, boolean forceRefresh) {
