@@ -23,8 +23,9 @@ import me.nakilex.levelplugin.potions.managers.PotionManager;
 import me.nakilex.levelplugin.salvage.managers.SalvageManager;
 import me.nakilex.levelplugin.utils.FurnitureCleanupUtil;
 import me.nakilex.levelplugin.utils.ModelEngineUtil;
-import me.nakilex.levelplugin.utils.TooltipUtil;
+import me.nakilex.levelplugin.utils.StrongholdWorldUtil;
 import me.nakilex.levelplugin.utils.TextUtil;
+import me.nakilex.levelplugin.utils.TooltipUtil;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -361,11 +362,7 @@ public class LootChestManager {
     }
 
     public boolean isStrongholdWorld(World world) {
-        if (world == null || world.getName() == null) {
-            return false;
-        }
-        String worldName = world.getName().toLowerCase(Locale.ROOT);
-        return worldName.startsWith("stronghold_debug_") || worldName.contains("stronghold");
+        return StrongholdWorldUtil.isStrongholdWorld(world);
     }
 
     public ChestProgress recordStrongholdChestOpen(UUID playerId, int chestId, World world) {

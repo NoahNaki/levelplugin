@@ -225,8 +225,17 @@ public class WorldManager {
             return false;
         }
 
+        File uidFile = new File(targetFolder, "uid.dat");
+        if (uidFile.exists() && !uidFile.delete()) {
+            plugin.getLogger().warning("Failed to delete uid.dat from cloned world '" + targetName + "'.");
+        }
+
         World cloned = importWorld(targetName);
-        return cloned != null;
+        if (cloned == null) {
+            FileUtil.deleteDirectory(targetFolder);
+            return false;
+        }
+        return true;
     }
 
     public void ensureWorldsLoaded(Collection<String> names) {

@@ -46,17 +46,19 @@ public class WorldCommand implements CommandExecutor, TabCompleter {
                 String typeStr = args[2].toLowerCase();
                 Environment env = Environment.NORMAL;
                 WorldType type = WorldType.NORMAL;
+                boolean useVoidGeneratorForFlatNormal = false;
                 if (typeStr.equals("void")) {
                     type = WorldType.FLAT;
                     env = Environment.NORMAL;
-                } else if (typeStr.equals("flatland")) {
+                    useVoidGeneratorForFlatNormal = true;
+                } else if (typeStr.equals("flatland") || typeStr.equals("superflat")) {
                     type = WorldType.FLAT;
                 } else if (typeStr.equals("nether")) {
                     env = Environment.NETHER;
                 } else if (typeStr.equals("end")) {
                     env = Environment.THE_END;
                 }
-                World world = manager.createWorld(name, type, env);
+                World world = manager.createWorld(name, type, env, useVoidGeneratorForFlatNormal);
                 if (world != null) {
                     sender.sendMessage(ChatColor.GREEN + "World created: " + name);
                 } else {
@@ -266,7 +268,7 @@ public class WorldCommand implements CommandExecutor, TabCompleter {
             }
             case "create" -> {
                 if (args.length == 3) {
-                    return filter(args[2], List.of("void", "flatland", "nether", "end"));
+                    return filter(args[2], List.of("void", "flatland", "superflat", "nether", "end"));
                 }
             }
             case "gamerule" -> {

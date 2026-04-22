@@ -223,8 +223,10 @@ public final class StrongholdDebugGenerator {
     private static final int DETACHED_ASSET_CONSECUTIVE_MISS_ABORT = 140;
     private static final int DETACHED_ASSET_MIN_TOTAL_REQUEST = 32;
     private static final int DETACHED_ASSET_BLOCKS_PER_ASSET_TARGET = 700;
-    private static final int BORDER_FOREST_BATCH_SIZE = 6;
-    private static final int BORDER_FOREST_ATTEMPTS_PER_TICK = 90;
+    private static final int BORDER_FOREST_START_DELAY_TICKS = 5;
+    private static final int BORDER_FOREST_TICK_INTERVAL = 1;
+    private static final int BORDER_FOREST_BATCH_SIZE = 10;
+    private static final int BORDER_FOREST_ATTEMPTS_PER_TICK = 180;
     private static final int BORDER_FOREST_MIN_OFFSET_BLOCKS = 26;
     private static final int BORDER_FOREST_MAX_OFFSET_BLOCKS = 110;
     private static final int BORDER_FOREST_TARGET_MIN = 160;
@@ -802,6 +804,13 @@ public final class StrongholdDebugGenerator {
         PlacementField field = buildPlacementField(footprint, random);
         logDetachedAssetDebug("Placement field -> bounds=[" + field.minX + "," + field.minZ + " -> "
                 + field.maxX + "," + field.maxZ + "], patches=" + field.patchCenters.size() + ".");
+        Main plugin = Main.getInstance();
+        Set<Long> placementChunkTickets = ensureChunksLoaded(
+                world, field.minX, field.maxX, field.minZ, field.maxZ, plugin, true);
+        if (!placementChunkTickets.isEmpty()) {
+            logDetachedAssetDebug("Detached placement preloaded " + placementChunkTickets.size()
+                    + " chunk(s) for sampling field.");
+        }
 
         List<AssetType> requestOrder = new ArrayList<>(tunedTotalRequested);
         addAssetRequests(requestOrder, AssetType.TREE, tunedCounts.trees());
@@ -858,12 +867,14 @@ public final class StrongholdDebugGenerator {
                 + treesPlaced + "/" + rocksPlaced + "/" + ruinsPlaced
                 + ", attempts=" + debugCounter.totalAttempts
                 + ", rejected(noPool)=" + debugCounter.noPoolRejects
+                + ", rejected(chunkUnloaded)=" + debugCounter.unloadedChunkRejects
                 + ", rejected(outsideField)=" + debugCounter.outsideFieldRejects
                 + ", rejected(nonTerrainGround)=" + debugCounter.nonTerrainGroundRejects
                 + ", rejected(overlapMain)=" + debugCounter.mainOverlapRejects
                 + ", rejected(overlapDetached)=" + debugCounter.detachedOverlapRejects
                 + ", skipped(budget)=" + skippedRequests
                 + ", queued=" + queuedPlacements.size() + ".");
+        releaseChunkTickets(world, placementChunkTickets, plugin);
 
         return new AssetPlacementSummary(
                 tunedCounts.trees(),
@@ -983,6 +994,7 @@ public final class StrongholdDebugGenerator {
         }
         int attempts = 0;
         int outsideFieldRejects = 0;
+        int unloadedChunkRejects = 0;
         int nonTerrainGroundRejects = 0;
         int mainOverlapRejects = 0;
         int detachedOverlapRejects = 0;
@@ -1000,6 +1012,10 @@ public final class StrongholdDebugGenerator {
             int z = sample.getBlockZ();
             if (!isWithinPlacementField(x, z, field)) {
                 outsideFieldRejects++;
+                continue;
+            }
+            if (!isChunkLoadedAt(runtime.world(), x, z)) {
+                unloadedChunkRejects++;
                 continue;
             }
 
@@ -1025,6 +1041,7 @@ public final class StrongholdDebugGenerator {
                     new AssetPlacement(type, template, origin, rotation),
                     attempts,
                     0,
+                    unloadedChunkRejects,
                     outsideFieldRejects,
                     nonTerrainGroundRejects,
                     mainOverlapRejects,
@@ -1036,6 +1053,7 @@ public final class StrongholdDebugGenerator {
                 null,
                 attempts,
                 0,
+                unloadedChunkRejects,
                 outsideFieldRejects,
                 nonTerrainGroundRejects,
                 mainOverlapRejects,
@@ -1628,6 +1646,10 @@ public final class StrongholdDebugGenerator {
         int maxX = footprint.maxX + BORDER_FOREST_MAX_OFFSET_BLOCKS;
         int minZ = footprint.minZ - BORDER_FOREST_MAX_OFFSET_BLOCKS;
         int maxZ = footprint.maxZ + BORDER_FOREST_MAX_OFFSET_BLOCKS;
+        Set<Long> borderChunkTickets = ensureChunksLoaded(world, minX, maxX, minZ, maxZ, plugin, true);
+        if (!borderChunkTickets.isEmpty()) {
+            logDetachedAssetDebug("Border forest preloaded " + borderChunkTickets.size() + " chunk(s).");
+        }
         int minRockPlacements = rockTemplates.isEmpty()
                 ? 0
                 : Math.max(8, (int) Math.round(targetPlacements * BORDER_FOREST_MIN_ROCK_SHARE));
@@ -1646,6 +1668,8 @@ public final class StrongholdDebugGenerator {
         final int[] placedCount = {0};
         final int[] rockPlacedCount = {0};
         final int[] attempts = {0};
+        final int[] unloadedChunkRejects = {0};
+        final int[] nonTerrainRejects = {0};
         taskRef[0] = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             int placedThisTick = 0;
             int attemptsThisTick = 0;
@@ -1657,6 +1681,7 @@ public final class StrongholdDebugGenerator {
                 int x = minX + random.nextInt(Math.max(1, (maxX - minX) + 1));
                 int z = minZ + random.nextInt(Math.max(1, (maxZ - minZ) + 1));
                 if (!isChunkLoadedAt(world, x, z)) {
+                    unloadedChunkRejects[0]++;
                     continue;
                 }
                 double edgeDistance = distanceToBounds2D(footprint, x, z);
@@ -1679,6 +1704,7 @@ public final class StrongholdDebugGenerator {
                 }
                 int y = runtime.safeSurfaceY(x, z);
                 if (!runtime.isNaturalTerrainAt(x, y, z)) {
+                    nonTerrainRejects[0]++;
                     continue;
                 }
                 int rotation = randomDetachedAssetRotation(template.type(), random);
@@ -1710,15 +1736,25 @@ public final class StrongholdDebugGenerator {
                 if (taskRef[0] != null) {
                     taskRef[0].cancel();
                 }
+                releaseChunkTickets(world, borderChunkTickets, plugin);
                 if (player != null && player.isOnline()) {
                     ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                             "Organic border forest pass complete (" + placedCount[0] + "/" + targetPlacements + ").");
+                    if (unloadedChunkRejects[0] > 0) {
+                        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                                "Border forest skipped " + unloadedChunkRejects[0]
+                                        + " placement attempts due to unloaded chunks.");
+                    }
                 }
+                logDetachedAssetDebug("Border forest debug -> attempts=" + attempts[0]
+                        + ", placed=" + placedCount[0]
+                        + ", rejected(chunkUnloaded)=" + unloadedChunkRejects[0]
+                        + ", rejected(nonTerrain)=" + nonTerrainRejects[0] + ".");
                 if (onComplete != null) {
                     onComplete.run();
                 }
             }
-        }, 20L, 2L);
+        }, BORDER_FOREST_START_DELAY_TICKS, BORDER_FOREST_TICK_INTERVAL);
     }
 
     private static DetachedAssetTemplate pickBorderForestTemplate(List<DetachedAssetTemplate> treeTemplates,
@@ -1756,6 +1792,48 @@ public final class StrongholdDebugGenerator {
             return false;
         }
         return world.isChunkLoaded(Math.floorDiv(x, 16), Math.floorDiv(z, 16));
+    }
+
+    private static Set<Long> ensureChunksLoaded(World world,
+                                                int minX,
+                                                int maxX,
+                                                int minZ,
+                                                int maxZ,
+                                                Main plugin,
+                                                boolean addTickets) {
+        if (world == null) {
+            return Set.of();
+        }
+        int minChunkX = Math.floorDiv(Math.min(minX, maxX), 16);
+        int maxChunkX = Math.floorDiv(Math.max(minX, maxX), 16);
+        int minChunkZ = Math.floorDiv(Math.min(minZ, maxZ), 16);
+        int maxChunkZ = Math.floorDiv(Math.max(minZ, maxZ), 16);
+        Set<Long> touchedChunks = new HashSet<>();
+        for (int chunkX = minChunkX; chunkX <= maxChunkX; chunkX++) {
+            for (int chunkZ = minChunkZ; chunkZ <= maxChunkZ; chunkZ++) {
+                var chunk = world.getChunkAt(chunkX, chunkZ);
+                chunk.load(true);
+                if (addTickets && plugin != null) {
+                    chunk.addPluginChunkTicket(plugin);
+                }
+                touchedChunks.add(chunkKey(chunkX, chunkZ));
+            }
+        }
+        return touchedChunks;
+    }
+
+    private static void releaseChunkTickets(World world, Set<Long> chunkKeys, Main plugin) {
+        if (world == null || plugin == null || chunkKeys == null || chunkKeys.isEmpty()) {
+            return;
+        }
+        for (long key : chunkKeys) {
+            int chunkX = (int) (key >> 32);
+            int chunkZ = (int) key;
+            if (!world.isChunkLoaded(chunkX, chunkZ)) {
+                continue;
+            }
+            world.getChunkAt(chunkX, chunkZ).removePluginChunkTicket(plugin);
+        }
     }
 
     private static boolean isWithinOrganicBorderBand(int x,
@@ -2092,16 +2170,46 @@ public final class StrongholdDebugGenerator {
 
     private static World createGeneratedWorld(Main plugin, Player player) {
         String worldName = GENERATED_WORLD_PREFIX + System.currentTimeMillis();
-        World world = plugin.getWorldManager().createWorld(worldName, WorldType.FLAT, Environment.NORMAL, false);
+        String templateWorldName = resolveGeneratedWorldTemplate(plugin);
+        World world = null;
+        if (templateWorldName != null && !templateWorldName.isBlank()) {
+            plugin.getWorldManager().ensureWorldsLoaded(templateWorldName);
+            if (Bukkit.getWorld(templateWorldName) != null
+                    && plugin.getWorldManager().cloneWorld(templateWorldName, worldName)) {
+                world = Bukkit.getWorld(worldName);
+                if (player != null && player.isOnline()) {
+                    ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                            "Generating stronghold in cloned template world '" + worldName
+                                    + "' from '" + templateWorldName + "'.");
+                }
+            } else if (plugin != null) {
+                plugin.getWorldManager().deleteWorld(worldName);
+                plugin.getLogger().warning("Stronghold template world clone failed for '" + templateWorldName
+                        + "'. Falling back to generated superflat world.");
+            }
+        }
+        if (world == null) {
+            world = plugin.getWorldManager().createWorld(worldName, WorldType.FLAT, Environment.NORMAL, false);
+        }
         if (world == null) {
             return null;
         }
         world.setKeepSpawnInMemory(false);
         world.setAutoSave(false);
         world.setGameRule(org.bukkit.GameRule.DO_MOB_SPAWNING, false);
-        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
-                "Generating stronghold in superflat world '" + world.getName() + "'...");
+        if (player != null && player.isOnline()) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                    "Stronghold origin fixed at " + ChatColor.WHITE + "(0, -61, 0)"
+                            + ChatColor.GRAY + " in world '" + world.getName() + "'.");
+        }
         return world;
+    }
+
+    private static String resolveGeneratedWorldTemplate(Main plugin) {
+        if (plugin == null || plugin.getCustomConfig() == null) {
+            return "";
+        }
+        return plugin.getCustomConfig().getString("stronghold.generated-world-template", "").trim();
     }
 
     private static SourceSetup prepareSourceTemplates(Player player, boolean forceRefresh) {
@@ -5530,18 +5638,20 @@ public final class StrongholdDebugGenerator {
     private record AssetPlacementSearchResult(AssetPlacement placement,
                                               int attempts,
                                               int noPoolRejects,
+                                              int unloadedChunkRejects,
                                               int outsideFieldRejects,
                                               int nonTerrainGroundRejects,
                                               int mainOverlapRejects,
                                               int detachedOverlapRejects) {
         private static AssetPlacementSearchResult noPool() {
-            return new AssetPlacementSearchResult(null, 0, 1, 0, 0, 0, 0);
+            return new AssetPlacementSearchResult(null, 0, 1, 0, 0, 0, 0, 0);
         }
     }
 
     private static final class AssetPlacementDebugCounter {
         private int totalAttempts;
         private int noPoolRejects;
+        private int unloadedChunkRejects;
         private int outsideFieldRejects;
         private int nonTerrainGroundRejects;
         private int mainOverlapRejects;
@@ -5553,6 +5663,7 @@ public final class StrongholdDebugGenerator {
             }
             totalAttempts += Math.max(0, result.attempts());
             noPoolRejects += Math.max(0, result.noPoolRejects());
+            unloadedChunkRejects += Math.max(0, result.unloadedChunkRejects());
             outsideFieldRejects += Math.max(0, result.outsideFieldRejects());
             nonTerrainGroundRejects += Math.max(0, result.nonTerrainGroundRejects());
             mainOverlapRejects += Math.max(0, result.mainOverlapRejects());
