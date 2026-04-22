@@ -96,9 +96,6 @@ public final class StrongholdAssetDebugGUI implements Listener {
         inv.setItem(34, decimalItem(Material.BARRIER, "Run Border Initial",
                 StrongholdSurvivalManager.getBorderInitialSize(),
                 "Starting border size for Stronghold survival runs.", 1));
-        inv.setItem(35, decimalItem(Material.IRON_BARS, "Run Border Minimum",
-                StrongholdSurvivalManager.getBorderMinSize(),
-                "Smallest border size allowed while waves progress.", 1));
         inv.setItem(37, decimalItem(Material.SPYGLASS, "Border Shrink / Wave",
                 StrongholdSurvivalManager.getBorderShrinkPerWave(),
                 "How many blocks the border shrinks each wave.", 10));
@@ -106,7 +103,7 @@ public final class StrongholdAssetDebugGUI implements Listener {
         List<String> resetLore = TooltipUtil.bulletList(
                 "Reset to 85% trees, 5% ruins, 10% rocks, total 500.",
                 "Floor defaults: packed_mud, coarse_dirt, grass_block, grass_block.",
-                "Run border defaults: initial 220, min 42, shrink 5.5/wave."
+                "Run border defaults: initial 750, shrink 5.5/wave."
         );
         resetLore.add(" ");
         resetLore.addAll(TooltipUtil.clickInstructions("to reset", null));
@@ -239,10 +236,6 @@ public final class StrongholdAssetDebugGUI implements Listener {
             case 34 -> {
                 double delta = shift ? 10.0 : 1.0;
                 StrongholdSurvivalManager.setBorderInitialSize(StrongholdSurvivalManager.getBorderInitialSize() + (sign * delta));
-            }
-            case 35 -> {
-                double delta = shift ? 10.0 : 1.0;
-                StrongholdSurvivalManager.setBorderMinSize(StrongholdSurvivalManager.getBorderMinSize() + (sign * delta));
             }
             case 37 -> {
                 double delta = shift ? 1.0 : 0.1;

@@ -66,8 +66,7 @@ public final class StrongholdSurvivalManager implements Listener {
     private static final String STRONGHOLD_DOOR_KEY_TAG = "stronghold_door_key";
     private static final int FINAL_WAVE = 30;
     private static final int BASE_WAVE_SECONDS = 50;
-    private static final double DEFAULT_BORDER_INITIAL_SIZE = 220.0;
-    private static final double DEFAULT_BORDER_MIN_SIZE = 42.0;
+    private static final double DEFAULT_BORDER_INITIAL_SIZE = 750.0;
     private static final double DEFAULT_BORDER_SHRINK_PER_WAVE = 5.5;
     private static final int BORDER_WARNING_DISTANCE = 12;
     private static final int BASE_SCORE_MAX = 10000;
@@ -154,7 +153,6 @@ public final class StrongholdSurvivalManager implements Listener {
     private final Map<UUID, Run> pendingChoiceByLeader = new HashMap<>();
     private final Map<UUID, Long> mobSpawnedAtMs = new HashMap<>();
     private static double borderInitialSize = DEFAULT_BORDER_INITIAL_SIZE;
-    private static double borderMinSize = DEFAULT_BORDER_MIN_SIZE;
     private static double borderShrinkPerWave = DEFAULT_BORDER_SHRINK_PER_WAVE;
 
     public StrongholdSurvivalManager(Main plugin) {
@@ -180,21 +178,12 @@ public final class StrongholdSurvivalManager implements Listener {
         return borderInitialSize;
     }
 
-    public static double getBorderMinSize() {
-        return borderMinSize;
-    }
-
     public static double getBorderShrinkPerWave() {
         return borderShrinkPerWave;
     }
 
     public static void setBorderInitialSize(double value) {
-        borderInitialSize = Math.max(40.0, Math.min(500.0, value));
-        borderMinSize = Math.min(borderMinSize, borderInitialSize - 5.0);
-    }
-
-    public static void setBorderMinSize(double value) {
-        borderMinSize = Math.max(20.0, Math.min(borderInitialSize - 5.0, value));
+        borderInitialSize = Math.max(100.0, Math.min(2000.0, value));
     }
 
     public static void setBorderShrinkPerWave(double value) {
@@ -203,7 +192,6 @@ public final class StrongholdSurvivalManager implements Listener {
 
     public static void resetBorderSettings() {
         borderInitialSize = DEFAULT_BORDER_INITIAL_SIZE;
-        borderMinSize = DEFAULT_BORDER_MIN_SIZE;
         borderShrinkPerWave = DEFAULT_BORDER_SHRINK_PER_WAVE;
     }
 
@@ -305,7 +293,7 @@ public final class StrongholdSurvivalManager implements Listener {
                     ChatColor.GRAY + "Mutator: " + ChatColor.LIGHT_PURPLE + run.mutator.displayName
                             + ChatColor.GRAY + " (score x" + String.format("%.2f", run.mutator.scoreMultiplier) + ").");
         }
-        beginWave(run, false);
+        scheduleWaveStart(run, 10, false);
     }
 
     public void stopRun(UUID playerId, boolean silent) {
@@ -322,6 +310,10 @@ public final class StrongholdSurvivalManager implements Listener {
         if (run.waveTask != null) {
             run.waveTask.cancel();
             run.waveTask = null;
+        }
+        if (run.countdownTask != null) {
+            run.countdownTask.cancel();
+            run.countdownTask = null;
         }
         if (run.bossBar != null) {
             run.bossBar.removeAll();
@@ -438,7 +430,7 @@ public final class StrongholdSurvivalManager implements Listener {
         }
         pendingChoiceByLeader.remove(player.getUniqueId());
         player.closeInventory();
-        beginWave(run, true);
+        scheduleWaveStart(run, 5, true);
     }
 
     @EventHandler
@@ -460,8 +452,57 @@ public final class StrongholdSurvivalManager implements Listener {
             }
             pendingChoiceByLeader.remove(player.getUniqueId());
             applyPathChoice(run, PathChoice.BALANCED, player.isOnline() ? player : null);
-            beginWave(run, true);
+            scheduleWaveStart(run, 5, true);
         }, 2L);
+    }
+
+    private void scheduleWaveStart(Run run, int countdownSeconds, boolean announceBuff) {
+        if (!isRunTrackedAndActive(run)) {
+            return;
+        }
+        if (run.countdownTask != null) {
+            run.countdownTask.cancel();
+            run.countdownTask = null;
+        }
+        run.pendingWaveBuffAnnouncement = announceBuff;
+        run.countdownSecondsRemaining = Math.max(1, countdownSeconds);
+        sendWaveCountdown(run, run.countdownSecondsRemaining);
+        run.countdownTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            if (!isRunTrackedAndActive(run)) {
+                if (run.countdownTask != null) {
+                    run.countdownTask.cancel();
+                    run.countdownTask = null;
+                }
+                return;
+            }
+            run.countdownSecondsRemaining--;
+            if (run.countdownSecondsRemaining <= 0) {
+                if (run.countdownTask != null) {
+                    run.countdownTask.cancel();
+                    run.countdownTask = null;
+                }
+                beginWave(run, run.pendingWaveBuffAnnouncement);
+                return;
+            }
+            sendWaveCountdown(run, run.countdownSecondsRemaining);
+        }, 20L, 20L);
+    }
+
+    private void sendWaveCountdown(Run run, int secondsRemaining) {
+        if (run == null || secondsRemaining <= 0) {
+            return;
+        }
+        if (!(secondsRemaining <= 5 || secondsRemaining == 10)) {
+            return;
+        }
+        for (UUID member : run.members) {
+            Player player = Bukkit.getPlayer(member);
+            if (player == null || !player.isOnline()) {
+                continue;
+            }
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                    ChatColor.GRAY + "Next wave starts in " + ChatColor.GOLD + secondsRemaining + ChatColor.GRAY + "s.");
+        }
     }
 
     private void beginWave(Run run, boolean announceBuff) {
@@ -647,7 +688,7 @@ public final class StrongholdSurvivalManager implements Listener {
             openWaveChoice(run);
             return;
         }
-        beginWave(run, true);
+        scheduleWaveStart(run, 5, true);
     }
 
     private void finishRun(Run run) {
@@ -816,7 +857,7 @@ public final class StrongholdSurvivalManager implements Listener {
         Player leader = Bukkit.getPlayer(run.playerId);
         if (leader == null || !leader.isOnline()) {
             applyPathChoice(run, PathChoice.BALANCED, null);
-            beginWave(run, true);
+            scheduleWaveStart(run, 5, true);
             return;
         }
         Inventory inv = Bukkit.createInventory(leader, 27, CHOICE_GUI_TITLE);
@@ -1081,7 +1122,7 @@ public final class StrongholdSurvivalManager implements Listener {
         if (world == null) {
             return;
         }
-        double nextSize = Math.max(borderMinSize, borderInitialSize - ((run.wave - 1) * borderShrinkPerWave));
+        double nextSize = Math.max(1.0, borderInitialSize - ((run.wave - 1) * borderShrinkPerWave));
         world.getWorldBorder().setSize(nextSize, BASE_WAVE_SECONDS);
     }
 
@@ -1158,6 +1199,9 @@ public final class StrongholdSurvivalManager implements Listener {
         private final Set<UUID> mobIds = new HashSet<>();
         private BossBar bossBar;
         private BukkitTask waveTask;
+        private BukkitTask countdownTask;
+        private int countdownSecondsRemaining = 0;
+        private boolean pendingWaveBuffAnnouncement = false;
         private BuffResult lastBuff;
         private BorderState borderState;
 

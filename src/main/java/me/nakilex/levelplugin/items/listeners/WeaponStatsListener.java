@@ -121,10 +121,6 @@ public class WeaponStatsListener implements Listener {
                         "[WeaponStats] Skipped addition: player class "
                             + playerClass + " does not meet required " + reqClass
                     );
-                    player.sendMessage(ChatColor.RED
-                        + "Your current class cannot gain stats from "
-                        + inst.getBaseName() + "."
-                    );
                 }
                 else if (playerLevel < requiredLevel) {
                     Bukkit.getLogger().info(
