@@ -6,6 +6,7 @@ import com.sk89q.worldedit.WorldEdit;
 import com.sk89q.worldedit.bukkit.BukkitAdapter;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
+import me.nakilex.levelplugin.stronghold.StrongholdTemplateData;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import net.kyori.adventure.text.Component;
@@ -113,7 +114,7 @@ public final class StrongholdDebugGenerator {
     private static final boolean FLOOR_NOISE_FORCE_LOAD_CHUNKS = true;
     private static final int STRONGHOLD_FLOOR_NOISE_PADDING_MULTIPLIER = 3;
     private static final int STRONGHOLD_CORE_PASTE_RADIUS_BLOCKS = 190;
-    private static final int DETACHED_ASSET_BATCH_SIZE = 16;
+    private static final int DETACHED_ASSET_BATCH_SIZE = 36;
     private static final List<Material> FLOOR_FLOWER_OPTIONS = List.of(
             Material.DANDELION,
             Material.POPPY,
@@ -170,8 +171,8 @@ public final class StrongholdDebugGenerator {
             new DetachedAssetTemplateSpec("ruin_1", AssetType.RUIN, new TemplateBounds(590, -61, -6426, 624, -30, -6388))
     );
 
-    private static final String SOURCE_WORLD = "flatland";
-    private static final String GENERATED_WORLD_PREFIX = "stronghold_debug_";
+    private static final String SOURCE_WORLD = StrongholdTemplateData.SOURCE_WORLD;
+    private static final String GENERATED_WORLD_PREFIX = StrongholdTemplateData.GENERATED_WORLD_PREFIX;
     private static final String STRONGHOLD_DOOR_TAG = "stronghold_door_hologram";
     private static final double DOOR_HOLOGRAM_ACTIVATION_RANGE_SQUARED = 14 * 14;
     private static final Map<String, String> CLOSED_TO_OPEN_TEMPLATE = Map.of(
@@ -223,8 +224,8 @@ public final class StrongholdDebugGenerator {
     private static final int DETACHED_ASSET_CONSECUTIVE_MISS_ABORT = 140;
     private static final int DETACHED_ASSET_MIN_TOTAL_REQUEST = 32;
     private static final int DETACHED_ASSET_BLOCKS_PER_ASSET_TARGET = 700;
-    private static final int BORDER_FOREST_BATCH_SIZE = 6;
-    private static final int BORDER_FOREST_ATTEMPTS_PER_TICK = 90;
+    private static final int BORDER_FOREST_BATCH_SIZE = 14;
+    private static final int BORDER_FOREST_ATTEMPTS_PER_TICK = 260;
     private static final int BORDER_FOREST_MIN_OFFSET_BLOCKS = 26;
     private static final int BORDER_FOREST_MAX_OFFSET_BLOCKS = 110;
     private static final int BORDER_FOREST_TARGET_MIN = 160;
@@ -1718,7 +1719,7 @@ public final class StrongholdDebugGenerator {
                     onComplete.run();
                 }
             }
-        }, 20L, 2L);
+        }, 6L, 1L);
     }
 
     private static DetachedAssetTemplate pickBorderForestTemplate(List<DetachedAssetTemplate> treeTemplates,

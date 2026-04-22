@@ -5,6 +5,7 @@ import me.nakilex.levelplugin.arena.ArenaMode;
 import me.nakilex.levelplugin.arena.ArenaQueueManager;
 import me.nakilex.levelplugin.arena.rating.ArenaRatingManager;
 import me.nakilex.levelplugin.catacombs.CatacombsManager;
+import me.nakilex.levelplugin.stronghold.StrongholdSurvivalManager;
 import me.nakilex.levelplugin.party.Party;
 import me.nakilex.levelplugin.party.PartyManager;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
@@ -36,6 +37,7 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
     private final ArenaQueueManager arenaQueueManager;
     private final ArenaRatingManager arenaRatingManager;
     private CatacombsManager catacombsManager;
+    private StrongholdSurvivalManager strongholdSurvivalManager;
 
     private final Map<UUID, Scoreboard> boards = new HashMap<>();
     private final String[] entries = new String[15];
@@ -84,6 +86,10 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
 
     public void setCatacombsManager(CatacombsManager catacombsManager) {
         this.catacombsManager = catacombsManager;
+    }
+
+    public void setStrongholdSurvivalManager(StrongholdSurvivalManager strongholdSurvivalManager) {
+        this.strongholdSurvivalManager = strongholdSurvivalManager;
     }
 
     public void createBoard(Player player) {
@@ -224,8 +230,9 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
         boolean queueing = arenaQueueManager != null && arenaQueueManager.isQueued(id);
 
         boolean catacombsActive = catacombsManager != null && catacombsManager.getStage(id) != null;
+        boolean strongholdActive = strongholdSurvivalManager != null && strongholdSurvivalManager.getStage(id) != null;
 
-        boolean showBoard = siegeActive || hasQuest || hasGuildQuest || inParty || queueing || catacombsActive;
+        boolean showBoard = siegeActive || hasQuest || hasGuildQuest || inParty || queueing || catacombsActive || strongholdActive;
         Scoreboard board = boards.get(id);
         if (!showBoard) {
             if (board != null) {
@@ -311,6 +318,47 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
                 idx++; line--;
 
                 current[idx] = ChatColor.GRAY + "Time: " + ChatColor.WHITE + formatDuration(Duration.ofSeconds(status.secondsLeft()));
+                if (!current[idx].equals(prev[idx])) {
+                    setLine(board, obj, idx, line, current[idx]);
+                }
+                idx++; line--;
+            }
+
+            current[idx] = " ";
+            if (!current[idx].equals(prev[idx])) {
+                setLine(board, obj, idx, line, current[idx]);
+            }
+            idx++; line--;
+        }
+
+        if (strongholdActive) {
+            StrongholdSurvivalManager.StageStatus stage = strongholdSurvivalManager.getStage(id);
+            current[idx] = ChatColor.GOLD + "Stronghold";
+            if (!current[idx].equals(prev[idx])) {
+                setLine(board, obj, idx, line, current[idx]);
+            }
+            idx++; line--;
+
+            if (stage != null) {
+                current[idx] = ChatColor.GRAY + "Wave: " + ChatColor.WHITE + stage.wave();
+                if (!current[idx].equals(prev[idx])) {
+                    setLine(board, obj, idx, line, current[idx]);
+                }
+                idx++; line--;
+
+                current[idx] = ChatColor.GRAY + "Mobs: " + ChatColor.WHITE + stage.mobsRemaining();
+                if (!current[idx].equals(prev[idx])) {
+                    setLine(board, obj, idx, line, current[idx]);
+                }
+                idx++; line--;
+
+                current[idx] = ChatColor.GRAY + "Time: " + ChatColor.WHITE + formatDuration(Duration.ofSeconds(stage.secondsLeft()));
+                if (!current[idx].equals(prev[idx])) {
+                    setLine(board, obj, idx, line, current[idx]);
+                }
+                idx++; line--;
+
+                current[idx] = ChatColor.GRAY + "Objective: " + ChatColor.WHITE + stage.objective();
                 if (!current[idx].equals(prev[idx])) {
                     setLine(board, obj, idx, line, current[idx]);
                 }

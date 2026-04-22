@@ -97,6 +97,7 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.scheduler.BukkitTask;
 
 import java.io.File;
 import java.io.IOException;
@@ -249,6 +250,10 @@ public class PluginBootstrap {
     private me.nakilex.levelplugin.transmog.TransmogManager transmogManager;
     private me.nakilex.levelplugin.catacombs.CatacombsManager catacombsManager;
     private me.nakilex.levelplugin.catacombs.CatacombsGUI catacombsGUI;
+    private me.nakilex.levelplugin.stronghold.StrongholdSurvivalManager strongholdSurvivalManager;
+    private me.nakilex.levelplugin.stronghold.StrongholdQueueManager strongholdQueueManager;
+    private me.nakilex.levelplugin.stronghold.gui.StrongholdQueueGUI strongholdQueueGUI;
+    private BukkitTask strongholdQueueTickTask;
     private me.nakilex.levelplugin.nexo.FurnitureGuiMapper furnitureGuiMapper;
     private CursorMenuManager cursorMenuManager;
     private BlockGlowUtil blockGlowUtil;
@@ -438,6 +443,12 @@ public class PluginBootstrap {
         scoreboardManager.setCatacombsManager(catacombsManager);
         catacombsGUI = new me.nakilex.levelplugin.catacombs.CatacombsGUI(catacombsManager);
         plugin.getServer().getPluginManager().registerEvents(catacombsGUI, plugin);
+        strongholdSurvivalManager = new me.nakilex.levelplugin.stronghold.StrongholdSurvivalManager(plugin);
+        strongholdQueueManager = new me.nakilex.levelplugin.stronghold.StrongholdQueueManager(plugin, partyManager, strongholdSurvivalManager);
+        strongholdQueueGUI = new me.nakilex.levelplugin.stronghold.gui.StrongholdQueueGUI(strongholdQueueManager);
+        scoreboardManager.setStrongholdSurvivalManager(strongholdSurvivalManager);
+        plugin.getServer().getPluginManager().registerEvents(strongholdQueueGUI, plugin);
+        strongholdQueueTickTask = Bukkit.getScheduler().runTaskTimer(plugin, strongholdQueueManager::tick, 20L, 20L);
         townStageManager = new me.nakilex.levelplugin.environment.stage.TownStageManager(plugin);
         buildingStageManager = new me.nakilex.levelplugin.environment.stage.BuildingStageManager(plugin);
         cooldownManager.setLootChestManager(lootChestManager);
@@ -569,6 +580,10 @@ public class PluginBootstrap {
                 new me.nakilex.levelplugin.catacombs.CatacombsCommand(catacombsManager, catacombsGUI);
         plugin.getCommand("catacombs").setExecutor(catacombsCommand);
         plugin.getCommand("catacombs").setTabCompleter(catacombsCommand);
+        me.nakilex.levelplugin.stronghold.command.StrongholdCommand strongholdCommand =
+                new me.nakilex.levelplugin.stronghold.command.StrongholdCommand(strongholdQueueManager, strongholdQueueGUI);
+        plugin.getCommand("stronghold").setExecutor(strongholdCommand);
+        plugin.getCommand("stronghold").setTabCompleter(strongholdCommand);
         me.nakilex.levelplugin.mercenary.board.ExpeditionBoardCommand expeditionBoardCommand =
                 new me.nakilex.levelplugin.mercenary.board.ExpeditionBoardCommand(expeditionBoardManager);
         plugin.getCommand("expeditionboard").setExecutor(expeditionBoardCommand);
@@ -757,6 +772,10 @@ public class PluginBootstrap {
     public void disable() {
         TaskRegistry.stopTasks();
         if (chatGameManager != null) chatGameManager.stop();
+        if (strongholdQueueTickTask != null) {
+            strongholdQueueTickTask.cancel();
+            strongholdQueueTickTask = null;
+        }
         if (mercenaryManager != null) mercenaryManager.unbindAll();
         if (economyManager != null) economyManager.saveBalances();
         if (dealMaker != null) dealMaker.closeAllTrades();
@@ -924,6 +943,9 @@ public class PluginBootstrap {
     public me.nakilex.levelplugin.dungeon.DungeonManager getDungeonManager() { return dungeonManager; }
     public me.nakilex.levelplugin.catacombs.CatacombsManager getCatacombsManager() { return catacombsManager; }
     public me.nakilex.levelplugin.catacombs.CatacombsGUI getCatacombsGUI() { return catacombsGUI; }
+    public me.nakilex.levelplugin.stronghold.StrongholdQueueManager getStrongholdQueueManager() { return strongholdQueueManager; }
+    public me.nakilex.levelplugin.stronghold.gui.StrongholdQueueGUI getStrongholdQueueGUI() { return strongholdQueueGUI; }
+    public me.nakilex.levelplugin.stronghold.StrongholdSurvivalManager getStrongholdSurvivalManager() { return strongholdSurvivalManager; }
     public me.nakilex.levelplugin.world.WorldManager getWorldManager() { return worldManager; }
     public me.nakilex.levelplugin.server.ServerSelectionManager getServerSelectionManager() { return serverSelectionManager; }
     public me.nakilex.levelplugin.environment.EnvironmentManager getEnvironmentManager() { return environmentManager; }

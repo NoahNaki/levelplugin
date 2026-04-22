@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.lootchests.listeners;
 
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
+import me.nakilex.levelplugin.stronghold.util.StrongholdWorldUtil;
 import me.nakilex.levelplugin.dungeon.DungeonManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.Location;
@@ -65,7 +66,9 @@ public class LootChestCloseListener implements Listener {
                 lootChestManager.getPlugin(),
                 () -> {
                     lootChestManager.removeChest(chestId);
-                    if (!lootChestManager.isNonRespawningChest(chestId) && !dungeonManager.isInstanceWorld(loc.getWorld())) {
+                    if (!lootChestManager.isNonRespawningChest(chestId)
+                            && !dungeonManager.isInstanceWorld(loc.getWorld())
+                            && !StrongholdWorldUtil.isStrongholdWorld(loc.getWorld())) {
                         lootChestManager.getCooldownManager().startChestCooldown(chestId);
                     }
                 },

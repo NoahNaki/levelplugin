@@ -120,6 +120,10 @@ commands:
     description: Enter the instanced Catacombs run
     usage: /catacombs [exit]
     permission: none
+  stronghold:
+    description: Open Stronghold queue and matchmaking
+    usage: /stronghold [leave]
+    permission: none
   party:
     description: Manage your party
     usage: /party <subcommand>

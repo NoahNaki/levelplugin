@@ -172,4 +172,7 @@ public class Main extends JavaPlugin {
     public me.nakilex.levelplugin.mercenary.gui.MercenaryExpeditionRewardsGUI getMercenaryExpeditionRewardsGUI() { return bootstrap.getMercenaryExpeditionRewardsGUI(); }
     public me.nakilex.levelplugin.catacombs.CatacombsManager getCatacombsManager() { return bootstrap.getCatacombsManager(); }
     public me.nakilex.levelplugin.catacombs.CatacombsGUI getCatacombsGUI() { return bootstrap.getCatacombsGUI(); }
+    public me.nakilex.levelplugin.stronghold.StrongholdQueueManager getStrongholdQueueManager() { return bootstrap.getStrongholdQueueManager(); }
+    public me.nakilex.levelplugin.stronghold.gui.StrongholdQueueGUI getStrongholdQueueGUI() { return bootstrap.getStrongholdQueueGUI(); }
+    public me.nakilex.levelplugin.stronghold.StrongholdSurvivalManager getStrongholdSurvivalManager() { return bootstrap.getStrongholdSurvivalManager(); }
 }

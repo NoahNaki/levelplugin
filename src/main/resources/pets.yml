@@ -446,3 +446,34 @@ pets:
     - type: LAST_STAND
       base: 1
       per-level: 0
+  stronghold_watcher:
+    name: §dStronghold Watcher
+    rarity: EPIC
+    models:
+    - cubee-end_crystal
+    max-level: 120
+    xp-per-level: 180
+    owned-stats:
+      tec: 4
+      wil: 3
+    effects:
+    - type: STRONGHOLD_KEY_LUCK
+      base: 0.06
+      per-level: 0.001
+  citadel_scribe:
+    name: §6Citadel Scribe
+    rarity: LEGENDARY
+    models:
+    - cubee-end_portal
+    max-level: 140
+    xp-per-level: 210
+    owned-stats:
+      int: 5
+      tec: 3
+    effects:
+    - type: STRONGHOLD_SCORE_BONUS
+      base: 0.08
+      per-level: 0.0012
+    - type: STRONGHOLD_ALERT
+      base: 1
+      per-level: 0

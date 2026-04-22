@@ -103,6 +103,12 @@ public enum PetEffectType {
     BOSS_GUARD("boss_guard", "Boss Ward",
             value -> "Take " + ChatColor.RED + "-" + formatPercent(value)
                     + ChatColor.GRAY + " damage from bosses"),
+    STRONGHOLD_KEY_LUCK("stronghold_key_luck", "Vault Instinct",
+            value -> "Stronghold key drop chance " + ChatColor.GREEN + "+" + formatPercent(value)),
+    STRONGHOLD_SCORE_BONUS("stronghold_score_bonus", "War Chronicle",
+            value -> "Stronghold score rewards " + ChatColor.GREEN + "+" + formatPercent(value)),
+    STRONGHOLD_ALERT("stronghold_alert", "Siege Sense",
+            value -> "Warns you when Stronghold objective pressure spikes"),
     LAST_STAND("last_stand", "Last Stand",
             value -> "On lethal hit: " + ChatColor.RED + "Immune 5s"
                     + ChatColor.GRAY + ", " + ChatColor.GREEN + "+150% dmg"
