@@ -2183,6 +2183,7 @@ public final class StrongholdDebugGenerator {
                                     + "' from '" + templateWorldName + "'.");
                 }
             } else if (plugin != null) {
+                plugin.getWorldManager().deleteWorld(worldName);
                 plugin.getLogger().warning("Stronghold template world clone failed for '" + templateWorldName
                         + "'. Falling back to generated superflat world.");
             }
