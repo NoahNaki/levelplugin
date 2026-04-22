@@ -1675,12 +1675,16 @@ public final class StrongholdDebugGenerator {
                 if (edgeDistance < BORDER_FOREST_MIN_OFFSET_BLOCKS || edgeDistance > BORDER_FOREST_MAX_OFFSET_BLOCKS) {
                     continue;
                 }
-                if (!isWithinOrganicBorderBand(
+                boolean relaxedPlacement = placedCount[0] <= 0 && attempts[0] > Math.max(180, targetPlacements * 8);
+                if (!relaxedPlacement && !isWithinOrganicBorderBand(
                         x, z, centerX, centerZ, borderMinRadius, borderMaxRadius, BORDER_FOREST_ORGANIC_NOISE_SCALE)) {
                     continue;
                 }
                 double noise = fractalSimplexLikeNoise(x / BORDER_FOREST_ORGANIC_NOISE_SCALE, z / BORDER_FOREST_ORGANIC_NOISE_SCALE);
-                if (noise < BORDER_FOREST_DENSITY_THRESHOLD) {
+                double threshold = relaxedPlacement
+                        ? BORDER_FOREST_DENSITY_THRESHOLD - 0.32
+                        : BORDER_FOREST_DENSITY_THRESHOLD;
+                if (noise < threshold) {
                     continue;
                 }
 
@@ -1724,6 +1728,9 @@ public final class StrongholdDebugGenerator {
                 }
                 notifyBorderForestDebug(player, "Border forest detail: placed=" + placedCount[0] + "/" + targetPlacements
                         + ", rocks placed=" + rockPlacedCount[0] + ", attempts=" + attempts[0] + ".");
+                if (placedCount[0] <= 0) {
+                    notifyBorderForestDebug(player, "No placements succeeded. Try lowering overlap constraints or increasing floor-noise padding.");
+                }
                 if (onComplete != null) {
                     onComplete.run();
                 }

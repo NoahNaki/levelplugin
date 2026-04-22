@@ -103,7 +103,7 @@ public final class StrongholdAssetDebugGUI implements Listener {
         List<String> resetLore = TooltipUtil.bulletList(
                 "Reset to 85% trees, 5% ruins, 10% rocks, total 500.",
                 "Floor defaults: packed_mud, coarse_dirt, grass_block, grass_block.",
-                "Run border defaults: initial 750, shrink 5.5/wave."
+                "Run border defaults: initial 850, shrink 5.5/wave."
         );
         resetLore.add(" ");
         resetLore.addAll(TooltipUtil.clickInstructions("to reset", null));

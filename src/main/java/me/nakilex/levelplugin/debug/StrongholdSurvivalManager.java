@@ -66,7 +66,7 @@ public final class StrongholdSurvivalManager implements Listener {
     private static final String STRONGHOLD_DOOR_KEY_TAG = "stronghold_door_key";
     private static final int FINAL_WAVE = 30;
     private static final int BASE_WAVE_SECONDS = 50;
-    private static final double DEFAULT_BORDER_INITIAL_SIZE = 750.0;
+    private static final double DEFAULT_BORDER_INITIAL_SIZE = 850.0;
     private static final double DEFAULT_BORDER_SHRINK_PER_WAVE = 5.5;
     private static final int BORDER_WARNING_DISTANCE = 12;
     private static final int BASE_SCORE_MAX = 10000;
@@ -286,6 +286,7 @@ public final class StrongholdSurvivalManager implements Listener {
         runsByWorld.put(world.getUID(), run);
         initializeRunBorder(run, leader);
         for (Player member : party) {
+            member.sendMessage(" ");
             ChatMessageUtil.send(member, ChatMessageUtil.MessageType.INFO,
                     ChatColor.GRAY + "Mutator: " + ChatColor.LIGHT_PURPLE + run.mutator.displayName
                             + ChatColor.GRAY + " (score x" + String.format("%.2f", run.mutator.scoreMultiplier) + ").");
@@ -497,6 +498,9 @@ public final class StrongholdSurvivalManager implements Listener {
             if (player == null || !player.isOnline()) {
                 continue;
             }
+            if (secondsRemaining == 10) {
+                player.sendMessage(" ");
+            }
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                     ChatColor.GRAY + "Next wave starts in " + ChatColor.GOLD + secondsRemaining + ChatColor.GRAY + "s.");
         }
@@ -678,6 +682,7 @@ public final class StrongholdSurvivalManager implements Listener {
         for (UUID member : run.members) {
             Player online = Bukkit.getPlayer(member);
             if (online == null || !online.isOnline()) continue;
+            online.sendMessage(" ");
             plugin.getLevelManager().addXP(online, equalShare);
             ChatMessageUtil.send(online, ChatMessageUtil.MessageType.REWARD,
                     ChatColor.GREEN + "" + ChatColor.BOLD + "WAVE " + run.wave + " CLEARED! "
