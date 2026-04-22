@@ -804,6 +804,13 @@ public final class StrongholdDebugGenerator {
         PlacementField field = buildPlacementField(footprint, random);
         logDetachedAssetDebug("Placement field -> bounds=[" + field.minX + "," + field.minZ + " -> "
                 + field.maxX + "," + field.maxZ + "], patches=" + field.patchCenters.size() + ".");
+        Main plugin = Main.getInstance();
+        Set<Long> placementChunkTickets = ensureChunksLoaded(
+                world, field.minX, field.maxX, field.minZ, field.maxZ, plugin, true);
+        if (!placementChunkTickets.isEmpty()) {
+            logDetachedAssetDebug("Detached placement preloaded " + placementChunkTickets.size()
+                    + " chunk(s) for sampling field.");
+        }
 
         List<AssetType> requestOrder = new ArrayList<>(tunedTotalRequested);
         addAssetRequests(requestOrder, AssetType.TREE, tunedCounts.trees());
@@ -867,6 +874,7 @@ public final class StrongholdDebugGenerator {
                 + ", rejected(overlapDetached)=" + debugCounter.detachedOverlapRejects
                 + ", skipped(budget)=" + skippedRequests
                 + ", queued=" + queuedPlacements.size() + ".");
+        releaseChunkTickets(world, placementChunkTickets, plugin);
 
         return new AssetPlacementSummary(
                 tunedCounts.trees(),
@@ -1638,6 +1646,10 @@ public final class StrongholdDebugGenerator {
         int maxX = footprint.maxX + BORDER_FOREST_MAX_OFFSET_BLOCKS;
         int minZ = footprint.minZ - BORDER_FOREST_MAX_OFFSET_BLOCKS;
         int maxZ = footprint.maxZ + BORDER_FOREST_MAX_OFFSET_BLOCKS;
+        Set<Long> borderChunkTickets = ensureChunksLoaded(world, minX, maxX, minZ, maxZ, plugin, true);
+        if (!borderChunkTickets.isEmpty()) {
+            logDetachedAssetDebug("Border forest preloaded " + borderChunkTickets.size() + " chunk(s).");
+        }
         int minRockPlacements = rockTemplates.isEmpty()
                 ? 0
                 : Math.max(8, (int) Math.round(targetPlacements * BORDER_FOREST_MIN_ROCK_SHARE));
@@ -1724,6 +1736,7 @@ public final class StrongholdDebugGenerator {
                 if (taskRef[0] != null) {
                     taskRef[0].cancel();
                 }
+                releaseChunkTickets(world, borderChunkTickets, plugin);
                 if (player != null && player.isOnline()) {
                     ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                             "Organic border forest pass complete (" + placedCount[0] + "/" + targetPlacements + ").");
@@ -1779,6 +1792,48 @@ public final class StrongholdDebugGenerator {
             return false;
         }
         return world.isChunkLoaded(Math.floorDiv(x, 16), Math.floorDiv(z, 16));
+    }
+
+    private static Set<Long> ensureChunksLoaded(World world,
+                                                int minX,
+                                                int maxX,
+                                                int minZ,
+                                                int maxZ,
+                                                Main plugin,
+                                                boolean addTickets) {
+        if (world == null) {
+            return Set.of();
+        }
+        int minChunkX = Math.floorDiv(Math.min(minX, maxX), 16);
+        int maxChunkX = Math.floorDiv(Math.max(minX, maxX), 16);
+        int minChunkZ = Math.floorDiv(Math.min(minZ, maxZ), 16);
+        int maxChunkZ = Math.floorDiv(Math.max(minZ, maxZ), 16);
+        Set<Long> touchedChunks = new HashSet<>();
+        for (int chunkX = minChunkX; chunkX <= maxChunkX; chunkX++) {
+            for (int chunkZ = minChunkZ; chunkZ <= maxChunkZ; chunkZ++) {
+                var chunk = world.getChunkAt(chunkX, chunkZ);
+                chunk.load(true);
+                if (addTickets && plugin != null) {
+                    chunk.addPluginChunkTicket(plugin);
+                }
+                touchedChunks.add(chunkKey(chunkX, chunkZ));
+            }
+        }
+        return touchedChunks;
+    }
+
+    private static void releaseChunkTickets(World world, Set<Long> chunkKeys, Main plugin) {
+        if (world == null || plugin == null || chunkKeys == null || chunkKeys.isEmpty()) {
+            return;
+        }
+        for (long key : chunkKeys) {
+            int chunkX = (int) (key >> 32);
+            int chunkZ = (int) key;
+            if (!world.isChunkLoaded(chunkX, chunkZ)) {
+                continue;
+            }
+            world.getChunkAt(chunkX, chunkZ).removePluginChunkTicket(plugin);
+        }
     }
 
     private static boolean isWithinOrganicBorderBand(int x,
