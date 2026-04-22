@@ -249,6 +249,7 @@ public class PluginBootstrap {
     private me.nakilex.levelplugin.transmog.TransmogManager transmogManager;
     private me.nakilex.levelplugin.catacombs.CatacombsManager catacombsManager;
     private me.nakilex.levelplugin.catacombs.CatacombsGUI catacombsGUI;
+    private me.nakilex.levelplugin.debug.StrongholdSurvivalManager strongholdSurvivalManager;
     private me.nakilex.levelplugin.nexo.FurnitureGuiMapper furnitureGuiMapper;
     private CursorMenuManager cursorMenuManager;
     private BlockGlowUtil blockGlowUtil;
@@ -436,6 +437,8 @@ public class PluginBootstrap {
         dungeonLeaveGUI = new me.nakilex.levelplugin.dungeon.gui.DungeonLeaveGUI(dungeonManager);
         catacombsManager = new me.nakilex.levelplugin.catacombs.CatacombsManager(plugin, dungeonManager);
         scoreboardManager.setCatacombsManager(catacombsManager);
+        strongholdSurvivalManager = new me.nakilex.levelplugin.debug.StrongholdSurvivalManager(plugin);
+        scoreboardManager.setStrongholdSurvivalManager(strongholdSurvivalManager);
         catacombsGUI = new me.nakilex.levelplugin.catacombs.CatacombsGUI(catacombsManager);
         plugin.getServer().getPluginManager().registerEvents(catacombsGUI, plugin);
         townStageManager = new me.nakilex.levelplugin.environment.stage.TownStageManager(plugin);
@@ -924,6 +927,7 @@ public class PluginBootstrap {
     public me.nakilex.levelplugin.dungeon.DungeonManager getDungeonManager() { return dungeonManager; }
     public me.nakilex.levelplugin.catacombs.CatacombsManager getCatacombsManager() { return catacombsManager; }
     public me.nakilex.levelplugin.catacombs.CatacombsGUI getCatacombsGUI() { return catacombsGUI; }
+    public me.nakilex.levelplugin.debug.StrongholdSurvivalManager getStrongholdSurvivalManager() { return strongholdSurvivalManager; }
     public me.nakilex.levelplugin.world.WorldManager getWorldManager() { return worldManager; }
     public me.nakilex.levelplugin.server.ServerSelectionManager getServerSelectionManager() { return serverSelectionManager; }
     public me.nakilex.levelplugin.environment.EnvironmentManager getEnvironmentManager() { return environmentManager; }

@@ -113,7 +113,7 @@ public final class StrongholdDebugGenerator {
     private static final boolean FLOOR_NOISE_FORCE_LOAD_CHUNKS = true;
     private static final int STRONGHOLD_FLOOR_NOISE_PADDING_MULTIPLIER = 3;
     private static final int STRONGHOLD_CORE_PASTE_RADIUS_BLOCKS = 190;
-    private static final int DETACHED_ASSET_BATCH_SIZE = 16;
+    private static final int DETACHED_ASSET_BATCH_SIZE = 64;
     private static final List<Material> FLOOR_FLOWER_OPTIONS = List.of(
             Material.DANDELION,
             Material.POPPY,
@@ -223,12 +223,12 @@ public final class StrongholdDebugGenerator {
     private static final int DETACHED_ASSET_CONSECUTIVE_MISS_ABORT = 140;
     private static final int DETACHED_ASSET_MIN_TOTAL_REQUEST = 32;
     private static final int DETACHED_ASSET_BLOCKS_PER_ASSET_TARGET = 700;
-    private static final int BORDER_FOREST_BATCH_SIZE = 6;
-    private static final int BORDER_FOREST_ATTEMPTS_PER_TICK = 90;
+    private static final int BORDER_FOREST_BATCH_SIZE = 24;
+    private static final int BORDER_FOREST_ATTEMPTS_PER_TICK = 240;
     private static final int BORDER_FOREST_MIN_OFFSET_BLOCKS = 26;
     private static final int BORDER_FOREST_MAX_OFFSET_BLOCKS = 110;
-    private static final int BORDER_FOREST_TARGET_MIN = 160;
-    private static final int BORDER_FOREST_TARGET_MAX = 520;
+    private static final int BORDER_FOREST_TARGET_MIN = 96;
+    private static final int BORDER_FOREST_TARGET_MAX = 240;
     private static final double BORDER_FOREST_ORGANIC_NOISE_SCALE = 22.0D;
     private static final double BORDER_FOREST_DENSITY_THRESHOLD = 0.12D;
     private static final double BORDER_FOREST_TREE_WEIGHT = 0.90D;
@@ -613,6 +613,9 @@ public final class StrongholdDebugGenerator {
         player.teleport(new org.bukkit.Location(world, originX + 0.5, originY + 2, originZ + 0.5));
         spawnDoorOpenInteractions(world, placed, player);
         schedulePostTeleportEnhancements(sourceWorld, world, pastePlan.deferredTemplates(), placed, occupied, player, random, originY);
+        if (plugin.getStrongholdSurvivalManager() != null) {
+            plugin.getStrongholdSurvivalManager().startRun(player);
+        }
         timing.processFinished("Teleport + queue detached pasting", processStart);
 
         processStart = timing.processStarted("Send generation diagnostics");
@@ -745,6 +748,9 @@ public final class StrongholdDebugGenerator {
         applyTemplateMarkerActions(sourceWorld, world, placed, ThreadLocalRandom.current());
         player.teleport(new org.bukkit.Location(world, originX + 0.5, originY + 2, originZ + 0.5));
         spawnDoorOpenInteractions(world, placed, player);
+        if (plugin.getStrongholdSurvivalManager() != null) {
+            plugin.getStrongholdSurvivalManager().startRun(player);
+        }
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
                 ChatColor.GOLD + "" + ChatColor.BOLD + "TOWERWALL GENERATED "
                         + ChatColor.GRAY + "• "
@@ -1718,7 +1724,7 @@ public final class StrongholdDebugGenerator {
                     onComplete.run();
                 }
             }
-        }, 20L, 2L);
+        }, 1L, 1L);
     }
 
     private static DetachedAssetTemplate pickBorderForestTemplate(List<DetachedAssetTemplate> treeTemplates,
