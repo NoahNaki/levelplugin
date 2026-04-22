@@ -142,7 +142,7 @@ public final class StrongholdSurvivalManager implements Listener {
         }
     }
 
-    public record StageStatus(int wave, int mobsRemaining, int secondsLeft) {
+    public record StageStatus(int wave, int mobsRemaining, int secondsLeft, String objective) {
     }
 
     private final Main plugin;
@@ -167,7 +167,10 @@ public final class StrongholdSurvivalManager implements Listener {
             return null;
         }
         int seconds = (int) Math.max(0L, (run.waveDeadlineMs - System.currentTimeMillis()) / 1000L);
-        return new StageStatus(run.wave, run.mobsRemaining, seconds);
+        String objective = run.waveObjective != null
+                ? run.waveObjective.displayName
+                : (run.awaitingNextWave ? "Intermission" : "Preparing...");
+        return new StageStatus(run.wave, run.mobsRemaining, seconds, objective);
     }
 
     public boolean isActive(UUID playerId) {
@@ -283,12 +286,6 @@ public final class StrongholdSurvivalManager implements Listener {
         runsByWorld.put(world.getUID(), run);
         initializeRunBorder(run, leader);
         for (Player member : party) {
-            ChatMessageUtil.send(member, ChatMessageUtil.MessageType.INFO,
-                    ChatColor.GRAY + "Objective: survive all " + ChatColor.GOLD + FINAL_WAVE
-                            + ChatColor.GRAY + " waves and defeat the final boss.");
-            ChatMessageUtil.send(member, ChatMessageUtil.MessageType.INFO,
-                    ChatColor.GRAY + "Difficulty scales with party size (" + ChatColor.GOLD + run.members.size()
-                            + ChatColor.GRAY + ") and average gear score (" + ChatColor.GOLD + run.averageGearScore + ChatColor.GRAY + ").");
             ChatMessageUtil.send(member, ChatMessageUtil.MessageType.INFO,
                     ChatColor.GRAY + "Mutator: " + ChatColor.LIGHT_PURPLE + run.mutator.displayName
                             + ChatColor.GRAY + " (score x" + String.format("%.2f", run.mutator.scoreMultiplier) + ").");

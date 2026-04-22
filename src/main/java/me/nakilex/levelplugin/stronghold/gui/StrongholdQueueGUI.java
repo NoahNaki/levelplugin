@@ -44,6 +44,7 @@ public final class StrongholdQueueGUI implements Listener {
         inv.setItem(11, createModeButton(player, StrongholdQueueMode.SOLO, Material.IRON_SWORD));
         inv.setItem(13, createModeButton(player, StrongholdQueueMode.DUO, Material.DIAMOND_SWORD));
         inv.setItem(15, createModeButton(player, StrongholdQueueMode.SQUAD, Material.NETHERITE_SWORD));
+        inv.setItem(8, createInfoItem());
         player.openInventory(inv);
         openInventories.put(player.getUniqueId(), inv);
     }
@@ -63,7 +64,19 @@ public final class StrongholdQueueGUI implements Listener {
             inv.setItem(11, createModeButton(player, StrongholdQueueMode.SOLO, Material.IRON_SWORD));
             inv.setItem(13, createModeButton(player, StrongholdQueueMode.DUO, Material.DIAMOND_SWORD));
             inv.setItem(15, createModeButton(player, StrongholdQueueMode.SQUAD, Material.NETHERITE_SWORD));
+            inv.setItem(8, createInfoItem());
         }
+    }
+
+    private ItemStack createInfoItem() {
+        List<String> lore = new ArrayList<>(TooltipUtil.bulletList(
+                "Survive all 30 waves to clear the run.",
+                "Difficulty scales with party size and average gear score.",
+                "Mutators and route choices affect score and wave pressure."
+        ));
+        lore.add(" ");
+        lore.addAll(TooltipUtil.clickInstructions("to select a queue mode", null));
+        return GuiUtil.createGuiItem(Material.KNOWLEDGE_BOOK, ChatColor.AQUA + "Stronghold Info", lore);
     }
 
     private ItemStack createModeButton(Player viewer, StrongholdQueueMode mode, Material fallback) {

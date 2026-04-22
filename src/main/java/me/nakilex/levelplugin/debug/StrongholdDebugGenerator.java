@@ -641,13 +641,6 @@ public final class StrongholdDebugGenerator {
         timing.processFinished("Teleport + queue detached pasting", processStart);
 
         processStart = timing.processStarted("Send generation diagnostics");
-        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                ChatColor.GOLD + "" + ChatColor.BOLD + "STRONGHOLD GENERATED "
-                        + ChatColor.GRAY + "• "
-                        + ChatColor.WHITE + placed.size() + ChatColor.GRAY + " pieces "
-                        + ChatColor.DARK_GRAY + "(" + ChatColor.GRAY + world.getName()
-                        + ChatColor.DARK_GRAY + ", " + ChatColor.GRAY + "overlap "
-                        + ChatColor.WHITE + String.format("%.2f", maxOverlapPercent) + "%" + ChatColor.DARK_GRAY + ")");
         timing.processFinished("Send generation diagnostics", processStart);
         timing.sendSummary();
         return true;
@@ -1729,12 +1722,8 @@ public final class StrongholdDebugGenerator {
                 if (taskRef[0] != null) {
                     taskRef[0].cancel();
                 }
-                if (player != null && player.isOnline()) {
-                    ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
-                            "Organic border forest pass complete (" + placedCount[0] + "/" + targetPlacements + ").");
-                    notifyBorderForestDebug(player, "Border forest detail: rocks placed=" + rockPlacedCount[0]
-                            + ", attempts=" + attempts[0] + ".");
-                }
+                notifyBorderForestDebug(player, "Border forest detail: placed=" + placedCount[0] + "/" + targetPlacements
+                        + ", rocks placed=" + rockPlacedCount[0] + ", attempts=" + attempts[0] + ".");
                 if (onComplete != null) {
                     onComplete.run();
                 }

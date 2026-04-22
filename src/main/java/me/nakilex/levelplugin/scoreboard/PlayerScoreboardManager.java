@@ -361,6 +361,13 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
                 }
                 idx++;
                 line--;
+
+                current[idx] = ChatColor.GRAY + "Obj: " + ChatColor.WHITE + status.objective();
+                if (!current[idx].equals(prev[idx])) {
+                    setLine(board, obj, idx, line, current[idx]);
+                }
+                idx++;
+                line--;
             }
 
             current[idx] = " ";
