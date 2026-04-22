@@ -427,6 +427,21 @@ public class PluginBootstrap {
                 scoreboardManager.updateAll();
             }
         });
+        strongholdQueueManager.setSoloStartHandler(request -> {
+            org.bukkit.entity.Player soloPlayer = Bukkit.getPlayer(request.playerId());
+            if (soloPlayer == null || !soloPlayer.isOnline()) {
+                return;
+            }
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                boolean started = me.nakilex.levelplugin.debug.StrongholdDebugGenerator.generateTest(soloPlayer);
+                if (!started) {
+                    me.nakilex.levelplugin.utils.ChatMessageUtil.send(
+                            soloPlayer,
+                            me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType.ERROR,
+                            "Failed to start a solo Stronghold run.");
+                }
+            });
+        });
         strongholdQueueTickTask = Bukkit.getScheduler().runTaskTimer(plugin, strongholdQueueManager::tick, 20L, 20L);
         calendarManager = new me.nakilex.levelplugin.calendar.CalendarManager(plugin);
         duelStatsManager = new me.nakilex.levelplugin.leaderboards.DuelStatsManager(plugin);

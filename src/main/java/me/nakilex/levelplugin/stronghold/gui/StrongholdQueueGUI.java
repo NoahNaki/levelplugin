@@ -164,8 +164,12 @@ public class StrongholdQueueGUI implements Listener {
         }
 
         StrongholdQueueManager.QueueJoinOutcome outcome = queueManager.join(player, mode);
-        if (outcome.result() == StrongholdQueueManager.QueueJoinResult.JOINED) {
-            send(player, MessageType.SUCCESS, "You joined the " + mode.displayName() + ChatColor.GRAY + " queue.");
+        if (outcome.result() == StrongholdQueueManager.QueueJoinResult.JOINED
+                || outcome.result() == StrongholdQueueManager.QueueJoinResult.STARTED) {
+            String success = outcome.result() == StrongholdQueueManager.QueueJoinResult.STARTED
+                    ? "Generating your solo Stronghold run."
+                    : "You joined the " + mode.displayName() + ChatColor.GRAY + " queue.";
+            send(player, MessageType.SUCCESS, success);
         } else {
             send(player, MessageType.ERROR, outcome.message() == null
                     ? ChatColor.RED + "Unable to join Stronghold queue."

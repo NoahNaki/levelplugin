@@ -223,8 +223,10 @@ public final class StrongholdDebugGenerator {
     private static final int DETACHED_ASSET_CONSECUTIVE_MISS_ABORT = 140;
     private static final int DETACHED_ASSET_MIN_TOTAL_REQUEST = 32;
     private static final int DETACHED_ASSET_BLOCKS_PER_ASSET_TARGET = 700;
-    private static final int BORDER_FOREST_BATCH_SIZE = 6;
-    private static final int BORDER_FOREST_ATTEMPTS_PER_TICK = 90;
+    private static final int BORDER_FOREST_START_DELAY_TICKS = 5;
+    private static final int BORDER_FOREST_TICK_INTERVAL = 1;
+    private static final int BORDER_FOREST_BATCH_SIZE = 10;
+    private static final int BORDER_FOREST_ATTEMPTS_PER_TICK = 180;
     private static final int BORDER_FOREST_MIN_OFFSET_BLOCKS = 26;
     private static final int BORDER_FOREST_MAX_OFFSET_BLOCKS = 110;
     private static final int BORDER_FOREST_TARGET_MIN = 160;
@@ -1718,7 +1720,7 @@ public final class StrongholdDebugGenerator {
                     onComplete.run();
                 }
             }
-        }, 20L, 2L);
+        }, BORDER_FOREST_START_DELAY_TICKS, BORDER_FOREST_TICK_INTERVAL);
     }
 
     private static DetachedAssetTemplate pickBorderForestTemplate(List<DetachedAssetTemplate> treeTemplates,

@@ -11,7 +11,6 @@ import org.bukkit.entity.Player;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -34,6 +33,7 @@ public class StrongholdQueueManager implements PartyMembershipListener {
     private final Map<UUID, UUID> playerToEntry = new HashMap<>();
 
     private MatchHandler matchHandler;
+    private SoloStartHandler soloStartHandler;
     private Runnable queueListener;
 
     public StrongholdQueueManager(PartyManager partyManager) {
@@ -49,7 +49,7 @@ public class StrongholdQueueManager implements PartyMembershipListener {
             return QueueJoinOutcome.of(QueueJoinResult.INVALID_REQUEST);
         }
         if (mode == StrongholdQueueMode.SOLO) {
-            return joinMembers(mode, List.of(player.getUniqueId()));
+            return startSoloRun(player);
         }
 
         Party party = partyManager.getParty(player.getUniqueId());
@@ -68,6 +68,22 @@ public class StrongholdQueueManager implements PartyMembershipListener {
                     ChatColor.RED + mode.displayName() + " requires exactly " + mode.teamSize() + " players.");
         }
         return joinMembers(mode, members);
+    }
+
+    private QueueJoinOutcome startSoloRun(Player player) {
+        UUID playerId = player.getUniqueId();
+        if (playerToEntry.containsKey(playerId)) {
+            return QueueJoinOutcome.of(QueueJoinResult.ALREADY_QUEUED,
+                    ChatColor.RED + "You are already queued.");
+        }
+        if (soloStartHandler == null) {
+            return joinMembers(StrongholdQueueMode.SOLO, List.of(playerId));
+        }
+        int avgGear = Math.max(0, ItemUtil.calculateTotalGearScore(player));
+        StrongholdGearBand band = StrongholdGearBand.fromAverageGear(avgGear);
+        soloStartHandler.onSoloStart(new SoloStartRequest(playerId, avgGear, band));
+        return QueueJoinOutcome.of(QueueJoinResult.STARTED,
+                ChatColor.GREEN + "Generating a solo Stronghold run now.");
     }
 
     private QueueJoinOutcome joinMembers(StrongholdQueueMode mode, List<UUID> members) {
@@ -256,6 +272,10 @@ public class StrongholdQueueManager implements PartyMembershipListener {
         this.matchHandler = matchHandler;
     }
 
+    public void setSoloStartHandler(SoloStartHandler soloStartHandler) {
+        this.soloStartHandler = soloStartHandler;
+    }
+
     private Optional<QueueEntry> getEntry(UUID playerId) {
         UUID entryId = playerToEntry.get(playerId);
         if (entryId == null) {
@@ -347,6 +367,7 @@ public class StrongholdQueueManager implements PartyMembershipListener {
     }
 
     public enum QueueJoinResult {
+        STARTED,
         JOINED,
         ALREADY_QUEUED,
         PARTY_REQUIRED,
@@ -382,6 +403,13 @@ public class StrongholdQueueManager implements PartyMembershipListener {
 
     public interface MatchHandler {
         void onMatchFound(QueueMatch match);
+    }
+
+    public record SoloStartRequest(UUID playerId, int averageGear, StrongholdGearBand gearBand) {
+    }
+
+    public interface SoloStartHandler {
+        void onSoloStart(SoloStartRequest request);
     }
 
 }
