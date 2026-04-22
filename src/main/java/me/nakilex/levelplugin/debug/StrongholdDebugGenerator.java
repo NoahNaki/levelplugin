@@ -1623,6 +1623,8 @@ public final class StrongholdDebugGenerator {
             }
             return;
         }
+        final List<DetachedAssetTemplate> finalTreeTemplates = treeTemplates;
+        final List<DetachedAssetTemplate> finalRockTemplates = rockTemplates;
         Main plugin = Main.getInstance();
         if (plugin == null) {
             if (onComplete != null) {
@@ -1684,7 +1686,7 @@ public final class StrongholdDebugGenerator {
                 }
 
                 DetachedAssetTemplate template = pickBorderForestTemplate(
-                        treeTemplates, rockTemplates, random, rockPlacedCount[0], minRockPlacements, targetPlacements, placedCount[0]);
+                        finalTreeTemplates, finalRockTemplates, random, rockPlacedCount[0], minRockPlacements, targetPlacements, placedCount[0]);
                 if (template == null) {
                     continue;
                 }
