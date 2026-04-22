@@ -768,6 +768,12 @@ public final class StrongholdDebugGenerator {
         pastePlacedTemplates(world, placed);
         applyStrongholdFloorNoise(world, placed);
         applyTemplateMarkerActions(sourceWorld, world, placed, ThreadLocalRandom.current());
+        AssetPlacementSummary towerAssetSummary = placeDetachedAssets(sourceWorld, world, placed, occupied, ThreadLocalRandom.current(), originY);
+        Bounds2D towerFootprint = combinedBounds2D(placed);
+        scheduleDetachedAssetPasting(world, towerAssetSummary.placements(), player, () ->
+                scheduleOrganicBorderForest(sourceWorld, world, towerFootprint, occupied, player, originY, () ->
+                        applyStrongholdFloorNoise(world, placed, true)
+                ));
         player.teleport(new org.bukkit.Location(world, originX + 0.5, originY + 2, originZ + 0.5));
         spawnDoorOpenInteractions(world, placed, player);
         if (plugin.getStrongholdSurvivalManager() != null) {
@@ -778,10 +784,6 @@ public final class StrongholdDebugGenerator {
                         + ChatColor.GRAY + "• "
                         + ChatColor.WHITE + placed.size() + ChatColor.GRAY + " pieces "
                         + ChatColor.DARK_GRAY + "(" + ChatColor.GRAY + world.getName() + ChatColor.DARK_GRAY + ")");
-        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
-                "Towerwall diagnostics -> remaining open outputs: " + countOpenOutputs(placed)
-                        + ", viable next outputs: skipped"
-                        + ", walls built: " + builtBranches + "/" + maxBranches);
         return true;
     }
 
@@ -4712,7 +4714,7 @@ public final class StrongholdDebugGenerator {
         state.interaction().setInteractionWidth(1.8f);
         state.interaction().setInteractionHeight(2.0f);
         state.display().teleport(base.clone().add(0, 0.75, 0));
-        state.display().setText(ChatColor.GOLD + "Right click with Gate Key");
+        state.display().setText(ChatColor.GOLD + "Right-click to open");
     }
 
     private static void hideDoorHologram(DoorInteractionState state) {
@@ -4789,8 +4791,7 @@ public final class StrongholdDebugGenerator {
         }
         if (!Main.getInstance().getStrongholdSurvivalManager().consumeDoorKey(player)) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
-                    ChatColor.GRAY + "You need a " + ChatColor.GOLD + "Stronghold Gate Key"
-                            + ChatColor.GRAY + " to open this door.");
+                    "Stronghold Gate Key required to open this door.");
             world.playSound(player.getLocation(), Sound.BLOCK_TRIAL_SPAWNER_OMINOUS_ACTIVATE, 0.8f, 0.7f);
             return;
         }

@@ -122,7 +122,7 @@ public class WeaponStatsListener implements Listener {
                             + playerClass + " does not meet required " + reqClass
                     );
                     player.sendMessage(ChatColor.RED
-                        + "You are not the right class to gain stats from "
+                        + "Your current class cannot gain stats from "
                         + inst.getBaseName() + "."
                     );
                 }

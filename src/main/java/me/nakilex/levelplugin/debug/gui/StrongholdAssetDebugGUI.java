@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.debug.gui;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.debug.StrongholdDebugGenerator;
+import me.nakilex.levelplugin.debug.StrongholdSurvivalManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
@@ -92,10 +93,20 @@ public final class StrongholdAssetDebugGUI implements Listener {
         inv.setItem(29, paletteItem("Floor Band 2", floorCfg.palette().get(1)));
         inv.setItem(30, paletteItem("Floor Band 3", floorCfg.palette().get(2)));
         inv.setItem(31, paletteItem("Floor Band 4", floorCfg.palette().get(3)));
+        inv.setItem(34, decimalItem(Material.BARRIER, "Run Border Initial",
+                StrongholdSurvivalManager.getBorderInitialSize(),
+                "Starting border size for Stronghold survival runs.", 1));
+        inv.setItem(35, decimalItem(Material.IRON_BARS, "Run Border Minimum",
+                StrongholdSurvivalManager.getBorderMinSize(),
+                "Smallest border size allowed while waves progress.", 1));
+        inv.setItem(37, decimalItem(Material.SPYGLASS, "Border Shrink / Wave",
+                StrongholdSurvivalManager.getBorderShrinkPerWave(),
+                "How many blocks the border shrinks each wave.", 10));
 
         List<String> resetLore = TooltipUtil.bulletList(
                 "Reset to 85% trees, 5% ruins, 10% rocks, total 500.",
-                "Floor defaults: packed_mud, coarse_dirt, grass_block, grass_block."
+                "Floor defaults: packed_mud, coarse_dirt, grass_block, grass_block.",
+                "Run border defaults: initial 220, min 42, shrink 5.5/wave."
         );
         resetLore.add(" ");
         resetLore.addAll(TooltipUtil.clickInstructions("to reset", null));
@@ -127,6 +138,20 @@ public final class StrongholdAssetDebugGUI implements Listener {
         lore.add(ChatColor.DARK_GRAY + "- " + ChatColor.GRAY + "Left/Right: ±1%");
         lore.add(ChatColor.DARK_GRAY + "- " + ChatColor.GRAY + "Shift+Left/Right: ±5%");
         return GuiUtil.createGuiItem(material, ChatColor.AQUA + name, lore);
+    }
+
+    private ItemStack decimalItem(Material material, String name, double current, String description, int scale) {
+        List<String> lore = new ArrayList<>();
+        lore.add(ChatColor.GRAY + description);
+        lore.add(ChatColor.GRAY + "Current: " + ChatColor.WHITE + formatDecimal(current, scale));
+        lore.add(" ");
+        lore.add(ChatColor.DARK_GRAY + "- " + ChatColor.GRAY + "Left/Right: ±" + (scale == 1 ? "1" : "0.1"));
+        lore.add(ChatColor.DARK_GRAY + "- " + ChatColor.GRAY + "Shift+Left/Right: ±" + (scale == 1 ? "10" : "1.0"));
+        return GuiUtil.createGuiItem(material, ChatColor.GOLD + name, lore);
+    }
+
+    private String formatDecimal(double value, int scale) {
+        return scale == 1 ? String.format("%.0f", value) : String.format("%.1f", value);
     }
 
     private ItemStack booleanItem(Material material, String name, boolean value, String description) {
@@ -211,11 +236,24 @@ public final class StrongholdAssetDebugGUI implements Listener {
                 int nextIndex = (currentIndex + sign + options.size()) % options.size();
                 StrongholdDebugGenerator.setFloorPaletteBlock(paletteIndex, options.get(nextIndex));
             }
+            case 34 -> {
+                double delta = shift ? 10.0 : 1.0;
+                StrongholdSurvivalManager.setBorderInitialSize(StrongholdSurvivalManager.getBorderInitialSize() + (sign * delta));
+            }
+            case 35 -> {
+                double delta = shift ? 10.0 : 1.0;
+                StrongholdSurvivalManager.setBorderMinSize(StrongholdSurvivalManager.getBorderMinSize() + (sign * delta));
+            }
+            case 37 -> {
+                double delta = shift ? 1.0 : 0.1;
+                StrongholdSurvivalManager.setBorderShrinkPerWave(StrongholdSurvivalManager.getBorderShrinkPerWave() + (sign * delta));
+            }
             case 40 -> {
                 StrongholdDebugGenerator.resetAssetScatterConfig();
                 StrongholdDebugGenerator.resetFloorTuningConfig();
+                StrongholdSurvivalManager.resetBorderSettings();
                 ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                        "Stronghold debug settings reset (assets + floor tuning).");
+                        "Stronghold debug settings reset (assets + floor tuning + run border).");
             }
             case 42 -> StrongholdDebugGenerator.logCurrentDebugSettings(player);
             default -> {

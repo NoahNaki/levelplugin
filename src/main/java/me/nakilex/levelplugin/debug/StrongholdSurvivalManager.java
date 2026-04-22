@@ -42,6 +42,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.EnumSet;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
@@ -65,15 +66,16 @@ public final class StrongholdSurvivalManager implements Listener {
     private static final String STRONGHOLD_DOOR_KEY_TAG = "stronghold_door_key";
     private static final int FINAL_WAVE = 30;
     private static final int BASE_WAVE_SECONDS = 50;
-    private static final double BORDER_INITIAL_SIZE = 220.0;
-    private static final double BORDER_MIN_SIZE = 42.0;
-    private static final double BORDER_SHRINK_PER_WAVE = 5.5;
+    private static final double DEFAULT_BORDER_INITIAL_SIZE = 220.0;
+    private static final double DEFAULT_BORDER_MIN_SIZE = 42.0;
+    private static final double DEFAULT_BORDER_SHRINK_PER_WAVE = 5.5;
     private static final int BORDER_WARNING_DISTANCE = 12;
     private static final int BASE_SCORE_MAX = 10000;
     private static final String CHOICE_GUI_TITLE = "Stronghold Path Node";
     private static final int CHOICE_RISK_SLOT = 11;
     private static final int CHOICE_BALANCE_SLOT = 15;
     private static final int OBJECTIVE_WINDOW_SECONDS = 25;
+    private static final Set<Material> WAVE_SPAWN_GROUND = EnumSet.of(Material.GRASS_BLOCK, Material.COARSE_DIRT);
 
     private static final List<String> EARLY_POOL = List.of(
             "rpg_rat", "wild_rooster", "forest_slime", "moss_zombie", "goblin_warrior", "goblin_archer"
@@ -151,6 +153,9 @@ public final class StrongholdSurvivalManager implements Listener {
     private final Map<UUID, UUID> mobToOwner = new HashMap<>();
     private final Map<UUID, Run> pendingChoiceByLeader = new HashMap<>();
     private final Map<UUID, Long> mobSpawnedAtMs = new HashMap<>();
+    private static double borderInitialSize = DEFAULT_BORDER_INITIAL_SIZE;
+    private static double borderMinSize = DEFAULT_BORDER_MIN_SIZE;
+    private static double borderShrinkPerWave = DEFAULT_BORDER_SHRINK_PER_WAVE;
 
     public StrongholdSurvivalManager(Main plugin) {
         this.plugin = plugin;
@@ -169,6 +174,37 @@ public final class StrongholdSurvivalManager implements Listener {
 
     public boolean isActive(UUID playerId) {
         return playerId != null && runsByPlayer.containsKey(playerId);
+    }
+
+    public static double getBorderInitialSize() {
+        return borderInitialSize;
+    }
+
+    public static double getBorderMinSize() {
+        return borderMinSize;
+    }
+
+    public static double getBorderShrinkPerWave() {
+        return borderShrinkPerWave;
+    }
+
+    public static void setBorderInitialSize(double value) {
+        borderInitialSize = Math.max(40.0, Math.min(500.0, value));
+        borderMinSize = Math.min(borderMinSize, borderInitialSize - 5.0);
+    }
+
+    public static void setBorderMinSize(double value) {
+        borderMinSize = Math.max(20.0, Math.min(borderInitialSize - 5.0, value));
+    }
+
+    public static void setBorderShrinkPerWave(double value) {
+        borderShrinkPerWave = Math.max(0.5, Math.min(20.0, value));
+    }
+
+    public static void resetBorderSettings() {
+        borderInitialSize = DEFAULT_BORDER_INITIAL_SIZE;
+        borderMinSize = DEFAULT_BORDER_MIN_SIZE;
+        borderShrinkPerWave = DEFAULT_BORDER_SHRINK_PER_WAVE;
     }
 
     public void recordDoorOpened(UUID playerId) {
@@ -984,13 +1020,27 @@ public final class StrongholdSurvivalManager implements Listener {
         if (base == null || base.getWorld() == null) {
             return center;
         }
+        World world = base.getWorld();
         ThreadLocalRandom random = ThreadLocalRandom.current();
-        double angle = random.nextDouble(0.0, Math.PI * 2.0);
-        double radius = random.nextDouble(minRadius, maxRadius);
-        double x = base.getX() + (Math.cos(angle) * radius);
-        double z = base.getZ() + (Math.sin(angle) * radius);
-        int y = base.getWorld().getHighestBlockYAt((int) Math.floor(x), (int) Math.floor(z));
-        return new Location(base.getWorld(), x, y + 1.0, z);
+        for (int attempt = 0; attempt < 24; attempt++) {
+            double angle = random.nextDouble(0.0, Math.PI * 2.0);
+            double radius = random.nextDouble(minRadius, maxRadius);
+            double x = base.getX() + (Math.cos(angle) * radius);
+            double z = base.getZ() + (Math.sin(angle) * radius);
+            int blockX = (int) Math.floor(x);
+            int blockZ = (int) Math.floor(z);
+            int y = world.getHighestBlockYAt(blockX, blockZ);
+            var ground = world.getBlockAt(blockX, y, blockZ);
+            if (!WAVE_SPAWN_GROUND.contains(ground.getType())) {
+                continue;
+            }
+            if (!world.getBlockAt(blockX, y + 1, blockZ).isPassable() || !world.getBlockAt(blockX, y + 2, blockZ).isPassable()) {
+                continue;
+            }
+            return new Location(world, x, y + 1.0, z);
+        }
+        int fallbackY = world.getHighestBlockYAt(base.getBlockX(), base.getBlockZ());
+        return new Location(world, base.getX(), fallbackY + 1.0, base.getZ());
     }
 
     private boolean isStrongholdWorld(World world) {
@@ -1020,7 +1070,7 @@ public final class StrongholdSurvivalManager implements Listener {
         border.setCenter(player.getLocation().getX(), player.getLocation().getZ());
         border.setWarningDistance(BORDER_WARNING_DISTANCE);
         border.setWarningTime(8);
-        border.setSize(BORDER_INITIAL_SIZE);
+        border.setSize(borderInitialSize);
     }
 
     private void applyWaveBorder(Run run) {
@@ -1031,7 +1081,7 @@ public final class StrongholdSurvivalManager implements Listener {
         if (world == null) {
             return;
         }
-        double nextSize = Math.max(BORDER_MIN_SIZE, BORDER_INITIAL_SIZE - ((run.wave - 1) * BORDER_SHRINK_PER_WAVE));
+        double nextSize = Math.max(borderMinSize, borderInitialSize - ((run.wave - 1) * borderShrinkPerWave));
         world.getWorldBorder().setSize(nextSize, BASE_WAVE_SECONDS);
     }
 
