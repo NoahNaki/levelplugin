@@ -125,6 +125,9 @@ public class LootChestListener implements Listener {
         LootChestManager.ChestProgress strongholdProgress =
                 lootChestManager.recordStrongholdChestOpen(player.getUniqueId(), chestId, loc.getWorld());
         if (strongholdProgress != null) {
+            if (Main.getInstance().getStrongholdSurvivalManager() != null) {
+                Main.getInstance().getStrongholdSurvivalManager().recordChestOpened(player.getUniqueId());
+            }
             ChatMessageUtil.send(player, MessageType.INFO,
                     ChatColor.GRAY + "Stronghold chests opened: "
                             + ChatColor.GOLD + strongholdProgress.opened()

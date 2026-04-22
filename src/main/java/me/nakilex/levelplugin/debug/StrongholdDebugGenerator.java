@@ -4712,7 +4712,7 @@ public final class StrongholdDebugGenerator {
         state.interaction().setInteractionWidth(1.8f);
         state.interaction().setInteractionHeight(2.0f);
         state.display().teleport(base.clone().add(0, 0.75, 0));
-        state.display().setText(ChatColor.GOLD + "Right click to open");
+        state.display().setText(ChatColor.GOLD + "Right click with Gate Key");
     }
 
     private static void hideDoorHologram(DoorInteractionState state) {
@@ -4784,6 +4784,16 @@ public final class StrongholdDebugGenerator {
         if (world == null || state.openTemplate() == null || state.openTemplate().template() == null) {
             return;
         }
+        if (Main.getInstance() == null || Main.getInstance().getStrongholdSurvivalManager() == null) {
+            return;
+        }
+        if (!Main.getInstance().getStrongholdSurvivalManager().consumeDoorKey(player)) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                    ChatColor.GRAY + "You need a " + ChatColor.GOLD + "Stronghold Gate Key"
+                            + ChatColor.GRAY + " to open this door.");
+            world.playSound(player.getLocation(), Sound.BLOCK_TRIAL_SPAWNER_OMINOUS_ACTIVATE, 0.8f, 0.7f);
+            return;
+        }
 
         replacePlacedTemplate(world, state.closedTemplate(), state.openTemplate());
         clearDoorPlaceholderBlocks(world, new PlacedTemplate(
@@ -4812,8 +4822,10 @@ public final class StrongholdDebugGenerator {
         if (worldStates != null) {
             worldStates.remove(state);
         }
+        Main.getInstance().getStrongholdSurvivalManager().recordDoorOpened(player.getUniqueId());
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                ChatColor.GREEN + "" + ChatColor.BOLD + "GATE OPENED");
+                ChatColor.GREEN + "" + ChatColor.BOLD + "GATE OPENED"
+                        + ChatColor.GRAY + " • " + ChatColor.GOLD + "Gate Key consumed");
     }
 
     private static void replacePlacedTemplate(World world, PlacedTemplate current, TemplateSpec replacement) {

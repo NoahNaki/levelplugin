@@ -1,23 +1,33 @@
 package me.nakilex.levelplugin.debug;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.mob.custom.CustomMobManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
+import me.nakilex.levelplugin.utils.RewardBombUtil;
+import me.nakilex.levelplugin.utils.TooltipUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
+import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitTask;
@@ -30,6 +40,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Supplier;
 
 /**
  * Lightweight wave survival runtime for stronghold debug worlds.
@@ -43,6 +54,7 @@ import java.util.concurrent.ThreadLocalRandom;
  */
 public final class StrongholdSurvivalManager implements Listener {
     private static final String WAVE_TAG = "stronghold_wave_mob";
+    private static final String STRONGHOLD_DOOR_KEY_TAG = "stronghold_door_key";
     private static final int FINAL_WAVE = 30;
     private static final int BASE_WAVE_SECONDS = 50;
     private static final double BORDER_INITIAL_SIZE = 220.0;
@@ -70,12 +82,14 @@ public final class StrongholdSurvivalManager implements Listener {
     }
 
     private final Main plugin;
+    private final org.bukkit.NamespacedKey strongholdDoorKeyTag;
     private final Map<UUID, Run> runsByPlayer = new HashMap<>();
     private final Map<UUID, Run> runsByWorld = new HashMap<>();
     private final Map<UUID, UUID> mobToOwner = new HashMap<>();
 
     public StrongholdSurvivalManager(Main plugin) {
         this.plugin = plugin;
+        this.strongholdDoorKeyTag = new org.bukkit.NamespacedKey(plugin, STRONGHOLD_DOOR_KEY_TAG);
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
     }
 
@@ -90,6 +104,63 @@ public final class StrongholdSurvivalManager implements Listener {
 
     public boolean isActive(UUID playerId) {
         return playerId != null && runsByPlayer.containsKey(playerId);
+    }
+
+    public void recordDoorOpened(UUID playerId) {
+        Run run = runsByPlayer.get(playerId);
+        if (run != null) {
+            run.doorsOpened++;
+        }
+    }
+
+    public void recordChestOpened(UUID playerId) {
+        Run run = runsByPlayer.get(playerId);
+        if (run != null) {
+            run.chestsOpened++;
+        }
+    }
+
+    public boolean consumeDoorKey(Player player) {
+        if (player == null) return false;
+        for (ItemStack stack : player.getInventory().getContents()) {
+            if (!isStrongholdDoorKey(stack)) {
+                continue;
+            }
+            int next = stack.getAmount() - 1;
+            if (next <= 0) {
+                player.getInventory().removeItem(stack);
+            } else {
+                stack.setAmount(next);
+            }
+            return true;
+        }
+        return false;
+    }
+
+    public ItemStack createStrongholdDoorKey() {
+        ItemStack stack = new ItemStack(Material.TRIAL_KEY);
+        ItemMeta meta = stack.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(ChatColor.GOLD + "" + ChatColor.BOLD + "Stronghold Gate Key");
+            meta.setLore(TooltipUtil.dungeonItemLore(
+                    "Consumed to open sealed stronghold doors.", true));
+            meta.getPersistentDataContainer().set(ItemUtil.DUNGEON_ITEM_KEY, PersistentDataType.BYTE, (byte) 1);
+            meta.getPersistentDataContainer().set(strongholdDoorKeyTag, PersistentDataType.BYTE, (byte) 1);
+            stack.setItemMeta(meta);
+        }
+        ItemUtil.setSoulbound(stack, true);
+        return stack;
+    }
+
+    public boolean isStrongholdDoorKey(ItemStack stack) {
+        if (stack == null || stack.getType() != Material.TRIAL_KEY || !stack.hasItemMeta()) {
+            return false;
+        }
+        ItemMeta meta = stack.getItemMeta();
+        if (meta == null) {
+            return false;
+        }
+        return meta.getPersistentDataContainer().has(strongholdDoorKeyTag, PersistentDataType.BYTE);
     }
 
     public void startRun(Player player) {
@@ -179,6 +250,9 @@ public final class StrongholdSurvivalManager implements Listener {
         }
         run.mobIds.remove(mobId);
         run.mobsRemaining = Math.max(0, run.mobsRemaining - 1);
+        if (ThreadLocalRandom.current().nextDouble() <= 0.05D) {
+            event.getDrops().add(createStrongholdDoorKey());
+        }
         updateBossBar(run);
         if (run.mobsRemaining <= 0) {
             completeWave(run);
@@ -188,6 +262,35 @@ public final class StrongholdSurvivalManager implements Listener {
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
         stopRun(event.getPlayer().getUniqueId(), true);
+    }
+
+    @EventHandler
+    public void onDamage(EntityDamageEvent event) {
+        if (!(event.getEntity() instanceof Player player)) {
+            return;
+        }
+        Run run = runsByPlayer.get(player.getUniqueId());
+        if (run == null || !run.active) {
+            return;
+        }
+        run.damageTaken += Math.max(0.0, event.getFinalDamage());
+    }
+
+    @EventHandler
+    public void onWorldChange(PlayerChangedWorldEvent event) {
+        Player player = event.getPlayer();
+        if (player == null) {
+            return;
+        }
+        if (isStrongholdWorld(player.getWorld())) {
+            return;
+        }
+        int removed = stripStrongholdKeys(player);
+        if (removed > 0) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                    ChatColor.GRAY + "Your " + ChatColor.GOLD + "Stronghold Gate Key"
+                            + ChatColor.GRAY + " dissolved outside the stronghold.");
+        }
     }
 
     private void beginWave(Run run, boolean announceBuff) {
@@ -353,12 +456,31 @@ public final class StrongholdSurvivalManager implements Listener {
     }
 
     private void finishRun(Run run) {
+        long elapsedMs = Math.max(1L, System.currentTimeMillis() - run.startedAtMs);
+        int score = calculateScore(run, elapsedMs);
+        String rank = rankForScore(score);
+        Player anchor = resolveAnchor(run);
+        if (anchor != null) {
+            if (plugin.getLootChestManager() != null) {
+                Supplier<ItemStack> rewardSupplier = () -> plugin.getLootChestManager()
+                        .getRandomLootForTier(Math.max(4, run.averageGearScore / 120), "stronghold", null);
+                RewardBombUtil.startRewardBomb(plugin, anchor.getLocation(), rewardSupplier, 100);
+            }
+        }
         for (UUID member : run.members) {
             Player player = Bukkit.getPlayer(member);
             if (player == null || !player.isOnline()) continue;
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
                     ChatColor.GREEN + "" + ChatColor.BOLD + "STRONGHOLD CLEARED"
                             + ChatColor.GRAY + " • You survived all " + ChatColor.GOLD + FINAL_WAVE + ChatColor.GRAY + " waves.");
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                    ChatColor.GRAY + "Score " + ChatColor.GOLD + score + ChatColor.GRAY
+                            + " • Rank " + rank);
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                    ChatColor.DARK_GRAY + "Time: " + ChatColor.WHITE + formatElapsed(elapsedMs)
+                            + ChatColor.DARK_GRAY + " | Damage: " + ChatColor.WHITE + (int) Math.round(run.damageTaken)
+                            + ChatColor.DARK_GRAY + " | Chests: " + ChatColor.WHITE + run.chestsOpened
+                            + ChatColor.DARK_GRAY + " | Doors: " + ChatColor.WHITE + run.doorsOpened);
             player.sendTitle(ChatColor.GREEN + "" + ChatColor.BOLD + "Stronghold Cleared",
                     ChatColor.GRAY + "All waves defeated", 10, 60, 15);
             player.playSound(player.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 1.0f, 0.8f);
@@ -446,6 +568,46 @@ public final class StrongholdSurvivalManager implements Listener {
             }
         }
         return players;
+    }
+
+    private int stripStrongholdKeys(Player player) {
+        int removed = 0;
+        ItemStack[] contents = player.getInventory().getContents();
+        for (int i = 0; i < contents.length; i++) {
+            ItemStack stack = contents[i];
+            if (!isStrongholdDoorKey(stack)) {
+                continue;
+            }
+            removed += stack.getAmount();
+            contents[i] = null;
+        }
+        player.getInventory().setContents(contents);
+        return removed;
+    }
+
+    private int calculateScore(Run run, long elapsedMs) {
+        int timeComponent = Math.max(0, 4200 - (int) (elapsedMs / 1000L) * 9);
+        int damageComponent = Math.max(0, 2600 - (int) Math.round(run.damageTaken * 2.5));
+        int chestComponent = Math.min(1600, run.chestsOpened * 180);
+        int doorComponent = Math.min(1600, run.doorsOpened * 220);
+        return Math.max(0, timeComponent + damageComponent + chestComponent + doorComponent);
+    }
+
+    private String rankForScore(int score) {
+        if (score >= 8500) return ChatColor.GOLD + "" + ChatColor.BOLD + "S";
+        if (score >= 7200) return ChatColor.GREEN + "A";
+        if (score >= 6000) return ChatColor.AQUA + "B";
+        if (score >= 4800) return ChatColor.YELLOW + "C";
+        if (score >= 3600) return ChatColor.GOLD + "D";
+        if (score >= 2400) return ChatColor.RED + "E";
+        return ChatColor.DARK_RED + "F";
+    }
+
+    private String formatElapsed(long elapsedMs) {
+        long totalSeconds = Math.max(0L, elapsedMs / 1000L);
+        long minutes = totalSeconds / 60L;
+        long seconds = totalSeconds % 60L;
+        return String.format("%02d:%02d", minutes, seconds);
     }
 
     private boolean isEliteWave(int wave) {
@@ -554,6 +716,10 @@ public final class StrongholdSurvivalManager implements Listener {
         private int wave = 0;
         private int mobsRemaining = 0;
         private long waveDeadlineMs = 0L;
+        private final long startedAtMs = System.currentTimeMillis();
+        private double damageTaken = 0.0;
+        private int chestsOpened = 0;
+        private int doorsOpened = 0;
         private final Set<UUID> mobIds = new HashSet<>();
         private BossBar bossBar;
         private BukkitTask waveTask;
