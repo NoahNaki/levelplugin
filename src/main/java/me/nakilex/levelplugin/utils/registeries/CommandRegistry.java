@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.blacksmith.commands.BlacksmithCommand;
 import me.nakilex.levelplugin.blacksmith.gui.BlacksmithGUI;
 import me.nakilex.levelplugin.arena.commands.ArenaCommand;
+import me.nakilex.levelplugin.stronghold.commands.StrongholdCommand;
 import me.nakilex.levelplugin.duels.commands.DuelCommand;
 import me.nakilex.levelplugin.economy.commands.*;
 import me.nakilex.levelplugin.economy.gui.GemExchangeGUI;
@@ -290,6 +291,9 @@ public class CommandRegistry {
         ArenaCommand arenaCmd = new ArenaCommand(plugin.getArenaQueueGUI(), plugin.getArenaQueueManager());
         plugin.getCommand("arena").setExecutor(arenaCmd);
         plugin.getCommand("arena").setTabCompleter(arenaCmd);
+        StrongholdCommand strongholdCmd = new StrongholdCommand(plugin.getStrongholdQueueGUI(), plugin.getStrongholdQueueManager());
+        plugin.getCommand("stronghold").setExecutor(strongholdCmd);
+        plugin.getCommand("stronghold").setTabCompleter(strongholdCmd);
         plugin.getCommand("ps").setExecutor(new StorageCommand(storageManager));
         MerchantCommand merchantCommand = new MerchantCommand(plugin);
         plugin.getCommand("merchant").setExecutor(merchantCommand);

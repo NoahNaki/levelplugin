@@ -5,6 +5,8 @@ import me.nakilex.levelplugin.arena.ArenaMode;
 import me.nakilex.levelplugin.arena.ArenaQueueManager;
 import me.nakilex.levelplugin.arena.rating.ArenaRatingManager;
 import me.nakilex.levelplugin.catacombs.CatacombsManager;
+import me.nakilex.levelplugin.stronghold.StrongholdQueueManager;
+import me.nakilex.levelplugin.stronghold.StrongholdQueueMode;
 import me.nakilex.levelplugin.party.Party;
 import me.nakilex.levelplugin.party.PartyManager;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
@@ -35,6 +37,7 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
     private final LevelManager levelManager;
     private final ArenaQueueManager arenaQueueManager;
     private final ArenaRatingManager arenaRatingManager;
+    private StrongholdQueueManager strongholdQueueManager;
     private CatacombsManager catacombsManager;
 
     private final Map<UUID, Scoreboard> boards = new HashMap<>();
@@ -84,6 +87,9 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
 
     public void setCatacombsManager(CatacombsManager catacombsManager) {
         this.catacombsManager = catacombsManager;
+    }
+    public void setStrongholdQueueManager(StrongholdQueueManager strongholdQueueManager) {
+        this.strongholdQueueManager = strongholdQueueManager;
     }
 
     public void createBoard(Player player) {
@@ -222,10 +228,11 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
         boolean inParty = party != null;
 
         boolean queueing = arenaQueueManager != null && arenaQueueManager.isQueued(id);
+        boolean strongholdQueueing = strongholdQueueManager != null && strongholdQueueManager.isQueued(id);
 
         boolean catacombsActive = catacombsManager != null && catacombsManager.getStage(id) != null;
 
-        boolean showBoard = siegeActive || hasQuest || hasGuildQuest || inParty || queueing || catacombsActive;
+        boolean showBoard = siegeActive || hasQuest || hasGuildQuest || inParty || queueing || strongholdQueueing || catacombsActive;
         Scoreboard board = boards.get(id);
         if (!showBoard) {
             if (board != null) {
@@ -359,6 +366,39 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
             }
 
             current[idx] = ChatColor.GRAY + "Waiting: " + ChatColor.WHITE + formatDuration(wait);
+            if (!current[idx].equals(prev[idx])) {
+                setLine(board, obj, idx, line, current[idx]);
+            }
+            idx++; line--;
+
+            current[idx] = " ";
+            if (!current[idx].equals(prev[idx])) {
+                setLine(board, obj, idx, line, current[idx]);
+            }
+            idx++; line--;
+        }
+        if (strongholdQueueing) {
+            StrongholdQueueMode mode = strongholdQueueManager.getMode(id).orElse(StrongholdQueueMode.SOLO);
+            current[idx] = ChatColor.GOLD + "Stronghold " + mode.color() + mode.displayName() + ChatColor.GRAY + " Queue";
+            if (!current[idx].equals(prev[idx])) {
+                setLine(board, obj, idx, line, current[idx]);
+            }
+            idx++; line--;
+
+            current[idx] = ChatColor.GRAY + "Players: " + ChatColor.WHITE + strongholdQueueManager.getQueuePopulation(mode);
+            if (!current[idx].equals(prev[idx])) {
+                setLine(board, obj, idx, line, current[idx]);
+            }
+            idx++; line--;
+
+            String bandName = strongholdQueueManager.getGearBand(id).map(band -> band.display() + ChatColor.GRAY).orElse(ChatColor.WHITE + "Unknown" + ChatColor.GRAY);
+            current[idx] = ChatColor.GRAY + "Gear Band: " + bandName;
+            if (!current[idx].equals(prev[idx])) {
+                setLine(board, obj, idx, line, current[idx]);
+            }
+            idx++; line--;
+
+            current[idx] = ChatColor.GRAY + "Waiting: " + ChatColor.WHITE + formatDuration(strongholdQueueManager.getWaitDuration(id));
             if (!current[idx].equals(prev[idx])) {
                 setLine(board, obj, idx, line, current[idx]);
             }

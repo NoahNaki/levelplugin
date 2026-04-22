@@ -61,6 +61,8 @@ public class Main extends JavaPlugin {
     public PartyManager getPartyManager() { return bootstrap.getPartyManager(); }
     public me.nakilex.levelplugin.arena.ArenaQueueManager getArenaQueueManager() { return bootstrap.getArenaQueueManager(); }
     public me.nakilex.levelplugin.arena.gui.ArenaQueueGUI getArenaQueueGUI() { return bootstrap.getArenaQueueGUI(); }
+    public me.nakilex.levelplugin.stronghold.StrongholdQueueManager getStrongholdQueueManager() { return bootstrap.getStrongholdQueueManager(); }
+    public me.nakilex.levelplugin.stronghold.gui.StrongholdQueueGUI getStrongholdQueueGUI() { return bootstrap.getStrongholdQueueGUI(); }
     public me.nakilex.levelplugin.arena.instance.ArenaInstanceManager getArenaInstanceManager() { return bootstrap.getArenaInstanceManager(); }
     public me.nakilex.levelplugin.arena.rating.ArenaRatingManager getArenaRatingManager() { return bootstrap.getArenaRatingManager(); }
     public me.nakilex.levelplugin.arena.match.ArenaMatchManager getArenaMatchManager() { return bootstrap.getArenaMatchManager(); }
