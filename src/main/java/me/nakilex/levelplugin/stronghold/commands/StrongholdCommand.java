@@ -1,9 +1,12 @@
 package me.nakilex.levelplugin.stronghold.commands;
 
+import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.stronghold.StrongholdQueueManager;
 import me.nakilex.levelplugin.stronghold.StrongholdQueueMode;
 import me.nakilex.levelplugin.stronghold.gui.StrongholdQueueGUI;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
@@ -20,16 +23,24 @@ import static me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
 import static me.nakilex.levelplugin.utils.ChatMessageUtil.send;
 
 public class StrongholdCommand implements TabExecutor {
+    private static final String TEMPLATE_CONFIG_KEY = "stronghold.generated-world-template";
+
+    private final Main plugin;
     private final StrongholdQueueGUI gui;
     private final StrongholdQueueManager queueManager;
 
-    public StrongholdCommand(StrongholdQueueGUI gui, StrongholdQueueManager queueManager) {
+    public StrongholdCommand(Main plugin, StrongholdQueueGUI gui, StrongholdQueueManager queueManager) {
+        this.plugin = plugin;
         this.gui = gui;
         this.queueManager = queueManager;
     }
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        if (args.length > 0 && equalsAny(args[0], "template")) {
+            return handleTemplateSubcommand(sender, args);
+        }
+
         if (!(sender instanceof Player player)) {
             send(sender, MessageType.ERROR, "Only players can use this command.");
             return true;
@@ -80,17 +91,24 @@ public class StrongholdCommand implements TabExecutor {
             return true;
         }
 
-        send(player, MessageType.INFO, "Usage: /" + label + " [join|leave|open] [solo|duo|squad]");
+        send(player, MessageType.INFO, "Usage: /" + label + " [join|leave|open|template]");
         return true;
     }
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            return partial(args[0], List.of("join", "leave", "open"));
+            return partial(args[0], List.of("join", "leave", "open", "template"));
         }
         if (args.length == 2 && equalsAny(args[0], "join", "queue")) {
             return partial(args[1], Arrays.asList("solo", "duo", "squad"));
+        }
+        if (args.length == 2 && equalsAny(args[0], "template")) {
+            return partial(args[1], List.of("set", "clear", "show"));
+        }
+        if (args.length == 3 && equalsAny(args[0], "template") && equalsAny(args[1], "set")) {
+            List<String> names = Bukkit.getWorlds().stream().map(World::getName).toList();
+            return partial(args[2], names);
         }
         return Collections.emptyList();
     }
@@ -125,5 +143,45 @@ public class StrongholdCommand implements TabExecutor {
             case "squad", "q", "4" -> Optional.of(StrongholdQueueMode.SQUAD);
             default -> Optional.empty();
         };
+    }
+
+    private boolean handleTemplateSubcommand(CommandSender sender, String[] args) {
+        if (plugin == null || plugin.getCustomConfig() == null) {
+            send(sender, MessageType.ERROR, "Config is unavailable. Try again after startup.");
+            return true;
+        }
+        if (args.length < 2 || equalsAny(args[1], "show")) {
+            String current = plugin.getCustomConfig().getString(TEMPLATE_CONFIG_KEY, "").trim();
+            if (current.isBlank()) {
+                send(sender, MessageType.INFO, "Stronghold template world is currently unset (superflat fallback is used).");
+            } else {
+                send(sender, MessageType.INFO, "Stronghold template world: " + ChatColor.WHITE + current);
+            }
+            return true;
+        }
+        if (equalsAny(args[1], "clear", "none", "off")) {
+            plugin.getCustomConfig().set(TEMPLATE_CONFIG_KEY, "");
+            plugin.saveCustomConfig();
+            send(sender, MessageType.SUCCESS, "Cleared Stronghold template world. New runs will use superflat fallback.");
+            return true;
+        }
+        if (equalsAny(args[1], "set")) {
+            if (args.length < 3) {
+                send(sender, MessageType.WARNING, "Usage: /stronghold template set <worldName>");
+                return true;
+            }
+            String worldName = args[2];
+            World world = Bukkit.getWorld(worldName);
+            if (world == null) {
+                send(sender, MessageType.ERROR, "World '" + worldName + "' is not loaded. Load/import it first.");
+                return true;
+            }
+            plugin.getCustomConfig().set(TEMPLATE_CONFIG_KEY, world.getName());
+            plugin.saveCustomConfig();
+            send(sender, MessageType.SUCCESS, "Set Stronghold template world to " + ChatColor.WHITE + world.getName() + ChatColor.GREEN + ".");
+            return true;
+        }
+        send(sender, MessageType.WARNING, "Usage: /stronghold template <set|clear|show> [worldName]");
+        return true;
     }
 }
